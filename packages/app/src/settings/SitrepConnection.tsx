@@ -19,8 +19,8 @@ import styled, { keyframes } from "styled-components";
  * The single Gonogo/Sitrep connection row: reads status and config off
  * `sitrepStreamSource` (`packages/app/src/dataSources/sitrep.ts`) through the
  * generic `DataSource` interface. Its own file rather than inline in
- * `SettingsModal.tsx` so the Hub setup wizard's setup-assist step can reuse
- * the same host/data-source UI.
+ * `SettingsModal.tsx` so the first-run setup flow's connect step reuses the
+ * same host/data-source UI rather than growing a second one.
  */
 export function SitrepConnection() {
   const dataSources = useDataSources();
@@ -124,14 +124,14 @@ export function SitrepConnection() {
   );
 }
 
-/** Shared row styling: `SettingsModal`'s Uplink lists and the wizard's `ResultsStep` both import this. */
+/** Shared row styling: `SettingsModal`'s Uplink lists and `UplinkReadinessStep` both import this. */
 export const ConnectionRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-8);
 `;
 
-/** Shared with `SettingsModal`'s Uplink lists and the wizard's `ResultsStep`. */
+/** Shared with `SettingsModal`'s Uplink lists and `UplinkReadinessStep`. */
 export const Name = styled.span`
   flex: 1;
   font-size: var(--font-size-sm);

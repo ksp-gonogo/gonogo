@@ -1,4 +1,3 @@
-import { SerialDeviceService } from "@ksp-gonogo/serial";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -12,14 +11,13 @@ import {
   __resetFirstRunSetupForTests,
   hasSeenFirstRunSetup,
   markFirstRunSetupSeen,
-} from "./firstRunSetup";
-import { SettingsService } from "./SettingsService";
+} from "./firstRunFlag";
 
 /**
- * Proves the first-run auto-open host: real `ModalProvider` + `SettingsModal`,
- * nothing mocked. No telemetry provider is mounted, so the Data Sources tab
- * renders its own waiting state, which is the point: these cases are about
- * whether and when the modal opens, not what the tab then reports.
+ * Proves the first-run auto-open host: real `ModalProvider` + the real setup
+ * flow, nothing mocked. No telemetry provider is mounted, which is fine here:
+ * these cases are about whether and when the modal opens, and the flow opens on
+ * its Welcome step, which reads nothing.
  */
 
 function memoryStorage(): Storage {
@@ -35,18 +33,12 @@ function memoryStorage(): Storage {
 }
 
 function renderHost(analyticsConsent?: AnalyticsConsentService) {
-  const settingsService = new SettingsService(memoryStorage());
-  const serialService = new SerialDeviceService({ screenKey: "test" });
   // Answered by default: these cases are about the first-run flag, not the
   // consent gate, and an unanswered gate deliberately holds the auto-open.
   const consent = analyticsConsent ?? answeredConsent();
   return render(
     <ModalProvider>
-      <FirstRunSetupHost
-        settingsService={settingsService}
-        serialService={serialService}
-        analyticsConsent={consent}
-      />
+      <FirstRunSetupHost analyticsConsent={consent} />
     </ModalProvider>,
   );
 }
@@ -62,12 +54,10 @@ beforeEach(() => {
 });
 
 describe("FirstRunSetupHost", () => {
-  it("auto-opens the Settings modal pre-selected to the Data Sources tab on first run", async () => {
+  it("auto-opens the setup flow on its first step on first run", async () => {
     renderHost();
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(
-      screen.getByRole("tab", { name: "Data Sources", selected: true }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 4: Welcome")).toBeInTheDocument();
   });
 
   it("marks the first-run flag the instant it opens (idempotent even if never finished)", async () => {
@@ -96,12 +86,29 @@ describe("FirstRunSetupHost", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("closes the modal when the flow's own last step finishes", async () => {
+    renderHost();
+    await screen.findByRole("dialog");
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "Get started" }));
+    await user.click(screen.getByRole("button", { name: "Check Uplinks" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Finish" }));
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
+    );
+  });
+
   it("has no axe violations on the auto-opened first-run modal", async () => {
     renderHost();
     await screen.findByRole("dialog");
-    // The modal renders via a portal into `document.body`, not into RTL's
-    // `container`: same reason `Modal.tsx`'s own dialog implementation
-    // uses `createPortal`.
+    /*
+     * The modal renders via a portal into `document.body`, not into RTL's
+     * `container`: same reason `Modal.tsx`'s own dialog implementation uses
+     * `createPortal`.
+     */
     await expectNoA11yViolations(document.body);
   });
 
@@ -142,13 +149,11 @@ describe("FirstRunSetupHost", () => {
       .setup()
       .click(screen.getByRole("button", { name: "Decline" }));
 
-    // Consent answered: the settings modal takes its place, still exactly one.
+    // Consent answered: the setup flow takes its place, still exactly one.
     await waitFor(() =>
       expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1),
     );
-    expect(
-      screen.getByRole("tab", { name: "Data Sources", selected: true }),
-    ).toBeInTheDocument();
+    expect(screen.getByText("Step 1 of 4: Welcome")).toBeInTheDocument();
   });
 });
 
@@ -162,16 +167,10 @@ describe("FirstRunSetupHost", () => {
 function ConsentThenSetup({
   consent,
 }: Readonly<{ consent: AnalyticsConsentService }>) {
-  const settingsService = new SettingsService(memoryStorage());
-  const serialService = new SerialDeviceService({ screenKey: "test" });
   return (
     <ModalProvider>
       <ConsentGate service={consent} />
-      <FirstRunSetupHost
-        settingsService={settingsService}
-        serialService={serialService}
-        analyticsConsent={consent}
-      />
+      <FirstRunSetupHost analyticsConsent={consent} />
     </ModalProvider>
   );
 }

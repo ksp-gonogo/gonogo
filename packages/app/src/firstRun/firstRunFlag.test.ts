@@ -3,9 +3,9 @@ import {
   __resetFirstRunSetupForTests,
   hasSeenFirstRunSetup,
   markFirstRunSetupSeen,
-} from "./firstRunSetup";
+} from "./firstRunFlag";
 
-describe("firstRunSetup", () => {
+describe("firstRunFlag", () => {
   beforeEach(() => {
     __resetFirstRunSetupForTests();
   });

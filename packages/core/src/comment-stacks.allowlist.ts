@@ -269,7 +269,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/app/src/uplinks/loader.ts": 1,
   "packages/app/src/uplinks/noBakedUplinkIds.test.ts": 1,
   "packages/app/src/uplinks/rosterProbe.test.ts": 3,
-  "packages/app/src/settings/FirstRunSetupHost.test.tsx": 1,
   "packages/app/vite.config.ts": 5,
   "packages/app/vitest.config.ts": 1,
   "packages/components/scripts/banner-probe/banner-probe-entry.tsx": 2,

@@ -8,8 +8,8 @@
 //
 // The key still says `uplinkHubWizard` because it is the same flag an operator
 // may already have set. Renaming it would re-open the modal for everyone who
-// had already dismissed the wizard this replaced, which is the one thing the
-// flag exists to prevent.
+// has already dismissed this flow under either of its earlier names, which is
+// the one thing the flag exists to prevent.
 
 const STORAGE_KEY = "gonogo.uplinkHubWizard.firstRunSeen";
 

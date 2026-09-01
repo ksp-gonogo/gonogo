@@ -55,6 +55,7 @@ import { SimulationIndicator } from "../components/SimulationIndicator";
 import { StationLinkFab } from "../components/StationLinkFab";
 import { SustainedFailureBanner } from "../components/SustainedFailureBanner";
 import { CoverageSyncHostService } from "../coverage/CoverageSyncHostService";
+import { FirstRunSetupHost } from "../firstRun/FirstRunSetupHost";
 import { GoNoGoHostProvider, GoNoGoHostService } from "../goNoGo";
 import { createManeuverTriggerHost } from "../maneuverTriggers";
 import {
@@ -76,7 +77,6 @@ import {
   SettingsService,
   useMissionHistorySettings,
 } from "../settings";
-import { FirstRunSetupHost } from "../settings/FirstRunSetupHost";
 import { initSoundSettings } from "../sound";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
@@ -215,11 +215,7 @@ export function MainScreen() {
               service={analyticsConsentService}
               peerHost={peerHostService}
             />
-            <FirstRunSetupHost
-              settingsService={settingsService}
-              serialService={serialService}
-              analyticsConsent={analyticsConsentService}
-            />
+            <FirstRunSetupHost analyticsConsent={analyticsConsentService} />
             <AutoRecordControllerWithMissionHistory scene={scene} />
             <AlarmHostProvider service={alarmHost}>
               <NotesHostProvider service={notesHost}>
