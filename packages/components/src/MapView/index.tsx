@@ -1351,94 +1351,107 @@ function MapViewComponent({
          bare end of the body, so this widget places it and turns off the
          default mount. */
         panelSections={false}
-      >
-        <MapBody>
-          <MapFrame>
-            <MapOuter ref={outerRef}>
-              <CanvasContainer
-                ref={interactionRef}
-                style={
-                  containerSize
-                    ? { width: containerSize.w, height: containerSize.h }
-                    : undefined
-                }
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={onPointerUp}
-                onPointerCancel={onPointerCancel}
-              >
-                <BaseCanvas ref={baseRef} data-testid="map-view-base-canvas" />
-                <OverlayCanvas ref={overlayRef} />
-                <PersistentDataCanvas ref={persistentDataRef} />
-                {/* The sampled-segment count, on the layer that draws it. A
-                  canvas has no inspectable content, so without this the only
-                  observable difference between a drawn track and a refused one
-                  is pixels nothing can read, and a gate whose effect cannot be
-                  seen reports success either way. */}
-                <PredictionCanvas
-                  ref={predictionRef}
-                  data-prediction-segments={predictionSegments.length}
-                />
-                <DataCanvas ref={dataRef} />
-                {(lat === undefined || lon === undefined) && (
-                  <NoSignal>
-                    {positionStale
-                      ? "Position not current: marker withheld"
-                      : targetBodyId === undefined
-                        ? "Waiting for telemetry..."
-                        : "No position data"}
-                  </NoSignal>
-                )}
-                {baseLayerContext && (
-                  <AugmentSlot name="map-view.base" props={baseLayerContext} />
-                )}
-                {getAugmentsForSlot("map-view.base")
-                  .filter((a) => a.suppressesVanillaBase === true)
-                  .map((a) => (
-                    <VanillaSuppressionProbe
-                      key={a.id}
-                      augment={a}
-                      onAvailableChange={onSuppressAvailabilityChange}
+        sections={[
+          /* The map is the drawing this widget is: it takes the tile height
+             the toolbar, the caption and the augment sections leave. */
+          <Section key="map" fill>
+            <MapBody>
+              <MapFrame>
+                <MapOuter ref={outerRef}>
+                  <CanvasContainer
+                    ref={interactionRef}
+                    style={
+                      containerSize
+                        ? { width: containerSize.w, height: containerSize.h }
+                        : undefined
+                    }
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={onPointerUp}
+                    onPointerCancel={onPointerCancel}
+                  >
+                    <BaseCanvas
+                      ref={baseRef}
+                      data-testid="map-view-base-canvas"
                     />
-                  ))}
-                {overlayContext && (
-                  <OverlayAugmentLayer>
-                    <AugmentSlot
-                      name="map-view.overlay"
-                      props={overlayContext}
+                    <OverlayCanvas ref={overlayRef} />
+                    <PersistentDataCanvas ref={persistentDataRef} />
+                    {/* The sampled-segment count, on the layer that draws it. A
+                      canvas has no inspectable content, so without this the only
+                      observable difference between a drawn track and a refused one
+                      is pixels nothing can read, and a gate whose effect cannot be
+                      seen reports success either way. */}
+                    <PredictionCanvas
+                      ref={predictionRef}
+                      data-prediction-segments={predictionSegments.length}
                     />
-                  </OverlayAugmentLayer>
-                )}
-                {overlayContext && showPois && (
-                  <MapPoiLayer
-                    bodyId={targetBodyId}
-                    project={overlayContext.project}
-                    width={overlayContext.width}
-                    height={overlayContext.height}
-                  />
-                )}
-              </CanvasContainer>
-            </MapOuter>
-          </MapFrame>
-        </MapBody>
-
-        {/* Under the map rather than over it: the terrain, the base layers and the
-          craft's own marker are all still correct, and only the forward track is
-          missing, so covering the map would overstate what was refused. */}
-        {trajectoryWithheld && predictionEnabled && hasPatchChain && (
-          <ReadoutCaption role="status">
-            {trajectoryWithheldCopy(trajectoryWithheld).heading}: no predicted
-            ground track
-          </ReadoutCaption>
-        )}
-        {/* No frame caption. A ground track is a body-fixed projection whatever
-            frame the path was computed in, so this map has exactly one frame it
-            can ever draw in and naming it states a constant. The caption earns
-            its place on the views that CAN be in another frame. */}
-        <MapSections>
-          <WidgetSections />
-        </MapSections>
-      </Panel>
+                    <DataCanvas ref={dataRef} />
+                    {(lat === undefined || lon === undefined) && (
+                      <NoSignal>
+                        {positionStale
+                          ? "Position not current: marker withheld"
+                          : targetBodyId === undefined
+                            ? "Waiting for telemetry..."
+                            : "No position data"}
+                      </NoSignal>
+                    )}
+                    {baseLayerContext && (
+                      <AugmentSlot
+                        name="map-view.base"
+                        props={baseLayerContext}
+                      />
+                    )}
+                    {getAugmentsForSlot("map-view.base")
+                      .filter((a) => a.suppressesVanillaBase === true)
+                      .map((a) => (
+                        <VanillaSuppressionProbe
+                          key={a.id}
+                          augment={a}
+                          onAvailableChange={onSuppressAvailabilityChange}
+                        />
+                      ))}
+                    {overlayContext && (
+                      <OverlayAugmentLayer>
+                        <AugmentSlot
+                          name="map-view.overlay"
+                          props={overlayContext}
+                        />
+                      </OverlayAugmentLayer>
+                    )}
+                    {overlayContext && showPois && (
+                      <MapPoiLayer
+                        bodyId={targetBodyId}
+                        project={overlayContext.project}
+                        width={overlayContext.width}
+                        height={overlayContext.height}
+                      />
+                    )}
+                  </CanvasContainer>
+                </MapOuter>
+              </MapFrame>
+            </MapBody>
+          </Section>,
+          /* Under the map rather than over it: the terrain, the base layers and
+             the craft's own marker are all still correct, and only the forward
+             track is missing, so covering the map would overstate what was
+             refused. */
+          trajectoryWithheld && predictionEnabled && hasPatchChain ? (
+            <Section key="withheld">
+              <ReadoutCaption role="status">
+                {trajectoryWithheldCopy(trajectoryWithheld).heading}: no
+                predicted ground track
+              </ReadoutCaption>
+            </Section>
+          ) : null,
+          /* No frame caption. A ground track is a body-fixed projection whatever
+             frame the path was computed in, so this map has exactly one frame it
+             can ever draw in and naming it states a constant. The caption earns
+             its place on the views that CAN be in another frame. */
+          <MapSections key="augments">
+            <WidgetSections />
+          </MapSections>,
+        ]}
+      />
     </WidgetScopeProvider>
   );
 }
