@@ -5,91 +5,312 @@
 import { Value, Vec3Of } from '../value';
 import { ProviderExtensions } from '../extensions';
 
+/**
+* `career.strategy.activate`'s args: the strategy's stable id plus the slider
+* fraction to activate it at. `ActivateStrategyArgs.strategyId` is
+* `StrategyConfig.Name` (e.g. `"OutsourceRnDStrategy"`): the exact same id the
+* READ side emits for each strategy (`career.status`'s `strategies[].id`), so
+* a client activates using the id it already read.
+* `ActivateStrategyArgs.factor` is the 0..1 slider fraction the strategy is
+* committed at (its up-front funds/science/reputation cost scales with it); it
+* is best-effort: a strategy with no factor slider ignores it and activates at
+* its fixed factor.
+*/
 export interface ActivateStrategyArgs
 {
 	strategyId: string;
+	/** 0..1 slider fraction; ignored by strategies without a factor slider. */
 	factor: number;
 }
+/**
+* `career.strategy.deactivate`'s args: the strategy's stable
+* `StrategyConfig.Name` id (see `ActivateStrategyArgs.strategyId`).
+*/
 export interface DeactivateStrategyArgs
 {
 	strategyId: string;
 }
+/**
+* `career.tech.unlock`'s args: the tech node's `techID` (the same id the READ
+* side emits for each tech node, `career.status`'s `tech.nodes[].id`).
+* Unlocking deducts the node's science cost.
+*/
 export interface UnlockTechArgs
 {
 	techId: string;
 }
+/**
+* Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
+* stable `ContractID` (stringified; the same id the READ side emits for each
+* contract, `career.status`'s `contracts[].id`). Which of the three verbs is
+* valid depends on the contract's current state (accept/decline require an
+* offered contract, cancel an active one); an out-of-state request comes back
+* `CommandErrorCode.ModeUnavailable`.
+*/
 export interface ContractActionArgs
 {
 	contractId: string;
 }
+/**
+* `career.facility.upgrade`'s args: the facility's id as the READ side keys
+* it: the `SpaceCenterFacility` enum name (e.g. `"VehicleAssemblyBuilding"`,
+* `"LaunchPad"`), the same id `career.status`'s `facilities` map uses.
+* Upgrading raises the facility one tier and deducts its upgrade cost from
+* funds.
+*/
 export interface UpgradeFacilityArgs
 {
 	facilityId: string;
 }
+/**
+* `career.crew.hire`'s args: the applicant's `ProtoCrewMember.name`, the same
+* id the READ side emits for each applicant (`spaceCenter.astronautComplex`'s
+* `applicants[].name`), so a client hires the applicant it read. Hiring debits
+* the current recruit cost from funds and moves the applicant into the crew
+* roster. An applicant that has left the pool since (a stale pool, someone
+* else hired, KSP refreshed it) comes back `CommandErrorCode.NotFound`; an
+* unaffordable hire `CommandErrorCode.Range`; a full roster (Astronaut Complex
+* cap) or a non-career save `CommandErrorCode.ModeUnavailable`.
+*/
 export interface HireApplicantArgs
 {
 	applicantName: string;
 }
+/**
+* `career.crew.fire`'s args: a hired kerbal's `ProtoCrewMember.name`, the same
+* id the READ side emits for each roster row (`spaceCenter.crewRoster`'s
+* entries). Firing (`KerbalRoster.SackAvailable`) costs nothing and simply
+* returns the kerbal to the applicant pool, so it is reversible (a re-hire
+* brings them back with the same stats). Valid only on a kerbal whose current
+* roster standing is Available; a name that doesn't resolve on the hired-crew
+* roster comes back `CommandErrorCode.NotFound`, one that resolves but isn't
+* Available (Assigned/Dead/Missing) comes back
+* `CommandErrorCode.ModeUnavailable`.
+*/
 export interface FireCrewArgs
 {
 	kerbalName: string;
 }
+/**
+* The game's save mode, mirroring KSP's `Game.Modes`, the ground-side fact
+* that decides which career surfaces (funds, tech tree, contracts, strategies,
+* facility upgrades) are even meaningful. Distinct from `CareerStatus`: that
+* payload is `null` in sandbox/science (no `Funding`/`ContractSystem` to
+* read), so it can't carry the mode, a save can be in `GameMode.Sandbox` or
+* `GameMode.Science` and still need widgets to know which one. Hence
+* `career.mode` is its OWN topic, emitted in ALL modes.
+*
+* KSP's `Game.Modes` also has `SCENARIO`, `SCENARIO_NON_RESUMABLE`, `MISSION`
+* and `MISSION_BUILDER`; none map to a distinct player-career surface, so
+* `Sitrep.Host.CareerViewProvider.ParseGameMode` folds them (and any future
+* KSP addition) into `GameMode.Unknown` rather than the mapper throwing.
+* `SCIENCE_SANDBOX` maps to `GameMode.Science`.
+*/
 export enum GameMode {
 	Sandbox = 0,
 	Career = 1,
 	Science = 2,
 	Unknown = 3
 }
+/**
+* The `career.mode` channel payload: a single `GameMode`, the active save's
+* mode. Produced by `Sitrep.Host.CareerViewProvider.BuildCareerMode`, which
+* reads the raw `Game.Modes.ToString()` string `Gonogo.KSP.KspHost` captures
+* each tick. The whole payload is `null` only when no game is loaded at all
+* (main menu / no save): a "no data yet" absence, never a fabricated mode;
+* once a save is loaded the mode is always one of the four `GameMode` members.
+*
+* **Typing-only mirror.** This type reproduces the EXACT serialized shape
+* `CareerViewProvider.BuildCareerMode` emits (`{ "mode": <int> }`, the enum's
+* integer ordinal, matching every other enum in this codec; see
+* `Sitrep.Core.Serialization.JsonWriter`). It is a codegen marker, not
+* serialized itself.
+*/
 export interface CareerMode
 {
 	mode: GameMode;
 }
+/**
+* The `career.status` channel payload: the KSC/career-mode snapshot (economy,
+* facilities, contracts, strategies, tech). The whole payload is `null` in the
+* SANDBOX / no-career case (no `"career"` group in the snapshot at all: see
+* `Sitrep.Host.CareerViewProvider.BuildCareer`); a non-null payload with
+* any/all sub-groups themselves `null` is the "career mode, that group
+* genuinely unavailable this tick" case. All five top-level keys are ALWAYS
+* emitted (each nullable), never omitted.
+*
+* **Typing-only mirror (P0.5).** This type reproduces, field for field, the
+* EXACT serialized shape `CareerViewProvider.BuildCareer` already emits: same
+* names, same camelCase wire keys (via `RtConfig.CamelCaseForProperties`),
+* same types, same units. It is NOT serialized itself: the wire bytes are
+* written by `Sitrep.Core.Serialization.JsonWriter` walking the provider's
+* live `Dictionary<string, object?>` tree, so adding this type changes no
+* bytes. The hierarchical-naming / unit cleanup is a later phase (P5) and is
+* deliberately NOT done here. Nullability mirrors `SnapshotDict.Get*` (null on
+* absence / non-finite, never a sentinel); the two counts
+* (`CareerStrategies.activeCount`, `CareerTech.unlockedCount`) are the only
+* non-nullable numbers because the provider defaults them to a list count
+* rather than emitting null.
+*/
 export interface CareerStatus
 {
 	economy?: CareerEconomy;
+	/**
+	* DYNAMIC-KEY MAP keyed by `SpaceCenterFacility` name (e.g. `"LaunchPad"`,
+	* `"VehicleAssemblyBuilding"`): not a fixed record. Modelled as a
+	* `Dictionary<string, CareerFacility>` so codegen emits a TS index signature
+	* (`{ [k]: CareerFacility }`), matching how `VesselResources.Resources` is
+	* done.
+	*/
 	facilities?: { [key:string]: CareerFacility };
 	contracts?: CareerContracts;
 	strategies?: CareerStrategies;
 	tech?: CareerTech;
 }
+/**
+* Economy sub-group of `CareerStatus`: funds/reputation/science, each null
+* when absent.
+*/
 export interface CareerEconomy
 {
 	funds?: Value<"funds">;
+	/**
+	* The stock reputation field, unchanged. Under a career overhaul it is the
+	* most consequential number in the save (it IS the income) and the value was
+	* never wrong: what was missing is the context below, which is why that
+	* arrived as an elected interpretation rather than as a replacement here.
+	*/
 	reputation?: Value<"rep">;
 	science?: Value<"science">;
+	/**
+	* Which money model answered the four fields below, e.g. `"stock"`. Provenance
+	* only: a client reads the interpretation, never branches on who produced it.
+	*/
 	economyModel?: string;
+	/**
+	* Reputation lost per day at the current reputation. Zero on stock, which
+	* genuinely has no decay, and that zero is a statement rather than a
+	* placeholder.
+	*/
 	reputationDecayPerDay?: Value<"rep/day">;
+	/** Funding the current reputation earns, per day. Zero on stock. */
 	subsidyPerDay?: Value<"f/day">;
+	/** The subsidy at zero reputation: the floor nothing takes away. */
 	subsidyMinPerDay?: Value<"f/day">;
+	/**
+	* The subsidy reputation cannot beat. With the minimum it says how much of the
+	* range the current reputation has bought, which is what turns a bare
+	* reputation number into something an operator can act on.
+	*/
 	subsidyMaxPerDay?: Value<"f/day">;
+	/**
+	* Total ongoing cost per day. This is why `CareerEconomy.funds` is the right
+	* balance and the wrong affordability test under an overhaul: a balance that
+	* covers a purchase today may not cover it plus next month's salaries.
+	*/
 	upkeepPerDay?: Value<"f/day">;
+	/**
+	* Where the upkeep goes: the parts `CareerEconomy.upkeepPerDay` is made of,
+	* and they sum to it. ABSENT on stock, which has no per-source model at all:
+	* seven zeros would claim stock levies seven kinds of nothing, where the truth
+	* is that it levies none of them.
+	*
+	* Also absent when the model can state its costs but cannot price them, in
+	* which case `CareerEconomy.upkeepBeforeModifiers` stands alone. A set that
+	* did not add up to the total beside it would be worse than no set: a reader
+	* has no way to tell which of the two lied.
+	*/
 	upkeep?: CareerUpkeep;
+	/**
+	* The same sources, priced BEFORE whatever the model does to them at
+	* transaction time: leaders, strategies, standing discounts. ABSENT when the
+	* model applies nothing, so the difference between this and
+	* `CareerEconomy.upkeep` is what the career's current arrangements are worth.
+	*/
 	upkeepBeforeModifiers?: CareerUpkeep;
+	/**
+	* A prepaid allowance the elected money model spends BEFORE
+	* `CareerEconomy.funds` on the purchases it covers. In funds, because that is
+	* what it discounts. ABSENT on stock, which has no such pool.
+	*
+	* The second reason `CareerEconomy.funds` alone is not an affordability test:
+	* where this exists, part of a price is already paid. It is a BALANCE and not
+	* a per-purchase answer, so a surface that offers such a purchase shows this
+	* and the funds balance together rather than deriving the split itself.
+	*/
 	unlockCredit?: Value<"funds">;
 }
+/**
+* Ongoing cost by source, per day, from the elected economy model. Every
+* member is absent when that model does not have the concept, never zero: an
+* unmodelled source and a source costing nothing are different facts.
+*/
 export interface CareerUpkeep
 {
+	/** Buildings: the standing cost of having a space centre at all. */
 	facilities?: Value<"f/day">;
+	/**
+	* Launch complexes and their pads, which cost whether or not anything is
+	* building.
+	*/
 	launchComplexes?: Value<"f/day">;
+	/** Researcher salaries, which an idle research queue does not stop. */
 	researchSalary?: Value<"f/day">;
+	/** Crew training in progress. */
 	training?: Value<"f/day">;
+	/** Standing crew costs: everyone on the roster, flying or not. */
 	crewBase?: Value<"f/day">;
+	/** The extra a crew in flight costs over a crew on the ground. */
 	crewInFlight?: Value<"f/day">;
+	/** Engineer salaries on the integration teams. */
 	integrationSalary?: Value<"f/day">;
 }
+/**
+* One facility entry in `CareerStatus.facilities`. All three fields share one
+* live-facility gate on the KSP side, so they are null together when the
+* facility isn't queryable in the current scene.
+*/
 export interface CareerFacility
 {
+	/**
+	* Which facility this entry is, as KSP's `SpaceCenterFacility` ORDINAL, typed
+	* to `KspSpaceCenterFacility`.
+	*
+	* `career.status.facilities` is keyed by the enum NAME and stays that way:
+	* rekeying the map to a number would be a breaking retype and would change the
+	* shape of every consumer's key walk. So the identity rides INSIDE the entry
+	* instead, and a client no longer has to recognise the key it arrived under.
+	* It used to have to: the key was matched against a hand-written nine-entry
+	* name table, and a facility whose name missed was skipped outright, so it
+	* simply vanished from the display.
+	*
+	* `null` from a producer that predates this field.
+	*/
 	facilityOrdinal?: KspSpaceCenterFacility;
 	currentTier?: Value<"count">;
 	maxTier?: Value<"count">;
 	upgradeCost?: Value<"funds">;
 }
+/**
+* Contracts sub-group of `CareerStatus`. All three lists are always present
+* (empty, never null).
+*/
 export interface CareerContracts
 {
 	active: CareerContract[];
 	offered: CareerContract[];
+	/**
+	* BOUNDED recently-completed list: the last N (currently 10) `State.Completed`
+	* contracts from `ContractSystem.Instance.ContractsFinished`, sorted
+	* newest-first by `Contract.DateFinished` (see
+	* `Gonogo.KSP.KspHost.BuildCareerContracts`). Same `CareerContract` element
+	* shape as `CareerContracts.active` / `CareerContracts.offered`: no extra
+	* fields; `State` is always `"Completed"` here. Rides `career.status`
+	* (TrueNow).
+	*/
 	completedRecent: CareerContract[];
 }
+/** One contract in `CareerContracts.active` / `CareerContracts.offered`. */
 export interface CareerContract
 {
 	id?: string;
@@ -107,18 +328,43 @@ export interface CareerContract
 	dateExpire?: Value<"ut">;
 	parameters: CareerContractParameter[];
 }
+/** One parameter (objective) of a `CareerContract`. */
 export interface CareerContractParameter
 {
 	title?: string;
+	/**
+	* `Contracts.ParameterState`'s enum NAME (`Incomplete`/`Complete`/`Failed`): a
+	* display label. `CareerContractParameter.stateOrdinal` is the field to branch
+	* on.
+	*/
 	state?: string;
+	/**
+	* `CareerContractParameter.state`'s KSP ORDINAL, typed to `KspParameterState`.
+	*
+	* Whether an objective reads as DONE was decided by comparing
+	* `CareerContractParameter.state` against `"Complete"`, and an unrecognised
+	* spelling collapsed onto `Incomplete`. That is the pessimistic arm: a
+	* completed objective showing as outstanding, and a contract-parameter ALARM
+	* set on "Complete" that simply never fires. An alarm that never fires is the
+	* failure mode this whole exercise is about.
+	*
+	* `null` when the capture carried no state, which is a third answer and must
+	* not be read as either arm.
+	*/
 	stateOrdinal?: KspParameterState;
 }
+/**
+* Strategies sub-group of `CareerStatus`. `CareerStrategies.activeCount` is
+* NON-nullable, the provider defaults it to `Active.Count` when the raw value
+* is absent.
+*/
 export interface CareerStrategies
 {
 	active: CareerStrategy[];
 	all: CareerStrategy[];
 	activeCount: Value<"count">;
 }
+/** One strategy in `CareerStrategies.active` / `CareerStrategies.all`. */
 export interface CareerStrategy
 {
 	id?: string;
@@ -141,81 +387,500 @@ export interface CareerStrategy
 	deactivateBlockedReason?: string;
 	effect?: string;
 }
+/**
+* Tech sub-group of `CareerStatus`. `CareerTech.unlockedCount` is
+* NON-nullable, the provider defaults it to `UnlockedIds.Count` when the raw
+* value is absent.
+*/
 export interface CareerTech
 {
 	unlockedCount: Value<"count">;
 	unlockedIds: string[];
 	nodes: CareerTechNode[];
 }
+/** One node in `CareerTech.nodes`. */
 export interface CareerTechNode
 {
 	id?: string;
 	title?: string;
+	/**
+	* The node's flavour line, as the tech tree itself writes it ("How hard can
+	* Rocket Science be anyway?").
+	*
+	* It comes from the tree's own config rather than from `RDTech`, whose
+	* `description` field only exists while the R&D Building scene is open. A tech
+	* tree a mod has replaced (RP-1) is read the same way, so this is the node's
+	* description in whatever tree the save is playing.
+	*/
 	description?: string;
 	scienceCost?: Value<"science">;
 	unlocked?: boolean;
 	parents: string[];
 }
+/**
+* One command centre in the `commandCentre.roster` channel: a vantage/
+* authority the operator can command from and observe at (Plan 3). The union
+* of the stock CommNet home nodes (KSC, Extra Ground Stations, Kerbal
+* Konstructs sites) and crewed control-source vessels. Produced by the mod's
+* command-centre enumeration pass.
+*
+* The channel is a BARE ARRAY of these entries (tagged `isArray: true`, like
+* `SpaceCenterPoiEntry`), one per active centre keyed by
+* `CommandCentreEntry.id`. A TS-shape-only typing/codegen marker: the producer
+* hand-flattens each centre to a dictionary, this POCO never serializes raw.
+*/
 export interface CommandCentreEntry
 {
+	/**
+	* Stable authority/vantage key: `"ksc"` | `"ground:<name>"` | `"kk:<site>"` |
+	* `"vessel:<guid>"`.
+	*/
 	id?: string;
+	/** Human-facing name. */
 	displayName?: string;
+	/**
+	* One of `GroundStation` / `CrewedVessel` / `Colony` / `Custom` (the
+	* `CommandCentreKind` name).
+	*/
 	kind?: string;
+	/**
+	* Index into `SystemBodies` of the body this centre sits on; null when unknown
+	* or not surface-anchored.
+	*/
 	bodyIndex?: number;
+	/**
+	* Body-fixed surface latitude of the centre in degrees, when surface-anchored;
+	* null for a moving vessel centre.
+	*
+	* **Null is "not applicable", not "not computed".** A `GroundStation` always
+	* reports coordinates. A `CrewedVessel` reports them only while landed,
+	* splashed or pre-launch: off the ground the only thing derivable is a
+	* sub-vessel ground point that sweeps at orbital rate, which is not a place
+	* the centre occupies. So null says the centre is airborne or in space, and a
+	* client may act on that rather than treating it as missing data. The one case
+	* where an anchored centre reports null is a body that could not be read at
+	* all, and then `CommandCentreEntry.bodyIndex` is null too: the two travel
+	* together, so a null coordinate never appears beside a known body.
+	*
+	* Always null or non-null together with `CommandCentreEntry.longitude`.
+	*/
 	latitude?: Value<"°">;
+	/**
+	* Body-fixed surface longitude of the centre in degrees, wrapped to (-180,
+	* 180], matching every other geographic value on the wire. Null under exactly
+	* the rule `CommandCentreEntry.latitude` documents, and always null together
+	* with it.
+	*/
 	longitude?: Value<"°">;
+	/** Whether this centre is a valid command source right now. */
 	active: boolean;
+	/**
+	* Whether this centre can be routed to: `"routed"` (a CommNode ControlPath
+	* exists, occlusion-aware) or `"unroutable"` (no CommNode, so no command path
+	* and no delay). There is deliberately no position-only approximation:
+	* commands ride the relay network, and a pair with no route has no delay to
+	* quote.
+	*/
 	delayQuality?: string;
 }
+/**
+* One gated command and what its gate says RIGHT NOW, evaluated with no
+* arguments at all.
+*
+* This is the addressability answer, not the dispatch answer. The engine
+* evaluates the same CommandRequirement set the same way in both cases (see
+* `ChannelEngine.EvaluateGates`); the only difference is that here the
+* argument bag is empty, so an argument-dependent requirement abstains rather
+* than deciding. A command whose verdict is `GateOutcome.Abstain` is one whose
+* answer depends on what you ask it to do, and the only honest thing to say in
+* advance is nothing.
+*
+* The dispatch-time evaluation remains the authority: this snapshot is at most
+* one sampling interval old and a client must not treat it as permission. It
+* exists so a control can be drawn dark BEFORE the operator presses it, which
+* is the whole point of asking the game in advance.
+*/
 export interface CommandGate
 {
+	/** The command id, e.g. `career.crew.hire`. */
 	command: string;
+	/**
+	* The verdict, in the same shape a refused dispatch carries. Same type
+	* deliberately: one client renderer then serves both "the game will refuse
+	* this" and "the game refused this", and the two can never disagree about how
+	* a reason is worded.
+	*
+	* **What a client should draw, per outcome. The four are NOT two.**
+	*
+	* - `GateOutcome.Pass`: an ordinary live control. Not permission, see the
+	*   type's own remarks.
+	* - `GateOutcome.Fail`: dark, with the reason reachable. The game evaluated
+	*   the requirement and said no.
+	* - `GateOutcome.Abstain`: an ordinary live control. The answer depends on
+	*   arguments nobody has supplied yet, so there is nothing honest to say in
+	*   advance.
+	* - `GateOutcome.Unknown`: an ordinary live control, and **never** a dark one.
+	*   This is an authority that was not there to ask, not a judgement about the
+	*   command. It refuses at DISPATCH, deliberately, because a gate that cannot
+	*   be read must not read as no gate; that is a fail-closed rule about ACTING,
+	*   and it is not a licence to render a false certainty in advance. A refusal
+	*   that arrives on dispatch at least names itself as one at the moment it
+	*   happens; a permanently dark control with a confident sentence teaches a
+	*   false belief and never corrects it.
+	*
+	* The case that makes this concrete: a career save is still loading and
+	* `ScenarioUpgradeableFacilities.Instance` is not there yet, so every facility
+	* gate answers Unknown for as long as that takes. Collapsing Unknown into Fail
+	* would black those controls out and explain it in the game's own voice, and
+	* the explanation would be about a building rather than about a scene that had
+	* not finished loading.
+	*
+	* That example used to be the sandbox save, where the scenario is absent for
+	* good. It is not any more, and the reason is worth keeping: sandbox HAS no
+	* facility tiers, so "cannot read the tier" was the wrong question there and
+	* the gates now answer max instead of Unknown. An authority that does not
+	* exist is not an authority that could not be read, and only the second one is
+	* this.
+	*/
 	verdict: GateVerdict;
 }
+/**
+* Wire wrapper for `system.uplink.gates`: every command that declares a
+* requirement, with its current verdict. Resampled on the main thread at the
+* engine's gate cadence and republished whole.
+*
+* Only GATED commands appear. An ungated command is absent rather than
+* present-and-passing, so a client that finds no entry knows the command has
+* nothing to say about itself, which is different from knowing it is fine.
+* Nothing here is a permission; see `CommandGate`.
+*/
 export interface CommandGateReport
 {
 	gates: CommandGate[];
 }
+/**
+* The typed, machine-readable failure code every command result carries, R7
+* Fix 1's replacement for the bare `string` error codes
+* (`"E_RANGE"`/`"E_NOT_FOUND"`/`"E_MODE_UNAVAILABLE"`/ `"E_NO_VESSEL"`) the
+* three hand-rolled result records used to return. A string code forces the
+* client to string-match a magic value that the compiler can neither check nor
+* enumerate. This enum makes the failure surface a closed, typed set instead.
+*
+* `CommandErrorCode.None` is the success sentinel (paired with
+* CommandResult.Success = true); `CommandErrorCode.Unknown` is the
+* forward-compatible fallback for any code a newer producer emits that an
+* older consumer doesn't recognise: the same `Unknown`-style read-fallback
+* convention every other enum in this contract uses.
+*/
 export enum CommandErrorCode {
+	/** No error: the success sentinel, paired with CommandResult.Success = true. */
 	None = 0,
+	/**
+	* Forward-compat fallback: a code a newer producer emitted that this consumer
+	* doesn't recognise.
+	*/
 	Unknown = 1,
+	/** No active vessel to act on (was `"E_NO_VESSEL"`). */
 	NoVessel = 2,
+	/**
+	* The requested mode/state isn't currently available (was
+	* `"E_MODE_UNAVAILABLE"`).
+	*/
 	ModeUnavailable = 3,
+	/** An argument was out of its valid range (was `"E_RANGE"`). */
 	Range = 4,
+	/**
+	* The referenced entity (node id, vessel/body target) didn't resolve (was
+	* `"E_NOT_FOUND"`).
+	*/
 	NotFound = 5,
+	/**
+	* F2-fix backstop: the command was marshaled onto the host's main-thread pump
+	* but that pump did not drain it within the bounded wait (a scene-load /
+	* loading-screen stall). A synthetic failure returned by the host so the
+	* Courier thread can never park indefinitely, not emitted by any uplink
+	* handler. Additive (Major 2, Minor 0 -> 1).
+	*/
 	Timeout = 6,
+	/**
+	* The elected maneuver-plan provider is not the one that reads stock's
+	* `patchedConicSolver`, so a write there would never be seen.
+	*
+	* Refused rather than attempted, because attempting it produces a GHOST NODE:
+	* we mutate stock's solver, the owning planner never reads it (an n-body
+	* backend clears that list every frame and writes its own guidance node into
+	* it), and the operator sees a maneuver node on the board that does precisely
+	* nothing. A silent wrong answer with a confident presentation.
+	*
+	* The code says WHY. It deliberately does not say WHO: this enum is typed
+	* precisely so a client never string-matches, and the owner is already on the
+	* wire as `VesselManeuver.Planner` for a readout to name. Additive (Major 5).
+	*/
 	PlanNotOwned = 7,
+	/**
+	* A capacity is full: the Astronaut Complex holds its cap of active crew, a
+	* facility holds its cap of anything else countable.
+	*
+	* Split out of `CommandErrorCode.ModeUnavailable`, which was carrying five
+	* unrelated causes at once (crew cap, facility maxed, no roster, no Funding,
+	* wrong scene) and so could not tell a permanent refusal from a transient one.
+	* This arm says the cap is reached and the world has to change before a retry
+	* means anything; freeing a slot is a thing an operator can actually do.
+	*
+	* The arm chooses the sentence, CommandResult.Breach supplies the numbers in
+	* it. Neither is worth sending without the other: a code with no payload
+	* cannot say "16 of 16".
+	*/
 	LimitReached = 8,
+	/**
+	* Already at the top of an upgradeable scale, so there is nothing above this
+	* to move to. The Launch Pad at tier 3 of 3.
+	*
+	* Deliberately NOT `CommandErrorCode.LimitReached`. A cap that is full can be
+	* freed; a maximum tier cannot be exceeded by any action at all, and an
+	* operator reads those two differently.
+	*/
 	AlreadyAtMaximum = 9,
+	/**
+	* The command costs more than the funds on hand.
+	*
+	* Was `CommandErrorCode.Range`, which documents "an argument was out of its
+	* valid range" and is not what happened: affordability is not about an
+	* argument, and a client reading the enum name aloud got it wrong.
+	*
+	* CommandResult.Breach carries the cost as `Actual` against the balance as
+	* `Limit`, so the client can say how short and in the operator's own currency
+	* rendering.
+	*/
 	InsufficientFunds = 10,
+	/**
+	* The command costs more science than is banked.
+	* `CommandErrorCode.InsufficientFunds`'s twin, and separate for the same
+	* reason the game keeps `Currency` as three members: an operator short of
+	* science does something entirely different about it from one short of funds.
+	*
+	* Authority: `CurrencyModifierQuery.RunQuery(reason,
+	* …).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` asks.
+	* NOT `ResearchAndDevelopment.CanAfford`, which skips the modifier chain and
+	* so answers a different question from the one the game acts on.
+	*/
 	InsufficientScience = 11,
+	/**
+	* The save is not a career save, so this command's whole subsystem does not
+	* exist here.
+	*
+	* Authority: `HighLogic.CurrentGame.Mode`, and in practice the null `Instance`
+	* of the `ScenarioModule` that would have answered (`Funding`,
+	* `ContractSystem`, `StrategySystem`, `ResearchAndDevelopment`,
+	* `ScenarioUpgradeableFacilities`).
+	*
+	* This is a PERMANENT property of the save, not a state that may change, which
+	* is exactly what `CommandErrorCode.ModeUnavailable` could not say. An
+	* operator should see the control absent rather than refused; a client that
+	* can tell this arm from the others can do that.
+	*/
 	CareerModeRequired = 12,
+	/**
+	* The game is in a scene this command cannot run from.
+	*
+	* Authority: `HighLogic.LoadedScene` (`GameScenes`). CommandResult.Detail
+	* names the scene when the producer had one.
+	*/
 	WrongScene = 13,
+	/**
+	* The entity is not in a state this transition applies to: an already-active
+	* strategy asked to activate, an already-researched node asked to unlock, a
+	* contract asked to accept when it is not offered, an assigned kerbal asked to
+	* be sacked, a spent experiment asked to deploy.
+	*
+	* Authority: the entity's own state enum. `Strategy.IsActive`, `RDTech.State`,
+	* `Contract.State`, `ProtoCrewMember.RosterStatus`,
+	* `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
+	* `[Description]`-tagged or otherwise nameable, so CommandResult.Detail can
+	* carry the state in the game's own words.
+	*/
 	WrongState = 14,
+	/**
+	* Right command, wrong moment: the flight is not in a state that permits it
+	* yet, and will be later.
+	*
+	* Authority: `FlightGlobals.ClearToSave()`, whose `ClearToSaveStatus` has
+	* seven named arms (in atmosphere, under acceleration, moving over the
+	* surface, about to crash, on a ladder, throttled up, orbit event imminent),
+	* plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch` and
+	* `GameParameters.Flight.CanLeaveToSpaceCenter`. The arm rides on
+	* CommandResult.Detail.
+	*
+	* Distinct from `CommandErrorCode.WrongState`, which is about the entity and
+	* does not resolve by waiting.
+	*/
 	NotClearToProceed = 15,
+	/**
+	* The part or vessel does not have the capability this command needs: a rotor
+	* asked for a target angle, an unmotorised servo asked to drive, a part with
+	* no such action, an action present but inert, an autopilot mode this craft
+	* cannot hold.
+	*
+	* Authority: the part's own module list and fields
+	* (`ModuleRoboticServoRotor`/`Hinge`/`Piston`, `servoIsMotorized`,
+	* `BaseEvent.active`, `BaseEvent.EventIsDisabledByVariant`) and
+	* `VesselAutopilot.CanSetMode`.
+	*
+	* Nothing an operator waits for. The craft would have to be different for this
+	* to work, which is why it is not `CommandErrorCode.NotClearToProceed` and not
+	* `CommandErrorCode.WrongState`.
+	*/
 	CapabilityMismatch = 16,
+	/**
+	* There is no usable link for what this command needs to send.
+	*
+	* Authority: `ScienceUtil.GetBestTransmitter(Vessel)` and
+	* `IScienceDataTransmitter.CanTransmit()`. Deliberately NOT the Courier's own
+	* comms-loss gate, which refuses the dispatch before a handler ever runs; this
+	* is the vessel finding it has no antenna that can carry the payload.
+	*/
 	NoConnection = 17,
+	/**
+	* The capability exists in the game but this save has not unlocked it: fuel
+	* transfer, custom action groups, flight planning, EVA, the maneuver tool.
+	*
+	* Authority: `GameVariables.UnlockedFuelTransfer`,
+	* `UnlockedActionGroupsStock`/`Custom`, `UnlockedFlightPlanning`,
+	* `UnlockedEVA`/`Flags`/`Clamber`, `ManeuverToolAvailable`, each read at the
+	* owning facility's normalised level.
+	*
+	* Distinct from `CommandErrorCode.LimitReached`, which is a number against a
+	* number. This is a switch that is off, and the fix is an upgrade rather than
+	* freeing a slot.
+	*/
 	NotUnlocked = 18,
+	/**
+	* Another vessel is on the launch site.
+	*
+	* Authority: `PreFlightTests.LaunchSiteClear`, whose
+	* `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for
+	* it and ride on CommandResult.Detail.
+	*/
 	SiteOccupied = 19,
+	/**
+	* The facility this command needs is destroyed or damaged.
+	*
+	* Authority: `PreFlightTests.FacilityOperational`, over
+	* `PSystemSetup.Instance.GetSpaceCenterFacility(name).GetFacilityDamage()`.
+	*/
 	FacilityDamaged = 20,
+	/**
+	* The vehicle is not a launchable article yet: an install's build and
+	* logistics model has work outstanding on it. Nothing is over a limit and
+	* nothing is broken, the thing simply has not been made ready.
+	*
+	* Authority: whichever Uplink CONTRIBUTED the readiness requirement that
+	* refused (see IUplinkHost.AddCommandRequirement), never a stock KSP read:
+	* stock has no build step, so it contributes no readiness requirements and
+	* this code never arrives on a stock install. Under RP-1 it is a vehicle that
+	* was never integrated, one still integrating, one finished but not rolled
+	* out, or one rolled out to a pad still being reconditioned.
+	* CommandResult.Detail says which.
+	*
+	* Deliberately NOT `CommandErrorCode.LimitReached`, which is the launch
+	* refusal an operator already gets for a craft that is too heavy or too large
+	* for the site, and which is fixed by changing the craft or upgrading the pad.
+	* This one is fixed by doing the outstanding work, and the two want entirely
+	* different next moves.
+	*
+	* Deliberately NOT `CommandErrorCode.NotFound` either, which `ksp.launch`
+	* already returns when no craft file answers to the name. A craft that exists
+	* on disk and has never been built is a different situation from one that does
+	* not exist, and collapsing them tells an operator to go looking for a file
+	* that is sitting right there.
+	*/
 	NotReady = 21
 }
+/**
+* R7 Fix 1: the ONE result shape every command returns, replacing the three
+* hand-rolled records (`Ack`/`StageResult`/`AddManeuverNodeResult`) that each
+* re-declared `Success` + `ErrorCode`. CommandResult.Success false pairs with
+* a typed CommandResult.ErrorCode (never a free-text message a client has to
+* string-match), the design doc §3's `Result<T, CommandError>` ruling: results
+* are always delivered (never a fire-and-forget void), and failure is
+* structured data, not a thrown exception.
+*
+* This non-generic base is the "no payload" case (every plain actuation
+* command: the former `Ack`). Commands that return a real value use
+* `CommandResultOf`, whose `Payload` carries it (`vessel.control.stage`'s new
+* stage index, `vessel.maneuver.add`'s created node id).
+*/
 export interface CommandResult
 {
 	success: boolean;
 	errorCode: CommandErrorCode;
+	/**
+	* The numbers behind the refusal, when the refusal has any: the cap and the
+	* count, the tier and the top tier, the price and the balance. Null on success
+	* and on every refusal that is not a comparison.
+	*
+	* CommandResult.ErrorCode alone cannot say "16 of 16 active crew", and the
+	* code and the numbers only mean anything together: the code picks the
+	* sentence, this fills the gaps in it. Every number here was already in scope
+	* on the line that refused, and used to be discarded there.
+	*
+	* The SAME `LimitBreach` the declared-gate path carries on
+	* `GateVerdict.breach`, deliberately, so an operator reads one sentence shape
+	* whether the refusal came from a gate or from an actuator that got far enough
+	* to look.
+	*/
 	breach?: LimitBreach;
+	/**
+	* The refusal in the GAME's own words, when the game had any: the arm of
+	* `ClearToSaveStatus` it came back with, `Strategy.CanBeActivated(out string
+	* reason)`'s reason, `GameVariables.GetEVALockedReason`'s sentence, a
+	* `PreFlightTests.IPreFlightTest`'s `GetWarningTitle()`, a
+	* `[Description]`-tagged state member's name. Empty when the refusal had
+	* nothing to quote.
+	*
+	* Interpolating what the game says beats inferring a cause from the mechanism
+	* that produced it, and it means this mod does not maintain an English table
+	* of KSP's own vocabulary that goes stale on every update and is wrong in
+	* every other language.
+	*
+	* Prose for a human, never parsed: CommandResult.ErrorCode is the
+	* machine-readable half and this is the readable one. The same split, and the
+	* same field name, as `GateVerdict.detail`.
+	*
+	* Nullable rather than empty-defaulted, so it lands on the wire as an OPTIONAL
+	* property: an existing consumer that builds a `CommandResult` is not made to
+	* supply a field it has nothing to put in, which is what makes this additive
+	* rather than a Major.
+	*/
 	detail?: string;
 }
+/**
+* R7 Fix 1: the payload-carrying result, `CommandResultOf` plus a typed
+* `CommandResultOf.payload`. `vessel.control.stage` returns
+* `CommandResult<int>` (the new current stage index, rather than a void
+* fire-and-forget); `vessel.maneuver.add` returns `CommandResult<string>` (the
+* created node's opaque id, O-6 fixed). `CommandResultOf.payload` is default
+* (null for reference types) when CommandResult.Success is false.
+*/
 export interface CommandResultOf<T> extends CommandResult
 {
 	payload?: T;
 }
+/**
+* Degree of vessel control the link currently affords, the `controlSource`
+* axis of `CommsConnectivity`. Mirrors stock `CommNet.VesselControlState`'s
+* partial/full distinction without leaking a KSP enum onto the wire.
+*/
 export enum CommsControlSource {
 	None = 0,
 	Partial = 1,
 	Full = 2
 }
+/**
+* The `comms.connectivity` payload: always-present, sourced from the elected
+* backend (comms-uplink-design.md §1). Ground-side truth about whether the
+* active vessel has a control link home right now.
+*/
 export interface CommsConnectivity
 {
 	connected: boolean;
@@ -223,27 +888,63 @@ export interface CommsConnectivity
 	hasLocalControl: boolean;
 	meta: PayloadMeta;
 }
+/**
+* The `comms.signalStrength` payload: always-present, elected backend. 0..1.
+* CommNet gives a coarse range-fraction; RealAntennas gives a
+* link-budget-derived value (comms-uplink-design.md §1).
+*/
 export interface CommsSignalStrength
 {
 	value: Value<"ratio">;
 	meta: PayloadMeta;
 }
+/** Control-state kind for `CommsControlState`. */
 export enum CommsControlStateKind {
 	None = 0,
 	PartialManoeuvre = 1,
 	Full = 2
 }
+/**
+* The `comms.controlState` payload: always-present, elected backend.
+* `CommsControlState.reason` is a nullable annotation (absent = no
+* annotation), never an empty-string sentinel.
+*/
 export interface CommsControlState
 {
 	state: CommsControlStateKind;
 	reason?: string;
 	meta: PayloadMeta;
 }
+/** Kind of a node participating in a `CommsHop`. */
 export enum CommsHopKind {
 	Home = 0,
 	Relay = 1,
 	Vessel = 2
 }
+/**
+* One ordered hop toward KSC in the control path. `CommsHop.distanceMeters` is
+* the geometry SignalDelay consumes for light-time; it is nullable, absent
+* when the backend cannot supply per-hop geometry (typed absence, never 0).
+* Per-hop RealAntennas rate is NOT a field on this shared shape: the forward
+* band rate rides the RA uplink's own `realantennas.hopRates` channel (a thin
+* per-hop annotation keyed by these same node ids, joined onto the route
+* client-side by a `comm-signal.hop-rates` contribution), and the other RA
+* per-hop facts ride `CommsHop.extensions` under `"realantennas"`. The core
+* hop stays RA-agnostic.
+*
+* `CommsHop.from`/`CommsHop.to` name the endpoints. Ground stations carry
+* their OWN name (RSS/RealAntennas fly a dozen of them), not a single shared
+* "home" label: two consecutive samples both showing a one-hop direct link,
+* one to Kourou and one to Canberra, are a STATION HANDOFF, and under a shared
+* label they were indistinguishable from one station whose range simply
+* changed. That ambiguity is what made a relay handoff readable as an
+* occlusion blackout.
+*
+* `CommsHop.fromIsHome`/`CommsHop.toIsHome` carry that home-ness per endpoint,
+* so it survives without parsing a name. `CommsHop.kind` cannot serve: it is
+* one value for the whole hop, so it says a ground station is involved but
+* never which end.
+*/
 export interface CommsHop
 {
 	from: string;
@@ -252,178 +953,675 @@ export interface CommsHop
 	toIsHome: boolean;
 	kind: CommsHopKind;
 	distanceMeters?: Value<"m">;
+	/**
+	* The provider-namespaced extension bag: how the elected comms backend carries
+	* per-hop facts this shared shape does not declare, WITHOUT a PR against core
+	* (see ProviderExtensionBagAttribute for the whole mechanism). Null under the
+	* vanilla CommNet backend, which has nothing stock does not already say; a
+	* RealAntennas install fills `Extensions["realantennas"]` with band, tech
+	* level, modulation, encoder, required Eb/N0, beamwidth, EC draw and the
+	* reverse-direction rate, typed by the RA client's own `RealAntennasHopExt`.
+	* It rides `comms.path`, so it inherits that channel's TrueNow classification.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* The `comms.path` payload: always-present, elected backend. Ordered hops from
+* the active vessel to KSC. Empty `CommsPath.hops` = no path home (a real,
+* control-loss state, not absence-of-data).
+*/
 export interface CommsPath
 {
 	hops: CommsHop[];
 	meta: PayloadMeta;
 }
+/**
+* One node in the `CommsNetwork` relay graph. `CommsNetworkNode.id` is a
+* UNIQUE, stable join key in the same id space `CommsHop.from`/`CommsHop.to`
+* use: a vessel's persistent id for a craft, the station's own name for a
+* ground station. Never a vessel's display name, which two craft can share,
+* which made it unsafe as a graph or roster key.
+* `CommsNetworkNode.displayName` carries the label, and
+* `CommsNetworkNode.kind` carries home-ness, so nothing has to read meaning
+* out of the id.
+*/
 export interface CommsNetworkNode
 {
 	id: string;
 	displayName: string;
 	kind: CommsHopKind;
 }
+/** One edge in the `CommsNetwork` relay graph. */
 export interface CommsNetworkEdge
 {
 	a: string;
 	b: string;
 	active: boolean;
 }
+/**
+* The `comms.network` payload: always-emitted, but its richness tracks the
+* elected backend (comms-uplink-design.md §1: "backend-dependent detail").
+* Under bare CommNet this may be a single home-edge; under RealAntennas it
+* enumerates the relay graph.
+*/
 export interface CommsNetwork
 {
 	nodes: CommsNetworkNode[];
 	edges: CommsNetworkEdge[];
 	meta: PayloadMeta;
 }
+/** Where a `CommsDelay` value came from. */
 export enum CommsDelaySource {
 	None = 0,
 	SignalDelay = 1,
+	/**
+	* Zero, because the flight on screen is a SIMULATION and the operator has not
+	* asked for delay during one. A rehearsal has no spacecraft, so it has no
+	* light-time, and modelling a distance to a craft that is not there is a
+	* fiction rather than a measurement.
+	*
+	* Its own member rather than `CommsDelaySource.None` because a live board is a
+	* claim, and an operator is entitled to know which claim it is: "no delay is
+	* configured" and "delay is off because this is a rehearsal" call for
+	* different reactions. See `flight.simulation`.
+	*/
 	Simulation = 2
 }
+/**
+* The `comms.delay` payload: the CORE SignalDelay capability's output
+* (comms-uplink-design.md §3), gated by the `comms.signalDelay.enabled` config
+* flag. `CommsDelay.oneWaySeconds` distinguishes two DIFFERENT "no delay"
+* cases by value (R7: typed absence, never a single overloaded sentinel):
+*
+* - **null**: no measurable `CommsPath` (no path home, or incomplete hop
+*   geometry). There is nothing to measure, so nothing is reported.
+*   `CommsDelay.source` is `CommsDelaySource.None`.
+* - **0**: the delay feature is disabled (`comms.signalDelay.enabled = false`)
+*   but the vessel IS connected. A genuine "zero delay applied", not an
+*   absence. `CommsDelay.source` is also `CommsDelaySource.None` here: the two
+*   cases share the same `Source` and are told apart only by whether the value
+*   is null.
+* - a real number: `CommsDelay.source` is `CommsDelaySource.SignalDelay`;
+*   gonogo's own light-time math over the elected backend's hop geometry.
+*
+* TRUE-NOW sim-meta: this value drives the release of every other delayed
+* channel and is therefore never itself delay-gated.
+*/
 export interface CommsDelay
 {
 	oneWaySeconds?: Value<"s">;
 	source: CommsDelaySource;
 	meta: PayloadMeta;
 }
+/**
+* The `comms.link` connectivity MetaTopic: the ONE client-facing answer to "is
+* there a control link home right now?", carried as a **Delayed,
+* freeze-EXEMPT** channel (see `ChannelEngine.ConnectivityMetaTopic`). It is
+* the delayed successor to the de-publicised TrueNow `CommsConnectivity`
+* observation channel: clients (the app's SignalLossIndicator/CameraFeed, the
+* kOS terminal's line-mode gate) read `comms.link.connected` instead of any
+* raw `comms.*` observation.
+*
+* **Why its own topic, freeze-exempt:** the link state is what REPORTS the
+* freeze, so: exactly parallel to `comms.delay` being exempt from its own
+* delay: it must be exempt from the freeze it drives. It reveals the
+* disconnect edge at `T+delay` (you learn of the outage one light-time after
+* it happens) and keeps reporting `connected:false` through the blackout, so
+* the client's "NO SIGNAL" flips at the correct delayed instant. The
+* `VesselComms` observation struct (signalStrength/controlState) stays Delayed
+* AND freeze-gated: it freezes at last-known through the outage.
+*/
 export interface CommsLink
 {
 	connected: boolean;
 	meta: PayloadMeta;
 }
+/**
+* The `comms.commandCentre` payload: identifies WHICH command centre the
+* active vessel's control path currently terminates at, vanilla KSC or a
+* crewed control-source vessel (the stock "6-kerbal command center" mechanic),
+* so a client can show its own stats against the right name instead of
+* assuming KSC. Shares its id/kind scheme with `CommandCentreEntry` (the
+* `commandCentre.roster` union): it names ONE entry from that same set,
+* whichever one the vessel's own `ControlPath` resolved to this tick. Every
+* field is null when there is no live remote centre right now (no connection,
+* or the terminal node matches neither a ground station nor a crewed control
+* source), the existing comms.link/comms.connectivity "No signal" case already
+* covers that for a reader.
+*/
 export interface CommsCommandCentre
 {
+	/**
+	* Stable authority/vantage key, same scheme as `CommandCentreEntry.id`: "ksc"
+	* | "ground:<name>" | "kk:<site>" | "vessel:<guid>". Null when no remote
+	* centre resolved.
+	*/
 	id?: string;
+	/** Human-facing name. */
 	displayName?: string;
+	/**
+	* One of `GroundStation` / `CrewedVessel` / `Colony` / `Custom` (the
+	* `CommandCentreKind` name), same as `CommandCentreEntry.kind`.
+	*/
 	kind?: string;
+	/**
+	* Index into system.bodies of the body this centre sits on; null when unknown,
+	* not surface-anchored, or the centre is a moving vessel.
+	*/
 	bodyIndex?: number;
 	meta: PayloadMeta;
 }
+/**
+* One body's occlusion geometry, as resolved by the elected model.
+* `CommsOcclusionBody.index` matches `BodyEntry.Index` on `system.bodies`
+* (both are `CelestialBody.flightGlobalsIndex`), so a consumer joins the two
+* without name-matching.
+*
+* Both radii ride the wire: `CommsOcclusionBody.radiusMeters` is what the rock
+* measures and `CommsOcclusionBody.occludingRadiusMeters` is what the backend
+* treats it as. Carrying both keeps the difference visible (and the multiplier
+* derivable) without asking any consumer to apply one.
+*/
 export interface CommsOcclusionBody
 {
 	index: number;
 	name?: string;
+	/** The body's own mean radius (`CelestialBody.Radius`). */
 	radiusMeters: Value<"m">;
 	hasAtmosphere: boolean;
+	/** What the elected backend treats as blocking a radio path through this body. */
 	occludingRadiusMeters: Value<"m">;
 }
+/**
+* The `comms.occlusion` payload: always-present, sourced from the elected
+* backend (the PROVIDER axis `Comms.cs`'s header describes). The declared
+* occlusion model, named, with its rule already applied to every celestial
+* body the game knows about.
+*
+* TRUE-NOW like the rest of the comms family, and for a stronger reason than
+* most: this is not an observation of the vessel at all, it is a statement
+* about the universe's geometry and the rule the elected backend applies to
+* it. Delaying it would mean a predictor computing tomorrow's blackout from
+* yesterday's model.
+*
+* Effectively static within a session: the body set does not change and the
+* multipliers change only if the player edits the difficulty settings. The
+* producer republishes an unchanged instance, which the emitter's change-gate
+* suppresses, so the channel costs a keyframe and nothing else.
+*/
 export interface CommsOcclusion
 {
+	/**
+	* The elected model's ICommsOcclusionModel.ModelId; `"unknown"` when no
+	* backend is elected.
+	*/
 	modelId: string;
+	/** The elected model's display name, so a UI can say which geometry is in play. */
 	modelName: string;
+	/**
+	* Every known celestial body, with the model applied. Empty before the game
+	* has populated a body list, never null.
+	*/
 	bodies: CommsOcclusionBody[];
 	meta: PayloadMeta;
 }
+/**
+* One burn as a command centre SPECIFIED it, which is a different thing from
+* one as the craft reports it.
+*
+* **Inputs only.** A `ManeuverNode` carries what a burn turned out to be: its
+* cutoff, its final mass, the patch chain it puts the craft on. None of those
+* is something an operator states, they are what a planner works out, and
+* putting them in a command would invite a caller to state a conclusion and
+* have it quietly ignored.
+*
+* **Anchored to ignition.** A burn starts when it starts. The half-delta-v
+* instant a node reports is derived from a solved burn, so it cannot be the
+* thing that specifies one.
+*/
 export interface ComposedBurn
 {
 	ignitionUt: Value<"ut">;
+	/**
+	* The basis the three components below are in.
+	*
+	* Stated rather than assumed, because the same three numbers are a different
+	* burn in each basis and both bases are in use: stock plans in
+	* radial/normal/prograde, an integrating planner in the Frenet trihedron. A
+	* default here would silently reinterpret every burn sent by the other one.
+	*/
 	frame: ManeuverFrame;
+	/**
+	* The basis's first, second and third component, in the basis's own order,
+	* exactly as `ManeuverNode.frame` describes for the reported shape. So these
+	* are radial/normal/prograde under `ManeuverFrame.RadialNormalPrograde` and
+	* tangent/normal/binormal under `ManeuverFrame.TangentNormalBinormal`.
+	*/
 	dvRadial: Value<"m/s">;
 	dvNormal: Value<"m/s">;
 	dvPrograde: Value<"m/s">;
+	/**
+	* Hold the burn's direction against the stars rather than against the craft's
+	* moving frame.
+	*/
 	inertiallyFixed: boolean;
+	/**
+	* The engine to burn with. BOTH absent means "leave whatever the plan already
+	* holds", which is the ordinary case for editing an existing burn.
+	*
+	* Stated as real numbers rather than as a named preset. A preset is one
+	* planner's idea of a placeholder engine, and core naming it would put that
+	* planner's numbers in every other planner's contract; a caller that wants a
+	* placeholder states the placeholder.
+	*/
 	thrust?: Value<"kN">;
 	specificImpulse?: Value<"isp">;
 }
+/**
+* A whole flight plan, composed at a command centre and transmitted to be
+* instantiated aboard.
+*
+* **Why a whole plan rather than per-burn edits.** Five burn edits are five
+* messages, each with its own light-time, each able to arrive late, out of
+* order, or not at all. A craft that received three of them would fly a plan
+* nobody composed and nobody approved. One plan is one message, applied whole
+* or not at all.
+*
+* **The burns are transmitted, never re-derived.** The receiving side installs
+* these numbers rather than re-solving toward a goal. A plan re-solved on
+* arrival would be solved against the craft's true state, which is ahead of
+* everything the operator could see, so the craft would fly something nobody
+* at the command centre ever looked at.
+*/
 export interface SendManeuverPlanArgs
 {
 	vesselId?: string;
+	/**
+	* Stable per-intent id, so a plan that is retransmitted after a silence is
+	* recognised as the same plan rather than applied twice.
+	*/
 	requestId?: string;
+	/**
+	* The view instant the plan was composed against: what the command centre
+	* could see when it decided.
+	*/
 	composedAtViewUt?: number;
+	/**
+	* The instant the state used for planning was actually TRUE, at or before
+	* `SendManeuverPlanArgs.composedAtViewUt`.
+	*
+	* Both travel because they answer different questions: one is when the
+	* operator decided, the other is how old their information already was.
+	* Together they make the divergence between what was planned against and what
+	* received the plan a measurement rather than a guess.
+	*/
 	observedAtUt?: number;
+	/**
+	* The burns, in order. An EMPTY list is a plan with no burns, which is a
+	* meaningful thing to send because it clears the plan; a NULL list is a
+	* malformed command and is refused. The two must not be confused.
+	*/
 	burns?: ComposedBurn[];
+	/** How far the plan is asked to run. */
 	desiredFinalTimeUt?: number;
 }
+/**
+* The frame the game's own navigation view is expressed in: what the player is
+* looking at, and what a burn expressed relative to the control frame is held
+* fixed against.
+*
+* **Why this is not a widget's choice.** A widget picks a read frame for
+* itself and nothing else sees it. This is the game's, it is one at a time,
+* and it is written as well as read, so a command centre can put the player's
+* view where a plan is being discussed.
+*
+* **Bodies travel by name.** Every other body table in this mod is keyed by
+* `bodyName`, `system.bodies` included, so a frame named the same way needs no
+* join to be understood and cannot disagree with the table beside it.
+*
+* **The pulsating frames carry SETS, not just a pair.** A rotating frame turns
+* about two bodies; a pulsating one turns about two groups, and the origin is
+* defined by the mass of the whole group. Publishing only the head of each
+* side loses bodies out of the mass that decides where the origin is, and
+* loses them silently, because the head is the name a reader recognises.
+* `ControlFrame.primaryBodies` always leads with `ControlFrame.primaryBody` so
+* a reader wanting the pair can take the heads and a reader computing the
+* frame can take the sets.
+*/
 export interface ControlFrame
 {
 	kind: ControlFrameKind;
+	/**
+	* The body the frame is centred on, when it has one. The rotating frames are
+	* defined by their pair rather than by a centre.
+	*/
 	centreBody?: string;
+	/** The body a rotating frame turns about. Null for the centred frames. */
 	primaryBody?: string;
+	/** The body a rotating frame is anchored to. Null for the centred frames. */
 	secondaryBody?: string;
+	/**
+	* Every body on the primary side, leading with `ControlFrame.primaryBody`. See
+	* this type's own doc for why the set travels rather than the head.
+	*/
 	primaryBodies?: string[];
+	/** Every body on the secondary side, leading with `ControlFrame.secondaryBody`. */
 	secondaryBodies?: string[];
+	/**
+	* The frame is defined against the current target rather than against a body,
+	* which sits orthogonally to `ControlFrame.kind` rather than inside it.
+	* Closest approach is computed only in this frame, and apsides do not exist in
+	* it at all.
+	*/
 	targetFrameSelected?: boolean;
+	/** The target the frame is defined against, when it is a target frame. */
 	targetId?: string;
 }
+/**
+* Whatever knows what frame the game's navigation view is currently in.
+*
+* A capability rather than a method on core, because the answer belongs to
+* whichever mod owns the view. Stock's answer is real and simple, a body and
+* inertial axes; an n-body producer's is one of five kinds over sets of
+* bodies. Core resolves the interface and never learns which is installed,
+* which is the whole of what makes this side stock-shaped rather than
+* producer-shaped.
+*
+* Frame is null when nothing could be read. That is not a gap to fill with a
+* default: a substituted frame draws a trajectory that looks exactly like one
+* drawn in the frame the player is actually in, and nothing downstream could
+* tell them apart.
+*/
 export interface SetControlFrameArgs
 {
 	kind: ControlFrameKind;
+	/** The body to centre on. Required for the centred frames. */
 	centreBody?: string;
+	/** The body a rotating frame turns about. Required for the rotating frames. */
 	primaryBody?: string;
+	/** The body a rotating frame is anchored to. Required for the rotating frames. */
 	secondaryBody?: string;
+	/**
+	* Ask for the target frame, which sits orthogonally to
+	* `SetControlFrameArgs.kind` rather than inside it.
+	*/
 	targetFrameSelected?: boolean;
 }
+/**
+* The payload for the `crash.lastCrash` channel: a single "last notable crash"
+* record for the current save, delivered on the Delivery.ReliableOrdered event
+* lane. Mirrors the wire shape the consumers already parse
+* (`FlightOutcomeBanner.parseCrash`, `LaunchDirector`) field-for-field; the
+* frozen captures in `packages/app/src/__tests__/fixtures/crash-payloads.ts`
+* are the wire ground truth this type names.
+*
+* TYPING/codegen marker only. The producer (`Gonogo.KSP.CrashUplink`)
+* hand-flattens the live-KSP crash into a `Dictionary<string, object?>` via
+* `Sitrep.Host.Crash.CrashPayload.Build` before publishing, so JsonWriter only
+* ever sees the dictionary: this POCO exists solely so the TS SDK has a
+* concrete payload type to name (it is on `WirePayloadCoverageTests`'s
+* producer-flatten allowlist for exactly that reason).
+*/
 export interface CrashReport
 {
+	/** The crashed vessel's stable id (`Vessel.id` as a string GUID). */
 	vesselId: string;
+	/** Which detector fired: `CrashSplashdown` / `Destroyed` / `Crash`. */
 	eventKind: string;
+	/**
+	* The colliding object's name (`EventReport.other`): empty for a non-collision
+	* death.
+	*/
 	what: string;
+	/** The crashed vessel's `VesselType` name (e.g. `"Ship"`). */
 	vesselType: string;
+	/** The detector's message (`EventReport.msg`): often empty. */
 	msg: string;
 	latitude: Value<"°">;
 	longitude: Value<"°">;
+	/** Parts lost in the destroying event. */
 	partsLost: CrashPartLost[];
+	/** Name of the body the crash happened on (`mainBody.bodyName`). */
 	body: string;
+	/** Per-flight statistics accumulated up to the crash. */
 	flightStats: CrashFlightStats;
 	vesselName: string;
+	/** Timestamped flight-event log (liftoff, staging, the crash line). */
 	events: string[];
+	/** Names of the kerbals lost in this crash. */
 	kerbalsKilled: string[];
+	/**
+	* The vessel's flight situation at the crash (`Vessel.Situations` name, e.g.
+	* `"FLYING"`).
+	*/
 	situation: string;
+	/** Names of the crew aboard at the crash. */
 	crewAboard: string[];
 	altitude: Value<"m">;
+	/** Universal time of the crash capture. */
 	ut: Value<"ut">;
 }
+/**
+* One part lost in a crash: an entry of `CrashReport.partsLost`. See
+* `crash-payloads.ts` for the wire shape.
+*/
 export interface CrashPartLost
 {
+	/** The part's `flightID`. */
 	partId: number;
+	/** The part's `partInfo.name` (e.g. `"mk1pod.v2"`). */
 	partName: string;
+	/** The part's `partInfo.title` (e.g. `"Mk1 Command Pod"`). */
 	partTitle: string;
+	/** Destruction message for this part: often empty. */
 	msg: string;
 }
+/**
+* Per-flight statistics accumulated across the whole flight up to the crash,
+* `CrashReport.flightStats`. See `crash-payloads.ts` for the wire shape.
+*/
 export interface CrashFlightStats
 {
+	/** Kerbals killed earlier in the flight (before the final crash). */
 	kerbalsKilled: Value<"count">;
+	/** Cumulative parts destroyed across the flight. */
 	partsLost: Value<"count">;
+	/** How the flight ended (e.g. `"CATASTROPHIC_FAILURE"`). */
 	flightEndMode: string;
 	highestSpeedOverLand: Value<"m/s">;
 	missionEnd: boolean;
 	highestGee: Value<"g">;
 	highestAltitude: Value<"m">;
 	totalDistance: Value<"m">;
+	/** Mission time (seconds since launch) at the crash. */
 	missionTime: Value<"s">;
 	highestSpeed: Value<"m/s">;
 	groundDistance: Value<"m">;
 	liftOff: boolean;
 }
+/**
+* What a kerbal's place on the books IS, as the dashboard means it: this
+* contract's own vocabulary, not a mirror of any game enum.
+*
+* The first four members line up with `KspRosterStatus` in meaning but
+* deliberately NOT in numbering: a mirror would tie growth here to Squad
+* shipping a new roster status, which is the assumption that let a retiree
+* read as a fatality. `CrewStanding.Applicant` is a standing KSP expresses as
+* a KerbalType rather than a RosterStatus, and it belongs in one enumeration
+* with the rest because a client asking "what is this kerbal's standing" wants
+* one answer.
+*
+* Behind `spaceCenter.crewRoster[].standing`, and it is the field to branch
+* on; see `CrewRosterEntry.situationOrdinal` for what the raw KSP ordinal
+* beside it is still good for.
+*
+* **The numbering IS the reading order**, and members are inserted rather than
+* appended for that reason. The SDK's `CREW_STANDING_ORDER` sorts by value so
+* a crew surface reads free to fly, then committed, then off the books, and
+* derives that from the enum so nobody has to maintain a second list.
+* Appending `CrewStanding.Training` would have filed it after
+* `CrewStanding.Dead`.
+*/
 export enum CrewStanding {
+	/**
+	* No backend could say. Distinct from every answer below, and never a stand-in
+	* for one: a capture that read no roster status at all reports this rather
+	* than guessing at Available.
+	*/
 	Unknown = 0,
+	/** A hireable candidate, not yet on the books. */
 	Applicant = 1,
+	/** On the books and free to fly. */
 	Available = 2,
+	/** On the books and currently crewing a vessel. */
 	Assigned = 3,
+	/**
+	* On the books, committed to a training course, and not assignable until it
+	* finishes. CrewStandingReading.StandingEndsAtUt carries the course's own ETA.
+	*
+	* Reachable only through a backend that models training. Stock has no courses,
+	* so a stock install never reports it, and KSP's roster status for a kerbal
+	* mid-course is `Available`: the same shape as the retiree, where the game
+	* field is not the answer.
+	*/
 	Training = 4,
+	/**
+	* On the books, standing down after a flight, and not assignable until the
+	* rest period ends. CrewStandingReading.StandingEndsAtUt carries its end.
+	*
+	* Derived from KSP's own `ProtoCrewMember.inactive`, so the stock backend
+	* answers it and every install gets it. Stock rarely sets the field; a career
+	* overhaul's post-flight R&R is what usually does.
+	*/
 	Resting = 5,
+	/**
+	* Finished flying, alive, off the flight roster for good. Reachable only
+	* through a backend that models a career ending well; stock has no such
+	* concept and never reports it.
+	*/
 	Retired = 6,
+	/** Killed. */
 	Dead = 7,
+	/** Missing: KSP's own separate answer, kept separate. */
 	Missing = 8
 }
+/**
+* One science credit, attributed to the vessel that earned it.
+*
+* Stock credits science in a lump the moment a transmit stream finishes;
+* Kerbalism accrues it continuously against available data rate. Both land on
+* `GameEvents.OnScienceRecieved` (KSP's own spelling), which carries the
+* crediting `ProtoVessel`, so both are attributed the same way with no
+* mod-specific handling: this is a core type, not a Kerbalism one.
+*
+* Carried on `currency.<guid>.science` as a Delayed, ReliableOrdered discrete
+* event, mirroring `crash.lastCrash`'s shape (a one-shot record with its own
+* `ut`, replayed to a late subscriber by the reliable lane's
+* keyframe-on-subscribe). It reveals at `DelayTo(vantage, fleet.<guid>)`, so a
+* probe five light-minutes out reports its transmit five minutes after the
+* fact.
+*
+* ADDITIVE to `career.status.economy.science`, which is untouched and still
+* DelayRole.TrueNow: that field gates what tech the operator can afford, so it
+* must stay the number the game will actually gate against (the same principle
+* as the always-show-the-funds-balance rule). These events let a consumer
+* build a separate, honestly-delayed running total; they never replace the
+* gating one.
+*/
 export interface ScienceCreditEvent
 {
+	/**
+	* The crediting vessel's persistent id (`ProtoVessel.vesselID`), the same guid
+	* the `fleet.` namespace keys by.
+	*/
 	vesselId: string;
+	/** The crediting vessel's display name at the moment of the credit. */
 	vesselName: string;
+	/**
+	* Science points credited by this event. Positive; science is monotonic-up
+	* outside the ground-side admin conversion, which is not attributed here.
+	*/
 	amount: Value<"science">;
+	/**
+	* The research subject's id (`ScienceSubject.id`), e.g. the
+	* experiment+body+biome key.
+	*/
 	subjectId: string;
+	/** The research subject's human title, e.g. "Crew Report from Kerbin's Shores". */
 	subjectTitle: string;
+	/**
+	* Universal Time the credit happened at, the UT its reveal delay is measured
+	* from.
+	*/
 	ut: Value<"ut">;
 }
+/**
+* One reputation loss, attributed to the vessel it happened aboard.
+*
+* NARRATIVE ONLY. This is not a reputation total and must never be read as
+* one. See `ScienceCreditEvent` for the general shape, and the hard constraint
+* below for why this type deliberately carries no absolute figure.
+*
+* **The gating field stays instant, non-negotiably.** Reputation GATES:
+* `StrategyEntry.RequiredReputation` is a strategy's minimum-rep unlock
+* threshold, and contract offer availability keys off the game's real current
+* reputation. A stale-high delayed number sitting where the operator reads it
+* before clicking "Activate Strategy" or "Accept Contract" could show a
+* strategy as available when the game's already-dropped reputation has made it
+* unavailable, and the action would then fail against ground truth the
+* operator had no way to see coming. So `career.status.economy.reputation`
+* remains TrueNow, instant, and completely untouched: it is the number the
+* game will actually gate against, the same principle as the
+* always-show-the-funds-balance rule. This event is ADDITIVE and carries only
+* a DELTA with no absolute total precisely so it can never be substituted for
+* the gating value, and it must never be co-located with an activate/accept
+* control.
+*
+* **What actually costs reputation in stock.** Decompile-confirmed: the only
+* loss-related reputation penalty stock applies is `Reputation.OnCrewKilled`,
+* which fires on `GameEvents.onCrewKilled` with
+* `TransactionReasons.VesselLoss`. Losing an UNCREWED vessel costs no
+* reputation at all, so a probe crashing raises no event here.
+* `ReputationLossEvent.cause` is carried rather than assumed so a mod that
+* penalises other loss classes still fits this shape.
+*
+* **Attribution.** `ProtoCrewMember.Die()` fires `onCrewKilled` with a NULL
+* `EventReport.origin`, so the vessel cannot always be read off the event. The
+* producer resolves it from the report's part when present, otherwise from the
+* vessel a destruction detector armed in the same frame, otherwise the active
+* vessel. An unattributable death raises no event rather than being blamed on
+* a guess.
+*/
 export interface ReputationLossEvent
 {
+	/**
+	* The vessel the loss happened aboard (`Vessel.id` as a string GUID), the same
+	* guid the `fleet.` namespace keys by.
+	*/
 	vesselId: string;
+	/** The vessel's display name at the moment of the loss. */
 	vesselName: string;
+	/**
+	* The reputation CHANGE this loss caused, negative for a penalty. A delta,
+	* never a total: there is deliberately no absolute reputation on this type, so
+	* it cannot be mistaken for the gating figure (see the type's own doc
+	* comment).
+	*/
 	delta: Value<"rep">;
+	/**
+	* What caused the loss, e.g. `crew-loss`. Carried rather than assumed so a
+	* non-stock penalty class still fits.
+	*/
 	cause: string;
+	/**
+	* The kerbals lost, all of those folded into this event's
+	* `ReputationLossEvent.delta`.
+	*/
 	crewLost: string[];
+	/**
+	* Universal Time the loss happened at, the UT its reveal delay is measured
+	* from.
+	*/
 	ut: Value<"ut">;
 }
 export interface StreamData<T>
@@ -445,8 +1643,29 @@ export interface CommandRequest<TArgs>
 	type: "command-request";
 	requestId: string;
 	command: string;
+	/**
+	* Caller-supplied, generic display label for this dispatch, carried verbatim
+	* into the corresponding `PendingUplink.label` entry on
+	* `system.uplink.pending`. Empty ⇒ the renderer falls back to
+	* `CommandRequest.command`. Never inspected/parsed by the engine.
+	*/
 	label: string;
+	/**
+	* Dispatch-time addressing: carried verbatim into the corresponding
+	* `PendingUplink.topic` entry on `system.uplink.pending`. Never
+	* inspected/parsed by the engine.
+	*/
 	topic: string;
+	/**
+	* Per-call vantage override (Plan 3 / delay-UX): the command centre this
+	* specific command dispatches from, governing its delay via `DelayTo(vantage,
+	* node)`. Empty ⇒ the server uses the connection's session `SelectedVantage`
+	* (the default). A program-meta command (tech/strategy/contract) sends
+	* `"meta"` so it stays instant (`DelayTo("meta", *) = 0`) regardless of which
+	* centre the operator has selected. Nullable/optional: a pre-Vantage client
+	* omits it (codegen emits vantage?: string), and the server treats null/empty
+	* as the session vantage.
+	*/
 	vantage?: string;
 	args: TArgs;
 	sentAt: number;
@@ -476,103 +1695,441 @@ export interface Unsubscribe
 	type: "unsubscribe";
 	topic: string;
 }
+/**
+* Client-to-server: select the command centre this connection commands from
+* and observes at (Plan 3 vantage selection). Governs both the downlink cursor
+* read and the command-dispatch vantage. `"ksc"` (the default) is always
+* selectable; any other id must name a currently-active command centre.
+*/
 export interface SetVantage
 {
 	type: "set-vantage";
+	/** The command centre Id to adopt as this connection's vantage. */
 	centreId: string;
 }
+/**
+* Display-only per-vessel link facts on `fleet.<guid>.delay`: the one-way
+* light-time to that vessel and whether it is currently reachable. The mod
+* already computes both (`FleetCommsReader.ReadVessel`) to set the per-vessel
+* channel delay and per-subject freeze; this surfaces the same numbers for the
+* FleetRoster UI. Not a control input.
+*
+* Rides the Delayed `fleet.` namespace like `fleet.<guid>.orbit`, so the value
+* itself arrives light-time-late: honest (KSC's knowledge of a distant
+* vessel's link geometry IS that old) and consistent, and the value varies
+* slowly enough that the meta-lag is immaterial.
+*
+* R7 typed-absence: `FleetVesselLink.oneWaySeconds` is nullable, a vessel with
+* no comms path carries `null`, never a sentinel `0` that would read as a
+* zero-delay direct link.
+*/
 export interface FleetVesselLink
 {
+	/**
+	* One-way light-time to this vessel, seconds. Null when there is no path
+	* (unreachable / torn-down state).
+	*/
 	oneWaySeconds?: Value<"s">;
+	/** Whether this vessel is currently reachable (`v.connection.IsConnected`). */
 	connected: boolean;
 }
+/**
+* The CORE per-vessel contact facts on `fleet.<guid>.contact`: whether the
+* vessel is currently in contact, and when it was last heard from. With
+* CommNet disabled this is trivially `Connected: true` always; with it enabled
+* the value is the same live network-presence read `fleet.<guid>.delay`
+* already carries. No modelling, no deadlines, no opinion about whether the
+* vessel is "lost": that reckoning is a comms-derived judgement, not a fact
+* stock KSP hands you, and lives on the separate `FleetVesselSilence` wire
+* type instead (see its own doc comment for why the two are split).
+*
+* Rides the same Delayed `fleet.` namespace as
+* `FleetVesselLink`/`fleet.<guid>.orbit`, so the value itself arrives
+* light-time-late, honest for the same reason those do. Freeze-exempt
+* (`ChannelEngine.ContactMetaSuffix`): the disconnect edge has to escape the
+* reveal-gate freeze or "NO SIGNAL" could never fire, the same reasoning as
+* `comms.link`.
+*/
 export interface FleetVesselContact
 {
+	/** Whether contact was observed on the most recent capture tick. */
 	connected: boolean;
+	/**
+	* UT of the last sample that observed contact. Null before the first-ever
+	* contact.
+	*/
 	lastContactUt?: Value<"ut">;
 }
+/**
+* The COMMS-OWNED officially-lost reckoning on `silence.<guid>.state`: how
+* long a vessel's silence has run and when it becomes eligible to be declared
+* lost. This is a MODEL's opinion, not a fact: it exists only because
+* something (the pure `Sitrep.Host.Comms.SilenceTracker`) is watching
+* occultation geometry and deciding a craft is overdue, which is why it is
+* registered from the comms uplink rather than riding the always-on core
+* `FleetVesselContact` (see
+* `local_docs/design/2026-08-15-vessel-officially-lost.md`).
+*
+* A disjoint dynamic namespace (`ChannelEngine.SilenceEventPrefix`) that maps
+* back onto the same per-vessel `fleet.<guid>` Courier node
+* `FleetVesselContact` uses, so the reveal/freeze/delay treatment for a
+* vessel's telemetry and its silence reckoning stay identical, freeze-exempt
+* for the same reason `FleetVesselContact` is.
+*
+* Deliberately narrow for this pass: `declaredLostUt` and the monotonic
+* `lostSeq` a future currency consumer needs for idempotent arming stay off
+* the wire until that consumer exists, see the design doc's scope note.
+* Nothing here is a control input.
+*/
 export interface FleetVesselSilence
 {
+	/** One of `Nominal` / `Silent` / `Lost` (`Sitrep.Host.Comms.SilenceState`). */
 	state: string;
+	/** UT the current silence run began. Null while Nominal. */
 	silenceSinceUt?: Value<"ut">;
+	/**
+	* UT at which this silence run becomes eligible to be declared Lost. Null
+	* while Nominal, or for a destroyed vessel.
+	*/
 	deadlineUt?: Value<"ut">;
+	/**
+	* One of `orbital-period` / `policy-floor` / `policy-ceiling` / `no-orbit` /
+	* `destroyed` / `predicted-reacquisition` / `no-occultation` /
+	* `no-emergence-in-window` / `warp-limited` / `grace-exceeds-ceiling`
+	* (`Sitrep.Host.Comms.SilenceDeadlineBasis`). Null while Nominal.
+	*/
 	deadlineBasis?: string;
+	/**
+	* UT the radio path is predicted to re-open, when a visibility sweep found
+	* one. This is what "should be back in ~16 min" is rendered from, and what
+	* makes "it did not show up" expressible at all.
+	*
+	* Null whenever no honest prediction exists, no geometry, no occultation to
+	* emerge from, or a warp too coarse to resolve one, and `deadlineBasis` says
+	* which. A null is a prediction WITHHELD, never an emergence of "now": a
+	* client must render the absence as "no prediction", not as an overdue vessel.
+	*/
 	predictedReacquisitionUt?: Value<"ut">;
+	/**
+	* The error budget the deadline was armed with, seconds: how long past the
+	* predicted return this craft may stay quiet before its silence is something
+	* other than a late reappearance.
+	*
+	* It is the only thing on the wire that says how much confidence to place in
+	* `FleetVesselSilence.predictedReacquisitionUt` beside it. Without it, "back
+	* in 15 min" and "back in 15 min, and we would not call it late for another 5"
+	* render identically.
+	*
+	* ONE-SIDED, and not a symmetric uncertainty: it is an allowance after the
+	* predicted moment, so render "allowing 5 min of slack" and never "+/- 5 min".
+	* Null wherever the prediction is null, since a budget quoted next to a
+	* withheld prediction is an error bar around nothing.
+	*/
 	predictionGraceSeconds?: Value<"s">;
 }
+/**
+* One fleet vessel's resource amounts on `fleet.<guid>.resources`: the same
+* keyed map `VesselResources` carries for the active craft, with the same
+* three-way absence semantics (see that type's doc comment), for a craft you
+* are not flying.
+*
+* **Amounts only. No rate, and deliberately no exhaustion time.** A
+* consumption rate for an UNLOADED vessel is background simulation, which is a
+* life-support Uplink's domain and not core's: stock does not run one, and a
+* core-published "life support runs out at UT X" would be core pretending to a
+* model it does not have. Core reports what is in the tanks; whatever models
+* the draw contributes the exhaustion time on top. That ownership split is why
+* an exhaustion time has to arrive through a contribution slot rather than as
+* a field here. No slot hosts it today: the one this was designed against went
+* with the retired VesselTracker widget, and `fleet-roster.updates` is the
+* per-vessel seam of the same shape still standing.
+*
+* Rides the Delayed per-vessel `fleet.` namespace like `fleet.<guid>.orbit`,
+* so the reading arrives light-time-late, which is honest: how much fuel a
+* distant craft has is exactly as old as the last signal from it. Unlike its
+* siblings it is NOT freeze-exempt, and should not be: a tank level from a
+* craft we cannot currently hear is last-known, and freezing it at last-known
+* is the correct depiction.
+*/
 export interface FleetVesselResources
 {
 	resources: { [key:string]: ResourceAmount };
 }
+/**
+* One vessel's reckoning inside the fleet-wide `FleetSilence` roster: the same
+* fields `FleetVesselSilence` carries, plus the vessel id that the per-vessel
+* topic gets from its own topic string.
+*/
 export interface FleetSilenceEntry
 {
+	/**
+	* Stable subject id (KSP vessel GUID), the same id the `fleet.` and `silence.`
+	* namespaces key on.
+	*/
 	vesselId: string;
+	/** One of `Nominal` / `Silent` / `Lost`. */
 	state: string;
+	/** UT the current silence run began. Null while Nominal. */
 	silenceSinceUt?: Value<"ut">;
+	/**
+	* UT at which this silence run becomes eligible to be declared Lost. Null
+	* while Nominal, or for a destroyed vessel.
+	*/
 	deadlineUt?: Value<"ut">;
+	/** One of `Sitrep.Host.Comms.SilenceDeadlineBasis`. Null while Nominal. */
 	deadlineBasis?: string;
+	/**
+	* UT the radio path is predicted to re-open. Null is a prediction WITHHELD,
+	* never an emergence of "now".
+	*/
 	predictedReacquisitionUt?: Value<"ut">;
+	/**
+	* The error budget the deadline was armed with, seconds: how long past the
+	* predicted return this craft may stay quiet before its silence is something
+	* other than a late reappearance.
+	*
+	* It is the only thing on the wire that says how much confidence to place in
+	* `FleetSilenceEntry.predictedReacquisitionUt` beside it. Without it, "back in
+	* 15 min" and "back in 15 min, and we would not call it late for another 5"
+	* render identically.
+	*
+	* ONE-SIDED, and not a symmetric uncertainty: it is an allowance after the
+	* predicted moment, so render "allowing 5 min of slack" and never "+/- 5 min".
+	* Null wherever the prediction is null, since a budget quoted next to a
+	* withheld prediction is an error bar around nothing.
+	*/
 	predictionGraceSeconds?: Value<"s">;
 }
+/**
+* The fleet-wide silence roster on `fleet.silence`: every vessel the tracker
+* holds a reckoning for, in one payload.
+*
+* **Why this exists when `silence.<guid>.state` already does.** A per-vessel
+* topic can only be read by something that already knows which vessel to ask
+* for, which makes it unusable as the input to anything that has to work the
+* fleet out for itself. Concretely: a contribution declares its dependencies
+* STATICALLY at module load, so no contribution can name a per-guid topic, and
+* the client-side bridge that reaches those topics only holds vessels some
+* component is ALREADY subscribed to. A fan-out over that bridge sees exactly
+* the vessels a widget had already rendered, which is circular. One static
+* topic carrying every entry breaks the circle: a Processor declares it once,
+* derives once per frame, and a contribution fans out over entries that
+* genuinely exist.
+*
+* **Delayed on the MAIN node, and that is a real difference.**
+* `FleetVesselSilence` rides the per-vessel node, so each vessel's reckoning
+* arrives on that vessel's own light-time and is freeze-exempt. A single
+* aggregate cannot do that: one payload has one node and one delay. So this
+* rides the main node's delay, exactly as `SystemVessels` does while carrying
+* per-vessel `CommsConnected` alongside the per-subject-delayed
+* `FleetVesselContact`. The per-vessel topic stays authoritative for one
+* vessel on that vessel's own clock; this is the fleet-wide index. A consumer
+* that needs the former must not substitute the latter.
+*/
 export interface FleetSilence
 {
 	vessels: FleetSilenceEntry[];
 }
+/**
+* The flight-lifecycle domain: retires the client-side `FlightDetector`
+* heuristic that reconstructed flight boundaries from `vesselName` +
+* `missionTime` + a revert-threshold guess (see
+* `docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`). The producer
+* (`Gonogo.KSP.FlightUplink` + `Sitrep.Host.Flight.FlightLifecycleSampler`)
+* hooks KSP's flight GameEvents internally and translates them into this clean
+* contract: no KSP names ever cross the wire.
+*
+* **Crash/recovery stayed separate** (the smaller-blast-radius pick, per the
+* spec's build-time TBD): `crash.lastCrash`/ `recovery.lastSummary` keep their
+* own rich detail payloads unmodified; `FlightEnded` only carries the coarse
+* `FlightEndReason`. `FlightUplink` hooks the SAME
+* `onCrash`/`onCrashSplashdown`/`onVesselWillDestroy`/
+* `onVesselRecoveryProcessingComplete` GameEvents `CrashUplink`/
+* `RecoveryUplink` already hook, independently: zero coupling, zero risk to
+* the existing detail streams.
+*/
 export enum FlightEndReason {
 	Recovered = 0,
 	Crashed = 1,
 	Reverted = 2,
 	Destroyed = 3
 }
+/**
+* The `flight.current` channel payload: a UT-indexed **Value** (LossyLatest +
+* DelayRole.Delayed, mirroring every `vessel.*` channel): the authoritative
+* "what flight is this, and what phase is it in" reading for whichever vessel
+* is presently `FlightGlobals.ActiveVessel`. `FlightCurrent.phase` reuses
+* `Situation` rather than inventing a parallel enum; see
+* FlightLifecycleSampler doc reference in `Sitrep.Host.Flight` for the exact
+* phase source.
+*/
 export interface FlightCurrent
 {
+	/**
+	* The mod-minted stable flight id: KSP's `Vessel.id` GUID as a string, the
+	* same currency `VesselIdentity.VesselId`/`CrashReport.VesselId` already use.
+	*/
 	flightId: string;
 	vesselId: string;
 	vesselName: string;
+	/**
+	* The vessel's current flight phase: reuses `Situation`
+	* (PreLaunch/Flying/Landed/…), not a parallel enum.
+	*/
 	phase: Situation;
 }
+/**
+* The `flight.started` channel payload: a Delivery.ReliableOrdered +
+* DelayRole.Delayed event, fired the moment a genuinely NEW flight begins
+* (first-ever observation of a vessel id, or a switch onto a vessel this
+* session has never tracked before; see `FlightLifecycleSampler`'s doc comment
+* for the exact started-vs- vesselChanged distinction).
+*/
 export interface FlightStarted
 {
 	flightId: string;
 	vesselId: string;
 	vesselName: string;
+	/**
+	* Universal time this flight began: the UUT the sampler first observed the
+	* vessel active (or the revert-target UT, for a flight started as a revert's
+	* counterpart).
+	*/
 	ut: Value<"ut">;
 }
+/**
+* The `flight.ended` channel payload: a Delivery.ReliableOrdered +
+* DelayRole.Delayed event, fired once per flight when it stops being trackable
+* (recovered, crashed/destroyed, or reverted). Rides the SAME delay class as
+* `crash.lastCrash`/`recovery.lastSummary`, so it inherits the already-proven
+* revert-before-reveal erasure invariant
+* (`RevertBeforeRevealErasesAReliableOrderedDelayedEventForever`, commit
+* `82132a08`) for free: no new reveal-gate work needed.
+*/
 export interface FlightEnded
 {
 	flightId: string;
 	vesselId: string;
 	vesselName: string;
 	reason: FlightEndReason;
+	/**
+	* Universal time the flight ended. For `FlightEndReason.Reverted` this is the
+	* revert-TARGET UT (see `FlightLifecycleSampler`'s revert-epoch-consistency
+	* doc), not the wall-clock moment the player hit revert.
+	*/
 	ut: Value<"ut">;
 }
+/**
+* The `flight.vesselChanged` channel payload: a Delivery.ReliableOrdered +
+* DelayRole.Delayed event, fired whenever the operator's active-vessel focus
+* moves to a DIFFERENT, already-known vessel
+* (docking/undocking/EVA/tracking-station reselect): decoupled from
+* `FlightStarted`/`FlightEnded`: switching focus away from a still-flying
+* vessel does not end its flight.
+*/
 export interface FlightVesselChanged
 {
 	flightId: string;
 	vesselId: string;
 	vesselName: string;
+	/**
+	* The vessel id the operator's focus moved FROM, null on the very first
+	* observation (nothing to switch away from).
+	*/
 	previousVesselId?: string;
 	ut: Value<"ut">;
 }
+/**
+* `ksp.revertToEditor`'s args, which editor the flight reverts back into.
+* `RevertToEditorArgs.editor` is a small opaque string (`"vab"` or `"sph"`,
+* case-insensitive) rather than the KSP `EditorFacility` enum, so the wire
+* contract never leaks a native KSP type; the host bridges the string to the
+* real facility (unrecognised value fails admission with
+* `CommandErrorCode.Range` before the game is ever touched).
+*
+* `ksp.revertToLaunch`, `ksp.toTrackingStation` and `ksp.recover` take no args
+* (they operate on the current flight / active vessel), so they have no arg
+* type here.
+*/
 export interface RevertToEditorArgs
 {
+	/**
+	* `"vab"` or `"sph"` (case-insensitive). Any other value yields
+	* CommandResult.ErrorCode `CommandErrorCode.Range`.
+	*/
 	editor: string;
 }
+/**
+* `ksp.switchVessel`'s args: the STABLE opaque vessel id
+* (`vessel.id.ToString()`, the same id `SetTargetArgs.vesselId` uses),
+* resolved server-side against `FlightGlobals.Vessels`. Never a live roster
+* array index a client would have to track itself: the same index-vs-stable-id
+* hazard the target commands already fixed (T-1). An empty id fails admission
+* with `CommandErrorCode.NotFound` before the game is ever touched.
+*/
 export interface SwitchVesselArgs
 {
 	vesselId: string;
 }
+/**
+* `ksp.launch`'s args: load a saved craft onto a launch site. The craft is
+* identified by `LaunchArgs.shipName` plus the `LaunchArgs.facility` it was
+* saved from (`"VAB"`/`"SPH"`, case-insensitive, the host bridges it to KSP's
+* `EditorFacility` and rebuilds the on-disk `.craft` path server-side, so the
+* wire never carries a native KSP type or an absolute path). An empty ship
+* name or an unrecognised facility fails admission
+* (`CommandErrorCode.NotFound`/`CommandErrorCode.Range`) before the game is
+* ever touched.
+*
+* `LaunchArgs.crew` is a real array of kerbal names (empty = launch unmanned),
+* NOT the legacy semicolon-joined blob the old action string used: the command
+* surface is JSON, so the client unwinds its `;`-encoded crew list back into
+* an array before dispatching and the host assigns each name into a free craft
+* seat.
+*/
 export interface LaunchArgs
 {
 	shipName: string;
+	/**
+	* `"VAB"` or `"SPH"` (case-insensitive). Any other value yields
+	* CommandResult.ErrorCode `CommandErrorCode.Range`.
+	*/
 	facility: string;
 	site: string;
+	/** Kerbal names to seat, in order. Empty = launch unmanned. */
 	crew: string[];
 }
+/**
+* `vessel.control.setFlyByWire`'s args: arm/disarm the persistent fly-by-wire
+* override. FBW is the one `vessel.control.*` command that is NOT a one-shot
+* actuation: a raw control axis (pitch/yaw/roll/translation) is re-zeroed by
+* KSP every physics frame, so the mod holds an override struct and re-applies
+* it from a `Vessel.OnFlyByWire` callback while armed. This command flips that
+* armed flag: `SetFlyByWireArgs.enabled` `true` attaches the callback (axes
+* resume from their last-set values, or 0 on first arm), `false` detaches it
+* and neutralizes the stored axes/trims so control is fully handed back to the
+* player/SAS with no residual override.
+*/
 export interface SetFlyByWireArgs
 {
 	enabled: boolean;
 }
+/**
+* `vessel.control.setAxes`'s args: a partial update of the held fly-by-wire
+* override. Every field is nullable so the client can drive ONE axis at a time
+* (set-pitch alone) without clobbering the others: only non-null fields
+* overwrite their stored value. Rotation
+* (`SetControlAxesArgs.pitch`/`SetControlAxesArgs.yaw`/`SetControlAxesArgs.roll`)
+* and translation
+* (`SetControlAxesArgs.x`/`SetControlAxesArgs.y`/`SetControlAxesArgs.z`) are
+* −1..1; the analog value is preserved end-to-end (a mapped analog stick gives
+* proportional RCS rather than the legacy fork's −1/0/1 quantisation). Trim
+* (`SetControlAxesArgs.pitchTrim`/`SetControlAxesArgs.yawTrim`/`SetControlAxesArgs.rollTrim`)
+* is applied from inside the callback each frame alongside the axes, so it
+* stays durable while armed instead of being stomped by SAS. Out-of-range
+* values are clamped to −1..1 at the admission gate (a hardware stick reading
+* slightly past full is a routine quirk, not an error).
+*/
 export interface SetControlAxesArgs
 {
 	pitch?: number;
@@ -585,47 +2142,169 @@ export interface SetControlAxesArgs
 	yawTrim?: number;
 	rollTrim?: number;
 }
+/**
+* The `game.dlc` channel payload, which KSP expansions ("DLC") are installed,
+* produced by `Sitrep.Host.SystemViewProvider.BuildGameDlc`. This is the
+* `Meta.Dlc` path: a ground-side, scene-independent game fact (the install has
+* the expansion or it doesn't), NOT a per-tick capture flag. It lets a widget
+* distinguish "the player has no DLC" from "the DLC is present but nothing is
+* deployed yet", chiefly `DeployedScience`, which reads Breaking Ground.
+*
+* Mirrors the exact serialized shape `SystemViewProvider.BuildGameDlc` emits
+* (a wrapper object `{ "breakingGround": bool, "makingHistory": bool }`); it
+* is a typing/codegen marker so a widget resolves a real payload type instead
+* of `unknown`, and does NOT participate in serialization (the provider emits
+* the live value tree that `JsonWriter` walks; see SitrepTopicAttribute). The
+* whole payload is `null` (not an all-false object) when no sample has landed
+* yet, the provider's "no data yet" vs. "DLC genuinely absent" distinction.
+*
+* Same `game`/`system`-domain convention as `SystemBodies`: no per-payload
+* `Meta` field, its `Meta` rides the envelope (`StreamData.Meta`), never the
+* payload body. This is a ground-side fact, so its Topic is
+* `DelayRole.TrueNow`: DLC presence is known independent of any vessel's comms
+* link.
+*/
 export interface GameDlc
 {
+	/**
+	* Whether the Breaking Ground expansion ("Serenity") is installed, deployed
+	* science, robotics, surface features.
+	*/
 	breakingGround: boolean;
+	/**
+	* Whether the Making History expansion is installed, mission builder, extra
+	* parts.
+	*/
 	makingHistory: boolean;
 }
+/**
+* One drill (resource harvester) on the active vessel. The field set is
+* deliberately exactly what stock ISRU has: resource, abundance, rate, deploy,
+* running, plus the two identification fields every list-shaped payload in
+* this contract carries. It is not "stock's fields with nulls for what a
+* richer mod does", it is the literal intersection, and the intersection
+* happens to be everything stock has. Anything one provider knows and another
+* does not goes in `IsruDrillEntry.extensions`.
+*/
 export interface IsruDrillEntry
 {
+	/**
+	* Part.flightID stringified: the same join key
+	* vessel.parts/parts.power/reliability.parts use.
+	*/
 	partId?: string;
+	/** Part.partInfo.title, for display without a vessel.parts join. */
 	partTitle?: string;
+	/**
+	* Resource this drill extracts (e.g. "Ore"). Free text, not a closed enum:
+	* whatever the running install's configs and profiles name, the same posture
+	* every other resource-identity field in this contract takes.
+	*/
 	resource?: string;
+	/**
+	* Drill head deployed. Null for a harvester with no deploy animation, e.g.
+	* some asteroid drills.
+	*/
 	deployed?: boolean;
+	/** Actively extracting this tick. */
 	running?: boolean;
+	/**
+	* Local abundance of `IsruDrillEntry.resource` at the drill's current
+	* position, 0..1. Stock reads the same resource map the right-click PAW does.
+	* A mod that samples its own abundance reports that instead, and for asteroid
+	* or comet mining the remaining-mass ratio of the source rock lands here: the
+	* same 0..1 shape from a different source. Null when the backend has no
+	* abundance concept for this harvest type.
+	*/
 	abundance?: Value<"ratio">;
+	/**
+	* EFFECTIVE current extraction rate, already abundance- and
+	* efficiency-adjusted rather than the static config rate, so it matches what
+	* the part's own readout shows. Zero rather than null when
+	* `IsruDrillEntry.running` is false: the drill genuinely extracts nothing,
+	* which is a number, not an absence.
+	*/
 	rate?: Value<"units/s">;
+	/**
+	* The provider-namespaced extension bag: how an ISRU backend carries a
+	* per-drill field this shared shape does not declare, WITHOUT a PR against
+	* this file. See ProviderExtensionBagAttribute for the whole mechanism. Null
+	* for the vanilla backend, which has nothing stock does not already say. A
+	* blocking-reason string, an EC draw, an asteroid's remaining mass: all of
+	* those belong here rather than as nullable members above.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* One resource flow in a converter's recipe, input or output side. The rate is
+* live (already scaled by whatever the part's current efficiency or capacity
+* multiplier is), not the raw recipe ratio, so an operator reads what is
+* actually moving rather than what the config asked for.
+*/
 export interface IsruResourceFlow
 {
 	resource?: string;
 	rate?: Value<"units/s">;
 }
+/**
+* One chemical converter on the active vessel. Field set matches stock's
+* surface: whether it is running, and the recipe it is running, at live rates.
+*/
 export interface IsruConverterEntry
 {
 	partId?: string;
 	partTitle?: string;
+	/** Actively converting this tick. */
 	running?: boolean;
+	/**
+	* Recipe inputs at their live rate. Empty list, not null, when the converter
+	* carries no recipe.
+	*/
 	inputs: IsruResourceFlow[];
+	/** Recipe outputs at their live rate. */
 	outputs: IsruResourceFlow[];
+	/**
+	* The provider-namespaced extension bag, converter half. Same mechanism and
+	* same rule as `IsruDrillEntry.extensions`.
+	*
+	* Note what does NOT belong here: a blocking-reason string for a starved
+	* recipe. A converter that is on but moving nothing is already fully described
+	* by `IsruConverterEntry.running` true alongside zero rates, so a reader
+	* derives that condition from the shared fields. Inventing an issue field
+	* would mean fabricating a diagnostic no engine actually reports.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* KSP's `ProtoCrewMember.RosterStatus`: a kerbal's standing in the roster.
+* Behind `spaceCenter.crewRoster[].situationOrdinal`, beside the name in
+* `CrewRosterEntry.situation`.
+*/
 export enum KspRosterStatus {
 	Available = 0,
 	Assigned = 1,
 	Dead = 2,
 	Missing = 3
 }
+/**
+* KSP's `Contracts.ParameterState`: whether one objective of a contract is
+* done. Behind `career.status.contracts[].parameters[].stateOrdinal`, beside
+* the name in `CareerContractParameter.state`.
+*/
 export enum KspParameterState {
 	Incomplete = 0,
 	Complete = 1,
 	Failed = 2
 }
+/**
+* KSP's `PartCategories`: the editor category a part filters into. Behind
+* `vessel.parts[].categoryOrdinal`, beside the name in `VesselPart.category`.
+*
+* `KspPartCategory.none` is `-1`, not `0`, so this enum is NOT dense from zero
+* and the client cannot resolve it with the array-walking `namesOf`. The
+* lower-case spelling is KSP's; `.ToString()` on that member yields `"none"`
+* and the wire carries exactly that.
+*/
 export enum KspPartCategory {
 	Propulsion = 0,
 	Control = 1,
@@ -646,6 +2325,17 @@ export enum KspPartCategory {
 	Robotics = 16,
 	none = -1
 }
+/**
+* KSP's `KSPActionGroup`: which action groups a part action fires with. Behind
+* `vessel.parts[].actionBindings[].groupsMask`, beside the names in
+* `ActionBinding.groups`.
+*
+* A `[Flags]` BITMASK, so the members are powers of two and the wire carries
+* the whole mask as one integer rather than one ordinal. `KspActionGroup.None`
+* is `0` and `KspActionGroup.REPLACEWITHDEFAULT` is `-1`. Neither is a group a
+* part action is usefully bound to, and both are recorded here because the
+* mirror test compares the whole member set, not the useful subset of it.
+*/
 export enum KspActionGroup {
 	None = 0,
 	Stage = 1,
@@ -667,11 +2357,27 @@ export enum KspActionGroup {
 	Custom10 = 65536,
 	REPLACEWITHDEFAULT = -1
 }
+/**
+* KSP's `EditorFacility`: which editor a craft was built in. Behind
+* `spaceCenter.savedShips[].facilityOrdinal`, beside the name in
+* `SavedShipEntry.facility`.
+*/
 export enum KspEditorFacility {
 	None = 0,
 	VAB = 1,
 	SPH = 2
 }
+/**
+* KSP's `SpaceCenterFacility`: one building at the space centre. Behind
+* `career.status.facilities[].facilityOrdinal` and
+* `LimitBreach.facilityOrdinal`.
+*
+* `career.status.facilities` is keyed by the NAME rather than the ordinal, and
+* stays that way: rekeying the map would be a breaking retype and would change
+* the shape of every consumer's key walk. The ordinal rides inside each entry
+* instead, so a client can branch on it without trusting the key it arrived
+* under.
+*/
 export enum KspSpaceCenterFacility {
 	Administration = 0,
 	AstronautComplex = 1,
@@ -683,6 +2389,16 @@ export enum KspSpaceCenterFacility {
 	SpaceplaneHangar = 7,
 	VehicleAssemblyBuilding = 8
 }
+/**
+* KSP's `ResourceFlowMode`: how a resource moves around a vessel. Behind
+* `kerbalism.resourceDefs[].flowModeOrdinal`, beside the name in
+* `ResourceDefRaw.FlowMode`.
+*
+* Read by the Kerbalism Uplink, which is why it is declared in the core
+* contract rather than in that Uplink's own slice: the enum is stock KSP's,
+* not Kerbalism's, and a second Uplink reading the same stock enum should get
+* this declaration rather than a second copy of it.
+*/
 export enum KspResourceFlowMode {
 	NO_FLOW = 0,
 	ALL_VESSEL = 1,
@@ -713,13 +2429,73 @@ export interface Meta
 	quality: Quality;
 	active: boolean;
 	staleness: Staleness;
+	/**
+	* Generation counter for the current timeline: 0 at boot, incremented once for
+	* every quickload/rewind (ResetTimeline). Stamped on EVERY envelope `Meta`
+	* (streams AND command responses) by `Courier.MakeMeta`: see that method's doc
+	* comment for why this had to be added now rather than retrofitted later: once
+	* recordings/stations exist, a sample with no epoch can never be told apart
+	* from one on an abandoned pre-rewind timeline. A client compares this against
+	* its own last-seen epoch to detect a rewind atomically, without re-deriving
+	* it from a backward `validAt` jump (which a reordered/coalesced delivery
+	* could mask).
+	*/
 	timelineEpoch: number;
 }
+/**
+* The slim, payload-specific sibling of `Meta`, carried on every
+* `vessel.*`/`time.warp` PAYLOAD (`VesselOrbit.Meta`, `VesselIdentity.Meta`,
+* etc.), as opposed to the ENVELOPE `Meta` that `Sitrep.Core.Courier` stamps
+* onto every `StreamData<T>` with the real
+* `seq`/`deliveredAt`/`vantage`/`validAt` (see `Courier.MakeMeta`). Before
+* this type existed, every payload carried a full `Meta` of its own,
+* fabricating `seq:0`/`deliveredAt:0`/`vantage:""`/`validAt:0`: dead
+* duplicates of the envelope's real values that a consumer could easily
+* mistake for genuine delivery metadata. `PayloadMeta.source` (subject
+* provenance, `"vessel:<guid>"` or `"game"`) and `PayloadMeta.quality`
+* (on-rails/loaded) are the only two fields a payload mapper actually produces
+* itself: everything else belongs to the envelope alone. Staleness is a
+* separate, not-yet-implemented M2 concern and deliberately has no home here
+* either.
+*/
 export interface PayloadMeta
 {
 	source: string;
 	quality: Quality;
 }
+/**
+* One conic segment of a vessel's future trajectory, a patched-conic "patch"
+* in KSP's own sense (`Orbit.nextPatch`/`previousPatch`). Unlike `VesselOrbit`
+* (which is deliberately elements-only, see its own doc comment), a patch
+* chain exists purely so the CLIENT can propagate/render a forward trajectory,
+* so it carries the same already-computed apsis/shape fields KSP's own `Orbit`
+* exposes (`OrbitPatch.peA`/`OrbitPatch.apA`/`OrbitPatch.semiLatusRectum`/
+* `OrbitPatch.semiMinorAxis`) rather than forcing the client to re-derive them
+* per patch. `OrbitPatch.referenceBody`/`OrbitPatch.closestEncounterBody` are
+* body NAME strings, because the client's existing patch-consuming math
+* (`packages/core/src/calc/trajectory.ts`, which predates this Topic and
+* already expects body names) needs zero reshaping to use them directly.
+* `OrbitPatch.referenceBodyIndex`/`OrbitPatch.closestEncounterBodyIndex` sit
+* beside them and are the IDENTITY, matching `VesselOrbit.referenceBodyIndex`
+* and every other body reference in this contract. Both are carried on
+* purpose: the names were once described here as "the one deliberate
+* departure" from the index convention, which held only while nothing needed
+* to resolve a patch's body to anything. Propagating a patch does, and a
+* display name is the wrong key for that. `OrbitPatch.mu` completes the same
+* thought: a patch now carries everything needed to propagate it, so it is no
+* longer the only orbit on the wire that requires a `system.bodies` join
+* before it can be used. `OrbitPatch.lan`/`OrbitPatch.argPe` are plain
+* (non-nullable) doubles here, UNLIKE `VesselOrbit.lan`/`VesselOrbit.argPe`: a
+* deliberate, narrower exception to this codebase's usual R1 "never NaN, never
+* a fake 0" rule: the client's propagation math (`trajectory.ts`'s
+* `patchStateAt`) already hard-assumes a finite number for both (no
+* null-handling branch), matching the historical behaviour for a
+* near-circular/near-equatorial patch. Capturing them nullable here would
+* silently break every consumer without a matching client-side rewrite: out of
+* scope for this Topic. See `Gonogo.KSP.KspHost.BuildOrbitPatchChain`'s doc
+* comment for how a NaN is substituted with 0 at capture time, preserving that
+* pre-existing (imperfect but non-breaking) behaviour.
+*/
 export interface OrbitPatch
 {
 	sma: Value<"m">;
@@ -729,43 +2505,243 @@ export interface OrbitPatch
 	argPe: Value<"°">;
 	meanAnomalyAtEpoch: Value<"rad">;
 	epoch: Value<"ut">;
+	/**
+	* Orbital period, seconds. Non-finite (hyperbolic/parabolic patches) is
+	* carried as-is, the client's `isPatchElliptical` guard is what filters those,
+	* not this field.
+	*/
 	period: Value<"s">;
 	startUt: Value<"ut">;
 	endUt: Value<"ut">;
 	patchStartTransition: TransitionType;
 	patchEndTransition: TransitionType;
+	/**
+	* Periapsis altitude above `OrbitPatch.referenceBody`'s mean radius, metres,
+	* `Orbit.PeA`.
+	*/
 	peA: Value<"m">;
+	/**
+	* Apoapsis altitude above `OrbitPatch.referenceBody`'s mean radius, metres,
+	* `Orbit.ApA`.
+	*/
 	apA: Value<"m">;
 	semiLatusRectum: Value<"m">;
 	semiMinorAxis: Value<"m">;
+	/**
+	* Body this patch orbits: matches `system.bodies`' NAME, not its index (see
+	* class doc).
+	*/
 	referenceBody: string;
+	/**
+	* Body this patch's trajectory most closely encounters, if any, null when
+	* there is none. Same "name, not index" convention as
+	* `OrbitPatch.referenceBody`.
+	*/
 	closestEncounterBody?: string;
+	/**
+	* Parent body's standard gravitational parameter (GM), so a patch is
+	* self-sufficient to propagate exactly as `VesselOrbit.mu` makes a vessel's
+	* own orbit self-sufficient.
+	*
+	* Without it a patch was the only orbit on the wire that could not be
+	* propagated from what it carries: a consumer had to resolve
+	* `OrbitPatch.referenceBody` through `system.bodies` to find the number. That
+	* asymmetry made an A/B between a vessel's own orbit and a maneuver patch
+	* measure the lookup as well as the arithmetic.
+	*
+	* Null only on a patch read off a recording captured BEFORE this field
+	* existed, on the same terms as `ManeuverNode.id`. Nullable rather than 0
+	* because a zero GM is not a body, and every consumer of it divides.
+	*/
 	mu?: Value<"m³/s²">;
+	/**
+	* Body this patch orbits, as its `system.bodies` INDEX. The identity, where
+	* `OrbitPatch.referenceBody` is the display name: index is what every other
+	* body reference in this contract is keyed on
+	* (`VesselOrbit.referenceBodyIndex`, `VesselTarget`, `TargetAvailable`,
+	* `VesselIdentity.ParentBodyIndex`) and what `Sitrep.Propagation`'s
+	* `PropagationTarget` and `PropagationFrame` name a body by.
+	*
+	* Carried ALONGSIDE the name rather than replacing it: the name is
+	* load-bearing in `orbit-patches.ts`'s SOI-change detection and in
+	* `trajectory.ts`, which predates this Topic (see the class doc), so dropping
+	* it is a client migration and not a contract edit.
+	*
+	* Null only on a pre-existing recording, per `OrbitPatch.mu`. Nullable rather
+	* than 0 specifically because 0 is a REAL body index (the star), so a
+	* defaulted value here would read as a confident wrong answer rather than as
+	* an absent one.
+	*/
 	referenceBodyIndex?: number;
+	/**
+	* `OrbitPatch.closestEncounterBody`'s `system.bodies` index, on the same
+	* index-is-identity terms as `OrbitPatch.referenceBodyIndex`. Null when there
+	* is no encounter at all, and also null on a pre-existing recording: the two
+	* are indistinguishable here, which is acceptable only because
+	* `OrbitPatch.closestEncounterBody` already carries the distinction.
+	*/
 	closestEncounterBodyIndex?: number;
 }
+/**
+* Args for `vessel.invokePartAction`: fire one button of one part's
+* right-click Part Action Window, the remote-control equivalent of the player
+* clicking it in-game.
+*
+* This is an actuation of a part ON the craft, so the command rides light-time
+* (`Delayed = true`) exactly like `vessel.control.*` and the robotics commands
+* it is modelled on.
+*
+* **No state field, unlike every other actuation command.** The contract's
+* usual discipline is "absolute set, never toggle" (see
+* `ServoSetEnabledArgs`), but a `BaseEvent` has no settable value: KSP models
+* these as fire-this-button, and the button's own label is what changes
+* ("Deploy" becomes "Retract"). So this command is a pure invoke, in the same
+* position as `robotics.rotor.reverse`: the lone stateless member of its
+* family, for a reason that comes from KSP rather than from convenience. The
+* operator's read-back is the `vessel.partActions.<flightId>` channel
+* re-reporting the new button set one light-time later.
+*/
 export interface InvokePartActionArgs
 {
+	/**
+	* The part's `flightID.ToString()`: the same id the read side stamps on
+	* `PartActions.partId` and `VesselPart.id`, so a widget round-trips the exact
+	* id it already holds with no correlation step. An id that no longer resolves
+	* (the part was staged away, undocked, or the vessel unloaded) comes back
+	* CommandResult.ErrorCode `CommandErrorCode.NotFound` rather than silently
+	* doing nothing.
+	*/
 	partId: string;
+	/**
+	* The `PartActionEntry.name` of the button to fire (`BaseEvent.name`, the
+	* stable code id, NEVER the localized `PartActionEntry.label`). An event name
+	* the resolved part no longer exposes comes back
+	* `CommandErrorCode.ModeUnavailable`: the part is there but that button is
+	* not, which is a genuinely different failure from an unresolvable part.
+	*/
 	eventName: string;
 }
+/**
+* One button in a part's right-click Part Action Window: a single KSP
+* `BaseEvent`, either from the `Part` itself or from one of its `PartModule`s
+* (the full PAW is the UNION of both, and the module half is where the
+* interesting actions live: scanners, antennas, solar, deploy).
+*
+* `PartActionEntry.name` is the invoke key and `PartActionEntry.label` is the
+* display text: they are deliberately separate because `BaseEvent.name` is a
+* stable code identifier while `guiName` is localized, so a client that
+* invoked by label would break the moment the player switches language. The
+* invoke command (`InvokePartActionArgs`) takes `PartActionEntry.name`.
+*
+* **The gating flags are carried, not applied.** The producer filters to "is
+* this button in the flight PAW at all" (`guiActive`) and then reports
+* `PartActionEntry.active`/`PartActionEntry.guiActiveUnfocused`/
+* `PartActionEntry.advancedTweakable`/`PartActionEntry.requireFullControl`
+* rather than filtering on them, so display policy (does this operator want
+* EVA-range actions? advanced tweakables?) stays a client decision. Baking
+* that policy into the wire would make it unchangeable without a contract
+* revision.
+*
+* `PartActionEntry.active` specifically is CARRIED, not filtered: KSP itself
+* shows an inert PAW button greyed out rather than removing it, and a client
+* that dropped `!active` entries would make the list jump around as craft
+* state changes. Filtering on it would also make `PartActionEntry.active` a
+* field that is true by construction, which says nothing.
+*/
 export interface PartActionEntry
 {
+	/**
+	* `BaseEvent.name`: the STABLE code identifier, and the key
+	* `InvokePartActionArgs.eventName` carries back.
+	*/
 	name: string;
+	/** `BaseEvent.guiName`: the localized text the player sees on the PAW button. */
 	label: string;
+	/**
+	* `BaseEvent.group?.displayName`: the PAW group this button sits under, so a
+	* client can group like the real window. `null` for an ungrouped button.
+	*/
 	group?: string;
+	/**
+	* Which `PartModule` owns this event (`PartModule.moduleName`), or `null` when
+	* the event is on the `Part` itself. Carried because it is the only way a
+	* client can tell two same-named events on different modules of one part
+	* apart, and because it reads as useful provenance ("Toggle" on which
+	* module?).
+	*/
 	moduleName?: string;
+	/**
+	* `BaseEvent.active`: the button is currently enabled. A `false` entry is
+	* present-but-inert, so a client renders it disabled rather than hiding it
+	* (hiding would make the PAW jump around as state changes).
+	*/
 	active: boolean;
+	/**
+	* `BaseEvent.guiActiveUnfocused`: the button also shows when near but not
+	* focused (the EVA-range set), so a client can hint that.
+	*/
 	guiActiveUnfocused: boolean;
+	/**
+	* `BaseEvent.advancedTweakable`: KSP hides this behind its own
+	* advanced-tweakables setting; a client can mirror that preference.
+	*/
 	advancedTweakable: boolean;
+	/**
+	* `BaseEvent.requireFullControl`: the button needs full vessel control (not a
+	* partially-crewed/probe-limited state) to fire.
+	*/
 	requireFullControl: boolean;
 }
+/**
+* The payload of one `vessel.partActions.<flightId>` channel: the PAW buttons
+* currently available on a single part of the active vessel.
+*
+* **Why a dynamic per-part namespace** rather than a field on `vessel.parts`:
+* a vessel is 50-200+ parts and each exposes ~5-15 PAW events across its
+* modules, so materializing every part's list on the all-parts keyframe would
+* multiply it for data only needed while an operator has one part open. The
+* per-part namespace is subscription-gated instead, the producer enumerates
+* ONLY the parts a client is actually subscribed to, so nothing open costs
+* nothing. See `Gonogo.KSP.VesselUplink`'s registration.
+*
+* **Why a stream and not a one-shot query:** the action set is its own
+* read-back. Invoking "Extend Solar Panel" flips this list to "Retract Solar
+* Panel" one light-time later, which is how a client confirms a delayed
+* command landed WITHOUT optimistically flipping its own UI. A
+* request/response enumeration would hand back a snapshot that goes stale the
+* instant its own command arrives.
+*
+* **Not a `[SitrepTopic]`-tagged root:** the topic string is computed at
+* runtime (`vessel.partActions.` + the part's `flightID`), so there is no
+* fixed name to tag, same posture as the mod's other dynamic per-subject
+* namespaces, whose element types are likewise untagged. The client subscribes
+* to the computed sub-topic directly.
+*/
 export interface PartActions
 {
+	/**
+	* `Part.flightID` stringified: the same join key `VesselPart.id`,
+	* `parts.power` and `robotics.servos` use, echoed so a payload is
+	* self-describing away from its topic string.
+	*/
 	partId: string;
+	/**
+	* The part's currently-available PAW buttons, the union of the part's own
+	* events and every one of its modules' events, filtered to `guiActive` (see
+	* `PartActionEntry.active` for why the enabled flag is carried rather than
+	* filtered on). Always present, possibly empty (a structural part with no
+	* actions); an empty list is a real answer, not an absence.
+	*/
 	actions: PartActionEntry[];
 	meta: PayloadMeta;
 }
+/**
+* One solar panel in the `parts.power` payload's `solarPanels` array.
+* Typing-only mirror of `Sitrep.Host.PartsViewProvider.BuildSolarPanelEntry`,
+* every field nullable because each is read through `SnapshotDict.Get*`, which
+* yields `null` (not a sentinel) on absence. See `PartsPower` for the "no wire
+* change" rationale.
+*/
 export interface SolarPanelEntry
 {
 	partName?: string;
@@ -775,6 +2751,10 @@ export interface SolarPanelEntry
 	chargeRate?: Value<"units/s">;
 	sunAOA?: Value<"°">;
 }
+/**
+* One battery in the `parts.power` payload's `batteries` array. Typing-only
+* mirror of `Sitrep.Host.PartsViewProvider.BuildBatteryEntry`.
+*/
 export interface BatteryEntry
 {
 	partName?: string;
@@ -782,6 +2762,10 @@ export interface BatteryEntry
 	current?: Value<"units">;
 	max?: Value<"units">;
 }
+/**
+* One fuel cell in the `parts.power` payload's `fuelCells` array. Typing-only
+* mirror of `Sitrep.Host.PartsViewProvider.BuildFuelCellEntry`.
+*/
 export interface FuelCellEntry
 {
 	partName?: string;
@@ -789,12 +2773,34 @@ export interface FuelCellEntry
 	active?: boolean;
 	status?: string;
 }
+/**
+* One engine alternator in the `parts.power` payload's `alternators` array.
+* Typing-only mirror of `Sitrep.Host.PartsViewProvider.BuildAlternatorEntry`.
+*/
 export interface AlternatorEntry
 {
 	partName?: string;
 	partId?: string;
 	outputRate?: Value<"units/s">;
 }
+/**
+* The `parts.power` channel payload: the active vessel's electric-charge
+* production surface (solar panels, batteries, fuel cells, engine alternators,
+* and a rolled-up production total). Unlike the bare-array `robotics.servos`
+* and the `science.*` channels, this payload is a single WRAPPER OBJECT (or
+* `null` when there is no active vessel / no power sub-group): so the Topic
+* tag sits on this type directly with the default `IsArray = false`.
+*
+* **Typing-only mirror.** This reproduces, field-for-field, the exact
+* serialized shape `Sitrep.Host.PartsViewProvider.BuildPower` already emits
+* (same names, same camelCase wire keys via `RtConfig.CamelCaseForProperties`,
+* same units). It is NOT serialized itself: the wire is written by
+* `JsonWriter` walking the provider's dictionary: so adding it changes no
+* bytes. The four arrays and the total are each nullable to mirror the
+* provider (the arrays are always present in the emitted object, but the
+* contract stays permissive; the total is `null` whenever
+* `SnapshotDict.GetDouble` reads no finite value).
+*/
 export interface PartsPower
 {
 	solarPanels?: SolarPanelEntry[];
@@ -803,6 +2809,30 @@ export interface PartsPower
 	alternators?: AlternatorEntry[];
 	totalProductionEc?: Value<"units/s">;
 }
+/**
+* One entry in the `robotics.servos` channel payload, a single Breaking Ground
+* robotic servo on the active vessel. The channel payload is a BARE ARRAY of
+* these (`ServoEntry[]`) or `null` (never a wrapper object) so the Topic tag
+* sits on this element type with `IsArray = true`.
+*
+* `ServoEntry.type` is the servo kind as a plain string on the wire, NOT an
+* enum, mirroring what the provider emits today; the enum cleanup is a later
+* phase. The kinds are `"rotor"`, `"hinge"`, `"rotationServo"` and `"piston"`,
+* plus `"servo"` for a `BaseServo` subclass the capture does not recognise (a
+* part pack's own, or one a later KSP adds), which carries only the readings
+* every servo has.
+*
+* **This list is a description, not a rule.** The capture derives the kinds
+* from `BaseServo` itself rather than from any written-down set, which is the
+* whole point: the set used to be written down, rotation servos were left out
+* of it, and every one on every craft was dropped before it reached the wire.
+* A consumer should switch on the kinds it can draw and ignore the rest, never
+* assume this sentence is exhaustive.
+*
+* **Typing-only mirror** of
+* `Sitrep.Host.BreakingGroundViewProvider.BuildServoEntry`: see `PartsPower`
+* for the "no wire change, all fields nullable" rationale.
+*/
 export interface ServoEntry
 {
 	partName?: string;
@@ -822,18 +2852,84 @@ export interface ServoEntry
 	brakePercentage?: Value<"%">;
 	currentExtension?: Value<"m">;
 	targetExtension?: Value<"m">;
+	/**
+	* Rotor spin direction (rotor entries only: `null` for every other kind).
+	* Mirrors `ModuleRoboticServoRotor.rotateCounterClockwise`: `true` means the
+	* rotor spins counter-clockwise.
+	*/
 	counterClockwise?: boolean;
+	/**
+	* Rotor torque ceiling in kN (rotor entries only, `null` for every other
+	* kind). Mirrors `ModuleRoboticServoRotor.maxTorque`: the scale
+	* `ServoMotorLimit` (a percentage) is a fraction of.
+	*
+	* The unit is kN, per KSP's own editor UI: `maxTorque` feeds
+	* `motorOutputInformation`, the part's editor-visible display, formatted with
+	* localization token `#autoLOC_8002342` ("<<1>>kN max: Extra mass <<2>>t"). A
+	* decompile of `ModuleRoboticServoRotor` shows the same value also feeds a
+	* Unity angular drive's `maximumForce`, which on an angular drive is
+	* technically a moment, but the wire states what KSP's own UI labels it, and
+	* that label is kN.
+	*/
 	maxTorque?: Value<"kN">;
 }
+/**
+* The `robotics.available` channel payload: a single wrapper object (or `null`
+* when there is no active vessel) whose one field states whether the active
+* vessel carries ANY Breaking Ground robotic servo (rotor / hinge / piston).
+* This is deliberately its OWN Topic, not a field folded into the bare-array
+* `parts.robotics`: an empty `ServoEntry[]` can't disambiguate "vessel has no
+* robotic parts" (`available: false`) from "no snapshot / no active vessel"
+* (payload `null`): the very ambiguity a widget like `RoboticsConsole` /
+* `RotorTachometer` needs resolved to decide whether to render a "no robotics
+* on this craft" empty state versus stay dark. It is DISTINCT from the
+* Breaking-Ground DLC-presence fact (that is the `deployed.available` /
+* `Meta.Dlc` build): this reflects parts present on THIS vessel, so it rides
+* the delay clock (Delayed), whereas DLC presence is a ground-side TrueNow
+* fact.
+*
+* `RoboticsAvailability.available` is nullable to mirror
+* `SnapshotDict.GetBool`'s null-on-absence rule: a snapshot recorded before
+* this field existed reads as `null`; a live snapshot always carries a
+* concrete `true`/`false`.
+*
+* **Typing-only mirror** of
+* `Sitrep.Host.BreakingGroundViewProvider.BuildRoboticsAvailable`: see
+* `PartsPower` for the "no wire change" rationale.
+*/
 export interface RoboticsAvailability
 {
 	available?: boolean;
 }
+/**
+* The payload for the `recovery.lastSummary` channel: a single "last notable
+* recovery" record for the current save, delivered on the
+* Delivery.ReliableOrdered event lane. Mirrors the wire shape the consumer
+* already parses (`FlightOutcomeBanner.parseRecovery`) field-for-field, the
+* recovery-side counterpart of `CrashReport`.
+*
+* TYPING/codegen marker only. The producer (`Gonogo.KSP.RecoveryUplink`)
+* hand-flattens the live-KSP recovery into a `Dictionary<string, object?>` via
+* `Sitrep.Host.Recovery.RecoveryPayload.Build` before publishing, so
+* JsonWriter only ever sees the dictionary: this POCO exists solely so the TS
+* SDK has a concrete payload type to name (it is on
+* `WirePayloadCoverageTests`'s producer-flatten allowlist for exactly that
+* reason).
+*/
 export interface RecoveryReport
 {
+	/** Universal time of the recovery capture. */
 	capturedAtUT: Value<"ut">;
 	vesselName: string;
+	/**
+	* Where the vessel came down: KSP's own recovery-location string (e.g.
+	* `"KSC"`, `"Water"`).
+	*/
 	recoveryLocation: string;
+	/**
+	* KSP's own recovery-factor display string (e.g. `"100%"`), the payout
+	* multiplier for landing precision.
+	*/
 	recoveryFactor: string;
 	scienceEarned: Value<"science">;
 	totalScience: Value<"science">;
@@ -841,12 +2937,20 @@ export interface RecoveryReport
 	totalFunds: Value<"funds">;
 	reputationEarned: Value<"rep">;
 	totalReputation: Value<"rep">;
+	/**
+	* Whether reputation applies to this save (off in Science/Sandbox), gates the
+	* reputation row client-side.
+	*/
 	displayReputation: boolean;
 	scienceBreakdown: RecoveryScienceEntry[];
 	partBreakdown: RecoveryPartEntry[];
 	resourceBreakdown: RecoveryResourceEntry[];
 	crewBreakdown: RecoveryCrewEntry[];
 }
+/**
+* One science subject recovered: an entry of
+* `RecoveryReport.scienceBreakdown`.
+*/
 export interface RecoveryScienceEntry
 {
 	subjectId: string;
@@ -854,15 +2958,25 @@ export interface RecoveryScienceEntry
 	dataGathered: Value<"Mit">;
 	scienceAmount: Value<"science">;
 }
+/**
+* One recovered-part group: an entry of `RecoveryReport.partBreakdown`.
+* Identically-named parts are grouped, hence `RecoveryPartEntry.count`.
+*/
 export interface RecoveryPartEntry
 {
+	/** The part's `partInfo.name` (e.g. `"mk1pod.v2"`). */
 	partName: string;
+	/** The part's `partInfo.title` (e.g. `"Mk1 Command Pod"`). */
 	partTitle: string;
 	count: Value<"count">;
 	partValue: Value<"funds">;
 	resourcesValue: Value<"funds">;
 	totalValue: Value<"funds">;
 }
+/**
+* One recovered-resource group: an entry of
+* `RecoveryReport.resourceBreakdown`.
+*/
 export interface RecoveryResourceEntry
 {
 	resourceName: string;
@@ -870,94 +2984,432 @@ export interface RecoveryResourceEntry
 	unitValue: Value<"funds">;
 	totalValue: Value<"funds">;
 }
+/**
+* One crew member aboard at recovery: an entry of
+* `RecoveryReport.crewBreakdown`.
+*/
 export interface RecoveryCrewEntry
 {
 	name: string;
+	/** The kerbal's career trait (e.g. `"Pilot"`). */
 	trait: string;
 	isTourist: boolean;
 	xpGained: Value<"count">;
 	levelsGained: Value<"count">;
 	newLevel: Value<"count">;
 }
+/**
+* Vessel-level reliability summary. Two facts and a bag, and deliberately no
+* judgements: who is modelling, and whether they are modelling at all.
+*
+* There are no roll-ups here. A malfunction/critical count over the same part
+* list published from the same capture at the same UT is a second authority
+* for a derivable quantity, and a second authority is how two adjacent numbers
+* come to disagree. The client derives what it needs from `reliability.parts`.
+*/
 export interface ReliabilitySummary
 {
+	/**
+	* Which backend produced this: "kerbalism" | "testflight" | "none", or a
+	* third-party provider id.
+	*/
 	source?: string;
+	/**
+	* One of ReliabilityCoverage. Null only if a producer failed to set it; the
+	* client treats null and an unrecognised value identically.
+	*/
 	coverage?: string;
+	/**
+	* The provider-namespaced extension bag: how a reliability backend carries a
+	* field this shared shape does not declare, WITHOUT a PR against this file.
+	* See ProviderExtensionBagAttribute for the whole mechanism.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* One consumed dimension of a part's rated life: the open-ended member of the
+* per-part shape, and the reason this contract could shrink rather than grow.
+* A provider declares a dimension the shared shape has never heard of without
+* a core PR, which is what the extension bag cannot deliver for a SHARED
+* renderer (a bag entry is readable only by a widget that already knows the
+* provider id).
+*
+* A budget is BACKWARD-looking: how much of a rated allowance has been used.
+* It is not a forecast; that is `ReliabilityPartEntry.survival`.
+*/
 export interface ReliabilityBudget
 {
+	/**
+	* Provider-chosen dimension id, stable across frames. Reserved ids with fixed
+	* meanings: "service" (scheduled maintenance clock), "burn.continuous",
+	* "burn.cumulative" (rated firing time, per RatingScope), "ignitions",
+	* "cycles". A provider with a dimension not listed here invents an id; the
+	* client renders it from Label and the numbers, never from the id.
+	*/
 	id?: string;
+	/**
+	* Display-ready lower-case noun phrase, rendered verbatim in the operator's
+	* sentence: "continuous rated burn", "service". Max 40 chars; the producer
+	* clamps.
+	*/
 	label?: string;
+	/**
+	* What crossing the limit means, and therefore which verb the client uses:
+	* "schedule" (a maintenance date falls due; nothing fails at the line),
+	* "risk-ramp" (failure probability begins climbing past the line, nothing is
+	* guaranteed), "hard-limit" (the part stops at the line), "advisory" (the
+	* provider models the count but not what the limit means). A provider that
+	* does not know writes "advisory"; NEVER null-by-ignorance, because the
+	* client's threshold table is keyed on this.
+	*/
 	kind?: string;
+	/**
+	* Used/Limit as a fraction, 0..1+ (may exceed 1). Null when the provider has
+	* no denominator. This is the field the client thresholds on.
+	*/
 	consumed?: Value<"ratio">;
+	/**
+	* Seconds of the allowance used. RATED seconds, not wall-clock: TestFlight
+	* consumes engine life thrust-weighted (`currentRunTime += dt *
+	* thrustModifier.Evaluate(engine.thrustRatio)` in
+	* TestFlightReliability_EngineCycle.UpdateCycle), so remaining rated seconds
+	* are not seconds of burn at partial throttle. Every rendered sentence says
+	* "rated" for that reason, and no wall-clock conversion is attempted because
+	* the future throttle profile is unknown.
+	*/
 	usedSeconds?: Value<"s">;
+	/**
+	* The rated allowance in the same seconds `ReliabilityBudget.usedSeconds`
+	* counts. Null when the provider has no denominator.
+	*/
 	limitSeconds?: Value<"s">;
+	/** Countable events used (ignitions, cycles). Exclusive with the seconds pair. */
 	usedCount?: Value<"count">;
+	/** The countable allowance. Null when the provider has no denominator. */
 	limitCount?: Value<"count">;
 }
+/**
+* Per-part reliability, in the terms a reliability model actually has: a
+* condition, the provider's own word for it, an optional forward survival
+* probability with its horizon, and any number of consumed budgets.
+*/
 export interface ReliabilityPartEntry
 {
+	/**
+	* UNIQUE within one reliability.parts payload. Producers MUST enforce this; it
+	* is not a KSP flightID and must not be treated as one.
+	*/
 	partId?: string;
+	/**
+	* Which crew trait may act on this part, as the provider states it: a single
+	* name, or several comma-separated, or empty meaning anyone.
+	*
+	* Carried so a console can offer only the crew who could actually do it,
+	* rather than listing everyone aboard and letting the operator spend a round
+	* trip discovering that the pilot cannot. This is the PROVIDER's own
+	* requirement read back, never our guess at one: guessing would put a second
+	* authority beside the one that actually decides.
+	*
+	* Already ELEVATED where the provider elevates it. Kerbalism asks more of a
+	* critical failure than an ordinary one, so this is the requirement for THIS
+	* part in THIS condition, not the part's baseline.
+	*/
 	repairTrait?: string;
+	/**
+	* Minimum experience level the trait must hold, elevated with
+	* `ReliabilityPartEntry.repairTrait`. Null when the provider states none.
+	*/
 	repairLevel?: Value<"count">;
 	title?: string;
+	/**
+	* One of: "nominal", "service-due", "failed", "failed-critical", "unknown".
+	* The provider's WORST condition for this part.
+	*
+	* "failed-critical" means the provider grades this failure as its more severe
+	* / more costly class. It does NOT mean unrecoverable: Kerbalism's critical IS
+	* repairable (2 evaRepairKits, and ElevatedForCritical() raises the crew
+	* requirement by one level before Repair() clears it). Nothing in this
+	* contract asserts that a part cannot be recovered, because repairability is a
+	* function of the part AND the crew, kits and difficulty flags aboard, which
+	* no per-part field can answer.
+	*
+	* "unknown" means the provider could not read this part's condition. It is a
+	* first-class value and the client renders it; it must never be substituted
+	* with "nominal".
+	*
+	* There is deliberately NO "wear" value: wear is a threshold on a number, the
+	* numbers are in
+	* `ReliabilityPartEntry.budgets`/`ReliabilityPartEntry.survival`, and the
+	* thresholds live client-side in one table. Two authorities for one word is
+	* how "2 wearing" comes to disagree with the number of wearing rows beneath
+	* it.
+	*/
 	condition?: string;
+	/**
+	* The provider's OWN word(s) for this condition, rendered verbatim as the
+	* row's detail clause: "busted", "needs service", "turbopump failure". Max 120
+	* chars; producer clamps. This is how a third mod's native vocabulary reaches
+	* the screen without a contract change.
+	*/
 	conditionDetail?: string;
+	/**
+	* P(this part survives the next `ReliabilityPartEntry.survivalHorizonSeconds`
+	* seconds of OPERATION), 0..1. Null when the provider models no forward
+	* probability. MUST be null whenever the horizon is null.
+	*/
 	survival?: Value<"ratio">;
+	/**
+	* The horizon the fraction is over, in seconds of operation. MANDATORY
+	* whenever `ReliabilityPartEntry.survival` is set: exp(-rate*t) is
+	* uninterpretable without t, and two parts' fractions are not comparable
+	* unless both horizons are on screen.
+	*/
 	survivalHorizonSeconds?: Value<"s">;
+	/**
+	* Consumed dimensions. Null or empty when the provider models none. Order is
+	* producer-chosen and not significant.
+	*/
 	budgets?: ReliabilityBudget[];
+	/**
+	* What repairing THIS part in THIS condition consumes, as the provider states
+	* it. Null or empty means the provider models no consumable cost: that is not
+	* the same claim as a cost of zero, and a console must render it as "nothing
+	* is consumed" rather than as "needs 0".
+	*
+	* Carried because a consumable cost is the PROVIDER's arithmetic and nothing
+	* else can derive it. Kerbalism charges two EVA repair kits for its critical
+	* class and one for an ordinary failure, and nothing for a service; TestFlight
+	* has no consumable in its model at all. A client that derived the number from
+	* `ReliabilityPartEntry.condition` would be applying one backend's rule to
+	* every install, which is exactly what this field replaced: the
+	* fleet-reliability row asked a TestFlight player for a repair kit its mod
+	* never needs, and refused the command when none was aboard.
+	*
+	* Already ELEVATED where the provider elevates it, on the same rule as
+	* `ReliabilityPartEntry.repairTrait`: this is the cost for this part in this
+	* condition, not the part's baseline.
+	*/
 	repairCost?: RepairCostItem[];
+	/**
+	* The provider-namespaced extension bag, per-part half. Same mechanism and
+	* same rule as `ReliabilitySummary.extensions`.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* One kind of thing a repair consumes, and how many of it. Deliberately shaped
+* as `InventoryItem`'s name/quantity pair so a console can join the two
+* directly rather than guessing which inventory line a cost refers to.
+*/
 export interface RepairCostItem
 {
+	/**
+	* `AvailablePart.name`, the config id (e.g. `"evaRepairKit"`), matching
+	* `InventoryItem.name`. The provider names the item so no consumer has to know
+	* which one a backend uses.
+	*/
 	name: string;
+	/**
+	* How many of this kind one repair consumes. An entry exists only where
+	* something IS consumed, so this is never a meaningful zero.
+	*/
 	quantity: Value<"count">;
 }
+/** `vessel.repair`'s args: which part, and which crew member does it. */
 export interface RepairPartArgs
 {
+	/**
+	* The failed part, joined by the same id `reliability.parts` and
+	* `vessel.parts` use.
+	*/
 	partId: string;
+	/**
+	* Who performs it. A NAME, because that is KSP's own stable identifier for a
+	* kerbal and what `vessel.crew` is keyed by.
+	*/
 	crewName: string;
 }
+/**
+* What a repair attempt did, or why it did nothing.
+*
+* Carries where the kit came from because that changes what the operator has
+* left, and under delay they will not get to ask again cheaply.
+*/
 export interface RepairOutcome
 {
+	/** Whether the part was actually repaired. */
 	repaired: boolean;
+	/**
+	* Why not, when `RepairOutcome.repaired` is false: one of `no-such-crew`,
+	* `crew-not-qualified`, `eva-impossible`, `no-kits`, `not-modelled`,
+	* `no-such-part`, or `refused` when the backend declined without saying more.
+	* Null on success.
+	*/
 	refusal?: string;
+	/**
+	* Kits consumed. Kerbalism charges two for a critical failure and one
+	* otherwise.
+	*/
 	kitsUsed: Value<"count">;
+	/**
+	* Where the kit came from: `carried` when the kerbal already held it,
+	* otherwise the part id of the store it was taken from, so the operator can
+	* see which locker just got lighter.
+	*/
 	kitsFrom?: string;
 }
+/**
+* The `ksp.revertAvailability` Topic payload: whether the two stock in-flight
+* "revert" actions are currently available, so a widget (LaunchDirector) can
+* gate its Revert-to-Launch / Revert-to-Editor controls exactly like KSP's own
+* pause menu does. Produced by
+* `Sitrep.Host.SystemViewProvider.BuildRevertAvailability` from the two static
+* `FlightDriver` bools KSP reads when it draws those very buttons.
+*
+* The whole payload is `null` (no key emitted) outside the flight scene: the
+* two flags are only meaningful in flight, and the backing `FlightDriver`
+* statics carry stale values from the previous flight otherwise. When present,
+* both bools are concrete (never null): a `false` means "this revert is
+* genuinely not available right now," which is exactly what the gate needs.
+*
+* **Mapping (verified against KSP's `PauseMenu.drawStockRevertOptions` at
+* build time):** the pause menu shows the "Revert to Launch" button (which
+* calls `FlightDriver.RevertToLaunch()`, restoring the `PostInitState`) when
+* `FlightDriver.CanRevertToPostInit` is set, and the "Revert to VAB/SPH"
+* buttons (which call `FlightDriver.RevertToPrelaunch(...)`, returning to the
+* editor) when `FlightDriver.CanRevertToPrelaunch` is set. So
+* `RevertAvailability.canRevertToLaunch` maps to `CanRevertToPostInit` and
+* `RevertAvailability.canRevertToEditor` maps to `CanRevertToPrelaunch`: the
+* KSP field names read backwards to their button labels, so the mapping is
+* deliberately the inverse of a naive name-match.
+*
+* Same `system`-uplink convention as `SystemBodies`: a scene-side fact carried
+* on its own Topic with no per-payload `Meta` (it rides the envelope),
+* classified `DelayRole.TrueNow`: a ground-side game-state fact, not
+* comms-derived vessel telemetry.
+*/
 export interface RevertAvailability
 {
+	/**
+	* Can the active flight be reverted back to the editor (VAB/SPH)? Mirrors
+	* `FlightDriver.CanRevertToPrelaunch`.
+	*/
 	canRevertToEditor: boolean;
+	/**
+	* Can the active flight be reverted to its launch (on-the-pad) state? Mirrors
+	* `FlightDriver.CanRevertToPostInit`.
+	*/
 	canRevertToLaunch: boolean;
 }
+/**
+* Args for the servo target commands (`robotics.servo.setTarget`), the
+* ABSOLUTE angle (hinge) or extension (piston) to drive to, keyed by the
+* part's `ServoSetTargetArgs.partId`. `ServoSetTargetArgs.partId` is the same
+* `flightID.ToString()` the read side emits on each `parts.robotics` servo
+* entry, so a widget round-trips the exact id it already displays. A rotor has
+* no target (it spins continuously); a `setTarget` aimed at one comes back
+* CommandResult.ErrorCode `CommandErrorCode.ModeUnavailable`.
+*/
 export interface ServoSetTargetArgs
 {
+	/**
+	* The part's `flightID.ToString()`: the id the read side stamps on each
+	* `parts.robotics` entry.
+	*/
 	partId: string;
+	/** Absolute target: hinge angle (degrees) or piston extension. */
 	value: number;
 }
+/**
+* Args shared by every robotics boolean actuation
+* (`robotics.servo.setMotor`/`setLock` and
+* `robotics.rotor.setMotor`/`setLock`): an ABSOLUTE state to apply, never a
+* toggle, matching every other actuation command in this contract (see
+* `SetEnabledArgs`'s doc comment). Keyed by `ServoSetEnabledArgs.partId` (the
+* read side's `flightID.ToString()`).
+*/
 export interface ServoSetEnabledArgs
 {
+	/**
+	* The part's `flightID.ToString()`: the id the read side stamps on each
+	* `parts.robotics` entry.
+	*/
 	partId: string;
 	enabled: boolean;
 }
+/**
+* Args for the rotor scalar-limit commands
+* (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`), the ABSOLUTE
+* value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
+* (torque 0–100, brake 0–200) are range-validated at the send gate; out of
+* range yields CommandResult.ErrorCode `CommandErrorCode.Range`.
+*/
 export interface RotorSetValueArgs
 {
+	/**
+	* The part's `flightID.ToString()`: the id the read side stamps on each
+	* `parts.robotics` entry.
+	*/
 	partId: string;
+	/**
+	* The absolute value to apply (rpm limit, torque-limit percent 0–100, or brake
+	* percent 0–200).
+	*/
 	value: number;
 }
+/**
+* Args for `robotics.rotor.reverse`: flips the rotor's spin direction. This is
+* the one robotics command that is genuinely a toggle (the widget's intent is
+* "spin the other way" relative to whatever the rotor is doing now), so it
+* carries no state field, only the `RotorReverseArgs.partId` to act on.
+*/
 export interface RotorReverseArgs
 {
+	/**
+	* The part's `flightID.ToString()`: the id the read side stamps on each
+	* `parts.robotics` entry.
+	*/
 	partId: string;
 }
+/**
+* Args shared by every science-experiment actuation command
+* (`science.experiment.deploy`/`science.experiment.transmit`): the experiment
+* is addressed by `ExperimentActionArgs.partId`, the part's
+* `flightID.ToString()`, the SAME opaque id the read side emits in
+* `science.instruments` (one entry per `ModuleScienceExperiment`, keyed by
+* `flightID`). The host resolves it against the active vessel's live parts; a
+* client never supplies a live array index. An empty
+* `ExperimentActionArgs.partId` resolves to nothing and yields
+* CommandResult.ErrorCode `CommandErrorCode.NotFound`.
+*/
 export interface ExperimentActionArgs
 {
 	partId: string;
 }
+/**
+* One entry in the `science.experiments` channel payload, a single science
+* module (or a container holding stored results) on the ACTIVE vessel. The
+* channel payload is a BARE ARRAY of these (`ExperimentEntry[]`) or `null`:
+* never a wrapper object, and never an empty-vs-absent distinction beyond "the
+* whole array is null when there is no active vessel / the sub-group could not
+* be built" (see `Sitrep.Host.ScienceViewProvider`).
+*
+* **Typing-only mirror.** This type reproduces, field-for-field, the exact
+* serialized shape `Sitrep.Host.ScienceViewProvider.BuildExperimentEntry`
+* already emits (same names, same camelCase wire keys via
+* `RtConfig.CamelCaseForProperties`, same units). It is NOT serialized itself:
+* the wire is written by `JsonWriter` walking the provider's dictionary: so
+* adding it changes no bytes. Every field is nullable because each is read
+* through `SnapshotDict.Get*`, which yields `null` (not a sentinel) whenever
+* the raw value is absent or non-finite.
+*/
 export interface ExperimentEntry
 {
 	partName?: string;
+	/**
+	* "experiment" (a live science module) or "container" (a part storing
+	* collected results).
+	*/
 	location?: string;
 	experimentId?: string;
 	subjectId?: string;
@@ -965,16 +3417,64 @@ export interface ExperimentEntry
 	dataAmount?: Value<"Mit">;
 	scienceValueRatio?: Value<"ratio">;
 	baseTransmitValue?: Value<"science">;
+	/**
+	* Transmit-value multiplier, 0..1. Every `xmitDataScalar` across the installed
+	* part cfgs is at most 1.0, so this is a bounded ratio, not an open-ended
+	* dimensionless number.
+	*/
 	transmitBonus?: Value<"ratio">;
 	labValue?: Value<"science">;
 	deployed?: boolean;
 	inoperable?: boolean;
 	situation?: string;
+	/**
+	* Which value model produced `ExperimentEntry.scienceValueRatio` /
+	* `ExperimentEntry.baseTransmitValue` / `ExperimentEntry.labValue`, and which
+	* unit `ExperimentEntry.dataAmount` is really in. See ScienceValueModels for
+	* why this exists and why the vocabulary is open.
+	*
+	* **The one field on this payload that is not simply "what the game says".** A
+	* provider whose data is not in mits leaves `ExperimentEntry.dataAmount` null
+	* rather than putting a megabyte figure in a mits-typed field: a field's unit
+	* is compile-time-baked here and cannot vary by elected provider, so the
+	* honest move is absence plus the real figure in the provider's own
+	* `ExperimentEntry.extensions` namespace.
+	*/
 	valueModel?: string;
+	/**
+	* The provider-namespaced extension bag: how a science backend carries a
+	* per-experiment field this shared shape does not declare, WITHOUT a PR
+	* against this file. See ProviderExtensionBagAttribute for the whole
+	* mechanism.
+	*
+	* This is where everything a richer science model knows that stock has no
+	* concept of belongs: storage capacity, file-vs-sample, transmit rate,
+	* per-unit science rate. Adding those as nullable members here instead is the
+	* hand-curated-superset anti-pattern the bag replaces
+	* (`Sitrep.Host.Tests.ScienceProviderExtensionRatchetTests` holds that line).
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* One entry in the `science.instruments` channel payload, a single
+* `ModuleScienceExperiment` on the ACTIVE vessel, captured as an INVENTORY /
+* status row keyed by `InstrumentEntry.partId` (the part's KSP `flightID`).
+* This is distinct from `ExperimentEntry`: `science.experiments` walks the
+* same modules but yields one row per STORED `ScienceData` result (a module
+* with no data produces no row), whereas `science.instruments` yields one row
+* per module regardless of whether it currently holds data, the operability
+* picture (deployed / inoperable / rerunnable / resettable / collectable) an
+* operator needs to decide what to run next. The channel payload is a BARE
+* ARRAY (`InstrumentEntry[]`) or `null`. Typing-only mirror of
+* `Sitrep.Host.ScienceViewProvider.BuildInstrumentEntry`: see
+* `ExperimentEntry` for the "no wire change, all fields nullable" rationale.
+*/
 export interface InstrumentEntry
 {
+	/**
+	* The part's KSP `flightID` (stringified): the stable join key for this
+	* instrument.
+	*/
 	partId?: string;
 	partName?: string;
 	experimentId?: string;
@@ -984,8 +3484,27 @@ export interface InstrumentEntry
 	rerunnable?: boolean;
 	resettable?: boolean;
 	dataIsCollectable?: boolean;
+	/**
+	* The provider-namespaced extension bag, instrument half. Same mechanism and
+	* same rule as `ExperimentEntry.extensions`. This payload carries no
+	* value-model-dependent number (it is pure operability), so it takes the bag
+	* but no `valueModel` tag.
+	*
+	* Stock's operability picture is a flat pair of bools
+	* (`InstrumentEntry.deployed`/`InstrumentEntry.inoperable`). A provider that
+	* models running as a state machine with a reason ("shrouded", "no EC",
+	* "sample depleted") projects it down to those bools and carries the state and
+	* the reason here.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* One entry in the `science.lab` channel payload, a Mobile Processing Lab on
+* the active vessel. The channel payload is a BARE ARRAY (`LabEntry[]`) or
+* `null`. Typing-only mirror of
+* `Sitrep.Host.ScienceViewProvider.BuildLabEntry`: see `ExperimentEntry` for
+* the "no wire change, all fields nullable" rationale.
+*/
 export interface LabEntry
 {
 	partName?: string;
@@ -995,11 +3514,44 @@ export interface LabEntry
 	processingData?: boolean;
 	statusText?: string;
 	scientistCount?: Value<"count">;
+	/**
+	* Science generated per GAME-DAY, not per second. The host reads this off
+	* `ModuleScienceConverter.CalculateScienceRate`, whose decompile multiplies
+	* the per-tick rate by a full day.
+	*/
 	scienceRate?: Value<"science/day">;
 	isOperational?: boolean;
+	/**
+	* Which value model produced `LabEntry.scienceRate` and
+	* `LabEntry.storedScience`, and which unit `LabEntry.dataStored` /
+	* `LabEntry.dataStorage` are really in. See ScienceValueModels.
+	*
+	* A lab is not the same KIND of thing under every model. Stock's is terminal:
+	* it turns stored data into science per game-day and you are done. A provider
+	* whose lab is an intermediate pipeline stage (analysing a sample into a
+	* transmissible file, which then still has to be sent) produces NO science
+	* itself, leaves `LabEntry.scienceRate` null, and carries its own rate in
+	* `LabEntry.extensions`. Without this tag a widget cannot tell that null apart
+	* from "idle".
+	*/
 	valueModel?: string;
+	/**
+	* The provider-namespaced extension bag, lab half. Same mechanism and same
+	* rule as `ExperimentEntry.extensions`.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* One entry in the `deployed.bases` channel payload, a Breaking Ground
+* deployed-science experiment. The channel payload is a BARE ARRAY
+* (`DeployedEntry[]`) or `null`. Unlike the other two channels,
+* `deployed.bases` is captured GLOBALLY across every loaded vessel: a deployed
+* cluster is its own ground vessel, so an entry normally describes a vessel
+* OTHER than the active one, distinguished by `DeployedEntry.vesselName`.
+* Typing-only mirror of
+* `Sitrep.Host.BreakingGroundViewProvider.BuildDeployedEntry`; see
+* `ExperimentEntry` for the "no wire change, all fields nullable" rationale.
+*/
 export interface DeployedEntry
 {
 	vesselName?: string;
@@ -1012,38 +3564,199 @@ export interface DeployedEntry
 	scienceTransmittedPercentage?: Value<"%">;
 	scienceValue?: Value<"science">;
 	scienceLimit?: Value<"science">;
+	/**
+	* `ModuleGroundSciencePart.PowerState` verbatim: KSP's own words for the power
+	* state, for display. DO NOT BRANCH ON THIS.
+	*
+	* It is not an enum name, it is LOCALISED PROSE. The module assigns it from
+	* `Localizer` in `UpdateModuleUI()`, so the value is whatever language the
+	* player runs KSP in, and it is only written when the part-action window
+	* refreshes, so it can also be stale. `DeployedEntry.power` is the field to
+	* read.
+	*/
 	powerState?: string;
+	/**
+	* `ModuleGroundSciencePart.ConnectionState` verbatim, for display. Localised
+	* prose on the same terms as `DeployedEntry.powerState`; read
+	* `DeployedEntry.controllerConnected` instead.
+	*/
 	connectionState?: string;
+	/**
+	* The cluster's power state, DERIVED from the same facts `UpdateModuleUI()`
+	* itself branches on
+	* (`DeployedScienceCluster.IsPowered`/`.ControllerPartEnabled`, the module's
+	* `Enabled` and `DeployedOnGround`) rather than parsed back out of the
+	* sentence that method writes.
+	*
+	* This exists because branching on `DeployedEntry.powerState` could not be
+	* made correct. The client compared it against `"Powered"` and against
+	* `"NoPower"`, a string KSP has never emitted, so `Unpowered`, `Disabled`,
+	* `Controller Disabled` and `N/A` all fell through to POWERED: an unpowered
+	* cluster painted as a working one, in English, before any question of
+	* translation.
+	*
+	* `null` when the cluster could not be read at all, which is a third answer
+	* and must not be read as either powered or unpowered.
+	*/
 	power?: DeployedPowerState;
+	/**
+	* Whether the experiment is attached to a controller cluster at all, the fact
+	* behind `DeployedEntry.connectionState`'s "Connected"/"Not Connected". `null`
+	* when it could not be determined.
+	*/
 	controllerConnected?: boolean;
 	deployedOnGround?: boolean;
 }
+/**
+* A deployed-science cluster's power state: OUR enum, not KSP's.
+*
+* KSP has no enum for this. `ModuleGroundSciencePart` carries the answer as a
+* localised sentence, so this reproduces the five outcomes `UpdateModuleUI()`
+* distinguishes, derived from the booleans it reads rather than from the
+* sentence it writes. Being ours, it is an ordinal on the wire and a closed
+* union on the client like every other enum in this contract, and it needs no
+* mirror test: nobody else owns its numbering.
+*/
 export enum DeployedPowerState {
+	/** Powered and working: the cluster reports `IsPowered`. */
 	Powered = 0,
+	/** Deployed and switched on, but the cluster has no power. */
 	Unpowered = 1,
+	/** The cluster's CONTROLLER is switched off, so nothing is powered. */
 	ControllerDisabled = 2,
+	/** This experiment is switched off, or is not deployed on the ground. */
 	Disabled = 3,
+	/**
+	* Attached to no cluster at all. Distinct from `DeployedPowerState.Unpowered`:
+	* there is nothing to supply power, rather than a supply that is empty.
+	*/
 	NotConnected = 4
 }
+/**
+* One entry in the `science.sensors` channel payload, a single
+* environmental-sensor module (`ModuleEnviroSensor`: thermometer, barometer,
+* gravioli detector, accelerometer, and any modded sensor sharing the module)
+* on the ACTIVE vessel. The channel payload is a BARE ARRAY (`SensorEntry[]`)
+* or `null`.
+*
+* Deliberately a GENERAL sensor group: one entry per sensor module, with
+* `SensorEntry.type` carrying the raw `SensorType` enum name
+* (`TEMP`/`PRES`/`GRAV`/`ACC`/…) as a string: rather than four fixed
+* `temp/pres/grav/acc` Values. Modded sensor types and multiple instances of
+* the same type both fall out naturally; the consumer (ScienceBench)
+* groups/labels by `SensorEntry.type`.
+*
+* Typing-only mirror of `Sitrep.Host.ScienceViewProvider.BuildSensorEntry`:
+* see `ExperimentEntry` for the "no wire change, all fields nullable"
+* rationale.
+*/
 export interface SensorEntry
 {
+	/**
+	* Flight-scoped `part.flightID` as a string (null when the sentinel 0), the
+	* join key that disambiguates symmetric same-named sensor parts.
+	*/
 	partId?: string;
 	partName?: string;
+	/**
+	* The raw `SensorType` enum name (`TEMP`/`PRES`/`GRAV`/`ACC`/…) passed through
+	* as a string so modded types survive.
+	*/
 	type?: string;
+	/**
+	* The sensor's current human-readable readout string (KSP's `readoutInfo`,
+	* e.g. "293.1K" or "Off").
+	*/
 	readout?: string;
 	active?: boolean;
 }
+/**
+* One entry in the `science.experimentBreakdown` channel payload, a
+* per-SUBJECT rollup of the same stored ScienceData rows `science.experiments`
+* lists one-row-per-blob, the new home for the old GonogoTelemetry-only
+* `sci.experimentBreakdown` enrichment (which had no equivalent on the base
+* wire until now). `ExperimentBreakdownEntry.biome`/
+* `ExperimentBreakdownEntry.situation` are parsed straight off
+* `ScienceData.subjectID` via KSP's own
+* `ScienceUtil.GetExperimentFieldsFromScienceID` (confirmed via decompile:
+* public static, splits the subject id it was built from rather than
+* re-deriving from the vessel's CURRENT position, so a subject collected
+* earlier in the flight keeps its own original biome/situation).
+* `ExperimentBreakdownEntry.remainingPotential` is the ABSOLUTE science still
+* recoverable from the subject (`ScienceSubject.scienceCap -
+* ScienceSubject.science`, via `ResearchAndDevelopment.GetSubjectByID`),
+* matching the old GonogoTelemetry semantics: `0` in Sandbox mode (no R&D
+* instance, no subject caps to speak of). The channel payload is a BARE ARRAY
+* (`ExperimentBreakdownEntry[]`) or `null`: never a wrapper object, and never
+* an empty-vs-absent distinction beyond "the whole array is null when there's
+* no active vessel / the vessel carries no stored science data" (mirrors
+* `ExperimentEntry`'s convention). One row per DISTINCT subject id: multiple
+* stored blobs for the same subject (e.g. two crew reports from the same
+* biome) collapse into one entry with `ExperimentBreakdownEntry.dataMits`
+* summed across them.
+*
+* **Typing-only mirror** of
+* `Sitrep.Host.ScienceViewProvider.BuildExperimentBreakdownEntry`: see
+* `ExperimentEntry` for the "no wire change, all fields nullable" rationale.
+*/
 export interface ExperimentBreakdownEntry
 {
 	subjectId?: string;
 	biome?: string;
 	situation?: string;
 	expTitle?: string;
+	/**
+	* Summed `ScienceData.dataAmount` (mits) across every stored blob for this
+	* subject.
+	*/
 	dataMits?: Value<"Mit">;
+	/**
+	* Absolute science still recoverable from this subject (`scienceCap -
+	* science`); `0` outside Career/Science mode.
+	*/
 	remainingPotential?: Value<"science">;
+	/**
+	* Which value model produced `ExperimentBreakdownEntry.remainingPotential`,
+	* and which unit `ExperimentBreakdownEntry.dataMits` is really in. See
+	* ScienceValueModels.
+	*
+	* Stock's rollup is a snapshot: one summed data figure and one "how much is
+	* left". A provider with a full per-subject ledger (collected vs retrieved,
+	* in-flight split, times completed) projects it down to those two and carries
+	* the ledger in `ExperimentBreakdownEntry.extensions`: stock's pair is a lossy
+	* VIEW of the richer set, never the other way round.
+	*/
 	valueModel?: string;
+	/**
+	* The provider-namespaced extension bag, per-subject-rollup half. Same
+	* mechanism and same rule as `ExperimentEntry.extensions`.
+	*/
 	extensions?: ProviderExtensions;
 }
+/**
+* One entry in the `science.archive` channel payload: a single SUBJECT out of
+* the whole-career R&D archive (`ResearchAndDevelopment.GetSubjects()`): every
+* subject the player has ever collected or recovered, across every mission and
+* every body, not scoped to the active vessel. The channel payload is a BARE
+* ARRAY (`ArchiveEntry[]`) or `null` when the save has no R&D instance to walk
+* (Sandbox mode), never an empty-vs-absent distinction beyond that (a Career
+* save with an R&D instance but nothing collected yet emits an empty array).
+*
+* Distinct from `ExperimentBreakdownEntry`: that one rolls up the ACTIVE
+* VESSEL's currently-stored `ScienceData` blobs and goes null with no vessel
+* flying; this one is career-wide ground truth and streams at the Space Center
+* with nothing flying at all.
+*
+* `ArchiveEntry.remainingPotential` is `ScienceCap - Science`, computed by
+* `Gonogo.KSP.KspHost.BuildScienceArchive` the same way
+* `ExperimentBreakdownEntry.remainingPotential` is; this layer only passes the
+* already-computed figure through, matching that entry's own mapping idiom
+* rather than re-deriving it here.
+*
+* **Typing-only mirror** of
+* `Sitrep.Host.ScienceViewProvider.BuildArchiveEntry`: see `ExperimentEntry`
+* for the "no wire change, all fields nullable" rationale.
+*/
 export interface ArchiveEntry
 {
 	subjectId?: string;
@@ -1053,340 +3766,1717 @@ export interface ArchiveEntry
 	situation?: string;
 	biome?: string;
 	title?: string;
+	/** Science banked for this subject so far. */
 	science?: Value<"science">;
+	/** Max science this subject can ever yield. */
 	scienceCap?: Value<"science">;
+	/**
+	* Absolute science still recoverable from this subject (`scienceCap -
+	* science`).
+	*/
 	remainingPotential?: Value<"science">;
+	/** Region multiplier KSP applies to this subject's yield. */
 	subjectValue?: Value<"1">;
 }
+/**
+* The `flight.simulation` channel payload: is this a rehearsal, and is signal
+* delay being applied to it.
+*
+* **TrueNow, and it has to be.** This is meta about the stream rather than a
+* reading from a craft, the same disposition `comms.delay` takes: a channel
+* that told an operator "this is a simulation" only after the light-time had
+* elapsed would be describing the board they were looking at four minutes ago.
+*
+* **Absence is data.** A stock install publishes nothing here, because it has
+* nothing to say; see `FlightSimulation.simulated`.
+*/
 export interface FlightSimulation
 {
+	/**
+	* Whether the flight on screen is a simulation. Null when the install has no
+	* such concept; see ISimulationBackend.IsSimulatedFlight for why that is
+	* different from false.
+	*/
 	simulated?: boolean;
+	/**
+	* Whether signal delay is currently being applied to this flight.
+	*
+	* A rehearsal has no spacecraft, so it has no light-time, and by default a
+	* simulation cuts the delay outright rather than modelling a distance to a
+	* craft that is not there. A controller may still want the delay on, to
+	* rehearse under the conditions the real flight will have, which is why it is
+	* `FlightSimulation.delayInSimulation` below rather than a rule. This field is
+	* the OUTCOME of those two, so a client can say why the board is live without
+	* re-deriving it.
+	*/
 	delayApplied: boolean;
+	/**
+	* The operator's standing choice: apply signal delay during a simulation
+	* anyway. Off by default, for the reason above.
+	*
+	* Carried here so the settings row that changes it can READ what the mod is
+	* actually doing rather than what a console once asked for. The mod owns this
+	* value: it is what enforces the delay, and a console preference the enforcer
+	* never heard would be a switch wired to nothing.
+	*/
 	delayInSimulation: boolean;
 	meta: PayloadMeta;
 }
+/**
+* Arguments to `comms.setSimulationDelayPolicy`: apply signal delay during a
+* simulation, or cut it.
+*/
 export interface SetSimulationDelayPolicyArgs
 {
 	applyDuringSimulation: boolean;
 }
+/**
+* One launch site in the `spaceCenter.launchSites` channel, the union of the
+* stock KSC pad + runway, any Making History sites, and any Kerbal Konstructs
+* sites (KK registers its sites into `PSystemSetup.Instance.LaunchSites` via
+* the public `AddLaunchSite` API, so enumerating that one list already covers
+* all three, no reflection, no hard KK link). Produced by
+* `Sitrep.Host.SpaceCenterViewProvider.BuildLaunchSites`.
+*
+* The channel is a BARE ARRAY of these entries (tagged `isArray: true`, like
+* the `science.*` channels), NOT a wrapper object and NOT a KSC singleton: KSP
+* has many launch sites, keyed by `LaunchSiteEntry.name`. The whole payload is
+* `null` (not an empty array) when no sample has landed yet, the provider's
+* "no data yet" vs. "zero sites" distinction.
+*
+* Mirrors the exact per-site dict the provider emits, same field names, casing
+* and nullability; a TS-shape-only typing/codegen marker (no `Meta`, same
+* `system`/`spaceCenter`-domain convention as `SystemBodies`: the provider
+* hand-builds the dict and `JsonWriter` walks that live tree, these POCOs
+* never serialize). Classified `DelayRole.TrueNow`: ground-side facts, known
+* independent of any vessel's comms link, same class as `SystemBodies` /
+* `GameDlc`.
+*/
 export interface LaunchSiteEntry
 {
+	/**
+	* Internal launch-site id (`LaunchSite.name`): the stable key used with
+	* `PSystemSetup`'s lookup APIs; null when the live game hasn't populated it.
+	*/
 	name?: string;
+	/**
+	* Human-facing display name (`PSystemSetup.GetLaunchSiteDisplayName`, falling
+	* back to `LaunchSite.launchSiteName`).
+	*/
 	displayName?: string;
+	/**
+	* Which editor this site launches from (the pad-vs-runway distinction) as the
+	* `EditorFacility` enum name (`"None"`/`"VAB"`/`"SPH"`); a VAB site is a pad,
+	* an SPH site a runway.
+	*/
 	editorFacility?: string;
+	/**
+	* Index into `SystemBodies` of the body this site sits on; null when absent or
+	* unresolved (never a sentinel like -1).
+	*/
 	bodyIndex?: number;
+	/**
+	* Latitude of the site's spawn point on its body
+	* (`LaunchSite.SpawnPoint.latlonaltSet`); null when the site has no set spawn
+	* coordinate (never a fabricated `0`). Pairs with `LaunchSiteEntry.longitude`
+	* to give the site a location for the command-delay geometry (a launch is a
+	* command to this location).
+	*/
 	latitude?: Value<"°">;
+	/**
+	* Longitude of the site's spawn point on its body; null when the site has no
+	* set spawn coordinate. Pairs with `LaunchSiteEntry.latitude`.
+	*/
 	longitude?: Value<"°">;
+	/**
+	* Whether this is a stock KSP launch site (`PSystemSetup.IsStockLaunchSite`),
+	* false for Making History / Kerbal Konstructs sites.
+	*/
 	isStock?: boolean;
+	/**
+	* Whether a vessel is currently sitting on this pad. There is no clean stock
+	* per-site occupancy API, so for now this is populated ONLY on the stock KSC
+	* pad, derived from the active vessel being in the PRELAUNCH situation; every
+	* other site carries null (per-site true occupancy is a follow-up).
+	*/
 	padOccupied?: boolean;
+	/**
+	* Name of the vessel occupying this pad, when derivable (depends on
+	* `LaunchSiteEntry.padOccupied`); null until per-site occupancy exists beyond
+	* the stock-pad PRELAUNCH derivation.
+	*/
 	padVesselTitle?: string;
 }
+/**
+* The `spaceCenter.scene` channel payload: the single current KSP game scene,
+* produced by `Sitrep.Host.SpaceCenterViewProvider.BuildScene`. This is the
+* migration target for the legacy `kc.scene` key: `SpaceCenterScene.scene`
+* carries exactly one of the six strings
+* `{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}`
+* (the provider folds KSP's `GameScenes` enum onto that fixed set; any scene
+* outside the five named ones: `LOADING`, `PSYSTEM`, `MISSIONBUILDER`, …: maps
+* to `"Other"`).
+*
+* Mirrors the exact serialized shape the provider emits (a wrapper object `{
+* "scene": string }`); a TS-shape-only typing/codegen marker that does NOT
+* participate in serialization. The whole payload is `null` when no sample has
+* landed yet. No per-payload `Meta` (it rides the envelope), classified
+* `DelayRole.TrueNow`: a ground-side game-state fact, same class as
+* `SystemBodies`.
+*/
 export interface SpaceCenterScene
 {
+	/**
+	* The current scene, one of
+	* `"Flight"`/`"SpaceCenter"`/`"Editor"`/`"TrackingStation"`/`"MainMenu"`/`"Other"`.
+	*/
 	scene?: string;
+	/**
+	* The launch site currently selected in the editor
+	* (`EditorLogic.launchSiteName`), the migration target for the legacy
+	* `kc.launchSite` key. Null outside the editor scene (EditorLogic isn't live),
+	* never a fabricated default.
+	*/
 	launchSite?: string;
 }
+/**
+* One kerbal in the `spaceCenter.crewRoster` channel (the hired-crew roster:
+* KSP's `KerbalRoster.Crew`, owned crew that is either available or currently
+* assigned to a mission) and reused verbatim for every entry in
+* `AstronautComplexInfo.applicants` - ONE shape for a kerbal whether hired or
+* still a candidate. Produced by
+* `Sitrep.Host.SpaceCenterViewProvider.BuildCrewRoster` /
+* `BuildAstronautComplex`.
+*
+* The `spaceCenter.crewRoster` channel is a BARE ARRAY of these entries
+* (tagged `isArray: true`, like `LaunchSiteEntry`), one per crew member keyed
+* by `CrewRosterEntry.name`. The whole payload is `null` (not an empty array)
+* when no sample has landed yet, the provider's "no data yet" vs. "zero crew"
+* distinction.
+*
+* LaunchDirector reads `CrewRosterEntry.name`/`CrewRosterEntry.trait`/
+* `CrewRosterEntry.experienceLevel`/`CrewRosterEntry.available`/
+* `CrewRosterEntry.unavailableReason` (the original, folded pair); the
+* Astronaut Complex additionally reads `CrewRosterEntry.standing`, the
+* authoritative standing it groups by, and `CrewRosterEntry.situation`, its
+* label, plus the full stat set
+* (`CrewRosterEntry.courage`/`CrewRosterEntry.stupidity`/`CrewRosterEntry.experience`/
+* `CrewRosterEntry.experienceLevelDelta`) and the role tooltip text
+* (`CrewRosterEntry.roleDescription`/`CrewRosterEntry.descriptionEffects`). A
+* TS-shape-only typing/codegen marker: the provider hand-builds the dict and
+* `JsonWriter` walks that live tree, these POCOs never serialize. Classified
+* `DelayRole.TrueNow`: a ground-side career fact, same class as
+* `LaunchSiteEntry`.
+*/
 export interface CrewRosterEntry
 {
+	/**
+	* Kerbal name (`ProtoCrewMember.name`): the id the hire command resolves
+	* against the live applicant pool.
+	*/
 	name?: string;
+	/**
+	* Specialisation (`ProtoCrewMember.trait`):
+	* `"Pilot"`/`"Engineer"`/`"Scientist"`/`"Tourist"`.
+	*/
 	trait?: string;
+	/**
+	* Experience level (`ProtoCrewMember.experienceLevel`), 0–5 (0 for a fresh
+	* applicant).
+	*/
 	experienceLevel?: Value<"count">;
+	/**
+	* Whether the kerbal can be assigned to a flight today.
+	*
+	* **The field an old client should branch on.** It is derived from EVERY axis
+	* the derivation knows about, by CrewStandings.CanFly, which is a whitelist:
+	* only `Available` and `Applicant` are free, so a standing added to
+	* `CrewStanding` later reads as unavailable here without anybody editing a
+	* consumer. A widget that has never heard of training therefore still refuses
+	* to crew a kerbal who is mid-course.
+	*
+	* A backend may override it outright.
+	*/
 	available?: boolean;
+	/**
+	* Why the kerbal can't fly, in prose: `Assigned` reads "On mission",
+	* `Training` reads "In training", `Resting` reads "Standing down", and every
+	* other blocking standing reads its own name, so a retiree reads "Retired" and
+	* not "Dead". Empty string when `CrewRosterEntry.available` is true. A backend
+	* may override the wording.
+	*
+	* **No date, ever.** The when rides `CrewRosterEntry.standingEndsAtUt` and
+	* `CrewRosterEntry.retiresAtUt` as `ut` values, because a date formatted here
+	* would be formatted in the mod's idea of a calendar and an RSS save does not
+	* count years the way a stock one does. This is the only string on the payload
+	* a client could not re-render.
+	*/
 	unavailableReason?: string;
+	/**
+	* The kerbal's standing, as the dashboard means it: the field to BRANCH on.
+	* The elected ICrewStandingBackend's answer where it has one, otherwise
+	* derived from KSP's roster status by the stock backend.
+	*
+	* This exists because the roster status alone is NOT the answer under a career
+	* overhaul. RP-1 retires a kerbal by writing stock's `Dead` into the roster
+	* status, so `CrewRosterEntry.situationOrdinal` below reads `Dead` for a
+	* living retiree and no reading of it can recover the difference. See
+	* `CrewStanding` for the whole account.
+	*/
 	standing?: CrewStanding;
+	/**
+	* Which provider decided `CrewRosterEntry.standing`: the elected backend's
+	* `ProviderId`, e.g. `"stock"` or `"rp1"`. Absent when no backend was
+	* reachable at capture time.
+	*
+	* Carried so a surface can attribute a correction rather than merely apply it.
+	* A retiree shown as retired is a claim about a save that stock KSP would
+	* report as a fatality, and an operator is entitled to see which mod is making
+	* it.
+	*/
 	standingSource?: string;
+	/**
+	* When the CURRENT `CrewRosterEntry.standing` lapses, as universal time: the
+	* course ETA for `Training`, the rest period's end for `Resting`. Absent for a
+	* standing with no scheduled end, which is most of them.
+	*
+	* Read with `CrewRosterEntry.unavailableReason` to say why a kerbal cannot fly
+	* AND until when. The two are separate fields so the client formats the date
+	* in its own calendar.
+	*/
 	standingEndsAtUt?: Value<"ut">;
+	/**
+	* When this kerbal is scheduled to become `Retired`, as universal time. Absent
+	* under any backend that does not schedule retirements, stock included, and
+	* absent rather than zero when a backend holds no date for this kerbal: a
+	* career overhaul's own getter answers 0 for "no record", and 0 would retire
+	* the whole roster at the epoch.
+	*
+	* Live at the same time as `CrewRosterEntry.standingEndsAtUt` and not a
+	* substitute for it: a kerbal is Available or Training for years while a
+	* retirement date sits in the future.
+	*/
 	retiresAtUt?: Value<"ut">;
+	/**
+	* `CrewRosterEntry.standing`'s display LABEL: its enum name, or `"Applicant"`
+	* for a hireable candidate. Text for an operator, never a branch: compare
+	* `CrewRosterEntry.standing` instead.
+	*/
 	situation?: string;
+	/**
+	* KSP's OWN ordinal: `(int)ProtoCrewMember.rosterStatus`, typed to
+	* `KspRosterStatus`, whose members mirror KSP's numbering.
+	*
+	* A truthful read of the game field and nothing more, kept because what KSP
+	* itself holds is worth knowing and because a command core dispatches is
+	* arbitrated against this value. It is NOT the field to branch on: under RP-1
+	* it reads `Dead` for a living retiree. `CrewRosterEntry.standing` is the
+	* answer.
+	*
+	* `null` for an APPLICANT, and that is a real distinction rather than a
+	* missing value: an applicant is not in the roster, so it has no
+	* `RosterStatus` at all, and `CrewRosterEntry.standing` carries
+	* `CrewStanding.Applicant` instead. Use `CrewRosterEntry.isApplicant` to tell
+	* the two apart. Also `null` when the capture carried no status.
+	*/
 	situationOrdinal?: KspRosterStatus;
+	/**
+	* Whether the kerbal is standing down rather than on duty
+	* (`ProtoCrewMember.inactive`): KSP's own field, published beside the derived
+	* answer the way `CrewRosterEntry.situationOrdinal` is.
+	*
+	* **Not the field to branch on.** It is an INPUT to the derivation: a kerbal
+	* standing down has roster status `Available`, and this flag is what turns
+	* that into `CrewStanding.Resting` with `CrewRosterEntry.available` false. It
+	* reached the wire with nothing deriving from it, and a resting kerbal read as
+	* free to fly the whole time.
+	*
+	* Stock leaves it false. A career overhaul's post-flight R&R is what actually
+	* sets it, and it goes on the wire whether or not one is installed: the field
+	* is KSP's, so reading it costs a stock install nothing.
+	*/
 	inactive?: boolean;
+	/**
+	* When the stand-down ends (`ProtoCrewMember.inactiveTimeEnd`), as universal
+	* time. Absent when `CrewRosterEntry.inactive` is false: KSP leaves the field
+	* at whatever the last rest period set, so quoting it for a kerbal on duty
+	* would date a rest that is already over.
+	*/
 	inactiveUntilUt?: Value<"ut">;
+	/**
+	* Whether this entry is a hireable candidate (`ProtoCrewMember.type ==
+	* KerbalType.Applicant`) rather than owned crew. Carried so a client never has
+	* to recognise the `"Applicant"` spelling of `CrewRosterEntry.situation` to
+	* know which channel it is reading.
+	*/
 	isApplicant?: boolean;
+	/** Courage, 0–1 (`ProtoCrewMember.courage`). */
 	courage?: Value<"ratio">;
+	/** Stupidity, 0–1 (`ProtoCrewMember.stupidity`). */
 	stupidity?: Value<"ratio">;
+	/**
+	* Raw experience points (`ProtoCrewMember.experience`), 0 for a fresh
+	* applicant.
+	*/
 	experience?: Value<"1">;
+	/**
+	* Progress toward the next rank, 0–1 (the computed
+	* `ProtoCrewMember.ExperienceLevelDelta`); `1` at max rank (5).
+	*/
 	experienceLevelDelta?: Value<"ratio">;
+	/**
+	* The role's stock tooltip description
+	* (`ProtoCrewMember.experienceTrait.Description`): the exact string the
+	* in-game Astronaut Complex shows, sourced from `Traits.cfg`.
+	*/
 	roleDescription?: string;
+	/**
+	* The role's current-rank effects text
+	* (`ProtoCrewMember.experienceTrait.DescriptionEffects`): rank-aware, it
+	* changes as the kerbal is promoted. Reflects this kerbal's own rank today
+	* only; there is no fetchable "effects at another rank" preview.
+	*/
 	descriptionEffects?: string;
 }
+/**
+* One craft file in the `spaceCenter.savedShips` channel, a saved VAB or SPH
+* design the player can launch, read from the save's craft folders via the
+* stock `CraftProfileInfo` metadata loader. Produced by
+* `Sitrep.Host.SpaceCenterViewProvider.BuildSavedShips`.
+*
+* The channel is a BARE ARRAY of these entries (tagged `isArray: true`), one
+* per `.craft` file keyed by `SavedShipEntry.name`. The whole payload is
+* `null` (not an empty array) when no sample has landed yet. A TS-shape-only
+* typing/codegen marker (the provider hand-builds the dict, these POCOs never
+* serialize). Classified `DelayRole.TrueNow`.
+*/
 export interface SavedShipEntry
 {
+	/** Craft name (`CraftProfileInfo.shipName`). */
 	name?: string;
+	/** Part count (`CraftProfileInfo.partCount`). */
 	partCount?: Value<"count">;
+	/** Total mass in tonnes (`CraftProfileInfo.totalMass`). */
 	totalMass?: Value<"t">;
+	/**
+	* Which editor built it: the `EditorFacility` enum name, `"VAB"` or `"SPH"`
+	* (`CraftProfileInfo.shipFacility`). A display label; see
+	* `SavedShipEntry.facilityOrdinal`.
+	*/
 	facility?: string;
+	/**
+	* `SavedShipEntry.facility`'s KSP ORDINAL, typed to `KspEditorFacility`.
+	*
+	* This one is not a display concern. The client sends the facility straight
+	* back as the `ksp.launch` command's `facility` argument, and it used to
+	* accept the name only if it matched a hand-written `{"VAB", "SPH"}` set and
+	* otherwise substituted `"VAB"`. A substituted default that becomes a
+	* dispatched argument is not a fallback: it launches a spaceplane from the
+	* launchpad. The set also omitted `None`, which KSP declares.
+	*
+	* `null` when the capture carried no facility, which is a third answer and
+	* must not be read as either editor.
+	*/
 	facilityOrdinal?: KspEditorFacility;
+	/**
+	* Funds needed before this can launch, the full craft cost
+	* (`CraftProfileInfo.totalCost`).
+	*/
 	requiresFunds?: Value<"funds">;
+	/**
+	* Parts referenced by the craft that are not yet unlocked/purchased
+	* (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
+	* buildable as-is.
+	*/
 	missingParts?: string[];
 }
+/**
+* The `spaceCenter.partsAvailable` channel payload: a wrapper carrying the
+* count of parts the player can place right now (tech-unlocked AND purchased
+* in career; the full `PartLoader` catalogue in sandbox). Produced by
+* `Sitrep.Host.SpaceCenterViewProvider.BuildPartsAvailable`.
+*
+* A wrapper object (a bare scalar has no Topic shape); the SpaceCenterStatus
+* widget reads `spaceCenter.partsAvailable.count`. The whole payload is `null`
+* when no sample has landed yet. A TS-shape-only typing/codegen marker that
+* never serializes. Classified `DelayRole.TrueNow`.
+*/
 export interface SpaceCenterPartsAvailable
 {
+	/** Count of buildable parts. */
 	count?: Value<"count">;
 }
+/**
+* The `spaceCenter.astronautComplex` channel payload: the Astronaut Complex
+* hire tab, the rolling pool of applicants the operator can recruit, plus the
+* roster-cap context a hire is gated on. Produced by
+* `Sitrep.Host.SpaceCenterViewProvider.BuildAstronautComplex`.
+*
+* A wrapper object (not a bare array) because the applicant list rides
+* alongside the facility-level cap and the current active-crew count, both of
+* which the hire affordance needs: the current roster comes from the separate
+* `spaceCenter.crewRoster` channel, this one carries the hire side. The whole
+* payload is `null` in the SANDBOX / no-career / no-game case (no applicant
+* pool exists), the provider's "no data" signal, distinct from a career save
+* whose pool is genuinely empty (a non-null payload with an empty
+* `AstronautComplexInfo.applicants` list).
+*
+* A TS-shape-only typing/codegen marker: the provider hand-builds the dict and
+* `JsonWriter` walks that live tree, this POCO never serializes. Classified
+* `DelayRole.TrueNow`: the Astronaut Complex is at KSC, known independent of
+* any vessel's comms link, same class as `CrewRosterEntry`.
+*/
 export interface AstronautComplexInfo
 {
+	/**
+	* The hireable applicant pool (`KerbalRoster.Applicants`), sharing
+	* `CrewRosterEntry`'s full shape (with `CrewRosterEntry.situation` always
+	* `"Applicant"`) so the Astronaut Complex's applicant and active-crew rows
+	* render off one type. Always present (empty, never null) once the payload
+	* itself is non-null.
+	*/
 	applicants: CrewRosterEntry[];
+	/**
+	* Current active (Crew-type) count (`KerbalRoster.GetActiveCrewCount`): the
+	* number counted against `AstronautComplexInfo.crewCapacity`. Null when the
+	* roster isn't queryable.
+	*/
 	activeCrew?: Value<"count">;
+	/**
+	* Active-crew cap set by the Astronaut Complex facility tier
+	* (`GameVariables.GetActiveCrewLimit` over the facility's NORMALISED level). A
+	* hire is blocked once `AstronautComplexInfo.activeCrew` reaches it.
+	* `int.MaxValue` at the top facility tier (unlimited); preserved as-is on the
+	* wire, never clamped, so the client can render "unlimited". Null when the
+	* facility isn't queryable.
+	*/
 	crewCapacity?: Value<"count">;
+	/**
+	* Funds cost to hire the next applicant (`GameVariables.GetRecruitHireCost`):
+	* one figure for the whole pool, the same for every applicant this tick and
+	* rising with the current roster size.
+	*/
 	nextHireCost?: Value<"funds">;
 }
+/**
+* One point of interest in the `spaceCenter.pois` channel: the union of every
+* launch site (`ksc`/`launchSite` kinds, the same
+* `PSystemSetup.Instance.LaunchSites` walk `LaunchSiteEntry` already does,
+* filtered to sites with a set spawn-point coordinate) and every surface
+* contract waypoint currently Active or Offered (`contractTarget` kind, from
+* `FinePrint.WaypointManager`). Produced by
+* `Sitrep.Host.SpaceCenterViewProvider.BuildPois`.
+*
+* The channel is a BARE ARRAY of these entries (tagged `isArray: true`, like
+* `LaunchSiteEntry`), one per POI keyed by `SpaceCenterPoiEntry.id`. The whole
+* payload is `null` (not an empty array) when no sample has landed yet: the
+* provider's "no data yet" vs. "zero POIs" distinction. A TS-shape-only
+* typing/codegen marker (the provider hand-builds the dict, this POCO never
+* serializes). Classified `DelayRole.TrueNow` (ground-side facts, same class
+* as `LaunchSiteEntry`).
+*/
 export interface SpaceCenterPoiEntry
 {
+	/**
+	* `"launchSite:<LaunchSite.name>"` for `ksc`/`launchSite` kinds,
+	* `"contract:<Waypoint.navigationId>"` for `contractTarget`.
+	*/
 	id?: string;
+	/** `"ksc"` | `"launchSite"` | `"contractTarget"`. */
 	kind?: string;
+	/**
+	* Index into `SystemBodies`; null when absent or unresolved (never a sentinel
+	* like -1).
+	*/
 	bodyIndex?: number;
 	latitude?: Value<"°">;
 	longitude?: Value<"°">;
+	/** Display label: the launch site's display name, or the contract's title. */
 	label?: string;
+	/** `"active"` | `"available"` (null for `ksc`/`launchSite` kinds). */
 	status?: string;
+	/** Contract-issuing agent name; null for `ksc`/`launchSite` kinds. */
 	contractAgent?: string;
 	contractFundsAdvance?: Value<"funds">;
 	contractFundsCompletion?: Value<"funds">;
 	contractDateDeadline?: Value<"ut">;
 }
+/**
+* One stage in the `dv.stages` channel payload, a single ΔV-producing stage of
+* the active vessel, straight from KSP's STOCK `VesselDeltaV` stage simulation
+* (the same numbers the in-game ΔV app shows: atmosphere/ISP/crossfeed/staging
+* all handled by the game, no rocket-equation hand-rolling). The channel
+* payload is a BARE ARRAY of these (`StageDeltaVEntry[]`) or `null`: never a
+* wrapper object, and never an empty-vs-absent distinction beyond "the whole
+* array is `null` when the stock sim isn't ready / there is no active vessel"
+* (see `Sitrep.Host.StageDeltaVViewProvider.BuildStages`). Uses
+* `VesselDeltaV.OperatingStageInfo`: the stages that actually have ΔV,
+* mirroring the in-game app: not the raw stage list.
+*
+* **Typing-only mirror.** This type reproduces, field-for-field, the exact
+* serialized shape `StageDeltaVViewProvider.BuildStages` already emits (same
+* names, same camelCase wire keys via `RtConfig.CamelCaseForProperties`, same
+* units). It is NOT serialized itself: the wire is written by `JsonWriter`
+* walking the provider's dictionary: so adding it changes no bytes. Every
+* field is nullable because each is read through `SnapshotDict.Get*`, which
+* yields `null` (not a sentinel) whenever the raw value is absent or
+* non-finite, so a stage the sim reports as `NaN`/`Infinity` becomes `null`.
+*
+* Deliberately carries NO `Meta` field: like the `system.*` family, this is a
+* hand-built snapshot payload with no per-payload provenance: its `Meta` rides
+* the envelope (`StreamData.Meta`), never the payload body.
+*/
 export interface StageDeltaVEntry
 {
+	/** `DeltaVStageInfo.stage`: the stage number this entry describes. */
 	stage?: number;
+	/** `DeltaVStageInfo.deltaVinVac`: stage ΔV in vacuum (m/s). */
 	dvVac?: Value<"m/s">;
+	/** `DeltaVStageInfo.deltaVatASL`: stage ΔV at sea level (m/s). */
 	dvAsl?: Value<"m/s">;
+	/** `DeltaVStageInfo.deltaVActual`: stage ΔV at the current situation (m/s). */
 	dvActual?: Value<"m/s">;
+	/** `DeltaVStageInfo.stageBurnTime`: full-throttle burn time for the stage (s). */
 	burnTime?: Value<"s">;
+	/** `DeltaVStageInfo.TWRVac`: thrust-to-weight ratio in vacuum. */
 	twrVac?: Value<"1">;
+	/** `DeltaVStageInfo.TWRASL`: thrust-to-weight ratio at sea level. */
 	twrAsl?: Value<"1">;
+	/**
+	* `DeltaVStageInfo.TWRActual`: thrust-to-weight ratio at the current
+	* situation.
+	*/
 	twrActual?: Value<"1">;
+	/** `DeltaVStageInfo.thrustVac`: stage thrust in vacuum (kN). */
 	thrustVac?: Value<"kN">;
+	/** `DeltaVStageInfo.thrustASL`: stage thrust at sea level (kN). */
 	thrustAsl?: Value<"kN">;
+	/** `DeltaVStageInfo.thrustActual`: stage thrust at the current situation (kN). */
 	thrustActual?: Value<"kN">;
+	/** `DeltaVStageInfo.startMass`: stage start mass (tonnes). */
 	startMass?: Value<"t">;
+	/** `DeltaVStageInfo.endMass`: stage end (burnout) mass (tonnes). */
 	endMass?: Value<"t">;
+	/** `DeltaVStageInfo.dryMass`: stage dry mass (tonnes). */
 	dryMass?: Value<"t">;
+	/** `DeltaVStageInfo.fuelMass`: stage fuel mass (tonnes). */
 	fuelMass?: Value<"t">;
+	/**
+	* Per-resource current/max amounts for the parts active IN THIS STAGE, the old
+	* `r.resourceCurrent[X]`/`r.resourceCurrentMax[X]` pair (as opposed to
+	* `vessel.resources`'s vessel-WIDE totals). `DeltaVStageInfo` itself has no
+	* per-resource field (only aggregate dry/fuel mass), so this is built by
+	* walking every part's `DeltaVPartInfo.stageFuelMass` snapshot for this stage
+	* number and summing by resource name
+	* (`Gonogo.KSP.KspHost.BuildStageResources`). Never null: an empty map is a
+	* real "no tracked resources active in this stage" reading, distinct from the
+	* whole stage entry being absent.
+	*/
 	resources?: { [key:string]: ResourceAmount };
 }
+/**
+* The `dv.summary` channel payload: the whole-vessel ΔV rollup KSP's stock
+* `VesselDeltaV` exposes alongside the per-stage `StageDeltaVEntry` list: the
+* ΔV-producing stage count plus the vacuum / sea-level / current totals and
+* total burn time. A SINGLE WRAPPER OBJECT (or `null` when the stock sim isn't
+* ready / there is no active vessel), so the Topic tag sits on this type
+* directly with the default `IsArray = false`.
+*
+* **Typing-only mirror** of `StageDeltaVViewProvider.BuildSummary`, same
+* convention as `StageDeltaVEntry`: hand-built by the provider, never
+* serialized itself, no per-payload `Meta` (it rides the envelope).
+*/
 export interface StageDeltaVSummary
 {
+	/** `VesselDeltaV.OperatingStageInfo.Count`: the number of ΔV-producing stages. */
 	stageCount?: Value<"count">;
+	/** `VesselDeltaV.TotalDeltaVVac`: total vessel ΔV in vacuum (m/s). */
 	totalDvVac?: Value<"m/s">;
+	/** `VesselDeltaV.TotalDeltaVASL`: total vessel ΔV at sea level (m/s). */
 	totalDvAsl?: Value<"m/s">;
+	/**
+	* `VesselDeltaV.TotalDeltaVActual`: total vessel ΔV at the current situation
+	* (m/s).
+	*/
 	totalDvActual?: Value<"m/s">;
+	/**
+	* `VesselDeltaV.TotalBurnTime`: total full-throttle burn time across all
+	* stages (s).
+	*/
 	totalBurnTime?: Value<"s">;
 }
+/**
+* The `system.bodies` channel payload: the celestial-body tree, produced by
+* `Sitrep.Host.SystemViewProvider.BuildSystemBodies`. This type MIRRORS that
+* provider's existing hand-built serialized shape EXACTLY (a wrapper object `{
+* "bodies": [ ... ] }`); it is a typing/codegen marker so a widget resolves a
+* real payload type instead of `unknown`, and does NOT participate in
+* serialization (the provider still emits the live value tree that
+* `JsonWriter` walks; see SitrepTopicAttribute). The whole payload is `null`
+* (not an empty-bodies object) when no sample has landed yet, the provider's
+* "no data yet" vs. "zero bodies" distinction.
+*
+* Deliberately carries NO `Meta` field: unlike the `vessel.*` family, this
+* `system`-domain snapshot has no per-payload provenance: its `Meta` rides the
+* envelope (`StreamData.Meta`), never the payload body.
+*/
 export interface SystemBodies
 {
 	bodies: BodyEntry[];
 }
+/**
+* One celestial body in the `SystemBodies` tree. Mirrors the exact per-body
+* dict `SystemViewProvider.BuildBody` emits: same field names, casing and
+* nullability. Shaped to make the classic orbit warts unspellable: an explicit
+* parent-index tree rather than flat indexed keys, no numeric sentinels for
+* missing data, and no `eccentricAnomaly` field at all, because an orbit-patch
+* formatter that carries one tends to fill it with the body's ECCENTRICITY
+* instead.
+*/
 export interface BodyEntry
 {
+	/** Body name (e.g. "Kerbin"); null when the live game hasn't populated it. */
 	name?: string;
+	/**
+	* This body's position in the list: stable per session. Always present (the
+	* provider falls back to the list index when the raw field is missing), never
+	* null.
+	*/
 	index: number;
+	/**
+	* Index of the body this one orbits; null ONLY for the root star (no parent),
+	* never a sentinel like -1.
+	*/
 	parentIndex?: number;
+	/**
+	* Mean radius, metres; null when the live game doesn't have it yet (never 0/-1
+	* as a stand-in).
+	*/
 	radius?: Value<"m">;
+	/**
+	* Orbital elements; null ONLY for the root star (orbit is meaningless without
+	* a parent), the "sun has a bogus orbit" wart suppressed at the source.
+	*/
 	orbit?: OrbitEntry;
+	/**
+	* Standard gravitational parameter μ = G·M, m³/s² (KSP
+	* `CelestialBody.gravParameter`). Null when the live game hasn't populated it.
+	*/
 	gravParameter?: Value<"m³/s²">;
+	/** Body mass, kilograms (`CelestialBody.Mass`). */
 	mass?: Value<"kg">;
+	/**
+	* Surface gravity in multiples of g₀ (`CelestialBody.GeeASL`), verbatim. This
+	* is the CONFIG PRIMITIVE, not a derived quantity: KSP computes mass and
+	* gravParameter FROM it (`Mass = Radius² · (GeeASL ·
+	* PhysicsGlobals.GravitationalAcceleration) / G`), so a client reconstructing
+	* it as μ/r²/g₀ is running the game's own arithmetic backwards and can only
+	* lose precision doing it.
+	*/
 	surfaceGravity?: Value<"g">;
+	/**
+	* Hill-sphere radius, metres (`CelestialBody.hillSphere`). Null for the root
+	* star, where KSP's own value is `double.PositiveInfinity` and there is no
+	* parent to be bound by. On the wire because the textbook expression and KSP's
+	* disagree, and we shipped the textbook one. KSP computes
+	* `a·(1−e)·(m/M)^(1/3)`; the standard form carries a factor of three under the
+	* root, `a·(1−e)·∛(m/3M)`. Ours had the three, so every hill sphere the app
+	* has ever drawn was ∛(1/3) ≈ 0.693 of the game's, about 31% too small, in two
+	* widgets that render it as a fact.
+	*/
 	hillSphere?: Value<"m">;
+	/**
+	* Sphere-of-influence radius, metres (`CelestialBody.sphereOfInfluence`); null
+	* when absent.
+	*/
 	sphereOfInfluence?: Value<"m">;
+	/**
+	* Sidereal rotation period, seconds (`CelestialBody.rotationPeriod`); a
+	* NEGATIVE value denotes retrograde rotation. Null when absent. Carries "does
+	* this body rotate" on its own (a body rotates iff this is finite and
+	* non-zero), so no separate bool is emitted for it.
+	*/
 	rotationPeriod?: Value<"s">;
+	/**
+	* Whether the body is tidally locked to its parent
+	* (`CelestialBody.tidallyLocked`); null when absent.
+	*/
 	tidallyLocked?: boolean;
+	/**
+	* Atmosphere descriptor; null when the body has no atmosphere
+	* (`!CelestialBody.atmosphere`), the "airless vs. no-data" distinction the
+	* whole payload's null-not-sentinel rule preserves.
+	*/
 	atmosphere?: AtmosphereEntry;
+	/**
+	* Whether the body has a liquid ocean (`CelestialBody.ocean`); null when
+	* absent.
+	*/
 	hasOcean?: boolean;
+	/**
+	* KSP's per-body flavour text (`CelestialBody.bodyDescription`); null when
+	* absent. May be a raw `#autoLOC…` localization tag the client suppresses.
+	*/
 	description?: string;
+	/**
+	* Whether KSC and the launch sites sit on this body
+	* (`CelestialBody.isHomeWorld`); true on exactly one body, null when absent.
+	* The authoritative home-body marker: a client locates home by this flag,
+	* never by index.
+	*/
 	isHome?: boolean;
 }
+/**
+* A body's atmosphere, present on a `BodyEntry` only when the body actually
+* has one (null otherwise; never an all-null placeholder, matching the
+* payload's null-not-sentinel discipline). Mirrors the exact nested dict
+* `SystemViewProvider.BuildAtmosphere` emits.
+*/
 export interface AtmosphereEntry
 {
+	/**
+	* Atmosphere height, metres (`CelestialBody.atmosphereDepth`); null when
+	* absent.
+	*/
 	depth?: Value<"m">;
+	/**
+	* Whether the atmosphere is breathable / oxygenated
+	* (`CelestialBody.atmosphereContainsOxygen`); null when absent.
+	*/
 	hasOxygen?: boolean;
+	/**
+	* Sea-level pressure, kPa (`CelestialBody.atmospherePressureSeaLevel`); null
+	* when absent.
+	*/
 	seaLevelPressure?: Value<"kPa">;
+	/**
+	* Altitudes of the `AtmosphereEntry.pressures` samples, metres above sea
+	* level, ascending from 0; null when the stream does not report a profile.
+	* Same length as `AtmosphereEntry.pressures`.
+	*
+	* Spacing is chosen per body rather than fixed, because the shape varies
+	* enormously: RSS Earth's table runs to 94 km and Saturn's to 1,270 km, and a
+	* grid uniform in altitude spends most of its points on near-vacuum for the
+	* second while undersampling the first. The producer bisects until every
+	* segment's interior sits within 1% of the log-linear chord through its ends,
+	* which is the space a reader sees (the profile is drawn on a log pressure
+	* axis), and stops at 48 points. Measured against the ten real pressure curves
+	* the RSS install ships, the worst reconstruction error is 1.51%, and 1.12% on
+	* every body but Pluto, whose near-vacuum air runs the point cap out.
+	*
+	* It costs 16 to 48 points per atmospheric body, which on a real RO install
+	* (33 bodies, 11 with air) is 5.2 kB added to a 23.3 kB `system.bodies` emit.
+	* That channel re-sends itself every second, so this is a fifth again on the
+	* largest thing on the wire, for a table that is fixed for the session. It is
+	* carried here anyway because it is a physical fact about a body and belongs
+	* with the rest of them; if the channel is ever given a change-gate that can
+	* see a payload has not moved, this is the field that gains most from it.
+	*
+	* The table ends six decades below sea level, not at `AtmosphereEntry.depth`.
+	* Above that the game's own curve is a cubic plunging into a hard zero at the
+	* ceiling, which no interpolation in log space can follow and which carries no
+	* pressure worth stating. A consumer draws to the last sample and takes
+	* `AtmosphereEntry.depth` as where the air formally ends.
+	*/
 	pressureAltitudes?: Value<"m">[];
+	/**
+	* Pressure at each `AtmosphereEntry.pressureAltitudes` entry, kPa, as the
+	* game's own `CelestialBody.GetPressure` answers it; null when the stream does
+	* not report a profile.
+	*
+	* Sampled rather than modelled because the exponential `P0·exp(-h/H)` a client
+	* can build from sea-level pressure and a scale height is not what KSP
+	* evaluates, and there is no scale-height field on `CelestialBody` to build it
+	* from honestly. A body with `atmosphereUsePressureCurve` set follows a
+	* tabulated curve, which is what stock's own atmospheres and every
+	* RealAtmospheres-style pack use; against the real RSS Earth curve the
+	* exponential is out by a factor of sixteen at altitude. Sampling the game's
+	* answer is correct for stock, for a planet pack and for a curve nobody has
+	* written yet, without the client modelling anything.
+	*
+	* Rounded to six significant figures. The curve path evaluates in float32
+	* inside Unity's own `AnimationCurve`, so more digits would be inventing
+	* precision, and six is far below the 1% spacing tolerance.
+	*/
 	pressures?: Value<"kPa">[];
 }
+/**
+* A body's Keplerian orbital elements, as emitted by
+* `SystemViewProvider.BuildOrbit` (present on every `BodyEntry` except the
+* root star). Each element is independently nullable: KSP's own `lan`/`argPe`
+* are NaN for a near-equatorial/near-circular orbit (a routine case) and the
+* provider maps that (and any genuinely-absent value) to null via the shared
+* non-finite-is-absent rule, never a NaN token on the wire.
+*
+* Units mirror the KSP-native inconsistency deliberately KEPT upstream:
+* `OrbitEntry.sma` in metres; `OrbitEntry.inc`/`OrbitEntry.lan`/
+* `OrbitEntry.argPe` in DEGREES; `OrbitEntry.meanAnomalyAtEpoch` in RADIANS;
+* `OrbitEntry.epoch` in UT seconds. No `eccentricAnomaly` field (see
+* `BodyEntry`).
+*/
 export interface OrbitEntry
 {
+	/** Semi-major axis, metres. */
 	sma?: Value<"m">;
+	/** Eccentricity. */
 	ecc?: Value<"1">;
+	/** Inclination, degrees. */
 	inc?: Value<"°">;
+	/**
+	* Longitude of ascending node, degrees; null for an undefined node
+	* (near-equatorial orbit).
+	*/
 	lan?: Value<"°">;
+	/**
+	* Argument of periapsis, degrees; null for an undefined periapsis
+	* (near-circular orbit).
+	*/
 	argPe?: Value<"°">;
+	/** Mean anomaly at epoch, radians. */
 	meanAnomalyAtEpoch?: Value<"rad">;
+	/** Epoch UT, seconds. */
 	epoch?: Value<"ut">;
 }
+/**
+* The `system.vessels` channel payload: the full known-vessel roster (every
+* vessel, not just the active one, for TargetPicker-style "what could I
+* target" listings), produced by `SystemViewProvider.BuildSystemVessels`.
+* Mirrors that provider's existing serialized shape EXACTLY (a wrapper object
+* `{ "vessels": [ ... ] }`). The whole payload is `null` when nothing is
+* loaded (main menu), distinct from an empty roster (`{ "vessels": [] }`) when
+* the game genuinely reports zero vessels. Same `system`-domain convention as
+* `SystemBodies`: no per-payload `Meta` (it rides the envelope).
+*/
 export interface SystemVessels
 {
 	vessels: VesselRosterEntry[];
 }
+/**
+* Roster-level control-link tier for `VesselRosterEntry.commsControlSource`.
+* Deliberately its OWN enum, not a reuse of `CommsControlSource`, that type
+* belongs to the active-vessel-only `comms.*` elected-backend family
+* (ICommsBackend/`CommsElection`), which this roster read does not touch (see
+* `VesselRosterEntry`'s own doc comment). The three tiers happen to mirror
+* stock `Vessel.ControlLevel`'s none/partial/full shape, which is coincidence,
+* not a shared contract.
+*/
 export enum RosterCommsControlSource {
 	None = 0,
 	Partial = 1,
 	Full = 2
 }
+/**
+* One vessel in the `SystemVessels` roster. Mirrors the exact per-vessel dict
+* the provider emits. A roster entry with no resolvable stable id is dropped
+* by the provider, never emitted with a fabricated one, so
+* `VesselRosterEntry.vesselId` is always present.
+*/
 export interface VesselRosterEntry
 {
+	/**
+	* Stable subject id (KSP vessel GUID). Always present, entries without one are
+	* dropped.
+	*/
 	vesselId: string;
+	/** Display name; defaults to the empty string, never null. */
 	name: string;
+	/**
+	* Vessel type. On the wire this is the enum ORDINAL (the provider emits
+	* `(int)` of the parsed type); typed here to the shared `VesselType` enum,
+	* whose numeric members match those ordinals.
+	*/
 	vesselType: VesselType;
+	/**
+	* Flight situation. On the wire this is the enum ORDINAL; typed here to the
+	* shared `Situation` enum.
+	*/
 	situation: Situation;
+	/**
+	* Index into `SystemBodies` of this vessel's main body; null when absent or
+	* unresolved.
+	*/
 	bodyIndex?: number;
+	/**
+	* Kerbals aboard right now. Read off the LOADED vessel's crew when loaded, off
+	* `ProtoVessel` otherwise (`KspHost.BuildVesselRosterEntry`'s doc comment): so
+	* an unloaded background vessel still reports a real count. Null only if the
+	* read itself failed (the producer omits the raw key rather than fabricate a
+	* zero); never used to distinguish "probe" from "unknown", that is
+	* `VesselRosterEntry.crewCount` == 0 vs. null.
+	*/
 	crewCount?: Value<"count">;
+	/**
+	* Seat capacity, same loaded/proto read as `VesselRosterEntry.crewCount`. Null
+	* only if the read failed.
+	*/
 	crewCapacity?: Value<"count">;
+	/**
+	* Whether stock CommNet reports a live control link home for this vessel right
+	* now: a raw `Vessel.connection.IsConnected` read against EVERY roster vessel
+	* (loaded or not), NOT the active-vessel-only elected-backend `comms.*`
+	* family. Null when CommNet has no connection object to read for this vessel
+	* this tick, an honest "unknown", not a fabricated "no link". Two distinct
+	* causes collapse to the same null: a transient scene-transition race (rare),
+	* and a PERMANENT, by-design absence for `Debris`/`SpaceObject`
+	* (asteroids/comets)/`Unknown` vessel types: verified against
+	* `CommNet.CommNetVessel.OnStart`, which never assigns `vessel.connection` for
+	* those three types. A debris or asteroid roster entry is expected to carry
+	* null here on every sample, not occasionally.
+	*/
 	commsConnected?: boolean;
+	/**
+	* The same read's control-level tier, for the roster's connected/partial/ none
+	* link-quality tag. Null under the same "nothing to read" condition as
+	* `VesselRosterEntry.commsConnected`: including the permanent
+	* Debris/SpaceObject/Unknown-vessel-type case documented there.
+	*/
 	commsControlSource?: RosterCommsControlSource;
+	/**
+	* This vessel's own orbital elements, the same shape (and the same
+	* `SystemViewProvider.BuildOrbit` routine) that fills `BodyEntry.orbit`. This
+	* is what positions a roster vessel (and a SystemView graph node keyed to it
+	* via `VesselRosterEntry.vesselId`): no separate node-position field exists, a
+	* client derives position by joining a node's id to this orbit. Null when the
+	* vessel has no orbitDriver yet (a scene-transition race), never a sentinel.
+	*/
 	orbit?: OrbitEntry;
 }
+/**
+* One entry in the `target.available` list: anything the active vessel could
+* set as its target right now. Produced generically off KSP's `ITargetable`
+* contract (Vessel / CelestialBody / ModuleDockingNode all implement it), then
+* classified by concrete type into a `TargetListEntry.kind` + its stable id,
+* rather than three hardcoded per-kind lists, so a modded `ITargetable` shows
+* up as `TargetKind.Other` with no code change. The stable id per kind
+* (`TargetListEntry.vesselId` guid / `TargetListEntry.bodyIndex` /
+* `TargetListEntry.partId` flightID) is the SAME id `SetTargetArgs` takes, so
+* a widget hands an entry straight back into `vessel.target.set` with no
+* lookup.
+*/
 export interface TargetListEntry
 {
 	kind: TargetKind;
+	/** Clean display name (KSP `GetDisplayName()`, falling back to `GetName()`). */
 	name: string;
+	/**
+	* Stable vessel guid: set for `TargetKind.Vessel`, and the OWNING vessel for a
+	* `TargetKind.Part`. Null otherwise.
+	*/
 	vesselId?: string;
+	/** Index into `system.bodies`: set for `TargetKind.Body`. Null otherwise. */
 	bodyIndex?: number;
+	/**
+	* KSP `Part.flightID`: set for `TargetKind.Part` (scoped by
+	* `TargetListEntry.vesselId`). Null otherwise.
+	*/
 	partId?: number;
+	/**
+	* Vessel type: set for `TargetKind.Vessel` / `TargetKind.Part` (the owning
+	* vessel's type). Null otherwise.
+	*/
 	vesselType?: VesselType;
+	/** Flight situation: set for `TargetKind.Vessel`. Null otherwise. */
 	situation?: Situation;
+	/**
+	* Current metric distance (metres) from the active vessel. A coarse sort aid
+	* for the picker, NOT a HUD value, it rides the periodic re-key, not the
+	* change-gate (it moves every tick). Live distance for the CURRENT target
+	* comes off `vessel.target`. Null when a transform wasn't available this tick.
+	*/
 	distance?: Value<"m">;
+	/**
+	* True when this entry is the active vessel's current target
+	* (`FlightGlobals.fetch.VesselTarget`) right now.
+	*/
 	isCurrent: boolean;
 }
+/**
+* The `target.available` channel payload: the list of everything targetable
+* from the active vessel. Wrapper object `{ "entries": [ ... ] }`, mirroring
+* the provider's hand-built shape (like `system.vessels`). Emitted part-tree
+* style: a full keyframe on subscribe (sticky-cached for late subscribers),
+* then re-emitted on set-change (a target enters/leaves range, or the current
+* target changes) plus a slow heartbeat re-key, per-entry
+* `TargetListEntry.distance` rides that periodic re-key, deliberately NOT the
+* change-gate.
+*/
 export interface TargetAvailable
 {
 	entries: TargetListEntry[];
 }
+/**
+* The `time.calendar` channel payload: how long a day is, how long a year is,
+* and what real-world instant UT 0 is (when the game has one), as the RUNNING
+* GAME defines them rather than as anyone assumed.
+*
+* **Why this channel exists.** Every duration on the wire is SI seconds, so
+* any consumer that wants to say "3 days" has to divide by something, and
+* until this channel existed the only thing to divide by was a constant
+* compiled into the client: 21,600, one Kerbin rotation. That is right for
+* stock KSP on Kerbin time and wrong three ways otherwise.
+*
+* - **Stock, no mods.** `GameSettings.KERBIN_TIME` is a real setting a player
+*   can turn off, and KSP's own UI then reads in 24-hour days and 365-day
+*   years. A consumer holding 21,600 disagrees with the game on the same
+*   screen.
+* - **A planet pack.** RSS and anything else built on Kopernicus replaces
+*   `KSPUtil.dateTimeFormatter` outright, so a day becomes 86,400s and a year
+*   365 days. A client dividing by 21,600 reports four times too many days, in
+*   a number that looks entirely plausible.
+* - **Anything else.** The formatter is an interface with a public setter; a
+*   mod can put any calendar behind it. Reading the numbers off it is the only
+*   approach that does not need a list of which mods to know about.
+*
+* **Where the values come from.** Straight off `KSPUtil.dateTimeFormatter`,
+* whose `Minute`, `Hour`, `Day` and `Year` are each a count of SECONDS
+* (confirmed by decompiling `IDateTimeFormatter`). No arithmetic, no
+* derivation, no per-mod special case: whatever the game is using to print its
+* own clock is what this channel carries.
+*
+* **It can change mid-session**, which is why this is a channel and not a
+* one-shot descriptor like `system.units`. The KERBIN_TIME setting is
+* reachable from the in-game settings menu at any time.
+*
+* **Deliberately not derived here:** days-per-year. A consumer that wants it
+* divides `TimeCalendar.yearSeconds` by `TimeCalendar.daySeconds`, which is
+* exact and needs no second field to keep in step. Publishing both would
+* create a pair that can disagree.
+*/
 export interface TimeCalendar
 {
+	/**
+	* Seconds in one minute. 60 everywhere so far, carried because the formatter
+	* exposes it and assuming is what this channel exists to stop.
+	*/
 	minuteSeconds: Value<"s">;
+	/** Seconds in one hour. */
 	hourSeconds: Value<"s">;
+	/**
+	* Seconds in one day: 21,600 on stock Kerbin time, 86,400 under Earth time or
+	* a planet pack.
+	*/
 	daySeconds: Value<"s">;
+	/**
+	* Seconds in one year: 9,201,600 on stock Kerbin time (426 days), 31,536,000
+	* under a 365-day Earth calendar.
+	*/
 	yearSeconds: Value<"s">;
+	/**
+	* The real-world instant UT 0 corresponds to, ISO-8601 in UTC
+	* (`1951-01-01T00:00:00Z`), or `null` when the running game has no such
+	* instant.
+	*
+	* **Why the four durations above are not enough.** They say how long a day is;
+	* they do not say which day it is. Every `Units.UniversalTime` field on this
+	* wire is an offset from an anchor the wire never named, so a programme
+	* deadline, a contract expiry and a launch window could only ever be rendered
+	* as `Y3 D122`. An RSS operator reads `14 Mar 1957`, and until this field
+	* existed there was nothing to render it from.
+	*
+	* **Where it comes from.** The date formatter itself, and nowhere else.
+	* `KSPUtil.dateTimeFormatter` is an interface whose implementations that model
+	* a real calendar (RSSTimeFormatter, Kronometer) hold their anchor in a
+	* private `DateTime` field; reflecting it out is the only way to read it, and
+	* it is what RP-1 does for the same reason (`RP0DTUtils.TryGetEpoch`). Nothing
+	* here knows which mod is installed.
+	*
+	* **Null is the normal answer, and it is not zero.** The stock formatter
+	* carries no epoch because stock KSP has no real calendar: its own UI prints
+	* Year 1, Day 1, and so should every consumer of this channel. That holds for
+	* a planet pack too whenever no DateTime-based formatter is installed
+	* alongside it. Rendering some default anchor for those games would invent a
+	* date the game itself never shows.
+	*/
 	epoch?: string;
+	/**
+	* The stock `GameSettings.KERBIN_TIME` flag, for a consumer that wants to
+	* LABEL the calendar rather than just measure with it ("Kerbin time" against
+	* "Earth time"). Not the source of truth for any arithmetic: the seconds
+	* fields above are, and they already account for this flag and for anything a
+	* planet pack did on top of it.
+	*/
 	kerbinTime: boolean;
 	meta: PayloadMeta;
 }
+/**
+* A sampled path a provider computed, as points in a NAMED frame.
+*
+* **Why this exists rather than a client sampling the elements.**
+* `VesselOrbit`'s elements are osculating, so sampling them gives the conic
+* the craft is tangent to at the sample instant. That is exactly the
+* trajectory for an analytic provider and is NOT one for a provider that
+* integrates: the curve it flies leaves that conic immediately, and drawing
+* the conic under an integrated label is a confident wrong answer. So an
+* integrating provider puts its real points here, and a client that has them
+* draws them instead of solving anomalies.
+*
+* **Three dimensions and a frame, not two in the orbital plane.** An n-body
+* path has no perifocal plane to be flat in, and in a rotating frame it has no
+* central body either, so a pair of in-plane coordinates cannot express one.
+* `TrajectoryArc.frame` is beside the points rather than assumed, because the
+* same trajectory is a different SHAPE per frame and a curve quoted without
+* its frame is a curve whose meaning is unknown.
+*
+* **The far end is where authority stops, never where the path ends.**
+* `TrajectoryArc.toUt` is the last instant vouched for. A client draws a
+* visible mark there: a prediction that stops short and a trajectory that ends
+* look identical on a diagram and mean opposite things.
+*/
 export interface TrajectoryArc
 {
+	/** Which frame `TrajectoryArc.points` are expressed in. */
 	frame: TrajectoryFrameRef;
+	/**
+	* The path, in time order, first point at `TrajectoryArc.fromUt` and last at
+	* `TrajectoryArc.toUt`. Never empty: a producer with no points publishes no
+	* arc and states a refusal instead, because "a trajectory with no points in
+	* it" and "there is no trajectory" read identically on a diagram.
+	*/
 	points: TrajectoryPoint[];
+	/** The instant of the first point. */
 	fromUt: Value<"ut">;
+	/** The instant of the last point, and the far end the horizon mark goes on. */
 	toUt: Value<"ut">;
+	/**
+	* How many points the propagation actually produced, before decimation. Equal
+	* to `Points.Count` when nothing was dropped.
+	*
+	* Carried so a reader can tell a DECIMATED curve from a short one. The two
+	* look the same as a polyline and are different facts: a decimated curve
+	* resolves less than the propagation knew, and no reader may treat one of its
+	* points as an event instant. Event instants are published as their own
+	* instants for that reason, never recovered from this polyline.
+	*/
 	sourcePointCount: Value<"count">;
+	/** Where the curve came from, so the mark can travel ON it. */
 	derivation: TrajectoryDerivation;
+	/**
+	* What the integration was against, when the producer integrated. Null for a
+	* closed-form curve, which has no force model to describe.
+	*/
 	forceModel?: TrajectoryForceModel;
 }
+/** One sampled point: where, and when. */
 export interface TrajectoryPoint
 {
+	/**
+	* The instant this point is at. An instant, so UT: the points are events on a
+	* path rather than offsets along one, and a reader interpolating between two
+	* of them needs to know which side of a burn it is on.
+	*/
 	ut: Value<"ut">;
 	x: Value<"m">;
 	y: Value<"m">;
 	z: Value<"m">;
 }
+/**
+* Which frame a set of trajectory points is expressed in, named well enough
+* that the curve can be read.
+*
+* Deliberately not the producing mod's own frame vocabulary. A frame is a
+* property every provider's answer has, and putting one vendor's enum on the
+* standard payload would make every other provider translate into it.
+*/
 export interface TrajectoryFrameRef
 {
 	kind: TrajectoryFrameKind;
+	/**
+	* Index into `system.bodies` of the body the frame is centred on, or null for
+	* a frame with no centre. Three of the frames a player can plot in have none,
+	* which is also why apsides do not exist in them.
+	*/
 	centreBodyIndex?: number;
+	/**
+	* True when the frame's lengths are not lengths.
+	*
+	* A pulsating frame composes a dilatation onto a rotating one, so a fractional
+	* error in the scaling radius scales every coordinate. A readout the frame
+	* invalidates says so rather than showing a number.
+	*/
 	lengthsPulsate: boolean;
 }
+/**
+* The frames a trajectory may be published in.
+*
+* `TrajectoryFrameKind.Unspecified` is 0 so a producer that forgets gets the
+* answer a client must refuse to draw, on the same terms as
+* `PropagationHorizonKind.Unspecified`: the wrong direction to default in is
+* the one where an unnamed frame silently reads as the frame the reader
+* happened to expect.
+*/
 export enum TrajectoryFrameKind {
+	/** No producer stated one. The points cannot be drawn. */
 	Unspecified = 0,
+	/**
+	* The orbit's own plane, periapsis on +x, centred on the body the elements are
+	* about. What a body-centric orbit diagram already draws in, and what a conic
+	* sampled from osculating elements is expressed in.
+	*/
 	Perifocal = 1,
+	/**
+	* Centred on `TrajectoryFrameRef.centreBodyIndex`, axes fixed against the
+	* stars. The frame an integrated path is naturally computed in.
+	*/
 	BodyCentredInertial = 2,
+	/**
+	* Centred on a body and turning with its surface. A ground track is this frame
+	* by construction.
+	*/
 	BodyCentredRotating = 3,
+	/**
+	* Centred on a body, with one axis held on the bearing to its parent. The
+	* frame a transfer window is legible in, because the parent stays put.
+	*/
 	BodyCentredParentDirection = 4,
+	/**
+	* Two bodies held at fixed coordinates, which costs the length unit: a
+	* coordinate here is a multiple of the pair's separation, not a distance. The
+	* Lagrange points are fixed locations in this frame and in no other, which is
+	* the whole reason to draw in it.
+	*
+	* Always accompanied by `TrajectoryFrameRef.lengthsPulsate` set, so a reader
+	* that does not know this member still knows not to quote a number from it as
+	* a distance.
+	*/
 	RotatingPulsating = 5
 }
+/**
+* Who derived a curve, and how faithfully.
+*
+* The mark travels ON the curve rather than beside the widget, for the same
+* reason a horizon does: a substituted answer that only says so in a panel
+* elsewhere is a substituted answer nobody reads as one.
+*/
 export enum TrajectoryDerivation {
+	/** No producer stated one. */
 	Unspecified = 0,
+	/** The points are the n-body mod's own, read from it directly. */
 	Foreign = 1,
+	/**
+	* Our integration, against the n-body model we read from the installed mod's
+	* own configuration.
+	*/
 	OwnNBody = 2,
+	/**
+	* Our integration, with the force model incompletely matched: some body's
+	* parameters could not be resolved, and `TrajectoryForceModel.missingTerm`
+	* says which.
+	*/
 	OwnNBodyDegraded = 3,
+	/** A closed-form conic, ours, from the elements alone. */
 	OwnClosedForm = 4
 }
+/**
+* What an integration was actually against, so a reader can tell how far to
+* trust the curve without being told to trust it.
+*/
 export interface TrajectoryForceModel
 {
+	/**
+	* True when the force model's configuration was found and parsed. False means
+	* the curve is degraded and says which term is missing.
+	*/
 	gravityModelFound: boolean;
+	/** How many perturbing bodies were summed, not counting the primary. */
 	perturbingBodyCount: Value<"count">;
+	/**
+	* The highest geopotential degree used for any body. Zero means point masses
+	* throughout, which is a statement rather than an omission: oblateness is
+	* worth about 4e-8 of a frame's angular velocity at lunar distance and is
+	* deliberately not computed.
+	*/
 	geopotentialDegree: Value<"count">;
+	/**
+	* How the perturbing bodies' FUTURE positions were obtained, and the one
+	* approximation in the whole curve.
+	*
+	* `kepler-from-snapshot` means each body was Kepler-propagated forward from
+	* its present state rather than read from an integrated ephemeris. The n-body
+	* mod evaluates every body from its own integrated ephemeris fitted to a
+	* millimetre; no export it offers takes a future time that we may honestly
+	* call, so this is the substitute. It is acceptable because body positions
+	* enter only through the PERTURBING terms and planetary orbits are
+	* near-Keplerian over a week. It is NOT acceptable where a third body
+	* dominates: near a libration point, during a close flyby, or anywhere else
+	* `TrajectoryForceModel.thirdBodyDominance` is large, this approximation
+	* becomes the leading error and the curve diverges qualitatively rather than
+	* numerically. That is why the dominance is published on every arc and why the
+	* horizon closes when it crosses its bound.
+	*
+	* Stated on every payload rather than in documentation, because a caveat a
+	* reader has to go and find is a caveat nobody meets.
+	*/
 	bodyEphemeris?: string;
+	/**
+	* The largest perturbing acceleration as a fraction of the primary's, over the
+	* arc. Makes the chaotic regime visible rather than inferred.
+	*/
 	thirdBodyDominance?: Value<"ratio">;
+	/**
+	* Which term is absent, when the model could not be fully matched. Null when
+	* nothing is missing; a degraded curve always names one.
+	*/
 	missingTerm?: string;
+	/** The integrator's name. */
 	integrator?: string;
+	/** The step actually used. An interval, so seconds. */
 	stepSeconds: Value<"s">;
+	/** How many steps were taken. */
 	stepCount: Value<"count">;
+	/**
+	* True when neither drag nor thrust was modelled, which is always. A reentry
+	* countdown computed in a vacuum is a vacuum countdown, and a reader that does
+	* not know that will read it as a reentry one.
+	*/
 	vacuum: boolean;
 }
+/**
+* Why a producer that CAN integrate published no arc this sample.
+*
+* Separate from `PropagationHorizon`, which answers reach and shape for the
+* ELEMENTS. These are refusals about the ARC, and each names a different
+* remedy: a client that had to borrow the horizon's sentence for one of them
+* would tell the operator to do the wrong thing.
+*
+* **Zero is the state of having sought nothing**, and it used to be "nothing
+* was refused", which covered BOTH an arc that was computed and an arc nobody
+* attempted. That conflation shipped and it read as reassurance: with the
+* integrated path unable to execute at all, every live frame carried
+* `Unspecified`, which said the feature had no complaint rather than that it
+* had never run. So an unattempted arc now says exactly that, and
+* `TrajectoryRefusal.NotRefused` is the separate thing a producer says when it
+* did attempt one and got a curve.
+*/
 export enum TrajectoryRefusal {
+	/**
+	* No integrated arc was sought. Every sample from a provider whose
+	* trajectories are closed-form is this, and so is a sample whose horizon named
+	* no instant to integrate up to.
+	*
+	* It does not mean an arc is fine, and it never accompanies one:
+	* `TrajectoryRefusal.NotRefused` does. Read it beside
+	* `PropagationHorizon.trajectoryKind`, which says WHY nothing was sought:
+	* `Analytic` is an install that propagates in conics, and the arc has nothing
+	* to add to that sentence.
+	*/
 	NotAttempted = 0,
+	/**
+	* The integration hit its step budget before reaching the requested instant.
+	* The operator can shorten the window, or wait: it may resolve on its own.
+	*/
 	BeyondBudget = 1,
+	/**
+	* The force model's configuration was not found or could not be parsed, so
+	* there is nothing to integrate against. There is no operator remedy: it is an
+	* install problem and it says so.
+	*
+	* The ordinary way to reach it is an n-body physics mod installed against a
+	* solar system it ships no gravity model for, which is a real and common
+	* install rather than a corner: the model config is guarded on the planet pack
+	* it belongs to, so the mod runs and the node is not there.
+	*/
 	NoForceModel = 2,
+	/**
+	* An arc was attempted and nothing refused it, so `VesselOrbit.arc` carries
+	* one. Only ever paired with a present arc, so a reader can tell a computed
+	* curve from an absent one without looking at the arc field at all.
+	*/
 	NotRefused = 3
 }
+/**
+* What an evaluator concluded. Three-valued, and the third value is
+* load-bearing.
+*/
 export enum GateOutcome {
+	/** Nothing blocks this. */
 	Pass = 0,
+	/** Blocked, with the comparison that says why. */
 	Fail = 1,
+	/**
+	* Not answerable from what was supplied. NOT a refusal: a caller that treats
+	* this as blocked disables every argument-dependent control permanently.
+	* Published as its own state, never folded into either neighbour.
+	*/
 	Abstain = 2,
+	/**
+	* Answerable in principle but the live state needed is missing, e.g. a
+	* facility KSP no longer tracks under the name declared. Distinct from
+	* `GateOutcome.Abstain` because nothing further the caller supplies will
+	* resolve it, and distinct from `GateOutcome.Pass` because treating an
+	* unreadable limit as no limit is how a gate fails open.
+	*/
 	Unknown = 3
 }
+/**
+* The comparison behind a `GateOutcome.Fail`: the limit and the actual value,
+* never a verdict on its own.
+*
+* "Too heavy" does not tell an operator whether to shed 200 kg or redesign.
+* Carrying both numbers lets the CLIENT compose "1.4 t over the 18 t Launch
+* Pad limit" through its own unit rendering, rather than the mod baking an
+* English sentence in one unit system.
+*/
 export interface LimitBreach
 {
 	facility: string;
+	/**
+	* The facility's name as the GAME writes it ("Astronaut Complex"), for the
+	* sentence an operator reads. Empty when the producer had no display name to
+	* hand.
+	*
+	* `LimitBreach.facility` beside it is the raw `SpaceCenterFacility` member
+	* name, which is an id and reads like one. Nothing else on the wire publishes
+	* the display name, so without this the client would have to keep its own
+	* English mapping of KSP's enum: a second source of truth, wrong in every
+	* other language, and stale the moment KSP adds a facility.
+	*/
 	facilityName: string;
+	/** Normalised facility level, as KSP reports it. Not a tier index. */
 	facilityLevel: Value<"ratio">;
 	quantity: string;
+	/**
+	* The limit, in whatever unit `LimitBreach.quantity` implies. NULL when the
+	* facility is unlimited.
+	*
+	* Never the sentinel. KSP returns `float.MaxValue` (and `int.MaxValue`, and a
+	* `Vector3` of them) at maximum level, and 3.4e38 rendered beside a craft mass
+	* is not "unlimited", it is a bug that reads as a units error. No limit is the
+	* ABSENCE of a limit. A breach with no limit should be unreachable, since
+	* nothing can exceed an unlimited limit.
+	*/
 	limit?: number;
+	/** What the call actually asked for, same unit as `LimitBreach.limit`. */
 	actual?: number;
+	/**
+	* The unit token `LimitBreach.limit` and `LimitBreach.actual` are in, e.g. `t`
+	* for a mass limit, `count` for a part count.
+	*
+	* Carried as DATA because one breach type serves limits with different
+	* dimensions: a static `[SitrepUnit]` on those two properties cannot be right
+	* for all of them, and the unit gate says plainly that a wrong unit is worse
+	* than a bare readout because the client will confidently mislabel it. So they
+	* declare `NotApplicable` and their real unit travels here, which is also what
+	* lets the client render the comparison in the operator's own units instead of
+	* the mod composing a sentence.
+	*/
 	unit: string;
 }
+/** A verdict plus its evidence. */
 export interface GateVerdict
 {
 	outcome: GateOutcome;
+	/**
+	* WHICH refusal, for a `GateOutcome.Fail`: the same typed arm an actuator
+	* refusal carries, so one client sentence serves a declared gate and a handler
+	* that got far enough to look.
+	*
+	* Named by the EVALUATOR, because only the evaluator knows which authority it
+	* asked: a full pad and an un-upgraded Tracking Station are both a gate saying
+	* no, and they are not the same refusal. `CommandErrorCode.ModeUnavailable` is
+	* the default for an evaluator that says nothing.
+	*/
 	errorCode: CommandErrorCode;
+	/**
+	* Set only for a numeric `GateOutcome.Fail`. Null is the shape a client keys
+	* on: an Abstain or an Unknown has nothing to compare, so it must not arrive
+	* carrying zeroes that render as a real limit of 0.
+	*/
 	breach?: LimitBreach;
+	/**
+	* Why, when the outcome carries no numeric comparison: a
+	* `GateOutcome.Unknown`'s cause, or a discrete prerequisite's name. Prose for
+	* a human, never parsed.
+	*/
 	detail: string;
 }
+/**
+* One entry in the ground-side pending-uplink queue, backing
+* `system.uplink.pending` (see `ChannelEngine.UplinkPendingTopic`).
+*
+* **Prediction-only, hard invariant:** this type carries ONLY dispatch-time
+* facts: what the centre sent and when. It must NEVER grow an
+* execution/result/vessel-derived field (e.g. whether the craft actually
+* received or ran the command, any onboard state). That distinction is what
+* keeps the queue "predicted, not confirmed", the client renders these entries
+* as in-flight until they naturally age out, never as an acknowledgement of
+* vessel-side effect. `Sitrep.Host.Tests.UplinkPendingShapeTests` (a G1 shape
+* ratchet with NO additive carve-out, unlike `ContractShapeGateTests`)
+* enforces the field set stays exactly this seven.
+*/
 export interface PendingUplink
 {
+	/** == the dispatch `CommandRequest.RequestId`, the correlation key. */
 	id: string;
+	/** Wire command name (e.g. `kos.run`). */
 	command: string;
+	/**
+	* Caller-supplied envelope label; empty ⇒ the renderer falls back to
+	* `PendingUplink.command`.
+	*/
 	label: string;
+	/**
+	* Dispatch-time addressing, which part/route the command was sent to (an
+	* opaque MQTT-style route, e.g. `kos/7`), known at the command centre at send
+	* time. NOT vessel state and NOT an execution result, so it stays inside the
+	* prediction-only invariant; it lets a renderer scope entries to one
+	* part/terminal. Empty ⇒ unscoped.
+	*/
 	topic: string;
+	/**
+	* Which command centre / ground station dispatched this command (available at
+	* dispatch as `job.Vantage`): dispatch-time command-centre bookkeeping, not
+	* vessel state, so it stays inside the prediction-only invariant.
+	* Future-proofs multiple command sources without a later contract migration.
+	*/
 	vantage: string;
+	/** UT the engine dispatched the command. */
 	dispatchedAt: Value<"ut">;
+	/**
+	* One-way signal delay (seconds) AT DISPATCH, frozen, not re-read as the delay
+	* changes.
+	*/
 	oneWaySeconds: Value<"s">;
+	/**
+	* The scalar this command asked for, when its command is one half of a
+	* declared SitrepControlChannelAttribute channel: a throttle setting, a switch
+	* as 1 or 0, an SAS mode as its ordinal. Null for every other command, and for
+	* a channel command whose args did not carry the value key.
+	*
+	* **Inside the prediction-only invariant, not an exception to it.** The
+	* invariant on this class forbids an execution/result/ vessel-derived field:
+	* whether the craft received or ran the command, any onboard state. A
+	* commanded value is none of those. It is the most on-point example of "what
+	* the centre sent", which is what the invariant says this type carries, and
+	* the system already knows it because it dispatched it: carrying it is not new
+	* information and not an inference about the craft.
+	*
+	* **Why it is needed.** Without it the queue says a SAS command is in flight
+	* and cannot say which mode it asked for, so a renderer can show that
+	* something is happening and not what. An optimistic expectation, and the
+	* render it exists for (one control in a group marked out from its siblings),
+	* both need the value. It is also the only path a SECOND command centre or a
+	* station screen has to it: own-dispatch memory is per-client by construction.
+	*
+	* ONE numeric field rather than a variant because the channel's own declared
+	* args type already says how to read the number back, and because the coverage
+	* gate requires a channel's value field to be a scalar. See
+	* ControlChannelDescriptor for the reflected lookup.
+	*
+	* `Sitrep.Host.Tests.UplinkPendingShapeTests` pins the field set and was
+	* deliberately written with no additive carve-out. This addition was asked for
+	* explicitly rather than slipped past it; the test carries the same reasoning.
+	*/
 	commandedValue?: number;
 }
+/**
+* Wire wrapper for `system.uplink.pending`: the whole queue, resampled every
+* emission.
+*/
 export interface PendingUplinkQueue
 {
 	pending: PendingUplink[];
 }
+/**
+* Args for `vessel.trajectory.forVantage`: where does this craft go, given
+* what my command centre has been told.
+*
+* There is deliberately no vantage field. The answer depends on who is asking,
+* and a client that could name its own vantage could name somebody else's and
+* be shown what they can see. It is resolved where the command enters instead.
+*/
 export interface VantagePlanRequest
 {
+	/** The channel carrying the craft's orbit. */
 	topic?: string;
+	/**
+	* How far ahead to propagate. Allowed to be past what this vantage can
+	* currently see, because a prediction reaching beyond the news is the whole
+	* point of asking.
+	*/
 	toUt: Value<"ut">;
+	/** Points to publish on the arc. Zero takes the provider's default. */
 	maxPoints: Value<"count">;
 }
+/**
+* The answer, or why there is not one.
+*
+* `VantagePlanReply.seededAtUt` is not decoration. An arc detached from the
+* instant its seed was true is a path with no claim about when, and a
+* divergence measured against it later would be measured against nothing in
+* particular.
+*/
 export interface VantagePlanReply
 {
 	solved: boolean;
 	arc?: TrajectoryArc;
+	/** When the state this was computed from was actually TRUE. */
 	seededAtUt?: Value<"ut">;
+	/**
+	* Which command centre's view produced it, echoed so a client that switched
+	* vantage mid-flight can tell whose answer it is holding.
+	*/
 	vantage?: string;
+	/** Why there is no trajectory. Null when there is one. */
 	refusal?: string;
 	Refused(refusal: string) : VantagePlanReply;
 	From(answer: any, vantage: string) : VantagePlanReply;
 }
+/**
+* One canonical 3-vector shape for the whole wire contract, kills V-8 (bare
+* `[x,y,z]` arrays in some places, `{x,y,z}` objects in others, no consistent
+* units). Every vector-valued field in Sitrep.Contract uses this type; units
+* are documented on the FIELD that holds a `Vec3`, never implied by the shape
+* itself.
+*/
 export interface Vec3
 {
 	x: number;
 	y: number;
 	z: number;
 }
+/**
+* The `vessel.attitude` channel payload: pitch/heading/roll in TWO named
+* frames, both anchored to the same reference-transform ORIENTATION but
+* measuring the surface up/north vectors from a different POSITION (see
+* `Gonogo.KSP.KspHost.BuildAttitude`'s doc comment for the shared
+* construction). Kills V-9: the legacy `n.heading`/
+* `n.heading2`/`n.rawheading`/`n.rawheading2` quartet (root vs CoM, raw vs
+* adjusted, no guidance which to use) is NOT reproduced by numeric suffix: per
+* this class's original decision, a second frame is a new NAMED field with a
+* frame tag: `VesselAttitude.pitch`/`VesselAttitude.heading`/
+* `VesselAttitude.roll` are the CoM-referenced frame (up/north measured from
+* `Vessel.CoM`: MechJeb's construction), and
+* `VesselAttitude.pitchRootFrame`/`VesselAttitude.headingRootFrame`/
+* `VesselAttitude.rollRootFrame` are the genuinely distinct
+* ROOT-PART-referenced frame (up/north measured from `Vessel.rootPart`'s
+* position instead, the two diverge whenever the root part sits away from the
+* vessel's centre of mass). Not derivable from orbital elements (attitude
+* depends on vessel orientation, not trajectory), hence streamed raw.
+*/
 export interface VesselAttitude
 {
+	/** CoM-referenced frame. Degrees, -90..90 (nose down/up). */
 	pitch: Value<"°">;
+	/** CoM-referenced frame. Degrees, 0..360. */
 	heading: Value<"°">;
+	/** CoM-referenced frame. Degrees, -180..180. */
 	roll: Value<"°">;
+	/** Root-part-referenced frame (see class doc). Degrees, -90..90. */
 	pitchRootFrame: Value<"°">;
+	/** Root-part-referenced frame (see class doc). Degrees, 0..360. */
 	headingRootFrame: Value<"°">;
+	/** Root-part-referenced frame (see class doc). Degrees, -180..180. */
 	rollRootFrame: Value<"°">;
 	meta: PayloadMeta;
 }
+/**
+* Args shared by every plain boolean actuation command (`setSas`/
+* `setRcs`/`setGear`/`setBrakes`/`setLights`): an ABSOLUTE state to apply,
+* never a toggle. Under light-time delay a toggle arriving after unknown
+* intervening state is a race by construction (the design doc §3/§6.2's
+* `toggleActionGroup` caution); every M1 actuation command is set-semantics
+* only, so that footgun doesn't exist here at all.
+*/
 export interface SetEnabledArgs
 {
 	enabled: boolean;
@@ -1397,13 +5487,35 @@ export interface SetSasModeArgs
 }
 export interface SetThrottleArgs
 {
+	/**
+	* 0..1: validated (not silently clamped) at admission; out of range yields
+	* CommandResult.ErrorCode `CommandErrorCode.Range` (A-10's inconsistency fixed
+	* at the send gate).
+	*/
 	value: number;
 }
+/**
+* `vessel.control.stage`'s result is `CommandResult<int>`, a real value comes
+* back (the new current stage index in `Payload`), unlike the legacy `f.stage`
+* void fire-and-forget. See `CommandResultOf`.
+*/
 export interface SetActionGroupArgs
 {
+	/**
+	* 1..10. Any other value yields CommandResult.ErrorCode
+	* `CommandErrorCode.Range`.
+	*/
 	group: number;
 	state: boolean;
 }
+/**
+* `vessel.maneuver.add`'s args: NAMED delta-v components in the node's own
+* radial/normal/prograde frame, exactly like the wire's `ManeuverNode` shape.
+* Kills O-4: there is no positional `[ut,x,y,z]` array to mis-order (raw KSP
+* `ManeuverNode.DeltaV` is `x=radialOut, y=normal, z=prograde`) for why the
+* actuator seam must preserve this exact component assignment rather than
+* "helpfully" reordering it.
+*/
 export interface AddManeuverNodeArgs
 {
 	ut: number;
@@ -1411,6 +5523,11 @@ export interface AddManeuverNodeArgs
 	normal: number;
 	radialOut: number;
 }
+/**
+* Result of `vessel.maneuver.add` is `CommandResult<string>`, O-6 fixed: the
+* created node's opaque id is actually returned in `Payload`. See
+* `CommandResultOf`.
+*/
 export interface UpdateManeuverNodeArgs
 {
 	nodeId: string;
@@ -1423,15 +5540,52 @@ export interface RemoveManeuverNodeArgs
 {
 	nodeId: string;
 }
+/**
+* `vessel.target.set`'s args: a discriminated union expressed as
+* `SetTargetArgs.kind` + the one field that kind actually uses (C# has no
+* native union type; this mirrors `TargetKind`'s existing vessel/body/other
+* split rather than inventing a parallel shape). T-1 fixed:
+* `SetTargetArgs.vesselId` is the STABLE opaque vessel id (resolved
+* server-side against `FlightGlobals.Vessels`), never a live array index a
+* client would have to track itself. T-2 fixed: vessel id and body index are
+* separate fields in separate namespaces, so they can never be confused for
+* one another.
+*/
 export interface SetTargetArgs
 {
 	kind: TargetKind;
+	/**
+	* Required when `SetTargetArgs.kind` is `TargetKind.Vessel`. ALSO required
+	* when `SetTargetArgs.kind` is `TargetKind.Part`, the guid of the vessel that
+	* OWNS the target part (a part id is unique only within its vessel).
+	*/
 	vesselId?: string;
+	/**
+	* Required when `SetTargetArgs.kind` is `TargetKind.Part`, the docking port's
+	* KSP `Part.flightID`, resolved server-side against the parts of the vessel
+	* named by `SetTargetArgs.vesselId`. Null for every other kind.
+	*/
 	partId?: number;
+	/**
+	* Required when `SetTargetArgs.kind` is `TargetKind.Body`, the same
+	* `system.bodies` index `VesselOrbit.referenceBodyIndex` uses. ALSO required
+	* (T-POI-4) when `SetTargetArgs.kind` is `TargetKind.Position`, which body
+	* `SetTargetArgs.latitude`/ `SetTargetArgs.longitude` are measured against (a
+	* lat/lon pair has no meaning without one).
+	*/
 	bodyIndex?: number;
+	/**
+	* Required when `SetTargetArgs.kind` is `TargetKind.Position` (a map-picked
+	* surface fix, e.g. a `spaceCenter.pois` entry's own coordinate).
+	*/
 	latitude?: number;
+	/** Required when `SetTargetArgs.kind` is `TargetKind.Position`. */
 	longitude?: number;
 }
+/**
+* `time.setWarpIndex`'s args: sim-meta, never delayed (light-time fiction
+* doesn't apply to a ground-side simulation control).
+*/
 export interface SetWarpIndexArgs
 {
 	index: number;
@@ -1440,6 +5594,13 @@ export interface SetPausedArgs
 {
 	paused: boolean;
 }
+/**
+* Mirrors KSP's own `VesselControlState` enum by name (its underlying int
+* values collide by design in stock KSP, e.g. `Probe == ProbeNone == 2`, which
+* is KSP's own ambiguity, not one this contract introduces; we simply consume
+* whichever name `.ToString()` already commits to). `ControlState.Unknown` is
+* the graceful fallback for an unrecognized raw value.
+*/
 export enum ControlState {
 	None = 0,
 	Probe = 1,
@@ -1454,6 +5615,20 @@ export enum ControlState {
 	KerbalFull = 10,
 	Unknown = 11
 }
+/**
+* The `vessel.comms` channel payload: the raw CommNet VESSEL snapshot. Kills
+* M-3 (one typed `VesselComms.controlState` enum replaces the magic-int
+* `comm.controlState` + parallel `comm.controlStateName` string key) and M-4
+* (no `0`/`0d` no-data sentinel, absence is the WHOLE channel being null when
+* `vessel.connection` is null, R1(b), never a fake zero reading
+* indistinguishable from "no telemetry at all").
+*
+* **Scope fence** (per the design doc): this is what the vessel itself
+* reports. The delay authority and link modelling live in a future `comms.*`
+* CAPABILITY channel (RemoteTech-default): the legacy `comm.signalDelay` does
+* NOT get a field here; that successor is `comms.delay`, a different provider
+* entirely.
+*/
 export interface VesselComms
 {
 	connected: boolean;
@@ -1461,6 +5636,14 @@ export interface VesselComms
 	controlState: ControlState;
 	meta: PayloadMeta;
 }
+/**
+* Mirrors KSP's own `VesselAutopilot.AutopilotMode` enum (confirmed via
+* decompile: `StabilityAssist, Prograde, Retrograde, Normal, Antinormal,
+* RadialIn, RadialOut, Target, AntiTarget, Maneuver`: no `Navigation` member
+* exists on this KSP version). `SasMode.Unknown` is the graceful fallback for
+* a raw value this contract doesn't recognize yet, same convention as
+* `VesselType`/`TransitionType`.
+*/
 export enum SasMode {
 	StabilityAssist = 0,
 	Prograde = 1,
@@ -1474,14 +5657,64 @@ export enum SasMode {
 	Maneuver = 9,
 	Unknown = 10
 }
+/**
+* One custom action group's IDENTITY plus its live state. Deliberately NOT a
+* positional `bool[]` indexed `[ag1..ag10]`: such an array can carry state but
+* never a NAME, and a name is the whole point. Stock KSP's ten customs are
+* anonymous, but Action Groups Extended (AGX) gives the player up to 250
+* groups they name themselves ("Solar Panels", "Science Bay"). A positional
+* array cannot express that, and forces the client to hardcode "AG1".."AG10"
+* labels.
+*
+* Scope: this list carries the CUSTOM (extensible) groups only. The stock
+* singletons (SAS/RCS/Gear/Brakes/Lights/Abort) keep their own dedicated
+* `VesselControl` fields and their own dedicated commands
+* (`vessel.control.setGear` etc.), because they are fixed stock concepts that
+* no mod extends: AGX adds custom groups, it does not add a second SAS.
+* Folding them into this list would trade a typed field for a string match and
+* gain nothing.
+*/
 export interface ActionGroupState
 {
+	/**
+	* 1-based group number: the same number `vessel.control.setActionGroup` takes.
+	* Stock KSP: 1..10 (`KSPActionGroup.Custom01..Custom10`). An AGX backend may
+	* report indices up to 250. Consumers must NOT assume 10, nor assume the list
+	* is dense or sorted.
+	*/
 	index: number;
+	/**
+	* Human display name. Stock KSP has no per-group naming, so the stock backend
+	* reports `"AG1".."AG10"`: exactly what the UI already showed, now sourced
+	* from the mod rather than hardcoded client-side. An AGX backend reports the
+	* player's own names instead.
+	*/
 	name: string;
+	/** Whether the group is currently engaged. */
 	state: boolean;
 }
+/**
+* The `vessel.control` channel payload: the READ half of what the legacy
+* vocabulary split across `f.` (toggle/action) and `v.` (value-read) prefixes
+* for the same concept (N-1's read half; the WRITE half is a future
+* typed-command task). Every field is individually nullable, R1(a): a null
+* field is a normal, meaningful "this input isn't available this tick" (e.g.
+* no `ctrlState`/no action-group data), never a sentinel default: while the
+* record ITSELF is present whenever a vessel is (KspHost's `BuildControl`
+* always returns a group, never a null one).
+*
+* **V-3 documented, not silently "fixed":** `VesselControl.throttle` is 0..1
+* NOMINALLY, but KSP's own `FlightInputHandler.state.mainThrottle` isn't
+* clamped upstream: a kOS/mod-driven throttle can genuinely read > 1 (the
+* "200% throttle" phantom). Silently clamping it here would be a NEW wart
+* (lying about upstream game truth); the range is documented, reader beware.
+*/
 export interface VesselControl
 {
+	/**
+	* SAS master switch. Its control channel pairs it with `setSas` so a client
+	* can read the confirmed state and dispatch a change through ONE handle.
+	*/
 	sas?: boolean;
 	sasMode?: SasMode;
 	rcs?: boolean;
@@ -1489,17 +5722,51 @@ export interface VesselControl
 	brakes?: boolean;
 	lights?: boolean;
 	abort?: boolean;
+	/**
+	* Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
+	* `FlightInputHandler.fetch.precisionMode`. Null when there's no active flight
+	* scene (`FlightInputHandler.fetch` is null), never a sentinel default
+	* (R1(a)).
+	*/
 	precisionControl?: boolean;
+	/**
+	* 0..1 nominal range: NOT guaranteed clamped upstream (V-3), see the class doc
+	* comment.
+	*/
 	throttle?: Value<"ratio">;
+	/** Commanded pitch axis input, -1..1 (FlightInputHandler ctrlState.pitch). */
 	pitch?: Value<"1">;
+	/** Commanded yaw axis input, -1..1 (FlightInputHandler ctrlState.yaw). */
 	yaw?: Value<"1">;
+	/** Commanded roll axis input, -1..1 (FlightInputHandler ctrlState.roll). */
 	roll?: Value<"1">;
+	/** Commanded translation X (RCS right/left) input, -1..1 (ctrlState.X). */
 	translationX?: Value<"1">;
+	/** Commanded translation Y (RCS up/down) input, -1..1 (ctrlState.Y). */
 	translationY?: Value<"1">;
+	/** Commanded translation Z (RCS fwd/back) input, -1..1 (ctrlState.Z). */
 	translationZ?: Value<"1">;
+	/**
+	* Every CUSTOM action group the elected action-groups backend knows, each
+	* NAMED and carrying its own index (see `ActionGroupState`). Stock KSP yields
+	* ten entries (`AG1..AG10`); an AGX backend may yield up to 250 with the
+	* player's own names. Null when action-group data wasn't available this tick:
+	* never a partial list. Order is by `ActionGroupState.index` ascending, but
+	* read `ActionGroupState.index` rather than relying on array position:
+	* position does not carry identity here.
+	*/
 	actionGroups?: ActionGroupState[];
 	meta: PayloadMeta;
 }
+/**
+* One crew member in the `vessel.crew` payload's `crew` roster. Typing-only
+* mirror of the entry `Sitrep.Host.VesselViewProvider` reads out of the
+* snapshot's `crew` group: every field nullable because each is read through
+* `SnapshotDict.Get*`, which yields `null` (not a sentinel) on absence.
+* Sourced from KSP's `ProtoCrewMember`: `name`/`trait`/`experienceLevel` plus
+* the `type` (`KerbalType`) and `rosterStatus` (`RosterStatus`) enums,
+* captured as their string names.
+*/
 export interface CrewMember
 {
 	name?: string;
@@ -1507,11 +5774,42 @@ export interface CrewMember
 	experienceLevel?: Value<"count">;
 	type?: string;
 	rosterStatus?: string;
+	/**
+	* What this kerbal is personally carrying, from their own
+	* `ModuleInventoryPart`.
+	*
+	* Here rather than on `vessel.inventory` because it answers a different
+	* question. That channel is SUPPLY, what is aboard and where. This is the
+	* ACTOR: whether THIS kerbal, whose trait and experience level sit two fields
+	* up, can do a job right now without anything being fetched first. A consumer
+	* deciding who should perform a task reads one payload, not a join.
+	*
+	* Null when the crew source could not read inventories at all, which is not
+	* the same as an empty list, meaning they are carrying nothing.
+	*/
 	carrying?: InventoryItem[];
+	/**
+	* The kerbal's own slot count, stock default 2, one of which usually holds a
+	* parachute.
+	*/
 	slots?: Value<"count">;
+	/**
+	* Their packed-volume limit, stock default 40 in KSP's own cargo-volume unit.
+	* With a repair kit at 5, this is what actually bounds how many they can
+	* carry.
+	*/
 	packedVolumeLimit?: Value<"1">;
+	/** Packed volume they are currently using, same unit as the limit. */
 	packedVolumeUsed?: Value<"1">;
 }
+/**
+* The `vessel.crew` channel payload. Started count-only for M1 (G-13: grows to
+* a full roster later WITHOUT a topic rename, per the design doc §2.2's "misc
+* junk drawer split"). The roster (`VesselCrew.crew`) and
+* `VesselCrew.capacity` are that additive growth, new fields on the same
+* record, same topic. Splitting this out of KspHost's `misc` group into its
+* own coherent, independently-growable channel is itself part of the wart-fix.
+*/
 export interface VesselCrew
 {
 	count: Value<"count">;
@@ -1519,14 +5817,54 @@ export interface VesselCrew
 	crew: CrewMember[];
 	meta: PayloadMeta;
 }
+/**
+* The `vessel.dock` channel payload: the docking/rendezvous capture-add (M3
+* R3): relative position/velocity + coarse orientation between the active
+* vessel's nearest FREE (undocked) docking port and the currently-targeted
+* docking port, for docking-alignment widgets. Whole- channel absence means
+* "not docking-relevant right now", no target targeted, the target isn't
+* itself a docking port, or the active vessel has no free port of its own;
+* never a stale/zero-distance sentinel record (same R1(b) convention
+* `VesselTarget` already established).
+*
+* Reuses the ONE canonical `Vec3` shape (never a second vector encoding).
+* `DockAlignment.forwardDot` is the dot product of the two ports' forward
+* (docking-axis) vectors: -1.0 means the ports face each other head-on (the
+* alignment a successful dock needs), +1.0 means they point the same direction
+* (facing away from each other), a widget maps this to a 0..100% "facing"
+* readout however it likes; this contract intentionally ships the raw dot
+* product rather than a pre-baked percentage so the mapping stays a client
+* concern.
+*/
 export interface DockAlignment
 {
+	/** Metres, own-port-relative (target port minus own port). */
 	relativePosition: Vec3Of<"m">;
+	/** m/s, own-port-relative. */
 	relativeVelocity: Vec3Of<"m/s">;
+	/**
+	* Metres: `DockAlignment.relativePosition`'s magnitude, provided directly so a
+	* widget doesn't have to re-derive it every frame.
+	*/
 	distance: Value<"m">;
+	/**
+	* Dot product of the own port's and target port's forward vectors; see the
+	* class doc comment. Null only if either port's transform was unavailable this
+	* tick.
+	*/
 	forwardDot?: Value<"1">;
 	meta: PayloadMeta;
 }
+/**
+* Mirrors KSP's own `Vessel.Situations` enum by concept (member names here are
+* this contract's own PascalCase spelling, `Sitrep.Host. VesselViewProvider`'s
+* `ParseSituation` maps KSP's raw SCREAMING_SNAKE_CASE `.ToString()` onto
+* these, never passing the raw string through directly). Kills V-13: the
+* `v.situation`/ `v.situationString`/`v.landedAt` triplet collapses to this
+* one typed field. `Situation.Unknown` is the graceful fallback for a raw
+* value this contract doesn't yet recognize, rather than the mapper throwing
+* on a future KSP version adding a situation.
+*/
 export enum Situation {
 	Landed = 0,
 	Splashed = 1,
@@ -1538,6 +5876,14 @@ export enum Situation {
 	Docked = 7,
 	Unknown = 8
 }
+/**
+* Mirrors KSP's own `VesselType` enum. KSP's `.ToString()` already yields
+* PascalCase matching these members, so the mapper uses a case-insensitive
+* `Enum.TryParse` rather than a hand-written switch (see
+* `VesselViewProvider.ParseVesselType`). `VesselType.Unknown` both mirrors
+* KSP's own `Unknown` member and is the fallback for a value this contract
+* doesn't recognize yet.
+*/
 export enum VesselType {
 	Ship = 0,
 	Station = 1,
@@ -1555,6 +5901,11 @@ export enum VesselType {
 	DroppedPart = 13,
 	Unknown = 14
 }
+/**
+* Mirrors KSP's `Orbit.PatchTransitionType`: parsed from the raw
+* `orbit.patchEndTransition.ToString()` value `KspHost` captures.
+* `TransitionType.Unknown` is the graceful fallback.
+*/
 export enum TransitionType {
 	Initial = 0,
 	Final = 1,
@@ -1564,153 +5915,838 @@ export enum TransitionType {
 	Collision = 5,
 	Unknown = 6
 }
+/**
+* The basis a planned burn's delta-v components are expressed in. On the wire
+* because the two in use are similar enough to be mistaken for each other and
+* different enough to be wrong, and the distinction previously lived only in
+* `ManeuverNode`'s prose.
+*/
 export enum ManeuverFrame {
+	/**
+	* KSP's own maneuver-node basis: radial-out, normal, prograde, taken against
+	* the patch the node sits on at its own UT.
+	*/
 	RadialNormalPrograde = 0,
+	/**
+	* The Frenet trihedron of the trajectory at the burn point: tangent, normal,
+	* binormal. Not a renaming of `ManeuverFrame.RadialNormalPrograde`: the axes
+	* differ, and for an eccentric orbit they differ by an amount that matters.
+	*/
 	TangentNormalBinormal = 1,
+	/** Graceful fallback, same role as `TransitionType.Unknown`. */
 	Unknown = 2
 }
+/**
+* The `vessel.flight` channel payload: MEASUREMENTS, not evaluations:
+* quantities the game measures that aren't derivable from orbital elements
+* (terrain height, aero state) or that serve as off-rails ground truth
+* (speeds). Kills V-10 (no (0,0) lat/long sentinel, the channel is simply
+* absent when there's no vessel, never a fake origin point) and V-12 (one
+* canonical field per quantity: the srfSpeed/speed/surfaceSpeed triplet and
+* kPa/Pa variants collapse to `VesselFlight.surfaceSpeed` and
+* `VesselFlight.dynamicPressureKPa`). `missionTime` deliberately does NOT
+* appear here: see `VesselIdentity.launchUt`'s doc comment.
+*/
 export interface VesselFlight
 {
+	/**
+	* Degrees. PRESENT means valid, no (0,0) no-data sentinel (V-10); absence is
+	* the whole channel being unavailable.
+	*/
 	latitude: Value<"°">;
 	longitude: Value<"°">;
+	/** Altitude above sea level, metres (KSP's `Vessel.altitude`). */
 	altitudeAsl: Value<"m">;
+	/**
+	* Height above terrain (AGL, radar altitude), metres, NOT derivable from
+	* orbital elements, hence streamed raw.
+	*/
 	altitudeTerrain: Value<"m">;
+	/**
+	* Metres per second (KSP's `Vessel.verticalSpeed`), signed: negative is
+	* descending.
+	*/
 	verticalSpeed: Value<"m/s">;
+	/** Speed relative to the surface, metres per second (KSP's `Vessel.srfSpeed`). */
 	surfaceSpeed: Value<"m/s">;
+	/**
+	* Speed relative to the parent body's inertial frame, metres per second (KSP's
+	* `Vessel.obt_speed`).
+	*/
 	orbitalSpeed: Value<"m/s">;
+	/** Multiples of standard gravity (KSP's `Vessel.geeForce`). */
 	gForce: Value<"g">;
 	dynamicPressureKPa: Value<"kPa">;
+	/**
+	* Mach number: dimensionless by definition, so it carries the explicit "1"
+	* unit token rather than being left unannotated.
+	*/
 	mach: Value<"1">;
+	/**
+	* Atmospheric density at the vessel's position, kg/m³ (KSP's
+	* `Vessel.atmDensity`).
+	*/
 	atmDensity: Value<"kg/m³">;
+	/**
+	* Skin/ambient external temperature the vessel is exposed to, Kelvin
+	* (Vessel.externalTemperature).
+	*/
 	externalTemperature: Value<"K">;
+	/**
+	* Ambient atmospheric temperature at the vessel's position, Kelvin
+	* (Vessel.atmosphericTemperature).
+	*/
 	atmosphericTemperature: Value<"K">;
 	meta: PayloadMeta;
 }
+/**
+* The `vessel.identity` channel payload: kills V-13 (one typed
+* `VesselIdentity.situation` enum replaces the v.situation/v.situationString/
+* v.landedAt triplet) and moves `missionTime` off the wire entirely:
+* `VesselIdentity.launchUt` is static after liftoff (sampleUt - missionTime),
+* so MET (mission elapsed time) is a consumer-side derivation (viewUt -
+* launchUt) rather than a tick-rate field that would force this whole record
+* to re-emit every tick: see
+* local_docs/telemetry-mod/m1-provider-taxonomy-design.md §0.2.
+*/
 export interface VesselIdentity
 {
+	/**
+	* The stable subject id (KSP's `Vessel.id` GUID, as a string), the currency of
+	* target/vessel-scoped commands (T-1 groundwork) and of `Meta.Source`'s
+	* "vessel:<guid>" provenance stamp.
+	*/
 	vesselId: string;
 	name: string;
 	vesselType: VesselType;
 	situation: Situation;
+	/**
+	* Index into the `system.bodies` collection; null when the vessel has no orbit
+	* driver yet (e.g. a just-spawned EVA before it attaches).
+	*/
 	parentBodyIndex?: number;
+	/**
+	* sampleUt - missionTime; null before the vessel's launch clock has started.
+	* See the class doc comment.
+	*/
 	launchUt?: Value<"ut">;
 	meta: PayloadMeta;
 }
+/**
+* The stock cargo a vessel's PARTS are carrying: the supply aboard.
+*
+* **Why the crew's own inventories are not here.** A kerbal carries the same
+* KSP module, `ModuleInventoryPart`, so one topic was the obvious shape and it
+* is the wrong one. These answer different questions. This channel answers
+* "what is aboard, and where", which is SUPPLY. `vessel.crew` answers "who is
+* here, are they qualified, and what are they holding", which is the ACTOR
+* list, and that is where a kerbal's two slots belong: beside the trait and
+* experience level that decide whether they may do the job at all.
+*
+* **Why location is carried rather than a per-vessel total.** A kerbal has two
+* slots, forty volume and a 65kg limit, one slot of which defaults to a
+* parachute; a cargo container has far more. A craft can be carrying plenty of
+* something while the kerbal who needs it has none, and a single total reports
+* the reassuring half of that.
+*
+* This is STOCK, and deliberately not any Uplink's. Stock KSP's own repair
+* mechanic consumes stock cargo, so a stock-career player has inventories
+* worth showing whether or not a modelling mod is installed.
+*/
 export interface VesselInventory
 {
+	/**
+	* Every part-hosted inventory on the active vessel this tick, in vessel
+	* part-list order. Always present (possibly empty); a vessel-less tick yields
+	* a `null` payload, not an empty list.
+	*/
 	stores: InventoryStore[];
 	meta: PayloadMeta;
 }
+/** One part's `ModuleInventoryPart`: a cargo hold aboard. */
 export interface InventoryStore
 {
+	/**
+	* `Part.flightID` stringified, so a store id-joins to `vessel.parts` and the
+	* other per-part channels.
+	*/
 	partId: string;
+	/** The part's display title. */
 	partName: string;
+	/**
+	* What is actually in it. Empty is meaningful and is NOT the same as an absent
+	* store: an empty hold is a place to put something.
+	*/
 	items: InventoryItem[];
+	/**
+	* `ModuleInventoryPart.InventorySlots`. Null when the module did not report
+	* one.
+	*/
 	slots?: Value<"count">;
+	/**
+	* Slots with something in them, so a consumer can say "2 of 4" without summing
+	* quantities that share a slot.
+	*/
 	slotsUsed?: Value<"count">;
+	/**
+	* `packedVolumeLimit`, in KSP's own cargo-volume unit rather than cubic
+	* metres: it is a config number (a kerbal is 40, a repair kit is 5) and
+	* presenting it as a physical volume would be inventing a dimension the game
+	* does not attach to it.
+	*/
 	packedVolumeLimit?: Value<"1">;
+	/**
+	* Packed volume currently used, same unit as
+	* `InventoryStore.packedVolumeLimit`.
+	*/
 	packedVolumeUsed?: Value<"1">;
+	/**
+	* `massLimit` in tonnes. A kerbal's is 0.065, which is the binding constraint
+	* on how much they can carry long before slots are.
+	*/
 	massLimit?: Value<"t">;
 }
+/** One kind of thing stored in an `InventoryStore`, with how many of it. */
 export interface InventoryItem
 {
+	/**
+	* `AvailablePart.name`, the config id (e.g. `"evaRepairKit"`). The id a
+	* consumer matches on, never the title, which is localised.
+	*/
 	name: string;
+	/** The part's display title, already localised by KSP. */
 	title?: string;
+	/** How many of this kind are in this store, summed across slots. */
 	quantity: Value<"count">;
+	/** Packed volume of ONE of these, same unit as the store's limits. */
 	packedVolume?: Value<"1">;
 }
+/**
+* The `vessel.landing` channel payload: terrain-informed landing data that
+* needs KSP's PQS heightmap, which no client-side derivation can source (no
+* client-side height grid is anywhere near fine-grained enough for a
+* lander-scale slope), plus an atmosphere-aware descent estimate that needs
+* per-part drag the client does not have.
+*
+* Distinct from the client-derived vacuum ballistic scalars (the LandingStatus
+* widget's own `solveSuicideBurn`), which need no terrain and stay
+* client-side.
+*
+* Whole-channel absence means "not descending toward a solid surface",
+* relevance-gated at the source on situation + a descent test +
+* `CelestialBody.hasSolidSurface` / a non-null `pqsController`, so this never
+* carries a stale reading from orbit or a fabricated 0.0 from a body with no
+* PQS. This is the third instance of the CaptureCrash house pattern (one
+* source-gated channel published to every screen), with a continuous numeric
+* gate rather than a categorical event.
+*
+* Every field is nullable: a field is null when its input is unavailable this
+* tick (e.g. no PQS, no touchdown solution, not in atmosphere). Never ship a
+* 0.0 that was not verified.
+*/
 export interface VesselLanding
 {
+	/**
+	* Which class of landing readout is valid this tick, so the client renders
+	* state rather than inferring it from a pile of nulls. One of:
+	* `"vacuum-solved"`, `"atmospheric-aware"`, `"no-solution"`,
+	* `"terrain-assessed"`. Null before the first classification.
+	*/
 	outcome?: string;
+	/**
+	* Which sampling source produced the terrain fields this tick: `"predicted"`
+	* (sampled at the mod's predicted downrange touchdown point: the site you are
+	* heading for) or `"sub-vessel"` (the graceful fallback: sampled directly
+	* under the vessel when no touchdown solution is available). The client
+	* surfaces this so the operator knows whether they are seeing downrange or
+	* under-ship terrain. Null when no terrain was sampled.
+	*/
 	sampleSource?: string;
+	/**
+	* Metres: terrain elevation above the body mean radius directly beneath the
+	* vessel. Currently null (see the Tier-1 note); the sub-vessel-fallback
+	* `VesselLanding.predictedTerrainElevation` carries the under-ship elevation.
+	*/
 	terrainElevationUnderVessel?: Value<"m">;
+	/**
+	* Degrees, 0 = flat: under-vessel terrain slope. Currently null (see the
+	* Tier-1 note); under-vessel slope comes from the Tier-2 plane-fit via the
+	* sub-vessel sampling fallback.
+	*/
 	slopeAngleUnderVessel?: Value<"°">;
+	/**
+	* Degrees: predicted touchdown latitude. Terrain-independent: the client
+	* patch-walk supplies the point; this channel samples terrain there. Null when
+	* no touchdown is predicted within the horizon.
+	*/
 	predictedLatitude?: Value<"°">;
+	/**
+	* Degrees: predicted touchdown longitude. Always defined together with
+	* `VesselLanding.predictedLatitude`.
+	*/
 	predictedLongitude?: Value<"°">;
+	/**
+	* Metres: terrain elevation at the predicted touchdown point.
+	* `CelestialBody.TerrainAltitude(lat, lon, allowNegative: true)` so ocean
+	* floor reads honestly rather than clamping to a fabricated 0.
+	*/
 	predictedTerrainElevation?: Value<"m">;
+	/**
+	* Degrees: terrain slope at the predicted touchdown point, from a plane fit
+	* over sampled heights (not an abs-average, which cannot tell a bowl from an
+	* incline). The tipover-risk readout, available while still descending.
+	*/
 	predictedSlopeAngle?: Value<"°">;
+	/**
+	* Degrees, 0 = north, clockwise: the downhill direction at the predicted point
+	* (which way the lander falls if it tips). Null below the noise floor.
+	*/
 	predictedSlopeHeading?: Value<"°">;
+	/**
+	* Metres: RESIDUAL standard deviation of sampled terrain height at the
+	* predicted point, AFTER removing the fitted slope plane (so tilt is not
+	* double-counted as roughness). Sampled over
+	* `VesselLanding.roughnessFootprintMeters` so it lives on the client's
+	* calibrated sigma grade. The boulder-risk proxy.
+	*/
 	predictedRoughness?: Value<"m">;
+	/**
+	* Metres: the footprint radius the roughness sigma was sampled over. Ships so
+	* the client can label honestly and grade it on the shared sigma scale.
+	*/
 	roughnessFootprintMeters?: Value<"m">;
+	/** Metres: the (tighter) radius the slope plane-fit samples span. */
 	slopeSampleRadiusMeters?: Value<"m">;
+	/**
+	* KSP's biome name at the PREDICTED touchdown point (not the current position,
+	* that is `vessel.surface.biome`). Via `ScienceUtil.GetExperimentBiome` (which
+	* takes degrees). Null when the body has no biome map.
+	*/
 	predictedBiome?: string;
+	/**
+	* Flattened row-major NxN grid of terrain elevations (metres) around the
+	* predicted point, for the reticle's shaded relief. Null until the relief
+	* patch ships / when over the PQS budget (the reticle falls back to a flat
+	* roughness tint). Length is `VesselLanding.terrainPatchSize` squared.
+	*/
 	terrainPatch?: Value<"m">[];
+	/** The N of the NxN `VesselLanding.terrainPatch` grid. Null when no patch. */
 	terrainPatchSize?: Value<"count">;
+	/** Metres: the full width the `VesselLanding.terrainPatch` grid spans. */
 	terrainPatchExtentMeters?: Value<"m">;
+	/**
+	* m/s: terminal velocity at the CURRENT altitude/config, from the measured
+	* aggregate drag force against local gravity. Null outside an atmosphere. An
+	* ESTIMATE assuming current config holds (attitude, no pending chute).
+	*/
 	terminalVelocity?: Value<"m/s">;
+	/**
+	* m/s: projected touchdown speed under a terminal descent to the ground
+	* (terminal velocity scaled to ground density). The atmosphere-aware
+	* replacement for the (wrong) vacuum impact speed. Null outside an atmosphere.
+	*/
 	projectedTouchdownSpeed?: Value<"m/s">;
+	/**
+	* Seconds: atmosphere-aware time to impact, integrating the terminal-velocity
+	* profile down the density column. Null outside an atmosphere.
+	*/
 	atmosphericTimeToImpact?: Value<"s">;
+	/**
+	* The instantaneous descent regime: `"at-terminal"` / `"decelerating"` /
+	* `"accelerating"`. Null outside an atmosphere.
+	*/
 	descentRegime?: string;
+	/**
+	* The aggregate aerodynamic drag force divided by the vessel's weight (local
+	* gravity): the numeric form of `VesselLanding.descentRegime`. >1 decelerating
+	* (drag beats gravity), 1 at terminal, <1 still accelerating. A dimensionless
+	* 0..N ratio like TWR, not a 0..1 fraction. Null outside an atmosphere.
+	*/
 	dragToWeightRatio?: Value<"1">;
+	/**
+	* Parachute state affecting the estimate: `"none"` / `"armed"` (a future step
+	* change the instant model cannot see, flag the estimate) / `"deployed"` (drag
+	* already in the measurement, self-corrected). Null outside an atmosphere.
+	*/
 	parachuteState?: string;
 	meta: PayloadMeta;
 }
+/**
+* One planned BURN. NAMED delta-v components in a NAMED frame
+* (`ManeuverNode.frame`), with the impulsive case as the one where
+* `ManeuverNode.ignitionUt` and `ManeuverNode.cutoffUt` are absent rather than
+* equal.
+*
+* Kills O-4: the legacy `o.addManeuverNode[ut, x, y, z]` (where `[x,y,z]` is
+* secretly `[radialOut, normal, prograde]`, with `updateManeuverNode`
+* prepending an `id` that shifts every subsequent index by one, and a THIRD,
+* different display order) is the textbook arg-order footgun this named shape
+* makes impossible to mis-order.
+*
+* **Why this is a burn and not a stock node.** A stock node is an
+* instantaneous impulse and real burns are not, which stock KSP itself
+* concedes by computing `DeltaVStageInfo.stageBurnTime` and by carrying a
+* burn-time readout on its own navball. Every serious maneuver mod in the
+* ecosystem then reimplements the same correction independently, because the
+* stock type has nowhere to put it. The three instants here are that
+* nowhere-to-put-it, filled in.
+*
+* **The impulsive case is absent duration, never zero duration.** A
+* zero-duration burn with a thrust implies infinite acceleration, so any
+* consumer computing thrust times duration over mass gets nonsense instead of
+* an impulse. Absence says "not modelled", which is the true statement.
+*/
 export interface ManeuverNode
 {
+	/**
+	* Stable, opaque id: the M3 R3 fix for the read/write correlation gap
+	* (`packages/sitrep-client/src/map-command.ts`'s `KNOWN_COMMAND_GAPS`
+	* comment): assigned by `Gonogo.KSP.KspHost` via a shared
+	* `ReferenceIdRegistry<global::ManeuverNode>` (see that class's doc comment
+	* for the full scheme), the SAME instance `KspVesselActuator` uses to resolve
+	* `vessel.maneuver.update`/ `.remove`'s `nodeId` argument: so a node's id
+	* round-trips into those commands whether the node was created through
+	* `vessel.maneuver.add` or placed by hand in the map view. Empty string only
+	* for a node read off a recording captured BEFORE this field existed (replay
+	* of old data; never a live capture).
+	*/
 	id: string;
+	/**
+	* The instant the burn's IMPULSIVE EQUIVALENT occurs: the one instant a
+	* zero-duration model has, and the one every countdown in the app has always
+	* shown. Stock's `ManeuverNode.UT` is exactly this.
+	*
+	* **It is not the ignition time, and the difference is a real defect elsewhere
+	* in the ecosystem.** A finite burn starts before this and ends after it,
+	* which is why every serious KSP maneuver mod independently reimplements
+	* "start at UT minus half the burn time". `ManeuverNode.ignitionUt` and
+	* `ManeuverNode.cutoffUt` carry those two instants directly instead of leaving
+	* each consumer to guess a convention.
+	*/
 	ut: Value<"ut">;
+	/**
+	* When the engines light, or null when nothing supplies a burn-duration model
+	* for this craft.
+	*
+	* Null is a real answer and not a failure, on the same terms as
+	* `IPropagationProvider.CharacteristicCycleSeconds`. Stock computes a burn
+	* time only for a LOADED vessel (`VesselDeltaV.CheckDirtyAndRun` early-returns
+	* on `!loaded`), so an unloaded craft's queued burn honestly has no ignition
+	* time rather than a guessed one.
+	*
+	* **Never a sentinel equal to `ManeuverNode.ut`.** Collapsing an unmodelled
+	* duration onto the impulsive instant would make "we do not know when to light
+	* the engines" indistinguishable from "this burn is instantaneous", and only
+	* one of those is ever true.
+	*/
 	ignitionUt?: Value<"ut">;
+	/**
+	* When the engines cut, or null on the same terms as
+	* `ManeuverNode.ignitionUt`. Burn duration is `CutoffUt - IgnitionUt`.
+	*
+	* Carried as an instant rather than as a separate duration field on purpose: a
+	* duration alongside two instants is a third number that can disagree with the
+	* other two, and there is no reading of a disagreement that helps anybody.
+	*
+	* Not derivable as `Ut` plus half a duration in general. That symmetry holds
+	* only while the craft's mass is constant, and a burn long enough to be worth
+	* modelling is long enough to change it.
+	*/
 	cutoffUt?: Value<"ut">;
+	/**
+	* The basis `ManeuverNode.dvRadial`/`ManeuverNode.dvNormal`/
+	* `ManeuverNode.dvPrograde` are expressed in. Null only on a node read off a
+	* recording captured BEFORE this field existed, on the same terms as
+	* `ManeuverNode.id`.
+	*
+	* Previously this lived only in this class's prose, which was safe exactly as
+	* long as one basis existed. Nullable rather than defaulted because
+	* `ManeuverFrame.RadialNormalPrograde` is index 0, so a defaulted value would
+	* assert the stock basis for components that might be in another one.
+	*
+	* **The three fields are POSITIONAL slots, and this names what they hold.**
+	* They are the basis's first, second and third component in the basis's own
+	* declared order: `ManeuverFrame.RadialNormalPrograde` puts radial, normal and
+	* prograde in them, and `ManeuverFrame.TangentNormalBinormal` puts tangent,
+	* normal and binormal. So on a Frenet burn `ManeuverNode.dvRadial` carries the
+	* TANGENT and `ManeuverNode.dvPrograde` carries the BINORMAL, which the field
+	* names actively work against and is why it is written down here rather than
+	* left to be inferred. Saying so is the difference between a reader that
+	* renders a Frenet burn correctly and one that silently rotates every burn an
+	* integrating planner produces while looking right.
+	*/
 	frame?: ManeuverFrame;
+	/**
+	* Null only if KSP's own dv component was non-finite (NaN/Infinity) this tick:
+	* the NODE is still preserved (never silently dropped just because one
+	* component came back bad); see `VesselViewProvider.BuildManeuver`.
+	*/
 	dvRadial?: Value<"m/s">;
+	/**
+	* Null only if KSP's own dv component was non-finite this tick; see
+	* `ManeuverNode.dvRadial`'s doc comment.
+	*/
 	dvNormal?: Value<"m/s">;
+	/**
+	* Null only if KSP's own dv component was non-finite this tick; see
+	* `ManeuverNode.dvRadial`'s doc comment.
+	*/
 	dvPrograde?: Value<"m/s">;
+	/**
+	* Null only if KSP's own dv magnitude was non-finite this tick; see
+	* `ManeuverNode.dvRadial`'s doc comment.
+	*/
 	dvTotal?: Value<"m/s">;
+	/**
+	* What `ManeuverNode.frame`'s basis is measured RELATIVE TO.
+	*
+	* `ManeuverFrame` names a BASIS and not a frame, and for stock that is enough
+	* because there is only ever one thing the basis can be relative to. A planner
+	* that lets an operator choose the reference frame breaks that assumption: the
+	* same tangent/normal/binormal triple means a different burn depending on what
+	* it is tangent TO, and a client shown the numbers without this is being shown
+	* a burn it cannot identify.
+	*
+	* **A kind and a body, not a name.** A string would be a second vocabulary for
+	* something the app already has one of: the read-frame side names exactly
+	* these four kinds, and every widget that draws a frame already resolves them.
+	* Two ways of naming one concept is how a compatibility shim starts.
+	*
+	* Null when the planner has only one frame, which is the stock case and not a
+	* gap.
+	*/
 	frameReference?: ManeuverFrameReference;
+	/**
+	* The body `ManeuverNode.frameReference` is about, as a `system.bodies` index.
+	* Unused by a frame that needs no body.
+	*/
 	frameReferenceBodyIndex?: Value<"count">;
+	/**
+	* Whether the craft holds a fixed inertial attitude through the burn rather
+	* than following the frame as it rotates.
+	*
+	* Not a nicety: over a long burn the two steer differently, so a plan shown
+	* without it is a plan whose execution cannot be predicted from what is on
+	* screen. Null when the planner has no such concept, which is stock.
+	*/
 	inertiallyFixed?: boolean;
+	/**
+	* Thrust the plan was computed against.
+	*
+	* Stock CAN fill this and today does not: the impulsive model has no use for
+	* it, so nothing asked. It is here rather than on a planner-specific channel
+	* because "what thrust was this planned against" is a question about the burn,
+	* and the answer differs between a plan made at full throttle and one made on
+	* a single engine whatever computed it.
+	*/
 	thrust?: Value<"kN">;
+	/** Specific impulse the plan was computed against. */
 	specificImpulse?: Value<"isp">;
+	/** Craft mass at ignition, as the plan assumed it. */
 	initialMass?: Value<"t">;
+	/** Craft mass at cutoff, as the plan assumed it. */
 	finalMass?: Value<"t">;
+	/**
+	* This node's post-burn future-orbit patch chain: element 0 is the orbit the
+	* vessel is on IMMEDIATELY after the burn (KSP's own
+	* `ManeuverNode.nextPatch`), followed by any subsequent SOI-transition
+	* patches. ALWAYS an array (R2): empty when the solver hasn't produced a
+	* post-burn patch yet (a just-added node mid-tick). See
+	* `Gonogo.KSP.KspHost.BuildOrbitPatchChain` for the walk (same helper
+	* `VesselOrbit.patches` uses, started from the node's own `nextPatch` instead
+	* of the vessel's current orbit).
+	*
+	* **How one burn links to the next, measured on the Deck 2026-08-18.** A
+	* burn's INPUT trajectory is the patch in the PREVIOUS burn's chain whose
+	* `PatchEndTransition` is `TransitionType.Maneuver`, equivalently the one
+	* whose `EndUt` equals this burn's `ManeuverNode.ut`. For the first burn it is
+	* the craft's own `vessel.orbit`. Every chain is a suffix of the previous one,
+	* but the number of patches skipped varies with how many SOI crossings fall
+	* between the two burns, so counting positions is not the rule and gets it
+	* wrong the first time a crossing appears.
+	*
+	* KSP re-parents strictly sequentially, also measured: inserting a burn ahead
+	* of an existing one re-derives every later chain, so a burn's input is always
+	* the previous burn's result.
+	*
+	* **This whole field is a PATCHED-CONIC encoding.** It exists because a stock
+	* plan IS a sequence of conics joined at SOI boundaries. A planner that
+	* integrates has no such boundaries and will leave this empty while still
+	* describing a perfectly good burn, so nothing may treat an empty chain as a
+	* malformed node.
+	*/
 	patches: OrbitPatch[];
 }
+/**
+* The `vessel.maneuver` channel payload. `VesselManeuver.nodes` is ALWAYS an
+* array: kills R2's empty-vs-null inconsistency (KspHost's
+* `BuildManeuverNodes` returns `null` for "no nodes queued," the common case;
+* this mapper normalizes that to `[]`, never a null collection). *Derived,
+* SDK-side, NOT streamed here:* the post-burn orbit preview (elements + node →
+* new elements, consumer-side math, per the design doc §2.2/§5).
+*
+* **`VesselManeuver.nodes` is ordered by execution**, earliest
+* `ManeuverNode.ut` first, and that ordering IS the plan: burn N is flown
+* after burn N-1 and acts on what burn N-1 left behind. No separate ordinal or
+* predecessor field is carried, because array position already says it and a
+* second expression of the same fact is a second thing that can be wrong. The
+* per-burn patch chain expresses the same linkage a third time, in a form only
+* a patched-conic planner can produce; see `ManeuverNode.patches`.
+*/
 export interface VesselManeuver
 {
 	nodes: ManeuverNode[];
+	/**
+	* The elected maneuver-plan provider's id, or null when THERE IS NO PLANNER AT
+	* ALL.
+	*
+	* That is not the same fact as an empty plan, and stock reaches it on its own:
+	* an un-upgraded Tracking Station leaves `Vessel.patchedConicSolver` null, so
+	* an early-career craft cannot hold a plan rather than merely not holding one.
+	* Without this field both arrive as `Nodes: []` and an operator is told their
+	* plan is empty when the truth is that they cannot make one.
+	*
+	* Nothing outside the election may branch on the VALUE: a provider says what
+	* it is so a readout can name it and a diagnostic can record it, never so a
+	* consumer can special-case one. Present-versus-null is the only part anything
+	* should test.
+	*/
 	planner?: string;
 	meta: PayloadMeta;
 }
+/**
+* The `vessel.orbit` channel payload: elements are the CAUSE; every kinematic
+* quantity (position/velocity/apsides/anomalies/period) is a consumer-side
+* derivation at view-UT via the propagation capability, never streamed here
+* ("elements-not-position": m1-provider-taxonomy-design.md §2.2/§4). Kills O-1
+* (there is no `eccentricAnomaly` field at all, the copy-paste-bug class can't
+* exist on a wire that never carries one), O-8 (spelled-out, unit-annotated
+* fields, UT always `double`), O-9 (`VesselOrbit.encounter` is a typed
+* nullable record, never the -1/0/1 + "" + NaN sentinel spray of
+* o.encounterExists/Time/Body), O-10 (no duplicate apsis keys). Units:
+* `VesselOrbit.sma` in metres; `VesselOrbit.inc`/`VesselOrbit.lan`/
+* `VesselOrbit.argPe` in DEGREES (KSP-native);
+* `VesselOrbit.meanAnomalyAtEpoch` in RADIANS (also KSP-native): this
+* degrees/radians split is an inherited KSP inconsistency deliberately KEPT,
+* not "fixed," per m1-provider-taxonomy-design.md §6.7 (converting would
+* desync from every KSP reference and the recorder's own raw values).
+*/
 export interface VesselOrbit
 {
 	referenceBodyIndex: number;
+	/** Semi-major axis, metres (see the class doc comment's units block). */
 	sma: Value<"m">;
+	/**
+	* Eccentricity: dimensionless by definition, hence the explicit "1" token
+	* rather than no annotation.
+	*/
 	ecc: Value<"1">;
 	inc: Value<"°">;
+	/**
+	* Null = undefined ascending node (KSP's own LAN is NaN for a near-equatorial
+	* orbit, inc ~ 0 -- a routine case, not an error). Never NaN, never 0 as a
+	* stand-in (R1/F-1).
+	*/
 	lan?: Value<"°">;
+	/**
+	* Null = undefined periapsis (KSP's own argumentOfPeriapsis is NaN for a
+	* near-circular orbit, ecc ~ 0 -- a routine case, not an error). Never NaN,
+	* never 0 as a stand-in (R1/F-1).
+	*/
 	argPe?: Value<"°">;
+	/**
+	* RADIANS, not degrees. The KSP-native degrees/radians split this record
+	* deliberately keeps (see the class doc comment) is exactly the kind of trap a
+	* machine-readable unit exists to defuse.
+	*/
 	meanAnomalyAtEpoch: Value<"rad">;
+	/**
+	* Epoch UT, in seconds -- the same UT-seconds convention as every other
+	* UT-typed field on this record (matches KSP's own `Orbit.epoch` units).
+	*/
 	epoch: Value<"ut">;
+	/**
+	* Parent body's standard gravitational parameter (GM): self-sufficient
+	* propagation, no separate body lookup required.
+	*/
 	mu: Value<"m³/s²">;
+	/**
+	* Null = no upcoming SOI transition on the current trajectory (the common
+	* case); NEVER a sentinel (kills O-9).
+	*/
 	encounter?: OrbitEncounter;
+	/**
+	* The vessel's future-orbit patch chain: element 0 is THIS patch (the current
+	* orbit, same elements as the fields above, restated in `OrbitPatch`'s shape
+	* for a uniform client-side walk), followed by any subsequent SOI-transition
+	* patches KSP's own patched-conic solver has already resolved. ALWAYS an array
+	* (R2), empty (not null) when there is no upcoming SOI transition, the
+	* overwhelmingly common case for a stable orbit. See
+	* `Gonogo.KSP.KspHost.BuildOrbitPatchChain` for the walk.
+	*/
 	patches: OrbitPatch[];
+	/**
+	* How far ahead these elements may be propagated before they stop being
+	* trustworthy. NOT nullable: a producer states its horizon or its samples read
+	* as unpropagatable, because "nobody said" must never be the permissive
+	* answer.
+	*
+	* A client cannot compute this. Deriving it needs the perturbation environment
+	* (which bodies are near, how massive, how far), so it has to arrive on the
+	* sample from the only thing that knows. It rides HERE rather than on a
+	* sibling Topic because a horizon and the elements it bounds share one
+	* lifetime and one `validAt`: split across frames a client could hold one
+	* sample's elements beside another's horizon and draw a conic authorised by
+	* the wrong sample, silently. `OrbitPatch.startUt`/`OrbitPatch.endUt` already
+	* set the precedent for a validity window living with its elements.
+	*/
 	horizon: PropagationHorizon;
+	/**
+	* The path the craft actually flies, when the provider integrated one.
+	*
+	* Null under an analytic provider, and that is not a gap: its elements ARE the
+	* curve, so a client draws a conic from them and an arc beside it would be a
+	* second, redundant copy of the same answer. Null also under an integrating
+	* provider that has nothing to publish this sample, in which case
+	* `VesselOrbit.arcRefusal` says why.
+	*
+	* It rides HERE, on the elements, for the reason `VesselOrbit.horizon` does:
+	* the arc, the elements and the horizon that bounds both share one `validAt`,
+	* and split across frames a client could hold one sample's arc beside
+	* another's elements.
+	*/
 	arc?: TrajectoryArc;
+	/**
+	* What became of the arc: why `VesselOrbit.arc` is absent when a provider
+	* tried to build one and stopped, `TrajectoryRefusal.NotAttempted` when none
+	* was sought at all, and `TrajectoryRefusal.NotRefused` beside one that was
+	* drawn.
+	*
+	* Those last two used to be one value, and a client could not tell an install
+	* where the integrated path never runs from one where it runs cleanly.
+	*/
 	arcRefusal: TrajectoryRefusal;
 	meta: PayloadMeta;
 }
+/**
+* The window over which an element set is authoritative, as stated by
+* whichever propagation provider produced it.
+*
+* Measured from the sample's OBSERVATION instant, not from
+* `VesselOrbit.epoch`. `Epoch` is the mean-anomaly reference epoch and can sit
+* far from when the sample was taken, so subtracting it would answer a
+* different question with the same units and no type could catch it.
+*/
 export interface PropagationHorizon
 {
 	kind: PropagationHorizonKind;
+	/**
+	* What KIND of answer these elements are, which is the client's real question.
+	* Replaced a provider id, and the difference matters.
+	*
+	* The horizon answers REACH: how far may I extrapolate. It does not answer
+	* SHAPE: is a conic the right renderer at all. A client cannot infer the
+	* second from the first, and the failure case is concrete rather than
+	* principled: an analytic provider reports `PropagationHorizonKind.Unbounded`,
+	* and so may an INTEGRATING provider in a low-perturbation regime, where the
+	* horizon is genuinely long. A client reasoning "unbounded, therefore
+	* analytic, therefore an ellipse is fine" then draws a closed conic for an
+	* integrated trajectory: faithful at the sample instant, wrong as a path, and
+	* confident.
+	*
+	* An earlier draft carried the provider's literal id instead. That answered
+	* "who computed this" where the client needed "what is this like", and it put
+	* a vendor's name in a standard payload. An enumeration answers the real
+	* question completely, and every provider can state it, stock included, which
+	* is what makes it belong on the standard shape at all.
+	*
+	* Diagnostics keep their own home: `system.uplinks` already carries each
+	* Uplink's id, version and availability once per session, and a version is
+	* what a bug report wants more than a name.
+	*/
 	trajectoryKind: TrajectoryKind;
+	/**
+	* The last UT these elements answer for. Set if and only if
+	* `PropagationHorizon.kind` is `PropagationHorizonKind.Until`; null otherwise,
+	* never a sentinel standing in for "forever".
+	*/
 	untilUt?: Value<"ut">;
 }
+/**
+* Deliberately THREE arms, and the ordering is the point.
+*
+* `PropagationHorizonKind.Unspecified` is 0, so a producer that forgets the
+* horizon gets the REFUSING answer rather than the permissive one. Had
+* `PropagationHorizonKind.Unbounded` been the default, a provider that failed
+* to populate it would have read as "trust this conic forever", which is the
+* most dangerous available reading and would have failed silently.
+*
+* `PropagationHorizonKind.Unbounded` is a CLAIM, made by a provider that
+* genuinely has no limit (an analytic two-body solver), not a default nobody
+* made. It is its own arm rather than an infinite `PropagationHorizon.untilUt`
+* so that "forever" never has to be recognised as an extreme number.
+*/
 export enum PropagationHorizonKind {
+	/** No provider stated one. Treat as unpropagatable. */
 	Unspecified = 0,
+	/** Authoritative for all future UT: an analytic solver with no horizon. */
 	Unbounded = 1,
+	/** Authoritative until `PropagationHorizon.untilUt`. */
 	Until = 2
 }
+/**
+* What kind of thing an element set describes: a closed-form conic, or a
+* snapshot of an integrated path.
+*
+* `TrajectoryKind.Unspecified` is 0 for the same reason
+* `PropagationHorizonKind.Unspecified` is: a producer that forgets the field
+* gets the answer that WITHHOLDS rather than the one that permits. Had
+* `TrajectoryKind.Analytic` been zero, a provider that failed to populate it
+* would have every client treating an integrated trajectory as an ellipse.
+*/
 export enum TrajectoryKind {
+	/** No provider stated one. Treat the shape as unknown. */
 	Unspecified = 0,
+	/**
+	* A closed-form conic. The orbit IS an ellipse, so a conic renderer is exactly
+	* right and stays right for as long as the horizon allows.
+	*/
 	Analytic = 1,
+	/**
+	* A numerically integrated path. The osculating conic on the wire is a
+	* SNAPSHOT of it, true at the sample instant and never the path itself, so a
+	* client that draws a closed ellipse from it is drawing something the craft
+	* will not fly.
+	*/
 	Integrated = 2
 }
+/** One upcoming SOI patch transition: see `VesselOrbit.encounter`. */
 export interface OrbitEncounter
 {
 	transitionType: TransitionType;
 	transitionUt: Value<"ut">;
+	/**
+	* Index into `system.bodies` of the body being transitioned INTO; null if that
+	* body couldn't be resolved.
+	*/
 	bodyIndex?: number;
 }
+/**
+* The `vessel.orbit.truth` channel payload: KSP's own maintained ground-truth
+* state vector, parent-body-relative. DEV-GATED, not a product channel
+* (m1-provider-taxonomy-design.md §6.5): exists so the propagator-diff harness
+* / a debug widget can verify element->position math against KSP's own state,
+* never as a widget-facing altitude/velocity source (that would rebuild the
+* elements-not-position discipline's failure mode / V-12).
+* `VesselOrbitTruth.frameRotating` gates whether
+* `VesselOrbitTruth.position`/`VesselOrbitTruth.velocity` are directly
+* comparable to a fixed-frame Kepler propagator's output (false) or sit in a
+* frame co-rotating with the body's spin instead (true); see
+* `Gonogo.KSP.KspHost.BuildOrbit`'s doc comment for the full derivation. There
+* is no engine-level "hide from the data picker" flag yet (that's a future
+* SDK/picker concern): this channel is dev-only BY CONVENTION today, enforced
+* by never binding it from a widget, not by engine-level gating.
+*/
 export interface VesselOrbitTruth
 {
 	position: Vec3Of<"m">;
@@ -1718,158 +6754,763 @@ export interface VesselOrbitTruth
 	frameRotating: boolean;
 	meta: PayloadMeta;
 }
+/**
+* The `vessel.parts` channel payload: the active vessel's full part-tree
+* topology (P1b slice 2), the foundation ShipMap / PowerSystems topology /
+* ThermalStatus all build on. A SINGLE WRAPPER OBJECT (or `null` when there is
+* no active vessel / no topology group this tick), so the Topic tag sits on
+* this type directly with the default `IsArray = false`: same posture as
+* `VesselStructure` and the sibling structured `vessel.*` channels, NOT the
+* bare-array `parts.robotics`.
+*
+* **Thermal folds in here.** Per-part temperatures ride each `VesselPart`
+* (`VesselPart.currentTemp`/ `VesselPart.maxTemp`/`VesselPart.skinTemp`/
+* `VesselPart.skinMaxTemp`), so the hottest-part / engine / heat-shield
+* rollups are SDK-DERIVABLE on top of this channel, there is no separate
+* `therm.hottestPart*` Topic (v-topology-redesign.md). The existing
+* `vessel.thermal` rollup channel is NOT removed by this build; that is a
+* later cleanup.
+*
+* **Typing-only mirror.** This reproduces, field-for-field, the exact
+* serialized shape `Sitrep.Host.VesselPartsViewProvider.ToWire` already emits
+* (same names, same camelCase wire keys via `RtConfig.CamelCaseForProperties`,
+* same units). It is NOT serialized itself: the wire is written by
+* `JsonWriter` walking the provider's dictionary: so adding it changes no
+* bytes.
+*/
 export interface VesselParts
 {
+	/**
+	* Every part on the active vessel this tick, in vessel part-list order. Always
+	* present (possibly empty); a vessel-less tick yields a `null` payload, not an
+	* empty list.
+	*/
 	parts: VesselPart[];
 	meta: PayloadMeta;
 }
+/**
+* One part in the `VesselParts.parts` tree. Provenance-scoped like
+* `VesselStructure` (whole payload absent when there is no vessel), so the
+* always-present required fields (`VesselPart.id`/
+* `VesselPart.name`/`VesselPart.position`/`VesselPart.dryMass`/
+* `VesselPart.inverseStage`/`VesselPart.maxTemp`) are non-nullable, while the
+* genuinely-optional ones (`VesselPart.parentId` null for the root,
+* `VesselPart.up`, `VesselPart.skinMaxTemp`/`VesselPart.currentTemp`/
+* `VesselPart.skinTemp` unset before physics runs,
+* `VesselPart.fuelLineTargetId`) are nullable.
+*
+* **Join key.** `VesselPart.id` is `Part.flightID` stringified, the SAME
+* string form `parts.power`/`parts.robotics`'s `partId` uses, so a consumer
+* (RoboticsConsole, PowerSystems) can id-join a part across those channels.
+* `VesselPart.parentId` and `VesselPart.fuelLineTargetId` are the same string
+* form for the same reason. flightID's stability across a docking/undocking
+* round-trip is a KSP-side caveat carried forward from the design's open
+* questions.
+*/
 export interface VesselPart
 {
+	/**
+	* `Part.flightID` stringified: the tree/cross-channel join key. Empty string
+	* only for the uninitialized-0 sentinel (no live flight id yet).
+	*/
 	id: string;
+	/** `Part.parent?.flightID` stringified; `null` for the root part. */
 	parentId?: string;
+	/**
+	* `Part.partInfo.name` (the `AvailablePart.name` config id, e.g.
+	* `"solarPanels1"`).
+	*/
 	name: string;
+	/**
+	* `Part.partInfo.title` (the display title, e.g. `"OX-STAT Photovoltaic
+	* Panels"`).
+	*/
 	title: string;
+	/**
+	* `Part.orgPos`: the part's original vessel-local position (metres, vessel
+	* frame).
+	*/
 	position: Vec3Of<"m">;
+	/**
+	* The part's local up axis (`Part.orgRot * Vector3.up`), for orienting
+	* flow/thrust glyphs. `null` on a snapshot recorded before this field existed.
+	*/
 	up?: Vec3Of<"1">;
 	bounds: PartBounds;
+	/** `Part.mass`: dry mass (tonnes). */
 	dryMass: Value<"t">;
+	/**
+	* `Part.inverseStage` (KSP's own inverted staging numbering, carried forward
+	* unchanged; see `VesselStructure.currentStage`).
+	*/
 	inverseStage: number;
+	/** `Part.maxTemp`: internal max temperature (K). */
 	maxTemp: Value<"K">;
+	/**
+	* `Part.skinMaxTemp` (K); `null` for the `-1` "no skin-thermal model"
+	* sentinel.
+	*/
 	skinMaxTemp?: Value<"K">;
+	/**
+	* `Part.temperature`: current internal temperature (K); `null` for the `-1`
+	* "not yet simulated" sentinel.
+	*/
 	currentTemp?: Value<"K">;
+	/** `Part.skinTemperature`: current skin temperature (K). */
 	skinTemp?: Value<"K">;
+	/**
+	* `Part.partInfo.category` (`PartCategories` enum name, e.g. `"Engine"`). A
+	* display label; see `VesselPart.categoryOrdinal`.
+	*/
 	category: string;
+	/**
+	* `VesselPart.category`'s KSP ORDINAL, typed to `KspPartCategory`.
+	*
+	* ShipMap picks a part's diagram glyph from this. It used to switch on the
+	* NAME, so a member KSP renamed dropped every part of that category through to
+	* the name/title heuristic underneath: engines drawn as whatever "engine"
+	* happened to match in a part's title, and nothing to say it had happened.
+	*
+	* `null` when the part had no `partInfo` to read, the same case that already
+	* leaves `VesselPart.category` empty. Note `PartCategories.none` is `-1` and
+	* is a real value, NOT an absence.
+	*/
 	categoryOrdinal?: KspPartCategory;
+	/**
+	* Each `PartModule`'s CLR class name (e.g. `"ModuleEngines"`,
+	* `"CModuleFuelLine"`), what ShipMap's `classifyPart` matches on.
+	*/
 	modules: string[];
+	/** `Part.isRobotic()`: a Breaking Ground robotic servo part. */
 	isRobotics: boolean;
+	/**
+	* True when the part carries a solar panel, alternator, EC-producing
+	* converter, or an ElectricCharge resource capacity.
+	*/
 	isPowerRelated: boolean;
+	/**
+	* For a fuel-line part, the stringified `flightID` of the part it feeds;
+	* `null` otherwise.
+	*/
 	fuelLineTargetId?: string;
+	/**
+	* Every resource this part carries (join key: resource name, e.g.
+	* `"ElectricCharge"`), storage plus live production/consumption flow: the
+	* per-part live-data slice the SDK's `usePartsLive` used to fetch off the
+	* legacy `r.resourceFor[flightId]` key. Empty dict when the part carries no
+	* resources.
+	*/
 	resources: { [key:string]: PartResourceFlow };
+	/**
+	* Per-module behavioural state (solar deployed, engine firing, parachute
+	* armed, etc.): one entry per module on the part that maps to
+	* `PartModuleState`'s vocabulary, in `Part.Modules` order. The per-part
+	* live-data slice the SDK used to fetch off the legacy `v.partState[flightId]`
+	* key. Empty list when the part carries no module of a mapped type.
+	*/
 	moduleStates: PartModuleState[];
+	/**
+	* Action-group bindings on this part: one entry per bound part action
+	* (`ActionBinding.action` = `BaseAction.guiName`, and the named groups its
+	* `BaseAction.actionGroup` Flags bitmask decodes to). Per-ACTION, not
+	* per-part. Empty when no action on the part is bound to any group. Retires
+	* the legacy `f.ag.bindings` shim: the client derives the human-readable
+	* action-group caption from this field.
+	*/
 	actionBindings: ActionBinding[];
 }
+/**
+* One action-group binding in `VesselPart.actionBindings`: a single part
+* action and the named action groups it fires with. `ActionBinding.groups` are
+* the `KSPActionGroup` enum member names (`SAS`/`RCS`/
+* `Brakes`/`Gear`/`Light`/`Abort`/`Stage`/ `Custom01`…) the action's Flags
+* bitmask decodes to (`None` excluded).
+*/
 export interface ActionBinding
 {
+	/**
+	* The action's PAW label: `BaseAction.guiName` (e.g. "Toggle", "Extend
+	* Panel").
+	*/
 	action: string;
+	/**
+	* Named KSPActionGroup groups this action is bound to (e.g.
+	* `["SAS","Custom01"]`). Never empty, an action bound to no group isn't
+	* emitted. Display labels; see `ActionBinding.groupsMask`.
+	*/
 	groups: string[];
+	/**
+	* `BaseAction.actionGroup`'s raw `[Flags]` BITMASK, the whole of it.
+	* `KspActionGroup` names the bits.
+	*
+	* A mask rather than an ordinal because `KSPActionGroup` is a flags enum: one
+	* action can fire with several groups, which is exactly what
+	* `ActionBinding.groups` already carries as names. The mask is here because
+	* the NAME list cannot be trusted to be complete - it is built by intersecting
+	* the mask against the groups the capture knows about, so a group KSP adds is
+	* dropped before the wire and the client cannot tell that from a group nothing
+	* is bound to. The mask has no such ceiling.
+	*/
 	groupsMask: number;
 }
+/**
+* One resource row in `VesselPart.resources`: storage
+* (`PartResourceFlow.amount`/`PartResourceFlow.maxAmount`) plus live flow
+* (`PartResourceFlow.flow`/`PartResourceFlow.nominalFlow`). Mirrors the SDK's
+* `PartResources` row shape field-for-field.
+*
+* **Flow scope.** `PartResourceFlow.flow`/`PartResourceFlow.nominalFlow` are
+* populated only for the module types whose live rate is CHEAPLY derivable
+* from public fields without hand-simulating KSP's resource solver: solar
+* panels (`ModuleDeployableSolarPanel.flowRate`/ `chargeRate`), alternators
+* (`ModuleAlternator.outputRate`), and engine propellant consumption
+* (`Propellant.currentRequirement`, signed negative). This is the SAME "if
+* cheap" scoping `KspHost.BuildPartsPower`'s doc comment already establishes
+* for `totalProductionEc`: resource converters / fuel cells / drills report
+* storage only (no computed rate; not cheaply derivable from static fields),
+* matching that precedent rather than inventing a shaky approximation.
+* `PartResourceFlow.nominalFlow` is omitted (left `null`) whenever it would
+* equal `PartResourceFlow.flow`, per the SDK contract.
+*/
 export interface PartResourceFlow
 {
+	/** `PartResource.amount`: current stored amount. */
 	amount: Value<"units">;
+	/** `PartResource.maxAmount`: storage capacity. */
 	maxAmount: Value<"units">;
+	/**
+	* Signed units/sec: positive = producing, negative = consuming. `null` when no
+	* cheaply-derivable module contributes.
+	*/
 	flow?: Value<"units/s">;
+	/**
+	* Same-sign 100%-efficiency cap (rated solar output). `null` when no module
+	* supports a nominal, or when it would equal `PartResourceFlow.flow`.
+	*/
 	nominalFlow?: Value<"units/s">;
 }
+/**
+* One module's behavioural state in `VesselPart.moduleStates`. Mirrors the
+* SDK's `PartStateModule` shape field-for-field: see that interface's doc
+* comment for the full state vocabulary per `PartModuleState.type`.
+*/
 export interface PartModuleState
 {
+	/**
+	* Discriminator: `solarPanel` / `radiator` / `antenna` / `parachute` /
+	* `engine` / `drill` / `landingGear`. (`cargoBay` is a defined vocabulary
+	* value with no module here; see `KspHost.BuildPartModuleStates`'s doc comment
+	* for why.)
+	*/
 	type: string;
+	/**
+	* The standardised deploy/activation state: see `PartStateModule`'s doc
+	* comment for the per-type vocabulary.
+	*/
 	state: string;
+	/** Solar-panel-only: sun-tracking gimbal active. `null` for every other type. */
 	tracking?: boolean;
+	/**
+	* Engine-only: fuel-starved. `null` unless `true` (never emitted as a bare
+	* `false`).
+	*/
 	flameout?: boolean;
 }
+/**
+* A `VesselPart`'s local bounding box: `PartBounds.size` is the part's
+* `prefabSize` (a cheap, per-part-constant proxy for the renderer bounds
+* ShipMap could refine later), `PartBounds.center` the mesh-centre offset from
+* `VesselPart.position` (`Part.boundsCentroidOffset`, vessel-local). Fuel-line
+* parts report a whole-conduit-wrapping bounds, a carried-forward KSP quirk
+* the consumer handles, not this capture.
+*/
 export interface PartBounds
 {
+	/** `Part.prefabSize`: the part's untransformed bounding-box extents (metres). */
 	size: Vec3Of<"m">;
+	/**
+	* `Part.boundsCentroidOffset`: mesh-centre offset from `VesselPart.position`
+	* (metres, vessel-local); `null` when absent.
+	*/
 	center?: Vec3Of<"m">;
 }
+/**
+* The active vessel's physics-simulation regime, derived from KSP's own
+* `Vessel.loaded`/`Vessel.packed` flags (confirmed via decompile: both are
+* public `bool` fields on `Vessel`). This is the proper Value that replaces
+* the old "read stream meta" stand-in, physics mode is a discrete enum in its
+* own right, NOT a quality band on `PayloadMeta.quality` (2026-07-09 §0.0
+* reversal). Widgets that switch propagation/dead-reckoning strategy
+* (a.physicsMode consumers) read this to know whether the craft is on-rails
+* conics, a packed cluster, or a fully physics-simulated vessel.
+*
+* Mapping (see `Gonogo.KSP.KspHost.BuildPhysics` and
+* `Sitrep.Host.VesselViewProvider.BuildPhysicsMode`):
+*
+* - `!loaded` ⇒ `PhysicsMode.OnRails`: the vessel is unloaded, its motion is
+*   pure on-rails conic propagation, no PhysX at all.
+* - `loaded && packed` ⇒ `PhysicsMode.Packed`: loaded into the scene but still
+*   packed (rails-following near the active vessel, not yet unpacked into full
+*   physics).
+* - `loaded && !packed` ⇒ `PhysicsMode.Unpacked`: fully physics-simulated
+*   (off-rails).
+*
+* `PhysicsMode.Unknown` is the graceful fallback for a raw value this contract
+* doesn't recognize (same convention as `SasMode`/`VesselType`).
+*/
 export enum PhysicsMode {
 	OnRails = 0,
 	Packed = 1,
 	Unpacked = 2,
 	Unknown = 3
 }
+/**
+* The `vessel.physics.mode` Topic payload: the active vessel's physics regime
+* (`PhysicsMode`). Its own Topic Value per the 2026-07-09 §0.0 decision
+* (reverses the earlier "fold physics mode into stream meta" call:
+* `PayloadMeta.quality` was a bad stand-in for a discrete enum).
+* DelayRole-Delayed like every other vessel-derived channel: it describes the
+* vessel itself, so ground learns about it at UT+delay, not as a ground-side
+* fact.
+*/
 export interface VesselPhysicsMode
 {
 	mode: PhysicsMode;
 	meta: PayloadMeta;
 }
+/**
+* The `vessel.propulsion` channel payload: the TWR/burn-time derivation inputs
+* (G-4). `VesselPropulsion.totalMass`/`VesselPropulsion.dryMass` in tonnes,
+* `VesselPropulsion.currentThrust`/`VesselPropulsion.availableThrust` in kN
+* (dimensionally consistent for TWR: kN/(t·m/s²): see
+* m1-provider-taxonomy-design.md §6.7). `VesselPropulsion.availableThrust`
+* already excludes shut-down/flamed-out engines at capture (only
+* `EngineIgnited && !flameout` engines contribute): it is "what this vessel
+* can produce RIGHT NOW," not its rated maximum. *Derived, SDK-side, NOT
+* streamed here:* TWR (`currentThrust / (totalMass · g)`), max-TWR, and a
+* crude vessel-level burn-time estimate (retiring `dv.currentTWR`/`dv.*` until
+* a stage sim exists, G-14).
+*/
 export interface VesselPropulsion
 {
 	totalMass: Value<"t">;
 	dryMass: Value<"t">;
 	currentThrust: Value<"kN">;
 	availableThrust: Value<"kN">;
+	/**
+	* UT the craft's CURRENT continuous period of thrust began, or null when it is
+	* not under thrust as of the last measurable reading.
+	*
+	* **An observation instant.** It says when something was SEEN to be true,
+	* which is a different kind of UT from a plan's `ManeuverNode.Ut` or an
+	* orbit's `epoch`, and the `ut` token does not separate them. Subtracting this
+	* from a planned instant is type-legal and meaningless; the only duration it
+	* belongs in is one measured against the reader's own view clock.
+	*
+	* Latched rather than emitted as an edge, and that is the whole design. Every
+	* vessel channel is `Delivery.LossyLatest` over a UT-gated snapshot, so a
+	* "thrust just started" event is a one-shot the transport is entitled to drop,
+	* and a consumer that missed it cannot tell that from nothing having happened.
+	* A latched instant is on every subsequent frame until it changes.
+	*
+	* Held, not cleared, while thrust is unmeasurable (an on-rails or packed craft
+	* has no parts to read). Otherwise switching away from a burning craft would
+	* read as its engines quitting.
+	*/
 	thrustStartedUt?: Value<"ut">;
+	/**
+	* UT the craft's most recent period of thrust ENDED, or null when no period of
+	* thrust has been observed to end since this craft became the subject. Same
+	* observation-instant reading as `VesselPropulsion.thrustStartedUt`.
+	*
+	* **Present here with a null `VesselPropulsion.thrustStartedUt` is the fact
+	* nothing else on the wire can state:** the engines ran, and they have
+	* stopped. `VesselPropulsion.currentThrust` at zero cannot say it (a craft
+	* that never lit reads the same), and `vessel.control.throttle` certainly
+	* cannot: that is where the pilot left the lever, and it sits at full through
+	* a flameout, a dry tank and an unlit stage.
+	*
+	* It does NOT say why the engines stopped, and no reading can. A burn paused
+	* to be re-planned and a burn abandoned produce the same instant, because the
+	* difference between them is whether the operator comes back, which has not
+	* happened yet. A consumer may report that thrust ceased with delta-v owed; it
+	* may not report a shortfall.
+	*/
 	lastThrustEndUt?: Value<"ut">;
 	meta: PayloadMeta;
 }
+/**
+* One resource's current/max amounts: see `VesselResources`'s class doc
+* comment for the three-way absence semantics this type participates in.
+*/
 export interface ResourceAmount
 {
 	current: Value<"units">;
 	max: Value<"units">;
+	/**
+	* R7 Fix 2: explicit presence flag so a present-but-zero resource (`{current:
+	* 0, max: > 0, active: true}`) is distinguishable from one that has stopped
+	* being reported, killing the R-3 "absence-as-signal" wart where a resource
+	* simply vanishing from the map created a 0-vs-unknown ambiguity. Producers
+	* set this true for every resource they actually report this tick; a consumer
+	* treating a missing/false entry as "not reported" then never confuses it with
+	* a genuine zero reading. This is presence ONLY, flow/rate is a separate
+	* future channel (see this class's doc comment), deliberately not added here.
+	*/
 	active: boolean;
 }
+/**
+* The `vessel.resources` channel payload: a keyframed map, keyed by resource
+* name. Kills R-1 (`SumResources`'s `-1` sentinel for an absent/empty
+* resource: never reproduced here), R-3 (row-vanishing ambiguity), R-4
+* (`{}`-for-dead-id).
+*
+* **Three-way typed absence (R1):**
+*
+* - **Key ABSENT** from `VesselResources.resources`: structural: this vessel
+*   does not carry the resource at all (KspHost omits any resource with
+*   `maxAmount <= 0`). Changes only on staging/docking.
+* - **Key present, `{current: 0, max: > 0}`**, carried but currently empty (a
+*   real, meaningful reading, not an error).
+* - **Whole channel absent/stale**: no vessel at all (R1(b), same convention
+*   as every other `vessel.*` channel).
+*
+* Because every emission is the FULL map (a structured, keyframed channel,
+* never a delta), a key disappearing between two emissions is itself a real
+* structural statement (the vessel stopped carrying that resource, e.g. a tank
+* was staged away), never an ambiguous "did it change or did the stream just
+* drop it" (R-3's ambiguity).
+*
+* **Deliberately deferred** (per m1-provider-taxonomy-design.md §2.2):
+* flow/rates (R-2/R-5), those belong to a future parts/power channel family
+* with per-module provenance; bolting a vessel-total `flow` on now would
+* reproduce R-6 (a "truth" number that isn't the game's truth).
+*/
 export interface VesselResources
 {
 	resources: { [key:string]: ResourceAmount };
 	meta: PayloadMeta;
 }
+/**
+* The `vessel.structure` channel payload: the other half of KspHost's `misc`
+* junk-drawer split (see `VesselCrew`'s doc comment).
+* `VesselStructure.currentStage` uses KSP's own (P-4-flagged "inverted vs.
+* visible staging") numbering UNCHANGED: documented here, not silently
+* renumbered, so this contract doesn't invent a second numbering scheme to
+* reconcile. `VesselStructure.stageCount` is already `maxInverseStage + 1`
+* (KspHost's own normalization). A future part-tree/topology channel
+* (`vessel.parts`) is a SIBLING of this record, not a growth of it (R-8's
+* "bulk topology is its own ASSET-class design" lesson).
+*/
 export interface VesselStructure
 {
+	/**
+	* KSP's own `Vessel.currentStage` numbering (capsule/high stages have LOW
+	* numbers); see the class doc comment.
+	*/
 	currentStage: number;
+	/** Null when the vessel has no parts this tick. */
 	stageCount?: Value<"count">;
+	/** Null when the vessel has no parts this tick. */
 	partCount?: Value<"count">;
 	meta: PayloadMeta;
 }
+/**
+* The `vessel.surface` channel payload: the landing capture-add (M3 R3): data
+* a LandingStatus widget needs that `vessel.flight` doesn't already carry.
+* `vessel.flight.AltitudeTerrain` (KSP's `radarAltitude`, measured from the
+* vessel's centre of mass) already ships: `VesselSurface.heightFromTerrain`
+* here is a DIFFERENT, additional reading (KSP's own `heightFromTerrain`,
+* which accounts for the vessel's physical extent: effectively "how far is my
+* LOWEST point from the ground," the number a landing-gear/suicide-burn widget
+* actually cares about, not the CoM-to-ground distance).
+*
+* Whole-channel absence means "not near any surface right now", guarded on
+* `Situation.Orbiting`/ `Situation.Escaping` on the capture side
+* (`Gonogo.KSP.KspHost.BuildSurface`), never a stale/garbage AGL reading from
+* deep space (KSP keeps whatever it last computed for `heightFromTerrain` even
+* when there's no meaningful "terrain" underneath at all).
+*/
 export interface VesselSurface
 {
+	/**
+	* KSP's biome name at the vessel's current lat/long (e.g. "Highlands",
+	* "Shores"). Null when the body has no biome map (e.g. gas giants) or the
+	* lookup failed this tick.
+	*/
 	biome?: string;
+	/**
+	* The named launch/landing site the vessel is currently at (e.g.
+	* "KSC_LaunchPad", "Runway"), null when landed/splashed somewhere with no
+	* named site, or when not landed/splashed at all.
+	*/
 	landedAt?: string;
+	/**
+	* Metres: KSP's own `heightFromTerrain`, accounting for the vessel's physical
+	* extent (see the class doc comment for how this differs from
+	* `vessel.flight.altitudeTerrain`). Null if unavailable this tick.
+	*/
 	heightFromTerrain?: Value<"m">;
 	meta: PayloadMeta;
 }
+/**
+* Coarse classification of what `vessel.target` points at. KspHost's raw
+* `type` string is either a `VesselType`-shaped string (target is a vessel,
+* `target.GetVessel() != null`), the literal `"CelestialBody"`, or an
+* arbitrary CLR type name for anything else (a docking port, a waypoint, ...).
+* Rather than reproduce that CLR-name passthrough on the wire (its own naming
+* wart), this contract collapses it to the three cases a consumer actually
+* needs to branch on; `TargetKind.Other` covers docking
+* ports/waypoints/anything not yet classified more finely (a future, more
+* specific target-kind split is a non-breaking additive change, same
+* convention as every other Unknown-style fallback in this contract).
+*
+* `TargetKind.Position` (additive, appended never inserted: enum member order
+* is wire-significant per this contract's numeric-serialisation convention) is
+* a client-chosen surface fix used ONLY as an input to `vessel.target.set`
+* (see `SetTargetArgs.latitude`/ `SetTargetArgs.longitude`), a map-picked
+* lat/lon that isn't backed by any live KSP target object, so it never appears
+* as `vessel.target`'s own reported Kind.
+*/
 export enum TargetKind {
 	Vessel = 0,
 	Body = 1,
 	Other = 2,
 	Position = 3,
+	/**
+	* A part of a vessel: in practice a docking port (`ModuleDockingNode`, which
+	* implements `ITargetable`). Identity is the owning vessel's
+	* `VesselTarget.vesselId` guid PLUS the part's `VesselTarget.partId` (KSP
+	* `Part.flightID`): a part id alone is not globally unique, only within its
+	* vessel. Appended (never inserted) per this contract's wire-significant
+	* enum-order convention.
+	*/
 	Part = 4
 }
+/**
+* Next closest approach between the active vessel and its current target,
+* computed MOD-side by the elected IPropagationProvider (stock two-body Kepler
+* by default, an n-body provider when elected over it). Replaces the SDK's
+* former client-side `o.closestTgtApprUT` two-body solve: the authority moves
+* into the mod so an n-body physics mod can supply the true encounter instead
+* of a Kepler approximation that is simply wrong under n-body.
+*
+* It comes from the propagation provider rather than a solver of its own so
+* that the encounter and the trajectory it is an encounter ON are always the
+* same physics. Null on `VesselTarget` when there is no target, no frame the
+* provider can reach both objects in, or no encounter inside the window it was
+* asked about.
+*/
 export interface ClosestApproach
 {
+	/**
+	* Universal Time (seconds) of the minimum separation at or after the sample's
+	* UT.
+	*/
 	time: Value<"ut">;
+	/** Separation (metres) at `ClosestApproach.time`. */
 	distance: Value<"m">;
 }
+/**
+* The `vessel.target` channel payload: the active vessel's CURRENT target only
+* (no roster; `system.vessels`/`tar.availableVessels`'s replacement is a
+* deferred M1.5 add per the design doc §5.2). Kills V-8:
+* `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both use the
+* ONE canonical `Vec3` shape, replacing the legacy vocabulary's two
+* incompatible vector encodings (bare `[x,y,z]` array vs. `{x,y,z}` object)
+* that coexisted across different key families.
+*
+* `VesselTarget.orbit` reuses `VesselOrbit` itself (not a separate "target
+* orbit" shape): load-bearing per the design doc §2.2: it lets the SDK
+* propagate a target with the EXACT SAME code path as the self vessel, so both
+* are evaluated at the same view-UT by the same propagation logic (the
+* single-view-time invariant). Its nested `VesselTarget.meta` is stamped with
+* the SAME subject (the active vessel producing this sample), not a separate
+* target-vessel identity, `VesselTarget.vesselId`/`VesselTarget.bodyIndex`
+* below (M3 R3) now DO carry the target's own identity, closing the §6.4 gap
+* this doc comment used to flag as deferred.
+*
+* Whole-channel absence (the outer `VesselTarget?` being null) means nothing
+* is targeted, the common case, R1(b), never a sentinel
+* zero-distance/zero-vector record.
+*/
 export interface VesselTarget
 {
 	name: string;
 	kind: TargetKind;
+	/**
+	* The target's own stable id: the M3 R3 fix for the "no target id to
+	* round-trip into `vessel.target.set`" gap this class's doc comment (§6.4)
+	* originally flagged as deferred. Populated ONLY when `VesselTarget.kind` is
+	* `TargetKind.Vessel`, KSP's `Vessel.id` guid, the same opaque id
+	* `system.vessels`' roster and `SetTargetArgs.VesselId` both use, so a widget
+	* can read this straight off `vessel.target` and hand it back into a re-target
+	* command with no extra lookup. Null for a body/other target; see
+	* `VesselTarget.bodyIndex` for the body case.
+	*/
 	vesselId?: string;
+	/**
+	* The target's `system.bodies` index: populated ONLY when `VesselTarget.kind`
+	* is `TargetKind.Body`, mirroring `VesselTarget.vesselId`'s vessel case and
+	* `SetTargetArgs.bodyIndex`'s own field. Null for a vessel/other target, or if
+	* the body name couldn't be resolved against `system.bodies` this tick.
+	*/
 	bodyIndex?: number;
+	/**
+	* The target part's KSP `Part.flightID`: populated ONLY when
+	* `VesselTarget.kind` is `TargetKind.Part` (a docking port), scoped by
+	* `VesselTarget.vesselId` (which carries the owning vessel's guid in the Part
+	* case). Null for every other kind. A widget reads this pair straight off
+	* `vessel.target` and hands it back into `SetTargetArgs.partId` to re-target
+	* the same port.
+	*/
 	partId?: number;
+	/**
+	* Metres, self-relative. Null only when the transform data needed to compute
+	* it wasn't available this tick.
+	*/
 	relativePosition?: Vec3Of<"m">;
+	/**
+	* m/s, self-relative. R7 Fix 3: nullable for consistency with
+	* `VesselTarget.relativePosition`, null (never a sentinel `(0,0,0)`, the V-10
+	* ambiguity) when the transform data needed to compute it wasn't available
+	* this tick.
+	*/
 	relativeVelocity?: Vec3Of<"m/s">;
+	/**
+	* Null when the target has no orbit (e.g. it's landed, or its orbit couldn't
+	* be resolved this tick).
+	*/
 	orbit?: VesselOrbit;
+	/**
+	* Next closest approach (mod-side, elected solver). Null when there is no
+	* encounter to report; see `VesselTarget.closestApproach`.
+	*/
 	closestApproach?: ClosestApproach;
 	meta: PayloadMeta;
 }
+/**
+* Raw readings for whichever part is hottest by internal-temperature ratio;
+* see `VesselThermal.hottestPart`.
+*/
 export interface ThermalHottestPart
 {
+	/**
+	* Kelvin (KSP's `Part.temperature`). All four readings on this record share
+	* the unit, which is what makes the ratios on `VesselThermal` dimensionless.
+	*/
 	internalTemp: Value<"K">;
 	maxTemp: Value<"K">;
 	skinTemp: Value<"K">;
 	skinMaxTemp: Value<"K">;
+	/**
+	* Display name of the hottest part (`Part.partInfo.title`, falling back to
+	* `Part.name`, same convention as `VesselPart.title`). Never null when
+	* `VesselThermal.hottestPart` itself is non-null.
+	*/
 	name: string;
 }
+/**
+* The `vessel.thermal` channel payload: kills P-5 (the int-where-
+* object-expected "partless-paused" sentinel, and the divide-by-zero/NaN risk
+* of a part with `maxTemp <= 0`): both ratios are typed `double?`, null
+* meaning "no part had a valid `maxTemp`/ `skinMaxTemp` this tick": a
+* distinct, typed state, never an indistinguishable-from-real-data `0.0` ("no
+* valid part" vs. "coldest possible part").
+*
+* Whole-channel absence (the outer `VesselThermal?` being null) means the
+* vessel currently has no parts at all (KspHost's `BuildThermal` returns no
+* group in that case), a DIFFERENT, coarser absence than an individual null
+* ratio.
+*/
 export interface VesselThermal
 {
+	/** Null = no part this tick had a valid (> 0) `skinMaxTemp`, typed, never 0.0. */
 	maxSkinTempRatio?: Value<"ratio">;
+	/** Null = no part this tick had a valid (> 0) `maxTemp`, typed, never 0.0. */
 	maxInternalTempRatio?: Value<"ratio">;
+	/**
+	* Null = no part qualified as "hottest" (same no-valid-part condition as
+	* `VesselThermal.maxInternalTempRatio`).
+	*/
 	hottestPart?: ThermalHottestPart;
+	/**
+	* Hottest heat-shield part's internal temperature (K, raw: the part carrying a
+	* `ModuleAblator`, `Part.temperature`). Null when the vessel carries no
+	* ablative heat shield this tick. Was °C until the units audit: the wire is
+	* SI, and a Celsius display is the client's choice to make.
+	*/
 	heatShieldTemp?: Value<"K">;
+	/**
+	* The same heat shield's ablative heat flux (`ModuleAblator.flux`, kW). Null
+	* when the vessel carries no ablative heat shield this tick.
+	*/
 	heatShieldFlux?: Value<"kW">;
+	/**
+	* Internal temperature (K, raw: same unit as
+	* `ThermalHottestPart.internalTemp`) of whichever part carrying a
+	* `ModuleEngines`/`ModuleEnginesFX` module has the highest
+	* internal-temperature ratio. Null when the vessel carries no engine parts
+	* this tick.
+	*/
 	hottestEngineTemp?: Value<"K">;
+	/**
+	* That same engine part's max internal temperature (K, raw). Null under the
+	* same no-engine-parts condition as `VesselThermal.hottestEngineTemp`.
+	*/
 	hottestEngineMaxTemp?: Value<"K">;
+	/**
+	* That same engine part's internal-temperature ratio (`temperature /
+	* maxTemp`). Null under the same no-engine-parts condition as
+	* `VesselThermal.hottestEngineTemp`.
+	*/
 	hottestEngineTempRatio?: Value<"ratio">;
+	/**
+	* True when ANY engine part's internal-temperature ratio is at or above 0.9,
+	* the same ">90% max" threshold ThermalStatus's own inline alert copy already
+	* states. False (not null) whenever the vessel has engine parts and none
+	* crosses it; null only alongside a null
+	* `VesselThermal.hottestEngineTempRatio` (no engine parts at all this tick).
+	*/
 	anyEnginesOverheating?: boolean;
 	meta: PayloadMeta;
 }
+/**
+* Mirrors KSP's own `TimeWarp.Modes` enum (confirmed via decompile: only
+* `HIGH`/`LOW` exist on this KSP version, no third mode). `WarpMode.Unknown`
+* is the graceful fallback for a future/unrecognized raw value.
+*/
 export enum WarpMode {
 	High = 0,
 	Low = 1,
 	Unknown = 2
 }
+/**
+* The `time.warp` channel payload: kills N-3 (the legacy `p.paused` conflates
+* game-pause, no-power, off, antenna-not-found, and scene state into one
+* undocumented int, with a doc/impl mismatch: the docs say `0..4` but
+* `partPaused()` can return an undocumented `5`). This record is instead
+* orthogonal typed fields, no single int can arrive with a meaning outside its
+* own documented range.
+*
+* **Current UT is deliberately NOT a field here** (or anywhere in this
+* contract): `meta.validAt` stamps every sample and the SDK's view-clock is
+* the consumer-facing "what time is it" surface, polling `t.universalTime`
+* over the wire (a tick-rate channel by definition) is not reproduced.
+*
+* **Decoupled from vessel presence (M1 Task 3 fold-in fix):** this record's
+* `WarpState.meta` is stamped `Source = "game"`, NOT `"vessel:<guid>"`:
+* warp/pause is genuinely GLOBAL game state (`Gonogo.KSP.KspHost.BuildTime`
+* reads it unconditionally, with or without an active vessel), so it emits at
+* the Space Center / tracking station too, not just in flight. An earlier
+* draft gated this channel on active-vessel presence as a scoping
+* simplification (reusing the vessel provenance/epoching mechanism uniformly);
+* that gate silenced the channel exactly where warp control matters most
+* (out-of-flight scenes), so it was removed: see
+* `Sitrep.Host.VesselViewProvider.BuildWarp`'s doc comment for the emission
+* rule now in force (present whenever `Values["time"]` itself is present,
+* nothing else).
+*/
 export interface WarpState
 {
 	warpRate: Value<"1">;
@@ -1878,29 +7519,103 @@ export interface WarpState
 	paused: boolean;
 	meta: PayloadMeta;
 }
+/**
+* What a burn's basis is measured relative to.
+*
+* The same four the read-frame side names, deliberately. A frame an operator
+* picked to READ a trajectory in and a frame a burn was PLANNED in are the
+* same kind of thing, and giving them separate vocabularies would make "is
+* this burn in the frame I am looking at" a question nobody could answer
+* without a translation table.
+*/
 export enum ManeuverFrameReference {
+	/**
+	* Not stated. Zero so a planner that says nothing is not read as having
+	* claimed a frame.
+	*/
 	Unspecified = 0,
+	/** Whatever the craft's own control frame currently is. */
 	FollowControlFrame = 1,
+	/** Non-rotating, centred on a body. */
 	BodyCentredInertial = 2,
+	/** Aligned with the direction to a body's parent. */
 	ParentDirection = 3,
+	/** Rotating with two primaries, with lengths that pulsate. */
 	RotatingPulsating = 4
 }
+/**
+* A vessel state that a particular vantage is entitled to know about, and the
+* instant it was actually true.
+*
+* **This type exists so that a propagation cannot accidentally start from the
+* game's live truth.** The propagation seam resolves its target from the
+* running game (`PropagationTarget` carries an identity, never a state), so
+* anything solved through it answers for NOW, which is ahead of everything the
+* operator can see. At thirty light-minutes that difference is the whole
+* mission: it would report a craft as healthy four minutes after it stopped
+* existing.
+*
+* The load-bearing field is `DelayedObservation.observedAtUt`, and it is the
+* SAMPLE'S OWN instant, never a freshly computed `now - delay`. The two are
+* usually close and differ silently when they differ: a slow-changing channel
+* hands back a sample from well before the delay window's edge, and stamping
+* it with the window edge asserts the craft was in that state later than it
+* was. Everything downstream is then confidently wrong with nothing to notice.
+*/
 export interface DelayedObservation
 {
 	established: boolean;
+	/** Position and velocity relative to `DelayedObservation.centreBodyIndex`. */
 	state: any;
 	centreBodyIndex: number;
+	/**
+	* When this state was TRUE, taken from the sample itself. A propagation seeded
+	* here must integrate from this instant, not from `DelayedObservation.viewUt`.
+	*/
 	observedAtUt: number;
+	/**
+	* The instant the vantage is currently seeing. Always at or after
+	* `DelayedObservation.observedAtUt`: the gap is how stale the freshest arrived
+	* news is, which is a real thing an operator wants shown.
+	*/
 	viewUt: number;
+	/** How long this state has been the newest thing the vantage has. */
 	ageSeconds: number;
 	refusal: number;
 	reason?: string;
 }
+/**
+* The kinds of reference frame a control frame can be.
+*
+* Taken from what an n-body producer actually offers rather than from what
+* this app would find convenient: the five members below are the five frame
+* types the shipped native build constructs. A vocabulary invented here would
+* name frames nothing can select, and would have no name for frames a player
+* is looking at right now.
+*
+* **A superset of what a widget can FOLLOW.** The read frames a widget may
+* draw in cover three of these. A control frame outside that subset is a real
+* state and not an error: a widget set to follow the control frame resolves to
+* nothing, which is the behaviour that side already documents.
+*/
 export enum ControlFrameKind {
+	/** Nothing stated one. Distinct from a frame we could not name. */
 	Unspecified = 0,
+	/** Centred on a body, axes fixed against the stars. */
 	BodyCentredInertial = 1,
+	/**
+	* Centred on a body, one axis held towards another body. What "parent
+	* direction" names on the read side.
+	*/
 	BodyCentredBodyDirection = 2,
+	/** Turning with the barycentre of two bodies. */
 	BarycentricRotating = 3,
+	/**
+	* Turning with a pair of bodies AND holding the separation of their two mass
+	* centres fixed, so a transfer between them draws the same shape whatever
+	* their current distance.
+	*/
 	RotatingPulsating = 4,
+	/** Centred on a body and turning with its surface. */
 	BodySurface = 5
 }

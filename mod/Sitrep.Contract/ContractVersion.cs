@@ -388,7 +388,8 @@ namespace Sitrep.Contract
         /// The remaining Minor history below belongs to the Major-1/2/3 lines
         /// and is retained for provenance; every one of those additive
         /// changes is carried forward into Major 4.
-        ///
+        /// </summary>
+        /// <remarks>
         /// <para>Major-3 history, Bumped 2 -&gt; 3 (Minor reset to 0): the
         /// Principia mod-seam revert. Removed
         /// <see cref="VesselPhysicsMode.IsPrincipiaActive"/> from the

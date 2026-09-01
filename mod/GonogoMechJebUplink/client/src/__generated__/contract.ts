@@ -4,10 +4,34 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+/**
+* Args for the `mechjeb.engageAscentAutopilot` command: the target orbit
+* altitude MechJeb's ascent autopilot flies to
+* (`MechJebModuleAscentSettings.DesiredOrbitAltitude`, see
+* `local_docs/design/mechjeb-decompile-lock.md`). Client-authored, in
+* kilometres: the pre-existing MechJeb widget (predating this Uplink) already
+* builds this wire key from its `altitudeKm` input, so the field name and unit
+* are carried forward rather than invented fresh. The mod converts to metres
+* (`EditableDoubleMult.Val = TargetAltitudeKm * 1000.0`) before writing it.
+*
+* Declared in this Uplink's own contract slice
+* (`GonogoMechJebUplink.Contract`), never in `Sitrep.Contract`: no
+* uplink-specific wire type may live in core, even for an in-monorepo Uplink.
+*/
 export interface MechJebAscentArgs
 {
+	/** Target orbit altitude, in kilometres. */
 	targetAltitudeKm: number;
 }
+/**
+* Args for `mechjeb.executeNextNode` / `mechjeb.landAtTarget`: both commands
+* fire with no parameters. This is the trivial no-payload marker DTO the
+* engine's generic `AddCommandHandler<TArgs, TResult>` binds to, so the two
+* commands still have a real typed arg shape rather than a bare `object?`.
+*
+* Declared in this Uplink's own contract slice alongside `MechJebAscentArgs`;
+* see its doc comment for why.
+*/
 export interface MechJebNoArgs
 {
 }

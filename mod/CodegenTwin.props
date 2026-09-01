@@ -44,6 +44,18 @@
          (and leaving it there: on 2026-08-20 a stray copy flowed 29 projects
          deep and hid a dispatch bug for a month). Copy it properly instead. -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- The contract's `///` prose, compiled into a form rtcli can read. It is
+         the only route from the C# doc comments to the generated TypeScript:
+         Reinforced.Typings reads an XMLDOC file, never the sources, so without
+         this the emitted SDK is 1,906 lines of field names with no reasoning
+         attached. A twin is the right place for it because the twin is the only
+         build rtcli looks at, and nothing ships one. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- CS1591 is "missing XML comment for publicly visible type", which
+         GenerateDocumentationFile turns on. A wire contract deliberately leaves
+         the self-evident fields undocumented, so the warning would fire in the
+         thousands and say nothing. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="$(CodegenTwinSource)\**\*.cs"

@@ -4,71 +4,311 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+/**
+* One kOS CPU as it appears on the `kos.processors` channel. Every field is
+* read in-process off the public `kOSProcessor` members, never scraped from a
+* rendered terminal: `KosProcessorInfo.coreId` = `KOSCoreId` (stable-per-run),
+* `KosProcessorInfo.tag` = the `KOSNameTag` tag, `KosProcessorInfo.hasBooted`
+* = `HasBooted`, `KosProcessorInfo.bootFilePath` = `BootFilePath`
+* (stringified), `KosProcessorInfo.processorMode` = `ProcessorMode` (enum
+* name).
+*
+* R7 typed-absence discipline: `KosProcessorInfo.tag` and
+* `KosProcessorInfo.bootFilePath` are nullable, a CPU with no name-tag or no
+* boot file carries `null`, never a sentinel empty-string that a consumer
+* could mistake for a real (empty) tag.
+*/
 export interface KosProcessorInfo
 {
+	/**
+	* `kOSProcessor.KOSCoreId`: stable per game run, the handle every command
+	* targets.
+	*/
 	coreId: number;
+	/**
+	* `kOSProcessor.Tag` (from the companion `KOSNameTag`): null when the part
+	* carries no name-tag.
+	*/
 	tag?: string;
+	/**
+	* `kOSProcessor.HasBooted`: false while the CPU is still running its boot
+	* script.
+	*/
 	hasBooted: boolean;
+	/**
+	* `kOSProcessor.BootFilePath`, stringified: null when no boot file is
+	* selected.
+	*/
 	bootFilePath?: string;
+	/** `kOSProcessor.ProcessorMode` as its enum name (`READY`/`OFF`/`STARVED`). */
 	processorMode: string;
+	/**
+	* The CPU part's display title (`kOSProcessor.part.partInfo.title`, e.g.
+	* "Probe Core"): null when the part or its info is unavailable. Lets the
+	* picker label a CPU by what it IS when it carries no name-tag, instead of a
+	* bare "CPU <id>".
+	*/
 	partName?: string;
 }
+/**
+* Out-of-band status for one centralised compute topic
+* (`kos.compute.<id>.status`): the bits that don't fit the value channel
+* (`kos-migration-spec.md` §4.4). Mirrors the app-side `useKosScriptStatus`
+* shape: `KosComputeStatus.running` / `KosComputeStatus.lastGoodAt` /
+* `KosComputeStatus.scriptError` / `KosComputeStatus.parseError` /
+* `KosComputeStatus.paused`.
+*
+* R7 typed-absence: `KosComputeStatus.lastGoodAt` is a nullable UT (`null` =
+* never produced a good parse yet, never `0`/`-1`);
+* `KosComputeStatus.scriptError`/`KosComputeStatus.parseError` are null when
+* there is no error, never an empty string.
+*/
 export interface KosComputeStatus
 {
+	/** The per-topic loop is currently dispatching this script on its CPU. */
 	running: boolean;
+	/**
+	* UT of the last successful `[KOSDATA]` parse, null until the first good
+	* parse.
+	*/
 	lastGoodAt?: Value<"ut">;
+	/** Last script-author fault (runtime exception / `[KOSERROR]`), null when none. */
 	scriptError?: string;
+	/** Last `[KOSDATA]` parse failure: null when none. */
 	parseError?: string;
+	/**
+	* The per-topic breaker has tripped (three consecutive script faults),
+	* dispatch is paused until `kos.reEnable`.
+	*/
 	paused: boolean;
 }
+/**
+* Args for the `kos.exec` / `kos.dispatchNow` command, the `RUNPATH` trigger
+* (`kos-migration-spec.md` §4(a)). Names the target CPU and the registered
+* compute script to run. Delivered DELAYED, single-owner (spec §3.0):
+* reachability + the `HasBooted` / `IsWaitingForCommand()` idle-prompt guard
+* are re-checked at delivery, on the KSP main thread.
+*/
 export interface KosExecArgs
 {
+	/** Target CPU, identified by its `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/**
+	* The registered compute topic id whose script to run (its on-volume path is
+	* `0:/widget_scripts/<id>.ks`).
+	*/
 	scriptId: string;
 }
+/**
+* Args for the `kos.reEnable` command: re-arms one per-topic compute breaker
+* after it tripped (three consecutive script faults, spec §4.4 / the app-side
+* `reEnable` path).
+*/
 export interface KosReEnableArgs
 {
+	/** The compute topic id whose breaker to clear. */
 	scriptId: string;
 }
+/**
+* Args for the `kos.run` command, the general-purpose in-process replacement
+* for the standalone telnet proxy's ad-hoc RUNPATH path
+* (`kos-uplink-full-migration.md`). Unlike `KosExecArgs` (which triggers a
+* fixed, pre-registered compute topic script by id), this carries the WHOLE
+* literal command text to type into the CPU's REPL, exactly what the app
+* already builds client-side for the telnet path (a bare `RUNPATH("path",
+* args...).` line, or the multi-line managed- sync wrapper from
+* `packages/app/src/dataSources/kosWrapper.ts`). The mod does not parse or
+* interpret `KosRunArgs.command` at all, it types it into the interpreter
+* exactly like `kos.keystroke` types terminal input, via the same
+* `TermWindow.ProcessOneInputChar` seam.
+*
+* Delivered DELAYED, single-in-flight-per-CPU (spec §3.0): reachability + the
+* `HasBooted`/`IsWaitingForCommand()` idle- prompt guard are re-checked at
+* delivery on the KSP main thread, mirroring `KosExecArgs`. A second `kos.run`
+* for a CPU that already has one in flight is rejected with
+* `CommandErrorCode.ModeUnavailable`, the caller (mirroring
+* `KosComputeSession`'s existing per-CPU FIFO queue) is expected to serialize
+* calls to the same CPU client-side.
+*/
 export interface KosRunArgs
 {
+	/** Target CPU, identified by its `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/**
+	* Caller-generated, per-call opaque correlation token. Echoed back verbatim on
+	* the matching `KosRunResult` so a client with several in-flight
+	* (different-CPU) calls can tell results apart, same role as
+	* `KosTerminalOpenArgs.leaseToken`, but scoped to a single request/response
+	* instead of a session.
+	*/
 	requestId: string;
+	/**
+	* The literal text to type into the CPU's REPL, terminated the same way a
+	* human would press Enter (a trailing `\n` or `.\n`). Never parsed or
+	* rewritten by the mod.
+	*/
 	command: string;
 }
+/**
+* Result of one `kos.run` dispatch, delivered on the `kos.run.<coreId>`
+* dynamic channel (`Delivery.ReliableOrdered`, `DelayRole.Delayed`: same
+* posture as `KosTerminalFrame`: this is vessel telemetry riding gonogo's
+* reveal clock). Published exactly once per armed request, the moment the
+* mod's `[KOSDATA]`/`[KOSERROR]` block-capture pipeline
+* (`KosComputeAccumulator`/`KosDataParser`: the same one that feeds
+* `kos.compute.*`) completes a block for that CPU while the request is still
+* armed.
+*
+* R7 typed-absence: exactly one of `KosRunResult.fields` /
+* `KosRunResult.error` is non-null, a successful `[KOSDATA]` parse carries
+* `KosRunResult.fields` with `KosRunResult.error` null; an explicit
+* script-author `[KOSERROR]` carries `KosRunResult.error` with
+* `KosRunResult.fields` null. Field VALUES keep the exact
+* `KosDataParser.Coerce` shape (bool / double / string) the telnet path
+* already produces: no re-typing on the wire.
+*/
 export interface KosRunResult
 {
+	/** The emitting CPU's `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/** Echoes the triggering `KosRunArgs.requestId`. */
 	requestId: string;
+	/** Parsed `[KOSDATA]` field map: null on an error result. */
 	fields?: { [key:string]: any };
+	/** Explicit `[KOSERROR]` message: null on a data result. */
 	error?: string;
 }
+/**
+* One frame of interactive-terminal output for a single kOS CPU, delivered on
+* the `kos.terminal.<coreId>` dynamic channel (`Delivery.ReliableOrdered`,
+* `DelayRole.Delayed`: the screen downlink is vessel telemetry and rides
+* gonogo's reveal clock exactly like `vessel.flight`).
+*
+* The mod reads the CPU's live `kOS.Safe.Screen.ScreenSnapShot`, diffs it
+* against the last sent frame, and runs the diff through kOS's own
+* `kOS.UserIO.TerminalXtermMapper`: so `KosTerminalFrame.chunk` is already
+* xterm-ready output bytes (VT100/xterm escape sequences), the same bytes
+* kOS's telnet server would have sent. The client writes
+* `KosTerminalFrame.chunk` straight into xterm; there is no proxy and no
+* telnet in the path.
+*
+* `KosTerminalFrame.fullRepaint` marks a self-contained repaint frame (the
+* client clears its terminal before applying `KosTerminalFrame.chunk`). The
+* mod emits one on session open, on a new subscriber, and after a CPU
+* reboot/unload/CPU-switch, so a late-joining or reconnecting viewer always
+* resyncs from a clean full screen rather than an orphaned diff. Ordinary
+* incremental frames carry `FullRepaint = false`.
+*
+* The channel's `ChannelDeclaration.IsKeyframe` predicate
+* (`KosExtension.Ksp.cs`) is wired to `KosTerminalFrame.fullRepaint`: the
+* engine's sticky-keyframe cache (`Sitrep.Core.Courier`) always replays the
+* last already-REVEALED FullRepaint frame synchronously to a new subscriber,
+* rather than whatever the channel's plain "latest archived sample" happens to
+* be (which, mid-session, is usually an ordinary incremental diff with no
+* baseline of its own to apply it to). This is what lets a late/returning
+* viewer see something immediately instead of waiting out a fresh reveal-delay
+* window for its own forced reseed to mature: see
+* local_docs/kos-terminal-feedback-2026-07-15.md's "Loading / connection"
+* section for the full root-cause writeup. A genuinely first-ever subscribe to
+* a CPU's terminal (nothing has EVER been recorded for it) still has to wait
+* out that first reseed's own delay window, there is no way around that; there
+* is nothing earlier to be sticky about.
+*
+* `KosTerminalFrame.coreId` echoes the emitting CPU's
+* `KosProcessorInfo.coreId` so a client reading several CPUs can disambiguate
+* without parsing the topic string.
+*/
 export interface KosTerminalFrame
 {
+	/** The emitting CPU's `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/**
+	* xterm-ready output bytes (already mapped from kOS's screen diff) to write
+	* into the terminal.
+	*/
 	chunk: string;
+	/**
+	* True for a self-contained repaint frame: the client clears the terminal
+	* before applying `KosTerminalFrame.chunk`.
+	*/
 	fullRepaint: boolean;
 }
+/**
+* Args for `kos.terminal.open`: acquires the single-owner WRITE LEASE on a
+* CPU's shared terminal (kOS has one Interpreter/Screen per CPU; every viewer
+* shares it, so writes must be arbitrated). On success the mod starts (or
+* attaches) the screen downlink and emits a `KosTerminalFrame` full repaint. A
+* second `open` on a CPU already leased by a different holder is REJECTED with
+* `CommandErrorCode.ModeUnavailable` (no silent steal): the caller stays a
+* read-only downlink viewer. Delivered DELAYED (rides gonogo's uplink delay);
+* the CPU-exists guard is re-checked at delivery on the KSP main thread.
+*/
 export interface KosTerminalOpenArgs
 {
+	/** Target CPU, identified by its `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/**
+	* Caller-generated, per-terminal-instance opaque lease token. The mod records
+	* it as the CPU's current write-lease holder; every subsequent
+	* `kos.keystroke`/`kos.terminal.resize`/`kos.terminal.close` must present the
+	* SAME token or is rejected. This is how the mod tells lease holders apart
+	* without a client identity on the command channel.
+	*/
 	leaseToken: string;
 }
+/**
+* Args for `kos.keystroke`: types input into the leased CPU's terminal via
+* kOS's public, frozen-signature `TermWindow.ProcessOneInputChar(ch,
+* whichTelnet: null, forceQueue: true)`. `KosKeystrokeArgs.chars` may be a
+* single character (char-by-char mode) or a whole composed line (line-mode
+* collapses N light-time round-trips to one). Rejected with
+* `CommandErrorCode.ModeUnavailable` if `KosKeystrokeArgs.leaseToken` does not
+* match the CPU's current lease holder. Delivered DELAYED: the keystroke
+* reaches the craft at `UT + uplink` under gonogo's SignalDelay, which is the
+* sole delay authority (kOS's own input path is immediate, so there is no
+* double-counting).
+*/
 export interface KosKeystrokeArgs
 {
+	/** Target CPU, identified by its `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/**
+	* The write-lease token from `KosTerminalOpenArgs.leaseToken`; must match the
+	* CPU's current holder.
+	*/
 	leaseToken: string;
+	/** The character(s) to type: one char, or a whole line in line-mode. */
 	chars: string;
 }
+/**
+* Args for `kos.terminal.resize`: sets the CPU screen's column/row count
+* (kOS's NAWS equivalent), via the sanctioned resize input sequence that
+* reaches `ScreenBuffer.SetSize`. Rejected with
+* `CommandErrorCode.ModeUnavailable` on a lease-token mismatch. Delivered
+* DELAYED.
+*/
 export interface KosTerminalResizeArgs
 {
+	/** Target CPU, identified by its `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/** The write-lease token; must match the CPU's current holder. */
 	leaseToken: string;
+	/** Desired column count. */
 	cols: number;
+	/** Desired row count. */
 	rows: number;
 }
+/**
+* Args for `kos.terminal.close`: releases the write lease if
+* `KosTerminalCloseArgs.leaseToken` matches the CPU's current holder (a
+* mismatched token is a no-op ack, never steals). Once no holder remains the
+* mod stops polling that CPU's screen (the downlink is subscription-gated
+* regardless). Delivered DELAYED.
+*/
 export interface KosTerminalCloseArgs
 {
+	/** Target CPU, identified by its `KosProcessorInfo.coreId`. */
 	coreId: number;
+	/** The write-lease token to release; a non-matching token releases nothing. */
 	leaseToken: string;
 }
