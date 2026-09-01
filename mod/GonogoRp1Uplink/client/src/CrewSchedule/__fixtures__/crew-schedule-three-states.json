@@ -6,7 +6,7 @@
     "augment": "rp1-crew-schedule",
     "host": "astronaut-complex",
     "size": { "w": 10, "h": 18 },
-    "caption": "Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes",
+    "caption": "Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes",
     "before": [{ "press": "Active" }],
     "paints": [
       "Retires",
