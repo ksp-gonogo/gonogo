@@ -418,6 +418,145 @@ export interface CareerTechNode
 	parents: string[];
 }
 /**
+* One declared channel's emission counters, plus the four engine facts a
+* reader needs to interpret them.
+*
+* **The distinction this type exists to make.** From outside the mod, a Topic
+* that delivers no frames looks the same whatever the cause. Two of those
+* causes are completely different investigations and the counters separate
+* them:
+*
+* - `ChannelEmissionEntry.considered` is 0: the engine never called
+*   `ChannelEmitter.Decide` for this channel at all, so no emission policy was
+*   ever consulted. The cause is upstream of the emitter, and the four flags
+*   below say which one
+* - `ChannelEmissionEntry.considered` is above 0 while
+*   `ChannelEmissionEntry.emitted` stays put and
+*   `ChannelEmissionEntry.skipped` climbs: the engine did produce values and
+*   the emitter declined them. The cause is the mapper's value, the deadband,
+*   or the cadence gate, all of which live inside `ChannelEmitter.Decide` and
+*   `ChannelDeclaration.Emission`
+*
+* **`ChannelEmissionEntry.emitted` is never 0 once
+* `ChannelEmissionEntry.considered` is above 0**, and the floor of 1 is worth
+* knowing before reading one of these: a channel's first consideration is an
+* unconditional keyframe (`ChannelEmitter`'s force-keyframe state, re-armed on
+* every subscribe and every timeline reset), so a considered channel has
+* emitted at least once by construction. The second case above therefore reads
+* as an `ChannelEmissionEntry.emitted` that is small and static rather than
+* zero, and the useful comparison is against `ChannelEmissionEntry.skipped`,
+* not against nothing.
+*
+* That floor is itself a finding when a capture saw no frames at all:
+* `ChannelEmissionEntry.emitted` above 0 with an empty capture means the
+* sample was made and lost downstream of the emitter, in the reveal gate, the
+* freeze-on-disconnect gate, or the wire, none of which these counters see.
+*
+* For the first case, read the flags in this order.
+* `ChannelEmissionEntry.subscribers` at 0 is the ordinary answer and means
+* nobody looked: a channel with no subscriber is deliberately never sampled
+* (the outer gate, `SubscriptionRegistry`). With a subscriber present,
+* `ChannelEmissionEntry.available` false means the owning uplink went inert
+* and took every channel it owns with it, `ChannelEmissionEntry.tickMapped`
+* false means nothing ever pushed a value at a publish-driven channel, and
+* `ChannelEmissionEntry.born` false on a tick-mapped channel means the mapper
+* returned null on every tick and the birth gate held it back.
+*/
+export interface ChannelEmissionEntry
+{
+	/** The channel's Topic id. */
+	topic: string;
+	/**
+	* Total `ChannelEmitter.Decide` calls for this channel since the mod loaded,
+	* emitted or not. Never reset by a quickload: `ChannelEmitter.Reset` re-arms
+	* the keyframe and drops the churn-run state, and leaves the counters alone,
+	* so this is a process-lifetime total rather than a per-timeline one.
+	*/
+	considered: Value<"count">;
+	/** Of those, how many the emitter chose to emit. */
+	emitted: Value<"count">;
+	/**
+	* `ChannelEmissionEntry.considered` minus `ChannelEmissionEntry.emitted`:
+	* considered and declined, by the cadence gate, the deadband, or the max-rate
+	* clamp. Carried rather than left to the reader to subtract, because a
+	* consumer that is not TypeScript reads this off the wire with no contract to
+	* derive it from.
+	*/
+	skipped: Value<"count">;
+	/**
+	* How many subscribers the outer gate currently counts for this channel. 0
+	* means the engine is deliberately not sampling it, which is the ordinary
+	* reason `ChannelEmissionEntry.considered` stops moving.
+	*/
+	subscribers: Value<"count">;
+	/**
+	* Whether the channel's owning uplink is currently available. False means the
+	* uplink's registration threw or one of its mappers threw on an earlier tick,
+	* at which point every channel it owns goes inert together, not just the one
+	* that failed.
+	*/
+	available: boolean;
+	/**
+	* Whether this channel has ever carried a non-null value. False plus a
+	* subscriber plus a tick-driven mapper is the birth gate: the mapper has
+	* returned null every tick, and a channel that has never had a real value is
+	* held back rather than tombstoned, unless it opts into
+	* `ChannelDeclaration.AbsenceIsData`.
+	*/
+	born: boolean;
+	/**
+	* Whether the engine holds a Tick-driven mapper for this channel. False is
+	* normal and means the channel is publish-driven: an uplink pushes to it
+	* through an `IChannelPublisher` or a dynamic namespace, so it is only ever
+	* considered when something publishes.
+	*
+	* False with a subscriber and no considerations therefore says nothing
+	* produced a value for this topic, which covers both a publish-driven channel
+	* that has stayed quiet and a channel declared with no producer wired at all.
+	* The next thing to look at is the same either way: who was supposed to
+	* publish here.
+	*/
+	tickMapped: boolean;
+}
+/**
+* Wire wrapper for `system.channels`: every declared channel's emission
+* counters, sorted by Topic. See `ChannelEmissionEntry` for what the numbers
+* separate.
+*
+* **Every declared channel, including the ones nobody is watching.** A channel
+* filtered out for having no subscriber would be absent from the payload, and
+* absent is indistinguishable from never declared, which is the exact
+* ambiguity this Topic exists to remove. So the roster is complete and
+* `ChannelEmissionEntry.subscribers` carries the "nobody looked" answer
+* instead.
+*
+* **The report counts itself, and is behind by design.** `system.channels` is
+* a declared, tick-mapped channel like any other, so it appears in its own
+* roster with its own counters. Its row is built by its own mapper, which runs
+* BEFORE the engine's `Decide` call for it, so its
+* `ChannelEmissionEntry.considered` is always at least one behind the frame
+* carrying it and its `ChannelEmissionEntry.emitted` never includes that
+* frame. Every other row is a snapshot taken partway through a tick as well: a
+* channel whose mapper has not yet run on that tick reads one consideration
+* behind. The rows are also rebuilt on a throttle (see
+* `ChannelEngine.ChannelCounterIntervalSec`) rather than per tick, so they can
+* be up to that interval older than the frame's own timestamp. None of that
+* affects what the Topic is for: the difference between zero and non-zero is
+* what carries the diagnosis, and neither the lag nor the throttle can turn
+* one into the other.
+*
+* Carries no SitrepTopicAttribute, matching `CommandGateReport` and the rest
+* of the engine-declared `system.*` family. That tag reflects a Topic an
+* uplink owns, and no uplink owns this one: `ChannelEngine` declares and
+* sources it directly because it reports on every OTHER channel. The SDK picks
+* it up as a hand-declared entry in its own `topics.ts`, the same treatment
+* `system.uplink.gates` and `system.units` get.
+*/
+export interface ChannelEmissionReport
+{
+	channels: ChannelEmissionEntry[];
+}
+/**
 * One command centre in the `commandCentre.roster` channel: a vantage/
 * authority the operator can command from and observe at (Plan 3). The union
 * of the stock CommNet home nodes (KSC, Extra Ground Stations, Kerbal

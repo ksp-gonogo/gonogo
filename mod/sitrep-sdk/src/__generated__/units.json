@@ -206,6 +206,16 @@
       "researchSalary": "f/day",
       "training": "f/day"
     },
+    "ChannelEmissionEntry": {
+      "available": "flag",
+      "born": "flag",
+      "considered": "count",
+      "emitted": "count",
+      "skipped": "count",
+      "subscribers": "count",
+      "tickMapped": "flag",
+      "topic": "id"
+    },
     "ClosestApproach": {
       "distance": "m",
       "time": "ut"
@@ -1866,6 +1876,9 @@
     },
     "ChannelDeclaration": {
       "emission": "EmissionPolicy"
+    },
+    "ChannelEmissionReport": {
+      "channels": "ChannelEmissionEntry[]"
     },
     "CommandDeclaration": {
       "requires": "CommandRequirement[]"

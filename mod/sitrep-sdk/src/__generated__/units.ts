@@ -240,6 +240,16 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     researchSalary: "f/day",
     training: "f/day",
   },
+  "ChannelEmissionEntry": {
+    available: "flag",
+    born: "flag",
+    considered: "count",
+    emitted: "count",
+    skipped: "count",
+    subscribers: "count",
+    tickMapped: "flag",
+    topic: "id",
+  },
   "ClosestApproach": {
     distance: "m",
     time: "ut",
@@ -1930,6 +1940,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "ChannelDeclaration": {
     emission: "EmissionPolicy",
+  },
+  "ChannelEmissionReport": {
+    channels: "ChannelEmissionEntry[]",
   },
   "CommandDeclaration": {
     requires: "CommandRequirement[]",
