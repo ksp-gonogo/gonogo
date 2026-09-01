@@ -6,8 +6,8 @@
       "h": 9
     },
     "caption": "Nothing built and nothing on order, which is where a career starts",
-    "paints": ["ASSEMBLY", "None built and none on order", "No craft saved"],
-    "expectsEmpty": "a fresh career has no vehicles built and none ordered, and this is the picture of that state reading as an answer rather than as an Uplink that is not reporting"
+    "paints": ["ASSEMBLY", "No craft saved"],
+    "expectsEmpty": "a fresh career has no vehicles built and none ordered, and the widget now says NOTHING about that: an empty list is not news. The state that does speak is an UNREPORTED list, which this scene is not, so the picture is a centre with its craft catalogue and no vehicle rows"
   },
   "_stream": {
     "pinnedUt": 1000000,
