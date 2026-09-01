@@ -1307,17 +1307,21 @@ public static class RtConfig
                 string reply;
                 if (attr.Result != null)
                 {
-                    reply = TsResultName(attr.Result, attr.CommandId, type.Name, localNames);
-                    replyNames.Add(attr.Result.Name);
+                    var named = TsResultName(attr.Result, attr.CommandId, type.Name, localNames);
+                    reply = named;
+                    // Only a NAME needs importing. A primitive and the open
+                    // `Record<string, unknown>` are spelled inline, and adding
+                    // the C# type's name for one of those put a literal
+                    // `Dictionary`2` in the import list, which is exactly the
+                    // "check the output rather than assuming" failure this
+                    // codegen is warned about.
+                    if (named == attr.Result.Name) replyNames.Add(named);
                 }
                 else if (attr.Payload != null)
                 {
-                    reply = "CommandResultOf<" +
-                        TsResultName(attr.Payload, attr.CommandId, type.Name, localNames) + ">";
-                    if (!ScalarPayloadTypes.ContainsKey(attr.Payload))
-                    {
-                        replyNames.Add(attr.Payload.Name);
-                    }
+                    var named = TsResultName(attr.Payload, attr.CommandId, type.Name, localNames);
+                    reply = "CommandResultOf<" + named + ">";
+                    if (named == attr.Payload.Name) replyNames.Add(named);
                 }
                 else
                 {
@@ -1441,6 +1445,18 @@ public static class RtConfig
         if (ScalarPayloadTypes.TryGetValue(declared, out var primitive))
         {
             return primitive;
+        }
+
+        // A string-keyed bag, which is what a handler answering
+        // Dictionary<string, object?> puts on the wire. Spelled as the open
+        // record it is rather than given a fabricated contract type: the keys
+        // are the handler's and this contract does not name them, and a named
+        // interface would claim it does.
+        if (declared.IsGenericType
+            && declared.GetGenericTypeDefinition() == typeof(Dictionary<,>)
+            && declared.GetGenericArguments()[0] == typeof(string))
+        {
+            return "Record<string, unknown>";
         }
 
         if (declared.GetCustomAttribute<SitrepContractAttribute>() != null

@@ -32,6 +32,7 @@ namespace GonogoRp1Uplink;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.build.repeat")]
 public class Rp1BuildRepeatArgs
 {
     /// <summary>The vehicle to copy, by RP-1's <c>KCTPersistentID</c>.</summary>
@@ -50,6 +51,7 @@ public class Rp1BuildRepeatArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.vehicle.rollout")]
 public class Rp1RolloutArgs
 {
     /// <summary>The finished vehicle to roll out, by RP-1's <c>KCTPersistentID</c>.</summary>
@@ -97,6 +99,8 @@ public class Rp1RolloutArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.vehicle.rollback")]
+[SitrepCommand("rp1.vehicle.scrap")]
 public class Rp1VehicleArgs
 {
     /// <summary>The vehicle, by RP-1's <c>KCTPersistentID</c>.</summary>
@@ -125,6 +129,7 @@ public class Rp1VehicleArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.complex.rush")]
 public class Rp1ComplexRushArgs
 {
     /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -156,6 +161,7 @@ public class Rp1ComplexRushArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.personnel.assign")]
 public class Rp1PersonnelAssignArgs
 {
     /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -189,6 +195,7 @@ public class Rp1PersonnelAssignArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.build.start")]
 public class Rp1BuildStartArgs
 {
     /// <summary>
@@ -248,6 +255,7 @@ public class Rp1BuildStartArgs
 /// procedure.</para>
 /// </remarks>
 [SitrepContract]
+[SitrepCommand("rp1.strategy.activate")]
 public class Rp1StrategyActivateArgs
 {
     /// <summary>
@@ -293,6 +301,7 @@ public class Rp1StrategyActivateArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.facility.upgrade", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class Rp1FacilityUpgradeArgs
 {
     /// <summary>
@@ -344,6 +353,7 @@ public class Rp1FacilityUpgradeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.tech.research")]
 public class Rp1TechResearchArgs
 {
     /// <summary>
@@ -375,6 +385,8 @@ public class Rp1TechResearchArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.fundTarget.cancel")]
+[SitrepCommand("rp1.hireTarget.cancel")]
 public class Rp1TargetCancelArgs
 {
 }
@@ -393,6 +405,7 @@ public class Rp1TargetCancelArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.hireTarget.set")]
 public class Rp1HireTargetSetArgs
 {
     /// <summary>
@@ -430,6 +443,7 @@ public class Rp1HireTargetSetArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.fundTarget.set")]
 public class Rp1FundTargetSetArgs
 {
     /// <summary>
@@ -456,6 +470,7 @@ public class Rp1FundTargetSetArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.training.enrol")]
 public class Rp1TrainingEnrolArgs
 {
     /// <summary>
@@ -495,6 +510,8 @@ public class Rp1TrainingEnrolArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.training.cancel")]
+[SitrepCommand("rp1.training.remove")]
 public class Rp1TrainingLeaveArgs
 {
     /// <summary>
@@ -564,6 +581,7 @@ public class Rp1ComplexSizeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.complex.new", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class Rp1ComplexNewArgs
 {
     /// <summary>
@@ -683,6 +701,7 @@ public class Rp1ComplexNewArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.complex.modify", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class Rp1ComplexModifyArgs
 {
     /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -758,6 +777,7 @@ public class Rp1ComplexModifyArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.complex.rename")]
 public class Rp1ComplexRenameArgs
 {
     /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -813,6 +833,7 @@ public class Rp1ComplexRenameArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.complex.dismantle", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class Rp1ComplexDismantleArgs
 {
     /// <summary>The complex, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -837,6 +858,7 @@ public class Rp1ComplexDismantleArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.pad.new", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class Rp1PadNewArgs
 {
     /// <summary>The complex to add it to, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -870,6 +892,7 @@ public class Rp1PadNewArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.pad.rename")]
 public class Rp1PadRenameArgs
 {
     /// <summary>The complex holding the pad, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -912,6 +935,7 @@ public class Rp1PadRenameArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.pad.dismantle")]
 public class Rp1PadDismantleArgs
 {
     /// <summary>The complex holding the pad, by the GUID <c>rp1.complexes[].lcId</c> publishes.</summary>
@@ -949,6 +973,8 @@ public class Rp1PadDismantleArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.warp.toComplete")]
+[SitrepCommand("rp1.warp.toFundTarget")]
 public class Rp1WarpArgs
 {
 }
@@ -966,6 +992,7 @@ public class Rp1WarpArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.tooling.toolAll")]
 public class Rp1ToolAllArgs
 {
 }
@@ -989,6 +1016,7 @@ public class Rp1ToolAllArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.tooling.refit")]
 public class Rp1ToolingRefitArgs
 {
     /// <summary>
@@ -1045,6 +1073,7 @@ public class Rp1ToolingRefitArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("rp1.contracts.setPayload", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class Rp1ContractPayloadArgs
 {
     /// <summary>

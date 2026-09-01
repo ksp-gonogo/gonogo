@@ -63,6 +63,12 @@ export type {
   KosTerminalOpenArgs,
   KosTerminalResizeArgs,
 } from "./__generated__/contract";
+// This Uplink's own commands: the `CommandArgsMap`/`CommandReplyMap`
+// augmentation and the runtime registration. RE-EXPORTED rather than imported
+// for side effect, for the same reason ./topics is: a bare import is elided from
+// the emitted `dist/index.d.ts` and the augmentation would not cross the package
+// boundary.
+export { UPLINK_COMMAND_IDS } from "./commands";
 export * from "./KosScriptTrigger";
 export * from "./KosTerminal";
 // Non-widget infra (defineUplinkClient/registerUplinkHandle side effects,

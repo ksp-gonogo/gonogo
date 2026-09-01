@@ -29,6 +29,7 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import type { CommandArgs, CommandId, CommandReply } from "../commands";
 import {
   type ComposedPlan,
   outcomeOfReply,
@@ -75,6 +76,8 @@ import type {
   SlotProps,
   TelemetryClient,
   UplinkClientHandle,
+  UseCommandOptions,
+  UseCommandResult,
   UseRouteCommandsResult,
 } from "./types";
 
@@ -184,6 +187,7 @@ export type {
   UplinkClientHandle,
   UplinkClientIdentity,
   UplinkRelay,
+  UseCommandOptions,
   UseCommandResult,
   UseMapPois,
   UseRouteCommandsResult,
@@ -477,8 +481,62 @@ export function useViewUt(): Value<"ut"> | undefined {
   return getHost().useViewUt();
 }
 
-export function useCommand(command: string) {
-  return getHost().useCommand(command);
+/**
+ * Canonical overload: keyed by `CommandId`, answers a handle whose `send` takes
+ * that command's arguments and resolves that command's reply.
+ *
+ *   const setSas = useCommand("vessel.control.setSas");
+ *   const result = await setSas.send({ enabled: true });
+ *   // result: CommandResult
+ *
+ * `send` RESOLVES only when the command ran. The game refusing is a REJECTION,
+ * carrying a `CommandErrorCode` a caller can switch on, so a resolved reply is
+ * never a polite no. A dispatch the mod never answered rejects too, once the
+ * loss deadline passes; a `void`ed `send` is safe, the hook marks its own
+ * rejection handled and surfaces refusals on `refusals` instead.
+ *
+ *   try {
+ *     await setThrottle.send({ value: 1.2 });
+ *   } catch (err) {
+ *     // CommandErrorCode.Range: validated at admission, never clamped
+ *   }
+ *
+ * Every command is DELAYED unless it is sim-meta, so a dispatch is not an event
+ * that has happened, it is one that is travelling. The handle carries the whole
+ * delay surface for that (`inFlight`, `effectiveDelaySeconds`, `gate`,
+ * `refusals`), and `<CommandDelay handle={cmd}>` renders it; in development the
+ * hook throws on a dispatch made without one, so a delayed command cannot ship
+ * with no delay UX.
+ *
+ * The full command vocabulary is `COMMAND_IDS`, generated from the mod's own
+ * `[SitrepCommand]` declarations.
+ */
+export function useCommand<C extends CommandId>(
+  command: C,
+  options?: UseCommandOptions,
+): UseCommandResult<CommandArgs<C>, CommandReply<C>>;
+/**
+ * Escape-hatch overload, for a command id this SDK's map does not carry: an
+ * Uplink's own before its client package has augmented `CommandArgsMap`, or a
+ * DYNAMIC command whose id is computed per subject and so can have no static
+ * member. Args and reply stay `unknown` unless the caller names them, which is
+ * exactly what every call did before the map existed.
+ *
+ *   const reEnable = useCommand<{ scriptId: string }>(`kos.compute.${id}.reEnable`);
+ *
+ * An Uplink declaring its OWN commands should not live here. Augment
+ * `CommandArgsMap`/`CommandReplyMap` from the client package and call
+ * `registerUplinkCommand`, and the first overload covers them like any other.
+ */
+export function useCommand<TArgs = unknown, TReply = unknown>(
+  command: string,
+  options?: UseCommandOptions,
+): UseCommandResult<TArgs, TReply>;
+export function useCommand(
+  command: string,
+  options?: UseCommandOptions,
+): UseCommandResult {
+  return getHost().useCommand(command, options);
 }
 
 /**

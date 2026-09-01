@@ -39,6 +39,20 @@ export {
   deriveInFlight,
   latchForward,
 } from "./command-delay";
+// The typed command vocabulary: the write-side twin of the Topic registry below.
+// `useCommand` is keyed on `CommandId`, and an Uplink declaring its own commands
+// augments `CommandArgsMap`/`CommandReplyMap` and registers the id here.
+export {
+  COMMAND_IDS,
+  type CommandArgs,
+  type CommandArgsMap,
+  type CommandId,
+  type CommandReply,
+  type CommandReplyMap,
+  getAllKnownCommandIds,
+  isCommandId,
+  registerUplinkCommand,
+} from "./commands";
 // The compat numbers a `gonogo-uplink.json` is gated on. Published here because
 // an Uplink's build has to write them and could not read any of them.
 export {

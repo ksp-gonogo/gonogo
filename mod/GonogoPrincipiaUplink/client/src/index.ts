@@ -52,6 +52,14 @@
 // lengths in the pulsating frame are not lengths, and that three of the frames
 // have no apsides at all.
 import "./topics";
+
+// This Uplink's own commands: the `CommandArgsMap`/`CommandReplyMap`
+// augmentation and the runtime registration. RE-EXPORTED rather than imported
+// for side effect, for the same reason ./topics is: a bare import is elided from
+// the emitted `dist/index.d.ts` and the augmentation would not cross the package
+// boundary.
+export { UPLINK_COMMAND_IDS } from "./commands";
+
 import "./settings/registerPrincipiaSettings";
 import "./FlightPlanSection";
 import "./OrbitAnalysis";

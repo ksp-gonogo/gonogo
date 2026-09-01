@@ -106,6 +106,8 @@ public class KosComputeStatus
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kos.exec")]
+[SitrepCommand("kos.dispatchNow")]
 public class KosExecArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
@@ -126,6 +128,7 @@ public class KosExecArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kos.reEnable")]
 public class KosReEnableArgs
 {
     /// <summary>The compute topic id whose breaker to clear.</summary>

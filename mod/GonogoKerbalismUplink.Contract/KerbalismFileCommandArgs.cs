@@ -59,6 +59,8 @@ namespace GonogoKerbalismUplink;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kerbalism.file.send")]
+[SitrepCommand("kerbalism.sample.analyze")]
 public class KerbalismSubjectFlagArgs
 {
     [SitrepUnit(Units.Id)]
@@ -80,6 +82,9 @@ public class KerbalismSubjectFlagArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kerbalism.file.delete")]
+[SitrepCommand("kerbalism.sample.dump")]
+[SitrepCommand("kerbalism.sample.moveToLab")]
 public class KerbalismSubjectActionArgs
 {
     [SitrepUnit(Units.Id)]

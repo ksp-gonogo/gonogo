@@ -96,6 +96,20 @@ public static class KerbcastRtConfig
                 Environment.GetEnvironmentVariable("SITREP_KERBCAST_UNITJSON_OUT"),
                 typeof(KerbcastRtConfig).Assembly);
         }
+
+        // This slice declares commands of its own, so it emits its own command
+        // map beside the topic map above. `CommandResult`/`CommandResultOf` are
+        // core's and are not in this slice's contract.ts, so they come from the
+        // published package rather than from a relative path that would not
+        // resolve out of client/src/__generated__/.
+        var commandMapOut = Environment.GetEnvironmentVariable("SITREP_KERBCAST_COMMANDMAP_OUT");
+        if (!string.IsNullOrEmpty(commandMapOut))
+        {
+            Sitrep.Contract.RtConfig.EmitCommandMap(
+                commandMapOut!,
+                typeof(KerbcastRtConfig).Assembly,
+                resultImportFrom: "@ksp-gonogo/sitrep-sdk");
+        }
     }
 }
 #endif

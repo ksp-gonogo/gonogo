@@ -98,6 +98,7 @@ mkdir -p "$mechjeb_out_dir"
 DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_MECHJEB_UNITMAP_OUT="$mechjeb_out_dir/units.ts" \
   SITREP_MECHJEB_UNITJSON_OUT="$mechjeb_out_dir/units.json" \
+  SITREP_MECHJEB_COMMANDMAP_OUT="$mechjeb_out_dir/command-map.ts" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$mechjeb_bin/GonogoMechJebUplink.Contract.xml" \
   SourceAssemblies="$mechjeb_bin/GonogoMechJebUplink.Contract.dll" \
@@ -106,6 +107,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
 echo "codegen -> $mechjeb_out_dir/contract.ts"
 echo "codegen -> $mechjeb_out_dir/units.ts"
 echo "codegen -> $mechjeb_out_dir/units.json"
+echo "codegen -> $mechjeb_out_dir/command-map.ts"
 
 # Avionics: the second relocation. Unlike MechJeb, AvionicsStatus DOES carry
 # [SitrepTopic("avionics.status")], so SITREP_AVIONICS_TOPICMAP_OUT is set
@@ -147,6 +149,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_KERBCAST_TOPICMAP_OUT="$kerbcast_out_dir/topic-map.ts" \
   SITREP_KERBCAST_UNITMAP_OUT="$kerbcast_out_dir/units.ts" \
   SITREP_KERBCAST_UNITJSON_OUT="$kerbcast_out_dir/units.json" \
+  SITREP_KERBCAST_COMMANDMAP_OUT="$kerbcast_out_dir/command-map.ts" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$kerbcast_bin/GonogoKerbcastUplink.Contract.xml" \
   SourceAssemblies="$kerbcast_bin/GonogoKerbcastUplink.Contract.dll" \
@@ -156,6 +159,7 @@ echo "codegen -> $kerbcast_out_dir/contract.ts"
 echo "codegen -> $kerbcast_out_dir/topic-map.ts"
 echo "codegen -> $kerbcast_out_dir/units.ts"
 echo "codegen -> $kerbcast_out_dir/units.json"
+echo "codegen -> $kerbcast_out_dir/command-map.ts"
 
 # Kerbalism: the fifth relocation, and the largest by every measure. FIFTEEN
 # types and FIVE [SitrepTopic]-tagged roots (kerbalism.spaceweather / .profile /
@@ -179,6 +183,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_KERBALISM_TOPICMAP_OUT="$kerbalism_out_dir/topic-map.ts" \
   SITREP_KERBALISM_UNITMAP_OUT="$kerbalism_out_dir/units.ts" \
   SITREP_KERBALISM_UNITJSON_OUT="$kerbalism_out_dir/units.json" \
+  SITREP_KERBALISM_COMMANDMAP_OUT="$kerbalism_out_dir/command-map.ts" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$kerbalism_bin/GonogoKerbalismUplink.Contract.xml" \
   SourceAssemblies="$kerbalism_bin/GonogoKerbalismUplink.Contract.dll" \
@@ -188,6 +193,7 @@ echo "codegen -> $kerbalism_out_dir/contract.ts"
 echo "codegen -> $kerbalism_out_dir/topic-map.ts"
 echo "codegen -> $kerbalism_out_dir/units.ts"
 echo "codegen -> $kerbalism_out_dir/units.json"
+echo "codegen -> $kerbalism_out_dir/command-map.ts"
 
 # kOS: the sixth and last relocation in the plan's per-Uplink list. ELEVEN types,
 # but only ONE [SitrepTopic]-tagged root (kos.processors, isArray), so
@@ -211,6 +217,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_KOS_TOPICMAP_OUT="$kos_out_dir/topic-map.ts" \
   SITREP_KOS_UNITMAP_OUT="$kos_out_dir/units.ts" \
   SITREP_KOS_UNITJSON_OUT="$kos_out_dir/units.json" \
+  SITREP_KOS_COMMANDMAP_OUT="$kos_out_dir/command-map.ts" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$kos_bin/GonogoKosUplink.Contract.xml" \
   SourceAssemblies="$kos_bin/GonogoKosUplink.Contract.dll" \
@@ -220,6 +227,7 @@ echo "codegen -> $kos_out_dir/contract.ts"
 echo "codegen -> $kos_out_dir/topic-map.ts"
 echo "codegen -> $kos_out_dir/units.ts"
 echo "codegen -> $kos_out_dir/units.json"
+echo "codegen -> $kos_out_dir/command-map.ts"
 
 # RealAntennas: the seventh and last relocation, and the only PARTIAL one: three
 # types carved out of Sitrep.Contract/Comms.cs rather than a whole file moved,
@@ -274,6 +282,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_PRINCIPIA_TOPICMAP_OUT="$principia_out_dir/topic-map.ts" \
   SITREP_PRINCIPIA_UNITMAP_OUT="$principia_out_dir/units.ts" \
   SITREP_PRINCIPIA_UNITJSON_OUT="$principia_out_dir/units.json" \
+  SITREP_PRINCIPIA_COMMANDMAP_OUT="$principia_out_dir/command-map.ts" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$principia_bin/GonogoPrincipiaUplink.Contract.xml" \
   SourceAssemblies="$principia_bin/GonogoPrincipiaUplink.Contract.dll" \
@@ -283,6 +292,7 @@ echo "codegen -> $principia_out_dir/contract.ts"
 echo "codegen -> $principia_out_dir/topic-map.ts"
 echo "codegen -> $principia_out_dir/units.ts"
 echo "codegen -> $principia_out_dir/units.json"
+echo "codegen -> $principia_out_dir/command-map.ts"
 
 # RP-1: the space-centre and Programs slice. Eleven types, eleven
 # [SitrepTopic]s, and two unit tokens core has never heard of (bp and
@@ -300,6 +310,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_RP1_TOPICMAP_OUT="$rp1_out_dir/topic-map.ts" \
   SITREP_RP1_UNITMAP_OUT="$rp1_out_dir/units.ts" \
   SITREP_RP1_UNITJSON_OUT="$rp1_out_dir/units.json" \
+  SITREP_RP1_COMMANDMAP_OUT="$rp1_out_dir/command-map.ts" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$rp1_bin/GonogoRp1Uplink.Contract.xml" \
   SourceAssemblies="$rp1_bin/GonogoRp1Uplink.Contract.dll" \
@@ -309,6 +320,7 @@ echo "codegen -> $rp1_out_dir/contract.ts"
 echo "codegen -> $rp1_out_dir/topic-map.ts"
 echo "codegen -> $rp1_out_dir/units.ts"
 echo "codegen -> $rp1_out_dir/units.json"
+echo "codegen -> $rp1_out_dir/command-map.ts"
 
 # Ferram Aerospace Research: the aerodynamic-state slice. One type, one
 # [SitrepTopic] (aero.state), and the densest unit annotation of any slice:

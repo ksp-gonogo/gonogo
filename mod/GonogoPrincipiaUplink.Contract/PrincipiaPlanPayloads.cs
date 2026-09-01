@@ -669,6 +669,7 @@ public sealed class PrincipiaPlanWriteReceipt
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("principia.plan.arm", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class PrincipiaPlanArmArgs
 {
     [SitrepUnit(Units.Id)]
@@ -721,6 +722,8 @@ public enum PrincipiaBurnProfile
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("principia.plan.burn.insert", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
+[SitrepCommand("principia.plan.burn.replace", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class PrincipiaBurnEditArgs
 {
     [SitrepUnit(Units.Id)]
@@ -814,6 +817,7 @@ public class PrincipiaComposedBurn
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("principia.plan.send", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class PrincipiaPlanSendArgs
 {
     [SitrepUnit(Units.Id)]
@@ -860,6 +864,7 @@ public class PrincipiaPlanSendArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("principia.plan.burn.remove", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class PrincipiaBurnRemoveArgs
 {
     [SitrepUnit(Units.Id)]
@@ -884,6 +889,7 @@ public class PrincipiaBurnRemoveArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("principia.plan.horizon", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class PrincipiaPlanHorizonArgs
 {
     [SitrepUnit(Units.Id)]
@@ -912,6 +918,7 @@ public class PrincipiaPlanHorizonArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("principia.plan.integrator", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class PrincipiaPlanIntegratorArgs
 {
     [SitrepUnit(Units.Id)]
@@ -945,6 +952,9 @@ public class PrincipiaPlanIntegratorArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("principia.plan.create", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
+[SitrepCommand("principia.plan.delete", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
+[SitrepCommand("principia.plan.duplicate", Payload = typeof(System.Collections.Generic.Dictionary<string, object>))]
 public class PrincipiaPlanSlotArgs
 {
     [SitrepUnit(Units.Id)]

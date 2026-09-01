@@ -16,6 +16,7 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
+import type { CommandArgs, CommandId, CommandReply } from "../commands";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import type { Logger } from "./logger-contract";
@@ -33,6 +34,7 @@ import type {
   TelemetryClient,
   UplinkClientHandle,
   UplinkRelay,
+  UseCommandOptions,
   UseCommandResult,
   UseRouteCommandsResult,
 } from "./types";
@@ -84,7 +86,24 @@ export interface GonogoHost {
    * which is most of them.
    */
   useViewUt(): Value<"ut"> | undefined;
-  useCommand(command: string): UseCommandResult;
+  /**
+   * The write boundary, mirroring `useTelemetry`'s read one. Overloaded on the
+   * same seam the SDK's own `useCommand` uses: a known `CommandId` resolves its
+   * args and its reply out of the generated command map, and a computed id
+   * keeps the untyped handle.
+   *
+   * The host implements the untyped signature and the overloads narrow it, so
+   * an app-side implementation has one function to write however many shapes a
+   * caller sees.
+   */
+  useCommand<C extends CommandId>(
+    command: C,
+    options?: UseCommandOptions,
+  ): UseCommandResult<CommandArgs<C>, CommandReply<C>>;
+  useCommand<TArgs = unknown, TReply = unknown>(
+    command: string,
+    options?: UseCommandOptions,
+  ): UseCommandResult<TArgs, TReply>;
   /**
    * Call one of `uplinkId`'s own methods, wherever this screen is. On the main
    * screen the call reaches the registered handle directly; on a station it is

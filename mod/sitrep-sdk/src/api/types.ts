@@ -928,11 +928,32 @@ export interface CommandOutputToken {
   consumed: boolean;
 }
 
-export interface UseCommandResult {
-  send: (
-    args?: unknown,
+/** The per-call options `useCommand` takes. */
+export interface UseCommandOptions {
+  /**
+   * Per-call vantage override (delay-UX): the command centre this command
+   * dispatches from. Omit to use the connection's session vantage (the
+   * default); pass `"meta"` for a program-meta command (tech/strategy/contract)
+   * so it stays instant regardless of the selected centre.
+   */
+  vantage?: string;
+}
+
+/**
+ * Mirrors the spine's `UseCommandResult`: same leaf constraint as every other
+ * type in this file. `TArgs`/`TReply` come from the generated command map when
+ * the hook was given a known `CommandId`.
+ *
+ * `send` is a method rather than a property holding a function for the reason
+ * the spine's copy gives: as a property, `strictFunctionTypes` checks the
+ * parameter contravariantly and a typed handle stops being assignable to the
+ * bare `UseCommandResult` that `<CommandDelay handle>` takes.
+ */
+export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
+  send(
+    args?: TArgs,
     opts?: { label?: string; topic?: string },
-  ) => Promise<unknown>;
+  ): Promise<TReply>;
   status: CommandStatus;
   inFlight: InFlightCommand[];
   /** Delay display this command uses; hand straight to `<CommandDelay>`. */
