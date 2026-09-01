@@ -16,6 +16,9 @@
       },
       {
         "press": "Nedcas Kerman"
+      },
+      {
+        "rest": true
       }
     ],
     "paints": [

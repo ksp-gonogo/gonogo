@@ -182,16 +182,24 @@ export function TrainingEnrolment() {
 /**
  * One kerbal, on or off the crew being assembled.
  *
- * <para>The name alone, no trait or rank: the Astronaut Complex's own Active tab
+ * <para>The name, no trait or rank: the Astronaut Complex's own Active tab
  * carries both for every kerbal a few inches above this, and nothing RP-1 checks
  * when it takes a student reads either.</para>
  *
- * <para><b>A refused kerbal who is PICKED stays pressable</b>, which is the one
- * place this departs from the disabled-control-with-its-reason pattern. Their
- * state can change under a standing pick: a kerbal picked while idle and then
- * grounded elsewhere would otherwise be locked into a crew that cannot be sent
- * and could not be taken back out. Refused and unpicked is the dark control, and
- * refused and picked is a live one carrying the same reason.</para>
+ * <para><b>A refused kerbal wears their reason, and that is not decoration.</b>
+ * The dark-control-with-its-reason-in-the-title pattern relies on a live peer to
+ * be dark AGAINST: a build refusal reads as dark because "Build at LC-2" sits
+ * beside it lit. Here every peer is a kerbal's name in the same chip, so dimming
+ * alone leaves "cannot be picked" and "not picked yet" looking the same, and the
+ * one picture this section exists for is the one where that distinction is the
+ * whole reading. Two words on the label carry it; the full sentence stays in the
+ * title.</para>
+ *
+ * <para><b>A refused kerbal who is PICKED stays pressable</b>, which is where
+ * this does depart from the pattern. Their state can change under a standing
+ * pick: a kerbal picked while idle and then grounded elsewhere would otherwise
+ * be locked into a crew that cannot be sent and could not be taken back
+ * out.</para>
  */
 function Student({
   candidate,
@@ -208,10 +216,11 @@ function Student({
       disabled={candidate.refusal !== null && !picked}
       onClick={onToggle}
       size="sm"
-      title={candidate.refusal ?? undefined}
+      title={candidate.refusal?.sentence}
       tone={candidate.refusal === null ? "neutral" : "nogo"}
     >
       {candidate.name}
+      {candidate.refusal !== null && ` · ${candidate.refusal.tag}`}
     </ToggleButton>
   );
 }
@@ -220,7 +229,15 @@ function Student({
 interface Candidate {
   name: string;
   /** Why this kerbal cannot be a student, or null. */
-  refusal: string | null;
+  refusal: Refusal | null;
+}
+
+/** One reason, said twice: at the length a control's label has room for, and whole. */
+interface Refusal {
+  /** Two or three words, for the label of the control that carries the refusal. */
+  tag: string;
+  /** The whole sentence, naming the kerbal, for the title and the send control. */
+  sentence: string;
 }
 
 /**
@@ -278,21 +295,24 @@ function candidatesOf(
 function studentRefusal(
   row: CrewRosterEntry,
   training: ReadonlySet<string>,
-): string | null {
+): Refusal | null {
   const name = row.name ?? "";
-  if (training.has(name)) {
-    return `${name} is already on a training course`;
+  if (training.has(name) || row.standing === CrewStanding.Training) {
+    return {
+      sentence: `${name} is already on a training course`,
+      tag: "in training",
+    };
   }
-  switch (row.standing) {
-    case CrewStanding.Training:
-      return `${name} is already on a training course`;
-    case CrewStanding.Resting:
-      return `${name} is standing down after a flight`;
-    case CrewStanding.Assigned:
-      return `${name} is off-world`;
-    default:
-      return null;
+  if (row.standing === CrewStanding.Resting) {
+    return {
+      sentence: `${name} is standing down after a flight`,
+      tag: "resting",
+    };
   }
+  if (row.standing === CrewStanding.Assigned) {
+    return { sentence: `${name} is off-world`, tag: "off-world" };
+  }
+  return null;
 }
 
 /**

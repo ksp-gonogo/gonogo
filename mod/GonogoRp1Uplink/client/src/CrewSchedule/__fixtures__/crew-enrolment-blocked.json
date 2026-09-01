@@ -13,6 +13,9 @@
     "before": [
       {
         "press": "Ludrey Kerman"
+      },
+      {
+        "rest": true
       }
     ],
     "paints": [
@@ -21,8 +24,10 @@
       "seats 2",
       "Ludrey Kerman",
       "Nedcas Kerman",
+      "resting",
       "Valentina Kerman",
-      "Enrol"
+      "Enrol",
+      "off-world"
     ]
   },
   "_stream": {

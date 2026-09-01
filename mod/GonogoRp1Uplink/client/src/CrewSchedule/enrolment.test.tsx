@@ -128,6 +128,15 @@ async function present(
   });
 }
 
+/**
+ * One kerbal's control, found by a name PREFIX rather than the whole name: a
+ * refused kerbal wears their reason on the label, so the accessible name is the
+ * name plus two words and an exact match would find only the pickable ones.
+ */
+function student(name: string) {
+  return screen.findByRole("button", { name: new RegExp(name) });
+}
+
 /** Pick these kerbals as students, in order. */
 async function pick(
   user: ReturnType<typeof userEvent.setup>,
@@ -290,14 +299,21 @@ describe("who RP-1 would refuse", () => {
       "already training",
       CrewStanding.Training,
       `${VALENTINA} is already on a training course`,
+      "in training",
     ],
     [
       "standing down after a flight",
       CrewStanding.Resting,
       `${VALENTINA} is standing down after a flight`,
+      "resting",
     ],
-    ["off-world", CrewStanding.Assigned, `${VALENTINA} is off-world`],
-  ])("names a kerbal who is %s", async (_what, standing, reason) => {
+    [
+      "off-world",
+      CrewStanding.Assigned,
+      `${VALENTINA} is off-world`,
+      "off-world",
+    ],
+  ])("names a kerbal who is %s", async (_what, standing, reason, tag) => {
     const { fixture } = mount();
     await present(fixture, {
       roster: [
@@ -307,9 +323,13 @@ describe("who RP-1 would refuse", () => {
       ],
     });
 
-    const control = await screen.findByRole("button", { name: VALENTINA });
+    const control = await student(VALENTINA);
     expect(control).toBeDisabled();
     expect(control).toHaveAttribute("title", reason);
+    // And the reason is on the label, not only in the title. Every peer here is
+    // a kerbal's name in the same chip, so dimming alone would leave "cannot be
+    // picked" looking like "not picked yet".
+    expect(control).toHaveAccessibleName(new RegExp(`${VALENTINA} . ${tag}`));
   });
 
   /**
@@ -331,7 +351,7 @@ describe("who RP-1 would refuse", () => {
       roster: [rosterRow(LUDREY), rosterRow(NEDCAS), rosterRow(VALENTINA)],
     });
 
-    const control = await screen.findByRole("button", { name: VALENTINA });
+    const control = await student(VALENTINA);
     expect(control).toBeDisabled();
     expect(control).toHaveAttribute(
       "title",
@@ -446,9 +466,14 @@ describe("who RP-1 would refuse", () => {
       ]);
     });
 
-    const student = await screen.findByRole("button", { name: NEDCAS });
-    expect(student).toBeEnabled();
-    await user.click(student);
+    // Found by the TAGGED label, which is also the assertion: a crew that has
+    // gone stale says which name went stale without an operator hovering to find
+    // out, and the wait is what lets the re-emitted roster land first.
+    const stale = await screen.findByRole("button", {
+      name: new RegExp(`${NEDCAS} . off-world`),
+    });
+    expect(stale).toBeEnabled();
+    await user.click(stale);
 
     expect(screen.getByRole("button", { name: "Enrol" })).toHaveAttribute(
       "title",
