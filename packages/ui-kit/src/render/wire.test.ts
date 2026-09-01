@@ -230,7 +230,7 @@ describe("readWireSurface commands", () => {
   /**
    * The defect the Commands section was built to fix. An args type sat in the
    * "nothing can route this" table beside genuine dynamic-channel payloads, so
-   * the kOS page read as ten payloads published on one topic.
+   * a one-topic Uplink read as ten payloads published on that topic.
    */
   it("takes a command's args out of the unroutable-payload table", () => {
     const surface = readWireSurface(

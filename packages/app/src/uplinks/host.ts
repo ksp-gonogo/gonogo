@@ -87,9 +87,11 @@ export function buildGonogoHost(): GonogoHost {
         key,
       )) as GonogoHost["useTelemetry"],
     useViewUt: () => useViewUt(),
-    // One implementation behind two overloads, the same shape `useTelemetry`
-    // above already has: the typed `CommandId` arm and the untyped escape hatch
-    // are the same call with different type parameters.
+    /*
+     * One implementation behind two overloads, the same shape `useTelemetry`
+     * above already has: the typed `CommandId` arm and the untyped escape hatch
+     * are the same call with different type parameters.
+     */
     useCommand: ((command: string, options?: { vantage?: string }) =>
       useCommand(command, options)) as GonogoHost["useCommand"],
     useUplinkRelay: (uplinkId) => useUplinkRelay(uplinkId),

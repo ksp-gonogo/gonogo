@@ -80,9 +80,9 @@ export interface WireSurface {
    * distinction between the two is not in the generated slice, so the page names
    * both rather than picking one.
    *
-   * A command's args USED to be in here too, unmarked, which is how a reader of
-   * the kOS page concluded that ten payloads were published on one topic. They
-   * are routed now, through `commands`, so they have left.
+   * A command's args USED to be in here too, unmarked, so an Uplink with one
+   * topic and seven command-arg shapes read as ten payloads published on that
+   * one topic. They are routed now, through `commands`, so they have left.
    */
   payloads: WirePayload[];
   /**
@@ -335,8 +335,8 @@ function fieldList(list: WireField[]): string {
  * extensions bag. The distinction is not in the generated slice, and a `Kind`
  * column that could only ever say "one of two" is not a fact. Every one of them
  * is a shape this Uplink puts on the wire, which is what the table claims.
- * Command args used to be folded in here as a third, which is how the kOS page
- * read as ten payloads on one topic; they have their own section now.
+ * Command args used to be folded in here as a third, which is how a one-topic
+ * Uplink read as ten payloads on that topic; they have their own section now.
  *
  * Nothing at all when the Uplink has no contract slice: a client-only Uplink
  * extending widgets that already exist adds no wire values, and a heading saying

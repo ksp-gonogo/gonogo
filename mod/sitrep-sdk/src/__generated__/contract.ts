@@ -2476,8 +2476,8 @@ export interface PayloadMeta
 * describes the ABSENCE rather than a wire shape: it generates as an empty
 * interface, which is what makes the SDK's `send()` take no argument for these
 * five and an argument for everything else. An Uplink with its own no-args
-* commands declares its own marker in its own slice (`MechJebNoArgs` is the
-* precedent), never this one: it belongs to core.
+* commands declares its own marker in its own slice, never this one: it
+* belongs to core.
 */
 export interface NoCommandArgs
 {

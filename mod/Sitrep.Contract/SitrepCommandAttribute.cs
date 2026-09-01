@@ -36,7 +36,7 @@ namespace Sitrep.Contract
     ///
     /// <para>A command with NO arguments still needs somewhere to carry its tag,
     /// and that somewhere is <see cref="NoCommandArgs"/> for core (an Uplink's
-    /// own slice declares its own marker, e.g. <c>MechJebNoArgs</c>). The
+    /// own slice declares its own marker). The
     /// alternative, an attribute on some catalog class listing the ids, is a
     /// hand-maintained list in a new place, which is the failure this tag
     /// exists to end.</para>

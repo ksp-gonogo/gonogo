@@ -522,7 +522,7 @@ export function useCommand<C extends CommandId>(
  * member. Args and reply stay `unknown` unless the caller names them, which is
  * exactly what every call did before the map existed.
  *
- *   const reEnable = useCommand<{ scriptId: string }>(`kos.compute.${id}.reEnable`);
+ *   const reset = useCommand<{ id: string }>(`my-uplink.probe.${probeId}.reset`);
  *
  * An Uplink declaring its OWN commands should not live here. Augment
  * `CommandArgsMap`/`CommandReplyMap` from the client package and call

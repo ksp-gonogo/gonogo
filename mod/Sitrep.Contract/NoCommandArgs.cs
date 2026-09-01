@@ -18,8 +18,7 @@ namespace Sitrep.Contract;
 /// generates as an empty interface, which is what makes the SDK's
 /// <c>send()</c> take no argument for these five and an argument for
 /// everything else. An Uplink with its own no-args commands declares its own
-/// marker in its own slice (<c>MechJebNoArgs</c> is the precedent), never this
-/// one: it belongs to core.</para>
+/// marker in its own slice, never this one: it belongs to core.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

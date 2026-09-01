@@ -84,10 +84,10 @@ interface PendingUplinkQueueLike {
  * addressed by a computed string.
  *
  * `send` is declared method-style rather than as a property holding a function,
- * deliberately: that is what makes a `UseCommandResult<SetEnabledArgs, …>`
- * assignable to the bare `UseCommandResult` that `<CommandDelay handle>` and
- * `useAutoCommand` take. As a property, `strictFunctionTypes` checks the
- * parameter contravariantly and every typed handle stops being a handle.
+ * deliberately: that is what makes a typed handle assignable to the bare
+ * `UseCommandResult` that every delay-rail control takes. As a property,
+ * `strictFunctionTypes` checks the parameter contravariantly and every typed
+ * handle stops being a handle.
  */
 export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
   /**
