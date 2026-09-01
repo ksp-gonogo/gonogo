@@ -41,6 +41,7 @@ Run a kerboscript on a kOS CPU: pick the CPU, path, and args, dispatch over the 
 | Widget id | `kos-script-trigger` |
 | Reads | `kos.processors` |
 | Default size | 10 × 9 |
+| Scenes | 1 |
 
 ![Two CPUs in range and none pinned, so the widget asks which one to run on rather than guessing](docs/assets/two-cpus-idle--default.png)
 
@@ -55,6 +56,7 @@ Interactive or read-only terminal for a kOS CPU, streamed in-process over the Up
 | Widget id | `kos-terminal` |
 | Reads | `kos.processors` |
 | Default size | 18 × 15 |
+| Scenes | 3 |
 
 ![A script running: kOS redraws the screen in chunks and the terminal repaints as they land](docs/assets/boot-then-run--default.gif)
 

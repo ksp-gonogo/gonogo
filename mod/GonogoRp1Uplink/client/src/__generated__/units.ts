@@ -186,6 +186,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     massOrig: "t",
     maxEngineers: "count",
     name: "text",
+    newPadCost: "funds",
     rate: "bp/s",
     resourcesHandled: "id",
     salaryPerDay: "f/day",
@@ -312,6 +313,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     lcId: "id",
     reserveFunds: "funds",
     targetCount: "count",
+  },
+  "Rp1LcPricing": {
+    additionalPadCostMult: "ratio",
+  },
+  "Rp1LcResourcePrice": {
+    name: "id",
+    padCostPerUnit: "funds",
   },
   "Rp1LeaderEntry": {
     canRemoveFromUt: "ut",
@@ -606,6 +614,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     massOrig: "t",
     maxEngineers: "count",
     name: "text",
+    newPadCost: "funds",
     rate: "bp/s",
     resourcesHandled: "id",
     salaryPerDay: "f/day",
@@ -672,6 +681,9 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     originalFunds: "funds",
     targetFunds: "funds",
     timeLeft: "s",
+  },
+  "rp1.lcPricing": {
+    additionalPadCostMult: "ratio",
   },
   "rp1.operations": {
     associatedVesselId: "id",
@@ -856,6 +868,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "Rp1FundingCurveEntry": {
     keys: "Rp1FundingCurveKey[]",
   },
+  "Rp1LcPricing": {
+    resources: "Rp1LcResourcePrice[]",
+  },
   "Rp1Personnel": {
     hireTarget: "Rp1HireTarget",
   },
@@ -875,6 +890,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "rp1.careerEvents": {
     events: "Rp1CareerEventEntry[]",
+  },
+  "rp1.lcPricing": {
+    resources: "Rp1LcResourcePrice[]",
   },
   "rp1.personnel": {
     hireTarget: "Rp1HireTarget",

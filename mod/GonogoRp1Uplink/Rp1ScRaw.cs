@@ -54,6 +54,7 @@ namespace GonogoRp1Uplink
         public Rp1ConfidenceRaw? Confidence;
 
         public Rp1RushTermsRaw? RushTerms;
+        public Rp1LcPricingRaw? LcPricing;
 
         /// <summary>
         /// The standing hire instruction, null when RP-1's space centre could not
@@ -83,6 +84,16 @@ namespace GonogoRp1Uplink
         public double? UpkeepPerDay;
     }
 
+    /// <summary>
+    /// One fluid a complex can be built to handle, priced per unit of capacity.
+    /// Null on an axis means that kind of complex does not offer the resource.
+    /// </summary>
+    public sealed class Rp1LcResourcePriceRaw
+    {
+        public string? Name;
+        public double? PadCostPerUnit;
+    }
+
     public sealed class Rp1ComplexRaw
     {
         public string? KscName;
@@ -109,6 +120,7 @@ namespace GonogoRp1Uplink
         public List<string>? ResourcesHandled;
         public double? SalaryPerDay;
         public double? UpkeepPerDay;
+        public double? NewPadCost;
 
         /// <summary>
         /// The complex's size envelope per axis in metres, or null per axis for
@@ -346,6 +358,17 @@ namespace GonogoRp1Uplink
     /// when the settings could not be read, which is how a client learns to say
     /// nothing about the price instead of quoting a default.
     /// </summary>
+    /// <summary>
+    /// What building a complex costs, for a client pricing one that does not exist
+    /// yet. See the contract's Rp1LcPricing for why this half is sent and the other
+    /// half is computed.
+    /// </summary>
+    public sealed class Rp1LcPricingRaw
+    {
+        public double? AdditionalPadCostMult;
+        public List<Rp1LcResourcePriceRaw>? Resources;
+    }
+
     public sealed class Rp1RushTermsRaw
     {
         public double? RateMult;

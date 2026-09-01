@@ -56,6 +56,7 @@ Vessel-wide Kerbalism resource ledger: root-cause diagnosis, every profile resou
 | Slots | `ship-systems.life-support` |
 | Only while present | `flight` |
 | Default size | 9 × 15 |
+| Scenes | 2 |
 
 ![Electric Charge short and named as the limiting factor, with the Water shortage it explains sorted underneath it](docs/assets/ec-shortage-limits-water--default.png)
 
@@ -74,6 +75,7 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | Uses if present | `vessel.flight` |
 | Only while present | `flight` |
 | Default size | 8 × 11 |
+| Scenes | 6 |
 
 ![Two stars, one quiet and one with an inbound CME, each on its own activity diagram](docs/assets/binary--default.png)
 
@@ -91,12 +93,12 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 
 ## Augments
 
-| Augment | Into | Reads | Presence | Notes |
-| --- | --- | --- | --- | --- |
-| `life-support-greenhouse` | `ship-systems.life-support` | – |  |  |
-| `crew-status-radiation-summary` | `crew-status.summary` | – | only while `kerbalism` |  |
-| `crew-status-survival-badge` | `crew-status.row-badges` | – | only while `kerbalism` |  |
-| `science-data-aboard-row-file-manager` | `science-data.aboard-row` | – | only while `kerbalism` |  |
+| Augment | Into | Reads | Presence | Scenes | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `life-support-greenhouse` | `ship-systems.life-support` | – |  | 1 |  |
+| `crew-status-radiation-summary` | `crew-status.summary` | – | only while `kerbalism` | 0 |  |
+| `crew-status-survival-badge` | `crew-status.row-badges` | – | only while `kerbalism` | 0 |  |
+| `science-data-aboard-row-file-manager` | `science-data.aboard-row` | – | only while `kerbalism` | 1 |  |
 
 ![Greenhouse halted in shadow: the growth rate stops and the row names the reason, while the reason named underneath rather than left to a stopped rate](docs/assets/greenhouse-halted-in-the-dark--default.png)
 

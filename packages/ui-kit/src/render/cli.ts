@@ -3,7 +3,12 @@ import { mkdtemp, readdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { display, resolveUplinkPackage } from "./context";
-import { buildManifest, buildReadme, type DocsInputs } from "./docs";
+import {
+  buildManifest,
+  buildReadme,
+  type DocsInputs,
+  scenesAssertingNothing,
+} from "./docs";
 import { type Engine, renderUplink } from "./driver";
 import {
   type AssetShape,
@@ -223,6 +228,51 @@ async function main(argv: readonly string[]): Promise<void> {
     return;
   }
 
+  // The COVERAGE gate. Note what this is NOT: a new check. `assertEveryWidgetCovered`
+  // has always THROWN for a widget with no scene, and has always let an AUGMENT off
+  // with a line on stdout. That line was drawn when augments were rare, and twelve
+  // of RP-1's thirteen registrations are augments, so the strict half stopped
+  // covering almost everything. `rp1-warp-targets` sat in the page's Augments table
+  // for a day with no renders and `--check` passed every time, because drift asks
+  // whether the page matches the code and a registration that renders nothing
+  // matches perfectly.
+  //
+  // So this promotes augments to the rule widgets already live under, against a
+  // shrink-only debt list for the ones that predate it. Contributions stay
+  // advisory: a contribution supplies a value to a host surface and need not have
+  // a look of its own.
+  const exempt = await readDocsExempt(pkg.dir);
+  const excused = new Set([
+    ...Object.keys(exempt.unrenderable ?? {}),
+    ...(exempt.sceneDebt ?? []),
+  ]);
+  const bare = result.unpreviewed
+    .filter((entry) => entry.startsWith("augment:"))
+    .map((entry) => entry.slice("augment:".length))
+    .filter((id) => !excused.has(id));
+  if (bare.length > 0) {
+    throw new Error(
+      `gonogo-uplink docs --check: ${bare.length} augment(s) declare no render ` +
+        `scene, so no reviewer can ever see them:\n  ${bare.join("\n  ")}\n\n` +
+        "Add a `_scene` fixture under the widget's `__fixtures__/`, showing a state " +
+        "worth reviewing rather than the happy path.\n\n" +
+        "COVERAGE IS NOT CORRECTNESS: a registration with four scenes can still hide " +
+        "its interesting state, which is exactly how RP-1's dismantle warnings stayed " +
+        "invisible with four scenes already committed. This only says somebody CAN look.",
+    );
+  }
+
+  const unasserted = scenesAssertingNothing(inputs);
+  if (unasserted.length > 0) {
+    console.warn(
+      `\n  warning: ${unasserted.length} scene(s) declare no "_scene.paints", so they ` +
+        "assert nothing about what the render says:\n    " +
+        unasserted.join("\n    ") +
+        "\n  A scene that asserts nothing is a picture nobody has read. `paints` is " +
+        "what catches a sentence that silently stopped appearing.",
+    );
+  }
+
   const differences: string[] = [];
   await compareText(readmePath, readme, differences);
   await compareText(manifestPath, manifestJson, differences);
@@ -246,6 +296,45 @@ async function main(argv: readonly string[]): Promise<void> {
     );
   }
   console.log("\ndocs --check: the committed page matches the code.");
+}
+
+/**
+ * One Uplink's declared render exemptions, from `docs-exempt.json` beside its
+ * `package.json`.
+ *
+ * <p><b>Per-Uplink rather than a list in here, and that is the whole point.</b> The
+ * first draft of this gate carried two central sets naming the offending augments,
+ * and `uplink-boundary` refused it, correctly: a shared tool naming an individual
+ * Uplink's augment ids couples `ui-kit` to code it must not know about, which is
+ * the same complaint this project has about allowlists generally. So the exemption lives
+ * WITH the code it describes, and the reason sits where the person who would
+ * change it will read it.</p>
+ *
+ * <p>Two kinds, because conflating them is how a debt list becomes an allowlist:</p>
+ * <ul>
+ *   <li><b>`unrenderable`</b> is permanent and needs a reason. `assertEveryWidgetCovered`
+ *   has always let augments off, and its own test says why: an overlay augment draws
+ *   in its host's projection, so a stand-in panel gives it nothing to draw against
+ *   and demanding a fixture would be demanding a picture that cannot be honest.</li>
+ *   <li><b>`sceneDebt`</b> is temporary and needs a SCENE. Entries here predate the
+ *   gate; the file is expected to shrink and a new entry means new code created the
+ *   very problem the gate exists to stop.</li>
+ * </ul>
+ */
+interface DocsExempt {
+  unrenderable?: Record<string, string>;
+  sceneDebt?: string[];
+}
+
+async function readDocsExempt(dir: string): Promise<DocsExempt> {
+  try {
+    return JSON.parse(
+      await readFile(join(dir, "docs-exempt.json"), "utf8"),
+    ) as DocsExempt;
+  } catch {
+    // Absent is the normal case and means "every augment must render".
+    return {};
+  }
 }
 
 function reportFont(mode: string, advice?: string): void {

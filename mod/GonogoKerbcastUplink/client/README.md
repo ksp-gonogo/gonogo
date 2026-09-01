@@ -36,6 +36,7 @@ Live camera streams from in-flight Hullcam VDS parts, with an in-widget camera p
 | Actions | `nextCamera`, `prevCamera`, `zoomIn`, `zoomOut`, `panYaw`, `panPitch` |
 | Slots | `camera-feed.overlay` |
 | Default size | 6 × 5 |
+| Scenes | 2 |
 
 ![A fixed camera, which most are: no aim to give it, so the feed has the whole tile and the header carries the name and the signal delay](docs/assets/camera-feed-fixed--default.png)
 
@@ -51,9 +52,9 @@ Live camera streams from in-flight Hullcam VDS parts, with an in-widget camera p
 
 ## Augments
 
-| Augment | Into | Reads | Presence | Notes |
-| --- | --- | --- | --- | --- |
-| `kerbcast-crew-avatar` | `crew-status.avatar` | – | only while `kerbcast` |  |
-| `kerbcast-docking-camera` | `targeting.camera` | `kerbcast.cameras` | only while `kerbcast` |  |
+| Augment | Into | Reads | Presence | Scenes | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `kerbcast-crew-avatar` | `crew-status.avatar` | – | only while `kerbcast` | 0 |  |
+| `kerbcast-docking-camera` | `targeting.camera` | `kerbcast.cameras` | only while `kerbcast` | 0 |  |
 
 

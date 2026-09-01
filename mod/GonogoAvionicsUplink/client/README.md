@@ -30,6 +30,7 @@ RP-1 ascent controllability: is the vessel mass within the active avionics unit'
 | Reads | `avionics.status` |
 | Only while present | `flight` |
 | Default size | 4 × 4 |
+| Scenes | 3 |
 
 ![No avionics unit fitted: the vessel mass still reads, the controllable ceiling is a dash rather than a substituted zero](docs/assets/no-avionics-unit--default.png)
 

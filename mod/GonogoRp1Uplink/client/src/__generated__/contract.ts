@@ -171,6 +171,7 @@ export interface Rp1ComplexEntry
 	resourcesHandled?: string[];
 	salaryPerDay?: Value<"f/day">;
 	upkeepPerDay?: Value<"f/day">;
+	newPadCost?: Value<"funds">;
 }
 export interface Rp1BuildItemEntry
 {
@@ -283,6 +284,16 @@ export interface Rp1Personnel
 	researcherSalaryPerYear?: Value<"funds">;
 	idleSalaryMult?: Value<"ratio">;
 	hireTarget?: Rp1HireTarget;
+}
+export interface Rp1LcPricing
+{
+	additionalPadCostMult?: Value<"ratio">;
+	resources?: Rp1LcResourcePrice[];
+}
+export interface Rp1LcResourcePrice
+{
+	name?: string;
+	padCostPerUnit?: Value<"funds">;
 }
 export interface Rp1RushTerms
 {

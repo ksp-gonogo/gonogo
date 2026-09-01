@@ -39,6 +39,8 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1ResearchEntry),
                 nameof(Rp1Personnel),
                 nameof(Rp1RushTerms),
+                nameof(Rp1LcPricing),
+                nameof(Rp1LcResourcePrice),
                 nameof(Rp1Confidence),
                 nameof(Rp1ProgramEntry),
                 nameof(Rp1ProgramSlots),

@@ -6,8 +6,11 @@ import {
   Row,
   Stack,
   Text,
+  TextButton,
+  TextField,
   Unit,
 } from "@ksp-gonogo/ui-kit";
+import { useState } from "react";
 import type { Rp1ComplexEntry, Rp1PadEntry } from "../__generated__/contract";
 
 /** Demolish a launch complex. Must match `Rp1ComplexLifecycleCommands.DismantleComplexCommand`. */
@@ -16,41 +19,41 @@ export const RP1_COMPLEX_DISMANTLE_COMMAND = "rp1.complex.dismantle";
 /** Demolish one of a complex's pads. Must match `Rp1ComplexLifecycleCommands.DismantlePadCommand`. */
 export const RP1_PAD_DISMANTLE_COMMAND = "rp1.pad.dismantle";
 
+/** Build one more pad at a complex. Must match `Rp1ComplexConstructionCommands.NewPadCommand`. */
+export const RP1_PAD_NEW_COMMAND = "rp1.pad.new";
+
+/** Rename a complex. Must match `Rp1ComplexLifecycleCommands.RenameComplexCommand`. */
+export const RP1_COMPLEX_RENAME_COMMAND = "rp1.complex.rename";
+
+/** Rename one of a complex's pads. Must match `Rp1ComplexLifecycleCommands.RenamePadCommand`. */
+export const RP1_PAD_RENAME_COMMAND = "rp1.pad.rename";
+
 /**
- * Demolishing a launch complex, and what it costs that RP-1 does not say.
+ * Demolishing a launch complex.
  *
- * <para><b>The whole point of this control is the sentence above it.</b> RP-1's
- * own confirmation reads "Are you sure you want to dismantle the currently
- * selected launch complex, X? This cannot be undone!" and names nothing that is
- * actually about to be lost. What is lost is the complex's EARNED BUILD
- * EFFICIENCY: RP-1 rates an efficiency record rather than a complex, and
- * demolishing the last complex on a record clears the record, so a complex
- * rebuilt to the same specification starts again from RP-1's floor and works its
- * way back up over months of career time.</para>
+ * <para><b>The warning is ON THE PRESS, not on the card.</b> It used to be three
+ * sentences standing permanently under every complex, explaining what an
+ * efficiency record is and what happens to it. The operator's ruling: "this is
+ * meant to be a mission control, not a storybook. We present facts and
+ * instrumentation, not guidance." A standing explanation of a button nobody has
+ * pressed is guidance, and it was repeated on every complex in the career.</para>
  *
- * <para>Whether that happens at all depends on something an operator cannot see
- * without being told: if another complex shares the record, the figure survives
- * in it and nothing is lost. Those are two different warnings and the wrong one
- * is worse than none, so the control says which. Both inputs are on the wire as
- * <c>efficiency</c> and <c>efficiencySharedWith</c>.</para>
+ * <para>So the whole of it is now the confirm step's own label, in the operator's
+ * own words. What is lost is the distinction between a crew rating that dies with
+ * the complex and one that survives in a sibling; what is kept is the fact that a
+ * crew rating goes at all, which is the half RP-1's own dialog never mentions. The
+ * sibling case is still on the wire as `efficiencySharedWith` for anything that
+ * wants it.</para>
  *
- * <para><b>Arm then confirm</b>, unlike the rush and assign controls beside it.
- * Those change a rate and are reversible by pressing again; this is not
- * reversible at all, which is the condition that earns a second press.</para>
- *
- * <para>It does NOT need a funds balance beside it. Demolishing spends nothing
- * and refunds nothing: the complex simply stops existing, and its structural
- * upkeep (which the card's own cost line carries) stops with it.</para>
+ * <para>Arm then confirm, because it is not reversible: a rebuilt complex starts
+ * its crew rating again from RP-1's floor.</para>
  */
 export function DismantleControl({
   complex,
-  complexNames,
   name,
   handle,
 }: Readonly<{
   complex: Rp1ComplexEntry;
-  /** Every complex in the career by id, so a surviving peer can be named rather than numbered. */
-  complexNames: ReadonlyMap<string, string>;
   name: string;
   handle: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
@@ -65,95 +68,19 @@ export function DismantleControl({
     return null;
   }
 
-  const peers = (complex.efficiencySharedWith ?? []).map(
-    (peer) => complexNames.get(peer) ?? peer,
-  );
-  const efficiency = magnitudeOf(complex.efficiency);
-  const loses = peers.length === 0 && efficiency !== null && efficiency > 0;
-
   return (
-    <Stack gap="xs">
-      <EfficiencyWarning complex={complex} loses={loses} peers={peers} />
-      <CommandButton
-        args={{ lcId }}
-        aria-label={
-          loses
-            ? `Dismantle ${name}, losing its crew rating for good`
-            : `Dismantle ${name}`
-        }
-        commandLabel={`Dismantle ${name}`}
-        confirmAriaLabel={
-          loses
-            ? `Confirm dismantling ${name} and losing its crew rating`
-            : `Confirm dismantling ${name}`
-        }
-        confirmLabel="Confirm dismantle"
-        confirmTone="nogo"
-        handle={handle}
-        label="Dismantle"
-        size="sm"
-        tone="warn"
-      />
-    </Stack>
-  );
-}
-
-/**
- * Which of the two efficiency answers this complex is, in words.
- *
- * <para>Three cases rather than two, and the third matters as much as the other
- * two: a complex nobody has built at yet has no rating to lose, because RP-1
- * creates the record the first time work happens there. Saying "nothing to lose"
- * for that case is true and useful; saying it for a complex whose rating is
- * simply unreadable would not be, which is why an absent figure and a zero are
- * kept apart.</para>
- */
-function EfficiencyWarning({
-  complex,
-  loses,
-  peers,
-}: Readonly<{
-  complex: Rp1ComplexEntry;
-  loses: boolean;
-  peers: readonly string[];
-}>) {
-  if (peers.length > 0) {
-    return (
-      <Text size="xs" tone="muted">
-        dismantling removes the complex and every pad on it. Its{" "}
-        <Unit value={complex.efficiency} /> crew rating survives with{" "}
-        {peers.join(", ")}
-      </Text>
-    );
-  }
-
-  /*
-   * An ABSENT rating and a rating of zero mean the same thing here and are said
-   * the same way: RP-1 creates the efficiency record the first time a complex is
-   * worked, so a complex nobody has built at publishes no figure at all, and one
-   * whose record sits at the floor has nothing above the floor to lose either.
-   *
-   * This branch used to test only for zero, with the absent case falling into a
-   * generic "cannot be undone" line above it. That was the wrong way round: a
-   * fresh complex reads ABSENT, so the sentence written for it was the one it
-   * could never reach. Found by a render scene, because the unit test had set the
-   * figure to zero to match the code rather than to match the wire.
-   */
-  if (!loses) {
-    return (
-      <Text size="xs" tone="muted">
-        dismantling removes the complex and every pad on it. Nothing has been
-        built here yet, so there is no crew rating to lose
-      </Text>
-    );
-  }
-
-  return (
-    <Text size="xs" tone="warn">
-      dismantling removes the complex and every pad on it, and its{" "}
-      <Unit value={complex.efficiency} /> crew rating is shared with nothing, so
-      it is LOST for good. A rebuilt complex starts again from the bottom
-    </Text>
+    <CommandButton
+      args={{ lcId }}
+      aria-label={`Dismantle ${name}`}
+      commandLabel={`Dismantle ${name}`}
+      confirmAriaLabel={`Confirm dismantling ${name}: removes the whole complex, its pads and its crew rating`}
+      confirmLabel="Warning: removes complex, pads and crew rating"
+      confirmTone="nogo"
+      handle={handle}
+      label="Dismantle"
+      size="sm"
+      tone="warn"
+    />
   );
 }
 
@@ -239,22 +166,311 @@ export function PadDismantleControl({
  * when a launch has just gone wrong. It is also the number RP-1's own rule is
  * stated against.</para>
  */
+/**
+ * Building one more pad at a complex.
+ *
+ * <para><b>The price is quoted and the press does not spend it.</b> RP-1 draws a
+ * construction down as it builds: `ConstructionProject.AddProgress` charges the
+ * fraction of the total the progress has reached, so pressing this commits to a
+ * total rather than paying it. Read in IL because it decides what the control may
+ * claim.</para>
+ *
+ * <para>And a career that cannot afford a tick is NOT refused. RP-1 spends
+ * whatever fraction it can afford, advances the build by that same fraction,
+ * stops timewarp with a screen message and carries on: no cancel, no refund,
+ * nothing on the pad's own row to say it is crawling. So a shortfall is worth
+ * saying BEFORE the press, and worth saying as a slower build rather than as a
+ * refusal, because a control that said "cannot afford" would be describing a
+ * refusal RP-1 does not make.</para>
+ *
+ * <para>The balance itself is not drawn here. It is already in this widget's
+ * body: the host draws career funds beside its pad line, and the repo rule is
+ * per-widget. What the host cannot say is whether the balance covers THIS quote,
+ * which is the half that belongs next to the press.</para>
+ *
+ * <para>Absent price is not a free pad. `newPadCost` is absent for a hangar,
+ * which has no pad, and whenever RP-1 would not price one; both draw no control
+ * rather than a control quoting nothing.</para>
+ */
+export function PadNewControl({
+  complex,
+  funds,
+  handle,
+  taken,
+}: Readonly<{
+  complex: Rp1ComplexEntry;
+  /** The career balance, for the covers-it reading only. Absent means say nothing. */
+  funds: number | null;
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+  /** Pad names already at this complex, which RP-1 refuses a duplicate of. */
+  taken: readonly string[];
+}>) {
+  const [name, setName] = useState("");
+
+  const lcId = complex.lcId;
+  const cost = magnitudeOf(complex.newPadCost);
+  if (lcId === undefined || lcId === null || cost === null) {
+    return null;
+  }
+
+  const trimmed = name.trim();
+  const duplicate = taken.some(
+    (existing) => existing.toLowerCase() === trimmed.toLowerCase(),
+  );
+  const invalid = duplicate
+    ? "a pad at this complex already has that name"
+    : undefined;
+  const short = funds !== null && funds < cost;
+
+  return (
+    <Stack gap="xs">
+      <TextField
+        invalid={invalid}
+        label={`New pad at ${complex.name ?? NULL_DISPLAY}`}
+        maxLength={64}
+        onChange={setName}
+        placeholder="pad name"
+        value={name}
+      />
+      {/* Not in a list, unlike the pad rows above, so it does not render an li. */}
+      <Row as="div">
+        <Text size="xs" tone={short ? "warn" : "muted"}>
+          <Unit value={complex.newPadCost} />
+          {short && " · more than the balance, so it builds slower"}
+        </Text>
+        <CommandButton
+          args={{ lcId, name: trimmed }}
+          aria-label={
+            trimmed === ""
+              ? "Name the pad before building it"
+              : `Build ${trimmed} at ${complex.name ?? NULL_DISPLAY}`
+          }
+          commandLabel={`Build ${trimmed} at ${complex.name ?? NULL_DISPLAY}`}
+          confirmAriaLabel={`Confirm building ${trimmed}, committing the career to its cost as it builds`}
+          confirmLabel="Confirm"
+          disabled={trimmed === "" || duplicate}
+          handle={handle}
+          label="Build"
+          size="sm"
+        />
+      </Row>
+    </Stack>
+  );
+}
+
+/**
+ * Renaming a complex or one of its pads, which are the same act twice.
+ *
+ * <para><b>It costs no standing height.</b> A rename is occasional and a text
+ * field left open on every complex and every pad would be exactly the boilerplate
+ * the operator asked to be rid of, so the closed state is one small button and
+ * the field appears on the press.</para>
+ *
+ * <para><b>The duplicate refusal is ours, not RP-1's.</b> RP-1 returns silently
+ * when a name is already taken: no message, no change, and the old name still on
+ * screen, which reads as a control that did nothing rather than as a refusal. So
+ * the duplicate is refused here, before the dispatch, in words. The command
+ * refuses it as well for anything that sends it anyway, and reads the name back
+ * afterwards for the same reason.</para>
+ */
+export function RenameControl({
+  args,
+  currentName,
+  handle,
+  label,
+  onDone,
+  open: controlled,
+  taken,
+}: Readonly<{
+  /** Everything the command needs except the name, which this control supplies. */
+  args: Record<string, string>;
+  currentName: string;
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+  /** What is being renamed, for the field label and every announced name. */
+  label: string;
+  /**
+   * Open from the start, for a caller that owns the trigger. A pad row's editor
+   * REPLACES the row, so the row has to know it is renaming; a complex has no such
+   * constraint and lets this control own both halves.
+   */
+  open?: boolean;
+  /** Told when the editor closes, so a caller owning the trigger can follow it. */
+  onDone?: () => void;
+  /** The names already in use at this scope, which RP-1 would silently refuse. */
+  taken: readonly string[];
+}>) {
+  const [ownOpen, setOwnOpen] = useState(false);
+  const [next, setNext] = useState(currentName);
+  const open = controlled === true || ownOpen;
+
+  const close = () => {
+    setOwnOpen(false);
+    onDone?.();
+  };
+
+  if (!open) {
+    return (
+      <TextButton
+        aria-label={`Rename ${label}`}
+        onClick={() => {
+          setNext(currentName);
+          setOwnOpen(true);
+        }}
+      >
+        rename
+      </TextButton>
+    );
+  }
+
+  const trimmed = next.trim();
+  const duplicate = taken.some(
+    (existing) =>
+      existing.toLowerCase() === trimmed.toLowerCase() &&
+      existing.toLowerCase() !== currentName.toLowerCase(),
+  );
+  const unchanged = trimmed === currentName;
+
+  return (
+    <Stack gap="xs">
+      <TextField
+        invalid={duplicate ? "that name is already in use here" : undefined}
+        label={`New name for ${label}`}
+        maxLength={64}
+        onChange={setNext}
+        value={next}
+      />
+      <Inline gap="xs">
+        <CommandButton
+          args={{ ...args, name: trimmed }}
+          aria-label={
+            trimmed === ""
+              ? `Give ${label} a name`
+              : unchanged
+                ? `${label} is already called that`
+                : `Rename ${label} to ${trimmed}`
+          }
+          commandLabel={`Rename ${label} to ${trimmed}`}
+          disabled={trimmed === "" || duplicate || unchanged}
+          handle={handle}
+          label="Rename"
+          size="sm"
+        />
+        <TextButton
+          aria-label={`Leave ${label} named ${currentName}`}
+          onClick={close}
+        >
+          cancel
+        </TextButton>
+      </Inline>
+    </Stack>
+  );
+}
+
+/**
+ * One pad's row, which becomes its rename editor rather than growing one.
+ *
+ * <para>The editor takes the whole row instead of the right-hand slot beside the
+ * dismantle. Sharing that slot put a text field, a Rename, a cancel and a
+ * Dismantle in a column two lines taller than the row it belonged to, which read
+ * as a layout accident. A row that turns into the thing being done to it is the
+ * same amount of space and says what is happening.</para>
+ */
+function PadRow({
+  complex,
+  dismantlePad,
+  lcId,
+  pad,
+  renamePad,
+  taken,
+}: Readonly<{
+  complex: Rp1ComplexEntry;
+  dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
+  lcId: string | undefined;
+  pad: Rp1PadEntry;
+  renamePad: Parameters<typeof CommandButton>[0]["handle"];
+  taken: readonly string[];
+}>) {
+  const [renaming, setRenaming] = useState(false);
+  const padName = pad.name ?? NULL_DISPLAY;
+  const canRename = pad.padId != null && lcId != null;
+
+  if (renaming && canRename) {
+    return (
+      <Row as="li">
+        <RenameControl
+          args={{ lcId: lcId as string, padId: pad.padId as string }}
+          currentName={padName}
+          handle={renamePad}
+          label={padName}
+          onDone={() => setRenaming(false)}
+          open
+          taken={taken}
+        />
+      </Row>
+    );
+  }
+
+  return (
+    <Row>
+      <Text size="xs">
+        {padName} at level <Unit value={pad.level} />
+        {pad.isOperational === false && " · not in service"}
+      </Text>
+      <Inline gap="xs">
+        {canRename && (
+          <TextButton
+            aria-label={`Rename ${padName}`}
+            onClick={() => setRenaming(true)}
+          >
+            rename
+          </TextButton>
+        )}
+        <PadDismantleControl
+          complex={complex}
+          handle={dismantlePad}
+          pad={pad}
+        />
+      </Inline>
+    </Row>
+  );
+}
+
 export function PadRows({
   complex,
   pads,
   dismantlePad,
+  funds,
+  newPad,
+  renamePad,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   pads: readonly Rp1PadEntry[];
   dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
+  funds: number | null;
+  newPad: Parameters<typeof CommandButton>[0]["handle"];
+  renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const operational = magnitudeOf(complex.launchPadCount);
+  const lcId = complex.lcId;
+  const taken = pads
+    .map((pad) => pad.name)
+    .filter((padName): padName is string => padName != null);
 
+  // A complex with no pads still takes one, and this is the state where it most
+  // needs to: a pad complex without a pad cannot launch anything.
   if (pads.length === 0) {
     return (
-      <Text size="xs" tone="muted">
-        no pads
-      </Text>
+      <Stack gap="xs">
+        <Text size="xs" tone="muted">
+          no pads
+        </Text>
+        <PadNewControl
+          complex={complex}
+          funds={funds}
+          handle={newPad}
+          taken={taken}
+        />
+      </Stack>
     );
   }
 
@@ -268,19 +484,23 @@ export function PadRows({
       </Text>
       <Stack as="ul" gap="xs" style={LIST_STYLE}>
         {pads.map((pad, index) => (
-          <Row key={pad.padId ?? pad.name ?? String(index)}>
-            <Text size="xs">
-              {pad.name ?? NULL_DISPLAY} at level <Unit value={pad.level} />
-              {pad.isOperational === false && " · not in service"}
-            </Text>
-            <PadDismantleControl
-              complex={complex}
-              handle={dismantlePad}
-              pad={pad}
-            />
-          </Row>
+          <PadRow
+            complex={complex}
+            dismantlePad={dismantlePad}
+            key={pad.padId ?? pad.name ?? String(index)}
+            lcId={lcId}
+            pad={pad}
+            renamePad={renamePad}
+            taken={taken}
+          />
         ))}
       </Stack>
+      <PadNewControl
+        complex={complex}
+        funds={funds}
+        handle={newPad}
+        taken={taken}
+      />
     </Stack>
   );
 }

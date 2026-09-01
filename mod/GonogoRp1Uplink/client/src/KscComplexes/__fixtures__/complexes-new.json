@@ -1,0 +1,225 @@
+{
+  "_meta": {
+    "notes": "The new-complex form, open, on a career that cannot cover what it is quoting. The quote is computed in the client because a new complex is priced against what the operator is typing and these commands are delay-aware; the arithmetic is pinned against figures the shipped RP0.dll generated, see lc-cost-cases.json."
+  },
+  "_scene": {
+    "augment": "rp1-ksc-complexes",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 24
+    },
+    "caption": "The new-complex form open at its defaults: every field priced, the tonnage limit stating the renovation range it fixes for life, and a 26,453f quote against a 400f balance that slows the build rather than refusing it",
+    "paints": [
+      "Centre",
+      "Name",
+      "Tonnage limit",
+      "renovations later are held between",
+      "Human-rated",
+      "Assign idle engineers when it is built",
+      "Build"
+    ],
+    "before": [
+      {
+        "press": "Build a new launch complex"
+      }
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 400,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.personnel",
+        "payload": {
+          "totalEngineers": 50,
+          "researchers": 31,
+          "applicants": 7,
+          "engineerSalaryPerDay": 150.3,
+          "researcherSalaryPerDay": 42.4,
+          "engineerSalaryPerYear": 1000,
+          "researcherSalaryPerYear": 1000,
+          "idleSalaryMult": 0.25
+        }
+      },
+      {
+        "topic": "rp1.rushTerms",
+        "payload": {
+          "rateMult": 1.5,
+          "salaryMult": 2
+        }
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "isActive": true,
+            "engineers": 50,
+            "unassignedEngineers": 0,
+            "launchComplexCount": 2,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral",
+            "salaryPerDay": 150.3,
+            "idleSalaryPerDay": 0,
+            "upkeepPerDay": 75
+          }
+        ]
+      },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 44,
+            "maxEngineers": 60,
+            "efficiency": 0.51,
+            "efficiencySharedWith": ["lc-2"],
+            "canIntegrate": true,
+            "rate": 0.0004822530864197531,
+            "humanRated": false,
+            "launchPadCount": 2,
+            "massMin": 6,
+            "massMax": 180,
+            "massOrig": 90,
+            "sizeMaxHeight": 40,
+            "sizeMaxWidth": 9,
+            "sizeMaxDepth": 12,
+            "resourcesHandled": ["Kerosene", "LqdOxygen"],
+            "salaryPerDay": 120.9,
+            "upkeepPerDay": 45,
+            "newPadCost": 14118.31
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "name": "LC-2",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 6,
+            "maxEngineers": 40,
+            "efficiency": 0.4,
+            "efficiencySharedWith": ["lc-1"],
+            "canIntegrate": true,
+            "rate": 6.430041152263374e-5,
+            "humanRated": false,
+            "launchPadCount": 1,
+            "massMin": 3,
+            "massMax": 90,
+            "massOrig": 90,
+            "sizeMaxHeight": 30,
+            "sizeMaxWidth": 6,
+            "sizeMaxDepth": 8,
+            "resourcesHandled": ["Kerosene", "LqdOxygen"],
+            "salaryPerDay": 16.4,
+            "upkeepPerDay": 30,
+            "newPadCost": 8815.96
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "isOperational": true,
+            "name": "LP-1",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1b",
+            "isOperational": true,
+            "name": "LP-1B",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-2",
+            "padId": "pad-2",
+            "isOperational": true,
+            "name": "LP-2",
+            "launchSiteName": "LaunchPad",
+            "level": 2,
+            "fractionalLevel": 2,
+            "state": "Free",
+            "hasVesselWaiting": false
+          }
+        ]
+      },
+      {
+        "topic": "rp1.lcPricing",
+        "payload": {
+          "additionalPadCostMult": 0.5,
+          "resources": [
+            {
+              "name": "Kerosene",
+              "padCostPerUnit": 0.2571
+            },
+            {
+              "name": "LqdOxygen",
+              "padCostPerUnit": 0.0904
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

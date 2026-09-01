@@ -4,13 +4,16 @@ import {
   Card,
   Cluster,
   CommandButton,
+  Disclosure,
   Inline,
   magnitudeOf,
   NULL_DISPLAY,
   ProgressBar,
+  Row,
+  RowName,
   Stack,
+  Stepper,
   Text,
-  ToggleButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
@@ -19,7 +22,7 @@ import type {
   Rp1PadEntry,
   Rp1RushTerms,
 } from "../__generated__/contract";
-import { DismantleControl, PadRows } from "./Lifecycle";
+import { DismantleControl, PadRows, RenameControl } from "./Lifecycle";
 
 /**
  * ONE launch complex, drawn as the thing an operator administers.
@@ -49,6 +52,10 @@ export function ComplexCard({
   rush,
   dismantle,
   dismantlePad,
+  funds,
+  newPad,
+  renameComplex,
+  renamePad,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   centreName: string;
@@ -62,6 +69,11 @@ export function ComplexCard({
   rush: Parameters<typeof CommandButton>[0]["handle"];
   dismantle: Parameters<typeof CommandButton>[0]["handle"];
   dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
+  /** The career balance, so a pad quote can say whether it is covered. */
+  funds: number | null;
+  newPad: Parameters<typeof CommandButton>[0]["handle"];
+  renameComplex: Parameters<typeof CommandButton>[0]["handle"];
+  renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const name = complex.name ?? NULL_DISPLAY;
   const engineers = magnitudeOf(complex.engineers);
@@ -86,13 +98,6 @@ export function ComplexCard({
           </Inline>
         </Cluster>
 
-        {/* The line that answers "what am I looking at". A complex, of a kind,
-            at a named centre, and not one of the career-wide facilities. */}
-        <Text size="xs" tone="muted">
-          {complex.lcType === "Hangar" ? "hangar complex" : "pad complex"} at{" "}
-          {centreName}
-        </Text>
-
         <Crew
           complex={complex}
           complexNames={complexNames}
@@ -113,26 +118,56 @@ export function ComplexCard({
           />
         )}
 
-        {rushing && <RushStatus terms={terms} />}
-
-        <Envelope complex={complex} />
-        <Renovation complex={complex} />
-        <Costs complex={complex} />
-        <PadRows complex={complex} dismantlePad={dismantlePad} pads={pads} />
-
-        {operational && (
-          <RushControl complex={complex} handle={rush} name={name} />
-        )}
-
-        {/* Last in the card, and after the rush control on purpose: an operator
-            scanning down reaches the reversible acts before the one that is
-            not. */}
-        <DismantleControl
-          complex={complex}
-          complexNames={complexNames}
-          handle={dismantle}
-          name={name}
-        />
+        {/*
+          Everything below the crew is behind one expander, on the operator's
+          ruling that a complex was "using a lot of space for quite boilerplate
+          information". What stays above it is what changes and what is acted on:
+          the crew, because RP-1 advances work at Engineers/MaxEngineers so a
+          complex with nobody assigned builds nothing, and the badges, because a
+          rushing complex is paying double salary and an unstaffed one is idle.
+          The envelope, the costs and the pads are reference: true for months at a
+          time and read when a decision needs them.
+        */}
+        <Disclosure
+          ariaLabel={`Detail for ${name}`}
+          chevron
+          label={(open: boolean) => (open ? "hide detail" : "detail")}
+          panelHeight="auto"
+          variant="inline"
+        >
+          <Stack gap="sm">
+            {rushing && <RushStatus terms={terms} />}
+            <Envelope complex={complex} />
+            <Costs complex={complex} />
+            {complex.lcId != null && (
+              <Inline gap="xs">
+                <RenameControl
+                  args={{ lcId: complex.lcId }}
+                  currentName={name}
+                  handle={renameComplex}
+                  label={name}
+                  taken={[...complexNames.values()]}
+                />
+              </Inline>
+            )}
+            <PadRows
+              complex={complex}
+              dismantlePad={dismantlePad}
+              funds={funds}
+              newPad={newPad}
+              pads={pads}
+              renamePad={renamePad}
+            />
+            {operational && (
+              <RushControl complex={complex} handle={rush} name={name} />
+            )}
+            <DismantleControl
+              complex={complex}
+              handle={dismantle}
+              name={name}
+            />
+          </Stack>
+        </Disclosure>
       </Stack>
     </Card>
   );
@@ -185,7 +220,7 @@ function Crew({
           )}
         </Text>
       </Cluster>
-      <SharedEfficiency complex={complex} complexNames={complexNames} />
+      <SharedRating complex={complex} complexNames={complexNames} />
       {share === null ? null : (
         <ProgressBar
           ariaLabel={`Crew assigned to ${name}, as a share of what it can hold`}
@@ -260,8 +295,7 @@ function AssignControl({
     // widget that forgot to draw it.
     return (
       <Text size="xs" tone="muted">
-        {NULL_DISPLAY} RP-1 has not said how many engineers this complex holds,
-        so there is nothing to move
+        {NULL_DISPLAY} RP-1 has not said how many engineers this complex holds
       </Text>
     );
   }
@@ -276,23 +310,48 @@ function AssignControl({
 
   return (
     <Stack gap="xs">
-      <Cluster align="start" gap="sm" wrap>
-        <Inline
-          aria-label={`Engineers moved per press at ${name}`}
-          gap="xs"
-          role="group"
-        >
-          {STEPS.map((option) => (
-            <ToggleButton
-              active={step === option}
-              key={String(option)}
-              onClick={() => setStep(option)}
-              size="sm"
-            >
-              {option === "all" ? "ALL" : option}
-            </ToggleButton>
-          ))}
+      {/*
+        RP-1's own layout, which the operator asked for by name. Its personnel
+        window reads `Assigned: [-1] 44 [+1]  Max: 60`, with `Engineers: 50
+        Unassigned: 6` above: the two buttons CARRY the number they will move, and
+        the size comes from a held modifier key (none/shift/ctrl/alt for
+        1/10/100/all) rather than from anything on screen.
+        A dashboard cannot use modifier keys, so the size is a control here. But it
+        is drawn as a labelled SETTING rather than a row of actions, because the
+        operator's complaint was exact: "The 1 option is highlighted on every LC,
+        but I don't understand why... it looks like 1 is already pressed." A
+        selected step in a group of buttons reads as a button that has been
+        pressed. Labelling the group "step" and keeping the amount ON the two
+        command buttons is what tells the two apart.
+      */}
+      <Cluster align="center" gap="sm" wrap>
+        {/*
+          A Stepper rather than a row of toggles, and the operator's words are the
+          reason: "The 1 option is highlighted on every LC, but I don't understand
+          why... it looks like 1 is already pressed." A segmented control sitting
+          next to two command buttons reads as an action that has been taken,
+          because a selected toggle and a pressed button look the same. A stepper
+          has a VALUE between two arrows and no pressed state at all, which is
+          what it is: RP-1 holds this as a modifier key, not as a control.
+        */}
+        <Inline gap="xs">
+          <Text size="xs" tone="muted">
+            step
+          </Text>
+          <Stepper
+            label={`Engineers moved per press at ${name}`}
+            onChange={setStep}
+            options={STEPS}
+            value={step}
+          />
         </Inline>
+
+        {/*
+          Always a symmetric pair, and each side always shows the number it would
+          move. The operator saw "a '-1' and a '+' together" because the grow side
+          fell back to a bare glyph when it could not move: a disabled button that
+          drops its number stops being the other half of a pair.
+        */}
         <Inline gap="xs">
           <CommandButton
             args={{ engineers: engineers - shrink, lcId }}
@@ -304,7 +363,7 @@ function AssignControl({
             commandLabel={`Assign ${engineers - shrink} engineers to ${name}`}
             disabled={shrink === 0}
             handle={handle}
-            label={shrink === 0 ? "−" : `−${shrink}`}
+            label={`−${shrink === 0 ? (size === Number.POSITIVE_INFINITY ? 0 : size) : shrink}`}
             size="sm"
           />
           <CommandButton
@@ -319,26 +378,35 @@ function AssignControl({
             commandLabel={`Assign ${engineers + grow} engineers to ${name}`}
             disabled={grow === 0}
             handle={handle}
-            label={grow === 0 ? "+" : `+${grow}`}
+            label={`+${grow === 0 ? (size === Number.POSITIVE_INFINITY ? 0 : size) : grow}`}
             size="sm"
           />
         </Inline>
       </Cluster>
 
-      {/* The two limits, at opposite ends of the card, because they are two
-          different things to go and fix: free somebody at the centre, or build
-          this complex up. Read as one line they would be one ceiling. */}
-      <Cluster gap="md" wrap>
-        <Text size="xs" tone={free === 0 ? "warn" : "muted"}>
-          free at {centreName}{" "}
-          <Unit
-            value={unassigned === null ? undefined : value("count", unassigned)}
-          />
-        </Text>
-        <Text size="xs" tone={room === 0 ? "warn" : "muted"}>
-          room here <Unit value={value("count", room)} />
-        </Text>
-      </Cluster>
+      {/*
+        RP-1's own two readings, as label and value. The sentences these replace
+        ("free at Cape 0", "room here 16") were the operator's "too much flourish":
+        a reading is a label and a number.
+      */}
+      <Stack as="ul" gap="xs" style={LIST_STYLE}>
+        <Row>
+          <RowName>Unassigned</RowName>
+          <Text size="xs" tone={free === 0 ? "warn" : undefined}>
+            <Unit
+              value={
+                unassigned === null ? undefined : value("count", unassigned)
+              }
+            />
+          </Text>
+        </Row>
+        <Row>
+          <RowName>Max</RowName>
+          <Text size="xs" tone={room === 0 ? "warn" : undefined}>
+            <Unit value={complex.maxEngineers} />
+          </Text>
+        </Row>
+      </Stack>
     </Stack>
   );
 }
@@ -376,6 +444,41 @@ function RushStatus({ terms }: Readonly<{ terms: Rp1RushTerms | undefined }>) {
 }
 
 /**
+ * Who else this crew rating belongs to.
+ *
+ * <para>Kept, where the renovation and complex-kind lines were cut, because it is
+ * a FACT that changes how the number above it is read rather than an explanation
+ * of that number: RP-1 rates an efficiency RECORD rather than a complex, so work
+ * done next door moves the figure here, and an operator watching it climb while
+ * nobody is assigned has been told something untrue.</para>
+ *
+ * <para>A label and a value, not a sentence, which is the form the operator asked
+ * for. Absent entirely when the rating is this complex's alone.</para>
+ */
+function SharedRating({
+  complex,
+  complexNames,
+}: Readonly<{
+  complex: Rp1ComplexEntry;
+  complexNames: ReadonlyMap<string, string>;
+}>) {
+  const peers = complex.efficiencySharedWith ?? [];
+  if (peers.length === 0) {
+    return null;
+  }
+  return (
+    <Stack as="ul" gap="xs" style={LIST_STYLE}>
+      <Row>
+        <RowName>Shared with</RowName>
+        <Text size="xs">
+          {peers.map((lcId) => complexNames.get(lcId) ?? lcId).join(", ")}
+        </Text>
+      </Row>
+    </Stack>
+  );
+}
+
+/**
  * What this complex will take at all, which no amount of staffing changes.
  *
  * <para>Every limit is absent rather than infinite when RP-1 has no limit: the
@@ -394,92 +497,46 @@ function Envelope({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
     width !== null &&
     depth !== undefined &&
     depth !== null;
-  const resources = complex.resourcesHandled;
+  const resources = complex.resourcesHandled ?? [];
 
   return (
-    <Text size="xs" tone="muted">
-      takes{" "}
-      {complex.massMax === undefined || complex.massMax === null ? (
-        "any mass"
-      ) : (
-        <>
-          <Unit value={complex.massMin} /> to <Unit value={complex.massMax} />
-        </>
-      )}
-      {" · "}
-      {sized ? (
-        <>
-          up to <Unit value={depth} /> × <Unit value={width} /> ×{" "}
-          <Unit value={height} />
-        </>
-      ) : (
-        "any size"
-      )}
-      {resources === undefined || resources === null ? null : (
-        <>
-          {" · "}
-          {resources.length === 0
-            ? "handles no resources"
-            : `handles ${resources.join(", ")}`}
-        </>
-      )}
-    </Text>
-  );
-}
-
-/**
- * Who else this crew rating belongs to.
- *
- * <para>Drawn only when there is somebody, and drawn because the efficiency
- * figure above it is otherwise read as this complex's own. RP-1 rates an
- * efficiency RECORD and attaches similar complexes to the same one, so work done
- * next door moves the number here and an operator watching it climb while nobody
- * is assigned has been told something untrue.</para>
- */
-function SharedEfficiency({
-  complex,
-  complexNames,
-}: Readonly<{
-  complex: Rp1ComplexEntry;
-  complexNames: ReadonlyMap<string, string>;
-}>) {
-  const peers = complex.efficiencySharedWith ?? [];
-  if (peers.length === 0) {
-    return null;
-  }
-  const named = peers.map((lcId) => complexNames.get(lcId) ?? lcId);
-  return (
-    <Text size="xs" tone="muted">
-      crew rating shared with {named.join(", ")}
-    </Text>
-  );
-}
-
-/**
- * How far this complex can be renovated, from the tonnage it was BUILT at.
- *
- * <para>A separate line from the envelope above, because it answers a different
- * question: the envelope is what fits in the complex, and this is what the
- * complex itself can be turned into. RP-1 bounds a modify to double and half the
- * ORIGINAL tonnage, never the current one, so a complex already renovated up has
- * less headroom left than its present limit suggests.</para>
- *
- * <para>Absent when the original tonnage is: the hangar has no such limit, and a
- * reading nobody sent is not an envelope of three tonnes to one.</para>
- */
-function Renovation({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
-  const orig = magnitudeOf(complex.massOrig);
-  if (orig === null) {
-    return null;
-  }
-  const max = Math.max(3, Math.floor(orig * 2));
-  const min = Math.max(1, Math.ceil(orig * 0.5));
-  return (
-    <Text size="xs" tone="muted">
-      built at <Unit value={complex.massOrig} />, so renovation is capped
-      between <Unit value={value("t", min)} /> and{" "}
-      <Unit value={value("t", max)} />
-    </Text>
+    <Stack as="ul" gap="xs" style={LIST_STYLE}>
+      <Row>
+        <RowName>Mass</RowName>
+        <Text size="xs">
+          {complex.massMax === undefined || complex.massMax === null ? (
+            // RP-1 sends the float sentinel for "no limit", and the read side
+            // turns that into absence. So absent here means UNLIMITED rather
+            // than unanswered, and the null token would say the wrong thing.
+            "unlimited"
+          ) : (
+            <>
+              <Unit value={complex.massMin} /> to{" "}
+              <Unit value={complex.massMax} />
+            </>
+          )}
+        </Text>
+      </Row>
+      <Row>
+        <RowName>Size</RowName>
+        <Text size="xs">
+          {sized ? (
+            <>
+              <Unit value={depth} /> × <Unit value={width} /> ×{" "}
+              <Unit value={height} />
+            </>
+          ) : (
+            "unlimited"
+          )}
+        </Text>
+      </Row>
+      <Row>
+        <RowName>Resources</RowName>
+        <Text size="xs">
+          {resources.length === 0 ? "none" : resources.join(", ")}
+        </Text>
+      </Row>
+    </Stack>
   );
 }
 
@@ -537,3 +594,9 @@ function RushControl({
     />
   );
 }
+
+/**
+ * A `Row` renders an `<li>`, so the label/value blocks above need list semantics
+ * around them; see the host widget for the same reset and why it is inline.
+ */
+const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;

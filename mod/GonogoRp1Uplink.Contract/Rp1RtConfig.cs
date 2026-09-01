@@ -56,6 +56,8 @@ public static class Rp1RtConfig
             typeof(Rp1HireTargetSetArgs),
             typeof(Rp1FundTargetSetArgs),
             typeof(Rp1RushTerms),
+            typeof(Rp1LcPricing),
+            typeof(Rp1LcResourcePrice),
             typeof(Rp1Confidence),
             typeof(Rp1ProgramEntry),
             typeof(Rp1ProgramSlots),

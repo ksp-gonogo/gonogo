@@ -5,7 +5,10 @@
   "_scene": {
     "augment": "rp1-ksc-complexes",
     "host": "space-center-status",
-    "size": { "w": 12, "h": 18 },
+    "size": {
+      "w": 12,
+      "h": 18
+    },
     "caption": "A payroll mid-career with six engineers assigned to nothing, the daily charge that pool carries, and the stepped controls that would move them onto either complex",
     "paints": [
       "SPACE CENTRES",
@@ -16,9 +19,8 @@
       "IDLE",
       "Per day",
       "LC-1",
-      "free at Cape",
-      "room here",
-      "ALL"
+      "step",
+      "Unassigned"
     ]
   },
   "_stream": {
@@ -27,24 +29,44 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 289848, "reputation": 62, "science": 340 },
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
           "facilities": {
-            "LaunchPad": { "level": 1, "max": 2 },
-            "VehicleAssemblyBuilding": { "level": 1, "max": 2 }
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            }
           }
         }
       },
       {
         "topic": "spaceCenter.scene",
-        "payload": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
       },
       {
         "topic": "spaceCenter.launchSites",
         "payload": [
-          { "name": "LaunchPad", "padOccupied": false, "padVesselTitle": null }
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
         ]
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.personnel",
         "payload": {
@@ -60,7 +82,10 @@
       },
       {
         "topic": "rp1.rushTerms",
-        "payload": { "rateMult": 1.5, "salaryMult": 2 }
+        "payload": {
+          "rateMult": 1.5,
+          "salaryMult": 2
+        }
       },
       {
         "topic": "rp1.centres",
@@ -115,7 +140,7 @@
             "maxEngineers": 40,
             "efficiency": 0.4,
             "canIntegrate": true,
-            "rate": 0.00006430041152263374,
+            "rate": 6.430041152263374e-5,
             "humanRated": false,
             "massMin": 3,
             "massMax": 90,

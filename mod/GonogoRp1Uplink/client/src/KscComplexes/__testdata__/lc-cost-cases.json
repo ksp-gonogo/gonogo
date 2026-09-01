@@ -1,0 +1,135 @@
+{
+  "_comment": "GENERATED from the shipped RP0.dll by Rp1LcCostCrossCheckTests. Do not hand-edit: regenerate with GONOGO_WRITE_LC_COST_CASES=1 and read the diff, because a changed figure means RP-1 now charges something different.",
+  "cases": [
+    {
+      "massMax": 100,
+      "sizeMaxWidth": 10,
+      "sizeMaxHeight": 20,
+      "sizeMaxDepth": 10,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 18952.623149688796,
+      "integration": 7500
+    },
+    {
+      "massMax": 100,
+      "sizeMaxWidth": 10,
+      "sizeMaxHeight": 20,
+      "sizeMaxDepth": 10,
+      "humanRated": true,
+      "isHangar": false,
+      "pad": 28428.934724533196,
+      "integration": 15000
+    },
+    {
+      "massMax": 1,
+      "sizeMaxWidth": 1,
+      "sizeMaxHeight": 1,
+      "sizeMaxDepth": 1,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 250,
+      "integration": 500
+    },
+    {
+      "massMax": 15,
+      "sizeMaxWidth": 3,
+      "sizeMaxHeight": 3,
+      "sizeMaxDepth": 5,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 4813.789703166071,
+      "integration": 537.5
+    },
+    {
+      "massMax": 180,
+      "sizeMaxWidth": 12,
+      "sizeMaxHeight": 9,
+      "sizeMaxDepth": 40,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 28236.61765972339,
+      "integration": 22812.5
+    },
+    {
+      "massMax": 350,
+      "sizeMaxWidth": 20,
+      "sizeMaxHeight": 30,
+      "sizeMaxDepth": 20,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 44044.75496986848,
+      "integration": 21250
+    },
+    {
+      "massMax": 351,
+      "sizeMaxWidth": 20,
+      "sizeMaxHeight": 30,
+      "sizeMaxDepth": 20,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 44129.36774122787,
+      "integration": 21250
+    },
+    {
+      "massMax": 600,
+      "sizeMaxWidth": 25,
+      "sizeMaxHeight": 40,
+      "sizeMaxDepth": 25,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 66896.62810362742,
+      "integration": 35625
+    },
+    {
+      "massMax": 600,
+      "sizeMaxWidth": 25,
+      "sizeMaxHeight": 40,
+      "sizeMaxDepth": 25,
+      "humanRated": true,
+      "isHangar": false,
+      "pad": 100344.94215544112,
+      "integration": 71250
+    },
+    {
+      "massMax": 2000,
+      "sizeMaxWidth": 40,
+      "sizeMaxHeight": 60,
+      "sizeMaxDepth": 40,
+      "humanRated": false,
+      "isHangar": false,
+      "pad": 205875.5794973062,
+      "integration": 85000
+    },
+    {
+      "massMax": 100,
+      "sizeMaxWidth": 10,
+      "sizeMaxHeight": 20,
+      "sizeMaxDepth": 10,
+      "humanRated": false,
+      "isHangar": true,
+      "pad": 0,
+      "integration": 127500
+    },
+    {
+      "massMax": 100,
+      "sizeMaxWidth": 10,
+      "sizeMaxHeight": 20,
+      "sizeMaxDepth": 10,
+      "humanRated": true,
+      "isHangar": true,
+      "pad": 0,
+      "integration": 255000
+    },
+    {
+      "massMax": 1,
+      "sizeMaxWidth": 1,
+      "sizeMaxHeight": 1,
+      "sizeMaxDepth": 1,
+      "humanRated": false,
+      "isHangar": true,
+      "pad": 0,
+      "integration": 500
+    }
+  ]
+}

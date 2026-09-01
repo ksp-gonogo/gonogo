@@ -152,6 +152,7 @@
       "massOrig": "t",
       "maxEngineers": "count",
       "name": "text",
+      "newPadCost": "funds",
       "rate": "bp/s",
       "resourcesHandled": "id",
       "salaryPerDay": "f/day",
@@ -278,6 +279,13 @@
       "lcId": "id",
       "reserveFunds": "funds",
       "targetCount": "count"
+    },
+    "Rp1LcPricing": {
+      "additionalPadCostMult": "ratio"
+    },
+    "Rp1LcResourcePrice": {
+      "name": "id",
+      "padCostPerUnit": "funds"
     },
     "Rp1LeaderEntry": {
       "canRemoveFromUt": "ut",
@@ -567,6 +575,7 @@
       "massOrig": "t",
       "maxEngineers": "count",
       "name": "text",
+      "newPadCost": "funds",
       "rate": "bp/s",
       "resourcesHandled": "id",
       "salaryPerDay": "f/day",
@@ -633,6 +642,9 @@
       "originalFunds": "funds",
       "targetFunds": "funds",
       "timeLeft": "s"
+    },
+    "rp1.lcPricing": {
+      "additionalPadCostMult": "ratio"
     },
     "rp1.operations": {
       "associatedVesselId": "id",
@@ -792,6 +804,9 @@
     "Rp1FundingCurveEntry": {
       "keys": "Rp1FundingCurveKey[]"
     },
+    "Rp1LcPricing": {
+      "resources": "Rp1LcResourcePrice[]"
+    },
     "Rp1Personnel": {
       "hireTarget": "Rp1HireTarget"
     },
@@ -809,6 +824,9 @@
     },
     "rp1.careerEvents": {
       "events": "Rp1CareerEventEntry[]"
+    },
+    "rp1.lcPricing": {
+      "resources": "Rp1LcResourcePrice[]"
     },
     "rp1.personnel": {
       "hireTarget": "Rp1HireTarget"

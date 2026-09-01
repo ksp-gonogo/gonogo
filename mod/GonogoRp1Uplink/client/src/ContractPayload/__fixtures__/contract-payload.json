@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "notes": "RP-1 draws this as two sliders and withdraws the matching pre-generated contract offers from a comparison it makes EVERY DRAW FRAME, so a drag across its range crosses ninety-six hundred-unit steps and withdraws at every one. What it reaches is pre-generated offers rather than accepted contracts, so the cost is churn rather than loss, but nothing on RP-1's tab says either thing. Two typed fields and one arm-then-confirm press make the act once, and the line above the press is the only place the churn is named before it happens."
+  },
+  "_scene": {
+    "augment": "rp1-contract-payload",
+    "host": "contract-manager",
+    "size": {
+      "w": 8,
+      "h": 14
+    },
+    "caption": "The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions",
+    "paints": [
+      "the payload a repeating satellite contract will require",
+      "CommSat payload",
+      "WeatherSat payload",
+      "withdraws the matching pending contract offers, once each",
+      "Set payload"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "contracts": {
+            "active": [],
+            "offered": [],
+            "completedRecent": []
+          }
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      }
+    ]
+  }
+}

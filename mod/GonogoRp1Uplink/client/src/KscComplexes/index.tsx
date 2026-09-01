@@ -4,6 +4,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  magnitudeOf,
   Row,
   RowName,
   Section,
@@ -23,8 +24,12 @@ import "../topics";
 import { Centre } from "./Centre";
 import {
   RP1_COMPLEX_DISMANTLE_COMMAND,
+  RP1_COMPLEX_RENAME_COMMAND,
   RP1_PAD_DISMANTLE_COMMAND,
+  RP1_PAD_NEW_COMMAND,
+  RP1_PAD_RENAME_COMMAND,
 } from "./Lifecycle";
+import { NewComplexControl, RP1_COMPLEX_NEW_COMMAND } from "./NewComplex";
 
 /** Rush a whole complex. Must match `Rp1VehicleCommands.RushCommand`. */
 export const RP1_COMPLEX_RUSH_COMMAND = "rp1.complex.rush";
@@ -80,6 +85,11 @@ export function KscComplexes() {
   const pads = current(useTelemetry("rp1.pads"));
   const personnel = current(useTelemetry("rp1.personnel"));
   const terms = current(useTelemetry("rp1.rushTerms"));
+  // The balance is NOT drawn here: the host widget already carries it beside its
+  // pad line, and the repo rule is per-widget. It is read for one derived fact a
+  // standing readout cannot give, which is whether it covers a particular quote.
+  const career = current(useTelemetry("career.status"));
+  const pricing = current(useTelemetry("rp1.lcPricing"));
 
   // Unconditional and above the early return on purpose: a hook after it would
   // change count on the first frame RP-1 answers.
@@ -87,10 +97,18 @@ export function KscComplexes() {
   const assign = useCommand(RP1_PERSONNEL_ASSIGN_COMMAND);
   const dismantle = useCommand(RP1_COMPLEX_DISMANTLE_COMMAND);
   const dismantlePad = useCommand(RP1_PAD_DISMANTLE_COMMAND);
+  const newPad = useCommand(RP1_PAD_NEW_COMMAND);
+  const renameComplex = useCommand(RP1_COMPLEX_RENAME_COMMAND);
+  const renamePad = useCommand(RP1_PAD_RENAME_COMMAND);
+  const newComplex = useCommand(RP1_COMPLEX_NEW_COMMAND);
   usePanelDelay(rush);
   usePanelDelay(assign);
   usePanelDelay(dismantle);
   usePanelDelay(dismantlePad);
+  usePanelDelay(newPad);
+  usePanelDelay(renameComplex);
+  usePanelDelay(renamePad);
+  usePanelDelay(newComplex);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -143,6 +161,10 @@ export function KscComplexes() {
               complexNames={complexNames}
               dismantle={dismantle}
               dismantlePad={dismantlePad}
+              funds={magnitudeOf(career?.economy?.funds)}
+              newPad={newPad}
+              renameComplex={renameComplex}
+              renamePad={renamePad}
               key={centre.kscName ?? ""}
               pads={padRows}
               rush={rush}
@@ -151,6 +173,24 @@ export function KscComplexes() {
           ))}
         </Stack>
       )}
+
+      {/*
+        Below the centres rather than inside one, because building a complex is
+        a choice OF centre and a control nested under a heading would have
+        already made it.
+      */}
+      <NewComplexControl
+        centres={centreRows}
+        existingNames={(ksc) =>
+          complexRows
+            .filter((complex) => complex.kscName === ksc)
+            .map((complex) => complex.name)
+            .filter((name): name is string => name != null)
+        }
+        funds={magnitudeOf(career?.economy?.funds)}
+        handle={newComplex}
+        pricing={pricing}
+      />
     </Section>
   );
 }

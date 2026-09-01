@@ -39,6 +39,21 @@ import { describe, expect, it } from "vitest";
  * not use more, and a file absent from this map may not use any.
  */
 const MAGNITUDE_BUDGET: Record<string, number> = {
+  // ONE, in a named `kilograms()` helper at the command boundary and nowhere else.
+  // `rp1.contracts.setPayload` declares its two fields as `int?` in kilograms,
+  // because RP-1 stores them as `int` and validates against an integer range and
+  // an integer step, so a raw number has to exist where the typed value meets the
+  // wire. The figures a READER sees go out through `<Unit>`.
+  "mod/GonogoRp1Uplink/client/src/ContractPayload/index.tsx": 1,
+  /*
+   * The one place a wire Value meets transcribed arithmetic. A new complex is
+   * priced against what the operator is typing, so its pad and integration halves
+   * are a closed form over plain numbers, transcribed from RP-1 and pinned against
+   * figures the shipped assembly generated. The resource half arrives as a
+   * funds-per-unit Value and has to join those as a number to be summed with them.
+   * Every figure a READER sees goes back out through `<Unit>`.
+   */
+  "mod/GonogoRp1Uplink/client/src/KscComplexes/lcCost.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,

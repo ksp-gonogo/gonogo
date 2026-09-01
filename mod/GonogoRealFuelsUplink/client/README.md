@@ -25,9 +25,9 @@ Answers the two questions a Realism Overhaul burn turns on: can this engine be l
 
 ## Augments
 
-| Augment | Into | Reads | Presence | Notes |
-| --- | --- | --- | --- | --- |
-| `realfuels-fuel-status-section` | `fuel-status.sections` | `realfuels.engines`, `realfuels.boiloff` | only while `realfuels` |  |
+| Augment | Into | Reads | Presence | Scenes | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `realfuels-fuel-status-section` | `fuel-status.sections` | `realfuels.engines`, `realfuels.boiloff` | only while `realfuels` | 4 |  |
 
 ![A restartable upper stage with two lights left, its propellant settling in the risky band after a coast](docs/assets/finite-ignition-budget--default.png)
 

@@ -1,25 +1,27 @@
 {
   "_meta": {
-    "notes": "The loss RP-1's own dismantle dialog names nowhere. It asks 'This cannot be undone!' and says nothing about what is undone: the complex's earned build efficiency, which RP-1 rates on a RECORD rather than on a complex. Delete the last complex on a record and the record is cleared, so a rebuild starts from RP-1's floor and climbs back over months of career time. Whether that happens at all depends on something an operator cannot see without being told, which is why these are two different sentences rather than one hedged one."
+    "notes": "The dismantle warning is no longer on the card. It used to be three sentences standing permanently under every complex; the operator's ruling was that this is a mission control rather than a storybook, and a standing explanation of a button nobody has pressed is guidance. So the whole of it is the confirm step's own label, and this scene arms the press to show it. One complex rather than three, because the point is now the control rather than a comparison of three phrasings."
   },
   "_scene": {
     "augment": "rp1-ksc-complexes",
     "host": "space-center-status",
     "size": {
       "w": 12,
-      "h": 26
+      "h": 20
     },
-    "caption": "The three dismantle warnings together: LC-1's crew rating is shared with nothing so it is LOST for good, LC-2's survives with LC-3, and LC-3 has never been built at so there is no rating to lose. Each is a different sentence because each is a different consequence",
+    "caption": "The dismantle armed, which is the only state its warning appears in: everything below the crew is behind the detail expander, and the warning is the confirm step itself",
     "paints": [
       "SPACE CENTRES",
       "LC-1",
-      "LC-2",
-      "LC-3",
-      "is shared with nothing, so it is LOST for good",
-      "starts again from the bottom",
-      "survives with LC-3",
-      "no crew rating to lose",
-      "Dismantle"
+      "Warning: removes complex, pads and crew rating"
+    ],
+    "before": [
+      {
+        "press": "Detail for LC-1"
+      },
+      {
+        "press": "Dismantle LC-1"
+      }
     ]
   },
   "_stream": {
@@ -94,7 +96,7 @@
             "isActive": true,
             "engineers": 50,
             "unassignedEngineers": 0,
-            "launchComplexCount": 3,
+            "launchComplexCount": 1,
             "anyOperational": true,
             "groundStation": "us_cape_canaveral",
             "salaryPerDay": 150.3,
@@ -130,56 +132,6 @@
             "resourcesHandled": ["Kerosene", "LqdOxygen"],
             "salaryPerDay": 120.9,
             "upkeepPerDay": 45
-          },
-          {
-            "kscName": "Cape",
-            "lcId": "lc-2",
-            "name": "LC-2",
-            "lcType": "Pad",
-            "isOperational": true,
-            "isRushing": false,
-            "engineers": 6,
-            "maxEngineers": 40,
-            "efficiency": 0.44,
-            "efficiencySharedWith": ["lc-3"],
-            "canIntegrate": true,
-            "rate": 6.430041152263374e-5,
-            "humanRated": false,
-            "launchPadCount": 2,
-            "massMin": 3,
-            "massMax": 90,
-            "massOrig": 90,
-            "sizeMaxHeight": 30,
-            "sizeMaxWidth": 6,
-            "sizeMaxDepth": 8,
-            "resourcesHandled": ["Kerosene", "LqdOxygen"],
-            "salaryPerDay": 16.4,
-            "upkeepPerDay": 30
-          },
-          {
-            "kscName": "Cape",
-            "lcId": "lc-3",
-            "name": "LC-3",
-            "lcType": "Pad",
-            "isOperational": true,
-            "isRushing": false,
-            "engineers": 0,
-            "maxEngineers": 40,
-            "efficiency": null,
-            "efficiencySharedWith": [],
-            "canIntegrate": true,
-            "rate": 6.430041152263374e-5,
-            "humanRated": false,
-            "launchPadCount": 1,
-            "massMin": 3,
-            "massMax": 90,
-            "massOrig": 90,
-            "sizeMaxHeight": 30,
-            "sizeMaxWidth": 6,
-            "sizeMaxDepth": 8,
-            "resourcesHandled": ["Kerosene", "LqdOxygen"],
-            "salaryPerDay": 0,
-            "upkeepPerDay": 30
           }
         ]
       },
@@ -204,42 +156,6 @@
             "padId": "pad-1b",
             "isOperational": true,
             "name": "LP-1B",
-            "launchSiteName": "LaunchPad",
-            "level": 2,
-            "fractionalLevel": 2,
-            "state": "Free",
-            "hasVesselWaiting": false
-          },
-          {
-            "kscName": "Cape",
-            "lcId": "lc-2",
-            "padId": "pad-2",
-            "isOperational": true,
-            "name": "LP-2",
-            "launchSiteName": "LaunchPad",
-            "level": 2,
-            "fractionalLevel": 2,
-            "state": "Free",
-            "hasVesselWaiting": false
-          },
-          {
-            "kscName": "Cape",
-            "lcId": "lc-2",
-            "padId": "pad-2b",
-            "isOperational": true,
-            "name": "LP-2B",
-            "launchSiteName": "LaunchPad",
-            "level": 2,
-            "fractionalLevel": 2,
-            "state": "Free",
-            "hasVesselWaiting": false
-          },
-          {
-            "kscName": "Cape",
-            "lcId": "lc-3",
-            "padId": "pad-3",
-            "isOperational": true,
-            "name": "LP-3",
             "launchSiteName": "LaunchPad",
             "level": 2,
             "fractionalLevel": 2,

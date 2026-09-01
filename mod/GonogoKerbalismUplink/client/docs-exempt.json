@@ -1,0 +1,4 @@
+{
+  "_comment": "Render-scene exemptions for this Uplink, read by `gonogo-uplink docs --check`. `sceneDebt` is SHRINK-ONLY: an entry is removed by giving its augment a scene, in the same commit. A new entry means new code created the problem this gate exists to stop.",
+  "sceneDebt": ["crew-status-radiation-summary", "crew-status-survival-badge"]
+}

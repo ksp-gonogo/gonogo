@@ -195,6 +195,11 @@ namespace GonogoRp1Uplink.Tests
             new Rp1TypeTarget(Rp0, "RP0.PadConstructionProject", "Rp1ComplexConstructionCommands"),
             new Rp1TypeTarget(Rp0, "RP0.LCData", "Rp1ComplexConstructionCommands"),
             new Rp1TypeTarget(Rp0, "RP0.LaunchComplex", "Rp1ComplexConstructionCommands"),
+            // Priced per unit by asking RP-1 rather than transcribing its tank
+            // arithmetic, so the capture reaches both the formula and the enum that
+            // selects which ignore mask applies.
+            new Rp1TypeTarget(Rp0, "RP0.Formula", "Rp1ScReflection"),
+            new Rp1TypeTarget(Rp0, "RP0.LaunchComplexType", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.LCLaunchPad", "Rp1ComplexConstructionCommands"),
             // ROUtils rather than RP0, and the ONE thing this Uplink reaches in that
             // assembly: whether the save is a career, which decides whether a
@@ -361,6 +366,12 @@ namespace GonogoRp1Uplink.Tests
             // invoke applies no defaults. UpdateUpkeep calls the two-argument
             // form, which is this one with includeHidden left false.
             new Rp1MethodTarget(Rp0, "RP0.CurrencyUtils", "Funds", 3, true, "Rp1EconomyUpkeepQuery"),
+            /*
+             * Called with an amount of ONE to get a per-unit price, which is exact
+             * because the expression is linear in the amount. Four parameters:
+             * resource name, amount, isModify, LC type.
+             */
+            new Rp1MethodTarget(Rp0, "RP0.Formula", "ResourceTankCost", 4, true, "Rp1LcCostModel"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "AddVesselToBuildList", 2, true, "Rp1BuildCommands, Rp1BuildStartCommands"),
             new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "RunQuery", 4, true, "Rp1Pricing"),
             new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "CanAfford", 1, false, "Rp1Pricing"),
@@ -928,9 +939,14 @@ namespace GonogoRp1Uplink.Tests
             // operation moving a vehicle. Reading the dismantle gate here instead
             // would refuse every renovation of a working complex.
             Add("RP0.LaunchComplex", "CanModifyReal", Rp1Reader.Bool, Construction);
-            // The complex's own persisted specification, which is what a renovation
-            // is priced against and what a new pad takes its tonnage band from.
-            Add("RP0.LaunchComplex", "Stats", Rp1Reader.Presence, Construction);
+            /*
+             * The complex's own persisted specification, which is what a renovation
+             * is priced against, what a new pad takes its tonnage band from, and
+             * what the published newPadCost is a curve over. The space-centre
+             * capture reaches it for that last one: the price is asked of RP-1's own
+             * cost model rather than recomputed, so the capture needs the spec.
+             */
+            Add("RP0.LaunchComplex", "Stats", Rp1Reader.Presence, Sc + ", " + Construction);
             // The generation a build stamps its project with. A renovation takes a
             // FRESH one instead, so this is read on one path only.
             Add("RP0.LaunchComplex", "ModID", Rp1Reader.GuidText, Construction);

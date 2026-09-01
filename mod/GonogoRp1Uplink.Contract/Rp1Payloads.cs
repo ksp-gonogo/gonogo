@@ -328,6 +328,29 @@ public sealed class Rp1ComplexEntry
     /// </summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? UpkeepPerDay { get; set; }
+
+    /// <summary>
+    /// What ONE more launch pad at this complex would cost, which is the price
+    /// <c>rp1.pad.new</c> commits the career to.
+    ///
+    /// <para>A curve over the complex's own tonnage and envelope times RP-1's
+    /// additional-pad multiplier, so it differs per complex and cannot be a
+    /// constant in the client. It is published rather than derived because the
+    /// curve has a second term above 350 t and a human-rating multiplier, and a
+    /// reimplementation in TypeScript would agree with the transcription rather
+    /// than with RP-1.</para>
+    ///
+    /// <para>ABSENT for a hangar, which has no pad to add, and whenever RP-1
+    /// would not price one. Absent is NOT free: a control must refuse to quote
+    /// rather than quote zero.</para>
+    ///
+    /// <para>Note the money does not leave at the press. RP-1 draws a
+    /// construction down as it builds, and a career that cannot afford a tick
+    /// gets a proportionally slower build rather than a refusal, so this is a
+    /// total committed and not a debit.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? NewPadCost { get; set; }
 }
 
 /// <summary>
@@ -1007,6 +1030,90 @@ public sealed class Rp1Personnel
 /// readable then. RP-1 takes them from its own settings, so they are not
 /// constants a client may carry.</para>
 ///
+/// <summary>
+/// What it costs to BUILD here: the terms a client needs to price a complex the
+/// operator is still describing.
+///
+/// <para><b>Why this exists at all, when a built complex's prices are published
+/// on the complex.</b> A renovation or a new pad is priced against something that
+/// already exists, so its figure can be computed where RP-1 lives and sent. A NEW
+/// complex is priced against what the operator is typing, and there is no such
+/// thing to hang a figure on. Asking the mod per keystroke is not an option: these
+/// commands are delay-aware and a career commanding from a remote vantage would
+/// wait minutes for each quote, so a form that could not price until a round trip
+/// returned could not price at all.</para>
+///
+/// <para><b>So the split is by whether the arithmetic needs GAME DATA.</b> The pad
+/// and integration halves of RP-1's price are a closed form over tonnage, envelope
+/// and human rating, touching nothing but the numbers the operator entered; a
+/// client computes those. The resource half needs a tank definition, a resource
+/// definition and a settings multiplier per resource, none of which a client can
+/// know, so it is sent. It is one number per resource because RP-1's own
+/// expression is LINEAR in the amount: everything else in
+/// <c>Formula.ResourceTankCost</c> is constant per resource, so a client
+/// multiplies and is exactly right rather than approximately.</para>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.lcPricing")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1LcPricing
+{
+    /// <summary>
+    /// What every pad past the first costs, as a fraction of the pad price.
+    ///
+    /// <para>Applied ONCE when a pad is added to a complex. A renovation uses the
+    /// same figure differently, as <c>1 + (pads - 1) * mult</c>, because that one
+    /// reprices every pad the complex already has.</para>
+    /// </summary>
+    [SitrepUnit(Units.Ratio)]
+    public double? AdditionalPadCostMult { get; set; }
+
+    /// <summary>
+    /// The fluids a complex can be built to handle, and what each costs per unit.
+    ///
+    /// <para>ABSENT means RP-1 would not say, which a form must refuse to price on
+    /// rather than treat as an empty list: a complex quoted without its resources
+    /// is quoted under its true cost.</para>
+    /// </summary>
+    public List<Rp1LcResourcePrice>? Resources { get; set; }
+}
+
+/// <summary>
+/// One fluid a complex can be built to handle, and what a unit of it adds to the
+/// build price.
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1LcResourcePrice
+{
+    /// <summary>The KSP resource name, which is the key the command takes.</summary>
+    [SitrepUnit(Units.Id)]
+    public string? Name { get; set; }
+
+    /// <summary>
+    /// Funds per unit of capacity, for a PAD complex.
+    ///
+    /// <para>RP-1's own expression is linear in the amount, so this is the whole of
+    /// it and a client multiplies. ABSENT where a pad complex ignores this resource,
+    /// which is not the same as zero: ignored means the resource cannot be chosen,
+    /// where zero would mean it is free.</para>
+    ///
+    /// <para><b>There is no hangar twin, and that is not an omission.</b> RP-1 keeps
+    /// a separate ignore mask for hangars, so the figure would genuinely differ, but
+    /// nothing can reach it: a career's one hangar is seeded from
+    /// <c>LCData.StartingHangar</c> and can never be built, and
+    /// <c>rp1.complex.new</c> assigns <c>Pad</c> unconditionally. The only path that
+    /// would price a hangar's resources is a renovation, and there is no control for
+    /// one. Publish the twin the day that control exists, not before.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? PadCostPerUnit { get; set; }
+}
+
 /// <para>A third term is not a number and so is not here: a complex earns no
 /// efficiency at all while it rushes, and efficiency is what makes a crew
 /// cheaper over a career. That one is stated by the client.</para>

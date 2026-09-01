@@ -15,10 +15,8 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 
 | Topic | Payload | Delivery | Delay |
 | --- | --- | --- | --- |
-| `rp1.buildCost` | `Rp1BuildCost` | lossy-latest | true-now |
 | `rp1.buildQueue` | `Rp1BuildItemEntry[]` | lossy-latest | true-now |
 | `rp1.buildable` | `Rp1BuildableCraftEntry[]` | lossy-latest | true-now |
-| `rp1.careerEvents` | `Rp1CareerEvents` | lossy-latest | true-now |
 | `rp1.centres` | `Rp1CentreEntry[]` | lossy-latest | true-now |
 | `rp1.complexes` | `Rp1ComplexEntry[]` | lossy-latest | true-now |
 | `rp1.confidence` | `Rp1Confidence` | lossy-latest | true-now |
@@ -26,6 +24,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.crew` | `Rp1CrewEntry[]` | lossy-latest | true-now |
 | `rp1.crewProgram` | `Rp1CrewProgram` | lossy-latest | true-now |
 | `rp1.fundTarget` | `Rp1FundTarget` | lossy-latest | true-now |
+| `rp1.lcPricing` | `Rp1LcPricing` | lossy-latest | true-now |
 | `rp1.operations` | `Rp1OperationEntry[]` | lossy-latest | true-now |
 | `rp1.pads` | `Rp1PadEntry[]` | lossy-latest | true-now |
 | `rp1.personnel` | `Rp1Personnel` | lossy-latest | true-now |
@@ -45,7 +44,6 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1BuildableComplex` | `eligible` flag, `kscDisplayName` text, `kscName` id, `lcId` id, `name` text, `refusals` text |
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
-| `Rp1CareerEventEntry` | `builtAt` enum, `cost` funds, `detail` enum, `isAdd` flag, `kind` enum, `launchId` id, `name` text, `repChange` rep, `ut` ut |
 | `Rp1ComplexDismantleArgs` | `lcId` id |
 | `Rp1ComplexModifyArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `lcId` id, `massMax` t, `size` Rp1ComplexSizeArgs |
 | `Rp1ComplexNewArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `kscName` id, `massMax` t, `name` id, `size` Rp1ComplexSizeArgs |
@@ -58,6 +56,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1FundTargetSetArgs` | `targetFunds` funds |
 | `Rp1HireTarget` | `active` flag, `currentCount` count, `isResearch` flag, `lcId` id, `leftToHire` count, `targetCount` count, `timeLeft` s |
 | `Rp1HireTargetSetArgs` | `lcId` id, `reserveFunds` funds, `targetCount` count |
+| `Rp1LcResourcePrice` | `name` id, `padCostPerUnit` funds |
 | `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
 | `Rp1PadDismantleArgs` | `lcId` id, `padId` id |
 | `Rp1PadNewArgs` | `lcId` id, `name` id |
@@ -86,6 +85,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.buildable`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `career.status` |
 | Slots | `rp1-vehicle-assembly.sections` |
 | Default size | 7 × 16 |
+| Scenes | 7 |
 
 ![Nothing built and nothing on order, which is where a career starts](docs/assets/assembly-empty--default.png)
 
@@ -157,49 +157,41 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The same widget at 18 × 5](docs/assets/assembly-unstaffed--landscape-18x5.png)
 
-![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without](docs/assets/build-cost-absences-and-tech-gate--default.png)
-
-![The same widget at 9 × 8](docs/assets/build-cost-absences-and-tech-gate--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/build-cost-absences-and-tech-gate--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/build-cost-absences-and-tech-gate--landscape-18x5.png)
-
-![Most of what this vehicle costs is the penalty for flying it untooled: the indent says that figure is part of the one above rather than added to it](docs/assets/build-cost-mostly-surcharge--default.png)
-
-![The same widget at 9 × 8](docs/assets/build-cost-mostly-surcharge--mobile-9x8.png)
-
-![The same widget at 5 × 18](docs/assets/build-cost-mostly-surcharge--portrait-5x18.png)
-
-![The same widget at 18 × 5](docs/assets/build-cost-mostly-surcharge--landscape-18x5.png)
-
 ## Augments
 
-| Augment | Into | Reads | Presence | Notes |
-| --- | --- | --- | --- | --- |
-| `rp1-crew-schedule` | `astronaut-complex.crew` | – |  |  |
-| `rp1-crew-programme` | `astronaut-complex.sections` | – |  |  |
-| `rp1-ksc-complexes` | `space-center-status.sections` | – |  |  |
-| `rp1-ksc-construction` | `space-center-status.sections` | – |  |  |
-| `rp1-launch-complex-status` | `launch-director.pad` | – |  |  |
-| `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` |  |
-| `rp1-program-status` | `career-economy.sections` | – |  |  |
-| `rp1-research-queue` | `tech-tree.sections` | – |  |  |
-| `rp1-vehicle-assembly-build-cost` | `rp1-vehicle-assembly.sections` | – |  |  |
-| `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  |  |
-| `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  |  |
-| `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  |  |
-| `rp1-warp-targets` | `warp-control.stepper` | – |  |  |
+| Augment | Into | Reads | Presence | Scenes | Notes |
+| --- | --- | --- | --- | --- | --- |
+| `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 1 |  |
+| `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
+| `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
+| `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
+| `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
+| `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
+| `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 4 |  |
+| `rp1-program-status` | `career-economy.sections` | – |  | 1 |  |
+| `rp1-research-queue` | `tech-tree.sections` | – |  | 1 |  |
+| `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
+| `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
+| `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
+| `rp1-warp-targets` | `warp-control.stepper` | – |  | 2 |  |
 
 ![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
 
+![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
+
 ![The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started](docs/assets/crew-programme-rules--default.png)
 
-![The three dismantle warnings together: LC-1's crew rating is shared with nothing so it is LOST for good, LC-2's survives with LC-3, and LC-3 has never been built at so there is no rating to lose. Each is a different sentence because each is a different consequence](docs/assets/complexes-dismantle-warnings--default.png)
+![LC-1's detail open on a career with 400f against a 14,118f pad: the quote, the reading that it is more than the balance, and a press that is still live because RP-1 slows the build rather than refusing it](docs/assets/complexes-add-pad--default.png)
 
-![LC-1 down to its last working pad, so its dismantle is dark with the reason rather than live and silently inert; LC-2 has a second pad still being built, which does not count toward the one a complex must keep and cannot itself be dismantled](docs/assets/complexes-last-pad--default.png)
+![The dismantle armed, which is the only state its warning appears in: everything below the crew is behind the detail expander, and the warning is the confirm step itself](docs/assets/complexes-dismantle-warnings--default.png)
 
-![Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and carrying the terms in force on it, LC-2 quiet and offered the way in](docs/assets/complexes-rushing--default.png)
+![LC-1's detail open, down to its last working pad: the dismantle is dark with the reason rather than live and silently inert, which is what RP-1 leaves it as](docs/assets/complexes-last-pad--default.png)
+
+![The new-complex form open at its defaults: every field priced, the tonnage limit stating the renovation range it fixes for life, and a 26,453f quote against a 400f balance that slows the build rather than refusing it](docs/assets/complexes-new--default.png)
+
+![A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; the other pad still shows the closed one-button state this costs when nobody is renaming](docs/assets/complexes-rename--default.png)
+
+![LC-1 rushing with its detail open, so the terms in force and the way out of rush mode are both on screen; LC-2 stays collapsed, which is what a complex costs to read when nobody is asking about it](docs/assets/complexes-rushing--default.png)
 
 ![A payroll mid-career with six engineers assigned to nothing, the daily charge that pool carries, and the stepped controls that would move them onto either complex](docs/assets/personnel-staffed--default.png)
 
@@ -239,9 +231,9 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![Three finished vehicles in three different places: one standing on the pad, one still moving to it, and one RP-1 will not release at all with its reason on the card](docs/assets/warehouse-three-places--default.png)
 
-![A fund target standing at 500,000 with RP-1's own estimate of when the balance gets there, so the press that runs the clock forward carries how far forward it runs](docs/assets/warp-fund-target-standing--default.png)
+![A fund target standing, so both presses are live and each names what it warps to. No ETA line: the operator ruled that funds needs less, so the reason a press is dark lives in its accessible name.](docs/assets/warp-fund-target-standing--default.png)
 
-![Warp to next offered, warp to funds dark: no fund target is standing, and the line under it says so rather than leaving a dead button to read as a broken one](docs/assets/warp-no-fund-target--default.png)
+![No fund target standing, so its press is dark and nothing on screen explains why: the reason is in the accessible name, where a screen reader gets it and the panel spends no space on it.](docs/assets/warp-no-fund-target--default.png)
 
 ## Contributions
 

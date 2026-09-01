@@ -30,6 +30,7 @@ Remote MechJeb autopilot control (engage ascent, execute next node, land at targ
 | Actions | `engage-ascent`, `execute-node`, `land-at-target` |
 | Only while present | `flight` |
 | Default size | 5 × 7 |
+| Scenes | 3 |
 
 ![Ascent autopilot commanded across a 12.5-minute link: the row that was pressed carries a status chip, the two that were not stay idle](docs/assets/ascent-command-in-flight--default.png)
 

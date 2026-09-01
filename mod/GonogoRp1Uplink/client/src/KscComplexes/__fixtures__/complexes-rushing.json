@@ -5,23 +5,27 @@
   "_scene": {
     "augment": "rp1-ksc-complexes",
     "host": "space-center-status",
-    "size": { "w": 12, "h": 20 },
-    "caption": "Cape and its two launch complexes, each with its crew, its envelope, its daily cost and the rush control: LC-1 already rushing and carrying the terms in force on it, LC-2 quiet and offered the way in",
+    "size": {
+      "w": 12,
+      "h": 20
+    },
+    "caption": "LC-1 rushing with its detail open, so the terms in force and the way out of rush mode are both on screen; LC-2 stays collapsed, which is what a complex costs to read when nobody is asking about it",
     "paints": [
       "SPACE CENTRES",
       "Cape",
       "LC-1",
       "LC-2",
-      "pad complex at Cape",
       "RUSHING",
-      "efficiency held",
       "Stop rushing",
-      "Rush",
-      "free at Cape",
-      "Engineers",
-      "renovation is capped between",
-      "crew rating shared with LC-2",
-      "so none can be dismantled"
+      "Unassigned",
+      "Max",
+      "Shared with",
+      "step"
+    ],
+    "before": [
+      {
+        "press": "Detail for LC-1"
+      }
     ]
   },
   "_stream": {
@@ -30,24 +34,44 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 289848, "reputation": 62, "science": 340 },
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
           "facilities": {
-            "LaunchPad": { "level": 1, "max": 2 },
-            "VehicleAssemblyBuilding": { "level": 1, "max": 2 }
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            }
           }
         }
       },
       {
         "topic": "spaceCenter.scene",
-        "payload": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
       },
       {
         "topic": "spaceCenter.launchSites",
         "payload": [
-          { "name": "LaunchPad", "padOccupied": false, "padVesselTitle": null }
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
         ]
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.personnel",
         "payload": {
@@ -63,7 +87,10 @@
       },
       {
         "topic": "rp1.rushTerms",
-        "payload": { "rateMult": 1.5, "salaryMult": 2 }
+        "payload": {
+          "rateMult": 1.5,
+          "salaryMult": 2
+        }
       },
       {
         "topic": "rp1.centres",
@@ -108,7 +135,8 @@
             "sizeMaxDepth": 12,
             "resourcesHandled": ["Kerosene", "LqdOxygen"],
             "salaryPerDay": 120.9,
-            "upkeepPerDay": 45
+            "upkeepPerDay": 45,
+            "newPadCost": 14118.31
           },
           {
             "kscName": "Cape",
@@ -122,7 +150,7 @@
             "efficiency": 0.4,
             "efficiencySharedWith": ["lc-1"],
             "canIntegrate": true,
-            "rate": 0.00006430041152263374,
+            "rate": 6.430041152263374e-5,
             "humanRated": false,
             "launchPadCount": 1,
             "massMin": 3,
@@ -133,7 +161,8 @@
             "sizeMaxDepth": 8,
             "resourcesHandled": ["Kerosene", "LqdOxygen"],
             "salaryPerDay": 16.4,
-            "upkeepPerDay": 30
+            "upkeepPerDay": 30,
+            "newPadCost": 8815.96
           }
         ]
       },
@@ -146,6 +175,18 @@
             "padId": "pad-1",
             "isOperational": true,
             "name": "LP-1",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false
+          },
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1b",
+            "isOperational": true,
+            "name": "LP-1B",
             "launchSiteName": "LaunchPad",
             "level": 1,
             "fractionalLevel": 1,
