@@ -105,9 +105,20 @@ const RUNTIME_RESOLVABLE_SUBPATHS = ["frames", "media", "spine"];
 
 /** Subpaths that must NOT have an entry, with the reason each is unreachable. */
 const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
-  // App orchestration (which widgets a dashboard renders). The app reaches it
-  // through core's re-export, so it is resolved inside the app's own build and
-  // never survives as a specifier; an Uplink has no business calling it.
+  /*
+   * App orchestration (which widgets a dashboard renders). The app reaches it
+   * through core's re-export, so it is resolved inside the app's own build and
+   * never survives as a specifier; an Uplink has no business calling it, and
+   * `uplink-isolation.test.ts` fails an Uplink that imports it.
+   *
+   * No import-map entry is NOT the same as no `exports` entry, and the second
+   * one cannot be removed: `@ksp-gonogo/ui-kit`'s `render-probe`, which IS an
+   * author surface and is what `gonogo-uplink` drives, imports this subpath, so
+   * its published dist carries the bare specifier and an author's Node has to
+   * resolve it. Un-advertising the subpath would break the render harness for
+   * everyone outside this repo. `every subpath ui-kit imports stays exported`
+   * below is what stops that.
+   */
   registry: "app orchestration, reached through core's re-export",
   // Test-only. No shipped Uplink bundle imports it, so nothing has to resolve it
   // in a browser.
@@ -159,6 +170,62 @@ describe("sdk subpath runtime resolution", () => {
       source.includes(`"@ksp-gonogo/sitrep-sdk/${sub}"`),
     );
     expect(unexpected).toEqual([]);
+  });
+
+  /**
+   * Every sdk subpath `@ksp-gonogo/ui-kit` imports must stay in the sdk's
+   * `exports`, because ui-kit's own published entry points carry the bare
+   * specifier into an author's `node_modules`.
+   *
+   * The obvious reading of "`/registry` is not an author surface" is to stop
+   * advertising it, and that would break the author-facing render harness:
+   * `render-probe` imports it, tsup leaves the specifier external, and Node
+   * resolves it through the sdk's `exports` in a consumer's install. Nothing
+   * else notices. The extraction probe loads every published entry point in
+   * bare `node`, but all five ui-kit entries are on its exempt list for an
+   * unrelated styled-components reason, so this is the one class of break it
+   * structurally cannot see.
+   *
+   * Read off the SOURCE rather than `dist`: tsup externalises every
+   * `@ksp-gonogo/*` specifier verbatim, so the two agree, and `dist` is a build
+   * artifact that may not exist when this runs.
+   */
+  it("keeps every subpath ui-kit imports exported", () => {
+    const kitSrc = join(REPO_ROOT, "packages", "ui-kit", "src");
+    const imported = new Set<string>();
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(full);
+          continue;
+        }
+        if (!/\.tsx?$/.test(entry.name)) continue;
+        for (const m of readFileSync(full, "utf8").matchAll(
+          /["']@ksp-gonogo\/sitrep-sdk\/([^"']+)["']/g,
+        )) {
+          imported.add(m[1]);
+        }
+      }
+    };
+    walk(kitSrc);
+
+    // The probe: an empty set would pass the assertion below against anything.
+    expect(imported).toContain("registry");
+
+    const declared = new Set(sdkSubpaths());
+    const missing = [...imported].filter((sub) => !declared.has(sub));
+    expect(
+      missing,
+      [
+        "@ksp-gonogo/ui-kit imports an sdk subpath the sdk no longer exports.",
+        "",
+        "ui-kit's published dist carries that specifier verbatim, so an author's",
+        "install cannot resolve it and the render harness breaks with nothing in",
+        "this repo failing. Either put the subpath back in the sdk's exports, or",
+        "stop ui-kit importing it first.",
+      ].join("\n"),
+    ).toEqual([]);
   });
 });
 

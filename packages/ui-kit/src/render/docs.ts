@@ -67,12 +67,31 @@ type PageAsset = Omit<RenderedAsset, "shape">;
 export interface UplinkManifestJson {
   id: string;
   version: string;
+  /** The Uplink's own registered description. The subtitle on the generated page. */
   description?: string;
   minAppVersion: string;
   apiVersion: string;
   uiKitVersion: string;
   contractMajor: number;
   contractMinor: number;
+  /**
+   * `sha256-<hex>` of the bundle the author distributes, stamped by
+   * `gonogo-uplink docs --bundle <file>` at release time and by
+   * `gonogo-uplink bundle`, which hashes what it just built.
+   *
+   * EMPTY in a working copy, which is every manifest committed to this repo,
+   * and that is fail-closed rather than a hole: the loader compares the fetched
+   * bundle's real digest against this string and refuses on any mismatch, and
+   * no digest is ever the empty string, so an unstamped manifest quarantines its
+   * Uplink with an integrity mismatch every time. The generator says so on
+   * stderr when it writes one.
+   *
+   * It is deliberately not defaulted to a hash of `dist/`: that holds a compiler
+   * output rather than the bundle a consumer fetches, and it is gitignored, so
+   * `docs --check` would compare a committed hash against whatever the last
+   * local build produced. `page-check` drops this field before comparing for the
+   * same reason, so a release is the only commit that changes it.
+   */
   integrity: string;
 }
 
