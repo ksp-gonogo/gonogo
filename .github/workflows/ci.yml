@@ -186,6 +186,27 @@ jobs:
       # demonstrated it can fail.
       - run: pnpm --filter @ksp-gonogo/components overlap-gate
 
+      # `asyncapi.yaml`, the core contract's wire surface, regenerated and
+      # diffed against the committed file. Beside the README because it is the
+      # answer to "what does this thing publish and what can I send it", and it
+      # is generated because the alternative is a second copy of the contract
+      # that goes stale, which this repo has watched happen every time it kept
+      # one.
+      #
+      # It needs no browser, no built workspace and no dotnet: it reads the
+      # committed contract slice under `mod/sitrep-sdk/src/__generated__/` and
+      # the C# declaration sites, so it runs before the steps that need a build.
+      # The document VALIDATES against the AsyncAPI spec here as well as
+      # regenerating, and the generator refuses on three counts besides a stale
+      # diff: a topic or command the generated maps name and the document does
+      # not carry, a channel whose `Delivery`/`Delay` scan half-matched, and a
+      # description count below its floor. The last one is the point of the
+      # document: the contract's own prose is what makes it more than a list of
+      # names, and a carrier that stopped carrying it would still emit a valid
+      # file.
+      - name: The AsyncAPI document is valid and current
+        run: pnpm asyncapi:check
+
       # Does every client-bearing Uplink HAVE a generated page. A second's worth
       # of filesystem, and it precedes the drift check below because the two
       # answer different questions and the cheap one answers first: a missing

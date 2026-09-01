@@ -58,3 +58,8 @@ feature_log/
 # demand and never a gate. The docs assets under `docs/assets/` ARE committed,
 # because the generated page references them.
 renders/
+
+# `asyncapi-doc.mjs --check` writes what it WOULD have emitted beside the
+# committed file so a CI log can diff the two. The committed `asyncapi.yaml` is
+# tracked; this one is scratch from a failing check.
+asyncapi.yaml.actual
