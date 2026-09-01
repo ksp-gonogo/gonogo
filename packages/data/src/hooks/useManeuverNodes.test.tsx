@@ -4,13 +4,19 @@ import {
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import type { ManeuverNode } from "@ksp-gonogo/sitrep-sdk";
+import type { WireOf } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { useManeuverNodes } from "./useManeuverNodes";
 
+/**
+ * A node as the mod SENDS it, quantities still bare numbers: `emit` wraps them
+ * on the way in, so the modelled `ManeuverNode` is the shape that comes out the
+ * far end, not the one handed to the transport.
+ */
 function fakeWireNode(
-  partial: Partial<ManeuverNode> & { id: string; ut: number },
-): ManeuverNode {
+  partial: Partial<WireOf<ManeuverNode>> & { id: string; ut: number },
+): WireOf<ManeuverNode> {
   return {
     patches: [],
     ...partial,

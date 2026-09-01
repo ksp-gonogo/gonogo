@@ -6,7 +6,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "gen:golden-fixtures": "tsx ../golden-fixtures/gen/version.gen.ts && tsx ../golden-fixtures/gen/kernel.gen.ts"

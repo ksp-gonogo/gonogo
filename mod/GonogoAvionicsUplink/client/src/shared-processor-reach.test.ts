@@ -54,7 +54,9 @@ describe("an Uplink can reach the SDK's shared Processors", () => {
     // not have to stand up a frame source to get it.
     const facts: CelestialFacts = deriveCelestialFacts(
       [
-        { index: 0, name: "Kerbol", parentIndex: null },
+        // The root body's parent is absent on the wire, not null: the contract
+        // types it optional.
+        { index: 0, name: "Kerbol", parentIndex: undefined },
         { index: 1, name: "Kerbin", parentIndex: 0 },
       ],
       0,

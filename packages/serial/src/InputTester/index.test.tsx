@@ -66,7 +66,7 @@ describe("InputTesterComponent: gamepad glyph rendering", () => {
 
     const { unmount } = render(
       <SerialDeviceProvider service={svc}>
-        <InputTesterComponent config={{ deviceId: "gp1" }} />
+        <InputTesterComponent id="input-tester" config={{ deviceId: "gp1" }} />
       </SerialDeviceProvider>,
     );
 
@@ -112,7 +112,7 @@ describe("InputTesterComponent: gamepad glyph rendering", () => {
 
     const { container, unmount } = render(
       <SerialDeviceProvider service={svc}>
-        <InputTesterComponent config={{ deviceId: "gp1" }} />
+        <InputTesterComponent id="input-tester" config={{ deviceId: "gp1" }} />
       </SerialDeviceProvider>,
     );
 
@@ -138,7 +138,7 @@ describe("InputTesterComponent: gamepad glyph rendering", () => {
 
     const { unmount } = render(
       <SerialDeviceProvider service={svc}>
-        <InputTesterComponent config={{ deviceId: "v1" }} />
+        <InputTesterComponent id="input-tester" config={{ deviceId: "v1" }} />
       </SerialDeviceProvider>,
     );
 

@@ -1,14 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from "vitest";
 import { type AxiomIngestClient, AxiomTransport } from "./AxiomTransport.js";
 import type { LogEntry } from "./types.js";
 
+/**
+ * A client whose two methods are spies, each still carrying the signature the
+ * transport calls it with, so a call site that drifts from the interface is a
+ * type error here rather than a silently accepted `any`.
+ */
 function makeClient(): AxiomIngestClient & {
-  ingest: ReturnType<typeof vi.fn>;
-  flush: ReturnType<typeof vi.fn>;
+  ingest: Mock<AxiomIngestClient["ingest"]>;
+  flush: Mock<AxiomIngestClient["flush"]>;
 } {
   return {
-    ingest: vi.fn(),
-    flush: vi.fn(async () => {}),
+    ingest: vi.fn<AxiomIngestClient["ingest"]>(),
+    flush: vi.fn<AxiomIngestClient["flush"]>(async () => {}),
   };
 }
 

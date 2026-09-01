@@ -1,6 +1,6 @@
 import { DeployedPowerState } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { parseBases } from "./index";
+import { type DeployedBase, parseBases } from "./index";
 
 /**
  * A deployed base's power readout, against what the mod actually sends.
@@ -36,14 +36,22 @@ import { parseBases } from "./index";
  * answer.
  */
 
+/**
+ * One flat wire entry through the real parser, as the bases it groups into.
+ *
+ * `parseBases` answers null for a payload it cannot read, so the null is
+ * rejected here rather than carried into every assertion: a fixture that stops
+ * parsing should fail loudly at the fixture, not as an unreadable `undefined`
+ * several expectations later.
+ */
 function baseWith(opts: {
   power: DeployedPowerState | null;
   controllerConnected?: boolean | null;
   /** Deliberately misleading prose, to prove nothing reads it. */
   powerState?: string;
   connectionState?: string;
-}) {
-  return parseBases([
+}): DeployedBase[] {
+  const bases = parseBases([
     {
       vesselName: "Mun Base",
       partName: "deployedSolarPanel",
@@ -62,6 +70,8 @@ function baseWith(opts: {
       deployedOnGround: true,
     },
   ]);
+  if (bases === null) throw new Error("the fixture entry did not parse");
+  return bases;
 }
 
 describe("deployed-science power state", () => {

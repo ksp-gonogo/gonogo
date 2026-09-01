@@ -79,14 +79,14 @@ describe("ReplaySessionController", () => {
     vi.advanceTimersByTime(0);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma
         .magnitude,
     ).toBe(700_000);
 
     vi.advanceTimersByTime(5000);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma
         .magnitude,
     ).toBe(710_000);
   });
@@ -107,7 +107,7 @@ describe("ReplaySessionController", () => {
     expect(
       controller
         .getSnapshot()
-        .store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+        .store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma
         .magnitude,
     ).toBe(700_000);
   });
@@ -122,7 +122,7 @@ describe("ReplaySessionController", () => {
     vi.advanceTimersByTime(0);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma
         .magnitude,
     ).toBe(710_000);
 
@@ -130,7 +130,7 @@ describe("ReplaySessionController", () => {
     vi.advanceTimersByTime(5000);
     snapshot.store?.beginFrame();
     expect(
-      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma
+      snapshot.store?.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma
         .magnitude,
     ).toBe(720_000);
   });

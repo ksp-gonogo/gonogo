@@ -120,9 +120,9 @@ describe("orbitDescription synchronicity", () => {
   ): PrincipiaOrbitAnalysis {
     return analysis({
       // One revolution per rotation, one rotation per cycle.
-      recurrenceCycleRotations: value("", 1),
-      recurrenceRevolutionsPerRotation: value("", 1),
-      recurrenceRevolutions: value("", 1),
+      recurrenceCycleRotations: value("count", 1),
+      recurrenceRevolutionsPerRotation: value("count", 1),
+      recurrenceRevolutions: value("count", 1),
       // Ten revolutions analysed, so ten rotations at one per rotation.
       missionDurationSeconds: value("s", 216_000),
       nodalPeriodSeconds: value("s", 21_600),
@@ -162,8 +162,8 @@ describe("orbitDescription synchronicity", () => {
     expect(
       orbitDescription(
         repeating({
-          recurrenceRevolutionsPerRotation: value("", 2),
-          recurrenceRevolutions: value("", 2),
+          recurrenceRevolutionsPerRotation: value("count", 2),
+          recurrenceRevolutions: value("count", 2),
         }),
       ),
     ).toBe("semi-synchronous Kerbin orbit");

@@ -254,6 +254,23 @@ function StreamProbe({
   return null;
 }
 
+/**
+ * The played-out stream from a probe's captured result, rejecting anything
+ * that is not a delayed one.
+ *
+ * A probe's `let` starts at `"unset"` and is only ever reassigned from inside a
+ * render callback, which control flow cannot see, so the compiler still holds
+ * it at `"unset"` where the stream is read. Asking the value what it is answers
+ * that where a cast only silenced it.
+ */
+function delayedStream(result: DelayedPlayoutResult | "unset"): MediaStream {
+  if (result === "unset" || result.kind !== "delayed")
+    throw new Error(
+      `expected a delayed playout result, got ${result === "unset" ? "unset" : result.kind}`,
+    );
+  return result.stream;
+}
+
 describe("useKerbcastStream: delayed playout wiring", () => {
   it("without a delay option, behaves as the unchanged strict passthrough, no pipeline attempted", () => {
     const cam = fakeCameraHandle("live-token");
@@ -651,11 +668,7 @@ describe("useKerbcastStream: delayed playout wiring (SUPPORTED path, stubbed Web
     // Both consumers see a delayed stream, and it is the SAME object.
     expect(resultA).toMatchObject({ kind: "delayed" });
     expect(resultB).toMatchObject({ kind: "delayed" });
-    const streamA = (resultA as DelayedPlayoutResult & { kind: "delayed" })
-      .stream;
-    const streamB = (resultB as DelayedPlayoutResult & { kind: "delayed" })
-      .stream;
-    expect(streamA).toBe(streamB);
+    expect(delayedStream(resultA)).toBe(delayedStream(resultB));
   });
 
   it("a SECOND, different camera builds its own independent processor (both delayed simultaneously)", () => {
@@ -706,8 +719,6 @@ describe("useKerbcastStream: delayed playout wiring (SUPPORTED path, stubbed Web
     expect(FakeProcessor.instances).toHaveLength(2);
     expect(resultA).toMatchObject({ kind: "delayed" });
     expect(resultB).toMatchObject({ kind: "delayed" });
-    const sA = (resultA as DelayedPlayoutResult & { kind: "delayed" }).stream;
-    const sB = (resultB as DelayedPlayoutResult & { kind: "delayed" }).stream;
-    expect(sA).not.toBe(sB);
+    expect(delayedStream(resultA)).not.toBe(delayedStream(resultB));
   });
 });
