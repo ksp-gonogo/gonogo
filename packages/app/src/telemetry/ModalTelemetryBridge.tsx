@@ -17,11 +17,9 @@ import type { ReactNode } from "react";
  * into: and that call site here is `ModalProvider` itself, above
  * `SitrepTelemetryProvider`. So `useStream`/`useTelemetry`-family hooks
  * inside modal content never see the real provider's context and silently
- * degrade to `undefined` forever: discovered via the Uplink Hub wizard's
- * dogfood e2e (`tests/playwright/uplink-hub-wizard.spec.ts`): the Data
- * Sources tab's `UplinkHealthList` (pre-existing, unrelated to that task)
- * has the exact same gap, "Waiting for uplink health report..." forever in
- * a real browser despite `system.uplinks` genuinely flowing over the wire.
+ * degrade to `undefined` forever: found in a real browser, where the Data
+ * Sources tab's `UplinkHealthList` read "Waiting for uplink health report..."
+ * forever despite `system.uplinks` genuinely flowing over the wire.
  *
  * Reuses the SAME live `TelemetryClient` (read reactively via
  * `useActiveTelemetryClient`, the same "whichever `TelemetryProvider` most
@@ -34,12 +32,11 @@ import type { ReactNode } from "react";
  * no extra network connection, no duplicate subscription.
  *
  * Deliberately REACTIVE, not a one-shot read at render: a modal can open
- * before the app's own `TelemetryProvider` has mounted (first-run auto-open
- * of the Uplink Hub wizard is the confirmed real-world case, it can fire
- * before the Sitrep client has connected). A one-shot `getActiveTelemetryClient()`
- * call would capture `undefined` at that moment and never recover, leaving
- * the modal's telemetry reads (e.g. the wizard's `useUplinkGap`) hung
- * forever even after the client connects a moment later.
+ * before the app's own `TelemetryProvider` has mounted (the first-run
+ * auto-open is the confirmed real-world case, it can fire before the Sitrep
+ * client has connected). A one-shot `getActiveTelemetryClient()` call would
+ * capture `undefined` at that moment and never recover, leaving the modal's
+ * telemetry reads hung forever even after the client connects a moment later.
  * `useActiveTelemetryClient` re-renders this component the instant a
  * provider mounts, so the modal picks up the client as soon as it exists.
  *

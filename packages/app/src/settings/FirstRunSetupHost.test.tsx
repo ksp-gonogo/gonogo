@@ -2,46 +2,25 @@ import { SerialDeviceService } from "@ksp-gonogo/serial";
 import { act, render, screen, waitFor, within } from "@ksp-gonogo/test-utils";
 import { ModalProvider } from "@ksp-gonogo/ui";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
-import { HttpResponse, http } from "msw";
-import { setupServer } from "msw/node";
 import { useEffect, useState } from "react";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { AnalyticsConsentModal } from "../analytics/AnalyticsConsentModal";
 import { AnalyticsConsentService } from "../analytics/AnalyticsConsentService";
-import { SettingsService } from "../settings/SettingsService";
-import { UplinkHubWizardHost } from "./UplinkHubWizardHost";
+import { FirstRunSetupHost } from "./FirstRunSetupHost";
 import {
-  __resetUplinkHubWizardFirstRunForTests,
-  hasSeenUplinkHubWizard,
-  markUplinkHubWizardSeen,
-} from "./wizardFirstRun";
+  __resetFirstRunSetupForTests,
+  hasSeenFirstRunSetup,
+  markFirstRunSetupSeen,
+} from "./firstRunSetup";
+import { SettingsService } from "./SettingsService";
 
 /**
- * Proves the first-run auto-open host (design §1: "auto-opens once on first
- * boot", deferred by Task C to this task), real `ModalProvider` +
- * `SettingsModal`, only the Hub registry HTTP fetch intercepted (MSW), same
- * boundary `SettingsModal.test.tsx`'s own Uplink Hub describe block uses.
+ * Proves the first-run auto-open host: real `ModalProvider` + `SettingsModal`,
+ * nothing mocked. No telemetry provider is mounted, so the Data Sources tab
+ * renders its own waiting state, which is the point: these cases are about
+ * whether and when the modal opens, not what the tab then reports.
  */
-
-const server = setupServer(
-  http.get("*/uplinks/registry.local.json", () =>
-    HttpResponse.json({ uplinks: [] }),
-  ),
-);
-
-beforeAll(() => server.listen({ onUnhandledRequest: "bypass" }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 
 function memoryStorage(): Storage {
   const m = new Map<string, string>();
@@ -55,31 +34,20 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
-// `enabled: false` keeps the Hub registry query inert, none of this file's
-// tests assert on gap-resolution content (that's UplinkHubWizard.test.tsx's
-// job, with a real MSW-backed query); an active query here just leaves an
-// async fetch in flight that can resolve after a test's synchronous
-// assertions/unmount and trip an act() warning, same reasoning as
-// SettingsModal.test.tsx's own `makeInertQueryClient()`.
 function renderHost(analyticsConsent?: AnalyticsConsentService) {
   const settingsService = new SettingsService(memoryStorage());
   const serialService = new SerialDeviceService({ screenKey: "test" });
   // Answered by default: these cases are about the first-run flag, not the
   // consent gate, and an unanswered gate deliberately holds the auto-open.
   const consent = analyticsConsent ?? answeredConsent();
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { enabled: false, retry: false } },
-  });
   return render(
-    <QueryClientProvider client={queryClient}>
-      <ModalProvider>
-        <UplinkHubWizardHost
-          settingsService={settingsService}
-          serialService={serialService}
-          analyticsConsent={consent}
-        />
-      </ModalProvider>
-    </QueryClientProvider>,
+    <ModalProvider>
+      <FirstRunSetupHost
+        settingsService={settingsService}
+        serialService={serialService}
+        analyticsConsent={consent}
+      />
+    </ModalProvider>,
   );
 }
 
@@ -90,29 +58,26 @@ function answeredConsent(): AnalyticsConsentService {
 }
 
 beforeEach(() => {
-  __resetUplinkHubWizardFirstRunForTests();
+  __resetFirstRunSetupForTests();
 });
 
-describe("UplinkHubWizardHost", () => {
-  it("auto-opens the Settings modal pre-selected to the Uplink Hub tab on first run", async () => {
+describe("FirstRunSetupHost", () => {
+  it("auto-opens the Settings modal pre-selected to the Data Sources tab on first run", async () => {
     renderHost();
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
     expect(
-      screen.getByRole("tab", { name: "Uplink Hub", selected: true }),
+      screen.getByRole("tab", { name: "Data Sources", selected: true }),
     ).toBeInTheDocument();
-    // firstRun bookend: the Welcome step, not the plain "setup" step Task C
-    // shipped for the persistent entry point.
-    expect(screen.getByText("Welcome")).toBeInTheDocument();
   });
 
   it("marks the first-run flag the instant it opens (idempotent even if never finished)", async () => {
     renderHost();
     await screen.findByRole("dialog");
-    expect(hasSeenUplinkHubWizard()).toBe(true);
+    expect(hasSeenFirstRunSetup()).toBe(true);
   });
 
   it("does not open when the flag is already seen", () => {
-    markUplinkHubWizardSeen();
+    markFirstRunSetupSeen();
     renderHost();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -148,7 +113,7 @@ describe("UplinkHubWizardHost", () => {
     await waitFor(() =>
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument(),
     );
-    expect(hasSeenUplinkHubWizard()).toBe(false);
+    expect(hasSeenFirstRunSetup()).toBe(false);
   });
 
   it("opens as soon as the operator answers the consent gate", async () => {
@@ -161,12 +126,12 @@ describe("UplinkHubWizardHost", () => {
     });
 
     expect(await screen.findByRole("dialog")).toBeInTheDocument();
-    expect(hasSeenUplinkHubWizard()).toBe(true);
+    expect(hasSeenFirstRunSetup()).toBe(true);
   });
 
   it("never leaves two aria-modal dialogs reachable at once on first boot", async () => {
     const consent = new AnalyticsConsentService(memoryStorage());
-    const { container } = render(<ConsentThenWizard consent={consent} />);
+    const { container } = render(<ConsentThenSetup consent={consent} />);
     expect(container).toBeTruthy();
 
     // Boot: the consent gate is the only modal in the tree.
@@ -177,42 +142,37 @@ describe("UplinkHubWizardHost", () => {
       .setup()
       .click(screen.getByRole("button", { name: "Decline" }));
 
-    // Consent answered: the wizard takes its place, still exactly one.
+    // Consent answered: the settings modal takes its place, still exactly one.
     await waitFor(() =>
       expect(document.querySelectorAll('[aria-modal="true"]')).toHaveLength(1),
     );
     expect(
-      screen.getByRole("tab", { name: "Uplink Hub", selected: true }),
+      screen.getByRole("tab", { name: "Data Sources", selected: true }),
     ).toBeInTheDocument();
   });
 });
 
 /**
  * The first-boot pairing as `MainScreen` mounts it: the analytics gate and the
- * wizard host as siblings, both live at once. `AnalyticsConsentHost` itself
+ * setup host as siblings, both live at once. `AnalyticsConsentHost` itself
  * needs a `PeerHostService`, which has nothing to do with the modal ordering
  * under test, so this stands in with the modal and the same "render while
  * unanswered" rule.
  */
-function ConsentThenWizard({
+function ConsentThenSetup({
   consent,
 }: Readonly<{ consent: AnalyticsConsentService }>) {
   const settingsService = new SettingsService(memoryStorage());
   const serialService = new SerialDeviceService({ screenKey: "test" });
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { enabled: false, retry: false } },
-  });
   return (
-    <QueryClientProvider client={queryClient}>
-      <ModalProvider>
-        <ConsentGate service={consent} />
-        <UplinkHubWizardHost
-          settingsService={settingsService}
-          serialService={serialService}
-          analyticsConsent={consent}
-        />
-      </ModalProvider>
-    </QueryClientProvider>
+    <ModalProvider>
+      <ConsentGate service={consent} />
+      <FirstRunSetupHost
+        settingsService={settingsService}
+        serialService={serialService}
+        analyticsConsent={consent}
+      />
+    </ModalProvider>
   );
 }
 

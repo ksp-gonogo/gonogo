@@ -11,8 +11,8 @@ import { resolveUplinkIdentity } from "./identity";
  * The Uplink consent prompt, which mounts its own root outside React's tree.
  * Two things under test: that a keyboard operator can answer it, and that the
  * nested-modal guard still holds now that both consent gates share one
- * refcounted implementation, this prompt is the one that opens OVER something
- * else (the Settings > Uplink Hub wizard's Load button) rather than at boot.
+ * refcounted implementation, this prompt is the one that can open OVER an
+ * already-open modal rather than only at boot.
  */
 
 const info: ConsentInfo = {

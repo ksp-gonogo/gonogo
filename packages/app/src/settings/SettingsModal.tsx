@@ -52,8 +52,6 @@ import {
   type UplinkLoadStatus,
 } from "../uplinks/loaderState";
 import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
-import { UplinkHubWizard } from "../wizard/UplinkHubWizard";
-import { useUplinkGap } from "../wizard/useUplinkGap";
 import type {
   SettingDefinition,
   SettingValue,
@@ -70,13 +68,9 @@ import { useSetting } from "./SettingsContext";
 import { ConnectionRow, Name, SitrepConnection } from "./SitrepConnection";
 
 export interface SettingsModalProps {
-  /** Force the initially-active tab (e.g. "uplink-hub" for the first-run
+  /** Force the initially-active tab (e.g. "data-sources" for the first-run
    * auto-open host). Defaults to the existing attention-first selection. */
   initialTabId?: string;
-  /** Passed through to the embedded `UplinkHubWizard`: see its own prop doc. */
-  uplinkHubFirstRun?: boolean;
-  /** Passed through to the embedded `UplinkHubWizard`: see its own prop doc. */
-  onUplinkHubFinish?: () => void;
 }
 
 /**
@@ -86,11 +80,7 @@ export interface SettingsModalProps {
  * raise an attention dot; the
  * Settings FAB aggregates those dots into its own badge (see SettingsFab).
  */
-export function SettingsModal({
-  initialTabId,
-  uplinkHubFirstRun,
-  onUplinkHubFinish,
-}: SettingsModalProps = {}) {
+export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
   const screen = useScreen();
   const settings = getSettingsForScreen(screen);
   // The analytics-consent toggle is host-owned, so it only appears on the
@@ -120,16 +110,6 @@ export function SettingsModal({
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
 
-  // Same cross-reference the wizard itself renders, an installed Uplink the
-  // Hub can offer but hasn't loaded yet is exactly what deserves the tab's
-  // attention dot (design §4 Decision 1's "carries an attention badge when
-  // the cross-reference finds an installed-but-unloaded Uplink with a Hub
-  // entry"). Main-only, same gate as the tab itself.
-  const uplinkGap = useUplinkGap();
-  const uplinkHubIssue =
-    showDataSources &&
-    uplinkGap.entries.some((entry) => entry.state === "load-from-hub");
-
   const hasGeneral = settings.length > 0 || showConsent;
 
   const tabs: TabDescriptor[] = [];
@@ -148,21 +128,6 @@ export function SettingsModal({
       label: "Data Sources",
       content: <DataSourcesPanel />,
       indicator: dataSourceIssue,
-    });
-    // Loading an Uplink client is a main-screen-only action (stations never
-    // talk to the mod directly, same gate as Data Sources above), hardcoded
-    // here rather than via `registerSettingsTab`, which is reserved for
-    // external contributions (see that hook's own doc comment).
-    tabs.push({
-      id: "uplink-hub",
-      label: "Uplink Hub",
-      content: (
-        <UplinkHubWizard
-          firstRun={uplinkHubFirstRun}
-          onFinish={onUplinkHubFinish}
-        />
-      ),
-      indicator: uplinkHubIssue,
     });
   }
   tabs.push({
@@ -190,7 +155,7 @@ export function SettingsModal({
   });
 
   // An explicit initial tab (e.g. the first-run auto-open host targeting
-  // "uplink-hub") wins; otherwise open on the first tab that wants
+  // "data-sources") wins; otherwise open on the first tab that wants
   // attention, else the first tab.
   const [activeId, setActiveId] = useState(
     () =>

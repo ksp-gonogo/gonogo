@@ -87,7 +87,9 @@ describe("UplinkIdentityBlock", () => {
         identity={registryIdentity({ id: "widget-y", ...DECLARED })}
       />,
     );
-    expect(screen.getByText("Listed in the Uplink Hub")).toBeInTheDocument();
+    expect(
+      screen.getByText("Listed in the app's built Uplink index"),
+    ).toBeInTheDocument();
   });
 
   it("renders nothing at all when no source declared anything", () => {

@@ -7,7 +7,6 @@ import {
 import { Fab, SettingsIcon, useModal } from "@ksp-gonogo/ui";
 import styled from "styled-components";
 import { ModalTelemetryBridge } from "../telemetry/ModalTelemetryBridge";
-import { useUplinkGap } from "../wizard/useUplinkGap";
 import { SettingsProvider, useSettingsService } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
 
@@ -15,9 +14,9 @@ import { SettingsModal } from "./SettingsModal";
  * Settings FAB: the modal portal renders outside this provider tree, so we
  * capture the services here at the call site and re-wrap inside the modal,
  * including `ModalTelemetryBridge`, which re-provides the live Sitrep
- * telemetry context the Data Sources tab's `UplinkHealthList` and the
- * Uplink Hub tab both need (see that component's own doc comment for why
- * the modal portal doesn't inherit it automatically).
+ * telemetry context the Data Sources tab's `UplinkHealthList` needs (see that
+ * component's own doc comment for why the modal portal doesn't inherit it
+ * automatically).
  *
  * Data-source management and serial-device management live inside the
  * Settings modal, so this one button carries the aggregate "something in here
@@ -38,15 +37,7 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
     sources.some((s) => s.status === "disconnected" || s.status === "error");
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";
-  // Loading an Uplink client is main-screen-only (same gate as Data Sources
-  // above), so only badge the aggregate FAB for it there. See useUplinkGap's
-  // own doc comment for the "load-from-hub" state (installed, available, a
-  // Hub descriptor exists, not loaded yet) that this counts as actionable.
-  const { entries: uplinkGapEntries } = useUplinkGap();
-  const uplinkHubIssue =
-    screen === "main" &&
-    uplinkGapEntries.some((entry) => entry.state === "load-from-hub");
-  const hasIssue = dataSourceIssue || serialIssue || uplinkHubIssue;
+  const hasIssue = dataSourceIssue || serialIssue;
 
   function handleClick() {
     open(

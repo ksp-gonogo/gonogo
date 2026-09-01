@@ -90,8 +90,8 @@ describe("registryIdentity", () => {
       repo: "https://example.invalid/stranger/widget-y",
     });
 
-    expect(identity.name.source).toBe("hub");
-    expect(identity.author?.source).toBe("hub");
+    expect(identity.name.source).toBe("index");
+    expect(identity.author?.source).toBe("index");
     expect(hasSelfDeclaredField(identity)).toBe(false);
   });
 
@@ -141,7 +141,9 @@ describe("identityProvenance", () => {
       author: "A Stranger",
       repo: "",
     });
-    expect(identityProvenance(identity)).toBe("Listed in the Uplink Hub");
+    expect(identityProvenance(identity)).toBe(
+      "Listed in the app's built Uplink index",
+    );
   });
 
   it("enumerates each group when the mod named some fields and the bundle the rest", () => {

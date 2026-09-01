@@ -9,7 +9,6 @@ import {
 } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
 import { ModalProvider } from "@ksp-gonogo/ui";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
@@ -44,8 +43,6 @@ logger.info(`gonogo v${VERSION} (build ${BUILD_TIME})`);
 // deployments (e.g. /gonogo/bodies/ on GitHub Pages).
 registerStockBodies(`${import.meta.env.BASE_URL}bodies`);
 
-const queryClient = new QueryClient();
-
 const root = document.getElementById("root");
 if (!root) throw new Error("Could not find root node.");
 
@@ -62,11 +59,9 @@ function renderApp(): void {
     <StrictMode>
       <ErrorBoundary>
         <ThemeProvider theme={activeThemeValue}>
-          <QueryClientProvider client={queryClient}>
-            <ModalProvider>
-              <App />
-            </ModalProvider>
-          </QueryClientProvider>
+          <ModalProvider>
+            <App />
+          </ModalProvider>
         </ThemeProvider>
       </ErrorBoundary>
     </StrictMode>,
