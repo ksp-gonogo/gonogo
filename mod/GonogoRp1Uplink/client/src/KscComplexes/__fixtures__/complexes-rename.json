@@ -9,8 +9,8 @@
       "w": 12,
       "h": 20
     },
-    "caption": "A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; the other pad still shows the closed one-button state this costs when nobody is renaming",
-    "paints": ["LC-1", "New name for LP-1", "Rename", "cancel", "LP-1B"],
+    "caption": "A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; LP-1B still shows the closed one-button state, now the same bordered control as the Dismantle beside it",
+    "paints": ["LC-1", "New name for LP-1", "Rename", "Cancel", "LP-1B"],
     "before": [
       {
         "press": "Detail for LC-1"

@@ -3,6 +3,7 @@ import {
   Badge,
   Cluster,
   type CommandButton,
+  Grid,
   Inline,
   magnitudeOf,
   NULL_DISPLAY,
@@ -110,14 +111,20 @@ export function Centre({
       </Stack>
 
       {complexes.length === 0 ? (
-        // A real state, and one worth a sentence: RP-1 starts a career with a
-        // hangar and no pad complex at all, and a heading with nothing under it
-        // reads as a widget that failed to draw.
-        <Text size="sm" tone="muted">
-          No launch complexes at {name} yet.
+        // A reading rather than the sentence that was here, matching the "no
+        // pads" line a complex draws for its own empty case: RP-1 starts a
+        // career with a hangar and no pad complex at all, so the zero is a real
+        // early-career state and not a widget that failed to draw.
+        <Text size="xs" tone="muted">
+          no launch complexes
         </Text>
       ) : (
-        <Stack as="ul" gap="lg" style={LIST_STYLE}>
+        /* A grid, not a stack. A complex card is a narrow block of label/value
+           rows and the section runs the full width of the space centre panel, so
+           stacked cards left most of that width empty however many complexes a
+           career has. The tracks collapse to one column below the minimum, which
+           is the layout the cards had before. */
+        <Grid align="start" gap="lg" minColWidth="17rem">
           {complexes.map((complex) => (
             <ComplexCard
               assign={assign}
@@ -137,14 +144,14 @@ export function Centre({
               unassigned={unassigned}
             />
           ))}
-        </Stack>
+        </Grid>
       )}
     </Stack>
   );
 }
 
 /**
- * A Card renders as an `<li>` here, so its rows need list semantics around
- * them; see LaunchComplexStatus for the same reset and why it is inline.
+ * A `Row` renders an `<li>`, so the centre's readings need list semantics
+ * around them; see LaunchComplexStatus for the same reset and why it is inline.
  */
 const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;

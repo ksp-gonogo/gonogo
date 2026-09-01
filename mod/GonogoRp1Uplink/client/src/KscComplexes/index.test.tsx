@@ -216,15 +216,22 @@ describe("KscComplexes", () => {
      * The fact the view exists for: portionEngineers is Engineers/MaxEngineers,
      * so an unstaffed complex advances nothing at all however much the career
      * has hired and however much is queued on it.
+     *
+     * The badge and nothing else. The sentence that used to sit under the crew
+     * bar explaining what the badge meant for the queue is the guidance the
+     * operator asked to be rid of, and it stood on every unstaffed complex.
      */
-    withCentre([{ ...COMPLEXES[0], engineers: 0 }, COMPLEXES[1]]);
+    const { view } = withCentre([
+      { ...COMPLEXES[0], engineers: 0 },
+      COMPLEXES[1],
+    ]);
 
     await waitFor(() => {
       expect(screen.getByText("NOBODY ASSIGNED")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText(/nothing here advances until someone is/),
-    ).toBeInTheDocument();
+    expect(view.container.textContent ?? "").not.toContain(
+      "nothing here advances",
+    );
   });
 
   it("steps the crew, RP-1's own way, and sends a TARGET", async () => {
@@ -546,7 +553,12 @@ describe("KscComplexes", () => {
     );
   });
 
-  it("counts the pads that WORK, and says when the last one cannot go", async () => {
+  it("counts the pads that WORK, and puts the refusal on the control", async () => {
+    /*
+     * The count is a reading and the refusal belongs to the press, which is
+     * where the repo puts a refused control's reason. It used to be appended to
+     * the pads line as prose on every complex down to its last pad.
+     */
     const user = userEvent.setup();
     const { view } = withCentre([
       { ...COMPLEXES[0], launchPadCount: 1 },
@@ -558,10 +570,19 @@ describe("KscComplexes", () => {
     });
     await openAllDetail(user);
     const text = view.container.textContent ?? "";
-    expect(text).toContain("1 operational, so none can be dismantled");
+    expect(text).toContain("1 operational");
     expect(text).toContain("3 operational");
-    // The warning belongs to the complex that is down to one, not to both.
-    expect(text.match(/so none can be dismantled/g)).toHaveLength(1);
+    expect(text).not.toContain("so none can be dismantled");
+
+    // The one pad LC-1 has left: dark, and carrying its own reason.
+    const refused = screen.getByRole("button", {
+      name: /LP-1 is the last working pad at this complex/,
+    });
+    expect(refused).toBeDisabled();
+    expect(refused).toHaveAttribute(
+      "title",
+      "LP-1 is the last working pad at this complex, and a complex must keep one",
+    );
   });
 
   it("names the pads under the complex that owns them", async () => {
@@ -622,15 +643,15 @@ describe("KscComplexes", () => {
     await expectNoA11yViolations(view.container);
   });
 
-  it("names a centre with no launch complexes rather than leaving a gap", async () => {
+  it("reads a centre with no launch complexes rather than leaving a gap", async () => {
     // RP-1 starts a career with a hangar and no pad complex, so a centre whose
-    // pad-side list is empty is a real early-career state.
+    // pad-side list is empty is a real early-career state. A reading, matching
+    // the "no pads" line a complex draws for its own empty case, rather than the
+    // sentence that was here.
     withCentre([]);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("No launch complexes at Cape yet."),
-      ).toBeInTheDocument();
+      expect(screen.getByText("no launch complexes")).toBeInTheDocument();
     });
   });
 
