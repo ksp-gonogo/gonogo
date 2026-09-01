@@ -75,6 +75,31 @@
 // put the next one. Axis two is seeded from measurement and does have one,
 // because unlike patching a render there are correct reasons to name a UI type
 // and the list is where each of them is written down.
+//
+// THE SCAN IS NOT BLIND. Five deliberate violations were planted on 2026-09-01,
+// each run against the real tree, each reverted after. A gate that cannot be
+// shown to fail reports zero, and zero reads as success:
+//
+//   Control, unmodified                        8 passed
+//   Exemption key mistyped                     NoCaptureReachesAGameUiNamespace...
+//                                              named the real file both ways:
+//                                              "Gonogo.KSP/RecoveryUplink.cs
+//                                              reaches" and "...TYPO.cs no longer
+//                                              reaches"
+//   RenderMethod widened to match `Method`,    NoCaptureProjectPatchesARendering...
+//   so real Harmony call sites qualify         named two files in two different
+//                                              Uplinks, with line numbers
+//   MinimumCaptureProjectCount set to 999      ScanFindsEveryCaptureProject:
+//                                              "found 31 project(s), expected at
+//                                              least 999"
+//   An entry added with an empty reason        EveryUiReachExemptionStatesItsReason
+//   Restored                                   8 passed
+//
+// The middle three are the ones worth having: they fail through the REAL walk
+// over the REAL tree and name real paths, which is the half the in-file plants
+// below cannot demonstrate. The clean run at each end is as much of the proof as
+// the red ones, because a gate that fails at everything says nothing about its
+// subject.
 using System;
 using System.Collections.Generic;
 using System.IO;
