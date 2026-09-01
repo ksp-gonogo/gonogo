@@ -291,6 +291,42 @@ describe("the seat bounds", () => {
       screen.getByRole("button", { name: "Enrol 1 student on Gemini" }),
     ).toBeEnabled();
   });
+
+  /**
+   * The refusal and the press are ONE control, so the one an operator cannot
+   * press is never drawn louder than the one they can: the kit's `Button`, which
+   * used to carry the refusal, is a font size larger and uppercase where
+   * `CommandButton size="sm"` is neither.
+   *
+   * `data-command-phase` is what a call site reverting to a plain disabled
+   * `Button` would lose, so it is what this asserts.
+   *
+   * The accessible NAME is pinned either side of the refusal too, because
+   * merging the two controls is where it would quietly move: the live one names
+   * the act and its student count, and the refused one keeps its visible word
+   * with the reason in `title`, which is what each announced when they were two
+   * components.
+   */
+  it("draws the refusal with the control that would do the press", async () => {
+    const user = userEvent.setup();
+    const { fixture } = mount();
+    await present(fixture);
+
+    const refused = await screen.findByRole("button", { name: "Enrol" });
+    expect(refused).toBeDisabled();
+    expect(refused).toHaveAttribute("data-command-phase", "idle");
+    expect(refused).toHaveAccessibleName("Enrol");
+
+    await pick(user, LUDREY, NEDCAS);
+    const live = screen.getByRole("button", {
+      name: "Enrol 2 students on Gemini",
+    });
+    expect(live).toBeEnabled();
+    expect(live).toHaveAttribute("data-command-phase", "idle");
+    // The reason went with the refusal rather than staying behind on the live
+    // control, where it would describe a press that is now available.
+    expect(live).not.toHaveAttribute("title");
+  });
 });
 
 describe("who RP-1 would refuse", () => {

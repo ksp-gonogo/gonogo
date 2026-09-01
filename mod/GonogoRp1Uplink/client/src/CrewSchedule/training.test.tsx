@@ -268,6 +268,13 @@ describe("enrolling", () => {
     // And the seat bounds are on screen, so the dark control is readable as a
     // consequence of the training rather than of the kerbal.
     expect(visibleText()).toContain("seats 2");
+    /* One control for both states, so the refusal cannot be drawn louder than
+       the press: the kit's `Button`, which used to carry it, is a font size
+       larger and uppercase. `data-command-phase` is what reverting to one
+       would lose. The name stays the visible word, with the reason in
+       `title`, which is what the disabled `Button` announced. */
+    expect(control).toHaveAttribute("data-command-phase", "idle");
+    expect(control).toHaveAccessibleName("Enrol");
   });
 
   /**
@@ -410,6 +417,12 @@ describe("leaving a course", () => {
     expect(
       screen.getByRole("button", { name: `Cancel the course ${NAUT} is on` }),
     ).toBeEnabled();
+    /* Same control as the press, and the same chrome with it. Its name drops
+       to the visible label, where the pressable one says "off the course": a
+       refusal announcing the act would describe something that cannot
+       happen. */
+    expect(control).toHaveAttribute("data-command-phase", "idle");
+    expect(control).toHaveAccessibleName(`Take ${NAUT} off`);
   });
 
   /**

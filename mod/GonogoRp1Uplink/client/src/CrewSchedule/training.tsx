@@ -4,7 +4,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Button,
   Card,
   Cluster,
   CommandButton,
@@ -157,22 +156,24 @@ function EnrolControl({
               </option>
             ))}
           </Select>
-          {refusal === null ? (
-            <CommandButton
-              args={{ crew: [kerbalName], templateId: selected.id }}
-              aria-label={`Enrol ${kerbalName} on ${name}`}
-              commandLabel={`Enrol ${kerbalName} on ${name}`}
-              confirmAriaLabel={`Confirm enrolling ${kerbalName} on ${name}`}
-              confirmLabel={`Enrol on ${name}`}
-              handle={handle}
-              label="Enrol"
-              size="sm"
-            />
-          ) : (
-            <Button disabled title={refusal}>
-              Enrol
-            </Button>
-          )}
+          <CommandButton
+            args={{ crew: [kerbalName], templateId: selected.id }}
+            /* Named while it can act, and the bare visible label once it
+               cannot: a refused control announcing the enrolment it would have
+               made describes something that will not happen. The reason rides
+               `title`. */
+            aria-label={
+              refusal === null ? `Enrol ${kerbalName} on ${name}` : undefined
+            }
+            commandLabel={`Enrol ${kerbalName} on ${name}`}
+            confirmAriaLabel={`Confirm enrolling ${kerbalName} on ${name}`}
+            confirmLabel={`Enrol on ${name}`}
+            disabled={refusal !== null}
+            handle={handle}
+            label="Enrol"
+            size="sm"
+            title={refusal ?? undefined}
+          />
         </Cluster>
         <ReadoutCaption>
           {selected.type ? `${selected.type} · ` : ""}
@@ -246,22 +247,24 @@ function LeaveControls({
             size="sm"
             tone="warn"
           />
-          {stranded === null ? (
-            <CommandButton
-              args={{ crewName: kerbalName }}
-              aria-label={`Take ${kerbalName} off the course`}
-              commandLabel={`Take ${kerbalName} off the course`}
-              confirmAriaLabel={`Confirm taking ${kerbalName} off the course`}
-              confirmLabel={`${kerbalName} off, no credit`}
-              handle={remove}
-              label={`Take ${kerbalName} off`}
-              size="sm"
-            />
-          ) : (
-            <Button disabled title={stranded}>
-              Take {kerbalName} off
-            </Button>
-          )}
+          <CommandButton
+            args={{ crewName: kerbalName }}
+            /* The visible label once the course strands them: the fuller name
+               is the act, and this control cannot perform it. */
+            aria-label={
+              stranded === null
+                ? `Take ${kerbalName} off the course`
+                : undefined
+            }
+            commandLabel={`Take ${kerbalName} off the course`}
+            confirmAriaLabel={`Confirm taking ${kerbalName} off the course`}
+            confirmLabel={`${kerbalName} off, no credit`}
+            disabled={stranded !== null}
+            handle={remove}
+            label={`Take ${kerbalName} off`}
+            size="sm"
+            title={stranded ?? undefined}
+          />
         </Cluster>
       </Stack>
     </Card>

@@ -251,6 +251,20 @@ describe("starting a build from a saved craft", () => {
       "title",
       expect.stringContaining("too large"),
     );
+    /* The two are ONE control in two states, so the complex an operator cannot
+       press is not drawn louder than the one they can: the kit's `Button`,
+       which used to carry the refusal, is a font size larger and uppercase.
+       `data-command-phase` is what reverting to one would lose.
+
+       The names are pinned on both, because merging the controls is where they
+       would quietly move: the live one names the act and the craft, and the
+       refused one keeps the complex label it announced as a disabled
+       `Button`. */
+    expect(refused).toHaveAttribute("data-command-phase", "idle");
+    expect(refused).toHaveAccessibleName("Build at LC-2");
+    expect(
+      screen.getByRole("button", { name: /Start building/i }),
+    ).toHaveAccessibleName("Start building Atlas LV-3B at LC-1 at Cape");
   });
 
   it("refuses a craft whose parts are researched but not bought, and says where to buy them", async () => {

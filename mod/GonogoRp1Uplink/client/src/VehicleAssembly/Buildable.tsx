@@ -4,7 +4,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Button,
   Cluster,
   CommandButton,
   NULL_DISPLAY,
@@ -186,7 +185,7 @@ function CraftCard({
                 size="sm"
               />
             ))}
-            <Refusals complexes={complexes} />
+            <Refusals complexes={complexes} handle={handle} />
           </Cluster>
         </Stack>
       )}
@@ -209,12 +208,22 @@ function CraftCard({
  * the complexes, these are the ones you can press. The reason moves to the
  * title, where it costs no space until it is wanted.</para>
  *
+ * <para>The live control, `disabled`, rather than the kit's `Button`. `Button`
+ * is a font size larger and uppercase, so the pair drew the complex an operator
+ * CANNOT press louder than the ones they can, which is the hierarchy the other
+ * way up. One component carries both states and the chrome matches by
+ * construction.</para>
+ *
  * <para>A complex with no reasons at all is skipped: it said yes and already
  * has a live button beside these.</para>
  */
 function Refusals({
   complexes,
-}: Readonly<{ complexes: readonly Rp1BuildableComplex[] }>) {
+  handle,
+}: Readonly<{
+  complexes: readonly Rp1BuildableComplex[];
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+}>) {
   const refused = complexes.filter(
     (complex) => (complex.refusals ?? []).length > 0,
   );
@@ -225,13 +234,17 @@ function Refusals({
   return (
     <>
       {refused.map((complex) => (
-        <Button
+        <CommandButton
           disabled
+          handle={handle}
           key={complex.lcId ?? complexLabel(complex)}
+          /* No `aria-label`: the visible label is the accessible name, which is
+             what this announced as a disabled Button. The live control's richer
+             name describes an act this complex refused. */
+          label={`Build at ${complex.name ?? complexLabel(complex)}`}
+          size="sm"
           title={(complex.refusals ?? []).join("; ")}
-        >
-          Build at {complex.name ?? complexLabel(complex)}
-        </Button>
+        />
       ))}
     </>
   );
