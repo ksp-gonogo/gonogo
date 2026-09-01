@@ -39,8 +39,10 @@ const ChipButton = styled.button<{ $selected: boolean }>`
   border-radius: var(--radius-pill);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  /* Sentence case, as a control rather than a Badge. It is pill-shaped and it
+     sits among badges, but it is a real button carrying aria-pressed: the label
+     is a filter the operator applies, and its own text (a vessel name, a
+     status) is not the kit's to shout. */
   cursor: pointer;
   transition:
     background var(--duration-fast),
@@ -70,6 +72,5 @@ const ChipButton = styled.button<{ $selected: boolean }>`
 const Count = styled.span`
   font-variant-numeric: tabular-nums;
   font-size: var(--font-size-2xs);
-  letter-spacing: 0;
   opacity: 0.75;
 `;

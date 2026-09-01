@@ -1,6 +1,17 @@
 import styled from "styled-components";
 
-/** Default action button: neutral dark style */
+/**
+ * Default action button: neutral dark style.
+ *
+ * Sentence case, and no uppercase tracking with it. A button says what pressing
+ * it does, and a wall of shouted verbs competes with the readings it sits among.
+ * Uppercase stays where it marks a heading or a state token (`SectionTitle`,
+ * `PanelTitle`, `Badge`, `StatusPill`, table headers), so case is one of the
+ * things that tells an instrument from a control.
+ *
+ * The label text is the caller's: this changes how a button is drawn, never what
+ * it says, so a caller that wants a word capitalised writes it that way.
+ */
 export const Button = styled.button`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
@@ -8,10 +19,8 @@ export const Button = styled.button`
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  letter-spacing: 0.1em;
   padding: var(--space-6, 6px) var(--space-12, 12px);
   cursor: pointer;
-  text-transform: uppercase;
   transition: border-color var(--duration-fast, 120ms), color var(--duration-fast, 120ms);
 
   @media (hover: hover) {

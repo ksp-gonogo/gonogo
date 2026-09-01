@@ -294,8 +294,14 @@ describe("within ui-kit, one visual form is one component", () => {
 
   it("leaves an interactive pill alone: a tab and a filter chip are not badges", () => {
     const pills = staticPills(UI_KIT);
-    // Both match the pill CSS and both are `styled.button`. A control that does
-    // something when pressed is a different component, not a copy of `Badge`.
+    /* `Tabs__Button` is the live half of this: it still matches the pill CSS in
+       full, and is excluded only because it is a `styled.button`. A control that
+       does something when pressed is a different component, not a copy of
+       `Badge`.
+
+       `ChipButton` no longer matches the CSS at all, since a control reads in
+       sentence case, so its entry only pins that the chip stays out of the
+       badge family however its type treatment moves. */
     expect(pills.has("Tabs__Button")).toBe(false);
     expect(pills.has("ChipButton")).toBe(false);
   });
