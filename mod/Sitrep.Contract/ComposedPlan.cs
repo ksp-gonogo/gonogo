@@ -100,6 +100,7 @@ namespace Sitrep.Contract
 #if SITREP_CODEGEN
     [TsInterface]
 #endif
+    [SitrepCommand("vessel.maneuver.plan.send")]
     public class SendManeuverPlanArgs
     {
         [SitrepUnit(Units.Id)]

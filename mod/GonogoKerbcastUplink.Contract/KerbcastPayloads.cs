@@ -196,6 +196,7 @@ public class KerbcastCameraEntry
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kerbcast.setFieldOfView")]
 public class KerbcastSetFieldOfViewArgs
 {
     /// <summary>Target camera, identified by its <see cref="KerbcastCameraEntry.CameraId"/>.</summary>
@@ -215,6 +216,7 @@ public class KerbcastSetFieldOfViewArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kerbcast.setPan")]
 public class KerbcastSetPanArgs
 {
     /// <summary>Target camera, identified by its <see cref="KerbcastCameraEntry.CameraId"/>.</summary>

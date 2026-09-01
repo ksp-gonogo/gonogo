@@ -34,6 +34,12 @@ export {
   RP1_TRAINING_REMOVE_COMMAND,
   TrainingControls,
 } from "./CrewSchedule/training";
+// This Uplink's own commands: the `CommandArgsMap`/`CommandReplyMap`
+// augmentation and the runtime registration. RE-EXPORTED rather than imported
+// for side effect, for the same reason ./topics is: a bare import is elided from
+// the emitted `dist/index.d.ts` and the augmentation would not cross the package
+// boundary.
+export { UPLINK_COMMAND_IDS } from "./commands";
 export {
   KscComplexes,
   RP1_COMPLEX_RUSH_COMMAND,
@@ -64,6 +70,7 @@ export {
   RP1_RUSH_TERMS_TOPIC,
   RP1_WAREHOUSE_TOPIC,
 } from "./topics";
+
 export { RP1 } from "./uplink";
 export {
   RP1_BUILD_REPEAT_COMMAND,

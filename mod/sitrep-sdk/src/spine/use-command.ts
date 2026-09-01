@@ -8,7 +8,11 @@ import {
 } from "react";
 import type { CommandGateReport } from "../__generated__/contract";
 import { classifyCommandRejection } from "../api/command-rejection";
-import type { CommandRefusal, CommandStatus } from "../api/types";
+import type {
+  CommandRefusal,
+  CommandStatus,
+  UseCommandOptions,
+} from "../api/types";
 import {
   type CommsDelayLike,
   classifyRetained,
@@ -16,6 +20,7 @@ import {
   type PathConnectedDuring,
   type PendingEntry,
 } from "../command-delay";
+import type { CommandArgs, CommandId, CommandReply } from "../commands";
 import { type CommandGateStatus, selectCommandGate } from "./command-gate";
 import {
   type CommsLinkLike,
@@ -29,6 +34,7 @@ import { commandDelayed, commandShape } from "./map-command";
 import { useLatestValue } from "./use-stream";
 import { META_VANTAGE } from "./vantage";
 
+export type { UseCommandOptions };
 export { META_VANTAGE };
 
 /**
@@ -72,7 +78,18 @@ interface PendingUplinkQueueLike {
   pending: PendingEntry[];
 }
 
-export interface UseCommandResult {
+/**
+ * The dispatch handle. `TArgs`/`TReply` come from the generated command map when
+ * the hook was given a known `CommandId`, and stay `unknown` for a command
+ * addressed by a computed string.
+ *
+ * `send` is declared method-style rather than as a property holding a function,
+ * deliberately: that is what makes a typed handle assignable to the bare
+ * `UseCommandResult` that every delay-rail control takes. As a property,
+ * `strictFunctionTypes` checks the parameter contravariantly and every typed
+ * handle stops being a handle.
+ */
+export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
   /**
    * `opts.label` is an opaque, operator-facing description of the command
    * (e.g. line-mode's composed line text) threaded straight through to
@@ -83,10 +100,10 @@ export interface UseCommandResult {
    * for a terminal-scoped command), threaded through the same way, no role
    * in dispatch, correlation, or loss inference.
    */
-  send: (
-    args?: unknown,
+  send(
+    args?: TArgs,
     opts?: { label?: string; topic?: string },
-  ) => Promise<unknown>;
+  ): Promise<TReply>;
   status: CommandStatus;
   /**
    * Every dispatch this hook has made that hasn't yet resolved cleanly,
@@ -221,18 +238,24 @@ function resolveTracked(
  * `client.subscribeStore`, so any status transition for the in-flight
  * request re-renders the caller. `inFlight` is a SEPARATE accumulating set
  * (not just the latest `requestId`): see `UseCommandResult.inFlight`'s doc.
+ *
+ * The two overloads are the typing seam. A known `CommandId` resolves its args
+ * and its reply out of the generated command map; anything else, a computed id
+ * or a dynamic per-subject command, keeps the untyped handle this hook has
+ * always returned. See the `useCommand` re-export in `../api` for the author's
+ * account of that split.
  */
+export function useCommand<C extends CommandId>(
+  command: C,
+  options?: UseCommandOptions,
+): UseCommandResult<CommandArgs<C>, CommandReply<C>>;
+export function useCommand<TArgs = unknown, TReply = unknown>(
+  command: string,
+  options?: UseCommandOptions,
+): UseCommandResult<TArgs, TReply>;
 export function useCommand(
   command: string,
-  options?: {
-    /**
-     * Per-call vantage override (delay-UX): the command centre this command
-     * dispatches from. Omit to use the connection's session vantage (the
-     * default); pass `"meta"` for a program-meta command (tech/strategy/contract)
-     * so it stays instant regardless of the selected centre.
-     */
-    vantage?: string;
-  },
+  options?: UseCommandOptions,
 ): UseCommandResult {
   const vantage = options?.vantage;
   // Degrade gracefully with no `TelemetryProvider` mounted (disconnected).

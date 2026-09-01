@@ -19,6 +19,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.control.setFlyByWire")]
 public class SetFlyByWireArgs
 {
     [SitrepUnit(Units.Flag)]
@@ -44,6 +45,7 @@ public class SetFlyByWireArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.control.setAxes")]
 public class SetControlAxesArgs
 {
     [SitrepUnit(Units.Dimensionless)]

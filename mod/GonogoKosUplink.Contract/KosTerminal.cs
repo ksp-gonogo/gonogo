@@ -80,6 +80,7 @@ public class KosTerminalFrame
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kos.terminal.open")]
 public class KosTerminalOpenArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
@@ -113,6 +114,7 @@ public class KosTerminalOpenArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kos.keystroke")]
 public class KosKeystrokeArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
@@ -139,6 +141,7 @@ public class KosKeystrokeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kos.terminal.resize")]
 public class KosTerminalResizeArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
@@ -169,6 +172,7 @@ public class KosTerminalResizeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kos.terminal.close")]
 public class KosTerminalCloseArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>

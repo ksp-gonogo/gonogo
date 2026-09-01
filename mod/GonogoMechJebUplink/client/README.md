@@ -13,9 +13,18 @@ Flies the vessel from the console: engage MechJeb's ascent autopilot, execute th
 
 ## Wire
 
-| Payload | Fields |
+## Commands
+
+| Command | Args | Result |
+| --- | --- | --- |
+| `mechjeb.engageAscentAutopilot` | `MechJebAscentArgs` | `CommandResult` |
+| `mechjeb.executeNextNode` | `MechJebNoArgs` | `CommandResult` |
+| `mechjeb.landAtTarget` | `MechJebNoArgs` | `CommandResult` |
+
+| Args | Fields |
 | --- | --- |
 | `MechJebAscentArgs` | `targetAltitudeKm` km |
+| `MechJebNoArgs` | – |
 
 ## Widgets
 

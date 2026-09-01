@@ -285,3 +285,54 @@ describe("generated contract.ts unit types", () => {
     expect(bare).toEqual([]);
   });
 });
+
+/**
+ * The generated command map emits THREE views of one set: two interfaces and a
+ * runtime array. The compile invariants in `../commands.ts` already bind the
+ * args interface to the array in both directions, and `pnpm typecheck` fails on
+ * a planted drift with five errors. That is a real gate and it runs in the
+ * pre-commit hook.
+ *
+ * This is a SECOND instrument of a different kind, because the first one is
+ * invisible to anyone running the test suite: renaming one key in the map and
+ * leaving the array alone passes the sdk's 861 tests, the 280 core scans and
+ * the command-to-C# sync gate, all of which read the array and never the map.
+ * A generator emitting a map and a list that disagree is a failure with no
+ * observer, which is the same argument this repo already makes about a
+ * self-healing docs workflow.
+ *
+ * It has to read the file as TEXT. Both maps are interfaces, so their keys are
+ * erased before any runtime check could see them.
+ */
+describe("generated command-map.ts", () => {
+  const commandMap = readFileSync(
+    fileURLToPath(new URL("./__generated__/command-map.ts", import.meta.url)),
+    "utf8",
+  );
+
+  /** The keys of one `export interface <name> { … }` block. */
+  function interfaceKeys(name: string): string[] {
+    const start = commandMap.indexOf(`export interface ${name} {`);
+    expect(start, `${name} is not in the generated file`).toBeGreaterThan(-1);
+    const end = commandMap.indexOf("\n}", start);
+    return [...commandMap.slice(start, end).matchAll(/^ {2}"([^"]+)":/gm)].map(
+      (m) => m[1],
+    );
+  }
+
+  const runtimeIds = [
+    ...commandMap
+      .slice(commandMap.indexOf("export const GENERATED_COMMAND_IDS"))
+      .matchAll(/^ {2}"([^"]+)",$/gm),
+  ].map((m) => m[1]);
+
+  it("emits the same command set as a map, as a reply map and as an array", () => {
+    expect(runtimeIds.length).toBeGreaterThan(40);
+    expect(interfaceKeys("GeneratedCommandArgsMap")).toEqual(runtimeIds);
+    expect(interfaceKeys("GeneratedCommandReplyMap")).toEqual(runtimeIds);
+  });
+
+  it("emits them sorted, so an unchanged regeneration is no diff", () => {
+    expect(runtimeIds).toEqual([...runtimeIds].sort());
+  });
+});

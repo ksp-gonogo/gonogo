@@ -28,6 +28,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.invokePartAction")]
 public class InvokePartActionArgs
 {
     /// <summary>

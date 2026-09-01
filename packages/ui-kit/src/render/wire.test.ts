@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { readWireSurface, wireSection } from "./wire";
+import { commandSection, readWireSurface, wireSection } from "./wire";
 
 const scratch: string[] = [];
 afterEach(() => {
@@ -183,5 +183,144 @@ describe("wireSection", () => {
     // not carry: the payload table below is the whole statement.
     expect(md).toContain("| `OnlyArgs` | `x` id |");
     expect(md).not.toContain("| Topic |");
+  });
+});
+
+const COMMAND_MAP = `// generated header naming "scan.start" in prose
+import type {
+  ScanArgs,
+} from "./contract.js";
+
+export interface GeneratedCommandArgsMap {
+  "scan.start": ScanArgs;
+  "scan.stop": ScanNoArgs;
+}
+
+export interface GeneratedCommandReplyMap {
+  "scan.start": CommandResultOf<Record<string, unknown>>;
+  "scan.stop": CommandResult;
+}
+
+export const GENERATED_COMMAND_IDS = [
+  "scan.start",
+  "scan.stop",
+] as const;
+`;
+
+describe("readWireSurface commands", () => {
+  it("pairs each command with its args and the shape a dispatch resolves", () => {
+    const surface = readWireSurface(
+      slice({
+        "units.json": UNITS,
+        "topic-map.ts": TOPIC_MAP,
+        "command-map.ts": COMMAND_MAP,
+      }),
+    );
+
+    expect(surface.commands).toEqual([
+      {
+        id: "scan.start",
+        args: "ScanArgs",
+        result: "CommandResultOf<Record<string, unknown>>",
+      },
+      { id: "scan.stop", args: "ScanNoArgs", result: "CommandResult" },
+    ]);
+  });
+
+  /**
+   * The defect the Commands section was built to fix. An args type sat in the
+   * "nothing can route this" table beside genuine dynamic-channel payloads, so
+   * a one-topic Uplink read as ten payloads published on that topic.
+   */
+  it("takes a command's args out of the unroutable-payload table", () => {
+    const surface = readWireSurface(
+      slice({
+        "units.json": UNITS,
+        "topic-map.ts": TOPIC_MAP,
+        "command-map.ts": COMMAND_MAP,
+      }),
+    );
+
+    expect(surface.payloads.map((p) => p.name)).not.toContain("ScanArgs");
+    expect(surface.argShapes.map((p) => p.name)).toEqual([
+      "ScanArgs",
+      "ScanNoArgs",
+    ]);
+  });
+
+  /** An args class with no annotated property is absent from `units.json`. */
+  it("still describes an args shape the unit map has never heard of", () => {
+    const surface = readWireSurface(
+      slice({
+        "units.json": UNITS,
+        "topic-map.ts": TOPIC_MAP,
+        "command-map.ts": COMMAND_MAP,
+      }),
+    );
+
+    expect(surface.argShapes).toContainEqual({
+      name: "ScanNoArgs",
+      fields: [],
+    });
+  });
+
+  it("reports no commands for an Uplink that only publishes", () => {
+    const surface = readWireSurface(
+      slice({ "units.json": UNITS, "topic-map.ts": TOPIC_MAP }),
+    );
+
+    expect(surface.commands).toEqual([]);
+    expect(surface.argShapes).toEqual([]);
+  });
+
+  /**
+   * The map's own prose names a command id, and an import block above it has
+   * lines of the same two-space-indented shape. Neither may become a row.
+   */
+  it("does not invent a command from the generated file's prose or imports", () => {
+    const surface = readWireSurface(
+      slice({
+        "units.json": UNITS,
+        "topic-map.ts": TOPIC_MAP,
+        "command-map.ts": COMMAND_MAP,
+      }),
+    );
+
+    expect(surface.commands).toHaveLength(2);
+  });
+});
+
+describe("commandSection", () => {
+  it("renders the command table and the args shapes", () => {
+    const surface = readWireSurface(
+      slice({
+        "units.json": UNITS,
+        "topic-map.ts": TOPIC_MAP,
+        "command-map.ts": COMMAND_MAP,
+      }),
+    );
+
+    expect(commandSection(surface)).toEqual([
+      "## Commands",
+      "",
+      "| Command | Args | Result |",
+      "| --- | --- | --- |",
+      "| `scan.start` | `ScanArgs` | `CommandResultOf<Record<string, unknown>>` |",
+      "| `scan.stop` | `ScanNoArgs` | `CommandResult` |",
+      "",
+      "| Args | Fields |",
+      "| --- | --- |",
+      "| `ScanArgs` | `body` id |",
+      "| `ScanNoArgs` | \u2013 |",
+      "",
+    ]);
+  });
+
+  it("prints no section at all for an Uplink that accepts no command", () => {
+    const surface = readWireSurface(
+      slice({ "units.json": UNITS, "topic-map.ts": TOPIC_MAP }),
+    );
+
+    expect(commandSection(surface)).toEqual([]);
   });
 });

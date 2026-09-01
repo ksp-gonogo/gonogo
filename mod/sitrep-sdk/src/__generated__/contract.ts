@@ -2604,6 +2604,24 @@ export interface PayloadMeta
 	quality: Quality;
 }
 /**
+* The empty args shape, for the core commands that operate on the current
+* flight or the active vessel and so take nothing: `vessel.control.stage`,
+* `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
+* `ksp.toTrackingStation`. Each is tagged onto this class with
+* SitrepCommandAttribute, so a command with no arguments is still enumerable
+* and still names its result.
+*
+* The handlers bind `TArgs` as `object?` and ignore what arrives, so this type
+* describes the ABSENCE rather than a wire shape: it generates as an empty
+* interface, which is what makes the SDK's `send()` take no argument for these
+* five and an argument for everything else. An Uplink with its own no-args
+* commands declares its own marker in its own slice, never this one: it
+* belongs to core.
+*/
+export interface NoCommandArgs
+{
+}
+/**
 * One conic segment of a vessel's future trajectory, a patched-conic "patch"
 * in KSP's own sense (`Orbit.nextPatch`/`previousPatch`). Unlike `VesselOrbit`
 * (which is deliberately elements-only, see its own doc comment), a patch

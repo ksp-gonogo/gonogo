@@ -75,11 +75,16 @@ export interface CommandButtonHandle extends CommandDelayHandle {
    * rejects when it is refused, lost, or the machinery failed, which is what
    * lets this control clear its own pending state with no per-command telemetry
    * predicate.
+   *
+   * A method rather than a property holding a function, so a handle whose args
+   * are typed from the generated command map is still a handle: as a property,
+   * `strictFunctionTypes` checks the parameter contravariantly and every
+   * `useCommand("vessel.control.setSas")` stops being assignable here.
    */
-  send: (
+  send(
     args?: unknown,
     opts?: { label?: string; topic?: string },
-  ) => Promise<unknown>;
+  ): Promise<unknown>;
   /**
    * The standing gate verdict, when the mod publishes one for this command.
    * Absent means nothing is known in advance, which is where every control was

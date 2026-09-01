@@ -295,7 +295,7 @@ function TargetPickerComponent({
   useActionInput<TargetPickerActions>({
     "clear-target": (payload) => {
       if (payload.kind !== "button" || payload.value !== true) return;
-      void clearTargetCmd.send(null, { label: "Clear target" });
+      void clearTargetCmd.send(undefined, { label: "Clear target" });
     },
   });
 
@@ -360,7 +360,7 @@ function TargetPickerComponent({
   };
   const clearTarget = () => {
     setPendingTarget(null);
-    void clearTargetCmd.send(null, { label: "Clear target" });
+    void clearTargetCmd.send(undefined, { label: "Clear target" });
   };
 
   // ── target.available -> Suggested + categorised sections ─────────────────

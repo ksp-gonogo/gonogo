@@ -18,6 +18,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("robotics.servo.setTarget")]
 public class ServoSetTargetArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
@@ -41,6 +42,10 @@ public class ServoSetTargetArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("robotics.servo.setMotor")]
+[SitrepCommand("robotics.servo.setLock")]
+[SitrepCommand("robotics.rotor.setMotor")]
+[SitrepCommand("robotics.rotor.setLock")]
 public class ServoSetEnabledArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
@@ -63,6 +68,9 @@ public class ServoSetEnabledArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("robotics.rotor.setRpmLimit")]
+[SitrepCommand("robotics.rotor.setTorqueLimit")]
+[SitrepCommand("robotics.rotor.setBrake")]
 public class RotorSetValueArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>
@@ -85,6 +93,7 @@ public class RotorSetValueArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("robotics.rotor.reverse")]
 public class RotorReverseArgs
 {
     /// <summary>The part's <c>flightID.ToString()</c>: the id the read side stamps on each <c>parts.robotics</c> entry.</summary>

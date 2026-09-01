@@ -10,7 +10,7 @@ import type {
 import { readJson, type UplinkPackage } from "./context";
 import type { RenderedAsset } from "./driver";
 import type { Scene } from "./scenes";
-import { readWireSurface, wireSection } from "./wire";
+import { commandSection, readWireSurface, wireSection } from "./wire";
 
 /**
  * What the page generator needs of an asset, which is less than a render.
@@ -479,6 +479,7 @@ export function buildReadme(
       ],
     ]),
     ...wireSection(wire),
+    ...commandSection(wire),
   ];
 
   if (inventory.widgets.length > 0) {

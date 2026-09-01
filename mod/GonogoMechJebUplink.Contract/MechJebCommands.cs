@@ -25,6 +25,7 @@ namespace Gonogo.MechJebUplink;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("mechjeb.engageAscentAutopilot")]
 public class MechJebAscentArgs
 {
     /// <summary>Target orbit altitude, in kilometres.</summary>
@@ -46,6 +47,8 @@ public class MechJebAscentArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("mechjeb.executeNextNode")]
+[SitrepCommand("mechjeb.landAtTarget")]
 public class MechJebNoArgs
 {
 }

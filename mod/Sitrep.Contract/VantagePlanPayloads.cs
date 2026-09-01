@@ -17,6 +17,7 @@ namespace Sitrep.Contract
 #if SITREP_CODEGEN
     [TsInterface]
 #endif
+    [SitrepCommand("vessel.trajectory.forVantage", Result = typeof(VantagePlanReply))]
     public class VantagePlanRequest
     {
         /// <summary>The channel carrying the craft's orbit.</summary>

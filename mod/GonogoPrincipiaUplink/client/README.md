@@ -22,23 +22,41 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | Payload | Fields |
 | --- | --- |
 | `PrincipiaAngleInterval` | `max` °, `min` ° |
-| `PrincipiaBurnEditArgs` | `burnIndex` count, `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `ignitionUt` ut, `inertiallyFixed` flag, `requestId` id, `vesselId` id |
-| `PrincipiaBurnRemoveArgs` | `burnIndex` count, `requestId` id, `vesselId` id |
 | `PrincipiaCoastAnalysis` | `analysis` PrincipiaOrbitAnalysis, `endsAtUt` ut, `index` count, `startsAtUt` ut |
 | `PrincipiaComposedBurn` | `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `ignitionUt` ut, `inertiallyFixed` flag |
 | `PrincipiaLengthInterval` | `max` m, `min` m |
 | `PrincipiaOrbitAnalysis` | `anomalisticPeriodSeconds` s, `ascendingCrossingDegrees` PrincipiaAngleInterval, `ascendingNodeSolarTimeDegrees` PrincipiaAngleInterval, `descendingCrossingDegrees` PrincipiaAngleInterval, `descendingNodeSolarTimeDegrees` PrincipiaAngleInterval, `elementsEpochUt` ut, `elementsPresent` flag, `firstCollisionRiskUt` ut, `firstCollisionUt` ut, `firstReentryUt` ut, `gravitationallyBound` flag, `lowestAltitudeMetres` m, `meanApoapsisAltitudeMetres` PrincipiaLengthInterval, `meanArgumentOfPeriapsisDegrees` PrincipiaAngleInterval, `meanEccentricity` PrincipiaRatioInterval, `meanInclinationDegrees` PrincipiaAngleInterval, `meanLongitudeOfAscendingNodeDegrees` PrincipiaAngleInterval, `meanPeriapsisAltitudeMetres` PrincipiaLengthInterval, `meanSemimajorAxisMetres` PrincipiaLengthInterval, `missionDurationSeconds` s, `nodalPeriodSeconds` s, `nodalPrecessionDegreesPerHour` °/h, `primaryBody` text, `primaryIndex` count, `progressOfNextAnalysis` ratio, `recurrenceCycleRotations` count, `recurrenceEquatorialShiftDegrees` °, `recurrenceGridIntervalDegrees` °, `recurrenceRevolutions` count, `recurrenceRevolutionsPerRotation` count, `recurrenceSubcycleRotations` count, `siderealPeriodSeconds` s |
-| `PrincipiaPlanArmArgs` | `requestId` id, `vesselId` id |
-| `PrincipiaPlanHorizonArgs` | `desiredFinalTimeUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanIntegrator` | `generalizedIntegratorKind` enum, `integratorKind` enum, `lengthToleranceMetres` m, `maxSteps` count, `speedToleranceMetresPerSecond` m/s |
-| `PrincipiaPlanIntegratorArgs` | `lengthToleranceMetres` m, `maxSteps` count, `requestId` id, `speedToleranceMetresPerSecond` m/s, `vesselId` id |
 | `PrincipiaPlannedBurn` | `anomalous` flag, `centreBody` text, `coordinateSystem` enum, `cutoffUt` ut, `deltaV` m/s, `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `durationSeconds` s, `executing` flag, `finalMassTons` t, `frameEditable` flag, `frameType` enum, `ignitionUt` ut, `index` count, `inertiallyFixed` flag, `initialMassTons` t, `massFlowKilogramsPerSecond` kg/s, `primaryBodies` text, `primaryBody` text, `secondaryBodies` text, `secondaryBody` text, `specificImpulseSeconds` isp, `thrustKilonewtons` kN, `timeToHalfDeltaVSeconds` s |
-| `PrincipiaPlanSendArgs` | `burns` PrincipiaComposedBurn[], `composedAtViewUt` ut, `desiredFinalTimeUt` ut, `observedAtUt` ut, `requestId` id, `vesselId` id |
-| `PrincipiaPlanSlotArgs` | `finalTimeUt` ut, `requestId` id, `vesselId` id |
 | `PrincipiaPlanWriteReceipt` | `plan` PrincipiaPlan, `refusalDetail` text, `replayed` flag, `requestId` id, `statusError` enum, `statusMessage` text |
 | `PrincipiaRatioInterval` | `max` 1, `min` 1 |
 | `PrincipiaReferenceFrame` | `centreBody` text, `primaryBodies` text, `primaryBody` text, `secondaryBodies` text, `secondaryBody` text, `selector` text, `targetFrameSelected` flag, `targetPrimaryBody` text, `targetVesselId` id, `targetVesselName` text, `type` enum |
 | `PrincipiaWriteSurface` | `analysedVersion` text, `armed` flag, `available` flag, `burnLayoutVerified` flag, `detectedVersion` text, `integratorLayoutVerified` flag, `reason` text |
+
+## Commands
+
+| Command | Args | Result |
+| --- | --- | --- |
+| `principia.plan.arm` | `PrincipiaPlanArmArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.burn.insert` | `PrincipiaBurnEditArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.burn.remove` | `PrincipiaBurnRemoveArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.burn.replace` | `PrincipiaBurnEditArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.create` | `PrincipiaPlanSlotArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.delete` | `PrincipiaPlanSlotArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.duplicate` | `PrincipiaPlanSlotArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.horizon` | `PrincipiaPlanHorizonArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.integrator` | `PrincipiaPlanIntegratorArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `principia.plan.send` | `PrincipiaPlanSendArgs` | `CommandResultOf<Record<string, unknown>>` |
+
+| Args | Fields |
+| --- | --- |
+| `PrincipiaBurnEditArgs` | `burnIndex` count, `deltaVBinormal` m/s, `deltaVNormal` m/s, `deltaVTangent` m/s, `ignitionUt` ut, `inertiallyFixed` flag, `requestId` id, `vesselId` id |
+| `PrincipiaBurnRemoveArgs` | `burnIndex` count, `requestId` id, `vesselId` id |
+| `PrincipiaPlanArmArgs` | `requestId` id, `vesselId` id |
+| `PrincipiaPlanHorizonArgs` | `desiredFinalTimeUt` ut, `requestId` id, `vesselId` id |
+| `PrincipiaPlanIntegratorArgs` | `lengthToleranceMetres` m, `maxSteps` count, `requestId` id, `speedToleranceMetresPerSecond` m/s, `vesselId` id |
+| `PrincipiaPlanSendArgs` | `burns` PrincipiaComposedBurn[], `composedAtViewUt` ut, `desiredFinalTimeUt` ut, `observedAtUt` ut, `requestId` id, `vesselId` id |
+| `PrincipiaPlanSlotArgs` | `finalTimeUt` ut, `requestId` id, `vesselId` id |
 
 ## Augments
 

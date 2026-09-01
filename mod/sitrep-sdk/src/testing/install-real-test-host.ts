@@ -116,8 +116,8 @@ export function installRealTestHost(uiKit: UiKitHostPieces): () => void {
         key,
       )) as GonogoHost["useTelemetry"],
     useViewUt: () => useViewUt(),
-    useCommand: (command) =>
-      useCommand(command) as unknown as ReturnType<GonogoHost["useCommand"]>,
+    useCommand: ((command: string, options?: { vantage?: string }) =>
+      useCommand(command, options)) as GonogoHost["useCommand"],
     // An Uplink's own test run has no peer client, so a call goes straight to
     // the handle, which is what the main screen does too. The station's relayed
     // route is the app's to supply.

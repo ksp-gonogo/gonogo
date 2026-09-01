@@ -40,6 +40,19 @@ Kerbalism life support as one ledger: every profile resource as a meter with the
 | `KerbalismScienceLabExt` | `analysisRateMBps` MB/s, `effectiveRateMBps` MB/s, `status` id |
 | `KerbalismStarInfo` | `direction.x` 1, `direction.y` 1, `direction.z` 1, `distance` m, `star` text |
 | `KerbalismStormEntry` | `dist` m, `star` text, `stormDuration` s, `stormState` count, `stormTime` ut, `targetKind` enum, `targetName` text |
+
+## Commands
+
+| Command | Args | Result |
+| --- | --- | --- |
+| `kerbalism.file.delete` | `KerbalismSubjectActionArgs` | `CommandResult` |
+| `kerbalism.file.send` | `KerbalismSubjectFlagArgs` | `CommandResult` |
+| `kerbalism.sample.analyze` | `KerbalismSubjectFlagArgs` | `CommandResult` |
+| `kerbalism.sample.dump` | `KerbalismSubjectActionArgs` | `CommandResult` |
+| `kerbalism.sample.moveToLab` | `KerbalismSubjectActionArgs` | `CommandResult` |
+
+| Args | Fields |
+| --- | --- |
 | `KerbalismSubjectActionArgs` | `subjectId` id |
 | `KerbalismSubjectFlagArgs` | `flag` flag, `subjectId` id |
 

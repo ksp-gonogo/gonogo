@@ -19,6 +19,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("career.strategy.activate")]
 public class ActivateStrategyArgs
 {
     [SitrepUnit(Units.Id)]
@@ -34,6 +35,7 @@ public class ActivateStrategyArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("career.strategy.deactivate")]
 public class DeactivateStrategyArgs
 {
     [SitrepUnit(Units.Id)]
@@ -49,6 +51,7 @@ public class DeactivateStrategyArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("career.tech.unlock")]
 public class UnlockTechArgs
 {
     [SitrepUnit(Units.Id)]
@@ -67,6 +70,9 @@ public class UnlockTechArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("career.contract.accept")]
+[SitrepCommand("career.contract.decline")]
+[SitrepCommand("career.contract.cancel")]
 public class ContractActionArgs
 {
     [SitrepUnit(Units.Id)]
@@ -84,6 +90,7 @@ public class ContractActionArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("career.facility.upgrade")]
 public class UpgradeFacilityArgs
 {
     [SitrepUnit(Units.Id)]
@@ -105,6 +112,7 @@ public class UpgradeFacilityArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("career.crew.hire")]
 public class HireApplicantArgs
 {
     [SitrepUnit(Units.Id)]
@@ -127,6 +135,7 @@ public class HireApplicantArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("career.crew.fire")]
 public class FireCrewArgs
 {
     [SitrepUnit(Units.Id)]

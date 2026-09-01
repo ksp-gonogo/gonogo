@@ -29,3 +29,10 @@ export { MechJebComponent } from "./MechJeb";
 // retains them and bundlers won't tree-shake the registerComponent() call away.
 import "./uplink"; // defineUplinkClient(MECHJEB): the widget below stamps `owner: MECHJEB`
 import "./MechJeb";
+
+// This Uplink's own commands: the `CommandArgsMap`/`CommandReplyMap`
+// augmentation and the runtime registration. RE-EXPORTED rather than imported
+// for side effect, for the same reason ./topics is: a bare import is elided from
+// the emitted `dist/index.d.ts` and the augmentation would not cross the package
+// boundary.
+export { UPLINK_COMMAND_IDS } from "./commands";

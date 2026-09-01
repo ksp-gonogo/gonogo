@@ -43,6 +43,12 @@ export type {
   // so a renumber on the mod side still fails its build.
   KerbalismStormTargetKind,
 } from "./__generated__/contract";
+// This Uplink's own commands: the `CommandArgsMap`/`CommandReplyMap`
+// augmentation and the runtime registration. RE-EXPORTED rather than imported
+// for side effect, for the same reason ./topics is: a bare import is elided from
+// the emitted `dist/index.d.ts` and the augmentation would not cross the package
+// boundary.
+export { UPLINK_COMMAND_IDS } from "./commands";
 // This Uplink's namespaces of the two elected `isru.*` payloads' extension bags, same
 // boundary and same load-bearing re-export again. Kerbalism WINS the ISRU election too,
 // but here it fills every shared field: these readers add the blocking reason, the EC
@@ -99,6 +105,7 @@ export {
   KERBALISM_PROFILE_TOPIC,
   KERBALISM_SPACEWEATHER_TOPIC,
 } from "./topics";
+
 // The Uplink client identity, then the per-frame `summarise` Processor that
 // stamps against it. Bare side-effect imports so the registrations survive
 // tree-shaking when the app pulls the package entry in.

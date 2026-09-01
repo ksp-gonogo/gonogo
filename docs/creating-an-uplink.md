@@ -346,12 +346,13 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   ConfigurationMethod="ExampleUplink.Contract.ExampleRtConfig.Configure"
 ```
 
-Four files land in `src/__generated__/`, and none of them is ever hand-edited:
+Five files land in `src/__generated__/`, and none of them is ever hand-edited:
 
 | file | what it holds | who reads it |
 | --- | --- | --- |
 | `contract.ts` | one interface per wire type, camelCased, quantities as `Value<unit>` | your widgets, `topics.ts` |
 | `topic-map.ts` | `GeneratedTopicPayloadMap` and `GENERATED_TOPIC_IDS` | reference for your `declare module` block |
+| `command-map.ts` | `GeneratedCommandArgsMap`, `GeneratedCommandReplyMap` and `GENERATED_COMMAND_IDS` | `commands.ts`, at module load |
 | `units.ts` | `GENERATED_TOPIC_UNITS` / `_SHAPES` and `GENERATED_TYPE_UNITS` / `_SHAPES` | `topics.ts`, at module load |
 | `units.json` | the same unit map as data | anything that is not TypeScript |
 
@@ -746,9 +747,69 @@ The handle carries more than `send`:
 | `shape` | which delay display this command uses; hand it straight to `<CommandDelay>` |
 | `dismiss(id)` | clear a dead dispatch or a refusal, the manual out for anything that would sit forever |
 
-`send` is typed `(args?: unknown, opts?) => Promise<unknown>`: the command vocabulary is not generated
-the way `TopicId` is, so neither the command name nor its args are checked. Your own args interface
-comes out of your codegen (`SetOutputArgs` above), so type your call site against it yourself.
+### Register your commands, and `send` gets typed
+
+`useCommand` is keyed on `CommandId` exactly as `useTelemetry` is on `TopicId`, so a command the SDK
+knows resolves its own args and its own reply. Your commands are yours, so you register them the same
+way you register your Topics, in a file beside `topics.ts`:
+
+```ts
+// client/src/commands.ts
+import { registerUplinkCommand } from "@ksp-gonogo/sitrep-sdk";
+import {
+  GENERATED_COMMAND_IDS,
+  type GeneratedCommandArgsMap,
+  type GeneratedCommandReplyMap,
+} from "./__generated__/command-map";
+
+// The TYPE half, the write-side twin of the `TopicPayloadMap` merge above.
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface CommandArgsMap extends GeneratedCommandArgsMap {}
+  interface CommandReplyMap extends GeneratedCommandReplyMap {}
+}
+
+// The RUNTIME half: which command ids exist, so `isCommandId` and
+// `getAllKnownCommandIds` can see them.
+for (const id of GENERATED_COMMAND_IDS) {
+  registerUplinkCommand(id);
+}
+```
+
+Both halves come off the generated map rather than a list written here, so a command you add to your
+contract later needs no new line. Re-export this module from `client/src/index.ts` (`export {} from
+"./commands"`, not a bare `import`), for the same reason `topics.ts` is re-exported: a bare import is
+elided from the emitted `dist/index.d.ts` and the augmentation never crosses the package boundary.
+
+What fills the map is the `[SitrepCommand]` attribute on your args class, in your contract slice:
+
+```csharp
+[SitrepContract]
+[TsInterface]
+[SitrepCommand("example.setOutput")]
+public class SetOutputArgs
+{
+    [SitrepUnit(Units.Kilowatts)]
+    public double TargetPower { get; set; }
+}
+```
+
+One args class can carry several tags where one shape serves several commands. `Payload = typeof(T)`
+names the `T` of a handler's `CommandResult<T>`; leave it off and the command resolves a bare
+`CommandResult`, which is success or nothing more. A command that takes no arguments carries its tag
+on an empty marker class of your own, the way a no-payload DTO already works.
+
+A command id you have NOT registered still dispatches: it falls to `useCommand`'s untyped overload and
+`send` stays `(args?: unknown) => Promise<unknown>`, which is where every call was before the map
+existed. That overload is the escape hatch for a DYNAMIC command whose id is computed per subject and
+so can have no static member:
+
+```ts
+const reset = useCommand<{ id: string }>(`example.probe.${probeId}.reset`);
+```
+
+**A resolved reply is always a command that ran.** The game refusing is a REJECTION carrying a
+`CommandErrorCode`, and it also lands on `refusals` above, so `CommandResult` in the reply position
+never means "said no quietly".
 
 ### Sharing a derivation with other Uplinks
 
@@ -1499,6 +1560,8 @@ week after.
       equal to `package.json`'s
 - [ ] `client/src/topics.ts` merges `TopicPayloadMap`, calls `registerBarePrimitiveTopic` for every
       Topic, and registers BOTH the topic-keyed and the type-keyed unit maps
+- [ ] every command's args class carries `[SitrepCommand("<id>")]`, and `client/src/commands.ts`
+      merges `CommandArgsMap`/`CommandReplyMap` and calls `registerUplinkCommand` for every id
 - [ ] every `registerComponent` / `registerAugment` passes `owner: <handle>`, and every registration
       carries a `description` and `tags`
 - [ ] every `useTelemetry` read branches on `Reading.state`; no cast past the union, and no judgement

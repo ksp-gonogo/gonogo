@@ -53,6 +53,15 @@ export interface WirePayload {
   fields: WireField[];
 }
 
+/** One command the Uplink accepts, off its generated command map. */
+export interface WireCommand {
+  id: string;
+  /** The args interface name. An empty shape means the command takes nothing. */
+  args: string;
+  /** What a dispatch resolves with, e.g. `CommandResult`. */
+  result: string;
+}
+
 export interface WireSurface {
   /** False when the Uplink has no contract slice, so nothing was generated. */
   present: boolean;
@@ -66,12 +75,23 @@ export interface WireSurface {
    */
   nested: WirePayload[];
   /**
-   * Wire shapes nothing on this page can route: a command's args, a dynamic
-   * namespace's payload, or a namespace added inside another channel's
-   * extensions bag. The distinction between those three is not in the generated
-   * slice, so the page names all three rather than picking one.
+   * Wire shapes nothing on this page can route: a dynamic namespace's payload,
+   * or a namespace added inside another channel's extensions bag. The
+   * distinction between the two is not in the generated slice, so the page names
+   * both rather than picking one.
+   *
+   * A command's args USED to be in here too, unmarked, so an Uplink with one
+   * topic and seven command-arg shapes read as ten payloads published on that
+   * one topic. They are routed now, through `commands`, so they have left.
    */
   payloads: WirePayload[];
+  /**
+   * The commands this Uplink accepts, and the shape of each one's arguments.
+   * Empty for an Uplink that only publishes.
+   */
+  commands: WireCommand[];
+  /** One entry per distinct args type named in `commands`, with its fields. */
+  argShapes: WirePayload[];
 }
 
 const EMPTY: WireSurface = {
@@ -79,6 +99,8 @@ const EMPTY: WireSurface = {
   channels: [],
   nested: [],
   payloads: [],
+  commands: [],
+  argShapes: [],
 };
 
 interface UnitsJson {
@@ -95,6 +117,53 @@ interface UnitsJson {
  * the file's header prose cannot match, which the real emitted header does.
  */
 const MAP_ENTRY = /^ {2}"([^"]+)": (\w+)(\[\])?;$/;
+
+/**
+ * One entry of the generated command map. Looser than {@link MAP_ENTRY} because
+ * a reply is a type EXPRESSION rather than a bare name: `CommandResult`,
+ * `CommandResultOf<Record<string, unknown>>`, or the interface a command that
+ * does not answer a `CommandResult` resolves. The whole expression is what the
+ * table prints, so it is captured whole.
+ */
+const COMMAND_ENTRY = /^ {2}"([^"]+)": (.+);$/;
+
+/**
+ * The two maps in the generated command file, read in one pass: the args map
+ * comes first and the reply map second, so the block a line falls in is what
+ * says which of the two it belongs to.
+ */
+function readCommands(dir: string): WireCommand[] {
+  const path = join(dir, "command-map.ts");
+  if (!existsSync(path)) return [];
+
+  const args = new Map<string, string>();
+  const replies = new Map<string, string>();
+  let into: Map<string, string> | null = null;
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
+    if (line.startsWith("export interface GeneratedCommandArgsMap"))
+      into = args;
+    else if (line.startsWith("export interface GeneratedCommandReplyMap"))
+      into = replies;
+    else if (line === "}") into = null;
+    else if (into) {
+      const match = COMMAND_ENTRY.exec(line);
+      if (match) into.set(match[1], match[2]);
+    }
+  }
+
+  return [...args.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([id, argsType]) => ({
+      id,
+      args: argsType,
+      // The two maps come out of one codegen pass over one attribute, so a
+      // command in the args map and missing from the reply map cannot happen
+      // without the emitter changing. The fallback names the bare result rather
+      // than printing an empty cell, so a format change shows up as a wrong
+      // answer in review rather than as a gap nobody reads.
+      result: replies.get(id) ?? "CommandResult",
+    }));
+}
 
 function fields(
   units: Record<string, string> | undefined,
@@ -209,8 +278,18 @@ export function readWireSurface(pkgDir: string): WireSurface {
     name,
     fields: fields(units.types?.[name], units.typeShapes?.[name]),
   });
+  const commands = readCommands(dir);
+  // A command's args type is routed by the Commands table below, so it leaves
+  // the "nothing can route this" bucket. Every distinct one is described, even a
+  // shape `units.json` has never heard of: an args class with no annotated
+  // property (a no-args marker, or one carrying only untyped strings) is absent
+  // from that file and would otherwise be named in the table with no row saying
+  // what it holds.
+  const argTypes = [...new Set(commands.map((c) => c.args))].sort();
+  const argTypeSet = new Set(argTypes);
+
   const rest = Object.keys(units.types ?? {})
-    .filter((name) => !named.has(name))
+    .filter((name) => !named.has(name) && !argTypeSet.has(name))
     .sort();
 
   return {
@@ -218,6 +297,8 @@ export function readWireSurface(pkgDir: string): WireSurface {
     channels,
     nested: rest.filter((name) => held.has(name)).map(describe),
     payloads: rest.filter((name) => !held.has(name)).map(describe),
+    commands,
+    argShapes: argTypes.map(describe),
   };
 }
 
@@ -249,12 +330,13 @@ function fieldList(list: WireField[]): string {
  * way: this section carried four explanatory paragraphs and they said the same
  * things the tables' own headers do.
  *
- * The second table folds together shapes that reach the wire three different
- * ways: a nested payload another field holds, a command's arguments, and a
- * namespace inside another channel's extensions bag. The distinction is not in
- * the generated slice, and a `Kind` column that could only ever say "one of
- * three" is not a fact. Every one of them is a shape this Uplink puts on the
- * wire, which is what the table claims.
+ * The second table folds together shapes that reach the wire two different ways:
+ * a nested payload another field holds, and a namespace inside another channel's
+ * extensions bag. The distinction is not in the generated slice, and a `Kind`
+ * column that could only ever say "one of two" is not a fact. Every one of them
+ * is a shape this Uplink puts on the wire, which is what the table claims.
+ * Command args used to be folded in here as a third, which is how a one-topic
+ * Uplink read as ten payloads on that topic; they have their own section now.
  *
  * Nothing at all when the Uplink has no contract slice: a client-only Uplink
  * extending widgets that already exist adds no wire values, and a heading saying
@@ -285,6 +367,53 @@ export function wireSection(surface: WireSurface): string[] {
       "| Payload | Fields |",
       "| --- | --- |",
       ...shapes.map((p) => `| \`${p.name}\` | ${fieldList(p.fields)} |`),
+      "",
+    );
+  }
+  return out;
+}
+
+/**
+ * `## Commands`: the write half, two tables and no sentences, beside `## Wire`.
+ *
+ * The page carried none of this until 2026-09-01. A reader could enumerate every
+ * value an Uplink publishes and not one of the calls it accepts, which is not a
+ * documentation gap: the vocabulary did not exist anywhere a third party could
+ * reach. It is derived from the generated command map, the same rule the Wire
+ * section follows, so a command added in C# reaches this table with no hand edit.
+ *
+ * The Result column is what a dispatch RESOLVES with, which is not what the
+ * handler returns: a refusal rejects, carrying its `CommandErrorCode`, so
+ * `CommandResult` in that column means "ran, or threw", never "said no quietly".
+ *
+ * There is deliberately no Delayed column, though `CommandDeclaration.Delayed`
+ * is a real fact an author wants. It is set in the PLUGIN assembly, which no
+ * generated artifact reaches, and one Uplink builds its whole list through a
+ * private `DeclareCommands(...)` helper: a source scan would have found nothing
+ * for it and said so by printing 29 blank cells. The channel scan next door is
+ * safe because `readWireSurface` can cross-check every topic it should have
+ * found; there is no equivalent check available here yet.
+ */
+export function commandSection(surface: WireSurface): string[] {
+  if (surface.commands.length === 0) return [];
+  const out = [
+    "## Commands",
+    "",
+    "| Command | Args | Result |",
+    "| --- | --- | --- |",
+    ...surface.commands.map(
+      (c) => `| \`${c.id}\` | \`${c.args}\` | \`${c.result}\` |`,
+    ),
+    "",
+  ];
+
+  if (surface.argShapes.length > 0) {
+    out.push(
+      "| Args | Fields |",
+      "| --- | --- |",
+      ...surface.argShapes.map(
+        (p) => `| \`${p.name}\` | ${fieldList(p.fields)} |`,
+      ),
       "",
     );
   }

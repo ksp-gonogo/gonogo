@@ -38,6 +38,21 @@ This runs `mod/codegen.sh`, which builds `Sitrep.Contract.csproj` and invokes
 the `rtcli` tool against the compiled assembly to rewrite
 `src/__generated__/contract.ts`.
 
+The same run writes four more maps out of the same reflection, each with a
+hand-owned wrapper beside it that is the surface you actually import:
+
+| Generated | Wrapper | What it answers |
+| --- | --- | --- |
+| `topic-map.ts` | `src/topics.ts` | which Topics exist, and what each one's payload is |
+| `command-map.ts` | `src/commands.ts` | which commands exist, what each one takes, and what a dispatch resolves with |
+| `units.ts` / `units.json` | `src/units.ts` | which field carries which unit |
+| `control-channels.ts` | `src/control-channels.ts` | which read field pairs with which write command |
+
+An Uplink with its own wire types gets its own copy of each, written into its
+own `client/src/__generated__/`, and its client package merges them into these
+same registries. See `src/commands.ts` for how that merge works on the write
+side.
+
 ## The drift gate
 
 ```bash

@@ -448,7 +448,10 @@ describe("TargetPickerComponent: Suggested + categorised list", () => {
         (c) => c.command === "vessel.target.clear",
       );
       expect(sent).toBeDefined();
-      expect(sent?.args).toBeNull();
+      // `vessel.target.clear` takes no arguments, so the dispatch carries none.
+      // An absent `args` key and an explicit null are the same thing on the
+      // mod side: EnvelopeCodec reads a missing "args" as null.
+      expect(sent?.args).toBeUndefined();
     });
   });
 

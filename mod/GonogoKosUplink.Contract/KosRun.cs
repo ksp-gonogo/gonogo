@@ -31,6 +31,7 @@ namespace Gonogo.KosUplink;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("kos.run")]
 public class KosRunArgs
 {
     /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>

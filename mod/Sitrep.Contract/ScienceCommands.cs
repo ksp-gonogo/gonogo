@@ -19,6 +19,8 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("science.experiment.deploy")]
+[SitrepCommand("science.experiment.transmit")]
 public class ExperimentActionArgs
 {
     [SitrepUnit(Units.Id)]
