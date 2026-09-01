@@ -85,18 +85,16 @@ export function TrainingEnrolment() {
     return null;
   }
 
+  // Silent on an unread channel, both of them, rather than the one short line an
+  // unreadable state is otherwise worth. Neither absence is unsaid: the crew
+  // roster is the HOST's channel and the Astronaut Complex says so above this,
+  // and an unread catalogue is stated on every naut's row by the per-row
+  // control. That coverage holds rather than nearly holding, because the rows
+  // that would go quiet are the ones whose kerbal is already on a course, and a
+  // career whose every naut is on one leaves this section nobody to offer
+  // anyway.
   if (catalogue === undefined) {
-    // The one absence worth a line. RP-1 has answered and its own catalogue
-    // channel has not, and no other surface reads it, so an operator seeing
-    // nothing here could not tell an unread channel from a career that has
-    // unlocked no training. The crew roster gets no such line: it is the host's
-    // own channel and the Astronaut Complex says so above this already.
-    return (
-      <Section>
-        <SectionTitle>START A TRAINING</SectionTitle>
-        <ReadoutCaption>Training catalogue unread</ReadoutCaption>
-      </Section>
-    );
+    return null;
   }
 
   // The trainings the career has UNLOCKED and no others, the same rule the

@@ -1,0 +1,152 @@
+{
+  "_meta": {
+    "notes": "A Gemini crew that cannot be filled, and the two names that are the reason. RP-1 refuses the whole command by the name of the first student it will not take rather than starting the course a seat short, so a generic failure would send an operator through the roster hunting for who. Valentina is off-world and Nedcas is standing down after a flight, both dark and both carrying their reason; Ludrey is picked and is the only name the career has left, one short of the two Gemini needs. The dark Enrol says which arithmetic failed, not that something did",
+    "why-two-refusals": "One dark name reads as that kerbal's problem. Two, for two different reasons, is what makes the sentence a fact about the CAREER: this crew is not available this month"
+  },
+  "_scene": {
+    "augment": "rp1-training-enrolment",
+    "size": {
+      "w": 11,
+      "h": 11
+    },
+    "caption": "Gemini seats two and the career has one naut free: Valentina is off-world and Nedcas is standing down after a flight, so the enrolment is dark with the count rather than failing at the press",
+    "before": [
+      {
+        "press": "Ludrey Kerman"
+      }
+    ],
+    "paints": [
+      "START A TRAINING",
+      "Mission",
+      "seats 2",
+      "Ludrey Kerman",
+      "Nedcas Kerman",
+      "Valentina Kerman",
+      "Enrol"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.crewProgram",
+        "payload": {
+          "retirementEnabled": true,
+          "crewRnREnabled": true,
+          "missionTrainingEnabled": true,
+          "proficiencyTrainingRate": 0.8,
+          "missionTrainingRate": 1.25,
+          "retirementExtensionCapSeconds": 63115200,
+          "courses": 0,
+          "coursesStarted": 0,
+          "crewInTraining": 0
+        }
+      },
+      {
+        "topic": "spaceCenter.crewRoster",
+        "payload": [
+          {
+            "name": "Ludrey Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 2,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.45,
+            "stupidity": 0.4,
+            "experienceLevelDelta": 0.15,
+            "standing": 2
+          },
+          {
+            "name": "Nedcas Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 1,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": false,
+            "unavailableReason": "Resting",
+            "inactive": true,
+            "inactiveUntilUt": 3200000,
+            "standingEndsAtUt": 3200000,
+            "courage": 0.6,
+            "stupidity": 0.55,
+            "experienceLevelDelta": 0.05,
+            "standing": 5
+          },
+          {
+            "name": "Valentina Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 3,
+            "situation": "Assigned",
+            "situationOrdinal": 1,
+            "available": false,
+            "unavailableReason": "Assigned",
+            "courage": 0.9,
+            "stupidity": 0.1,
+            "experienceLevelDelta": 0.7,
+            "standing": 3
+          }
+        ]
+      },
+      {
+        "topic": "rp1.crew",
+        "payload": [
+          {
+            "name": "Ludrey Kerman",
+            "retired": false,
+            "retiresAtUt": 95608000,
+            "latestRetiresAtUt": 158723200
+          },
+          {
+            "name": "Nedcas Kerman",
+            "retired": false,
+            "retiresAtUt": 40000000,
+            "latestRetiresAtUt": 40000000
+          },
+          {
+            "name": "Valentina Kerman",
+            "retired": false,
+            "retiresAtUt": 210000000,
+            "latestRetiresAtUt": 260000000
+          }
+        ]
+      },
+      {
+        "topic": "rp1.training",
+        "payload": []
+      },
+      {
+        "topic": "rp1.trainingCatalogue",
+        "payload": [
+          {
+            "id": "MissionTraining_Gemini",
+            "name": "Gemini",
+            "type": "Mission",
+            "target": "Gemini",
+            "baseTime": 2592000,
+            "seatMin": 2,
+            "seatMax": 2,
+            "unlocked": true,
+            "isTemporary": false
+          },
+          {
+            "id": "ProficiencyTraining_AtlasD",
+            "name": "Atlas-D",
+            "type": "Proficiency",
+            "target": "Atlas-D",
+            "baseTime": 1296000,
+            "seatMin": 1,
+            "seatMax": 4,
+            "unlocked": true,
+            "isTemporary": false
+          }
+        ]
+      }
+    ]
+  }
+}

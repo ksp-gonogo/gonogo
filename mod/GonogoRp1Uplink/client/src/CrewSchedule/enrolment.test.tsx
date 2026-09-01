@@ -471,12 +471,13 @@ describe("what it declines to draw", () => {
   });
 
   /**
-   * RP-1 has answered and its own catalogue has not, and nothing else reads
-   * that channel, so an operator seeing nothing here could not tell an unread
-   * channel from a career that has unlocked no training.
+   * The unread catalogue is stated on every naut's row by the per-row control,
+   * a few inches above this in the same widget, so a second line here would
+   * repeat it. Silence rather than the one line an unreadable state is
+   * otherwise worth.
    */
-  it("says so when the catalogue is unread", async () => {
-    const { fixture } = mount();
+  it("renders nothing while the catalogue is unread", async () => {
+    const { fixture, view } = mount();
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("spaceCenter.crewRoster")).toBe(
         true,
@@ -488,7 +489,7 @@ describe("what it declines to draw", () => {
     });
 
     await waitFor(() => {
-      expect(visibleText()).toContain("Training catalogue unread");
+      expect(view.container.textContent).toBe("");
     });
   });
 
