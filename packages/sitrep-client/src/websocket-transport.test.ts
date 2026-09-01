@@ -141,10 +141,19 @@ describe("WebSocketTransport", () => {
 
   it("sends a subscribe message the server receives, then delivers the decoded envelope", async () => {
     const received: string[] = [];
-    let serverClient: { send: (data: string) => void } | null = null;
+    /**
+     * A box rather than a `let`, because a variable only ever assigned inside a
+     * callback still reads as its initialiser at the use site: `serverClient`
+     * narrowed to `null` and `.send` came off `never`.
+     */
+    const serverClient: { current: { send: (data: string) => void } | null } = {
+      current: null,
+    };
     server.use(
       link.addEventListener("connection", ({ client }) => {
-        serverClient = client as unknown as { send: (data: string) => void };
+        serverClient.current = client as unknown as {
+          send: (data: string) => void;
+        };
         client.addEventListener("message", (event) => {
           received.push(event.data as string);
         });
@@ -171,7 +180,7 @@ describe("WebSocketTransport", () => {
       { timeout: WAIT_TIMEOUT_MS },
     );
 
-    serverClient?.send(streamFrame("vessel.orbit", { sma: 700000 }));
+    serverClient.current?.send(streamFrame("vessel.orbit", { sma: 700000 }));
     await vi.waitFor(
       () => {
         expect(frames).toHaveLength(1);
@@ -199,12 +208,16 @@ describe("WebSocketTransport", () => {
     // frames as BINARY WebSocket frames. The transport previously dropped every
     // non-string payload, so nothing rendered in a real browser, invisible to
     // the text-only MSW/stub harnesses. This test sends the frame as bytes.
-    let serverClient: {
-      send: (data: string | ArrayBuffer | ArrayBufferView) => void;
-    } | null = null;
+
+    /** Boxed for the same reason as the subscribe test above. */
+    const serverClient: {
+      current: {
+        send: (data: string | ArrayBuffer | ArrayBufferView) => void;
+      } | null;
+    } = { current: null };
     server.use(
       link.addEventListener("connection", ({ client }) => {
-        serverClient = client as unknown as typeof serverClient;
+        serverClient.current = client as unknown as typeof serverClient.current;
       }),
     );
 
@@ -221,7 +234,7 @@ describe("WebSocketTransport", () => {
     const bytes = new TextEncoder().encode(
       streamFrame("vessel.flight", { altitudeAsl: 249999 }),
     );
-    serverClient?.send(bytes);
+    serverClient.current?.send(bytes);
 
     await vi.waitFor(() => expect(frames).toHaveLength(1), {
       timeout: WAIT_TIMEOUT_MS,
@@ -238,7 +251,7 @@ describe("WebSocketTransport", () => {
 
   it("reconnects after the server drops the connection and re-subscribes active topics", async () => {
     const receivedByConnection: string[][] = [];
-    let closeFirst: (() => void) | null = null;
+    const closeFirst: { current: (() => void) | null } = { current: null };
     server.use(
       link.addEventListener("connection", ({ client }) => {
         const bucket: string[] = [];
@@ -247,7 +260,7 @@ describe("WebSocketTransport", () => {
           bucket.push(event.data as string);
         });
         if (receivedByConnection.length === 1) {
-          closeFirst = () => client.close();
+          closeFirst.current = () => client.close();
         }
       }),
     );
@@ -263,7 +276,7 @@ describe("WebSocketTransport", () => {
     });
 
     // Server drops us -> reconnecting -> a fresh connection that re-subscribes.
-    closeFirst?.();
+    closeFirst.current?.();
     await waitForStatus(transport, "reconnecting");
     await waitForStatus(transport, "connected");
 

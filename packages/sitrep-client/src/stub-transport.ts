@@ -7,7 +7,9 @@
  */
 export {
   makeMeta,
+  observedPayload,
   type SentCommand,
   StubTransport,
   type WireOf,
+  wrapWire,
 } from "@ksp-gonogo/sitrep-sdk/testing";

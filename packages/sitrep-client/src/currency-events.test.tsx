@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
+import type { ReputationLossEvent } from "./currency-events";
 import {
   useReputationLossEvents,
   useRevealedScience,
@@ -202,11 +203,11 @@ describe("useReputationLossEvents", () => {
     // narrative event carrying an absolute could be mistaken for it.
     const t = new StubTransport();
     const client = new TelemetryClient(t);
-    let seen: Record<string, unknown> | undefined;
+    // Left at its own type: `Object.keys` needs no index signature, and the
+    // cast to one was what made the probe unable to see the type it is probing.
+    let seen: ReputationLossEvent | undefined;
     function ShapeProbe() {
-      seen = useReputationLossEvents(["a"])[0] as
-        | Record<string, unknown>
-        | undefined;
+      seen = useReputationLossEvents(["a"])[0];
       return null;
     }
     render(

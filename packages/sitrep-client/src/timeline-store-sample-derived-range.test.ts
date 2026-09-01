@@ -153,7 +153,7 @@ describe("TimelineStore.sampleDerivedRange: multi-input join + field subtopics",
       25,
     );
     expect(points?.map((p) => p.validAt)).toEqual([15, 25]);
-    expect(points?.map((p) => p.payload.sum)).toEqual([11, 12]);
+    expect(points?.map((p) => p.payload?.sum)).toEqual([11, 12]);
   });
 
   it("extracts a single field via the fields:true field-subtopic mechanism", () => {

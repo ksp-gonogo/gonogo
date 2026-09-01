@@ -162,13 +162,13 @@ describe("ReplayTransport", () => {
     clock.advanceTo(0);
     store.beginFrame();
     expect(
-      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma.magnitude,
     ).toBe(700_000);
 
     clock.advanceTo(5);
     store.beginFrame();
     expect(
-      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma.magnitude,
     ).toBe(750_000);
   });
 });

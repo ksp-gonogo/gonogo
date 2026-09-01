@@ -21,6 +21,7 @@
  */
 
 import {
+  type DelayClockLike,
   DelayedPlayoutBuffer,
   type StampedFrame,
 } from "@ksp-gonogo/sitrep-sdk/media";

@@ -1,16 +1,16 @@
-import {
-  CommsDelaySource,
-  Quality,
-  value,
-  wrapTypePayload,
-} from "@ksp-gonogo/sitrep-sdk";
+import { CommsDelaySource, Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { COMMS_DELAY_TOPIC, DelayAuthority } from "./delay-authority";
 import { createFakeWallClock } from "./fake-wall-clock";
 import type { OrbitElements } from "./kepler";
 import { solve } from "./kepler";
-import { makeMeta, StubTransport } from "./stub-transport";
+import {
+  makeMeta,
+  StubTransport,
+  type WireOf,
+  wrapWire,
+} from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import type { VesselOrbitPayload } from "./vessel-state";
@@ -201,7 +201,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
 });
 
 /** Wire-shaped, wrapped by `orbitPoint` below: see `vessel-state.test.ts`. */
-const CIRCULAR_ORBIT: Record<string, unknown> = {
+const CIRCULAR_ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -225,14 +225,12 @@ const CIRCULAR_ELEMENTS: OrbitElements = {
 };
 
 function orbitPoint(
-  payload: Record<string, unknown>,
+  payload: WireOf<VesselOrbitPayload>,
   validAt: number,
 ): TimelinePoint<VesselOrbitPayload> {
   return {
     validAt,
-    payload: wrapTypePayload("VesselOrbit", {
-      ...payload,
-    }) as VesselOrbitPayload,
+    payload: wrapWire<VesselOrbitPayload>("VesselOrbit", { ...payload }),
     meta: makeMeta({
       validAt,
       deliveredAt: validAt,

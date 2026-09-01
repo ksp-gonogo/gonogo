@@ -1,4 +1,4 @@
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -343,14 +343,14 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
   describe("vessel.state: worst-of-inputs wired end to end through a real store", () => {
     const CIRCULAR_ORBIT: VesselOrbitPayload = {
       referenceBodyIndex: 1,
-      sma: 700_000,
-      ecc: 0,
-      inc: 0,
+      sma: value("m", 700_000),
+      ecc: value("1", 0),
+      inc: value("°", 0),
       lan: null,
       argPe: null,
-      meanAnomalyAtEpoch: 0,
-      epoch: 0,
-      mu: 3.5316e12,
+      meanAnomalyAtEpoch: value("rad", 0),
+      epoch: value("s", 0),
+      mu: value("m³/s²", 3.5316e12),
     };
 
     function orbitPoint(

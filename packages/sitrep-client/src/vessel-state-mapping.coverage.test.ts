@@ -1,4 +1,4 @@
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
@@ -32,28 +32,28 @@ import {
 
 const ORBIT: VesselOrbitPayload = {
   referenceBodyIndex: 1,
-  sma: 700_000,
-  ecc: 0,
-  inc: 0,
+  sma: value("m", 700_000),
+  ecc: value("1", 0),
+  inc: value("°", 0),
   lan: null,
   argPe: null,
-  meanAnomalyAtEpoch: 0,
-  epoch: 0,
-  mu: 3.5316e12,
+  meanAnomalyAtEpoch: value("rad", 0),
+  epoch: value("s", 0),
+  mu: value("m³/s²", 3.5316e12),
 };
 
 const FLIGHT: VesselFlightPayload = {
-  latitude: -0.05,
-  longitude: 42.3,
-  altitudeAsl: 71_234,
-  altitudeTerrain: 71_234,
-  verticalSpeed: 12.5,
-  surfaceSpeed: 1780.2,
-  orbitalSpeed: 1790.9,
-  gForce: 1.1,
-  dynamicPressureKPa: 3.2,
-  mach: 5.1,
-  atmDensity: 0.01,
+  latitude: value("°", -0.05),
+  longitude: value("°", 42.3),
+  altitudeAsl: value("m", 71_234),
+  altitudeTerrain: value("m", 71_234),
+  verticalSpeed: value("m/s", 12.5),
+  surfaceSpeed: value("m/s", 1780.2),
+  orbitalSpeed: value("m/s", 1790.9),
+  gForce: value("g", 1.1),
+  dynamicPressureKPa: value("kPa", 3.2),
+  mach: value("1", 5.1),
+  atmDensity: value("kg/m³", 0.01),
 };
 
 function orbitPoint(quality: Quality): TimelinePoint<VesselOrbitPayload> {

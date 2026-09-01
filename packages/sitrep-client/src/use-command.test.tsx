@@ -404,7 +404,7 @@ describe("useCommand must-consume invariant (dev)", () => {
       <div>
         <button
           type="button"
-          onClick={() => void cmd.send({ id: "n" }).catch(() => {})}
+          onClick={() => void cmd.send({ techId: "n" }).catch(() => {})}
         >
           unlock
         </button>
@@ -432,7 +432,7 @@ describe("useCommand must-consume invariant (dev)", () => {
     return (
       <button
         type="button"
-        onClick={() => void cmd.send({ id: "n" }).catch(() => {})}
+        onClick={() => void cmd.send({ techId: "n" }).catch(() => {})}
       >
         unlock
       </button>

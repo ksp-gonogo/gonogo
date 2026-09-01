@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { type OrbitElements, solve, solveAnomalies } from "./kepler";
 import type { OrbitPatchWirePayload } from "./orbit-patches";
 import type { StreamStatusValue } from "./stream-status";
-import { makeMeta } from "./stub-transport";
+import { makeMeta, type WireOf } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
 import {
@@ -54,8 +54,32 @@ const MEASURED_FLIGHT: WireFlight = {
  * so putting it in the two point-builders means a test states the wire and
  * `deriveVesselState` sees exactly what production hands it.
  */
-type WireOrbit = Record<string, unknown>;
-type WireFlight = Record<string, unknown>;
+type WireOrbit = WireOf<VesselOrbitPayload>;
+type WireFlight = WireOf<VesselFlightPayload>;
+
+/**
+ * One entry of `vessel.orbit.patches`, pre-wrap.
+ *
+ * The patch fixtures used to call `wrapTypePayload("OrbitPatch", …)` themselves
+ * and cast the result. They did not need to: `GENERATED_TYPE_SHAPES` declares
+ * `VesselOrbit.patches` as `OrbitPatch[]`, so `orbitPoint`'s wrap already
+ * follows into the chain, and the extra call was a second wrap that the
+ * idempotence guard in `wrapScalarOrList` swallowed. Handing the chain over as
+ * wire is both what the mod does and one fewer thing for a fixture to get
+ * right.
+ */
+type WirePatch = WireOf<OrbitPatchWirePayload>;
+
+/**
+ * `wrapTypePayload` is declared `T -> T` because it wraps a frame in place, but
+ * the whole point of the call is that it turns every bare magnitude into a
+ * `Value`, so what it takes and what it returns are the two halves of `WireOf`.
+ * Saying so once here is what keeps the fixtures below honestly typed as the
+ * wire and the point builders honestly typed as the model.
+ */
+function wrapWire<T>(typeName: string, wire: WireOf<T>): T {
+  return wrapTypePayload(typeName, wire) as unknown as T;
+}
 
 function orbitPoint(
   payload: WireOrbit | null,
@@ -70,9 +94,7 @@ function orbitPoint(
     payload:
       payload === null
         ? null
-        : (wrapTypePayload("VesselOrbit", {
-            ...payload,
-          }) as VesselOrbitPayload),
+        : wrapWire<VesselOrbitPayload>("VesselOrbit", { ...payload }),
     meta: makeMeta({
       validAt: overrides.validAt ?? 0,
       quality: overrides.quality ?? Quality.OnRails,
@@ -91,9 +113,7 @@ function flightPoint(
     payload:
       payload === null
         ? null
-        : (wrapTypePayload("VesselFlight", {
-            ...payload,
-          }) as VesselFlightPayload),
+        : wrapWire<VesselFlightPayload>("VesselFlight", { ...payload }),
     meta: makeMeta({
       validAt: overrides.validAt ?? 0,
       quality: Quality.Loaded,
@@ -196,7 +216,7 @@ function controlPoint(
 }
 
 function targetPoint(
-  payload: Record<string, unknown> | null,
+  payload: WireOf<VesselTargetPayload> | null,
 ): TimelinePoint<VesselTargetPayload> {
   return {
     validAt: 0,
@@ -205,9 +225,7 @@ function targetPoint(
     payload:
       payload === null
         ? null
-        : (wrapTypePayload("VesselTarget", {
-            ...payload,
-          }) as VesselTargetPayload),
+        : wrapWire<VesselTargetPayload>("VesselTarget", { ...payload }),
     meta: makeMeta({
       validAt: 0,
       quality: Quality.OnRails,
@@ -360,7 +378,7 @@ describe("enum-ordinal → NAME display maps: situationName/sasModeName/targetKi
 
 describe("encounter display maps: encounterExists/encounterBody/encounterUt (batch-2: o.encounterExists/Body/UTsoi off vessel.orbit.encounter)", () => {
   function orbitWithEncounter(
-    encounter: VesselOrbitPayload["encounter"],
+    encounter: WireOrbit["encounter"],
     quality = Quality.OnRails,
   ) {
     return orbitPoint({ ...CIRCULAR_ORBIT, encounter }, { quality });
@@ -1840,7 +1858,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
   };
 
   function landingGet(
-    flightOver: WireFlight = {},
+    flightOver: Partial<WireFlight> = {},
     opts: {
       quality?: Quality;
       orbit?: WireOrbit;
@@ -1960,10 +1978,8 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
   // doc comment. `period` here is a plain input field to `patchStateAt`, not
   // derived from sma/mu, so it's fine that it's physically inconsistent with
   // `LANDING_ORBIT`'s own mu: this block only exercises the patch-walk math.
-  function syntheticPatch(
-    overrides: Record<string, unknown> = {},
-  ): OrbitPatchWirePayload {
-    return wrapTypePayload("OrbitPatch", {
+  function syntheticPatch(overrides: Partial<WirePatch> = {}): WirePatch {
+    return {
       sma: 250_000,
       ecc: 0.6,
       inc: 0,
@@ -1987,7 +2003,7 @@ describe("landing scalars: vessel.state.landing* (land.timeToImpact/speedAtImpac
       referenceBody: "Kerbin",
       closestEncounterBody: null,
       ...overrides,
-    }) as OrbitPatchWirePayload;
+    };
   }
 
   it("derives a predicted impact point when the patch chain actually crosses the surface", () => {
@@ -2087,6 +2103,20 @@ describe("vessel.state.orbitPatches: legacy-shaped patch chain (o.orbitPatches)"
 
   it("reshapes vessel.orbit.patches into the legacy OrbitPatch[] shape, in BOTH bases", () => {
     const wire = syntheticPatchFixture();
+    // Read before the first pass: `orbitPoint`'s wrap mutates the chain in
+    // place, so from the second statement onwards `wire.startUt` is a `Value`
+    // rather than the number this fixture wrote. The assertions used to reach
+    // for `.magnitude` to follow it there, which made them depend on that
+    // mutation having happened.
+    const {
+      startUt,
+      endUt,
+      peA,
+      apA,
+      meanAnomalyAtEpoch,
+      argPe,
+      referenceBody,
+    } = wire;
     for (const quality of [Quality.OnRails, Quality.Loaded]) {
       const s = deriveVesselState(
         patchTestGet(quality, {
@@ -2097,13 +2127,13 @@ describe("vessel.state.orbitPatches: legacy-shaped patch chain (o.orbitPatches)"
       );
       expect(s?.orbitPatches).toHaveLength(1);
       const patch = s?.orbitPatches[0];
-      expect(patch?.startUT).toBe(wire.startUt.magnitude);
-      expect(patch?.endUT).toBe(wire.endUt.magnitude);
-      expect(patch?.PeA).toBe(wire.peA.magnitude);
-      expect(patch?.ApA).toBe(wire.apA.magnitude);
-      expect(patch?.maae).toBe(wire.meanAnomalyAtEpoch.magnitude);
-      expect(patch?.argumentOfPeriapsis).toBe(wire.argPe.magnitude);
-      expect(patch?.referenceBody).toBe(wire.referenceBody);
+      expect(patch?.startUT).toBe(startUt);
+      expect(patch?.endUT).toBe(endUt);
+      expect(patch?.PeA).toBe(peA);
+      expect(patch?.ApA).toBe(apA);
+      expect(patch?.maae).toBe(meanAnomalyAtEpoch);
+      expect(patch?.argumentOfPeriapsis).toBe(argPe);
+      expect(patch?.referenceBody).toBe(referenceBody);
       expect(patch?.patchStartTransition).toBe("INITIAL");
       expect(patch?.patchEndTransition).toBe("FINAL");
     }
@@ -2118,7 +2148,7 @@ describe("vessel.state.orbitPatches: legacy-shaped patch chain (o.orbitPatches)"
   });
 });
 
-function syntheticPatchFixture(): OrbitPatchWirePayload {
+function syntheticPatchFixture(): WirePatch {
   return {
     sma: 250_000,
     ecc: 0.6,

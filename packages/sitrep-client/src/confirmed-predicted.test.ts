@@ -1,8 +1,8 @@
-import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import type { OrbitElements } from "./kepler";
 import { solve } from "./kepler";
-import { makeMeta } from "./stub-transport";
+import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
@@ -45,10 +45,10 @@ function numberPoint(
 /**
  * Wire-shaped fixtures, wrapped in the two point-builders below: the same
  * arrangement `vessel-state.test.ts` uses, and for the same reason. A test
- * states what the mod sends; `wrapTypePayload` is what the decode does to it.
+ * states what the mod sends; `wrapWire` is what the decode does to it.
  */
-type WireOrbit = Record<string, unknown>;
-type WireFlight = Record<string, unknown>;
+type WireOrbit = WireOf<VesselOrbitPayload>;
+type WireFlight = WireOf<VesselFlightPayload>;
 
 const CIRCULAR_ORBIT: WireOrbit = {
   referenceBodyIndex: 1,
@@ -77,9 +77,7 @@ function orbitPoint(
     payload:
       payload === null
         ? null
-        : (wrapTypePayload("VesselOrbit", {
-            ...payload,
-          }) as VesselOrbitPayload),
+        : wrapWire<VesselOrbitPayload>("VesselOrbit", { ...payload }),
     meta: makeMeta({
       validAt,
       deliveredAt: overrides.deliveredAt ?? validAt,
@@ -100,9 +98,7 @@ function flightPoint(
     payload:
       payload === null
         ? null
-        : (wrapTypePayload("VesselFlight", {
-            ...payload,
-          }) as VesselFlightPayload),
+        : wrapWire<VesselFlightPayload>("VesselFlight", { ...payload }),
     meta: makeMeta({
       validAt,
       deliveredAt: overrides.deliveredAt ?? validAt,

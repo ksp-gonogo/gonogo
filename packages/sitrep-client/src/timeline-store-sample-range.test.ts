@@ -126,7 +126,8 @@ describe("TimelineStore.sampleRange: derived topics are unsupported", () => {
     inputs: ["raw.x"],
     derive: (get) => {
       const point = get<number>("raw.x");
-      return point ? point.payload * 2 : undefined;
+      // A tombstone has nothing to double.
+      return point?.payload == null ? undefined : point.payload * 2;
     },
   };
 

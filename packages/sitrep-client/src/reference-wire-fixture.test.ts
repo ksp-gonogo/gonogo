@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOr, Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { type OrbitElements, solve } from "./kepler";
@@ -120,17 +120,29 @@ function requirePosition(
   return position;
 }
 
-/** Mirrors `deriveVesselState`'s OnRails element-building exactly (see `vessel-state.ts`), used to independently cross-check the derived channel's own output. */
+/**
+ * Mirrors `deriveVesselState`'s OnRails element-building (see
+ * `vessel-state.ts`), used to independently cross-check the derived channel's
+ * own output. Hand-written on purpose: calling the production `buildElements`
+ * would make this a copy agreeing with itself.
+ *
+ * `magnitudeOr` on every quantity: `VesselOrbitPayload`'s fields are `Value<U>`
+ * by the time the decode is done with them, and this took them as bare numbers,
+ * so `degToRad` was multiplying an object and `sma`/`mu` were handing `solve` a
+ * `Value` where it wants metres. The file is `describe.skipIf`'d on a gitignored
+ * fixture, so nothing ran it and nothing type checked it either.
+ */
 function elementsFromOrbitPayload(orbit: VesselOrbitPayload): OrbitElements {
   return {
-    sma: orbit.sma,
-    ecc: orbit.ecc,
-    inc: degToRad(orbit.inc),
-    lan: orbit.lan == null ? 0 : degToRad(orbit.lan),
-    argPe: orbit.argPe == null ? 0 : degToRad(orbit.argPe),
-    meanAnomalyAtEpoch: orbit.meanAnomalyAtEpoch,
-    epoch: orbit.epoch,
-    mu: orbit.mu,
+    sma: magnitudeOr(orbit.sma, Number.NaN),
+    ecc: magnitudeOr(orbit.ecc, Number.NaN),
+    inc: degToRad(magnitudeOr(orbit.inc, Number.NaN)),
+    lan: orbit.lan == null ? 0 : degToRad(magnitudeOr(orbit.lan, Number.NaN)),
+    argPe:
+      orbit.argPe == null ? 0 : degToRad(magnitudeOr(orbit.argPe, Number.NaN)),
+    meanAnomalyAtEpoch: magnitudeOr(orbit.meanAnomalyAtEpoch, Number.NaN),
+    epoch: magnitudeOr(orbit.epoch, Number.NaN),
+    mu: magnitudeOr(orbit.mu, Number.NaN),
   };
 }
 
