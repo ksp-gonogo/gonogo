@@ -3,8 +3,8 @@
   "engine": "chromium",
   "assets": {
     "binary--default.png": {
-      "hash": "baac410663b63176",
-      "elements": 96,
+      "hash": "988b4aded872a5d8",
+      "elements": 101,
       "text": "52c0d842"
     },
     "ec-shortage-limits-water--default.png": {
@@ -28,13 +28,13 @@
       "text": "1a15f8e3"
     },
     "inner-belt--default.png": {
-      "hash": "a19acab355f53fbc",
-      "elements": 71,
+      "hash": "b7b27ee2bbe72557",
+      "elements": 76,
       "text": "2e0d06fc"
     },
     "interplanetary--default.png": {
-      "hash": "6e2b7c02e8273e49",
-      "elements": 85,
+      "hash": "fc499e9fe239a289",
+      "elements": 90,
       "text": "5db7f31e"
     },
     "no-profile-for-this-vessel--default.png": {
@@ -43,13 +43,13 @@
       "text": "55062b4e"
     },
     "nominal--default.png": {
-      "hash": "38d17c146632ee05",
-      "elements": 70,
+      "hash": "2f25d5b48a48b35f",
+      "elements": 75,
       "text": "62b67fb2"
     },
     "nominal--min.png": {
-      "hash": "a575fd5526a7c2af",
-      "elements": 60,
+      "hash": "aa4d7c3a53dbee01",
+      "elements": 64,
       "text": "970d0f26"
     },
     "radiation-dose-critical--default.png": {
@@ -58,13 +58,13 @@
       "text": "806f8490"
     },
     "storm-inbound--default.png": {
-      "hash": "77d1e9e9c5616c4c",
-      "elements": 85,
+      "hash": "7042d887eea20a3c",
+      "elements": 90,
       "text": "e04b2f39"
     },
     "storm-peak--default.png": {
-      "hash": "3c94cb6cbf6c4a1c",
-      "elements": 86,
+      "hash": "f02c4848725b87b7",
+      "elements": 91,
       "text": "78bd6f8c"
     }
   }
