@@ -98,6 +98,14 @@
        docs/superpowers/plans/2026-07-13-kos-headless-harness-report.md. -->
   <PropertyGroup>
     <KspGameData Condition="'$(KspGameData)' == ''">$(MSBuildThisFileDirectory)..\..\local_docs\syncthing\kspdata\GameData</KspGameData>
+    <!--
+      A git worktree has no local_docs of its own (it is gitignored), so the
+      path above resolves into nothing there and this project cannot find the
+      mod assemblies the main checkout plainly holds. GONOGO_DATA_ROOT names
+      the checkout that has them, the same variable mod/Directory.Build.props
+      already reads for KspManaged.
+    -->
+    <KspGameData Condition="!Exists('$(KspGameData)') And '$(GONOGO_DATA_ROOT)' != ''">$(GONOGO_DATA_ROOT)\local_docs\syncthing\kspdata\GameData</KspGameData>
     <KosSafeDll>$(KspGameData)\kOS\Plugins\kOS.Safe.dll</KosSafeDll>
     <KosDll>$(KspGameData)\kOS\Plugins\kOS.dll</KosDll>
     <KosSafeAvailable Condition="Exists('$(KosSafeDll)') And Exists('$(KosDll)')">true</KosSafeAvailable>

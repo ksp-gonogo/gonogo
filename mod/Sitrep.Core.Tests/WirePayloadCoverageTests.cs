@@ -47,6 +47,11 @@ namespace Sitrep.Core.Tests
             // command's args travel client-to-server inside the command
             // envelope, so JsonWriter never writes this type.
             "SetSimulationDelayPolicyArgs",
+            // Inbound only, and emptier than that: the marker the five no-argument
+            // core commands carry their [SitrepCommand] tags on. It has no
+            // properties at all, so there is nothing for JsonWriter to write even
+            // in the direction it never travels.
+            "NoCommandArgs",
             // vessel.*: VesselViewProvider.ToWire(...) flattens each of these to
             // a Dictionary<string, object?> before Publish; JsonWriter only ever
             // sees the dictionary, never the POCO.
