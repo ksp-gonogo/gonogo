@@ -20,21 +20,7 @@
  * See `styleguide-panel-body.test.ts` for what counts and `panel-body.scan.ts`
  * for the matcher itself.
  */
-export const PANEL_BODY_DEBT: Record<string, number> = {
-  "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 2,
-  "packages/components/src/CurrentOrbit/index.tsx": 1,
-  "packages/components/src/Graph/index.tsx": 2,
-  "packages/components/src/LandingStatus/index.tsx": 1,
-  "packages/components/src/LaunchDirector/index.tsx": 2,
-  "packages/components/src/LibrationPoints/index.tsx": 1,
-  "packages/components/src/MapView/index.tsx": 1,
-  "packages/components/src/Navball/index.tsx": 1,
-  "packages/components/src/OrbitView/index.tsx": 1,
-  "packages/components/src/PowerSystems/index.tsx": 1,
-  "packages/components/src/SystemView/index.tsx": 1,
-  "packages/components/src/TargetPicker/index.tsx": 2,
-  "packages/components/src/TechTree/index.tsx": 1,
-};
+export const PANEL_BODY_DEBT: Record<string, number> = {};
 
 /**
  * The instrument check. Every other assertion in the gate is

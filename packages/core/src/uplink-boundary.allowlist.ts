@@ -1751,14 +1751,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * citations already here.
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
-      /**
-       * The panel-body ratchet's own inventory: a path-keyed debt list over every
-       * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
-       * construction and there is nowhere else for it to live. Permanent for the
-       * same reason as the lists beside it: a gate placed inside an Uplink is one
-       * a third-party author could not run.
-       */
-      "packages/core/src/panel-body.allowlist.ts",
       /*
        * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
        * code-carrying subset of this file's own `permanent` lists. A gate over
@@ -2479,7 +2471,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/src/test/installProfile.test.ts",
     "packages/components/src/test/installProfile.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
