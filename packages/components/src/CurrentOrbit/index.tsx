@@ -24,6 +24,7 @@ import {
   Grid,
   NULL_DISPLAY,
   Panel,
+  Section,
   Stack,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -211,228 +212,241 @@ function CurrentOrbitComponent({
   const hyperbolic = typeof eccentricity === "number" && eccentricity >= 1;
 
   return (
-    <Panel panelTitle="ORBIT">
-      {/* Reference body as an in-body caption rather than in the Panel
-          subtitle slot; a plain span carries the muted caption type without
-          styled-components. */}
-      {showSubtitle && refBody !== undefined && (
-        <span
-          style={{
-            fontSize: "var(--font-size-xs)",
-            color: "var(--color-text-muted)",
-            letterSpacing: "0.03em",
-          }}
-        >
-          {refBody}
-        </span>
-      )}
-      {/* Which frame the curve below is drawn in. The same points are a
-          different path in every frame, so the drawing is only readable
-          alongside its own frame. */}
-      <TrajectoryFrameCaption
-        trajectory={trajectory}
-        centreBodyIndex={orbit?.referenceBodyIndex}
-      />
-      {/* The GAME's own view frame, which is a different fact from the frame
-          this widget drew in above: that one is this panel's choice and nobody
-          else's, this one is what the operator is looking at in the game and
-          what decides whether the numbers below exist at all. Named only when
-          it takes one of them away, because a frame caption on a panel whose
-          readouts it does not touch is a line of text that explains nothing. */}
-      {noApsidesHere && controlFrameLabel(controlFrame) !== undefined && (
-        <FrameCaveat>{`Frame: ${controlFrameLabel(controlFrame)}`}</FrameCaveat>
-      )}
-      {/* A plain div (not a Stack) so the ResizeObserver ref attaches to the
-          real measured element: ui-kit's layout primitives don't forward
-          refs, and this is the one node in the widget that genuinely needs
-          imperative DOM access. */}
-      <div
-        ref={bodyRef}
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: "flex",
-          flexDirection: isLandscape ? "row" : "column",
-          gap: "var(--space-8)",
-        }}
-      >
-        <Grid
-          cols={tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"}
-          align="baseline"
-          style={{
-            gap: `var(--space-2) ${tight ? "var(--space-6)" : "var(--space-8)"}`,
-            alignContent: "start",
-            ...(isLandscape ? { flex: "0 0 auto" } : {}),
-          }}
-        >
-          <OrbitLabel>Ap</OrbitLabel>
-          <OrbitValue accent="ap" tight={tight} narrow={narrow}>
-            {/* Hyperbolic/escape trajectories have no apoapsis. A provider
-                that answers with a sentinel instead of nothing would read as
-                a real "1000.00 Mm", so render an em-dash and let the operator
-                see the absence rather than mistake an escape trajectory for a
-                vast bound orbit. */}
-            {noApsidesHere ? (
-              <FrameCaveat title={frameCaveat(apsides, "apoapsis")}>
-                no Ap here
-              </FrameCaveat>
-            ) : apoapsisA === undefined ? (
-              NULL_DISPLAY
-            ) : hyperbolic ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={value("m", apoapsisA)} />
-            )}
-          </OrbitValue>
-
-          <OrbitLabel>Pe</OrbitLabel>
-          {/* Sub-surface periapsis (negative altitude) means the vessel
-              will impact terrain, promote the readout to the nogo
-              alert colour so the operator notices at a glance instead
-              of reading "Pe = -5 km" as just another low number. */}
-          <OrbitValue
-            accent={periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"}
-            tight={tight}
-            narrow={narrow}
-          >
-            {noApsidesHere ? (
-              <FrameCaveat title={frameCaveat(apsides, "periapsis")}>
-                no Pe here
-              </FrameCaveat>
-            ) : periapsisA === undefined ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={value("m", periapsisA)} />
-            )}
-          </OrbitValue>
-
-          {showInclinationRow && (
-            <>
-              <OrbitLabel>Inc</OrbitLabel>
-              <OrbitValue tight={tight} narrow={narrow}>
-                {inclination === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={inclination} decimals={1} />
-                )}
-              </OrbitValue>
-            </>
+    <Panel
+      panelTitle="ORBIT"
+      sections={[
+        <Section key="frame" full>
+          {/* Reference body as an in-body caption rather than in the Panel
+            subtitle slot; a plain span carries the muted caption type without
+            styled-components. */}
+          {showSubtitle && refBody !== undefined && (
+            <span
+              style={{
+                fontSize: "var(--font-size-xs)",
+                color: "var(--color-text-muted)",
+                letterSpacing: "0.03em",
+              }}
+            >
+              {refBody}
+            </span>
           )}
-
-          {showApProgressRows && (
-            <>
-              <OrbitLabel>t-Ap</OrbitLabel>
+          {/* Which frame the curve below is drawn in. The same points are a
+            different path in every frame, so the drawing is only readable
+            alongside its own frame. */}
+          <TrajectoryFrameCaption
+            trajectory={trajectory}
+            centreBodyIndex={orbit?.referenceBodyIndex}
+          />
+          {/* The GAME's own view frame, which is a different fact from the frame
+            this widget drew in above: that one is this panel's choice and nobody
+            else's, this one is what the operator is looking at in the game and
+            what decides whether the numbers below exist at all. Named only when
+            it takes one of them away, because a frame caption on a panel whose
+            readouts it does not touch is a line of text that explains nothing. */}
+          {noApsidesHere && controlFrameLabel(controlFrame) !== undefined && (
+            <FrameCaveat>{`Frame: ${controlFrameLabel(controlFrame)}`}</FrameCaveat>
+          )}
+          {/* A plain div (not a Stack) so the ResizeObserver ref attaches to the
+            real measured element: ui-kit's layout primitives don't forward
+            refs, and this is the one node in the widget that genuinely needs
+            imperative DOM access. */}
+        </Section>,
+        /* One section, not one per group: this widget measures its own tile and
+           swaps the diagram between beside the readouts and under them, which is
+           a finer decision than the section grid makes. It fills, so the diagram
+           still takes the height the captions leave. */
+        <Section key="orbit" fill>
+          <div
+            ref={bodyRef}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: "flex",
+              flexDirection: isLandscape ? "row" : "column",
+              gap: "var(--space-8)",
+            }}
+          >
+            <Grid
+              cols={tight ? "2.2em minmax(0, 1fr)" : "3em minmax(0, 1fr)"}
+              align="baseline"
+              style={{
+                gap: `var(--space-2) ${tight ? "var(--space-6)" : "var(--space-8)"}`,
+                alignContent: "start",
+                ...(isLandscape ? { flex: "0 0 auto" } : {}),
+              }}
+            >
+              <OrbitLabel>Ap</OrbitLabel>
               <OrbitValue accent="ap" tight={tight} narrow={narrow}>
-                {/* On hyperbolic orbits there's no apoapsis to reach. A
-                    zero here would read as "arriving now" on a countdown, so
-                    render an em-dash rather than let a hyperbolic flyby look
-                    like an imminent event. */}
-                {/* And the frame, on the same footing as the apsis itself: a
-                    countdown to an apsis the frame does not have is a time to
-                    an event that does not happen, sitting directly under a row
-                    saying so. */}
+                {/* Hyperbolic/escape trajectories have no apoapsis. A provider
+                  that answers with a sentinel instead of nothing would read as
+                  a real "1000.00 Mm", so render an em-dash and let the operator
+                  see the absence rather than mistake an escape trajectory for a
+                  vast bound orbit. */}
                 {noApsidesHere ? (
                   <FrameCaveat title={frameCaveat(apsides, "apoapsis")}>
                     no Ap here
                   </FrameCaveat>
-                ) : timeToAp === undefined || hyperbolic ? (
+                ) : apoapsisA === undefined ? (
+                  NULL_DISPLAY
+                ) : hyperbolic ? (
                   NULL_DISPLAY
                 ) : (
-                  <Countdown value={timeToAp} />
+                  <Unit value={value("m", apoapsisA)} />
                 )}
               </OrbitValue>
 
-              <OrbitLabel>t-Pe</OrbitLabel>
-              <OrbitValue accent="pe" tight={tight} narrow={narrow}>
-                {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
-                    elliptical solver degrades timeToPe to null (and a legacy
-                    0-sentinel source would read as "arriving now"), render an
-                    em-dash rather than a countdown. `=== undefined` alone
-                    misses `null` (`null === undefined` is false). */}
+              <OrbitLabel>Pe</OrbitLabel>
+              {/* Sub-surface periapsis (negative altitude) means the vessel
+                will impact terrain, promote the readout to the nogo
+                alert colour so the operator notices at a glance instead
+                of reading "Pe = -5 km" as just another low number. */}
+              <OrbitValue
+                accent={
+                  periapsisA !== undefined && periapsisA < 0 ? "alert" : "pe"
+                }
+                tight={tight}
+                narrow={narrow}
+              >
                 {noApsidesHere ? (
                   <FrameCaveat title={frameCaveat(apsides, "periapsis")}>
                     no Pe here
                   </FrameCaveat>
-                ) : timeToPe === undefined ||
-                  timeToPe === null ||
-                  hyperbolic ? (
+                ) : periapsisA === undefined ? (
                   NULL_DISPLAY
                 ) : (
-                  <Countdown value={timeToPe} />
-                )}
-              </OrbitValue>
-            </>
-          )}
-
-          {showEccentricityRows && (
-            <>
-              <OrbitLabel>Ecc</OrbitLabel>
-              <OrbitValue tight={tight} narrow={narrow}>
-                {eccentricity === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={eccentricity} decimals={4} />
+                  <Unit value={value("m", periapsisA)} />
                 )}
               </OrbitValue>
 
-              <OrbitLabel>T</OrbitLabel>
-              <OrbitValue tight={tight} narrow={narrow}>
-                {/* Period is undefined on a hyperbolic orbit (the
-                    trajectory never closes), and a zero there is again
-                    indistinguishable from "now". */}
-                {period === undefined || hyperbolic ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("s", period)} />
-                )}
-              </OrbitValue>
-            </>
-          )}
-        </Grid>
+              {showInclinationRow && (
+                <>
+                  <OrbitLabel>Inc</OrbitLabel>
+                  <OrbitValue tight={tight} narrow={narrow}>
+                    {inclination === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={inclination} decimals={1} />
+                    )}
+                  </OrbitValue>
+                </>
+              )}
 
-        {showDiagramSlot && (
-          <Stack
-            style={{
-              flex: "1 1 0",
-              minHeight: "80px",
-              ...(isLandscape
-                ? { minWidth: 0 }
-                : { marginTop: "var(--space-4)" }),
-            }}
-          >
-            {withheld ? (
-              <TrajectoryWithheldNote withheld={withheld} compact />
-            ) : (
-              <OrbitDiagram
-                variant="mini"
-                // The seam's answer, drawn as given. `null` on the conic arm,
-                // where the diagram's own conic renderer is what the provider
-                // said is right.
-                trajectoryPath={
-                  trajectory?.shape === "arc" ? trajectory.points : null
-                }
-                trajectoryFarEnd={
-                  trajectory?.shape === "arc" ? trajectory.farEnd : null
-                }
-                sma={sma.magnitude}
-                ecc={eccentricity.magnitude}
-                // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
-                // already detects that itself (`ecc >= 1 || sma <= 0`) and
-                // ignores this value in that branch, so the fallback below is
-                // never actually rendered from.
-                apoapsis={apoapsisR ?? 0}
-                periapsis={periapsisR}
-                trueAnomaly={trueAnomaly ?? 0}
-                argPe={argPe?.magnitude ?? 0}
-                bodyColor={body?.color}
-                bodyRadius={body?.radius}
-                isOrbiting={isOrbiting}
-              />
+              {showApProgressRows && (
+                <>
+                  <OrbitLabel>t-Ap</OrbitLabel>
+                  <OrbitValue accent="ap" tight={tight} narrow={narrow}>
+                    {/* On hyperbolic orbits there's no apoapsis to reach. A
+                      zero here would read as "arriving now" on a countdown, so
+                      render an em-dash rather than let a hyperbolic flyby look
+                      like an imminent event. */}
+                    {/* And the frame, on the same footing as the apsis itself: a
+                      countdown to an apsis the frame does not have is a time to
+                      an event that does not happen, sitting directly under a row
+                      saying so. */}
+                    {noApsidesHere ? (
+                      <FrameCaveat title={frameCaveat(apsides, "apoapsis")}>
+                        no Ap here
+                      </FrameCaveat>
+                    ) : timeToAp === undefined || hyperbolic ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Countdown value={timeToAp} />
+                    )}
+                  </OrbitValue>
+
+                  <OrbitLabel>t-Pe</OrbitLabel>
+                  <OrbitValue accent="pe" tight={tight} narrow={narrow}>
+                    {/* Same hyperbolic guard as t-Ap above: on an escape/flyby the
+                      elliptical solver degrades timeToPe to null (and a legacy
+                      0-sentinel source would read as "arriving now"), render an
+                      em-dash rather than a countdown. `=== undefined` alone
+                      misses `null` (`null === undefined` is false). */}
+                    {noApsidesHere ? (
+                      <FrameCaveat title={frameCaveat(apsides, "periapsis")}>
+                        no Pe here
+                      </FrameCaveat>
+                    ) : timeToPe === undefined ||
+                      timeToPe === null ||
+                      hyperbolic ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Countdown value={timeToPe} />
+                    )}
+                  </OrbitValue>
+                </>
+              )}
+
+              {showEccentricityRows && (
+                <>
+                  <OrbitLabel>Ecc</OrbitLabel>
+                  <OrbitValue tight={tight} narrow={narrow}>
+                    {eccentricity === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={eccentricity} decimals={4} />
+                    )}
+                  </OrbitValue>
+
+                  <OrbitLabel>T</OrbitLabel>
+                  <OrbitValue tight={tight} narrow={narrow}>
+                    {/* Period is undefined on a hyperbolic orbit (the
+                      trajectory never closes), and a zero there is again
+                      indistinguishable from "now". */}
+                    {period === undefined || hyperbolic ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={value("s", period)} />
+                    )}
+                  </OrbitValue>
+                </>
+              )}
+            </Grid>
+
+            {showDiagramSlot && (
+              <Stack
+                style={{
+                  flex: "1 1 0",
+                  minHeight: "80px",
+                  ...(isLandscape
+                    ? { minWidth: 0 }
+                    : { marginTop: "var(--space-4)" }),
+                }}
+              >
+                {withheld ? (
+                  <TrajectoryWithheldNote withheld={withheld} compact />
+                ) : (
+                  <OrbitDiagram
+                    variant="mini"
+                    // The seam's answer, drawn as given. `null` on the conic arm,
+                    // where the diagram's own conic renderer is what the provider
+                    // said is right.
+                    trajectoryPath={
+                      trajectory?.shape === "arc" ? trajectory.points : null
+                    }
+                    trajectoryFarEnd={
+                      trajectory?.shape === "arc" ? trajectory.farEnd : null
+                    }
+                    sma={sma.magnitude}
+                    ecc={eccentricity.magnitude}
+                    // `apoapsisR` is `null` on a hyperbolic orbit, OrbitDiagram
+                    // already detects that itself (`ecc >= 1 || sma <= 0`) and
+                    // ignores this value in that branch, so the fallback below is
+                    // never actually rendered from.
+                    apoapsis={apoapsisR ?? 0}
+                    periapsis={periapsisR}
+                    trueAnomaly={trueAnomaly ?? 0}
+                    argPe={argPe?.magnitude ?? 0}
+                    bodyColor={body?.color}
+                    bodyRadius={body?.radius}
+                    isOrbiting={isOrbiting}
+                  />
+                )}
+              </Stack>
             )}
-          </Stack>
-        )}
-      </div>
-    </Panel>
+          </div>
+        </Section>,
+      ]}
+    />
   );
 }
 
