@@ -119,6 +119,41 @@ describe("promptForConsent identity provenance", () => {
     await closePrompt(decision);
   });
 
+  /*
+   * The whole point of surfacing a disagreement before the pull: this dialog is
+   * where the operator answers, and the mod and the bundle naming the same
+   * Uplink differently is a fact they need in front of them while answering.
+   * It informs, it does not decide: the mod's values still headline.
+   */
+  it("puts the bundle's competing claims in front of the operator deciding", async () => {
+    const { decision } = await openPrompt({
+      ...info,
+      identity: resolveUplinkIdentity(info.id, DECLARED, {
+        name: "Impostor",
+        author: "Impostor",
+        repo: "https://example.invalid/impostor/example",
+      }),
+    });
+
+    expect(
+      screen.getByRole("heading", { name: "Load Uplink “Example”?" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("by Somebody")).toBeInTheDocument();
+    expect(
+      screen.getByText("Bundle's own name: “Impostor”"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Bundle's own author: “Impostor”"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Bundle's own repo: “https://example.invalid/impostor/example”",
+      ),
+    ).toBeInTheDocument();
+
+    await closePrompt(decision);
+  });
+
   it("shows a self-declared author and repo as the bundle's own claim", async () => {
     const { decision } = await openPrompt({
       ...info,

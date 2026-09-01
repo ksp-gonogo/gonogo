@@ -27,6 +27,15 @@ export type UplinkIdentitySource = "mod" | "hub" | "bundle";
 export interface UplinkIdentityField {
   value: string;
   source: UplinkIdentitySource;
+  /**
+   * A DIFFERENT value another source declared for this same field. The mod
+   * still wins, but the losing claim is kept rather than dropped, because the
+   * disagreement is itself a reading: "the mod calls this X, the bundle calls
+   * itself Y" is what an operator needs while deciding whether to pull it.
+   *
+   * Absent when the two sources agree, or when only one of them spoke.
+   */
+  disputed?: { value: string; source: UplinkIdentitySource };
 }
 
 /**
@@ -61,12 +70,31 @@ function field(
  * Resolve one field across the roster then the manifest, in that order: the mod
  * vouches, so its value wins wherever it has one, and the bundle's own claim is
  * used only where the mod said nothing.
+ *
+ * Where both spoke and DISAGREED, the mod's value still wins, unchanged, and
+ * the bundle's is carried along as `disputed`. Nothing here refuses: two
+ * catalogues can differ for honest reasons (a repo renamed between the mod
+ * release and the bundle), and only the operator can weigh which. What the app
+ * must not do is discard the second claim, which is what it did before: the
+ * disagreement never reached the screen where consent is given.
+ *
+ * The comparison is exact on the trimmed values. A repo that differs only by a
+ * `.git` suffix or an `http`/`https` scheme is still two different addresses,
+ * and normalising them away would be the app deciding which differences an
+ * operator is not allowed to see.
  */
 function preferRoster(
   rosterValue: string | null | undefined,
   manifestValue: string | null | undefined,
 ): UplinkIdentityField | undefined {
-  return field(rosterValue, "mod") ?? field(manifestValue, "bundle");
+  const fromMod = field(rosterValue, "mod");
+  const fromBundle = field(manifestValue, "bundle");
+  if (!fromMod) return fromBundle;
+  if (!fromBundle || fromBundle.value === fromMod.value) return fromMod;
+  return {
+    ...fromMod,
+    disputed: { value: fromBundle.value, source: "bundle" },
+  };
 }
 
 /**
@@ -139,12 +167,17 @@ export function hasSelfDeclaredField(identity: UplinkIdentity): boolean {
  * True when there is a reading here beyond the id the title already carries.
  * An Uplink that declared nothing gets no identity block at all: an empty
  * author line announcing its own emptiness is not a reading.
+ *
+ * A disputed field counts even where the held value alone would not: a
+ * mod-vouched name matching the heading is nothing to show, but that same name
+ * with a bundle calling itself something else is the whole point.
  */
 export function hasIdentityToShow(identity: UplinkIdentity): boolean {
   return (
     identity.author !== undefined ||
     identity.repo !== undefined ||
-    identity.name.source === "bundle"
+    identity.name.source === "bundle" ||
+    identity.name.disputed !== undefined
   );
 }
 

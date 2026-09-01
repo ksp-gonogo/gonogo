@@ -5,6 +5,7 @@
 // and this store is where that reason becomes visible.
 
 import type { UplinkIdentity } from "./identity";
+import type { UplinkIntegrityFailure } from "./integrity";
 
 export type UplinkLoadStatus = "loading" | "loaded" | "quarantined";
 
@@ -25,6 +26,26 @@ export interface UplinkLoadOutcome {
    * refusal reason (compat gate / hash mismatch / fetch error / no crypto / …).
    */
   reason?: string;
+  /**
+   * Set only when the quarantine was a HASH DISAGREEMENT, and the whole reason
+   * this field exists rather than a reader matching `reason` for the word
+   * "hash": a compat refusal and a tampered bundle are not the same kind of
+   * event, and the surface that has to shout about the second must be able to
+   * ask rather than guess. Carries both hashes and which pair disagreed.
+   */
+  integrity?: UplinkIntegrityFailure;
+}
+
+/**
+ * The quarantines that are integrity failures. Every other quarantine means an
+ * Uplink did not load; these mean the bytes were not what was vouched for.
+ */
+export function integrityFailures(
+  outcomes: readonly UplinkLoadOutcome[],
+): UplinkLoadOutcome[] {
+  return outcomes.filter(
+    (o) => o.status === "quarantined" && o.integrity !== undefined,
+  );
 }
 
 type Listener = () => void;
