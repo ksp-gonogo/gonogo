@@ -43,17 +43,30 @@ import { describe, expect, it } from "vitest";
  *
  * ## What the early-sample case actually does, measured
  *
- * The second test was written expecting the early sample to be stored with its
- * quantities bare. It is not: it does not reach the store at all, and the probe
- * reads `blank`. Registering the Topic afterwards does not recover it. So the
- * cost of a sample beating its Uplink's registration is the whole sample, not
- * just its units, and it is asserted here as the measured behaviour rather than
- * the guessed one.
+ * The early sample is STORED, with its quantities bare. `useStream`'s subscribe
+ * is not gated on the carried allowlist, so the frame reaches the store whether
+ * or not anything has registered the Topic; what it misses is the unit lookup
+ * `wrapTopicPayload` does at ingest. Registering afterwards does not re-decode
+ * it, and the value stays bare until the next sample for that Topic arrives. So
+ * the cost of a sample beating its Uplink's registration is that sample's
+ * units, for as long as it is the newest one.
  *
- * Either way it is the reason `StationUplinkLoader` gates the Dashboard subtree
- * rather than rendering alongside it: nothing subscribes while that gate is
- * closed, so no sample can arrive early. The second test is what that sentence
- * buys, stated as the thing it prevents.
+ * That is the reason `StationUplinkLoader` gates the Dashboard subtree rather
+ * than rendering alongside it: nothing subscribes while that gate is closed, so
+ * no sample can arrive early and no widget is handed a bare number where its
+ * type says `Value`. The second test is what that sentence buys, stated as the
+ * thing it prevents.
+ *
+ * ## Why the second test waits for every reading it asserts
+ *
+ * A value the store ingests mid-frame does not surface until the provider's
+ * next `beginFrame()`: `TimelineStore.sample` is memoized per frame token, and
+ * `TelemetryProvider` coalesces ingests onto an animation frame. A synchronous
+ * read straight after an emit therefore reads `blank` for a sample that is
+ * already stored, and flips as soon as anything in the test body awaits long
+ * enough for a frame to tick. An earlier version of this file asserted that
+ * transient and read it as a dropped sample; it passed locally and failed in CI
+ * on nothing but machine load.
  */
 
 /*
@@ -105,6 +118,19 @@ function emit(transport: StubTransport, topic: string, depth: number): void {
   });
 }
 
+/**
+ * Holds the act scope open across several of the provider's animation-frame
+ * ticks, so an assertion that a reading has NOT changed is about a settled
+ * state rather than about a frame that had not been minted yet. A `waitFor`
+ * cannot express this: there is no change to wait for, and the whole point is
+ * that none arrives.
+ */
+async function settleFrames(): Promise<void> {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  });
+}
+
 describe("a station's Uplink registers its wire Topic after the store is built", () => {
   it("carries the Topic and decodes its quantity, registered after the provider mounted", async () => {
     const transport = new StubTransport();
@@ -130,7 +156,7 @@ describe("a station's Uplink registers its wire Topic after the store is built",
     await act(async () => {});
   });
 
-  it("drops a sample that lands before the registration, and registering does not recover it, which is what the Dashboard gate prevents", async () => {
+  it("stores a sample that lands before the registration with its quantities bare, and registering does not re-decode it, which is what the Dashboard gate prevents", async () => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
     /*
@@ -145,10 +171,18 @@ describe("a station's Uplink registers its wire Topic after the store is built",
     );
 
     emit(transport, EARLY_TOPIC, 42);
-    const afterEarlySample = screen.getByTestId("decoded").textContent;
 
-    // Registering now is what the real client module load does, and it does
-    // not reach back: the sample is gone, not merely undecoded.
+    /*
+     * The sample reaches the store even though nothing has registered the
+     * Topic, and it lands bare: the unit lookup happens once, at ingest.
+     * Waited for rather than read synchronously, because a mid-frame ingest
+     * only surfaces on the provider's next `beginFrame()`.
+     */
+    await waitFor(() =>
+      expect(screen.getByTestId("decoded").textContent).toBe("bare:number"),
+    );
+
+    // Registering now is what the real client module load does.
     act(() => {
       registerBarePrimitiveTopic(EARLY_TOPIC);
       registerTopicUnits(EARLY_TOPIC, { depth: UNIT });
@@ -156,11 +190,14 @@ describe("a station's Uplink registers its wire Topic after the store is built",
     await waitFor(() =>
       expect(screen.getByTestId("carried").textContent).toBe("carried"),
     );
-    expect(afterEarlySample).toBe("blank");
-    expect(screen.getByTestId("decoded").textContent).toBe("blank");
 
-    // A sample arriving AFTER the registration decodes, which is the ordering
-    // the gate guarantees and the first test asserts directly.
+    // It does not reach back. Nothing re-walks a payload the store already
+    // holds, so the stored sample is still bare frames after the registration.
+    await settleFrames();
+    expect(screen.getByTestId("decoded").textContent).toBe("bare:number");
+
+    // Only a sample arriving AFTER the registration decodes, which is the
+    // ordering the gate guarantees and the first test asserts directly.
     emit(transport, EARLY_TOPIC, 43);
     await waitFor(() =>
       expect(screen.getByTestId("decoded").textContent).toBe(`value:${UNIT}`),
