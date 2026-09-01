@@ -61,6 +61,14 @@ function mountSchedule(kerbalName = "Wernher Kerman") {
       <CrewSchedule kerbalName={kerbalName} />
     </fixture.Provider>,
   );
+  /* An EMPTY catalogue, not an absent one, so a test that says nothing about
+     training still leaves that channel READ. The enrolment control reports an
+     unread catalogue in one short line, which is correct for an unreadable
+     state and is exactly what five `toBeEmptyDOMElement` assertions here were
+     unknowingly racing: green locally where the control had not rendered by the
+     time they ran, red on CI where it had. A test that does not care about a
+     channel should still feed it. */
+  fixture.emit("rp1.trainingCatalogue", []);
   return { fixture, view };
 }
 
