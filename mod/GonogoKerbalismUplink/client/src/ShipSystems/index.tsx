@@ -262,11 +262,16 @@ function ShipSystemsComponent(
 
   if (!ship) {
     return (
-      <Panel panelTitle="Ship Systems">
-        <EmptyState layout="fill" role="status" aria-live="polite">
-          Waiting for Kerbalism telemetry...
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="Ship Systems"
+        sections={
+          <Section full>
+            <EmptyState layout="fill" role="status" aria-live="polite">
+              Waiting for Kerbalism telemetry...
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -277,11 +282,16 @@ function ShipSystemsComponent(
     summary.wear.length > 0;
   if (!hasAnyResource) {
     return (
-      <Panel panelTitle="Ship Systems">
-        <EmptyState layout="fill" role="status" aria-live="polite">
-          No Kerbalism profile reported for this vessel yet.
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="Ship Systems"
+        sections={
+          <Section full>
+            <EmptyState layout="fill" role="status" aria-live="polite">
+              No Kerbalism profile reported for this vessel yet.
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -413,73 +423,74 @@ function ShipSystemsBody({
           />
         )
       }
-    >
-      <Stack gap="md">
-        {/* Radiation leads the widget: the operator's own call, it is the
-            attractive visual (the sparkline trend), so it earns the top
-            slot rather than sitting below the resource ledger. Renders
-            nothing when no spaceweather frame has ever landed, matching
-            RadiationSection's own contract. */}
-        {weather && (
-          <Section>
+      sections={[
+        /* Radiation leads the widget: the operator's own call, it is the
+           attractive visual (the sparkline trend), so it earns the top
+           slot rather than sitting below the resource ledger, and it spans
+           because a trend reads wide. Renders nothing when no spaceweather
+           frame has ever landed, matching RadiationSection's own contract. */
+        weather && (
+          <Section key="radiation" full>
             <SectionHead label="Radiation" />
             <RadiationSection weather={weather} utNow={utNow} />
           </Section>
-        )}
+        ),
+        summary.causes.length > 0 && (
+          /* Spans, like any warning the sections below it are qualified by.
 
-        {summary.causes.length > 0 && (
-          // Card, the same container every other section in this widget uses:
-          // hand-stitching `Box` per section is how some rows end up boxed and
-          // some not.
-          <Card role="status" aria-live="polite">
-            <Stack gap="xs">
-              <Text tone="nogo" weight="semibold" size="sm">
-                Limiting factors
-              </Text>
-              {summary.causes.flatMap((cause) =>
-                cause.explains.length > 0
-                  ? cause.explains.map((explained) => {
-                      const explainedRow = rowsByDisplayName.get(explained);
-                      return (
-                        <Text
-                          key={`${cause.name}-${explained}`}
-                          tone="nogo"
-                          size="xs"
-                        >
-                          <LimitedByMessage
-                            subjectDisplayName={explained}
-                            blockedBy={[cause.displayName]}
-                            secondsToEmpty={
-                              explainedRow?.secondsToEmpty ?? null
-                            }
-                          />
-                        </Text>
-                      );
-                    })
-                  : [
-                      <Text key={cause.name} tone="nogo" size="xs">
-                        {cause.displayName} is running critically low
-                        {cause.secondsToEmpty !== null && (
-                          <>
-                            {" "}
-                            (~
-                            <Unit
-                              value={value(
-                                "s",
-                                Math.max(0, cause.secondsToEmpty),
-                              )}
-                            />{" "}
-                            left)
-                          </>
-                        )}
-                      </Text>,
-                    ],
-              )}
-            </Stack>
-          </Card>
-        )}
-
-        <Section>
+             Card, the same container every other section in this widget uses:
+             hand-stitching `Box` per section is how some rows end up boxed and
+             some not. */
+          <Section key="causes" full>
+            <Card role="status" aria-live="polite">
+              <Stack gap="xs">
+                <Text tone="nogo" weight="semibold" size="sm">
+                  Limiting factors
+                </Text>
+                {summary.causes.flatMap((cause) =>
+                  cause.explains.length > 0
+                    ? cause.explains.map((explained) => {
+                        const explainedRow = rowsByDisplayName.get(explained);
+                        return (
+                          <Text
+                            key={`${cause.name}-${explained}`}
+                            tone="nogo"
+                            size="xs"
+                          >
+                            <LimitedByMessage
+                              subjectDisplayName={explained}
+                              blockedBy={[cause.displayName]}
+                              secondsToEmpty={
+                                explainedRow?.secondsToEmpty ?? null
+                              }
+                            />
+                          </Text>
+                        );
+                      })
+                    : [
+                        <Text key={cause.name} tone="nogo" size="xs">
+                          {cause.displayName} is running critically low
+                          {cause.secondsToEmpty !== null && (
+                            <>
+                              {" "}
+                              (~
+                              <Unit
+                                value={value(
+                                  "s",
+                                  Math.max(0, cause.secondsToEmpty),
+                                )}
+                              />{" "}
+                              left)
+                            </>
+                          )}
+                        </Text>,
+                      ],
+                )}
+              </Stack>
+            </Card>
+          </Section>
+        ),
+        <Section key="supplies">
           <SectionHead label="Supplies" />
           <MeterStack>
             {summary.supplies.map((row) => (
@@ -491,10 +502,9 @@ function ShipSystemsBody({
               />
             ))}
           </MeterStack>
-        </Section>
-
-        {summary.other.length > 0 && (
-          <Section>
+        </Section>,
+        summary.other.length > 0 && (
+          <Section key="other">
             <SectionHead label="Other resources" />
             <MeterStack>
               {summary.other.map((row) => (
@@ -507,10 +517,9 @@ function ShipSystemsBody({
               ))}
             </MeterStack>
           </Section>
-        )}
-
-        {summary.wear.length > 0 && (
-          <Section>
+        ),
+        summary.wear.length > 0 && (
+          <Section key="wear">
             <SectionHead label="Wear" />
             <MeterStack>
               {summary.wear.map((w) => (
@@ -525,9 +534,8 @@ function ShipSystemsBody({
               ))}
             </MeterStack>
           </Section>
-        )}
-
-        <Section>
+        ),
+        <Section key="habitat">
           <SectionHead
             label="Habitat"
             value={
@@ -566,9 +574,8 @@ function ShipSystemsBody({
               size="sm"
             />
           </Grid>
-        </Section>
-
-        <Section>
+        </Section>,
+        <Section key="processes">
           <SectionHead
             label="Processes"
             value={processSummary}
@@ -586,16 +593,18 @@ function ShipSystemsBody({
               </Cluster>
             ))}
           </Stack>
-        </Section>
-
-        {/* This package's own GreenhouseSection fills this slot, self-registering
-            into `ship-systems.life-support` via the side-effect import above. */}
+        </Section>,
+        /* This package's own GreenhouseSection fills this slot, self-registering
+           into `ship-systems.life-support` via the side-effect import above.
+           `AugmentSlot` renders a fragment, so each bound augment becomes its
+           own item of the section grid and flows beside the host's sections. */
         <AugmentSlot
+          key="life-support"
           name="ship-systems.life-support"
           props={{ greenhouses, ambientRadiationRadPerSecond }}
-        />
-      </Stack>
-    </Panel>
+        />,
+      ]}
+    />
   );
 }
 

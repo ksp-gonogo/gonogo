@@ -39,6 +39,7 @@ import {
   Panel,
   PanelBody,
   registerAugment,
+  Section,
   setQuantityLocale,
   UI_KIT_VERSION,
   useDomainAvailabilityStore,
@@ -882,14 +883,23 @@ function buildTree(scene: ScenePayload): ReactNode {
           which reads as a widget that draws its contents twice rather than as a
           harness fault. The panel's own mount is the one to keep, being where
           the augment lands in a real host. */}
-      <Panel panelTitle={`${hostLabelFor(slot)} (stand-in host)`}>
-        {/* The real slot, not the augment's component reached for directly: a
-            misspelled slot id renders nothing HERE rather than in someone's
-            dashboard, and the `requires` gate is exercised on the way. */}
-        {scene.target.kind === "augment" && !mountedByPanel(slot) ? (
-          <Slot name={slot} props={scene.slotProps} />
-        ) : null}
-      </Panel>
+      <Panel
+        panelTitle={`${hostLabelFor(slot)} (stand-in host)`}
+        /* As a SECTION, which is where a host widget's own body puts its slots
+           and where Panel mounts the universal one. Passing it as children put
+           the augment somewhere no real host renders it.
+
+           The real slot, not the augment's component reached for directly: a
+           misspelled slot id renders nothing HERE rather than in someone's
+           dashboard, and the `requires` gate is exercised on the way. */
+        sections={
+          scene.target.kind === "augment" && !mountedByPanel(slot) ? (
+            <Section full>
+              <Slot name={slot} props={scene.slotProps} />
+            </Section>
+          ) : null
+        }
+      />
     </WidgetHostFor>
   );
 }

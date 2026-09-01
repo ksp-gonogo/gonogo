@@ -11,7 +11,6 @@ import {
   NULL_DISPLAY,
   Panel,
   type ReadoutTone,
-  ScrollArea,
   Section,
   StatusPill,
   Unit,
@@ -285,38 +284,52 @@ function ThermalStatusComponent({
   const anyHotOrAbove = worstBand === "hot" || worstBand === "critical";
   const showInlineAlert = anyHotOrAbove && cols >= 6;
 
-  return (
-    <Panel panelTitle="THERMAL">
-      {thermalNotCurrent ? (
-        // Distinct from "No thermal data", which says the vessel reports none.
-        // This says the vessel reported some and we can no longer vouch for it,
-        // and the difference decides whether the operator distrusts the craft or
-        // the link.
-        <EmptyState>Thermal readings no longer current</EmptyState>
-      ) : noData ? (
-        <EmptyState>No thermal data</EmptyState>
-      ) : (
-        <Body>
-          <PillRow
-            role={anyCritical ? "alert" : "status"}
-            aria-live={anyCritical ? "assertive" : "polite"}
-          >
-            <CompactStatusPill $tone={BAND_TONE[worstBand]}>
-              {BAND_LABEL[worstBand]}
-            </CompactStatusPill>
-            {showInlineAlert && (
-              <CriticalNote>
-                {engineOverheat
-                  ? "Engine overheating (>90% max)"
-                  : anyCritical
-                    ? "Part at max temperature"
-                    : "Part approaching max temperature"}
-              </CriticalNote>
-            )}
-          </PillRow>
+  /*
+   * "No longer current" is a different sentence from "none reported", and the
+   * difference decides whether the operator distrusts the craft or the link.
+   */
+  const absence = thermalNotCurrent
+    ? "Thermal readings no longer current"
+    : noData
+      ? "No thermal data"
+      : null;
 
-          {(showHottestRow || showEngineRow || showShieldRow) && (
-            <RowsScroll>
+  return (
+    <Panel
+      panelTitle="THERMAL"
+      sections={[
+        absence !== null && (
+          <Section key="absence" full>
+            <EmptyState>{absence}</EmptyState>
+          </Section>
+        ),
+        absence === null && (
+          <Section key="state" full>
+            <PillRow
+              role={anyCritical ? "alert" : "status"}
+              aria-live={anyCritical ? "assertive" : "polite"}
+            >
+              <CompactStatusPill $tone={BAND_TONE[worstBand]}>
+                {BAND_LABEL[worstBand]}
+              </CompactStatusPill>
+              {showInlineAlert && (
+                <CriticalNote>
+                  {engineOverheat
+                    ? "Engine overheating (>90% max)"
+                    : anyCritical
+                      ? "Part at max temperature"
+                      : "Part approaching max temperature"}
+                </CriticalNote>
+              )}
+            </PillRow>
+          </Section>
+        ),
+        /* No `ScrollArea` around the rows. Panel's body IS the scroller and
+           owns the glow, so a second one here drew its glow inside the outer
+           body's inset, which is the case the kit's own doc comment names. */
+        absence === null &&
+          (showHottestRow || showEngineRow || showShieldRow) && (
+            <Section key="rows" full>
               {showHottestRow && (
                 <ReadoutGroup>
                   <RowHeader>
@@ -395,11 +408,10 @@ function ThermalStatusComponent({
                   </RowBody>
                 </ReadoutGroup>
               )}
-            </RowsScroll>
-          )}
-        </Body>
-      )}
-    </Panel>
+            </Section>
+          ),
+      ]}
+    />
   );
 }
 
@@ -408,14 +420,6 @@ function ThermalStatusComponent({
 const clampPct = (pct: number): number => clampSafe(pct, 0, 100);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
-
-const Body = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-  min-height: 0;
-`;
 
 const PillRow = styled.div`
   display: flex;
@@ -455,11 +459,6 @@ const CriticalNote = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-status-nogo-fg);
   letter-spacing: 0.04em;
-`;
-
-const RowsScroll = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
 `;
 
 // The column and its 2px gap are the kit's Section; only the spacing

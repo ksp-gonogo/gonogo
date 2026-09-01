@@ -30,8 +30,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
-  ScrollArea,
-  Stack,
+  Section,
   severityFromBadgeTone,
   Text,
   Truncate,
@@ -597,132 +596,10 @@ function FleetRosterComponent({
           {rollup.badgeLabel}
         </Badge>
       }
-    >
-      {/* Vantage caption relocated out of the panel subtitle into the body
-          (staging change); severity= on the aside Badge is staging's canonical
-          tone wiring. */}
-      <ReadoutCaption>viewing from: {vantageName}</ReadoutCaption>
-      {total === 0 ? (
-        <EmptyState>
-          {known ? "No vessels tracked." : "Fleet data not available yet."}
-        </EmptyState>
-      ) : (
-        <ScrollArea style={{ marginTop: "var(--space-6)" }}>
-          <Grid
-            cols={gridCols}
-            gap="sm"
-            align="center"
-            style={{
-              height: ROW_HEIGHT,
-              borderBottom: "1px solid var(--color-border-subtle)",
-            }}
-          >
-            <ColLabel>Vessel</ColLabel>
-            {!compact && <ColLabel>Body</ColLabel>}
-            <ColLabel right>Crew</ColLabel>
-            <ColLabel right>Link</ColLabel>
-          </Grid>
-
-          {vessels.map((v) => {
-            const comms = COMMS[v.comms];
-            // The per-vessel line-updates block is PURELY the
-            // `fleet-roster.updates` augment slot, where the reliability
-            // augment composes its alarm/health one-liners. It carries no
-            // data of its own, so it renders nothing until an uplink
-            // actually registers.
-            //
-            // Deliberately NOT gated on `compact`. It used to be, which meant
-            // every reliability state including a critical part failure
-            // vanished below six columns, the normal width of a portrait
-            // station panel. The augment sheds its detail rows at that width
-            // instead (it is handed `compact`), so density is traded for
-            // words rather than for the alarm.
-            const showUpdates = updatesAugmentPresent;
-            return (
-              <Fragment key={v.id}>
-                <Grid cols={gridCols} gap="sm" style={{ height: ROW_HEIGHT }}>
-                  <Cluster
-                    justify="start"
-                    align="center"
-                    title={v.name}
-                    style={{ gap: "7px", padding: "0 var(--space-6)" }}
-                  >
-                    <LinkDot
-                      tone={COMMS_TONE[v.comms]}
-                      ariaLabel={comms.aria}
-                    />
-                    <Truncate
-                      style={{
-                        fontSize: "var(--font-size-sm)",
-                        color: "var(--color-text-primary)",
-                      }}
-                    >
-                      {v.name}
-                    </Truncate>
-                    <FleetContactCell guid={v.id} vesselName={v.name} />
-                  </Cluster>
-                  {!compact && (
-                    <Truncate
-                      title={v.body ?? undefined}
-                      style={{
-                        fontSize: "var(--font-size-sm)",
-                        color: "var(--color-text-muted)",
-                        padding: "0 var(--space-6)",
-                      }}
-                    >
-                      {v.body ?? NULL_DISPLAY}
-                    </Truncate>
-                  )}
-                  <Text
-                    tone="default"
-                    size="sm"
-                    style={{
-                      textAlign: "right",
-                      padding: "0 var(--space-6)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {crewLabel(v)}
-                  </Text>
-                  <div
-                    style={{ padding: "0 var(--space-6)", textAlign: "right" }}
-                  >
-                    <FleetSignalCell
-                      guid={v.id}
-                      vesselName={v.name}
-                      tone={COMMS_TONE[v.comms]}
-                      label={comms.label}
-                    />
-                  </div>
-                </Grid>
-                {showUpdates && (
-                  <UpdatesRow>
-                    <AugmentSlot
-                      name="fleet-roster.updates"
-                      props={{
-                        vesselId: v.id,
-                        vesselName: v.name,
-                        body: v.body ?? "",
-                        compact,
-                      }}
-                    />
-                  </UpdatesRow>
-                )}
-              </Fragment>
-            );
-          })}
-        </ScrollArea>
-      )}
-
-      <Stack
-        gap="sm"
-        style={{
-          gap: "var(--space-6)",
-          marginTop: "auto",
-          paddingTop: "var(--space-6)",
-          flexShrink: 0,
-        }}
-      >
+      /* PINNED by Panel rather than merely rendered last. The coverage rollup
+         used to sit after a `flex: 1` ScrollArea with `margin-top: auto`, and
+         both of those only work on a direct child of the body. */
+      panelFooter={
         <Meter
           label="Comms coverage"
           value={total > 0 ? rollup.linked / total : 0}
@@ -732,8 +609,138 @@ function FleetRosterComponent({
           }`}
           size={compact ? "sm" : "md"}
         />
-      </Stack>
-    </Panel>
+      }
+      sections={[
+        /* Vantage caption relocated out of the panel subtitle into the body
+           (staging change); severity= on the aside Badge is staging's canonical
+           tone wiring. */
+        <Section key="vantage" full>
+          <ReadoutCaption>viewing from: {vantageName}</ReadoutCaption>
+        </Section>,
+        /* No `ScrollArea`. Panel's body IS the scroller and owns the glow, so a
+           second one here drew its glow inside the outer body's inset. */
+        <Section key="roster" full>
+          {total === 0 ? (
+            <EmptyState>
+              {known ? "No vessels tracked." : "Fleet data not available yet."}
+            </EmptyState>
+          ) : (
+            <>
+              <Grid
+                cols={gridCols}
+                gap="sm"
+                align="center"
+                style={{
+                  height: ROW_HEIGHT,
+                  borderBottom: "1px solid var(--color-border-subtle)",
+                }}
+              >
+                <ColLabel>Vessel</ColLabel>
+                {!compact && <ColLabel>Body</ColLabel>}
+                <ColLabel right>Crew</ColLabel>
+                <ColLabel right>Link</ColLabel>
+              </Grid>
+
+              {vessels.map((v) => {
+                const comms = COMMS[v.comms];
+                // The per-vessel line-updates block is PURELY the
+                // `fleet-roster.updates` augment slot, where the reliability
+                // augment composes its alarm/health one-liners. It carries no
+                // data of its own, so it renders nothing until an uplink
+                // actually registers.
+                //
+                // Deliberately NOT gated on `compact`. It used to be, which meant
+                // every reliability state including a critical part failure
+                // vanished below six columns, the normal width of a portrait
+                // station panel. The augment sheds its detail rows at that width
+                // instead (it is handed `compact`), so density is traded for
+                // words rather than for the alarm.
+                const showUpdates = updatesAugmentPresent;
+                return (
+                  <Fragment key={v.id}>
+                    <Grid
+                      cols={gridCols}
+                      gap="sm"
+                      style={{ height: ROW_HEIGHT }}
+                    >
+                      <Cluster
+                        justify="start"
+                        align="center"
+                        title={v.name}
+                        style={{ gap: "7px", padding: "0 var(--space-6)" }}
+                      >
+                        <LinkDot
+                          tone={COMMS_TONE[v.comms]}
+                          ariaLabel={comms.aria}
+                        />
+                        <Truncate
+                          style={{
+                            fontSize: "var(--font-size-sm)",
+                            color: "var(--color-text-primary)",
+                          }}
+                        >
+                          {v.name}
+                        </Truncate>
+                        <FleetContactCell guid={v.id} vesselName={v.name} />
+                      </Cluster>
+                      {!compact && (
+                        <Truncate
+                          title={v.body ?? undefined}
+                          style={{
+                            fontSize: "var(--font-size-sm)",
+                            color: "var(--color-text-muted)",
+                            padding: "0 var(--space-6)",
+                          }}
+                        >
+                          {v.body ?? NULL_DISPLAY}
+                        </Truncate>
+                      )}
+                      <Text
+                        tone="default"
+                        size="sm"
+                        style={{
+                          textAlign: "right",
+                          padding: "0 var(--space-6)",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {crewLabel(v)}
+                      </Text>
+                      <div
+                        style={{
+                          padding: "0 var(--space-6)",
+                          textAlign: "right",
+                        }}
+                      >
+                        <FleetSignalCell
+                          guid={v.id}
+                          vesselName={v.name}
+                          tone={COMMS_TONE[v.comms]}
+                          label={comms.label}
+                        />
+                      </div>
+                    </Grid>
+                    {showUpdates && (
+                      <UpdatesRow>
+                        <AugmentSlot
+                          name="fleet-roster.updates"
+                          props={{
+                            vesselId: v.id,
+                            vesselName: v.name,
+                            body: v.body ?? "",
+                            compact,
+                          }}
+                        />
+                      </UpdatesRow>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </>
+          )}
+        </Section>,
+      ]}
+    />
   );
 }
 

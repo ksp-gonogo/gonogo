@@ -10,7 +10,7 @@ import {
   Select,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { Stack } from "@ksp-gonogo/ui-kit";
+import { Section, Text } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
@@ -51,9 +51,13 @@ function VirtualDeviceComponent({
 
   if (!device || !type) {
     return (
-      <Panel>
-        <Placeholder>No virtual device configured</Placeholder>
-      </Panel>
+      <Panel
+        sections={
+          <Section>
+            <Placeholder>No virtual device configured</Placeholder>
+          </Section>
+        }
+      />
     );
   }
 
@@ -61,42 +65,52 @@ function VirtualDeviceComponent({
   const analogs = type.inputs.filter((i) => i.kind === "analog");
 
   return (
-    <Panel>
-      <Title>{device.name}</Title>
-      <Subtitle>{type.name}</Subtitle>
-      {analogs.length > 0 && (
-        <SpacedSection>
-          {analogs.map((input) => (
-            <AnalogPad
-              key={input.id}
-              label={input.name}
-              onChange={(v) => virtual?.inject(input.id, v)}
-              onRelease={() => virtual?.inject(input.id, 0)}
-            />
-          ))}
-        </SpacedSection>
-      )}
-      {buttons.length > 0 && (
-        <ButtonGrid>
-          {buttons.map((input) => (
-            <MomentaryButton
-              key={input.id}
-              onPointerDown={() => virtual?.inject(input.id, true)}
-              onPointerUp={() => virtual?.inject(input.id, false)}
-              onPointerLeave={() => virtual?.inject(input.id, false)}
-            >
-              {input.name}
-            </MomentaryButton>
-          ))}
-        </ButtonGrid>
-      )}
-      {frame !== null && (
-        <FrameDisplay>
-          <FrameLabel>Output</FrameLabel>
-          <Frame>{frame}</Frame>
-        </FrameDisplay>
-      )}
-    </Panel>
+    <Panel
+      /* The device name is the panel's own title now, and the type name a
+         caption under it, where both were hand-rolled `styled.div`s copying
+         Panel's and SectionTitle's type treatment. */
+      panelTitle={device.name}
+      sections={[
+        <Section key="type" full>
+          <Text tone="faint" size="xs">
+            {type.name}
+          </Text>
+        </Section>,
+        analogs.length > 0 && (
+          <Section key="axes" gap="md">
+            {analogs.map((input) => (
+              <AnalogPad
+                key={input.id}
+                label={input.name}
+                onChange={(v) => virtual?.inject(input.id, v)}
+                onRelease={() => virtual?.inject(input.id, 0)}
+              />
+            ))}
+          </Section>
+        ),
+        buttons.length > 0 && (
+          <Section key="buttons">
+            <ButtonGrid>
+              {buttons.map((input) => (
+                <MomentaryButton
+                  key={input.id}
+                  onPointerDown={() => virtual?.inject(input.id, true)}
+                  onPointerUp={() => virtual?.inject(input.id, false)}
+                  onPointerLeave={() => virtual?.inject(input.id, false)}
+                >
+                  {input.name}
+                </MomentaryButton>
+              ))}
+            </ButtonGrid>
+          </Section>
+        ),
+        frame !== null && (
+          <Section key="output" full title="Output" gap="xs">
+            <Frame>{frame}</Frame>
+          </Section>
+        ),
+      ]}
+    />
   );
 }
 
@@ -163,25 +177,6 @@ registerComponent<VirtualDeviceConfig>({
 
 export { VirtualDeviceComponent };
 
-const Title = styled.div`
-  font-size: var(--font-size-sm);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  letter-spacing: 0.05em;
-`;
-
-const Subtitle = styled.div`
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-faint);
-  margin-bottom: var(--space-6);
-`;
-
-const SpacedSection = styled(Stack).attrs({ gap: "md" as const })`
-  margin-bottom: var(--space-10);
-`;
-
 const ButtonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -216,20 +211,6 @@ const MomentaryButton = styled.button`
   @media (pointer: coarse) {
     min-height: 44px;
   }
-`;
-
-const FrameDisplay = styled.div`
-  margin-top: var(--space-10);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-`;
-
-const FrameLabel = styled.span`
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--color-text-faint);
 `;
 
 const Frame = styled.pre`

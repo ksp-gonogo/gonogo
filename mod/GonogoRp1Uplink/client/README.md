@@ -172,7 +172,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 1 |  |
+| `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 3 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
@@ -188,6 +188,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-warp-targets` | `warp-control.stepper` | – |  | 2 |  |
 
 ![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
+
+![The three training commands on the nauts they are about: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked](docs/assets/crew-training-both-ways-out--default.png)
+
+![Both training refusals: an enrolment a naut's row cannot fill because the course seats two, and a removal RP-1 withholds on a course that would be left below its minimum, with cancelling the whole course still open](docs/assets/crew-training-refused--default.png)
 
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 

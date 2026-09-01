@@ -25,6 +25,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  Section,
   Select,
   Stack,
   Switch,
@@ -594,7 +595,9 @@ function TargetingComponent({
  * have gone out of step.
  */
 function TargetPanel({ children }: { children: ReactNode }) {
-  return <Panel panelTitle="TARGET">{children}</Panel>;
+  return (
+    <Panel panelTitle="TARGET" sections={<Section full>{children}</Section>} />
+  );
 }
 
 /* Display tier. The type scale deliberately stops at --font-size-lg (16px);
@@ -746,86 +749,99 @@ function ApproachHud({
   // and is the cut space forces here.
   if (rows < 5) {
     return (
-      <Panel panelTitle="APPROACH">
-        <Stack
-          gap="sm"
-          style={{ flex: 1, justifyContent: "center", minHeight: 0 }}
-        >
-          <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
-            {name}
-          </Text>
-          {distance === undefined ? (
-            <DisplayDash />
-          ) : (
-            <Text tone="accent" style={DISPLAY_VALUE_STYLE}>
-              <Unit value={value("m", distance)} />
+      <Panel
+        panelTitle="APPROACH"
+        /* Panel's own centring, where this hand-rolled the `flex: 1` +
+           `justify-content: center` pair. Panel measures before it centres, so
+           an overflowing readout still starts at the top. */
+        fitToSize
+        sections={
+          <Section full gap="sm">
+            <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+              {name}
             </Text>
-          )}
-          {closingMagnitude !== null && (
-            <Text
-              size="xs"
-              tone="muted"
-              style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
-            >
-              {closing ? "−" : "+"}
-              <Unit value={value("m/s", closingMagnitude)} decimals={1} />
-            </Text>
-          )}
-          {alignmentWithheld && (
-            <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
-          )}
-        </Stack>
-      </Panel>
+            {distance === undefined ? (
+              <DisplayDash />
+            ) : (
+              <Text tone="accent" style={DISPLAY_VALUE_STYLE}>
+                <Unit value={value("m", distance)} />
+              </Text>
+            )}
+            {closingMagnitude !== null && (
+              <Text
+                size="xs"
+                tone="muted"
+                style={{ marginTop: "var(--space-4)", letterSpacing: "0.04em" }}
+              >
+                {closing ? "−" : "+"}
+                <Unit value={value("m/s", closingMagnitude)} decimals={1} />
+              </Text>
+            )}
+            {alignmentWithheld && (
+              <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
+            )}
+          </Section>
+        }
+      />
     );
   }
 
   return (
-    <Panel panelTitle="APPROACH">
-      <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
-        {name}
-      </Text>
-      <Grid
-        cols={stack ? "1fr" : "auto 1fr"}
-        gap="lg"
-        style={{
-          marginTop: "var(--space-6)",
-          rowGap: stack ? "0" : "var(--space-4)",
-        }}
-      >
-        <ReadoutRow label="Distance">
-          {distance === undefined ? (
-            NULL_DISPLAY
-          ) : (
-            <Unit value={value("m", distance)} />
-          )}
-        </ReadoutRow>
+    <Panel
+      panelTitle="APPROACH"
+      sections={[
+        <Section key="target" full>
+          <Text tone="default" size="sm" style={{ letterSpacing: "0.05em" }}>
+            {name}
+          </Text>
+        </Section>,
+        <Section key="approach" full>
+          <Grid
+            cols={stack ? "1fr" : "auto 1fr"}
+            gap="lg"
+            style={{
+              marginTop: "var(--space-6)",
+              rowGap: stack ? "0" : "var(--space-4)",
+            }}
+          >
+            <ReadoutRow label="Distance">
+              {distance === undefined ? (
+                NULL_DISPLAY
+              ) : (
+                <Unit value={value("m", distance)} />
+              )}
+            </ReadoutRow>
 
-        <ReadoutRow
-          label="Closing rate"
-          tone={closingMagnitude === null ? undefined : closing ? "ok" : "warn"}
-        >
-          {closingMagnitude === null ? (
-            NULL_DISPLAY
-          ) : (
-            <>
-              {closing ? "−" : "+"}
-              <Unit value={value("m/s", closingMagnitude)} decimals={1} />
-            </>
-          )}
-        </ReadoutRow>
+            <ReadoutRow
+              label="Closing rate"
+              tone={
+                closingMagnitude === null ? undefined : closing ? "ok" : "warn"
+              }
+            >
+              {closingMagnitude === null ? (
+                NULL_DISPLAY
+              ) : (
+                <>
+                  {closing ? "−" : "+"}
+                  <Unit value={value("m/s", closingMagnitude)} decimals={1} />
+                </>
+              )}
+            </ReadoutRow>
 
-        <ReadoutRow label="TCA">
-          {tcaSeconds === null ? (
-            NULL_DISPLAY
-          ) : (
-            <Countdown value={tcaSeconds} clock precise />
+            <ReadoutRow label="TCA">
+              {tcaSeconds === null ? (
+                NULL_DISPLAY
+              ) : (
+                <Countdown value={tcaSeconds} clock precise />
+              )}
+            </ReadoutRow>
+          </Grid>
+          {alignmentWithheld && (
+            <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
           )}
-        </ReadoutRow>
-      </Grid>
-      {alignmentWithheld && (
-        <AlignmentWithheldNotice ageSec={alignmentWithheld.ageSec} />
-      )}
-    </Panel>
+        </Section>,
+      ]}
+    />
   );
 }
 

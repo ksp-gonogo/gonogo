@@ -14,13 +14,12 @@ export const BodyLabel = styled.span`
   letter-spacing: 0.05em;
 `;
 
+/* The fill and the centring are `Panel fitToSize`'s now; what is left here is
+   the stack of readout rows itself. */
 export const CompactReadout = styled.div`
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   gap: var(--space-4);
-  min-height: 0;
 `;
 
 export const CompactRow = styled.div`

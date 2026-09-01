@@ -18,6 +18,7 @@ import {
   PauseIcon,
   PlayIcon,
   ReadoutCaption,
+  Section,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
@@ -260,108 +261,121 @@ function WarpControlComponent({
   const upIdx = Math.min(HIGH_LEVELS.length - 1, idx + 1);
 
   return (
-    <Panel panelTitle="WARP">
-      <DimmedOverlay
-        show={dimBody}
-        message="No active save"
-        hint="Time warp works in flight, Space Center, and Tracking Station."
-      >
-        <Body>
-          <Rate $tone={rateTone}>
-            <RateValue role="img" aria-label={`Time warp rate ${rateLabel}`}>
-              {rateLabel}
-            </RateValue>
-            {showModeCaption && mode !== null && mode !== "" && (
-              <ReadoutCaption>{mode}</ReadoutCaption>
-            )}
-          </Rate>
+    <Panel
+      panelTitle="WARP"
+      /* Panel's own centring, where `Body` hand-rolled the `flex: 1` +
+         `align-content: center` pair. A row of controls sized to the tile is
+         what `fitToSize` is for, and Panel measures before it centres so an
+         overflowing set of buttons still starts at the top. */
+      fitToSize
+      sections={
+        <Section full>
+          <DimmedOverlay
+            show={dimBody}
+            message="No active save"
+            hint="Time warp works in flight, Space Center, and Tracking Station."
+          >
+            <Body>
+              <Rate $tone={rateTone}>
+                <RateValue
+                  role="img"
+                  aria-label={`Time warp rate ${rateLabel}`}
+                >
+                  {rateLabel}
+                </RateValue>
+                {showModeCaption && mode !== null && mode !== "" && (
+                  <ReadoutCaption>{mode}</ReadoutCaption>
+                )}
+              </Rate>
 
-          {/* Pause button only renders when there's room next to the
+              {/* Pause button only renders when there's room next to the
               rate readout. At minimal-4x3 the pause button crowded
               the stepper into the rate row; hide it at small grid
               counts to give the warp-control buttons their own line. */}
-          {scene === "Flight" && cols >= 4 && rows >= 4 && (
-            <ToggleButton
-              active={effectivePaused === true}
-              tone="warn"
-              size="sm"
-              onClick={togglePause}
-              aria-label={
-                effectivePaused === true ? "Resume game" : "Pause game"
-              }
-              title={
-                effectivePaused === true
-                  ? "Resume (t.unpause)"
-                  : "Pause (t.pause)"
-              }
-            >
-              {effectivePaused === true ? (
-                <PlayIcon size={12} />
-              ) : (
-                <PauseIcon size={12} />
+              {scene === "Flight" && cols >= 4 && rows >= 4 && (
+                <ToggleButton
+                  active={effectivePaused === true}
+                  tone="warn"
+                  size="sm"
+                  onClick={togglePause}
+                  aria-label={
+                    effectivePaused === true ? "Resume game" : "Pause game"
+                  }
+                  title={
+                    effectivePaused === true
+                      ? "Resume (t.unpause)"
+                      : "Pause (t.pause)"
+                  }
+                >
+                  {effectivePaused === true ? (
+                    <PlayIcon size={12} />
+                  ) : (
+                    <PauseIcon size={12} />
+                  )}
+                </ToggleButton>
               )}
-            </ToggleButton>
-          )}
 
-          {showFullLadder && (
-            <FullLadder role="group" aria-label="Time warp levels">
-              {HIGH_LEVELS.map((lvl) => {
-                const active = currentIndex === lvl.index;
-                return (
+              {showFullLadder && (
+                <FullLadder role="group" aria-label="Time warp levels">
+                  {HIGH_LEVELS.map((lvl) => {
+                    const active = currentIndex === lvl.index;
+                    return (
+                      <WarpButton
+                        key={lvl.index}
+                        type="button"
+                        $active={active}
+                        aria-pressed={active}
+                        onClick={() => setWarp(lvl.index)}
+                      >
+                        {lvl.label}
+                      </WarpButton>
+                    );
+                  })}
+                </FullLadder>
+              )}
+
+              {showStepper && (
+                <StepLadder role="group" aria-label="Time warp controls">
                   <WarpButton
-                    key={lvl.index}
                     type="button"
-                    $active={active}
-                    aria-pressed={active}
-                    onClick={() => setWarp(lvl.index)}
+                    $active={false}
+                    disabled={idx === 0}
+                    onClick={() => setWarp(downIdx)}
+                    aria-label="Warp down"
                   >
-                    {lvl.label}
+                    −
                   </WarpButton>
-                );
-              })}
-            </FullLadder>
-          )}
+                  <WarpButton
+                    type="button"
+                    $active={idx === 0}
+                    aria-pressed={idx === 0}
+                    onClick={() => setWarp(0)}
+                    aria-label="Drop to realtime"
+                  >
+                    1×
+                  </WarpButton>
+                  <WarpButton
+                    type="button"
+                    $active={false}
+                    disabled={idx === HIGH_LEVELS.length - 1}
+                    onClick={() => setWarp(upIdx)}
+                    aria-label="Warp up"
+                  >
+                    +
+                  </WarpButton>
+                </StepLadder>
+              )}
 
-          {showStepper && (
-            <StepLadder role="group" aria-label="Time warp controls">
-              <WarpButton
-                type="button"
-                $active={false}
-                disabled={idx === 0}
-                onClick={() => setWarp(downIdx)}
-                aria-label="Warp down"
-              >
-                −
-              </WarpButton>
-              <WarpButton
-                type="button"
-                $active={idx === 0}
-                aria-pressed={idx === 0}
-                onClick={() => setWarp(0)}
-                aria-label="Drop to realtime"
-              >
-                1×
-              </WarpButton>
-              <WarpButton
-                type="button"
-                $active={false}
-                disabled={idx === HIGH_LEVELS.length - 1}
-                onClick={() => setWarp(upIdx)}
-                aria-label="Warp up"
-              >
-                +
-              </WarpButton>
-            </StepLadder>
-          )}
-
-          {/* Contributed-actions slot: an Uplink adds a warp-target action
+              {/* Contributed-actions slot: an Uplink adds a warp-target action
               ("Warp to <mod-event>") alongside the widget's own warp buttons.
               Empty (renders nothing) until an augment binds
               `warp-control.stepper`. */}
-          <AugmentSlot name="warp-control.stepper" props={{}} />
-        </Body>
-      </DimmedOverlay>
-    </Panel>
+              <AugmentSlot name="warp-control.stepper" props={{}} />
+            </Body>
+          </DimmedOverlay>
+        </Section>
+      }
+    />
   );
 }
 
@@ -388,16 +402,15 @@ function formatRate(rate: number | null): string {
   return `${rate.toFixed(2)}×`;
 }
 
+/* The centring and the fill are `Panel fitToSize`'s now; what is left here is
+   the wrapping row itself. */
 const Body = styled.div`
-  flex: 1;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-8);
   align-items: center;
-  align-content: center;
   justify-content: center;
   min-width: 0;
-  min-height: 0;
 `;
 
 const Rate = styled.div<{ $tone: "physics" | "high" }>`

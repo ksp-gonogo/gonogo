@@ -16,8 +16,8 @@ import {
   Cluster,
   Panel,
   Section,
-  SectionTitle,
   type Severity,
+  Text,
   usePanelDelay,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -200,52 +200,50 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   });
 
   return (
-    <Panel panelTitle="MechJeb">
-      <div
-        style={{
-          fontSize: "var(--font-size-xs)",
-          color: "var(--color-text-faint)",
-          marginBottom: "var(--space-8)",
-        }}
-      >
-        {oneWay != null
-          ? `Remote autopilot (${writeQuantity(oneWay, { decimals: 1 })} one-way delay)`
-          : "Remote autopilot"}
-      </div>
-      <Section>
-        <SectionTitle>Ascent</SectionTitle>
-        <Cluster gap="sm">
-          <label htmlFor={altitudeInputId}>Target altitude (km)</label>
-          <input
-            id={altitudeInputId}
-            type="number"
-            min={0}
-            step={5}
-            value={altitudeKm}
-            onChange={(e) => setAltitudeKm(Number(e.target.value))}
+    <Panel
+      panelTitle="MechJeb"
+      sections={[
+        /* The link caption qualifies every command below it rather than sitting
+           beside one, so it spans the section grid. */
+        <Section key="link" full>
+          <Text tone="faint" size="xs">
+            {oneWay != null
+              ? `Remote autopilot (${writeQuantity(oneWay, { decimals: 1 })} one-way delay)`
+              : "Remote autopilot"}
+          </Text>
+        </Section>,
+        <Section key="ascent" title="Ascent">
+          <Cluster gap="sm">
+            <label htmlFor={altitudeInputId}>Target altitude (km)</label>
+            <input
+              id={altitudeInputId}
+              type="number"
+              min={0}
+              step={5}
+              value={altitudeKm}
+              onChange={(e) => setAltitudeKm(Number(e.target.value))}
+            />
+          </Cluster>
+          <CommandRow
+            label="Engage ascent autopilot"
+            phase={engage.status.phase}
+            onFire={fireEngage}
           />
-        </Cluster>
-        <CommandRow
-          label="Engage ascent autopilot"
-          phase={engage.status.phase}
-          onFire={fireEngage}
-        />
-      </Section>
-
-      <Section>
-        <SectionTitle>Maneuvers</SectionTitle>
-        <CommandRow
-          label="Execute next node"
-          phase={executeNode.status.phase}
-          onFire={fireExecuteNode}
-        />
-        <CommandRow
-          label="Land at target"
-          phase={land.status.phase}
-          onFire={fireLand}
-        />
-      </Section>
-    </Panel>
+        </Section>,
+        <Section key="maneuvers" title="Maneuvers">
+          <CommandRow
+            label="Execute next node"
+            phase={executeNode.status.phase}
+            onFire={fireExecuteNode}
+          />
+          <CommandRow
+            label="Land at target"
+            phase={land.status.phase}
+            onFire={fireLand}
+          />
+        </Section>,
+      ]}
+    />
   );
 }
 

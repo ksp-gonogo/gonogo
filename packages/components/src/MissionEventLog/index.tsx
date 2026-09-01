@@ -13,8 +13,8 @@ import {
   Inline,
   MissionDate,
   Panel,
+  Section,
   type Severity,
-  Stack,
   Text,
   Truncate,
   Unit,
@@ -150,9 +150,14 @@ function MissionEventLogComponent(
 
   if (rows.length === 0 && notes.length === 0) {
     return (
-      <Panel panelTitle="MISSION LOG">
-        <EmptyState>No mission events yet</EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="MISSION LOG"
+        sections={
+          <Section>
+            <EmptyState>No mission events yet</EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -160,27 +165,33 @@ function MissionEventLogComponent(
   const ordered = [...rows].reverse();
 
   return (
-    <Panel panelTitle="MISSION LOG">
-      <Stack gap="xs">
-        {notes.map((note) => (
-          <Text key={note} tone="muted" size="xs">
-            {note}
-          </Text>
-        ))}
-        {rows.length === 0 ? (
-          <EmptyState>No mission events yet</EmptyState>
-        ) : (
-          <>
-            <Text tone="muted" size="xs">
-              {rows.length} events
+    <Panel
+      panelTitle="MISSION LOG"
+      /* ONE section, and deliberately: the body is a single chronological run
+         of events, so splitting it across columns would break the reading
+         order the log exists to carry. */
+      sections={
+        <Section gap="xs">
+          {notes.map((note) => (
+            <Text key={note} tone="muted" size="xs">
+              {note}
             </Text>
-            {ordered.map((row) => (
-              <EventRow key={row.key} row={row} launchUt={launchUt} />
-            ))}
-          </>
-        )}
-      </Stack>
-    </Panel>
+          ))}
+          {rows.length === 0 ? (
+            <EmptyState>No mission events yet</EmptyState>
+          ) : (
+            <>
+              <Text tone="muted" size="xs">
+                {rows.length} events
+              </Text>
+              {ordered.map((row) => (
+                <EventRow key={row.key} row={row} launchUt={launchUt} />
+              ))}
+            </>
+          )}
+        </Section>
+      }
+    />
   );
 }
 

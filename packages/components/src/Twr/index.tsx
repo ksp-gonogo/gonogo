@@ -8,6 +8,8 @@ import {
   EmptyState,
   NULL_DISPLAY,
   Panel,
+  Section,
+  Text,
   useElementSize,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
@@ -112,15 +114,20 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   if (twr === undefined || !Number.isFinite(twr)) {
     return (
-      <Panel panelTitle="TWR">
-        {/* Tiny widget has ~70 px of inner width, the full "No engine
-            data" sentence clips to just "No". A single em-dash conveys
-            "no data" without crowding the panel; the panel title alone
-            tells the operator what the widget is. */}
-        <EmptyState>
-          {variant === "tiny" ? NULL_DISPLAY : "No engine data"}
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="TWR"
+        sections={
+          <Section full>
+            {/* Tiny widget has ~70 px of inner width, the full "No engine
+                data" sentence clips to just "No". A single em-dash conveys
+                "no data" without crowding the panel; the panel title alone
+                tells the operator what the widget is. */}
+            <EmptyState>
+              {variant === "tiny" ? NULL_DISPLAY : "No engine data"}
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -128,76 +135,70 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
 
   if (variant === "tiny") {
     return (
-      <Panel panelTitle="TWR" fitToSize>
-        <>
-          {/* 32 px TinyValue + 13 px TinyUnit + 4 px gap = ~70 px on a
-              two-character value, which clips the leading digit of "1.82"
-              into ".82" at 72 px inner width. Scale the readout font and
-              drop the explicit "g" unit at this size, the panel title is
-              "TWR", the unit is implied. */}
-          <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(1)}</TinyValue>
-        </>
-      </Panel>
+      <Panel
+        panelTitle="TWR"
+        fitToSize
+        sections={
+          <Section full>
+            {/* 32 px TinyValue + 13 px TinyUnit + 4 px gap = ~70 px on a
+                two-character value, which clips the leading digit of "1.82"
+                into ".82" at 72 px inner width. Scale the readout font and
+                drop the explicit "g" unit at this size, the panel title is
+                "TWR", the unit is implied. */}
+            <TinyValue $color={TONE_COLOR[tone]}>{twr.toFixed(1)}</TinyValue>
+          </Section>
+        }
+      />
     );
   }
 
   return (
-    <Panel panelTitle="TWR">
-      <Body>
-        {showSubtitle && (
-          <div
-            style={{
-              fontSize: "var(--font-size-xs)",
-              color: "var(--color-text-muted)",
-              letterSpacing: "0.04em",
-            }}
-          >
-            Current stage · last {writeQuantity(value("s", SPARK_WINDOW_SEC))}
-          </div>
-        )}
-        <GaugeSlot ref={gaugeRef}>
-          <Gauge
-            value={twr}
-            min={GAUGE_MIN}
-            max={GAUGE_MAX}
-            zones={ZONES}
-            width={gaugeW}
-            height={gaugeH}
-            valueLabel={twr.toFixed(2)}
-            ariaLabel={`TWR ${twr.toFixed(2)}`}
-          />
-        </GaugeSlot>
-        {showSparkline && (
-          <SparkSlot ref={sparkRef}>
-            <Sparkline
-              values={sparkValues}
-              width={sparkWidth}
-              height={24}
-              color={TONE_COLOR[tone]}
-              ariaLabel="TWR trend"
+    <Panel
+      panelTitle="TWR"
+      /* Panel's own centring, where `Body` hand-rolled the `flex: 1` +
+         `justify-content: center` pair. The widget is a dial and a trend line
+         sized to the tile, which is what `fitToSize` is for, and Panel measures
+         before it centres so overflowing content still starts at the top. */
+      fitToSize
+      sections={[
+        showSubtitle && (
+          <Section key="caption" full>
+            <Text tone="muted" size="xs">
+              Current stage · last {writeQuantity(value("s", SPARK_WINDOW_SEC))}
+            </Text>
+          </Section>
+        ),
+        <Section key="gauge" full>
+          <GaugeSlot ref={gaugeRef}>
+            <Gauge
+              value={twr}
+              min={GAUGE_MIN}
+              max={GAUGE_MAX}
+              zones={ZONES}
+              width={gaugeW}
+              height={gaugeH}
+              valueLabel={twr.toFixed(2)}
+              ariaLabel={`TWR ${twr.toFixed(2)}`}
             />
-          </SparkSlot>
-        )}
-      </Body>
-    </Panel>
+          </GaugeSlot>
+        </Section>,
+        showSparkline && (
+          <Section key="trend" full>
+            <SparkSlot ref={sparkRef}>
+              <Sparkline
+                values={sparkValues}
+                width={sparkWidth}
+                height={24}
+                color={TONE_COLOR[tone]}
+                ariaLabel="TWR trend"
+              />
+            </SparkSlot>
+          </Section>
+        ),
+      ]}
+    />
   );
 }
-
-const Body = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  /* The Gauge SVG draws its value label inside its own bottom strip, flush
-     with the SVG box edge. A generous gap keeps that label off the sparkline
-     below it: at the 4×5 default the two collide without it. That makes this
-     measured clearance rather than a rhythm step, so it stays off the
-     spacing ladder, and snapping 20 -> 16 is the direction that reproduces
-     the collision. */
-  gap: 20px;
-  min-height: 0;
-`;
 
 const GaugeSlot = styled.div`
   flex: 1 1 auto;
@@ -214,6 +215,12 @@ const SparkSlot = styled.div`
   width: 100%;
   height: 24px;
   flex: 0 0 auto;
+  /* Tops the section grid's 12px row gap up to the 20px measured clearance
+     the Gauge above needs. The Gauge SVG draws its value label inside its own
+     bottom strip, flush with the SVG box edge, and at the 4x5 default the two
+     collide below 20px. That makes this measured clearance rather than a
+     rhythm step, so it stays off the spacing ladder. */
+  margin-top: 8px;
 `;
 
 const TinyValue = styled.span<{ $color: string }>`

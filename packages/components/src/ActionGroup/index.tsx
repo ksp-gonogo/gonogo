@@ -49,6 +49,7 @@ import {
   IconButton,
   Inline,
   NULL_DISPLAY,
+  Section,
   Stack,
   Text,
   Truncate,
@@ -316,9 +317,13 @@ function ActionGroupView({
 
   if (!group) {
     return (
-      <Panel>
-        <Placeholder>No action group configured</Placeholder>
-      </Panel>
+      <Panel
+        sections={
+          <Section full>
+            <Placeholder>No action group configured</Placeholder>
+          </Section>
+        }
+      />
     );
   }
 
@@ -429,100 +434,115 @@ function ActionGroupView({
     // passing it through would nest a button and an input in a heading and
     // uppercase the operator's own label into the bargain. It reads as the
     // first line of the body instead, which is where a control belongs.
-    <Panel panelTitle="ACTION GROUP" compactTitle={["ACTIONS", "AG"]}>
-      <Cluster justify="between" align="start" gap="md" wrap>
-        {editing ? (
-          <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
-            <Input
-              ref={inputRef}
-              value={draft}
-              autoFocus
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={commitEdit}
-              onKeyDown={handleKeyDown}
-              onClick={(e) => e.stopPropagation()}
-            />
-          </Stack>
-        ) : (
-          // A real `<button>` rather than a `div role="button"`: native
-          // Enter/Space activation and a native focus ring, no bespoke
-          // keydown handler or focus-visible CSS needed.
-          <Stack
-            as="button"
-            gap="xs"
-            onClick={startEditing}
-            aria-label={`Rename ${currentLabel}`}
-            title="Click to rename"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              cursor: "text",
-              textAlign: "left",
-              background: "none",
-              border: "none",
-              padding: 0,
-              font: "inherit",
-            }}
-          >
-            <Truncate style={{ fontWeight: 600, letterSpacing: "0.05em" }}>
-              {currentLabel}
-            </Truncate>
-            {/* Always show official name as secondary, unless it matches the label */}
-            {showOfficialName &&
-              config?.label &&
-              config.label !== group.name && (
-                <Text tone="faint" size="xs">
-                  {group.name}
-                </Text>
+    <Panel
+      panelTitle="ACTION GROUP"
+      compactTitle={["ACTIONS", "AG"]}
+      sections={[
+        /* The name-and-toggle row spans: the warning under it and any Uplink
+           status block are both about the group it names. */
+        <Section key="control" full>
+          <Cluster justify="between" align="start" gap="md" wrap>
+            {editing ? (
+              <Stack gap="xs" style={{ flex: 1, minWidth: 0 }}>
+                <Input
+                  ref={inputRef}
+                  value={draft}
+                  autoFocus
+                  onChange={(e) => setDraft(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={handleKeyDown}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Stack>
+            ) : (
+              // A real `<button>` rather than a `div role="button"`: native
+              // Enter/Space activation and a native focus ring, no bespoke
+              // keydown handler or focus-visible CSS needed.
+              <Stack
+                as="button"
+                gap="xs"
+                onClick={startEditing}
+                aria-label={`Rename ${currentLabel}`}
+                title="Click to rename"
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  cursor: "text",
+                  textAlign: "left",
+                  background: "none",
+                  border: "none",
+                  padding: 0,
+                  font: "inherit",
+                }}
+              >
+                <Truncate style={{ fontWeight: 600, letterSpacing: "0.05em" }}>
+                  {currentLabel}
+                </Truncate>
+                {/* Always show official name as secondary, unless it matches the label */}
+                {showOfficialName &&
+                  config?.label &&
+                  config.label !== group.name && (
+                    <Text tone="faint" size="xs">
+                      {group.name}
+                    </Text>
+                  )}
+              </Stack>
+            )}
+            <Inline gap="sm">
+              {showBell && group.toggle && (
+                <IconButton
+                  type="button"
+                  aria-label={`Set alarm to fire ${currentLabel}`}
+                  title={`Set alarm to fire ${currentLabel}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!group.toggle || !openAlarms) return;
+                    openAlarms({
+                      name: `Fire ${currentLabel}`,
+                      action: group.toggle,
+                    });
+                  }}
+                >
+                  <BellIcon />
+                </IconButton>
               )}
-          </Stack>
-        )}
-        <Inline gap="sm">
-          {showBell && group.toggle && (
-            <IconButton
-              type="button"
-              aria-label={`Set alarm to fire ${currentLabel}`}
-              title={`Set alarm to fire ${currentLabel}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (!group.toggle || !openAlarms) return;
-                openAlarms({
-                  name: `Fire ${currentLabel}`,
-                  action: group.toggle,
-                });
-              }}
+              <ToggleButton
+                active={isOn}
+                size="sm"
+                disabled={!canToggle}
+                onClick={handleToggle}
+                aria-label={`Toggle ${currentLabel}`}
+                title={unavailableReason ?? `Toggle ${currentLabel}`}
+              >
+                {stateLabel}
+              </ToggleButton>
+            </Inline>
+          </Cluster>
+        </Section>,
+        unavailableReason && getSizeBucket(w, h) !== "tiny" && (
+          <Section key="unavailable" full>
+            <Badge
+              tone="warn"
+              size="sm"
+              role="status"
+              aria-live="polite"
+              title={unavailableTitle}
             >
-              <BellIcon />
-            </IconButton>
-          )}
-          <ToggleButton
-            active={isOn}
-            size="sm"
-            disabled={!canToggle}
-            onClick={handleToggle}
-            aria-label={`Toggle ${currentLabel}`}
-            title={unavailableReason ?? `Toggle ${currentLabel}`}
-          >
-            {stateLabel}
-          </ToggleButton>
-        </Inline>
-      </Cluster>
-      {unavailableReason && getSizeBucket(w, h) !== "tiny" && (
-        <Badge
-          tone="warn"
-          size="sm"
-          role="status"
-          aria-live="polite"
-          title={unavailableTitle}
-        >
-          {unavailableReason}
-        </Badge>
-      )}
-      {/* Whole-widget status block. An Uplink describing what this group
-          toggles (e.g. a life-support subsystem) renders here. Empty until
-          bound. */}
-      <AugmentSlot name="action-group.subsystem" props={slotContext} />
-    </Panel>
+              {unavailableReason}
+            </Badge>
+          </Section>
+        ),
+        /* Whole-widget status block. An Uplink describing what this group
+           toggles (e.g. a life-support subsystem) renders here. `AugmentSlot`
+           renders a fragment, so each bound augment becomes its own item of the
+           section grid. Empty until bound. */
+        <AugmentSlot
+          key="subsystem"
+          name="action-group.subsystem"
+          props={slotContext}
+        />,
+      ]}
+    />
   );
 }
 

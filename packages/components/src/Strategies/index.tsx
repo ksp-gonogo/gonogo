@@ -18,6 +18,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ScrollArea,
+  Section,
   Stack,
   speakQuantity,
   type TabDescriptor,
@@ -345,9 +346,17 @@ function StrategiesComponent({
 
   if (strategies === null) {
     return (
-      <Panel panelTitle="Strategies" compactTitle={["ADMIN", "ADM"]}>
-        {showSubtitle && <Empty>Awaiting career data...</Empty>}
-      </Panel>
+      <Panel
+        panelTitle="Strategies"
+        compactTitle={["ADMIN", "ADM"]}
+        sections={
+          showSubtitle && (
+            <Section full>
+              <Empty>Awaiting career data...</Empty>
+            </Section>
+          )
+        }
+      />
     );
   }
 
@@ -402,8 +411,9 @@ function StrategiesComponent({
             {overCap && ` / ${inferredCap}`}
           </Tally>
         }
-      >
-        {/* Strategies spends career funds (activate cost), so the balance
+        sections={
+          <Section full>
+            {/* Strategies spends career funds (activate cost), so the balance
             must stay visible even in the tiny bucket (CLAUDE.md "spending
             funds: always show the balance"). A dedicated row below the
             header rather than inlined into the Header's own flex-wrap
@@ -413,39 +423,41 @@ function StrategiesComponent({
             fix: the balance wrapped clean off the bottom of a 3x3 box).
             Compact k/M formatting plus nowrap+ellipsis keeps this to one
             line that always fits. */}
-        {balancesNotCurrent ? (
-          /* Withheld, and said so in the operator's own words. "funds unknown"
+            {balancesNotCurrent ? (
+              /* Withheld, and said so in the operator's own words. "funds unknown"
              below would accuse the link of never having delivered a balance it
              did deliver, and a bare dash would leave the refusal unexplained. */
-          <TinyFundsRow title="The funds balance is no longer current, so affordability is not being checked">
-            funds not current
-          </TinyFundsRow>
-        ) : funds != null ? (
-          <TinyFundsRow title={speakQuantity(funds, { decimals: 0 })}>
-            {formatCompactNumber(funds.magnitude, 0)}
-            <Unit>funds</Unit>
-          </TinyFundsRow>
-        ) : (
-          /* An absent balance is the state that rule exists for: it is when the
+              <TinyFundsRow title="The funds balance is no longer current, so affordability is not being checked">
+                funds not current
+              </TinyFundsRow>
+            ) : funds != null ? (
+              <TinyFundsRow title={speakQuantity(funds, { decimals: 0 })}>
+                {formatCompactNumber(funds.magnitude, 0)}
+                <Unit>funds</Unit>
+              </TinyFundsRow>
+            ) : (
+              /* An absent balance is the state that rule exists for: it is when the
              activate buttons refuse, so the row has to say so rather than
              vanish and leave the refusal unexplained. */
-          <TinyFundsRow title="No funds balance has arrived">
-            funds unknown
-          </TinyFundsRow>
-        )}
-        {/* Its own row rather than appended to the balance above: that row is
+              <TinyFundsRow title="No funds balance has arrived">
+                funds unknown
+              </TinyFundsRow>
+            )}
+            {/* Its own row rather than appended to the balance above: that row is
             nowrap + ellipsis by construction, so anything added to it is the
             part that gets cut. */}
-        {reportsFundsDrain(netFunds) && (
-          <TinyDrainRow>
-            <FundsDrain
-              funds={magnitudeOf(funds)}
-              netPerDay={netFunds}
-              compact
-            />
-          </TinyDrainRow>
-        )}
-      </Panel>
+            {reportsFundsDrain(netFunds) && (
+              <TinyDrainRow>
+                <FundsDrain
+                  funds={magnitudeOf(funds)}
+                  netPerDay={netFunds}
+                  compact
+                />
+              </TinyDrainRow>
+            )}
+          </Section>
+        }
+      />
     );
   }
 
@@ -504,32 +516,37 @@ function StrategiesComponent({
           )}
         </HeaderMeta>
       }
-    >
-      {screens.length === 0 ? (
-        <ScreenSections {...sectionProps} strategies={strategies} />
-      ) : (
-        <Tabs
-          tabs={screens.map(
-            (screen): TabDescriptor => ({
-              id: screen.id,
-              label: screen.label,
-              content:
-                screen.lockedReason !== null ? (
-                  <LockedScreen>{screen.lockedReason}</LockedScreen>
-                ) : (
-                  <ScreenSections
-                    {...sectionProps}
-                    strategies={screen.strategies}
-                    screenId={screen.id}
-                    showDepartment={!screen.namesOneDepartment}
-                  />
-                ),
-            }),
+      /* ONE section: the body is a screen switch, and a tab strip beside
+         anything reads as two widgets rather than as one panel. */
+      sections={
+        <Section full>
+          {screens.length === 0 ? (
+            <ScreenSections {...sectionProps} strategies={strategies} />
+          ) : (
+            <Tabs
+              tabs={screens.map(
+                (screen): TabDescriptor => ({
+                  id: screen.id,
+                  label: screen.label,
+                  content:
+                    screen.lockedReason !== null ? (
+                      <LockedScreen>{screen.lockedReason}</LockedScreen>
+                    ) : (
+                      <ScreenSections
+                        {...sectionProps}
+                        strategies={screen.strategies}
+                        screenId={screen.id}
+                        showDepartment={!screen.namesOneDepartment}
+                      />
+                    ),
+                }),
+              )}
+              aria-label="Administration Building screens"
+            />
           )}
-          aria-label="Administration Building screens"
-        />
-      )}
-    </Panel>
+        </Section>
+      }
+    />
   );
 }
 

@@ -12,7 +12,7 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import { StreamStatusBadge, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
-import { Inline, Panel, Text } from "@ksp-gonogo/ui-kit";
+import { Inline, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AboardTab } from "./AboardTab";
@@ -219,16 +219,21 @@ function ScienceDataComponent({
           <StreamStatusBadge status={breakdownStreamStatus} />
         </Inline>
       }
-    >
-      <Tabs
-        tabs={tabs}
-        // Kept in step with the disabled tab so this component's own state
-        // never disagrees with the panel on screen. Tabs falls through on its
-        // own too; this is what stops `tab` going stale behind it.
-        activeId={noVessel && tab === "aboard" ? "archive" : tab}
-        onChange={(id) => setTab(id as "aboard" | "archive")}
-      />
-    </Panel>
+      /* ONE section: the body is a tab strip, and a tab strip beside anything
+         reads as two widgets rather than as one panel. */
+      sections={
+        <Section full>
+          <Tabs
+            tabs={tabs}
+            // Kept in step with the disabled tab so this component's own state
+            // never disagrees with the panel on screen. Tabs falls through on its
+            // own too; this is what stops `tab` going stale behind it.
+            activeId={noVessel && tab === "aboard" ? "archive" : tab}
+            onChange={(id) => setTab(id as "aboard" | "archive")}
+          />
+        </Section>
+      }
+    />
   );
 }
 

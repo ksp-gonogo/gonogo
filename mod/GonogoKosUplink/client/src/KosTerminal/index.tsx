@@ -32,7 +32,7 @@ import {
   Input,
   moveComboboxActiveIndex,
   Panel,
-  PanelTitle,
+  Section,
   Switch,
   Unit,
   useModalSaveBar,
@@ -553,10 +553,16 @@ function KosTerminalComponent(
   const replayActive = useReplaySessionActive();
   if (replayActive) {
     return (
-      <Panel>
-        <PanelTitle>kOS TERMINAL</PanelTitle>
-        <EmptyState layout="fill">Terminal disabled during replay.</EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="kOS TERMINAL"
+        sections={
+          <Section full>
+            <EmptyState layout="fill">
+              Terminal disabled during replay.
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
   return <KosTerminalLive {...props} />;
@@ -591,32 +597,36 @@ function KosTerminalLive({
   // mount, once a coreId exists.
   if (coreId === null) {
     return (
-      <Panel>
-        <PanelTitle>kOS TERMINAL</PanelTitle>
-        {processors.length === 0 ? (
-          <EmptyState layout="fill" role="status" aria-live="polite">
-            {cpuName
-              ? `Waiting for kOS CPU "${cpuName}"...`
-              : "No kOS CPUs detected. Boot a kOS processor in-flight."}
-          </EmptyState>
-        ) : (
-          <CpuPicker role="group" aria-label="Pick a kOS CPU">
-            {(() => {
-              const labels = cpuPickerLabels(processors);
-              return processors.map((p, i) => (
-                <CpuPicker__Button
-                  key={p.coreId}
-                  type="button"
-                  onClick={() => setPickedCoreId(p.coreId)}
-                >
-                  <ComputerIcon />
-                  {labels[i]}
-                </CpuPicker__Button>
-              ));
-            })()}
-          </CpuPicker>
-        )}
-      </Panel>
+      <Panel
+        panelTitle="kOS TERMINAL"
+        sections={
+          <Section full>
+            {processors.length === 0 ? (
+              <EmptyState layout="fill" role="status" aria-live="polite">
+                {cpuName
+                  ? `Waiting for kOS CPU "${cpuName}"...`
+                  : "No kOS CPUs detected. Boot a kOS processor in-flight."}
+              </EmptyState>
+            ) : (
+              <CpuPicker role="group" aria-label="Pick a kOS CPU">
+                {(() => {
+                  const labels = cpuPickerLabels(processors);
+                  return processors.map((p, i) => (
+                    <CpuPicker__Button
+                      key={p.coreId}
+                      type="button"
+                      onClick={() => setPickedCoreId(p.coreId)}
+                    >
+                      <ComputerIcon />
+                      {labels[i]}
+                    </CpuPicker__Button>
+                  ));
+                })()}
+              </CpuPicker>
+            )}
+          </Section>
+        }
+      />
     );
   }
 

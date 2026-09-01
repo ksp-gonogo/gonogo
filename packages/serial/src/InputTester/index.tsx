@@ -7,10 +7,11 @@ import {
   NULL_DISPLAY,
   Panel,
   type ReadoutTone,
+  Section,
   Select,
-  Stack,
   StatusPill,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { GamepadGlyph } from "../GamepadGlyph";
@@ -86,8 +87,13 @@ function InputTesterComponent({
     onConfigChange?.({ ...config, deviceId: next });
   };
 
-  return (
-    <Panel panelTitle="INPUT TESTER" compactTitle={["INPUTS", "INPUT"]}>
+  /*
+   * Built as a list rather than inline, because every group after the device
+   * picker is conditional on the same two things being resolved. Six repeated
+   * `device && type &&` guards would say that six times.
+   */
+  const sections: ReactNode[] = [
+    <Section key="device">
       <Field>
         <FieldLabel htmlFor="input-tester-device">Device</FieldLabel>
         <Select
@@ -111,103 +117,120 @@ function InputTesterComponent({
           })}
         </Select>
       </Field>
+    </Section>,
+  ];
 
-      {!device || !type ? (
+  if (!device || !type) {
+    sections.push(
+      <Section key="none" full>
         <EmptyState>
           {devices.length === 0
             ? "No devices registered. Add one via the joystick FAB."
             : "Select a device to see its inputs."}
         </EmptyState>
-      ) : (
-        <>
-          <StatusRow>
-            <StatusLabel>Status</StatusLabel>
-            <StatusPill $tone={STATUS_TONE[status] ?? "default"}>
-              {status}
-            </StatusPill>
-            <Spacer />
-            <Counts>
-              {buttons.length} btn · {analogs.length} axis
-            </Counts>
-          </StatusRow>
+      </Section>,
+    );
+  } else {
+    sections.push(
+      <Section key="status" full>
+        <StatusRow>
+          <StatusLabel>Status</StatusLabel>
+          <StatusPill $tone={STATUS_TONE[status] ?? "default"}>
+            {status}
+          </StatusPill>
+          <Spacer />
+          <Counts>
+            {buttons.length} btn · {analogs.length} axis
+          </Counts>
+        </StatusRow>
+      </Section>,
+    );
+    if (type.inputs.length === 0) {
+      sections.push(
+        <Section key="no-inputs" full>
+          <EmptyState>
+            This device type has no inputs declared. Edit the type via the
+            joystick FAB → Devices.
+          </EmptyState>
+        </Section>,
+      );
+    }
+    if (analogs.length > 0) {
+      sections.push(
+        <Section key="axes" title="Axes" gap="md">
+          {analogs.map((input) => {
+            const raw = values[input.id];
+            const v = typeof raw === "number" ? raw : 0;
+            const live = typeof raw === "number";
+            const display = describeGamepadInput(device, input);
+            return (
+              <AnalogRow key={input.id}>
+                <AnalogName>
+                  {display.glyph && (
+                    <GamepadGlyph
+                      role={input.role as GamepadRole}
+                      pack={device.labelPack ?? "positional"}
+                      size={13}
+                    />
+                  )}
+                  {display.name}
+                </AnalogName>
+                <AnalogTrack>
+                  <AnalogCentre />
+                  <AnalogFill
+                    style={{
+                      left: v >= 0 ? "50%" : `${50 + v * 50}%`,
+                      width: `${Math.abs(v) * 50}%`,
+                    }}
+                    $live={live}
+                  />
+                  <AnalogThumb
+                    style={{ left: `${50 + v * 50}%` }}
+                    $live={live}
+                  />
+                </AnalogTrack>
+                <AnalogValue $live={live}>
+                  {live ? v.toFixed(2) : NULL_DISPLAY}
+                </AnalogValue>
+              </AnalogRow>
+            );
+          })}
+        </Section>,
+      );
+    }
+    if (buttons.length > 0) {
+      sections.push(
+        <Section key="buttons" title="Buttons" gap="md">
+          <ButtonGrid>
+            {buttons.map((input) => {
+              const pressed = values[input.id] === true;
+              const display = describeGamepadInput(device, input);
+              return (
+                <ButtonPill key={input.id} $pressed={pressed}>
+                  <ButtonDot $pressed={pressed} />
+                  {display.glyph && (
+                    <GamepadGlyph
+                      role={input.role as GamepadRole}
+                      pack={device.labelPack ?? "positional"}
+                      size={13}
+                    />
+                  )}
+                  <ButtonName>{display.name}</ButtonName>
+                </ButtonPill>
+              );
+            })}
+          </ButtonGrid>
+        </Section>,
+      );
+    }
+  }
 
-          {type.inputs.length === 0 && (
-            <EmptyState>
-              This device type has no inputs declared. Edit the type via the
-              joystick FAB → Devices.
-            </EmptyState>
-          )}
-
-          {analogs.length > 0 && (
-            <Stack gap="md">
-              <SectionLabel>Axes</SectionLabel>
-              {analogs.map((input) => {
-                const raw = values[input.id];
-                const v = typeof raw === "number" ? raw : 0;
-                const live = typeof raw === "number";
-                const display = describeGamepadInput(device, input);
-                return (
-                  <AnalogRow key={input.id}>
-                    <AnalogName>
-                      {display.glyph && (
-                        <GamepadGlyph
-                          role={input.role as GamepadRole}
-                          pack={device.labelPack ?? "positional"}
-                          size={13}
-                        />
-                      )}
-                      {display.name}
-                    </AnalogName>
-                    <AnalogTrack>
-                      <AnalogCentre />
-                      <AnalogFill
-                        style={{
-                          left: v >= 0 ? "50%" : `${50 + v * 50}%`,
-                          width: `${Math.abs(v) * 50}%`,
-                        }}
-                        $live={live}
-                      />
-                      <AnalogThumb
-                        style={{ left: `${50 + v * 50}%` }}
-                        $live={live}
-                      />
-                    </AnalogTrack>
-                    <AnalogValue $live={live}>
-                      {live ? v.toFixed(2) : NULL_DISPLAY}
-                    </AnalogValue>
-                  </AnalogRow>
-                );
-              })}
-            </Stack>
-          )}
-
-          {buttons.length > 0 && (
-            <Stack gap="md">
-              <SectionLabel>Buttons</SectionLabel>
-              <ButtonGrid>
-                {buttons.map((input) => {
-                  const pressed = values[input.id] === true;
-                  const display = describeGamepadInput(device, input);
-                  return (
-                    <ButtonPill key={input.id} $pressed={pressed}>
-                      <ButtonDot $pressed={pressed} />
-                      {display.glyph && (
-                        <GamepadGlyph
-                          role={input.role as GamepadRole}
-                          pack={device.labelPack ?? "positional"}
-                          size={13}
-                        />
-                      )}
-                      <ButtonName>{display.name}</ButtonName>
-                    </ButtonPill>
-                  );
-                })}
-              </ButtonGrid>
-            </Stack>
-          )}
-        </>
-      )}
-    </Panel>
+  return (
+    <Panel
+      panelTitle="INPUT TESTER"
+      compactTitle={["INPUTS", "INPUT"]}
+      sections={sections}
+    />
   );
 }
 
@@ -265,13 +288,6 @@ const Spacer = styled.span`
 `;
 
 const Counts = styled.span`
-  color: var(--color-text-faint);
-`;
-
-const SectionLabel = styled.div`
-  font-size: var(--font-size-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
   color: var(--color-text-faint);
 `;
 

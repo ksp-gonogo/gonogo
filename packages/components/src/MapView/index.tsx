@@ -32,6 +32,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  Section,
   Unit,
   WidgetScopeProvider,
   WidgetSections,
@@ -1245,50 +1246,58 @@ function MapViewComponent({
               <BodyLabel>{displayName}</BodyLabel>
             ) : undefined
           }
-        >
-          <CompactReadout>
-            <CompactRow>
-              <CompactLabel>Lat</CompactLabel>
-              <CompactValue>
-                {lat === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={lat} decimals={2} />
+          /* Panel's own centring, where `CompactReadout` hand-rolled the
+             `flex: 1` + `justify-content: center` pair. A handful of readouts
+             sized to the tile is what `fitToSize` is for, and Panel measures
+             before it centres so an overflowing set still starts at the top. */
+          fitToSize
+          sections={
+            <Section full>
+              <CompactReadout>
+                <CompactRow>
+                  <CompactLabel>Lat</CompactLabel>
+                  <CompactValue>
+                    {lat === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={lat} decimals={2} />
+                    )}
+                  </CompactValue>
+                </CompactRow>
+                <CompactRow>
+                  <CompactLabel>Lon</CompactLabel>
+                  <CompactValue>
+                    {lon === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={lon} decimals={2} />
+                    )}
+                  </CompactValue>
+                </CompactRow>
+                {altSea !== undefined && rows >= 5 && (
+                  <CompactRow>
+                    <CompactLabel>Alt</CompactLabel>
+                    <CompactValue>
+                      <Unit value={value("m", altSea)} />
+                    </CompactValue>
+                  </CompactRow>
                 )}
-              </CompactValue>
-            </CompactRow>
-            <CompactRow>
-              <CompactLabel>Lon</CompactLabel>
-              <CompactValue>
-                {lon === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={lon} decimals={2} />
-                )}
-              </CompactValue>
-            </CompactRow>
-            {altSea !== undefined && rows >= 5 && (
-              <CompactRow>
-                <CompactLabel>Alt</CompactLabel>
-                <CompactValue>
-                  <Unit value={value("m", altSea)} />
-                </CompactValue>
-              </CompactRow>
-            )}
-            {/* The compact branch needs the same statement the full map makes.
+                {/* The compact branch needs the same statement the full map makes.
               Without it a withheld position is a bare em dash, which is exactly
               "renders nothing and is indistinguishable from broken": the
               operator cannot tell a craft that never reported from one whose
               coordinates we have stopped vouching for. */}
-            {positionStale && (
-              <CompactRow>
-                <ReadoutCaption>
-                  Position not current: marker withheld
-                </ReadoutCaption>
-              </CompactRow>
-            )}
-          </CompactReadout>
-        </Panel>
+                {positionStale && (
+                  <CompactRow>
+                    <ReadoutCaption>
+                      Position not current: marker withheld
+                    </ReadoutCaption>
+                  </CompactRow>
+                )}
+              </CompactReadout>
+            </Section>
+          }
+        />
       </WidgetScopeProvider>
     );
   }

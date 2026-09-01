@@ -1,5 +1,5 @@
 import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, Stack, Text, Unit, WidgetSections } from "@ksp-gonogo/ui-kit";
+import { Panel, Section, Text, Unit } from "@ksp-gonogo/ui-kit";
 import type { Rp1ComplexEntry } from "../__generated__/contract";
 import { current } from "../shared/current";
 import { RP1 } from "../uplink";
@@ -85,30 +85,32 @@ export function VehicleAssembly() {
     return null;
   }
 
-  const built = warehouse ?? [];
-  const building = queue ?? [];
-
   return (
     <Panel
       compactTitle={["VEHICLE ASSEMBLY", "ASSEMBLY"]}
-      panelSections={false}
       panelTitle="VEHICLE ASSEMBLY"
-    >
-      <Stack gap="lg">
-        {/* In the BODY rather than the header aside, and that is the funds rule
+      /* The host's own body is three caption lines; the readings come from the
+         Uplink sections Panel now mounts INSIDE the section grid, so they flow
+         into columns in a landscape tile instead of stacking under this. That
+         is also why the hand-placed `WidgetSections` and the
+         `panelSections={false}` that went with it are gone: end-of-body is
+         where Panel puts it anyway. */
+      sections={
+        <Section full gap="lg">
+          {/* In the BODY rather than the header aside, and that is the funds rule
             deciding it rather than taste: a panel narrow enough that its title
             and its aside do not fit collapses the aside behind a chevron, so at
             five columns every spend control below was on screen with the
             balance shut in a disclosure. A body line wraps instead of
             hiding. */}
-        <Text size="sm" title="Available funds" tone="muted">
-          Funds <Unit value={career?.economy?.funds} />
-        </Text>
+          <Text size="sm" title="Available funds" tone="muted">
+            Funds <Unit value={career?.economy?.funds} />
+          </Text>
 
-        <ComplexKey complexes={complexes ?? []} />
+          <ComplexKey complexes={complexes ?? []} />
 
-        {warehouse === undefined && queue === undefined && (
-          /* Only the UNREADABLE case says anything. A space centre with nothing
+          {warehouse === undefined && queue === undefined && (
+            /* Only the UNREADABLE case says anything. A space centre with nothing
              built renders nothing, because a sentence announcing that a list is
              empty is not a reading, it is the widget talking about itself.
 
@@ -119,14 +121,13 @@ export function VehicleAssembly() {
              states reached the same sentence. The distinction is real and worth
              keeping, so it is made on the ABSENCE itself rather than on a count
              that cannot see it. */
-          <Text size="sm" tone="muted">
-            No reading from the build queue.
-          </Text>
-        )}
-
-        <WidgetSections />
-      </Stack>
-    </Panel>
+            <Text size="sm" tone="muted">
+              No reading from the build queue.
+            </Text>
+          )}
+        </Section>
+      }
+    />
   );
 }
 
