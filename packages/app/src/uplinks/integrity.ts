@@ -7,6 +7,10 @@
 // were vouched for, which is tampering, a wrong URL, or a stale CDN, and it is
 // the most serious thing the loader can discover.
 //
+// A `declaration` finding sits beside those and is a different animal: nothing
+// was fetched, two parties simply expect different builds. See
+// `UplinkIntegritySubject` and `isOverridableIntegrityFailure`.
+//
 // So it is recorded as a VALUE, not only spelled into a reason string. A
 // surface that must tell a security event from an ordinary miss cannot do it by
 // matching prose, and the reason strings are already load-bearing as the
@@ -23,8 +27,18 @@
  */
 export type UplinkIntegrityParty = "installed-mod" | "hub-index";
 
-/** Which artifact carried the hash that turned out to be wrong. */
-export type UplinkIntegritySubject = "bundle" | "manifest";
+/**
+ * Which artifact carried the hash that turned out to be wrong.
+ *
+ * `declaration` is the odd one and the reason this union grew a third arm.
+ * `bundle` and `manifest` are both MEASURED findings: something was fetched and
+ * the hash it actually carries is not the hash it was checked against. A
+ * `declaration` finding is fetched nothing: two parties described the build
+ * they each expect and described different builds. That is what channel skew
+ * looks like from here, and it is the only integrity finding an operator may
+ * override (`isOverridableIntegrityFailure`).
+ */
+export type UplinkIntegritySubject = "bundle" | "manifest" | "declaration";
 
 /** One integrity failure: what was checked, the two hashes, and who vouched. */
 export interface UplinkIntegrityFailure {
@@ -47,6 +61,35 @@ export interface UplinkIntegrityFailure {
    * stands behind.
    */
   vouchedBy: UplinkIntegrityParty[];
+  /**
+   * Every party that vouched `observed`, where `observed` is itself a claim
+   * rather than a measurement: set for a `declaration` finding, absent for a
+   * measured one, where the observed side is bytes and no party said anything
+   * about them. This is what lets a surface print BOTH parties by name rather
+   * than one party and one artifact.
+   */
+  observedBy?: UplinkIntegrityParty[];
+}
+
+/**
+ * Whether an operator may load past this finding.
+ *
+ * True only for a `declaration` finding, and the distinction is not a matter of
+ * severity grading. Overriding a declaration disagreement does not turn the
+ * hash gate off: the loader still fetches the bundle and still refuses unless
+ * sha256(bytes) equals the hash the index published. All the override changes
+ * is WHICH of two disagreeing parties anchors that comparison, and both of them
+ * are describing a build somebody built.
+ *
+ * A measured finding has no such choice to make. `observed` there is what the
+ * bytes hash to, and no party vouched for it: overriding would mean executing
+ * code that nothing at all stands behind, which is not a weaker version of the
+ * same decision but a different one.
+ */
+export function isOverridableIntegrityFailure(
+  failure: UplinkIntegrityFailure,
+): boolean {
+  return failure.subject === "declaration";
 }
 
 /** One side of a comparison, ready to render as a labelled hash. */
@@ -71,6 +114,9 @@ const PARTY_LABEL: Record<UplinkIntegrityParty, string> = {
 const SUBJECT_LABEL: Record<UplinkIntegritySubject, string> = {
   bundle: "bundle bytes",
   manifest: "bundle manifest",
+  // Only ever a fallback: a declaration finding sets `observedBy`, and the
+  // party name is the whole point of rendering it.
+  declaration: "declared client",
 };
 
 function joinParties(parties: readonly UplinkIntegrityParty[]): string {
@@ -81,6 +127,13 @@ function joinParties(parties: readonly UplinkIntegrityParty[]): string {
 
 function finding(failure: UplinkIntegrityFailure): string {
   const parties = joinParties(failure.vouchedBy);
+  if (failure.subject === "declaration") {
+    const both = joinParties([
+      ...(failure.observedBy ?? []),
+      ...failure.vouchedBy,
+    ]);
+    return `${both.charAt(0).toUpperCase()}${both.slice(1)} name different clients. Nothing has been fetched`;
+  }
   if (failure.subject === "manifest") {
     return `The bundle's own manifest declares a different client from the one ${parties} named`;
   }
@@ -94,7 +147,9 @@ export function readIntegrityFailure(
   return {
     finding: finding(failure),
     observed: {
-      label: SUBJECT_LABEL[failure.subject],
+      label: failure.observedBy
+        ? failure.observedBy.map((p) => PARTY_LABEL[p]).join(" and ")
+        : SUBJECT_LABEL[failure.subject],
       hash: failure.observed,
     },
     expected: {

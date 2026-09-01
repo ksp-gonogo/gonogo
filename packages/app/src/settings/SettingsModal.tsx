@@ -53,6 +53,7 @@ import {
 } from "../uplinks/loaderState";
 import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
 import { UplinkIntegrityDetail } from "../uplinks/UplinkIntegrityDetail";
+import { UplinkSkewOverride } from "../uplinks/UplinkSkewOverride";
 import type {
   SettingDefinition,
   SettingValue,
@@ -241,6 +242,10 @@ function UplinkLoaderSection() {
                 diagnostic line, this says which KIND of refusal it was. */}
             {o.integrity && <UplinkIntegrityDetail failure={o.integrity} />}
             {o.reason && <UplinkDetail>{o.reason}</UplinkDetail>}
+            {/* Renders only for a DECLARATION finding (mod/index skew), never
+                for a measured bytes mismatch: the component asks
+                `isOverridableIntegrityFailure` rather than being gated here. */}
+            <UplinkSkewOverride outcome={o} />
             {o.status === "quarantined" &&
               o.reason === "consent declined" &&
               o.version && (

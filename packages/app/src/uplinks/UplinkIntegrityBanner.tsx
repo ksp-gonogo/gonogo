@@ -17,6 +17,15 @@
 // bundle is fixed or removed and the app reloads) and not before. A control
 // that made the fact go away while the fault stayed would be the one thing
 // this must not offer.
+//
+// The banner therefore splits its findings rather than growing one control for
+// all of them. MEASURED findings (an artifact was fetched and hashes to
+// something nobody vouched for) keep exactly the section they always had, with
+// no control of any kind. DECLARED findings (the mod and the index each expect a
+// different build, nothing fetched) get their own section and a "Use anyway"
+// route, which is not a dismiss: it records a decision about one id, one
+// version and one pair of hashes, the bundle is still hashed against the index,
+// and the fault is gone rather than hidden once the operator reloads.
 
 import { Badge, Card, Cluster, Stack, Text } from "@ksp-gonogo/ui-kit";
 import { useSyncExternalStore } from "react";
@@ -27,8 +36,12 @@ import {
   type UplinkLoadOutcome,
 } from "./loaderState";
 import { UplinkIntegrityDetail } from "./UplinkIntegrityDetail";
+import { canOverrideSkew, UplinkSkewOverride } from "./UplinkSkewOverride";
 
-function FailedUplink({ outcome }: Readonly<{ outcome: UplinkLoadOutcome }>) {
+function FailedUplink({
+  outcome,
+  override,
+}: Readonly<{ outcome: UplinkLoadOutcome; override?: boolean }>) {
   if (!outcome.integrity) return null;
   return (
     <Stack gap="xs">
@@ -40,6 +53,7 @@ function FailedUplink({ outcome }: Readonly<{ outcome: UplinkLoadOutcome }>) {
         </Text>
       </Cluster>
       <UplinkIntegrityDetail failure={outcome.integrity} />
+      {override && <UplinkSkewOverride outcome={outcome} />}
     </Stack>
   );
 }
@@ -69,6 +83,9 @@ export function UplinkIntegrityBanner() {
   const failed = integrityFailures(outcomes);
   if (failed.length === 0) return null;
 
+  const declared = failed.filter(canOverrideSkew);
+  const measured = failed.filter((o) => !canOverrideSkew(o));
+
   return (
     <Card
       as="section"
@@ -78,24 +95,55 @@ export function UplinkIntegrityBanner() {
       aria-label="Uplink integrity"
     >
       <Stack gap="md">
+        {/* The headline grades on what is actually here. A banner that shouts
+            "integrity failure" over nothing but channel skew spends the loud
+            channel on the ordinary case, which is the same mistake as firing it
+            for a compat gate. */}
         <Cluster justify="start" gap="sm" wrap>
-          <Badge severity="critical">Integrity failure</Badge>
-          <Text tone="nogo" weight="semibold">
+          <Badge severity={measured.length > 0 ? "critical" : "warning"}>
+            {measured.length > 0 ? "Integrity failure" : "Hash disagreement"}
+          </Badge>
+          <Text tone={measured.length > 0 ? "nogo" : "warn"} weight="semibold">
             {failed.length === 1
               ? "1 Uplink client quarantined before import"
               : `${failed.length} Uplink clients quarantined before import`}
           </Text>
         </Cluster>
-        <Text tone="muted" size="sm">
-          {failed.length === 1
-            ? "Nothing from it is running."
-            : "Nothing from them is running."}{" "}
-          A hash that disagrees means the bytes on the wire are not the bytes
-          that were vouched for: tampering, a wrong URL, or a stale CDN.
-        </Text>
-        {failed.map((outcome) => (
-          <FailedUplink key={outcome.id} outcome={outcome} />
-        ))}
+        {measured.length > 0 && (
+          <Stack gap="md">
+            <Text tone="muted" size="sm">
+              {measured.length === 1
+                ? "Nothing from it is running."
+                : "Nothing from them is running."}{" "}
+              A hash that disagrees means the bytes on the wire are not the
+              bytes that were vouched for: tampering, a wrong URL, or a stale
+              CDN.
+            </Text>
+            {measured.map((outcome) => (
+              <FailedUplink key={outcome.id} outcome={outcome} />
+            ))}
+          </Stack>
+        )}
+        {declared.length > 0 && (
+          <Stack gap="md">
+            <Cluster justify="start" gap="sm" wrap>
+              <Badge severity="warning">Version skew</Badge>
+              <Text tone="warn" weight="semibold">
+                {declared.length === 1
+                  ? "1 Uplink client refused before fetch"
+                  : `${declared.length} Uplink clients refused before fetch`}
+              </Text>
+            </Cluster>
+            <Text tone="muted" size="sm">
+              No bytes were fetched. The installed mod and the Hub index name
+              different builds, which is what a dev-channel app and a
+              release-channel mod look like from here.
+            </Text>
+            {declared.map((outcome) => (
+              <FailedUplink key={outcome.id} outcome={outcome} override />
+            ))}
+          </Stack>
+        )}
       </Stack>
     </Card>
   );
