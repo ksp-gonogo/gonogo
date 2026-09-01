@@ -66,9 +66,11 @@ function queuedSource<T extends FrameLike>(
   const state = {
     cancelled: false,
     readCount: 0,
-    // Annotated, not inferred: the never-resolving branch below is a
-    // `Promise<never>` on its own and widens the inferred union to `unknown`,
-    // which then satisfies no reader shape at all.
+    /*
+     * Annotated, not inferred: the never-resolving branch below is a
+     * `Promise<never>` on its own and widens the inferred union to `unknown`,
+     * which then satisfies no reader shape at all.
+     */
     async read(): Promise<ReadableStreamReadResult<T>> {
       if (cancelled) return { done: true, value: undefined };
       if (state.readCount >= frames.length) {

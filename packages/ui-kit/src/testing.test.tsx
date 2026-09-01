@@ -6,9 +6,11 @@ import { Unit } from "./Unit";
 
 expect.extend(unitMatchers);
 
-// The merge the kit documents on `UnitMatchers`, rather than a second copy of
-// the signature: a hand-written one drifted from it (no `opts`) and redeclared
-// vitest's own type parameter along the way.
+/*
+ * The merge the kit documents on `UnitMatchers`, rather than a second copy of
+ * the signature: a hand-written one drifted from it (no `opts`) and redeclared
+ * vitest's own type parameter along the way.
+ */
 declare module "vitest" {
   interface Assertion<T> extends UnitMatchers<T> {}
 }

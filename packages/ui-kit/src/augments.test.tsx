@@ -171,9 +171,11 @@ describe("AugmentSlot: composition", () => {
   });
 
   it("passes slot props down to every augment (spec §4.4)", () => {
-    // The augment names only the part of the slot's context it needs, which is
-    // the whole point of a typed slot: the host hands over the context and the
-    // augment reads what it came for.
+    /*
+     * The augment names only the part of the slot's context it needs, which is
+     * the whole point of a typed slot: the host hands over the context and the
+     * augment reads what it came for.
+     */
     function ProjAugment({ camera }: { camera: { zoom: number } }) {
       return <div>zoom:{camera.zoom}</div>;
     }

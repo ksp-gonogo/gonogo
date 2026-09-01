@@ -40,9 +40,11 @@ describe("dimension arithmetic", () => {
     // source they start from.
     const withZeros = Object.entries(UNIT_DEFINITIONS)
       .filter(([, def]) => {
-        // Widened: the exponent type excludes 0 outright, so comparing against
-        // it is a type error, and the runtime check is what holds if that type
-        // is ever loosened.
+        /*
+         * Widened: the exponent type excludes 0 outright, so comparing against
+         * it is a type error, and the runtime check is what holds if that type
+         * is ever loosened.
+         */
         const exponents: number[] = Object.values(def.dim);
         return exponents.some((e) => e === 0);
       })
@@ -58,10 +60,12 @@ describe("plus and minus", () => {
     expect(value("W", 5).plus(value("J/s", 3)).unit).toBe("W");
   });
 
-  // Every mismatch below is refused by the COMPILER as well, which is why each
-  // one carries a `@ts-expect-error`: the pragma is the assertion that the
-  // static half holds, and the `toThrow` is the assertion that the runtime half
-  // does too, for a caller who arrived from untyped JSON or a JS Uplink.
+  /*
+   * Every mismatch below is refused by the COMPILER as well, which is why each
+   * one carries a `@ts-expect-error`: the pragma is the assertion that the
+   * static half holds, and the `toThrow` is the assertion that the runtime half
+   * does too, for a caller who arrived from untyped JSON or a JS Uplink.
+   */
   it("refuses torque plus energy, from either side", () => {
     // Same dimension, unrelated quantities, and both declare `coincidentWith`.
     // The message names the two kinds rather than the dimension they agree on,
