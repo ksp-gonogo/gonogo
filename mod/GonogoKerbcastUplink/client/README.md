@@ -18,7 +18,14 @@ Live in-flight camera views from Hullcam VDS parts, fed by the kerbcast sidecar.
 | `kerbcast.cameras` | `KerbcastCameraEntry[]` | lossy-latest | delayed |
 | `kerbcast.available` | – | lossy-latest | true-now |
 
-| Payload | Fields |
+## Commands
+
+| Command | Args | Result |
+| --- | --- | --- |
+| `kerbcast.setFieldOfView` | `KerbcastSetFieldOfViewArgs` | `CommandResult` |
+| `kerbcast.setPan` | `KerbcastSetPanArgs` | `CommandResult` |
+
+| Args | Fields |
 | --- | --- |
 | `KerbcastSetFieldOfViewArgs` | `cameraId` id, `fieldOfView` ° |
 | `KerbcastSetPanArgs` | `cameraId` id, `pitch` °, `yaw` ° |

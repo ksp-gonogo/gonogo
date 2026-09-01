@@ -20,13 +20,29 @@ Puts a kOS CPU's real terminal on the dashboard, streamed in process with no pro
 | Payload | Fields |
 | --- | --- |
 | `KosComputeStatus` | `lastGoodAt` ut, `parseError` text, `paused` flag, `running` flag, `scriptError` text |
+| `KosRunResult` | `coreId` id, `error` text, `requestId` id |
+| `KosTerminalFrame` | `chunk` text, `coreId` id, `fullRepaint` flag |
+
+## Commands
+
+| Command | Args | Result |
+| --- | --- | --- |
+| `kos.dispatchNow` | `KosExecArgs` | `CommandResult` |
+| `kos.exec` | `KosExecArgs` | `CommandResult` |
+| `kos.keystroke` | `KosKeystrokeArgs` | `CommandResult` |
+| `kos.reEnable` | `KosReEnableArgs` | `CommandResult` |
+| `kos.run` | `KosRunArgs` | `CommandResult` |
+| `kos.terminal.close` | `KosTerminalCloseArgs` | `CommandResult` |
+| `kos.terminal.open` | `KosTerminalOpenArgs` | `CommandResult` |
+| `kos.terminal.resize` | `KosTerminalResizeArgs` | `CommandResult` |
+
+| Args | Fields |
+| --- | --- |
 | `KosExecArgs` | `coreId` id, `scriptId` id |
 | `KosKeystrokeArgs` | `chars` text, `coreId` id, `leaseToken` id |
 | `KosReEnableArgs` | `scriptId` id |
 | `KosRunArgs` | `command` text, `coreId` id, `requestId` id |
-| `KosRunResult` | `coreId` id, `error` text, `requestId` id |
 | `KosTerminalCloseArgs` | `coreId` id, `leaseToken` id |
-| `KosTerminalFrame` | `chunk` text, `coreId` id, `fullRepaint` flag |
 | `KosTerminalOpenArgs` | `coreId` id, `leaseToken` id |
 | `KosTerminalResizeArgs` | `cols` count, `coreId` id, `leaseToken` id, `rows` count |
 

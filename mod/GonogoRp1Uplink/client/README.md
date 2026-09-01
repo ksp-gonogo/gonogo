@@ -44,37 +44,77 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | Payload | Fields |
 | --- | --- |
 | `Rp1BuildableComplex` | `eligible` flag, `kscDisplayName` text, `kscName` id, `lcId` id, `name` text, `refusals` text |
+| `Rp1CareerEventEntry` | `builtAt` enum, `cost` funds, `detail` enum, `isAdd` flag, `kind` enum, `launchId` id, `name` text, `repChange` rep, `ut` ut |
+| `Rp1ComplexSizeArgs` | `sizeMaxDepth` m, `sizeMaxHeight` m, `sizeMaxWidth` m |
+| `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
+| `Rp1HireTarget` | `active` flag, `currentCount` count, `isResearch` flag, `lcId` id, `leftToHire` count, `targetCount` count, `timeLeft` s |
+| `Rp1LcResourcePrice` | `name` id, `padCostPerUnit` funds |
+| `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
+| `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
+| `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
+| `Rp1ToolingEntry` | `parameterSummary` text, `partId` id, `partTitle` text, `refittable` flag, `symmetryCounterparts` count, `tooled` flag, `toolingCost` funds, `toolingType` id, `toolingTypeTitle` text, `untooledSurcharge` funds |
+
+## Commands
+
+| Command | Args | Result |
+| --- | --- | --- |
+| `rp1.build.repeat` | `Rp1BuildRepeatArgs` | `CommandResult` |
+| `rp1.build.start` | `Rp1BuildStartArgs` | `CommandResult` |
+| `rp1.complex.dismantle` | `Rp1ComplexDismantleArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `rp1.complex.modify` | `Rp1ComplexModifyArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `rp1.complex.new` | `Rp1ComplexNewArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `rp1.complex.rename` | `Rp1ComplexRenameArgs` | `CommandResult` |
+| `rp1.complex.rush` | `Rp1ComplexRushArgs` | `CommandResult` |
+| `rp1.contracts.setPayload` | `Rp1ContractPayloadArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `rp1.facility.upgrade` | `Rp1FacilityUpgradeArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `rp1.fundTarget.cancel` | `Rp1TargetCancelArgs` | `CommandResult` |
+| `rp1.fundTarget.set` | `Rp1FundTargetSetArgs` | `CommandResult` |
+| `rp1.hireTarget.cancel` | `Rp1TargetCancelArgs` | `CommandResult` |
+| `rp1.hireTarget.set` | `Rp1HireTargetSetArgs` | `CommandResult` |
+| `rp1.pad.dismantle` | `Rp1PadDismantleArgs` | `CommandResult` |
+| `rp1.pad.new` | `Rp1PadNewArgs` | `CommandResultOf<Record<string, unknown>>` |
+| `rp1.pad.rename` | `Rp1PadRenameArgs` | `CommandResult` |
+| `rp1.personnel.assign` | `Rp1PersonnelAssignArgs` | `CommandResult` |
+| `rp1.strategy.activate` | `Rp1StrategyActivateArgs` | `CommandResult` |
+| `rp1.tech.research` | `Rp1TechResearchArgs` | `CommandResult` |
+| `rp1.tooling.refit` | `Rp1ToolingRefitArgs` | `CommandResult` |
+| `rp1.tooling.toolAll` | `Rp1ToolAllArgs` | `CommandResult` |
+| `rp1.training.cancel` | `Rp1TrainingLeaveArgs` | `CommandResult` |
+| `rp1.training.enrol` | `Rp1TrainingEnrolArgs` | `CommandResult` |
+| `rp1.training.remove` | `Rp1TrainingLeaveArgs` | `CommandResult` |
+| `rp1.vehicle.rollback` | `Rp1VehicleArgs` | `CommandResult` |
+| `rp1.vehicle.rollout` | `Rp1RolloutArgs` | `CommandResult` |
+| `rp1.vehicle.scrap` | `Rp1VehicleArgs` | `CommandResult` |
+| `rp1.warp.toComplete` | `Rp1WarpArgs` | `CommandResult` |
+| `rp1.warp.toFundTarget` | `Rp1WarpArgs` | `CommandResult` |
+
+| Args | Fields |
+| --- | --- |
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
-| `Rp1CareerEventEntry` | `builtAt` enum, `cost` funds, `detail` enum, `isAdd` flag, `kind` enum, `launchId` id, `name` text, `repChange` rep, `ut` ut |
 | `Rp1ComplexDismantleArgs` | `lcId` id |
 | `Rp1ComplexModifyArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `lcId` id, `massMax` t, `size` Rp1ComplexSizeArgs |
 | `Rp1ComplexNewArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `kscName` id, `massMax` t, `name` id, `size` Rp1ComplexSizeArgs |
 | `Rp1ComplexRenameArgs` | `lcId` id, `name` id |
 | `Rp1ComplexRushArgs` | `lcId` id, `rushing` flag |
-| `Rp1ComplexSizeArgs` | `sizeMaxDepth` m, `sizeMaxHeight` m, `sizeMaxWidth` m |
 | `Rp1ContractPayloadArgs` | `commsPayload` kg, `weatherPayload` kg |
 | `Rp1FacilityUpgradeArgs` | `facility` id |
-| `Rp1FundingCurveKey` | `frac` ratio, `inTangent` 1, `outTangent` 1, `paidFraction` ratio |
 | `Rp1FundTargetSetArgs` | `targetFunds` funds |
-| `Rp1HireTarget` | `active` flag, `currentCount` count, `isResearch` flag, `lcId` id, `leftToHire` count, `targetCount` count, `timeLeft` s |
 | `Rp1HireTargetSetArgs` | `lcId` id, `reserveFunds` funds, `targetCount` count |
-| `Rp1LcResourcePrice` | `name` id, `padCostPerUnit` funds |
-| `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
 | `Rp1PadDismantleArgs` | `lcId` id, `padId` id |
 | `Rp1PadNewArgs` | `lcId` id, `name` id |
 | `Rp1PadRenameArgs` | `lcId` id, `name` id, `padId` id |
 | `Rp1PersonnelAssignArgs` | `engineers` count, `lcId` id |
-| `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
-| `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
 | `Rp1RolloutArgs` | `id` id, `pad` id |
 | `Rp1StrategyActivateArgs` | `factor` ratio, `strategyId` id |
+| `Rp1TargetCancelArgs` | – |
 | `Rp1TechResearchArgs` | `techId` id |
-| `Rp1ToolingEntry` | `parameterSummary` text, `partId` id, `partTitle` text, `refittable` flag, `symmetryCounterparts` count, `tooled` flag, `toolingCost` funds, `toolingType` id, `toolingTypeTitle` text, `untooledSurcharge` funds |
+| `Rp1ToolAllArgs` | – |
 | `Rp1ToolingRefitArgs` | `diameter` m, `length` m, `partId` id, `rfType` id |
 | `Rp1TrainingEnrolArgs` | `crew` id, `templateId` id |
 | `Rp1TrainingLeaveArgs` | `crewName` id |
 | `Rp1VehicleArgs` | `id` id |
+| `Rp1WarpArgs` | – |
 
 ## Widgets
 
@@ -173,6 +213,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 3 |  |
+| `rp1-training-enrolment` | `astronaut-complex.sections` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.training`, `spaceCenter.crewRoster` |  | 2 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
@@ -192,6 +233,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![The three training commands on the nauts they are about: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked](docs/assets/crew-training-both-ways-out--default.png)
 
 ![Both training refusals: an enrolment a naut's row cannot fill because the course seats two, and a removal RP-1 withholds on a course that would be left below its minimum, with cancelling the whole course still open](docs/assets/crew-training-refused--default.png)
+
+![Gemini seats two and the career has one naut free: Valentina is off-world and Nedcas is standing down after a flight, so the enrolment is dark with the count rather than failing at the press](docs/assets/crew-enrolment-blocked--default.png)
+
+![Two of three idle nauts picked for Gemini, which seats exactly two: the crew fits its bounds, so the enrolment is one press away and the third name is still there to swap in](docs/assets/crew-enrolment-ready--default.png)
 
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 
