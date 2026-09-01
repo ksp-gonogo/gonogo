@@ -8,9 +8,9 @@ namespace Sitrep.Contract;
 /// Args shared by every plain boolean actuation command (<c>setSas</c>/
 /// <c>setRcs</c>/<c>setGear</c>/<c>setBrakes</c>/<c>setLights</c>): an
 /// ABSOLUTE state to apply, never a toggle. Under light-time delay a toggle
-/// arriving after unknown intervening state is a race by construction (the
-/// design doc §3/§6.2's <c>toggleActionGroup</c> caution); every M1 actuation
-/// command is set-semantics only, so that footgun doesn't exist here at all.
+/// arriving after unknown intervening state is a race by construction, the
+/// <c>toggleActionGroup</c> footgun. Every M1 actuation
+/// command is set-semantics only, so it does not exist here at all.
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

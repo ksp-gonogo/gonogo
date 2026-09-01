@@ -7,8 +7,8 @@ import {
 import type { ProcessorHandle } from "./processors";
 
 /**
- * Reactively read a Processor's current, frame-memoised value (contribution-
- * slots-spec.md 14): the augment-side consumption form, a hook wrapper around
+ * Reactively read a Processor's current, frame-memoised value: the augment-side
+ * consumption form, a hook wrapper around
  * the same evaluator a Contribution's compute() pulls from directly via a
  * ProcessorHandle dep (Task 3.5). Activates the processor for the life of the
  * calling component (ref-counted, so N widgets reading the same processor

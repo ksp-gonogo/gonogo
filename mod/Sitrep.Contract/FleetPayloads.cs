@@ -76,8 +76,7 @@ public class FleetVesselContact
 /// because something (the pure <c>Sitrep.Host.Comms.SilenceTracker</c>) is
 /// watching occultation geometry and deciding a craft is overdue, which is
 /// why it is registered from the comms uplink rather than riding the
-/// always-on core <see cref="FleetVesselContact"/> (see
-/// <c>local_docs/design/2026-08-15-vessel-officially-lost.md</c>).
+/// always-on core <see cref="FleetVesselContact"/>.
 ///
 /// <para>A disjoint dynamic namespace (<c>ChannelEngine.SilenceEventPrefix</c>)
 /// that maps back onto the same per-vessel <c>fleet.&lt;guid&gt;</c> Courier
@@ -88,8 +87,8 @@ public class FleetVesselContact
 ///
 /// <para>Deliberately narrow for this pass: <c>declaredLostUt</c> and the
 /// monotonic <c>lostSeq</c> a future currency consumer needs for idempotent
-/// arming stay off the wire until that consumer exists, see the design
-/// doc's scope note. Nothing here is a control input.</para>
+/// arming stay off the wire until that consumer exists. Nothing here is a
+/// control input.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

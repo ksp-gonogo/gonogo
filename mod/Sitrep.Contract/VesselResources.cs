@@ -59,8 +59,8 @@ public class ResourceAmount
 /// tank was staged away), never an ambiguous "did it change or did the
 /// stream just drop it" (R-3's ambiguity).
 ///
-/// <para><b>Deliberately deferred</b> (per m1-provider-taxonomy-design.md
-/// §2.2): flow/rates (R-2/R-5), those belong to a future parts/power
+/// <para><b>Deliberately deferred</b>:
+/// flow/rates (R-2/R-5), those belong to a future parts/power
 /// channel family with per-module provenance; bolting a vessel-total
 /// <c>flow</c> on now would reproduce R-6 (a "truth" number that isn't the
 /// game's truth).</para>

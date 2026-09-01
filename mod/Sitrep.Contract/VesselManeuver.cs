@@ -290,8 +290,7 @@ public class ManeuverNode
 /// <c>BuildManeuverNodes</c> returns <c>null</c> for "no nodes queued," the
 /// common case; this mapper normalizes that to <c>[]</c>, never a null
 /// collection). *Derived, SDK-side, NOT streamed here:* the post-burn orbit
-/// preview (elements + node → new elements, consumer-side math, per the
-/// design doc §2.2/§5).
+/// preview (elements + node → new elements, consumer-side math).
 ///
 /// <para><b><see cref="Nodes"/> is ordered by execution</b>, earliest
 /// <see cref="ManeuverNode.Ut"/> first, and that ordering IS the plan: burn N

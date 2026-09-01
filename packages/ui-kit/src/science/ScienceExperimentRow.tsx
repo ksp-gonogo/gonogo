@@ -51,7 +51,7 @@ export interface ScienceExperimentRowProps {
  * A single science-instrument row: name, state badges, and the Deploy/Transmit
  * action cluster.
  *
- * Data/framework-free by design (§1 export-safety boundary): this component
+ * Data- and framework-free by design, for export safety: this component
  * reads no telemetry. It does now DISPATCH, through the structural
  * `CommandButtonHandle` the caller hands it, which is a plain object and no
  * more of a framework edge than the callback it replaced. What that buys is the

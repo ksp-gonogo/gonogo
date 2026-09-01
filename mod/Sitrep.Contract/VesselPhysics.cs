@@ -10,7 +10,7 @@ namespace Sitrep.Contract;
 /// both are public <c>bool</c> fields on <c>Vessel</c>). This is the proper
 /// Value that replaces the old "read stream meta" stand-in, physics mode is a
 /// discrete enum in its own right, NOT a quality band on <see cref="PayloadMeta.Quality"/>
-/// (2026-07-09 §0.0 reversal). Widgets that switch propagation/dead-reckoning
+/// (a 2026-07-09 reversal). Widgets that switch propagation/dead-reckoning
 /// strategy (a.physicsMode consumers) read this to know whether the craft is
 /// on-rails conics, a packed cluster, or a fully physics-simulated vessel.
 ///
@@ -44,7 +44,7 @@ public enum PhysicsMode
 /// <summary>
 /// The <c>vessel.physics.mode</c> Topic payload: the active vessel's physics
 /// regime (<see cref="PhysicsMode"/>). Its own Topic Value per the 2026-07-09
-/// §0.0 decision (reverses the earlier "fold physics mode into stream meta"
+/// decision that reverses the earlier "fold physics mode into stream meta"
 /// call: <see cref="PayloadMeta.Quality"/> was a bad stand-in for a discrete
 /// enum). <see cref="DelayRole"/>-Delayed like every other vessel-derived
 /// channel: it describes the vessel itself, so ground learns about it at

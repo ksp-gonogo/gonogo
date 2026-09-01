@@ -26,10 +26,10 @@ export interface StampedFrame<T = unknown> {
   /** Frame payload. Absent for a bare still reference (see `stillRef`). */
   data?: T;
   /** A still-image reference, used when no per-frame payload is held (long
-   *  delays degrading to stills: M2 design §5.2/§5.4). */
+   *  delays degrading to stills). */
   stillRef?: T;
   /** Keyframe frames are never dropped by the over-cap eviction while a
-   *  non-keyframe candidate exists (§5.3). */
+   *  non-keyframe candidate exists. */
   keyframe: boolean;
   /** Byte-size estimate for cap accounting. Defaults to 1 (frame-count
    *  cap) when omitted: callers modelling real bitrate should set this. */
@@ -60,7 +60,7 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
   /** Called synchronously, in UT order, once per frame that becomes
    *  eligible for display (`confirmedEdgeUt() >= frame.ut`). */
   onRelease(frame: StampedFrame<T>): void;
-  /** Called once per `flush()`: the feed UI's resync marker (§5.4). */
+  /** Called once per `flush()`: the feed UI's resync marker. */
   onResync?(): void;
   /** Called for every queued frame discarded WITHOUT being released, an
    *  over-cap eviction (`enforceCap`), a `flush()`, or leftover frames still
@@ -70,15 +70,14 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
    *  when `T` holds an external resource (e.g. a WebCodecs `VideoFrame`)
    *  that needs `.close()`ing, or every discard path leaks it. */
   onDrop?(frame: StampedFrame<T>): void;
-  /** Over this, evict queued frames until back under cap (§5.3). Buffered
+  /** Over this, evict queued frames until back under cap. Buffered
    *  size is the sum of each queued frame's `bytes` (default 1 per frame
    *  when unset). Eviction UNIT depends on `gopSafeEviction`; see that
    *  option's doc. */
   maxBufferedBytes: number;
   /**
-   * Eviction safety mode (encoded-transform video-delay work, 2026-07-16,
-   * `local_docs/reports/encoded-transform-spike-report.md`'s "frame
-   * ordering / GOP dependency survival" finding).
+   * Eviction safety mode, from the encoded-transform video-delay work and its
+   * frame-ordering and GOP-dependency-survival finding.
    *
    * Default `false`/unset: **drop-oldest-non-keyframe, one frame at a
    * time.** Correct for payloads with no inter-frame dependency (a decoded
@@ -109,7 +108,7 @@ export interface DelayedPlayoutBufferOptions<T = unknown> {
  * Holds UT-stamped frames and releases each once the injected clock's
  * `confirmedEdgeUt()` reaches its `ut`: never earlier, so it can never
  * show data before the equivalent telemetry sample would confirm at the
- * same UT (M2 design §5.1, §0 "common-mode" property).
+ * same UT: the "common-mode" property.
  */
 export class DelayedPlayoutBuffer<T = unknown> {
   private queue: StampedFrame<T>[] = [];
@@ -157,7 +156,7 @@ export class DelayedPlayoutBuffer<T = unknown> {
   }
 
   /**
-   * Timeline-reset (§5.4): drop every buffered frame and the held-still
+   * Timeline-reset: drop every buffered frame and the held-still
    * cursor, then emit the resync marker. Nothing pre-reset can surface
    * afterwards, even once the clock (post-epoch-bump) sweeps back past
    * those old UTs: they were discarded, not merely held.

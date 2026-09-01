@@ -4,7 +4,7 @@
  * and the worker-hosted frame-delay backend (`worker/`, cross-browser
  * video-delay design, 2026-07-16). Extracted to its own module so
  * there is exactly one implementation, mirroring the same "extract once"
- * treatment the design doc calls for on the clock-edge formula
+ * treatment given to the clock-edge formula
  * (`@ksp-gonogo/sitrep-client`'s `view-clock-formula.ts`): the worker needs
  * to stamp each frame it reads with `captureUt` at read time too ("same
  * treatment": see that design's Clock seam section).

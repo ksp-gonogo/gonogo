@@ -10,8 +10,8 @@ import {
 import type { TimelineStore } from "./timeline-store";
 
 // ---------------------------------------------------------------------------
-// Hand-rolled, frame-batched Processor evaluator (contribution-slots-spec.md
-// 14): deps are DECLARED (static), not auto-tracked, so the dependency graph
+// Hand-rolled, frame-batched Processor evaluator: deps are DECLARED (static),
+// not auto-tracked, so the dependency graph
 // is knowable at registration time. Deliberately not a signals library: those
 // solve dynamic fine-grained tracking (a harder problem this does not have)
 // and push on every write, which fights the frame model. A Sitrep frame
@@ -132,7 +132,7 @@ let activeStore: TimelineStore | undefined;
 let frameUnsubscribe: (() => void) | undefined;
 let activeProcessorCount = 0;
 
-// Topic-subscription seam (contribution-slots-spec.md §14): a Processor that
+// Topic-subscription seam: a Processor that
 // declares raw Topic deps must SUBSCRIBE them, not merely sample them off the
 // store. A topic nothing else reads never streams (see use-stream.ts: a topic
 // flows only once `client.subscribe` asks the server for it), so sampling an

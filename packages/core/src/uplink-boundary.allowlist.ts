@@ -346,13 +346,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKosUplink/KosHealth.cs",
       "mod/GonogoKosUplink.Tests/KosHealthTests.cs",
       /*
-       * event-timeline.ts (event-stream primitive, 2026-07-22): a text-only
-       * doc-comment mention ("see the kerbcast-Uplink") in a mod-agnostic
-       * sitrep-client primitive. Words only, nothing kerbcast-specific is
-       * imported: permanent, same class as the other doc-mention citations.
-       */
-      "mod/sitrep-sdk/src/event-timeline.ts",
-      /*
        * AlarmHostService.ts (event alarm wiring, 2026-07-22): a text-only
        * doc-comment mention ("the kerbcast Uplink's producer"): the service
        * is mod-agnostic and takes an externally-wired producer; nothing
@@ -1975,9 +1968,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * searchTags.ts: "Kerbalism" as the example value of an Uplink's display
        * name field, in that field's doc comment.
        */
-      // map-topic.ts / event-timeline.ts: a section header for the kerbalism
-      // Topic block, and a design-doc citation respectively.
-      "mod/sitrep-sdk/src/event-timeline.ts",
+      // map-topic.ts: a section header for the kerbalism Topic block.
 
       /*
        * -- base-library widgets: SLOT DOCUMENTATION, not coupling --

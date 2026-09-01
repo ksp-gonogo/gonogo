@@ -2,11 +2,11 @@
  * Main-thread client for the shared delay worker (cross-browser
  * video-delay design, 2026-07-16). This is the Safari-today /
  * Firefox-once-it-lands backend: see `frame-delay.ts`'s module doc for the
- * full backend picture and `local_docs/reports/video-worker-report.md` for
- * the empirical per-engine verification this design rests on.
+ * full backend picture. It rests on per-engine verification done by hand,
+ * because no test harness has these APIs.
  *
  * One worker, lazily spun up on first use, shared across every camera feed
- * on the page (design doc, locked decision 2), a camera switch posts a new
+ * on the page, and a camera switch posts a new
  * `createPipeline`/`dispose` pair, never a fresh `new Worker()`.
  *
  * `createWorkerFrameDelayStream` mirrors `createFrameDelayStream`'s
@@ -215,9 +215,9 @@ export async function createWorkerFrameDelayStream(
 }
 
 // ---------------------------------------------------------------------------
-// Encoded-transform backend (2026-07-16, `local_docs/reports/encoded-video-delay-report.md`).
-// Empirically validated cross-browser (Chromium/Firefox/WebKit) in Phase 1
-// of that report, gated on a real confirmedEdgeUt() computation. Reachable
+// Encoded-transform backend (2026-07-16).
+// Empirically validated on Chromium, Firefox and WebKit, gated on a real
+// confirmedEdgeUt() computation. Reachable
 // from the main-screen and station/broker camera path via
 // the camera data source's `getReceiverForStream`: see that method's doc for the
 // reconciliation of why this is wireable gonogo-side, no SDK change needed.

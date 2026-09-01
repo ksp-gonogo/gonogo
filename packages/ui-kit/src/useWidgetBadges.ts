@@ -4,7 +4,7 @@ import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
  * The current widget's badges, sourced from its automatic `<id>.badges`
- * contribution slot (contribution-slots-spec §13.2). Bypasses the typed
+ * contribution slot. Bypasses the typed
  * `useContributions` overloads deliberately: `${componentId}.badges` is a
  * RUNTIME string built from the widget's own registered id, not a literal
  * type any single call site can name, so it can never be a member of the

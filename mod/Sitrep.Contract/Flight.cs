@@ -8,8 +8,7 @@ namespace Sitrep.Contract;
 /// The flight-lifecycle domain: retires the client-side
 /// <c>FlightDetector</c> heuristic that
 /// reconstructed flight boundaries from <c>vesselName</c> + <c>missionTime</c>
-/// + a revert-threshold guess (see
-/// <c>docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md</c>). The
+/// + a revert-threshold guess. The
 /// producer (<c>Gonogo.KSP.FlightUplink</c> + <c>Sitrep.Host.Flight.FlightLifecycleSampler</c>)
 /// hooks KSP's flight GameEvents internally and translates them into this
 /// clean contract: no KSP names ever cross the wire.

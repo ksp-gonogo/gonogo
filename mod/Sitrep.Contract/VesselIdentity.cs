@@ -11,8 +11,7 @@ namespace Sitrep.Contract;
 /// <see cref="LaunchUt"/> is static after liftoff (sampleUt - missionTime),
 /// so MET (mission elapsed time) is a consumer-side derivation
 /// (viewUt - launchUt) rather than a tick-rate field that would force this
-/// whole record to re-emit every tick: see
-/// local_docs/telemetry-mod/m1-provider-taxonomy-design.md §0.2.
+/// whole record to re-emit every tick.
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

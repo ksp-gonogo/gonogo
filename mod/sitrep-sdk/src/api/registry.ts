@@ -173,7 +173,7 @@ export function getComponent(id: string): AnyDef | undefined {
 }
 
 /**
- * A widget-replacement conflict (spec §4.5): two or more registered widgets
+ * A widget-replacement conflict: two or more registered widgets
  * declare `replaces` the same `targetId`. Two full replacements are
  * fundamentally not composable, so this is surfaced (for a user config pick /
  * explicit priority) rather than silently merged.
@@ -208,7 +208,7 @@ export function getReplacementConflicts(): ReplacementConflict[] {
 }
 
 /**
- * The components to actually render, with widget-level replacement (spec §4.5)
+ * The components to actually render, with widget-level replacement
  * applied:
  *
  * - A target with exactly ONE registered replacer → the original is suppressed
@@ -268,7 +268,7 @@ export function getTheme(id: string): ThemeDefinition | undefined {
  * For use in tests only: resets the component / data-source / theme registries to
  * empty.
  *
- * Deliberately does NOT clear the augment registry. Augments (spec §4.2) are
+ * Deliberately does NOT clear the augment registry. Augments are
  * module-load registrations that an augment-consuming widget resolves through the
  * registry AT RENDER TIME (`getAugmentsForSlot`), unlike components, which a
  * widget test renders directly, bypassing the registry. `setupMockDataSource`

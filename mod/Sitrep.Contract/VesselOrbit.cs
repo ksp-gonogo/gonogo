@@ -9,8 +9,8 @@ namespace Sitrep.Contract;
 /// The <c>vessel.orbit</c> channel payload: elements are the CAUSE; every
 /// kinematic quantity (position/velocity/apsides/anomalies/period) is a
 /// consumer-side derivation at view-UT via the propagation capability, never
-/// streamed here ("elements-not-position": m1-provider-taxonomy-design.md
-/// §2.2/§4). Kills O-1 (there is no <c>eccentricAnomaly</c> field at all,
+/// streamed here (the "elements-not-position" ruling). Kills O-1 (there is no
+/// <c>eccentricAnomaly</c> field at all,
 /// the copy-paste-bug class can't exist on a wire that never carries one),
 /// O-8 (spelled-out, unit-annotated fields, UT always <c>double</c>), O-9
 /// (<see cref="Encounter"/> is a typed nullable record, never the
@@ -20,8 +20,8 @@ namespace Sitrep.Contract;
 /// Units: <see cref="Sma"/> in metres; <see cref="Inc"/>/<see cref="Lan"/>/
 /// <see cref="ArgPe"/> in DEGREES (KSP-native); <see cref="MeanAnomalyAtEpoch"/>
 /// in RADIANS (also KSP-native): this degrees/radians split is an inherited
-/// KSP inconsistency deliberately KEPT, not "fixed," per
-/// m1-provider-taxonomy-design.md §6.7 (converting would desync from every
+/// KSP inconsistency deliberately KEPT, not "fixed":
+/// converting would desync from every
 /// KSP reference and the recorder's own raw values).
 /// </summary>
 [SitrepContract]

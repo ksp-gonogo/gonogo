@@ -21,7 +21,7 @@ import { defineProcessor } from "./processors";
 import { registerReckoner } from "./reckoners";
 
 /**
- * Uplink client identity handles (Uplink Client Contract design §3.1).
+ * Uplink client identity handles.
  *
  * One handle per client bundle, declared once and imported by every widget/
  * augment the client registers:
@@ -53,7 +53,7 @@ import { registerReckoner } from "./reckoners";
 export interface UplinkClientHandle {
   /** MUST match the mod's `[SitrepUplink("<id>")]` id and its gonogo-uplink.json id. */
   id: string;
-  /** The Uplink's one version line (mod + client, spec §5). Phase 1: a
+  /** The Uplink's one version line, spanning mod and client. Phase 1: a
    *  per-client placeholder constant; Phase 2 build-injects it. */
   version: string;
   /** Human label for management/health surfaces. */
@@ -80,8 +80,8 @@ export interface UplinkClientHandle {
    */
   description?: string;
   /**
-   * Register a contribution auto-namespaced to this client (contribution-
-   * slots-spec §14): `def.id` is stamped `${this.id}:${def.id}` before it
+   * Register a contribution auto-namespaced to this client: `def.id` is
+   * stamped `${this.id}:${def.id}` before it
    * reaches the flat ContributionRegistry, so two Uplinks can never collide
    * on a local id. Throws synchronously at THIS call site (registerContribution's
    * own collision check) on a genuine id clash within one client's own ids.

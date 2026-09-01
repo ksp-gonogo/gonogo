@@ -13,9 +13,8 @@
  * NOT unit-tested: jsdom has neither real Workers nor WebCodecs (per this
  * task's brief), so there is no way to exercise `self.onmessage` / a real
  * `MediaStreamTrackProcessor` in vitest. Correctness here rests on (a) every
- * piece it calls being independently tested, and (b) the manual
- * cross-browser verification in `local_docs/reports/video-worker-report.md`
- * (2026-07-16) confirming the actual browser behaviour this file assumes:
+ * piece it calls being independently tested, and (b) a manual cross-browser
+ * verification, 2026-07-16, of the actual browser behaviour this file assumes:
  * Safari/WebKit transfers a `MediaStreamTrack` into a worker and supports
  * `MediaStreamTrackProcessor` + `VideoTrackGenerator` there; Chrome and
  * Firefox (as of that verification) do not support the transfer at all,
@@ -44,7 +43,7 @@
  *  - `pipelineNonFatalError`: a post-construction read/write rejection,
  *                               mirrors `runFrameDelayPipeline`'s `onError`.
  *
- * Encoded-transform path (2026-07-16, `local_docs/reports/encoded-video-delay-report.md`):
+ * Encoded-transform path (2026-07-16):
  * `self.onrtctransform` (native platform event, NOT one of the message
  * types above) is the entry point for the encoded-domain backend; see
  * `handleRtcTransform`'s doc. It reuses the SAME `pipelines` map,
@@ -206,7 +205,7 @@ function nowWallMs(readNowWall: () => number): number {
 }
 
 /** Feature-detect the writer, standard shape first (`VideoTrackGenerator`)
- *  per the design doc's "Writer feature detection"; see
+ *  then the fallback; see
  *  `webcodecs-track-io.d.ts`. Returns the constructed generator's OWN
  *  writable/output-track pair, uniformly, regardless of which shape won. */
 function buildWriter(): {

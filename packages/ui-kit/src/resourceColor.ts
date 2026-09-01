@@ -33,7 +33,7 @@
 // ---------------------------------------------------------------------------
 
 /** Fixed saturation shared by both tiers, tuned for the dark ShipMap canvas.
- *  Starter value per the design doc; tune by eye on operator review, the
+ *  A starting point, tuned by eye on operator review. The
  *  MECHANISM (two tiers, ordered curated match, hue = family identity,
  *  lightness = member identity, golden-angle hash, reserved-zone avoidance)
  *  is what must stay correct, not this number. */
@@ -43,7 +43,7 @@ const SATURATION_PCT = 65;
  *  mapped into. Kept away from the extremes on purpose: below the floor a
  *  fill gets hard to read against the dark ShipMap canvas, above the
  *  ceiling it washes out against the same canvas's highlight chrome. Widened
- *  slightly past the design doc's starter 42-70 (by eye, on the waste
+ *  slightly past a starting 42-70 (by eye, on the waste
  *  family, the tightest three-member case): 42-70 gave the closest pair
  *  (CarbonDioxide/WasteWater) only ~5.3pts apart, legible but not quite the
  *  confident step the operator asked for; 38-72 pushes the same pair to
@@ -117,9 +117,8 @@ interface CuratedFamily {
 
 /**
  * Tier 1: curated substring matches, case-insensitive (callers normalise
- * to lower-case before matching), most-specific-first. Starter set from the
- * design doc; small and obvious on purpose, extend it rather than widen an
- * existing alias.
+ * to lower-case before matching), most-specific-first. Small and obvious on
+ * purpose: extend it rather than widen an existing alias.
  *
  * `liquidfuel` is listed ahead of any future generic `fuel` alias, and
  * `electriccharge` ahead of `ec`, so a later addition of a broader alias

@@ -41,7 +41,7 @@ public enum CommsControlSource
 
 /// <summary>
 /// The <c>comms.connectivity</c> payload: always-present, sourced from the
-/// elected backend (comms-uplink-design.md §1). Ground-side truth about
+/// elected backend. Ground-side truth about
 /// whether the active vessel has a control link home right now.
 /// </summary>
 [SitrepContract]
@@ -63,7 +63,7 @@ public class CommsConnectivity
 /// <summary>
 /// The <c>comms.signalStrength</c> payload: always-present, elected
 /// backend. 0..1. CommNet gives a coarse range-fraction; RealAntennas gives
-/// a link-budget-derived value (comms-uplink-design.md §1).
+/// a link-budget-derived value.
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -235,7 +235,7 @@ public class CommsNetworkEdge
 
 /// <summary>
 /// The <c>comms.network</c> payload: always-emitted, but its richness
-/// tracks the elected backend (comms-uplink-design.md §1: "backend-dependent
+/// tracks the elected backend (a "backend-dependent
 /// detail"). Under bare CommNet this may be a single home-edge; under
 /// RealAntennas it enumerates the relay graph.
 /// </summary>
@@ -276,8 +276,8 @@ public enum CommsDelaySource
 }
 
 /// <summary>
-/// The <c>comms.delay</c> payload: the CORE SignalDelay capability's output
-/// (comms-uplink-design.md §3), gated by the <c>comms.signalDelay.enabled</c>
+/// The <c>comms.delay</c> payload: the CORE SignalDelay capability's output,
+/// gated by the <c>comms.signalDelay.enabled</c>
 /// config flag. <see cref="OneWaySeconds"/> distinguishes two DIFFERENT
 /// "no delay" cases by value (R7: typed absence, never a single overloaded
 /// sentinel):
@@ -402,7 +402,7 @@ public class CommsCommandCentre
 
 /// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves
-/// to (comms-uplink-design.md §2.2). Exactly the readouts BOTH backends can
+/// to. Exactly the readouts BOTH backends can
 /// honestly supply: the minimal shape the parallel CommNet+RA build forces
 /// (§6). RealAntennas-only richness (link margin, data rate) is deliberately
 /// OUT of this interface and lives on RA's private channels instead.

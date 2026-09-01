@@ -1,4 +1,4 @@
-// Typed Topic registry: Uplink architecture spec §3.1.
+// Typed Topic registry.
 //
 // Exports a `TopicId` string-literal union of every Topic the mod declares, plus a
 // `TopicPayload<T extends TopicId>` mapped type resolving each Topic to its wire
@@ -71,7 +71,7 @@ export interface SystemUplinksTopicPayloadMap {
       available: boolean;
       reason: string | null;
       /**
-       * H_mod: the client-bundle sha256 the running mod vouches for (design §3.2/§3.3).
+       * H_mod: the client-bundle sha256 the running mod vouches for.
        * `null` for a mod-only Uplink (no client half) or an older mod that predates the
        * two-pass hash bake. Hand-declared here (not codegen) because `system.uplinks` is
        * engine-built, not a `[SitrepTopic]` reflected payload.

@@ -123,20 +123,17 @@ export type AugmentSegmentProps<Seg extends string> =
 // Augment settings (spec §4.7)
 // ---------------------------------------------------------------------------
 
-/**
- * A single per-instance setting an augment contributes. Merged (namespaced by
- * augment id) into the host widget's settings panel; see {@link getAugmentSettings}.
+/*
+ * `AugmentSettingField` is a single per-instance setting an augment
+ * contributes, merged into the host widget's settings panel namespaced by
+ * augment id; `NamespacedAugmentSettings` is one augment's block of them. Both
+ * are the sdk's, re-exported. They were identical copies here, and two
+ * published declarations of one author-facing type drift without anything
+ * saying so.
  *
- * The sdk's, re-exported. It was an identical copy here, and two published
- * declarations of one author-facing type drift without anything saying so.
- */
-/**
- * One augment's settings block, namespaced for the host panel.
- *
- * The sdk's, re-exported, same as `AugmentSettingField` above and for the same
- * reason: it is a shape over that type, and the coverage-source registry in the sdk
- * returns it too. Two published declarations of one author-facing type drift
- * without anything saying so.
+ * A block comment rather than JSDoc, because a doc block above a multi-name
+ * `export type {}` attaches to nothing: it emits no documentation for either
+ * name and reads, in the source, as though it documented the first.
  */
 export type {
   AugmentSettingField,
@@ -150,7 +147,7 @@ export type {
 /**
  * Registration descriptor for an augment: a component bound into another
  * widget's slot. `S` is inferred from `augments`, so `component` is typed
- * against that slot's {@link SlotProps} (spec §4.4: slot-parameterised augments).
+ * against that slot's {@link SlotProps}.
  *
  * The sdk's, re-exported. Both packages declared it with the same nine fields,
  * and two published declarations of one author-facing type is the shape that
@@ -260,9 +257,9 @@ export function onAugmentsChange(cb: () => void): () => void {
 }
 
 /**
- * Register an augment into a widget's slot (spec §4.2). Call at module load,
+ * Register an augment into a widget's slot. Call at module load,
  * exactly like `registerComponent`. Multiple augments may target one slot; they
- * compose, ordered by `priority` (spec §4.8). `component` is typed against the
+ * compose, ordered by `priority`. `component` is typed against the
  * target slot's props via the {@link SlotRegistry} declaration-merging seam.
  */
 export function registerAugment<S extends string>(
@@ -307,7 +304,7 @@ export function getAugments(): AnyAugment[] {
 
 /**
  * The namespaced settings blocks contributed by every augment bound to
- * `slotName` that declares `settings` (spec §4.7). The host widget's settings
+ * `slotName` that declares `settings`. The host widget's settings
  * panel composes these after its own stock settings; each block's `namespace`
  * (the augment id) scopes its fields in the per-instance config. Ordered the
  * same way the augments render. An absent Uplink contributes no block.

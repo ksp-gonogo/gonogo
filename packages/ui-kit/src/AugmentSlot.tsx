@@ -10,18 +10,18 @@ import { useDomainAvailable } from "./domainAvailability";
 import { useWidgetMeta } from "./WidgetMetaContext";
 
 /**
- * Renders every augment bound to `name`, ordered by priority (spec §4). This is
+ * Renders every augment bound to `name`, ordered by priority. This is
  * the composition point the **host** owns: a base widget drops an `<AugmentSlot>`
  * where Uplinks may contribute, and this component assembles whatever is
  * registered: the base widget never references any augmenting Uplink.
  *
- * `props` is REQUIRED (spec §4.4): slot props are passed down to every augment,
+ * `props` is REQUIRED: slot props are passed down to every augment,
  * typed against the slot's {@link SlotProps} entry. Overlay slots pass their
  * parent's projection/transform so an augment can draw in the parent's
  * coordinate space; typed-contract slots (e.g. `objectives.source`) pass the
  * interface an augment must satisfy. Pass `{}` for a slot with no props.
  *
- * Presence gating (spec §4.2): an augment declaring `requires: "<domain>"`
+ * Presence gating: an augment declaring `requires: "<domain>"`
  * renders only while that Domain is live. The gate reads ui-kit's own
  * {@link useDomainAvailable} store (fed from telemetry by the app), NOT a
  * spine hook, so this whole component is spine-free and ships from the
@@ -29,7 +29,7 @@ import { useWidgetMeta } from "./WidgetMetaContext";
  * {@link AugmentEntry} so the hook count per rendered augment is stable even
  * as the registered set changes.
  *
- * Two mutually-exclusive prop forms (component-extension-slots design §1):
+ * Two mutually-exclusive prop forms:
  *  - `name`: the widget-led form, UNCHANGED. The host writes the full slot
  *    literal (`"power-systems.sections"`) and its props type resolves via
  *    {@link SlotRegistry}. Existing callers are byte-identical.
@@ -123,7 +123,7 @@ function getAugmentsForSlotCached(name: string): AnyAugment[] {
 }
 
 /**
- * Domain presence gate (spec §4.2): true when `augment` declares no
+ * Domain presence gate: true when `augment` declares no
  * `requires` (ungated; always available), or its Domain is currently live per
  * ui-kit's {@link useDomainAvailable} store (fed from `<requires>.available`
  * telemetry by the app).

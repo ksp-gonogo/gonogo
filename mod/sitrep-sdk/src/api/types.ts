@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// Author-facing type surface: PROPOSAL, pending operator sign-off (design D-D)
+// Author-facing type surface.
 // before the first external Uplink is published. Nothing here is a frozen
 // contract yet; the api-shape gate records the CURRENT proposed surface so any
 // change is a conscious one.
@@ -183,8 +183,8 @@ export type WidgetScope<C extends string> = C extends keyof WidgetScopeRegistry
 // --- Contributions (pure-data slot composition) ------------------------------
 
 /**
- * Declaration-merging seam for the contribution model (contribution-slots-
- * spec §3-4), mirrors `SlotRegistry` above: an augmenting package (in
+ * Declaration-merging seam for the contribution model, mirroring
+ * `SlotRegistry` above: an augmenting package (in
  * practice today, `mod/sitrep-sdk/src/api/contribution-slots.ts`) merges a
  * contribution slot id into this interface. Empty until the first
  * first-party contribution slot lands (Application phase, a separate
@@ -286,7 +286,7 @@ export interface ComponentSlotRegistry {
    */
   filters: string;
   /**
-   * The framework-universal badge segment (contribution-slots-spec §13.2), the
+   * The framework-universal badge segment, the
    * original auto-slot. Declared here for the same reason `filters` is: the
    * aggregation completes `${componentId}.badges` for EVERY widget, so the
    * segment is host-invariant and its entry shape belongs to the framework.
@@ -470,7 +470,7 @@ export interface AugmentDefinition<S extends string = string> {
   owner?: UplinkClientHandle;
 }
 
-// --- Uplink client identity (Uplink Client Contract design §3.1) -----------
+// --- Uplink client identity ---------------------------------------------
 
 /**
  * Re-exported rather than declared: the ONE declaration lives in

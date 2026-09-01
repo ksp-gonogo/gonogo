@@ -7,8 +7,8 @@
  * rotation (argument of periapsis, then inclination, then longitude of
  * ascending node -- the Vallado/AIAA convention).
  *
- * This is the derived-channel foundation for the streaming delay model
- * (spec-streaming-delay-model.md §4/§5): the mod transmits sparse orbital
+ * This is the derived-channel foundation for the streaming delay model: the mod
+ * transmits sparse orbital
  * elements over the wire, and each consumer -- the mod itself, and this SDK
  * -- derives position on demand rather than streaming dense position
  * samples every tick. For that to work, the SDK MUST derive positions

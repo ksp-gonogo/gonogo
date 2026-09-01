@@ -3,8 +3,8 @@
 // first-party (packages/components-owned) augment slot, carried by the sdk
 // leaf itself.
 //
-// Why this lives HERE and not in `packages/components` (facade-sealing plan
-// §2.3, corrected 2026-07-19): the plan originally had each slot-owning
+// Why this lives HERE and not beside the widgets that own the slots: an earlier
+// revision had each slot-owning
 // widget carry a SECOND `declare module "@ksp-gonogo/sitrep-sdk"` block
 // alongside its existing `declare module "@ksp-gonogo/core"` one (see e.g.
 // MapView/index.tsx). That doesn't work: TypeScript only applies ambient

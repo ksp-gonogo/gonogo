@@ -8,9 +8,8 @@ import { type Value, value } from "./unit-system";
  * frozen at dispatch) into a display-ready `InFlightCommand[]`, given the
  * caller's current view of `nowUt`.
  *
- * Nothing here dispatches or fetches: see this repo's design doc
- * (`local_docs/design/specs/2026-07-17-delayed-command-ux-design.md`) for
- * the full model. Statefulness (own-dispatch memory, connectivity history,
+ * Nothing here dispatches or fetches. Statefulness (own-dispatch memory,
+ * connectivity history,
  * judder-latching) lives one layer up in the hooks that call these
  * (`use-command.ts`, `use-route-commands.ts`), never here.
  */

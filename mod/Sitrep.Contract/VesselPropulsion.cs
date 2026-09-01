@@ -9,7 +9,7 @@ namespace Sitrep.Contract;
 /// derivation inputs (G-4). <see cref="TotalMass"/>/<see cref="DryMass"/> in
 /// tonnes, <see cref="CurrentThrust"/>/<see cref="AvailableThrust"/> in kN
 /// (dimensionally consistent for TWR: kN/(t·m/s²): see
-/// m1-provider-taxonomy-design.md §6.7). <see cref="AvailableThrust"/>
+/// kN/(t·m/s²)). <see cref="AvailableThrust"/>
 /// already excludes shut-down/flamed-out engines at capture (only
 /// <c>EngineIgnited &amp;&amp; !flameout</c> engines contribute): it is
 /// "what this vessel can produce RIGHT NOW," not its rated maximum.

@@ -1,6 +1,6 @@
 /**
- * The worker-side mirror of `ViewClock` (design doc, "Clock seam", locked
- * decision 3, "self-clocked worker"). Rather than latching a single
+ * The worker-side mirror of `ViewClock`, self-clocked. Rather than latching a
+ * single
  * `confirmedEdgeUt()` value pushed per tick, the worker holds the clock's
  * raw formula INPUTS (`ClockFormulaSnapshot`, posted at ~60Hz from the main
  * thread) and evaluates `computeConfirmedEdgeUt`/`computeUtNowEstimate`

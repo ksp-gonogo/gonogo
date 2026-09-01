@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------------------
-// The injected-host lookup (design §4.3, decision D-A: fail-loud shim).
+// The injected-host lookup: a fail-loud shim.
 //
 // The stateful author-facing surface (every `registerX`, every hook) cannot
 // be a bundled re-export of `@ksp-gonogo/core`: N copies of core's module-global
@@ -249,9 +249,9 @@ export interface GonogoHost {
   clearContributions(): void;
 
   /**
-   * Declare an Uplink client's identity (Uplink Client Contract design
-   * §3.1) and record it in the app's client registry, the membership half
-   * (which clients are actually present in this build). Returns a frozen
+   * Declare an Uplink client's identity and record it in the app's client
+   * registry, the membership half (which clients are actually present in
+   * this build). Returns a frozen
    * handle carrying a bound `registerContribution`; the client stamps the
    * handle itself as `owner` on every `registerComponent`/`registerAugment`
    * call it makes. `cfg` is the plain identity triple only, the returned

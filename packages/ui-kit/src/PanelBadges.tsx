@@ -4,7 +4,7 @@ import { createContext, type ReactNode, useContext } from "react";
 /**
  * One standard badge Panel can render in its header aside. The fixed,
  * uniform shape every widget's `<id>.badges` contribution slot produces
- * (contribution-slots-spec §13.2): a label and an optional tone, nothing
+ * shape: a label and an optional tone, nothing
  * widget-specific, so Panel can render it with zero per-widget code.
  *
  * Declared in `@ksp-gonogo/sitrep-sdk` and re-exported, because it is the entry

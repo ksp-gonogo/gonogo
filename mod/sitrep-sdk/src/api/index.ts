@@ -41,10 +41,9 @@ import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import { getHost } from "./host";
 // Side-effect only: carries the `SlotRegistry` declaration-merge for every
-// first-party slot into any program that imports this barrel (facade-sealing
-// plan §2.3, corrected 2026-07-19: see ./slots.ts's own header for why the
-// merge lives here rather than in packages/components). No named export
-// added to the barrel by this import.
+// first-party slot into any program that imports this barrel. See ./slots.ts's
+// own header for why the merge lives here rather than beside the widgets. No
+// named export added to the barrel by this import.
 import "./slots";
 // Side-effect only: carries the `ContributionRegistry` declaration-merge
 // scaffold (Phase 1 of the contributions primitive; see ./contribution-
@@ -375,7 +374,7 @@ export {
 } from "./uplink-handles";
 
 /**
- * Declare an Uplink client's identity (Uplink Client Contract design §3.1).
+ * Declare an Uplink client's identity.
  * One call per client bundle; stamp the returned handle as `owner` on every
  * `registerComponent`/`registerAugment` call the client makes, or call the
  * returned handle's own `registerContribution` for the contributions path.

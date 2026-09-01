@@ -6,7 +6,7 @@ import type {
 } from "../api/types";
 
 /**
- * The contribution REGISTRATION seam (contribution-slots-spec.md §3-4, §14): the
+ * The contribution REGISTRATION seam: the
  * live registry `registerContribution` writes and the per-frame aggregation
  * reads.
  *
@@ -63,7 +63,7 @@ export function onContributionsChange(cb: () => void): () => void {
 }
 
 /**
- * Register a contribution (contribution-slots-spec §14): id collision throws
+ * Register a contribution. An id collision throws
  * synchronously AT this call site (no accumulate-then-flush frame), unless
  * the exact same def is re-registering (a benign idempotent re-import).
  */

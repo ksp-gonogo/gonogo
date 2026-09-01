@@ -1,9 +1,7 @@
 /**
- * The encoded-domain per-frame video delay backend (encoded-transform
- * cross-browser video-delay work, 2026-07-16; see
- * `local_docs/reports/encoded-transform-spike-report.md` for the spike and
- * `local_docs/reports/encoded-video-delay-report.md` for the Phase-1
- * capture-UT mapping validation this backend implements).
+ * The encoded-domain per-frame video delay backend, from the encoded-transform
+ * cross-browser video-delay work of 2026-07-16, implementing the capture-UT
+ * mapping that work validated per engine.
  *
  * UNLIKE `frame-delay.ts`'s decoded backend (`MediaStreamTrackProcessor` /
  * `MediaStreamTrackGenerator`: Chromium-only on the main thread), this
@@ -16,7 +14,7 @@
  * (Phase-1 report): this module is the production wiring of that proof.
  *
  * `attachEncodedFrameDelayTransform` is a thin adapter: it reuses
- * `runFrameDelayPipeline` VERBATIM (F1 from the design doc, "a new backend
+ * `runFrameDelayPipeline` VERBATIM ("a new backend
  * is a new source/sink pair, not a new engine") with three encoded-specific
  * defaults `frame-delay.ts`'s decoded backend doesn't need:
  *

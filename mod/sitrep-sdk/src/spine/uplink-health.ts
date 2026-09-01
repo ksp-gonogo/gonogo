@@ -2,7 +2,7 @@ import type { DerivedChannelDefinition, DerivedGet } from "./timeline-store";
 
 /**
  * The `system.uplinks` derived reader: the client-side half of Uplink
- * health self-reporting (`local_docs/telemetry-mod/uplink-health-design.md`).
+ * health self-reporting.
  * Each Uplink reports its OWN health via the mod-side
  * `Sitrep.Contract.IUplinkHealthReporter` contract; the client never infers
  * readiness from topic staleness: it only reads what the mod already

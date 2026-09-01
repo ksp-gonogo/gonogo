@@ -2,7 +2,7 @@ import type { TopicId, TopicPayload } from "../index";
 import type { Reading } from "./client-reading";
 
 // ---------------------------------------------------------------------------
-// The Processor primitive (contribution-slots-spec.md 13.3, 14): a declared
+// The Processor primitive: a declared
 // pure function of Topics (and other Processors), exposed two ways: called
 // directly by a Contribution (pure), and consumed via useProcessor (Task 3.3)
 // by an augment. One source, two forms, evaluated ONCE per Sitrep frame no

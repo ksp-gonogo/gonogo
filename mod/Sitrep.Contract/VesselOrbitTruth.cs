@@ -7,7 +7,7 @@ namespace Sitrep.Contract;
 /// <summary>
 /// The <c>vessel.orbit.truth</c> channel payload: KSP's own maintained
 /// ground-truth state vector, parent-body-relative. DEV-GATED, not a product
-/// channel (m1-provider-taxonomy-design.md §6.5): exists so the
+/// channel: exists so the
 /// propagator-diff harness / a debug widget can verify element-&gt;position
 /// math against KSP's own state, never as a widget-facing altitude/velocity
 /// source (that would rebuild the elements-not-position discipline's failure

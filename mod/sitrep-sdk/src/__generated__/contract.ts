@@ -940,8 +940,8 @@ export enum CommandErrorCode {
 * hand-rolled records (`Ack`/`StageResult`/`AddManeuverNodeResult`) that each
 * re-declared `Success` + `ErrorCode`. `CommandResult.success` false pairs
 * with a typed `CommandResult.errorCode` (never a free-text message a client
-* has to string-match), the design doc §3's `Result<T, CommandError>` ruling:
-* results are always delivered (never a fire-and-forget void), and failure is
+* has to string-match), following a `Result<T, CommandError>` ruling: results
+* are always delivered (never a fire-and-forget void), and failure is
 * structured data, not a thrown exception.
 *
 * This non-generic base is the "no payload" case (every plain actuation
@@ -1018,8 +1018,8 @@ export enum CommsControlSource {
 }
 /**
 * The `comms.connectivity` payload: always-present, sourced from the elected
-* backend (comms-uplink-design.md §1). Ground-side truth about whether the
-* active vessel has a control link home right now.
+* backend. Ground-side truth about whether the active vessel has a control
+* link home right now.
 */
 export interface CommsConnectivity
 {
@@ -1031,7 +1031,7 @@ export interface CommsConnectivity
 /**
 * The `comms.signalStrength` payload: always-present, elected backend. 0..1.
 * CommNet gives a coarse range-fraction; RealAntennas gives a
-* link-budget-derived value (comms-uplink-design.md §1).
+* link-budget-derived value.
 */
 export interface CommsSignalStrength
 {
@@ -1140,9 +1140,8 @@ export interface CommsNetworkEdge
 }
 /**
 * The `comms.network` payload: always-emitted, but its richness tracks the
-* elected backend (comms-uplink-design.md §1: "backend-dependent detail").
-* Under bare CommNet this may be a single home-edge; under RealAntennas it
-* enumerates the relay graph.
+* elected backend (a "backend-dependent detail"). Under bare CommNet this may
+* be a single home-edge; under RealAntennas it enumerates the relay graph.
 */
 export interface CommsNetwork
 {
@@ -1168,10 +1167,10 @@ export enum CommsDelaySource {
 	Simulation = 2
 }
 /**
-* The `comms.delay` payload: the CORE SignalDelay capability's output
-* (comms-uplink-design.md §3), gated by the `comms.signalDelay.enabled` config
-* flag. `CommsDelay.oneWaySeconds` distinguishes two DIFFERENT "no delay"
-* cases by value (R7: typed absence, never a single overloaded sentinel):
+* The `comms.delay` payload: the CORE SignalDelay capability's output, gated
+* by the `comms.signalDelay.enabled` config flag. `CommsDelay.oneWaySeconds`
+* distinguishes two DIFFERENT "no delay" cases by value (R7: typed absence,
+* never a single overloaded sentinel):
 *
 * - **null**: no measurable `CommsPath` (no path home, or incomplete hop
 *   geometry). There is nothing to measure, so nothing is reported.
@@ -1919,8 +1918,7 @@ export interface FleetVesselContact
 * something (the pure `Sitrep.Host.Comms.SilenceTracker`) is watching
 * occultation geometry and deciding a craft is overdue, which is why it is
 * registered from the comms uplink rather than riding the always-on core
-* `FleetVesselContact` (see
-* `local_docs/design/2026-08-15-vessel-officially-lost.md`).
+* `FleetVesselContact`.
 *
 * A disjoint dynamic namespace (`ChannelEngine.SilenceEventPrefix`) that maps
 * back onto the same per-vessel `fleet.<guid>` Courier node
@@ -1930,8 +1928,7 @@ export interface FleetVesselContact
 *
 * Deliberately narrow for this pass: `declaredLostUt` and the monotonic
 * `lostSeq` a future currency consumer needs for idempotent arming stay off
-* the wire until that consumer exists, see the design doc's scope note.
-* Nothing here is a control input.
+* the wire until that consumer exists. Nothing here is a control input.
 */
 export interface FleetVesselSilence
 {
@@ -2085,8 +2082,7 @@ export interface FleetSilence
 /**
 * The flight-lifecycle domain: retires the client-side `FlightDetector`
 * heuristic that reconstructed flight boundaries from `vesselName` +
-* `missionTime` + a revert-threshold guess (see
-* `docs/superpowers/plans/2026-07-11-flight-lifecycle-spec.md`). The producer
+* `missionTime` + a revert-threshold guess. The producer
 * (`Gonogo.KSP.FlightUplink` + `Sitrep.Host.Flight.FlightLifecycleSampler`)
 * hooks KSP's flight GameEvents internally and translates them into this clean
 * contract: no KSP names ever cross the wire.
@@ -5661,9 +5657,9 @@ export interface VesselAttitude
 * Args shared by every plain boolean actuation command (`setSas`/
 * `setRcs`/`setGear`/`setBrakes`/`setLights`): an ABSOLUTE state to apply,
 * never a toggle. Under light-time delay a toggle arriving after unknown
-* intervening state is a race by construction (the design doc §3/§6.2's
-* `toggleActionGroup` caution); every M1 actuation command is set-semantics
-* only, so that footgun doesn't exist here at all.
+* intervening state is a race by construction, the `toggleActionGroup`
+* footgun. Every M1 actuation command is set-semantics only, so it does not
+* exist here at all.
 */
 export interface SetEnabledArgs
 {
@@ -5811,11 +5807,10 @@ export enum ControlState {
 * `vessel.connection` is null, R1(b), never a fake zero reading
 * indistinguishable from "no telemetry at all").
 *
-* **Scope fence** (per the design doc): this is what the vessel itself
-* reports. The delay authority and link modelling live in a future `comms.*`
-* CAPABILITY channel (RemoteTech-default): the legacy `comm.signalDelay` does
-* NOT get a field here; that successor is `comms.delay`, a different provider
-* entirely.
+* **Scope fence**: this is what the vessel itself reports. The delay authority
+* and link modelling live in a future `comms.*` CAPABILITY channel
+* (RemoteTech-default): the legacy `comm.signalDelay` does NOT get a field
+* here; that successor is `comms.delay`, a different provider entirely.
 */
 export interface VesselComms
 {
@@ -5992,11 +5987,11 @@ export interface CrewMember
 }
 /**
 * The `vessel.crew` channel payload. Started count-only for M1 (G-13: grows to
-* a full roster later WITHOUT a topic rename, per the design doc §2.2's "misc
-* junk drawer split"). The roster (`VesselCrew.crew`) and
-* `VesselCrew.capacity` are that additive growth, new fields on the same
-* record, same topic. Splitting this out of KspHost's `misc` group into its
-* own coherent, independently-growable channel is itself part of the wart-fix.
+* a full roster later WITHOUT a topic rename, per the "misc junk drawer split"
+* ruling). The roster (`VesselCrew.crew`) and `VesselCrew.capacity` are that
+* additive growth, new fields on the same record, same topic. Splitting this
+* out of KspHost's `misc` group into its own coherent, independently-growable
+* channel is itself part of the wart-fix.
 */
 export interface VesselCrew
 {
@@ -6194,8 +6189,7 @@ export interface VesselFlight
 * `VesselIdentity.launchUt` is static after liftoff (sampleUt - missionTime),
 * so MET (mission elapsed time) is a consumer-side derivation (viewUt -
 * launchUt) rather than a tick-rate field that would force this whole record
-* to re-emit every tick: see
-* local_docs/telemetry-mod/m1-provider-taxonomy-design.md §0.2.
+* to re-emit every tick.
 */
 export interface VesselIdentity
 {
@@ -6670,7 +6664,7 @@ export interface ManeuverNode
 * `BuildManeuverNodes` returns `null` for "no nodes queued," the common case;
 * this mapper normalizes that to `[]`, never a null collection). *Derived,
 * SDK-side, NOT streamed here:* the post-burn orbit preview (elements + node →
-* new elements, consumer-side math, per the design doc §2.2/§5).
+* new elements, consumer-side math).
 *
 * **`VesselManeuver.nodes` is ordered by execution**, earliest
 * `ManeuverNode.ut` first, and that ordering IS the plan: burn N is flown
@@ -6705,18 +6699,17 @@ export interface VesselManeuver
 * The `vessel.orbit` channel payload: elements are the CAUSE; every kinematic
 * quantity (position/velocity/apsides/anomalies/period) is a consumer-side
 * derivation at view-UT via the propagation capability, never streamed here
-* ("elements-not-position": m1-provider-taxonomy-design.md §2.2/§4). Kills O-1
-* (there is no `eccentricAnomaly` field at all, the copy-paste-bug class can't
-* exist on a wire that never carries one), O-8 (spelled-out, unit-annotated
-* fields, UT always `double`), O-9 (`VesselOrbit.encounter` is a typed
-* nullable record, never the -1/0/1 + "" + NaN sentinel spray of
-* o.encounterExists/Time/Body), O-10 (no duplicate apsis keys). Units:
-* `VesselOrbit.sma` in metres; `VesselOrbit.inc`/`VesselOrbit.lan`/
-* `VesselOrbit.argPe` in DEGREES (KSP-native);
-* `VesselOrbit.meanAnomalyAtEpoch` in RADIANS (also KSP-native): this
-* degrees/radians split is an inherited KSP inconsistency deliberately KEPT,
-* not "fixed," per m1-provider-taxonomy-design.md §6.7 (converting would
-* desync from every KSP reference and the recorder's own raw values).
+* (the "elements-not-position" ruling). Kills O-1 (there is no
+* `eccentricAnomaly` field at all, the copy-paste-bug class can't exist on a
+* wire that never carries one), O-8 (spelled-out, unit-annotated fields, UT
+* always `double`), O-9 (`VesselOrbit.encounter` is a typed nullable record,
+* never the -1/0/1 + "" + NaN sentinel spray of o.encounterExists/Time/Body),
+* O-10 (no duplicate apsis keys). Units: `VesselOrbit.sma` in metres;
+* `VesselOrbit.inc`/`VesselOrbit.lan`/ `VesselOrbit.argPe` in DEGREES
+* (KSP-native); `VesselOrbit.meanAnomalyAtEpoch` in RADIANS (also KSP-native):
+* this degrees/radians split is an inherited KSP inconsistency deliberately
+* KEPT, not "fixed": converting would desync from every KSP reference and the
+* recorder's own raw values).
 */
 export interface VesselOrbit
 {
@@ -6920,12 +6913,11 @@ export interface OrbitEncounter
 }
 /**
 * The `vessel.orbit.truth` channel payload: KSP's own maintained ground-truth
-* state vector, parent-body-relative. DEV-GATED, not a product channel
-* (m1-provider-taxonomy-design.md §6.5): exists so the propagator-diff harness
-* / a debug widget can verify element->position math against KSP's own state,
-* never as a widget-facing altitude/velocity source (that would rebuild the
-* elements-not-position discipline's failure mode / V-12).
-* `VesselOrbitTruth.frameRotating` gates whether
+* state vector, parent-body-relative. DEV-GATED, not a product channel: exists
+* so the propagator-diff harness / a debug widget can verify element->position
+* math against KSP's own state, never as a widget-facing altitude/velocity
+* source (that would rebuild the elements-not-position discipline's failure
+* mode / V-12). `VesselOrbitTruth.frameRotating` gates whether
 * `VesselOrbitTruth.position`/`VesselOrbitTruth.velocity` are directly
 * comparable to a fixed-frame Kepler propagator's output (false) or sit in a
 * frame co-rotating with the body's spin instead (true); see
@@ -7236,7 +7228,7 @@ export interface PartBounds
 * `Vessel.loaded`/`Vessel.packed` flags (confirmed via decompile: both are
 * public `bool` fields on `Vessel`). This is the proper Value that replaces
 * the old "read stream meta" stand-in, physics mode is a discrete enum in its
-* own right, NOT a quality band on `PayloadMeta.quality` (2026-07-09 §0.0
+* own right, NOT a quality band on `PayloadMeta.quality` (a 2026-07-09
 * reversal). Widgets that switch propagation/dead-reckoning strategy
 * (a.physicsMode consumers) read this to know whether the craft is on-rails
 * conics, a packed cluster, or a fully physics-simulated vessel.
@@ -7263,8 +7255,8 @@ export enum PhysicsMode {
 }
 /**
 * The `vessel.physics.mode` Topic payload: the active vessel's physics regime
-* (`PhysicsMode`). Its own Topic Value per the 2026-07-09 §0.0 decision
-* (reverses the earlier "fold physics mode into stream meta" call:
+* (`PhysicsMode`). Its own Topic Value per the 2026-07-09 decision that
+* reverses the earlier "fold physics mode into stream meta" call:
 * `PayloadMeta.quality` was a bad stand-in for a discrete enum).
 * DelayRole-Delayed like every other vessel-derived channel: it describes the
 * vessel itself, so ground learns about it at UT+delay, not as a ground-side
@@ -7279,14 +7271,13 @@ export interface VesselPhysicsMode
 * The `vessel.propulsion` channel payload: the TWR/burn-time derivation inputs
 * (G-4). `VesselPropulsion.totalMass`/`VesselPropulsion.dryMass` in tonnes,
 * `VesselPropulsion.currentThrust`/`VesselPropulsion.availableThrust` in kN
-* (dimensionally consistent for TWR: kN/(t·m/s²): see
-* m1-provider-taxonomy-design.md §6.7). `VesselPropulsion.availableThrust`
-* already excludes shut-down/flamed-out engines at capture (only
-* `EngineIgnited && !flameout` engines contribute): it is "what this vessel
-* can produce RIGHT NOW," not its rated maximum. *Derived, SDK-side, NOT
-* streamed here:* TWR (`currentThrust / (totalMass · g)`), max-TWR, and a
-* crude vessel-level burn-time estimate (retiring `dv.currentTWR`/`dv.*` until
-* a stage sim exists, G-14).
+* (dimensionally consistent for TWR: kN/(t·m/s²): see kN/(t·m/s²)).
+* `VesselPropulsion.availableThrust` already excludes shut-down/flamed-out
+* engines at capture (only `EngineIgnited && !flameout` engines contribute):
+* it is "what this vessel can produce RIGHT NOW," not its rated maximum.
+* *Derived, SDK-side, NOT streamed here:* TWR (`currentThrust / (totalMass ·
+* g)`), max-TWR, and a crude vessel-level burn-time estimate (retiring
+* `dv.currentTWR`/`dv.*` until a stage sim exists, G-14).
 */
 export interface VesselPropulsion
 {
@@ -7378,10 +7369,10 @@ export interface ResourceAmount
 * was staged away), never an ambiguous "did it change or did the stream just
 * drop it" (R-3's ambiguity).
 *
-* **Deliberately deferred** (per m1-provider-taxonomy-design.md §2.2):
-* flow/rates (R-2/R-5), those belong to a future parts/power channel family
-* with per-module provenance; bolting a vessel-total `flow` on now would
-* reproduce R-6 (a "truth" number that isn't the game's truth).
+* **Deliberately deferred**: flow/rates (R-2/R-5), those belong to a future
+* parts/power channel family with per-module provenance; bolting a
+* vessel-total `flow` on now would reproduce R-6 (a "truth" number that isn't
+* the game's truth).
 */
 export interface VesselResources
 {
@@ -7511,21 +7502,21 @@ export interface ClosestApproach
 /**
 * The `vessel.target` channel payload: the active vessel's CURRENT target only
 * (no roster; `system.vessels`/`tar.availableVessels`'s replacement is a
-* deferred M1.5 add per the design doc §5.2). Kills V-8:
+* deferred M1.5 add). Kills V-8:
 * `VesselTarget.relativePosition`/`VesselTarget.relativeVelocity` both use the
 * ONE canonical `Vec3` shape, replacing the legacy vocabulary's two
 * incompatible vector encodings (bare `[x,y,z]` array vs. `{x,y,z}` object)
 * that coexisted across different key families.
 *
 * `VesselTarget.orbit` reuses `VesselOrbit` itself (not a separate "target
-* orbit" shape): load-bearing per the design doc §2.2: it lets the SDK
-* propagate a target with the EXACT SAME code path as the self vessel, so both
-* are evaluated at the same view-UT by the same propagation logic (the
-* single-view-time invariant). Its nested `VesselTarget.meta` is stamped with
-* the SAME subject (the active vessel producing this sample), not a separate
-* target-vessel identity, `VesselTarget.vesselId`/`VesselTarget.bodyIndex`
-* below (M3 R3) now DO carry the target's own identity, closing the §6.4 gap
-* this doc comment used to flag as deferred.
+* orbit" shape), and that is load-bearing: it lets the SDK propagate a target
+* with the EXACT SAME code path as the self vessel, so both are evaluated at
+* the same view-UT by the same propagation logic (the single-view-time
+* invariant). Its nested `VesselTarget.meta` is stamped with the SAME subject
+* (the active vessel producing this sample), not a separate target-vessel
+* identity, `VesselTarget.vesselId`/`VesselTarget.bodyIndex` below (M3 R3) now
+* DO carry the target's own identity, closing the gap this doc comment used to
+* flag as deferred.
 *
 * Whole-channel absence (the outer `VesselTarget?` being null) means nothing
 * is targeted, the common case, R1(b), never a sentinel
@@ -7537,8 +7528,8 @@ export interface VesselTarget
 	kind: TargetKind;
 	/**
 	* The target's own stable id: the M3 R3 fix for the "no target id to
-	* round-trip into `vessel.target.set`" gap this class's doc comment (§6.4)
-	* originally flagged as deferred. Populated ONLY when `VesselTarget.kind` is
+	* round-trip into `vessel.target.set`" gap this class's doc comment originally
+	* flagged as deferred. Populated ONLY when `VesselTarget.kind` is
 	* `TargetKind.Vessel`, KSP's `Vessel.id` guid, the same opaque id
 	* `system.vessels`' roster and `SetTargetArgs.VesselId` both use, so a widget
 	* can read this straight off `vessel.target` and hand it back into a re-target

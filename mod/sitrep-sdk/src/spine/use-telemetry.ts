@@ -17,7 +17,7 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
 
 /**
  * Subscribe to a live value. The **canonical** telemetry read hook of the
- * Uplink architecture (spec §3.3): the rename of the historical
+ * Uplink architecture: the rename of the historical
  * `useDataValue`, which now re-exports this as a deprecated alias.
  *
  * **Canonical Topic overload**: the forward-looking shape. Keyed directly by
@@ -30,7 +30,7 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  *
  * The `| undefined` reflects the honest Phase-0 runtime contract (nothing has
  * arrived yet, or no `TelemetryProvider` is mounted). The per-widget manifest
- * layer (§3.3 optionality inference: a later phase) narrows required Topics
+ * layer (optionality inference, a later phase) narrows required Topics
  * to non-null on top of this base hook; it does not change this signature.
  * Unlike the legacy migration shim below, the canonical Topic read does **not**
  * consult the M3 carried-channels allowlist, that gate exists only to protect
@@ -48,8 +48,7 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  *
  * **The M3 `useStream` compatibility shim (M2 Task 7).** For the two-arg legacy
  * overloads this hook routes through `mapTopic(dataSourceId, key)`
- * (`@ksp-gonogo/sitrep-client`, seeded from `m1-provider-taxonomy-design.md`
- * §5's legacy-key → new-stream-topic migration table):
+ * against a legacy-key to stream-topic migration table:
  *
  * - **Mapped key + a `TelemetryProvider` is mounted + the resolved topic is
  *   CARRIED** → reads reactively from the `TimelineStore` the provider feeds
@@ -103,8 +102,8 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  *   healthy field that just hasn't arrived) still returns `undefined` and
  *   does NOT fall back, the mapped-key-bypasses-legacy contract above holds.
  *
- * The one semantic delta, flagged rather than silently reproduced (M2 design
- * §6): the legacy path clears to `undefined` when the `DataSource` status
+ * The one semantic delta, flagged rather than silently reproduced:
+ * the legacy path clears to `undefined` when the `DataSource` status
  * leaves `"connected"`; the new streamed path does not, a `TelemetryClient`
  * holds the last-known value (M2's staleness model supersedes blunt
  * clear-on-disconnect, but that richer status only reaches a widget once

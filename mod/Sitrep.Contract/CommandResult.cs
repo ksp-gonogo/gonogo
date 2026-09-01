@@ -277,7 +277,7 @@ public enum CommandErrorCode
 /// hand-rolled records (<c>Ack</c>/<c>StageResult</c>/<c>AddManeuverNodeResult</c>)
 /// that each re-declared <c>Success</c> + <c>ErrorCode</c>. <see cref="Success"/>
 /// false pairs with a typed <see cref="ErrorCode"/> (never a free-text message a
-/// client has to string-match), the design doc §3's <c>Result&lt;T, CommandError&gt;</c>
+/// client has to string-match), following a <c>Result&lt;T, CommandError&gt;</c>
 /// ruling: results are always delivered (never a fire-and-forget void), and
 /// failure is structured data, not a thrown exception.
 ///

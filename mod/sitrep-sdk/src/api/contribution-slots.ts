@@ -23,7 +23,7 @@
 // specify relative module name". Drop this line once the first real
 // contribution slot's context type gives the file a natural export.
 //
-// The first two first-party contribution slots landed here (spec §13.4, the
+// The first two first-party contribution slots landed here (the
 // framework's self-contribution flagship): ShipMap's `ship-map.part-meters`
 // and `ship-map.part-meta`, both owned by `packages/components/src/ShipMap`.
 // Every OTHER first-party contribution to date rides the automatic

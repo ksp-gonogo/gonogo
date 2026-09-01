@@ -13,8 +13,7 @@
  * at `ut`. Reveal here is DERIVED for legibility, enforcement stays
  * server-side in the mod's reveal gate (see `project_streaming_delay_model`).
  * The gonogo Uplink layer that owns reveal/delay semantics synthesises this
- * primitive from a producer's raw discrete edges (see the kerbcast-Uplink
- * decision, `local_docs/kerbalism-RO-design-DECISIONS.md` §New PRIMITIVES).
+ * primitive from a producer's raw discrete edges.
  *
  * `epoch` is the client-side timeline-reset generation this occurrence was
  * ingested under (mirrors `TimelinePoint.epoch`): a quickload rewind bumps the

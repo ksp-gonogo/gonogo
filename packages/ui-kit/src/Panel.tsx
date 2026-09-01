@@ -1567,8 +1567,8 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   panelAside?: ReactNode;
   /**
    * Standard badge pills rendered in the header aside, sourced from the
-   * widget's automatic `<id>.badges` contribution slot (contribution-slots
-   * spec §13.2) unless explicitly set here. Renders through the kit's own
+   * widget's automatic `<id>.badges` contribution slot unless explicitly set
+   * here. Renders through the kit's own
    * `Badge`, so every widget's badges share one visual vocabulary instead of
    * each widget hand-rolling a pill. An explicit value here REPLACES the
    * ambient context value rather than merging with it (same relationship

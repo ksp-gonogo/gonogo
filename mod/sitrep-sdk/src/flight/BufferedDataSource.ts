@@ -216,7 +216,7 @@ export class BufferedDataSource extends DataSourceWrapper {
    *    `1` = game paused (frozen values still real). Anything else
    *    (2/3/4/5) means the antenna is gone / unpowered / off and
    *    vessel-required keys collapse to the literal value `2`,
-   *    verified live 2026-05-18 (see `local_docs/2026-05-18/_decisions.md`).
+   *    verified live 2026-05-18.
    * 2. **Vanilla CommNet** via `comm.connected`. Mission-control
    *    link; independent of the telemetry antenna. Widgets that drive
    *    the vessel need this too, even with a live telemetry link: no

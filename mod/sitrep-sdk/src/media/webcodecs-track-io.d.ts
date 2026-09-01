@@ -49,8 +49,7 @@ declare var MediaStreamTrackGenerator: {
  * (which itself IS a `MediaStreamTrack`), `VideoTrackGenerator` HAS one via
  * `.track`. Video-only (no `kind` init: contrast `MediaStreamTrackGenerator`,
  * which is generic audio/video). Confirmed present, worker-context-only, in
- * WebKit 26.4 (2026-07-16 empirical verification: see
- * `local_docs/reports/video-worker-report.md`).
+ * WebKit 26.4, empirically verified 2026-07-16.
  */
 interface VideoTrackGenerator {
   readonly writable: WritableStream<VideoFrame>;
@@ -67,8 +66,7 @@ declare var VideoTrackGenerator: {
  * assigned to `RTCRtpReceiver.transform` (or `RTCRtpSender.transform`) to
  * attach a worker-hosted transform to that receiver/sender's encoded frame
  * stream. Confirmed present via `typeof RTCRtpScriptTransform !==
- * "undefined"` on Chromium/Firefox/WebKit: see
- * `local_docs/reports/encoded-video-delay-report.md`. Not yet in this
+ * "undefined"` on Chromium, Firefox and WebKit. Not yet in this
  * repo's pinned TS DOM lib (checked against the TS version pinned in this
  * repo), so declared here for the same "ambient, minimal surface" reason
  * as the rest of this file. `RTCRtpReceiver` itself IS already in

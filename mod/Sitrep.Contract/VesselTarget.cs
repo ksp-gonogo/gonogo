@@ -80,21 +80,21 @@ public class ClosestApproach
 /// <summary>
 /// The <c>vessel.target</c> channel payload: the active vessel's CURRENT
 /// target only (no roster; <c>system.vessels</c>/<c>tar.availableVessels</c>'s
-/// replacement is a deferred M1.5 add per the design doc §5.2). Kills V-8:
+/// replacement is a deferred M1.5 add). Kills V-8:
 /// <see cref="RelativePosition"/>/<see cref="RelativeVelocity"/> both use the
 /// ONE canonical <see cref="Vec3"/> shape, replacing the legacy vocabulary's
 /// two incompatible vector encodings (bare <c>[x,y,z]</c> array vs. <c>{x,y,z}</c>
 /// object) that coexisted across different key families.
 ///
 /// <para><see cref="Orbit"/> reuses <see cref="VesselOrbit"/> itself (not a
-/// separate "target orbit" shape): load-bearing per the design doc §2.2:
+/// separate "target orbit" shape), and that is load-bearing:
 /// it lets the SDK propagate a target with the EXACT SAME code path as the
 /// self vessel, so both are evaluated at the same view-UT by the same
 /// propagation logic (the single-view-time invariant). Its nested
 /// <see cref="Meta"/> is stamped with the SAME subject (the active vessel
 /// producing this sample), not a separate target-vessel identity,
 /// <see cref="VesselId"/>/<see cref="BodyIndex"/> below (M3 R3) now DO carry
-/// the target's own identity, closing the §6.4 gap this doc comment used to
+/// the target's own identity, closing the gap this doc comment used to
 /// flag as deferred.</para>
 ///
 /// <para>Whole-channel absence (the outer <c>VesselTarget?</c> being null)
@@ -117,7 +117,7 @@ public class VesselTarget
     /// <summary>
     /// The target's own stable id: the M3 R3 fix for the "no target id to
     /// round-trip into <c>vessel.target.set</c>" gap this class's doc
-    /// comment (§6.4) originally flagged as deferred. Populated ONLY when
+    /// comment originally flagged as deferred. Populated ONLY when
     /// <see cref="Kind"/> is <see cref="TargetKind.Vessel"/>, KSP's
     /// <c>Vessel.id</c> guid, the same opaque id <c>system.vessels</c>'
     /// roster and <c>SetTargetArgs.VesselId</c> both use, so a widget can

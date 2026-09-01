@@ -41,7 +41,7 @@ public enum ControlState
 /// R1(b), never a fake zero reading indistinguishable from "no telemetry at
 /// all").
 ///
-/// <para><b>Scope fence</b> (per the design doc): this is what the vessel
+/// <para><b>Scope fence</b>: this is what the vessel
 /// itself reports. The delay authority and link modelling live in a future
 /// <c>comms.*</c> CAPABILITY channel (RemoteTech-default): the legacy
 /// <c>comm.signalDelay</c> does NOT get a field here; that successor is
