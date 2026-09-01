@@ -37,7 +37,7 @@ import {
   FramedDisplay,
   Row,
   RowName,
-  Stack,
+  Section,
   Text,
   Unit,
   useModalSaveBar,
@@ -362,45 +362,53 @@ function LibrationPointsComponent({
           </Select>
         </div>
       }
-    >
-      <TrajectoryFrameCaption
-        frame={{
-          kind: TrajectoryFrameKindLike.RotatingPulsating,
-          primaryBodyIndex: answer.pair?.primaryIndex ?? undefined,
-          secondaryBodyIndex: answer.pair?.secondaryIndex,
-          lengthsPulsate: true,
-          scaleConvention:
-            TRAJECTORY_SCALE_CONVENTIONS.separationAtPointInstant,
-          unitLength: answer.frame?.unitLength,
-        }}
-      />
-      {/* Beside the frame caption rather than over the picture: the five points
-          are still where they are and only the craft's own curve is missing, so
-          covering the diagram would overstate what was refused. */}
-      {drawn && trajectoryWithheld && (
-        <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
-      )}
-      {!drawn ? (
-        <div style={REFUSAL} role="status" aria-live="polite">
-          <Text tone="muted" size="sm">
-            {refusalCopy(answer)}
-          </Text>
-        </div>
-      ) : (
-        <>
-          <FramedDisplay style={DIAGRAM_FRAME}>
-            <LibrationDiagram
-              answer={answer}
-              offset={offset}
-              primaryRadius={primaryBody?.radius ?? null}
-              secondaryRadius={secondaryBody?.radius ?? null}
-              vesselName={
-                typeof identity?.name === "string" ? identity.name : null
-              }
-              trajectory={trajectory}
-            />
-          </FramedDisplay>
-          <Stack gap="xs" as="ul" style={READOUTS}>
+      sections={[
+        <Section key="frame" full>
+          <TrajectoryFrameCaption
+            frame={{
+              kind: TrajectoryFrameKindLike.RotatingPulsating,
+              primaryBodyIndex: answer.pair?.primaryIndex ?? undefined,
+              secondaryBodyIndex: answer.pair?.secondaryIndex,
+              lengthsPulsate: true,
+              scaleConvention:
+                TRAJECTORY_SCALE_CONVENTIONS.separationAtPointInstant,
+              unitLength: answer.frame?.unitLength,
+            }}
+          />
+          {/* Beside the frame caption rather than over the picture: the five points
+            are still where they are and only the craft's own curve is missing, so
+            covering the diagram would overstate what was refused. */}
+          {drawn && trajectoryWithheld && (
+            <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
+          )}
+        </Section>,
+        /* The diagram is the drawing, and the refusal that replaces it is
+           centred in the same space, so either way this section takes what
+           the caption and the readouts leave. */
+        <Section key="view" fill>
+          {!drawn ? (
+            <div style={REFUSAL} role="status" aria-live="polite">
+              <Text tone="muted" size="sm">
+                {refusalCopy(answer)}
+              </Text>
+            </div>
+          ) : (
+            <FramedDisplay style={DIAGRAM_FRAME}>
+              <LibrationDiagram
+                answer={answer}
+                offset={offset}
+                primaryRadius={primaryBody?.radius ?? null}
+                secondaryRadius={secondaryBody?.radius ?? null}
+                vesselName={
+                  typeof identity?.name === "string" ? identity.name : null
+                }
+                trajectory={trajectory}
+              />
+            </FramedDisplay>
+          )}
+        </Section>,
+        drawn ? (
+          <Section key="readouts" as="ul" gap="xs" style={READOUTS}>
             <Row>
               <RowName>Separation</RowName>
               <Text>
@@ -411,8 +419,8 @@ function LibrationPointsComponent({
               <RowName>Mass ratio</RowName>
               <Text>
                 {/* The only parameter the five positions depend on, so it is
-                    worth showing: the same ratio always puts them in the same
-                    place, whatever the pair. */}
+                        worth showing: the same ratio always puts them in the same
+                        place, whatever the pair. */}
                 <Unit value={value("%", answer.massRatio * 100)} decimals={3} />
               </Text>
             </Row>
@@ -437,10 +445,10 @@ function LibrationPointsComponent({
                 </Row>
               </>
             )}
-          </Stack>
-        </>
-      )}
-    </Panel>
+          </Section>
+        ) : null,
+      ]}
+    />
   );
 }
 
