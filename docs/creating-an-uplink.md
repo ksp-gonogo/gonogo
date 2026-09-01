@@ -959,17 +959,30 @@ Its shape:
 ```json
 {
   "id": "example",
-  "version": "0.1.0",
+  "name": "Example Uplink",
   "description": "Reactor output, core temperature and throughput, from the example mod.",
+  "author": "you",
+  "repo": "https://github.com/you/example-uplink",
+  "version": "0.1.0",
   "minAppVersion": "1.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",
   "contractMajor": 14,
   "contractMinor": 5,
-  "integrity": "sha256-2b1f…"
+  "bundleUrl": "example/example.client.js",
+  "integrity": "sha256-2b1f…",
+  "sdkVersion": "0.0.1"
 }
 ```
 
+**`gonogo-uplink docs` and `gonogo-uplink bundle` write the same file.** One is generated beside your
+client for review, the other beside the bundle you distribute, and they are byte-identical for the same
+Uplink: both call one writer in the SDK. That was not always true, and the two shapes it produced were
+the reason this section had to say which one the loader honours.
+
+- **`name`**, **`author`** and **`repo`** are facts about the Uplink as a DISTRIBUTION, declared in
+  `uplink.json` (see "Distribution"). An Uplink with no `uplink.json` falls back to the name its client
+  registers, and carries empty strings for the other two rather than an invented author
 - **`description`** is what you declared on `defineUplinkClient`, and it is the subtitle on your
   generated README
 - **`apiVersion`** pins the `@ksp-gonogo/sitrep-sdk` authoring surface you built against
@@ -977,9 +990,12 @@ Its shape:
 - **`uiKitVersion`** pins the `@ksp-gonogo/ui-kit` design-system surface (`UI_KIT_VERSION`)
 - **`contractMajor`/`contractMinor`** pin the telemetry contract your Topics and Commands speak
 - **`minAppVersion`** is an advisory floor, and the one field nothing can derive, because it is a claim
-  about the APP rather than about your code. Declare it in your `package.json` under
-  `"gonogo": { "minAppVersion": "1.4.0" }`
+  about the APP rather than about your code. Declare it in `uplink.json`, or in your `package.json`
+  under `"gonogo": { "minAppVersion": "1.4.0" }` when you have no `uplink.json`
+- **`bundleUrl`** is where your bundle sits RELATIVE to this file, which is all either command can
+  honestly say: the loader finds the manifest by stripping the last segment off the bundle's own URL
 - **`integrity`** is `sha256-` plus the hex sha256 of the file you DISTRIBUTE
+- **`sdkVersion`** is the version of the tool that wrote the file
 
 Everything else is read out of the bundle the tool just loaded, so the manifest describes the code it
 came from. `integrity` is the exception, because the tool cannot guess which file you ship: pass
@@ -1099,6 +1115,9 @@ DISTRIBUTION live, as opposed to the facts about its code:
   "minAppVersion": "1.0.0"
 }
 ```
+
+`gonogo-uplink docs` reads the same file, from the same search, so the manifest it writes beside your
+client and the one `bundle` writes beside your bundle agree field for field.
 
 The command emits `dist/<id>/<id>.client.js`, its `.sha256`, and a `gonogo-uplink.json` beside it. Each
 Uplink gets its own directory because the loader derives the sidecar's URL from the bundle's own, by

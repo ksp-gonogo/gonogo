@@ -56,6 +56,23 @@ export interface GonogoUplinkManifest {
   contractMajor: number;
   contractMinor: number;
   integrity: string;
+  /**
+   * What the Uplink is as a DISTRIBUTION, written by `gonogo-uplink` from the
+   * author's `uplink.json`.
+   *
+   * Optional and unchecked, like `description`: a manifest generated before these
+   * were part of the shape still loads. Nothing here gates anything, and the
+   * loader deliberately prefers the roster's values, which the running mod
+   * vouches for, over a bundle's self-declaration about itself.
+   */
+  name?: string;
+  author?: string;
+  repo?: string;
+  /** Where the bundle sits relative to this manifest. The loader derives its
+   *  own URL the other way round, from the bundle it was asked to load. */
+  bundleUrl?: string;
+  /** The `@ksp-gonogo/sitrep-sdk` that wrote the file. Diagnostic. */
+  sdkVersion?: string;
 }
 
 const MANIFEST_STRING_FIELDS = [

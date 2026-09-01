@@ -1,11 +1,16 @@
 {
   "id": "breakingGround",
-  "version": "0.0.1",
+  "name": "Breaking Ground",
   "description": "Drives Breaking Ground robotic joints and rotors from the console, and reports deployed surface bases on every body while you fly something else.",
+  "author": "",
+  "repo": "",
+  "version": "0.0.1",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",
   "contractMajor": 14,
   "contractMinor": 6,
-  "integrity": ""
+  "bundleUrl": "breakingGround/breakingGround.client.js",
+  "integrity": "",
+  "sdkVersion": "0.0.1"
 }

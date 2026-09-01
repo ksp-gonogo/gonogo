@@ -1,11 +1,16 @@
 {
   "id": "mechjeb",
-  "version": "0.0.1",
+  "name": "MechJeb",
   "description": "Flies the vessel from the console: engage MechJeb's ascent autopilot, execute the next node, or land at the selected target, over the delayed command path.",
+  "author": "",
+  "repo": "",
+  "version": "0.0.1",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",
   "contractMajor": 14,
   "contractMinor": 6,
-  "integrity": ""
+  "bundleUrl": "mechjeb/mechjeb.client.js",
+  "integrity": "",
+  "sdkVersion": "0.0.1"
 }

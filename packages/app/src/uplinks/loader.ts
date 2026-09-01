@@ -373,15 +373,16 @@ export function resolveClientBundleUrl(clientSource: {
  *     bundle (mod-vouched-hash == fetched-bytes-hash), which is still a real
  *     hash gate, just not a three-independent-party one, there IS no third
  *     independent party here.
- *   - `name`/`author`/`repo`: the roster carries none of these (only
- *     id/version/available/reason/expectedClientHash/clientSource), and
- *     `GonogoUplinkManifest` doesn't carry them either (design §6.2, it's
- *     the compat-gate shape only). Rather than fabricate a plausible-looking
- *     name/author, this uses the id as the name (matching the existing
- *     "not found in the registry index" quarantine's same fallback) and an
- *     "unknown" author, so the consent modal (which surfaces
- *     `descriptor.author`) never claims authorship data the loader does not
- *     actually have.
+ *   - `name`/`author`/`repo`: taken from the roster, which the running mod
+ *     vouches for, and never from the manifest. The manifest DOES carry all
+ *     three now (`gonogo-uplink` writes them from the author's
+ *     `uplink.json`), and that is precisely a bundle's claim about itself,
+ *     which is the thing the consent modal exists to let an operator judge.
+ *     So when the roster is silent this uses the id as the name (matching
+ *     the existing "not found in the registry index" quarantine's same
+ *     fallback) and an "unknown" author, rather than repeating an
+ *     unverified self-description back to the person being asked to trust
+ *     it.
  *   - the compat fields (apiVersion/uiKitVersion/contractMajor/
  *     contractMinor/minAppVersion) come straight from the parsed manifest,
  *     this is the whole point of the manifest-fetch seam: it's the one place

@@ -14,7 +14,8 @@
     "./testing": "./src/testing/index.ts",
     "./biome": "./biome.shared.json",
     "./tsconfig.base.json": "./tsconfig.base.json",
-    "./uplink-externals": "./src/uplink-externals.ts"
+    "./uplink-externals": "./src/uplink-externals.ts",
+    "./uplink-manifest": "./src/uplink-manifest.ts"
   },
   "repository": {
     "type": "git",
@@ -66,6 +67,10 @@
       "./uplink-externals": {
         "types": "./dist/uplink-externals.d.ts",
         "import": "./dist/uplink-externals.js"
+      },
+      "./uplink-manifest": {
+        "types": "./dist/uplink-manifest.d.ts",
+        "import": "./dist/uplink-manifest.js"
       }
     }
   },

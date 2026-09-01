@@ -128,6 +128,10 @@ const RUNTIME_ABSENT_SUBPATHS: Record<string, string> = {
   // so no shipped bundle carries the specifier and nothing has to resolve it in
   // a browser.
   "uplink-externals": "build tooling, resolved before a bundle exists",
+  // Build tooling too, and node-only: it reads `uplink.json` and the client's
+  // `package.json` off disk to write `gonogo-uplink.json`. Both writers of that
+  // file resolve it at BUILD time, so no shipped bundle carries the specifier.
+  "uplink-manifest": "build tooling, reads the filesystem",
 };
 
 /*
@@ -267,7 +271,7 @@ describe("sdk subpath aliases", () => {
    * tooling reads is never imported by a widget under test, so aliasing it in a
    * vitest config would be ceremony that teaches the next author nothing.
    */
-  const BUILD_ONLY_SUBPATHS = new Set(["uplink-externals"]);
+  const BUILD_ONLY_SUBPATHS = new Set(["uplink-externals", "uplink-manifest"]);
 
   it("aliases every sdk subpath wherever the bare specifier is aliased", () => {
     const subpaths = sdkSubpaths().filter(

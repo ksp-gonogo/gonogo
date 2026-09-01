@@ -260,20 +260,36 @@ with three widgets.
 
 ### `gonogo-uplink.json`
 
-Almost every field is derived. `id`, `version`, `apiVersion`, `uiKitVersion`,
-`contractMajor` and `contractMinor` come from the bundle the tool just loaded, so
-they describe the code they were read out of. `description` is the field you
-declared on `defineUplinkClient`. `integrity` is the sha256 of the file you distribute, so pass
-`--bundle <path>` when you generate for a release; without it the field is empty
-and the app will quarantine your Uplink with an integrity mismatch, and the run
-warns you.
+**`docs` and `bundle` write the same file.** They used to write two different
+shapes under one filename with nothing to say which the loader honours; they now
+call one writer in the SDK, so running either gives you the same manifest.
+
+Almost every field is derived. `id`, `name`, `version`, `apiVersion`,
+`uiKitVersion`, `contractMajor` and `contractMinor` come from the bundle the tool
+just loaded, so they describe the code they were read out of. `description` is
+the field you declared on `defineUplinkClient`. `bundleUrl` is where your bundle
+sits relative to the manifest, which is the only thing either command can
+honestly say about it: the loader finds the manifest by stripping the last
+segment off the bundle's URL, so the two are always siblings. `sdkVersion` is the
+version of the tool that wrote the file.
+
+`author` and `repo` are yours, and they come from the `uplink.json` beside both
+halves of your Uplink (`creating-an-uplink.md`, "Distribution"). An Uplink
+without one carries empty strings rather than an invented author.
+
+`integrity` is the sha256 of the file you distribute, so pass `--bundle <path>`
+when you generate for a release; without it the field is empty and the app will
+quarantine your Uplink with an integrity mismatch, and the run warns you.
 
 The one field nothing can derive is `minAppVersion`, which is a claim about the
-APP rather than about your code. Declare it in your `package.json`:
+APP rather than about your code. Declare it as `"minAppVersion": "1.4.0"` in your
+`uplink.json`, or in your `package.json` when you have no `uplink.json`:
 
 ```jsonc
 "gonogo": { "minAppVersion": "1.4.0" }
 ```
+
+`uplink.json` wins when both declare it.
 
 Your `defineUplinkClient({ version })` must equal your `package.json` version. The
 tool refuses to write a manifest where they disagree, because the app compares
