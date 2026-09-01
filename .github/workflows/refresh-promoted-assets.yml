@@ -37,18 +37,21 @@ on:
   # approved render that silently stops matching the code is the whole risk this
   # job exists to remove.
   #
-  # Still a hand-kept list, and still therefore capable of being wrong the same
-  # way. It is narrower than correct on purpose: dropping the filter entirely
-  # would re-render and commit on every push to `staging`, which four concurrent
-  # branches make into constant asset churn.
-  push:
-    branches: [main, staging]
-    paths:
-      - 'packages/components/scripts/promoted-widgets.ts'
-      - 'packages/components/scripts/render-promoted-assets.ts'
-      - 'packages/components/scripts/synthesize-landing-descent.ts'
-      - 'packages/components/src/LandingStatus/**'
-      - 'packages/ui-kit/**'
+  # NIGHTLY, for the same reason `uplink-docs.yml` is: this job COMMITS refreshed
+  # assets back, and a commit landing on `staging` while a developer's pre-push
+  # hook is running rejects that push as non-fast-forward and costs the whole
+  # hook again. Both committing workflows moved the remote mid-hook in one
+  # evening.
+  #
+  # It also retires the hand-kept `paths:` list, which was narrower than correct
+  # on purpose (to limit churn on a per-push trigger) and therefore capable of
+  # being wrong: it named this job's own scripts and ONE widget's directory, so a
+  # promoted widget living anywhere else would silently stop being refreshed.
+  # Nightly has no churn pressure, so it can simply run.
+  schedule:
+    # 03:30 UTC, half an hour after uplink-docs, so the two writers never
+    # contend for the branch with each other either.
+    - cron: "30 3 * * *"
 
 # contents: write so the job can commit refreshed assets back.
 # packages: read so pnpm install can pull @jonpepler/kerbcast.

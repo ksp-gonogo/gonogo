@@ -44,16 +44,36 @@ name: Uplink pages
 # would be a hand-kept map of which file affects which page. Ten legs of the
 # matrix render in parallel, so the wall time is one leg either way.
 
-# `staging` as well as `main`, because `staging` is where the work lands. This
-# read `[main]` alone while every branch in the repo merged to `staging`, so the
-# self-heal below did not run once for the whole time development sat there, and
-# the pull-request check kept passing because it compares the PROSE. Five commits
-# of Vehicle Assembly's page showed a layout the code had stopped producing.
+# NIGHTLY, not per-push, and the reason is a measured cost rather than a taste.
+#
+# This job COMMITS regenerated pages back to the branch. Run on every push to
+# `staging` it moved the remote while a developer's pre-push hook was still
+# running (that hook is the full suite, minutes long), so the push was rejected
+# as non-fast-forward and the whole hook had to run again on the merge. Four
+# pushes were lost that way in one evening, and the fourth is what settled it:
+# a self-heal that costs more than the staleness it repairs is not paying.
+#
+# Nightly keeps the repair and removes the race entirely: nothing commits to a
+# branch while anyone is pushing to it.
+#
+# WHAT THIS TRADES AWAY, stated so nobody has to rediscover it: a page can now be
+# stale for up to a day. `ci.yml`'s "Uplink pages are not stale" step still runs
+# per push and will say so, which is the right division: the CHECK is per-push
+# because staleness should be visible immediately, and the REPAIR is nightly
+# because it writes.
+#
+# The history: this read `[main]` alone while every branch merged to `staging`,
+# so the self-heal did not run once for the whole time development sat there,
+# and the pull-request check kept passing because it compared only the PROSE.
+# Five commits of Vehicle Assembly's page showed a layout the code had stopped
+# producing.
 on:
-  push:
-    branches: [main, staging]
-  # By hand, for any ref: useful after a generator change lands on a branch, and
-  # necessary because a GITHUB_TOKEN push gives no run of its own.
+  schedule:
+    # 03:00 UTC, well clear of a working day in either direction.
+    - cron: "0 3 * * *"
+  # By hand, for any ref: useful after a generator change lands on a branch,
+  # necessary because a GITHUB_TOKEN push gives no run of its own, and now also
+  # the way to heal a page without waiting for the night.
   workflow_dispatch:
 
 # contents: write so the job can commit the regenerated pages back.
