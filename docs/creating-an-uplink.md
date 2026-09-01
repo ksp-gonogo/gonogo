@@ -8,33 +8,53 @@ shipped as one unit:
 - a **client** (a TypeScript/React bundle) that self-registers the **widgets and augments** which read
   those Topics and fire those Commands
 
-The two halves share one identity (an `id` like `scansat`) and one version line. You own and host both.
+The two halves share one identity (an `id` like `example`) and one version line. You own and host both.
 There is no central marketplace to submit to and no reviewer to wait on: the gonogo app discovers your
 Uplink because its mod is installed and running, fetches your client bundle from wherever you host it,
 verifies it against a hash, and loads it. This guide walks the whole path.
 
-The built-in Uplinks are the reference: `mod/GonogoScansatUplink/` (Topics + widgets + augments) and
-`mod/GonogoKosUplink/` (Topics + Commands). They use exactly the same public API you will. Read them
-alongside this guide.
+Every TypeScript block below is a complete file or module, and the whole set is compiled against the
+two published packages by `docs/examples/typecheck-guide-examples.mjs`. They are one fictional Uplink,
+`example`, publishing a reactor's output and taking one command. Copy them and they build.
+
+This repo also ships eleven Uplinks of its own under `mod/Gonogo*Uplink/`. They are worked examples,
+not a canon: each is held to the same isolation rule as yours (`docs/uplink-isolation.md`) and uses the
+same public API, and each carries a generated page at `client/README.md` showing its Topics, widgets
+and screenshots. Read one whose shape matches what you are building. Nothing in this guide assumes you
+have read any of them.
 
 ---
 
 ## Repo layout
 
-Keep the two halves co-located, mirroring the first-party layout:
+Keep both halves in one repo. The first-party shape is four sibling projects plus the client, and it is
+worth mirroring, because the split between the mod and its **contract** is load-bearing rather than
+tidiness (see "Getting your contract into your client"):
 
+```text
+example-uplink/
+  uplink.json                     # id, name, author, repo: read by `gonogo-uplink bundle`
+  ExampleUplink/                  # the mod half
+    ExampleUplink.cs
+    ExampleUplink.csproj
+    client/                       # the client half
+      package.json
+      gonogo-uplink.json          # generated version + compat manifest (see "The one version line")
+      src/
+        uplink.ts                 # defineUplinkClient(...): the client identity
+        topics.ts                 # your Topics, typed and registered
+        index.ts                  # side-effect registration entry point
+        Reactor/index.tsx         # a widget, registered with owner: EXAMPLE
+        __generated__/            # codegen output, never hand-edited
+        test/setup.ts
+  ExampleUplink.Contract/         # the wire types, referencing only Sitrep.Contract
+  ExampleUplink.Contract.Codegen/ # the codegen-only twin of the above
+  ExampleUplink.Tests/
 ```
-my-uplink/
-  MyUplink.cs                 # the mod half (C#)
-  MyUplink.csproj
-  client/
-    src/
-      uplink.ts               # defineUplinkClient(...): the client identity
-      index.ts                # side-effect registration entry point
-      MyWidget/index.tsx      # a widget, registered with owner: MY_UPLINK
-    package.json
-    gonogo-uplink.json        # build-generated version + compat manifest (see Versioning)
-```
+
+The client is nested under the mod directory rather than beside it because the two halves version and
+ship together, and because `gonogo-uplink bundle` searches up to three levels above the client for
+`uplink.json`, so either arrangement is found.
 
 ---
 
@@ -48,17 +68,18 @@ attribute is the identity that ties the two halves together: it MUST match your 
 ```csharp
 using System.Collections.Generic;
 using Sitrep.Contract;
+using ExampleUplink.Contract;
 
-[SitrepUplink("my-uplink")]
-public sealed class MyUplink : ISitrepUplink
+[SitrepUplink("example")]
+public sealed class ExampleUplink : ISitrepUplink
 {
-    public const string ReadingTopic = "my-uplink.reading";
-    public const string ResetCommand = "my-uplink.reset";
+    public const string ReactorTopic = "example.reactor";
+    public const string SetOutputCommand = "example.setOutput";
 
     public UplinkManifest Manifest { get; } = new UplinkManifest
     {
-        Id = "my-uplink",
-        Version = "1.0.0",
+        Id = "example",
+        Version = "0.1.0",
 
         // Topics this Uplink publishes. Each ChannelDeclaration names a Topic,
         // its delivery mode, its emission cadence, and its delay role.
@@ -66,7 +87,7 @@ public sealed class MyUplink : ISitrepUplink
         {
             new ChannelDeclaration
             {
-                Topic = ReadingTopic,
+                Topic = ReactorTopic,
                 Delivery = Delivery.LossyLatest,
                 Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 // Delayed rides the light-time signal delay like any vessel-sourced
@@ -80,7 +101,7 @@ public sealed class MyUplink : ISitrepUplink
         // the craft).
         Commands = new List<CommandDeclaration>
         {
-            new CommandDeclaration { Command = ResetCommand, Delayed = true },
+            new CommandDeclaration { Command = SetOutputCommand, Delayed = true },
         },
     };
 
@@ -91,14 +112,14 @@ public sealed class MyUplink : ISitrepUplink
     public void Register(IUplinkHost host)
     {
         // Publish a Topic: map the current game snapshot to the value.
-        host.AddChannelSource(ReadingTopic, snapshot => ReadReading(snapshot));
+        host.AddChannelSource(ReactorTopic, snapshot => ReadReactor(snapshot));
 
         // Handle a Command: typed args in, a CommandResult out.
-        host.AddCommandHandler<object?, CommandResult>(ResetCommand, args => Reset());
+        host.AddCommandHandler<SetOutputArgs, CommandResult>(SetOutputCommand, SetOutput);
     }
 
-    private object? ReadReading(KspSnapshot? snapshot) => /* ... */ null;
-    private CommandResult Reset() => CommandResult.Ok();
+    private ReactorStatus? ReadReactor(KspSnapshot? snapshot) => /* ... */ null;
+    private CommandResult SetOutput(SetOutputArgs args) => CommandResult.Ok();
 }
 ```
 
@@ -113,9 +134,13 @@ Key points:
   line without knowing what any of them mean, so you do not need a Topic of your own to carry them, and
   you should not invent one: a Topic gets a unit, a delay role and a history, none of which a file path
   wants. Keep readings on Topics and identity here
-- **`AddChannelSource`** publishes a Topic from the main-thread game snapshot; **`AddSampledSource`** is the
-  gated, higher-cost variant for expensive reads (see `ScansatUplink.cs`)
-- **Topic and Command names are namespaced by your id** (`my-uplink.reading`), which keeps them from
+- **`AddChannelSource`** publishes a Topic from the main-thread game snapshot. **`AddSampledSource`** is
+  the capture-on-main / handle-on-Courier variant, for state that is NOT already on the shared
+  `KspSnapshot` and can only be read from the Unity main thread. Read
+  `IUplinkHost.AddSampledSource`'s own doc comment in `Sitrep.Contract` before using it, and read the
+  gated overload's second: gating a capture that writes state anything else reads starves that reader
+  silently, with no log line and no degraded mode
+- **Topic and Command names are namespaced by your id** (`example.reactor`), which keeps them from
   colliding with other Uplinks
 
 ### Reading another mod's internals
@@ -131,7 +156,7 @@ interop". That is false, and it fails in the worst direction. A mod's own fatal-
 the process, and it gets called from the default branch of an ordinary-looking switch. Principia's
 frame selector holds no native handle at all, and four of its parameterless members still reach it:
 
-```
+```text
 FrameParameters()   default branch -> Log.Fatal("Unexpected frame_type …")
 Name()              -> Log.Fatal("Unexpected type …"), plus three root-body cases
 NavballName()       same naming path
@@ -171,6 +196,170 @@ nothing, so the client reads `absent` and can say so.
 
 ## Part 2: the client half
 
+### Getting your contract into your client
+
+Step zero of the client half is a typed contract. Your Topic payloads are C# classes, and the client
+needs the matching TypeScript. Three things come out of one codegen run: the interfaces, a Topic map,
+and a unit map. `mod/codegen.sh` in this repo runs exactly this per Uplink, and is the script to read
+alongside this section.
+
+**1. Put the wire types in their own project.** `ExampleUplink.Contract` holds the payloads and the
+command args, references `Sitrep.Contract` and nothing else, and is what both your mod and codegen
+read. Annotate the quantities:
+
+```csharp
+using Sitrep.Contract;
+
+namespace ExampleUplink.Contract
+{
+    [SitrepTopic("example.reactor")]
+    public sealed class ReactorStatus
+    {
+        [SitrepUnit(Units.Flag)]
+        public bool Online { get; set; }
+
+        [SitrepUnit("kW")]
+        public double OutputPower { get; set; }
+
+        [SitrepUnit("K")]
+        public double CoreTemp { get; set; }
+
+        // A token the core catalog has never heard of is FINE: the generated
+        // SitrepUnit union is open. Declare it in your OWN Units class (see
+        // "Your own catalog") so a typo still fails, then teach the client
+        // what it means.
+        [SitrepUnit("thermalUnits")]
+        public double Throughput { get; set; }
+    }
+
+    public sealed class SetOutputArgs
+    {
+        public double TargetPower { get; set; }
+    }
+}
+```
+
+**2. Add a codegen-only TWIN of that project.** Reinforced.Typings drives codegen by reading
+`[TsInterface]`/`[TsEnum]` out of an assembly's metadata, so those attributes have to be compiled into
+something, and it must not be the assembly you ship. A shipped contract assembly holding a metadata
+reference to `Reinforced.Typings.dll` while being deployed without it throws
+`FileNotFoundException` from anything that asks one of its types for its attributes, and
+`Enum.ToString()` asks, because enum formatting looks for `[Flags]`. Nine contract projects in this
+repo had that leak.
+
+So `ExampleUplink.Contract.Codegen` recompiles the SAME sources with `SITREP_CODEGEN` defined, which is
+the only configuration in which the RT attributes and your `RtConfig` class exist at all. Nothing
+references the twin and nothing ships it. `mod/CodegenTwin.props` is the shared shape; a twin is five
+lines:
+
+```text
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <CodegenTwinSource>..\ExampleUplink.Contract</CodegenTwinSource>
+    <AssemblyName>ExampleUplink.Contract</AssemblyName>
+    <RootNamespace>ExampleUplink</RootNamespace>
+  </PropertyGroup>
+  <Import Project="..\CodegenTwin.props" />
+</Project>
+```
+
+Keeping `AssemblyName` equal to the shipped assembly's name matters: rtcli sees the same assembly
+identity, type names and member order, so the generated TypeScript does not churn.
+
+**3. Write the `Configure` method rtcli calls.** It lives in the contract project, behind
+`#if SITREP_CODEGEN`. Three calls do the work: export the types as interfaces, retype the annotated
+properties from bare numbers to `Value<unit>`, and emit the two maps.
+
+```csharp
+#if SITREP_CODEGEN
+using System;
+using Reinforced.Typings.Fluent;
+
+namespace ExampleUplink.Contract
+{
+    public static class ExampleRtConfig
+    {
+        public static void Configure(ConfigurationBuilder builder)
+        {
+            builder.Global(g => g
+                .CamelCaseForProperties()
+                .UseModules(true)
+                .AutoOptionalProperties());
+
+            // Held in a local because ApplyUnitValueTypes re-enters this exact
+            // set: only a type registered with rtcli may have its properties
+            // retyped. A nested payload left out of this set generates with
+            // bare numbers where its parent generates Value<> types, in the
+            // same file, with nothing failing.
+            var wireTypes = new[] { typeof(ReactorStatus), typeof(SetOutputArgs) };
+
+            builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());
+
+            // `valueImportFrom` is the specifier that reaches the SDK from YOUR
+            // generated file. Core's default is a relative path that does not
+            // resolve from an Uplink's client.
+            Sitrep.Contract.RtConfig.ApplyUnitValueTypes(
+                builder, wireTypes, valueImportFrom: "@ksp-gonogo/sitrep-sdk");
+
+            // Which env vars you read is your choice; these mirror the
+            // first-party naming. Both emitters are no-ops when unset.
+            var topicMapOut = Environment.GetEnvironmentVariable("EXAMPLE_TOPICMAP_OUT");
+            if (!string.IsNullOrEmpty(topicMapOut))
+            {
+                Sitrep.Contract.RtConfig.EmitTopicMap(
+                    topicMapOut!, typeof(ExampleRtConfig).Assembly);
+            }
+
+            var unitMapOut = Environment.GetEnvironmentVariable("EXAMPLE_UNITMAP_OUT");
+            if (!string.IsNullOrEmpty(unitMapOut))
+            {
+                Sitrep.Contract.RtConfig.EmitUnitMap(
+                    unitMapOut!,
+                    Environment.GetEnvironmentVariable("EXAMPLE_UNITJSON_OUT"),
+                    typeof(ExampleRtConfig).Assembly);
+            }
+        }
+    }
+}
+#endif
+```
+
+`ApplyUnitValueTypes` skips inbound-only command args deliberately, so `SetOutputArgs` generates with
+bare numbers even though it is in the set.
+
+**4. Run rtcli over the twin's output**, writing into your client's `src/__generated__/`:
+
+```bash
+RT_PKG="$HOME/.nuget/packages/reinforced.typings/1.6.7"
+OUT="ExampleUplink/client/src/__generated__"
+
+dotnet build ExampleUplink.Contract.Codegen/ExampleUplink.Contract.Codegen.csproj -v minimal
+mkdir -p "$OUT"
+
+DOTNET_ROLL_FORWARD=LatestMajor \
+  EXAMPLE_TOPICMAP_OUT="$OUT/topic-map.ts" \
+  EXAMPLE_UNITMAP_OUT="$OUT/units.ts" \
+  EXAMPLE_UNITJSON_OUT="$OUT/units.json" \
+  dotnet "$RT_PKG/tools/net5.0/rtcli.dll" \
+  SourceAssemblies="ExampleUplink.Contract.Codegen/bin/Debug/netstandard2.0/ExampleUplink.Contract.dll" \
+  TargetFile="$OUT/contract.ts" \
+  ConfigurationMethod="ExampleUplink.Contract.ExampleRtConfig.Configure"
+```
+
+Four files land in `src/__generated__/`, and none of them is ever hand-edited:
+
+| file | what it holds | who reads it |
+| --- | --- | --- |
+| `contract.ts` | one interface per wire type, camelCased, quantities as `Value<unit>` | your widgets, `topics.ts` |
+| `topic-map.ts` | `GeneratedTopicPayloadMap` and `GENERATED_TOPIC_IDS` | reference for your `declare module` block |
+| `units.ts` | `GENERATED_TOPIC_UNITS` / `_SHAPES` and `GENERATED_TYPE_UNITS` / `_SHAPES` | `topics.ts`, at module load |
+| `units.json` | the same unit map as data | anything that is not TypeScript |
+
+`topic-map.ts` is a reference rather than something you import: it names the Topics your
+`[SitrepTopic]` attributes declared, and **it is not a list of every Topic on your wire**. A dynamic
+namespace registered through `IUplinkHost.RegisterDynamicNamespace` materialises its Topics per subject
+at runtime, so no attribute exists for reflection to find and nothing about it appears there.
+
 ### Declare the client identity
 
 Every client bundle declares its identity once, in `client/src/uplink.ts`, with `defineUplinkClient` from
@@ -180,61 +369,61 @@ the SDK. It returns a frozen handle:
 // client/src/uplink.ts
 import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
 
-// Phase 2 build-injects this from gonogo-uplink.json; a placeholder until then
-const UPLINK_VERSION = "0.0.0-dev";
+// Must equal your package.json version. `gonogo-uplink docs` refuses to write a
+// manifest where the two disagree, because the app compares what it reads in
+// the manifest against what your loaded bundle declares.
+const UPLINK_VERSION = "0.1.0";
 
-export const MY_UPLINK = defineUplinkClient({
-  id: "my-uplink", // MUST match [SitrepUplink("my-uplink")] and gonogo-uplink.json
+export const EXAMPLE = defineUplinkClient({
+  id: "example", // MUST match [SitrepUplink("example")] and gonogo-uplink.json
   version: UPLINK_VERSION,
-  name: "My Uplink",
+  name: "Example Uplink",
+  // The subtitle on your generated README, so write it for a reader deciding
+  // whether to install this.
+  description: "Reactor output, core temperature and throughput, from the example mod.",
 });
-```
-
-### Register widgets and augments with `owner`
-
-Every widget and augment your client registers stamps that handle as `owner`. This is the whole point of
-the handle: the widget picker's mod search tags derive from `owner.id` automatically, so a user searching
-"my-uplink" finds your widgets with no per-widget field to remember.
-
-```tsx
-// client/src/MyWidget/index.tsx
-import { registerComponent } from "@ksp-gonogo/sitrep-sdk";
-import { MY_UPLINK } from "../uplink";
-import { MyWidget } from "./MyWidget";
-
-registerComponent({
-  id: "my-widget",
-  name: "My Widget",
-  category: "telemetry",
-  component: MyWidget,
-  dataRequirements: ["my-uplink.reading"],
-  actions: [],
-  defaultConfig: {},
-  owner: MY_UPLINK, // <- stamps ownership; search tags derive "my-uplink"
-});
-```
-
-> If you are migrating an older client: the previous per-widget `mod` field is gone. Ownership now comes
-> from `owner: <handle>`, and the search tag derives from `owner.id`. Delete any old `mod:` field
-
-Inside the widget, read Topics with `useTelemetry` and fire Commands with `useCommand`, keyed by the same
-namespaced names the mod declared:
-
-```tsx
-const reading = useTelemetry("my-uplink.reading");
-const reset = useCommand("my-uplink.reset");
 ```
 
 ### Register your Topics, and the generic surfaces follow
 
 Your client tells the SDK which Topics you own, at module load, beside the `declare module`
-augmentation that types them:
+augmentation that types them. Both halves are needed and they answer different questions:
 
 ```ts
 // client/src/topics.ts
-registerBarePrimitiveTopic("my-uplink.reading");
+import {
+  registerBarePrimitiveTopic,
+  registerTopicUnits,
+  registerTypeUnits,
+} from "@ksp-gonogo/sitrep-sdk";
+import type { ReactorStatus } from "./__generated__/contract";
+import {
+  GENERATED_TOPIC_SHAPES,
+  GENERATED_TOPIC_UNITS,
+  GENERATED_TYPE_SHAPES,
+  GENERATED_TYPE_UNITS,
+} from "./__generated__/units";
 
-// loop your own generated maps, so a Topic you add later needs no new call site
+// The TYPE half. `TopicPayloadMap` is the SDK's declaration-merging seam, and
+// merging into it is what makes `useTelemetry("example.reactor")` answer a
+// Reading of ReactorStatus rather than failing to resolve the id at all.
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface TopicPayloadMap {
+    "example.available": boolean;
+    "example.reactor": ReactorStatus;
+  }
+}
+
+// The RUNTIME half, part one: which Topic ids exist. Named for the commonest
+// case (a bare boolean with no C# payload type), but a structured Topic
+// registers here too, and this is also what makes your Topic pickable and
+// promotable in the app's generic surfaces.
+registerBarePrimitiveTopic("example.available");
+registerBarePrimitiveTopic("example.reactor");
+
+// Part two: what turns a bare number on the wire into the `Value` your type
+// promises. Loop your own generated maps, so a Topic you add later needs no
+// new call site.
 for (const [topic, units] of Object.entries(GENERATED_TOPIC_UNITS)) {
   registerTopicUnits(topic, units, GENERATED_TOPIC_SHAPES[topic] ?? {});
 }
@@ -243,18 +432,323 @@ for (const [name, units] of Object.entries(GENERATED_TYPE_UNITS)) {
 }
 ```
 
-You already need both calls: the first is what narrows your Topic ids at runtime, the second is what
-turns a bare number on the wire into the `Value` your type promises.
+Register the type-keyed half as well as the topic-keyed half. `registerTopicUnits` covers a Topic's OWN
+fields, which is the whole of the problem for a flat payload and none of it for a nested one: the
+decoder learns from the shape map that a field holds another shape, then resolves that shape BY NAME
+through the type-keyed registry. Register only the topic and every quantity nested one level down
+arrives bare while the generated type still says `Value<"m">`.
 
-They buy more than that, and you do nothing further to collect it. Registration is the only statement
-your Topics exist that reaches a running app, so it is what the app's generic surfaces read. Your Topics
-are promoted to the stream on the same footing as a first-party one, and every field you declared a unit
-for turns up, labelled and dimensioned, in the pickers the graph widget, the threshold alarms and the
-note tags are all built from. There is no list in the gonogo repo to get your Topic added to, and asking
-for one would be the wrong fix: it could only ever name an Uplink that shipped before it was written.
+Registration buys more than the decode, and you do nothing further to collect it. It is the only
+statement your Topics exist that reaches a running app, so it is what the app's generic surfaces read.
+Your Topics are promoted to the stream on the same footing as a first-party one, and every field you
+declared a unit for turns up, labelled and dimensioned, in the pickers the graph widget, the threshold
+alarms and the note tags are all built from. There is no list in the gonogo repo to get your Topic added
+to, and asking for one would be the wrong fix: it could only ever name an Uplink that shipped before it
+was written.
 
 The one field that will not appear is one with no declared unit. A field the walk cannot dimension is a
 field a picker cannot order or render, so annotate the whole payload rather than the interesting half.
+
+### Register widgets and augments with `owner`
+
+Every widget and augment your client registers stamps that handle as `owner`. This is the whole point of
+the handle: the widget picker's mod search tags derive from `owner.id` automatically, so a user searching
+"example" finds your widgets with no per-widget field to remember.
+
+Here is the smallest complete widget, reading the bare boolean Topic:
+
+```tsx
+// client/src/Presence/index.tsx
+import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
+import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { Panel, StatusPill } from "@ksp-gonogo/ui-kit";
+// Side-effect import: your Topics have to be typed and registered before a
+// widget reads one, and a widget pulls that itself rather than relying on the
+// entry point's import order.
+import "../topics";
+import { EXAMPLE } from "../uplink";
+
+type PresenceConfig = Record<string, never>;
+
+function PresenceWidget(_props: ComponentProps<PresenceConfig>) {
+  // `useTelemetry` answers a `Reading`, never the payload. `observed` is the
+  // only arm that means "true, right now": see the next section.
+  const reading = useTelemetry("example.available");
+  const online = reading.state === "observed" && reading.value;
+
+  return (
+    <Panel panelTitle="Reactor" compactTitle={["REACTOR", "RTR"]}>
+      <StatusPill $tone={online ? "go" : "warning"}>
+        {online ? "ONLINE" : "NO READING"}
+      </StatusPill>
+    </Panel>
+  );
+}
+
+registerComponent<PresenceConfig>({
+  id: "example-presence",
+  name: "Reactor Presence",
+  // Required, and it is the line on your generated README, so one sentence
+  // about what an operator sees.
+  description: "Whether the example mod is reporting a reactor at all.",
+  tags: ["telemetry"],
+  component: PresenceWidget,
+  // Typed against your merged TopicPayloadMap, so a typo fails the build.
+  channels: ["example.available"],
+  actions: [],
+  defaultConfig: {},
+  owner: EXAMPLE, // <- stamps ownership; search tags derive "example"
+});
+```
+
+`description` and `tags` are required. There is no `category` field; `tags` is the free-form list a
+picker may style. `channels` names the Topics the widget REQUIRES and is typed against `TopicId`, so it
+is checked; `optionalChannels` is the same for a read the widget can do without.
+
+> If you are migrating an older client: the previous per-widget `mod` field is gone. Ownership now comes
+> from `owner: <handle>`, and the search tag derives from `owner.id`. Delete any old `mod:` field
+
+### What a Topic read answers: `Reading`
+
+`useTelemetry` does not answer your payload. It answers a `Reading` of it, a six-arm discriminated
+union, and there is no arm you can read a value off without first writing the discriminant:
+
+```text
+type Reading<T> =
+  | { state: "pending" }
+  | { state: "unowned" }
+  | { state: "absent";      atUt: Value<"ut"> }
+  | { state: "observed";    value: T; atUt: Value<"ut"> }
+  | { state: "stale";       value: T; asOfUt: Value<"ut">; grade: StaleGrade }
+  | { state: "reckonable";  value: T; asOfUt: Value<"ut">; grade: StaleGrade;
+                            reckoned: Reckoning<T> };
+```
+
+This is the most consequential thing on the read surface, so it is worth the paragraph. A widget that
+renders stale data as though it were live is this project's worst failure mode, and the weaker fix
+already exists and did not work: a staleness badge rides its own channel beside the value, ui-kit
+renders it, and the dashboard even badges the panel header from it. Zero of the thirty-nine built-in
+telemetry widgets adopted it, because a badge beside a body is chrome and nothing forces the body to
+consult it. Reaching a value here means branching, and the branch is where the caveat gets rendered.
+
+What each arm means:
+
+- **`pending`**: nothing at or before the frame's view time yet. A cold Topic, or a resync after a
+  rewind. It may become something else on the next frame
+- **`unowned`**: nothing will EVER publish this Topic. No installed Uplink declares it and it falls
+  under no dynamic namespace, so waiting is futile. Decided by the mod, from a subscribe that came back
+  unacknowledged, never inferred client-side from silence
+- **`absent`**: a confirmed tombstone. The subject says there is no value. Carries `atUt`, so a widget
+  can say "no reactor aboard, confirmed 3 s ago" rather than asserting it for the rest of the mission
+- **`observed`**: the newest sample that could have reached us. Note that under a light-time delay every
+  value is old, and a value 4 s old under a 4 s light-time is as current as physics permits, so it is
+  `observed`. Delay is not staleness
+- **`stale`**: updates we should have had did not arrive, and nothing can honestly model the gap.
+  `value` is the last REAL observation and `asOfUt` says when it was made. This is the honest majority
+- **`reckonable`**: updates were missed AND a model exists. Carries the last real observation exactly as
+  `stale` does, plus `reckoned`, the forward-modelled value for this frame
+
+`grade` says which kind of missed update it was (`held-stale`, `disconnected`, `last-before-blackout`),
+and it labels the same render rather than changing it, which is why it is a field and not three more
+arms. `reckoned` is a required field on its own arm, because an optional one is a field a destructuring
+consumer ignores by default, and silently dropping a reckoning while the widget still looked right is
+precisely what this type prevents.
+
+Here is the whole union handled once, in a helper, which is the shape to copy:
+
+```tsx
+// client/src/Reactor/index.tsx
+import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerComponent,
+  useCommand,
+  useTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  Panel,
+  ReadoutCaption,
+  Row,
+  RowName,
+  Section,
+  Stack,
+  Unit,
+  usePanelDelay,
+  writeQuantity,
+} from "@ksp-gonogo/ui-kit";
+import type { ReactorStatus } from "../__generated__/contract";
+import "../topics";
+import { EXAMPLE } from "../uplink";
+
+type ReactorConfig = Record<string, never>;
+
+/**
+ * The value to draw, and what to say about its currency. One branch per arm,
+ * and the compiler will not let you leave one out, so a seventh arm added
+ * later fails here rather than rendering as blank.
+ */
+function present(reading: Reading<ReactorStatus>): {
+  caption: string;
+  status?: ReactorStatus;
+} {
+  switch (reading.state) {
+    case "pending":
+      return { caption: "waiting for the first sample" };
+    case "unowned":
+      return { caption: "no installed Uplink publishes this" };
+    case "absent":
+      return {
+        caption: `no reactor aboard, confirmed at ${writeQuantity(reading.atUt)}`,
+      };
+    case "observed":
+      return { caption: "live", status: reading.value };
+    case "stale":
+      return {
+        caption: `last seen ${writeQuantity(reading.asOfUt)} (${reading.grade})`,
+        status: reading.value,
+      };
+    case "reckonable":
+      // The modelled value for THIS frame, not the last observation. Draw
+      // `reading.value` instead and you have declined to propagate, which is
+      // legitimate and should be written as `withoutReckoning(reading)` so it
+      // is greppable.
+      return {
+        caption: `modelled forward from ${writeQuantity(reading.asOfUt)}`,
+        status: reading.reckoned.value,
+      };
+  }
+}
+
+export function ReactorWidget(_props: ComponentProps<ReactorConfig>) {
+  const { caption, status } = present(useTelemetry("example.reactor"));
+  const setOutput = useCommand("example.setOutput");
+  usePanelDelay(setOutput);
+
+  const raise = () =>
+    void setOutput.send({ targetPower: 500 }, { label: "Raise output to 500 kW" });
+
+  return (
+    <Panel
+      panelTitle="Reactor"
+      sections={
+        <Section title="Core">
+          {/* `Unit` renders the null token for an absent value, so a read can
+              be handed straight over without a gate of its own. */}
+          <Stack gap="xs" as="ul">
+            <Row>
+              <RowName>Output</RowName>
+              <Unit value={status?.outputPower} />
+            </Row>
+            <Row>
+              <RowName>Core temperature</RowName>
+              <Unit value={status?.coreTemp} />
+            </Row>
+          </Stack>
+          <ReadoutCaption>{caption}</ReadoutCaption>
+          <button type="button" onClick={raise} disabled={status === undefined}>
+            Raise output
+          </button>
+        </Section>
+      }
+    />
+  );
+}
+
+registerComponent<ReactorConfig>({
+  id: "example-reactor",
+  name: "Reactor",
+  description: "Reactor output and core temperature, with a set-output command.",
+  tags: ["telemetry", "control"],
+  component: ReactorWidget,
+  channels: ["example.reactor"],
+  actions: [],
+  defaultConfig: {},
+  defaultSize: { w: 4, h: 4 },
+  minSize: { w: 3, h: 3 },
+  requires: ["flight"],
+  owner: EXAMPLE,
+});
+```
+
+Two rules the helper encodes, worth stating separately:
+
+- **Never assert past the union.** `useTelemetry("example.reactor") as ReactorStatus | undefined`
+  compiles and is a lie the compiler cannot see in either direction: every read then answers `undefined`
+  forever and the widget says "no reading" for the rest of the mission. A cast is a stronger blind spot
+  than `unknown`, because someone chose it
+- **A judgement is withheld, not held.** A go/no-go, a band, a coloured pill: the operator reads those
+  as the situation NOW, and a judgement cannot be dated. Draw those from `observed` and `reckonable`
+  only, and say nothing on `stale`. A stale GO is the worst thing a widget can draw
+
+`hasAnswered(reading)` collapses the arms to a boolean for the narrow case of a presence gate, where the
+question is "should the gate be open" rather than "what should I say". Do not reach for it in a widget
+that renders something to a user: `pending` may become true on the next frame and `unowned` never will,
+and the two want opposite words on screen.
+
+### Firing a Command
+
+`useCommand(command)` returns a handle. `send(args, opts)` dispatches:
+
+```tsx
+// client/src/Reactor/Controls.tsx
+import { useCommand } from "@ksp-gonogo/sitrep-sdk";
+import { CommandDelay, usePanelDelay } from "@ksp-gonogo/ui-kit";
+
+export function ReactorControls({ targetPower }: { targetPower: number }) {
+  const setOutput = useCommand("example.setOutput");
+
+  // A delayed command owes the operator its delay UX. `usePanelDelay` hands
+  // this command's delay state to the surrounding Panel's rail, which is the
+  // normal way; `<CommandDelay>` renders it inline where there is no Panel.
+  usePanelDelay(setOutput);
+
+  return (
+    <>
+      <button
+        type="button"
+        // `send` takes your args object, and a `label` that names the dispatch
+        // in the in-flight list an operator watches.
+        onClick={() =>
+          void setOutput.send(
+            { targetPower },
+            { label: `Set output to ${targetPower} kW` },
+          )
+        }
+        // `status` is a discriminated union, not a string: branch on `phase`.
+        disabled={setOutput.status.phase === "in-flight"}
+      >
+        Set output
+      </button>
+      {setOutput.refusals.map((refusal) => (
+        <p key={refusal.id}>
+          {/* `detail` is the refusal in the GAME's own words when it had any,
+              and `errorCode` is the machine-readable half. Never parse either. */}
+          {refusal.detail ?? refusal.errorCode}{" "}
+          <button type="button" onClick={() => setOutput.dismiss(refusal.id)}>
+            dismiss
+          </button>
+        </p>
+      ))}
+      <CommandDelay handle={setOutput} />
+    </>
+  );
+}
+```
+
+The handle carries more than `send`:
+
+| field | what it is |
+| --- | --- |
+| `status` | this command's lifecycle, as a union on `phase`: `idle`, `in-flight`, `confirmed`, `failed`, `refused`, `lost` |
+| `inFlight` | the dispatches still travelling, each with its reach and reply ETAs |
+| `refusals` | dispatches the GAME refused, until dismissed. Different from a rejection: a refusal never left |
+| `gate` | what the mod says about this command in ADVANCE, or `undefined` when nothing is known |
+| `effectiveDelaySeconds` | the one-way delay under the current vantage, 0 for instant |
+| `shape` | which delay display this command uses; hand it straight to `<CommandDelay>` |
+| `dismiss(id)` | clear a dead dispatch or a refusal, the manual out for anything that would sit forever |
+
+`send` is typed `(args?: unknown, opts?) => Promise<unknown>`: the command vocabulary is not generated
+the way `TopicId` is, so neither the command name nor its args are checked. Your own args interface
+comes out of your codegen (`SetOutputArgs` above), so type your call site against it yourself.
 
 ### Sharing a derivation with other Uplinks
 
@@ -263,13 +757,29 @@ widgets read it. Your client registers one through its handle, and reads it back
 
 ```ts
 // client/src/processor.ts
-export interface HabSummary { occupied: number }
+import { useProcessor } from "@ksp-gonogo/sitrep-sdk";
+import type { ReactorStatus } from "./__generated__/contract";
+import "./topics";
+import { EXAMPLE } from "./uplink";
 
-export const HAB_SUMMARY = MY_UPLINK.registerProcessor({
-  id: "hab-summary",                        // registers as "my-uplink:hab-summary"
-  deps: ["my-uplink.habitat"] as const,
-  compute: ([habitat]): HabSummary => ({ occupied: habitat?.crew ?? 0 }),
+export interface ThermalSummary {
+  overTemp: boolean;
+}
+
+export const THERMAL_SUMMARY = EXAMPLE.registerProcessor({
+  id: "thermal-summary", // registers as "example:thermal-summary"
+  deps: ["example.reactor"] as const,
+  // `deps` is `as const`, so `reactor` is typed off it: no annotation, and a
+  // Topic added to `deps` widens the tuple rather than needing one written out.
+  compute: ([reactor]): ThermalSummary => ({
+    overTemp: (reactor?.coreTemp?.magnitude ?? 0) > 1200,
+  }),
 });
+
+// Your own widgets import the handle and read the result off its brand.
+export function useThermalSummary(): ThermalSummary | undefined {
+  return useProcessor(THERMAL_SUMMARY);
+}
 ```
 
 That handle is how a consumer gets the RESULT TYPE, because `useProcessor` reads it off the handle's
@@ -292,16 +802,17 @@ the SDK.** `defineProcessorContract` is that split: the id and the result type p
 `@ksp-gonogo/sitrep-sdk`, where every Uplink already compiles against them, and the implementation
 registered by whichever client owns the mod it derives from.
 
-```ts
+```text
 // in @ksp-gonogo/sitrep-sdk, beside the result type it names
-export interface HabSummary { occupied: number }
-export const HAB_SUMMARY = defineProcessorContract<HabSummary>("my-uplink:hab-summary");
+export interface ThermalSummary { overTemp: boolean }
+export const THERMAL_SUMMARY =
+  defineProcessorContract<ThermalSummary>("example:thermal-summary");
 
 // in YOUR client: import the type you must satisfy, register the derivation
-MY_UPLINK.registerProcessor({ id: "hab-summary", deps, compute });
+EXAMPLE.registerProcessor({ id: "thermal-summary", deps, compute });
 
 // in ANY other Uplink: imports the SDK, and neither your package nor your types
-const hab = useProcessor(HAB_SUMMARY);   // HabSummary | undefined
+const thermal = useProcessor(THERMAL_SUMMARY);   // ThermalSummary | undefined
 ```
 
 The id must be owner-stamped (`<owner>:<id>`), matching what `registerProcessor` stamps; an unstamped one
@@ -322,6 +833,37 @@ the payload cannot be compared, so every consumer is woken on every frame. That 
 against the `Processor uncomparable results/sec` budget, whose threshold is zero, and logs a warning
 naming your processor and the shape.
 
+### Putting your UI inside somebody else's widget: slots
+
+A **slot** is an addressable place in a widget where another package may render. Two kinds, and the
+difference is what you hand over:
+
+- an **augment** is a React component. `registerAugment` binds it to a slot id and `<AugmentSlot>` is
+  what the owning widget mounts
+- a **contribution** is pure data. The host declares the slot and its entry type, and renders every
+  contributed entry itself, so several Uplinks composing into one slot cannot fight over layout
+
+**Every widget has three slots you did not have to ask for**, mounted by `Panel` rather than by the
+widget: `<componentId>.sections` and `<componentId>.actions` (augments) and `<componentId>.badges` (a
+contribution slot). So an Uplink can add a body section or a header action to any widget in the app,
+including one whose author never declared a slot, and this is usually the answer when a widget looks
+like it needs a slot ADDED to it.
+
+Beyond those, the first-party widgets declare about thirty named slots, and the catalogue is the type
+rather than a list in a document: `SlotId` is the union of every declared id and `SlotProps<S>` is the
+props one hands its augment, both from `@ksp-gonogo/sitrep-sdk`. Autocomplete on the slot id in
+`registerAugment` is the enumeration, and it is current by construction where a prose list would go
+stale. A slot not in the registry falls back to a loose props bag rather than failing, so a typo in a
+slot id costs you a silent no-render: read the id off the completion list.
+
+To own a slot in YOUR widget, declare it in the registration (`augmentSlots` or `contributionSlots`),
+merge its props type into `SlotRegistry` from your own client, and mount `<AugmentSlot>` where it goes.
+Declare a given id as one kind or the other, never both.
+
+Both `AugmentSlot` and `registerAugment` are exported from `@ksp-gonogo/ui-kit` AND re-exported from
+`@ksp-gonogo/sitrep-sdk`. They are the same implementation, so either import works; pick one and be
+consistent, because two spellings of the same call in one client reads like two mechanisms.
+
 ### Wire the side-effect entry point
 
 `client/src/index.ts` is the entry the app loads. Registration happens as a side effect of import, so keep
@@ -329,8 +871,10 @@ the registration imports as **bare imports** (never let a bundler tree-shake the
 
 ```ts
 // client/src/index.ts
-import "./uplink";     // defineUplinkClient(MY_UPLINK) runs first
-import "./MyWidget";   // registerComponent(... owner: MY_UPLINK)
+import "./uplink"; // defineUplinkClient(EXAMPLE) runs first
+import "./topics"; // the Topic types and the runtime registrations
+import "./Presence"; // registerComponent(... owner: EXAMPLE)
+import "./Reactor"; // ditto
 ```
 
 ---
@@ -338,27 +882,39 @@ import "./MyWidget";   // registerComponent(... owner: MY_UPLINK)
 ## The one version line and the compat gate
 
 An Uplink has **one version** spanning both halves. You never hand-write the compatibility numbers: a
-build step generates `gonogo-uplink.json`, the sidecar manifest that ships next to your client bundle. Its
-shape (`GonogoUplinkManifest`):
+build step generates `gonogo-uplink.json`, the sidecar manifest that ships next to your client bundle.
+Its shape:
 
 ```json
 {
-  "id": "my-uplink",
-  "version": "1.2.0",
+  "id": "example",
+  "version": "0.1.0",
+  "description": "Reactor output, core temperature and throughput, from the example mod.",
   "minAppVersion": "1.0.0",
   "apiVersion": "1.0.0",
-  "uiKitVersion": "0.1.0",
-  "contractMajor": 1,
-  "contractMinor": 0,
-  "integrity": "sha256-..."
+  "uiKitVersion": "0.2.0",
+  "contractMajor": 14,
+  "contractMinor": 5,
+  "integrity": "sha256-2b1f…"
 }
 ```
 
-- **`apiVersion`** pins the `@ksp-gonogo/sitrep-sdk` authoring surface you built against (`EXTENSION_API_VERSION`)
+- **`description`** is what you declared on `defineUplinkClient`, and it is the subtitle on your
+  generated README
+- **`apiVersion`** pins the `@ksp-gonogo/sitrep-sdk` authoring surface you built against
+  (`EXTENSION_API_VERSION`)
 - **`uiKitVersion`** pins the `@ksp-gonogo/ui-kit` design-system surface (`UI_KIT_VERSION`)
 - **`contractMajor`/`contractMinor`** pin the telemetry contract your Topics and Commands speak
-- **`minAppVersion`** is an advisory floor
-- **`integrity`** is the sha256 of your client bundle
+- **`minAppVersion`** is an advisory floor, and the one field nothing can derive, because it is a claim
+  about the APP rather than about your code. Declare it in your `package.json` under
+  `"gonogo": { "minAppVersion": "1.4.0" }`
+- **`integrity`** is `sha256-` plus the hex sha256 of the file you DISTRIBUTE
+
+Everything else is read out of the bundle the tool just loaded, so the manifest describes the code it
+came from. `integrity` is the exception, because the tool cannot guess which file you ship: pass
+`--bundle <path>` when you generate for a release. Without it the field is written empty, the run warns
+you, and the app will quarantine the Uplink with an integrity mismatch. That is correct for a working
+copy, which is why every `gonogo-uplink.json` checked into this repo carries `""`.
 
 At load time the app runs `checkUplinkCompat(manifest, app)` and gets one of three verdicts:
 
@@ -368,8 +924,8 @@ At load time the app runs `checkUplinkCompat(manifest, app)` and gets one of thr
 - **`warn-load`** the only soft case: the app is older than `minAppVersion`, logged but still loaded
 
 Build these numbers, never type them. The mod side bakes its matching client hash the same way
-(`mod/scripts/bake-client-hash.mjs` writes `ExpectedClientHash.g.cs`), so the running mod can vouch for the
-exact bundle it expects.
+(`gonogo-uplink bake-hash`, or `mod/scripts/bake-client-hash.mjs` in this repo, which writes
+`ExpectedClientHash.g.cs`), so the running mod can vouch for the exact bundle it expects.
 
 ---
 
@@ -380,11 +936,22 @@ two packages gonogo publishes for RUNTIME, and between them they carry the whole
 authoring surface: the hooks, every `registerX`, the generated contract, the unit
 system and the design system.
 
-Each has a `/testing` subpath your tests import and your widgets never do, and
-ui-kit adds `/render-probe` and `/render` for the render harness. See "Testing your
-Uplink" below. There is no third package: `@ksp-gonogo/sitrep-testing` used to be
-one and was deleted once the spine came down into the SDK, so anything that names
-it is out of date.
+Nothing else in the gonogo repo is importable. `core`, `components`, `data`, `ui`,
+`sitrep-client` and `logger` are private and unpublished, so an outside author cannot
+install or build against them, and `@ksp-gonogo/ui` and `@ksp-gonogo/ui-kit` are
+different packages. The app's baked import map resolves fifteen specifiers at runtime,
+those six included, and that is not a licence to import them: it fixes runtime
+resolution for first-party code and does nothing for building yours. The rule is
+`docs/uplink-isolation.md`, and there is no first-party exemption.
+
+Three sdk subpaths are author surfaces: **`/frames`**, **`/media`** and **`/testing`**.
+`/spine` and `/registry` are advertised in the package's `exports` and are not for you.
+
+Each package has a `/testing` subpath your tests import and your widgets never do, and
+ui-kit adds `/render-probe` and `/render` for the render harness, and `/guards`. See
+"Testing your Uplink" below. There is no third package: `@ksp-gonogo/sitrep-testing`
+used to be one and was deleted once the spine came down into the SDK, so anything that
+names it is out of date.
 
 A camera Uplink also gets **`@ksp-gonogo/sitrep-sdk/media`**, a subpath of the same
 package: the delayed-playout buffer, the per-frame pipeline and the shared
@@ -393,7 +960,10 @@ a subpath rather than part of the root barrel because it pulls WebCodecs and Wor
 machinery a telemetry-only Uplink has no use for, so importing the root never
 loads it. Externalise it as its own specifier: the app's import map is keyed on
 exact strings, and externalising `@ksp-gonogo/sitrep-sdk` does not cover a subpath
-of it.
+of it. esbuild externalises a subpath of an externalised package NAME, so a
+missing import-map entry survives typecheck and the build itself and throws at
+`import(bundleUrl)`. `gonogo-uplink bundle` checks the emitted bytes for exactly
+this and fails the build.
 
 Build your client bundle **external-expecting**. Declare `react`,
 `styled-components` and the two gonogo packages as externals/peer dependencies,
@@ -403,16 +973,24 @@ and do NOT bundle your own copies.
 // client/package.json (shape)
 "peerDependencies": { "react": "^18.0.0" },
 "dependencies": {
-  "@ksp-gonogo/sitrep-sdk": "...",
-  "@ksp-gonogo/ui-kit": "...",
+  "@ksp-gonogo/ui-kit": "^0.2.0",
   "styled-components": "^6.0.0"
 },
 "devDependencies": {
-  // The render harness's two optional peers. Nothing else: the test and
-  // render surfaces are subpaths of the two packages above.
-  "playwright": "^1.60.0",
+  // The sdk is a devDependency because nothing of it survives into your bundle:
+  // it is externalised, and the host supplies the singleton at runtime. Put it
+  // in `dependencies` instead and a consumer installs a second copy for nothing.
+  "@ksp-gonogo/sitrep-sdk": "^0.1.0",
+  // esbuild is the bundler `gonogo-uplink bundle` calls, resolved from YOUR
+  // client so a pinned version is the one used. playwright and the font are the
+  // render harness's optional peers.
   "esbuild": "^0.28.0",
-  "@fontsource/jetbrains-mono": "^5.2.8"
+  "playwright": "^1.60.0",
+  "@fontsource/jetbrains-mono": "^5.2.8",
+  "react": "^18.0.0",
+  "react-dom": "^18.0.0",
+  "typescript": "^5.0.0",
+  "vitest": "^4.1.4"
 }
 ```
 
@@ -433,13 +1011,32 @@ Decentralised by design: you own the repo and you host the bundle. There is no c
   alongside the mod
 - The app's registry descriptor for your Uplink carries the `bundleUrl` and the `integrity` hash
 
+`gonogo-uplink bundle` builds the file you distribute. It reads an `uplink.json` sitting beside both
+halves (searched up to three levels above the client), which is where the facts about the Uplink as a
+DISTRIBUTION live, as opposed to the facts about its code:
+
+```json
+{
+  "id": "example",
+  "name": "Example Uplink",
+  "author": "you",
+  "repo": "https://github.com/you/example-uplink",
+  "minAppVersion": "1.0.0"
+}
+```
+
+The command emits `dist/<id>/<id>.client.js`, its `.sha256`, and a `gonogo-uplink.json` beside it. Each
+Uplink gets its own directory because the loader derives the sidecar's URL from the bundle's own, by
+stripping the last path segment: publish two Uplinks into one flat directory and they share one sidecar
+path, and the last one written wins.
+
 **What decides which Uplinks load:** the live `system.uplinks` roster the running mod publishes, and
 nothing else. The app carries no list of Uplink names, not even for the ones that ship with it, so your
 Uplink reaches the loader on exactly the same path a first-party one does. With no mod talking (an app
 opened before KSP, or a dev session with no game running) nothing is attempted, because nothing has said
 what is installed; `?uplinkLoaderIds=a,b` names ids by hand for that case.
 
-The load sequence the app runs for each Uplink (`packages/app/src/uplinks/loader.ts`):
+The load sequence the app runs for each Uplink:
 
 1. resolve the version to load from the registry descriptor
 2. run the compat gate + the mod-hash gate **before fetching any bytes** (import is irreversible, so
@@ -459,17 +1056,24 @@ localhost**, not a bare LAN IP.
 
 ## The local dev loop
 
-You will not want to publish a bundle to a public URL on every edit. The intended developer experience is
-to point the app at a **local build** while you iterate: a localhost dev-server URL, or a local directory,
-in place of the published `bundleUrl`, so an edit-refresh loop is instant.
+You will not want to publish a bundle to a public URL on every edit, and today you do not have to
+publish one at all to see your widget: **the tests are the loop.**
+`setupStreamFixture` stands up the real telemetry client, timeline store and view clock, and
+`renderWidget` mounts your widget in the same provider stack the dashboard puts around one, so a
+render there is the render the app performs. `gonogo-uplink render` then photographs the same fixtures
+through a real browser. See "Testing your Uplink" below; that is the whole of the fast loop, and it
+needs no game running.
 
-That mod-side local-URL / dev-directory mechanism is not built yet (it is gated behind on-device Deck
-work). The dev path is a promise this guide is making, not a button that exists today. Until it lands, the
-first-party workflow is to develop your client as a workspace package imported into the app build (the
-`import "@ksp-gonogo/gonogo-kerbalism-uplink"` line in `packages/app/src/main.tsx` is exactly this): the widget registers
-and renders in `pnpm dev` with a normal HMR loop, and you switch to the fetch-and-verify loader path only
-when you package for distribution. When the local-URL mechanism lands, this section will describe pointing
-the loader at your local build directly.
+What is NOT built is pointing a running app at a local bundle: a localhost dev-server URL or a local
+directory in place of the published `bundleUrl`, so you could watch a real dashboard update as you
+edit. That is gated behind on-device work and remains a promise this guide is making, not a button that
+exists today. Until it lands, seeing your widget inside a live app means building a bundle with
+`gonogo-uplink bundle` and serving it from a local static host over `https` or `localhost`, which
+verifies the way the real path does, at the cost of a rebuild per edit.
+
+(The first-party workflow, importing the client as a workspace package into the app build for an HMR
+loop, is not available to you and is not meant to be: it requires being inside this repo, which is
+exactly the position an Uplink author is not in.)
 
 ---
 
@@ -482,29 +1086,50 @@ mounted in and the readout assertions. They deliberately do not re-export each
 other: a host and a provider stack are genuinely two things, and your setup names
 both.
 
-Your widgets call SDK hooks (`useTelemetry`, `useCommand`, `useStream`), and those
+Your widgets call SDK hooks (`useTelemetry`, `useCommand`), and those
 are shims that resolve through the host the app installs at boot. A unit test has no
 app, so it has to install one:
 
 ```ts
-// client/src/test/setup.ts, in full
+// client/src/test/setup.ts
 import { PerfBudget } from "@ksp-gonogo/sitrep-sdk";
-import { installDomStubs, installRealTestHost }
-  from "@ksp-gonogo/sitrep-sdk/testing";
 import {
-  AugmentSlot, clearAugments, getAugmentsForSlot, registerAugment,
+  installDomStubs,
+  installRealTestHost,
+} from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  AugmentSlot,
+  clearAugments,
+  getAugmentsForSlot,
+  registerAugment,
   setQuantityLocale,
 } from "@ksp-gonogo/ui-kit";
+import { type UnitMatchers, unitMatchers } from "@ksp-gonogo/ui-kit/testing";
+import { expect } from "vitest";
+// Brings `toBeInTheDocument` and its siblings, as TYPES as well as matchers, so
+// leaving it out fails the typecheck rather than the test.
+import "@testing-library/jest-dom";
 
-installDomStubs();            // jsdom gaps: ResizeObserver, canvas, matchMedia
+installDomStubs(); // jsdom gaps: ResizeObserver, canvas, matchMedia
 PerfBudget.installTestGate(); // fail a test that pushes a budget over its cap
-setQuantityLocale("en-GB");   // so a render is reproducible off your machine
+setQuantityLocale("en-GB"); // so a render is reproducible off your machine
+
+// The quantity matcher, registered once. The type half is a merge you write
+// yourself: importing the module never changes anyone's `expect` types without
+// them asking for it.
+expect.extend(unitMatchers);
+declare module "vitest" {
+  interface Assertion<T> extends UnitMatchers<T> {}
+}
 
 // The four augment members come from ui-kit because that is where the augment
 // registry and `<AugmentSlot>` live, and ui-kit imports the SDK, so the SDK
 // cannot import them back. Everything else in the host is the SDK's own.
 installRealTestHost({
-  AugmentSlot, clearAugments, getAugmentsForSlot, registerAugment,
+  AugmentSlot,
+  clearAugments,
+  getAugmentsForSlot,
+  registerAugment,
 });
 ```
 
@@ -521,29 +1146,35 @@ the app runs, not a stand-in, so a test that passes here is evidence about the
 stream and not about a mock of it.
 
 ```tsx
-import { render, screen, setupStreamFixture, waitFor }
-  from "@ksp-gonogo/sitrep-sdk/testing";
+// client/src/Reactor/index.test.tsx
+import { render, screen, setupStreamFixture, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { expect, it } from "vitest";
+import { ReactorWidget } from "./index";
 
-const fixture = setupStreamFixture({
-  carriedChannels: ["mymod.reactor"],  // required: nothing is promoted silently
-  pinnedUt: 1000,                      // omit to leave the clock live
+it("shows the reactor's output once a frame arrives", async () => {
+  const fixture = setupStreamFixture({
+    carriedChannels: ["example.reactor"], // required: nothing is promoted silently
+    pinnedUt: 1000, // omit to leave the clock live
+  });
+
+  render(
+    <fixture.Provider>
+      <ReactorWidget id="example-reactor" />
+    </fixture.Provider>,
+  );
+
+  await waitFor(() => expect(fixture.transport.isSubscribed("example.reactor")).toBe(true));
+  fixture.emit("example.reactor", { outputPower: { magnitude: 420, unit: "kW" } });
+
+  await waitFor(() => expect(screen.getByText("420")).toBeInTheDocument());
 });
-
-render(
-  <fixture.Provider>
-    <ReactorPanel />
-  </fixture.Provider>,
-);
-
-fixture.emit("mymod.reactor", { output: 42 });
-await waitFor(() => expect(screen.getByText("42")).toBeInTheDocument());
 ```
 
 Two things that surprise everyone once:
 
 - **`emit` is subscription-gated.** A frame nothing has subscribed to yet is
-  dropped, exactly as in production. If your widget renders behind a gate, wait for
-  the subscription (`fixture.transport.isSubscribed(topic)`) before emitting
+  dropped, exactly as in production, which is why the test above waits for the
+  subscription before emitting
 - **`delaySeconds` and `pinnedUt` are mutually exclusive.** A pinned clock wins
   outright over the delay computation, which makes `delaySeconds` a silent no-op.
   To test delay, leave the clock live and drive it with
@@ -564,6 +1195,12 @@ puts around one. A widget rendered bare is a widget the app never runs: `Panel`
 reads its stream status off a provider, so with none mounted the status badge never
 appears and a `waitFor` on it returns having proved nothing.
 
+Include the accessibility smoke assertion in a widget's test, through the helper
+rather than by hand: `await expectNoA11yViolations(container)` from
+`@ksp-gonogo/ui-kit/testing`. A hand-rolled `await axe(container)` walks the DOM
+asynchronously while a live widget keeps updating, and every one of those updates
+lands outside `act`.
+
 ### Screenshots and your README
 
 `gonogo-uplink render` and `gonogo-uplink docs` turn your fixtures into images and
@@ -574,9 +1211,7 @@ harness your unit tests use, driven through a real browser.
 There is exactly one of it. If it cannot photograph something your Uplink does,
 that is a gap in the tool and it gets filled there rather than in a driver of
 your own: a fixture nothing renders and a harness only you can run are the two
-ways a widget ends up shipping with no picture of it. Enforced by
-`packages/core/src/one-render-process.test.ts`, which fails a client that imports
-a browser driver and a client whose scene fixtures no script renders.
+ways a widget ends up shipping with no picture of it.
 
 ---
 
@@ -590,22 +1225,42 @@ decision belongs to it.
 Pass your body as `sections` and close the tag:
 
 ```tsx
-<Panel
-  panelTitle="REACTOR"
-  sections={[
-    <Section key="core" title="Core">
-      <Row label="Temperature" value={<Unit value={reading.coreTemp} />} />
-    </Section>,
-    <Section key="output" title="Output">
-      <Row label="Power" value={<Unit value={reading.power} />} />
-    </Section>,
-  ]}
-/>
+// client/src/Reactor/Body.tsx
+import { Panel, Row, RowName, Section, Stack, Unit } from "@ksp-gonogo/ui-kit";
+import type { ReactorStatus } from "../__generated__/contract";
+
+export function ReactorBody({ status }: { status?: ReactorStatus }) {
+  return (
+    <Panel
+      panelTitle="REACTOR"
+      sections={[
+        <Section key="core" title="Core">
+          <Stack gap="xs" as="ul">
+            <Row>
+              <RowName>Temperature</RowName>
+              <Unit value={status?.coreTemp} />
+            </Row>
+          </Stack>
+        </Section>,
+        <Section key="output" title="Output">
+          <Stack gap="xs" as="ul">
+            <Row>
+              <RowName>Power</RowName>
+              <Unit value={status?.outputPower} />
+            </Row>
+          </Stack>
+        </Section>,
+      ]}
+    />
+  );
+}
 ```
 
 Those two sections stack in a narrow tile and sit side by side in a wide one,
 with your widget saying nothing about either. `Section` renders its own `title`
 as a real `h4` under the panel's `h3`, so you stop hand-rolling the heading.
+`Row` defaults to an `<li>`, so give it a list parent (`<Stack as="ul">`), and
+`RowName` is the truncating label child.
 
 Three things worth knowing:
 
@@ -618,11 +1273,10 @@ Three things worth knowing:
 - **`sectionMinWidth` tunes the threshold.** Raise it for sections with long
   rows; set it to `100%` for a widget that should never columnise
 
-Children instead of `sections` is the retiring form, and
-`packages/core/src/styleguide-panel-body.test.ts` is a shrink-only ratchet that
-will fail a new one. The single exception is a widget that is WHOLLY a drawing,
-a map or a globe, which passes `floatingHeader` and keeps its children: its
-content is the panel rather than a section of it.
+Children instead of `sections` is the retiring form, and a shrink-only ratchet
+in this repo will fail a new one. The single exception is a widget that is
+WHOLLY a drawing, a map or a globe, which passes `floatingHeader` and keeps its
+children: its content is the panel rather than a section of it.
 
 ---
 
@@ -633,9 +1287,15 @@ carrying the magnitude AND the unit, not a bare number. Render it with `<Unit>`
 and name neither:
 
 ```tsx
+// client/src/Reactor/Readout.tsx
 import { Unit } from "@ksp-gonogo/ui-kit";
+import type { ReactorStatus } from "../__generated__/contract";
 
-<Unit value={reading.altitude} />;   // 12.4 km
+export function Readout({ status }: { status?: ReactorStatus }) {
+  // Renders "12.4 kW", or the null token when the value is absent, so a read
+  // can be handed straight over.
+  return <Unit value={status?.outputPower} />;
+}
 ```
 
 That is the whole surface. The kit picks the ladder rung, the symbol, and how
@@ -651,41 +1311,9 @@ canvas label.
 
 ### Declaring your own units
 
-Your mod half annotates its contract exactly the way the first party does:
-
-```csharp
-[SitrepTopic("example.reactor")]
-public sealed class ReactorStatus
-{
-    [SitrepUnit("kW")]
-    public double OutputPower { get; set; }
-
-    // A token the core catalog has never heard of is FINE: the generated
-    // SitrepUnit union is open. Declare it in your OWN Units class (below)
-    // so a typo still fails, then teach the client what it means.
-    [SitrepUnit("thermalUnits")]
-    public double Throughput { get; set; }
-}
-```
-
-And your codegen generates from them, against YOUR assembly:
-
-```csharp
-public static class ReactorRtConfig
-{
-    public static void Configure(ConfigurationBuilder builder)
-    {
-        var mine = new[] { typeof(ReactorStatus) };
-        // …your ExportAsInterfaces call…
-
-        // The same pass the first party runs: retypes each annotated property
-        // from a bare number to Value<"kW">. `valueImportFrom` is the path
-        // that reaches the SDK from YOUR generated file.
-        RtConfig.ApplyUnitValueTypes(builder, mine, valueImportFrom: "@ksp-gonogo/sitrep-sdk");
-    }
-}
-```
-
+Your mod half annotates its contract as shown in "Getting your contract into your
+client": `[SitrepUnit("kW")]` on the property, and a token the core catalog has
+never heard of is fine, because the generated `SitrepUnit` union is open.
 `UnitDescriptor.ToJson(typeof(ReactorStatus).Assembly)` gives you the matching
 descriptor, the same document the mod serves on `system.units`.
 
@@ -717,6 +1345,7 @@ A unit has two independent halves, and they live in different packages because
 they answer different questions.
 
 ```ts
+// client/src/units.ts
 import { registerUnit } from "@ksp-gonogo/sitrep-sdk";
 import { registerUnit as registerDisplayUnit } from "@ksp-gonogo/ui-kit";
 
@@ -737,11 +1366,16 @@ registerDisplayUnit({
     { from: 8e6, symbol: "MB", per: 8e6 },
   ],
 });
+
+// A token that names a category rather than a scale needs a display half only,
+// with no ladder. Until you register anything, the value still renders, bare
+// and unscaled.
+registerDisplayUnit({ symbol: "thermalUnits", kind: "count" });
 ```
 
-Register a display half only, with no ladder, for a token that names a category
-rather than a scale (`{ symbol: "thermalUnits", kind: "count" }`). Until you
-register anything, the value still renders, bare and unscaled.
+The two are different functions with the same name, in the two packages you must
+import, so alias one at the import as above. It is the sharpest of a dozen names
+the two barrels share.
 
 #### Families, and sharing one with a mod you have never met
 
@@ -763,35 +1397,35 @@ on the axis by accident. Rungs and families belong to whoever models them.
 ### Testing it
 
 `<Unit>` renders the number, the symbol, and a visually hidden word as separate
-elements, so a readout is **not one text node** and `getByText("12.4 km")` finds
+elements, so a readout is **not one text node** and `getByText("12.4 kW")` finds
 nothing. `@ksp-gonogo/ui-kit/testing` is how you read it back:
 
 ```ts
-import { visibleText, unitMatchers } from "@ksp-gonogo/ui-kit/testing";
+// client/src/Reactor/readout.test.ts
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { visibleText } from "@ksp-gonogo/ui-kit/testing";
+import { expect, it } from "vitest";
 
-// What a sighted reader sees, screen-reader words stripped.
-expect(visibleText()).toContain("12.4 km");
+it("shows the output it was given", () => {
+  // What a sighted reader sees, screen-reader words stripped.
+  expect(visibleText()).toContain("12.4 kW");
 
-// Or assert the QUANTITY without pinning how it is spelled. Register once in
-// a setup file: expect.extend(unitMatchers)
-expect(container).toShowQuantity(value("m", 12400));
+  // Or assert the QUANTITY without pinning how it is spelled. `toShowQuantity`
+  // comes from the `expect.extend` in the setup file above.
+  expect(document.body).toShowQuantity(value("kW", 12400));
+});
 ```
 
-Prefer the matcher when you mean "the widget shows the altitude it was given":
+Prefer the matcher when you mean "the widget shows the output it was given":
 it formats through the same ladder the component renders with, so a later
-change to where metres hand off to kilometres does not break your test. Use the
+change to where watts hand off to kilowatts does not break your test. Use the
 literal string when the exact spelling is the thing you mean to pin.
 
 **Pin the locale in your test setup.** `<Unit>` writes a number in the
 reader's own locale, which is right for an operator and wrong for a snapshot:
 the same reading is `1,234,567.5` here, `1 234 567,5` in France and
-`12,34,567.5` in India. Add this to whatever your test runner loads first:
-
-```ts
-import { setQuantityLocale } from "@ksp-gonogo/ui-kit";
-
-setQuantityLocale("en-GB");
-```
+`12,34,567.5` in India. `setQuantityLocale("en-GB")` in the setup file above is
+what fixes it.
 
 ### Guarding it
 
@@ -799,6 +1433,7 @@ The rule above is easy to agree with and easy to forget, so do not rely on
 remembering it. One test file holds you to it:
 
 ```ts
+// client/src/units.guard.test.ts
 import { expectNoHandTypedUnits } from "@ksp-gonogo/ui-kit/guards";
 import { it } from "vitest";
 
@@ -824,17 +1459,17 @@ Two options worth knowing:
 
 - **`symbols`** extends what it looks for. If you `registerUnit({ symbol: "Sv" })`,
   pass `symbols: [...HAND_TYPED_SYMBOLS, "Sv"]` so the guard notices when
-  somebody writes yours by hand instead.
+  somebody writes yours by hand instead
 - **`baseline`** is a per-file allowance, for adopting this on a codebase that
   already has offenders: `baseline: { "Reactor/index.tsx": 3 }`, lowered as you
   convert. Never raise one. Going BELOW an entry throws too, so a stale
-  allowance cannot quietly leave the door open behind a conversion.
+  allowance cannot quietly leave the door open behind a conversion
 
 Skip the guard only if your Uplink renders nothing at all, which is a narrower
-case than it sounds: the bundled Kerbalism Uplink was exactly that when this
-was written, and it now ships several widgets, a `ui-kit` dependency, and its
-own byte units. An Uplink that renders nothing today is an Uplink that renders
-something the week after.
+case than it sounds: one bundled Uplink was exactly that when this was written,
+and it now ships several widgets, a `ui-kit` dependency, and its own byte units.
+An Uplink that renders nothing today is an Uplink that renders something the
+week after.
 
 ---
 
@@ -843,11 +1478,24 @@ something the week after.
 - [ ] mod class carries `[SitrepUplink("<id>")]`, implements `ISitrepUplink`, and declares its Topics
       (`Channels`) and Commands
 - [ ] `Health()` returns a cached verdict, never a live KSP read
-- [ ] `client/src/uplink.ts` calls `defineUplinkClient` with the SAME id as the mod
-- [ ] every `registerComponent` / `registerAugment` passes `owner: <handle>`
+- [ ] the wire types live in their own `.Contract` project, with a `.Contract.Codegen` twin, and the
+      SHIPPED contract assembly carries no Reinforced.Typings reference
+- [ ] `src/__generated__/` is codegen output, committed and never hand-edited
+- [ ] `client/src/uplink.ts` calls `defineUplinkClient` with the SAME id as the mod, and a `version`
+      equal to `package.json`'s
+- [ ] `client/src/topics.ts` merges `TopicPayloadMap`, calls `registerBarePrimitiveTopic` for every
+      Topic, and registers BOTH the topic-keyed and the type-keyed unit maps
+- [ ] every `registerComponent` / `registerAugment` passes `owner: <handle>`, and every registration
+      carries a `description` and `tags`
+- [ ] every `useTelemetry` read branches on `Reading.state`; no cast past the union, and no judgement
+      (a pill, a band, a go/no-go) drawn from `stale`
+- [ ] every delayed command's handle reaches `usePanelDelay` or `<CommandDelay>`
 - [ ] `client/src/index.ts` bare-imports every registration module
-- [ ] the bundle is built external-expecting (react, core, ui-kit, sdk, styled-components NOT inlined)
-- [ ] `gonogo-uplink.json` is build-generated, never hand-written
+- [ ] the bundle is built external-expecting (react, styled-components, sdk, ui-kit NOT inlined), and
+      imports nothing else of gonogo's
+- [ ] `uplink.json` declares the id, name, author and repo, so `gonogo-uplink bundle` can run
+- [ ] `gonogo-uplink.json` is build-generated, never hand-written, and generated with `--bundle` for a
+      release so `integrity` is filled
 - [ ] the mod is on CKAN and the client bundle is hosted with its URL + integrity hash
 - [ ] every quantity renders through `<Unit>`; no hand-formatted unit symbols
 - [ ] every unit token you introduce is declared in your own `Units` class, and registered on both

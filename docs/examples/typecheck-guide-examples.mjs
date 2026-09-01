@@ -57,6 +57,22 @@ if (checkable.length === 0) {
   process.exit(1);
 }
 
+// A `text` fence is the escape hatch for a block that genuinely cannot compile
+// (a type mirror, an XML project file, code that would live in the SDK). It is
+// also the obvious way to dodge this check, so a `text` block that imports the
+// published packages is treated as a mislabelled `ts` one.
+const dodged = blocks(md).filter(
+  (b) => b.lang === "text" && b.body.some((l) => /from "@ksp-gonogo\//.test(l)),
+);
+if (dodged.length > 0) {
+  console.error(
+    `text fence(s) importing the published packages, so they belong in a ts fence:\n${dodged
+      .map((b) => `  creating-an-uplink.md:${b.line}`)
+      .join("\n")}`,
+  );
+  process.exit(1);
+}
+
 rmSync(work, { recursive: true, force: true });
 mkdirSync(join(work, "src"), { recursive: true });
 
