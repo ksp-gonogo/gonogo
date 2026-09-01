@@ -35,7 +35,7 @@ import {
   useElementSize,
   useModalSaveBar,
 } from "@ksp-gonogo/ui";
-import { FramedDisplay, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { FramedDisplay, NULL_DISPLAY, Section } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 // FleetComms's `.actions` slot (Commlinks/Traffic toggles) gates THIS host's
@@ -1051,115 +1051,125 @@ function SystemViewComponent({
        * wide tile, a bottom strip on a tall one.
        */
       panelSidebar={showAlmanac ? sidebarContent : undefined}
-    >
-      <div style={FRAME_CAPTION} role="status" aria-live="polite">
-        {bodies.length === 0
-          ? "Waiting for body data..."
-          : parentName === null
-            ? "Pick a frame in the widget config."
-            : encounterExists !== 0 && encounterBody != null
-              ? `Frame: ${parentName} · next ${
-                  encounterExists === -1 ? "escape" : "encounter"
-                }: ${encounterBody}`
-              : `Frame: ${parentName}`}
-      </div>
-      <ContactCaption
-        status={vesselStatus}
-        vesselName={
-          typeof identity?.name === "string" ? identity.name : "Vessel"
-        }
-      />
-      {/* Beside the frame caption rather than over the diagram: the bodies are
-          still being drawn correctly and only the vessel's own curve is
-          missing, so covering the picture would overstate what was refused. */}
-      {trajectoryWithheld && (
-        <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
-      )}
-      {/* Which frame the PICTURE is in, which is not the same fact as the
-          "Frame:" caption above: that one is which body sits in the middle, and
-          this one is what the axes do. The frame is passed outright rather than
-          taken off the drawn path, because the diagram does its own framing: the
-          seam answers in whatever frame it computed in and the diagram lifts the
-          answer, so captioning the path's frame would name a frame this picture
-          is not in. Absent means the catalogue could not form the chosen frame,
-          and the picture is in the parent-centred inertial coordinates it
-          already had. */}
-      <TrajectoryFrameCaption
-        frame={
-          projection?.frame ??
-          (frameBodyIndex === undefined
-            ? null
-            : inertialFrameFor(frameBodyIndex))
-        }
-        centreBodyName={parentName ?? undefined}
-      />
-      {showDiagram ? (
-        <FramedDisplay style={DIAGRAM_FRAME}>
-          <div ref={wrapRef} style={DIAGRAM_WRAP}>
-            {parentName !== null && bodies.length > 0 && (
-              <SystemDiagram
-                bodies={bodies}
-                parentName={parentName}
-                highlightNames={vesselBody ? [vesselBody] : []}
-                targetName={typeof targetName === "string" ? targetName : null}
-                vessel={vesselOrbit}
-                vesselTrajectory={vesselTrajectory}
-                vesselPlotState={vesselPlotState}
-                phaseAngles={phaseAngles}
-                transferStatuses={transferStatuses}
-                onFocusBodyChange={setFocusedBody}
-                predicted={predicted}
-                projection={projection}
-                width={size.w}
-                height={size.h}
-              />
-            )}
-            {/* Shape-contribution entities: host-drawn (not an augment), same
-                auto-fit projection as the overlay slot below it. Renders
-                nothing when the slot is empty or nothing on it projects onto
-                the current frame. */}
-            {overlayContext !== null && (
-              <SystemEntitiesLayer
-                entities={entities}
-                ctx={overlayContext}
-                decorate={decorate}
-                selectedId={selectedVesselId}
-                onEntityActivate={handleEntityActivate}
-                pulses={traffic.pulses}
-                /*
-                 * Real-time bookkeeping clock, same one command traffic
-                 * above already rides: a CME's `arriveUt`/`clearUt` are
-                 * real-UT facts the mod stamps the instant a storm rolls,
-                 * not delayed craft telemetry, so this drives its single,
-                 * non-looping travelling-pulse pass (see
-                 * `SystemEntitiesLayer.tsx`'s own `nowUt` doc comment).
-                 */
-                nowUt={utNow}
-              />
-            )}
-            {/* Overlay slot: layered over the body diagram, passed the diagram's
-                parent-centric projection so an augment draws in its coordinate
-                space. The layer is pointer-transparent so an empty slot is
-                visually + interactively inert. */}
-            {overlayContext !== null && (
-              <div style={OVERLAY_LAYER}>
-                <AugmentSlot
-                  name="system-view.overlay"
-                  props={overlayContext}
-                />
-              </div>
-            )}
+      sections={[
+        <Section key="captions" full>
+          <div style={FRAME_CAPTION} role="status" aria-live="polite">
+            {bodies.length === 0
+              ? "Waiting for body data..."
+              : parentName === null
+                ? "Pick a frame in the widget config."
+                : encounterExists !== 0 && encounterBody != null
+                  ? `Frame: ${parentName} · next ${
+                      encounterExists === -1 ? "escape" : "encounter"
+                    }: ${encounterBody}`
+                  : `Frame: ${parentName}`}
           </div>
-        </FramedDisplay>
-      ) : (
-        <div style={COMPACT_BODY}>
-          <div style={COMPACT_VALUE}>{parentName ?? NULL_DISPLAY}</div>
-          {typeof vesselBody === "string" && vesselBody !== parentName && (
-            <div style={COMPACT_SUB}>vessel · {vesselBody}</div>
+          <ContactCaption
+            status={vesselStatus}
+            vesselName={
+              typeof identity?.name === "string" ? identity.name : "Vessel"
+            }
+          />
+          {/* Beside the frame caption rather than over the diagram: the bodies are
+            still being drawn correctly and only the vessel's own curve is
+            missing, so covering the picture would overstate what was refused. */}
+          {trajectoryWithheld && (
+            <TrajectoryWithheldNote withheld={trajectoryWithheld} compact />
           )}
-        </div>
-      )}
-    </Panel>
+          {/* Which frame the PICTURE is in, which is not the same fact as the
+            "Frame:" caption above: that one is which body sits in the middle, and
+            this one is what the axes do. The frame is passed outright rather than
+            taken off the drawn path, because the diagram does its own framing: the
+            seam answers in whatever frame it computed in and the diagram lifts the
+            answer, so captioning the path's frame would name a frame this picture
+            is not in. Absent means the catalogue could not form the chosen frame,
+            and the picture is in the parent-centred inertial coordinates it
+            already had. */}
+          <TrajectoryFrameCaption
+            frame={
+              projection?.frame ??
+              (frameBodyIndex === undefined
+                ? null
+                : inertialFrameFor(frameBodyIndex))
+            }
+            centreBodyName={parentName ?? undefined}
+          />
+        </Section>,
+        /* The diagram is the drawing this widget is, and the compact readout
+           that replaces it below the size threshold is centred in the same
+           space, so both want whatever the captions leave. */
+        <Section key="diagram" fill>
+          {showDiagram ? (
+            <FramedDisplay style={DIAGRAM_FRAME}>
+              <div ref={wrapRef} style={DIAGRAM_WRAP}>
+                {parentName !== null && bodies.length > 0 && (
+                  <SystemDiagram
+                    bodies={bodies}
+                    parentName={parentName}
+                    highlightNames={vesselBody ? [vesselBody] : []}
+                    targetName={
+                      typeof targetName === "string" ? targetName : null
+                    }
+                    vessel={vesselOrbit}
+                    vesselTrajectory={vesselTrajectory}
+                    vesselPlotState={vesselPlotState}
+                    phaseAngles={phaseAngles}
+                    transferStatuses={transferStatuses}
+                    onFocusBodyChange={setFocusedBody}
+                    predicted={predicted}
+                    projection={projection}
+                    width={size.w}
+                    height={size.h}
+                  />
+                )}
+                {/* Shape-contribution entities: host-drawn (not an augment), same
+                  auto-fit projection as the overlay slot below it. Renders
+                  nothing when the slot is empty or nothing on it projects onto
+                  the current frame. */}
+                {overlayContext !== null && (
+                  <SystemEntitiesLayer
+                    entities={entities}
+                    ctx={overlayContext}
+                    decorate={decorate}
+                    selectedId={selectedVesselId}
+                    onEntityActivate={handleEntityActivate}
+                    pulses={traffic.pulses}
+                    /*
+                     * Real-time bookkeeping clock, same one command traffic
+                     * above already rides: a CME's `arriveUt`/`clearUt` are
+                     * real-UT facts the mod stamps the instant a storm rolls,
+                     * not delayed craft telemetry, so this drives its single,
+                     * non-looping travelling-pulse pass (see
+                     * `SystemEntitiesLayer.tsx`'s own `nowUt` doc comment).
+                     */
+                    nowUt={utNow}
+                  />
+                )}
+                {/* Overlay slot: layered over the body diagram, passed the diagram's
+                  parent-centric projection so an augment draws in its coordinate
+                  space. The layer is pointer-transparent so an empty slot is
+                  visually + interactively inert. */}
+                {overlayContext !== null && (
+                  <div style={OVERLAY_LAYER}>
+                    <AugmentSlot
+                      name="system-view.overlay"
+                      props={overlayContext}
+                    />
+                  </div>
+                )}
+              </div>
+            </FramedDisplay>
+          ) : (
+            <div style={COMPACT_BODY}>
+              <div style={COMPACT_VALUE}>{parentName ?? NULL_DISPLAY}</div>
+              {typeof vesselBody === "string" && vesselBody !== parentName && (
+                <div style={COMPACT_SUB}>vessel · {vesselBody}</div>
+              )}
+            </div>
+          )}
+        </Section>,
+      ]}
+    />
   );
 }
 
