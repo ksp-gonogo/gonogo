@@ -693,8 +693,8 @@ export enum CommandErrorCode {
 	* contract asked to accept when it is not offered, an assigned kerbal asked to
 	* be sacked, a spent experiment asked to deploy.
 	*
-	* Authority: the entity's own state enum. `Strategy.IsActive`, `RDTech.State`,
-	* `Contract.State`, `ProtoCrewMember.RosterStatus`,
+	* Authority: the entity's own state enum. `Strategies.Strategy.IsActive`,
+	* `RDTech.State`, `Contract.State`, `ProtoCrewMember.RosterStatus`,
 	* `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
 	* `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can
 	* carry the state in the game's own words.
@@ -832,8 +832,9 @@ export interface CommandResult
 	breach?: LimitBreach;
 	/**
 	* The refusal in the GAME's own words, when the game had any: the arm of
-	* `ClearToSaveStatus` it came back with, `Strategy.CanBeActivated(out string
-	* reason)`'s reason, `GameVariables.GetEVALockedReason`'s sentence, a
+	* `ClearToSaveStatus` it came back with,
+	* `Strategies.Strategy.CanBeActivated(out string reason)`'s reason,
+	* `GameVariables.GetEVALockedReason`'s sentence, a
 	* `PreFlightTests.IPreFlightTest`'s `GetWarningTitle()`, a
 	* `[Description]`-tagged state member's name. Empty when the refusal had
 	* nothing to quote.
@@ -2487,14 +2488,14 @@ export interface PayloadMeta
 * before it can be used. `OrbitPatch.lan`/`OrbitPatch.argPe` are plain
 * (non-nullable) doubles here, UNLIKE `VesselOrbit.lan`/`VesselOrbit.argPe`: a
 * deliberate, narrower exception to this codebase's usual R1 "never NaN, never
-* a fake 0" rule: the client's propagation math (`trajectory.ts`'s
-* `patchStateAt`) already hard-assumes a finite number for both (no
-* null-handling branch), matching the historical behaviour for a
-* near-circular/near-equatorial patch. Capturing them nullable here would
-* silently break every consumer without a matching client-side rewrite: out of
-* scope for this Topic. See `Gonogo.KSP.KspHost.BuildOrbitPatchChain`'s doc
-* comment for how a NaN is substituted with 0 at capture time, preserving that
-* pre-existing (imperfect but non-breaking) behaviour.
+* a fake 0" rule: the propagation math that consumes a patch already
+* hard-assumes a finite number for both (no null-handling branch), matching
+* the historical behaviour for a near-circular/near-equatorial patch.
+* Capturing them nullable here would silently break every consumer without a
+* matching client-side rewrite: out of scope for this Topic. See
+* `Gonogo.KSP.KspHost.BuildOrbitPatchChain`'s doc comment for how a NaN is
+* substituted with 0 at capture time, preserving that pre-existing (imperfect
+* but non-breaking) behaviour.
 */
 export interface OrbitPatch
 {
@@ -6128,9 +6129,8 @@ export interface InventoryItem
 * lander-scale slope), plus an atmosphere-aware descent estimate that needs
 * per-part drag the client does not have.
 *
-* Distinct from the client-derived vacuum ballistic scalars (the LandingStatus
-* widget's own `solveSuicideBurn`), which need no terrain and stay
-* client-side.
+* Distinct from the vacuum ballistic scalars a client solves for itself, which
+* need no terrain and stay client-side.
 *
 * Whole-channel absence means "not descending toward a solid surface",
 * relevance-gated at the source on situation + a descent test +
@@ -6878,7 +6878,7 @@ export interface VesselPart
 	categoryOrdinal?: KspPartCategory;
 	/**
 	* Each `PartModule`'s CLR class name (e.g. `"ModuleEngines"`,
-	* `"CModuleFuelLine"`), what ShipMap's `classifyPart` matches on.
+	* `"CModuleFuelLine"`), which is what a client classifies a part by.
 	*/
 	modules: string[];
 	/** `Part.isRobotic()`: a Breaking Ground robotic servo part. */
@@ -6896,8 +6896,8 @@ export interface VesselPart
 	/**
 	* Every resource this part carries (join key: resource name, e.g.
 	* `"ElectricCharge"`), storage plus live production/consumption flow: the
-	* per-part live-data slice the SDK's `usePartsLive` used to fetch off the
-	* legacy `r.resourceFor[flightId]` key. Empty dict when the part carries no
+	* per-part live-data slice a client used to have to fetch off the legacy
+	* `r.resourceFor[flightId]` key. Empty dict when the part carries no
 	* resources.
 	*/
 	resources: { [key:string]: PartResourceFlow };
@@ -6956,8 +6956,7 @@ export interface ActionBinding
 /**
 * One resource row in `VesselPart.resources`: storage
 * (`PartResourceFlow.amount`/`PartResourceFlow.maxAmount`) plus live flow
-* (`PartResourceFlow.flow`/`PartResourceFlow.nominalFlow`). Mirrors the SDK's
-* `PartResources` row shape field-for-field.
+* (`PartResourceFlow.flow`/`PartResourceFlow.nominalFlow`).
 *
 * **Flow scope.** `PartResourceFlow.flow`/`PartResourceFlow.nominalFlow` are
 * populated only for the module types whose live rate is CHEAPLY derivable
@@ -6990,9 +6989,10 @@ export interface PartResourceFlow
 	nominalFlow?: Value<"units/s">;
 }
 /**
-* One module's behavioural state in `VesselPart.moduleStates`. Mirrors the
-* SDK's `PartStateModule` shape field-for-field: see that interface's doc
-* comment for the full state vocabulary per `PartModuleState.type`.
+* One module's behavioural state in `VesselPart.moduleStates`.
+* `PartModuleState.type` discriminates the module and `PartModuleState.state`
+* carries the standardised deploy/activation word, whose vocabulary is on that
+* property.
 */
 export interface PartModuleState
 {
@@ -7004,8 +7004,18 @@ export interface PartModuleState
 	*/
 	type: string;
 	/**
-	* The standardised deploy/activation state: see `PartStateModule`'s doc
-	* comment for the per-type vocabulary.
+	* The standardised deploy/activation state, one closed vocabulary across every
+	* `PartModuleState.type` rather than each module's own enum spelling.
+	*
+	* - `extended` / `retracted` / `deploying` / `retracting`, for anything that
+	*   animates: solar panels, radiators, antennas, landing gear.
+	* - `stowed` / `armed` / `extended` / `broken`, the parachute lifecycle.
+	*   `armed` is armed and waiting for its atmospheric trigger, which is not the
+	*   same as deployed.
+	* - `active` / `inactive`, for engines and drills.
+	* - `unknown` when the underlying game enum maps to none of the above, which
+	*   is a statement that the state was read and not recognised rather than a
+	*   stand-in for retracted.
 	*/
 	state: string;
 	/** Solar-panel-only: sun-tracking gimbal active. `null` for every other type. */

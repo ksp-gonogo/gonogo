@@ -33,8 +33,8 @@ namespace Sitrep.Contract;
 /// <see cref="Lan"/>/<see cref="ArgPe"/> are plain (non-nullable) doubles here,
 /// UNLIKE <see cref="VesselOrbit.Lan"/>/<see cref="VesselOrbit.ArgPe"/>: a
 /// deliberate, narrower exception to this codebase's usual R1 "never NaN,
-/// never a fake 0" rule: the client's propagation math
-/// (<c>trajectory.ts</c>'s <c>patchStateAt</c>) already hard-assumes a finite
+/// never a fake 0" rule: the propagation math that consumes a patch already
+/// hard-assumes a finite
 /// number for both (no null-handling branch), matching the historical
 /// behaviour for a near-circular/near-equatorial patch. Capturing
 /// them nullable here would silently break every consumer without a matching
