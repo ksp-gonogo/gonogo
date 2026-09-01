@@ -7,7 +7,6 @@ import {
   Disclosure,
   EmptyState,
   GraphNotice,
-  Inline,
   LineGraph,
   MissionDate,
   magnitudeOf,
@@ -106,12 +105,19 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
       <Cluster gap="sm" wrap>
         <SectionTitle>PROGRAM DETAIL</SectionTitle>
         {chosen !== undefined && (
-          <Inline gap="xs">
+          /* Wrapping in its own right, not just as one item of the row above.
+             The badge and a Program's title are two items and RP-1's titles run
+             long ("Sounding Rocket Development"): as a single unbreakable item
+             the pair overflowed the panel's own width at the sizes this screen
+             draws at, which the readability probe reads as text an operator
+             cannot see. `justify="start"` because it is a subject, not a row to
+             be spread. */
+          <Cluster gap="xs" justify="start" wrap>
             <Badge severity={severityOf(chosen.state)}>
               {(chosen.state ?? NULL_DISPLAY).toUpperCase()}
             </Badge>
             <Text weight="semibold">{label(chosen)}</Text>
-          </Inline>
+          </Cluster>
         )}
       </Cluster>
       <Stack gap="md">

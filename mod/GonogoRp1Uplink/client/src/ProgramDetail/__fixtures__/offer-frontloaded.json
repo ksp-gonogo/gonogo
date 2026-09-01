@@ -6,6 +6,14 @@
     "augment": "rp1-program-detail",
     "host": "strategies",
     "caption": "An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years",
+    "paints": [
+      "PROGRAM DETAIL",
+      "Early X-Planes",
+      "OFFERABLE",
+      "SPEED",
+      "SHORT",
+      "CLOSES OFF ON ACCEPT"
+    ],
     "size": {
       "w": 8,
       "h": 16

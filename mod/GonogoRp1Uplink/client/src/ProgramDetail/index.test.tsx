@@ -250,9 +250,9 @@ describe("ProgramDetail", () => {
     // picker is open, its own row being the other, so the count is the
     // assertion: the name is on the heading AND on the row that was pressed.
     expect(screen.getAllByText("Aeronautics")).toHaveLength(2);
-    // The detail follows the heading: the picked Program's own objectives are
-    // in the body and the running one's are gone, so the pick moved the whole
-    // surface rather than just the row's highlight.
+    /* The detail follows the heading: the picked Program's own objectives are in
+       the body and the running one's are gone, so the pick moved the whole
+       surface rather than just the row's highlight. */
     expect(screen.getByText("Break the sound barrier.")).toBeInTheDocument();
     expect(screen.queryByText("Fly the X-Planes.")).toBeNull();
   });

@@ -37,6 +37,13 @@ import { TrainingControls } from "./training";
  * an operator wants off the roster. See `training.tsx` for the three
  * commands.</para>
  *
+ * <para><b>No tab strip of its own.</b> This renders inside ONE roster row, and
+ * the Astronaut Complex builds a tab per crew standing around those rows: the
+ * scenes press "Active" to reach them. A second tab strip inside a row would be
+ * tabs over one kerbal, under the tabs that already sort the kerbals. What the
+ * row does get is a Card, so the RP-1 block reads as one thing rather than as
+ * loose lines trailing off the host's own readout.</para>
+ *
  * <para>It carries no standing and draws no fatality distinction. Whether a
  * kerbal is RETIRED rather than dead rides the stock roster's own `standing`
  * field through the crewStanding capability, so the host has already put a
