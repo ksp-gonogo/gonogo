@@ -27,6 +27,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  Section,
   Spinner,
   Unit,
   useCommandButton,
@@ -704,21 +705,22 @@ function LaunchDirectorComponent({
       <Panel
         panelTitle="LAUNCH & RECOVERY"
         compactTitle={["LAUNCH & REC", "LAUNCH"]}
-      >
-        <Body>
-          {showSubtitle && (
-            <div
-              role="status"
-              style={{
-                fontSize: "var(--font-size-xs)",
-                color: "var(--color-text-faint)",
-              }}
-            >
-              Awaiting launch-pad telemetry
-            </div>
-          )}
-        </Body>
-      </Panel>
+        sections={
+          showSubtitle ? (
+            <Section full>
+              <div
+                role="status"
+                style={{
+                  fontSize: "var(--font-size-xs)",
+                  color: "var(--color-text-faint)",
+                }}
+              >
+                Awaiting launch-pad telemetry
+              </div>
+            </Section>
+          ) : null
+        }
+      />
     );
   }
 
@@ -752,112 +754,115 @@ function LaunchDirectorComponent({
     <Panel
       panelTitle="LAUNCH & RECOVERY"
       compactTitle={["LAUNCH & REC", "LAUNCH"]}
-    >
-      <Body>
-        {showSubtitle && (
-          <div
-            role="status"
-            aria-live="polite"
-            style={{
-              fontSize: "var(--font-size-xs)",
-              color: "var(--color-text-faint)",
-            }}
-          >
-            {inFlight
-              ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
-              : padSummary({
-                  pads: pads.length,
-                  occupied: occupiedPads,
-                  unreported: unreportedPads,
-                })}
-            {typeof careerFunds === "number" && (
-              <FundsReadout title="Available funds">
-                · <Unit value={value("funds", careerFunds)} />
-              </FundsReadout>
-            )}
-            {/* NOT wrapped in FundsReadout beside it: that span is nowrap, so
-                a readout placed inside it cannot take a second line and clips
-                at the panel edge instead. */}
-            {reportsFundsDrain(netFunds) && (
-              <DrainReadout>
-                <FundsDrain
-                  funds={careerFunds}
-                  netPerDay={netFunds}
-                  separator
-                />
-              </DrainReadout>
-            )}
-            {/* The balance is required beside a spend control, and an absent
-                balance is the state that rule exists for: it is exactly when
-                the affordability gate above has nothing to judge against. The
-                two ways of having no balance say so differently, because every
-                priced craft is blocked either way and the operator has to know
-                whether that is a cold start or a link that stopped. */}
-            {careerFunds === null && chargesFunds && (
-              <FundsReadout
-                title={
-                  fundsNotCurrent
-                    ? "The last funds balance is no longer current, so affordability is not being judged"
-                    : "No funds balance has arrived"
-                }
-              >
-                · {fundsNotCurrent ? "funds not current" : "funds unknown"}
-              </FundsReadout>
-            )}
-          </div>
-        )}
-        {inFlight ? (
-          <InFlightPanel
-            missionTime={missionTime ?? null}
-            altitudeMeters={altitudeMeters ?? null}
-            canRevertToLaunch={canRevertToLaunch ?? false}
-            canRevertToEditor={canRevertToEditor ?? false}
-            crashBlocked={crashBlocked}
-            availableVessels={availableVessels}
-            recoverCmd={recoverCmd}
-            revertLaunchCmd={revertLaunchCmd}
-            revertEditorCmd={revertEditorCmd}
-            toTrackingCmd={toTrackingCmd}
-            switchCmd={switchCmd}
-          />
-        ) : (
-          <PadSection
-            pads={pads}
-            activePad={activePad}
-            onPickPad={(name) => {
-              setPickedPad(name);
-              setSelectedShip(null);
-              setSelectedCrew(new Set());
-            }}
-            padCraft={padCraft}
-            craftKnown={ships !== null}
-            crew={crew}
-            selectedShip={selectedShip}
-            onSelectShip={(name) => {
-              setSelectedShip(name);
-              setSelectedCrew(new Set());
-            }}
-            selectedCrew={selectedCrew}
-            onToggleCrew={(name) =>
-              setSelectedCrew((prev) => {
-                const next = new Set(prev);
-                if (next.has(name)) next.delete(name);
-                else next.add(name);
-                return next;
-              })
-            }
-            fundsAvailable={fundsAvailable}
-            funds={careerFunds ?? undefined}
-            rows={rows}
-            letterbox={letterbox}
-            launchCmd={launchCmd}
-            recoverCmd={recoverCmd}
-            revertEditorCmd={revertEditorCmd}
-            slotContext={slotContext}
-          />
-        )}
-      </Body>
-    </Panel>
+      sections={[
+        showSubtitle ? (
+          <Section key="summary" full>
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                fontSize: "var(--font-size-xs)",
+                color: "var(--color-text-faint)",
+              }}
+            >
+              {inFlight
+                ? `In flight: ${activeName}${launchSite && (w ?? 7) >= 6 ? ` · from ${launchSite}` : ""}`
+                : padSummary({
+                    pads: pads.length,
+                    occupied: occupiedPads,
+                    unreported: unreportedPads,
+                  })}
+              {typeof careerFunds === "number" && (
+                <FundsReadout title="Available funds">
+                  · <Unit value={value("funds", careerFunds)} />
+                </FundsReadout>
+              )}
+              {/* NOT wrapped in FundsReadout beside it: that span is nowrap, so
+                    a readout placed inside it cannot take a second line and clips
+                    at the panel edge instead. */}
+              {reportsFundsDrain(netFunds) && (
+                <DrainReadout>
+                  <FundsDrain
+                    funds={careerFunds}
+                    netPerDay={netFunds}
+                    separator
+                  />
+                </DrainReadout>
+              )}
+              {/* The balance is required beside a spend control, and an absent
+                    balance is the state that rule exists for: it is exactly when
+                    the affordability gate above has nothing to judge against. The
+                    two ways of having no balance say so differently, because every
+                    priced craft is blocked either way and the operator has to know
+                    whether that is a cold start or a link that stopped. */}
+              {careerFunds === null && chargesFunds && (
+                <FundsReadout
+                  title={
+                    fundsNotCurrent
+                      ? "The last funds balance is no longer current, so affordability is not being judged"
+                      : "No funds balance has arrived"
+                  }
+                >
+                  · {fundsNotCurrent ? "funds not current" : "funds unknown"}
+                </FundsReadout>
+              )}
+            </div>
+          </Section>
+        ) : null,
+        <Section key="pads">
+          {inFlight ? (
+            <InFlightPanel
+              missionTime={missionTime ?? null}
+              altitudeMeters={altitudeMeters ?? null}
+              canRevertToLaunch={canRevertToLaunch ?? false}
+              canRevertToEditor={canRevertToEditor ?? false}
+              crashBlocked={crashBlocked}
+              availableVessels={availableVessels}
+              recoverCmd={recoverCmd}
+              revertLaunchCmd={revertLaunchCmd}
+              revertEditorCmd={revertEditorCmd}
+              toTrackingCmd={toTrackingCmd}
+              switchCmd={switchCmd}
+            />
+          ) : (
+            <PadSection
+              pads={pads}
+              activePad={activePad}
+              onPickPad={(name) => {
+                setPickedPad(name);
+                setSelectedShip(null);
+                setSelectedCrew(new Set());
+              }}
+              padCraft={padCraft}
+              craftKnown={ships !== null}
+              crew={crew}
+              selectedShip={selectedShip}
+              onSelectShip={(name) => {
+                setSelectedShip(name);
+                setSelectedCrew(new Set());
+              }}
+              selectedCrew={selectedCrew}
+              onToggleCrew={(name) =>
+                setSelectedCrew((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(name)) next.delete(name);
+                  else next.add(name);
+                  return next;
+                })
+              }
+              fundsAvailable={fundsAvailable}
+              funds={careerFunds ?? undefined}
+              rows={rows}
+              letterbox={letterbox}
+              launchCmd={launchCmd}
+              recoverCmd={recoverCmd}
+              revertEditorCmd={revertEditorCmd}
+              slotContext={slotContext}
+            />
+          )}
+        </Section>,
+      ]}
+    />
   );
 }
 
@@ -1547,12 +1552,6 @@ function ArmedButton({
     </ArmButton>
   );
 }
-
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-`;
 
 const SectionLabel = styled.div`
   font-size: var(--font-size-2xs);
