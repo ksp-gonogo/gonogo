@@ -296,7 +296,7 @@ describe("starting a build from a saved craft", () => {
     });
 
     expect(
-      await screen.findByText(/waiting for the craft listing/),
+      await screen.findByText(/waiting for the craft listing/i),
     ).toBeInTheDocument();
   });
 

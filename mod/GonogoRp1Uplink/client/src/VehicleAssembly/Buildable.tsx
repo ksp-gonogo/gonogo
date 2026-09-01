@@ -84,7 +84,7 @@ export function BuildableSection() {
         // blank: an operator who sees nothing here has no way to tell a career
         // with no craft saved from an Uplink that is still connecting.
         <Text size="sm" tone="muted">
-          {NULL_DISPLAY} waiting for the craft listing
+          Waiting for the craft listing
         </Text>
       ) : buildable.length === 0 ? (
         <Text size="sm" tone="muted">
@@ -151,14 +151,14 @@ function CraftCard({
 
       {partBlock !== null ? (
         <Text size="xs" tone="muted">
-          {NULL_DISPLAY} cannot be built: {partBlock}
+          Cannot be built: {partBlock}
         </Text>
       ) : file === null ? (
         // Readable and not commandable, and it says which. A craft with no
         // file name has no address, and guessing one from the ship name would
         // build whichever file the folder listed first.
         <Text size="xs" tone="muted">
-          {NULL_DISPLAY} no craft file name for this design
+          No craft file name for this design
         </Text>
       ) : (
         <Stack gap="sm">
@@ -221,8 +221,7 @@ function Refusals({
           size="xs"
           tone="muted"
         >
-          {NULL_DISPLAY} {complexLabel(complex)}:{" "}
-          {(complex.refusals ?? []).join("; ")}
+          {complexLabel(complex)}: {(complex.refusals ?? []).join("; ")}
         </Text>
       ))}
     </Stack>
