@@ -7273,14 +7273,14 @@ export interface VesselSurface
 * needs to branch on; `TargetKind.Other` covers docking
 * ports/waypoints/anything not yet classified more finely (a future, more
 * specific target-kind split is a non-breaking additive change, same
-* convention as every other Unknown-style fallback in this contract).
+* convention as every other unknown-style fallback in this contract).
 *
 * `TargetKind.Position` (additive, appended never inserted: enum member order
 * is wire-significant per this contract's numeric-serialisation convention) is
 * a client-chosen surface fix used ONLY as an input to `vessel.target.set`
 * (see `SetTargetArgs.latitude`/ `SetTargetArgs.longitude`), a map-picked
 * lat/lon that isn't backed by any live KSP target object, so it never appears
-* as `vessel.target`'s own reported Kind.
+* as `vessel.target`'s own reported `VesselTarget.kind`.
 */
 export enum TargetKind {
 	Vessel = 0,

@@ -15,11 +15,10 @@ namespace Sitrep.Contract;
 ///
 /// <para>Reinforced.Typings reads the doc file natively, but what it hands the
 /// writer is <c>reader.ReadInnerXml()</c>: the summary's RAW XML, tags and
-/// entities intact. Written straight into a <c>/** */</c> block that is
-/// <c>&lt;para&gt;&lt;b&gt;Typing-only mirror.&lt;/b&gt;</c> on the author's
-/// screen, so the markup has to be translated rather than passed through. This
-/// is the translation, and it is a pure function of its input so the generated
-/// file stays byte-stable across runs.</para>
+/// entities intact. Passed through unchanged, an author hovering the type reads
+/// <c>&lt;para&gt;&lt;b&gt;Typing-only mirror.&lt;/b&gt;</c>. This is the
+/// translation that stops that, and it is a pure function of its input, so the
+/// generated file stays byte-stable across runs.</para>
 ///
 /// <para>Prose is re-wrapped rather than kept at the C# source's line breaks.
 /// Those breaks were chosen against a C# indent that no longer applies, and
