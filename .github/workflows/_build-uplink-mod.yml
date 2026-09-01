@@ -93,6 +93,63 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      # An Uplink vouches for its client bundle through `ExpectedClientHash.g.cs`,
+      # which is a SOURCE file: the hash has to be baked before the compile below
+      # or the DLL ships vouching for whatever was in the tree. The committed
+      # scaffold is the opt-in, so an Uplink with no client, or one whose
+      # UplinkManifest names no ExpectedClientHash, skips the whole block and
+      # ships the two-way index==bytes check it already had.
+      #
+      # The `packages/app` test is not belt-and-braces. This workflow is written
+      # to be `workflow_call`ed by a future third-party Uplink repo, and there the
+      # bundle is built by the author's own `gonogo-uplink bundle`, not by an app
+      # that does not exist in their checkout. Their bake belongs in their caller.
+      - name: Does ${{ inputs.id }} vouch for a client bundle
+        id: vouches
+        run: |
+          if [ -f "mod/${{ inputs.id }}/client/package.json" ] \
+            && [ -f "mod/${{ inputs.id }}/ExpectedClientHash.g.cs" ] \
+            && [ -f "packages/app/uplink-bundle-targets.ts" ]; then
+            echo "armed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "armed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::${{ inputs.id }} has no ExpectedClientHash scaffold this workflow can fill; its DLL will vouch for no client bundle"
+          fi
+
+      - uses: actions/setup-node@v6
+        if: steps.vouches.outputs.armed == 'true'
+        with:
+          node-version: "24"
+
+      - uses: pnpm/action-setup@v6
+        if: steps.vouches.outputs.armed == 'true'
+        with:
+          run_install: false
+
+      - name: Install workspace dependencies
+        if: steps.vouches.outputs.armed == 'true'
+        run: pnpm install --frozen-lockfile
+
+      # Rebuilt here rather than trusted, and then held to the value the tree
+      # already carries. The committed hash is what the app's own build writes
+      # into the registry index, so a release whose bundle hashes differently is
+      # a mod and an app that will refuse each other at load: the operator sees
+      # the Uplink quarantine with "tampered or wrong URL" and nothing says the
+      # release was built from a tree that was never rebaked.
+      - name: Bake ${{ inputs.id }}'s client hash before the compile
+        if: steps.vouches.outputs.armed == 'true'
+        run: |
+          set -euo pipefail
+          pnpm --filter @ksp-gonogo/app bake-uplink-hash "${{ inputs.id }}"
+          if ! git diff --exit-code -- "mod/${{ inputs.id }}/ExpectedClientHash.g.cs"; then
+            echo "::error::${{ inputs.id }}'s client bundle hashes differently here than the committed"
+            echo "ExpectedClientHash.g.cs claims. The DLL and the app that ships beside it would refuse"
+            echo "each other at load. Rebake on the branch and commit:"
+            echo "  pnpm --filter @ksp-gonogo/app bake-uplink-hash ${{ inputs.id }}"
+            exit 1
+          fi
+          node scripts/client-hash-armed.mjs --require "${{ inputs.id }}"
+
       - name: Build ${{ inputs.dll }}
         run: |
           dotnet build "${{ inputs.csproj }}" -c Release \

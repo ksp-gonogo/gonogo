@@ -189,9 +189,11 @@ namespace Gonogo.KosUplink
         {
             Id = "kos",
             Version = "0.2.0",
-            // Null when the generated const is empty (dev / never-released) so the loader
-            // degrades to the two-way check; a real sha256-… once the release build bakes it
-            // (mod/scripts/bake-client-hash.mjs → ExpectedClientHash.g.cs).
+            // Null when the generated const is empty so the loader degrades to the two-way
+            // check. It is a real sha256-…: baked from the bundle the app's own build emits
+            // (packages/app/scripts/bake-uplink-hash.ts → ExpectedClientHash.g.cs) and held
+            // current by bakedClientHash.test.ts, because a hash that has fallen behind its
+            // client source is a refusal on every load rather than a stale artifact.
             ExpectedClientHash = string.IsNullOrEmpty(ExpectedClientHash.Value) ? null : ExpectedClientHash.Value,
             Channels = new List<ChannelDeclaration>
             {

@@ -1384,7 +1384,10 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
       importBundle,
     });
     expect(outcomes[0].status).toBe("quarantined");
-    expect(outcomes[0].reason).toMatch(/hash .* != index/);
+    // The MOD, not the index: this bundle was described by a `clientSource` the
+    // mod supplied, so there is no index entry in the story to have vouched
+    // anything. The line said "index" here until 2026-09-01.
+    expect(outcomes[0].reason).toMatch(/hash .* != mod-expected/);
     expect(importBundle).not.toHaveBeenCalled();
   });
 

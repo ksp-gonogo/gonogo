@@ -2,18 +2,23 @@
 /**
  * Refuse to release an Uplink whose DLL vouches for nothing.
  *
- * ## The check this protects is silently two-way today
+ * ## The check this protects is still two-way for most of them
  *
  * The loader compares three independent witnesses of a client bundle: the
  * registry index's hash, the bytes it fetched, and `expectedClientHash` from the
- * running mod. The third is baked into the DLL at release build by
- * `mod/scripts/bake-client-hash.mjs`.
+ * running mod. The third is baked into the DLL by
+ * `packages/app/scripts/bake-uplink-hash.ts`, from the same bundler the app
+ * ships with, because a hash of any other build is one the loader can never
+ * match.
  *
- * That script is written, unit-tested, documented to Uplink authors, and invoked
- * by nothing. So every `ExpectedClientHash.g.cs` in this repo reads `""`, the
- * manifest reports null, and the loader degrades to the two-way index==bytes
- * check and records the mod arm as pending. Nothing fails. The author docs
- * promise a check that fires, and for a bundled Uplink it never has.
+ * That bake was written, unit-tested, documented to Uplink authors and invoked
+ * by nothing until 2026-09-01, so every `ExpectedClientHash.g.cs` in the tree
+ * read `""`. It runs now, and Kos and MechJeb are armed.
+ *
+ * The remaining eight have no scaffold at all: their manifest reports null, the
+ * loader degrades to the two-way index==bytes check and records the mod arm as
+ * pending. Nothing fails. The author docs promise a check that fires, and for
+ * those it never has.
  *
  * An empty hash is exactly the shape this project keeps relearning: an
  * instrument that cannot express its own failure reports success. `""` is not
@@ -23,7 +28,7 @@
  *
  * Seeded red for every Uplink would be a second permanently-failing job, and this
  * repo already owns one and has twice had a real failure hide behind it. So the
- * current nine are grandfathered in `UNARMED_DEBT` and anything NOT listed is
+ * remaining eight are grandfathered in `UNARMED_DEBT` and anything NOT listed is
  * held to armed: a new Uplink vouches for its bundle from the day it lands.
  *
  * Both directions, like every other ratchet here. An entry that becomes armed and
@@ -31,8 +36,14 @@
  * anything.
  *
  * Usage:
- *   client-hash-armed.mjs           fail on an unexcused empty hash, or a stale excuse
- *   client-hash-armed.mjs --report  print the state and exit 0
+ *   client-hash-armed.mjs                fail on an unexcused empty hash, or a stale excuse
+ *   client-hash-armed.mjs --report       print the state and exit 0
+ *   client-hash-armed.mjs --require <id> hold ONE Uplink to armed, debt list ignored
+ *
+ * `--require` is the release path's assertion, run by `_build-uplink-mod.yml`
+ * between the bake and `dotnet build`. It ignores the debt list on purpose: the
+ * list excuses what the TREE ships, and a release that has just baked a hash and
+ * is about to compile a DLL around it has no excuse left to claim.
  */
 
 import { execFileSync } from "node:child_process";
@@ -42,14 +53,30 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const report = process.argv.includes("--report");
+const required = process.argv.includes("--require")
+  ? process.argv[process.argv.indexOf("--require") + 1]
+  : undefined;
+if (process.argv.includes("--require") && !required) {
+  console.error(
+    "✖ --require needs an Uplink id, e.g. --require GonogoKosUplink",
+  );
+  process.exit(1);
+}
 
 /**
  * Uplinks whose DLL does not yet vouch for its client bundle. SHRINK ONLY.
  *
- * Seeded 2026-08-28 at NINE, which is every client-bearing Uplink in the repo:
- * two have an `ExpectedClientHash.g.cs` reading `""` and seven have no such file
- * at all. Nothing has ever baked one, so the loader's third witness has never
- * fired for a bundled Uplink.
+ * Seeded 2026-08-28 at NINE, which was every client-bearing Uplink in the repo,
+ * because nothing had ever baked a hash. Down to EIGHT on 2026-09-01: Kos and
+ * MechJeb, the two that carried the `ExpectedClientHash` scaffold, are armed
+ * from the same bundler the app ships (`packages/app/uplink-bundle.ts`) and
+ * held current by `bakedClientHash.test.ts`.
+ *
+ * The remaining eight have no scaffold at all: their `UplinkManifest` names no
+ * `ExpectedClientHash`, so baking a file for one would compile a const nothing
+ * reads and report success while the mod still vouched for nothing. Clearing an
+ * entry means adding the scaffold and the manifest line first, then running
+ * `pnpm --filter @ksp-gonogo/app bake-uplink-hash <UplinkId>`.
  *
  * A list rather than a red gate, for the reason this repo already owns one
  * permanently-red job and has twice had a real failure hide behind it. An Uplink
@@ -65,9 +92,6 @@ const UNARMED_DEBT = new Set([
   "GonogoFerramAerospaceResearchUplink",
   "GonogoKerbalismUplink",
   "GonogoKerbcastUplink",
-  "GonogoKosUplink",
-
-  "GonogoMechJebUplink",
   "GonogoPrincipiaUplink",
   "GonogoRealAntennasUplink",
   "GonogoRp1Uplink",
@@ -75,18 +99,17 @@ const UNARMED_DEBT = new Set([
    * Added 2026-08-28 with the Uplink, which is what this list says never to do,
    * so the reason has to stand on its own.
    *
-   * The hash vouches for a bundle a consumer FETCHES, and this Uplink ships no
-   * such bundle: like the seven bundled Uplinks above it, its client reaches the
-   * app as a static import in `main.tsx`, so the loader's three-way check has no
-   * fetched bytes to be the third witness over. Baking a hash now would mean
-   * hashing something that is not the artifact anyone loads, and a wrong hash is
-   * worse than an absent one: it makes the loader reject the real bundle.
+   * Its stated reason was that the client "reaches the app as a static import in
+   * main.tsx", so there were no fetched bytes for a third witness to be over.
+   * That was already false when it was written and is corrected here rather than
+   * copied: `main.tsx` registers NOTHING statically, every client in
+   * `uplink-bundle-targets.ts` is fetched and hashed by the loader, and this one
+   * is in that list.
    *
-   * The bake is a RELEASE step by construction (see mod/scripts/bake-client-hash.mjs:
-   * the bundle must exist and be hashed before the DLL compiles), and no workflow
-   * in this repo runs it, which is why all ten entries here are unarmed rather
-   * than eight. The entry clears when this Uplink is distributed as a fetched
-   * bundle and the release path bakes the hash, not before.
+   * The entry stands on the reason all eight share: the Uplink's `UplinkManifest`
+   * names no `ExpectedClientHash`, so there is no const for a bake to fill. A
+   * `.g.cs` written anyway would compile into the assembly, be read by nobody,
+   * and let this gate report armed while the mod still vouched for nothing.
    */
   "GonogoRealFuelsUplink",
 ]);
@@ -146,6 +169,27 @@ for (const row of rows) {
   console.log(`  ${row.state.padEnd(10)} ${row.id.padEnd(38)} ${row.detail}`);
 }
 
+if (required) {
+  const row = rows.find((candidate) => candidate.id === required);
+  if (!row) {
+    console.error(
+      `\n✖ --require ${required}: no such client-bearing Uplink. A required id the matrix does not\n` +
+        "  report is a typo that would otherwise pass by examining nothing.",
+    );
+    process.exit(1);
+  }
+  if (row.state !== "armed") {
+    console.error(
+      `\n✖ ${required} is about to compile a DLL that vouches for no client bundle (${row.state}).\n` +
+        "  Bake the hash BEFORE the compile, from the bundle that ships:\n" +
+        `    pnpm --filter @ksp-gonogo/app bake-uplink-hash ${required}`,
+    );
+    process.exit(1);
+  }
+  console.log(`\n${required} vouches for ${row.detail}.`);
+  process.exit(0);
+}
+
 const unarmed = rows.filter((row) => row.state !== "armed");
 const unexcused = unarmed.filter((row) => !UNARMED_DEBT.has(row.id));
 // Both directions, the same as every other ratchet here: an entry that is armed
@@ -177,7 +221,7 @@ if (unexcused.length > 0) {
       "\n\n  The loader's three-way check silently becomes two-way for these, and the author docs\n" +
       "  promise a check that fires. Bake the hash before compiling the DLL: the bundle has to\n" +
       "  exist and be hashed FIRST, which is why a release is two passes.\n" +
-      "    node mod/scripts/bake-client-hash.mjs <bundle> <out>/ExpectedClientHash.g.cs <namespace>",
+      "    pnpm --filter @ksp-gonogo/app bake-uplink-hash <UplinkId>",
   );
   process.exit(1);
 }

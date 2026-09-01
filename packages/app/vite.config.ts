@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import {
   copyFileSync,
   existsSync,
@@ -7,15 +6,12 @@ import {
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react";
 import browserslistToEsbuild from "browserslist-to-esbuild";
 import { defineConfig, type PluginOption } from "vite";
-import {
-  UPLINK_EXTERNAL_ENTRIES,
-  UPLINK_EXTERNAL_NO_CHUNK,
-} from "./src/uplinks/externals/entries";
+import { UPLINK_EXTERNAL_ENTRIES } from "./src/uplinks/externals/entries";
+import { buildUplinkClientBundle } from "./uplink-bundle";
 import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
 
 // Resolve every @ksp-gonogo/* workspace package to its TypeScript source so
@@ -190,61 +186,17 @@ const uplinkBundles = (): PluginOption => ({
   async buildStart() {
     const outDir = resolve(__dirname, "public/uplinks");
     mkdirSync(outDir, { recursive: true });
-    // esbuild is a devDependency of each Uplink client (not the app); resolve it
-    // from the first target so the app need not depend on it directly.
-    const firstClient = UPLINK_BUNDLE_TARGETS[0]?.clientDir;
-    if (!firstClient) return;
-    const clientRequire = createRequire(resolve(firstClient, "package.json"));
-    const esbuild = clientRequire("esbuild") as typeof import("esbuild");
-    const { build } = esbuild;
-
-    // Inline every CSS import as a self-injecting <style>, folded INTO the single
-    // hashed JS bundle: mirroring what Vite does for the app's own static
-    // imports. Without this esbuild emits a sibling `<id>.client.css` the runtime
-    // `import(bundleUrl)` never applies (the loader fetches only the JS), so a
-    // loaded Uplink with a stylesheet (kOS's xterm.css) renders unstyled. Folding
-    // it in also keeps the whole client under ONE integrity hash. (xterm.css is
-    // self-contained: no @import/url() to resolve; a future CSS that isn't would
-    // need esbuild's real CSS pipeline instead of this raw-text inline.)
-    const cssInjectPlugin: import("esbuild").Plugin = {
-      name: "gonogo-css-inject",
-      setup(pluginBuild) {
-        pluginBuild.onLoad({ filter: /\.css$/ }, (args) => {
-          const css = readFileSync(args.path, "utf8");
-          const contents =
-            `if (typeof document !== "undefined") {` +
-            `const s = document.createElement("style");` +
-            `s.textContent = ${JSON.stringify(css)};` +
-            `document.head.appendChild(s);` +
-            `}`;
-          return { contents, loader: "js" };
-        });
-      },
-    };
-
-    const external = UPLINK_EXTERNALS.map((e) => e.specifier).concat(
-      UPLINK_EXTERNAL_NO_CHUNK,
-    );
 
     const entries: Record<string, unknown>[] = [];
     for (const target of UPLINK_BUNDLE_TARGETS) {
-      const entry = resolve(target.clientDir, "src/index.ts");
-      const outFile = resolve(outDir, `${target.id}.client.js`);
-      await build({
-        entryPoints: [entry],
-        outfile: outFile,
-        bundle: true,
-        format: "esm",
-        platform: "browser",
-        target: "es2022",
-        jsx: "automatic",
-        external,
-        plugins: [cssInjectPlugin],
-        logLevel: "warning",
+      // The esbuild call lives in `uplink-bundle.ts`, shared with the
+      // release-time bake (`scripts/bake-uplink-hash.ts`). Two bundlers with
+      // their own options make the mod vouch for bytes this build never wrote,
+      // and a hash that cannot match fails as tampering on every load.
+      const { integrity } = await buildUplinkClientBundle({
+        clientDir: target.clientDir,
+        outFile: resolve(outDir, `${target.id}.client.js`),
       });
-      const bytes = readFileSync(outFile);
-      const integrity = `sha256-${createHash("sha256").update(bytes).digest("hex")}`;
-      writeFileSync(`${outFile}.sha256`, `${integrity}\n`);
       const base = process.env.VITE_BASE_PATH ?? "/";
       entries.push({
         id: target.id,
@@ -264,10 +216,17 @@ const uplinkBundles = (): PluginOption => ({
             // registry seam already treats bundleUrl as opaque.
             bundleUrl: `${base}uplinks/${target.id}.client.js`,
             integrity,
-            // H_mod half of the three-way check. It stays null until the mod
-            // ships expectedClientHash on system.uplinks; meanwhile the loader
-            // enforces the two-way index==bytes check and records the mod-hash
-            // arm as pending. Mirrored here so review can reconcile.
+            /*
+             * H_mod's slot in the index, and always null: the loader reads that
+             * witness off the LIVE roster (`system.uplinks`), never from here,
+             * because a hash the index supplies for itself is one party
+             * agreeing with itself.
+             *
+             * `integrity` above is the value an armed mod vouches for. The two
+             * are produced by the same bundler (`uplink-bundle.ts`), which is
+             * what makes them equal and the pre-fetch reconciliation pass; see
+             * bakedClientHash.test.ts for what holds that true.
+             */
             expectedClientHash: null,
           },
         ],

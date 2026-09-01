@@ -4,11 +4,14 @@
 // Usage: node bake-client-hash.mjs <bundlePath> <outCsPath> <namespace>
 //
 // Reads a built client bundle, computes its sha256 as `sha256-<hex>`, and writes an
-// `ExpectedClientHash.g.cs` const that the Uplink's UplinkManifest references. Run at
-// RELEASE build time only: after the client bundle is built and before `dotnet build`
-// of the DLL: so the value the running mod vouches for is frozen into the shipped
-// artifact and the Uplink author never types a hash by hand. Dev/CI-unit builds leave
-// the committed empty-`Value` const in place (hash null → the loader's two-way fallback).
+// `ExpectedClientHash.g.cs` const that the Uplink's UplinkManifest references.
+//
+// NOT the path this repo's Uplinks take. `packages/app/scripts/bake-uplink-hash.ts`
+// is, because it BUILDS the bundle it hashes with the same bundler the app ships
+// with, and a hash of any other build is one the loader can never match. This takes
+// a bundle path and trusts the caller to have produced the right bytes, which is the
+// right shape for an outside author (`gonogo-uplink bake-hash` is the published twin)
+// and the wrong one for a first-party Uplink whose bundle the app emits.
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 
