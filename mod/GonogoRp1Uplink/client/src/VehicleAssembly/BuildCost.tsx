@@ -42,25 +42,29 @@ export function BuildCostSection() {
     return null;
   }
 
+  /* Nothing on the editor's table, so nothing to price. The section does not
+     render at all rather than rendering a title over a sentence saying it has
+     nothing to say: an operator who is not designing a vehicle is not asking
+     what one costs, and a heading that is always present makes the widget
+     longer without making it say more.
+
+     This is NOT the same as pricing a vehicle at zero, which would be a lie.
+     Absent is absent, and here the honest expression of it is silence. */
+  if (cost === undefined) {
+    return null;
+  }
+
   return (
     <Section gap="sm" data-build-cost-section="">
-      <SectionTitle>WHAT THIS LAUNCH COSTS</SectionTitle>
-      {cost === undefined ? (
-        /* Not "this vehicle is free". No reading means no vehicle on the
-           editor's table, and a column of zeros would say the opposite. */
-        <Text tone="faint" size="sm">
-          No vehicle being designed.
-        </Text>
-      ) : (
-        <Stack gap="sm">
-          <CostRow name="Vehicle" value={cost.vehicleCost} />
-          <SurchargeRow cost={cost} />
-          <CostRow name="Tooling" value={cost.toolingCost} />
-          <CostRow name="Part unlocks" value={cost.unlockCost} />
-          <CostRow name="Rollout" value={cost.rolloutCost} />
-          <RequiredTechs techs={cost.requiredTechs} />
-        </Stack>
-      )}
+      <SectionTitle>LAUNCH COST</SectionTitle>
+      <Stack gap="sm">
+        <CostRow name="Vehicle" value={cost.vehicleCost} />
+        <SurchargeRow cost={cost} />
+        <CostRow name="Tooling" value={cost.toolingCost} />
+        <CostRow name="Part unlocks" value={cost.unlockCost} />
+        <CostRow name="Rollout" value={cost.rolloutCost} />
+        <RequiredTechs techs={cost.requiredTechs} />
+      </Stack>
     </Section>
   );
 }

@@ -128,11 +128,12 @@ function CraftCard({
       detail={
         <>
           {editorOf(craft)} ·
-          {/* "costs", because an unqualified number on a
-              card is what this surface was fixed for once already. Stock's
+          {/* `~` rather than "costs about": the tilde is the conventional mark
+              for an approximation and costs three characters where the phrase
+              cost fourteen, on a card that is read at a glance. It is stock's
               price, which is what the wire can state before the press; RP-1
               settles the charge when the operator commits. */}{" "}
-          costs about <Unit value={craft.cost} />
+          ~<Unit value={craft.cost} />
         </>
       }
       name={name}
@@ -270,7 +271,7 @@ function SpendWording({
 }: Readonly<{ cost: Rp1BuildableCraftEntry["cost"] }>) {
   return (
     <>
-      Spend about <Unit value={cost} />
+      Spend ~<Unit value={cost} />
     </>
   );
 }

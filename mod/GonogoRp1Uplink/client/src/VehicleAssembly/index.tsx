@@ -107,11 +107,20 @@ export function VehicleAssembly() {
 
         <ComplexKey complexes={complexes ?? []} />
 
-        {built.length === 0 && building.length === 0 && (
-          // A real answer, and one worth stating: an empty space centre and an
-          // Uplink that is not reporting look identical if this is left out.
+        {warehouse === undefined && queue === undefined && (
+          /* Only the UNREADABLE case says anything. A space centre with nothing
+             built renders nothing, because a sentence announcing that a list is
+             empty is not a reading, it is the widget talking about itself.
+
+             This used to fire on `built.length === 0 && building.length === 0`
+             and carried a comment claiming it distinguished an empty centre from
+             an Uplink that is not reporting. It could not: `warehouse ?? []`
+             turns an absent payload into an empty array one line above, so both
+             states reached the same sentence. The distinction is real and worth
+             keeping, so it is made on the ABSENCE itself rather than on a count
+             that cannot see it. */
           <Text size="sm" tone="muted">
-            None built and none on order.
+            No reading from the build queue.
           </Text>
         )}
 

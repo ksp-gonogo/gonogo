@@ -3,6 +3,7 @@ import {
   render,
   screen,
   setupStreamFixture,
+  waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
@@ -62,9 +63,7 @@ describe("BuildCostSection: funds, and only funds", () => {
   it("draws nothing at all when RP-1 is not present", () => {
     mount();
 
-    expect(
-      screen.queryByText("WHAT THIS LAUNCH COSTS"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("LAUNCH COST")).not.toBeInTheDocument();
   });
 
   /**
@@ -72,15 +71,23 @@ describe("BuildCostSection: funds, and only funds", () => {
    * ship is on the table, and a column of zeros would say the launch costs
    * nothing.
    */
-  it("says there is no vehicle rather than showing a column of zeros", async () => {
+  it("renders nothing at all rather than a heading over an empty answer", async () => {
     const stream = mount();
 
     emit(stream, undefined);
 
-    expect(
-      await screen.findByText(/No vehicle being designed/i),
-    ).toBeInTheDocument();
+    // The section used to draw its title and a sentence saying it had nothing
+    // to say. An operator who is not designing a vehicle is not asking what one
+    // costs, so the honest expression of absent is silence.
+    await waitFor(() => {
+      expect(
+        stream.container.querySelector("[data-build-cost-section]"),
+      ).toBeNull();
+    });
+    // Still not a column of zeros, which is the thing that would be a LIE
+    // rather than merely noise.
     expect(visibleText(stream.container)).not.toContain("0f");
+    expect(visibleText(stream.container)).not.toContain("LAUNCH COST");
   });
 
   it("renders every line a launch is paid for in", async () => {
@@ -90,7 +97,7 @@ describe("BuildCostSection: funds, and only funds", () => {
 
     const text = visibleText(
       await screen
-        .findByText("WHAT THIS LAUNCH COSTS")
+        .findByText("LAUNCH COST")
         .then((el) => el.closest("section") ?? stream.container),
     );
     expect(text).toContain("Vehicle");
@@ -135,7 +142,7 @@ describe("BuildCostSection: funds, and only funds", () => {
 
     emit(stream, { ...PRICED, untooledSurcharge: null });
 
-    await screen.findByText("WHAT THIS LAUNCH COSTS");
+    await screen.findByText("LAUNCH COST");
     expect(visibleText(stream.container)).not.toContain("not on top of it");
   });
 
@@ -148,7 +155,7 @@ describe("BuildCostSection: funds, and only funds", () => {
 
     emit(stream, { ...PRICED, rolloutCost: null });
 
-    await screen.findByText("WHAT THIS LAUNCH COSTS");
+    await screen.findByText("LAUNCH COST");
     expect(visibleText(stream.container)).toContain(NULL_DISPLAY);
   });
 

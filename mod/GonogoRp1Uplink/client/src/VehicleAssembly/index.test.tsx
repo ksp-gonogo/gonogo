@@ -232,9 +232,9 @@ describe("VehicleAssembly", () => {
     ]);
   });
 
-  it("says plainly that the centre holds no vehicles at all", async () => {
-    // A real state on a fresh career, and one two empty sections cannot
-    // express: no cards and an Uplink that is not reporting look identical.
+  it("says nothing at all when the centre simply holds no vehicles", async () => {
+    // An empty centre is not news. This used to draw "None built and none on
+    // order", which the widget said about itself rather than about the career.
     const { fixture } = mount();
     await rp1IsPresent(fixture);
     act(() => {
@@ -246,13 +246,38 @@ describe("VehicleAssembly", () => {
       fixture.emit("rp1.buildQueue", []);
     });
 
+    /* Waits for the no-reading line to CLEAR rather than for the panel title,
+       which renders before any payload lands: the widget correctly says it has
+       no reading until the channels arrive, so a title-based wait passes while
+       the data is still absent and asserts against the wrong frame. */
     await waitFor(() => {
-      expect(
-        screen.getByText("None built and none on order."),
-      ).toBeInTheDocument();
+      expect(screen.queryByText(/No reading/i)).not.toBeInTheDocument();
     });
+    expect(screen.queryByText(/None built/i)).not.toBeInTheDocument();
     expect(screen.queryByText("IN THE WAREHOUSE")).not.toBeInTheDocument();
     expect(screen.queryByText("UNDER INTEGRATION")).not.toBeInTheDocument();
+  });
+
+  it("DOES say so when the build queue was never reported, which is a different state", async () => {
+    /* The distinction the old message claimed to make and could not: it fired
+       on `built.length === 0 && building.length === 0`, and `warehouse ?? []`
+       turned an absent payload into an empty array one line above, so a centre
+       with nothing built and an Uplink saying nothing reached the same
+       sentence. Emitting NEITHER channel is what "not reporting" looks like. */
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("No reading from the build queue."),
+      ).toBeInTheDocument();
+    });
   });
 
   it("draws every craft across every complex in one flat list", async () => {
@@ -348,10 +373,12 @@ describe("VehicleAssembly", () => {
       fixture.emit("rp1.buildQueue", []);
     });
 
+    /* Waits for the no-reading line to clear, which is what says the channels
+       have landed. This used to wait for "None built and none on order", using
+       a message about emptiness as a settle-signal for a test whose subject is
+       the hierarchy heading. */
     await waitFor(() => {
-      expect(
-        screen.getByText("None built and none on order."),
-      ).toBeInTheDocument();
+      expect(screen.queryByText(/No reading/i)).not.toBeInTheDocument();
     });
     expect(visibleText()).not.toContain("Launch complexes:");
   });

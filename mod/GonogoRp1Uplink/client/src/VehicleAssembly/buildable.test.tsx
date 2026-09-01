@@ -183,7 +183,7 @@ describe("starting a build from a saved craft", () => {
 
     const text = visibleText(document.body);
     expect(text).toContain("289,848");
-    expect(text).toMatch(/Spend about/);
+    expect(text).toMatch(/Spend ~/);
   });
 
   it("draws no control and gives the reason when no complex would take the craft", async () => {
