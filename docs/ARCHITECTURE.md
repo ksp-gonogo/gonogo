@@ -6,23 +6,39 @@ gonogo is a pnpm + Turborepo monorepo. Everything is built around one idea: a co
 
 ```
 packages/
-  core/       : Plugin registry, shared TS types, React contexts, GO/NO-GO system
-  components/ : Built-in dashboard widget library (uses the core registry)
-  data/       : Flight history + data hooks (useDataSeries, useFlight, …)
-  serial/     : Per-screen serial input platform: device types, transports,
-                 render styles, InputDispatcher, VirtualDevice widget + UI
-  ui/         : Reusable UI primitives (buttons, inputs, tabs, modal, icons)
-  kerbcast/    : Consumer of the kerbcast camera-streaming sidecar; registers
-                 a `kerbcast` data source + the Camera Feed widget
-  app/        : Vite + React SPA (main screen + station mode)
-  relay/      : Fastify server hosting /ice-config (TURN credentials) and a
-                 coturn TURN/STUN child process with a per-restart-rotated
-                 shared secret, for the camera channel and future
-                 cross-internet stations. Also a diagnostics-only /host
-                 registry; it is not in the station-discovery path
+  core/          : Plugin registry, shared TS types, React contexts, GO/NO-GO system
+  components/    : Built-in dashboard widget library (uses the core registry)
+  data/          : Flight history + data hooks (useDataSeries, useFlight, …)
+  serial/        : Per-screen serial input platform: device types, transports,
+                    render styles, InputDispatcher, VirtualDevice widget + UI
+  ui/            : App-side UI: dashboard chrome, the settings modal's furniture,
+                    PeerJS banners, plus one-line re-exports of ui-kit primitives
+  ui-kit/        : The PUBLISHED design system: layout primitives, readouts, form
+                    controls, the Panel family, the unit renderer, /testing and
+                    the render harness. The only UI package an Uplink may import
+  theme/         : Design tokens (tokens.css), consumed by ui-kit
+  logger/        : ConsoleLogger + the Axiom transport
+  sitrep-client/ : The app-side telemetry spine: WebSocketTransport,
+                    TelemetryClient, TimelineStore, ViewClock, command delay
+  test-utils/    : Shared test helpers for the packages above
+  app/           : Vite + React SPA (main screen + station mode)
+  relay/         : Fastify server hosting /ice-config (TURN credentials) and a
+                    coturn TURN/STUN child process with a per-restart-rotated
+                    shared secret, for the camera channel and future
+                    cross-internet stations. Also a diagnostics-only /host
+                    registry; it is not in the station-discovery path
+
+mod/
+  Sitrep.*/        : The Gonogo KSP mod (C#): the contract, the host, the engine
+  sitrep-sdk/      : The PUBLISHED authoring surface: hooks, every registerX, the
+                      generated contract types, the unit model, the gonogo-uplink CLI
+  Gonogo*Uplink*/  : The bundled Uplinks, each four C# projects plus a client
 ```
 
-Package names use the `@ksp-gonogo/` scope.
+Package names use the `@ksp-gonogo/` scope. Two of them are published to npm,
+`@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit`, and those two are the entire
+surface a third-party Uplink may build against; everything else is
+`private: true`. See [uplink-isolation.md](./uplink-isolation.md).
 
 ## Data flow
 
@@ -89,14 +105,16 @@ const stage = useCommand('vessel.control.stage');     // one handle per command 
 usePanelDelay(stage);                                 // contributes its delay UX to the panel rail
 ```
 
-External Uplinks (mod-adjacent packages, not just built-in widgets) can also contribute UI into a host widget's named **augment slots** via `registerAugment`/`<AugmentSlot>`, without the host and the augment referencing each other directly.
+External Uplinks (mod-adjacent packages, not just built-in widgets) can also contribute UI into a host widget's named **augment slots** via `registerAugment`/`<AugmentSlot>`, without the host and the augment referencing each other directly. `Panel` mounts `<componentId>.sections` and `<componentId>.actions` for every widget, so an Uplink can reach one whose author declared no slot at all. See [creating-an-uplink.md](./creating-an-uplink.md).
+
+Note that `useTelemetry` answers a `Reading`, a six-arm union over the value and its currency, not the payload. A widget cannot read a value without branching, which is the point: the branch is where the staleness caveat gets rendered.
 
 
 ## `@ksp-gonogo/components`
 
 The built-in widget library. Each widget file calls `registerComponent()` on import; there is no central index that lists them. The orchestrator just imports the package and registration happens as a side effect.
 
-Widgets declare their `dataRequirements` (e.g. `['vessel.altitude']`) so the orchestrator knows what to subscribe to, and their `actions` so the serial-input layer and the config modal know what they can do. Styling is [styled-components](https://styled-components.com/); widget and sub-component names follow BEM-inspired naming (`AltitudeGauge`, `AltitudeGauge__Value`).
+Widgets declare the Topics they read as `channels` (e.g. `['vessel.altitude']`), typed against `TopicId` so a typo fails the build, plus `optionalChannels` for a read they can do without. `dataRequirements` is the older untyped form, still accepted. They also declare their `actions`, so the serial-input layer and the config modal know what they can do. Styling is [styled-components](https://styled-components.com/); widget and sub-component names follow BEM-inspired naming (`AltitudeGauge`, `AltitudeGauge__Value`).
 
 ## `@ksp-gonogo/app`
 
@@ -110,7 +128,15 @@ The Vite SPA. Key responsibilities:
 
 ## Extension pattern
 
-Widgets and themes follow the same self-registration pattern. An external npm package does exactly this:
+Widgets and themes self-register at module load, and the orchestrator renders whatever is in the registry. There is no central list of widgets and nothing is hardcoded.
+
+**If you are extending gonogo from outside this repo, the document you want is [creating-an-uplink.md](./creating-an-uplink.md), not this one.** An extension is an **Uplink**, and it registers through the published `@ksp-gonogo/sitrep-sdk`:
+
+```ts
+import { registerComponent } from '@ksp-gonogo/sitrep-sdk';
+```
+
+`@ksp-gonogo/core` is `private: true` and unpublished, so an Uplink can neither install nor build against it. The rest of this section describes how a widget INSIDE this repo registers, which is the same shape reached through the internal package:
 
 ```ts
 import { registerComponent } from '@ksp-gonogo/core';
@@ -118,11 +144,11 @@ import { registerComponent } from '@ksp-gonogo/core';
 registerComponent({
   id: 'my-custom-gauge',
   name: 'My Custom Gauge',
-  category: 'telemetry',
+  description: 'What an operator sees on this tile, in one sentence.',
+  tags: ['telemetry'],
   component: MyCustomGauge,
-  dataRequirements: ['vessel.altitude'],
+  channels: ['vessel.altitude'],
   actions: [],            // declare what the widget can do (serial input maps onto these)
-  behaviors: [],          // opt-in behavior flags
   defaultConfig: {},
 });
 ```
@@ -137,7 +163,7 @@ registerTheme({
 });
 ```
 
-The built-in `@ksp-gonogo/components` package models this pattern exactly; the orchestrator does not treat it as special. Themes are runtime-switchable: the `ThemeProvider` is driven by the active theme from the registry, never hardcoded at build time.
+The built-in `@ksp-gonogo/components` package models this pattern exactly; the orchestrator does not treat it as special, and it reaches the same registry an Uplink's `registerComponent` does. Themes are runtime-switchable: the `ThemeProvider` is driven by the active theme from the registry, never hardcoded at build time.
 
 ## Serial input platform
 

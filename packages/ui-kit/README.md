@@ -8,6 +8,12 @@ on the same screen.
 If you're building a Gonogo widget, start here. Compose these primitives and your widget picks
 up the host's theme, spacing and type scale without you writing CSS for any of it.
 
+A widget ships inside an **Uplink**, the extension unit that pairs a KSP mod with a client
+bundle. This package is one of its two halves; the other is `@ksp-gonogo/sitrep-sdk`, which
+carries the registration and the telemetry hooks.
+[docs/creating-an-uplink.md](https://github.com/ksp-gonogo/gonogo/blob/main/docs/creating-an-uplink.md)
+walks the whole path and is the place to start if you have not written one before.
+
 ## Install
 
 ```sh

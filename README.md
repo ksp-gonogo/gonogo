@@ -75,7 +75,7 @@ KSP (kOS)                               ──► Gonogo mod Uplink (same WS) �
 Main screen ◄──► Station screens (peer-to-peer data channels)
 ```
 
-For the package layout and the widget / theme extension API, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+**Extending it.** New telemetry, commands and widgets arrive as an **Uplink**: a KSP mod plus a client bundle, which you own, host and publish yourself, with no marketplace to submit to. [docs/creating-an-uplink.md](docs/creating-an-uplink.md) is the guide, and it is where to start if you want to add anything to the dashboard. For the package layout and how the app itself is put together, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ---
 
@@ -83,7 +83,9 @@ For the package layout and the widget / theme extension API, see [docs/ARCHITECT
 
 - **[docs/KSP-SETUP.md](docs/KSP-SETUP.md)**: the required mods, installing the Gonogo mod, connecting the dashboard to KSP, signal loss and CommNet, kOS, and camera feeds
 - **[docs/NETWORKING.md](docs/NETWORKING.md)**: running KSP and the main screen on two computers, and connecting stations across networks
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: the package map, the data-source pattern, and the widget / theme / data-source extension API
+- **[docs/creating-an-uplink.md](docs/creating-an-uplink.md)**: writing an Uplink, the extension unit for new telemetry, commands and widgets. The mod half, the client half, the codegen between them, testing, and distribution
+- **[docs/uplink-isolation.md](docs/uplink-isolation.md)**: which gonogo packages an Uplink may import, and why the answer is only two
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: the package map and how the app is put together (maintainer reference)
 - **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: GitHub Pages and the backend container images (maintainer reference)
 - **[packages/serial/README.md](packages/serial/README.md)**: wiring physical USB controllers (throttle quadrants, button boxes) to widget actions
 - **[CONTRIBUTING.md](CONTRIBUTING.md)**: the developer setup, running the tests, and how to land a change

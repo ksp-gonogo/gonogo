@@ -944,14 +944,18 @@ those six included, and that is not a licence to import them: it fixes runtime
 resolution for first-party code and does nothing for building yours. The rule is
 `docs/uplink-isolation.md`, and there is no first-party exemption.
 
-Three sdk subpaths are author surfaces: **`/frames`**, **`/media`** and **`/testing`**.
-`/spine` and `/registry` are advertised in the package's `exports` and are not for you.
+The subpath list is exhaustive, and the sdk publishes subpaths that are not on it.
+Yours are **`/frames`** (reference-frame arithmetic), **`/media`** (see below) and
+**`/testing`**. `@ksp-gonogo/sitrep-sdk/spine` and `/registry` appear in the
+package's `exports` with exactly the same weight and are NOT author surfaces:
+`/spine` is where the read semantics, the timeline store and every hook the root
+barrel shims are implemented, and `/registry` is dashboard orchestration.
+ui-kit's are `/testing`, `/guards`, `/render-probe`, `/render`, `/page-check` and
+`/tokens.css`.
 
-Each package has a `/testing` subpath your tests import and your widgets never do, and
-ui-kit adds `/render-probe` and `/render` for the render harness, and `/guards`. See
-"Testing your Uplink" below. There is no third package: `@ksp-gonogo/sitrep-testing`
-used to be one and was deleted once the spine came down into the SDK, so anything that
-names it is out of date.
+Each package's `/testing` is for your tests and never for your widgets. There is no
+third package: `@ksp-gonogo/sitrep-testing` used to be one and was deleted once the
+spine came down into the SDK, so anything that names it is out of date.
 
 A camera Uplink also gets **`@ksp-gonogo/sitrep-sdk/media`**, a subpath of the same
 package: the delayed-playout buffer, the per-frame pipeline and the shared
