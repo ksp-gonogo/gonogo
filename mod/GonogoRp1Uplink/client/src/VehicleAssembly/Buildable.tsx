@@ -4,6 +4,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Button,
   Cluster,
   CommandButton,
   NULL_DISPLAY,
@@ -176,16 +177,17 @@ function CraftCard({
                 confirmLabel={<SpendWording cost={craft.cost} />}
                 handle={handle}
                 key={complex.lcId ?? complexLabel(complex)}
-                label={
-                  eligible.length === 1
-                    ? "Start build"
-                    : `Build at ${complex.name ?? complexLabel(complex)}`
-                }
+                /* One button per complex, always named, even when there is
+                   only one. A label that switches to "Start build" on a
+                   single-complex centre makes the control read differently
+                   depending on how many OTHER complexes exist, so an operator
+                   learns two buttons for one action. */
+                label={`Build at ${complex.name ?? complexLabel(complex)}`}
                 size="sm"
               />
             ))}
+            <Refusals complexes={complexes} />
           </Cluster>
-          <Refusals complexes={complexes} />
         </Stack>
       )}
     </ProjectCard>
@@ -193,15 +195,22 @@ function CraftCard({
 }
 
 /**
- * Why each complex that refused this craft refused it.
+ * Every complex that refused this craft, as a DEAD BUTTON carrying its reason.
  *
- * <para>Drawn even when another complex WOULD take it, because "LC-1 is too
+ * <para>Drawn even when another complex would take it, because "LC-1 is too
  * small for this" is what tells an operator which complex to modify, and a list
- * that only showed the complexes that said yes would leave them pressing the
- * one button they have and never learning why there is only one.</para>
+ * of only the yeses leaves them pressing the one button they have without
+ * learning why there is one.</para>
  *
- * <para>A complex with no reasons at all is skipped rather than drawn as a
- * blank line: it is one that said yes, and it has a button above.</para>
+ * <para>A button rather than a line of prose, which is what this was. Prose
+ * spent a whole row per complex saying "LC-1 at Cape Canaveral: too light for
+ * the complex", and a disabled control in the same cluster as the live ones
+ * says the same thing in the shape the operator is already reading: these are
+ * the complexes, these are the ones you can press. The reason moves to the
+ * title, where it costs no space until it is wanted.</para>
+ *
+ * <para>A complex with no reasons at all is skipped: it said yes and already
+ * has a live button beside these.</para>
  */
 function Refusals({
   complexes,
@@ -214,17 +223,17 @@ function Refusals({
   }
 
   return (
-    <Stack gap="xs">
+    <>
       {refused.map((complex) => (
-        <Text
+        <Button
+          disabled
           key={complex.lcId ?? complexLabel(complex)}
-          size="xs"
-          tone="muted"
+          title={(complex.refusals ?? []).join("; ")}
         >
-          {complexLabel(complex)}: {(complex.refusals ?? []).join("; ")}
-        </Text>
+          Build at {complex.name ?? complexLabel(complex)}
+        </Button>
       ))}
-    </Stack>
+    </>
   );
 }
 

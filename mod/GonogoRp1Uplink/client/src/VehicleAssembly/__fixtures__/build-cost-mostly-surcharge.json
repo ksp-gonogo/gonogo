@@ -9,7 +9,7 @@
       "h": 12
     },
     "caption": "Most of what this vehicle costs is the penalty for flying it untooled: the indent says that figure is part of the one above rather than added to it",
-    "paints": ["WHAT THIS LAUNCH COSTS", "Vehicle", "Untooled", "Tooling"],
+    "paints": ["LAUNCH COST", "Vehicle", "Untooled", "Tooling"],
     "modes": ["default", "mobile-9x8", "portrait-5x18", "landscape-18x5"]
   },
   "_stream": {

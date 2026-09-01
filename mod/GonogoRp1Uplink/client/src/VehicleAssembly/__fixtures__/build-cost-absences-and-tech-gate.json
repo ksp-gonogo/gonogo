@@ -9,12 +9,7 @@
       "h": 12
     },
     "caption": "A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without",
-    "paints": [
-      "WHAT THIS LAUNCH COSTS",
-      "Rollout",
-      "Needs tech",
-      "supersonicFlight"
-    ],
+    "paints": ["LAUNCH COST", "Rollout", "Needs tech", "supersonicFlight"],
     "modes": ["default", "mobile-9x8", "portrait-5x18", "landscape-18x5"]
   },
   "_stream": {

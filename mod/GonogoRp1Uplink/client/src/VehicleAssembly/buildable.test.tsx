@@ -199,9 +199,17 @@ describe("starting a build from a saved craft", () => {
       ],
     });
 
-    expect(
-      await screen.findByText(/too heavy for the complex/),
-    ).toBeInTheDocument();
+    /* The complex still appears, as a dead button carrying its reason, and no
+       LIVE control exists. Both halves matter: an operator has to see that the
+       complex was considered and refused, and must not be able to press it. */
+    const refused = await screen.findByRole("button", {
+      name: /Build at LC-1/i,
+    });
+    expect(refused).toBeDisabled();
+    expect(refused).toHaveAttribute(
+      "title",
+      expect.stringContaining("too heavy"),
+    );
     expect(
       screen.queryByRole("button", { name: /Start building/i }),
     ).not.toBeInTheDocument();
@@ -234,7 +242,15 @@ describe("starting a build from a saved craft", () => {
         name: /Start building Atlas LV-3B at LC-1/i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/LC-2 at Cape: too large/)).toBeInTheDocument();
+    /* The refused complex is a DEAD BUTTON carrying its reason in the title,
+       not a line of prose. Asserted by role and title rather than by text,
+       because the reason no longer occupies the page until it is wanted. */
+    const refused = screen.getByRole("button", { name: /Build at LC-2/i });
+    expect(refused).toBeDisabled();
+    expect(refused).toHaveAttribute(
+      "title",
+      expect.stringContaining("too large"),
+    );
   });
 
   it("refuses a craft whose parts are researched but not bought, and says where to buy them", async () => {
