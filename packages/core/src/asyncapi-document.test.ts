@@ -147,6 +147,27 @@ describe("asyncapi.yaml", () => {
     expect(await errorsIn(yaml)).toEqual([]);
   });
 
+  it("is a document the parser actually read, not just accepted", async () => {
+    /*
+     * A different KIND of instrument from the two plants above, because they
+     * share a blind spot: both prove the parser can reject something, and
+     * neither proves it looked at all 123 channels of THIS document rather than
+     * at a prefix of it. So the parse's own model is compared against the
+     * document's, which no amount of leniency in the diagnostics can satisfy.
+     */
+    const { Parser } = await import("@asyncapi/parser");
+    const parsed = await new Parser().parse(yaml);
+    const model = parsed.document;
+    expect(model, "the parser returned no document model").toBeTruthy();
+    expect(model?.channels().all().length).toBe(
+      Object.keys(document.channels as object).length,
+    );
+    expect(model?.operations().all().length).toBe(
+      Object.keys(document.operations as object).length,
+    );
+    expect(model?.info().version()).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
   it("carries every statically declared topic and command", () => {
     const topics = mapKeys(
       join(GENERATED, "topic-map.ts"),
