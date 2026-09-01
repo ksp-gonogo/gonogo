@@ -82,6 +82,20 @@
             "stupidity": 0.1,
             "experienceLevelDelta": 0.7,
             "standing": 2
+          },
+          {
+            "name": "Sinta Kerman",
+            "trait": "Scientist",
+            "experienceLevel": 0,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.5,
+            "stupidity": 0.5,
+            "experienceLevelDelta": 0,
+            "standing": 2,
+            "isApplicant": true
           }
         ]
       },

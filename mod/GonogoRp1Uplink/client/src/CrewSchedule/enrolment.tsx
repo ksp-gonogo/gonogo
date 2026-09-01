@@ -97,10 +97,10 @@ export function TrainingEnrolment() {
     return null;
   }
 
-  // The trainings the career has UNLOCKED and no others, the same rule the
-  // per-row control follows and for the same reason: `rp1.training.enrol` does
-  // not ask whether a training is unlocked, because RP-1's own screen answers
-  // that by not listing it.
+  /* The trainings the career has UNLOCKED and no others, the same rule the
+     per-row control follows and for the same reason: `rp1.training.enrol` does
+     not ask whether a training is unlocked, because RP-1's own screen answers
+     that by not listing it. */
   const offered = catalogue.filter(
     (template) => template.unlocked === true && template.id,
   );

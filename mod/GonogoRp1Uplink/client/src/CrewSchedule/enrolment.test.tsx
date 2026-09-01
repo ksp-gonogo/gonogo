@@ -466,9 +466,9 @@ describe("who RP-1 would refuse", () => {
       ]);
     });
 
-    // Found by the TAGGED label, which is also the assertion: a crew that has
-    // gone stale says which name went stale without an operator hovering to find
-    // out, and the wait is what lets the re-emitted roster land first.
+    /* Found by the TAGGED label, which is also the assertion: a crew that has
+       gone stale says which name went stale without an operator hovering to
+       find out, and the wait is what lets the re-emitted roster land first. */
     const stale = await screen.findByRole("button", {
       name: new RegExp(`${NEDCAS} . off-world`),
     });
