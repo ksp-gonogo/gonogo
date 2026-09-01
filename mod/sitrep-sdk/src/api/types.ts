@@ -975,11 +975,6 @@ export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
 }
 
 /**
- * Mirrors `packages/sitrep-client/src/use-route-commands.ts`'s
- * `UseRouteCommandsResult`: same leaf constraint as every other type in
- * this file.
- */
-/**
  * One Uplink's own method call, as `useUplinkRelay` hands it over. `method` and
  * `args` mean whatever the Uplink's registered handle says they mean; nothing
  * between the caller and that handle interprets either.
@@ -1012,6 +1007,7 @@ export interface HostIceServers {
   onChange(cb: (servers: RTCIceServer[]) => void): () => void;
 }
 
+/** What {@link useRouteCommands} answers with: the queue for one topic, and the delay mode it is under. */
 export interface UseRouteCommandsResult {
   items: InFlightCommand[];
   mode: DelayMode;

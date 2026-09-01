@@ -9,10 +9,11 @@
 // accessor-on-generated-data shape so the generated file stays free to change.
 //
 // The handle composes with the SDK's existing command lifecycle: a caller
-// dispatches `writeCommand` (whose result reaches the `confirmed` phase in
-// use-command / client.ts) and reads `readTopic`.`readField` for the echo. The
-// follow-on `useControlStream` hook is what ties those together; this module only
-// provides the unified handle it builds on.
+// dispatches `writeCommand` through `useCommand` and reads `readTopic`'s
+// `readField` through `useTelemetry` for the echo. This module provides only the
+// unified handle; pairing the two calls is the caller's, and the app tracks the
+// round trip through the command's own `confirmed` phase rather than through
+// anything here.
 
 import {
   GENERATED_CONTROL_CHANNELS,

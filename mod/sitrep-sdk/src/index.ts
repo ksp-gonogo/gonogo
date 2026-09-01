@@ -202,18 +202,13 @@ export {
   type ManeuverBasisLabels,
   maneuverBasisLabels,
 } from "./maneuver-basis";
-// The curated author-facing barrel (registration + hook shims + author types).
-// PROPOSAL surface pending operator sign-off (design D-D) before first external
-// publish. See ./api for why these are host-injected shims, not core re-exports.
-/**
- * The read contract. An Uplink widget's `useTelemetry` answers with a `Reading`, so
- * the union and its accessors ship on the devkit surface rather than app-side.
- */
 // The rate-budget class itself, not just its options type. Every new data source
 // is required to register a budget and all eight Uplink test setups call
 // `installTestGate`, so it has to be reachable from a published package or that
 // requirement only ever applied to code inside this repo.
 export { PerfBudget } from "./perf/PerfBudget";
+// The read contract: `useTelemetry` answers with a `Reading`, so the union and
+// its accessors ship on the author surface rather than app-side.
 export * from "./reading";
 // Which Topics a client package has registered at runtime, and a subscription
 // to that answer changing. Read by the app's field catalogue and by

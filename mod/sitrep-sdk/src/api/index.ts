@@ -1,26 +1,21 @@
-// ---------------------------------------------------------------------------
-// The curated author-facing barrel: PROPOSAL (design D-B/D-D).
+// The curated author-facing barrel: the one framework, data and hook surface a
+// third-party Uplink author imports. It carries the author-facing TYPES
+// (declared here rather than re-exported, see ./types for why this leaf cannot
+// reach the app's) and fail-loud SHIMS for the stateful members, every
+// `registerX` and every hook, which delegate to the app-injected host and throw
+// a named error naming the fix when no host is installed. No stateful member
+// reaches the app, so a packed Uplink never carries a second registry, which is
+// the whole point.
 //
-// This is the one framework/data/hook surface a third-party Uplink author
-// imports. It carries:
-//   • the author-facing TYPES (self-contained here: see ./types on why the leaf
-//     cannot re-export them from core), and
-//   • fail-loud SHIMS for the stateful members (every registerX, the hooks),
-//     which delegate to the app-injected host and throw a named error when it is
-//     absent (design §4.3 / D-A). No stateful member imports core, so the packed
-//     sdk never bundles a second registry: the whole point of the design.
-//
-// The EXPORT LIST below is what the operator reviews for D-D before the first
-// external Uplink is published. It is NOT frozen. The api-shape gate
-// (./api-shape.gate.test.ts) records it so any change is deliberate.
+// The export list is not frozen. `./api-shape.gate.test.ts` records it, so any
+// change to it is a deliberate one.
 //
 // EVERY Uplink goes through this barrel, including the ones bundled with the
 // mod. There is no first-party path: bundling changes how an Uplink ships, not
-// what it may import, and an Uplink that reaches for core or sitrep-client
-// directly stops modelling what an outside author can actually build. An
-// earlier revision of this header exempted in-tree code, and that exemption is
-// what taught docs/creating-an-uplink.md to tell authors to depend on core.
-// ---------------------------------------------------------------------------
+// what it may import, and an Uplink that reaches past this barrel stops
+// modelling what an outside author can actually build. An earlier revision of
+// this header exempted in-tree code, and that exemption is what taught
+// docs/creating-an-uplink.md to tell authors to import a private package.
 
 import type { ReactElement } from "react";
 import {
@@ -272,10 +267,21 @@ export {
   unregisterDataSource,
 } from "./registry";
 
+/*
+ * These three, and `AugmentSlot` below, are also exported from
+ * `@ksp-gonogo/ui-kit`, and there the declaration is the registry itself rather
+ * than a shim onto the host. Both spellings now reach ONE registry: ui-kit
+ * holds it in a global slot precisely so that a second loaded copy of that
+ * package cannot fork it, which is what a mis-bundled Uplink used to do
+ * silently. The pair is worth knowing about anyway, because the two differ with
+ * no host installed: these throw a named error naming the fix, ui-kit's carry
+ * on.
+ */
+
 /**
  * Every augment bound into `slot`, in render order. The read half of
  * {@link registerAugment}: an Uplink's test observes what it registered through
- * the same host it registered into, rather than reaching for ui-kit's copy.
+ * the same host it registered into.
  */
 export const getAugmentsForSlot = (slot: string) =>
   getHost().getAugmentsForSlot(slot);
@@ -283,6 +289,14 @@ export const getAugmentsForSlot = (slot: string) =>
 export const clearAugments = (): void => {
   getHost().clearAugments();
 };
+/**
+ * Bind a component into another widget's named slot. Call at module load,
+ * exactly like `registerComponent`. Several augments may target one slot and
+ * all of them render, ordered by `priority`, none of them aware of the others.
+ *
+ * `component` is typed against the slot's own props through the declaration-
+ * merging seam, so `S` is checked here, at the only place it can be.
+ */
 export const registerAugment = <S extends string>(
   def: AugmentDefinition<S>,
 ): void => getHost().registerAugment(def);
@@ -451,8 +465,19 @@ export {
 export function useTelemetry<T extends TopicId>(
   topic: T,
 ): Reading<TopicPayload<T>>;
-// Legacy two-arg overload: the retired useDataValue shim's shape, carried
-// over onto useTelemetry itself. See GonogoHost.useTelemetry's doc.
+/**
+ * Legacy two-arg overload, reading ONE field rather than a Topic's payload:
+ * `dataSourceId` names a registered non-Sitrep source (`"kos"`, `"camera"`) or
+ * `"data"` for the stream itself, and `key` is a field path the contract
+ * declares under a Topic, e.g.
+ * `useTelemetry<number>("data", "vessel.control.throttle")`.
+ *
+ * A bare Topic id resolves to nothing here: the resolution needs at least one
+ * field segment after the Topic, so `useTelemetry("data", "comms.signalStrength")`
+ * reads `undefined` for ever rather than erroring. Read a whole Topic through
+ * the one-arg form above, which answers with a {@link Reading} and is what a
+ * new widget should use.
+ */
 export function useTelemetry<T = unknown>(
   dataSourceId: string,
   key: string,
@@ -650,6 +675,22 @@ export const clearPlanDrafts = (): void => {
   }
 };
 
+/**
+ * Transmit a composed manoeuvre plan, and track the one send in flight.
+ *
+ * Wraps {@link SEND_PLAN_COMMAND} with the checks a plan needs that an ordinary
+ * command does not: {@link whyNotSendable} runs against the current view time
+ * FIRST, so a plan whose burn has already passed resolves as a refusal without
+ * a message leaving, and the returned {@link SendPlanOutcome} distinguishes
+ * that from the game rejecting a plan it did receive. `send` never throws; a
+ * transport failure arrives as a refusal too.
+ *
+ * The handle's `command` is exposed so the caller can pass it to ui-kit's
+ * `usePanelDelay`. That is not optional: like any other command this one
+ * refuses to commit until a delay schedule is contributed, so a widget that
+ * skips it gets a throw on the first press rather than a control with no delay
+ * UX.
+ */
 export function useSendPlan(): SendPlanHandle {
   const command = useCommand(SEND_PLAN_COMMAND);
   const viewUt = useViewUt();
@@ -700,6 +741,26 @@ export function useRouteCommands(topic: string): UseRouteCommandsResult {
   return getHost().useRouteCommands(topic);
 }
 
+/**
+ * Reactively read the latest payload on `topic`, raw wire Topic or client-side
+ * derived channel alike, sampled at the current view instant. `undefined` with
+ * no stream mounted, before the first sample, and for a topic nothing publishes.
+ *
+ * `topic` is a `string` rather than a {@link TopicId} because the ids this
+ * resolves are a superset of the generated union in two directions: a derived
+ * channel (`"vessel.state"`, `"system.uplinkHealth"`) is computed in the
+ * browser and has no `[SitrepTopic]` type for codegen to reflect, and a
+ * third-party Uplink's own topics are declared at runtime and appear in no
+ * union at all. {@link WidgetChannelId} is the closed union of the two
+ * first-party halves, and is the type to annotate a first-party read with.
+ *
+ * Unlike {@link useTelemetry} this collapses every kind of absence into
+ * `undefined`: pending, unowned, absent and stale are indistinguishable, and
+ * `T` is whatever the caller supplies with nothing checking it was right. Reach
+ * for it when the topic has no {@link TopicId} entry (a derived channel, or your
+ * own Uplink's), and for a wire Topic prefer `useTelemetry`, whose
+ * {@link Reading} carries the currency an operator needs.
+ */
 export function useStream<T>(topic: string): T | undefined {
   return getHost().useStream<T>(topic);
 }
@@ -719,16 +780,56 @@ export function useProcessor<R>(handle: {
   return getHost().useProcessor(handle);
 }
 
+/**
+ * The shared view clock the whole dashboard renders against, for a widget that
+ * needs the clock OBJECT rather than a reactive time: to schedule against a
+ * frame tick, or to read the confirmed edge separately from a scrub target.
+ * THROWS when no stream is mounted, so a widget that renders on a disconnected
+ * dashboard wants {@link useViewClockOptional} instead, and one that just needs
+ * the current time wants {@link useViewUt}, which is reactive per frame.
+ *
+ * Opaque here for the same reason as {@link useTelemetryStoreOptional}'s
+ * return: narrow or cast at the call site.
+ */
 export function useViewClock(): unknown {
   return getHost().useViewClock();
 }
 
+/**
+ * Bind a widget's declared actions to handlers, so a mapped serial input can
+ * fire them. Keyed by action id off the `actions` array the widget registered:
+ *
+ *     const actions = [
+ *       { id: "toggle", label: "Toggle", accepts: ["button"] },
+ *     ] as const satisfies readonly ActionDefinition[];
+ *
+ *     useActionInput<typeof actions>({
+ *       toggle: () => { handleToggle(); return { on: isOn }; },
+ *     });
+ *
+ * The instance id comes from the enclosing dashboard item, so no call site
+ * passes it. An inline handler object is the expected shape: the latest one is
+ * held in a ref behind stable proxies registered once on mount, so a handler
+ * closing over fresh state needs no memoisation and re-registers nothing. A
+ * handler's return value is fed back to the device's render style, which is how
+ * a display on the hardware follows the widget.
+ */
 export function useActionInput<TActions extends readonly ActionDefinition[]>(
   handlers: ActionHandlers<TActions>,
 ): void {
   getHost().useActionInput(handlers);
 }
 
+/**
+ * Every registered data source with its live connection status, re-rendering on
+ * each status change. `DataSourceState[]`, opaque here for the same reason as
+ * {@link useViewClock}'s return.
+ *
+ * For a connection banner or a diagnostics panel. It says nothing about the
+ * Sitrep stream itself, which is not a registered source: a widget asking
+ * whether ITS data is current reads that off the {@link Reading} its
+ * {@link useTelemetry} call already returns.
+ */
 export function useDataSources(): unknown {
   return getHost().useDataSources();
 }
@@ -867,19 +968,19 @@ export { logger } from "./logger";
 // --- Component + class shims ------------------------------------------------
 
 /**
- * The slot composition point a base widget drops in for augments to fill.
- * Resolves to the host's real `AugmentSlot` so it reads the app's single augment
- * registry; `createElement` (not a direct call) keeps React's hook rules intact.
+ * The composition point a widget OWNING a slot drops in for other Uplinks'
+ * augments to fill. An Uplink that only fills someone else's slot never renders
+ * this; it calls {@link registerAugment} and the owning widget renders it.
  *
- * Generic over the slot id `S` (2026-07-19, facade-sealing gap 2), matches
- * `@ksp-gonogo/core`'s real `AugmentSlot<S extends string>` signature so a
- * SLOT-OWNING sealed client (one that renders its own `<AugmentSlot>`, not
- * just fills someone else's) gets `props` typed precisely against
- * `SlotProps<S>` rather than the loose `Record<string, unknown>` the
- * previous non-generic signature forced. `getHost().AugmentSlot` itself
- * stays non-generic (the `GonogoHost` interface member): the cast below is
- * the same "structurally fine at runtime, precise at the call site" shape
- * `registerAugment`'s own generic shim already relies on.
+ * Generic over the slot id, so `props` is checked against that slot's declared
+ * {@link SlotProps} rather than a loose bag. Resolves to the app's own component
+ * at render, which is what applies each augment's presence gating: an augment
+ * whose Domain is absent contributes nothing here rather than being filtered at
+ * registration.
+ *
+ * `@ksp-gonogo/ui-kit` exports this name too, and that one is the component
+ * this resolves to. A widget should take it from there: same registry, and it
+ * renders with no host installed, which an Uplink's own test wants.
  */
 export function AugmentSlot<S extends string>(props: {
   name: S;
