@@ -537,49 +537,63 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
       n.description.toLowerCase().includes(q);
 
     return (
-      <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
-        {subtitle && <TechMeta>{subtitle}</TechMeta>}
-        <GraphToolbar>
-          <Legend aria-hidden="true">
-            <LegendItem>
-              <Swatch $kind="owned" /> Owned
-            </LegendItem>
-            <LegendItem>
-              <Swatch $kind="researchable" /> Researchable
-            </LegendItem>
-            <LegendItem>
-              <Swatch $kind="locked" /> Locked
-            </LegendItem>
-          </Legend>
-          <SearchInput
-            type="search"
-            placeholder="Highlight by name..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            aria-label="Highlight tech nodes by text"
-          />
-        </GraphToolbar>
-        <TechGraph
-          nodes={allNodes}
-          tiers={tiers}
-          researchable={researchable}
-          matches={matches}
-          query={q}
-          selectedId={selectedId}
-          onSelect={(id) => setSelectedId((cur) => (cur === id ? null : id))}
-        />
-        {selectedId && (
-          <DetailPanel
-            node={allNodes.find((n) => n.id === selectedId) ?? null}
-            onClose={() => setSelectedId(null)}
-            unlockCmd={unlockCmd}
-            unlock={(() => {
-              const n = allNodes.find((x) => x.id === selectedId);
-              return n ? unlockHandlersFor(n) : null;
-            })()}
-          />
-        )}
-      </Panel>
+      <Panel
+        panelTitle="TECH TREE"
+        compactTitle={["TECH"]}
+        sections={[
+          <Section key="meta" full>
+            {subtitle && <TechMeta>{subtitle}</TechMeta>}
+            <GraphToolbar>
+              <Legend aria-hidden="true">
+                <LegendItem>
+                  <Swatch $kind="owned" /> Owned
+                </LegendItem>
+                <LegendItem>
+                  <Swatch $kind="researchable" /> Researchable
+                </LegendItem>
+                <LegendItem>
+                  <Swatch $kind="locked" /> Locked
+                </LegendItem>
+              </Legend>
+              <SearchInput
+                type="search"
+                placeholder="Highlight by name..."
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                aria-label="Highlight tech nodes by text"
+              />
+            </GraphToolbar>
+          </Section>,
+          /* The graph is the drawing: it takes the height the toolbar above and
+             the detail panel below it leave. */
+          <Section key="graph" fill>
+            <TechGraph
+              nodes={allNodes}
+              tiers={tiers}
+              researchable={researchable}
+              matches={matches}
+              query={q}
+              selectedId={selectedId}
+              onSelect={(id) =>
+                setSelectedId((cur) => (cur === id ? null : id))
+              }
+            />
+          </Section>,
+          <Section key="detail" full>
+            {selectedId && (
+              <DetailPanel
+                node={allNodes.find((n) => n.id === selectedId) ?? null}
+                onClose={() => setSelectedId(null)}
+                unlockCmd={unlockCmd}
+                unlock={(() => {
+                  const n = allNodes.find((x) => x.id === selectedId);
+                  return n ? unlockHandlersFor(n) : null;
+                })()}
+              />
+            )}
+          </Section>,
+        ]}
+      />
     );
   }
 
