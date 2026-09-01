@@ -165,9 +165,40 @@ export type { AugmentDefinition } from "@ksp-gonogo/sitrep-sdk";
 // any slot; `S` is checked at the `registerAugment` call site.
 export type AnyAugment = AugmentDefinition<string>;
 
-// Registration order is captured so ties in `priority` sort deterministically.
-const augments = new Map<string, { def: AnyAugment; order: number }>();
-let registrationCounter = 0;
+/**
+ * The single global slot the augment registry lives in, keyed by a string rather
+ * than a symbol so two different builds of this package still find the same
+ * state.
+ *
+ * A module-static `Map` held only while exactly one copy of this module was
+ * loaded. Two reach it: `@ksp-gonogo/ui-kit` exports `registerAugment` /
+ * `getAugmentsForSlot` / `clearAugments` directly, and
+ * `@ksp-gonogo/sitrep-sdk` exports three shims onto `getHost()`, which land on
+ * whichever copy the APP linked. An Uplink that inlines ui-kit instead of
+ * marking it external loads a second copy, registers into it, and the dashboard
+ * renders from the app's, with no error anywhere. Same reasoning, and the same
+ * fix, as the sdk's `map-poi` registry and `PerfBudget`'s.
+ */
+const AUGMENT_REGISTRY_KEY = "__GONOGO_AUGMENT_REGISTRY__" as const;
+
+interface AugmentRegistry {
+  augments: Map<string, { def: AnyAugment; order: number }>;
+  /** Registration order, so ties in `priority` sort deterministically. */
+  counter: number;
+  listeners: Set<() => void>;
+}
+
+function registry(): AugmentRegistry {
+  const slot = globalThis as typeof globalThis & {
+    [AUGMENT_REGISTRY_KEY]?: AugmentRegistry;
+  };
+  slot[AUGMENT_REGISTRY_KEY] ??= {
+    augments: new Map(),
+    counter: 0,
+    listeners: new Set(),
+  };
+  return slot[AUGMENT_REGISTRY_KEY];
+}
 
 /**
  * Slot ids this repo has retired, mapped to the id that replaced them.
@@ -216,16 +247,15 @@ function reportIfSlotRetired(
   else console.error(message);
 }
 
-const augmentListeners = new Set<() => void>();
 function notifyAugmentChange(): void {
-  for (const cb of augmentListeners) cb();
+  for (const cb of registry().listeners) cb();
 }
 
 /** Subscribe to augment registry mutations (register / clear). */
 export function onAugmentsChange(cb: () => void): () => void {
-  augmentListeners.add(cb);
+  registry().listeners.add(cb);
   return () => {
-    augmentListeners.delete(cb);
+    registry().listeners.delete(cb);
   };
 }
 
@@ -239,14 +269,15 @@ export function registerAugment<S extends string>(
   def: AugmentDefinition<S>,
 ): void {
   reportIfSlotRetired(def);
-  augments.set(def.id, {
+  const state = registry();
+  state.augments.set(def.id, {
     // Erased through `unknown`: with the slot registry merged, `SlotProps<S>` is
     // a real props type rather than a loose bag, so `ComponentType` is not
     // bivariantly comparable to the erased form. The erasure itself is
     // the point (the registry holds augments for every slot); `S` is checked at
     // this call site, which is the only place it can be.
     def: def as unknown as AnyAugment,
-    order: registrationCounter++,
+    order: state.counter++,
   });
   notifyAugmentChange();
 }
@@ -258,7 +289,7 @@ export function registerAugment<S extends string>(
  * returns all registered augments for the slot regardless of Domain availability.
  */
 export function getAugmentsForSlot(slotName: string): AnyAugment[] {
-  return Array.from(augments.values())
+  return Array.from(registry().augments.values())
     .filter((entry) => entry.def.augments === slotName)
     .sort((a, b) => {
       const pa = a.def.priority ?? 0;
@@ -271,7 +302,7 @@ export function getAugmentsForSlot(slotName: string): AnyAugment[] {
 
 /** Every registered augment, unordered. */
 export function getAugments(): AnyAugment[] {
-  return Array.from(augments.values()).map((entry) => entry.def);
+  return Array.from(registry().augments.values()).map((entry) => entry.def);
 }
 
 /**
@@ -295,7 +326,8 @@ export function getAugmentSettings(
 
 /** For use in tests only, resets the augment registry to empty. */
 export function clearAugments(): void {
-  augments.clear();
-  registrationCounter = 0;
+  const state = registry();
+  state.augments.clear();
+  state.counter = 0;
   notifyAugmentChange();
 }
