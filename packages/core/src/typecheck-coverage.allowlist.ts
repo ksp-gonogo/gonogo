@@ -41,7 +41,7 @@
  */
 export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {
   "packages/components":
-    "254 test files, the biggest single block of unchecked test code in the repo. 100 errors behind the config change.",
+    "254 test files, the biggest single block of unchecked test code in the repo. 100 errors behind the config change, spread thin across ~40 files rather than concentrated in a pattern, which is what makes it the long one. Three of them are `rootDir` complaints that the split itself removes, since only the emit half needs a rootDir.",
   "packages/sitrep-client":
     "78 test files, and the app-side spine, so second in value only to the sdk. 160 errors behind the config change, the most of anything left.",
 };
