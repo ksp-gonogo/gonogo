@@ -226,9 +226,15 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // one is worth spelling out because it describes commands that ARE delayed:
   // the DISPATCH still takes its light-time, but knowing in advance does not,
   // and holding the verdict behind the reveal horizon would tell an operator
-  // the pad was clear minutes after a rocket rolled out onto it. 4 explicit
-  // declarations.
-  "mod/Sitrep.Host/ChannelEngine.cs": 4,
+  // the pad was clear minutes after a rocket rolled out onto it.
+  // + system.channels (every declared channel's emission counters: a fact
+  // about the ENGINE, how many times it considered each channel and how many
+  // of those it emitted, which never travelled up a comms link because it
+  // never left the mod. Holding a diagnostic behind the light-time horizon
+  // would be perverse: the operator asking why a channel is silent is asking
+  // about the mod in front of them, and the answer would arrive a light-time
+  // after the question). 5 explicit declarations.
+  "mod/Sitrep.Host/ChannelEngine.cs": 5,
 
   // principia.settings (the plotting frame, the prediction and flight-plan
   // integrator bounds, the analysis window, the declutter and drawing toggles,

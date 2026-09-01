@@ -33,6 +33,11 @@ const HAND_DECLARED_TOPICS = [
   // directly because it describes the CONTRACT rather than anything an
   // uplink owns, so it carries no [SitrepTopic] to reflect.
   "system.units",
+  // Every declared channel's emission counters, so a silent Topic can say
+  // which silence it is. Engine-declared for the strongest version of the
+  // same reason: it reports on every OTHER channel, so no one Uplink could
+  // own it and there is nothing for a [SitrepTopic] to hang off.
+  "system.channels",
 ];
 
 // mod/sitrep-sdk/src -> mod

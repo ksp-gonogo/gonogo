@@ -47,6 +47,7 @@
 // entry point types its bare Topic `unknown` until loaded.
 
 import type {
+  ChannelEmissionReport,
   CommandGateReport,
   PendingUplinkQueue,
 } from "./__generated__/contract";
@@ -163,6 +164,29 @@ export interface SystemUnitsTopicPayloadMap {
 }
 
 /**
+ * `system.channels`: every declared channel's emission counters, so a Topic that
+ * is silent can say WHICH silence it is. Hand-mapped here for the same reason as
+ * the three above: `ChannelEngine` declares it directly, because only the engine
+ * sees the emitter, the subscription registry, the birth set and the
+ * availability map at once, and the answer is the four of them read together.
+ *
+ * From outside the mod, a Topic that never delivers looks the same whether the
+ * engine never considered it or considered it and the emitter declined every
+ * value, and those two are completely different investigations.
+ * `considered === 0` is the first; a `considered` that climbs while `emitted`
+ * stays put is the second. The flags on each row say which upstream gate held a
+ * never-considered channel back.
+ *
+ * Carried by default, which costs nothing standing: the carried set gates
+ * whether a read routes to the stream, and nothing subscribes until something
+ * asks. The mod's side is the same, its mapper runs only while the Topic has a
+ * subscriber.
+ */
+export interface SystemChannelsTopicPayloadMap {
+  "system.channels": ChannelEmissionReport;
+}
+
+/**
  * The SDK's OWN Topic map: the generated entries plus the engine-owned tail
  * (`system.uplinks`, `system.uplink.pending`). DELIBERATELY distinct from the public,
  * augmentable `TopicPayloadMap` below: bare-primitive Uplink Topics augment
@@ -177,7 +201,8 @@ interface SdkOwnedTopicPayloadMap
     SystemUplinksTopicPayloadMap,
     SystemUplinkPendingTopicPayloadMap,
     SystemUplinkGatesTopicPayloadMap,
-    SystemUnitsTopicPayloadMap {}
+    SystemUnitsTopicPayloadMap,
+    SystemChannelsTopicPayloadMap {}
 
 /**
  * The Topic → payload-type map. Keys are the wire Topic strings; values are the payload
@@ -216,6 +241,7 @@ export const TOPIC_IDS = [
   "system.uplink.pending",
   "system.uplink.gates",
   "system.units",
+  "system.channels",
 ] as const satisfies readonly TopicId[];
 
 const TOPIC_ID_SET: ReadonlySet<string> = new Set(TOPIC_IDS);

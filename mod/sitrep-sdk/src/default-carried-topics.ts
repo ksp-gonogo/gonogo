@@ -116,6 +116,14 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // MUST be carried or every gated control renders as though nothing were
   // gated, which is the state the whole gate mechanism was built to leave.
   "system.uplink.gates",
+  // system.channels: every declared channel's emission counters, the reading
+  // that tells a Topic the engine never considered from one it considered and
+  // declined. Listed because a gate entry costs nothing on its own: it decides
+  // whether a READ routes to the stream, and nothing subscribes until something
+  // asks. Left off, a `useTelemetry("system.channels")` would fall back to the
+  // legacy source and find no such key, so the diagnostic would be reachable by
+  // a raw socket and not by the app that needs it.
+  "system.channels",
   // U3 kOS slice: native push channel for the KosProcessors widget. Static
   // raw topic, so `isTopicCarried` promotes it by simple set membership. The
   // dynamic `kos.compute.<id>.<field>` namespace is intentionally NOT here,
