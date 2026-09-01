@@ -1358,10 +1358,22 @@ public static class RtConfig
         sb.Append("// several commands, which is why the reflection is over ATTRIBUTES rather\n");
         sb.Append("// than over types.\n");
         sb.Append("//\n");
+        sb.Append("// WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per\n");
+        sb.Append("// [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries\n");
+        sb.Append("// six. Counting `AddCommandHandler` call sites instead misses the ones the\n");
+        sb.Append("// engine registers directly; counting `const string \\w*Command\\w*` catches\n");
+        sb.Append("// CommandCentreTopic, which is a Topic; counting the strings the bundled\n");
+        sb.Append("// clients dispatch counts what a widget presses today rather than what the\n");
+        sb.Append("// mod accepts, and gets a quarter of the answer. Read this file.\n");
+        sb.Append("//\n");
         sb.Append("// THIS IS NOT A LIST OF EVERY COMMAND ON THE WIRE, for the same reason the\n");
         sb.Append("// topic map is not one: a command in a DYNAMIC namespace is addressed per\n");
         sb.Append("// subject at runtime and has no tagged type to find. What is below is every\n");
-        sb.Append("// command that can be named before the game is running.\n\n");
+        sb.Append("// command that can be named before the game is running. How many that\n");
+        sb.Append("// excludes is not knowable from here and is not a fixed number: a dynamic\n");
+        sb.Append("// command materialises per subject, so the count is per CPU, per vessel, per\n");
+        sb.Append("// compute topic, and it is zero in a session that has none. Grep the mod for\n");
+        sb.Append("// `RegisterDynamicNamespace` to enumerate the namespaces themselves.\n\n");
 
         var resultFrom = resultImportFrom ?? "./contract.js";
         var localImports = new SortedSet<string>(argsNames, StringComparer.Ordinal);
