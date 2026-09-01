@@ -58,7 +58,7 @@ export function ProgramStatus() {
 
   return (
     <Section>
-      <SectionTitle>RP-1 PROGRAMS</SectionTitle>
+      <SectionTitle>PROGRAMS</SectionTitle>
       <Stack as="ul" gap="sm" style={LIST_STYLE}>
         <Row wrap>
           <RowName>Slots</RowName>

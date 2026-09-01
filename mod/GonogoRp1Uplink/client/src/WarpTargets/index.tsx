@@ -79,13 +79,18 @@ export function WarpTargets() {
         rp1.constructions, rp1.research and rp1.training has least time left, and
         reading four topics to label one button is a trade worth asking about
         rather than assuming.
+
+        The "warp to" prefix came off both labels because the section is already
+        headed WARP, so every control was repeating it, and the render gate found
+        both of them cut off at 38px. The full sentence stays in the accessible
+        name, which costs no width.
       */}
       <CommandButton
         args={{}}
         aria-label="Warp until RP-1's next project finishes"
         commandLabel="Warp to next project completion"
         handle={toComplete}
-        label="warp to next completion"
+        label="next completion"
         size="sm"
       />
       {/*
@@ -103,7 +108,7 @@ export function WarpTargets() {
         commandLabel="Warp to fund target"
         disabled={!targetStanding}
         handle={toFundTarget}
-        label="warp to fund target"
+        label="fund target"
         size="sm"
       />
     </Inline>

@@ -7,7 +7,7 @@
     "size": { "w": 10, "h": 14 },
     "caption": "Three queued nodes: one being worked with a countdown and its era window, one throttled down to a fifth of full rate, and one stalled with nothing to date it from",
     "paints": [
-      "RP-1 RESEARCH QUEUE",
+      "RESEARCH QUEUE",
       "Early Rocketry",
       "Progress",
       "Era",

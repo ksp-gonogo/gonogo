@@ -96,7 +96,7 @@ export function LaunchComplexStatus({
   const ratio = operation ? magnitudeOf(operation.progressRatio) : null;
   return (
     <Section>
-      <SectionTitle>RP-1 LAUNCH COMPLEX</SectionTitle>
+      <SectionTitle>LAUNCH COMPLEX</SectionTitle>
       <Stack as="ul" gap="sm" style={LIST_STYLE}>
         <Row>
           <RowName>Complex</RowName>

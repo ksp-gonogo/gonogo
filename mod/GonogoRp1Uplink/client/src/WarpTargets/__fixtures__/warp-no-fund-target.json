@@ -10,7 +10,7 @@
       "h": 10
     },
     "caption": "No fund target standing, so its press is dark and nothing on screen explains why: the reason is in the accessible name, where a screen reader gets it and the panel spends no space on it.",
-    "paints": ["warp to next completion", "warp to fund target"]
+    "paints": ["next completion", "fund target"]
   },
   "_stream": {
     "pinnedUt": 1000000,

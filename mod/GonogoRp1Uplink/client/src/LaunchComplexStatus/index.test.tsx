@@ -289,7 +289,7 @@ describe("LaunchComplexStatus", () => {
     });
     expect(screen.getByText(/Vanguard is standing on it/)).toBeInTheDocument();
     // No section chrome, and no progressbar: the row is one line.
-    expect(screen.queryByText("RP-1 LAUNCH COMPLEX")).not.toBeInTheDocument();
+    expect(screen.queryByText("LAUNCH COMPLEX")).not.toBeInTheDocument();
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
   });
 

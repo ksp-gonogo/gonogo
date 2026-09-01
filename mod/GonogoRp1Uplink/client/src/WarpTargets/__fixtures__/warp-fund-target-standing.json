@@ -10,7 +10,7 @@
       "h": 10
     },
     "caption": "A fund target standing, so both presses are live and each names what it warps to. No ETA line: the operator ruled that funds needs less, so the reason a press is dark lives in its accessible name.",
-    "paints": ["warp to next completion", "warp to fund target"]
+    "paints": ["next completion", "fund target"]
   },
   "_stream": {
     "pinnedUt": 1000000,

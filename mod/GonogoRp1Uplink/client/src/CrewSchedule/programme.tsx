@@ -43,7 +43,7 @@ export function CrewProgramme() {
 
   return (
     <Section>
-      <SectionTitle>RP-1 CREW PROGRAMME</SectionTitle>
+      <SectionTitle>CREW PROGRAMME</SectionTitle>
       <Stack as="ul" gap="sm" style={LIST_STYLE}>
         <Row wrap>
           <RowName>Retirement</RowName>

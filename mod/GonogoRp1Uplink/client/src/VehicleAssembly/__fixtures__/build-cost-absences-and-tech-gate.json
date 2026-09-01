@@ -3,28 +3,17 @@
     "notes": "Two figures that are ABSENT rather than zero, on one vehicle. A spaceplane has no rollout because RP-1 only computes one in the VAB, and this vehicle carries no untooled parts so there is no of-which row at all. Both would be a 0 in a lesser reading, and 0 means free. The tech gate is here because it is the reason a vehicle that prices fine still cannot be flown. Not scened at min: an RP-1 tech id is a long single word with nowhere to wrap, so a badge carrying one is cut. The badges sit in a ScrollArea, which is the right control because a truncated identifier is a DIFFERENT id rather than a shorter one, but a static render cannot scroll. A DIFFERENT cause from the other build-cost scene's min exclusion, which is about row width."
   },
   "_scene": {
-    "widget": "rp1-vehicle-assembly",
+    "augment": "rp1-vehicle-assembly-build-cost",
     "size": {
       "w": 7,
       "h": 12
     },
     "caption": "A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without",
-    "paints": ["LAUNCH COST", "Rollout", "Needs tech", "supersonicFlight"],
-    "modes": ["default", "mobile-9x8", "portrait-5x18", "landscape-18x5"]
+    "paints": ["LAUNCH COST", "Rollout", "Needs tech", "supersonicFlight"]
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
-      {
-        "topic": "career.status",
-        "payload": {
-          "economy": {
-            "funds": 289848,
-            "reputation": 62,
-            "science": 340
-          }
-        }
-      },
       {
         "topic": "rp1.available",
         "payload": true

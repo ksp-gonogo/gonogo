@@ -118,7 +118,7 @@ describe("WarpTargets", () => {
         (c) => c.command === RP1_WARP_TO_FUND_TARGET_COMMAND,
       )?.args,
     ).toEqual({});
-    expect(screen.getByText("warp to fund target")).toBeInTheDocument();
+    expect(screen.getByText("fund target")).toBeInTheDocument();
     // No ETA line: the operator asked for less here, not more.
     expect(view.container.textContent).not.toContain("fund target in");
   });
@@ -127,7 +127,7 @@ describe("WarpTargets", () => {
     mount({ active: true, timeLeft: 864000 });
 
     await waitFor(() => {
-      expect(screen.getByText(/warp to next completion/)).toBeInTheDocument();
+      expect(screen.getByText(/next completion/)).toBeInTheDocument();
     });
     /*
      * RP-1's controller destroys itself the moment it sees a warp rate of zero,

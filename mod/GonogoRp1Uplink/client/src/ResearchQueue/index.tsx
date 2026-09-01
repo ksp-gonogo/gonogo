@@ -45,7 +45,7 @@ export function ResearchQueue() {
   if (queue.length === 0) {
     return (
       <Section>
-        <SectionTitle>RP-1 RESEARCH QUEUE</SectionTitle>
+        <SectionTitle>RESEARCH QUEUE</SectionTitle>
         {/* An empty queue is a real state and says something: researchers are
             idle. It is not the same as RP-1 being absent, which returns null
             above. */}
@@ -56,7 +56,7 @@ export function ResearchQueue() {
 
   return (
     <Section>
-      <SectionTitle>RP-1 RESEARCH QUEUE</SectionTitle>
+      <SectionTitle>RESEARCH QUEUE</SectionTitle>
       <Stack as="ul" gap="sm" style={LIST_STYLE}>
         {queue.map((node) => (
           <ResearchRow key={node.techId ?? ""} node={node} />
