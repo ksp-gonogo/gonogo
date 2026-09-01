@@ -7,6 +7,13 @@
 // the mod ships its hash), (5) import()s so the bundle's registerComponent(...)
 // runs against the injected host. Every refusal quarantines with a legible reason
 // surfaced in the in-app Uplinks list: never a silent load, never a silent no-op.
+//
+// One refusal, and only one, can be loaded past: the pre-fetch DECLARATION
+// disagreement where the mod and the index name different builds (channel
+// skew). That needs a recorded per-id, per-version, per-hash-pair operator
+// decision (`./skewOverride.ts`), it does not weaken the byte check, and the
+// loaded row says it happened. The post-fetch bytes mismatch has no such route
+// and must not grow one: see `isOverridableIntegrityFailure`.
 
 import {
   type AppCompatIdentity,
@@ -32,6 +39,7 @@ import {
   type UplinkDescriptor,
   type UplinkVersionDescriptor,
 } from "./registry";
+import { hasSkewOverride } from "./skewOverride";
 
 /** One entry of the live `system.uplinks` roster the loader consults (design §3.2). */
 export interface RosterEntry {
@@ -244,6 +252,16 @@ function toCompatManifest(
 }
 
 /**
+ * What `checkCompat` found that the rest of `loadOne` has to act on. Only the
+ * skew override so far, and it has to travel: it changes which party anchors
+ * the byte check, and the arm that would otherwise re-assert the mod's hash
+ * against the digest sits after the fetch.
+ */
+interface CompatVerdict {
+  skewOverridden: boolean;
+}
+
+/**
  * The compat + roster + mod-hash gate; runs BEFORE any bytes are fetched
  * (design §5 step 3). The VERSION verdict itself (apiVersion/uiKitVersion/
  * contractMajor/contractMinor/minAppVersion: design §6.3) is delegated
@@ -258,7 +276,7 @@ function checkCompat(
   version: UplinkVersionDescriptor,
   ctx: LoaderContext,
   roster: RosterEntry | undefined,
-): void {
+): CompatVerdict {
   const manifest = toCompatManifest(descriptor, version);
   const app: AppCompatIdentity = {
     apiVersion: ctx.hostCompat.apiVersion,
@@ -288,11 +306,44 @@ function checkCompat(
   // before fetch). Only enforceable once the mod emits expectedClientHash.
   if (roster?.expectedClientHash != null) {
     if (roster.expectedClientHash !== version.integrity) {
-      refuse(
+      /*
+       * A DECLARATION disagreement, and the only integrity finding an operator
+       * may load past. Nothing has been fetched: the mod expects one build, the
+       * index offers another, and both are honest descriptions of builds that
+       * exist. A dev-channel app against a release-channel mod produces exactly
+       * this, and refusing it outright leaves the operator with no route back.
+       *
+       * The record is what makes the two refusals in this file
+       * distinguishable at the point a surface renders them. Before this, the
+       * arm below called plain `refuse` and produced a bare reason string, so
+       * skew was indistinguishable from a compat gate without matching prose,
+       * while the post-fetch bytes mismatch already carried a record. Now both
+       * carry one and `isOverridableIntegrityFailure` tells them apart on the
+       * `subject`, never on the wording.
+       */
+      const failure: UplinkIntegrityFailure = {
+        subject: "declaration",
+        observed: version.integrity,
+        observedBy: ["hub-index"],
+        expected: roster.expectedClientHash,
+        vouchedBy: ["installed-mod"],
+      };
+      if (hasSkewOverride(descriptor.id, version.version, failure)) {
+        logger.warn(
+          `[uplink-loader] ${descriptor.id}@${version.version}: loading past ` +
+            `mod/index hash skew on a recorded operator override (mod ` +
+            `${roster.expectedClientHash}, index ${version.integrity}); the ` +
+            "bundle is still verified against the index hash",
+        );
+        return { skewOverridden: true };
+      }
+      refuseIntegrity(
+        failure,
         `mod expects client ${roster.expectedClientHash}, index offers ${version.integrity} (version skew, reconcile mod/client)`,
       );
     }
   }
+  return { skewOverridden: false };
 }
 
 /** `sha256-<hex>` of the given bytes, or a refusal when crypto.subtle is absent. */
@@ -648,7 +699,7 @@ async function loadOne(
     const roster = ctx.roster?.find((r) => r.id === descriptor.id);
 
     // Gate BEFORE fetch (design §5 step 3).
-    checkCompat(descriptor, version, ctx, roster);
+    const { skewOverridden } = checkCompat(descriptor, version, ctx, roster);
 
     // Consent gates the fetch (design §5 step 4: consent between gate and fetch).
     // First-party ids are NOT pre-trusted, a first load at a new id@version asks
@@ -684,20 +735,25 @@ async function loadOne(
       );
     }
     /*
-     * Unreachable as the loader stands, and kept anyway.
+     * Unreachable on the ordinary path, and kept anyway.
      *
      * `checkCompat` refuses before the fetch whenever `expectedClientHash`
-     * differs from `version.integrity`, so reaching this line means the two are
-     * equal and the check above already fired on the same digest. Nothing here
-     * is a second, independent verification of the bytes, and reading the two
-     * refusal strings as evidence of one would be wrong: the mod-hash arm is
-     * reconciled against the index BEFORE any bytes exist, and the bytes are
-     * then checked once, against the hash both parties agreed on.
+     * differs from `version.integrity`, so reaching this line normally means
+     * the two are equal and the check above already fired on the same digest.
+     * Nothing here is a second, independent verification of the bytes, and
+     * reading the two refusal strings as evidence of one would be wrong: the
+     * mod-hash arm is reconciled against the index BEFORE any bytes exist, and
+     * the bytes are then checked once, against the hash both parties agreed on.
      *
-     * It stays as a floor under a future change to that pre-fetch gate, which
-     * is the only thing standing between here and a real second arm.
+     * `skewOverridden` is the one state where the two are NOT equal and the
+     * bytes were still verified, so this arm is skipped by construction rather
+     * than by luck. Skipping it is the entire content of the override: the
+     * operator chose the index as the anchor, and asserting the mod's hash here
+     * would re-impose the disagreement they just resolved and quarantine an
+     * Uplink whose bytes passed. What is NOT skipped, and cannot be, is the
+     * digest check above.
      */
-    if (roster?.expectedClientHash != null) {
+    if (roster?.expectedClientHash != null && !skewOverridden) {
       if (digest !== roster.expectedClientHash) {
         refuseIntegrity(
           {
@@ -722,10 +778,18 @@ async function loadOne(
     await importBundle(bytes, version.bundleUrl);
     const ms = Math.round(performance.now() - start);
 
-    const modHashNote =
-      roster?.expectedClientHash == null
-        ? " (mod-hash arm pending: mod does not yet emit expectedClientHash)"
-        : "";
+    let modHashNote = "";
+    if (roster?.expectedClientHash == null) {
+      modHashNote =
+        " (mod-hash arm pending: mod does not yet emit expectedClientHash)";
+    } else if (skewOverridden) {
+      // Loud on the loaded row, not only in the log. An Uplink running past a
+      // recorded override is a different state from one that passed clean, and
+      // the operator surface reads this string.
+      modHashNote =
+        ` (loaded on an operator skew override: mod expects ${roster.expectedClientHash},` +
+        ` index offered ${version.integrity}; bytes verified against the index hash)`;
+    }
     const outcome: UplinkLoadOutcome = {
       id: descriptor.id,
       name: descriptor.name,

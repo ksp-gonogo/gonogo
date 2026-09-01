@@ -205,13 +205,25 @@ describe("an integrity failure is recorded apart from an ordinary load failure",
   });
 
   /*
-   * The pre-fetch reconciliation of the mod's vouched hash against the index's
-   * is NOT a finding about any bytes: neither side of it is the bundle, and a
-   * mod release sitting a version behind the published index is ordinary
-   * staleness. It stays an ordinary quarantine so the loud surface is not spent
-   * on version skew.
+   * REVERSED, deliberately (2026-09-01). This case used to assert the opposite,
+   * that mod/index skew records nothing, on the reasoning that neither side of
+   * it is the bundle and the loud surface should not be spent on staleness.
+   * The first half of that is still true and is exactly why the record uses the
+   * `declaration` subject rather than `bundle`; the conclusion drawn from it
+   * was wrong.
+   *
+   * A surface cannot offer an operator a route past a refusal it cannot
+   * identify, and the only alternative identification was matching the reason
+   * prose, which this file's own header rules out. So skew now carries a record
+   * too, and the two refusals are told apart on `subject`.
+   *
+   * The concern that produced the old assertion survives in the surface, not
+   * here: a banner carrying only declaration findings grades itself down to a
+   * warning and says "Hash disagreement", and the critical "Integrity failure"
+   * headline still fires only for a measured one. See
+   * `UplinkSkewOverride.test.tsx`.
    */
-  it("records nothing for mod/index version skew, which is about no bytes at all", async () => {
+  it("records mod/index version skew as a DECLARATION finding, apart from any bytes", async () => {
     const [outcome] = await load({
       roster: [
         {
@@ -225,8 +237,16 @@ describe("an integrity failure is recorded apart from an ordinary load failure",
     });
 
     expect(outcome.reason).toMatch(/mod expects client/);
-    expect(outcome.integrity).toBeUndefined();
-    expect(integrityFailures(getUplinkOutcomes())).toEqual([]);
+    expect(outcome.integrity).toEqual({
+      subject: "declaration",
+      observed: goodHash,
+      observedBy: ["hub-index"],
+      expected: WRONG_HASH,
+      vouchedBy: ["installed-mod"],
+    });
+    // Never `bundle`: no bytes were fetched, and a surface reading this must
+    // not be able to mistake it for a bundle that hashed wrong.
+    expect(integrityFailures(getUplinkOutcomes())).toHaveLength(1);
   });
 
   it("records nothing at all for an Uplink that loaded", async () => {
