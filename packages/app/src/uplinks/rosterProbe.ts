@@ -24,6 +24,9 @@ interface RawRosterEntry {
   version: string;
   available: boolean;
   reason: string | null;
+  name?: string | null;
+  author?: string | null;
+  repo?: string | null;
   expectedClientHash?: string | null;
   clientSource?: { url: string; devPath: string | null } | null;
   health?: unknown;
@@ -54,6 +57,13 @@ export function decodeRosterPayload(value: unknown): RosterEntry[] | undefined {
     version: e.version,
     available: e.available,
     reason: e.reason ?? null,
+    // The mod-vouched half of an Uplink's identity. `ChannelEngine` has
+    // emitted these since the provenance fields landed; nothing decoded them,
+    // so `RosterEntry.name/author/repo` were undefined for every Uplink and
+    // the loader's "prefer the roster" rule had nothing to prefer.
+    name: e.name ?? null,
+    author: e.author ?? null,
+    repo: e.repo ?? null,
     expectedClientHash: e.expectedClientHash ?? null,
     // D5: carry the mod's client-source declaration through so it's
     // readable on RosterEntry. The loader/RegistrySource does not

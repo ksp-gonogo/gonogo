@@ -5,6 +5,8 @@
 // to the real Hub is a different `registrySource` URL and nothing else, the
 // shapes here mirror the published index schema exactly.
 
+import type { UplinkIdentity } from "./identity";
+
 /**
  * One published version line of an Uplink (both halves ship on one tag).
  *
@@ -50,6 +52,18 @@ export interface UplinkDescriptor {
   name: string;
   author: string;
   repo: string;
+  /**
+   * The same three values with the source that supplied each. Absent on a
+   * descriptor parsed straight out of a fetched index, which is why nothing
+   * reads these fields directly: `descriptorIdentity` in `./loader.ts` fills
+   * an absent one in as Hub-listed, which is what an index entry is.
+   *
+   * Only `descriptorFromClientSource` sets it, because only there can the two
+   * sources differ: the mod vouching for an Uplink and a bundle describing
+   * itself are different claims, and a consent surface has to say which it is
+   * showing.
+   */
+  identity?: UplinkIdentity;
   versions: UplinkVersionDescriptor[];
 }
 

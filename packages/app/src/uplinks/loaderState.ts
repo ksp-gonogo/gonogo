@@ -4,12 +4,19 @@
 // loaded and NEVER a silent no-op (design §2.4): every refusal carries a reason,
 // and this store is where that reason becomes visible.
 
+import type { UplinkIdentity } from "./identity";
+
 export type UplinkLoadStatus = "loading" | "loaded" | "quarantined";
 
 export interface UplinkLoadOutcome {
   /** The Uplink id (matches the mod's `[SitrepUplink("id")]`). */
   id: string;
   name: string;
+  /**
+   * The declared name/author/repo and who declared each. Absent only where the
+   * loader recorded an outcome before it had a descriptor to read one from.
+   */
+  identity?: UplinkIdentity;
   /** The resolved version, if the descriptor got that far. */
   version?: string;
   status: UplinkLoadStatus;

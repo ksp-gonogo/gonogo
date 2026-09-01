@@ -18,6 +18,11 @@ import {
 import { logger } from "@ksp-gonogo/logger";
 import { type ConsentInfo, ensureConsent } from "./consent";
 import type { HostCompat } from "./hostCompat";
+import {
+  registryIdentity,
+  resolveUplinkIdentity,
+  type UplinkIdentity,
+} from "./identity";
 import { setUplinkOutcome, type UplinkLoadOutcome } from "./loaderState";
 import {
   fetchRegistry,
@@ -373,16 +378,13 @@ export function resolveClientBundleUrl(clientSource: {
  *     bundle (mod-vouched-hash == fetched-bytes-hash), which is still a real
  *     hash gate, just not a three-independent-party one, there IS no third
  *     independent party here.
- *   - `name`/`author`/`repo`: taken from the roster, which the running mod
- *     vouches for, and never from the manifest. The manifest DOES carry all
- *     three now (`gonogo-uplink` writes them from the author's
- *     `uplink.json`), and that is precisely a bundle's claim about itself,
- *     which is the thing the consent modal exists to let an operator judge.
- *     So when the roster is silent this uses the id as the name (matching
- *     the existing "not found in the registry index" quarantine's same
- *     fallback) and an "unknown" author, rather than repeating an
- *     unverified self-description back to the person being asked to trust
- *     it.
+ *   - `name`/`author`/`repo`: the roster's where the mod declares them, the
+ *     bundle's own manifest where it does not, and `identity` records which
+ *     of the two each value came from so the consent surfaces can say so.
+ *     An Uplink is a mod in its own right and its declared author and repo
+ *     are what an operator wants to see; withholding them and printing
+ *     `by unknown` is not safer, only less useful. What must survive is the
+ *     DISTINCTION, and that lives in `identity`, never in the flat fields.
  *   - the compat fields (apiVersion/uiKitVersion/contractMajor/
  *     contractMinor/minAppVersion) come straight from the parsed manifest,
  *     this is the whole point of the manifest-fetch seam: it's the one place
@@ -405,14 +407,18 @@ export function descriptorFromClientSource(
     );
   }
   const { url: bundleUrl } = resolveClientBundleUrl(roster.clientSource);
+  const identity = resolveUplinkIdentity(roster.id, roster, manifest);
   return {
     id: roster.id,
-    // The declared name when there is one; the id is a fallback, not a name.
-    name: roster.name ?? roster.id,
-    // An Uplink that declares no author IS unknown, and saying so is honest:
-    // omitting the line would read as "no author needed".
-    author: roster.author ?? "unknown",
-    repo: roster.repo ?? "",
+    /*
+     * The flat fields stay the plain display values every existing consumer
+     * reads. Empty is absent: a field nobody declared renders nothing rather
+     * than a stand-in that reads like a value.
+     */
+    name: identity.name.value,
+    author: identity.author?.value ?? "",
+    repo: identity.repo?.value ?? "",
+    identity,
     versions: [
       {
         version: manifest.version,
@@ -429,10 +435,27 @@ export function descriptorFromClientSource(
   };
 }
 
-function quarantineOutcome(id: string, reason: string): UplinkLoadOutcome {
+/**
+ * A descriptor's identity with its provenance. `descriptorFromClientSource`
+ * has already worked one out from the roster and the manifest; anything else
+ * came out of the published registry index, an artifact separate from the
+ * bundle bytes it describes, so it is Hub-listed rather than self-declared.
+ */
+export function descriptorIdentity(
+  descriptor: UplinkDescriptor,
+): UplinkIdentity {
+  return descriptor.identity ?? registryIdentity(descriptor);
+}
+
+function quarantineOutcome(
+  id: string,
+  reason: string,
+  identity?: UplinkIdentity,
+): UplinkLoadOutcome {
   const outcome: UplinkLoadOutcome = {
     id,
-    name: id,
+    name: identity?.name.value ?? id,
+    identity,
     status: "quarantined",
     reason,
   };
@@ -458,12 +481,28 @@ async function loadThirdParty(
   roster: RosterEntry,
   ctx: LoaderContext,
 ): Promise<UplinkLoadOutcome> {
-  setUplinkOutcome({ id, name: id, status: "loading" });
+  /*
+   * Everything before the manifest arrives can only be named by the mod, so
+   * every refusal below carries the mod-vouched half of the identity and none
+   * of the bundle's: a quarantined Uplink is still one an operator has to
+   * recognise, and here the bundle has not spoken yet.
+   */
+  const modIdentity = resolveUplinkIdentity(id, roster, {});
+  setUplinkOutcome({
+    id,
+    name: modIdentity.name.value,
+    identity: modIdentity,
+    status: "loading",
+  });
 
   if (!roster.clientSource) {
     // Guarded by the caller (`loadEnabledUplinks` only calls this when
     // `roster.clientSource` is present), defensive only.
-    return quarantineOutcome(id, "no clientSource on the roster entry");
+    return quarantineOutcome(
+      id,
+      "no clientSource on the roster entry",
+      modIdentity,
+    );
   }
   const { url: bundleUrl, picked } = resolveClientBundleUrl(
     roster.clientSource,
@@ -478,6 +517,7 @@ async function loadThirdParty(
       id,
       "third-party Uplink has no mod-vouched client hash " +
         "(expectedClientHash absent): refusing hash-blind load",
+      modIdentity,
     );
   }
 
@@ -492,6 +532,7 @@ async function loadThirdParty(
       id,
       `third-party manifest fetch/parse failed (${manifestUrl}): ` +
         `${err instanceof Error ? err.message : String(err)}`,
+      modIdentity,
     );
   }
 
@@ -509,6 +550,7 @@ async function loadThirdParty(
       `manifest-declared integrity (${manifest.integrity}) != mod-vouched ` +
         `expectedClientHash (${roster.expectedClientHash}): mod/client ` +
         "version skew (they release together), refusing before import",
+      modIdentity,
     );
   }
 
@@ -521,9 +563,11 @@ async function loadOne(
   descriptor: UplinkDescriptor,
   ctx: LoaderContext,
 ): Promise<UplinkLoadOutcome> {
+  const identity = descriptorIdentity(descriptor);
   const base: UplinkLoadOutcome = {
     id: descriptor.id,
     name: descriptor.name,
+    identity,
     status: "loading",
   };
   setUplinkOutcome(base);
@@ -547,7 +591,8 @@ async function loadOne(
       id: descriptor.id,
       name: descriptor.name,
       version: version.version,
-      author: descriptor.author,
+      author: descriptor.author || undefined,
+      identity,
     });
     if (!consented) refuse("consent declined");
 
@@ -590,6 +635,7 @@ async function loadOne(
     const outcome: UplinkLoadOutcome = {
       id: descriptor.id,
       name: descriptor.name,
+      identity,
       version: version.version,
       status: "loaded",
       reason: `verified + loaded in ${ms}ms${modHashNote}`,
@@ -607,6 +653,7 @@ async function loadOne(
     const outcome: UplinkLoadOutcome = {
       id: descriptor.id,
       name: descriptor.name,
+      identity,
       version: base.version,
       status: "quarantined",
       reason,

@@ -16,6 +16,11 @@ function rosterPayload(): unknown {
         version: "1.0.0",
         available: true,
         reason: null,
+        // The provenance the mod vouches for, emitted by
+        // ChannelEngine.BuildSystemUplinksPayload.
+        name: "Alpha",
+        author: "A Stranger",
+        repo: "https://example.invalid/stranger/alpha",
         expectedClientHash: "sha256-abc",
         clientSource: { url: "https://cdn.example/alpha.js", devPath: null },
         health: { state: 0, detail: null },
@@ -51,6 +56,9 @@ describe("probeUplinkRoster", () => {
         version: "1.0.0",
         available: true,
         reason: null,
+        name: "Alpha",
+        author: "A Stranger",
+        repo: "https://example.invalid/stranger/alpha",
         expectedClientHash: "sha256-abc",
         // D5: the client-source declaration is carried through to RosterEntry.
         clientSource: { url: "https://cdn.example/alpha.js", devPath: null },
@@ -60,6 +68,11 @@ describe("probeUplinkRoster", () => {
         version: "0.2.0",
         available: false,
         reason: "not ready",
+        // A mod that predates the provenance fields, or an author who declined
+        // to fill them: absent on the wire, null once decoded.
+        name: null,
+        author: null,
+        repo: null,
         expectedClientHash: null,
         // A mod-only entry (no clientSource on the wire) decodes to null.
         clientSource: null,
@@ -103,6 +116,9 @@ describe("decodeRosterPayload", () => {
         version: "1.0.0",
         available: true,
         reason: null,
+        name: "Alpha",
+        author: "A Stranger",
+        repo: "https://example.invalid/stranger/alpha",
         expectedClientHash: "sha256-abc",
         clientSource: { url: "https://cdn.example/alpha.js", devPath: null },
       },
@@ -111,10 +127,35 @@ describe("decodeRosterPayload", () => {
         version: "0.2.0",
         available: false,
         reason: "not ready",
+        /*
+         * A mod that predates the provenance fields, or an author who declined
+         * to fill them: absent on the wire, null once decoded, and the loader
+         * then has nothing mod-vouched to prefer.
+         */
+        name: null,
+        author: null,
+        repo: null,
         expectedClientHash: null,
         clientSource: null,
       },
     ]);
+  });
+
+  /*
+   * The mod has emitted name/author/repo on `system.uplinks` since the
+   * provenance fields landed, and this decoder dropped all three, so
+   * `RosterEntry.name/author/repo` were undefined for every Uplink and the
+   * loader's "prefer the roster over the bundle" rule had nothing to prefer.
+   * Asserted here rather than only through the loader because this is the one
+   * place the wire shape becomes the app's shape.
+   */
+  it("carries the mod-vouched name, author and repo through", () => {
+    const decoded = decodeRosterPayload(rosterPayload());
+    expect(decoded?.[0]).toMatchObject({
+      name: "Alpha",
+      author: "A Stranger",
+      repo: "https://example.invalid/stranger/alpha",
+    });
   });
 
   it("returns undefined for null (tombstone)", () => {

@@ -51,6 +51,7 @@ import {
   subscribeUplinkOutcomes,
   type UplinkLoadStatus,
 } from "../uplinks/loaderState";
+import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
 import { UplinkHubWizard } from "../wizard/UplinkHubWizard";
 import { useUplinkGap } from "../wizard/useUplinkGap";
 import type {
@@ -269,6 +270,7 @@ function UplinkLoaderSection() {
               {o.version && <UplinkVersion>v{o.version}</UplinkVersion>}
               <LoaderLabel $status={o.status}>{o.status}</LoaderLabel>
             </ConnectionRow>
+            {o.identity && <UplinkIdentityBlock identity={o.identity} live />}
             {o.reason && <UplinkDetail>{o.reason}</UplinkDetail>}
             {o.status === "quarantined" &&
               o.reason === "consent declined" &&

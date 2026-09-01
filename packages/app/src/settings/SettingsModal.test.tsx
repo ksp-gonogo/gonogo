@@ -46,6 +46,11 @@ import {
   it,
   vi,
 } from "vitest";
+import { resolveUplinkIdentity } from "../uplinks/identity";
+import {
+  __resetUplinkOutcomes,
+  setUplinkOutcome,
+} from "../uplinks/loaderState";
 import { registerSetting } from "./registry";
 import { SettingsProvider } from "./SettingsContext";
 import { SettingsModal } from "./SettingsModal";
@@ -252,6 +257,12 @@ afterEach(() => {
   renderedTrees.length = 0;
   clearRegistry();
   clearUplinkHandles();
+  /*
+   * Same reason as clearRegistry above: the loaded-client list reads this
+   * store through useSyncExternalStore, so clearing it before the unmount loop
+   * notifies a mounted tree outside act().
+   */
+  __resetUplinkOutcomes();
   __clearSettingsTabsForTests();
 });
 
@@ -1240,5 +1251,85 @@ describe("SettingsModal: a source-backed row that cannot be written", () => {
 
     expect(screen.getByText("1.4.2").closest("dd")).not.toBeNull();
     expect(screen.queryByRole("checkbox", { name: /build/i })).toBeNull();
+  });
+});
+
+/*
+ * The Loaded clients list is where an operator looks at what is actually
+ * running, and it named each Uplink and nothing else: no author, no repo, and
+ * no way to tell a mod-vouched name from one a bundle wrote about itself.
+ */
+describe("SettingsModal Data Sources tab: loaded-client identity", () => {
+  it("shows a mod-vouched author and repo against the Uplink that declared them", async () => {
+    setUplinkOutcome({
+      id: "widget-y",
+      name: "Widget Y",
+      version: "2.0.0",
+      status: "loaded",
+      reason: "verified + loaded in 4ms",
+      identity: resolveUplinkIdentity(
+        "widget-y",
+        {
+          name: "Widget Y",
+          author: "A Stranger",
+          repo: "https://example.invalid/stranger/widget-y",
+        },
+        {},
+      ),
+    });
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModal("main");
+    await openDataSourcesTab();
+
+    expect(screen.getByText("by A Stranger")).toBeInTheDocument();
+    expect(
+      screen.getByText("https://example.invalid/stranger/widget-y"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Vouched by the installed mod"),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a self-declared one as the bundle's own claim instead", async () => {
+    setUplinkOutcome({
+      id: "widget-z",
+      name: "Widget Z",
+      version: "1.0.0",
+      status: "loaded",
+      reason: "verified + loaded in 4ms",
+      identity: resolveUplinkIdentity(
+        "widget-z",
+        {},
+        { name: "Widget Z", author: "A Stranger" },
+      ),
+    });
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModal("main");
+    await openDataSourcesTab();
+
+    expect(screen.getByText("by A Stranger")).toBeInTheDocument();
+    expect(
+      screen.getByText("Self-declared by the bundle, unverified"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Vouched by the installed mod"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("adds no identity line for an Uplink that declared none", async () => {
+    setUplinkOutcome({
+      id: "widget-q",
+      name: "widget-q",
+      version: "1.0.0",
+      status: "loaded",
+      identity: resolveUplinkIdentity("widget-q", {}, {}),
+    });
+    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
+    renderModal("main");
+    await openDataSourcesTab();
+
+    expect(screen.getByText("widget-q")).toBeInTheDocument();
+    expect(screen.queryByText(/^by /)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Vouched by|Self-declared/)).toBeNull();
   });
 });

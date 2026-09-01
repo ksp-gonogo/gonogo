@@ -12,8 +12,10 @@ import { ConnectionRow, Name } from "../../settings/SitrepConnection";
 import { setConsentPrompt } from "../../uplinks/consent";
 import { promptForConsent } from "../../uplinks/consentModal";
 import { hostCompat } from "../../uplinks/hostCompat";
+import { registryIdentity } from "../../uplinks/identity";
 import { type LoaderContext, loadUplinkById } from "../../uplinks/loader";
 import { hubRegistrySource } from "../../uplinks/registry";
+import { UplinkIdentityBlock } from "../../uplinks/UplinkIdentityBlock";
 import { VERSION } from "../../version";
 import { type UplinkGapEntry, useUplinkGap } from "../useUplinkGap";
 
@@ -113,12 +115,23 @@ function UplinkRow({
   loadError: string | undefined;
   onLoad: () => void;
 }>) {
+  /*
+   * Only a Hub-listed Uplink has an identity to show here: the wizard's roster
+   * arrives over `system.uplinkHealth`, which carries no name, author or repo,
+   * so a row for an installed Uplink with no index entry has nothing declared
+   * to render and renders nothing.
+   */
+  const identity = entry.hubDescriptor
+    ? registryIdentity(entry.hubDescriptor)
+    : null;
+
   return (
     <RowItem>
       <ConnectionRow>
         <Name>{entry.name}</Name>
         <RowAffordance entry={entry} pending={pending} onLoad={onLoad} />
       </ConnectionRow>
+      {identity && <UplinkIdentityBlock identity={identity} />}
       {loadError && (
         <RowDetail role="status" aria-live="polite">
           {loadError}

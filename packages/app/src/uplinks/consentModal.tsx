@@ -3,9 +3,10 @@
 // exist, this mounts a one-off modal into its own `createRoot`, resolves on the
 // operator's click, then unmounts. `main.tsx` wires it via `setConsentPrompt`.
 //
-// It names the Uplink / author / version and states the §3.5 limit: the mod
-// vouches for this client, but a compromised mod could vouch for a compromised
-// client: mod trust comes from CKAN, not from us.
+// It names the Uplink / author / repo / version, says which of those the mod
+// vouched for and which the bundle wrote about itself, and states the §3.5
+// limit: the mod vouches for this client, but a compromised mod could vouch for
+// a compromised client: mod trust comes from CKAN, not from us.
 
 import { GhostButton, PrimaryButton } from "@ksp-gonogo/ui";
 import { useEffect, useId, useRef } from "react";
@@ -14,6 +15,7 @@ import styled, { type DefaultTheme, ThemeProvider } from "styled-components";
 import { isolateModal } from "../a11y/modalIsolation";
 import { useFocusTrap } from "../a11y/useFocusTrap";
 import type { ConsentInfo } from "./consent";
+import { UplinkIdentityBlock } from "./UplinkIdentityBlock";
 
 // The rem sizes below are root-relative on purpose: this is a pre-render
 // consent surface that scales with the browser font size. Only the unitless
@@ -72,9 +74,23 @@ interface ConsentDialogProps {
   onResolve: (granted: boolean) => void;
 }
 
+/**
+ * What the heading calls the Uplink. A name the mod or the Hub vouches for is
+ * the Uplink's name; a name only the bundle claims is a claim, and putting it
+ * in the heading of the dialog that decides whether to run it would let a
+ * bundle borrow any name it liked. That one stays in the identity block below,
+ * as something the bundle calls itself, and the heading falls back to the id
+ * the mod reports.
+ */
+function headingName(info: ConsentInfo): string {
+  if (info.identity?.name.source === "bundle") return info.id;
+  return info.name;
+}
+
 function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
   const titleId = useId();
   const descId = useId();
+  const identity = info.identity;
   const dialogRef = useRef<HTMLDivElement>(null);
   const loadRef = useRef<HTMLButtonElement>(null);
 
@@ -102,15 +118,17 @@ function ConsentDialog({ info, onResolve }: Readonly<ConsentDialogProps>) {
         aria-describedby={descId}
         tabIndex={-1}
       >
-        <h2 id={titleId}>Load Uplink “{info.name}”?</h2>
-        <p className="UplinkConsent__meta">
-          {info.id}@{info.version}
-          {info.author ? ` · by ${info.author}` : ""}
-        </p>
-        <p id={descId}>
-          This runs with the same access as the rest of the app. Only install
-          Uplink clients you trust.
-        </p>
+        <h2 id={titleId}>Load Uplink “{headingName(info)}”?</h2>
+        <div id={descId}>
+          <p className="UplinkConsent__meta">
+            {info.id}@{info.version}
+          </p>
+          {identity && <UplinkIdentityBlock identity={identity} />}
+          <p>
+            This runs with the same access as the rest of the app. Only install
+            Uplink clients you trust.
+          </p>
+        </div>
         <div className="UplinkConsent__actions">
           <GhostButton type="button" onClick={() => onResolve(false)}>
             Don’t load

@@ -9,6 +9,7 @@
 // Generic on purpose (no mod token) so the uplink-boundary ratchet stays clean.
 
 import { logger } from "@ksp-gonogo/logger";
+import type { UplinkIdentity } from "./identity";
 
 const STORAGE_KEY = "gonogo.uplinkConsent";
 
@@ -55,7 +56,14 @@ export interface ConsentInfo {
   id: string;
   name: string;
   version: string;
+  /** The declared author, absent when no source named one. */
   author?: string;
+  /**
+   * The same identity with each value's source, which is what the dialog reads:
+   * an operator judging a bundle needs to know whether the mod vouched for the
+   * name in front of them or the bundle wrote it about itself.
+   */
+  identity?: UplinkIdentity;
 }
 
 /**

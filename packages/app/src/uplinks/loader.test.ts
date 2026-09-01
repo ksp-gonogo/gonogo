@@ -844,6 +844,46 @@ describe("descriptorFromClientSource", () => {
     expect(descriptor.id).toBe("widget-y");
   });
 
+  it("prefers the roster's identity and records the mod as its source", () => {
+    const descriptor = descriptorFromClientSource(
+      rosterEntry({
+        name: "Widget Y",
+        author: "A Stranger",
+        repo: "https://example.invalid/stranger/widget-y",
+      }),
+      { ...manifest, name: "Impostor", author: "Impostor" },
+    );
+
+    expect(descriptor.name).toBe("Widget Y");
+    expect(descriptor.author).toBe("A Stranger");
+    expect(descriptor.identity?.author?.source).toBe("mod");
+  });
+
+  it("takes the manifest's identity where the roster is silent, marked as the bundle's", () => {
+    const descriptor = descriptorFromClientSource(rosterEntry(), {
+      ...manifest,
+      name: "Widget Y",
+      author: "A Stranger",
+      repo: "https://example.invalid/stranger/widget-y",
+    });
+
+    expect(descriptor.name).toBe("Widget Y");
+    expect(descriptor.author).toBe("A Stranger");
+    expect(descriptor.repo).toBe("https://example.invalid/stranger/widget-y");
+    expect(descriptor.identity?.name.source).toBe("bundle");
+    expect(descriptor.identity?.author?.source).toBe("bundle");
+    expect(descriptor.identity?.repo?.source).toBe("bundle");
+  });
+
+  it("leaves an undeclared author empty rather than standing something in for it", () => {
+    const descriptor = descriptorFromClientSource(rosterEntry(), manifest);
+
+    expect(descriptor.name).toBe("widget-y");
+    expect(descriptor.author).toBe("");
+    expect(descriptor.repo).toBe("");
+    expect(descriptor.identity?.author).toBeUndefined();
+  });
+
   it("throws when clientSource is missing", () => {
     const { clientSource: _clientSource, ...withoutClientSource } =
       rosterEntry();
@@ -934,7 +974,13 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     expect(seen[0].name).toBe("Widget Y");
   });
 
-  it("says unknown, rather than nothing, when the mod declares no author", async () => {
+  /*
+   * The mod is silent here and the bundle is not, and an Uplink is a mod in its
+   * own right: an author and a repo it declares are what an operator actually
+   * wants to see, so they are shown, marked as the bundle's own claim. What was
+   * shown before was the word "unknown", which is neither.
+   */
+  it("falls back to the bundle's own manifest when the mod declares no author", async () => {
     stubRegistryFetch(indexWith(goodHash));
     const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
     const seen: ConsentInfo[] = [];
@@ -956,14 +1002,126 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
         seen.push(info);
         return false;
       },
-      fetchManifest: async () => manifestFor({ integrity: thirdPartyHash }),
+      fetchManifest: async () =>
+        manifestFor({
+          integrity: thirdPartyHash,
+          name: "Widget Z",
+          author: "A Stranger",
+          repo: "https://example.invalid/stranger/widget-z",
+        }),
       fetchBytes: async () => THIRD_PARTY_BYTES,
       importBundle: async () => ({}),
     });
 
-    // An Uplink naming no author IS unknown, and telling the operator so is the
-    // point. Omitting the line would read as "no author needed".
-    expect(seen[0].author).toContain("unknown");
+    expect(seen[0].author).toBe("A Stranger");
+    expect(seen[0].identity?.author?.source).toBe("bundle");
+    expect(seen[0].identity?.name).toEqual({
+      value: "Widget Z",
+      source: "bundle",
+    });
+    expect(seen[0].identity?.repo?.source).toBe("bundle");
+  });
+
+  /*
+   * The distinction that has to survive: the same author string reaching the
+   * consent gate from the roster and from the manifest are different claims,
+   * and only the provenance carries that. Without it the two are one field and
+   * the dialog cannot tell an operator which it is showing.
+   */
+  it("marks a roster-declared identity mod-vouched and a manifest-declared one self-declared", async () => {
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const seen: ConsentInfo[] = [];
+    const manifest = manifestFor({
+      integrity: thirdPartyHash,
+      name: "Impostor",
+      author: "Impostor",
+    });
+    const base = {
+      version: "2.0.0",
+      available: true,
+      reason: null,
+      expectedClientHash: thirdPartyHash,
+      clientSource: {
+        url: "https://cdn.example/widget-y.client.js",
+        devPath: null,
+      },
+    };
+
+    await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        { id: "widget-y", ...base, name: "Widget Y", author: "A Stranger" },
+        { id: "widget-z", ...base },
+      ],
+      ensureConsent: async (info) => {
+        seen.push(info);
+        return false;
+      },
+      fetchManifest: async () => manifest,
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      importBundle: async () => ({}),
+    });
+
+    const vouched = seen.find((info) => info.id === "widget-y");
+    const selfDeclared = seen.find((info) => info.id === "widget-z");
+
+    expect(vouched?.identity?.author).toEqual({
+      value: "A Stranger",
+      source: "mod",
+    });
+    expect(selfDeclared?.identity?.author).toEqual({
+      value: "Impostor",
+      source: "bundle",
+    });
+  });
+
+  /*
+   * A manifest cannot rename an Uplink the mod already named. The two sources
+   * disagreeing is not a fault to refuse over (the fields gate nothing), but
+   * the mod's value is the one that survives.
+   */
+  it("keeps the mod's name when the manifest declares a different one", async () => {
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const seen: ConsentInfo[] = [];
+    await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "widget-y",
+          version: "2.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: thirdPartyHash,
+          name: "Widget Y",
+          author: "A Stranger",
+          clientSource: {
+            url: "https://cdn.example/widget-y.client.js",
+            devPath: null,
+          },
+        },
+      ],
+      ensureConsent: async (info) => {
+        seen.push(info);
+        return false;
+      },
+      fetchManifest: async () =>
+        manifestFor({
+          integrity: thirdPartyHash,
+          name: "Impostor",
+          author: "Impostor",
+        }),
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      importBundle: async () => ({}),
+    });
+
+    expect(seen[0].name).toBe("Widget Y");
+    expect(seen[0].author).toBe("A Stranger");
   });
 
   it("loads a third-party id via clientSource + a fetched manifest, preferring devPath", async () => {

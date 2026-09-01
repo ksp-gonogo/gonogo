@@ -293,6 +293,63 @@ describe("UplinkHubWizard: results step", () => {
       screen.queryByText(/no downloadable client/i),
     ).not.toBeInTheDocument();
   });
+
+  /*
+   * The row an operator presses Load on named the Uplink and nothing else. Its
+   * author and repo were already in hand, sitting on the Hub descriptor the
+   * join had matched, and it is the moment they are worth reading.
+   */
+  it("shows a Hub-listed row's author and repo, and says the Hub is where they came from", async () => {
+    serveRegistry({
+      uplinks: [
+        {
+          id: "widget-hub",
+          name: "Hub Widget",
+          author: "tester",
+          repo: "example/repo",
+          versions: [
+            {
+              version: "1.0.0",
+              minAppVersion: "1.0.0",
+              apiVersion: "1.0.0",
+              uiKitVersion: "1.0.0",
+              contractMajor: 1,
+              contractMinor: 1,
+              bundleUrl: "/uplinks/hub-widget.client.js",
+              integrity: "sha256-fake",
+            },
+          ],
+        },
+      ],
+    });
+    const { wsClients } = renderWizard();
+    await goToResults();
+    await emitRoster(wsClients, [
+      {
+        id: "widget-hub",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        health: { state: 0, detail: null },
+      },
+      {
+        id: "widget-noclient",
+        version: "1.0.0",
+        available: true,
+        reason: null,
+        health: { state: 0, detail: null },
+      },
+    ]);
+
+    await waitFor(() =>
+      expect(screen.getByText("by tester")).toBeInTheDocument(),
+    );
+    expect(screen.getByText("example/repo")).toBeInTheDocument();
+    expect(screen.getByText("Listed in the Uplink Hub")).toBeInTheDocument();
+    // The roster carries no identity for an Uplink with no index entry, so its
+    // row has nothing declared to show and shows nothing.
+    expect(screen.getAllByText("Listed in the Uplink Hub")).toHaveLength(1);
+  });
 });
 
 describe("UplinkHubWizard: Load action", () => {
