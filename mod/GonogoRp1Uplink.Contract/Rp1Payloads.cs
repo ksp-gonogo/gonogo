@@ -313,6 +313,40 @@ public sealed class Rp1ComplexEntry
     public List<string>? ResourcesHandled { get; set; }
 
     /// <summary>
+    /// The identity RP-1 groups complexes by for crew rating: complexes sharing
+    /// this key are on ONE efficiency record.
+    ///
+    /// <para>Efficiency is a MEMBERSHIP, not a relationship. RP-1 rates an
+    /// <c>LCEfficiency</c> rather than a complex, and attaches a complex to an
+    /// existing record only when its mass limit, size limits, type, human rating
+    /// and handled resources are ALL equal, so the complexes carrying one key are
+    /// an equivalence class. Group by this rather than by centre: two identical
+    /// complexes at DIFFERENT space centres share a record, and two complexes at
+    /// one centre with different mass limits do not.</para>
+    ///
+    /// <para>Derived by this Uplink rather than left to a client, because RP-1
+    /// compares resource NAMES AND AMOUNTS and <see cref="ResourcesHandled"/>
+    /// carries only the names. A client grouping on what it can see would be
+    /// right until two complexes handled the same resources in different amounts.
+    /// The amounts are not published instead because nothing in the shipped
+    /// assembly reads them except that comparison, so their unit is unestablished
+    /// and a number on the wire would be unreadable.</para>
+    ///
+    /// <para>It names a group and nothing else: it is not an RP-1 id, it is not
+    /// stable across game versions, and it must never be shown to an operator.
+    /// Null when the pieces could not be read, which is NOT "belongs to no
+    /// group": every complex RP-1 can rate belongs to exactly one.</para>
+    ///
+    /// <para>Does not capture the whole model. Complexes that are merely SIMILAR
+    /// still move each other's ratings: <c>IncreaseEfficiency(..., distribute)</c>
+    /// pays every other record a share scaled by closeness, so a rating can climb
+    /// where nobody worked. This key answers who shares a number, never what else
+    /// moves it.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string? EfficiencyGroupKey { get; set; }
+
+    /// <summary>
     /// What this complex's crew draws per day, at RP-1's own effective count: a
     /// rushing complex pays double, and a complex nothing is active in pays its
     /// crew at the idle fraction.

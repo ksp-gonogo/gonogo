@@ -137,6 +137,7 @@
     "Rp1ComplexEntry": {
       "canIntegrate": "flag",
       "efficiency": "ratio",
+      "efficiencyGroupKey": "id",
       "efficiencySharedWith": "id",
       "engineers": "count",
       "humanRated": "flag",
@@ -560,6 +561,7 @@
     "rp1.complexes": {
       "canIntegrate": "flag",
       "efficiency": "ratio",
+      "efficiencyGroupKey": "id",
       "efficiencySharedWith": "id",
       "engineers": "count",
       "humanRated": "flag",

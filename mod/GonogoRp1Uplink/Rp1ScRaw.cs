@@ -118,6 +118,15 @@ namespace GonogoRp1Uplink
         public double? SizeMaxWidth;
         public double? SizeMaxDepth;
         public List<string>? ResourcesHandled;
+
+        /// <summary>
+        /// The identity RP-1 groups complexes by for crew rating. Two complexes
+        /// carrying the same key are on ONE efficiency record, so work at either
+        /// moves the rating at both; a different key is a different record.
+        /// Derived mod-side because RP-1 compares resource amounts this payload
+        /// does not carry.
+        /// </summary>
+        public string? EfficiencyGroupKey;
         public double? SalaryPerDay;
         public double? UpkeepPerDay;
         public double? NewPadCost;

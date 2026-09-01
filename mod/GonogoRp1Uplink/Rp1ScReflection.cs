@@ -447,6 +447,7 @@ namespace GonogoRp1Uplink
                 SizeMaxWidth = SizeAxis(lc, "x"),
                 SizeMaxDepth = SizeAxis(lc, "z"),
                 ResourcesHandled = ReadResourcesHandled(lc),
+                EfficiencyGroupKey = ReadEfficiencyGroupKey(lc),
                 SalaryPerDay = SalaryPerDay(payroll, payroll.ComplexSalary, lc),
                 UpkeepPerDay = ComplexUpkeep(payroll, lc),
                 NewPadCost = NewPadCost(lc, lcType),
@@ -1078,6 +1079,91 @@ namespace GonogoRp1Uplink
             }
             names.Sort(StringComparer.Ordinal);
             return names;
+        }
+
+        /// <summary>
+        /// The identity RP-1 groups launch complexes by for crew rating, as a
+        /// stable key two complexes share when RP-1 would put them on one record.
+        ///
+        /// <para>WHY A KEY AND NOT THE FIELDS. RP-1 does not rate a complex, it
+        /// rates an <c>LCEfficiency</c> and attaches a complex to an existing one
+        /// only when <c>Formula.GetLCCloseness</c> scores EXACTLY 1.0, which
+        /// <c>LCData.Compare</c> reaches only on massMax, sizeMax, lcType,
+        /// isHumanRated and resourcesHandled all being equal. So membership is an
+        /// equivalence class, and this key names it.</para>
+        ///
+        /// <para>Derived here rather than client-side because
+        /// <see cref="Rp1ComplexRaw.ResourcesHandled"/> carries the resource NAMES
+        /// and RP-1 compares NAMES AND AMOUNTS. A client grouping on what it can
+        /// see would be right until two complexes handled the same resources in
+        /// different amounts, and then silently wrong. The amounts are not
+        /// published instead because their unit is not established: searched the
+        /// whole shipped assembly and this comparison is their only consumer, so
+        /// a number on the wire would be a figure nobody could read.</para>
+        ///
+        /// <para>Null when the pieces could not be read, which is not the same as
+        /// a complex that belongs to no group: every complex RP-1 can rate
+        /// belongs to exactly one.</para>
+        /// </summary>
+        private string? ReadEfficiencyGroupKey(object lc)
+        {
+            try
+            {
+                var lcType = Member(lc, "LCType")?.ToString();
+                if (lcType == null)
+                {
+                    return null;
+                }
+
+                // The hangar is its own case in RP-1: GetLCCloseness returns 1.0
+                // for a hangar against ANY record, so every hangar is one group
+                // however its other fields read.
+                if (lcType.IndexOf("Hangar", StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return "hangar";
+                }
+
+                var massMax = ReadDouble(lc, "MassMax");
+                var sizeMax = Member(lc, "SizeMax");
+                var human = ReadBool(lc, "IsHumanRated");
+                if (massMax == null || sizeMax == null || human == null)
+                {
+                    return null;
+                }
+
+                var parts = new List<string>
+                {
+                    lcType,
+                    massMax.Value.ToString("R", CultureInfo.InvariantCulture),
+                    (ReadDouble(sizeMax, "x") ?? 0.0).ToString("R", CultureInfo.InvariantCulture),
+                    (ReadDouble(sizeMax, "y") ?? 0.0).ToString("R", CultureInfo.InvariantCulture),
+                    (ReadDouble(sizeMax, "z") ?? 0.0).ToString("R", CultureInfo.InvariantCulture),
+                    human.Value ? "hr" : "nhr",
+                };
+
+                // Name AND amount, sorted, because that is what RP-1 compares.
+                if (Member(lc, "ResourcesHandled") is IDictionary handled)
+                {
+                    var resources = new List<string>();
+                    foreach (DictionaryEntry entry in handled)
+                    {
+                        if (entry.Key is string name && name.Length > 0)
+                        {
+                            var amount = ToDouble(entry.Value);
+                            resources.Add(
+                                name + "=" + (amount ?? 0.0).ToString("R", CultureInfo.InvariantCulture));
+                        }
+                    }
+                    resources.Sort(StringComparer.Ordinal);
+                    parts.AddRange(resources);
+                }
+
+                return string.Join("|", parts.ToArray());
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>

@@ -169,6 +169,7 @@ export interface Rp1ComplexEntry
 	sizeMaxWidth?: Value<"m">;
 	sizeMaxDepth?: Value<"m">;
 	resourcesHandled?: string[];
+	efficiencyGroupKey?: string;
 	salaryPerDay?: Value<"f/day">;
 	upkeepPerDay?: Value<"f/day">;
 	newPadCost?: Value<"funds">;

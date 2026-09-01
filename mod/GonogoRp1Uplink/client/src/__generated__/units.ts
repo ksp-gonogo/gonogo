@@ -171,6 +171,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1ComplexEntry": {
     canIntegrate: "flag",
     efficiency: "ratio",
+    efficiencyGroupKey: "id",
     efficiencySharedWith: "id",
     engineers: "count",
     humanRated: "flag",
@@ -599,6 +600,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "rp1.complexes": {
     canIntegrate: "flag",
     efficiency: "ratio",
+    efficiencyGroupKey: "id",
     efficiencySharedWith: "id",
     engineers: "count",
     humanRated: "flag",

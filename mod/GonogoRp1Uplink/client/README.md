@@ -15,8 +15,10 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 
 | Topic | Payload | Delivery | Delay |
 | --- | --- | --- | --- |
+| `rp1.buildCost` | `Rp1BuildCost` | lossy-latest | true-now |
 | `rp1.buildQueue` | `Rp1BuildItemEntry[]` | lossy-latest | true-now |
 | `rp1.buildable` | `Rp1BuildableCraftEntry[]` | lossy-latest | true-now |
+| `rp1.careerEvents` | `Rp1CareerEvents` | lossy-latest | true-now |
 | `rp1.centres` | `Rp1CentreEntry[]` | lossy-latest | true-now |
 | `rp1.complexes` | `Rp1ComplexEntry[]` | lossy-latest | true-now |
 | `rp1.confidence` | `Rp1Confidence` | lossy-latest | true-now |
@@ -44,6 +46,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1BuildableComplex` | `eligible` flag, `kscDisplayName` text, `kscName` id, `lcId` id, `name` text, `refusals` text |
 | `Rp1BuildRepeatArgs` | `id` id |
 | `Rp1BuildStartArgs` | `craftFile` id, `facility` enum, `lcId` id |
+| `Rp1CareerEventEntry` | `builtAt` enum, `cost` funds, `detail` enum, `isAdd` flag, `kind` enum, `launchId` id, `name` text, `repChange` rep, `ut` ut |
 | `Rp1ComplexDismantleArgs` | `lcId` id |
 | `Rp1ComplexModifyArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `lcId` id, `massMax` t, `size` Rp1ComplexSizeArgs |
 | `Rp1ComplexNewArgs` | `assignEngineersOnComplete` flag, `humanRated` flag, `kscName` id, `massMax` t, `name` id, `size` Rp1ComplexSizeArgs |
@@ -85,7 +88,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.buildable`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `career.status` |
 | Slots | `rp1-vehicle-assembly.sections` |
 | Default size | 7 × 16 |
-| Scenes | 7 |
+| Scenes | 9 |
 
 ![Nothing built and nothing on order, which is where a career starts](docs/assets/assembly-empty--default.png)
 
@@ -157,6 +160,22 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The same widget at 18 × 5](docs/assets/assembly-unstaffed--landscape-18x5.png)
 
+![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without](docs/assets/build-cost-absences-and-tech-gate--default.png)
+
+![The same widget at 9 × 8](docs/assets/build-cost-absences-and-tech-gate--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/build-cost-absences-and-tech-gate--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/build-cost-absences-and-tech-gate--landscape-18x5.png)
+
+![Most of what this vehicle costs is the penalty for flying it untooled: the indent says that figure is part of the one above rather than added to it](docs/assets/build-cost-mostly-surcharge--default.png)
+
+![The same widget at 9 × 8](docs/assets/build-cost-mostly-surcharge--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/build-cost-mostly-surcharge--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/build-cost-mostly-surcharge--landscape-18x5.png)
+
 ## Augments
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
@@ -170,6 +189,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 4 |  |
 | `rp1-program-status` | `career-economy.sections` | – |  | 1 |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  | 1 |  |
+| `rp1-vehicle-assembly-build-cost` | `rp1-vehicle-assembly.sections` | – |  | 0 |  |
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |

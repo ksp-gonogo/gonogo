@@ -692,6 +692,10 @@ namespace GonogoRp1Uplink.Tests
         public static IReadOnlyDictionary<string, string> NotMemberNames { get; } = new Dictionary<string, string>
         {
             ["Hangar"] = "LaunchComplexType value the complex read compares against, not a member",
+            ["R"] = "the round-trip numeric format specifier, in the efficiency group key",
+            ["hr"] = "human-rated marker this Uplink writes into the efficiency group key",
+            ["nhr"] = "not-human-rated marker this Uplink writes into the efficiency group key",
+            ["hangar"] = "the efficiency group key every hangar gets, because GetLCCloseness returns 1.0 for a hangar against any record",
             ["HasClamps"] = "ClampsState value the launch gate compares against",
             ["Pad"] = "construction-kind label this Uplink stamps on a row",
             ["FacilityUpgrade"] = "construction-kind label this Uplink stamps on a row",
