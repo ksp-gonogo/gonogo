@@ -13,6 +13,7 @@ import {
   magnitudeOr,
   Panel,
   type Quantityish,
+  Section,
   Stack,
   StatusIndicator,
   type StatusTone,
@@ -355,13 +356,16 @@ function DeployedScienceComponent(
       <Panel
         panelTitle="DEPLOYED SCIENCE"
         compactTitle={["DEPLOYED SCI", "DEPLOYED"]}
-      >
-        <EmptyState role="status">
-          {available === false
-            ? "Breaking Ground not installed"
-            : "No deployed bases"}
-        </EmptyState>
-      </Panel>
+        sections={
+          <Section>
+            <EmptyState role="status">
+              {available === false
+                ? "Breaking Ground not installed"
+                : "No deployed bases"}
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -369,16 +373,13 @@ function DeployedScienceComponent(
     <Panel
       panelTitle="DEPLOYED SCIENCE"
       compactTitle={["DEPLOYED SCI", "DEPLOYED"]}
-    >
-      <Stack
-        gap="md"
-        style={{ padding: "var(--space-4) var(--space-8) var(--space-8)" }}
-      >
-        {bases.map((base) => {
-          const state = powerState(base);
-          return (
+      /* One section per base, so a landscape tile runs the base cards side by
+         side instead of down one column. */
+      sections={bases.map((base) => {
+        const state = powerState(base);
+        return (
+          <Section key={base.id}>
             <Box
-              key={base.id}
               bordered
               radius="xs"
               style={{
@@ -466,10 +467,10 @@ function DeployedScienceComponent(
                 ))}
               </Stack>
             </Box>
-          );
-        })}
-      </Stack>
-    </Panel>
+          </Section>
+        );
+      })}
+    />
   );
 }
 

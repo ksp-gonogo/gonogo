@@ -7,7 +7,7 @@ import {
   Panel,
   ReadoutCaption,
   type ReadoutTone,
-  Stack,
+  Section,
   StatusPill,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -75,25 +75,29 @@ export function AvionicsGoNoGoComponent(
       ? "go"
       : "alert";
   return (
-    <Panel panelTitle="Avionics Control" compactTitle={["AVIONICS", "AVI"]}>
-      <Stack role="status" aria-live="polite">
-        <StatusPill $tone={tone}>{label}</StatusPill>
-        <Cluster wrap>
-          <div>
-            <BigReadout>
-              <Tons t={s?.vesselMassTons} />
-            </BigReadout>
-            <ReadoutCaption>Vessel mass</ReadoutCaption>
-          </div>
-          <div>
-            <BigReadout $tone={tone}>
-              <Tons t={s?.controllableMassTons} />
-            </BigReadout>
-            <ReadoutCaption>Controllable</ReadoutCaption>
-          </div>
-        </Cluster>
-      </Stack>
-    </Panel>
+    <Panel
+      panelTitle="Avionics Control"
+      compactTitle={["AVIONICS", "AVI"]}
+      sections={
+        <Section gap="sm" role="status" aria-live="polite">
+          <StatusPill $tone={tone}>{label}</StatusPill>
+          <Cluster wrap>
+            <div>
+              <BigReadout>
+                <Tons t={s?.vesselMassTons} />
+              </BigReadout>
+              <ReadoutCaption>Vessel mass</ReadoutCaption>
+            </div>
+            <div>
+              <BigReadout $tone={tone}>
+                <Tons t={s?.controllableMassTons} />
+              </BigReadout>
+              <ReadoutCaption>Controllable</ReadoutCaption>
+            </div>
+          </Cluster>
+        </Section>
+      }
+    />
   );
 }
 

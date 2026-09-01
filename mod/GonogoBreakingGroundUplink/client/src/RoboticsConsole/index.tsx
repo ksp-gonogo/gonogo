@@ -19,9 +19,8 @@ import {
   Panel,
   type Quantityish,
   ReadoutCaption,
-  ScrollArea,
+  Section,
   SelectableRow,
-  Stack,
   Text,
   ToggleButton,
   Unit,
@@ -298,13 +297,18 @@ function RoboticsConsoleComponent({
 
   if (servos.length === 0 || !selected) {
     return (
-      <Panel panelTitle="ROBOTICS">
-        <EmptyState role="status">
-          {available === false
-            ? "Breaking Ground not installed"
-            : "No robotic parts on this vessel"}
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="ROBOTICS"
+        sections={
+          <Section>
+            <EmptyState role="status">
+              {available === false
+                ? "Breaking Ground not installed"
+                : "No robotic parts on this vessel"}
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -323,9 +327,10 @@ function RoboticsConsoleComponent({
   const showServoList = servos.length > 1 && rows >= 6;
 
   return (
-    <Panel panelTitle="ROBOTICS">
-      <ScrollArea>
-        <Stack gap="md">
+    <Panel
+      panelTitle="ROBOTICS"
+      sections={[
+        <Section key="readout" full>
           <Cluster justify="start" align="baseline" wrap>
             <Text size="lg" weight="semibold">
               {formatPos(selected.type, selected.current)}
@@ -347,92 +352,90 @@ function RoboticsConsoleComponent({
               </Badge>
             )}
           </Cluster>
+        </Section>,
+        <Section key="target" gap="sm">
+          <Cluster justify="between" gap="md" wrap>
+            <ReadoutCaption>Target</ReadoutCaption>
+            <Inline gap="sm">
+              <ActionButton
+                tone="ghost"
+                type="button"
+                aria-label="Decrease target"
+                onClick={() =>
+                  setTarget(
+                    selected.partId,
+                    selected.type,
+                    selected.target - TARGET_STEP[selected.type],
+                  )
+                }
+              >
+                −
+              </ActionButton>
+              <Text size="sm" tone="default">
+                {formatPos(selected.type, selected.target)}
+                {unit}
+              </Text>
+              <ActionButton
+                tone="ghost"
+                type="button"
+                aria-label="Increase target"
+                onClick={() =>
+                  setTarget(
+                    selected.partId,
+                    selected.type,
+                    selected.target + TARGET_STEP[selected.type],
+                  )
+                }
+              >
+                +
+              </ActionButton>
+            </Inline>
+          </Cluster>
 
-          <Stack gap="sm">
-            <Cluster justify="between" gap="md" wrap>
-              <ReadoutCaption>Target</ReadoutCaption>
-              <Inline gap="sm">
-                <ActionButton
-                  tone="ghost"
-                  type="button"
-                  aria-label="Decrease target"
-                  onClick={() =>
-                    setTarget(
-                      selected.partId,
-                      selected.type,
-                      selected.target - TARGET_STEP[selected.type],
-                    )
-                  }
-                >
-                  −
-                </ActionButton>
-                <Text size="sm" tone="default">
-                  {formatPos(selected.type, selected.target)}
-                  {unit}
-                </Text>
-                <ActionButton
-                  tone="ghost"
-                  type="button"
-                  aria-label="Increase target"
-                  onClick={() =>
-                    setTarget(
-                      selected.partId,
-                      selected.type,
-                      selected.target + TARGET_STEP[selected.type],
-                    )
-                  }
-                >
-                  +
-                </ActionButton>
-              </Inline>
+          {showToggles && (
+            <Cluster justify="start" gap="sm" wrap>
+              <ToggleButton
+                size="sm"
+                active={selected.motorEngaged}
+                tone="go"
+                onClick={() =>
+                  setMotor(selected.partId, !selected.motorEngaged)
+                }
+              >
+                Motor {selected.motorEngaged ? "on" : "off"}
+              </ToggleButton>
+              <ToggleButton
+                size="sm"
+                active={selected.locked}
+                tone="warn"
+                onClick={() => setLock(selected.partId, !selected.locked)}
+              >
+                {selected.locked ? "Locked" : "Unlocked"}
+              </ToggleButton>
             </Cluster>
-
-            {showToggles && (
-              <Cluster justify="start" gap="sm" wrap>
-                <ToggleButton
-                  size="sm"
-                  active={selected.motorEngaged}
-                  tone="go"
-                  onClick={() =>
-                    setMotor(selected.partId, !selected.motorEngaged)
-                  }
-                >
-                  Motor {selected.motorEngaged ? "on" : "off"}
-                </ToggleButton>
-                <ToggleButton
-                  size="sm"
-                  active={selected.locked}
-                  tone="warn"
-                  onClick={() => setLock(selected.partId, !selected.locked)}
-                >
-                  {selected.locked ? "Locked" : "Unlocked"}
-                </ToggleButton>
-              </Cluster>
-            )}
-          </Stack>
-
-          {showServoList && (
-            <Stack gap="sm" aria-label="Robotic joints">
-              {servos.map((s) => (
-                <SelectableRow
-                  key={s.partId}
-                  selected={s.partId === selected.partId}
-                  onClick={() => setSelectedId(s.partId)}
-                >
-                  <span>{s.name}</span>
-                  <span>
-                    {s.type} · {formatPos(s.type, s.current)}
-                    {unitFor(s.type)}/{formatPos(s.type, s.target)}
-                    {unitFor(s.type)}
-                    {s.locked ? " · locked" : s.atTarget ? " · ✓" : ""}
-                  </span>
-                </SelectableRow>
-              ))}
-            </Stack>
           )}
-        </Stack>
-      </ScrollArea>
-    </Panel>
+        </Section>,
+        showServoList && (
+          <Section key="joints" gap="sm" aria-label="Robotic joints">
+            {servos.map((s) => (
+              <SelectableRow
+                key={s.partId}
+                selected={s.partId === selected.partId}
+                onClick={() => setSelectedId(s.partId)}
+              >
+                <span>{s.name}</span>
+                <span>
+                  {s.type} · {formatPos(s.type, s.current)}
+                  {unitFor(s.type)}/{formatPos(s.type, s.target)}
+                  {unitFor(s.type)}
+                  {s.locked ? " · locked" : s.atTarget ? " · ✓" : ""}
+                </span>
+              </SelectableRow>
+            ))}
+          </Section>
+        ),
+      ]}
+    />
   );
 }
 

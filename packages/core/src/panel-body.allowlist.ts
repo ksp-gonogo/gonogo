@@ -21,11 +21,6 @@
  * for the matcher itself.
  */
 export const PANEL_BODY_DEBT: Record<string, number> = {
-  "mod/GonogoAvionicsUplink/client/src/AvionicsGoNoGo/index.tsx": 1,
-  "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 2,
-  "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 2,
-  "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 2,
-  "mod/GonogoFerramAerospaceResearchUplink/client/src/AeroState/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/ShipSystems/index.tsx": 3,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 2,
   "mod/GonogoKosUplink/client/src/KosScriptTrigger/index.tsx": 1,
@@ -80,6 +75,6 @@ export const PANEL_BODY_DEBT: Record<string, number> = {
  * while the debt falls and still fails if the walk stops finding panels.
  */
 export const SCAN_FLOORS = {
-  files: 184,
+  files: 188,
   tags: 48,
 } as const;
