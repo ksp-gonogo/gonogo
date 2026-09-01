@@ -450,23 +450,28 @@ function TargetPickerComponent({
 
   if (!showFull) {
     return (
-      <Panel panelTitle="TARGET">
-        <CompactCurrent>
-          {tarName ? (
-            <>
-              <CompactName>{tarName}</CompactName>
-              {typeof tarDistance === "number" &&
-                Number.isFinite(tarDistance) && (
-                  <CompactDistance>
-                    <Unit value={value("m", tarDistance)} />
-                  </CompactDistance>
-                )}
-            </>
-          ) : (
-            <Hint>No target set</Hint>
-          )}
-        </CompactCurrent>
-      </Panel>
+      <Panel
+        panelTitle="TARGET"
+        sections={
+          <Section fill>
+            <CompactCurrent>
+              {tarName ? (
+                <>
+                  <CompactName>{tarName}</CompactName>
+                  {typeof tarDistance === "number" &&
+                    Number.isFinite(tarDistance) && (
+                      <CompactDistance>
+                        <Unit value={value("m", tarDistance)} />
+                      </CompactDistance>
+                    )}
+                </>
+              ) : (
+                <Hint>No target set</Hint>
+              )}
+            </CompactCurrent>
+          </Section>
+        }
+      />
     );
   }
 
@@ -500,127 +505,139 @@ function TargetPickerComponent({
   };
 
   return (
-    <Panel panelTitle="TARGET PICKER">
-      <OrbitalEventChipsRow>
-        <OrbitalEventChips />
-      </OrbitalEventChipsRow>
-      <CurrentSummary>
-        {tarName === undefined ? (
-          <Hint>No target set in KSP.</Hint>
-        ) : (
-          <>
-            <CurrentSummaryTop>
-              <CurrentSummaryName title={tarName}>{tarName}</CurrentSummaryName>
-              {typeof tarDistance === "number" &&
-                Number.isFinite(tarDistance) && (
-                  <CurrentSummaryDistance>
-                    <Unit value={value("m", tarDistance)} />
-                  </CurrentSummaryDistance>
-                )}
-            </CurrentSummaryTop>
-            <CurrentSummaryMeta>
-              {tarType && <span>{tarType}</span>}
-              {typeof tarRelVel === "number" && Number.isFinite(tarRelVel) && (
-                <span>
-                  Δv <Unit value={value("m/s", tarRelVel)} decimals={2} />
-                </span>
+    <Panel
+      panelTitle="TARGET PICKER"
+      sections={[
+        <Section key="summary" full>
+          <OrbitalEventChipsRow>
+            <OrbitalEventChips />
+          </OrbitalEventChipsRow>
+          <CurrentSummary>
+            {tarName === undefined ? (
+              <Hint>No target set in KSP.</Hint>
+            ) : (
+              <>
+                <CurrentSummaryTop>
+                  <CurrentSummaryName title={tarName}>
+                    {tarName}
+                  </CurrentSummaryName>
+                  {typeof tarDistance === "number" &&
+                    Number.isFinite(tarDistance) && (
+                      <CurrentSummaryDistance>
+                        <Unit value={value("m", tarDistance)} />
+                      </CurrentSummaryDistance>
+                    )}
+                </CurrentSummaryTop>
+                <CurrentSummaryMeta>
+                  {tarType && <span>{tarType}</span>}
+                  {typeof tarRelVel === "number" &&
+                    Number.isFinite(tarRelVel) && (
+                      <span>
+                        Δv <Unit value={value("m/s", tarRelVel)} decimals={2} />
+                      </span>
+                    )}
+                  <Button onClick={clearTarget} type="button">
+                    Clear target
+                  </Button>
+                </CurrentSummaryMeta>
+              </>
+            )}
+          </CurrentSummary>
+          <FilterInput
+            type="search"
+            placeholder="Filter targets"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            aria-label="Filter targets"
+          />
+        </Section>,
+        /* The list is what the operator came for: it takes the height the
+           chips, the current target and the filter leave. */
+        <Section key="list" fill>
+          {available === undefined ? (
+            <Hint>Waiting for target list...</Hint>
+          ) : (
+            <ListScroll>
+              {suggested.length > 0 && (
+                <Section>
+                  <SuggestedHeading>Suggested</SuggestedHeading>
+                  <SectionBody>
+                    {suggested.map((entry) => renderRow(entry, "suggested"))}
+                  </SectionBody>
+                </Section>
               )}
-              <Button onClick={clearTarget} type="button">
-                Clear target
-              </Button>
-            </CurrentSummaryMeta>
-          </>
-        )}
-      </CurrentSummary>
-      <FilterInput
-        type="search"
-        placeholder="Filter targets"
-        value={filter}
-        onChange={(e) => setFilter(e.target.value)}
-        aria-label="Filter targets"
-      />
-      {available === undefined ? (
-        <Hint>Waiting for target list...</Hint>
-      ) : (
-        <ListScroll>
-          {suggested.length > 0 && (
-            <Section>
-              <SuggestedHeading>Suggested</SuggestedHeading>
-              <SectionBody>
-                {suggested.map((entry) => renderRow(entry, "suggested"))}
-              </SectionBody>
-            </Section>
+              {bodiesList.length > 0 && (
+                <CategorySection
+                  id="bodies"
+                  label="Bodies"
+                  count={bodiesList.length}
+                  expanded={bodiesExpanded}
+                  onToggle={() => setBodiesExpanded((v) => !v)}
+                >
+                  {bodiesList.map((entry) => renderRow(entry, "body"))}
+                </CategorySection>
+              )}
+              {vesselsList.length > 0 && (
+                <CategorySection
+                  id="vessels"
+                  label="Vessels"
+                  count={vesselsList.length}
+                  expanded={vesselsExpanded}
+                  onToggle={() => setVesselsExpanded((v) => !v)}
+                  extra={
+                    spaceObjectCount > 0 && (
+                      <SpaceObjectToggle
+                        type="button"
+                        aria-pressed={showSpaceObjects}
+                        onClick={() => setShowSpaceObjects((v) => !v)}
+                        title={
+                          showSpaceObjects
+                            ? "Hide asteroids / comets from the list"
+                            : "Show asteroids / comets in the list"
+                        }
+                      >
+                        {showSpaceObjects
+                          ? `Asteroids: shown (${spaceObjectCount})`
+                          : `Asteroids: hidden (${spaceObjectCount})`}
+                      </SpaceObjectToggle>
+                    )
+                  }
+                >
+                  {vesselsList.map((entry) => renderRow(entry, "vessel"))}
+                </CategorySection>
+              )}
+              {partsList.length > 0 && (
+                <CategorySection
+                  id="parts"
+                  label="Parts"
+                  count={partsList.length}
+                  expanded={partsExpanded}
+                  onToggle={() => setPartsExpanded((v) => !v)}
+                >
+                  {partsList.map((entry) => renderRow(entry, "part"))}
+                </CategorySection>
+              )}
+              {otherList.length > 0 && (
+                <CategorySection
+                  id="other"
+                  label="Other"
+                  count={otherList.length}
+                  expanded={otherExpanded}
+                  onToggle={() => setOtherExpanded((v) => !v)}
+                >
+                  {otherList.map((entry) => renderRow(entry, "other"))}
+                </CategorySection>
+              )}
+              {noCategoriesHaveEntries && (
+                <Hint>
+                  {isFiltering ? "No targets match." : "No targets in range."}
+                </Hint>
+              )}
+            </ListScroll>
           )}
-          {bodiesList.length > 0 && (
-            <CategorySection
-              id="bodies"
-              label="Bodies"
-              count={bodiesList.length}
-              expanded={bodiesExpanded}
-              onToggle={() => setBodiesExpanded((v) => !v)}
-            >
-              {bodiesList.map((entry) => renderRow(entry, "body"))}
-            </CategorySection>
-          )}
-          {vesselsList.length > 0 && (
-            <CategorySection
-              id="vessels"
-              label="Vessels"
-              count={vesselsList.length}
-              expanded={vesselsExpanded}
-              onToggle={() => setVesselsExpanded((v) => !v)}
-              extra={
-                spaceObjectCount > 0 && (
-                  <SpaceObjectToggle
-                    type="button"
-                    aria-pressed={showSpaceObjects}
-                    onClick={() => setShowSpaceObjects((v) => !v)}
-                    title={
-                      showSpaceObjects
-                        ? "Hide asteroids / comets from the list"
-                        : "Show asteroids / comets in the list"
-                    }
-                  >
-                    {showSpaceObjects
-                      ? `Asteroids: shown (${spaceObjectCount})`
-                      : `Asteroids: hidden (${spaceObjectCount})`}
-                  </SpaceObjectToggle>
-                )
-              }
-            >
-              {vesselsList.map((entry) => renderRow(entry, "vessel"))}
-            </CategorySection>
-          )}
-          {partsList.length > 0 && (
-            <CategorySection
-              id="parts"
-              label="Parts"
-              count={partsList.length}
-              expanded={partsExpanded}
-              onToggle={() => setPartsExpanded((v) => !v)}
-            >
-              {partsList.map((entry) => renderRow(entry, "part"))}
-            </CategorySection>
-          )}
-          {otherList.length > 0 && (
-            <CategorySection
-              id="other"
-              label="Other"
-              count={otherList.length}
-              expanded={otherExpanded}
-              onToggle={() => setOtherExpanded((v) => !v)}
-            >
-              {otherList.map((entry) => renderRow(entry, "other"))}
-            </CategorySection>
-          )}
-          {noCategoriesHaveEntries && (
-            <Hint>
-              {isFiltering ? "No targets match." : "No targets in range."}
-            </Hint>
-          )}
-        </ListScroll>
-      )}
-    </Panel>
+        </Section>,
+      ]}
+    />
   );
 }
 
