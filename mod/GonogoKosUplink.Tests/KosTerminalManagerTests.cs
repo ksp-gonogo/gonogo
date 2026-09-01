@@ -147,8 +147,6 @@ namespace GonogoKosUplink.Tests
             public void Unsubscribe(int coreId) => Subscribed.Remove(coreId);
         }
 
-        // ---- Lease ----
-
         [Fact]
         public void Open_GrantsLease_ThenSameTokenIsIdempotent()
         {
@@ -243,8 +241,6 @@ namespace GonogoKosUplink.Tests
             Assert.False(h.Manager.Open(7, "other").Success);
             Assert.True(h.Manager.Keystroke(7, "tokenA", "x").Success);
         }
-
-        // ---- Downlink poll ----
 
         [Fact]
         public void Poll_UnsubscribedCpu_PublishesNothing()

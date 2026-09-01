@@ -116,8 +116,6 @@ namespace GonogoKosUplink.Tests
             Assert.Empty(acc.Append(1, "[/KOSDATA]"));
         }
 
-        // --- [KOSERROR] detection (kos-uplink-full-migration.md) -----------
-
         [Fact]
         public void Append_ExplicitKosErrorBlock_EmitsAnErrorBlockNotData()
         {

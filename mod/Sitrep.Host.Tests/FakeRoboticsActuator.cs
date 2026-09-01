@@ -13,7 +13,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakeRoboticsActuator : IRoboticsActuator
     {
-        // ---- recorded calls (null/default until the method is invoked) ----
         public string? LastSetServoTargetPartId;
         public double? LastSetServoTargetValue;
         public string? LastSetServoMotorPartId;
@@ -32,7 +31,6 @@ namespace Sitrep.Host.Tests
         public bool? LastSetRotorLockLocked;
         public string? LastReverseRotorPartId;
 
-        // ---- configurable results (default: success) ----
         public CommandResult SetServoTargetResult = CommandResult.Ok();
         public CommandResult SetServoMotorResult = CommandResult.Ok();
         public CommandResult SetServoLockResult = CommandResult.Ok();

@@ -232,8 +232,6 @@ namespace Sitrep.Host.Tests
             Assert.True(engine.AvailabilityOf(uplink.Manifest.Id).IsAvailable);
         }
 
-        // ---- fixtures ----------------------------------------------------
-
         [SitrepUplink("discovery-test-normal")]
         public sealed class NormalDiscoverableUplink : ISitrepUplink
         {

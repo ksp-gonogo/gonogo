@@ -246,12 +246,10 @@ function main(): void {
       process.exit(1);
     }
 
-    // ---- shrink-only debt ----------------------------------------------
-    //
-    // Seeded at the 96 renders that were already un-fed when the gate landed. The
-    // gate holds the list from both sides so it can only ever get smaller, and so
-    // `test` stays a working signal instead of going permanently red the way
-    // `visual` has been since 10 August.
+    // The shrink-only debt, seeded at the 96 renders that were already un-fed
+    // when the gate landed. The gate holds the list from both sides so it can
+    // only ever get smaller, and so `test` stays a working signal instead of
+    // going permanently red the way `visual` has been since 10 August.
     const regressions: string[] = [];
     const fixed: string[] = [];
     for (const [key, count] of unfedByKey) {

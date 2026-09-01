@@ -55,7 +55,8 @@ export class MockSerialPort implements SerialPort {
     return this.info;
   }
 
-  // ---- Test-side API ------------------------------------------------------
+  // Everything below is the test-side API, not part of the SerialPort surface
+  // this class is standing in for.
 
   /** Push bytes "from the device" upstream to the transport. */
   async emitData(data: string | Uint8Array): Promise<void> {

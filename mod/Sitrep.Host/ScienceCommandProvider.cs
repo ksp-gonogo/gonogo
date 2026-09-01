@@ -25,7 +25,6 @@ namespace Sitrep.Host
     /// </summary>
     public static class ScienceCommandProvider
     {
-        // ---- science.experiment.* -- delayed:true (actuation rides light-time) ----
         public const string DeployCommand = "science.experiment.deploy";
         public const string TransmitCommand = "science.experiment.transmit";
 

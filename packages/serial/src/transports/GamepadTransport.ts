@@ -153,8 +153,6 @@ export class GamepadTransport implements DeviceTransport {
     this.deviceType = type;
   }
 
-  // ---- internals ------------------------------------------------------
-
   private findClaimableLivePad(): Gamepad | null {
     if (!this.gamepadId) {
       // First pairing: nothing to match on yet. Never blind-grab an

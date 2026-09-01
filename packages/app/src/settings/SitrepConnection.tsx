@@ -124,14 +124,14 @@ export function SitrepConnection() {
   );
 }
 
-// --- shared row styling, also used by SettingsModal's Uplink lists ---
-
+/** Shared row styling: `SettingsModal`'s Uplink lists and the wizard's `ResultsStep` both import this. */
 export const ConnectionRow = styled.div`
   display: flex;
   align-items: center;
   gap: var(--space-8);
 `;
 
+/** Shared with `SettingsModal`'s Uplink lists and the wizard's `ResultsStep`. */
 export const Name = styled.span`
   flex: 1;
   font-size: var(--font-size-sm);

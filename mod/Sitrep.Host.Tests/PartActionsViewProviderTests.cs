@@ -223,8 +223,6 @@ namespace Sitrep.Host.Tests
             Assert.Empty((List<object?>)wire["actions"]!);
         }
 
-        // ---- the producer-side change gate ----
-
         /// <summary>
         /// The gate exists because <c>ChannelEmitter</c> compares payloads with
         /// <c>Equals</c>, which is REFERENCE equality for a freshly-built

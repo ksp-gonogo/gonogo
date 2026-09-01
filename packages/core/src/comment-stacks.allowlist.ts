@@ -707,7 +707,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "tests/playwright/notes-roundtrip.spec.ts": 2,
   "tests/playwright/serial-degradation.spec.ts": 2,
   "tests/playwright/sitrep-stream-mirror.spec.ts": 1,
-  "tests/playwright/sitrep-stream-server.mjs": 3,
+  "tests/playwright/sitrep-stream-server.mjs": 2,
   "tests/playwright/uplink-hub-wizard.spec.ts": 10,
   "tests/playwright/uplink-loader.spec.ts": 3,
   "tests/playwright/widget-dom-mirror.spec.ts": 2,

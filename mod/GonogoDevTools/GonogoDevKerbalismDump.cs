@@ -384,7 +384,7 @@ namespace GonogoDevTools
             t == typeof(bool) || t == typeof(int) || t == typeof(long) || t == typeof(float) ||
             t == typeof(double) || t == typeof(string) || t.IsEnum;
 
-        // --- tiny JSON helpers (flat scalar values only) ---
+        // The JSON emitters below take flat scalar values only.
         private static void AppendKv(StringBuilder sb, ref bool first, string key, object val)
         {
             if (!first) sb.Append(", ");

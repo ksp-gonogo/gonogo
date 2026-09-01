@@ -219,8 +219,6 @@ export class WebSocketTransport implements Transport {
     this.setStatus("disconnected");
   }
 
-  // --- internals ---
-
   private open(): void {
     if (this.disposed) return;
     const old = this.ws;

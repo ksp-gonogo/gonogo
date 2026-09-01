@@ -691,18 +691,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       /*
-       * -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
-       * by file path, so they name every Uplink directory and every schema file
-       * that still carries a banner. Ratchet-inventory file, the case this
-       * bucket documents.
-       */
-      "packages/core/src/banner-comments.allowlist.ts",
-      /*
-       * The comment-stack ratchet's own inventory, for the same reason as the
-       * banner list beside it: a path-keyed debt list over every hand-written
-       * JS/TS file in the repo names Uplink paths by construction, and there is
-       * nowhere else for it to live. A gate placed inside an Uplink is one a
-       * third-party author could not run.
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo names Uplink paths by
+       * construction, and there is nowhere else for it to live. A gate placed
+       * inside an Uplink is one a third-party author could not run.
        */
       "packages/core/src/comment-stacks.allowlist.ts",
       /*
@@ -1777,18 +1769,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       /*
-       * -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
-       * by file path, so they name every Uplink directory and every schema file
-       * that still carries a banner. Ratchet-inventory file, the case this
-       * bucket documents.
-       */
-      "packages/core/src/banner-comments.allowlist.ts",
-      /*
-       * The comment-stack ratchet's own inventory, for the same reason as the
-       * banner list beside it: a path-keyed debt list over every hand-written
-       * JS/TS file in the repo names Uplink paths by construction, and there is
-       * nowhere else for it to live. A gate placed inside an Uplink is one a
-       * third-party author could not run.
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo names Uplink paths by
+       * construction, and there is nowhere else for it to live. A gate placed
+       * inside an Uplink is one a third-party author could not run.
        */
       "packages/core/src/comment-stacks.allowlist.ts",
       /*
@@ -2270,18 +2254,10 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
       /*
-       * -- BANNER-COMMENT ratchet inventory (2026-08-22): both lists are keyed
-       * by file path, so they name every Uplink directory and every schema file
-       * that still carries a banner. Ratchet-inventory file, the case this
-       * bucket documents.
-       */
-      "packages/core/src/banner-comments.allowlist.ts",
-      /*
-       * The comment-stack ratchet's own inventory, for the same reason as the
-       * banner list beside it: a path-keyed debt list over every hand-written
-       * JS/TS file in the repo names Uplink paths by construction, and there is
-       * nowhere else for it to live. A gate placed inside an Uplink is one a
-       * third-party author could not run.
+       * The comment-stack ratchet's own inventory: a path-keyed debt list over
+       * every hand-written JS/TS file in the repo names Uplink paths by
+       * construction, and there is nowhere else for it to live. A gate placed
+       * inside an Uplink is one a third-party author could not run.
        */
       "packages/core/src/comment-stacks.allowlist.ts",
       /*
@@ -2472,7 +2448,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
     "packages/components/src/test/installProfile.test.ts",
     "packages/components/src/test/installProfile.ts",
-    "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
@@ -2523,7 +2498,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/logs/LogsManager.tsx",
     "packages/app/src/settings/SettingsModal.test.tsx",
     "packages/app/src/telemetry/PeerTransport.test.ts",
-    "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
@@ -2549,7 +2523,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",

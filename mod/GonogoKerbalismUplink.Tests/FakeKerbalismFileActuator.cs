@@ -12,7 +12,6 @@ namespace GonogoKerbalismUplink.Tests
     /// </summary>
     internal sealed class FakeKerbalismFileActuator : IKerbalismFileActuator
     {
-        // ---- recorded calls (null until the method is invoked) ----
         public string? LastSendSubjectId;
         public bool? LastSendFlag;
         public string? LastDeleteSubjectId;
@@ -21,7 +20,6 @@ namespace GonogoKerbalismUplink.Tests
         public string? LastDumpSubjectId;
         public string? LastMoveToLabSubjectId;
 
-        // ---- configurable results (default: success) ----
         public CommandResult SendResult = CommandResult.Ok();
         public CommandResult DeleteResult = CommandResult.Ok();
         public CommandResult AnalyzeResult = CommandResult.Ok();

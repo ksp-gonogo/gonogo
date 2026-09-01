@@ -114,7 +114,7 @@ describe("SignalLossIndicator: genuinely runs off a DELAYED, UNPINNED stream", (
         </fixture.Provider>,
       );
 
-      // --- Baseline: healthy link, both topics land at UT 0. ---
+      // Baseline: healthy link, both topics land at UT 0.
       act(() => {
         fixture.emit(
           "vessel.comms",
@@ -144,9 +144,9 @@ describe("SignalLossIndicator: genuinely runs off a DELAYED, UNPINNED stream", (
         "true",
       );
 
-      // --- Blackout: comms.link reports the disconnect edge at UT 10. NO
-      // further vessel.comms sample is ever emitted after this point, the
-      // server-side freeze this models simply stops advancing that topic. ---
+      // Blackout: comms.link reports the disconnect edge at UT 10. NO further
+      // vessel.comms sample is ever emitted after this point, the server-side
+      // freeze this models simply stops advancing that topic.
       act(() => {
         fixture.emit("comms.link", { connected: false }, 10);
       });
@@ -173,7 +173,7 @@ describe("SignalLossIndicator: genuinely runs off a DELAYED, UNPINNED stream", (
         "false",
       );
 
-      // --- Reconnect: comms.link flips back at UT 20. ---
+      // Reconnect: comms.link flips back at UT 20.
       act(() => {
         fixture.emit("comms.link", { connected: true }, 20);
       });
@@ -184,11 +184,10 @@ describe("SignalLossIndicator: genuinely runs off a DELAYED, UNPINNED stream", (
       });
       await waitFor(() => expect(screen.queryByText("SIGNAL LOSS")).toBeNull());
 
-      // --- 0%-signal decay, no disconnect at all: comms.link stays
-      // connected, but vessel.comms.signalStrength decays to 0 at UT 30. This
-      // proves the epsilon/zero-signal branch also rides the delayed,
-      // unpinned certainty gate correctly, independent of the connectivity
-      // edge. ---
+      // 0%-signal decay, no disconnect at all: comms.link stays connected, but
+      // vessel.comms.signalStrength decays to 0 at UT 30. This proves the
+      // epsilon/zero-signal branch also rides the delayed, unpinned certainty
+      // gate correctly, independent of the connectivity edge.
       act(() => {
         fixture.emit(
           "vessel.comms",

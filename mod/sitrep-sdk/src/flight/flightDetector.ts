@@ -135,8 +135,6 @@ export class FlightDetector {
     return this.resumeOrLaunch(input);
   }
 
-  // --- Internal --------------------------------------------------------
-
   private resumeOrLaunch(input: DetectorInput): DetectorDecision {
     const known = this.knownByVessel.get(input.vesselName);
     if (known && this.resumable(known, input)) {

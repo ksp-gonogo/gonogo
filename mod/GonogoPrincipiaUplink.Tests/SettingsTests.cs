@@ -657,8 +657,6 @@ namespace GonogoPrincipiaUplink.Tests
         }
     }
 
-    // ---- Doubles ----
-
     /// <summary>The producer's frame kinds, by the values it declares rather than
     /// by their positions. The two differ, which is the whole reason to spell them
     /// out here.</summary>

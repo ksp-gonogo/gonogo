@@ -14,10 +14,9 @@ import {
   classifyCommandRejection,
 } from "../index";
 
-// --- Branching on the terminal phases, with the typed reason in hand ---------
-
 declare const status: CommandStatus;
 
+/** Branching on the terminal phases, with the typed reason in hand. */
 function chip(): string | undefined {
   switch (status.phase) {
     case "refused": {
@@ -42,8 +41,7 @@ function chip(): string | undefined {
   return unhandled;
 }
 
-// --- Classifying a caught rejection from `send()` ----------------------------
-
+/** Classifying a caught rejection from `send()`. */
 function describe(err: unknown): string {
   const rejection: CommandRejection = classifyCommandRejection(err);
   switch (rejection.kind) {

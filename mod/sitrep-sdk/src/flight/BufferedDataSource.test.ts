@@ -814,8 +814,6 @@ describe("BufferedDataSource: affectedBySignalLoss gate", () => {
     expect(range.v).toContain(42);
   });
 
-  // ------------------- p.paused (telemetry antenna) gate -------------------
-
   it("drops antenna-only samples when p.paused goes non-zero (antenna lost)", () => {
     // Confirm a prior p.paused=0 so cold-start protection allows the
     // gate to activate on a later non-zero. The beforeEach primes only

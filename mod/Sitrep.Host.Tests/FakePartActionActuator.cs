@@ -14,7 +14,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakePartActionActuator : IPartActionActuator
     {
-        // ---- recorded calls ----
         public readonly List<string> ListedPartIds = new List<string>();
         public string? LastInvokePartId;
         public string? LastInvokeEventName;
@@ -27,7 +26,6 @@ namespace Sitrep.Host.Tests
         public readonly Dictionary<string, List<PartActionEntry>> ActionsByPartId =
             new Dictionary<string, List<PartActionEntry>>();
 
-        // ---- configurable result (default: success) ----
         public CommandResult InvokeResult = CommandResult.Ok();
 
         public IReadOnlyList<PartActionEntry> List(string partId)
