@@ -267,11 +267,24 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "CommandGate": {
     command: "id",
   },
+  "CommandRequest": {
+    command: "id",
+    label: "text",
+    requestId: "id",
+    sentAt: "ut",
+    topic: "id",
+    type: "id",
+    vantage: "id",
+  },
   "CommandRequirement": {
     facility: "id",
     kind: "id",
     needs: "id",
     quantity: "id",
+  },
+  "CommandResponse": {
+    requestId: "id",
+    type: "id",
   },
   "CommandResult": {
     detail: "text",
@@ -1056,6 +1069,10 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalDvActual: "m/s",
     totalDvAsl: "m/s",
     totalDvVac: "m/s",
+  },
+  "StreamData": {
+    topic: "id",
+    type: "id",
   },
   "Subscribe": {
     topic: "id",
@@ -1953,7 +1970,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommandGateReport": {
     gates: "CommandGate[]",
   },
-  "CommandResponse`1": {
+  "CommandResponse": {
     meta: "Meta",
   },
   "CommandResult": {
@@ -2100,7 +2117,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "StageDeltaVEntry": {
     resources: "*ResourceAmount",
   },
-  "StreamData`1": {
+  "StreamData": {
     meta: "Meta",
   },
   "SystemBodies": {

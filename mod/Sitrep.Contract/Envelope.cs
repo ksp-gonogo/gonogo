@@ -13,7 +13,9 @@ public class StreamData<T>
 #if SITREP_CODEGEN
     [TsProperty(Type = "\"stream-data\"")]
 #endif
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "stream-data";
+    [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
     public T Payload { get; set; } = default!;
     public Meta Meta { get; set; } = new();
@@ -46,8 +48,11 @@ public class CommandRequest<TArgs>
 #if SITREP_CODEGEN
     [TsProperty(Type = "\"command-request\"")]
 #endif
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "command-request";
+    [SitrepUnit(Units.Id)]
     public string RequestId { get; set; } = "";
+    [SitrepUnit(Units.Id)]
     public string Command { get; set; } = "";
 
     /// <summary>
@@ -56,6 +61,7 @@ public class CommandRequest<TArgs>
     /// entry on <c>system.uplink.pending</c>. Empty ⇒ the renderer falls back
     /// to <see cref="Command"/>. Never inspected/parsed by the engine.
     /// </summary>
+    [SitrepUnit(Units.Text)]
     public string Label { get; set; } = "";
 
     /// <summary>
@@ -63,6 +69,7 @@ public class CommandRequest<TArgs>
     /// <see cref="Sitrep.Contract.PendingUplink.Topic"/> entry on
     /// <c>system.uplink.pending</c>. Never inspected/parsed by the engine.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string Topic { get; set; } = "";
 
     /// <summary>
@@ -75,14 +82,18 @@ public class CommandRequest<TArgs>
     /// has selected. Nullable/optional: a pre-Vantage client omits it (codegen
     /// emits vantage?: string), and the server treats null/empty as the session vantage.
     /// </summary>
+    [SitrepUnit(Units.Id)]
     public string? Vantage { get; set; }
 
     public TArgs Args { get; set; } = default!;
 
     /// <summary>
     /// When the client dispatched, in UT seconds (KSP universal time), the same
-    /// base as <see cref="Meta.ValidAt"/>. Carries no unit type for the same
-    /// reason the envelope's own timestamps do not: no readout shows it.
+    /// base as <see cref="Meta.ValidAt"/>. The declaration reaches a client
+    /// through the units map rather than through the emitted type: the
+    /// <c>Value&lt;"ut"&gt;</c> retyping pass runs over wire PAYLOAD types only,
+    /// so every command-args and envelope field stays a bare number in
+    /// <c>contract.ts</c> and carries its unit in <c>units.json</c>.
     ///
     /// <b>Every client sends 0 today.</b> The dispatching client has no UT to
     /// hand at that point that the server would not know better, and the server
@@ -93,6 +104,7 @@ public class CommandRequest<TArgs>
     /// response: nothing consumes that today, and a consumer that starts to
     /// must make the client fill this in first.
     /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
     public double SentAt { get; set; }
 }
 
@@ -105,7 +117,9 @@ public class CommandResponse<TResult>
 #if SITREP_CODEGEN
     [TsProperty(Type = "\"command-response\"")]
 #endif
+    [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "command-response";
+    [SitrepUnit(Units.Id)]
     public string RequestId { get; set; } = "";
     public TResult Result { get; set; } = default!;
     public Meta Meta { get; set; } = new();

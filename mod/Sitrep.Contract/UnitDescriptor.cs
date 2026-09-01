@@ -181,7 +181,7 @@ namespace Sitrep.Contract
             var contractTypes = new HashSet<string>(StringComparer.Ordinal);
             foreach (var t in assemblyTypes)
             {
-                contractTypes.Add(t.Name);
+                contractTypes.Add(WireName(t));
             }
 
             foreach (var type in assemblyTypes)
@@ -201,7 +201,7 @@ namespace Sitrep.Contract
                     var nestedType = NestedContractType(prop.PropertyType, out isMap, out isList);
                     if (nestedType != null
                         && nestedType != typeof(Vec3)
-                        && contractTypes.Contains(nestedType.Name))
+                        && contractTypes.Contains(WireName(nestedType)))
                     {
                         // Both markers name the ELEMENT type, because that is
                         // what a consumer of the payload indexes into, and say
@@ -218,7 +218,7 @@ namespace Sitrep.Contract
                         // an array that no sample can reach.
                         nested[CamelCase(prop.Name)] =
                             (isMap ? "*" : string.Empty)
-                            + nestedType.Name
+                            + WireName(nestedType)
                             + (isList ? "[]" : string.Empty);
                     }
 
@@ -265,7 +265,7 @@ namespace Sitrep.Contract
 
                 if (nested.Count > 0)
                 {
-                    shapesByType.Add(type.Name, nested);
+                    shapesByType.Add(WireName(type), nested);
                     if (topic != null)
                     {
                         shapesByTopic.Add(topic.TopicId, nested);
@@ -277,7 +277,7 @@ namespace Sitrep.Contract
                     continue;
                 }
 
-                byType.Add(type.Name, fields);
+                byType.Add(WireName(type), fields);
 
                 if (topic != null)
                 {
@@ -543,6 +543,28 @@ namespace Sitrep.Contract
             }
 
             return char.ToLowerInvariant(name[0]) + name.Substring(1);
+        }
+
+        /// <summary>
+        /// The type's name AS THE EMITTED CONTRACT SPELLS IT, which for a generic
+        /// means without the CLR arity suffix: <c>CommandRequest`1</c> keyed as
+        /// <c>CommandRequest</c>, matching the <c>CommandRequest&lt;TArgs&gt;</c>
+        /// interface a consumer is looking the field up against.
+        ///
+        /// <para>Reached for the first time on 2026-09-01, when the three generic
+        /// envelope types (<c>StreamData</c>, <c>CommandRequest</c>,
+        /// <c>CommandResponse</c>) gained their first unit declarations. Until
+        /// then no generic type declared one, so every key in the map happened to
+        /// be spelled the same either way and the raw <c>Type.Name</c> was
+        /// indistinguishable from this. Keyed raw, a declaration is PRESENT in the
+        /// map and unreachable by the only name a consumer has, which is the
+        /// failure it was added to fix wearing a different hat.</para>
+        /// </summary>
+        internal static string WireName(Type type)
+        {
+            var name = type.Name;
+            var tick = name.IndexOf('`');
+            return tick < 0 ? name : name.Substring(0, tick);
         }
     }
 }

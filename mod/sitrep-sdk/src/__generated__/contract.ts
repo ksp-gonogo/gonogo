@@ -1809,15 +1809,17 @@ export interface CommandRequest<TArgs>
 	args: TArgs;
 	/**
 	* When the client dispatched, in UT seconds (KSP universal time), the same
-	* base as `Meta.validAt`. Carries no unit type for the same reason the
-	* envelope's own timestamps do not: no readout shows it. **Every client sends
-	* 0 today.** The dispatching client has no UT to hand at that point that the
-	* server would not know better, and the server stamps the response's
-	* `Meta.deliveredAt` off its own clock, so a caller wanting a round-trip
-	* measures against its own view time rather than reading this back. The field
-	* is carried onto a response's `Meta.validAt`, which therefore reads 0 on a
-	* command response: nothing consumes that today, and a consumer that starts to
-	* must make the client fill this in first.
+	* base as `Meta.validAt`. The declaration reaches a client through the units
+	* map rather than through the emitted type: the `Value<"ut">` retyping pass
+	* runs over wire PAYLOAD types only, so every command-args and envelope field
+	* stays a bare number in `contract.ts` and carries its unit in `units.json`.
+	* **Every client sends 0 today.** The dispatching client has no UT to hand at
+	* that point that the server would not know better, and the server stamps the
+	* response's `Meta.deliveredAt` off its own clock, so a caller wanting a
+	* round-trip measures against its own view time rather than reading this back.
+	* The field is carried onto a response's `Meta.validAt`, which therefore reads
+	* 0 on a command response: nothing consumes that today, and a consumer that
+	* starts to must make the client fill this in first.
 	*/
 	sentAt: number;
 }
@@ -2574,12 +2576,15 @@ export interface Meta
 	* When the payload was TRUE in the game, in UT seconds (KSP universal time),
 	* the same base every `*Ut` field on every payload uses. This is the instant a
 	* reading is "as of", and the one a client compares against its view time to
-	* decide currency. Carries no unit type, alone among the contract's UT fields
-	* and deliberately: the envelope rides on every message and nothing renders
-	* these, so ten transport and timeline files do arithmetic on them and a
-	* wrapper would allocate twice per message on the hottest path for a quantity
-	* no readout shows. The unit is declared on the property either way, it just
-	* does not become a type.
+	* decide currency. The unit IS declared, and reaches a client through the
+	* units map rather than through the emitted type: the `Value<"ut">` retyping
+	* pass runs over wire PAYLOAD types only, so this stays a bare number in
+	* `contract.ts` and carries `"ut"` in `units.json`. Every command-args field
+	* does the same; reading only the type under-reports the declaration. Keeping
+	* the envelope out of that pass is deliberate: nothing renders these, ten
+	* transport and timeline files do arithmetic on them, and the envelope rides
+	* every message, so a wrapper would allocate twice per message on the hottest
+	* path for a quantity no readout shows.
 	*/
 	validAt: number;
 	seq: number;
@@ -2587,8 +2592,8 @@ export interface Meta
 	* When the server handed the message to the transport, in the same UT seconds
 	* as `Meta.validAt`. The two differ by the signal delay the vantage is under,
 	* so subtracting one from the other is how old the payload was when it
-	* arrived, and they are equal on a live (zero-delay) link. Carries no unit
-	* type for the same reason as `Meta.validAt`.
+	* arrived, and they are equal on a live (zero-delay) link. Declared, and bare
+	* in the emitted type, as `Meta.validAt` is.
 	*/
 	deliveredAt: number;
 	vantage: string;

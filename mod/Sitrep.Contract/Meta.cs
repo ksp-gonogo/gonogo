@@ -31,12 +31,17 @@ public class Meta
     /// is the instant a reading is "as of", and the one a client compares
     /// against its view time to decide currency.
     ///
-    /// Carries no unit type, alone among the contract's UT fields and
-    /// deliberately: the envelope rides on every
-    /// message and nothing renders these, so ten transport and timeline files
-    /// do arithmetic on them and a wrapper would allocate twice per message on
-    /// the hottest path for a quantity no readout shows. The unit is declared
-    /// on the property either way, it just does not become a type.
+    /// The unit IS declared, and reaches a client through the units map rather
+    /// than through the emitted type: the <c>Value&lt;"ut"&gt;</c> retyping pass
+    /// runs over wire PAYLOAD types only, so this stays a bare number in
+    /// <c>contract.ts</c> and carries <c>"ut"</c> in <c>units.json</c>. Every
+    /// command-args field does the same; reading only the type under-reports the
+    /// declaration.
+    ///
+    /// Keeping the envelope out of that pass is deliberate: nothing renders
+    /// these, ten transport and timeline files do arithmetic on them, and the
+    /// envelope rides every message, so a wrapper would allocate twice per
+    /// message on the hottest path for a quantity no readout shows.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double ValidAt { get; set; }
@@ -49,7 +54,7 @@ public class Meta
     /// vantage is under, so subtracting one from the other is how old the
     /// payload was when it arrived, and they are equal on a live (zero-delay)
     /// link.
-    /// Carries no unit type for the same reason as <see cref="ValidAt"/>.
+    /// Declared, and bare in the emitted type, as <see cref="ValidAt"/> is.
     /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double DeliveredAt { get; set; }

@@ -233,11 +233,24 @@
     "CommandGate": {
       "command": "id"
     },
+    "CommandRequest": {
+      "command": "id",
+      "label": "text",
+      "requestId": "id",
+      "sentAt": "ut",
+      "topic": "id",
+      "type": "id",
+      "vantage": "id"
+    },
     "CommandRequirement": {
       "facility": "id",
       "kind": "id",
       "needs": "id",
       "quantity": "id"
+    },
+    "CommandResponse": {
+      "requestId": "id",
+      "type": "id"
     },
     "CommandResult": {
       "detail": "text",
@@ -1022,6 +1035,10 @@
       "totalDvActual": "m/s",
       "totalDvAsl": "m/s",
       "totalDvVac": "m/s"
+    },
+    "StreamData": {
+      "topic": "id",
+      "type": "id"
     },
     "Subscribe": {
       "topic": "id",
@@ -1889,7 +1906,7 @@
     "CommandGateReport": {
       "gates": "CommandGate[]"
     },
-    "CommandResponse`1": {
+    "CommandResponse": {
       "meta": "Meta"
     },
     "CommandResult": {
@@ -2036,7 +2053,7 @@
     "StageDeltaVEntry": {
       "resources": "*ResourceAmount"
     },
-    "StreamData`1": {
+    "StreamData": {
       "meta": "Meta"
     },
     "SystemBodies": {

@@ -144,9 +144,26 @@ namespace Sitrep.Core.Tests
             || t == typeof(int) || t == typeof(long) || t == typeof(short) || t == typeof(byte)
             || t == typeof(uint) || t == typeof(ulong) || t == typeof(ushort) || t == typeof(sbyte);
 
+        /// <summary>
+        /// GENERIC TYPE DEFINITIONS ARE INCLUDED, and were excluded until
+        /// 2026-09-01.
+        ///
+        /// <para>Exactly three contract types are generic, and they are the three
+        /// envelope types every message on the wire is one of:
+        /// <c>StreamData&lt;T&gt;</c>, <c>CommandRequest&lt;TArgs&gt;</c> and
+        /// <c>CommandResponse&lt;TResult&gt;</c>. None declared a unit on any
+        /// field, while their non-generic siblings <c>EventMsg</c> and
+        /// <c>ErrorMsg</c> declared one on every field, and this gate reported
+        /// green throughout. The omission correlated 3-for-3 with the exclusion,
+        /// so it was this filter and not a decision.</para>
+        ///
+        /// <para><see cref="DiscoveryReachesTheContractSurface"/> could not have
+        /// caught it: its floor is 100 types and its spot-checks name four
+        /// non-generic ones, so a filter that drops exactly three passes both.</para>
+        /// </summary>
         private static IEnumerable<Type> ContractTypes() =>
             typeof(CommsDelay).Assembly.GetTypes()
-                .Where(t => t.IsClass && !t.IsAbstract && !t.IsGenericTypeDefinition)
+                .Where(t => t.IsClass && !t.IsAbstract)
                 // IsDefined only, never GetCustomAttributesData: the sibling
                 // Reinforced.Typings attributes are not loadable in this net10.0
                 // test, the same constraint WirePayloadCoverageTests works under.
@@ -255,7 +272,14 @@ namespace Sitrep.Core.Tests
                         continue;
                     }
 
-                    var key = t.Name + "." + p.Name;
+                    // Keyed on the DECLARING type, not the enumerated one, so an
+                    // INHERITED property is attributed where its attribute lives
+                    // and matches what the metadata scan produces. Keyed on `t`,
+                    // `CommandResult<T> : CommandResult` re-reports its base's
+                    // three annotated properties as bare under the derived name,
+                    // which was invisible only while generic definitions were
+                    // excluded from the sweep.
+                    var key = (p.DeclaringType ?? t).Name + "." + p.Name;
                     surface[key] = annotated.Contains(key);
                 }
             }
