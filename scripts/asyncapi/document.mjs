@@ -259,8 +259,8 @@ export function buildDocument({
           "by the mod on every frame and describes the delivery, not the value.",
         required: ["type", "topic", "payload", "meta"],
         properties: {
-          type: { type: "string", const: "stream-data" },
-          topic: { type: "string", const: topic },
+          type: schemas.constSchema("StreamData", "type", "stream-data"),
+          topic: schemas.constSchema("StreamData", "topic", topic),
           payload,
           meta: schemas.ref("Meta"),
         },
@@ -321,12 +321,16 @@ export function buildDocument({
           "sentAt",
         ],
         properties: {
-          type: { type: "string", const: "command-request" },
+          type: schemas.constSchema(
+            "CommandRequest",
+            "type",
+            "command-request",
+          ),
           requestId: schemas.fieldSchema(
             fieldOf(contract, "CommandRequest", "requestId"),
             "CommandRequest",
           ),
-          command: { type: "string", const: command },
+          command: schemas.constSchema("CommandRequest", "command", command),
           label: schemas.fieldSchema(
             fieldOf(contract, "CommandRequest", "label"),
             "CommandRequest",
@@ -360,7 +364,11 @@ export function buildDocument({
           "`errorCode`, and a fault arrives as an `error` frame on the session channel.",
         required: ["type", "requestId", "result", "meta"],
         properties: {
-          type: { type: "string", const: "command-response" },
+          type: schemas.constSchema(
+            "CommandResponse",
+            "type",
+            "command-response",
+          ),
           requestId: schemas.fieldSchema(
             fieldOf(contract, "CommandResponse", "requestId"),
             "CommandResponse",

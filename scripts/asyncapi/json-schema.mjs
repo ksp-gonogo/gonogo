@@ -234,6 +234,21 @@ export class SchemaBuilder {
     return schema;
   }
 
+  /**
+   * A discriminant: a field the envelope pins to one literal value.
+   *
+   * Built here rather than inline because the unit map annotates these too, and
+   * a hand-written `{ type: "string", const: x }` silently loses it. The check
+   * that every declared unit reaches the document is what caught that, on four
+   * fields, the day the envelope types were first annotated.
+   */
+  constSchema(owner, name, literal) {
+    return withUnit(
+      { type: "string", const: literal },
+      this.units[owner]?.[name],
+    );
+  }
+
   fieldSchema(field, owner) {
     const base = withUnit(
       this.typeSchema(field.type, `${owner}.${field.name}`),
