@@ -370,7 +370,12 @@ describe("diagnose", () => {
       lifeSupport: tiny,
       stored: STORED,
     }).find((g) => g.cycle);
-    expect(cyclic?.resources ?? []).not.toContain("Water");
+    // No cycle survives at all, which is stronger than "the cycle no longer
+    // names Water" and is what the filter actually produces. The previous form,
+    // `expect(cyclic?.resources ?? []).not.toContain("Water")`, could not fail:
+    // `cyclic` is undefined here, so the fallback made the assertion true
+    // whatever `diagnose` returned.
+    expect(cyclic).toBeUndefined();
   });
 
   it("says nothing when nothing is short", () => {
