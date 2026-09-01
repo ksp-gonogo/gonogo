@@ -11,6 +11,20 @@ import { type SpaceToken, Stack } from "./Stack";
 export const SECTION_FULL_ATTR = "data-section-full";
 
 /**
+ * Marks a section that should take the panel body's leftover height. The rule
+ * that acts on it lives on the BODY (see `Panel`), for the same reason
+ * `SECTION_FULL_ATTR`'s lives on the grid: growing into leftover height is a
+ * property of a flex child, and the box that has leftover height to give is the
+ * body, not the section.
+ *
+ * Panel also reads the `fill` prop directly, because a filling section has to be
+ * lifted out of the section grid before it can be that flex child. This
+ * attribute is what carries the intent the rest of the way, and what makes it
+ * work in a hand-composed `Panel.Body` too.
+ */
+export const SECTION_FILL_ATTR = "data-section-fill";
+
+/**
  * `title` is OMITTED from the div's own attributes so the section's heading can
  * take the name. HTML types that attribute as a tooltip string, so the two
  * cannot coexist; `PanelTitleProps` makes the same trade for the same reason.
@@ -70,6 +84,41 @@ export interface SectionProps
    * correctly in a modal or a hand-composed body.
    */
   full?: boolean;
+  /**
+   * Take the panel body's leftover height rather than the section's natural
+   * one, for the section that IS a drawing: a map, a globe, a plot, a dial. A
+   * readout is as tall as its rows and a drawing is as tall as the tile lets it
+   * be, and only the body knows what is left over after the header and the
+   * other sections have taken theirs.
+   *
+   * Panel lifts a filling section OUT of the section grid to do it, because a
+   * grid track is sized to its contents and the row a section lands in is not
+   * knowable in advance. So a filling section always takes a band of the
+   * panel's full width and never sits in a column beside another one; the runs
+   * of ordinary sections above and below it still columnise as they did. A
+   * widget whose drawing has to sit BESIDE its readouts wants an ordinary
+   * section and a drawing that carries its own aspect, not this.
+   *
+   * It grows into leftover height but never shrinks below its content, so a
+   * tile too short for it scrolls the body as it always did rather than putting
+   * the first line out of reach.
+   *
+   * TWO filling sections in one body share the leftover EQUALLY, each keeping
+   * its content height first. That is the rule whatever order they appear in
+   * and however many ordinary sections sit between them.
+   *
+   * Ignored under `fitToSize`, which is the tiny-tile presentation and a
+   * different intention: it measures the content against the tile and centres
+   * it only while it fits, so a section that swallows the leftover height would
+   * leave that measurement nothing to be about. A widget that wants a drawing
+   * at ordinary sizes and a compacted readout at tiny ones picks between two
+   * panels on size, which is what a widget with both presentations already
+   * does.
+   *
+   * Inert outside a panel body, so a section carrying it still reads correctly
+   * in a modal.
+   */
+  fill?: boolean;
   children?: ReactNode;
 }
 
@@ -83,12 +132,21 @@ export function Section({
   title,
   titleAs = "h4",
   full = false,
+  fill = false,
   ...rest
 }: SectionProps) {
   return (
+    /* `fill` is deliberately NOT handed to `Stack` as its own `fill`. That one
+       is `flex: 1; min-height: 0`, a zero basis that also shrinks, which in a
+       scrolling body lets a section shorter than its content push its first
+       line above the scroll origin. The body's rule grows from the content
+       height instead. */
     <Stack
       gap={gap}
-      {...{ [SECTION_FULL_ATTR]: full ? "" : undefined }}
+      {...{
+        [SECTION_FULL_ATTR]: full ? "" : undefined,
+        [SECTION_FILL_ATTR]: fill ? "" : undefined,
+      }}
       {...rest}
     >
       {title == null ? null : <SectionTitle as={titleAs}>{title}</SectionTitle>}

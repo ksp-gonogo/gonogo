@@ -2,7 +2,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { beforeEach, describe, expect, it } from "vitest";
 import { clearAugments, registerAugment } from "./augments";
 import { Panel } from "./Panel";
-import { SECTION_FULL_ATTR, Section } from "./Section";
+import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { WidgetMetaContext } from "./WidgetMetaContext";
 
 /**
@@ -110,6 +110,106 @@ describe("Panel sections", () => {
   it("renders sections under a headerless panel too", () => {
     render(<Panel sections={<Section title="Loose">content</Section>} />);
     expect(screen.getByText("content")).toBeInTheDocument();
+  });
+});
+
+/**
+ * Same contract-not-layout footing as the block above: jsdom resolves no
+ * heights, so what is asserted is WHERE a filling section lands in the tree,
+ * which is the whole mechanism. The grid cannot give a section the body's
+ * leftover height, so Panel makes it a child of the body instead, and that
+ * parentage is observable without layout.
+ */
+describe("Panel sections that fill", () => {
+  it("makes a filling section a child of the body rather than a grid item", () => {
+    const { container } = render(
+      <Panel
+        panelTitle="FILL"
+        sections={[
+          <Section key="drawing" fill>
+            drawing
+          </Section>,
+          <Section key="readouts" title="Readouts">
+            rows
+          </Section>,
+        ]}
+      />,
+    );
+    const body = container.querySelector("[data-panel-body]");
+    expect(screen.getByText("drawing").parentElement).toBe(body);
+    // The ordinary section is still a grid item, and the grid is the body's
+    // child rather than the section itself.
+    expect(screen.getByText("rows").parentElement).not.toBe(body);
+    expect(screen.getByText("rows").parentElement?.parentElement).toBe(body);
+  });
+
+  it("carries the attribute the body's rule keys off", () => {
+    render(
+      <Panel panelTitle="FILL" sections={<Section fill>drawing</Section>} />,
+    );
+    expect(screen.getByText("drawing")).toHaveAttribute(SECTION_FILL_ATTR);
+  });
+
+  it("keeps a filling section in the position the widget wrote it", () => {
+    const { container } = render(
+      <Panel
+        panelTitle="MIDDLE"
+        sections={[
+          <Section key="a">above</Section>,
+          <Section key="b" fill>
+            drawing
+          </Section>,
+          <Section key="c">below</Section>,
+        ]}
+      />,
+    );
+    const body = container.querySelector("[data-panel-body]");
+    const texts = Array.from(body?.children ?? [])
+      .map((child) => child.textContent)
+      .filter(
+        (text) => text === "above" || text === "drawing" || text === "below",
+      );
+    expect(texts).toEqual(["above", "drawing", "below"]);
+  });
+
+  it("columnises the ordinary sections either side of a filling one separately", () => {
+    render(
+      <Panel
+        panelTitle="RUNS"
+        sections={[
+          <Section key="a">above</Section>,
+          <Section key="b" fill>
+            drawing
+          </Section>,
+          <Section key="c">below</Section>,
+        ]}
+      />,
+    );
+    // Two grids, because a run on each side of the filling section is its own.
+    // One grid holding both would have had to put the drawing in a track.
+    expect(screen.getByText("above").parentElement).not.toBe(
+      screen.getByText("below").parentElement,
+    );
+  });
+
+  it("leaves every section in the one grid under fitToSize", () => {
+    const { container } = render(
+      <Panel
+        panelTitle="FIT"
+        fitToSize
+        sections={[
+          <Section key="drawing" fill>
+            drawing
+          </Section>,
+          <Section key="readouts">rows</Section>,
+        ]}
+      />,
+    );
+    const body = container.querySelector("[data-panel-body]");
+    expect(screen.getByText("drawing").parentElement).not.toBe(body);
+    expect(screen.getByText("drawing").parentElement).toBe(
+      screen.getByText("rows").parentElement,
+    );
   });
 });
 

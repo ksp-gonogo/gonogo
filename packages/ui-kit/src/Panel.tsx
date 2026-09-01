@@ -23,7 +23,7 @@ import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 import { PanelRailTargetContext } from "./CommandDelay/PanelRailTarget";
 import { fitBox } from "./fitBox";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
-import { SECTION_FULL_ATTR, Section } from "./Section";
+import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
@@ -76,6 +76,31 @@ export function PanelProviders({ children }: { children?: ReactNode }) {
   return <PanelContextProvider>{children}</PanelContextProvider>;
 }
 
+/**
+ * What a `Section fill` resolves to once Panel has made it a flex child of the
+ * box that owns the leftover height.
+ *
+ * `flex: 1 0 auto` rather than the `flex: 1` a filling box usually gets, and
+ * both halves of that are load-bearing. The `auto` basis starts the section at
+ * its content height, so a body too short to hold it scrolls to all of it; a
+ * zero basis would have let it resolve shorter than its content, which is the
+ * unreachable-first-line failure `PanelBody__Box` spends fifty lines avoiding.
+ * `flex-shrink: 0` keeps that true when the sum overflows.
+ *
+ * Two filling sections therefore keep their content heights and divide only the
+ * space that is genuinely spare, equally, which is a rule that holds as the
+ * tile resizes rather than one that flips at the point content stops fitting.
+ *
+ * A plain string interpolated into the styled templates below, so the body and
+ * the headerless container state it once.
+ */
+const SECTION_FILL_RULE = `
+  & > [${SECTION_FILL_ATTR}] {
+    flex: 1 0 auto;
+    min-height: 0;
+  }
+`;
+
 export const PanelContainer = styled.div`
   /* Chrome only. The inset belongs to Panel.Body and the glow to Panel.Glow;
      this is the border, the surface and the clip, and nothing else. */
@@ -101,6 +126,9 @@ export const PanelContainer = styled.div`
   flex-direction: column;
   gap: 0;
   overflow: hidden;
+  /* A headerless panel puts its sections straight in here, so this is the box
+     with the leftover height for them. */
+  ${SECTION_FILL_RULE}
 `;
 
 /* The header IS text, so it carries its own inset rather than relying on the
@@ -717,6 +745,7 @@ const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
      goes in a FramedDisplay inside the ordinary padded body. */
   ${({ $bleed }) =>
     $bleed ? "flex: 1; overflow: hidden; padding: 0; gap: 0;" : ""}
+  ${SECTION_FILL_RULE}
 `;
 
 /**
@@ -1592,6 +1621,12 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
   /**
    * Content is sized to fit and never scrolls. Forwarded to `Panel.Body`
    * rather than handled here, so manual composition stays reproducible.
+   *
+   * Beats `fill` on a section, and the two are asking for different things: this
+   * measures the content against the tile and centres it only while it fits,
+   * where a filling section takes whatever height is spare. Honouring both would
+   * centre a box that had already eaten the space the centring is measured
+   * against, so under this prop every section stays an ordinary grid item.
    */
   fitToSize?: boolean;
   /**
@@ -1910,26 +1945,83 @@ function PanelRoot({
      both firing would render every bound augment twice. */
   const sectionNodes = Children.toArray(sections as ReactNode);
   const hasSections = sectionNodes.length > 0;
-  /* How many sections take a column, which is every section that is not
-     full-width. The grid needs the count to floor its track width (see
+  /* A filling section is lifted OUT of the grid and rendered as a child of the
+     body, which is the box that knows what height is left over. It cannot stay
+     a grid item: a grid track is sized to its contents, and which row a section
+     lands in is not knowable from here, since `auto-fit` decides the column
+     count from the panel's own width. There is no `1fr` to put on a row nobody
+     can name.
+
+     Ordinary sections either side of it still columnise: a run of them becomes
+     a grid of its own, so a filling section keeps its authored position instead
+     of being hoisted somewhere the widget did not write it.
+
+     Off under `fitToSize`, where the fit wins and every section stays a grid
+     item, exactly as before this existed. See the `fill` prop on `Section`. */
+  const runs: { fill: boolean; nodes: ReactNode[] }[] = [];
+  for (const node of sectionNodes) {
+    const fill =
+      !fitToSize &&
+      isValidElement<{ fill?: boolean }>(node) &&
+      node.props.fill === true;
+    const open = runs.at(-1);
+    if (!fill && open !== undefined && !open.fill) open.nodes.push(node);
+    else runs.push({ fill, nodes: [node] });
+  }
+  /* The universal segment lands in the LAST grid, so an Uplink's appended
+     section still flows beside the host's own. A body whose every section fills
+     has no grid to put it in, so one is opened for it: dropping the segment
+     because the host happened to draw something would make the seam depend on a
+     layout choice the augment author cannot see. */
+  if (panelSections && hasSections && !runs.some((run) => !run.fill)) {
+    runs.push({ fill: false, nodes: [] });
+  }
+  const augmentRun = panelSections
+    ? runs.reduce((last, run, i) => (run.fill ? last : i), -1)
+    : -1;
+  /* How many sections take a column, which is every section in the run that is
+     not full-width. The grid needs the count to floor its track width (see
      PanelSections__Grid); a full-width section spans them all and so is not one
      of the things being flowed. */
-  const flowingSections = Math.max(
-    1,
-    sectionNodes.filter(
-      (node) =>
-        !(isValidElement<{ full?: boolean }>(node) && node.props.full === true),
-    ).length,
-  );
+  const flowingIn = (nodes: ReactNode[]) =>
+    Math.max(
+      1,
+      nodes.filter(
+        (node) =>
+          !(
+            isValidElement<{ full?: boolean }>(node) && node.props.full === true
+          ),
+      ).length,
+    );
+  const sectionRuns: ReactNode[] = [];
+  for (const run of runs) {
+    const index = sectionRuns.length;
+    if (run.fill) {
+      /* Exactly one node: a filling section is never coalesced with anything,
+         so it reaches the body as itself, keyed by `Children.toArray`. */
+      sectionRuns.push(run.nodes[0]);
+      continue;
+    }
+    sectionRuns.push(
+      /* Keyed by the run's position, which is the grid's identity here: the
+         runs are derived from the order the widget wrote its sections in, so a
+         given grid stays the same grid for as long as that order does. */
+      <PanelSections__Grid
+        key={`sections-${index}`}
+        $min={sectionMinWidth}
+        $columns={flowingIn(run.nodes)}
+      >
+        {run.nodes}
+        {index === augmentRun && <WidgetSections />}
+      </PanelSections__Grid>,
+    );
+  }
   const content = !hasSections ? (
     children
   ) : (
     <>
       {children}
-      <PanelSections__Grid $min={sectionMinWidth} $columns={flowingSections}>
-        {sectionNodes}
-        {panelSections && <WidgetSections />}
-      </PanelSections__Grid>
+      {sectionRuns}
     </>
   );
 
