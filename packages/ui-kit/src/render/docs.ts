@@ -1,13 +1,20 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync, statSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { readFileSync, statSync } from "node:fs";
+import { resolve } from "node:path";
+import {
+  buildUplinkManifest,
+  NO_BUNDLE_INTEGRITY_WARNING,
+  readUplinkDeclaration,
+  type UplinkDeclaration,
+  type UplinkManifest,
+} from "@ksp-gonogo/sitrep-sdk/uplink-manifest";
 import type {
   InventoryAugment,
   InventoryContribution,
   InventoryWidget,
   UplinkInventory,
 } from "../render-probe";
-import { readJson, type UplinkPackage } from "./context";
+import type { UplinkPackage } from "./context";
 import type { RenderedAsset } from "./driver";
 import type { Scene } from "./scenes";
 import { commandSection, readWireSurface, wireSection } from "./wire";
@@ -64,36 +71,16 @@ type PageAsset = Omit<RenderedAsset, "shape">;
  * which the sections never were.
  */
 
-export interface UplinkManifestJson {
-  id: string;
-  version: string;
-  /** The Uplink's own registered description. The subtitle on the generated page. */
-  description?: string;
-  minAppVersion: string;
-  apiVersion: string;
-  uiKitVersion: string;
-  contractMajor: number;
-  contractMinor: number;
-  /**
-   * `sha256-<hex>` of the bundle the author distributes, stamped by
-   * `gonogo-uplink docs --bundle <file>` at release time and by
-   * `gonogo-uplink bundle`, which hashes what it just built.
-   *
-   * EMPTY in a working copy, which is every manifest committed to this repo,
-   * and that is fail-closed rather than a hole: the loader compares the fetched
-   * bundle's real digest against this string and refuses on any mismatch, and
-   * no digest is ever the empty string, so an unstamped manifest quarantines its
-   * Uplink with an integrity mismatch every time. The generator says so on
-   * stderr when it writes one.
-   *
-   * It is deliberately not defaulted to a hash of `dist/`: that holds a compiler
-   * output rather than the bundle a consumer fetches, and it is gitignored, so
-   * `docs --check` would compare a committed hash against whatever the last
-   * local build produced. `page-check` drops this field before comparing for the
-   * same reason, so a release is the only commit that changes it.
-   */
-  integrity: string;
-}
+/**
+ * The manifest's shape is `@ksp-gonogo/sitrep-sdk`'s, and so is the code that
+ * builds it.
+ *
+ * `docs` used to declare a rival nine-field shape here while `gonogo-uplink
+ * bundle` wrote thirteen fields under the same filename, and nothing said which
+ * one the loader honours. Both now call one writer, so an author who runs either
+ * command gets the same file.
+ */
+export type UplinkManifestJson = UplinkManifest;
 
 /**
  * The sha256 of the file the author DISTRIBUTES, and only when they name it.
@@ -114,16 +101,7 @@ function bundleIntegrity(
   bundle: string | undefined,
 ): { integrity: string; warning?: string } {
   if (!bundle) {
-    return {
-      integrity: "",
-      warning:
-        "no --bundle given, so gonogo-uplink.json carries an EMPTY integrity " +
-        "and the app will quarantine this Uplink with an integrity mismatch. " +
-        "That is correct for a working copy: regenerate with " +
-        "`--bundle <the file you distribute>` when you cut a release. It is " +
-        "deliberately NOT defaulted to dist/, which holds a compiler output " +
-        "rather than the bundle a consumer fetches.",
-    };
+    return { integrity: "", warning: NO_BUNDLE_INTEGRITY_WARNING };
   }
   const candidate = resolve(pkg.dir, bundle);
   try {
@@ -153,75 +131,45 @@ export interface DocsInputs {
 }
 
 /** What the Uplink wraps, from `uplink.json`'s `mod` block when it has one. */
-interface DeclaredMod {
-  name?: string;
-  builtAgainst?: string;
-  tier?: string;
+type DeclaredMod = NonNullable<UplinkDeclaration["mod"]>;
+
+/**
+ * What `uplink.json` says this Uplink wraps, or nothing.
+ *
+ * The file is found by the sdk's own search, so the declaration this page prints
+ * from is the one the manifest was built from. Absent is normal: an Uplink
+ * bundled inside the app's own repo has no separate declaration, and the page
+ * omits the row it would have filled rather than inventing one.
+ */
+function declaredMod(pkgDir: string): DeclaredMod | undefined {
+  return readUplinkDeclaration(pkgDir)?.declared.mod ?? undefined;
 }
 
 /**
- * `uplink.json`, searched from the client upwards.
+ * The manifest, through the sdk's writer, with the compat numbers read out of
+ * the bundle rather than out of whichever packages this tool resolved.
  *
- * It sits beside BOTH halves of an Uplink, so it is one level up from a flat
- * layout's client and two from a monorepo's, exactly as `gonogo-uplink bundle`
- * searches for it. Absent is normal: an Uplink bundled inside the app's own repo
- * has no separate declaration, and the page simply omits the row it would have
- * filled rather than inventing one.
+ * Everything else, `uplink.json` and the client's `package.json` included, the
+ * writer reads for itself, so `gonogo-uplink bundle` reaches the same answers
+ * from the same files.
  */
-function declaredUplink(pkgDir: string): { mod?: DeclaredMod } {
-  let dir = pkgDir;
-  for (let up = 0; up < 3; up++) {
-    const file = join(dir, "uplink.json");
-    if (existsSync(file)) {
-      const found = readJson<{ mod?: DeclaredMod | null }>(file);
-      if (found.mod) return { mod: found.mod };
-    }
-    dir = resolve(dir, "..");
-  }
-  return {};
-}
-
 export function buildManifest(inputs: DocsInputs): {
   manifest: UplinkManifestJson;
   warning?: string;
 } {
   const { integrity, warning } = bundleIntegrity(inputs.pkg, inputs.bundle);
-  const declared = readJson<{
-    version?: string;
-    gonogo?: { minAppVersion?: string };
-  }>(join(inputs.pkg.dir, "package.json"));
-  // The client's `defineUplinkClient({ version })` is the source of the number
-  // this manifest carries, and the package's own version is what a consumer
-  // installs. Six Uplinks declared "0.0.0-dev" against a published 0.0.1, under
-  // a TODO saying the BUILD would inject the version from this manifest, which
-  // cannot work: the manifest is generated from the declaration.
-  if (
-    declared.version !== undefined &&
-    inputs.inventory.version !== declared.version
-  ) {
-    throw new Error(
-      `gonogo-uplink: this client declares version "${inputs.inventory.version}" ` +
-        `through defineUplinkClient, and package.json says "${declared.version}". ` +
-        "The manifest can only claim one of them, and the app compares what it " +
-        "reads here against what the loaded bundle declares. Make them equal " +
-        "(the declaration in client/src/uplink.ts is the one to edit).",
-    );
-  }
   return {
-    manifest: {
-      id: inputs.inventory.id,
-      version: inputs.inventory.version,
-      description: inputs.inventory.description,
-      // The one gate field nothing can derive: it is a claim about the APP, and
-      // only the author knows which app feature their Uplink needs. Declared in
-      // package.json under `gonogo.minAppVersion`; "0.0.0" means no floor.
-      minAppVersion: declared.gonogo?.minAppVersion ?? "0.0.0",
-      apiVersion: inputs.inventory.compat.apiVersion,
-      uiKitVersion: inputs.inventory.compat.uiKitVersion,
-      contractMajor: inputs.inventory.compat.contractMajor,
-      contractMinor: inputs.inventory.compat.contractMinor,
+    manifest: buildUplinkManifest({
+      clientDir: inputs.pkg.dir,
+      registered: {
+        id: inputs.inventory.id,
+        name: inputs.inventory.name,
+        version: inputs.inventory.version,
+        description: inputs.inventory.description,
+      },
+      compat: inputs.inventory.compat,
       integrity,
-    },
+    }),
     warning,
   };
 }
@@ -470,7 +418,7 @@ export function buildReadme(
   }
 
   const wire = readWireSurface(inputs.pkg.dir);
-  const mod = declaredUplink(inputs.pkg.dir).mod;
+  const mod = declaredMod(inputs.pkg.dir);
   const out: string[] = [
     "<!-- Generated by `gonogo-uplink docs`. Do not edit this file: it is written",
     "     from the registrations, the contract slice and the fixtures. -->",

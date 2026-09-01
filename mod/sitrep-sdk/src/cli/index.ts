@@ -42,29 +42,22 @@ import { pathToFileURL } from "node:url";
 // in both modes. This CLI is the first thing here RUN from `dist` rather than
 // typechecked, which is why it is the first to care.
 import { UPLINK_BUNDLE_EXTERNALS } from "../uplink-externals.js";
+import {
+  buildUplinkManifest,
+  readUplinkDeclaration,
+  serialiseUplinkManifest,
+  UPLINK_MANIFEST_FILE,
+} from "../uplink-manifest.js";
 
 const USAGE = `gonogo-uplink <command>
 
   bundle     build the client bundle the app loads, and its gonogo-uplink.json
   bake-hash  write a client bundle's sha256 into C#, for the mod to vouch for
   render     render this Uplink's widgets to images (needs @ksp-gonogo/ui-kit)
-  docs       generate this Uplink's README assets (needs @ksp-gonogo/ui-kit)
+  docs       this Uplink's README, its assets and the SAME gonogo-uplink.json
+             that bundle writes (needs @ksp-gonogo/ui-kit)
 
 Run a command with --help for its options.`;
-
-/** Read a JSON file, or fail saying which one and why. */
-function readJson(path: string, what: string): Record<string, unknown> {
-  if (!existsSync(path)) {
-    throw new Error(`${what} not found at ${path}`);
-  }
-  try {
-    return JSON.parse(readFileSync(path, "utf8")) as Record<string, unknown>;
-  } catch (err) {
-    throw new Error(
-      `${what} at ${path} is not valid JSON: ${err instanceof Error ? err.message : String(err)}`,
-    );
-  }
-}
 
 const flag = (argv: readonly string[], name: string): string | undefined =>
   argv.includes(name) ? argv[argv.indexOf(name) + 1] : undefined;
@@ -112,35 +105,16 @@ function installedVersion(fromDir: string, pkg: string): string {
 async function bundle(argv: readonly string[]): Promise<number> {
   const clientDir = resolve(flag(argv, "--client") ?? process.cwd());
   const outDir = resolve(flag(argv, "--out") ?? join(clientDir, "dist"));
-  const manifest = readJson(
-    join(clientDir, "package.json"),
-    "the client's package.json",
-  );
 
-  /*
-   * `uplink.json` is the Uplink's own declaration and sits beside BOTH halves, so
-   * it is one level up from a flat layout's client and two from a monorepo's.
-   * Searched rather than required at a fixed path, because the template is flat
-   * and the operator's monorepo is not.
-   */
-  let uplinkDir = clientDir;
-  for (
-    let up = 0;
-    up < 3 && !existsSync(join(uplinkDir, "uplink.json"));
-    up++
-  ) {
-    uplinkDir = dirname(uplinkDir);
-  }
-  const declaredPath = join(uplinkDir, "uplink.json");
-  if (!existsSync(declaredPath)) {
+  const declaration = readUplinkDeclaration(clientDir);
+  if (!declaration) {
     throw new Error(
       `no uplink.json found in ${clientDir} or its parents. It declares the id, the author and ` +
         "the client URL, and the bundle cannot be described without it.",
     );
   }
-  const declared = readJson(declaredPath, "uplink.json");
-  const id = String(declared.id ?? "");
-  if (!id) throw new Error(`${declaredPath} declares no id`);
+  const id = String(declaration.declared.id ?? "");
+  if (!id) throw new Error(`${declaration.path} declares no id`);
 
   const entry = resolve(clientDir, flag(argv, "--entry") ?? "src/index.ts");
   if (!existsSync(entry)) {
@@ -221,29 +195,21 @@ async function bundle(argv: readonly string[]): Promise<number> {
     );
   }
 
-  const sdkVersion = (await import("../version.generated.js")).SDK_VERSION;
+  const compatVersions = await import("../compat-versions.js");
   writeFileSync(
-    join(bundleDir, "gonogo-uplink.json"),
-    `${JSON.stringify(
-      {
-        id,
-        name: declared.name ?? id,
-        author: declared.author ?? "",
-        repo: declared.repo ?? "",
-        version: manifest.version ?? "0.0.0",
-        minAppVersion: declared.minAppVersion ?? "0.0.0",
-        apiVersion: (await import("../compat-versions.js"))
-          .EXTENSION_API_VERSION,
-        uiKitVersion: installedVersion(clientDir, "@ksp-gonogo/ui-kit"),
-        contractMajor: (await import("../compat-versions.js")).CONTRACT_MAJOR,
-        contractMinor: (await import("../compat-versions.js")).CONTRACT_MINOR,
-        bundleUrl: `${id}/${id}.client.js`,
+    join(bundleDir, UPLINK_MANIFEST_FILE),
+    serialiseUplinkManifest(
+      buildUplinkManifest({
+        clientDir,
+        compat: {
+          apiVersion: compatVersions.EXTENSION_API_VERSION,
+          uiKitVersion: installedVersion(clientDir, "@ksp-gonogo/ui-kit"),
+          contractMajor: compatVersions.CONTRACT_MAJOR,
+          contractMinor: compatVersions.CONTRACT_MINOR,
+        },
         integrity,
-        sdkVersion,
-      },
-      null,
-      2,
-    )}\n`,
+      }),
+    ),
   );
   writeFileSync(`${outFile}.sha256`, `${integrity}\n`);
 

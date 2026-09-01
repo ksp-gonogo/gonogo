@@ -1,11 +1,16 @@
 {
   "id": "kerbcast",
-  "version": "0.0.1",
+  "name": "Kerbcast",
   "description": "Live in-flight camera views from Hullcam VDS parts, fed by the kerbcast sidecar. Aim and zoom ride the Uplink; the video stays on kerbcast's own WebRTC path.",
+  "author": "",
+  "repo": "",
+  "version": "0.0.1",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",
   "contractMajor": 14,
   "contractMinor": 6,
-  "integrity": ""
+  "bundleUrl": "kerbcast/kerbcast.client.js",
+  "integrity": "",
+  "sdkVersion": "0.0.1"
 }

@@ -1,11 +1,16 @@
 {
   "id": "kerbalism",
-  "version": "0.0.1",
+  "name": "Kerbalism",
   "description": "Kerbalism life support as one ledger: every profile resource as a meter with the per-source rates that move it, plus wear, habitat, processes and power.",
+  "author": "",
+  "repo": "",
+  "version": "0.0.1",
   "minAppVersion": "0.0.0",
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.2.0",
   "contractMajor": 14,
   "contractMinor": 6,
-  "integrity": ""
+  "bundleUrl": "kerbalism/kerbalism.client.js",
+  "integrity": "",
+  "sdkVersion": "0.0.1"
 }
