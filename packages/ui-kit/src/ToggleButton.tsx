@@ -105,8 +105,9 @@ const ToggleButton__Body = styled.button<{
   gap: var(--space-4, 4px);
   font-family: inherit;
   font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  /* Sentence case, the same as the kit's Button: this label is the thing being
+     chosen, and a row of shouted choices reads as an alarm rather than a
+     picker. */
   border-radius: var(--radius-sm, 3px);
   cursor: pointer;
   transition: background var(--duration-fast, 100ms), border-color var(--duration-fast, 100ms), color var(--duration-fast, 100ms);

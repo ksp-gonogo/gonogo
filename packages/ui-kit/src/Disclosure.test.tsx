@@ -93,7 +93,7 @@ describe("Disclosure", () => {
       name: "Show rate breakdown for Water",
     });
     // A real ui-kit Button, not the bare unstyled trigger: the bordered
-    // GhostButton chrome (background/border/uppercase/letter-spacing) comes
+    // GhostButton chrome (background/border/radius/padding/case) comes
     // from the SAME styled component every other bordered button in the kit
     // uses, so a change to that shared style shows up here too rather than
     // this trigger silently drifting back to plain text.

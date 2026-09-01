@@ -7,7 +7,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Button,
   Card,
   Cluster,
   CommandButton,
@@ -132,25 +131,29 @@ export function TrainingEnrolment() {
                 </option>
               ))}
             </Select>
-            {refusal === null ? (
-              <CommandButton
-                args={{
-                  crew: chosen.map((candidate) => candidate.name),
-                  templateId: selected.id,
-                }}
-                aria-label={`Enrol ${students(chosen.length)} on ${name}`}
-                commandLabel={`Enrol ${students(chosen.length)} on ${name}`}
-                confirmAriaLabel={`Confirm enrolling ${students(chosen.length)} on ${name}`}
-                confirmLabel={`Enrol ${students(chosen.length)} on ${name}`}
-                handle={enrol}
-                label="Enrol"
-                size="sm"
-              />
-            ) : (
-              <Button disabled title={refusal}>
-                Enrol
-              </Button>
-            )}
+            <CommandButton
+              args={{
+                crew: chosen.map((candidate) => candidate.name),
+                templateId: selected.id,
+              }}
+              /* Named by the student count while it can act, and the bare
+                 visible label once it cannot: a refused control announcing an
+                 enrolment describes something that will not happen. The reason
+                 rides `title`. */
+              aria-label={
+                refusal === null
+                  ? `Enrol ${students(chosen.length)} on ${name}`
+                  : undefined
+              }
+              commandLabel={`Enrol ${students(chosen.length)} on ${name}`}
+              confirmAriaLabel={`Confirm enrolling ${students(chosen.length)} on ${name}`}
+              confirmLabel={`Enrol ${students(chosen.length)} on ${name}`}
+              disabled={refusal !== null}
+              handle={enrol}
+              label="Enrol"
+              size="sm"
+              title={refusal ?? undefined}
+            />
           </Cluster>
           <ReadoutCaption>
             {selected.type ? `${selected.type} · ` : ""}

@@ -227,8 +227,6 @@ const Disclosure__ButtonTrigger = styled(GhostButton)<{
     css`
       font-size: var(--font-size-2xs, 10px);
       font-weight: 600;
-      letter-spacing: normal;
-      text-transform: none;
       padding: var(--space-2, 2px) var(--space-8, 8px);
       border-radius: var(--radius-xs, 2px);
 
