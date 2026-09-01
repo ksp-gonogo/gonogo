@@ -469,166 +469,174 @@ function PowerSystemsComponent({
             </Select>
           </>
         }
-      >
-        {/* Discrete power-state announcement for assistive tech, the visible NET
-          readout communicates surplus/deficit through colour + a ticking
-          number; this narrates the state word and updates only when the state
-          flips (kept out of the ticking value so it doesn't flood). */}
-        <VisuallyHidden role="status" aria-live="polite">
-          {netTone === "go"
-            ? "Power surplus"
-            : netTone === "warn"
-              ? "Power deficit"
-              : "Power balanced"}
-        </VisuallyHidden>
+        sections={[
+          <Section key="summary" full>
+            {/* Discrete power-state announcement for assistive tech, the visible NET
+              readout communicates surplus/deficit through colour + a ticking
+              number; this narrates the state word and updates only when the state
+              flips (kept out of the ticking value so it doesn't flood). */}
+            <VisuallyHidden role="status" aria-live="polite">
+              {netTone === "go"
+                ? "Power surplus"
+                : netTone === "warn"
+                  ? "Power deficit"
+                  : "Power balanced"}
+            </VisuallyHidden>
 
-        {contributions.length === 0 && (
-          <div style={SECTION_EMPTY} role="status">
-            No active {splitCamel(resource)} flow right now.
-          </div>
-        )}
-
-        <div style={TOTALS}>
-          <div style={{ ...TOTALS_CELL, ...netCellStyle(netTone) }}>
-            <span style={{ ...CELL_LABEL, color: cellLabelColor(netTone) }}>
-              NET
-            </span>
-            <Text size="sm" style={CELL_VALUE}>
-              {net >= 0 ? "+" : ""}
-              {net.toFixed(2)}/s
-            </Text>
-          </div>
-          <div style={TOTALS_CELL}>
-            <span style={CELL_LABEL}>PROD</span>
-            <Text tone="go" size="sm" style={CELL_VALUE}>
-              {totalProduced > 0 ? "+" : ""}
-              {totalProduced.toFixed(2)}
-            </Text>
-          </div>
-          {measuredDisagrees && (
-            <div
-              style={{ ...TOTALS_CELL, ...MEASURED_CELL }}
-              title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
-            >
-              <span style={CELL_LABEL}>MEASURED</span>
-              <Text size="sm" style={CELL_VALUE}>
-                {measuredTotalProduced?.toFixed(2)}
-              </Text>
-            </div>
-          )}
-          <div style={TOTALS_CELL}>
-            <span style={CELL_LABEL}>CONS</span>
-            <Text tone="warn" size="sm" style={CELL_VALUE}>
-              {totalConsumed.toFixed(2)}
-            </Text>
-          </div>
-          {storage.maxAmount > 0 && (
-            <div style={TOTALS_CELL}>
-              <span style={CELL_LABEL}>STORED</span>
-              <Text size="sm" style={STORED_VALUE}>
-                {formatUnits(storage.amount)} / {formatUnits(storage.maxAmount)}
-              </Text>
-            </div>
-          )}
-        </div>
-
-        {storage.maxAmount > 0 && sparkValues.length >= 2 && (
-          <div
-            style={SPARKLINE_ROW}
-            role="img"
-            aria-label={`${splitCamel(resource)} level over the last ${speakQuantity(
-              value("s", SPARKLINE_WINDOW_SEC),
-            )}`}
-          >
-            <span style={SPARKLINE_LABEL}>
-              Trend
-              <span style={SPARKLINE_SUB}>
-                · <Unit value={value("s", SPARKLINE_WINDOW_SEC)} />
-              </span>
-            </span>
-            <div style={SPARKLINE_SLOT}>
-              <Sparkline
-                values={sparkValues}
-                width={240}
-                height={36}
-                color={
-                  netTone === "warn"
-                    ? "var(--color-status-warning-bg)"
-                    : netTone === "go"
-                      ? "var(--color-status-go-fg)"
-                      : "var(--color-text-primary)"
-                }
-                yDomain={sparkDomain}
-                ariaLabel={`${splitCamel(resource)} level trend`}
-              />
-            </div>
-          </div>
-        )}
-
-        <SectionsScroll $landscape={isLandscape}>
-          <Section
-            as="section"
-            style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
-          >
-            <SectionTitle as="h3">
-              Producers
-              {producers.length > 0 && (
-                <span style={SECTION_COUNT}>· {producers.length}</span>
-              )}
-            </SectionTitle>
-            {producers.length === 0 ? (
-              <div style={SECTION_EMPTY}>Nothing producing.</div>
-            ) : (
-              <div style={CONTRIB_LIST}>
-                {producers.map((c) => (
-                  <ContributionRow key={c.flightId} contribution={c} />
-                ))}
+            {contributions.length === 0 && (
+              <div style={SECTION_EMPTY} role="status">
+                No active {splitCamel(resource)} flow right now.
               </div>
             )}
-          </Section>
-          <Section
-            as="section"
-            style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
-          >
-            <SectionTitle as="h3">
-              Consumers
-              {consumers.length > 0 && (
-                <span style={SECTION_COUNT}>· {consumers.length}</span>
+
+            <div style={TOTALS}>
+              <div style={{ ...TOTALS_CELL, ...netCellStyle(netTone) }}>
+                <span style={{ ...CELL_LABEL, color: cellLabelColor(netTone) }}>
+                  NET
+                </span>
+                <Text size="sm" style={CELL_VALUE}>
+                  {net >= 0 ? "+" : ""}
+                  {net.toFixed(2)}/s
+                </Text>
+              </div>
+              <div style={TOTALS_CELL}>
+                <span style={CELL_LABEL}>PROD</span>
+                <Text tone="go" size="sm" style={CELL_VALUE}>
+                  {totalProduced > 0 ? "+" : ""}
+                  {totalProduced.toFixed(2)}
+                </Text>
+              </div>
+              {measuredDisagrees && (
+                <div
+                  style={{ ...TOTALS_CELL, ...MEASURED_CELL }}
+                  title={`parts.power.totalProductionEc reports ${measuredTotalProduced?.toFixed(2)}, disagreeing with the ${totalProduced.toFixed(2)} the itemized Producers rows sum to. PROD/NET always reflect the itemized rows; this is the separate raw measurement.`}
+                >
+                  <span style={CELL_LABEL}>MEASURED</span>
+                  <Text size="sm" style={CELL_VALUE}>
+                    {measuredTotalProduced?.toFixed(2)}
+                  </Text>
+                </div>
               )}
-            </SectionTitle>
-            {consumers.length === 0 ? (
-              <div style={SECTION_EMPTY}>Nothing consuming.</div>
-            ) : (
-              <div style={CONTRIB_LIST}>
-                {consumers.map((c) => (
-                  <ContributionRow key={c.flightId} contribution={c} />
-                ))}
+              <div style={TOTALS_CELL}>
+                <span style={CELL_LABEL}>CONS</span>
+                <Text tone="warn" size="sm" style={CELL_VALUE}>
+                  {totalConsumed.toFixed(2)}
+                </Text>
+              </div>
+              {storage.maxAmount > 0 && (
+                <div style={TOTALS_CELL}>
+                  <span style={CELL_LABEL}>STORED</span>
+                  <Text size="sm" style={STORED_VALUE}>
+                    {formatUnits(storage.amount)} /{" "}
+                    {formatUnits(storage.maxAmount)}
+                  </Text>
+                </div>
+              )}
+            </div>
+
+            {storage.maxAmount > 0 && sparkValues.length >= 2 && (
+              <div
+                style={SPARKLINE_ROW}
+                role="img"
+                aria-label={`${splitCamel(resource)} level over the last ${speakQuantity(
+                  value("s", SPARKLINE_WINDOW_SEC),
+                )}`}
+              >
+                <span style={SPARKLINE_LABEL}>
+                  Trend
+                  <span style={SPARKLINE_SUB}>
+                    · <Unit value={value("s", SPARKLINE_WINDOW_SEC)} />
+                  </span>
+                </span>
+                <div style={SPARKLINE_SLOT}>
+                  <Sparkline
+                    values={sparkValues}
+                    width={240}
+                    height={36}
+                    color={
+                      netTone === "warn"
+                        ? "var(--color-status-warning-bg)"
+                        : netTone === "go"
+                          ? "var(--color-status-go-fg)"
+                          : "var(--color-text-primary)"
+                    }
+                    yDomain={sparkDomain}
+                    ariaLabel={`${splitCamel(resource)} level trend`}
+                  />
+                </div>
               </div>
             )}
-          </Section>
-          {idle.length > 0 && (
-            <Section
-              as="section"
-              style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
-            >
-              <SectionTitle as="h3">
-                Idle
-                <span style={SECTION_COUNT}>· {idle.length}</span>
-              </SectionTitle>
-              <div style={IDLE_LIST}>
-                {idle.map((c) => (
-                  <ContributionRow key={c.flightId} contribution={c} />
-                ))}
-              </div>
-            </Section>
-          )}
-          {/* Augment sections: e.g. an Uplink's EC-broker breakdown, composed
-            below the stock producer/consumer/idle readout and INSIDE the same
-            scroller, which is why the seam is placed here rather than left to
-            `Panel`'s default end-of-body mount. */}
-          <WidgetSections />
-        </SectionsScroll>
-      </Panel>
+          </Section>,
+          /* The breakdown is the body of this widget: it takes the height the
+             totals and the trend leave, which is what it did as the body's own
+             flexing child. */
+          <Section key="breakdown" fill>
+            <SectionsScroll $landscape={isLandscape}>
+              <Section
+                as="section"
+                style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+              >
+                <SectionTitle as="h3">
+                  Producers
+                  {producers.length > 0 && (
+                    <span style={SECTION_COUNT}>· {producers.length}</span>
+                  )}
+                </SectionTitle>
+                {producers.length === 0 ? (
+                  <div style={SECTION_EMPTY}>Nothing producing.</div>
+                ) : (
+                  <div style={CONTRIB_LIST}>
+                    {producers.map((c) => (
+                      <ContributionRow key={c.flightId} contribution={c} />
+                    ))}
+                  </div>
+                )}
+              </Section>
+              <Section
+                as="section"
+                style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+              >
+                <SectionTitle as="h3">
+                  Consumers
+                  {consumers.length > 0 && (
+                    <span style={SECTION_COUNT}>· {consumers.length}</span>
+                  )}
+                </SectionTitle>
+                {consumers.length === 0 ? (
+                  <div style={SECTION_EMPTY}>Nothing consuming.</div>
+                ) : (
+                  <div style={CONTRIB_LIST}>
+                    {consumers.map((c) => (
+                      <ContributionRow key={c.flightId} contribution={c} />
+                    ))}
+                  </div>
+                )}
+              </Section>
+              {idle.length > 0 && (
+                <Section
+                  as="section"
+                  style={isLandscape ? PANEL_SECTION_LANDSCAPE : undefined}
+                >
+                  <SectionTitle as="h3">
+                    Idle
+                    <span style={SECTION_COUNT}>· {idle.length}</span>
+                  </SectionTitle>
+                  <div style={IDLE_LIST}>
+                    {idle.map((c) => (
+                      <ContributionRow key={c.flightId} contribution={c} />
+                    ))}
+                  </div>
+                </Section>
+              )}
+              {/* Augment sections: e.g. an Uplink's EC-broker breakdown, composed
+              below the stock producer/consumer/idle readout and INSIDE the same
+              scroller, which is why the seam is placed here rather than left to
+              `Panel`'s default end-of-body mount. */}
+              <WidgetSections />
+            </SectionsScroll>
+          </Section>,
+        ]}
+      />
     </WidgetScopeProvider>
   );
 }
