@@ -173,6 +173,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 3 |  |
+| `rp1-training-enrolment` | `astronaut-complex.sections` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.training`, `spaceCenter.crewRoster` |  | 2 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
@@ -192,6 +193,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![The three training commands on the nauts they are about: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked](docs/assets/crew-training-both-ways-out--default.png)
 
 ![Both training refusals: an enrolment a naut's row cannot fill because the course seats two, and a removal RP-1 withholds on a course that would be left below its minimum, with cancelling the whole course still open](docs/assets/crew-training-refused--default.png)
+
+![Gemini seats two and the career has one naut free: Valentina is off-world and Nedcas is standing down after a flight, so the enrolment is dark with the count rather than failing at the press](docs/assets/crew-enrolment-blocked--default.png)
+
+![Two of three idle nauts picked for Gemini, which seats exactly two: the crew fits its bounds, so the enrolment is one press away and the third name is still there to swap in](docs/assets/crew-enrolment-ready--default.png)
 
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 

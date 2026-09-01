@@ -3,17 +3,17 @@
   "engine": "chromium",
   "assets": {
     "burn-editor-armed-mid-tune--default.png": {
-      "hash": "13f076587a94a1ff",
+      "hash": "195001ab73a303a6",
       "elements": 215,
       "text": "83cee02e"
     },
     "burn-editor-spherical-frozen--default.png": {
-      "hash": "21b1292985b93029",
+      "hash": "d5f5f9b0663a7284",
       "elements": 176,
       "text": "5a1c1b69"
     },
     "burn-editor-writes-shut--default.png": {
-      "hash": "51a70224626697ba",
+      "hash": "9d61033e670a6fb6",
       "elements": 98,
       "text": "2b803c5f"
     },
@@ -33,47 +33,47 @@
       "text": "85aa46c4"
     },
     "composer-composing--default.png": {
-      "hash": "de234371f5f28a86",
+      "hash": "ecea7e373ed602ee",
       "elements": 128,
       "text": "e40910f9"
     },
     "composer-delayed-vantage--default.png": {
-      "hash": "9d11a0319dbd192c",
+      "hash": "04189e6b30b9bf47",
       "elements": 46,
       "text": "27a6f63f"
     },
     "composer-ready-to-upload--default.png": {
-      "hash": "67966172a71acf25",
+      "hash": "aa9e0ec8a124a74c",
       "elements": 44,
       "text": "990331d8"
     },
     "composer-upload-armed--default.png": {
-      "hash": "a6b7711336784297",
+      "hash": "43ecc1517c32a606",
       "elements": 44,
       "text": "864af173"
     },
     "flight-plan-healthy--default.png": {
-      "hash": "250b810a0a20b248",
+      "hash": "1c708806fbb69392",
       "elements": 98,
       "text": "342979e0"
     },
     "flight-plan-integration-failed--default.png": {
-      "hash": "02ee5ef0480dd773",
+      "hash": "45b30c77ee4e02b4",
       "elements": 102,
       "text": "a700bc3c"
     },
     "flight-plan-other-vessel--default.png": {
-      "hash": "e32219f6b1995c48",
+      "hash": "3803ae837f74f59c",
       "elements": 99,
       "text": "a30612a4"
     },
     "flight-plan-stale-observation--default.png": {
-      "hash": "b2aefdffa398de5b",
+      "hash": "9c750052594136e5",
       "elements": 98,
       "text": "3b906a1d"
     },
     "flight-plan-steps-exhausted--default.png": {
-      "hash": "9cd4d354d5318d7f",
+      "hash": "1e64ec967f156fae",
       "elements": 64,
       "text": "ddd7977d"
     },
@@ -83,9 +83,9 @@
       "text": "ad0682fa"
     },
     "jogwheel-rate-mode--default.gif": {
-      "hash": "cdf9e4f5a4083ba6",
+      "hash": "f4c1be3fc89262b3",
       "elements": 86,
-      "text": "57fcfaa2"
+      "text": "06eb8830"
     },
     "orbit-analysis-decaying--default.png": {
       "hash": "014f3a15f0f75bc5",

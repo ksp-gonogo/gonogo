@@ -103,52 +103,52 @@
       "text": "cb82dd17"
     },
     "assembly-start-a-build--default.png": {
-      "hash": "537d7deb2a657825",
+      "hash": "db73cc315006b735",
       "elements": 70,
       "text": "144e86cc"
     },
     "assembly-start-a-build--landscape-18x5.png": {
-      "hash": "59aeb4b03d5fbf31",
+      "hash": "2675dd669ad7dd4b",
       "elements": 70,
       "text": "144e86cc"
     },
     "assembly-start-a-build--min.png": {
-      "hash": "ebdd024582babae2",
+      "hash": "4077ba73acf43d76",
       "elements": 70,
       "text": "4bc5e735"
     },
     "assembly-start-a-build--mobile-9x8.png": {
-      "hash": "59aeb4b03d5fbf31",
+      "hash": "2675dd669ad7dd4b",
       "elements": 70,
       "text": "144e86cc"
     },
     "assembly-start-a-build--portrait-5x18.png": {
-      "hash": "537d7deb2a657825",
+      "hash": "db73cc315006b735",
       "elements": 70,
       "text": "144e86cc"
     },
     "assembly-two-complexes--default.png": {
-      "hash": "765b70efdf898133",
+      "hash": "255d64660ff47138",
       "elements": 114,
       "text": "272c501f"
     },
     "assembly-two-complexes--landscape-18x5.png": {
-      "hash": "765b70efdf898133",
+      "hash": "255d64660ff47138",
       "elements": 114,
       "text": "272c501f"
     },
     "assembly-two-complexes--min.png": {
-      "hash": "e56bbce0426f0473",
+      "hash": "0c8fbc8fd88a2105",
       "elements": 114,
       "text": "7cf15ded"
     },
     "assembly-two-complexes--mobile-9x8.png": {
-      "hash": "765b70efdf898133",
+      "hash": "255d64660ff47138",
       "elements": 114,
       "text": "272c501f"
     },
     "assembly-two-complexes--portrait-5x18.png": {
-      "hash": "765b70efdf898133",
+      "hash": "255d64660ff47138",
       "elements": 114,
       "text": "272c501f"
     },
@@ -203,7 +203,7 @@
       "text": "1bd44075"
     },
     "buildable-blocked-and-buildable--default.png": {
-      "hash": "fd1dc95f70222cb8",
+      "hash": "b6a71fc02e93e7ea",
       "elements": 59,
       "text": "fff155db"
     },
@@ -213,62 +213,62 @@
       "text": "b6c63acd"
     },
     "completed-program--default.png": {
-      "hash": "444ae3dd2f1a3fdb",
+      "hash": "0f888259964692df",
       "elements": 265,
       "text": "ce8db5eb"
     },
     "complexes-add-pad--default.png": {
-      "hash": "4dc4b0440cd39e08",
+      "hash": "cf946d0bb837f1b1",
       "elements": 271,
       "text": "95775863"
     },
     "complexes-dismantle-warnings--default.png": {
-      "hash": "a134c2ee1ec9e23d",
+      "hash": "52e4b9741d9de408",
       "elements": 212,
       "text": "63db2230"
     },
     "complexes-last-pad--default.png": {
-      "hash": "0370cbd8091dd0fb",
+      "hash": "21de7bd81879115a",
       "elements": 254,
       "text": "7d7ea4aa"
     },
     "complexes-new--default.png": {
-      "hash": "94c1d7ac9003340a",
+      "hash": "1bd39bd36117917d",
       "elements": 256,
       "text": "181c53b4"
     },
     "complexes-rename--default.png": {
-      "hash": "0b16488c137c0160",
+      "hash": "80bb786c526c7adb",
       "elements": 272,
       "text": "864b051e"
     },
     "complexes-rushing--default.png": {
-      "hash": "e375437abb13a922",
+      "hash": "a7945efca3c02ba2",
       "elements": 281,
       "text": "08c50283"
     },
     "construction-complex-modify--default.png": {
-      "hash": "268ddb78bc131f9d",
+      "hash": "289813df41fe3dcb",
       "elements": 138,
       "text": "34cee195"
     },
     "construction-empty--default.png": {
-      "hash": "be0e052f02e1e1f6",
+      "hash": "ee98f7bcb2e0d304",
       "elements": 120,
       "text": "5d895462"
     },
     "construction-full-queue--default.png": {
-      "hash": "0a231a1acfd2f7d0",
+      "hash": "96be8a901ae650f8",
       "elements": 189,
       "text": "77aeb214"
     },
     "construction-not-costed--default.png": {
-      "hash": "e2783aa79b6ad3d6",
+      "hash": "b52088dab1f22e83",
       "elements": 138,
       "text": "38f2a378"
     },
     "construction-rushing-and-stalled--default.png": {
-      "hash": "d657e55fdb85541c",
+      "hash": "962ada18c066550a",
       "elements": 156,
       "text": "f4b91e4d"
     },
@@ -277,33 +277,43 @@
       "elements": 29,
       "text": "3b941eca"
     },
+    "crew-enrolment-blocked--default.png": {
+      "hash": "59ff4c0195442eec",
+      "elements": 47,
+      "text": "bcd95d2e"
+    },
+    "crew-enrolment-ready--default.png": {
+      "hash": "9203f7adfa7876f6",
+      "elements": 47,
+      "text": "6f278b89"
+    },
     "crew-programme-rules--default.png": {
       "hash": "54e870f3ae3fd35a",
       "elements": 32,
       "text": "ea8af5ed"
     },
     "crew-schedule-three-states--default.png": {
-      "hash": "c478b19dfbd381b5",
+      "hash": "95e71cbc2afaebb5",
       "elements": 169,
       "text": "f66723c5"
     },
     "crew-training-both-ways-out--default.png": {
-      "hash": "83a4f9ffe69e9f30",
-      "elements": 183,
-      "text": "209ef341"
+      "hash": "6528a22e332bb259",
+      "elements": 200,
+      "text": "0ef08cf4"
     },
     "crew-training-refused--default.png": {
-      "hash": "8ded8dcf8c6f0dd1",
-      "elements": 182,
-      "text": "999a86da"
+      "hash": "fa7257162163e106",
+      "elements": 198,
+      "text": "978947a1"
     },
     "no-curve-table--default.png": {
-      "hash": "558224a6f37e9454",
+      "hash": "569cf077de9478ef",
       "elements": 253,
       "text": "88f4e5a1"
     },
     "offer-frontloaded--default.png": {
-      "hash": "a746ec9eae4bc14e",
+      "hash": "9a7319ef99cbcc16",
       "elements": 249,
       "text": "835da823"
     },
@@ -318,12 +328,12 @@
       "text": "141b257d"
     },
     "personnel-staffed--default.png": {
-      "hash": "3356d9cef75c5ff5",
+      "hash": "7abbf8deec442556",
       "elements": 198,
       "text": "8a195bd9"
     },
     "personnel-unanswered--default.png": {
-      "hash": "157ccefebbc1efc8",
+      "hash": "e3399080f2538b77",
       "elements": 86,
       "text": "33810883"
     },
@@ -333,7 +343,7 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "97ca551352e8a1e0",
+      "hash": "de47a7ee515dec30",
       "elements": 133,
       "text": "17459c0f"
     },
@@ -343,12 +353,12 @@
       "text": "a8b3e662"
     },
     "running-backloaded--default.png": {
-      "hash": "d38943c3151f487a",
+      "hash": "851587fe0074fbc1",
       "elements": 267,
       "text": "f593b4f5"
     },
     "two-centres-unstaffed--default.png": {
-      "hash": "1110cce4fa1e58f1",
+      "hash": "40667437cd6bfb62",
       "elements": 223,
       "text": "8ecb8886"
     },
