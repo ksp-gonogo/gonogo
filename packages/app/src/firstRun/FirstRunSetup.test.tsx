@@ -224,9 +224,16 @@ describe("FirstRunSetup: the Uplinks reading", () => {
       }),
     ]);
 
+    // Wait on a ROSTER-derived reading, not an outcome-derived one. The two
+    // outcome rows are already in the store before render, so waiting for
+    // "Client loaded" resolves before the roster frame has arrived and every
+    // assertion below it then reads a list that is still outcome-only.
     await waitFor(() =>
-      expect(screen.getByText("Client loaded")).toBeInTheDocument(),
+      expect(
+        screen.getByText("1 of 4 installed Uplinks have a loaded client"),
+      ).toBeInTheDocument(),
     );
+    expect(screen.getByText("Client loaded")).toBeInTheDocument();
     expect(screen.getByText("Client quarantined")).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -237,9 +244,6 @@ describe("FirstRunSetup: the Uplinks reading", () => {
     expect(screen.getByText("widget-noclient")).toBeInTheDocument();
     expect(screen.getByText("Mod reports unavailable")).toBeInTheDocument();
     expect(screen.getByText("no antenna in range")).toBeInTheDocument();
-    expect(
-      screen.getByText("1 of 4 installed Uplinks have a loaded client"),
-    ).toBeInTheDocument();
   });
 
   it("shows the declared identity of an Uplink the loader described, and nothing for one it never reached", async () => {
