@@ -54,8 +54,6 @@ namespace Sitrep.Host
             };
         }
 
-        // ----- write -----
-
         private static void AppendSession(StringBuilder sb, RecordedSession session)
         {
             sb.Append('{');
@@ -134,8 +132,6 @@ namespace Sitrep.Host
             JsonWriter.AppendString(sb, name);
             sb.Append(':');
         }
-
-        // ----- read -----
 
         private static List<RecordedEntry> ParseEntries(List<object?> raw)
         {

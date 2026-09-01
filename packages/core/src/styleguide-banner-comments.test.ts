@@ -27,13 +27,13 @@ import { ratchetBaseRef, sourceAtRatchetBase } from "./ratchetBaseRef";
  * banners are dividing a long table or a long test into real sections.
  *
  * TWO NUMBERS, AND THEY DISAGREE ON PURPOSE. A loose scan for "a comment line
- * starting with three rule characters" finds 1,092 lines across 216 files. This
- * ratchet counts 341 lines across 78 files, of which 64 across 43 files are
- * graded as debt. Neither number is wrong, they measure different things: 665 of
+ * starting with three rule characters" finds 982 lines across 206 files. This
+ * ratchet counts 238 lines across 35 files, none of them graded as debt since
+ * 2026-09-01. Neither number is wrong, they measure different things: most of
  * the loose scan's hits are a bare `// ------------` with no title at all, which
- * is a doc-comment separator and labels nothing, and another 86 are a comment
+ * is a doc-comment separator and labels nothing, and the rest are a comment
  * paragraph that merely opens with rule characters and runs on. Re-running the
- * loose regex and finding 1,092 is not evidence that this ratchet is broken.
+ * loose regex and finding ~1,000 is not evidence that this ratchet is broken.
  *
  * The rule this enforces is about DECORATION, not about section structure. See
  * `banner-comments.allowlist.ts` for the full statement of what the shape

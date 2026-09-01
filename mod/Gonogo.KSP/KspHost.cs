@@ -555,7 +555,6 @@ namespace Gonogo.KSP
                 entry["maneuverPlanner"] = maneuverPlanSource!.ProviderId;
             }
             TryBuildGroup(entry, "target", () => BuildTarget(vessel, closestApproach));
-            // ---- M3 R3 capture-adds ----
             TryBuildGroup(entry, "dock", () => BuildDock(vessel));
             TryBuildGroup(entry, "surface", () => BuildSurface(vessel, orbit));
             TryBuildGroup(entry, "landing", () => BuildLanding(vessel, orbit));

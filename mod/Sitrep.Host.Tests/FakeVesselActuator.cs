@@ -14,7 +14,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakeVesselActuator : IVesselActuator
     {
-        // ---- recorded calls (null/default until the method is invoked) ----
         public bool? LastSetSasEnabled;
         public SasMode? LastSetSasMode;
         public bool? LastSetRcsEnabled;
@@ -48,7 +47,6 @@ namespace Sitrep.Host.Tests
         public int? LastSetWarpIndex;
         public bool? LastSetPause;
 
-        // ---- configurable results (default: success) ----
         public CommandResult SetSasResult = CommandResult.Ok();
         public CommandResult SetSasModeResult = CommandResult.Ok();
         public CommandResult SetRcsResult = CommandResult.Ok();

@@ -26,7 +26,6 @@ namespace Gonogo.KerbalismUplink
     /// </summary>
     public static class KerbalismFileCommandProvider
     {
-        // ---- kerbalism.file.* / kerbalism.sample.* -- delayed:true (actuation rides light-time) ----
         public const string SendCommand = "kerbalism.file.send";
         public const string DeleteCommand = "kerbalism.file.delete";
         public const string AnalyzeCommand = "kerbalism.sample.analyze";

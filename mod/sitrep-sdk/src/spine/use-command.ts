@@ -327,12 +327,11 @@ export function useCommand(
   const nowUtRef = useRef(nowUt);
   nowUtRef.current = nowUt;
 
-  // --- must-consume token (dev only, Task 4 of the delay-UX plan) ---
-  // A stable token handed out on the return value; `usePanelDelay(cmd)` flips
-  // `consumed` on mount (contributing the handle to the panel's delay rail, the
-  // role the inline `<CommandDelay>` filled before the rail existed). `send`
-  // bumps `dispatchTick` on its FIRST dispatch
-  // to schedule the check below; once the check passes it latches
+  // The must-consume token, dev builds only. A stable token handed out on the
+  // return value; `usePanelDelay(cmd)` flips `consumed` on mount (contributing
+  // the handle to the panel's delay rail, the role the inline `<CommandDelay>`
+  // filled before the rail existed). `send` bumps `dispatchTick` on its FIRST
+  // dispatch to schedule the check below; once the check passes it latches
   // `verifiedRef` so a hot dispatch loop (e.g. `useControlStream`'s 10 Hz axis
   // send) doesn't re-render every frame just to re-assert an invariant already
   // proven. Nothing here exists in production.

@@ -179,7 +179,7 @@ namespace Gonogo.KSP
             }
         }
 
-        // ---- persistent fly-by-wire override (main-thread-only, no lock) ------
+        // The persistent fly-by-wire override, main-thread-only and so lock-free.
         // Command handlers and Vessel.OnFlyByWire both run on the Unity main
         // thread (see the class doc comment's F2 marshaling note), so this
         // mutable state needs no synchronization. The callback delegate is

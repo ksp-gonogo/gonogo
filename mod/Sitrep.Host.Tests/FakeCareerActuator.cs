@@ -13,7 +13,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakeCareerActuator : ICareerActuator
     {
-        // ---- recorded calls (null until the method is invoked) ----
         public string? LastActivateStrategyId;
         public double? LastActivateStrategyFactor;
         public string? LastDeactivateStrategyId;
@@ -25,7 +24,6 @@ namespace Sitrep.Host.Tests
         public string? LastHireApplicantName;
         public string? LastFireCrewName;
 
-        // ---- configurable results (default: success) ----
         public CommandResult ActivateStrategyResult = CommandResult.Ok();
         public CommandResult DeactivateStrategyResult = CommandResult.Ok();
         public CommandResult UnlockTechResult = CommandResult.Ok();

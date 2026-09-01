@@ -13,7 +13,7 @@
  * WHAT THE SHAPE DELIBERATELY DOES NOT MATCH, because these are not the defect:
  *
  *   - a bare rule with no title, the `// -----------------` wrap that closes or
- *     separates a doc-comment block. 665 of the repo's 1,092 rule-shaped lines
+ *     separates a doc-comment block. Most of the repo's 982 rule-shaped lines
  *     are this, and none of them label anything
  *   - a comment paragraph that merely opens with rule characters and wraps onto
  *     the next line, e.g. an annotated entry in another ratchet's debt list.
@@ -57,45 +57,11 @@
  * source files. The nine days before that had taken the population from 22 files
  * to 32 by the narrower count a feature-recovery inventory was using, which is
  * why this exists.
+ *
+ * EMPTY as of 2026-09-01: the last 52 were cleared in one pass, so the gate now
+ * fails on the first isolated banner any file grows. Keep it that way.
  */
-export const BANNER_COMMENT_DEBT: Record<string, number> = {
-  "mod/Gonogo.KSP.Tests/CurrencyDelay/StockCurrencyStateMachineTests.cs": 2,
-  "mod/Gonogo.KSP/KspHost.cs": 1,
-  "mod/Gonogo.KSP/KspVesselActuator.cs": 1,
-  "mod/GonogoDevTools/GonogoDevKerbalismDump.cs": 1,
-  "mod/GonogoKerbalismUplink.Tests/FakeKerbalismFileActuator.cs": 2,
-  "mod/GonogoKerbalismUplink/KerbalismFileCommandProvider.cs": 1,
-  "mod/GonogoKosUplink.Tests/KosComputeAccumulatorTests.cs": 1,
-  "mod/GonogoKosUplink.Tests/KosExtensionOnPrintTests.cs": 1,
-  "mod/GonogoKosUplink.Tests/KosTerminalManagerTests.cs": 2,
-  "mod/GonogoKosUplink/KosTerminalManager.cs": 2,
-  "mod/GonogoPrincipiaUplink.Tests/SettingsTests.cs": 1,
-  "mod/Sitrep.Host.IntegrationTests/ReplayToWebSocketEndToEndTests.cs": 1,
-  "mod/Sitrep.Host.IntegrationTests/TestUplinks.cs": 1,
-  "mod/Sitrep.Host.Tests/FakeCareerActuator.cs": 2,
-  "mod/Sitrep.Host.Tests/FakeFlightOpsActuator.cs": 2,
-  "mod/Sitrep.Host.Tests/FakePartActionActuator.cs": 2,
-  "mod/Sitrep.Host.Tests/FakeRoboticsActuator.cs": 2,
-  "mod/Sitrep.Host.Tests/FakeScienceActuator.cs": 2,
-  "mod/Sitrep.Host.Tests/FakeVesselActuator.cs": 2,
-  "mod/Sitrep.Host.Tests/PartActionsViewProviderTests.cs": 1,
-  "mod/Sitrep.Host.Tests/UplinkDiscoveryTests.cs": 1,
-  "mod/Sitrep.Host/RecordedSessionCodec.cs": 2,
-  "mod/Sitrep.Host/ScienceCommandProvider.cs": 1,
-  "mod/Sitrep.Host/VesselViewProvider.cs": 2,
-  "mod/sitrep-sdk/src/api/command-rejection.test-d.ts": 2,
-  "mod/sitrep-sdk/src/flight/BufferedDataSource.test.ts": 1,
-  "mod/sitrep-sdk/src/flight/flightDetector.ts": 1,
-  "mod/sitrep-sdk/src/flight/storage/Store.ts": 2,
-  "mod/sitrep-sdk/src/spine/use-command.ts": 1,
-  "packages/app/src/components/SignalLossIndicator.stream.test.tsx": 2,
-  "packages/app/src/settings/SitrepConnection.tsx": 1,
-  "packages/components/scripts/unfed-snapshot-gate.ts": 1,
-  "packages/serial/src/mocks/mockWebSerial.ts": 1,
-  "packages/serial/src/transports/GamepadTransport.ts": 1,
-  "packages/sitrep-client/src/websocket-transport.ts": 1,
-  "tests/playwright/sitrep-stream-server.mjs": 2,
-};
+export const BANNER_COMMENT_DEBT: Record<string, number> = {};
 
 /**
  * A file carrying at least this many banners is treated as a sectioning scheme
@@ -143,10 +109,10 @@ export const SECTIONED_CEILINGS = {
  * root. `styleguide-earth-day` shipped in exactly that state for weeks.
  */
 export const SCAN_FLOORS = {
-  /** Hand-written source files walked. 2,784 at seed time. */
+  /** Hand-written source files walked. 2,784 at seed time, 3,353 on 2026-09-01. */
   files: 2000,
-  /** Files carrying at least one banner. 78 at seed time. */
-  filesWithBanner: 60,
-  /** Banner lines found. 341 at seed time. */
-  banners: 250,
+  /** Files carrying at least one banner. 78 at seed time, 35 once the debt list emptied. */
+  filesWithBanner: 27,
+  /** Banner lines found. 341 at seed time, 238 once the debt list emptied. */
+  banners: 180,
 } as const;

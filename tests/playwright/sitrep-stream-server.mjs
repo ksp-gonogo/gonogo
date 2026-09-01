@@ -71,8 +71,6 @@ import { WebSocketServer } from "ws";
 
 const PORT = Number.parseInt(process.env.SITREP_REPLAY_PORT ?? "8090", 10);
 
-// --- Meta helpers ----------------------------------------------------------
-
 // Quality: OnRails=0, Loaded=1. Staleness: Fresh=0, HeldStale=1, LastBeforeBlackout=2.
 // PayloadMeta (inner, per-record) is a subset: { source, quality }.
 //
@@ -102,9 +100,10 @@ function frameMeta(seq) {
 
 const payloadMeta = { source: "sitrep-stream-server", quality: 0 };
 
-// --- The snapshot: Kerbin-orbiting "Mun Tester", Bob Kerman aboard, LOS ----
-// Numbers translated 1:1 from test/recorded_fixtures/launch_to_apoapsis_10000.json's
-// final sample per key (see map-topic.ts for the old-key -> new-topic table).
+// The snapshot below is a Kerbin-orbiting "Mun Tester" with Bob Kerman aboard,
+// in LOS. Numbers translated 1:1 from
+// test/recorded_fixtures/launch_to_apoapsis_10000.json's final sample per key
+// (see map-topic.ts for the old-key -> new-topic table).
 const KERBIN_INDEX = 1;
 const KERBIN_MU = 3.5316e12; // stock Kerbin GM
 const KERBIN_RADIUS = 600000; // stock Kerbin mean radius, metres

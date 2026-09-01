@@ -13,11 +13,9 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakeScienceActuator : IScienceActuator
     {
-        // ---- recorded calls (null until the method is invoked) ----
         public string? LastDeployPartId;
         public string? LastTransmitPartId;
 
-        // ---- configurable results (default: success) ----
         public CommandResult DeployResult = CommandResult.Ok();
         public CommandResult TransmitResult = CommandResult.Ok();
 

@@ -58,7 +58,6 @@ namespace Sitrep.Host
         public const string OrbitTruthTopic = "vessel.orbit.truth";
         public const string FlightTopic = "vessel.flight";
 
-        // ---- M1 Task 2 topics ----
         public const string AttitudeTopic = "vessel.attitude";
         public const string ResourcesTopic = "vessel.resources";
         public const string ThermalTopic = "vessel.thermal";
@@ -76,7 +75,6 @@ namespace Sitrep.Host
         public const string WarpTopic = "time.warp";
         public const string CalendarTopic = "time.calendar";
 
-        // ---- M3 R3 capture-adds ----
         public const string DockTopic = "vessel.dock";
         public const string SurfaceTopic = "vessel.surface";
         public const string LandingTopic = "vessel.landing";

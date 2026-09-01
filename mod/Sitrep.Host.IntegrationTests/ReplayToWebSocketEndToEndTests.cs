@@ -97,7 +97,7 @@ namespace Sitrep.Host.IntegrationTests
                 await using var client = await TestClient.ConnectAsync(server.BoundPort, Timeout);
                 await SubscribeAsync(client, SystemViewProvider.Topic, Timeout);
 
-                // ---- Step 1: UT 0, snapshot A. Not due yet (fireUt = 0+2 = 2). ----
+                // Step 1: UT 0, snapshot A. Not due yet (fireUt = 0+2 = 2).
                 DriveOneStep(host, server, lifecycleEvents);
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
 

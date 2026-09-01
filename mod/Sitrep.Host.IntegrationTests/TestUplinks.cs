@@ -135,7 +135,6 @@ namespace Sitrep.Host.IntegrationTests
                 Channel(VesselViewProvider.CrewTopic),
                 Channel(VesselViewProvider.StructureTopic),
                 Channel(VesselViewProvider.WarpTopic),
-                // ---- M3 R3 capture-adds ----
                 Channel(VesselViewProvider.DockTopic),
                 Channel(VesselViewProvider.SurfaceTopic),
             },

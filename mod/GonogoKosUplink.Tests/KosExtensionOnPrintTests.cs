@@ -154,8 +154,6 @@ namespace GonogoKosUplink.Tests
             Assert.Contains(("feed.v", (object?)2.0), source.Published);
         }
 
-        // --- kos.run routing (kos-uplink-full-migration.md) ---------------
-
         [Fact]
         public void OnPrint_ArmedRun_RoutesTheCompletedBlockToTheRunManagerNotCompute()
         {

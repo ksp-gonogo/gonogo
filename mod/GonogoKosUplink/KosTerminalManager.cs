@@ -182,8 +182,6 @@ namespace Gonogo.KosUplink
         /// </summary>
         public void NotifySubscribed(int coreId) => _pendingReseeds[coreId] = 0;
 
-        // ---- Downlink poll (main thread, from the dispatcher addon Update) ----
-
         /// <summary>
         /// Advance the ~20 Hz downlink loop by <paramref name="deltaSeconds"/>.
         /// Cheap on ticks that don't reach the interval; on a tick that does, it
@@ -294,8 +292,6 @@ namespace Gonogo.KosUplink
                 _pendingReseeds.TryRemove(coreId, out _);
             }
         }
-
-        // ---- Uplink commands (main thread, via KosExtension.RunOnMainThread) ----
 
         /// <summary>Acquire the single-owner write lease. Reject (no steal) if held by a different token.</summary>
         public CommandResult Open(int coreId, string leaseToken)

@@ -17,15 +17,11 @@ export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
  * resolves synchronously.
  */
 export interface FlightStore {
-  // --- Flights -----------------------------------------------------------
-
   upsertFlight(record: FlightRecord): Promise<void>;
   getFlight(id: string): Promise<FlightRecord | null>;
   listFlights(): Promise<FlightRecord[]>;
   deleteFlight(id: string): Promise<void>;
   clearAllFlights(): Promise<void>;
-
-  // --- Samples -----------------------------------------------------------
 
   /**
    * Append one sample. Implementations are free to batch writes internally;

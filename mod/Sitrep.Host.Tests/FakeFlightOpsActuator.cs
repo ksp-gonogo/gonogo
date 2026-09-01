@@ -14,7 +14,6 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakeFlightOpsActuator : IFlightOpsActuator
     {
-        // ---- recorded calls (null/0 until the method is invoked) ----
         public int RevertToLaunchCallCount;
         public EditorFacilityKind? LastRevertToEditorFacility;
         public int ToTrackingStationCallCount;
@@ -25,7 +24,6 @@ namespace Sitrep.Host.Tests
         public string? LastLaunchSite;
         public IReadOnlyList<string>? LastLaunchCrew;
 
-        // ---- configurable results (default: success) ----
         public CommandResult RevertToLaunchResult = CommandResult.Ok();
         public CommandResult RevertToEditorResult = CommandResult.Ok();
         public CommandResult ToTrackingStationResult = CommandResult.Ok();

@@ -508,8 +508,6 @@ public class StockCurrencyStateMachineTests
         Assert.Equal(10.0, resolved.ShadowToRestore);
     }
 
-    // ---- VesselLoss (crew-death reputation) correlation ----
-
     // The unloaded-vessel destruction path: onVesselWillDestroy (the push)
     // fires BEFORE MurderCrew kills the crew, so the death vessel is
     // already claimable when the reputation change arrives.
@@ -708,7 +706,7 @@ public class StockCurrencyStateMachineTests
         Assert.True(withPush.IsAway);
     }
 
-    // ---- Guarded-write shadow tracking: a reveal must advance the shadow ----
+    // Guarded-write shadow tracking: a reveal must advance the shadow.
     //
     // The Critical bug this regresses: the interceptor's guarded glue used to bail out on every
     // one of its own writes (both the neutralise SetX and RevealApplier's reveal AddX), so a
