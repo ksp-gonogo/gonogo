@@ -10,14 +10,22 @@
 // bare JSON array of the element type.
 //
 // THIS IS NOT A LIST OF EVERY TOPIC ON THE WIRE, and it cannot become one.
-// A DYNAMIC namespace (`fleet.`, `silence.`, `currency.`, vessel part-actions,
-// and an Uplink's own) is registered at RUNTIME through
+// A DYNAMIC namespace is registered at RUNTIME through
 // `IUplinkHost.RegisterDynamicNamespace` and materialises its topics per
 // subject, so no [SitrepTopic]-tagged type exists for reflection to find and
-// nothing about it appears below. Asking this file "is there per-vessel X"
-// gets a confident no for a topic that has been published all along:
-// `fleet.<guid>.orbit` was surveyed as missing that way. To enumerate the
-// dynamic half, grep the mod for `RegisterDynamicNamespace` instead.
+// nothing about it appears below: `silence.<guid>.*`,
+// `currency.<guid>.<currency>`, `vessel.partActions.<flightId>`, and each
+// Uplink's own. Asking this file "is there per-vessel X" gets a confident no
+// for a topic that has been published all along: `fleet.<guid>.orbit` was
+// surveyed as missing that way. To enumerate the dynamic half, grep the mod
+// for `RegisterDynamicNamespace` instead.
+//
+// THE PREFIX IS NOT THE TEST, and `fleet.` is the case that proves it.
+// `fleet.silence` is statically declared and IS below; `fleet.<guid>.<field>`
+// is dynamic and is not. An earlier version of this header listed `fleet.`
+// among the namespaces nothing of which appears here, which the very map it
+// introduces contradicts. Reading either half as evidence about the other
+// goes wrong in both directions.
 
 import type {
   AvionicsStatus,
