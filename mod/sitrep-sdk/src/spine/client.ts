@@ -363,10 +363,9 @@ export class TelemetryClient {
   }
 
   /**
-   * Subscribe to selected-vantage changes (for a reactive read, e.g.
-   * `@ksp-gonogo/sitrep-client`'s `useSelectedVantage`). Fires after
-   * {@link setVantage} updates the selection.
-   * Returns an unsubscribe.
+   * Subscribe to selected-vantage changes, so a component can re-render on one
+   * without owning the selection itself. Fires after {@link setVantage} updates
+   * the selection. Returns an unsubscribe.
    */
   onSelectedVantageChange(cb: () => void): () => void {
     this.vantageListeners.add(cb);

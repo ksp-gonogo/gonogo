@@ -26,8 +26,7 @@ import {
  *   understands instead of the derived topic name.
  * - **Frame-driven reactivity** (`store.subscribeFrame`): re-renders on every
  *   frame the provider mints (`TelemetryProvider` calls `beginFrame()` on
- *   every ingest tick), not on a raw per-topic callback, the same pattern
- *   `@ksp-gonogo/sitrep-client`'s `useTimelineStream` uses, since a derived value
+ *   every ingest tick), not on a raw per-topic callback, since a derived value
  *   can change from an ingest on any of several input topics, not one fixed
  *   topic name.
  *

@@ -35,15 +35,21 @@
  *    seed at 59 instead of 129 and keeps the gate off documentation whose whole
  *    job is to say where a wire value came from.
  * 5. QUALIFIED REFERENCES PASS. If the doc says where the named thing lives,
- *    within `QUALIFY_WINDOW` characters of the reference, it is provenance.
+ *    within `QUALIFY_WINDOW` characters either side of the reference and with
+ *    no other reference standing between the two, it is provenance.
  *
- * Predicate 5 is why this rule survives contact, and it is deliberately the
- * escape valve rather than the debt list. The fix for a benign hit is to
- * QUALIFY THE MENTION, which makes the doc strictly better: "`useDataSeries`"
- * becomes "`@ksp-gonogo/data`'s `useDataSeries`", and now the reader knows why
- * they cannot import it. 11 of the 70 T1+T2 instances in the census already
- * qualified themselves this way, so it is an existing convention here rather
- * than one this gate invents.
+ * Predicate 5 is the escape valve, and it is deliberately NOT the default fix.
+ * Qualifying "`useDataSeries`" into "`@ksp-gonogo/data`'s `useDataSeries`"
+ * clears the gate while leaving the reader worse off: they now know there is a
+ * named, homed thing that would apparently help and that they cannot install.
+ * 34 references were qualified on 2026-09-01 and every one was rewritten out
+ * again the same day. Reach for it only where the mention is pure provenance
+ * the reader benefits from knowing and could not act on either way.
+ *
+ * ATTACHMENT IS PER-REFERENCE, not per-neighbourhood, because a qualifier
+ * otherwise launders the references beside it: the `@ksp-gonogo/components`
+ * written for `formatDensity` in `NullValue.tsx` also marked a ui-kit-internal
+ * `formatKspDate` two mentions earlier as provenance, with that doc untouched.
  *
  * A LEXICAL DISCRIMINATOR WAS BUILT, MEASURED AND REJECTED. The obvious rule is
  * an instruction verb within N characters before the reference. It catches the
@@ -56,9 +62,10 @@
  * fires on "call sites" is a gate that gets turned off.
  *
  * Every entry in `DOC_DEBT` and `CS_CAPABILITY_SEAM_DEBT` is DEBT and both
- * lists are SHRINK-ONLY. Fix one by qualifying the mention, by moving the named
- * export onto a published barrel, or by rewriting the sentence so it does not
- * point outside. Then lower the count. Never raise one.
+ * lists are SHRINK-ONLY. Fix one by rewriting the sentence so it does not point
+ * outside, by moving the named export onto a published barrel where the reader
+ * genuinely needs it, or, in the narrow provenance case, by qualifying the
+ * mention. Then lower the count. Never raise one.
  */
 
 /**
@@ -94,9 +101,10 @@ export const TIERS = {
    * which is `private: true`. Same shape as `useViewUt`, one notch softer
    * because it names an alternative rather than a required step.
    *
-   * Cleared to zero on 2026-09-01, all of it by predicate 5: the docs now name
-   * the package each symbol lives in, so the reader is told why they cannot
-   * import it instead of being pointed at a dead end.
+   * Cleared to zero on 2026-09-01 by rewriting all 34, not one of them by
+   * moving an export: every one turned out to be provenance a reader of the
+   * published surface has no use for, and `BufferedDataSource`'s own sentence
+   * was already true with `queryRange` alone.
    */
   T2: "a private npm workspace package",
 } as const;
@@ -157,7 +165,13 @@ export const PRIVATE_NPM_PACKAGES = [
   "@ksp-gonogo/sitrep-kernel",
 ] as const;
 
-/** Characters either side of a reference that predicate 5 reads for a qualifier. */
+/**
+ * Characters predicate 5 reads for a qualifier, back from a reference's START
+ * and on from its END. Symmetric on purpose: measured forward from the start it
+ * spent its budget on the reference's own characters and flagged "the read side
+ * of `useDataSeries`'s stream shim (`@ksp-gonogo/data`)", where the specifier
+ * sat one character past the end of the slice.
+ */
 export const QUALIFY_WINDOW = 90;
 
 /**
@@ -252,10 +266,11 @@ export const CS_CAPABILITY_ELECTION_PATTERNS: readonly string[] = [
  * Seeded 2026-08-20 from the census: 59 references across 36 files, T1a 20,
  * T1b 2, T2 37. Maximum 6 in any one file.
  *
- * T2 IS EMPTY as of 2026-09-01. All 34 that were still standing were
- * provenance, and every one was fixed by qualifying the mention rather than by
- * moving an export: none of the 34 named something the reader actually needed.
- * A new T2 entry is therefore a fresh violation, not seed residue.
+ * T2 IS EMPTY as of 2026-09-01. All 34 that were still standing were rewritten
+ * so the published doc no longer names the symbol at all, and none of them
+ * needed an export moved: they described how the app happens to consume a
+ * published thing, which is not a reader of the sdk's business. A new T2 entry
+ * is therefore a fresh violation, not seed residue.
  */
 export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
   "mod/sitrep-sdk/src/api/index.ts": { T1a: 1 },

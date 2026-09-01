@@ -53,8 +53,17 @@ const REPO_ROOT = join(HERE, "..", "..", "..");
 const ALLOWLIST_PATH =
   "packages/core/src/published-doc-reachability.allowlist.ts";
 
+/**
+ * Compiled global, because predicate 5 needs every occurrence of a qualifier in
+ * a block and its position, not the yes/no a single `test` gives. `matchAll`
+ * builds its own iterator regex, so the shared `lastIndex` never leaks between
+ * blocks.
+ */
 const compile = (patterns: readonly (readonly [string, string])[]) =>
-  patterns.map(([source, flags]) => new RegExp(source, flags));
+  patterns.map(
+    ([source, flags]) =>
+      new RegExp(source, flags.includes("g") ? flags : `${flags}g`),
+  );
 const TS_QUALIFIERS = compile(TS_QUALIFIER_PATTERNS);
 const CS_QUALIFIERS = compile(CS_QUALIFIER_PATTERNS);
 const GLOBALS = new Set<string>(GLOBAL_IDENTIFIERS);
@@ -269,24 +278,120 @@ function publishedDocRanges(
   return ranges;
 }
 
+/**
+ * One code-form reference and the span it occupies in the flattened block.
+ * `at`/`end` bracket the whole written form (backticks and all), so predicate
+ * 5 can measure its window from the reference's edges rather than from its
+ * opening delimiter.
+ */
+interface DocRef {
+  name: string;
+  at: number;
+  end: number;
+}
+
 /** Code-form references in a flattened doc block: `` `X` `` and `{@link X}`. */
-function codeFormRefs(block: string): { name: string; at: number }[] {
-  const refs: { name: string; at: number }[] = [];
+function codeFormRefs(block: string): DocRef[] {
+  const refs: DocRef[] = [];
   for (const m of block.matchAll(/\{@link(?:code|plain)?\s+([^}|\s]+)/g)) {
-    refs.push({ name: m[1].split(/[.#]/)[0], at: m.index });
+    refs.push({
+      name: m[1].split(/[.#]/)[0],
+      at: m.index,
+      end: m.index + m[0].length,
+    });
   }
   for (const m of block.matchAll(/`([^`\n]+)`/g)) {
     const head = m[1]
       .trim()
       .replace(/^[<{(\s]+/, "")
       .match(/^[A-Za-z_$][A-Za-z0-9_$]*/);
-    if (head) refs.push({ name: head[0], at: m.index });
+    if (head)
+      refs.push({ name: head[0], at: m.index, end: m.index + m[0].length });
   }
   return refs;
 }
 
-const isQualified = (context: string, patterns: RegExp[]) =>
-  patterns.some((p) => p.test(context));
+/**
+ * The same for a flattened C# doc block: `<see cref>`, `<c>` and backticks.
+ * `name` is the head segment, matching what the finding loop tiers on, while
+ * the span covers the whole written name so the window is measured from its
+ * real edges.
+ */
+function csDocRefs(block: string): DocRef[] {
+  const refs: DocRef[] = [];
+  const add = (m: RegExpExecArray, group: number) => {
+    const written = m[group];
+    const head = written.trim().match(/^[A-Za-z_][A-Za-z0-9_.]*/);
+    if (!head) return;
+    const at = m.index + m[0].indexOf(written) + written.indexOf(head[0]);
+    refs.push({ name: head[0].split(".")[0], at, end: at + head[0].length });
+  };
+  for (const m of block.matchAll(/cref\s*=\s*"(?:[A-Za-z]:)?([A-Za-z0-9_.]+)/g))
+    add(m, 1);
+  for (const m of block.matchAll(/<c>([^<]+)<\/c>/g)) add(m, 1);
+  for (const m of block.matchAll(/`([^`\n]+)`/g)) add(m, 1);
+  return refs;
+}
+
+/**
+ * Predicate 5, attached to ONE reference instead of to its neighbourhood.
+ *
+ * A qualifier counts for a reference when it falls inside `QUALIFY_WINDOW`
+ * characters either side AND no other code-form reference sits between the
+ * two. Proximity alone let a specifier launder its neighbours: the
+ * `@ksp-gonogo/components` written for `formatDensity` in `NullValue.tsx` also
+ * marked `formatKspDate`, a ui-kit-internal reference two mentions earlier,
+ * as provenance without anybody editing that doc.
+ *
+ * The window runs `QUALIFY_WINDOW` back from the reference's START and
+ * `QUALIFY_WINDOW` on from its END. Measuring forward from the start spent the
+ * budget on the reference's own characters, so "the read side of
+ * `useDataSeries`'s stream shim (`@ksp-gonogo/data`)" was flagged with the
+ * specifier one character past the end of the slice.
+ */
+function attachedQualifier(
+  block: string,
+  refs: readonly DocRef[],
+  ref: DocRef,
+  patterns: RegExp[],
+): boolean {
+  const from = Math.max(0, ref.at - QUALIFY_WINDOW);
+  const to = Math.min(block.length, ref.end + QUALIFY_WINDOW);
+  const window = block.slice(from, to);
+  for (const pattern of patterns) {
+    for (const m of window.matchAll(pattern)) {
+      const at = from + m.index;
+      if (!laundered(refs, ref, at, at + m[0].length)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Whether a qualifier spanning `[at, end)` is separated from `ref` by another
+ * reference, which is what makes it that other reference's qualifier rather
+ * than this one's. A reference the qualifier itself overlaps never separates
+ * anything: a backticked path is both a qualifier and, to the reference regex,
+ * a reference.
+ */
+function laundered(
+  refs: readonly DocRef[],
+  ref: DocRef,
+  at: number,
+  end: number,
+): boolean {
+  const before = end <= ref.at;
+  const gapStart = before ? end : ref.end;
+  const gapEnd = before ? ref.at : at;
+  if (gapEnd <= gapStart) return false;
+  return refs.some(
+    (other) =>
+      other !== ref &&
+      other.end > gapStart &&
+      other.at < gapEnd &&
+      !(other.at < end && other.end > at),
+  );
+}
 
 interface Finding {
   pkg: string;
@@ -346,7 +451,9 @@ function scanTypeScript(
           .replace(/\s*\n\s*/g, " ");
         const line = text.slice(0, m.index).split("\n").length;
         const seen = new Set<string>();
-        for (const { name, at } of codeFormRefs(block)) {
+        const refs = codeFormRefs(block);
+        for (const ref of refs) {
+          const { name } = ref;
           referencesConsidered++;
           // Predicate 3: reachable, a builtin, or resolving to nothing.
           if (GLOBALS.has(name) || own.has(name) || elsewhere.has(name))
@@ -367,18 +474,14 @@ function scanTypeScript(
                 ? "T2"
                 : "T3";
 
-          // Predicate 5.
-          const context = block.slice(
-            Math.max(0, at - QUALIFY_WINDOW),
-            at + name.length + 30,
-          );
           findings.push({
             pkg: pkg.name,
             file,
             line,
             name,
             tier,
-            qualified: isQualified(context, TS_QUALIFIERS),
+            // Predicate 5.
+            qualified: attachedQualifier(block, refs, ref, TS_QUALIFIERS),
           });
         }
       }
@@ -484,6 +587,7 @@ function scanCsharp(): CsScan {
         .map((l) => l.replace(/^\s*\/\/\/\s?/, ""))
         .join(" ");
 
+      const blockRefs = csDocRefs(block);
       const refs = new Set<string>();
       for (const m of lines[i].matchAll(
         /cref\s*=\s*"(?:[A-Za-z]:)?([A-Za-z0-9_.]+)/g,
@@ -509,12 +613,11 @@ function scanCsharp(): CsScan {
         );
         if (reachable) continue;
         if (!onSeam(head)) continue;
-        const at = block.indexOf(head);
-        const context = block.slice(
-          Math.max(0, at - QUALIFY_WINDOW),
-          at + head.length + 30,
-        );
-        if (isQualified(context, CS_QUALIFIERS)) continue;
+        // Unplaceable in the block (a form `csDocRefs` does not read) means no
+        // neighbourhood to read a qualifier out of, so it stays unqualified.
+        const ref = blockRefs.find((r) => r.name === head);
+        if (ref && attachedQualifier(block, blockRefs, ref, CS_QUALIFIERS))
+          continue;
         findings.push({ file, line: i + 1, name: head });
       }
     }
@@ -649,6 +752,43 @@ describe("published doc reachability", () => {
         ].join("\n"),
       ).toContain(`${RECONSTRUCTION.file} [${RECONSTRUCTION.tier}]`);
     });
+
+    /**
+     * Predicate 5's attachment and window, on constructed blocks because the
+     * tree holds no instance of either shape today. Both fixes landed with the
+     * finding count unchanged at 21, and an unchanged count is also exactly
+     * what a fix that did nothing produces: only a fixture that WOULD have come
+     * out the other way tells the two apart.
+     */
+    const attachesIn = (block: string, name: string) => {
+      const refs = codeFormRefs(block);
+      const ref = refs.find((r) => r.name === name);
+      if (!ref) throw new Error(`the fixture has no reference \`${name}\``);
+      return attachedQualifier(block, refs, ref, TS_QUALIFIERS);
+    };
+
+    it("attaches a qualifier to its own reference, not to its neighbours", () => {
+      // The specifier leads, so BOTH mentions sit inside the backward window
+      // the old rule already gave them and only attachment separates them.
+      const block =
+        "`@ksp-gonogo/data`'s `beta` is the shim, and `alpha` reads through it";
+      expect(attachesIn(block, "beta"), "the specifier's own mention").toBe(
+        true,
+      );
+      expect(
+        attachesIn(block, "alpha"),
+        "a mention with another reference standing between it and the specifier",
+      ).toBe(false);
+    });
+
+    it("reads a qualifier that FOLLOWS the reference", () => {
+      const block =
+        "the read side of `useDataSeries`'s stream shim (`@ksp-gonogo/data`)";
+      expect(
+        attachesIn(block, "useDataSeries"),
+        "the forward window is measured from the reference's END; measured from its start it stopped one character short of the slash",
+      ).toBe(true);
+    });
   });
 
   it("no published doc points outside the barrels beyond the debt list", () => {
@@ -670,12 +810,19 @@ describe("published doc reachability", () => {
         "A third-party author reading it is told about something they cannot",
         "import. Three ways out, best first:",
         "",
-        "1. QUALIFY THE MENTION. If it is provenance, say where the thing lives:",
-        "   `useDataSeries` becomes `@ksp-gonogo/data`'s `useDataSeries`. The doc",
-        "   gets strictly better and the gate stops caring.",
+        "1. REWRITE THE SENTENCE so it does not point outside. This is the",
+        "   default. If the reader cannot act on the mention, the doc should not",
+        "   make them aware of it; where a published equivalent exists, name that",
+        "   instead. `BufferedDataSource` said backfill goes through `queryRange`",
+        "   or `useDataSeries`, and `queryRange` alone is both true and reachable.",
         "2. MOVE THE EXPORT onto the published barrel, if the doc is right that",
         "   the reader needs it.",
-        "3. REWRITE THE SENTENCE so it does not point outside.",
+        "3. QUALIFY THE MENTION, for the narrow case where it is pure provenance",
+        "   the reader benefits from knowing and could not act on either way.",
+        "   Demoted from first on 2026-09-01, after 34 references were qualified",
+        "   and the result read worse: a qualified mention still tells an author",
+        "   about a thing they cannot have, and now tells them it has a name and",
+        "   a home they cannot reach.",
         "",
         "Do NOT raise the debt count: it is shrink-only, and a raised number",
         "means new code just created the violation.",

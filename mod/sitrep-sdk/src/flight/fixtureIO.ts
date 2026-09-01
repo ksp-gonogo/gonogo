@@ -170,9 +170,8 @@ export async function exportFlightToFixture(
  * import` produces an identical fixture (modulo undefined-vs-missing
  * schema metadata).
  *
- * Calls `store.flush()` at the end so `@ksp-gonogo/data`'s `IndexedDbStore`
- * batched writes
- * are observable to subsequent reads.
+ * Calls `store.flush()` at the end so a store that batches its writes has them
+ * observable to subsequent reads.
  */
 export async function importFixtureToStore(
   store: FlightStore,

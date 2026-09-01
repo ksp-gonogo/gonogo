@@ -289,8 +289,7 @@ function interpolatedRead<T>(
  *
  * Two consumption tiers:
  * - **Reactive**: `subscribeFrame` + `sample` back a `useSyncExternalStore`
- *   hook (`@ksp-gonogo/sitrep-client`'s `useTimelineStream`) that reads at
- *   whatever `FrameToken`
+ *   hook that reads at whatever `FrameToken`
  *   `currentFrame()` currently holds, it does NOT mint its own token per
  *   render, so two components rendering in the same frame see the same
  *   `viewUt` even if wall time ticks between their renders.
@@ -479,8 +478,8 @@ export class TimelineStore {
 
   /**
    * Register a derived channel. From this point on,
-   * `sample(def.topic, token)` (and `@ksp-gonogo/sitrep-client`'s
-   * `useTimelineStream(store, def.topic)`, which is built on `sample`) transparently returns the memoized derived
+   * `sample(def.topic, token)`, and every reactive read built on it,
+   * transparently returns the memoized derived
    * value instead of reading a raw `ClientTimeline`, callers never need to
    * know whether a topic is raw or derived ("raw-vs-derived
    * invisible" to consumers). If `def.fields` is set, `"<topic>.<field>"` subtopics are
@@ -524,7 +523,7 @@ export class TimelineStore {
     return this.currentToken;
   }
 
-  /** The token minted by the most recent `beginFrame()` call. What reactive reads (`@ksp-gonogo/sitrep-client`'s `useTimelineStream`) use; never recomputed per read. */
+  /** The token minted by the most recent `beginFrame()` call. What every reactive read uses; never recomputed per read. */
   currentFrame(): FrameToken {
     return this.currentToken;
   }
@@ -689,9 +688,9 @@ export class TimelineStore {
   }
 
   /**
-   * Windowed range read for a raw topic (or raw record field-subtopic),
-   * the read side of `@ksp-gonogo/data`'s `useDataSeries` stream shim.
-   * Mirrors `sample()`'s raw-topic / raw-field-subtopic resolution
+   * Windowed range read for a raw topic (or raw record field-subtopic): the
+   * backfill side of a historical series read, where `sample()` is the live
+   * side. Mirrors `sample()`'s raw-topic / raw-field-subtopic resolution
    * (`resolveRawFieldSubtopic`, see `timeline-store-raw-fields.test.ts`) but
    * returns every buffered point in `[fromUt, toUt]` instead of one
    * hold-last read.

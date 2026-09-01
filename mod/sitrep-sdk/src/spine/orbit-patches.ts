@@ -114,10 +114,10 @@ function transitionName(ordinal: number): TransitionName {
 }
 
 /**
- * Reshapes one wire `OrbitPatch` into the legacy shape `@ksp-gonogo/core`'s
- * `predictGroundTrack` (and MapView's overlay) already consume unchanged: a pure field rename/
- * passthrough, no lookup needed: `referenceBody`/`closestEncounterBody` are
- * already body NAME strings on the wire (see `OrbitPatch.cs`'s doc comment
+ * Reshapes one wire `OrbitPatch` into the legacy shape the ground-track
+ * prediction and the map overlay already consume unchanged: a pure field
+ * rename/passthrough, no lookup needed: `referenceBody`/`closestEncounterBody`
+ * are already body NAME strings on the wire (see `OrbitPatch.cs`'s doc comment
  * for why), unlike most of this codebase's index-based body references.
  *
  * `mu` and the body indexes are deliberately NOT carried through. This is the
