@@ -1808,6 +1808,18 @@ export interface CommandRequest<TArgs>
 	*/
 	vantage?: string;
 	args: TArgs;
+	/**
+	* When the client dispatched, in UT seconds (KSP universal time), the same
+	* base as `Meta.validAt`. Carries no unit type for the same reason the
+	* envelope's own timestamps do not: no readout shows it. **Every client sends
+	* 0 today.** The dispatching client has no UT to hand at that point that the
+	* server would not know better, and the server stamps the response's
+	* `Meta.deliveredAt` off its own clock, so a caller wanting a round-trip
+	* measures against its own view time rather than reading this back. The field
+	* is carried onto a response's `Meta.validAt`, which therefore reads 0 on a
+	* command response: nothing consumes that today, and a consumer that starts to
+	* must make the client fill this in first.
+	*/
 	sentAt: number;
 }
 export interface CommandResponse<TResult>
@@ -2562,8 +2574,26 @@ export enum Staleness {
 export interface Meta
 {
 	source: string;
+	/**
+	* When the payload was TRUE in the game, in UT seconds (KSP universal time),
+	* the same base every `*Ut` field on every payload uses. This is the instant a
+	* reading is "as of", and the one a client compares against its view time to
+	* decide currency. Carries no unit type, alone among the contract's UT fields
+	* and deliberately: the envelope rides on every message and nothing renders
+	* these, so ten transport and timeline files do arithmetic on them and a
+	* wrapper would allocate twice per message on the hottest path for a quantity
+	* no readout shows. The unit is declared on the property either way, it just
+	* does not become a type.
+	*/
 	validAt: number;
 	seq: number;
+	/**
+	* When the server handed the message to the transport, in the same UT seconds
+	* as `Meta.validAt`. The two differ by the signal delay the vantage is under,
+	* so subtracting one from the other is how old the payload was when it
+	* arrived, and they are equal on a live (zero-delay) link. Carries no unit
+	* type for the same reason as `Meta.validAt`.
+	*/
 	deliveredAt: number;
 	vantage: string;
 	quality: Quality;

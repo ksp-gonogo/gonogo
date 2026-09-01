@@ -24,10 +24,33 @@ public class Meta
 {
     [SitrepUnit(Units.Id)]
     public string Source { get; set; } = "";
+
+    /// <summary>
+    /// When the payload was TRUE in the game, in UT seconds (KSP universal
+    /// time), the same base every <c>*Ut</c> field on every payload uses. This
+    /// is the instant a reading is "as of", and the one a client compares
+    /// against its view time to decide currency.
+    ///
+    /// Carries no unit type, alone among the contract's UT fields and
+    /// deliberately: the envelope rides on every
+    /// message and nothing renders these, so ten transport and timeline files
+    /// do arithmetic on them and a wrapper would allocate twice per message on
+    /// the hottest path for a quantity no readout shows. The unit is declared
+    /// on the property either way, it just does not become a type.
+    /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double ValidAt { get; set; }
     [SitrepUnit(Units.Id)]
     public long Seq { get; set; }
+
+    /// <summary>
+    /// When the server handed the message to the transport, in the same UT
+    /// seconds as <see cref="ValidAt"/>. The two differ by the signal delay the
+    /// vantage is under, so subtracting one from the other is how old the
+    /// payload was when it arrived, and they are equal on a live (zero-delay)
+    /// link.
+    /// Carries no unit type for the same reason as <see cref="ValidAt"/>.
+    /// </summary>
     [SitrepUnit(Units.UniversalTime)]
     public double DeliveredAt { get; set; }
     [SitrepUnit(Units.Id)]

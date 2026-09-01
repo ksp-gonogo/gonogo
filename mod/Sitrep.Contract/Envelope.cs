@@ -78,6 +78,21 @@ public class CommandRequest<TArgs>
     public string? Vantage { get; set; }
 
     public TArgs Args { get; set; } = default!;
+
+    /// <summary>
+    /// When the client dispatched, in UT seconds (KSP universal time), the same
+    /// base as <see cref="Meta.ValidAt"/>. Carries no unit type for the same
+    /// reason the envelope's own timestamps do not: no readout shows it.
+    ///
+    /// <b>Every client sends 0 today.</b> The dispatching client has no UT to
+    /// hand at that point that the server would not know better, and the server
+    /// stamps the response's <see cref="Meta.DeliveredAt"/> off its own clock,
+    /// so a caller wanting a round-trip measures against its own view time
+    /// rather than reading this back. The field is carried onto a response's
+    /// <see cref="Meta.ValidAt"/>, which therefore reads 0 on a command
+    /// response: nothing consumes that today, and a consumer that starts to
+    /// must make the client fill this in first.
+    /// </summary>
     public double SentAt { get; set; }
 }
 
