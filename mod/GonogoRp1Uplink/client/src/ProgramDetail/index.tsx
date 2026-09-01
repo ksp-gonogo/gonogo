@@ -4,31 +4,26 @@ import {
   Badge,
   Cluster,
   DataTable,
+  Disclosure,
   EmptyState,
-  Field,
-  FieldLabel,
   GraphNotice,
   LineGraph,
   MissionDate,
   magnitudeOf,
   NULL_DISPLAY,
-  Panel,
-  PanelBody,
-  PanelTitle,
   Readout,
   ReadoutCaption,
   Row,
   RowName,
-  ScrollArea,
   Section,
   SectionTitle,
-  Select,
+  SelectableRow,
   type Severity,
   Stack,
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import { useId, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type {
   Rp1FundingCurveEntry,
   Rp1ProgramEntry,
@@ -81,7 +76,6 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
   const career = current(useTelemetry("career.status"));
 
   const [picked, setPicked] = useState<string | null>(null);
-  const selectId = useId();
 
   const rows = programs ?? [];
   const chosen = choose(rows, picked ?? "");
@@ -98,23 +92,36 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
 
   return (
     <Section>
-      <SectionTitle>PROGRAM DETAIL</SectionTitle>
+      {/*
+        The Program on screen sits BESIDE the section's own heading rather than
+        under it as a second one, which is the operator's "a 'Program' header
+        directly under it... it should actually use the aside UI". It is the
+        aside's shape and deliberately not `Panel`'s own `aside` prop: this
+        augment draws into the Administration building's scrolling body and owns
+        no panel to hang one on, and a panel narrow enough to collapse its aside
+        would fold away the name of the thing every row below is about. The
+        collapse is why VehicleAssembly keeps its funds line in the body.
+      */}
+      <Cluster gap="sm" wrap>
+        <SectionTitle>PROGRAM DETAIL</SectionTitle>
+        {chosen !== undefined && (
+          /* Wrapping in its own right, not just as one item of the row above.
+             The badge and a Program's title are two items and RP-1's titles run
+             long ("Sounding Rocket Development"): as a single unbreakable item
+             the pair overflowed the panel's own width at the sizes this screen
+             draws at, which the readability probe reads as text an operator
+             cannot see. `justify="start"` because it is a subject, not a row to
+             be spread. */
+          <Cluster gap="xs" justify="start" wrap>
+            <Badge severity={severityOf(chosen.state)}>
+              {(chosen.state ?? NULL_DISPLAY).toUpperCase()}
+            </Badge>
+            <Text weight="semibold">{label(chosen)}</Text>
+          </Cluster>
+        )}
+      </Cluster>
       <Stack gap="md">
-        <Field>
-          <FieldLabel htmlFor={selectId}>Program</FieldLabel>
-          <Select
-            id={selectId}
-            value={chosen?.name ?? ""}
-            onChange={(e) => setPicked(e.target.value)}
-          >
-            {rows.length === 0 && <option value="">{NULL_DISPLAY}</option>}
-            {ordered(rows).map((program) => (
-              <option key={program.name ?? ""} value={program.name ?? ""}>
-                {label(program)}
-              </option>
-            ))}
-          </Select>
-        </Field>
+        <ProgramPicker chosen={chosen} onPick={setPicked} programs={rows} />
 
         {/* Wrapping, because three readouts do not fit across a narrow
             panel and a Cluster that cannot wrap pushes the third one past
@@ -141,11 +148,11 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
           /*
            * Two states reach here and neither is "this Program has no detail":
            * RP-1 is present (checked above) and the catalogue has either not
-           * arrived yet or arrived empty. Both leave nothing to describe.
+           * arrived yet or arrived empty. Both leave nothing to describe, which
+           * is the one case worth a line: the surface is unreadable rather than
+           * empty.
            */
-          <EmptyState>
-            No Program selected. RP-1 has not sent a Program catalogue yet.
-          </EmptyState>
+          <EmptyState>RP-1 has not sent a Program catalogue</EmptyState>
         ) : (
           <ChosenProgram
             program={chosen}
@@ -155,6 +162,67 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
         )}
       </Stack>
     </Section>
+  );
+}
+
+/**
+ * The catalogue, as a list of rows the operator picks from.
+ *
+ * <para>Not a dropdown, on the operator's ruling that "the active program should
+ * not be a dropdown". A <c>select</c> shows one entry at a time and hides the
+ * state of every other, so an operator could not see that the Program paying the
+ * career is running, which of the rest are acceptable and which are locked
+ * without opening it and reading forty entries one at a time. Each row carries
+ * its state, so the catalogue is scannable.</para>
+ *
+ * <para>Behind an expander because it is reference: the detail opens on the
+ * running Program, which is the one worth reading, and RP-1's catalogue is long
+ * enough that a standing list would push every reading below it off the screen.
+ * The panel caps its own height and scrolls, which is what the kit's inline
+ * disclosure does.</para>
+ *
+ * <para>Absent entirely with no catalogue to pick from: a picker offering the
+ * null token is a control that cannot be used.</para>
+ */
+function ProgramPicker({
+  chosen,
+  onPick,
+  programs,
+}: Readonly<{
+  chosen: Rp1ProgramEntry | undefined;
+  onPick: (name: string) => void;
+  programs: readonly Rp1ProgramEntry[];
+}>) {
+  if (programs.length === 0) {
+    return null;
+  }
+  return (
+    <Disclosure
+      ariaLabel="Choose a Program"
+      asButton
+      buttonSize="sm"
+      chevron={false}
+      label={(open: boolean) => (open ? "Hide programs" : "Choose program")}
+      panelHeight="cap"
+      variant="inline"
+    >
+      <Stack gap="xs">
+        {ordered(programs).map((program) => (
+          <SelectableRow
+            key={program.name ?? ""}
+            onClick={() => onPick(program.name ?? "")}
+            selected={program.name === chosen?.name}
+          >
+            <Cluster gap="xs" wrap>
+              <Text size="xs">{label(program)}</Text>
+              <Badge severity={severityOf(program.state)}>
+                {(program.state ?? NULL_DISPLAY).toUpperCase()}
+              </Badge>
+            </Cluster>
+          </SelectableRow>
+        ))}
+      </Stack>
+    </Disclosure>
   );
 }
 
@@ -171,17 +239,11 @@ function ChosenProgram({
   const closes = program.programsToDisableOnAccept ?? [];
   return (
     <Stack gap="md">
+      {/* No heading of its own: the section's title row names this Program and
+          carries its state badge, and repeating either here is the stacked
+          heading the operator objected to. */}
       <Section>
-        <SectionTitle>{label(program)}</SectionTitle>
         <Stack as="ul" gap="xs" style={LIST_STYLE}>
-          <Row>
-            <RowName>State</RowName>
-            <Text>
-              <Badge severity={severityOf(program.state)}>
-                {(program.state ?? NULL_DISPLAY).toUpperCase()}
-              </Badge>
-            </Text>
-          </Row>
           <Row>
             <RowName>Speed</RowName>
             <Text>{program.speed ?? NULL_DISPLAY}</Text>
@@ -201,10 +263,12 @@ function ChosenProgram({
         </Stack>
       </Section>
 
-      <Section>
-        <SectionTitle>OBJECTIVES</SectionTitle>
-        <Text>{program.objectivesText ?? "None declared."}</Text>
-      </Section>
+      {present(program.objectivesText) !== undefined && (
+        <Section>
+          <SectionTitle>OBJECTIVES</SectionTitle>
+          <Text>{program.objectivesText}</Text>
+        </Section>
+      )}
 
       {present(program.requirementsText) !== undefined && (
         <Section>

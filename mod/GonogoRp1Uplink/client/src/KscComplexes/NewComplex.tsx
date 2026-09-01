@@ -95,10 +95,17 @@ export function NewComplexControl({
     trimmed === "" || duplicate || chosen == null || !massed || quote === null;
 
   return (
+    /* A small trailing button rather than a full-width chevron band, matching
+       the complex cards' own detail expander: the two are the same primitive and
+       had drawn as two different controls. */
     <Disclosure
       ariaLabel="Build a new launch complex"
-      chevron
-      label={(open: boolean) => (open ? "hide new complex" : "new complex")}
+      asButton
+      buttonSize="sm"
+      chevron={false}
+      label={(open: boolean) =>
+        open ? "Hide new complex" : "Build a new complex"
+      }
       panelHeight="auto"
       variant="inline"
     >

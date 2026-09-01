@@ -1,4 +1,5 @@
 import {
+  ActionButton,
   CommandButton,
   Inline,
   magnitudeOf,
@@ -6,7 +7,6 @@ import {
   Row,
   Stack,
   Text,
-  TextButton,
   TextField,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -145,27 +145,13 @@ export function PadDismantleControl({
         handle={handle}
         label="Dismantle"
         size="sm"
+        title={blockedBecause ?? undefined}
         tone="warn"
       />
     </Inline>
   );
 }
 
-/**
- * A complex's pads as rows rather than a sentence, once any of them has a control
- * on it.
- *
- * <para>The list used to be one muted line naming every pad and its level, which
- * is right for a reading and wrong the moment a pad can be acted on: a press has
- * to sit beside the thing it acts on, and a row of names with buttons run
- * together reads as a row of buttons.</para>
- *
- * <para>The operational count is asked of RP-1 rather than counted off the rows,
- * and that is not laziness: a wrecked pad reports <c>Destroyed</c> rather than
- * non-operational, so counting what is not non-operational overcounts exactly
- * when a launch has just gone wrong. It is also the number RP-1's own rule is
- * stated against.</para>
- */
 /**
  * Building one more pad at a complex.
  *
@@ -310,15 +296,22 @@ export function RenameControl({
 
   if (!open) {
     return (
-      <TextButton
+      // An ActionButton, which is the kit's compact bordered control and matches
+      // the Dismantle, Build and Rush presses this sits among. It was a
+      // TextButton: bare lowercase text with no chrome next to a row of bordered
+      // buttons, which is the "why is the rename button a different form to the
+      // other buttons?" the operator asked. Not a CommandButton, because opening
+      // an editor dispatches nothing.
+      <ActionButton
         aria-label={`Rename ${label}`}
         onClick={() => {
           setNext(currentName);
           setOwnOpen(true);
         }}
+        type="button"
       >
-        rename
-      </TextButton>
+        Rename
+      </ActionButton>
     );
   }
 
@@ -355,12 +348,13 @@ export function RenameControl({
           label="Rename"
           size="sm"
         />
-        <TextButton
+        <ActionButton
           aria-label={`Leave ${label} named ${currentName}`}
           onClick={close}
+          type="button"
         >
-          cancel
-        </TextButton>
+          Cancel
+        </ActionButton>
       </Inline>
     </Stack>
   );
@@ -418,12 +412,13 @@ function PadRow({
       </Text>
       <Inline gap="xs">
         {canRename && (
-          <TextButton
+          <ActionButton
             aria-label={`Rename ${padName}`}
             onClick={() => setRenaming(true)}
+            type="button"
           >
-            rename
-          </TextButton>
+            Rename
+          </ActionButton>
         )}
         <PadDismantleControl
           complex={complex}
@@ -435,6 +430,21 @@ function PadRow({
   );
 }
 
+/**
+ * A complex's pads as rows rather than a sentence, once any of them has a control
+ * on it.
+ *
+ * <para>The list used to be one muted line naming every pad and its level, which
+ * is right for a reading and wrong the moment a pad can be acted on: a press has
+ * to sit beside the thing it acts on, and a row of names with buttons run
+ * together reads as a row of buttons.</para>
+ *
+ * <para>The operational count is asked of RP-1 rather than counted off the rows,
+ * and that is not laziness: a wrecked pad reports <c>Destroyed</c> rather than
+ * non-operational, so counting what is not non-operational overcounts exactly
+ * when a launch has just gone wrong. It is also the number RP-1's own rule is
+ * stated against.</para>
+ */
 export function PadRows({
   complex,
   pads,
@@ -450,7 +460,6 @@ export function PadRows({
   newPad: Parameters<typeof CommandButton>[0]["handle"];
   renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
-  const operational = magnitudeOf(complex.launchPadCount);
   const lcId = complex.lcId;
   const taken = pads
     .map((pad) => pad.name)
@@ -478,9 +487,6 @@ export function PadRows({
     <Stack gap="xs">
       <Text size="xs" tone="muted">
         pads · <Unit value={complex.launchPadCount} /> operational
-        {operational !== null &&
-          operational < 2 &&
-          ", so none can be dismantled"}
       </Text>
       <Stack as="ul" gap="xs" style={LIST_STYLE}>
         {pads.map((pad, index) => (

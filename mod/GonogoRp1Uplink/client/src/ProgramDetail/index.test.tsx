@@ -155,6 +155,10 @@ describe("ProgramDetail", () => {
      * An unconfigured instance should be useful: the Program paying the career
      * is the one worth opening on, and RP-1's catalogue order would put a locked
      * 1980s Program first.
+     *
+     * Read off the title row, which is where the Program on screen is named:
+     * that heading and the picker's own selected row are the two places the
+     * choice shows, and the heading is the one visible without opening anything.
      */
     const { fixture } = mount();
     await feed(fixture, [
@@ -162,9 +166,46 @@ describe("ProgramDetail", () => {
       program(),
     ]);
 
+    expect(await screen.findByText("X-Plane Research")).toBeInTheDocument();
+    expect(visibleText()).not.toContain("Aeronautics");
+  });
+
+  /*
+   * Not a dropdown, which is the operator's own ruling: a select shows one
+   * entry and hides the state of every other, so the catalogue could not be
+   * scanned. Behind an expander because RP-1's catalogue is long and the detail
+   * already opens on the Program worth reading.
+   */
+  it("keeps the catalogue behind one press rather than standing open", async () => {
+    const { fixture } = mount();
+    await feed(fixture, [
+      program({ name: "Aeronautics", title: "Aeronautics", state: "locked" }),
+      program(),
+    ]);
+
+    expect(screen.queryByRole("combobox")).toBeNull();
     expect(
-      await screen.findByRole("combobox", { name: /Program/ }),
-    ).toHaveValue("EarlyXPlanes");
+      screen.queryByRole("button", { name: "Aeronautics" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Choose a Program" }),
+    ).toBeInTheDocument();
+  });
+
+  it("draws no picker at all when RP-1 has sent no catalogue", async () => {
+    // A picker whose only entry is the null token is a control that cannot be
+    // used.
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", []);
+
+    await waitFor(() => {
+      expect(screen.getByText(/PROGRAM DETAIL/)).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole("button", { name: "Choose a Program" }),
+    ).toBeNull();
+    await act(async () => {});
   });
 
   /*
@@ -186,13 +227,34 @@ describe("ProgramDetail", () => {
   it("lets the operator pick any Program, running or not", async () => {
     const { fixture } = mount();
     await feed(fixture, [
-      program({ name: "Aeronautics", title: "Aeronautics", state: "locked" }),
+      program({
+        name: "Aeronautics",
+        title: "Aeronautics",
+        state: "locked",
+        objectivesText: "Break the sound barrier.",
+      }),
       program(),
     ]);
 
-    const select = await screen.findByRole("combobox", { name: /Program/ });
-    await userEvent.selectOptions(select, "Aeronautics");
-    expect(select).toHaveValue("Aeronautics");
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Choose a Program" }),
+    );
+    // Each row carries the Program's state, which is the whole reason the
+    // dropdown went: the catalogue is scannable without opening every entry.
+    const row = screen.getByRole("button", { name: /Aeronautics LOCKED/ });
+    await userEvent.click(row);
+
+    expect(row).toHaveAttribute("aria-pressed", "true");
+    // The title row follows the pick, so the Program every reading below is
+    // about is named without reading the list again. Two matches while the
+    // picker is open, its own row being the other, so the count is the
+    // assertion: the name is on the heading AND on the row that was pressed.
+    expect(screen.getAllByText("Aeronautics")).toHaveLength(2);
+    /* The detail follows the heading: the picked Program's own objectives are in
+       the body and the running one's are gone, so the pick moved the whole
+       surface rather than just the row's highlight. */
+    expect(screen.getByText("Break the sound barrier.")).toBeInTheDocument();
+    expect(screen.queryByText("Fly the X-Planes.")).toBeNull();
   });
 
   it("tabulates the per-year funding summary RP-1 sends", async () => {
@@ -380,7 +442,9 @@ describe("ProgramDetail", () => {
     fixture.emit("rp1.available", true);
 
     await waitFor(() => {
-      expect(screen.getByText(/No Program selected/)).toBeInTheDocument();
+      expect(
+        screen.getByText("RP-1 has not sent a Program catalogue"),
+      ).toBeInTheDocument();
     });
     /*
      * The async settle after the body: the stream fixture answers the remaining

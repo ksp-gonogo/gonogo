@@ -1,26 +1,33 @@
 {
   "_meta": {
-    "notes": "An acceptable Program on the shipped StrongFrontloaded curve, priced at all three speeds against 212 Confidence held: Slow is free, Normal is out of reach at 300 and Fast at 600, which is the SHORT badge doing the work the balance readout alone cannot."
+    "notes": "The picker, open. Five Programs in RP-1's own catalogue order, which puts a locked eighties Program above the one paying the career, so the sort is what makes the list readable: running first, then what could be accepted, then the rest. Each row carries its state, which is the whole reason this is not a dropdown, and the Program the detail below is about is the pressed row AND the name beside the section heading. The picked one is the running Early Orbital Program on the shipped Flat curve."
   },
   "_scene": {
     "augment": "rp1-program-detail",
     "host": "strategies",
-    "caption": "An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years",
+    "caption": "The Program catalogue open as a list of rows rather than a dropdown: each carries its own state, the running one sorts first, and the Program every reading below belongs to is named beside the section heading rather than under it",
+    "size": {
+      "w": 11,
+      "h": 20
+    },
+    "before": [
+      {
+        "press": "Choose a Program"
+      }
+    ],
     "paints": [
       "PROGRAM DETAIL",
-      "Early X-Planes",
+      "Early Orbital Program",
+      "ACTIVE",
+      "Crewed Orbital Program",
       "OFFERABLE",
-      "SPEED",
-      "SHORT",
-      "CLOSES OFF ON ACCEPT"
-    ],
-    "size": {
-      "w": 8,
-      "h": 16
-    }
+      "Munar Program",
+      "LOCKED",
+      "Hide programs"
+    ]
   },
   "_stream": {
-    "pinnedUt": 27000000,
+    "pinnedUt": 26800000,
     "emits": [
       {
         "topic": "rp1.available",
@@ -29,6 +36,175 @@
       {
         "topic": "rp1.programs",
         "payload": [
+          {
+            "name": "MunarProgram",
+            "title": "Munar Program",
+            "state": "locked",
+            "speed": "Normal",
+            "slots": 1,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": null,
+            "durationSeconds": null,
+            "acceptedUt": null,
+            "deadlineUt": null,
+            "objectivesCompletedUt": null,
+            "completedUt": null,
+            "lastPaymentUt": null,
+            "fracElapsed": null,
+            "totalFunding": null,
+            "fundsPaidOut": null,
+            "fundsRemaining": null,
+            "fundingCurve": null,
+            "confidenceCost": null,
+            "repDeltaOnCompletePerYearEarly": null,
+            "repPenaltyPerYearLate": null,
+            "repPenaltyAssessed": 0,
+            "requirementsMet": false,
+            "objectivesMet": false,
+            "canAccept": false,
+            "canComplete": false,
+            "requirementsText": null,
+            "objectivesText": null,
+            "speedOptions": null,
+            "programsToDisableOnAccept": null,
+            "fundingPayments": null
+          },
+          {
+            "name": "SuborbRocketDev",
+            "title": "Sounding Rocket Development",
+            "state": "completed",
+            "speed": "Normal",
+            "slots": 1,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": null,
+            "durationSeconds": null,
+            "acceptedUt": null,
+            "deadlineUt": null,
+            "objectivesCompletedUt": null,
+            "completedUt": 17400000,
+            "lastPaymentUt": null,
+            "fracElapsed": null,
+            "totalFunding": 252000.0,
+            "fundsPaidOut": 252000.0,
+            "fundsRemaining": 0.0,
+            "fundingCurve": null,
+            "confidenceCost": null,
+            "repDeltaOnCompletePerYearEarly": null,
+            "repPenaltyPerYearLate": null,
+            "repPenaltyAssessed": 0,
+            "requirementsMet": false,
+            "objectivesMet": false,
+            "canAccept": false,
+            "canComplete": false,
+            "requirementsText": null,
+            "objectivesText": null,
+            "speedOptions": null,
+            "programsToDisableOnAccept": null,
+            "fundingPayments": null
+          },
+          {
+            "name": "EarlyOrbital",
+            "title": "Early Orbital Program",
+            "state": "active",
+            "speed": "Normal",
+            "slots": 2,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": 189345600.0,
+            "durationSeconds": 189345600.0,
+            "acceptedUt": 18000000,
+            "deadlineUt": 207345600,
+            "objectivesCompletedUt": null,
+            "completedUt": null,
+            "lastPaymentUt": 26800000,
+            "fracElapsed": 0.29,
+            "totalFunding": 612000.0,
+            "fundsPaidOut": 178000.0,
+            "fundsRemaining": 434000.0,
+            "fundingCurve": "Flat",
+            "confidenceCost": 480,
+            "repDeltaOnCompletePerYearEarly": 60,
+            "repPenaltyPerYearLate": 60,
+            "repPenaltyAssessed": 0,
+            "requirementsMet": true,
+            "objectivesMet": false,
+            "canAccept": false,
+            "canComplete": false,
+            "requirementsText": null,
+            "objectivesText": "Put a satellite into orbit and return telemetry for a full year.",
+            "speedOptions": [
+              {
+                "speed": "Slow",
+                "confidenceCost": 0.0,
+                "durationSeconds": 284018400.0
+              },
+              {
+                "speed": "Normal",
+                "confidenceCost": 480.0,
+                "durationSeconds": 189345600.0
+              },
+              {
+                "speed": "Fast",
+                "confidenceCost": 960.0,
+                "durationSeconds": 142009200.0
+              }
+            ],
+            "programsToDisableOnAccept": null,
+            "fundingPayments": [
+              {
+                "year": 3,
+                "funds": 102000.0,
+                "cumulativeFunds": 306000.0
+              },
+              {
+                "year": 4,
+                "funds": 102000.0,
+                "cumulativeFunds": 408000.0
+              },
+              {
+                "year": 5,
+                "funds": 102000.0,
+                "cumulativeFunds": 510000.0
+              },
+              {
+                "year": 6,
+                "funds": 102000.0,
+                "cumulativeFunds": 612000.0
+              }
+            ]
+          },
+          {
+            "name": "CrewedOrbit",
+            "title": "Crewed Orbital Program",
+            "state": "offerable",
+            "speed": "Normal",
+            "slots": 2,
+            "isHumanSpaceflight": false,
+            "nominalDurationSeconds": null,
+            "durationSeconds": null,
+            "acceptedUt": null,
+            "deadlineUt": null,
+            "objectivesCompletedUt": null,
+            "completedUt": null,
+            "lastPaymentUt": null,
+            "fracElapsed": null,
+            "totalFunding": 880000.0,
+            "fundsPaidOut": null,
+            "fundsRemaining": null,
+            "fundingCurve": null,
+            "confidenceCost": 700,
+            "repDeltaOnCompletePerYearEarly": null,
+            "repPenaltyPerYearLate": null,
+            "repPenaltyAssessed": 0,
+            "requirementsMet": true,
+            "objectivesMet": false,
+            "canAccept": true,
+            "canComplete": false,
+            "requirementsText": null,
+            "objectivesText": null,
+            "speedOptions": null,
+            "programsToDisableOnAccept": null,
+            "fundingPayments": null
+          },
           {
             "name": "EarlyXPlanes",
             "title": "Early X-Planes",
@@ -105,10 +281,10 @@
         "topic": "rp1.programSlots",
         "payload": {
           "maxSlots": 3,
-          "usedSlots": 1,
-          "freeSlots": 2,
+          "usedSlots": 2,
+          "freeSlots": 1,
           "activeCount": 1,
-          "completedCount": 2
+          "completedCount": 1
         }
       },
       {

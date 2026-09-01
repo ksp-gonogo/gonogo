@@ -6,6 +6,13 @@
     "augment": "rp1-program-detail",
     "host": "strategies",
     "caption": "A Program whose funding curve RP-1 has not published: the chart refuses to draw and says so, rather than drawing zero",
+    "paints": [
+      "PROGRAM DETAIL",
+      "Sounding Rocket Development",
+      "ACTIVE",
+      "FUNDING CURVE",
+      "has not sent its funding-curve table"
+    ],
     "size": {
       "w": 8,
       "h": 16

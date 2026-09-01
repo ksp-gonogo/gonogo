@@ -83,7 +83,7 @@ export function ComplexCard({
   const unstaffed = operational && engineers === 0;
 
   return (
-    <Card as="li" tone={unstaffed ? "warning" : operational ? "go" : "default"}>
+    <Card tone={unstaffed ? "warning" : operational ? "go" : "default"}>
       <Stack gap="lg">
         <Cluster gap="xs" wrap>
           <Text weight="semibold">{name}</Text>
@@ -92,6 +92,11 @@ export function ComplexCard({
               <Badge severity="info">HUMAN-RATED</Badge>
             )}
             {rushing && <Badge severity="caution">RUSHING</Badge>}
+            {/* Beside the card's other states rather than under the crew bar,
+                where it was a badge and a sentence about what the badge means.
+                Read off `unstaffed`, so a complex still being built does not
+                report a crew shortage on top of NOT YET BUILT. */}
+            {unstaffed && <Badge severity="caution">NOBODY ASSIGNED</Badge>}
             {operational ? null : (
               <Badge severity="offline">NOT YET BUILT</Badge>
             )}
@@ -127,11 +132,19 @@ export function ComplexCard({
           rushing complex is paying double salary and an unstaffed one is idle.
           The envelope, the costs and the pads are reference: true for months at a
           time and read when a decision needs them.
+
+          A small trailing button rather than the full-width chevron band the
+          inline default draws, which the operator called "not great": a clickable
+          strip the width of the card reads as the card's own header, not as a
+          control on it. `asButton` + `chevron={false}` is the kit's own pairing
+          for a worded trigger, and it sizes to its label at the row's end.
         */}
         <Disclosure
           ariaLabel={`Detail for ${name}`}
-          chevron
-          label={(open: boolean) => (open ? "hide detail" : "detail")}
+          asButton
+          buttonSize="sm"
+          chevron={false}
+          label={(open: boolean) => (open ? "Hide detail" : "Show detail")}
           panelHeight="auto"
           variant="inline"
         >
@@ -227,12 +240,6 @@ function Crew({
           value={share * 100}
         />
       )}
-      {engineers === 0 && (
-        <Text size="xs" tone="muted">
-          <Badge severity="caution">NOBODY ASSIGNED</Badge> nothing here
-          advances until someone is
-        </Text>
-      )}
     </Stack>
   );
 }
@@ -316,27 +323,21 @@ function AssignControl({
         Unassigned: 6` above: the two buttons CARRY the number they will move, and
         the size comes from a held modifier key (none/shift/ctrl/alt for
         1/10/100/all) rather than from anything on screen.
-        A dashboard cannot use modifier keys, so the size is a control here. But it
-        is drawn as a labelled SETTING rather than a row of actions, because the
-        operator's complaint was exact: "The 1 option is highlighted on every LC,
-        but I don't understand why... it looks like 1 is already pressed." A
-        selected step in a group of buttons reads as a button that has been
-        pressed. Labelling the group "step" and keeping the amount ON the two
-        command buttons is what tells the two apart.
+
+        A dashboard cannot use modifier keys, so the size is a control here, drawn
+        as a labelled SETTING rather than a row of actions: a selected step among
+        buttons reads as a button already pressed, which is what the operator saw
+        in "The 1 option is highlighted on every LC... it looks like 1 is already
+        pressed". A Stepper has a value between two arrows and no pressed state.
       */}
       <Cluster align="center" gap="sm" wrap>
-        {/*
-          A Stepper rather than a row of toggles, and the operator's words are the
-          reason: "The 1 option is highlighted on every LC, but I don't understand
-          why... it looks like 1 is already pressed." A segmented control sitting
-          next to two command buttons reads as an action that has been taken,
-          because a selected toggle and a pressed button look the same. A stepper
-          has a VALUE between two arrows and no pressed state at all, which is
-          what it is: RP-1 holds this as a modifier key, not as a control.
-        */}
         <Inline gap="xs">
+          {/* The quantity, named. It read "step", which the operator answered
+              with "Step what?": a bare "step" says the control moves something
+              by an amount and leaves the something out, and the amount here is
+              engineers per press of the two buttons beside it. */}
           <Text size="xs" tone="muted">
-            step
+            engineers per press
           </Text>
           <Stepper
             label={`Engineers moved per press at ${name}`}

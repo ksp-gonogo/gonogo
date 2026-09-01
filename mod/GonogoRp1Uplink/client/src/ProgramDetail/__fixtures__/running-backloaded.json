@@ -6,6 +6,14 @@
     "augment": "rp1-program-detail",
     "host": "strategies",
     "caption": "A running Program part paid, on a strongly back-loaded curve: the chart is why the total alone cannot be planned against, almost none of this money arrives before the fourth year",
+    "paints": [
+      "PROGRAM DETAIL",
+      "Sounding Rocket Development",
+      "ACTIVE",
+      "FUNDING",
+      "Paid out",
+      "FUNDING SUMMARY"
+    ],
     "size": {
       "w": 8,
       "h": 16

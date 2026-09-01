@@ -7,7 +7,7 @@
     "augment": "rp1-crew-schedule",
     "host": "astronaut-complex",
     "size": { "w": 14, "h": 20 },
-    "caption": "The three training commands on the nauts they are about: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked",
+    "caption": "The three training commands on the nauts they are about, sharing one card with the dates they move: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked",
     "before": [{ "press": "Active" }],
     "paints": [
       "TRAINING",
