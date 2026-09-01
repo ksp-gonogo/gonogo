@@ -849,20 +849,30 @@ contribution slot). So an Uplink can add a body section or a header action to an
 including one whose author never declared a slot, and this is usually the answer when a widget looks
 like it needs a slot ADDED to it.
 
-Beyond those, the first-party widgets declare about thirty named slots, and the catalogue is the type
-rather than a list in a document: `SlotId` is the union of every declared id and `SlotProps<S>` is the
-props one hands its augment, both from `@ksp-gonogo/sitrep-sdk`. Autocomplete on the slot id in
-`registerAugment` is the enumeration, and it is current by construction where a prose list would go
-stale. A slot not in the registry falls back to a loose props bag rather than failing, so a typo in a
-slot id costs you a silent no-render: read the id off the completion list.
+Beyond those, the first-party widgets declare forty named slots (thirty-three augment, seven
+contribution), and the catalogue is the type rather than a list in a document: `SlotId` is the union of
+every declared augment id and `SlotProps<S>` the props one hands its augment, `ContributionSlotId` and
+`ContributionEntry<S>` the same for the data kind, all from `@ksp-gonogo/sitrep-sdk`. Autocomplete on
+the slot id is the enumeration, and it is current by construction where a prose list would go stale.
+
+A slot id not in the registry falls back to a loose props bag rather than failing, so a typo costs you
+a silent no-render rather than a compile error. Read the id off the completion list.
 
 To own a slot in YOUR widget, declare it in the registration (`augmentSlots` or `contributionSlots`),
 merge its props type into `SlotRegistry` from your own client, and mount `<AugmentSlot>` where it goes.
 Declare a given id as one kind or the other, never both.
 
-Both `AugmentSlot` and `registerAugment` are exported from `@ksp-gonogo/ui-kit` AND re-exported from
-`@ksp-gonogo/sitrep-sdk`. They are the same implementation, so either import works; pick one and be
-consistent, because two spellings of the same call in one client reads like two mechanisms.
+**`AugmentSlot`, `registerAugment`, `getAugmentsForSlot` and `clearAugments` are exported from BOTH
+published packages, and they are not the same function.** Import them from
+**`@ksp-gonogo/sitrep-sdk`**. The SDK's are shims that resolve through the host the app installs, which
+is the single registry the running app reads and the one your test's `installRealTestHost` wires up.
+ui-kit's are the implementation the host is built FROM, so registering through those in a test leaves
+you observing a registry the app never consults, and nothing about the call looks wrong. It is the
+sharpest instance of a dozen names the two barrels share; `registerUnit` is the other, and that one is
+covered under "The two seams" below.
+
+`ContributionsProvider`, by contrast, is ui-kit's directly and is not shimmed, because the aggregation
+lives beside the per-widget store it writes. Import that one from ui-kit.
 
 ### Wire the side-effect entry point
 
