@@ -40,8 +40,6 @@
  * pass, so the companion test fails on an empty or placeholder reason.
  */
 export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {
-  "mod/GonogoKerbalismUplink/client":
-    "Uplink client, 22 test files. The split config is the same one-line change the other seven Uplinks took; what holds it here is 102 errors behind it, ~80 of them fixtures minting `{ magnitude: n }` where the contract says `Value<U>`. Emit-split it and convert those fixtures to `WireOf<T>` or real `value(unit, n)`.",
   "mod/sitrep-sdk":
     "53 test files, and the published leaf everything else builds against, so its fixtures are the ones most worth checking. Largest of the remaining entries; do it after one of the small Uplinks has proved the shape.",
   "packages/components":

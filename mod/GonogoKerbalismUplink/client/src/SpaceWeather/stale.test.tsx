@@ -29,10 +29,19 @@ import "./index";
  * render each other's wording.
  */
 
-const SW = getComponent("space-weather");
-if (!SW) throw new Error("space-weather is not registered");
-const TOPIC = SW.channels?.[0];
-if (!TOPIC) throw new Error("space-weather declares no primary channel");
+/**
+ * The registered widget and its primary channel, both read through a function
+ * so their "it is there" checks reach the emit calls below: a module-level
+ * guard narrows the module body only, and every use here is inside a closure.
+ */
+function spaceWeather() {
+  const def = getComponent("space-weather");
+  if (!def) throw new Error("space-weather is not registered");
+  const topic = def.channels?.[0];
+  if (!topic) throw new Error("space-weather declares no primary channel");
+  return { def, topic };
+}
+const { def: SW, topic: TOPIC } = spaceWeather();
 const CARRIED = [...(SW.channels ?? []), ...(SW.optionalChannels ?? [])];
 
 const NOT_CURRENT = "Space weather no longer current";

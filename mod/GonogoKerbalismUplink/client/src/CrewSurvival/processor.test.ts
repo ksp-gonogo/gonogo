@@ -1,6 +1,16 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type PayloadMeta, Quality, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { deriveCrewSurvival, toneFor } from "./processor";
+
+/**
+ * The provenance every `vessel.crew` payload carries. Nothing here reads it,
+ * and it is spelled out rather than omitted because a payload without it is one
+ * the wire cannot produce.
+ */
+const CREW_META: PayloadMeta = {
+  source: "vessel.crew",
+  quality: Quality.Loaded,
+};
 
 const units = (n: number) => value("units", n);
 /**
@@ -16,6 +26,7 @@ describe("deriveCrewSurvival", () => {
   it("joins vessel.crew's roster against kerbalism.crew by name", () => {
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 2),
         capacity: value("count", 4),
         crew: [
@@ -58,6 +69,7 @@ describe("deriveCrewSurvival", () => {
   it("carries every rule, not just the worst, sorted worst-first", () => {
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 1),
         capacity: value("count", 1),
         crew: [{ name: "Val" }],
@@ -87,6 +99,7 @@ describe("deriveCrewSurvival", () => {
     // would read this radiation accumulator as 4500% instead of 90%.
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 1),
         capacity: value("count", 1),
         crew: [{ name: "Val" }],
@@ -110,6 +123,7 @@ describe("deriveCrewSurvival", () => {
     // the worst rule if it is in fact the worst.
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 1),
         capacity: value("count", 1),
         crew: [{ name: "Val" }],
@@ -138,6 +152,7 @@ describe("deriveCrewSurvival", () => {
   it("gives a kerbal with no reported rules a stable entry, not a dropped row", () => {
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 1),
         capacity: value("count", 1),
         crew: [{ name: "Bob" }],
@@ -155,6 +170,7 @@ describe("deriveCrewSurvival", () => {
     // kerbalism.crew undefined entirely (mod not installed, or absent this frame).
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 1),
         capacity: value("count", 1),
         crew: [{ name: "Bob" }],
@@ -170,6 +186,7 @@ describe("deriveCrewSurvival", () => {
   it("turns the wire's death-clock INSTANT into time remaining, and forces nogo when soon", () => {
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 1),
         capacity: value("count", 1),
         crew: [{ name: "Val" }],
@@ -185,6 +202,7 @@ describe("deriveCrewSurvival", () => {
   it("takes the soonest death clock across the whole crew", () => {
     const result = deriveCrewSurvival(
       {
+        meta: CREW_META,
         count: value("count", 2),
         capacity: value("count", 2),
         crew: [{ name: "Val" }, { name: "Bob" }],

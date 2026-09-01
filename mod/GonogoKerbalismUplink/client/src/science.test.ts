@@ -7,6 +7,7 @@ import type {
   InstrumentEntry,
   LabEntry,
   Reading,
+  TopicPayloadMap,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -70,7 +71,10 @@ function serverFrame<T>(name: string): { topic: string; payload: T } {
 }
 
 /** Drive one frame through the real client pipeline and hand back what a widget would see. */
-async function decoded<T>(topic: string, payload: unknown): Promise<T> {
+async function decoded<T>(
+  topic: keyof TopicPayloadMap,
+  payload: unknown,
+): Promise<T> {
   const fixture = setupStreamFixture({ carriedChannels: [topic] });
   const { result } = renderHook(() => judgeable(useTelemetry(topic)), {
     wrapper: fixture.Provider,
