@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, type Mock, vi } from "vitest";
 import { ActionMenu, type ActionMenuItem } from "./ActionMenu";
 
 const ITEMS: ActionMenuItem[] = [
@@ -11,8 +11,8 @@ const ITEMS: ActionMenuItem[] = [
 
 function renderMenu(overrides?: {
   items?: ActionMenuItem[];
-  onSelect?: (key: string) => void;
-  onDismiss?: () => void;
+  onSelect?: Mock<(key: string) => void>;
+  onDismiss?: Mock<() => void>;
 }) {
   const onSelect = overrides?.onSelect ?? vi.fn();
   const onDismiss = overrides?.onDismiss ?? vi.fn();
@@ -101,7 +101,7 @@ describe("ActionMenu", () => {
     await user.click(screen.getByRole("menuitem", { name: "Bravo" }));
     expect(onSelect).toHaveBeenCalledWith("b");
 
-    onSelect.mockClear?.();
+    onSelect.mockClear();
     await user.click(screen.getByRole("menuitem", { name: "Charlie" }));
     expect(onSelect).not.toHaveBeenCalled();
   });

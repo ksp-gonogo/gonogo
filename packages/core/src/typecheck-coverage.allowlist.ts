@@ -41,11 +41,9 @@
  */
 export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {
   "mod/sitrep-sdk":
-    "53 test files, and the published leaf everything else builds against, so its fixtures are the ones most worth checking. Largest of the remaining entries; do it after one of the small Uplinks has proved the shape.",
+    "53 test files, and the published leaf everything else builds against, so its fixtures are the ones most worth checking. 41 errors behind the config change, over half of them unit-system tests that pass a deliberately mismatched unit to prove the runtime guard: those want a `@ts-expect-error` saying so, not a fixture change.",
   "packages/components":
-    "254 test files, the biggest single block of unchecked test code in the repo.",
+    "254 test files, the biggest single block of unchecked test code in the repo. 100 errors behind the config change.",
   "packages/sitrep-client":
-    "78 test files, and the app-side spine, so second in value only to the sdk.",
-  "packages/ui-kit":
-    "85 test files, and the published component surface an Uplink builds against.",
+    "78 test files, and the app-side spine, so second in value only to the sdk. 160 errors behind the config change, the most of anything left.",
 };

@@ -9,12 +9,54 @@ import {
   getAugmentsForSlot,
   RETIRED_SLOT_IDS,
   registerAugment,
+  type SlotProps,
 } from "./augments";
 import {
   createDomainAvailabilityStore,
   DomainAvailabilityContext,
 } from "./domainAvailability";
 import { WidgetMetaContext } from "./WidgetMetaContext";
+
+/**
+ * The demo Uplink's own channel, declared the way a real Uplink declares one:
+ * `channels` takes a `TopicId`, so a topic no contract has published is not
+ * nameable, and the gating tests below play an Uplink that has published this.
+ */
+declare module "@ksp-gonogo/sitrep-sdk" {
+  interface TopicPayloadMap {
+    "demomod.available": { available: boolean };
+  }
+}
+
+/** The targeting HUD's own context, for the same reason as `MAP_OVERLAY`. */
+const TARGETING_CAMERA: SlotProps<"targeting.camera"> = {
+  maxDeg: 15,
+  reticleOffset: { x: 0, y: 0 },
+  reticleTravelPct: 40,
+  aligned: false,
+  ax: undefined,
+  ay: undefined,
+  distance: undefined,
+  cameraFlightId: undefined,
+};
+
+/**
+ * A map-overlay slot's own props, spelled out once because `map-view.overlay`
+ * is a TYPED slot: the mechanism tests below are about ordering and gating and
+ * read none of these, but the slot will not take a partial context.
+ */
+const MAP_OVERLAY: SlotProps<"map-view.overlay"> = {
+  width: 320,
+  height: 160,
+  camera: { zoom: 1, panX: 0, panY: 0 },
+  worldW: 640,
+  worldH: 320,
+  bodyName: "Kerbin",
+  bodyRadius: 600_000,
+  project: () => ({ x: 0, y: 0 }),
+  vesselLat: undefined,
+  vesselLon: undefined,
+};
 
 beforeEach(() => clearAugments());
 
@@ -121,7 +163,7 @@ describe("AugmentSlot: composition", () => {
       priority: 20,
     });
 
-    render(<AugmentSlot name="map-view.overlay" props={{}} />);
+    render(<AugmentSlot name="map-view.overlay" props={MAP_OVERLAY} />);
 
     // DOM order = ascending priority → the highest-priority layer is last (on top).
     const order = screen.getAllByTestId("layer").map((el) => el.textContent);
@@ -129,18 +171,24 @@ describe("AugmentSlot: composition", () => {
   });
 
   it("passes slot props down to every augment (spec §4.4)", () => {
-    function ProjAugment({ zoom }: { zoom: number }) {
-      return <div>zoom:{zoom}</div>;
+    // The augment names only the part of the slot's context it needs, which is
+    // the whole point of a typed slot: the host hands over the context and the
+    // augment reads what it came for.
+    function ProjAugment({ camera }: { camera: { zoom: number } }) {
+      return <div>zoom:{camera.zoom}</div>;
     }
     registerAugment({
       id: "proj",
-      // Loose slot (not in SlotRegistry) → props typed as Record<string,unknown>;
-      // the augment narrows what it needs. Real typed slots use SlotRegistry.
       augments: "map-view.overlay",
-      component: ProjAugment as never,
+      component: ProjAugment,
     });
 
-    render(<AugmentSlot name="map-view.overlay" props={{ zoom: 7 }} />);
+    render(
+      <AugmentSlot
+        name="map-view.overlay"
+        props={{ ...MAP_OVERLAY, camera: { zoom: 7, panX: 0, panY: 0 } }}
+      />,
+    );
 
     expect(screen.getByText("zoom:7")).toBeTruthy();
   });
@@ -162,7 +210,7 @@ describe("AugmentSlot: Domain presence gating (spec §4.2)", () => {
 
     render(
       <DomainAvailabilityContext.Provider value={store}>
-        <AugmentSlot name="map-view.overlay" props={{}} />
+        <AugmentSlot name="map-view.overlay" props={MAP_OVERLAY} />
       </DomainAvailabilityContext.Provider>,
     );
 
@@ -460,7 +508,7 @@ describe("augment registry: retired slot ids", () => {
     expect(getAugmentsForSlot("targeting.camera")).toHaveLength(1);
 
     const { container } = render(
-      <AugmentSlot name="targeting.camera" props={{}} />,
+      <AugmentSlot name="targeting.camera" props={TARGETING_CAMERA} />,
     );
     expect(container.textContent).toBe("backdrop");
   });
@@ -487,7 +535,7 @@ describe("augment registry: retired slot ids", () => {
     // ...that no slot will ever render, on either the old or the new name.
     expect(getAugmentsForSlot("targeting.camera")).toEqual([]);
     const { container } = render(
-      <AugmentSlot name="targeting.camera" props={{}} />,
+      <AugmentSlot name="targeting.camera" props={TARGETING_CAMERA} />,
     );
     expect(container.textContent).toBe("");
   });

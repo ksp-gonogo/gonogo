@@ -2,7 +2,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { kspCalendar, STOCK_KERBIN_CALENDAR, setKspCalendar } from "./kspTime";
 import { MissionDateField, partsOfUt, utOfParts } from "./MissionDateField";
 

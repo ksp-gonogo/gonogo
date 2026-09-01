@@ -18,6 +18,5 @@
       "@ksp-gonogo/ui-kit/render-probe": ["./src/render-probe.tsx"]
     }
   },
-  "include": ["src"],
-  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.test-d.ts"]
+  "include": ["src"]
 }
