@@ -6,6 +6,7 @@ import {
   render,
   screen,
   setupStreamFixture,
+  type WireOf,
   waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
@@ -195,7 +196,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     expect(screen.getByRole("status")).toHaveTextContent(
@@ -207,7 +208,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
 
@@ -234,7 +235,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -253,7 +254,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -273,7 +274,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ readOnly: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ readOnly: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -294,7 +295,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -308,7 +309,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: false }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: false }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -344,7 +345,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: false }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: false }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -368,7 +369,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -393,7 +394,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -419,7 +420,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: false }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: false }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -441,7 +442,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -491,7 +492,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -537,7 +538,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     const { rerender } = render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: false }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: false }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -550,7 +551,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     // new prop.
     rerender(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
 
@@ -570,7 +571,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -599,7 +600,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ cpuName: "probe" }} />
+        <KosTerminalComponent id="kos-terminal" config={{ cpuName: "probe" }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", TWO_CPUS));
@@ -614,7 +615,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", TWO_CPUS));
@@ -631,7 +632,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() =>
@@ -659,7 +660,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() =>
@@ -691,7 +692,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", TWO_CPUS));
@@ -710,7 +711,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", TWO_CPUS));
@@ -735,7 +736,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -749,7 +750,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ cpuName: "probe" }} />
+        <KosTerminalComponent id="kos-terminal" config={{ cpuName: "probe" }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", TWO_CPUS));
@@ -763,7 +764,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     const { unmount } = render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -785,7 +786,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     const fixture = terminalFixture();
     const { container } = render(
       <fixture.Provider>
-        <KosTerminalComponent config={{}} />
+        <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
     await expectNoA11yViolations(container);
@@ -805,7 +806,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -845,7 +846,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
               oneWaySeconds: 3.8,
             },
           ],
-        } satisfies PendingUplinkQueue,
+        } satisfies WireOf<PendingUplinkQueue>,
         { validAt: 100, deliveredAt: 100 },
       ),
     );
@@ -905,7 +906,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
               oneWaySeconds: 3.8,
             },
           ],
-        } satisfies PendingUplinkQueue,
+        } satisfies WireOf<PendingUplinkQueue>,
         { validAt: 100, deliveredAt: 100 },
       ),
     );
@@ -979,7 +980,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
             oneWaySeconds: 1,
           },
         ],
-      } satisfies PendingUplinkQueue),
+      } satisfies WireOf<PendingUplinkQueue>),
     );
 
     await waitFor(() =>
@@ -1018,7 +1019,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
               oneWaySeconds: 80,
             },
           ],
-        } satisfies PendingUplinkQueue,
+        } satisfies WireOf<PendingUplinkQueue>,
         { validAt: 100, deliveredAt: 100 },
       ),
     );
@@ -1065,7 +1066,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
             oneWaySeconds: 3.8,
           },
         ],
-      } satisfies PendingUplinkQueue),
+      } satisfies WireOf<PendingUplinkQueue>),
     );
 
     await waitFor(() =>
@@ -1091,7 +1092,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
     fixture.transport.setCommandHandler(() => ({ success: true }));
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -1139,7 +1140,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
               oneWaySeconds: 5,
             },
           ],
-        } satisfies PendingUplinkQueue,
+        } satisfies WireOf<PendingUplinkQueue>,
         { validAt: 25, deliveredAt: 25 },
       ),
     );
@@ -1172,7 +1173,7 @@ describe("KosTerminal: in-transit uplink queue strip (prediction-only, never exe
     act(() =>
       fixture.emit(
         "system.uplink.pending",
-        { pending: [] } satisfies PendingUplinkQueue,
+        { pending: [] } satisfies WireOf<PendingUplinkQueue>,
         { validAt: 26, deliveredAt: 26 },
       ),
     );
@@ -1211,7 +1212,7 @@ describe("KosTerminal: blocks a send with no comms path", () => {
     const fixture = connectivityFixture();
     const { container } = render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -1258,7 +1259,7 @@ describe("KosTerminal: blocks a send with no comms path", () => {
     const fixture = connectivityFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -1288,7 +1289,7 @@ describe("KosTerminal: blocks a send with no comms path", () => {
     const fixture = connectivityFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -1316,7 +1317,7 @@ describe("KosTerminal: blocks a send with no comms path", () => {
     const fixture = connectivityFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: false }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: false }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -1360,6 +1361,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1385,7 +1387,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", ONE_CPU));
@@ -1401,6 +1403,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1425,6 +1428,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1472,6 +1476,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1511,6 +1516,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1534,6 +1540,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1554,6 +1561,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1583,6 +1591,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1612,6 +1621,7 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     const { container } = render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1662,7 +1672,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     const fixture = scriptListingFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     // Warm the kos Uplink executor's OWN kos.processors subscription BEFORE
@@ -1739,7 +1749,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     const fixture = scriptListingFixture();
     render(
       <fixture.Provider>
-        <KosTerminalComponent config={{ lineMode: true }} />
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
       </fixture.Provider>,
     );
     act(() => fixture.emit("kos.processors", UNTAGGED_CPU));
@@ -1761,6 +1771,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: ["0:/manual.ks"] }}
         />
       </fixture.Provider>,
@@ -1785,6 +1796,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1822,6 +1834,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,
@@ -1842,6 +1855,7 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     const { container } = render(
       <fixture.Provider>
         <KosTerminalComponent
+          id="kos-terminal"
           config={{ lineMode: true, scriptPaths: SCRIPTS }}
         />
       </fixture.Provider>,

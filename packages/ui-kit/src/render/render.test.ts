@@ -84,6 +84,7 @@ const INVENTORY: UplinkInventory = {
   ],
   contributions: [],
   processors: [],
+  processorTopicDeps: {},
   reckonedTopics: [],
   derivedChannels: [],
   hosts: [

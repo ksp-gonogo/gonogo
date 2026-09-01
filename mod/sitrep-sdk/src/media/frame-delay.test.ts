@@ -66,15 +66,20 @@ function queuedSource<T extends FrameLike>(
   const state = {
     cancelled: false,
     readCount: 0,
-    async read() {
-      if (cancelled) return { done: true, value: undefined } as const;
+    /*
+     * Annotated, not inferred: the never-resolving branch below is a
+     * `Promise<never>` on its own and widens the inferred union to `unknown`,
+     * which then satisfies no reader shape at all.
+     */
+    async read(): Promise<ReadableStreamReadResult<T>> {
+      if (cancelled) return { done: true, value: undefined };
       if (state.readCount >= frames.length) {
         // Simulate a track that's still open: never resolves further.
-        return new Promise(() => {});
+        return new Promise<ReadableStreamReadResult<T>>(() => {});
       }
-      const value = frames[state.readCount];
+      const value = frames[state.readCount] as T;
       state.readCount += 1;
-      return { done: false, value } as { done: false; value: T };
+      return { done: false, value };
     },
     cancel() {
       cancelled = true;
@@ -83,6 +88,20 @@ function queuedSource<T extends FrameLike>(
     },
   };
   return state;
+}
+
+/**
+ * A promise with its resolver hoisted out, so a test can settle a read that is
+ * already in flight. Holding the resolver in a `let` instead leaves the
+ * compiler believing it is still null at the settling call, because an
+ * assignment inside the executor is not something control flow follows.
+ */
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((r) => {
+    resolve = r;
+  });
+  return { promise, resolve };
 }
 
 /** A sink that records every write in order. */
@@ -159,7 +178,9 @@ describe("createFrameDelayStream", () => {
       const clock = manualClock();
       const raw = { getVideoTracks: () => [{}] } as unknown as MediaStream;
       const onError = vi.fn();
-      let result: ReturnType<typeof createFrameDelayStream>;
+      // Starts undefined, which is not the null the assertion wants: a callback
+      // that never ran fails the test rather than reading as a pass.
+      let result: ReturnType<typeof createFrameDelayStream> | undefined;
       expect(() => {
         result = createFrameDelayStream(raw, {
           view: clock,
@@ -282,15 +303,11 @@ describe("runFrameDelayPipeline: memory safety (every frame closed exactly once)
 
   it("closes a frame that arrives from source.read() after dispose() already fired", async () => {
     const clock = manualClock(Number.NEGATIVE_INFINITY);
-    let resolveRead: ((v: { done: false; value: FakeFrame }) => void) | null =
-      null;
+    const pendingRead = deferred<{ done: false; value: FakeFrame }>();
     const late = fakeFrame("late");
     const source: FrameSource<FakeFrame> & { cancelled: boolean } = {
       cancelled: false,
-      read: () =>
-        new Promise((resolve) => {
-          resolveRead = resolve;
-        }),
+      read: () => pendingRead.promise,
       cancel() {
         this.cancelled = true;
         return Promise.resolve();
@@ -308,7 +325,7 @@ describe("runFrameDelayPipeline: memory safety (every frame closed exactly once)
 
     pipeline.dispose();
     // The in-flight read() resolves only now, after teardown already ran.
-    resolveRead?.({ done: false, value: late });
+    pendingRead.resolve({ done: false, value: late });
 
     await vi.waitFor(() => {
       expect(late.closeCount).toBe(1);
@@ -352,10 +369,22 @@ describe("runFrameDelayPipeline: memory safety (every frame closed exactly once)
 describe("runFrameDelayPipeline: encoded frame shape (no close(), keyframe/bytes classification)", () => {
   /** Minimal stand-in for RTCEncodedVideoFrame: NO close() method, a
    *  `type` discriminant, and a byte-sized `data` payload. */
-  function fakeEncodedFrame(type: "key" | "delta", byteLength: number) {
+  /**
+   * An encoded chunk, which carries no `close()`: declared as extending
+   * `FrameLike` rather than inferred, because every member of `FrameLike` is
+   * optional and an object sharing NONE of them is not assignable to it.
+   */
+  interface FakeEncodedFrame extends FrameLike {
+    type: "key" | "delta";
+    data: ArrayBuffer;
+  }
+
+  function fakeEncodedFrame(
+    type: "key" | "delta",
+    byteLength: number,
+  ): FakeEncodedFrame {
     return { type, data: new ArrayBuffer(byteLength) };
   }
-  type FakeEncodedFrame = ReturnType<typeof fakeEncodedFrame>;
 
   it("releases and writes an encoded frame without ever calling close() (it has none)", async () => {
     const clock = manualClock(0); // edge already caught up

@@ -73,7 +73,6 @@ describe("InputDispatcher", () => {
     const items: InputMappingSource[] = [
       {
         i: "ag-1",
-        componentId: "action-group",
         inputMappings: { toggle: { deviceId: "d1", inputId: "a" } },
       },
     ];
@@ -99,7 +98,6 @@ describe("InputDispatcher", () => {
       getItems: () => [
         {
           i: "ag-1",
-          componentId: "action-group",
           inputMappings: { toggle: { deviceId: "d1", inputId: "b" } },
         },
       ],
@@ -121,7 +119,6 @@ describe("InputDispatcher", () => {
       getItems: () => [
         {
           i: "ag-1",
-          componentId: "action-group",
           inputMappings: { toggle: { deviceId: "d1", inputId: "a" } },
         },
       ],
@@ -146,7 +143,6 @@ describe("InputDispatcher", () => {
     let items: InputMappingSource[] = [
       {
         i: "ag-1",
-        componentId: "action-group",
         // Initially unbound.
         inputMappings: {},
       },
@@ -183,7 +179,6 @@ describe("InputDispatcher", () => {
       getItems: () => [
         {
           i: "ag-1",
-          componentId: "action-group",
           inputMappings: { toggle: { deviceId: "d1", inputId: "a" } },
         },
       ],

@@ -22,7 +22,6 @@ function handle(
   dismiss?: (id: string) => void,
 ): CommandDelayHandle {
   return {
-    id: "h",
     inFlight,
     shape: "discrete",
     effectiveDelaySeconds: 1,

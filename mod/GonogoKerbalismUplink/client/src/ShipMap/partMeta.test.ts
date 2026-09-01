@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import type { KerbalismLifeSupport } from "../__generated__/contract";
 import { computeKerbalismPartMeta } from "./partMeta";
@@ -9,7 +10,7 @@ describe("computeKerbalismPartMeta", () => {
         {
           resource: "recycler",
           title: "Water Recycler",
-          capacity: 1,
+          capacity: value("units", 1),
           running: true,
           broken: false,
           flightId: 3,

@@ -1,4 +1,4 @@
-import type { VesselParts } from "@ksp-gonogo/sitrep-sdk";
+import { type VesselParts, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import type { KerbalismProfile } from "../__generated__/contract";
 import { computeKerbalismPartMeters } from "./partMeters";
@@ -38,7 +38,7 @@ const SUPPLY_PROFILE: KerbalismProfile = {
       flowModeOrdinal: 3,
       displayName: "Water",
       isSupply: true,
-      lowThreshold: 0.2,
+      lowThreshold: value("ratio", 0.2),
     },
     // Pooled: flowMode says the whole vessel shares one pool, so this must
     // NEVER earn a per-part meter even though it IS a declared Supply.

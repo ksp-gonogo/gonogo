@@ -5,7 +5,7 @@ import { SerialDeviceService } from "./SerialDeviceService";
 import { GamepadPoller } from "./transports/GamepadPoller";
 import { GamepadTransport } from "./transports/GamepadTransport";
 import type { VirtualTransport } from "./transports/VirtualTransport";
-import type { DeviceInstance, DeviceType } from "./types";
+import type { DeviceInput, DeviceInstance, DeviceType } from "./types";
 
 const TYPE: DeviceType = {
   id: "demo",

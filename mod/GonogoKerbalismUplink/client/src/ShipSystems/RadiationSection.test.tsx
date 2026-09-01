@@ -1,4 +1,4 @@
-import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import { useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,
@@ -134,8 +134,8 @@ describe("RadiationSection", () => {
     render(
       <RadiationSection
         weather={{
-          radiationRadPerSecond: 0.006,
-          habitatRadiationRadPerSecond: 0.00006,
+          radiationRadPerSecond: value("rad/s", 0.006),
+          habitatRadiationRadPerSecond: value("rad/s", 0.00006),
           magnetosphere: true,
         }}
         utNow={10}
@@ -153,8 +153,8 @@ describe("RadiationSection", () => {
     const { container } = render(
       <RadiationSection
         weather={{
-          radiationRadPerSecond: 0.006,
-          habitatRadiationRadPerSecond: 0.00006,
+          radiationRadPerSecond: value("rad/s", 0.006),
+          habitatRadiationRadPerSecond: value("rad/s", 0.00006),
           magnetosphere: true,
         }}
         utNow={10}
@@ -171,8 +171,8 @@ describe("RadiationSection", () => {
         weather={{
           // Quiet cruise, 0.36 rad/h ambient: the domain floors at twice
           // the threshold, so the 0.5 marker sits exactly mid-frame.
-          radiationRadPerSecond: 0.0001,
-          habitatRadiationRadPerSecond: 0.00001,
+          radiationRadPerSecond: value("rad/s", 0.0001),
+          habitatRadiationRadPerSecond: value("rad/s", 0.00001),
           magnetosphere: true,
         }}
         utNow={10}
@@ -195,8 +195,8 @@ describe("RadiationSection", () => {
       <RadiationSection
         weather={{
           // 0.0001 rad/s = 0.36 rad/h ambient: under the 0.5 threshold.
-          radiationRadPerSecond: 0.0001,
-          habitatRadiationRadPerSecond: 0.00001,
+          radiationRadPerSecond: value("rad/s", 0.0001),
+          habitatRadiationRadPerSecond: value("rad/s", 0.00001),
           magnetosphere: true,
         }}
         utNow={10}
@@ -211,8 +211,8 @@ describe("RadiationSection", () => {
       <RadiationSection
         weather={{
           // 0.006 rad/s = 21.6 rad/h ambient: well over the threshold.
-          radiationRadPerSecond: 0.006,
-          habitatRadiationRadPerSecond: 0.00006,
+          radiationRadPerSecond: value("rad/s", 0.006),
+          habitatRadiationRadPerSecond: value("rad/s", 0.00006),
           magnetosphere: true,
         }}
         utNow={10}
@@ -229,8 +229,8 @@ describe("RadiationSection", () => {
       <RadiationSection
         weather={{
           // 21.6 rad/h ambient, 0.216 rad/h shielded.
-          radiationRadPerSecond: 0.006,
-          habitatRadiationRadPerSecond: 0.00006,
+          radiationRadPerSecond: value("rad/s", 0.006),
+          habitatRadiationRadPerSecond: value("rad/s", 0.00006),
           magnetosphere: true,
         }}
         utNow={10}
@@ -331,8 +331,8 @@ describe("RadiationSection", () => {
     const { container } = render(
       <RadiationSection
         weather={{
-          radiationRadPerSecond: 0.006,
-          habitatRadiationRadPerSecond: 0.00006,
+          radiationRadPerSecond: value("rad/s", 0.006),
+          habitatRadiationRadPerSecond: value("rad/s", 0.00006),
           outerBelt: true,
         }}
         utNow={10}

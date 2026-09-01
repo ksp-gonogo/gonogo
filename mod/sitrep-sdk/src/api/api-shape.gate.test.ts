@@ -226,7 +226,8 @@ describe("sitrep-sdk author-facing barrel: shape gate", () => {
     const def = {
       id: "gate-gauge",
       name: "Gate Gauge",
-      category: "test",
+      description: "A gauge that exists to be registered.",
+      tags: ["test"],
       component: () => null,
       dataRequirements: [],
       behaviors: [],

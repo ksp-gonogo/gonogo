@@ -1,17 +1,18 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
-import { unitMatchers, visibleText } from "./testing";
+import { type UnitMatchers, unitMatchers, visibleText } from "./testing";
 import { Unit } from "./Unit";
 
 expect.extend(unitMatchers);
 
+/*
+ * The merge the kit documents on `UnitMatchers`, rather than a second copy of
+ * the signature: a hand-written one drifted from it (no `opts`) and redeclared
+ * vitest's own type parameter along the way.
+ */
 declare module "vitest" {
-  interface Assertion<T = unknown> {
-    toShowQuantity(
-      quantity: { magnitude: number; unit: string } | null | undefined,
-    ): T;
-  }
+  interface Assertion<T> extends UnitMatchers<T> {}
 }
 
 /**

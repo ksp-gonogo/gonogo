@@ -30,15 +30,22 @@ vi.mock("@xterm/xterm", async () => {
       // build (no fixed size) wraps and a fixed-size build doesn't.
       // allowProposedApi: read .buffer to assert the actual rendered screen.
       super({ cols: 40, rows: 12, ...options, allowProposedApi: true });
+      // `onData` is an event PROPERTY in xterm's declarations and a prototype
+      // GETTER in its implementation, so it can be neither overridden as a
+      // method (the compiler rejects that) nor assigned to (the getter has no
+      // setter). An own property on the instance shadows the getter and keeps
+      // the registrar it returned.
+      const register = this.onData;
+      Object.defineProperty(this, "onData", {
+        value: (listener: (data: string) => unknown) => {
+          this.dataHandler = listener;
+          return register(listener);
+        },
+      });
       hoisted.instances.push(this);
     }
     open() {
       /* headless: no DOM to attach to */
-    }
-    // biome-ignore lint/suspicious/noExplicitAny: xterm onData signature
-    onData(cb: any) {
-      this.dataHandler = cb;
-      return super.onData(cb);
     }
   }
   return { Terminal: TestTerminal };
@@ -147,7 +154,7 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
     const f = fixture();
     render(
       <f.Provider>
-        <KosTerminalComponent config={config} />
+        <KosTerminalComponent id="kos-terminal" config={config} />
       </f.Provider>,
     );
     act(() => f.emit("kos.processors", ONE_CPU));
@@ -616,7 +623,7 @@ describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", ()
     const f = fixture();
     render(
       <f.Provider>
-        <KosTerminalComponent config={config} />
+        <KosTerminalComponent id="kos-terminal" config={config} />
       </f.Provider>,
     );
     act(() => f.emit("kos.processors", ONE_CPU));

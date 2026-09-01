@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { computeCmeEntities } from "./contribution";
 
@@ -8,9 +9,9 @@ function starDirection(x: number, y: number, z: number) {
   return {
     star: "Kerbol",
     direction: {
-      x: { magnitude: x },
-      y: { magnitude: y },
-      z: { magnitude: z },
+      x: value("1", x),
+      y: value("1", y),
+      z: value("1", z),
     },
   };
 }
@@ -28,7 +29,7 @@ describe("computeCmeEntities", () => {
   it("skips a storm slot with stormState 0 (none)", () => {
     expect(
       computeCmeEntities({
-        storms: [{ star: "Kerbol", stormState: { magnitude: 0 } }],
+        storms: [{ star: "Kerbol", stormState: value("count", 0) }],
       }),
     ).toEqual([]);
   });
@@ -37,13 +38,13 @@ describe("computeCmeEntities", () => {
     expect(
       computeCmeEntities({
         stars: [starDirection(1, 0, 0)],
-        storms: [{ stormState: { magnitude: 1 }, dist: { magnitude: 1e10 } }],
+        storms: [{ stormState: value("count", 1), dist: value("m", 1e10) }],
       }),
     ).toEqual([]);
     expect(
       computeCmeEntities({
         stars: [starDirection(1, 0, 0)],
-        storms: [{ star: "Kerbol", stormState: { magnitude: 1 } }],
+        storms: [{ star: "Kerbol", stormState: value("count", 1) }],
       }),
     ).toEqual([]);
     expect(
@@ -52,8 +53,8 @@ describe("computeCmeEntities", () => {
         storms: [
           {
             star: "Kerbol",
-            stormState: { magnitude: 1 },
-            dist: { magnitude: 0 },
+            stormState: value("count", 1),
+            dist: value("m", 0),
           },
         ],
       }),
@@ -66,8 +67,8 @@ describe("computeCmeEntities", () => {
         storms: [
           {
             star: "Kerbol",
-            stormState: { magnitude: 1 },
-            dist: { magnitude: 13_599_840_256 },
+            stormState: value("count", 1),
+            dist: value("m", 13_599_840_256),
           },
         ],
       }),
@@ -82,8 +83,8 @@ describe("computeCmeEntities", () => {
         storms: [
           {
             star: "Kerbol",
-            stormState: { magnitude: 1 },
-            dist: { magnitude: 13_599_840_256 },
+            stormState: value("count", 1),
+            dist: value("m", 13_599_840_256),
           },
         ],
       }),
@@ -95,8 +96,8 @@ describe("computeCmeEntities", () => {
         storms: [
           {
             star: "Kerbol",
-            stormState: { magnitude: 1 },
-            dist: { magnitude: 13_599_840_256 },
+            stormState: value("count", 1),
+            dist: value("m", 13_599_840_256),
           },
         ],
       }),
@@ -105,15 +106,15 @@ describe("computeCmeEntities", () => {
 
   it("draws a faint travelling pulse from the star toward the body's bearing, for an inbound storm (stormState 1)", () => {
     const [entity] = computeCmeEntities({
-      stormEjectionSpeed: { magnitude: 99_000_000 },
+      stormEjectionSpeed: value("m/s", 99_000_000),
       stars: [starDirection(1, 0, 0)],
       storms: [
         {
           star: "Kerbol",
-          stormState: { magnitude: 1 },
-          stormTime: { magnitude: 5_000_000 },
-          stormDuration: { magnitude: 3_600 },
-          dist: { magnitude: 13_599_840_256 },
+          stormState: value("count", 1),
+          stormTime: value("ut", 5_000_000),
+          stormDuration: value("s", 3_600),
+          dist: value("m", 13_599_840_256),
         },
       ],
     });
@@ -163,15 +164,15 @@ describe("computeCmeEntities", () => {
     // size as the ones that were kept.
     const dist = 13_599_840_256;
     const [entity] = computeCmeEntities({
-      stormEjectionSpeed: { magnitude: 99_000_000 },
+      stormEjectionSpeed: value("m/s", 99_000_000),
       stars: [starDirection(1, 1, 0)],
       storms: [
         {
           star: "Kerbol",
-          stormState: { magnitude: 1 },
-          stormTime: { magnitude: 5_000_000 },
-          stormDuration: { magnitude: 3_600 },
-          dist: { magnitude: dist },
+          stormState: value("count", 1),
+          stormTime: value("ut", 5_000_000),
+          stormDuration: value("s", 3_600),
+          dist: value("m", dist),
         },
       ],
     });
@@ -189,15 +190,15 @@ describe("computeCmeEntities", () => {
 
   it("derives the segment length from ejection speed * active duration when it's SHORTER than the full apex->tip distance", () => {
     const [entity] = computeCmeEntities({
-      stormEjectionSpeed: { magnitude: 1_000_000 },
+      stormEjectionSpeed: value("m/s", 1_000_000),
       stars: [starDirection(1, 0, 0)],
       storms: [
         {
           star: "Kerbol",
-          stormState: { magnitude: 1 },
-          stormTime: { magnitude: 1_000 },
-          stormDuration: { magnitude: 3_600 },
-          dist: { magnitude: 13_599_840_256 },
+          stormState: value("count", 1),
+          stormTime: value("ut", 1_000),
+          stormDuration: value("s", 3_600),
+          dist: value("m", 13_599_840_256),
         },
       ],
     });
@@ -212,13 +213,13 @@ describe("computeCmeEntities", () => {
   it("skips a storm slot missing its active duration or the weather's ejection speed, never fabricating a segment length", () => {
     expect(
       computeCmeEntities({
-        stormEjectionSpeed: { magnitude: 99_000_000 },
+        stormEjectionSpeed: value("m/s", 99_000_000),
         stars: [starDirection(1, 0, 0)],
         storms: [
           {
             star: "Kerbol",
-            stormState: { magnitude: 1 },
-            dist: { magnitude: 13_599_840_256 },
+            stormState: value("count", 1),
+            dist: value("m", 13_599_840_256),
             // no stormDuration
           },
         ],
@@ -231,9 +232,9 @@ describe("computeCmeEntities", () => {
         storms: [
           {
             star: "Kerbol",
-            stormState: { magnitude: 1 },
-            stormDuration: { magnitude: 3_600 },
-            dist: { magnitude: 13_599_840_256 },
+            stormState: value("count", 1),
+            stormDuration: value("s", 3_600),
+            dist: value("m", 13_599_840_256),
           },
         ],
       }),
@@ -243,14 +244,14 @@ describe("computeCmeEntities", () => {
   it("skips a storm slot missing its arrival UT, never fabricating the wave's timing window", () => {
     expect(
       computeCmeEntities({
-        stormEjectionSpeed: { magnitude: 99_000_000 },
+        stormEjectionSpeed: value("m/s", 99_000_000),
         stars: [starDirection(1, 0, 0)],
         storms: [
           {
             star: "Kerbol",
-            stormState: { magnitude: 1 },
-            stormDuration: { magnitude: 3_600 },
-            dist: { magnitude: 13_599_840_256 },
+            stormState: value("count", 1),
+            stormDuration: value("s", 3_600),
+            dist: value("m", 13_599_840_256),
             // no stormTime
           },
         ],
@@ -265,16 +266,16 @@ describe("computeCmeEntities", () => {
       stars: [starDirection(0, 5, 0)].map((s) => ({
         ...s,
         direction: {
-          x: { magnitude: 0 },
-          y: { magnitude: 5 },
-          z: { magnitude: 0 },
+          x: value("1", 0),
+          y: value("1", 5),
+          z: value("1", 0),
         },
       })),
       storms: [
         {
           star: "Kerbol",
-          stormState: { magnitude: 1 },
-          dist: { magnitude: 1e10 },
+          stormState: value("count", 1),
+          dist: value("m", 1e10),
         },
       ],
     });
@@ -284,15 +285,15 @@ describe("computeCmeEntities", () => {
 
   it("raises an arrived storm (stormState 2) to normal emphasis, same warn severity throughout", () => {
     const [entity] = computeCmeEntities({
-      stormEjectionSpeed: { magnitude: 1_000_000 },
+      stormEjectionSpeed: value("m/s", 1_000_000),
       stars: [starDirection(1, 0, 0)],
       storms: [
         {
           star: "Kerbol",
-          stormState: { magnitude: 2 },
-          stormTime: { magnitude: 1_000 },
-          stormDuration: { magnitude: 1_800 },
-          dist: { magnitude: 13_599_840_256 },
+          stormState: value("count", 2),
+          stormTime: value("ut", 1_000),
+          stormDuration: value("s", 1_800),
+          dist: value("m", 13_599_840_256),
         },
       ],
     });
@@ -308,15 +309,15 @@ describe("computeCmeEntities", () => {
 
   it("never sets a zHint: relies on the travelling-pulse shape's own default layer (below connection-line/point, above orbit-path)", () => {
     const [entity] = computeCmeEntities({
-      stormEjectionSpeed: { magnitude: 1_000_000 },
+      stormEjectionSpeed: value("m/s", 1_000_000),
       stars: [starDirection(1, 0, 0)],
       storms: [
         {
           star: "Kerbol",
-          stormState: { magnitude: 1 },
-          stormTime: { magnitude: 1_000 },
-          stormDuration: { magnitude: 1_800 },
-          dist: { magnitude: 1e10 },
+          stormState: value("count", 1),
+          stormTime: value("ut", 1_000),
+          stormDuration: value("s", 1_800),
+          dist: value("m", 1e10),
         },
       ],
     });
@@ -326,7 +327,7 @@ describe("computeCmeEntities", () => {
 
   it("draws one entity per storm slot, e.g. a modded binary star", () => {
     const entities = computeCmeEntities({
-      stormEjectionSpeed: { magnitude: 1_000_000 },
+      stormEjectionSpeed: value("m/s", 1_000_000),
       stars: [
         starDirection(1, 0, 0),
         { ...starDirection(0, 0, 1), star: "Kerbol B" },
@@ -334,17 +335,17 @@ describe("computeCmeEntities", () => {
       storms: [
         {
           star: "Kerbol",
-          stormState: { magnitude: 1 },
-          stormTime: { magnitude: 1_000 },
-          stormDuration: { magnitude: 1_800 },
-          dist: { magnitude: 1e10 },
+          stormState: value("count", 1),
+          stormTime: value("ut", 1_000),
+          stormDuration: value("s", 1_800),
+          dist: value("m", 1e10),
         },
         {
           star: "Kerbol B",
-          stormState: { magnitude: 2 },
-          stormTime: { magnitude: 2_000 },
-          stormDuration: { magnitude: 1_800 },
-          dist: { magnitude: 2e10 },
+          stormState: value("count", 2),
+          stormTime: value("ut", 2_000),
+          stormDuration: value("s", 1_800),
+          dist: value("m", 2e10),
         },
       ],
     });

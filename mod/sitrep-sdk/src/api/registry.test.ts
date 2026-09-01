@@ -15,7 +15,8 @@ import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
 const mockComponent: ComponentDefinition = {
   id: "test-component",
   name: "Test Component",
-  category: "test",
+  description: "A component that exists to be registered.",
+  tags: ["test"],
   component: () => null,
   dataRequirements: [],
   behaviors: [],
@@ -31,6 +32,10 @@ const mockDataSource: DataSource = {
   schema: () => [],
   subscribe: () => () => {},
   onStatusChange: () => () => {},
+  execute: async () => {},
+  configSchema: () => [],
+  configure: () => {},
+  getConfig: () => ({}),
 };
 
 const mockTheme: ThemeDefinition = {

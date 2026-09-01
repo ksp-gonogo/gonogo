@@ -31,7 +31,6 @@ const MUN_MU = 6.5138398e10;
 
 function body(over: Partial<CelestialBody> & { index: number }): CelestialBody {
   return {
-    index: over.index,
     name: null,
     referenceBody: null,
     radius: null,

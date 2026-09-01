@@ -211,13 +211,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
       /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
-       * of packages whose `typecheck` does not yet cover their own test files
-       * is keyed by package directory, so it names every Uplink client.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
-      /*
        * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
        * example Uplinks the Hub can load. Copy, not code coupling.
        */
@@ -704,13 +697,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/styleguide-magnitude-budget.test.ts",
       /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
-       * of packages whose `typecheck` does not yet cover their own test files
-       * is keyed by package directory, so it names every Uplink client.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
-      /*
        * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
        * example Uplinks the Hub can load. Copy, not code coupling.
        */
@@ -1042,13 +1028,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
-       * of packages whose `typecheck` does not yet cover their own test files
-       * is keyed by package directory, so it names every Uplink client.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
       /*
        * -- MAGNITUDE-BUDGET ratchet inventory: its per-file budget map is keyed
        * by file path, so it names any Uplink client file that unwraps a Value.
@@ -1411,13 +1390,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
-       * of packages whose `typecheck` does not yet cover their own test files
-       * is keyed by package directory, so it names every Uplink client.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
 
       /*
        * -- The mod-side ownership ratchet itself (§5a of the plan) --
@@ -1577,13 +1549,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
-       * of packages whose `typecheck` does not yet cover their own test files
-       * is keyed by package directory, so it names every Uplink client.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
       /*
        * -- The OTHER RP-1 Uplink's doc comments (2026-08-25). Two Uplinks read
        * RP-1 by reflection, and the reason they are separate rather than merged
@@ -1821,13 +1786,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * directory. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
-      /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): the debt list
-       * of packages whose `typecheck` does not yet cover their own test files
-       * is keyed by package directory, so it names every Uplink client.
-       * Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
       /*
        * FleetReliability's characterisation test emits `reliability.summary`
        * payloads carrying real `source` values. A wire-value reference: the widget
@@ -2269,13 +2227,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
       /*
-       * -- TYPECHECK-COVERAGE ratchet inventory (2026-08-21): its debt list is
-       * keyed by package directory, and `mod/GonogoPrincipiaUplink/client` is
-       * one of the directories whose tests are not yet typechecked. Text-only
-       * mention in a ratchet-inventory file, same case as the entry above.
-       */
-      "packages/core/src/typecheck-coverage.allowlist.ts",
-      /*
        * Everything below is a HISTORICAL RECORD of a decision that removed
        * Principia awareness from core, or documentation of an external format
        * that named it. You cannot record "we deliberately deleted detection of
@@ -2419,7 +2370,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/truenow-allowlist.test.ts",
-    "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   ferram: [
@@ -2455,7 +2405,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
-    "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   kerbcast: [
@@ -2471,7 +2420,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/one-render-process.test.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
-    "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
@@ -2502,7 +2450,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
-    "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
@@ -2516,7 +2463,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
-    "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   principia: [
@@ -2527,7 +2473,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
-    "packages/core/src/typecheck-coverage.allowlist.ts",
   ],
   realantennas: [
     "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
@@ -2548,7 +2493,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
-    "packages/core/src/typecheck-coverage.allowlist.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   scansat: [

@@ -44,12 +44,12 @@ describe("SerialDevicesMenu Web Serial support banner", () => {
     if (originalSerial) {
       Object.defineProperty(navigator, "serial", originalSerial);
     } else {
-      delete (navigator as Navigator & { serial?: unknown }).serial;
+      delete (navigator as { serial?: unknown }).serial;
     }
     if (originalSecureContext) {
       Object.defineProperty(window, "isSecureContext", originalSecureContext);
     } else {
-      delete (window as Window & { isSecureContext?: boolean }).isSecureContext;
+      delete (window as { isSecureContext?: boolean }).isSecureContext;
     }
   });
 

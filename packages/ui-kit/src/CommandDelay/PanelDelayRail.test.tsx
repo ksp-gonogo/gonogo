@@ -1,4 +1,4 @@
-import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -376,7 +376,7 @@ describe("PanelDelayRail", () => {
       breach: {
         facility: "LaunchPad",
         facilityName: "Launch Pad",
-        facilityLevel: { magnitude: 1, unit: "ratio" },
+        facilityLevel: value("ratio", 1),
         quantity: "tier",
         limit: 3,
         actual: 3,

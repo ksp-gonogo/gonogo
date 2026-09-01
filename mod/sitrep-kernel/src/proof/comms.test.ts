@@ -5,6 +5,7 @@
  * kernel resolves to is the only thing that decides "delayed" vs
  * "immediate" delivery.
  */
+import { ManualClock } from "@ksp-gonogo/sitrep-server";
 import { describe, expect, it } from "vitest";
 import { Kernel } from "../registry";
 import {
@@ -16,6 +17,20 @@ import {
   COURIER_DELAY_SECONDS,
   courierCommsProvider,
 } from "./courier-provider";
+
+/**
+ * The provider's clock, as the manual one both proof providers construct.
+ *
+ * `CommsCapability` types it as the general `Clock`, which can be read and
+ * scheduled against but not moved, so the assumption the driving below has
+ * always rested on is stated here rather than cast past.
+ */
+function manualClock(comms: CommsCapability): ManualClock {
+  const { clock } = comms;
+  if (!(clock instanceof ManualClock))
+    throw new Error("a comms provider in this proof must expose a ManualClock");
+  return clock;
+}
 
 describe("comms capability: courier provider vs vanilla fallback", () => {
   it("real provider active: delivery is delayed until the shared clock advances by the courier's delay", () => {
@@ -37,15 +52,15 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
 
     // Not delivered even on a same-instant flush, this isn't a "needs a
     // tick" quirk, the courier genuinely schedules delivery in the future.
-    comms.clock.advanceTo(recordedAt);
+    manualClock(comms).advanceTo(recordedAt);
     expect(received).toHaveLength(0);
 
     // Not delivered just short of the delay.
-    comms.clock.advanceTo(recordedAt + COURIER_DELAY_SECONDS - 0.001);
+    manualClock(comms).advanceTo(recordedAt + COURIER_DELAY_SECONDS - 0.001);
     expect(received).toHaveLength(0);
 
     // Delivered exactly once the delay has elapsed.
-    comms.clock.advanceTo(recordedAt + COURIER_DELAY_SECONDS);
+    manualClock(comms).advanceTo(recordedAt + COURIER_DELAY_SECONDS);
     expect(received).toHaveLength(1);
     expect(received[0]).toMatchObject({
       value: 100,
@@ -76,7 +91,7 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
     comms.record("vessel.altitude", 100, recordedAt);
 
     // Delivered on a same-instant flush: zero elapsed time required.
-    comms.clock.advanceTo(recordedAt);
+    manualClock(comms).advanceTo(recordedAt);
     expect(received).toHaveLength(1);
     expect(received[0]).toMatchObject({
       value: 100,
@@ -111,8 +126,8 @@ describe("comms capability: courier provider vs vanilla fallback", () => {
 
     // Same instant, same topic, same value, no time elapsed on either
     // clock: yet only the vanilla side has delivered.
-    realComms.clock.advanceTo(realComms.clock.now());
-    vanillaComms.clock.advanceTo(vanillaComms.clock.now());
+    manualClock(realComms).advanceTo(realComms.clock.now());
+    manualClock(vanillaComms).advanceTo(vanillaComms.clock.now());
 
     expect(realReceived).toHaveLength(0);
     expect(vanillaReceived).toHaveLength(1);

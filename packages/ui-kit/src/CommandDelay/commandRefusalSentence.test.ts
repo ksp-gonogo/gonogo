@@ -1,4 +1,4 @@
-import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { commandRefusalSentence } from "./commandRefusalSentence";
 
@@ -23,7 +23,7 @@ describe("what an operator reads when the game says no", () => {
         breach: {
           facility: "AstronautComplex",
           facilityName: "Astronaut Complex",
-          facilityLevel: { magnitude: 1, unit: "ratio" },
+          facilityLevel: value("ratio", 1),
           quantity: "activeCrew",
           limit: 16,
           actual: 16,
@@ -44,7 +44,7 @@ describe("what an operator reads when the game says no", () => {
         breach: {
           facility: "LaunchPad",
           facilityName: "Launch Pad",
-          facilityLevel: { magnitude: 1, unit: "ratio" },
+          facilityLevel: value("ratio", 1),
           quantity: "tier",
           limit: 3,
           actual: 3,
@@ -63,7 +63,7 @@ describe("what an operator reads when the game says no", () => {
         breach: {
           facility: "LaunchPad",
           facilityName: "Launch Pad",
-          facilityLevel: { magnitude: 1, unit: "ratio" },
+          facilityLevel: value("ratio", 1),
           quantity: "funds",
           limit: 189412,
           actual: 253000,
@@ -85,7 +85,7 @@ describe("what an operator reads when the game says no", () => {
         breach: {
           facility: "Runway",
           facilityName: "Runway",
-          facilityLevel: { magnitude: 1, unit: "ratio" },
+          facilityLevel: value("ratio", 1),
           quantity: "tier",
           limit: 3,
           actual: 3,
@@ -117,7 +117,7 @@ describe("what an operator reads when the game says no", () => {
       breach: {
         facility: "LaunchPad",
         facilityName: "Launch Pad",
-        facilityLevel: { magnitude: 1, unit: "ratio" },
+        facilityLevel: value("ratio", 1),
         quantity: "funds",
         unit: "funds",
       },
@@ -213,7 +213,7 @@ describe("what an operator reads when the game says no", () => {
         breach: {
           facility: "ResearchAndDevelopment",
           facilityName: "R&D",
-          facilityLevel: { magnitude: 0, unit: "ratio" },
+          facilityLevel: value("ratio", 0),
           quantity: "science",
           limit: 45,
           actual: 90,

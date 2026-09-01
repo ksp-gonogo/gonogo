@@ -70,13 +70,15 @@ describe("kos.processors Topic (relocated out of Sitrep.Contract)", () => {
         {
           coreId: 7,
           tag: "mainframe",
+          // Absent, not null: a processor with no boot file simply omits the
+          // field, which is how the contract types it.
+          bootFilePath: undefined,
           hasBooted: true,
-          bootFilePath: null,
           processorMode: "READY",
           partName: "Probe Core",
         },
-      ] satisfies unknown as KosProcessorInfo[],
-      { ut: 1000 },
+      ] satisfies KosProcessorInfo[],
+      { validAt: 1000 },
     );
 
     await waitFor(() => {

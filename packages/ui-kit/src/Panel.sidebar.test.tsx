@@ -97,8 +97,10 @@ describe("Panel sidebar, absent", () => {
 });
 
 describe("Panel sidebar, DOM order", () => {
-  for (const side of ["auto", "start", "end"] as const) {
-    it(`keeps the sidebar after the body in the DOM for side="${side}"`, () => {
+  // `undefined` is the unset case, which is the third arrangement the prop has:
+  // there is no "auto" side, and asking for one only ever got the default.
+  for (const side of [undefined, "start", "end"] as const) {
+    it(`keeps the sidebar after the body in the DOM for side="${side ?? "unset"}"`, () => {
       // Reading and tab order must not depend on which edge the sidebar is
       // drawn against. Same principle as the floating header: a visual
       // arrangement is a paint change, never a structural one.

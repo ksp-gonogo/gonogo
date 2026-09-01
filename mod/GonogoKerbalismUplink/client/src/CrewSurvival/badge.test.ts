@@ -6,6 +6,7 @@ function kerbal(overrides: Partial<KerbalSurvival> = {}): KerbalSurvival {
   return {
     name: "Jebediah Kerman",
     trait: "Pilot",
+    rules: [],
     worstRule: undefined,
     deathClockSec: null,
     tone: "go",

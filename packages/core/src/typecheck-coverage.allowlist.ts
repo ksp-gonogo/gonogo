@@ -40,42 +40,8 @@
  * pass, so the companion test fails on an empty or placeholder reason.
  */
 export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {
-  "mod/GonogoAvionicsUplink/client":
-    "Uplink client, 3 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoBreakingGroundUplink/client":
-    "Uplink client, 10 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoKerbalismUplink/client":
-    "Uplink client, 22 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoKerbcastUplink/client":
-    "Uplink client, 23 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoKosUplink/client":
-    "Uplink client, 11 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoMechJebUplink/client":
-    "Uplink client, 2 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoPrincipiaUplink/client":
-    "Uplink client, 2 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/GonogoRealAntennasUplink/client":
-    "Uplink client, 3 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/sitrep-kernel":
-    "6 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "mod/sitrep-sdk":
-    "53 test files, and the published leaf everything else builds against, so its fixtures are the ones most worth checking. Largest of the remaining entries; do it after one of the small Uplinks has proved the shape.",
-  "mod/sitrep-server":
-    "7 test files. Split the emit config out the way packages/core did, then fix what falls out.",
   "packages/components":
-    "254 test files, the biggest single block of unchecked test code in the repo.",
-  "packages/data":
-    "19 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "packages/logger":
-    "3 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "packages/relay":
-    "4 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "packages/serial":
-    "23 test files. Split the emit config out the way packages/core did, then fix what falls out.",
+    "254 test files, the biggest single block of unchecked test code in the repo. 100 errors behind the config change, spread thin across ~40 files rather than concentrated in a pattern, which is what makes it the long one. Three of them are `rootDir` complaints that the split itself removes, since only the emit half needs a rootDir.",
   "packages/sitrep-client":
-    "78 test files, and the app-side spine, so second in value only to the sdk.",
-  "packages/ui":
-    "17 test files. Split the emit config out the way packages/core did, then fix what falls out.",
-  "packages/ui-kit":
-    "85 test files, and the published component surface an Uplink builds against.",
+    "78 test files, and the app-side spine, so second in value only to the sdk. 160 errors behind the config change, the most of anything left.",
 };

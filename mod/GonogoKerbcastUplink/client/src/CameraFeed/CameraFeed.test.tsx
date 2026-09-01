@@ -100,12 +100,10 @@ function fullConfig(config: Partial<CameraFeedConfig>): CameraFeedConfig {
 
 function renderFeed(
   config: Partial<CameraFeedConfig>,
-  onConfigChange?: ComponentProps<CameraFeedConfig>["onConfigChange"],
 ): ReturnType<typeof render> {
   const result = renderWidget("camera-feed", {
     instanceId: TEST_INSTANCE_ID,
     config: fullConfig(config),
-    onConfigChange,
   });
   renderedTrees.push(result.unmount);
   return result;

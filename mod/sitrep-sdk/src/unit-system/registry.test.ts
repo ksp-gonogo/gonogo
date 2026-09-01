@@ -27,6 +27,7 @@ describe("registerUnit", () => {
 
     expect(value("snacks", 6).dividedBy(value("s", 2)).unit).toBe("snacks/s");
     expect(value("snacks", 2).plus(value("snacks", 3)).magnitude).toBe(5);
+    // @ts-expect-error a registered unit plus metres: refused statically and at runtime
     expect(() => value("snacks", 2).plus(value("m", 3))).toThrow();
   });
 
@@ -46,6 +47,8 @@ describe("registerUnit", () => {
       ratio: 1_000,
     });
     registerUnit({ symbol: "snacks", kind: "snacks", dimension: { snack: 1 } });
+    // @ts-expect-error both units are registered at RUNTIME, so the compile-time
+    // table cannot know they share a dimension; that they do is what this asserts
     expect(value("kSnack", 2).plus(value("snacks", 500)).magnitude).toBeCloseTo(
       2.5,
       10,
@@ -169,6 +172,7 @@ describe("real time is a different dimension from game time", () => {
     // varies: "in one hour IRL, how much game time passes" is a
     // multiplication, and a system that let them add would give an answer that
     // is only right at 1x warp.
+    // @ts-expect-error game seconds plus real seconds: refused statically and at runtime
     expect(() => value("s", 60).plus(value("irl:s", 60))).toThrow(
       /Cannot add s and irl:s/,
     );
@@ -208,6 +212,7 @@ describe("namespaced symbols", () => {
     expect(value("snacks:g", 500).plus(value("snacks:g", 250)).magnitude).toBe(
       750,
     );
+    // @ts-expect-error a namespaced gram plus a gee: refused statically and at runtime
     expect(() => value("snacks:g", 500).plus(value("g", 2))).toThrow();
   });
 
@@ -218,6 +223,8 @@ describe("namespaced symbols", () => {
       dimension: { kg: 1 },
       ratio: 0.001,
     });
+    // @ts-expect-error `snacks:g` is registered at RUNTIME against the kg base, and
+    // the compile-time table cannot see that; that the conversion works is the point
     expect(value("snacks:g", 1_500).in("kg").magnitude).toBeCloseTo(1.5, 10);
   });
 
@@ -234,6 +241,7 @@ describe("namespaced symbols", () => {
     // this problem: one glyph, two dimensions, and they must not add.
     expect(displaySymbol("irl:s")).toBe("s");
     expect(displaySymbol("irl:d")).toBe("d");
+    // @ts-expect-error real seconds plus game seconds: refused statically and at runtime
     expect(() => value("irl:s", 1).plus(value("s", 1))).toThrow();
   });
 
