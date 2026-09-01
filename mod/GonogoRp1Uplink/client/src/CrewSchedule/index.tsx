@@ -1,5 +1,9 @@
 import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
+import {
+  isOffTheBooks,
+  registerAugment,
+  useTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Inline,
@@ -12,6 +16,7 @@ import {
 import type { Rp1CrewEntry } from "../__generated__/contract";
 import { RP1 } from "../uplink";
 import "../topics";
+import { TrainingControls } from "./training";
 
 /**
  * One kerbal's RP-1 schedule, rendered into the Astronaut Complex row the host
@@ -25,6 +30,12 @@ import "../topics";
  * has nothing to say about any of them, because stock has none of the
  * concepts.</para>
  *
+ * <para>The dates are read alongside the controls that change them, because
+ * they are the same decision: a course finishing after a kerbal's retirement,
+ * or after the mission training it is meant to support has lapsed, is a course
+ * an operator wants off the roster. See `training.tsx` for the three
+ * commands.</para>
+ *
  * <para>It carries no standing and draws no fatality distinction. Whether a
  * kerbal is RETIRED rather than dead rides the stock roster's own `standing`
  * field through the crewStanding capability, so the host has already put a
@@ -34,6 +45,8 @@ import "../topics";
  */
 export function CrewSchedule({
   kerbalName,
+  standing,
+  isApplicant,
 }: Readonly<SlotProps<"astronaut-complex.crew">>) {
   const available = current(useTelemetry("rp1.available"));
   const crew = current(useTelemetry("rp1.crew"));
@@ -63,7 +76,14 @@ export function CrewSchedule({
   const retirement = retirementLine(row, program?.retirementEnabled);
   const training = trainingLine(row);
   const expiry = expiryLine(row);
-  if (!retirement && !training && !expiry) {
+  // The same two facts the controls read to decide they have nothing to draw,
+  // asked here so a row with neither dates nor a control renders no wrapper at
+  // all rather than an empty one. The narrowing is the slot's loose props
+  // again: an unread standing is not a standing that bars anybody.
+  const schedulable =
+    isApplicant !== true &&
+    !isOffTheBooks(typeof standing === "number" ? standing : null);
+  if (!retirement && !training && !expiry && !schedulable) {
     return null;
   }
 
@@ -72,6 +92,12 @@ export function CrewSchedule({
       {retirement}
       {training}
       {expiry}
+      <TrainingControls
+        isApplicant={isApplicant === true}
+        kerbalName={name}
+        onCourse={Boolean(row.trainingTarget ?? row.trainingCourse)}
+        standing={typeof standing === "number" ? standing : null}
+      />
     </Stack>
   );
 }

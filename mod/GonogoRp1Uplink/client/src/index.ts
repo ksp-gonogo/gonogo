@@ -27,6 +27,12 @@ export {
 export { CrewSchedule } from "./CrewSchedule";
 export { CrewProgramme } from "./CrewSchedule/programme";
 export {
+  RP1_TRAINING_CANCEL_COMMAND,
+  RP1_TRAINING_ENROL_COMMAND,
+  RP1_TRAINING_REMOVE_COMMAND,
+  TrainingControls,
+} from "./CrewSchedule/training";
+export {
   KscComplexes,
   RP1_COMPLEX_RUSH_COMMAND,
   RP1_PERSONNEL_ASSIGN_COMMAND,
