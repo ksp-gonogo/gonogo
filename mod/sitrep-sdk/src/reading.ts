@@ -108,10 +108,9 @@ export interface TopicModel<T> {
  * A widget that renders stale data as though it were live is this project's
  * most consequential failure mode. The weaker version of this fix already
  * exists and did not work: `StreamStatusValue` rides its own channel beside the
- * value (`@ksp-gonogo/sitrep-client`'s `useStreamStatus`), ui-kit renders it
- * (`StreamStatusBadge`), and the
- * dashboard even derives a per-widget summary from `dataRequirements` and
- * badges the panel header with it (`useWidgetStreamStatus`). It was adopted by
+ * value, ui-kit renders it (`StreamStatusBadge`), and the dashboard even
+ * derives a per-widget summary from `dataRequirements` and badges the panel
+ * header with it. It was adopted by
  * zero of the thirty-nine widgets that read telemetry, because a badge beside a
  * body is chrome, and nothing forces the body to consult it.
  *

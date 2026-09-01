@@ -465,9 +465,8 @@ const PanelAsideExpand = styled.details<{ $collapsed?: boolean }>`
 /**
  * Title and an optional right-hand aside on one row.
  *
- * The aside is why this exists. Twenty-seven of forty-three widgets in
- * `@ksp-gonogo/components` had grown a bespoke `TitleRow`/`Header` styled div
- * for exactly this, and what went in
+ * The aside is why this exists. Twenty-seven of forty-three widgets had grown a
+ * bespoke title-row styled div for exactly this, and what went in
  * it was not varied: a stream-status badge (37 occurrences), an `AugmentSlot`
  * for Uplink badges (19), the odd state `Badge` or `Select`. Twenty-seven
  * hand-rolled rows for two recurring things is a missing name, so this is the

@@ -2,16 +2,16 @@ import type { FlightRecord, SeriesRange } from "../types";
 
 /**
  * Sort comparator for flight listings: most-recently-launched first.
- * Shared by `MemoryStore` and `@ksp-gonogo/data`'s `IndexedDbStore` so both
- * order identically.
+ * Shared by every `FlightStore` implementation so all of them order
+ * identically.
  */
 export const FLIGHTS_DESC = (a: FlightRecord, b: FlightRecord): number =>
   b.launchedAt - a.launchedAt;
 
 /**
- * Persistence contract for flight metadata + samples. Implemented by both
- * `MemoryStore` (tests, non-browser environments) and `@ksp-gonogo/data`'s
- * `IndexedDbStore` (production). Both back the same BufferedDataSource.
+ * Persistence contract for flight metadata + samples. `MemoryStore` implements
+ * it for tests and non-browser environments; in the browser it is backed by
+ * IndexedDB. Both back the same BufferedDataSource.
  *
  * All methods are async to match IndexedDB's native shape. `MemoryStore`
  * resolves synchronously.
@@ -46,8 +46,8 @@ export interface FlightStore {
   ): Promise<SeriesRange>;
 
   /**
-   * Flush any pending batched writes so subsequent reads observe them.
-   * `@ksp-gonogo/data`'s `IndexedDbStore` uses this; `MemoryStore` is a no-op.
+   * Flush any pending batched writes so subsequent reads observe them. An
+   * implementation that batches needs it; `MemoryStore` is a no-op.
    */
   flush(): Promise<void>;
 }

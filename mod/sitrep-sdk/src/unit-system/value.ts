@@ -40,10 +40,10 @@ declare const UnknownUnitBrand: unique symbol;
  *
  * Branded rather than a bare alias for `string`, because a bare alias would be
  * indistinguishable from `string` and every degradation in this module already
- * targets `string`. The brand is what lets `CombinableWith` (below) and
- * `Product`/`Quotient` (`algebra.ts`) tell "unit not in the catalog, but at
- * least it is a literal we can compare" apart from "unit not in the catalog
- * because there is nothing here to compare," and block only the latter.
+ * targets `string`. The brand is what lets `CombinableWith` (below) and the
+ * multiply/divide result types in `algebra.ts` tell "unit not in the catalog,
+ * but at least it is a literal we can compare" apart from "unit not in the
+ * catalog because there is nothing here to compare," and block only the latter.
  *
  * `.magnitude` and `.unit` stay readable on a `Value<UnknownUnit>` with no
  * narrowing: the SHAPE is guaranteed even though the CONTENT is not, exactly

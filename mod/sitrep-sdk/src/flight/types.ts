@@ -194,10 +194,9 @@ export interface MissionMeta {
    * User-authored chapters / markers, as `FlightChapterRecord`. Its
    * `startMs`/`endMs` are literal milliseconds elapsed since `firstFrameUt`,
    * converted from the mission's UT-second delta as
-   * `(ut - firstFrameUt) * 1000`. The unit stays ms so the
-   * `formatElapsed`/`parseElapsed` in `@ksp-gonogo/components`'s
-   * `ChaptersEditor`, which do real ms math, need nothing
-   * special: only the anchor is a UT. Optional: missions start with none.
+   * `(ut - firstFrameUt) * 1000`. The unit stays ms so an editor formatting and
+   * parsing these does plain ms arithmetic and needs nothing special: only the
+   * anchor is a UT. Optional: missions start with none.
    */
   chapters?: FlightChapterRecord[];
 }
