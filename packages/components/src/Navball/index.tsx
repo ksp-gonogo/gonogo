@@ -35,6 +35,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  Section,
   Select,
   StatusIndicator,
   Switch,
@@ -812,6 +813,104 @@ function NavballComponent({
   return (
     <Panel
       panelTitle={showControlSurface ? "GNC CONTROL" : "ATTITUDE"}
+      sections={[
+        /* The attitude readout is the drawing: at any tile size worth showing a
+           dial at, the dial should be as large as the tile allows rather than
+           as large as its own minimum. */
+        <Section key="attitude" fill>
+          {showDial ? (
+            <div ref={attachDial} style={DIAL_WRAP}>
+              <AttitudeIndicator
+                heading={heading}
+                pitch={pitch}
+                roll={roll}
+                size={dialSize}
+              />
+              {showThrottleColumn && (
+                <div style={THROTTLE_COLUMN}>
+                  <span style={THROTTLE_LABEL}>THR</span>
+                  <div style={THROTTLE_BAR}>
+                    <div
+                      style={{ ...THROTTLE_FILL, height: `${throttle * 100}%` }}
+                    />
+                  </div>
+                  <span style={THROTTLE_VAL}>
+                    <Unit value={value("%", throttle * 100)} decimals={0} />
+                  </span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={NUMERIC_READOUT}>
+              <div style={READOUT_ROW}>
+                <span style={READOUT_LABEL}>HDG</span>
+                <span style={READOUT_VALUE}>
+                  {heading === null ? (
+                    NULL_DISPLAY
+                  ) : (
+                    <Unit value={value("°", heading)} decimals={0} />
+                  )}
+                </span>
+              </div>
+              <div style={READOUT_ROW}>
+                <span style={READOUT_LABEL}>PCH</span>
+                <span style={READOUT_VALUE}>
+                  {pitch === null ? (
+                    NULL_DISPLAY
+                  ) : (
+                    <>
+                      {pitch >= 0 ? "+" : ""}
+                      <Unit value={value("°", pitch)} decimals={0} />
+                    </>
+                  )}
+                </span>
+              </div>
+              <div style={READOUT_ROW}>
+                <span style={READOUT_LABEL}>RLL</span>
+                <span style={READOUT_VALUE}>
+                  {roll === null ? (
+                    NULL_DISPLAY
+                  ) : (
+                    <>
+                      {roll >= 0 ? "+" : ""}
+                      <Unit value={value("°", roll)} decimals={0} />
+                    </>
+                  )}
+                </span>
+              </div>
+              <AttitudeCurrency
+                dialSuppressed={rows >= 6 && cols >= 4}
+                reading={attitudeReading}
+              />
+            </div>
+          )}
+        </Section>,
+        showControlSurface ? (
+          <Section key="control">
+            <ControlSurface
+              disabled={!isControllable}
+              sasMode={sasMode ?? null}
+              sasOn={sasOn}
+              rcsOn={rcsOn}
+              precisionOn={precisionOn}
+              throttleCmd={throttleStream.current}
+              onSetThrottleCmd={setThrottleCmd}
+              throttleStream={throttleStream}
+              axisStreams={axisStreams}
+              fbwArmed={fbwArmed}
+              onArmFbw={armFbw}
+              onDisarmFbw={disarmFbw}
+              onToggleSas={toggleSas}
+              onToggleRcs={toggleRcs}
+              onSetSasMode={setSasMode}
+              failedSasModes={failedSasModes}
+              onDismissSasFailure={sasFailures.dismiss}
+              showFbwDelayWarning={showFbwDelayWarning}
+              delaySeconds={delaySeconds}
+            />
+          </Section>
+        ) : null,
+      ]}
       panelAside={
         showModeBadges ? (
           <div style={MODE_BADGE_ROW}>
@@ -828,100 +927,7 @@ function NavballComponent({
           </div>
         ) : undefined
       }
-    >
-      <div style={BODY}>
-        {showDial ? (
-          <div ref={attachDial} style={DIAL_WRAP}>
-            <AttitudeIndicator
-              heading={heading}
-              pitch={pitch}
-              roll={roll}
-              size={dialSize}
-            />
-            {showThrottleColumn && (
-              <div style={THROTTLE_COLUMN}>
-                <span style={THROTTLE_LABEL}>THR</span>
-                <div style={THROTTLE_BAR}>
-                  <div
-                    style={{ ...THROTTLE_FILL, height: `${throttle * 100}%` }}
-                  />
-                </div>
-                <span style={THROTTLE_VAL}>
-                  <Unit value={value("%", throttle * 100)} decimals={0} />
-                </span>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div style={NUMERIC_READOUT}>
-            <div style={READOUT_ROW}>
-              <span style={READOUT_LABEL}>HDG</span>
-              <span style={READOUT_VALUE}>
-                {heading === null ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("°", heading)} decimals={0} />
-                )}
-              </span>
-            </div>
-            <div style={READOUT_ROW}>
-              <span style={READOUT_LABEL}>PCH</span>
-              <span style={READOUT_VALUE}>
-                {pitch === null ? (
-                  NULL_DISPLAY
-                ) : (
-                  <>
-                    {pitch >= 0 ? "+" : ""}
-                    <Unit value={value("°", pitch)} decimals={0} />
-                  </>
-                )}
-              </span>
-            </div>
-            <div style={READOUT_ROW}>
-              <span style={READOUT_LABEL}>RLL</span>
-              <span style={READOUT_VALUE}>
-                {roll === null ? (
-                  NULL_DISPLAY
-                ) : (
-                  <>
-                    {roll >= 0 ? "+" : ""}
-                    <Unit value={value("°", roll)} decimals={0} />
-                  </>
-                )}
-              </span>
-            </div>
-            <AttitudeCurrency
-              dialSuppressed={rows >= 6 && cols >= 4}
-              reading={attitudeReading}
-            />
-          </div>
-        )}
-
-        {showControlSurface && (
-          <ControlSurface
-            disabled={!isControllable}
-            sasMode={sasMode ?? null}
-            sasOn={sasOn}
-            rcsOn={rcsOn}
-            precisionOn={precisionOn}
-            throttleCmd={throttleStream.current}
-            onSetThrottleCmd={setThrottleCmd}
-            throttleStream={throttleStream}
-            axisStreams={axisStreams}
-            fbwArmed={fbwArmed}
-            onArmFbw={armFbw}
-            onDisarmFbw={disarmFbw}
-            onToggleSas={toggleSas}
-            onToggleRcs={toggleRcs}
-            onSetSasMode={setSasMode}
-            failedSasModes={failedSasModes}
-            onDismissSasFailure={sasFailures.dismiss}
-            showFbwDelayWarning={showFbwDelayWarning}
-            delaySeconds={delaySeconds}
-          />
-        )}
-      </div>
-    </Panel>
+    />
   );
 }
 
@@ -1291,15 +1297,6 @@ function modeBadgeStyle(on: boolean): CSSProperties {
     color: on ? "var(--color-status-go-fg)" : "var(--color-text-faint)",
   };
 }
-
-const BODY: CSSProperties = {
-  display: "flex",
-  flexDirection: "column",
-  gap: "var(--space-8)",
-  marginTop: "var(--space-8)",
-  flex: 1,
-  minHeight: 0,
-};
 
 const DIAL_WRAP: CSSProperties = {
   // Fill the available column so the ResizeObserver sees real dimensions,

@@ -99,12 +99,12 @@ export interface SectionProps
    * widget whose drawing has to sit BESIDE its readouts wants an ordinary
    * section and a drawing that carries its own aspect, not this.
    *
-   * It grows into leftover height but never shrinks below its content, so a
-   * tile too short for it scrolls the body as it always did rather than putting
-   * the first line out of reach.
+   * It takes exactly the height left over while it is the only filling section,
+   * and gives room back as the tile shrinks, which is what these drawings did
+   * as plain body children before this prop existed.
    *
-   * TWO filling sections in one body share the leftover EQUALLY, each keeping
-   * its content height first. That is the rule whatever order they appear in
+   * TWO filling sections in one body each keep their content height and share
+   * what is left over EQUALLY. That is the rule whatever order they appear in
    * and however many ordinary sections sit between them.
    *
    * Ignored under `fitToSize`, which is the tiny-tile presentation and a
@@ -137,10 +137,9 @@ export function Section({
 }: SectionProps) {
   return (
     /* `fill` is deliberately NOT handed to `Stack` as its own `fill`. That one
-       is `flex: 1; min-height: 0`, a zero basis that also shrinks, which in a
-       scrolling body lets a section shorter than its content push its first
-       line above the scroll origin. The body's rule grows from the content
-       height instead. */
+       is a zero basis, which splits the body evenly between two filling
+       sections however little is in either. The body's rule starts each from
+       its content height instead, so they divide only what is spare. */
     <Stack
       gap={gap}
       {...{

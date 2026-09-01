@@ -80,23 +80,24 @@ export function PanelProviders({ children }: { children?: ReactNode }) {
  * What a `Section fill` resolves to once Panel has made it a flex child of the
  * box that owns the leftover height.
  *
- * `flex: 1 0 auto` rather than the `flex: 1` a filling box usually gets, and
- * both halves of that are load-bearing. The `auto` basis starts the section at
- * its content height, so a body too short to hold it scrolls to all of it; a
- * zero basis would have let it resolve shorter than its content, which is the
- * unreachable-first-line failure `PanelBody__Box` spends fifty lines avoiding.
- * `flex-shrink: 0` keeps that true when the sum overflows.
+ * `flex: 1 1 auto`, not the zero-basis `flex: 1` a filling box usually gets.
+ * With ONE filling section the two agree: a single flexible item among
+ * inflexible siblings lands on exactly the free space whatever its basis is.
+ * They part company at two, where a content basis lets each keep its own height
+ * and divide only what is genuinely spare, and a zero basis would halve the
+ * body between them however little is in either.
  *
- * Two filling sections therefore keep their content heights and divide only the
- * space that is genuinely spare, equally, which is a rule that holds as the
- * tile resizes rather than one that flips at the point content stops fitting.
+ * It still SHRINKS, deliberately. That is what these sections did as plain body
+ * children before this prop existed, and what a drawing sized from a
+ * ResizeObserver needs: one that refused to shrink would hold whatever height
+ * its content last measured at and never give the room back.
  *
  * A plain string interpolated into the styled templates below, so the body and
  * the headerless container state it once.
  */
 const SECTION_FILL_RULE = `
   & > [${SECTION_FILL_ATTR}] {
-    flex: 1 0 auto;
+    flex: 1 1 auto;
     min-height: 0;
   }
 `;
