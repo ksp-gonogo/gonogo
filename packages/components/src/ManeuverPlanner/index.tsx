@@ -22,6 +22,7 @@ import {
   EmptyState,
   Panel,
   ReadoutCaption,
+  Section,
   SectionTitle,
   Stack,
   Tabs,
@@ -837,16 +838,27 @@ function ManeuverPlannerComponent({
   }
 
   return (
-    <Panel panelTitle="MANEUVER PLANNER" panelSections={false}>
-      <ScrollBody>
-        {refBody !== undefined && (
-          <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
-        )}
-        {/* The node list sits ABOVE the tabs and shows on both, because it is
-            the SUBJECT and the tabs are two views of it. Inside PLAN, switching
-            to CONFORMANCE lost sight of the thing being conformed to. */}
-        {renderNodesSection()}
-        {/* Two tabs, PLAN and CONFORMANCE.
+    <Panel
+      panelTitle="MANEUVER PLANNER"
+      /* Stays. The seam is placed inside the PLAN tab (see `renderPlanTab`), so
+         Panel's own end-of-body mount would show it on every tab. */
+      panelSections={false}
+      /* Every section spans. The node list is the SUBJECT the tabs are two
+         views of, and a tab strip beside anything reads as two widgets. */
+      sections={[
+        refBody !== undefined && (
+          <Section key="body" full>
+            <RefBodyCaption data-ref-body-caption="">{refBody}</RefBodyCaption>
+          </Section>
+        ),
+        /* The node list sits ABOVE the tabs and shows on both, because it is
+           the SUBJECT and the tabs are two views of it. Inside PLAN, switching
+           to CONFORMANCE lost sight of the thing being conformed to. */
+        <Section key="nodes" full>
+          {renderNodesSection()}
+        </Section>,
+        <Section key="views" full>
+          {/* Two tabs, PLAN and CONFORMANCE.
             PLAN is everything about authoring and flying the next burn: the
             queued nodes' windows, the armed triggers, and NEW MANEUVER with its
             preview. CONFORMANCE is the retrospective: what each burn delivered
@@ -854,18 +866,19 @@ function ManeuverPlannerComponent({
             separated because they answer different questions at different
             times, and stacking them made the operator scroll past a preview to
             reach a verdict. */}
-        <Tabs
-          tabs={[
-            { id: "plan", label: "Plan", content: renderPlanTab() },
-            {
-              id: "conformance",
-              label: "Conformance",
-              content: renderConformanceTab(),
-            },
-          ]}
-        />
-      </ScrollBody>
-    </Panel>
+          <Tabs
+            tabs={[
+              { id: "plan", label: "Plan", content: renderPlanTab() },
+              {
+                id: "conformance",
+                label: "Conformance",
+                content: renderConformanceTab(),
+              },
+            ]}
+          />
+        </Section>,
+      ]}
+    />
   );
 
   function renderPlanTab() {
@@ -996,12 +1009,6 @@ const PaddedSection = styled(Stack).attrs({
   gap: "sm" as const,
 })`
   padding-top: var(--space-4);
-`;
-
-const ScrollBody = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
 `;
 
 const RefBodyCaption = styled.div`

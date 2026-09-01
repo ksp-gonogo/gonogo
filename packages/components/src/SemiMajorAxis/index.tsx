@@ -21,7 +21,12 @@ import {
   lengthsAreLengths,
 } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
-import { formatDuration, ReadoutCaption, Unit } from "@ksp-gonogo/ui-kit";
+import {
+  formatDuration,
+  ReadoutCaption,
+  Section,
+  Unit,
+} from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -156,75 +161,78 @@ function SemiMajorAxisComponent({
 
   if (sma === undefined || !sma.isFinite()) {
     return (
-      <Panel panelTitle="SMA">
-        <EmptyState>No orbit data</EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="SMA"
+        sections={
+          <Section full>
+            <EmptyState>No orbit data</EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
   return (
-    <Panel panelTitle="SMA">
-      <Body>
-        {showSubtitle && (
-          <SmaCaption>
-            Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
-          </SmaCaption>
-        )}
-        <SmaDisplay
-          role="status"
-          aria-live="polite"
-          style={{
-            fontSize: `${readoutFontPx}px`,
-            // Muted while held: the tone carries the caveat at a glance, the
-            // caption below says it in words.
-            ...(smaHeld ? { color: "var(--color-text-muted)" } : {}),
-          }}
-        >
-          <Unit value={sma} />
-        </SmaDisplay>
-        {/* The caveat belongs on the value rather than in the panel chrome: a
+    <Panel
+      panelTitle="SMA"
+      /* Panel's own centring, where `Body` hand-rolled the `flex: 1` +
+         `justify-content: center` pair. A single headline readout sized to the
+         tile is what `fitToSize` is for, and Panel measures before it centres
+         so an overflowing readout still starts at the top. */
+      fitToSize
+      sections={
+        <Section full gap="sm">
+          {showSubtitle && (
+            <SmaCaption>
+              Semi-major axis{referenceBody ? ` · ${referenceBody}` : ""}
+            </SmaCaption>
+          )}
+          <SmaDisplay
+            role="status"
+            aria-live="polite"
+            style={{
+              fontSize: `${readoutFontPx}px`,
+              // Muted while held: the tone carries the caveat at a glance, the
+              // caption below says it in words.
+              ...(smaHeld ? { color: "var(--color-text-muted)" } : {}),
+            }}
+          >
+            <Unit value={sma} />
+          </SmaDisplay>
+          {/* The caveat belongs on the value rather than in the panel chrome: a
             header badge beside a confident-looking number is the thing an
             operator reads past. */}
-        {smaHeld && (
-          <ReadoutCaption role="status">
-            at last contact
-            {smaAgeSec !== undefined && `, ${formatDuration(smaAgeSec)} ago`}
-          </ReadoutCaption>
-        )}
-        {/* The frame's name. A pulsating frame's length unit is its pair's own
+          {smaHeld && (
+            <ReadoutCaption role="status">
+              at last contact
+              {smaAgeSec !== undefined && `, ${formatDuration(smaAgeSec)} ago`}
+            </ReadoutCaption>
+          )}
+          {/* The frame's name. A pulsating frame's length unit is its pair's own
             separation, so a length quoted in it moves with the pair; naming the
             frame is what says which units these are. LABELLED rather than
             suppressed, unlike an apsis: an apsis in such a frame does not exist
             at all, where a semi-major axis does. */}
-        {lengthsPulsate && (
-          <ReadoutCaption role="status">
-            {controlFrameLabel(controlFrame) ?? "pulsating frame"}
-          </ReadoutCaption>
-        )}
-        {showSparkline && (
-          <SparkSlot ref={sparkRef}>
-            <Sparkline
-              values={sparkValues}
-              width={sparkWidth}
-              height={28}
-              ariaLabel="SMA trend"
-            />
-          </SparkSlot>
-        )}
-      </Body>
-    </Panel>
+          {lengthsPulsate && (
+            <ReadoutCaption role="status">
+              {controlFrameLabel(controlFrame) ?? "pulsating frame"}
+            </ReadoutCaption>
+          )}
+          {showSparkline && (
+            <SparkSlot ref={sparkRef}>
+              <Sparkline
+                values={sparkValues}
+                width={sparkWidth}
+                height={28}
+                ariaLabel="SMA trend"
+              />
+            </SparkSlot>
+          )}
+        </Section>
+      }
+    />
   );
 }
-
-const Body = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: center;
-  gap: var(--space-6);
-  min-height: 0;
-`;
 
 const SmaCaption = styled.div`
   font-size: var(--font-size-xs);

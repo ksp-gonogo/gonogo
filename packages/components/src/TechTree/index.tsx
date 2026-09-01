@@ -15,7 +15,7 @@ import {
   CommandButton,
   type CommandButtonHandle,
   Panel,
-  ScrollArea,
+  Section,
   Unit,
   usePanelDelay,
   writeQuantity,
@@ -411,16 +411,28 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // ── Loading / empty states ────────────────────────────────────────────
   if (allNodes === null) {
     return (
-      <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
-        <Empty>Awaiting tech telemetry</Empty>
-      </Panel>
+      <Panel
+        panelTitle="TECH TREE"
+        compactTitle={["TECH"]}
+        sections={
+          <Section full>
+            <Empty>Awaiting tech telemetry</Empty>
+          </Section>
+        }
+      />
     );
   }
   if (allNodes.length === 0) {
     return (
-      <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
-        <Empty>No tech nodes loaded</Empty>
-      </Panel>
+      <Panel
+        panelTitle="TECH TREE"
+        compactTitle={["TECH"]}
+        sections={
+          <Section full>
+            <Empty>No tech nodes loaded</Empty>
+          </Section>
+        }
+      />
     );
   }
 
@@ -431,25 +443,29 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   // ── Tiny mode: single-glance summary ─────────────────────────────────
   if (bucket === "tiny") {
     return (
-      <Panel panelTitle="TECH" fitToSize>
-        <>
-          <TinyCount>
-            {counts.researchable}
-            <TinyLabel>RESEARCHABLE</TinyLabel>
-          </TinyCount>
-          {sciAvailable !== null ? (
-            <TinySci>
-              {Math.round(sciAvailable)}
-              <Unit>science</Unit>
-            </TinySci>
-          ) : (
-            /* Tiny mode has room for one short line, and a withheld balance
+      <Panel
+        panelTitle="TECH"
+        fitToSize
+        sections={
+          <Section full>
+            <TinyCount>
+              {counts.researchable}
+              <TinyLabel>RESEARCHABLE</TinyLabel>
+            </TinyCount>
+            {sciAvailable !== null ? (
+              <TinySci>
+                {Math.round(sciAvailable)}
+                <Unit>science</Unit>
+              </TinySci>
+            ) : (
+              /* Tiny mode has room for one short line, and a withheld balance
                has to spend it saying so. Dropping the line silently would make
                a suspended balance look like a save that never had one. */
-            careerNotCurrent && <TinySci>SCIENCE NOT CURRENT</TinySci>
-          )}
-        </>
-      </Panel>
+              careerNotCurrent && <TinySci>SCIENCE NOT CURRENT</TinySci>
+            )}
+          </Section>
+        }
+      />
     );
   }
 
@@ -587,67 +603,86 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const sorted = sortNodes(filtered, researchable);
 
   return (
-    <Panel panelTitle="TECH TREE" compactTitle={["TECH"]}>
-      {subtitle && <TechMeta>{subtitle}</TechMeta>}
-      <Controls>
-        <FilterBar role="group" aria-label="Filter tech nodes">
-          <FilterBtn
-            type="button"
-            $active={filter === "all"}
-            onClick={() => setFilter("all")}
-          >
-            All
-          </FilterBtn>
-          <FilterBtn
-            type="button"
-            $active={filter === "researchable"}
-            onClick={() => setFilter("researchable")}
-          >
-            Researchable
-          </FilterBtn>
-          <FilterBtn
-            type="button"
-            $active={filter === "unlocked"}
-            onClick={() => setFilter("unlocked")}
-          >
-            Unlocked
-          </FilterBtn>
-        </FilterBar>
-        <SearchInput
-          type="search"
-          placeholder="Filter by name or description..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          aria-label="Filter tech nodes by text"
-        />
-      </Controls>
-      <Body>
-        <NodeList>
-          {sorted.length === 0 ? (
-            <Empty>No nodes match</Empty>
-          ) : (
-            sorted.map((n) => {
-              const u = unlockHandlersFor(n);
-              return (
-                <NodeRow
-                  key={n.id}
-                  node={n}
-                  display={displayState(n, researchable)}
-                  expanded={expandedId === n.id}
-                  onToggleExpand={() =>
-                    setExpandedId((current) => (current === n.id ? null : n.id))
-                  }
-                  unlockCmd={unlockCmd}
-                  canUnlock={u.canUnlock}
-                  canAfford={u.canAfford}
-                  affordTooltip={u.affordTooltip}
-                />
-              );
-            })
-          )}
-        </NodeList>
-      </Body>
-    </Panel>
+    <Panel
+      panelTitle="TECH TREE"
+      compactTitle={["TECH"]}
+      /* The filter pills and the search box are a full-width row of controls,
+         which is what `panelToolbar` is: pinned under the header, outside the
+         scroller. They used to sit above a `flex: 1` ScrollArea, which is the
+         only thing that kept them in view. */
+      panelToolbar={
+        <Controls>
+          <FilterBar role="group" aria-label="Filter tech nodes">
+            <FilterBtn
+              type="button"
+              $active={filter === "all"}
+              onClick={() => setFilter("all")}
+            >
+              All
+            </FilterBtn>
+            <FilterBtn
+              type="button"
+              $active={filter === "researchable"}
+              onClick={() => setFilter("researchable")}
+            >
+              Researchable
+            </FilterBtn>
+            <FilterBtn
+              type="button"
+              $active={filter === "unlocked"}
+              onClick={() => setFilter("unlocked")}
+            >
+              Unlocked
+            </FilterBtn>
+          </FilterBar>
+          <SearchInput
+            type="search"
+            placeholder="Filter by name or description..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="Filter tech nodes by text"
+          />
+        </Controls>
+      }
+      /* No `ScrollArea` around the list. Panel's body IS the scroller and owns
+         the glow, so a second one here drew its glow inside the outer body's
+         inset, which is the case the kit's own doc comment names. */
+      sections={[
+        subtitle && (
+          <Section key="meta" full>
+            <TechMeta>{subtitle}</TechMeta>
+          </Section>
+        ),
+        <Section key="nodes" full>
+          <NodeList>
+            {sorted.length === 0 ? (
+              <Empty>No nodes match</Empty>
+            ) : (
+              sorted.map((n) => {
+                const u = unlockHandlersFor(n);
+                return (
+                  <NodeRow
+                    key={n.id}
+                    node={n}
+                    display={displayState(n, researchable)}
+                    expanded={expandedId === n.id}
+                    onToggleExpand={() =>
+                      setExpandedId((current) =>
+                        current === n.id ? null : n.id,
+                      )
+                    }
+                    unlockCmd={unlockCmd}
+                    canUnlock={u.canUnlock}
+                    canAfford={u.canAfford}
+                    affordTooltip={u.affordTooltip}
+                  />
+                );
+              })
+            )}
+          </NodeList>
+        </Section>,
+      ]}
+    />
   );
 }
 
@@ -1086,17 +1121,6 @@ const SearchInput = styled.input`
   &:focus-visible {
     outline: 2px solid var(--color-accent-fg);
     outline-offset: 2px;
-  }
-`;
-
-const Body = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-
-  [data-scroll-area-inner] {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-4);
   }
 `;
 

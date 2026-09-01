@@ -7,7 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { NULL_DISPLAY, Panel, Unit } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
 import { netFundsPerDay } from "../shared/FundsDrain";
 import { magnitudeOf } from "../shared/magnitude";
@@ -127,97 +127,104 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
     <Panel
       panelTitle="PROGRAMME FUNDING"
       compactTitle={["FUNDING", "FUNDS", "FUND"]}
-    >
-      <Body>
-        <Balances>
-          <Balance>
-            <BalanceLabel>Funds</BalanceLabel>
-            <BalanceValue>
-              {funds !== null ? (
-                <Unit value={value("funds", funds)} />
-              ) : (
-                NULL_DISPLAY
-              )}
-            </BalanceValue>
-          </Balance>
-          <Balance>
-            <BalanceLabel>Reputation</BalanceLabel>
-            <BalanceValue>
-              {reputation !== null ? (
-                <Unit value={value("rep", reputation)} />
-              ) : (
-                NULL_DISPLAY
-              )}
-            </BalanceValue>
-          </Balance>
-        </Balances>
-
-        {stale && (
-          <Caption>
-            No longer current: these are the last rates that arrived.
-          </Caption>
-        )}
-
-        {economy === undefined ? (
-          <Caption>No career economy has arrived.</Caption>
-        ) : inert ? (
-          <Caption>
-            This career's money does not decay, earns no subsidy and costs
-            nothing to hold.
-          </Caption>
-        ) : (
-          <Rates>
-            {decay !== null && decay !== 0 && (
-              <Rate>
-                <RateLabel>Reputation decay</RateLabel>
-                <RateValue>
-                  <Unit value={value("rep/day", decay)} />
-                </RateValue>
-              </Rate>
-            )}
-            {subsidy !== null && (
-              <Rate>
-                <RateLabel>Subsidy</RateLabel>
-                <RateValue>
-                  <Unit value={value("f/day", subsidy)} />
-                </RateValue>
-                {subsidyMin !== null && subsidyMax !== null && (
-                  <RateRange>
-                    of <Unit value={value("f/day", subsidyMin)} /> to{" "}
-                    <Unit value={value("f/day", subsidyMax)} />
-                  </RateRange>
+      sections={[
+        /* Balances span: the rates and the breakdown below are both about what
+           happens to them. */
+        <Section key="balances" full>
+          <Balances>
+            <Balance>
+              <BalanceLabel>Funds</BalanceLabel>
+              <BalanceValue>
+                {funds !== null ? (
+                  <Unit value={value("funds", funds)} />
+                ) : (
+                  NULL_DISPLAY
                 )}
-              </Rate>
-            )}
-            {upkeep !== null && (
-              <Rate>
-                <RateLabel>Upkeep</RateLabel>
-                <RateValue>
-                  <Unit value={value("f/day", upkeep)} />
-                </RateValue>
-              </Rate>
-            )}
-            {net !== null && (
-              <Rate $total>
-                {/* Named rather than signed: a leading minus on a rate beside
+              </BalanceValue>
+            </Balance>
+            <Balance>
+              <BalanceLabel>Reputation</BalanceLabel>
+              <BalanceValue>
+                {reputation !== null ? (
+                  <Unit value={value("rep", reputation)} />
+                ) : (
+                  NULL_DISPLAY
+                )}
+              </BalanceValue>
+            </Balance>
+          </Balances>
+        </Section>,
+        stale && (
+          <Section key="stale" full>
+            <Caption>
+              No longer current: these are the last rates that arrived.
+            </Caption>
+          </Section>
+        ),
+        <Section key="rates">
+          {economy === undefined ? (
+            <Caption>No career economy has arrived.</Caption>
+          ) : inert ? (
+            <Caption>
+              This career's money does not decay, earns no subsidy and costs
+              nothing to hold.
+            </Caption>
+          ) : (
+            <Rates>
+              {decay !== null && decay !== 0 && (
+                <Rate>
+                  <RateLabel>Reputation decay</RateLabel>
+                  <RateValue>
+                    <Unit value={value("rep/day", decay)} />
+                  </RateValue>
+                </Rate>
+              )}
+              {subsidy !== null && (
+                <Rate>
+                  <RateLabel>Subsidy</RateLabel>
+                  <RateValue>
+                    <Unit value={value("f/day", subsidy)} />
+                  </RateValue>
+                  {subsidyMin !== null && subsidyMax !== null && (
+                    <RateRange>
+                      of <Unit value={value("f/day", subsidyMin)} /> to{" "}
+                      <Unit value={value("f/day", subsidyMax)} />
+                    </RateRange>
+                  )}
+                </Rate>
+              )}
+              {upkeep !== null && (
+                <Rate>
+                  <RateLabel>Upkeep</RateLabel>
+                  <RateValue>
+                    <Unit value={value("f/day", upkeep)} />
+                  </RateValue>
+                </Rate>
+              )}
+              {net !== null && (
+                <Rate $total>
+                  {/* Named rather than signed: a leading minus on a rate beside
                     two positive ones is read as a formatting artefact about as
                     often as it is read as a direction. */}
-                <RateLabel>{net < 0 ? "Net drain" : "Net gain"}</RateLabel>
-                <RateValue>
-                  <Unit value={value("f/day", Math.abs(net))} />
-                </RateValue>
-              </Rate>
-            )}
-          </Rates>
-        )}
-
-        {sources.length > 0 && !compact && (
-          <Breakdown>
-            <BreakdownTitle>
-              {beforeModifiers
+                  <RateLabel>{net < 0 ? "Net drain" : "Net gain"}</RateLabel>
+                  <RateValue>
+                    <Unit value={value("f/day", Math.abs(net))} />
+                  </RateValue>
+                </Rate>
+              )}
+            </Rates>
+          )}
+        </Section>,
+        sources.length > 0 && !compact && (
+          <Section
+            key="breakdown"
+            titleAs="h3"
+            title={
+              beforeModifiers
                 ? "Where the upkeep goes, before discounts"
-                : "Where the upkeep goes"}
-            </BreakdownTitle>
+                : "Where the upkeep goes"
+            }
+          >
             <BreakdownList>
               {sources.map((source) => (
                 <BreakdownRow key={source.label}>
@@ -228,21 +235,17 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
                 </BreakdownRow>
               ))}
             </BreakdownList>
-          </Breakdown>
-        )}
-
-        {model !== undefined && model !== null && <Model>Model: {model}</Model>}
-      </Body>
-    </Panel>
+          </Section>
+        ),
+        model !== undefined && model !== null && (
+          <Section key="model" full>
+            <Model>Model: {model}</Model>
+          </Section>
+        ),
+      ]}
+    />
   );
 }
-
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  min-width: 0;
-`;
 
 const Balances = styled.div`
   display: flex;
@@ -312,21 +315,6 @@ const RateRange = styled.span`
   flex-basis: 100%;
   font-size: 0.75rem;
   opacity: 0.7;
-`;
-
-const Breakdown = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-`;
-
-const BreakdownTitle = styled.h3`
-  margin: 0;
-  font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  opacity: 0.7;
-  font-weight: normal;
 `;
 
 const BreakdownList = styled.dl`

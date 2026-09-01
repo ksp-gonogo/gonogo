@@ -24,7 +24,7 @@ import {
   Panel,
   ReadoutCaption,
   resourceColor,
-  ScrollArea,
+  Section,
   Stack,
   Text,
   Truncate,
@@ -637,33 +637,49 @@ function ResourceOpsComponent(
 
   if (!anything) {
     return (
-      <Panel panelTitle="RESOURCE OPS" compactTitle={["RES OPS", "RES"]}>
-        {/* An empty list is a fact about the vessel, not a missing backend, so
-            this says so rather than blaming the connection. */}
-        <EmptyState layout="fill">
-          No drills or converters on this vessel
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="RESOURCE OPS"
+        compactTitle={["RES OPS", "RES"]}
+        sections={
+          <Section full>
+            {/* An empty list is a fact about the vessel, not a missing backend,
+                so this says so rather than blaming the connection. */}
+            <EmptyState layout="fill">
+              No drills or converters on this vessel
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
   return (
-    <Panel panelTitle="RESOURCE OPS" compactTitle={["RES OPS", "RES"]}>
-      <ResourceOpsStats
-        total={total}
-        activeCount={activeCount}
-        netEc={netEc}
-        netEcNotCurrent={convertersNotCurrent}
-        location={location}
-        staleChannels={staleChannels}
-      />
-      <ScrollArea>
-        <FilterList
-          rows={rows}
-          emptyLabel="Nothing on this vessel matches the filter"
-        />
-      </ScrollArea>
-    </Panel>
+    <Panel
+      panelTitle="RESOURCE OPS"
+      compactTitle={["RES OPS", "RES"]}
+      sections={[
+        /* The summary strip spans: the list below it is what it counts. */
+        <Section key="summary" full>
+          <ResourceOpsStats
+            total={total}
+            activeCount={activeCount}
+            netEc={netEc}
+            netEcNotCurrent={convertersNotCurrent}
+            location={location}
+            staleChannels={staleChannels}
+          />
+        </Section>,
+        /* No `ScrollArea` around the list. Panel's body IS the scroller and
+           owns the glow, so a second one here drew its glow inside the outer
+           body's inset, which is the case the kit's own doc comment names. */
+        <Section key="processes" full>
+          <FilterList
+            rows={rows}
+            emptyLabel="Nothing on this vessel matches the filter"
+          />
+        </Section>,
+      ]}
+    />
   );
 }
 

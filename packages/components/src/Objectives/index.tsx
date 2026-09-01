@@ -10,6 +10,7 @@ import {
   BellIcon,
   EmptyState,
   Panel,
+  Section,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { ComponentType, CSSProperties, ReactNode } from "react";
@@ -342,17 +343,27 @@ const OBJECTIVES_SLOT: ObjectiveSourceContext = { Section: ObjectivesSection };
 
 function ObjectivesComponent(_: Readonly<ComponentProps<ObjectivesConfig>>) {
   return (
-    <Panel panelTitle="OBJECTIVES">
-      <Sections>
-        <AugmentSlot name="objectives.source" props={OBJECTIVES_SLOT} />
-      </Sections>
-      {/* Frame-level fallback: shown only while no bound source yields content
-          (the `Sections` wrapper renders empty). CSS `:empty` keeps the frame
-          agnostic of which sources exist; see the sibling rule on `Sections`. */}
-      <EmptyFallbackWrap>
-        <EmptyState role="status">No active objectives</EmptyState>
-      </EmptyFallbackWrap>
-    </Panel>
+    <Panel
+      panelTitle="OBJECTIVES"
+      /* ONE section holding both, rather than one per entry: the fallback below
+         is hidden by an ADJACENT-SIBLING rule on `Sections`, and section entries
+         become separate grid items, which would put a wrapper between the two
+         and break it. The sources render their own `Section`s inside. */
+      sections={
+        <Section full>
+          <Sections>
+            <AugmentSlot name="objectives.source" props={OBJECTIVES_SLOT} />
+          </Sections>
+          {/* Frame-level fallback: shown only while no bound source yields
+              content (the `Sections` wrapper renders empty). CSS `:empty` keeps
+              the frame agnostic of which sources exist; see the sibling rule on
+              `Sections`. */}
+          <EmptyFallbackWrap>
+            <EmptyState role="status">No active objectives</EmptyState>
+          </EmptyFallbackWrap>
+        </Section>
+      }
+    />
   );
 }
 

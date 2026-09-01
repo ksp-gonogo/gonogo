@@ -12,7 +12,7 @@ import {
   CloseIcon,
   Panel,
   PrimaryButton,
-  ScrollArea,
+  Section,
 } from "@ksp-gonogo/ui-kit";
 import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
@@ -86,42 +86,56 @@ function NotesView({
     setDraft("");
   };
   return (
-    <Panel panelTitle="NOTES">
-      <List>
-        {ordered.length === 0 ? (
-          <Empty>No notes yet: add one below.</Empty>
-        ) : (
-          ordered.map((note, idx) => (
-            <NoteRow
-              key={note.id}
-              note={note}
-              isFirst={idx === 0}
-              isLast={idx === ordered.length - 1}
-              prevId={idx > 0 ? ordered[idx - 1].id : null}
-              nextId={idx < ordered.length - 1 ? ordered[idx + 1].id : null}
-              actions={actions}
-            />
-          ))
-        )}
-      </List>
-      <AddRow>
-        <TagAutocomplete
-          ariaLabel="New note body (use {{ to insert a variable)"
-          placeholder="New note... type {{ to insert a variable"
-          value={draft}
-          onChange={setDraft}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-        />
-        <PrimaryButton type="button" onClick={submit} disabled={!draft.trim()}>
-          Add
-        </PrimaryButton>
-      </AddRow>
-    </Panel>
+    <Panel
+      panelTitle="NOTES"
+      /* The composer is PINNED by Panel rather than merely rendered last. It
+         used to sit after a `flex: 1` ScrollArea, which is what held it at the
+         bottom; inside a section it would scroll away with the notes. */
+      panelFooter={
+        <AddRow>
+          <TagAutocomplete
+            ariaLabel="New note body (use {{ to insert a variable)"
+            placeholder="New note... type {{ to insert a variable"
+            value={draft}
+            onChange={setDraft}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+          />
+          <PrimaryButton
+            type="button"
+            onClick={submit}
+            disabled={!draft.trim()}
+          >
+            Add
+          </PrimaryButton>
+        </AddRow>
+      }
+      /* ONE section: the notes are one ordered list an operator reorders by
+         hand, so columns would fight the order the reorder buttons set. */
+      sections={
+        <Section full gap="lg">
+          {ordered.length === 0 ? (
+            <Empty>No notes yet: add one below.</Empty>
+          ) : (
+            ordered.map((note, idx) => (
+              <NoteRow
+                key={note.id}
+                note={note}
+                isFirst={idx === 0}
+                isLast={idx === ordered.length - 1}
+                prevId={idx > 0 ? ordered[idx - 1].id : null}
+                nextId={idx < ordered.length - 1 ? ordered[idx + 1].id : null}
+                actions={actions}
+              />
+            ))
+          )}
+        </Section>
+      }
+    />
   );
 }
 
@@ -342,14 +356,6 @@ export function useTagValues(tags: readonly string[]): Map<string, unknown> {
 
 // ── Styles ──────────────────────────────────────────────────────────────────
 
-const List = styled(ScrollArea)`
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-10);
-`;
-
 const Item = styled.div`
   display: grid;
   grid-template-columns: auto 1fr auto;
@@ -444,7 +450,6 @@ const DeleteBtn = styled.button`
 const AddRow = styled.div`
   display: flex;
   gap: var(--space-6);
-  margin-top: var(--space-8);
   flex-shrink: 0;
 `;
 

@@ -9,7 +9,7 @@ import {
   type ReadoutTone,
   Row,
   RowName,
-  Stack,
+  Section,
   StatusPill,
   Unit,
 } from "@ksp-gonogo/ui-kit";
@@ -22,6 +22,16 @@ import { judgeable } from "../judgeable";
 import { AERO } from "../uplink";
 
 type AeroConfig = Record<string, never>;
+
+/**
+ * Strips the browser's list chrome from the readout list, whose `<ul>` is
+ * semantics only. `Section` supplies the layout.
+ *
+ * The list carried none of this before and rendered with UA bullets and a 40px
+ * indent, which is a readout list drawn as prose and a value column pushed to
+ * the panel edge. Every other list in the widget tree already resets it.
+ */
+const ROW_LIST = { listStyle: "none", margin: 0, padding: 0 } as const;
 
 /**
  * A quantity readout, the way an Uplink is meant to write one: the value carries
@@ -93,82 +103,88 @@ export function AeroStateComponent(_props: ComponentProps<AeroConfig>) {
   const modelValid = s?.aeroModelValid ?? false;
 
   return (
-    <Panel panelTitle="Aerodynamics" compactTitle={["AERO"]}>
-      <Stack role="status" aria-live="polite">
-        <Cluster wrap>
-          <StatusPill $tone={band?.tone ?? "default"}>
-            {band?.label ?? "NO AERO DATA"}
-          </StatusPill>
-          {!modelValid && <StatusPill $tone="warning">MODEL STALE</StatusPill>}
-        </Cluster>
-        <Cluster wrap>
-          <div>
-            <BigReadout>
-              <Q value={s?.angleOfAttack} decimals={1} />
-            </BigReadout>
-            <ReadoutCaption>Angle of attack</ReadoutCaption>
-          </div>
-          <div>
-            <BigReadout $tone={band?.tone}>
-              <Q value={stall} decimals={0} />
-            </BigReadout>
-            <ReadoutCaption>Stalled</ReadoutCaption>
-          </div>
-          <div>
-            <BigReadout>
-              <Q value={s?.liftToDragRatio} decimals={2} />
-            </BigReadout>
-            <ReadoutCaption>Lift / drag</ReadoutCaption>
-          </div>
-        </Cluster>
-      </Stack>
-      <ul>
-        <Row>
-          <RowName>Sideslip</RowName>
-          <Q value={s?.sideslip} decimals={1} />
-        </Row>
-        <Row>
-          <RowName>Indicated airspeed</RowName>
-          <Q value={s?.indicatedAirspeed} decimals={0} />
-        </Row>
-        <Row>
-          <RowName>Equivalent airspeed</RowName>
-          <Q value={s?.equivalentAirspeed} decimals={0} />
-        </Row>
-        <Row>
-          <RowName>Lift coefficient</RowName>
-          <Q value={s?.liftCoefficient} decimals={3} />
-        </Row>
-        <Row>
-          <RowName>Drag coefficient</RowName>
-          <Q value={s?.dragCoefficient} decimals={3} />
-        </Row>
-        <Row>
-          <RowName>Reference area</RowName>
-          <Q value={s?.referenceArea} decimals={2} />
-        </Row>
-        <Row>
-          <RowName>Lift</RowName>
-          <Q value={s?.liftForce} decimals={1} />
-        </Row>
-        <Row>
-          <RowName>Drag</RowName>
-          <Q value={s?.dragForce} decimals={1} />
-        </Row>
-        <Row>
-          <RowName>Terminal velocity</RowName>
-          <Q value={s?.terminalVelocity} decimals={0} />
-        </Row>
-        <Row>
-          <RowName>Ballistic coefficient</RowName>
-          <Q value={s?.ballisticCoefficient} decimals={0} />
-        </Row>
-        <Row>
-          <RowName>Specific excess power</RowName>
-          <Q value={s?.specificExcessPower} decimals={1} />
-        </Row>
-      </ul>
-    </Panel>
+    <Panel
+      panelTitle="Aerodynamics"
+      compactTitle={["AERO"]}
+      sections={[
+        <Section key="state" full gap="sm" role="status" aria-live="polite">
+          <Cluster wrap>
+            <StatusPill $tone={band?.tone ?? "default"}>
+              {band?.label ?? "NO AERO DATA"}
+            </StatusPill>
+            {!modelValid && (
+              <StatusPill $tone="warning">MODEL STALE</StatusPill>
+            )}
+          </Cluster>
+          <Cluster wrap>
+            <div>
+              <BigReadout>
+                <Q value={s?.angleOfAttack} decimals={1} />
+              </BigReadout>
+              <ReadoutCaption>Angle of attack</ReadoutCaption>
+            </div>
+            <div>
+              <BigReadout $tone={band?.tone}>
+                <Q value={stall} decimals={0} />
+              </BigReadout>
+              <ReadoutCaption>Stalled</ReadoutCaption>
+            </div>
+            <div>
+              <BigReadout>
+                <Q value={s?.liftToDragRatio} decimals={2} />
+              </BigReadout>
+              <ReadoutCaption>Lift / drag</ReadoutCaption>
+            </div>
+          </Cluster>
+        </Section>,
+        <Section key="rows" as="ul" style={ROW_LIST}>
+          <Row>
+            <RowName>Sideslip</RowName>
+            <Q value={s?.sideslip} decimals={1} />
+          </Row>
+          <Row>
+            <RowName>Indicated airspeed</RowName>
+            <Q value={s?.indicatedAirspeed} decimals={0} />
+          </Row>
+          <Row>
+            <RowName>Equivalent airspeed</RowName>
+            <Q value={s?.equivalentAirspeed} decimals={0} />
+          </Row>
+          <Row>
+            <RowName>Lift coefficient</RowName>
+            <Q value={s?.liftCoefficient} decimals={3} />
+          </Row>
+          <Row>
+            <RowName>Drag coefficient</RowName>
+            <Q value={s?.dragCoefficient} decimals={3} />
+          </Row>
+          <Row>
+            <RowName>Reference area</RowName>
+            <Q value={s?.referenceArea} decimals={2} />
+          </Row>
+          <Row>
+            <RowName>Lift</RowName>
+            <Q value={s?.liftForce} decimals={1} />
+          </Row>
+          <Row>
+            <RowName>Drag</RowName>
+            <Q value={s?.dragForce} decimals={1} />
+          </Row>
+          <Row>
+            <RowName>Terminal velocity</RowName>
+            <Q value={s?.terminalVelocity} decimals={0} />
+          </Row>
+          <Row>
+            <RowName>Ballistic coefficient</RowName>
+            <Q value={s?.ballisticCoefficient} decimals={0} />
+          </Row>
+          <Row>
+            <RowName>Specific excess power</RowName>
+            <Q value={s?.specificExcessPower} decimals={1} />
+          </Row>
+        </Section>,
+      ]}
+    />
   );
 }
 

@@ -20,9 +20,8 @@ import {
   Panel,
   type Quantityish,
   ReadoutCaption,
-  ScrollArea,
+  Section,
   SelectableRow,
-  Stack,
   Text,
   ToggleButton,
   Unit,
@@ -278,13 +277,18 @@ function RotorTachometerComponent({
 
   if (rotors.length === 0 || !selected) {
     return (
-      <Panel panelTitle="ROTORS">
-        <EmptyState role="status">
-          {available === false
-            ? "Breaking Ground not installed"
-            : "No rotors on this vessel"}
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="ROTORS"
+        sections={
+          <Section>
+            <EmptyState role="status">
+              {available === false
+                ? "Breaking Ground not installed"
+                : "No rotors on this vessel"}
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -303,10 +307,11 @@ function RotorTachometerComponent({
   const gaugeH = Math.round(gaugeW * 0.58);
 
   return (
-    <Panel panelTitle="ROTORS">
-      <ScrollArea>
-        <Stack gap="md">
-          {showGauge && (
+    <Panel
+      panelTitle="ROTORS"
+      sections={[
+        showGauge && (
+          <Section key="gauge">
             <Cluster justify="center" ref={gaugeRef}>
               <Gauge
                 value={clamp(selected.rpm, 0, ROTOR_MAX_RPM)}
@@ -327,135 +332,131 @@ function RotorTachometerComponent({
                 ariaLabel={`${selected.name}: ${Math.round(selected.rpm)} RPM, cap ${Math.round(selected.rpmLimit)}`}
               />
             </Cluster>
-          )}
-
-          <Stack gap="sm">
-            <Cluster justify="between" gap="md" wrap>
-              <ReadoutCaption>RPM cap</ReadoutCaption>
-              <Inline gap="sm">
-                <ActionButton
-                  tone="ghost"
-                  type="button"
-                  aria-label="Lower RPM cap"
-                  onClick={() =>
-                    setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
-                  }
-                >
-                  −
-                </ActionButton>
-                <Text size="sm" tone="default">
-                  {Math.round(selected.rpmLimit)}
-                </Text>
-                <ActionButton
-                  tone="ghost"
-                  type="button"
-                  aria-label="Raise RPM cap"
-                  onClick={() =>
-                    setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
-                  }
-                >
-                  +
-                </ActionButton>
-              </Inline>
-            </Cluster>
-
-            <Cluster justify="between" gap="md" wrap>
-              <ReadoutCaption>Torque</ReadoutCaption>
-              <Inline gap="sm">
-                <ActionButton
-                  tone="ghost"
-                  type="button"
-                  aria-label="Lower torque limit"
-                  onClick={() =>
-                    setTorqueLimit(
-                      selected.partId,
-                      selected.torqueLimit - TORQUE_STEP,
-                    )
-                  }
-                >
-                  −
-                </ActionButton>
-                <Text size="sm" tone="default">
-                  <Unit
-                    value={quantity("%", selected.torqueLimit)}
-                    decimals={0}
-                  />
-                </Text>
-                <ActionButton
-                  tone="ghost"
-                  type="button"
-                  aria-label="Raise torque limit"
-                  onClick={() =>
-                    setTorqueLimit(
-                      selected.partId,
-                      selected.torqueLimit + TORQUE_STEP,
-                    )
-                  }
-                >
-                  +
-                </ActionButton>
-              </Inline>
-            </Cluster>
-
-            <Cluster justify="start" gap="sm" wrap>
-              <ToggleButton
-                size="sm"
-                active={selected.motorEngaged}
-                tone="go"
+          </Section>
+        ),
+        <Section key="controls" gap="sm">
+          <Cluster justify="between" gap="md" wrap>
+            <ReadoutCaption>RPM cap</ReadoutCaption>
+            <Inline gap="sm">
+              <ActionButton
+                tone="ghost"
+                type="button"
+                aria-label="Lower RPM cap"
                 onClick={() =>
-                  setMotor(selected.partId, !selected.motorEngaged)
+                  setRpmLimit(selected.partId, selected.rpmLimit - RPM_STEP)
                 }
               >
-                Motor {selected.motorEngaged ? "on" : "off"}
-              </ToggleButton>
-              <ToggleButton
-                size="sm"
-                active={selected.locked}
-                tone="warn"
-                onClick={() => setLock(selected.partId, !selected.locked)}
-              >
-                {selected.locked ? "Locked" : "Unlocked"}
-              </ToggleButton>
-              <ToggleButton
-                size="sm"
-                active={selected.brakePercentage > 0}
-                tone="warn"
+                −
+              </ActionButton>
+              <Text size="sm" tone="default">
+                {Math.round(selected.rpmLimit)}
+              </Text>
+              <ActionButton
+                tone="ghost"
+                type="button"
+                aria-label="Raise RPM cap"
                 onClick={() =>
-                  setBrake(
+                  setRpmLimit(selected.partId, selected.rpmLimit + RPM_STEP)
+                }
+              >
+                +
+              </ActionButton>
+            </Inline>
+          </Cluster>
+
+          <Cluster justify="between" gap="md" wrap>
+            <ReadoutCaption>Torque</ReadoutCaption>
+            <Inline gap="sm">
+              <ActionButton
+                tone="ghost"
+                type="button"
+                aria-label="Lower torque limit"
+                onClick={() =>
+                  setTorqueLimit(
                     selected.partId,
-                    selected.brakePercentage > 0 ? 0 : 100,
+                    selected.torqueLimit - TORQUE_STEP,
                   )
                 }
               >
-                Brake {selected.brakePercentage > 0 ? "on" : "off"}
-              </ToggleButton>
-              <ToggleButton size="sm" onClick={() => reverse(selected.partId)}>
-                {selected.counterClockwise ? "↺ CCW" : "↻ CW"}
-              </ToggleButton>
-            </Cluster>
-          </Stack>
+                −
+              </ActionButton>
+              <Text size="sm" tone="default">
+                <Unit
+                  value={quantity("%", selected.torqueLimit)}
+                  decimals={0}
+                />
+              </Text>
+              <ActionButton
+                tone="ghost"
+                type="button"
+                aria-label="Raise torque limit"
+                onClick={() =>
+                  setTorqueLimit(
+                    selected.partId,
+                    selected.torqueLimit + TORQUE_STEP,
+                  )
+                }
+              >
+                +
+              </ActionButton>
+            </Inline>
+          </Cluster>
 
-          {rotors.length > 1 && (
-            <Stack gap="sm" aria-label="Rotors">
-              {rotors.map((r) => (
-                <SelectableRow
-                  key={r.partId}
-                  selected={r.partId === selected.partId}
-                  onClick={() => setSelectedId(r.partId)}
-                >
-                  <span>{r.name}</span>
-                  <span>
-                    {Math.round(r.rpm)}/{Math.round(r.rpmLimit)} RPM
-                    {r.motorEngaged ? "" : " · off"}
-                    {r.locked ? " · locked" : ""}
-                  </span>
-                </SelectableRow>
-              ))}
-            </Stack>
-          )}
-        </Stack>
-      </ScrollArea>
-    </Panel>
+          <Cluster justify="start" gap="sm" wrap>
+            <ToggleButton
+              size="sm"
+              active={selected.motorEngaged}
+              tone="go"
+              onClick={() => setMotor(selected.partId, !selected.motorEngaged)}
+            >
+              Motor {selected.motorEngaged ? "on" : "off"}
+            </ToggleButton>
+            <ToggleButton
+              size="sm"
+              active={selected.locked}
+              tone="warn"
+              onClick={() => setLock(selected.partId, !selected.locked)}
+            >
+              {selected.locked ? "Locked" : "Unlocked"}
+            </ToggleButton>
+            <ToggleButton
+              size="sm"
+              active={selected.brakePercentage > 0}
+              tone="warn"
+              onClick={() =>
+                setBrake(
+                  selected.partId,
+                  selected.brakePercentage > 0 ? 0 : 100,
+                )
+              }
+            >
+              Brake {selected.brakePercentage > 0 ? "on" : "off"}
+            </ToggleButton>
+            <ToggleButton size="sm" onClick={() => reverse(selected.partId)}>
+              {selected.counterClockwise ? "↺ CCW" : "↻ CW"}
+            </ToggleButton>
+          </Cluster>
+        </Section>,
+        rotors.length > 1 && (
+          <Section key="rotors" gap="sm" aria-label="Rotors">
+            {rotors.map((r) => (
+              <SelectableRow
+                key={r.partId}
+                selected={r.partId === selected.partId}
+                onClick={() => setSelectedId(r.partId)}
+              >
+                <span>{r.name}</span>
+                <span>
+                  {Math.round(r.rpm)}/{Math.round(r.rpmLimit)} RPM
+                  {r.motorEngaged ? "" : " · off"}
+                  {r.locked ? " · locked" : ""}
+                </span>
+              </SelectableRow>
+            ))}
+          </Section>
+        ),
+      ]}
+    />
   );
 }
 

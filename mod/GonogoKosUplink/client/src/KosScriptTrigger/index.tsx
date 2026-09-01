@@ -18,6 +18,7 @@ import {
   Input,
   Panel,
   PrimaryButton,
+  Section,
   Select,
   Spinner,
   Unit,
@@ -162,98 +163,114 @@ function KosScriptTriggerComponent({
   };
 
   return (
-    <Panel panelTitle="kOS SCRIPT TRIGGER">
-      <Body>
-        <Field>
-          <FieldLabel htmlFor={cpuId}>CPU</FieldLabel>
-          {noCpu ? (
-            <NoCpuNotice id={cpuId} role="status" aria-live="polite">
-              No kOS CPU available. Boot a kOS processor in flight, and check
-              the telemetry stream is connected.
-            </NoCpuNotice>
-          ) : config?.cpuName || runnable.length === 1 ? (
-            <StaticCpu id={cpuId}>{selectedTag}</StaticCpu>
-          ) : (
-            <Select
-              id={cpuId}
-              value={selectedTag ?? ""}
-              onChange={(e) => setPickedTag(e.target.value || null)}
-            >
-              <option value="" disabled>
-                Select a CPU…
-              </option>
-              {runnable.map((p) => (
-                <option key={p.coreId} value={p.tag}>
-                  {p.tag}
+    <Panel
+      panelTitle="kOS SCRIPT TRIGGER"
+      sections={[
+        /* One section per field, so a landscape tile runs CPU, path and
+           arguments side by side. The button row and the result span, because
+           they belong to all three. */
+        <Section key="cpu">
+          <Field>
+            <FieldLabel htmlFor={cpuId}>CPU</FieldLabel>
+            {noCpu ? (
+              <NoCpuNotice id={cpuId} role="status" aria-live="polite">
+                No kOS CPU available. Boot a kOS processor in flight, and check
+                the telemetry stream is connected.
+              </NoCpuNotice>
+            ) : config?.cpuName || runnable.length === 1 ? (
+              <StaticCpu id={cpuId}>{selectedTag}</StaticCpu>
+            ) : (
+              <Select
+                id={cpuId}
+                value={selectedTag ?? ""}
+                onChange={(e) => setPickedTag(e.target.value || null)}
+              >
+                <option value="" disabled>
+                  Select a CPU…
                 </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor={pathId}>Script path</FieldLabel>
-          <Input
-            id={pathId}
-            type="text"
-            value={scriptPath}
-            onChange={(e) => setScriptPath(e.target.value)}
-            placeholder="e.g. 0:/deltav.ks"
-          />
-          <FieldHint>Path to the kerboscript on the CPU's volume.</FieldHint>
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor={argsId}>Arguments</FieldLabel>
-          <Input
-            id={argsId}
-            type="text"
-            value={argsText}
-            onChange={(e) => setArgsText(e.target.value)}
-            placeholder="e.g. 100 true"
-          />
-          <FieldHint>
-            Optional, space-separated. Numbers and true/false are passed typed,
-            anything else as a string.
-          </FieldHint>
-        </Field>
-
-        <FormActions>
-          <PrimaryButton type="button" onClick={dispatch} disabled={!canRun}>
-            {run.status === "running" ? "Running…" : "Run"}
-          </PrimaryButton>
-          {oneWay !== null && oneWay > 0 && (
-            <RoundTrip aria-label="Signal round-trip">
-              round-trip ~
-              <Unit value={value("s", 2 * oneWay)} scale="never" decimals={1} />
-            </RoundTrip>
-          )}
-        </FormActions>
-
-        <ResultRegion role="status" aria-live="polite">
-          {run.status === "running" && (
-            <Running>
-              <Spinner size={14} />
-              <span>Running on {run.cpu}, awaiting the round-trip result…</span>
-            </Running>
-          )}
-          {run.status === "ok" && (
-            <Result>
-              <Badge tone="go">OK</Badge>
-              <ResultFields data={run.data} />
-            </Result>
-          )}
-          {run.status === "error" && (
-            <Result>
-              <Badge tone="nogo">
-                {run.scriptFault ? "Script error" : "Dispatch error"}
-              </Badge>
-              <ErrorText>{run.message}</ErrorText>
-            </Result>
-          )}
-        </ResultRegion>
-      </Body>
-    </Panel>
+                {runnable.map((p) => (
+                  <option key={p.coreId} value={p.tag}>
+                    {p.tag}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </Field>
+        </Section>,
+        <Section key="path">
+          <Field>
+            <FieldLabel htmlFor={pathId}>Script path</FieldLabel>
+            <Input
+              id={pathId}
+              type="text"
+              value={scriptPath}
+              onChange={(e) => setScriptPath(e.target.value)}
+              placeholder="e.g. 0:/deltav.ks"
+            />
+            <FieldHint>Path to the kerboscript on the CPU's volume.</FieldHint>
+          </Field>
+        </Section>,
+        <Section key="args">
+          <Field>
+            <FieldLabel htmlFor={argsId}>Arguments</FieldLabel>
+            <Input
+              id={argsId}
+              type="text"
+              value={argsText}
+              onChange={(e) => setArgsText(e.target.value)}
+              placeholder="e.g. 100 true"
+            />
+            <FieldHint>
+              Optional, space-separated. Numbers and true/false are passed
+              typed, anything else as a string.
+            </FieldHint>
+          </Field>
+        </Section>,
+        <Section key="actions" full>
+          <FormActions>
+            <PrimaryButton type="button" onClick={dispatch} disabled={!canRun}>
+              {run.status === "running" ? "Running…" : "Run"}
+            </PrimaryButton>
+            {oneWay !== null && oneWay > 0 && (
+              <RoundTrip aria-label="Signal round-trip">
+                round-trip ~
+                <Unit
+                  value={value("s", 2 * oneWay)}
+                  scale="never"
+                  decimals={1}
+                />
+              </RoundTrip>
+            )}
+          </FormActions>
+        </Section>,
+        <Section key="result" full>
+          <ResultRegion role="status" aria-live="polite">
+            {run.status === "running" && (
+              <Running>
+                <Spinner size={14} />
+                <span>
+                  Running on {run.cpu}, awaiting the round-trip result…
+                </span>
+              </Running>
+            )}
+            {run.status === "ok" && (
+              <Result>
+                <Badge tone="go">OK</Badge>
+                <ResultFields data={run.data} />
+              </Result>
+            )}
+            {run.status === "error" && (
+              <Result>
+                <Badge tone="nogo">
+                  {run.scriptFault ? "Script error" : "Dispatch error"}
+                </Badge>
+                <ErrorText>{run.message}</ErrorText>
+              </Result>
+            )}
+          </ResultRegion>
+        </Section>,
+      ]}
+    />
   );
 }
 
@@ -350,13 +367,6 @@ registerComponent<KosScriptTriggerConfig>({
 });
 
 export { KosScriptTriggerComponent };
-
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-12);
-  min-height: 0;
-`;
 
 const NoCpuNotice = styled.div`
   font-size: var(--font-size-sm);

@@ -3,58 +3,58 @@
   "engine": "chromium",
   "assets": {
     "breaking-ground-absent--default.png": {
-      "hash": "a71bd3e9cc8dfd65",
-      "elements": 9,
+      "hash": "e53166337104941b",
+      "elements": 11,
       "text": "e2f1fa7a"
     },
     "controller-not-connected--default.png": {
-      "hash": "249e34d33826e850",
-      "elements": 28,
+      "hash": "8687c35a3be6afdf",
+      "elements": 29,
       "text": "8d606e2c"
     },
     "controller-not-connected--min.png": {
-      "hash": "a246b6ec2b0bc1b1",
-      "elements": 28,
+      "hash": "6490d6f7d1e92b11",
+      "elements": 29,
       "text": "f5953fef"
     },
     "mun-and-minmus-bases--default.png": {
-      "hash": "c716f7eecc75bea5",
-      "elements": 57,
+      "hash": "fc0fa63845032b2d",
+      "elements": 59,
       "text": "9ea1e44a"
     },
     "mun-and-minmus-bases--min.png": {
-      "hash": "70335a4392995109",
-      "elements": 57,
+      "hash": "17bd1d3a3ae75625",
+      "elements": 59,
       "text": "a14f87ba"
     },
     "robotics-dlc-absent--default.png": {
-      "hash": "81217f713aeb91c5",
-      "elements": 9,
+      "hash": "63fd512b4f664fc2",
+      "elements": 11,
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "d2c77e1a7788a5bb",
-      "elements": 52,
+      "hash": "4adb03240c65f315",
+      "elements": 49,
       "text": "6dbac7de"
     },
     "rotors--min.png": {
-      "hash": "767f13e73cacac4f",
-      "elements": 41,
+      "hash": "6651c96313396315",
+      "elements": 37,
       "text": "5c77630d"
     },
     "rotors-dlc-absent--default.png": {
-      "hash": "5ed8b3ee2798f5be",
-      "elements": 9,
+      "hash": "ff2da2abfa6dd631",
+      "elements": 11,
       "text": "f903d91f"
     },
     "servos--default.png": {
-      "hash": "265ea06e5151900b",
-      "elements": 39,
+      "hash": "84fae57d6390e431",
+      "elements": 36,
       "text": "df381dff"
     },
     "servos--min.png": {
-      "hash": "cefcbfbb8b11965c",
-      "elements": 28,
+      "hash": "2b9097b7b6e2c955",
+      "elements": 25,
       "text": "220c5a23"
     }
   }

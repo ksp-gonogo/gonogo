@@ -633,7 +633,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * same reason as the lists beside it: a gate placed inside an Uplink is one
        * a third-party author could not run.
        */
-      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -1338,7 +1337,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * same reason as the lists beside it: a gate placed inside an Uplink is one
        * a third-party author could not run.
        */
-      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -1504,7 +1502,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * same reason as the lists beside it: a gate placed inside an Uplink is one
        * a third-party author could not run.
        */
-      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -2291,7 +2288,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * same reason as the lists beside it: a gate placed inside an Uplink is one
        * a third-party author could not run.
        */
-      "packages/core/src/panel-body.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -2368,7 +2364,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/truenow-allowlist.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
@@ -2377,7 +2372,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
   ],
@@ -2447,7 +2441,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/settings/SettingsModal.test.tsx",
     "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",
@@ -2461,7 +2454,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/panel-body.allowlist.ts",
     "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],

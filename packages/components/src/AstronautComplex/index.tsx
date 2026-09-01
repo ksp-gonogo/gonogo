@@ -24,6 +24,7 @@ import {
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
+  Section,
   speakQuantity,
   type TabDescriptor,
   Tabs,
@@ -339,29 +340,30 @@ function AstronautComplexComponent(
       <Panel
         panelTitle="ASTRONAUT COMPLEX"
         compactTitle={["ASTRONAUTS", "CREW"]}
-      >
-        <Body>
-          <FundsLine role="status">
-            <FundsLabel>Funds</FundsLabel>
-            {careerFunds !== null ? (
-              <FundsValue title="Available funds">
-                <Unit value={value("funds", careerFunds)} />
-              </FundsValue>
-            ) : (
-              <FundsValue>{NULL_DISPLAY}</FundsValue>
+        sections={
+          <Section full gap="lg">
+            <FundsLine role="status">
+              <FundsLabel>Funds</FundsLabel>
+              {careerFunds !== null ? (
+                <FundsValue title="Available funds">
+                  <Unit value={value("funds", careerFunds)} />
+                </FundsValue>
+              ) : (
+                <FundsValue>{NULL_DISPLAY}</FundsValue>
+              )}
+              <FundsDrain funds={careerFunds} netPerDay={netFunds} />
+            </FundsLine>
+            {fundsNotCurrent && (
+              <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
             )}
-            <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-          </FundsLine>
-          {fundsNotCurrent && (
-            <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
-          )}
-          <Empty>
-            {complexConfirmedEmpty
-              ? "No applicant data (career mode only)"
-              : "No applicant data yet (waiting for telemetry)"}
-          </Empty>
-        </Body>
-      </Panel>
+            <Empty>
+              {complexConfirmedEmpty
+                ? "No applicant data (career mode only)"
+                : "No applicant data yet (waiting for telemetry)"}
+            </Empty>
+          </Section>
+        }
+      />
     );
   }
 
@@ -372,85 +374,92 @@ function AstronautComplexComponent(
       : null;
 
   return (
-    <Panel panelTitle="ASTRONAUT COMPLEX" compactTitle={["ASTRONAUTS", "CREW"]}>
-      <Body>
-        <Header role="status" aria-live="polite">
-          <StatBox>
-            <StatLabel>Funds</StatLabel>
-            {careerFunds !== null ? (
-              <StatValue
-                title={speakQuantity(value("funds", careerFunds), {
-                  decimals: 0,
-                })}
-              >
-                <Unit value={value("funds", careerFunds)} />
+    <Panel
+      panelTitle="ASTRONAUT COMPLEX"
+      compactTitle={["ASTRONAUTS", "CREW"]}
+      sections={[
+        /* Both span. The stat row is already three boxes wrapping on their own,
+           and a tab strip beside anything reads as two widgets. */
+        <Section key="stats" full>
+          <Header role="status" aria-live="polite">
+            <StatBox>
+              <StatLabel>Funds</StatLabel>
+              {careerFunds !== null ? (
+                <StatValue
+                  title={speakQuantity(value("funds", careerFunds), {
+                    decimals: 0,
+                  })}
+                >
+                  <Unit value={value("funds", careerFunds)} />
+                </StatValue>
+              ) : (
+                <StatValue>{NULL_DISPLAY}</StatValue>
+              )}
+              <DrainLine>
+                <FundsDrain funds={careerFunds} netPerDay={netFunds} />
+              </DrainLine>
+              {fundsNotCurrent && (
+                <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
+              )}
+            </StatBox>
+            <StatBox>
+              <StatLabel>Next Hire</StatLabel>
+              {nextHireCost !== null ? (
+                <StatValue
+                  $critical={!affordable}
+                  title={speakQuantity(value("funds", nextHireCost), {
+                    decimals: 0,
+                  })}
+                >
+                  <Unit value={value("funds", nextHireCost)} />
+                </StatValue>
+              ) : (
+                <StatValue>{NULL_DISPLAY}</StatValue>
+              )}
+            </StatBox>
+            <StatBox>
+              <StatLabel>Active Kerbals</StatLabel>
+              <StatValue $critical={rosterFull}>
+                {activeCrew !== null ? activeCrew : NULL_DISPLAY}
+                {capText !== null ? ` / ${capText}` : ""}
+                {rosterFull && <FullBadge>FULL</FullBadge>}
               </StatValue>
-            ) : (
-              <StatValue>{NULL_DISPLAY}</StatValue>
-            )}
-            <DrainLine>
-              <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-            </DrainLine>
-            {fundsNotCurrent && (
-              <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
-            )}
-          </StatBox>
-          <StatBox>
-            <StatLabel>Next Hire</StatLabel>
-            {nextHireCost !== null ? (
-              <StatValue
-                $critical={!affordable}
-                title={speakQuantity(value("funds", nextHireCost), {
-                  decimals: 0,
-                })}
-              >
-                <Unit value={value("funds", nextHireCost)} />
-              </StatValue>
-            ) : (
-              <StatValue>{NULL_DISPLAY}</StatValue>
-            )}
-          </StatBox>
-          <StatBox>
-            <StatLabel>Active Kerbals</StatLabel>
-            <StatValue $critical={rosterFull}>
-              {activeCrew !== null ? activeCrew : NULL_DISPLAY}
-              {capText !== null ? ` / ${capText}` : ""}
-              {rosterFull && <FullBadge>FULL</FullBadge>}
-            </StatValue>
-          </StatBox>
-        </Header>
-
-        <Tabs
-          tabs={[
-            {
-              id: "applicants",
-              label: "Applicants",
-              content: (
-                <ApplicantsPanel
-                  applicants={applicants}
-                  affordable={affordable}
-                  canHire={canHire}
-                  rosterFull={rosterFull}
-                  hireCost={nextHireCost}
-                  hireCmd={hireCmd}
-                />
-              ),
-            },
-            {
-              id: "active",
-              label: "Active",
-              content: (
-                <ActivePanel
-                  crew={crewRoster}
-                  fireCmd={fireCmd}
-                  highlightedFireIndex={highlightedFireIndex}
-                />
-              ),
-            },
-          ]}
-        />
-      </Body>
-    </Panel>
+            </StatBox>
+          </Header>
+        </Section>,
+        <Section key="roster" full>
+          <Tabs
+            tabs={[
+              {
+                id: "applicants",
+                label: "Applicants",
+                content: (
+                  <ApplicantsPanel
+                    applicants={applicants}
+                    affordable={affordable}
+                    canHire={canHire}
+                    rosterFull={rosterFull}
+                    hireCost={nextHireCost}
+                    hireCmd={hireCmd}
+                  />
+                ),
+              },
+              {
+                id: "active",
+                label: "Active",
+                content: (
+                  <ActivePanel
+                    crew={crewRoster}
+                    fireCmd={fireCmd}
+                    highlightedFireIndex={highlightedFireIndex}
+                  />
+                ),
+              },
+            ]}
+          />
+        </Section>,
+      ]}
+    />
   );
 }
 
@@ -928,12 +937,6 @@ function readApplicants(raw: unknown): Applicant[] {
   }
   return out;
 }
-
-const Body = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-10);
-`;
 
 const Header = styled.div`
   display: flex;

@@ -3,8 +3,8 @@
   "engine": "chromium",
   "assets": {
     "ascent-no-wings--default.png": {
-      "hash": "5701f752d2439a83",
-      "elements": 68,
+      "hash": "5bb05522bd1d36aa",
+      "elements": 69,
       "text": "1a2991d4"
     },
     "atmospheric-final-approach-site--default.png": {
@@ -23,8 +23,8 @@
       "text": "9fdf5843"
     },
     "no-aero-model--default.png": {
-      "hash": "dc9001a75b42ebb5",
-      "elements": 45,
+      "hash": "a91a45adf64e0a97",
+      "elements": 46,
       "text": "086b580c"
     },
     "no-aero-model-installed--default.png": {
@@ -33,8 +33,8 @@
       "text": "9f07ae65"
     },
     "reentry-high-alpha--default.png": {
-      "hash": "99e375658ddbf6e3",
-      "elements": 78,
+      "hash": "82f9ca9aee695f61",
+      "elements": 79,
       "text": "579cadf4"
     },
     "subsonic-final-approach--default.png": {
@@ -53,18 +53,18 @@
       "text": "9fdf5843"
     },
     "winged-subsonic-climb--default.png": {
-      "hash": "26b8899a36233544",
-      "elements": 78,
+      "hash": "48ec8f101207d4a6",
+      "elements": 79,
       "text": "78744edc"
     },
     "winged-subsonic-climb--landscape-18x5.png": {
-      "hash": "26b8899a36233544",
-      "elements": 78,
+      "hash": "48ec8f101207d4a6",
+      "elements": 79,
       "text": "78744edc"
     },
     "winged-subsonic-climb--min.png": {
-      "hash": "bc904cc0260e86a6",
-      "elements": 78,
+      "hash": "77f66ecb659add3b",
+      "elements": 79,
       "text": "39267e65"
     }
   }

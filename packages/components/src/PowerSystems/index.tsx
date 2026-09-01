@@ -375,25 +375,37 @@ function PowerSystemsComponent({
 
   if (!topology) {
     return (
-      <Panel panelTitle="POWER SYSTEMS" compactTitle={["POWER"]}>
-        <div style={HINT}>Waiting for vessel topology...</div>
-      </Panel>
+      <Panel
+        panelTitle="POWER SYSTEMS"
+        compactTitle={["POWER"]}
+        sections={
+          <Section full>
+            <div style={HINT}>Waiting for vessel topology...</div>
+          </Section>
+        }
+      />
     );
   }
 
   if (resourcesWithFlow.length === 0) {
     return (
-      <Panel panelTitle="POWER SYSTEMS" compactTitle={["POWER"]}>
-        {showHeader && (
-          <div style={SECTION_EMPTY} role="status">
-            No active flow on any resource
-          </div>
-        )}
-        <div style={HINT}>
-          Deploy a solar panel, run a generator, or fire an engine to see flow
-          contributions here.
-        </div>
-      </Panel>
+      <Panel
+        panelTitle="POWER SYSTEMS"
+        compactTitle={["POWER"]}
+        sections={
+          <Section full>
+            {showHeader && (
+              <div style={SECTION_EMPTY} role="status">
+                No active flow on any resource
+              </div>
+            )}
+            <div style={HINT}>
+              Deploy a solar panel, run a generator, or fire an engine to see
+              flow contributions here.
+            </div>
+          </Section>
+        }
+      />
     );
   }
 
@@ -402,20 +414,33 @@ function PowerSystemsComponent({
 
   if (!showFullList) {
     return (
-      <Panel panelTitle="POWER">
-        <div style={COMPACT_BODY}>
-          <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
-          <Text
-            tone={
-              netTone === "go" ? "go" : netTone === "warn" ? "warn" : "default"
-            }
-            style={COMPACT_NET}
-          >
-            {net >= 0 ? "+" : ""}
-            {net.toFixed(2)}/s
-          </Text>
-        </div>
-      </Panel>
+      <Panel
+        panelTitle="POWER"
+        /* Panel's own tiny-tile centring, where this hand-rolled the
+           `flex: 1` + `justify-content: center` pair itself. Panel measures
+           first and only centres while the content fits, which a local box
+           cannot: overflowing content centred the plain way puts its first
+           line out of scroll reach. */
+        fitToSize
+        sections={
+          <Section gap="sm" style={COMPACT_BODY}>
+            <div style={COMPACT_RESOURCE}>{splitCamel(resource)}</div>
+            <Text
+              tone={
+                netTone === "go"
+                  ? "go"
+                  : netTone === "warn"
+                    ? "warn"
+                    : "default"
+              }
+              style={COMPACT_NET}
+            >
+              {net >= 0 ? "+" : ""}
+              {net.toFixed(2)}/s
+            </Text>
+          </Section>
+        }
+      />
     );
   }
 
@@ -903,13 +928,12 @@ const HINT: CSSProperties = {
   lineHeight: "var(--line-height-body)",
 };
 
+/**
+ * What is left of the compact body once `Panel fitToSize` owns the fill and the
+ * centring: the text alignment for a resource name long enough to wrap.
+ */
 const COMPACT_BODY: CSSProperties = {
-  flex: 1,
-  display: "flex",
-  flexDirection: "column",
   alignItems: "center",
-  justifyContent: "center",
-  gap: "var(--space-4)",
   textAlign: "center",
 };
 

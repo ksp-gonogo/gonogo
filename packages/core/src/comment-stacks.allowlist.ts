@@ -38,7 +38,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/ShipSystems/RadiationSection.test.tsx": 2,
   "mod/GonogoKerbalismUplink/client/src/ShipSystems/RadiationSection.tsx": 2,
   "mod/GonogoKerbalismUplink/client/src/ShipSystems/index.test.tsx": 3,
-  "mod/GonogoKerbalismUplink/client/src/ShipSystems/index.tsx": 9,
+  "mod/GonogoKerbalismUplink/client/src/ShipSystems/index.tsx": 8,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.test.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 5,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/stale.test.tsx": 1,
