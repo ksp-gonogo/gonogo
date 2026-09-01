@@ -8584,7 +8584,18 @@ components:
             $ref: "#/components/schemas/Meta"
     error:
       name: error
-      title: A refusal or a fault
+      title: A dispatch that could not be carried, or a bad session request
+      description: |-
+        A fault, never a refusal, and the difference decides how a client handles it.
+
+        An `error` frame means the request was never CARRIED: an unknown command, a
+        command whose provider has fail-softed, a result the codec could not serialise,
+        or a `set-vantage` naming a command centre that is not active. No handler ran,
+        so there is nothing to report about what the game thought.
+
+        A command the game REFUSED ran and said no. That arrives as a
+        `command-response` with `success: false` and an `errorCode`, correlated on
+        `requestId` like any other answer, and it is not an error frame.
       payload:
         $ref: "#/components/schemas/ErrorMsg"
       correlationId:

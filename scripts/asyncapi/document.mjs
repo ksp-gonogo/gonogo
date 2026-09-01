@@ -114,6 +114,24 @@ This channel has no \`address\` because these frames are not routed by one: they
 are typed by their own \`type\` field and belong to the socket itself.`;
 
 /**
+ * The distinction between an `error` frame and a failed `command-response`.
+ *
+ * Written out because it is the question the surface could not answer and the
+ * one an author has to get right to handle a write at all: the two are not
+ * degrees of the same thing.
+ */
+const ERROR_DESCRIPTION = `A fault, never a refusal, and the difference decides how a client handles it.
+
+An \`error\` frame means the request was never CARRIED: an unknown command, a
+command whose provider has fail-softed, a result the codec could not serialise,
+or a \`set-vantage\` naming a command centre that is not active. No handler ran,
+so there is nothing to report about what the game thought.
+
+A command the game REFUSED ran and said no. That arrives as a
+\`command-response\` with \`success: false\` and an \`errorCode\`, correlated on
+\`requestId\` like any other answer, and it is not an error frame.`;
+
+/**
  * Bindings the ORIGINAL declaration site knows and the generated contract does
  * not carry: how a channel is delivered, whether its value is delayed, and how
  * often it is emitted.
@@ -197,7 +215,8 @@ export function buildDocument({
   };
   messages.error = {
     name: "error",
-    title: "A refusal or a fault",
+    title: "A dispatch that could not be carried, or a bad session request",
+    description: ERROR_DESCRIPTION,
     payload: schemas.ref("ErrorMsg"),
     correlationId: {
       description:
