@@ -1,7 +1,6 @@
 // @vitest-environment node
 //
-// Node realm rather than the package's jsdom default: this walks the tree with
-// `git ls-files` and reads files, and touches no DOM.
+// Node realm rather than the package's jsdom default: this walks the tree and touches no DOM.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -86,9 +85,7 @@ describe("generated contract docs", () => {
   });
 
   it("sees markup it is meant to reject", () => {
-    // The rejection is a regex over text nobody type-checks, so it is planted
-    // against rather than trusted: a pattern that matches nothing reports a
-    // clean tree.
+    // Planted against rather than trusted: a pattern that matches nothing reports a clean tree.
     expect(MARKUP.test("/** <para><b>Typing-only mirror.</b> */")).toBe(true);
     expect(MARKUP.test('/** <see cref="T:Sitrep.Contract.Meta" /> */')).toBe(
       true,
@@ -102,9 +99,7 @@ describe("generated contract docs", () => {
     const source = read(generated);
     const blocks = docBlocks(source);
     const slice = contractDir(generated);
-    // Judged against the C# rather than against a number written down here: a
-    // slice whose prose is genuinely thin is not a regression, and a hand-kept
-    // floor is the thing that goes stale.
+    // Judged against the C# rather than a number written down here: a hand-kept floor goes stale.
     if (docLines(slice) === 0) return;
     expect(blocks.length).toBeGreaterThan(0);
   });
