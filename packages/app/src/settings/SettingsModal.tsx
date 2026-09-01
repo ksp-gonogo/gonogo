@@ -52,6 +52,7 @@ import {
   type UplinkLoadStatus,
 } from "../uplinks/loaderState";
 import { UplinkIdentityBlock } from "../uplinks/UplinkIdentityBlock";
+import { UplinkIntegrityDetail } from "../uplinks/UplinkIntegrityDetail";
 import { UplinkHubWizard } from "../wizard/UplinkHubWizard";
 import { useUplinkGap } from "../wizard/useUplinkGap";
 import type {
@@ -271,6 +272,9 @@ function UplinkLoaderSection() {
               <LoaderLabel $status={o.status}>{o.status}</LoaderLabel>
             </ConnectionRow>
             {o.identity && <UplinkIdentityBlock identity={o.identity} live />}
+            {/* Above the reason string, not instead of it: the reason stays the
+                diagnostic line, this says which KIND of refusal it was. */}
+            {o.integrity && <UplinkIntegrityDetail failure={o.integrity} />}
             {o.reason && <UplinkDetail>{o.reason}</UplinkDetail>}
             {o.status === "quarantined" &&
               o.reason === "consent declined" &&

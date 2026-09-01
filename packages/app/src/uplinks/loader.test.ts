@@ -1071,6 +1071,9 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
     expect(vouched?.identity?.author).toEqual({
       value: "A Stranger",
       source: "mod",
+      // The manifest names an author too, and disagrees. It loses the field and
+      // keeps its claim; see the disagreement cases further down.
+      disputed: { value: "Impostor", source: "bundle" },
     });
     expect(selfDeclared?.identity?.author).toEqual({
       value: "Impostor",
@@ -1122,6 +1125,113 @@ describe("loadEnabledUplinks: third-party clientSource path (D5-loader follow-on
 
     expect(seen[0].name).toBe("Widget Y");
     expect(seen[0].author).toBe("A Stranger");
+  });
+
+  /*
+   * The manifest sidecar is fetched from its conventional URL BEFORE the bundle
+   * bytes, so the mod's claims and the bundle's are both on hand while the
+   * operator is still deciding whether to pull. The mod still wins every field
+   * (the test above), but the disagreement now travels with the identity to the
+   * consent gate instead of being resolved away inside the loader: "the mod
+   * calls this X, the bundle calls itself Y" is what the operator is being
+   * asked to weigh.
+   */
+  it("carries the manifest/roster disagreement to the consent gate, before any bytes are fetched", async () => {
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const seen: ConsentInfo[] = [];
+    const fetchBytes = vi.fn(async () => THIRD_PARTY_BYTES);
+    await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "widget-y",
+          version: "2.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: thirdPartyHash,
+          name: "Widget Y",
+          author: "A Stranger",
+          repo: "https://github.com/stranger/widget-y",
+          clientSource: {
+            url: "https://cdn.example/widget-y.client.js",
+            devPath: null,
+          },
+        },
+      ],
+      ensureConsent: async (info) => {
+        seen.push(info);
+        return false;
+      },
+      fetchManifest: async () =>
+        manifestFor({
+          integrity: thirdPartyHash,
+          name: "Impostor",
+          author: "Impostor",
+          repo: "https://github.com/impostor/widget-y",
+        }),
+      fetchBytes,
+      importBundle: async () => ({}),
+    });
+
+    expect(seen[0].identity?.name.disputed).toEqual({
+      value: "Impostor",
+      source: "bundle",
+    });
+    expect(seen[0].identity?.author?.disputed?.value).toBe("Impostor");
+    expect(seen[0].identity?.repo?.disputed?.value).toBe(
+      "https://github.com/impostor/widget-y",
+    );
+    // The whole point of "before the pull": the operator saw it while the
+    // bundle was still unfetched.
+    expect(fetchBytes).not.toHaveBeenCalled();
+  });
+
+  /*
+   * An identity disagreement INFORMS, it does not gate. `integrity` is the only
+   * thing allowed to refuse, and a repo renamed between a mod release and a
+   * bundle is an honest reason for these to differ.
+   */
+  it("still loads a bundle whose manifest disagrees about its identity", async () => {
+    const importBundle = vi.fn<
+      (bytes: ArrayBuffer, url: string) => Promise<unknown>
+    >(async () => ({}));
+    stubRegistryFetch(indexWith(goodHash));
+    const thirdPartyHash = await sha256Of(THIRD_PARTY_BYTES);
+    const outcomes = await loadEnabledUplinks({
+      registrySource: { url: "/uplinks/registry.local.json" },
+      hostCompat: HOST,
+      appVersion: "1.0.0",
+      roster: [
+        {
+          id: "widget-y",
+          version: "2.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: thirdPartyHash,
+          name: "Widget Y",
+          author: "A Stranger",
+          clientSource: {
+            url: "https://cdn.example/widget-y.client.js",
+            devPath: null,
+          },
+        },
+      ],
+      ensureConsent: async () => true,
+      fetchManifest: async () =>
+        manifestFor({
+          integrity: thirdPartyHash,
+          name: "Impostor",
+          author: "Impostor",
+        }),
+      fetchBytes: async () => THIRD_PARTY_BYTES,
+      importBundle,
+    });
+
+    expect(outcomes[0].status).toBe("loaded");
+    expect(importBundle).toHaveBeenCalledOnce();
   });
 
   it("loads a third-party id via clientSource + a fetched manifest, preferring devPath", async () => {

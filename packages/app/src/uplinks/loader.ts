@@ -23,6 +23,7 @@ import {
   resolveUplinkIdentity,
   type UplinkIdentity,
 } from "./identity";
+import type { UplinkIntegrityFailure, UplinkIntegrityParty } from "./integrity";
 import { setUplinkOutcome, type UplinkLoadOutcome } from "./loaderState";
 import {
   fetchRegistry,
@@ -156,6 +157,53 @@ class LoadRefusal extends Error {}
 
 function refuse(reason: string): never {
   throw new LoadRefusal(reason);
+}
+
+/**
+ * A refusal that is a HASH DISAGREEMENT, carrying the machine-readable record
+ * alongside the reason string. Both survive: the reason stays the diagnostic
+ * line an operator reads in the loaded-clients list, and `failure` is what lets
+ * a surface tell this apart from a compat gate or a dead network without
+ * matching prose.
+ */
+class IntegrityRefusal extends LoadRefusal {
+  readonly failure: UplinkIntegrityFailure;
+
+  constructor(reason: string, failure: UplinkIntegrityFailure) {
+    super(reason);
+    this.failure = failure;
+  }
+}
+
+function refuseIntegrity(
+  failure: UplinkIntegrityFailure,
+  reason: string,
+): never {
+  throw new IntegrityRefusal(reason, failure);
+}
+
+/**
+ * Who vouched the hash the fetched bytes were checked against.
+ *
+ * `integrityAnchor` says who supplied `version.integrity`: the published index
+ * for a first-party descriptor, the installed mod for one
+ * `descriptorFromClientSource` synthesised, where that field IS the mod's own
+ * vouched hash and there is no Hub entry to be a second party.
+ *
+ * The mod joins an index-anchored hash whenever it vouched the same value,
+ * which after `checkCompat` is every time it vouched at all. Naming only the
+ * index there would understate the finding: the bytes disagree with the mod the
+ * operator installed, not just with a catalogue entry.
+ */
+function vouchersFor(
+  version: UplinkVersionDescriptor,
+  roster: RosterEntry | undefined,
+  integrityAnchor: UplinkIntegrityParty,
+): UplinkIntegrityParty[] {
+  if (integrityAnchor === "installed-mod") return ["installed-mod"];
+  return roster?.expectedClientHash === version.integrity
+    ? ["installed-mod", "hub-index"]
+    : ["hub-index"];
 }
 
 /** Pick the highest-version descriptor entry (design: the Hub offers a version list). */
@@ -451,6 +499,7 @@ function quarantineOutcome(
   id: string,
   reason: string,
   identity?: UplinkIdentity,
+  integrity?: UplinkIntegrityFailure,
 ): UplinkLoadOutcome {
   const outcome: UplinkLoadOutcome = {
     id,
@@ -458,6 +507,7 @@ function quarantineOutcome(
     identity,
     status: "quarantined",
     reason,
+    integrity,
   };
   setUplinkOutcome(outcome);
   logger.warn(`[uplink-loader] ${id} quarantined: ${reason}`);
@@ -551,17 +601,34 @@ async function loadThirdParty(
         `expectedClientHash (${roster.expectedClientHash}): mod/client ` +
         "version skew (they release together), refusing before import",
       modIdentity,
+      {
+        subject: "manifest",
+        observed: manifest.integrity,
+        expected: roster.expectedClientHash,
+        vouchedBy: ["installed-mod"],
+      },
     );
   }
 
   const descriptor = descriptorFromClientSource(roster, manifest);
-  return loadOne(descriptor, ctx);
+  // The mod is the anchor here: `descriptorFromClientSource` fills `integrity`
+  // from `expectedClientHash`, so there is no Hub index in this story at all.
+  return loadOne(descriptor, ctx, "installed-mod");
 }
 
-/** Load one Uplink end-to-end, returning its outcome (never throws). */
+/**
+ * Load one Uplink end-to-end, returning its outcome (never throws).
+ *
+ * `integrityAnchor` names who vouched `version.integrity`, and changes nothing
+ * about the check: it is what an integrity failure NAMES. A descriptor read out
+ * of the published index was vouched by the Hub; one built from a
+ * `clientSource` carries the mod's own hash in that slot, with no Hub entry
+ * behind it, so a failure there must not credit an index that never spoke.
+ */
 async function loadOne(
   descriptor: UplinkDescriptor,
   ctx: LoaderContext,
+  integrityAnchor: UplinkIntegrityParty = "hub-index",
 ): Promise<UplinkLoadOutcome> {
   const identity = descriptorIdentity(descriptor);
   const base: UplinkLoadOutcome = {
@@ -605,13 +672,39 @@ async function loadOne(
     const digest = await sha256Hex(bytes);
 
     if (digest !== version.integrity) {
-      refuse(
+      refuseIntegrity(
+        {
+          subject: "bundle",
+          observed: digest,
+          expected: version.integrity,
+          vouchedBy: vouchersFor(version, roster, integrityAnchor),
+        },
         `bundle hash ${digest} != index ${version.integrity} (tampered or wrong URL)`,
       );
     }
+    /*
+     * Unreachable as the loader stands, and kept anyway.
+     *
+     * `checkCompat` refuses before the fetch whenever `expectedClientHash`
+     * differs from `version.integrity`, so reaching this line means the two are
+     * equal and the check above already fired on the same digest. Nothing here
+     * is a second, independent verification of the bytes, and reading the two
+     * refusal strings as evidence of one would be wrong: the mod-hash arm is
+     * reconciled against the index BEFORE any bytes exist, and the bytes are
+     * then checked once, against the hash both parties agreed on.
+     *
+     * It stays as a floor under a future change to that pre-fetch gate, which
+     * is the only thing standing between here and a real second arm.
+     */
     if (roster?.expectedClientHash != null) {
       if (digest !== roster.expectedClientHash) {
-        refuse(
+        refuseIntegrity(
+          {
+            subject: "bundle",
+            observed: digest,
+            expected: roster.expectedClientHash,
+            vouchedBy: ["installed-mod"],
+          },
           `bundle hash ${digest} != mod-expected ${roster.expectedClientHash} (verification failure)`,
         );
       }
@@ -657,6 +750,7 @@ async function loadOne(
       version: base.version,
       status: "quarantined",
       reason,
+      integrity: err instanceof IntegrityRefusal ? err.failure : undefined,
     };
     setUplinkOutcome(outcome);
     logger.warn(`[uplink-loader] ${descriptor.id} quarantined: ${reason}`);

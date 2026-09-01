@@ -82,6 +82,7 @@ import {
   SitrepTelemetryProvider,
 } from "../telemetry/SitrepTelemetryProvider";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
+import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { BUILD_TIME, VERSION } from "../version";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
@@ -417,6 +418,7 @@ export function StationScreen() {
                             onDelete={(id) => alarmClient.deleteAlarm(id)}
                           >
                             <Layout as="main" aria-label="Station dashboard">
+                              <UplinkIntegrityBanner />
                               <MissionBanner />
                               <StationUplinkLoader>
                                 <RootProviders screen="station">

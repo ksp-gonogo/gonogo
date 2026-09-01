@@ -80,6 +80,7 @@ import { initSoundSettings } from "../sound";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
+import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
 import { UplinkHubWizardHost } from "../wizard/UplinkHubWizardHost";
 import { DEMO_CONFIG } from "./demoConfig";
 
@@ -238,6 +239,7 @@ export function MainScreen() {
                                     as="main"
                                     aria-label="Mission control"
                                   >
+                                    <UplinkIntegrityBanner />
                                     <MissionBanner />
                                     <Dashboard
                                       items={dashboard.items}

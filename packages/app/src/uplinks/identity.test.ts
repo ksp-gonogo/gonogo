@@ -19,12 +19,24 @@ describe("resolveUplinkIdentity", () => {
       { name: "Something Else", author: "Someone Else", repo: "elsewhere" },
     );
 
+    // Every VALUE is the mod's. The manifest's competing claims ride along as
+    // `disputed` rather than being dropped, which is a separate property with
+    // its own cases below; what this pins is that they change no value here.
     expect(identity).toEqual({
-      name: { value: "Widget Y", source: "mod" },
-      author: { value: "A Stranger", source: "mod" },
+      name: {
+        value: "Widget Y",
+        source: "mod",
+        disputed: { value: "Something Else", source: "bundle" },
+      },
+      author: {
+        value: "A Stranger",
+        source: "mod",
+        disputed: { value: "Someone Else", source: "bundle" },
+      },
       repo: {
         value: "https://example.invalid/stranger/widget-y",
         source: "mod",
+        disputed: { value: "elsewhere", source: "bundle" },
       },
     });
   });
@@ -78,6 +90,128 @@ describe("resolveUplinkIdentity", () => {
     const identity = resolveUplinkIdentity("widget-y", {}, {});
     expect(identity.name).toEqual({ value: "widget-y", source: "mod" });
     expect(hasIdentityToShow(identity)).toBe(false);
+  });
+});
+
+/*
+ * Two independent claims about the same Uplink: the roster the installed mod
+ * reports, and the manifest sidecar the bundle ships. The mod still wins every
+ * field, unchanged. What changed is that the losing claim is kept, because
+ * "the mod calls this X, the bundle calls itself Y" is exactly the reading an
+ * operator needs before consenting to pull the bundle, and the app used to
+ * resolve it silently and throw the loser away.
+ */
+describe("resolveUplinkIdentity: a disagreement between the two sources", () => {
+  it("keeps the mod's value and records the bundle's competing one", () => {
+    const identity = resolveUplinkIdentity(
+      "widget-y",
+      { name: "Widget Y", author: "A Stranger" },
+      { name: "Impostor", author: "Someone Else" },
+    );
+
+    expect(identity.name).toEqual({
+      value: "Widget Y",
+      source: "mod",
+      disputed: { value: "Impostor", source: "bundle" },
+    });
+    expect(identity.author?.value).toBe("A Stranger");
+    expect(identity.author?.disputed).toEqual({
+      value: "Someone Else",
+      source: "bundle",
+    });
+  });
+
+  it("records nothing where the two agree", () => {
+    const identity = resolveUplinkIdentity(
+      "widget-y",
+      { name: "Widget Y", author: "A Stranger" },
+      { name: "Widget Y", author: "A Stranger" },
+    );
+
+    expect(identity.name.disputed).toBeUndefined();
+    expect(identity.author?.disputed).toBeUndefined();
+  });
+
+  it("records nothing where only one source spoke", () => {
+    const fromModOnly = resolveUplinkIdentity(
+      "widget-y",
+      { author: "A Stranger" },
+      {},
+    );
+    const fromBundleOnly = resolveUplinkIdentity(
+      "widget-y",
+      {},
+      { author: "A Stranger" },
+    );
+
+    expect(fromModOnly.author?.disputed).toBeUndefined();
+    expect(fromBundleOnly.author?.disputed).toBeUndefined();
+  });
+
+  it("treats a blank claim as no claim rather than a disagreement", () => {
+    const identity = resolveUplinkIdentity(
+      "widget-y",
+      { author: "A Stranger" },
+      { author: "   " },
+    );
+
+    expect(identity.author?.disputed).toBeUndefined();
+  });
+
+  /*
+   * Compared exactly, on the trimmed values. A repo differing only by a `.git`
+   * suffix or an http/https scheme is still two different addresses, and
+   * normalising the difference away would be the app deciding which
+   * disagreements an operator is not allowed to see.
+   */
+  it("counts a repo that differs only in scheme as a disagreement", () => {
+    const identity = resolveUplinkIdentity(
+      "widget-y",
+      { repo: "https://example.invalid/stranger/widget-y" },
+      { repo: "http://example.invalid/stranger/widget-y" },
+    );
+
+    expect(identity.repo?.disputed?.value).toBe(
+      "http://example.invalid/stranger/widget-y",
+    );
+  });
+
+  /*
+   * A disagreement is not a refusal and must not read as one: the mod's value
+   * is still the value, and the provenance line still says the mod vouched for
+   * it. What the loser gets is a line of its own, not a change to who won.
+   */
+  it("leaves the provenance reading untouched", () => {
+    const identity = resolveUplinkIdentity(
+      "widget-y",
+      { name: "Widget Y", author: "A Stranger" },
+      { name: "Impostor", author: "Impostor" },
+    );
+
+    expect(identityProvenance(identity)).toBe("Vouched by the installed mod");
+    expect(hasSelfDeclaredField(identity)).toBe(false);
+  });
+
+  /*
+   * A vouched name alone is normally nothing to show, because the caller's own
+   * heading already carries it. A vouched name the bundle contradicts is the
+   * whole point of the block.
+   */
+  it("is worth showing even when the disputed field is the name alone", () => {
+    expect(
+      hasIdentityToShow(
+        resolveUplinkIdentity("widget-y", { name: "Widget Y" }, {}),
+      ),
+    ).toBe(false);
+    expect(
+      hasIdentityToShow(
+        resolveUplinkIdentity(
+          "widget-y",
+          { name: "Widget Y" },
+          { name: "Impostor" },
+        ),
+      ),
+    ).toBe(true);
   });
 });
 

@@ -146,6 +146,81 @@ describe("UplinkIdentityBlock", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
+  /*
+   * The early signal. The operator is being asked whether to trust a bundle
+   * they have not pulled yet, and the mod and the bundle naming it differently
+   * is exactly what they need in front of them to answer. It informs rather
+   * than refuses: `integrity` is what refuses, and these fields gate nothing.
+   */
+  it("shows the bundle's competing claim beside the one the mod vouched", () => {
+    render(
+      <UplinkIdentityBlock
+        identity={resolveUplinkIdentity("widget-y", DECLARED, {
+          name: "Impostor",
+          author: "Someone Else",
+          repo: "https://example.invalid/impostor/widget-y",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("by A Stranger")).toBeInTheDocument();
+    expect(
+      screen.getByText("Bundle's own name: “Impostor”"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Bundle's own author: “Someone Else”"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Bundle's own repo: “https://example.invalid/impostor/widget-y”",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the mod's value as the value it shows", () => {
+    render(
+      <UplinkIdentityBlock
+        identity={resolveUplinkIdentity(
+          "widget-y",
+          { author: "A Stranger" },
+          { author: "Impostor" },
+        )}
+      />,
+    );
+
+    expect(screen.getByText("by A Stranger")).toBeInTheDocument();
+    expect(screen.queryByText("by Impostor")).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Vouched by the installed mod"),
+    ).toBeInTheDocument();
+  });
+
+  it("says nothing about a bundle that agrees with the mod", () => {
+    render(
+      <UplinkIdentityBlock
+        identity={resolveUplinkIdentity("widget-y", DECLARED, DECLARED)}
+      />,
+    );
+
+    expect(screen.queryByText(/Bundle's own/)).not.toBeInTheDocument();
+  });
+
+  it("shows a disputed name even where the block would otherwise render nothing", () => {
+    render(
+      <UplinkIdentityBlock
+        identity={resolveUplinkIdentity(
+          "widget-y",
+          { name: "Widget Y" },
+          { name: "Impostor" },
+        )}
+      />,
+    );
+
+    expect(
+      screen.getByText("Bundle's own name: “Impostor”"),
+    ).toBeInTheDocument();
+  });
+
   it("has no a11y violations", async () => {
     const { container } = render(
       <UplinkIdentityBlock
