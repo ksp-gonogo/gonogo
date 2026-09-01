@@ -440,11 +440,25 @@ describe("station Sitrep-stream forwarding: two-screen proof", () => {
       );
     });
 
-    await waitFor(() =>
-      expect(screen.getByTestId("host-orbit").textContent).not.toBe("blank"),
+    /* Explicit windows, because these two assert EVENTUAL CONSISTENCY and not
+       latency: a full in-process peer handshake has to complete and a frame has
+       to cross it. RTL's default is 1000ms, which is a latency budget nobody
+       chose, and CI failed the host one at exactly that boundary while three
+       local runs passed. The test's own budget is 30s, so 8s asserts the same
+       thing without asserting a speed. If a frame genuinely stops arriving,
+       this still fails, eight seconds later. */
+    const ARRIVES = { timeout: 8000 };
+    await waitFor(
+      () =>
+        expect(screen.getByTestId("host-orbit").textContent).not.toBe("blank"),
+      ARRIVES,
     );
-    await waitFor(() =>
-      expect(screen.getByTestId("station-orbit").textContent).not.toBe("blank"),
+    await waitFor(
+      () =>
+        expect(screen.getByTestId("station-orbit").textContent).not.toBe(
+          "blank",
+        ),
+      ARRIVES,
     );
 
     const hostText = screen.getByTestId("host-orbit").textContent;
