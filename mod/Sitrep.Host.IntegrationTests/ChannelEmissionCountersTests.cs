@@ -15,9 +15,9 @@ namespace Sitrep.Host.IntegrationTests
     /// engine considered and a channel it never considered read DIFFERENTLY off
     /// the wire.
     ///
-    /// <para>That difference is the whole deliverable. <c>vessel.maneuver</c>
-    /// delivered zero frames in a 20-second Principia capture while
-    /// <c>vessel.orbit</c> delivered in the same capture, and no capture taken
+    /// <para>That difference is the whole deliverable. One vessel channel
+    /// delivered zero frames in a 20-second capture while another delivered
+    /// throughout the same one, and no capture taken
     /// from outside the mod can narrow it, because "the engine never called
     /// Decide for this channel" and "the engine called Decide and the emitter
     /// declined" produce identical silence. Those two have completely different

@@ -509,9 +509,9 @@ namespace Sitrep.Host
          * emitter, the subscription registry, the birth set and the
          * availability map, and the answer is the four of them read together.
          *
-         * This exists because an outside observer cannot get it. vessel.maneuver
-         * delivered zero frames in a 20-second Principia capture while
-         * vessel.orbit delivered in the same capture, and every explanation was
+         * This exists because an outside observer cannot get it. One vessel
+         * channel delivered zero frames in a 20-second capture while another
+         * delivered throughout the same one, and every explanation was
          * eliminated by test or measurement without narrowing anything, because
          * "the engine never considered this channel" and "the engine considered
          * it and the emitter declined every value" are indistinguishable from
