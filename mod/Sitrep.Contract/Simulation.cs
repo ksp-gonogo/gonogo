@@ -105,6 +105,7 @@ public class FlightSimulation
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("comms.setSimulationDelayPolicy")]
 public class SetSimulationDelayPolicyArgs
 {
     [SitrepUnit(Units.Flag)]

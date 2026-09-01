@@ -208,6 +208,11 @@ public static class RtConfig
                 typeof(SetActionGroupArgs),
                 typeof(SetEnabledArgs),
                 typeof(SetPausedArgs),
+                // The empty args shape the five no-argument core commands carry
+                // their [SitrepCommand] tags on. Registered like every other
+                // args type so it emits AutoI(false), which is what lets the
+                // generated command map name it.
+                typeof(NoCommandArgs),
                 typeof(SetSasModeArgs),
                 typeof(SetTargetArgs),
                 typeof(SetThrottleArgs),
@@ -550,6 +555,19 @@ public static class RtConfig
         if (!string.IsNullOrEmpty(channelMapOut))
         {
             EmitChannelMap(channelMapOut!);
+        }
+
+        // --- Command -> args/reply map (see SitrepCommandAttribute) ---
+        // The write-side twin of the topic map above, and it exists because the
+        // read half was enumerable and the write half was not: `useCommand` took
+        // a bare string and answered `Promise<unknown>`, and the SDK named nine
+        // commands out of a hundred and eight. codegen.sh sets
+        // SITREP_COMMANDMAP_OUT and we reflect over the [SitrepCommand]-tagged
+        // args types to write command-map.ts alongside. No-op when unset.
+        var commandMapOut = Environment.GetEnvironmentVariable("SITREP_COMMANDMAP_OUT");
+        if (!string.IsNullOrEmpty(commandMapOut))
+        {
+            EmitCommandMap(commandMapOut!);
         }
     }
 
@@ -1215,5 +1233,229 @@ public static class RtConfig
         Console.WriteLine("codegen (control-channel-map) -> " + outPath);
     }
 
+    /// <summary>
+    /// C# scalar -> the TypeScript primitive it generates as, for the payload a
+    /// command answers with. Only the types a <c>CommandResult&lt;T&gt;</c>
+    /// actually carries today; anything else has to be a contract type the same
+    /// run emits, and <see cref="TsResultName"/> refuses the rest.
+    /// </summary>
+    private static readonly Dictionary<Type, string> ScalarPayloadTypes =
+        new Dictionary<Type, string>
+        {
+            { typeof(int), "number" },
+            { typeof(long), "number" },
+            { typeof(short), "number" },
+            { typeof(float), "number" },
+            { typeof(double), "number" },
+            { typeof(bool), "boolean" },
+            { typeof(string), "string" },
+        };
+
+    /// <summary>
+    /// Writes the generated command -> args/reply maps
+    /// (<c>GeneratedCommandArgsMap</c> + <c>GeneratedCommandReplyMap</c> +
+    /// <c>GENERATED_COMMAND_IDS</c>) consumed by
+    /// <c>mod/sitrep-sdk/src/commands.ts</c>, and by an Uplink client's own
+    /// <c>commands.ts</c> for a slice that declares its own. Each
+    /// <see cref="SitrepCommandAttribute"/> on each tagged args type
+    /// contributes one entry: the attribute's <c>CommandId</c> is the key, the
+    /// tagged type's generated interface name is the args, and the attribute's
+    /// <c>Payload</c>/<c>Result</c> decide the reply.
+    ///
+    /// <para>Deliberately NOT a list of every command on the wire, for the same
+    /// reason the topic map is not: a DYNAMIC command (an Uplink's per-subject
+    /// namespace) materialises at runtime and no tagged type exists for
+    /// reflection to find. What is here is every command a client can name
+    /// before the game is running.</para>
+    /// </summary>
+    /// <param name="outPath">Where to write the generated map.</param>
+    /// <param name="assembly">
+    /// Which assembly to reflect over. Defaults to this one (first-party core);
+    /// an Uplink's own <c>Configure</c> passes its own contract assembly and
+    /// gets its own map, written into ITS OWN generated directory. Same
+    /// per-assembly opt-in as <see cref="EmitTopicMap"/>.
+    /// </param>
+    /// <param name="resultImportFrom">
+    /// Where <c>CommandResult</c> / <c>CommandResultOf</c> come from. Core emits
+    /// them into its own <c>./contract.js</c>; an Uplink slice does not, so it
+    /// passes the published package name instead.
+    /// </param>
+    public static void EmitCommandMap(
+        string outPath,
+        Assembly assembly = null,
+        string resultImportFrom = null)
+    {
+        var target = assembly ?? typeof(RtConfig).Assembly;
+        var localNames = new HashSet<string>(
+            target.GetTypes().Select(t => t.Name), StringComparer.Ordinal);
+
+        var rows = new List<(string Id, string Args, string Reply)>();
+        var argsNames = new SortedSet<string>(StringComparer.Ordinal);
+        var replyNames = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var type in target.GetTypes())
+        {
+            foreach (var attr in type.GetCustomAttributes<SitrepCommandAttribute>())
+            {
+                if (attr.Payload != null && attr.Result != null)
+                {
+                    throw new InvalidOperationException(
+                        "[SitrepCommand(\"" + attr.CommandId + "\")] on " + type.Name +
+                        " sets both Payload and Result. Payload wraps in CommandResultOf<T>; " +
+                        "Result names the resolved type outright. A command answers one shape.");
+                }
+
+                string reply;
+                if (attr.Result != null)
+                {
+                    reply = TsResultName(attr.Result, attr.CommandId, type.Name, localNames);
+                    replyNames.Add(attr.Result.Name);
+                }
+                else if (attr.Payload != null)
+                {
+                    reply = "CommandResultOf<" +
+                        TsResultName(attr.Payload, attr.CommandId, type.Name, localNames) + ">";
+                    if (!ScalarPayloadTypes.ContainsKey(attr.Payload))
+                    {
+                        replyNames.Add(attr.Payload.Name);
+                    }
+                }
+                else
+                {
+                    reply = "CommandResult";
+                }
+
+                rows.Add((attr.CommandId, type.Name, reply));
+                argsNames.Add(type.Name);
+            }
+        }
+
+        rows.Sort((a, b) => string.CompareOrdinal(a.Id, b.Id));
+        for (var i = 1; i < rows.Count; i++)
+        {
+            if (rows[i].Id == rows[i - 1].Id)
+            {
+                throw new InvalidOperationException(
+                    "[SitrepCommand(\"" + rows[i].Id + "\")] is declared twice, on " +
+                    rows[i - 1].Args + " and " + rows[i].Args +
+                    ". A command has one args shape.");
+            }
+        }
+
+        var sb = new StringBuilder();
+        sb.Append("//     This code was generated by the Sitrep contract command-map codegen\n");
+        sb.Append("//     (Sitrep.Contract.RtConfig.EmitCommandMap, invoked from mod/codegen.sh).\n");
+        sb.Append("//     Changes to this file may cause incorrect behavior and will be lost if\n");
+        sb.Append("//     the code is regenerated.\n");
+        sb.Append("//\n");
+        sb.Append("// Derived by reflecting over every [SitrepCommand]-tagged args type: the\n");
+        sb.Append("// attribute's CommandId is the map key, the tagged type's generated interface\n");
+        sb.Append("// is the args, and the attribute's Payload/Result decides what the dispatch\n");
+        sb.Append("// resolves with. One args type carries several tags where one shape serves\n");
+        sb.Append("// several commands, which is why the reflection is over ATTRIBUTES rather\n");
+        sb.Append("// than over types.\n");
+        sb.Append("//\n");
+        sb.Append("// THIS IS NOT A LIST OF EVERY COMMAND ON THE WIRE, for the same reason the\n");
+        sb.Append("// topic map is not one: a command in a DYNAMIC namespace is addressed per\n");
+        sb.Append("// subject at runtime and has no tagged type to find. What is below is every\n");
+        sb.Append("// command that can be named before the game is running.\n\n");
+
+        var resultFrom = resultImportFrom ?? "./contract.js";
+        var localImports = new SortedSet<string>(argsNames, StringComparer.Ordinal);
+        var resultImports = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var name in replyNames)
+        {
+            if (localNames.Contains(name)) localImports.Add(name);
+            else resultImports.Add(name);
+        }
+        // CommandResult is named by every untyped reply and CommandResultOf by
+        // every payload-carrying one, so which of the two to import follows from
+        // the rows rather than from a guess.
+        if (rows.Any(r => r.Reply == "CommandResult")) resultImports.Add("CommandResult");
+        if (rows.Any(r => r.Reply.StartsWith("CommandResultOf<", StringComparison.Ordinal)))
+        {
+            resultImports.Add("CommandResultOf");
+        }
+        if (resultFrom == "./contract.js")
+        {
+            foreach (var name in resultImports) localImports.Add(name);
+            resultImports.Clear();
+        }
+
+        // `./contract.js`, with the extension, for the reason EmitTopicMap gives:
+        // without it a consumer on moduleResolution node16/nodenext gets TS2835
+        // and cannot typecheck generated code it did not write.
+        sb.Append("import type {\n");
+        foreach (var name in localImports)
+        {
+            sb.Append("  ").Append(name).Append(",\n");
+        }
+        sb.Append("} from \"./contract.js\";\n");
+        if (resultImports.Count > 0)
+        {
+            sb.Append("import type {\n");
+            foreach (var name in resultImports)
+            {
+                sb.Append("  ").Append(name).Append(",\n");
+            }
+            sb.Append("} from \"").Append(resultFrom).Append("\";\n");
+        }
+        sb.Append("\n");
+
+        sb.Append("export interface GeneratedCommandArgsMap {\n");
+        foreach (var row in rows)
+        {
+            sb.Append("  \"").Append(row.Id).Append("\": ").Append(row.Args).Append(";\n");
+        }
+        sb.Append("}\n\n");
+
+        sb.Append("export interface GeneratedCommandReplyMap {\n");
+        foreach (var row in rows)
+        {
+            sb.Append("  \"").Append(row.Id).Append("\": ").Append(row.Reply).Append(";\n");
+        }
+        sb.Append("}\n\n");
+
+        sb.Append("export const GENERATED_COMMAND_IDS = [\n");
+        foreach (var row in rows)
+        {
+            sb.Append("  \"").Append(row.Id).Append("\",\n");
+        }
+        sb.Append("] as const;\n");
+
+        File.WriteAllText(outPath, sb.ToString());
+        Console.WriteLine("codegen (command-map) -> " + outPath + " (" + rows.Count + " commands)");
+    }
+
+    /// <summary>
+    /// The TypeScript name for a declared reply type: a scalar's primitive, or a
+    /// contract type's own generated interface. Anything else THROWS rather than
+    /// emitting a name that resolves to nothing, because a generated map naming
+    /// a type no barrel exports typechecks nowhere and fails at the import.
+    /// </summary>
+    private static string TsResultName(
+        Type declared,
+        string commandId,
+        string owner,
+        HashSet<string> localNames)
+    {
+        if (ScalarPayloadTypes.TryGetValue(declared, out var primitive))
+        {
+            return primitive;
+        }
+
+        if (declared.GetCustomAttribute<SitrepContractAttribute>() != null
+            && (localNames.Contains(declared.Name)
+                || declared.Assembly == typeof(RtConfig).Assembly))
+        {
+            return declared.Name;
+        }
+
+        throw new InvalidOperationException(
+            "[SitrepCommand(\"" + commandId + "\")] on " + owner + " names " +
+            declared.Name + " as its reply, and that is neither a scalar this map " +
+            "can spell nor a [SitrepContract] type the SDK emits. Tag the type and " +
+            "register it, or answer a plain CommandResult: a generated map naming a " +
+            "type no barrel exports fails at the import rather than at the build.");
+    }
 }
 #endif

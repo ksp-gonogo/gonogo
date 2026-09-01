@@ -16,6 +16,9 @@ UNIT_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/units.ts"
 # by the mod beside the telemetry socket so the stream describes its own units.
 UNIT_JSON_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/units.json"
 CHANNEL_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/control-channels.ts"
+# The write-side twin of the topic map: command -> args type + reply type, off
+# the [SitrepCommand] tags. See RtConfig.EmitCommandMap.
+COMMAND_MAP_OUT="$ROOT/mod/sitrep-sdk/src/__generated__/command-map.ts"
 RT_VER="1.6.7"
 RT_PKG="$HOME/.nuget/packages/reinforced.typings/$RT_VER"
 RTCLI="$RT_PKG/tools/net5.0/rtcli.dll"
@@ -49,6 +52,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_UNITMAP_OUT="$UNIT_MAP_OUT" \
   SITREP_UNITJSON_OUT="$UNIT_JSON_OUT" \
   SITREP_CHANNELMAP_OUT="$CHANNEL_MAP_OUT" \
+  SITREP_COMMANDMAP_OUT="$COMMAND_MAP_OUT" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$BIN/Sitrep.Contract.xml" \
   SourceAssemblies="$BIN/Sitrep.Contract.dll" \
@@ -59,6 +63,7 @@ echo "codegen -> $TOPIC_MAP_OUT"
 echo "codegen -> $UNIT_MAP_OUT"
 echo "codegen -> $UNIT_JSON_OUT"
 echo "codegen -> $CHANNEL_MAP_OUT"
+echo "codegen -> $COMMAND_MAP_OUT"
 
 # --- Per-Uplink codegen ---
 #

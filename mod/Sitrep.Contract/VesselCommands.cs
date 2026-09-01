@@ -16,6 +16,12 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.control.setSas")]
+[SitrepCommand("vessel.control.setRcs")]
+[SitrepCommand("vessel.control.setGear")]
+[SitrepCommand("vessel.control.setBrakes")]
+[SitrepCommand("vessel.control.setLights")]
+[SitrepCommand("vessel.control.setAbort")]
 public class SetEnabledArgs
 {
     [SitrepUnit(Units.Flag)]
@@ -26,6 +32,7 @@ public class SetEnabledArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.control.setSasMode")]
 public class SetSasModeArgs
 {
     [SitrepUnit(Units.Enumeration)]
@@ -36,6 +43,7 @@ public class SetSasModeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.control.setThrottle")]
 public class SetThrottleArgs
 {
     /// <summary>0..1: validated (not silently clamped) at admission; out of range yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/> (A-10's inconsistency fixed at the send gate).</summary>
@@ -61,6 +69,7 @@ public class SetThrottleArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.control.setActionGroup")]
 public class SetActionGroupArgs
 {
     /// <summary>1..10. Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
@@ -84,6 +93,7 @@ public class SetActionGroupArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.maneuver.add", Payload = typeof(string))]
 public class AddManeuverNodeArgs
 {
     [SitrepUnit(Units.UniversalTime)]
@@ -111,6 +121,7 @@ public class AddManeuverNodeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.maneuver.update")]
 public class UpdateManeuverNodeArgs
 {
     [SitrepUnit(Units.Id)]
@@ -133,6 +144,7 @@ public class UpdateManeuverNodeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.maneuver.remove")]
 public class RemoveManeuverNodeArgs
 {
     [SitrepUnit(Units.Id)]
@@ -154,6 +166,7 @@ public class RemoveManeuverNodeArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.target.set")]
 public class SetTargetArgs
 {
     [SitrepUnit(Units.Enumeration)]
@@ -195,6 +208,7 @@ public class SetTargetArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("time.setWarpIndex")]
 public class SetWarpIndexArgs
 {
     [SitrepUnit(Units.Id)]
@@ -205,6 +219,7 @@ public class SetWarpIndexArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("time.setPaused")]
 public class SetPausedArgs
 {
     [SitrepUnit(Units.Flag)]

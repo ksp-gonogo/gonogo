@@ -341,6 +341,7 @@ public interface IReliabilityBackend : ISitrepProvider
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
+[SitrepCommand("vessel.repair", Payload = typeof(RepairOutcome))]
 public class RepairPartArgs
 {
     /// <summary>The failed part, joined by the same id <c>reliability.parts</c> and <c>vessel.parts</c> use.</summary>
