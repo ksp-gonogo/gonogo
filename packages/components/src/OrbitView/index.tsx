@@ -15,7 +15,7 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { apsidesExist, type ControlFrame } from "@ksp-gonogo/sitrep-sdk";
 import { Panel, type ReadoutTone, StatusPill } from "@ksp-gonogo/ui";
-import { NULL_DISPLAY, Text } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useCallback, useSyncExternalStore } from "react";
 import styled from "styled-components";
 import { useBodyRotation } from "../SystemView/useBodyRotation";
@@ -433,9 +433,8 @@ function OrbitViewComponent({
         }
         sidebarSide="start"
         sidebarSize="8rem"
-      >
-        {diagramWithOverlay}
-      </Panel>
+        sections={<Section fill>{diagramWithOverlay}</Section>}
+      />
     );
   }
 
