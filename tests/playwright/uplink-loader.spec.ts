@@ -96,11 +96,9 @@ async function seedConsent(page: import("@playwright/test").Page) {
  *    is on the grid the instant the app renders;
  *  - the analytics-consent answer, so the blocking boot modal doesn't sit
  *    over the dashboard and intercept the Settings FAB click (the same seed
- *    every FAB-driving spec, `uplink-hub-wizard.spec.ts`,
- *    `data-source-status.spec.ts`, uses);
- *  - the Hub wizard first-run flag, so its own auto-open doesn't race the
- *    manual Settings-FAB open this spec drives (same reason
- *    `uplink-hub-wizard.spec.ts` sets it).
+ *    every FAB-driving spec, e.g. `data-source-status.spec.ts`, uses);
+ *  - the first-run setup flag, so its own auto-open doesn't race the manual
+ *    Settings-FAB open this spec drives.
  */
 async function seedRenderAndSettingsState(
   page: import("@playwright/test").Page,

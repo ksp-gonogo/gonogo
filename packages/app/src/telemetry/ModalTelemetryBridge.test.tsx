@@ -47,14 +47,14 @@ function Harness({
 }
 
 /**
- * Regression guard for the first-run auto-open hang: the Uplink Hub wizard
- * can open its Settings modal BEFORE the app's `TelemetryProvider` has
- * mounted (the client hasn't connected yet). A one-shot
- * `getActiveTelemetryClient()` read at `ModalTelemetryBridge`'s own render
- * would capture `undefined` at that moment and never re-render, leaving
- * every telemetry read inside the modal (e.g. the wizard's `useUplinkGap`,
- * which reads `system.uplinks` via `useStream`) permanently unavailable,
- * "Checking installed Uplinks..." forever, confirmed live on the Deck.
+ * Regression guard for the first-run auto-open hang: the first-run host can
+ * open its Settings modal BEFORE the app's `TelemetryProvider` has mounted
+ * (the client hasn't connected yet). A one-shot `getActiveTelemetryClient()`
+ * read at `ModalTelemetryBridge`'s own render would capture `undefined` at
+ * that moment and never re-render, leaving every telemetry read inside the
+ * modal (e.g. the Data Sources tab reading `system.uplinkHealth` via
+ * `useStream`) permanently unavailable, waiting forever, confirmed live on the
+ * Deck.
  */
 describe("ModalTelemetryBridge: recovers once the client connects after the modal has already rendered", () => {
   afterEach(() => {

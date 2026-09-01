@@ -23,7 +23,7 @@ export interface UplinkIdentityBlockProps {
 /** How a losing claim names its own source, in the same voice as the values. */
 const DISPUTE_PREFIX: Record<UplinkIdentitySource, string> = {
   mod: "Installed mod's",
-  hub: "Hub index's",
+  index: "Registry index's",
   bundle: "Bundle's own",
 };
 

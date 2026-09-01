@@ -161,10 +161,10 @@ export function promptForConsent(
     document.body.appendChild(container);
     const root = createRoot(container);
 
-    // Nested-modal guard: this can fire while another modal (e.g. the Settings
-    // > Uplink Hub wizard's Load button) is already open behind it, both
-    // siblings under document.body (this one via its own createRoot, per the
-    // doc comment above; the Settings modal via `@ksp-gonogo/ui`'s Modal.tsx),
+    // Nested-modal guard: this can fire while another modal is already open
+    // behind it, both siblings under document.body (this one via its own
+    // createRoot, per the doc comment above; a Settings modal via
+    // `@ksp-gonogo/ui`'s Modal.tsx),
     // so without this, two role="dialog" elements sit in the accessibility tree
     // at once. Only one modal should ever be reachable at a time (WCAG dialog
     // pattern). Harmless when this is the boot-time, nothing-else-open call:

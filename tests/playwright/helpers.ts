@@ -112,9 +112,8 @@ export async function seedContext(
         // (blocking until answered) doesn't sit over the dashboard and
         // intercept clicks. "disabled" = answered + Axiom off.
         localStorage.setItem("gonogo.analytics.consent", "disabled");
-        // Mark the Uplink Hub first-run wizard as seen so its auto-open host
-        // doesn't pop the Settings modal over the dashboard on a fresh boot.
-        // These specs don't drive the wizard; uplink-hub-wizard.spec owns it.
+        // Mark the first-run setup auto-open as seen so it doesn't pop the
+        // Settings modal over the dashboard on a fresh boot.
         localStorage.setItem("gonogo.uplinkHubWizard.firstRunSeen", "1");
       } catch {
         /* private mode / quota: ignore; the seed just won't apply */
@@ -262,7 +261,7 @@ export async function bootstrapPair(
   );
 
   // `?uplinkLoaderIds=<ids>` controls what the runtime Uplink loader loads at
-  // boot (same seam uplink-hub-wizard.spec.ts uses). Default is EMPTY = load
+  // boot. Default is EMPTY = load
   // nothing: these specs test widget rendering + the peer handshake, not the
   // loader, and without the override the per-Uplink consent modal ("Load
   // Uplink …?") covers the screen and `waitForMain` times out. `&` for the

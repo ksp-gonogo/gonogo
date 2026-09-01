@@ -76,12 +76,12 @@ import {
   SettingsService,
   useMissionHistorySettings,
 } from "../settings";
+import { FirstRunSetupHost } from "../settings/FirstRunSetupHost";
 import { initSoundSettings } from "../sound";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { SitrepPeerRelay } from "../telemetry/SitrepPeerRelay";
 import { SitrepTelemetryProvider } from "../telemetry/SitrepTelemetryProvider";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
-import { UplinkHubWizardHost } from "../wizard/UplinkHubWizardHost";
 import { DEMO_CONFIG } from "./demoConfig";
 
 // ---------------------------------------------------------------------------
@@ -215,7 +215,7 @@ export function MainScreen() {
               service={analyticsConsentService}
               peerHost={peerHostService}
             />
-            <UplinkHubWizardHost
+            <FirstRunSetupHost
               settingsService={settingsService}
               serialService={serialService}
               analyticsConsent={analyticsConsentService}

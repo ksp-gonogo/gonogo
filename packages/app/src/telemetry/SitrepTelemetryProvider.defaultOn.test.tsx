@@ -32,8 +32,9 @@ beforeAll(() => server.listen());
 beforeEach(() => {
   localStorage.clear();
   resetSitrepRuntimeForTests();
-  // Cleared here, not in `afterEach`: see UplinkHubWizard.test.tsx for why the hook
-  // matters. The previous test's tree is already unmounted by the time this runs.
+  // Cleared here, not in `afterEach`: clearing while a tree is still mounted
+  // notifies its registry subscribers outside act(). The previous test's tree is
+  // already unmounted by the time this runs.
   clearRegistry();
 });
 afterEach(() => {

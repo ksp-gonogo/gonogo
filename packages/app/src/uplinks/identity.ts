@@ -17,11 +17,11 @@
  * Who supplied one piece of an Uplink's identity.
  *
  * `mod` is the running mod's `system.uplinks` roster, which the loader prefers
- * over everything else; `hub` is the published registry index, an artifact
- * separate from the bundle bytes; `bundle` is the manifest sidecar the bundle
+ * over everything else; `index` is the built Uplink index, an artifact separate
+ * from the bundle bytes; `bundle` is the manifest sidecar the bundle
  * ships, which is whatever its author wrote and which nothing checks.
  */
-export type UplinkIdentitySource = "mod" | "hub" | "bundle";
+export type UplinkIdentitySource = "mod" | "index" | "bundle";
 
 /** One identity value and the source that supplied it. */
 export interface UplinkIdentityField {
@@ -125,8 +125,8 @@ export function resolveUplinkIdentity(
 }
 
 /**
- * The identity of an Uplink resolved from the published registry index: every
- * field comes from the index, which is a different artifact from the bundle it
+ * The identity of an Uplink resolved from the built Uplink index: every field
+ * comes from the index, which is a different artifact from the bundle it
  * describes, so none of it is the bundle talking about itself.
  */
 export function registryIdentity(descriptor: {
@@ -136,12 +136,12 @@ export function registryIdentity(descriptor: {
   repo: string;
 }): UplinkIdentity {
   return {
-    name: field(descriptor.name, "hub") ?? {
+    name: field(descriptor.name, "index") ?? {
       value: descriptor.id,
-      source: "hub",
+      source: "index",
     },
-    author: field(descriptor.author, "hub"),
-    repo: field(descriptor.repo, "hub"),
+    author: field(descriptor.author, "index"),
+    repo: field(descriptor.repo, "index"),
   };
 }
 
@@ -183,7 +183,7 @@ export function hasIdentityToShow(identity: UplinkIdentity): boolean {
 
 const SOURCE_CLAUSE: Record<UplinkIdentitySource, string> = {
   mod: "vouched by the installed mod",
-  hub: "listed in the Uplink Hub",
+  index: "listed in the app's built Uplink index",
   bundle: "self-declared by the bundle, unverified",
 };
 

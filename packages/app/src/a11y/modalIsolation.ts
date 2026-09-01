@@ -9,9 +9,9 @@
  * -name computation keys off aria-hidden rather than inert.
  *
  * Refcounted per element because the gates can stack: the Uplink consent prompt
- * opens over the Settings > Uplink Hub wizard, and a plain set-on-open /
- * remove-on-close pair would have the inner gate's close strip isolation off the
- * page that the outer one still needs hidden.
+ * can open over the Settings modal, and a plain set-on-open / remove-on-close
+ * pair would have the inner gate's close strip isolation off the page that the
+ * outer one still needs hidden.
  */
 const isolationDepth = new WeakMap<Element, number>();
 

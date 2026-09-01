@@ -13,7 +13,6 @@ import {
   registerAugment,
   setQuantityLocale,
 } from "@ksp-gonogo/ui-kit";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { SettingsProvider } from "../../src/settings/SettingsContext";
@@ -95,17 +94,6 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
-/**
- * An inert query client. The modal fires a Hub-registry query for its
- * attention dot, and a render is not the place for a network round-trip that
- * would resolve halfway through a screenshot.
- */
-function inertQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: { queries: { enabled: false, retry: false } },
-  });
-}
-
 async function renderScene(scene: Scene): Promise<void> {
   await registered;
 
@@ -133,21 +121,19 @@ async function renderScene(scene: Scene): Promise<void> {
 
   root = createRoot(host);
   root.render(
-    <QueryClientProvider client={inertQueryClient()}>
-      <ThemeProvider theme={harnessTheme}>
-        <ScreenProvider value="main">
-          <SettingsProvider service={service}>
-            <SerialDeviceProvider
-              service={new SerialDeviceService({ screenKey: "render-probe" })}
-            >
-              <fixture.Provider>
-                <SettingsModal initialTabId="general" />
-              </fixture.Provider>
-            </SerialDeviceProvider>
-          </SettingsProvider>
-        </ScreenProvider>
-      </ThemeProvider>
-    </QueryClientProvider>,
+    <ThemeProvider theme={harnessTheme}>
+      <ScreenProvider value="main">
+        <SettingsProvider service={service}>
+          <SerialDeviceProvider
+            service={new SerialDeviceService({ screenKey: "render-probe" })}
+          >
+            <fixture.Provider>
+              <SettingsModal initialTabId="general" />
+            </fixture.Provider>
+          </SerialDeviceProvider>
+        </SettingsProvider>
+      </ScreenProvider>
+    </ThemeProvider>,
   );
 
   // A `StubTransport` emit is subscription-gated, so the rows have to be

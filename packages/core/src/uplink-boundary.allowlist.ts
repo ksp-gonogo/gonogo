@@ -211,10 +211,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-isolation.allowlist.ts",
       /*
-       * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
-       * example Uplinks the Hub can load. Copy, not code coupling.
-       */
-      /*
        * flag.ts / flag.test.ts / main.tsx were here (the loader's shipped
        * first-party enabled-id list, its test, and main.tsx's prose naming the
        * three ids it booted). The list was deleted on 2026-08-27: the loader
@@ -431,10 +427,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKerbalismUplink/client/src/science.test.ts",
       "mod/GonogoKerbalismUplink.Contract/KerbalismScienceExt.cs",
       "mod/GonogoKerbalismUplink.Tests/ScienceExtensionWireTests.cs",
-      /*
-       * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
-       * example Uplinks the Hub can load. Copy, not code coupling.
-       */
       // -- contract/SDK layer --
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
@@ -710,10 +702,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Value. Ratchet-inventory file, the case this bucket documents.
        */
       "packages/core/src/styleguide-magnitude-budget.test.ts",
-      /*
-       * -- Uplink Hub wizard welcome copy: user-facing onboarding text naming
-       * example Uplinks the Hub can load. Copy, not code coupling.
-       */
       // -- new test (Plan 3): a kOS-terminal-SHAPED keyframe diff-stream fixture
       // (the shared-vantage multi-client catch-up test). A text-only mention of
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.

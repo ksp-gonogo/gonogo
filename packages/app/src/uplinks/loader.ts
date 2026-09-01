@@ -32,7 +32,6 @@ import {
   type UplinkDescriptor,
   type UplinkVersionDescriptor,
 } from "./registry";
-import { computeUplinkGapEntries } from "./rosterGap";
 
 /** One entry of the live `system.uplinks` roster the loader consults (design §3.2). */
 export interface RosterEntry {
@@ -74,12 +73,12 @@ export interface RosterEntry {
 }
 
 export interface LoaderContext {
-  /** Where to read the registry index (Phase A: local fixture; Phase D: the Hub). */
+  /** Where to read the built Uplink index (`registry.local.json`). */
   registrySource: RegistrySource;
   /**
    * The explicit `?uplinkLoaderIds=` override, if the param is present. Takes
    * PRECEDENCE over the roster: a deliberate override is intent, so it must win
-   * even when a roster is talking (e.g. the Hub wizard e2e boots with
+   * even when a roster is talking (e.g. an e2e boots with
    * `?uplinkLoaderIds=` to keep an installed Uplink UNloaded and prove the gap
    * surface). `[]` (empty param) means "load nothing"; `undefined` (no param)
    * defers to the roster, and with no roster nothing is attempted.
@@ -207,6 +206,8 @@ function vouchersFor(
 }
 
 /** Pick the highest-version descriptor entry (design: the Hub offers a version list). */
+
+/** Pick the highest-version descriptor entry: an index entry may list several. */
 function pickVersion(
   descriptor: UplinkDescriptor,
 ): UplinkVersionDescriptor | undefined {
@@ -288,7 +289,7 @@ function checkCompat(
   if (roster?.expectedClientHash != null) {
     if (roster.expectedClientHash !== version.integrity) {
       refuse(
-        `mod expects client ${roster.expectedClientHash}, Hub offers ${version.integrity} (version skew, reconcile mod/client)`,
+        `mod expects client ${roster.expectedClientHash}, index offers ${version.integrity} (version skew, reconcile mod/client)`,
       );
     }
   }
@@ -416,10 +417,10 @@ export function resolveClientBundleUrl(clientSource: {
  *     when present, else url.
  *   - `integrity`: `roster.expectedClientHash` (REQUIRED, the caller must
  *     guard this non-null before calling; see `loadThirdParty`). For a
- *     first-party descriptor, `integrity` is H_index (the Hub-published
+ *     an indexed descriptor, `integrity` is H_index (the build-published
  *     hash) and `roster.expectedClientHash` is the SEPARATE H_mod arm the
  *     three-way check reconciles against it. A third-party id has no
- *     Hub-published index entry at all, so there is no independent H_index
+ *     index entry at all, so there is no independent H_index
  *     to serve as the trust anchor: the mod's own vouched hash is the ONLY
  *     anchor available, so it fills the `integrity` slot directly. This
  *     collapses the "three-way" agreement to two arms for a third-party
@@ -487,7 +488,7 @@ export function descriptorFromClientSource(
  * A descriptor's identity with its provenance. `descriptorFromClientSource`
  * has already worked one out from the roster and the manifest; anything else
  * came out of the published registry index, an artifact separate from the
- * bundle bytes it describes, so it is Hub-listed rather than self-declared.
+ * bundle bytes it describes, so it is index-listed rather than self-declared.
  */
 export function descriptorIdentity(
   descriptor: UplinkDescriptor,
@@ -522,7 +523,7 @@ function quarantineOutcome(
  * descriptor comes from, never how it's subsequently gated/loaded.
  *
  * `roster.expectedClientHash == null` refuses BEFORE any fetch (manifest or
- * bundle): a third-party id has no Hub-published index entry, so an absent
+ * bundle): a third-party id has no index entry, so an absent
  * mod-vouched hash means there is no integrity anchor at all, loading
  * hash-blind would be exactly the silent-trust gap D3 exists to close.
  */
@@ -759,98 +760,30 @@ async function loadOne(
 }
 
 /**
- * Load a single Uplink by id via the runtime loader path (design §5), ignoring
- * the roster-driven derivation and `ctx.override` entirely: the seam the
- * Hub-wizard setup-assist step uses to load just the one Uplink an operator
- * picked. Runs the same gate → consent → fetch → hash → import sequence as
- * `loadEnabledUplinks`, reusing the same `LoaderContext` DI seam (so
- * `ensureConsent`/`fetchBytes`/`importBundle` overrides work identically).
- */
-export async function loadUplinkById(
-  id: string,
-  ctx: LoaderContext,
-): Promise<UplinkLoadOutcome> {
-  let index: Awaited<ReturnType<typeof fetchRegistry>>;
-  try {
-    index = await fetchRegistry(ctx.registrySource);
-  } catch (err) {
-    const reason = `registry unavailable: ${
-      err instanceof Error ? err.message : String(err)
-    }`;
-    logger.warn(`[uplink-loader] ${reason}`);
-    const outcome: UplinkLoadOutcome = {
-      id,
-      name: id,
-      status: "quarantined",
-      reason,
-    };
-    setUplinkOutcome(outcome);
-    return outcome;
-  }
-
-  const descriptor = index.uplinks.find((u) => u.id === id);
-  if (!descriptor) {
-    // #5 (operator ruling 2026-07-25): no first-party descriptor doesn't mean
-    // "unloadable": an installed id the mod self-describes via `clientSource`
-    // (D5) is a third-party Uplink. Reuse the SAME `loadThirdParty` path
-    // `loadEnabledUplinks` dispatches to (build the descriptor from
-    // `clientSource` + the bundle's manifest, then `loadOne`), so the wizard's
-    // single-pick can load a third-party too. Only when the roster carries no
-    // `clientSource` for it either is this the genuine not-found quarantine.
-    const roster = ctx.roster?.find((r) => r.id === id);
-    if (roster?.clientSource) {
-      return loadThirdParty(id, roster, ctx);
-    }
-    const outcome: UplinkLoadOutcome = {
-      id,
-      name: id,
-      status: "quarantined",
-      reason: "not found in the registry index",
-    };
-    setUplinkOutcome(outcome);
-    return outcome;
-  }
-  return loadOne(descriptor, ctx);
-}
-
-/**
  * Derive the set of ids `loadEnabledUplinks` attempts, per the operator
  * decision (2026-07-24) that the installed-mod roster drives the loader
  * rather than a static id list:
  *
  *   - `roster` PRESENT (the mod answered, even with an empty list) → enable
  *     exactly the ids the roster reports INSTALLED that either (a) have a
- *     first-party descriptor in `index` (`registry.local.json`), OR (b) have
- *     no local descriptor but DO carry a self-declared `clientSource` (D5),
- *     the third-party path this follow-on adds (2026-07-25): `loadEnabledUplinks`
- *     builds a descriptor for those from `clientSource` + the bundle's own
- *     manifest instead of the local index (see `descriptorFromClientSource`/
- *     `loadThirdParty`). An installed id with NEITHER a local descriptor NOR
- *     a `clientSource` is still excluded here, that's the genuine
- *     `installed-no-client` gap the wizard surfaces, not a loadable id.
- *     "Installed" here matches `computeUplinkGapEntries`'s own
- *     definition: present in the roster regardless of its `available` flag,
- *     so a mod-reported-unavailable id is still ENABLED (attempted) and
- *     falls to `checkCompat`'s existing per-descriptor availability veto,
+ *     descriptor in `index` (the build-emitted `registry.local.json`), OR (b)
+ *     have no index descriptor but DO carry a self-declared `clientSource`
+ *     (D5), in which case `loadEnabledUplinks` builds a descriptor from that
+ *     plus the bundle's own manifest sidecar (see `descriptorFromClientSource`
+ *     / `loadThirdParty`). An installed id with NEITHER is excluded: there is
+ *     nothing to fetch for it.
+ *
+ *     "Installed" ignores the `available` flag, so a mod-reported-unavailable
+ *     id is still attempted and falls to `checkCompat`'s availability veto,
  *     which quarantines it with a legible reason. Excluding it here instead
  *     would silently drop it with no outcome at all, which is strictly less
  *     visible than a "quarantined: mod reports Uplink unavailable" row.
  *   - `roster` ABSENT (`undefined`, no mod talking: dev / e2e / offline
  *     first boot) → nothing. There is deliberately no shipped fallback list:
- *     one would have to name ids, and a first-party name loading here is a
- *     path a fourth author's Uplink could never reach. Nothing has said what
- *     is installed, so nothing is attempted, and the roster or an explicit
- *     `override` is what says otherwise.
- *
- * Reuses `computeUplinkGapEntries`: the SAME join the wizard's
- * `useUplinkGap` classifies `installed-no-client` gaps from (`../wizard/
- * useUplinkGap.ts`, via `./rosterGap.ts`): rather than a second, parallel
- * roster×registry join that could silently drift from the wizard's. This
- * function only differs from the wizard's call in what it asks the join for:
- * the wizard reads `.state` (`load-from-hub` etc.) for its badge; this reads
- * `.installed` + `.hubDescriptor` directly, because "should the loader
- * attempt this" must include the `unavailable` state too (see above), which
- * `.state` alone can't distinguish from "not installed at all".
+ *     one would have to name ids, and an id named here is a path a third-party
+ *     author's Uplink could never reach. Nothing has said what is installed, so
+ *     nothing is attempted, and the roster or an explicit `override` is what
+ *     says otherwise.
  */
 function deriveEnabledIds(
   roster: RosterEntry[] | undefined,
@@ -863,23 +796,9 @@ function deriveEnabledIds(
   // defers to the roster below.
   if (override !== undefined) return [...override];
   if (!roster) return [];
-  const gapEntries = computeUplinkGapEntries(
-    roster.map((r) => ({ id: r.id, available: r.available, reason: r.reason })),
-    [],
-    index,
-  );
-  const rosterById = new Map(roster.map((r) => [r.id, r]));
-  return gapEntries
-    .filter((entry) => {
-      if (!entry.installed) return false;
-      if (entry.hubDescriptor !== null) return true;
-      // No first-party descriptor: enable it anyway when the mod
-      // self-describes a client source (D5); `loadEnabledUplinks` builds the
-      // descriptor from `clientSource` instead of the local index. No
-      // `clientSource` either → this is the genuine `installed-no-client`
-      // gap, left excluded exactly as before.
-      return rosterById.get(entry.id)?.clientSource != null;
-    })
+  const indexed = new Set(index.uplinks.map((descriptor) => descriptor.id));
+  return roster
+    .filter((entry) => indexed.has(entry.id) || entry.clientSource != null)
     .map((entry) => entry.id);
 }
 

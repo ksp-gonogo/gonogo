@@ -31,7 +31,6 @@ import {
 } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
@@ -94,22 +93,6 @@ function memoryStorage(): Storage {
   } as Storage;
 }
 
-/**
- * `SettingsModal` now calls `useUplinkGap()` unconditionally (the "Uplink
- * Hub" tab's attention-dot indicator, added alongside `initialTabId`,
- * see the dedicated describe block below), which fires a `useQuery` for the
- * Hub registry. None of the fixtures in this file exercise that badge, so an
- * inert client (the query never actually runs, `enabled: false`) keeps
- * every other test's `render()` free of an async network round-trip that
- * could resolve after a synchronous test's assertions/unmount and trip an
- * act() warning (CLAUDE.md: "act() warnings are always our bug").
- */
-function makeInertQueryClient(): QueryClient {
-  return new QueryClient({
-    defaultOptions: { queries: { enabled: false, retry: false } },
-  });
-}
-
 // Rendered trees, tracked so afterEach can unmount them BEFORE clearRegistry()
 // notifies the DataSource-registry subscribers: every useTelemetry call
 // keeps its legacy useDataSourceSubscription wired unconditionally, so
@@ -121,13 +104,11 @@ const renderedTrees: Array<() => void> = [];
 function renderModal(screen_: "main" | "station" = "main") {
   const service = new SettingsService(memoryStorage());
   const view = render(
-    <QueryClientProvider client={makeInertQueryClient()}>
-      <ScreenProvider value={screen_}>
-        <SettingsProvider service={service}>
-          <SettingsModal />
-        </SettingsProvider>
-      </ScreenProvider>
-    </QueryClientProvider>,
+    <ScreenProvider value={screen_}>
+      <SettingsProvider service={service}>
+        <SettingsModal />
+      </SettingsProvider>
+    </ScreenProvider>,
   );
   renderedTrees.push(view.unmount);
   return view;
@@ -229,15 +210,13 @@ function renderModalWithStream(
 ) {
   const service = new SettingsService(memoryStorage());
   const view = render(
-    <QueryClientProvider client={makeInertQueryClient()}>
-      <ScreenProvider value="main">
-        <SettingsProvider service={service}>
-          <stream.Provider>
-            <SettingsModal />
-          </stream.Provider>
-        </SettingsProvider>
-      </ScreenProvider>
-    </QueryClientProvider>,
+    <ScreenProvider value="main">
+      <SettingsProvider service={service}>
+        <stream.Provider>
+          <SettingsModal />
+        </stream.Provider>
+      </SettingsProvider>
+    </ScreenProvider>,
   );
   renderedTrees.push(view.unmount);
   return view;
@@ -631,120 +610,20 @@ describe("SettingsModal Data Sources tab: healthy-uplinks collapse chip", () => 
   });
 });
 
-describe("SettingsModal: Uplink Hub tab (initialTabId + attention indicator)", () => {
-  const registryServer = setupServer();
-
-  beforeAll(() => registryServer.listen({ onUnhandledRequest: "bypass" }));
-  afterEach(() => registryServer.resetHandlers());
-  afterAll(() => registryServer.close());
-
-  function renderWithRealQuery(node: ReactNode) {
+describe("SettingsModal: initialTabId", () => {
+  it("opens directly on the named tab (the first-run auto-open host)", () => {
     const service = new SettingsService(memoryStorage());
     const view = render(
-      <QueryClientProvider client={new QueryClient()}>
-        <ScreenProvider value="main">
-          <SettingsProvider service={service}>{node}</SettingsProvider>
-        </ScreenProvider>
-      </QueryClientProvider>,
+      <ScreenProvider value="main">
+        <SettingsProvider service={service}>
+          <SettingsModal initialTabId="data-sources" />
+        </SettingsProvider>
+      </ScreenProvider>,
     );
     renderedTrees.push(view.unmount);
-    return view;
-  }
-
-  it("opens directly on the Uplink Hub tab when initialTabId is set (first-run auto-open host)", () => {
-    registryServer.use(
-      http.get("*/uplinks/registry.local.json", () =>
-        HttpResponse.json({ uplinks: [] }),
-      ),
-    );
-    renderWithRealQuery(<SettingsModal initialTabId="uplink-hub" />);
     expect(
-      screen.getByRole("tab", { name: "Uplink Hub", selected: true }),
+      screen.getByRole("tab", { name: "Data Sources", selected: true }),
     ).toBeInTheDocument();
-  });
-
-  it("shows an attention dot on the Uplink Hub tab once the cross-reference finds a load-from-hub gap", async () => {
-    registryServer.use(
-      http.get("*/uplinks/registry.local.json", () =>
-        HttpResponse.json({
-          uplinks: [
-            {
-              id: "widget-hub",
-              name: "Hub Widget",
-              author: "tester",
-              repo: "example/repo",
-              versions: [
-                {
-                  version: "1.0.0",
-                  minAppVersion: "1.0.0",
-                  apiVersion: "1.0.0",
-                  uiKitVersion: "1.0.0",
-                  contractMajor: 1,
-                  contractMinor: 1,
-                  bundleUrl: "/uplinks/widget-hub.client.js",
-                  integrity: "sha256-fake",
-                },
-              ],
-            },
-          ],
-        }),
-      ),
-    );
-    const stream = setupTelemetryStream();
-    renderWithRealQuery(
-      <stream.Provider>
-        <SettingsModal />
-      </stream.Provider>,
-    );
-
-    stream.emit({
-      uplinks: [
-        {
-          id: "widget-hub",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          health: { state: 0, detail: null },
-        },
-      ],
-    });
-
-    await waitFor(() => {
-      const tab = screen.getByRole("tab", { name: "Uplink Hub" });
-      // The dot is deliberately `aria-hidden` (decorative), a plain <span>
-      // structural check is the only way to see it, same escape hatch the
-      // Tabs component itself offers no accessible query for.
-      expect(tab.querySelector("span")).not.toBeNull();
-    });
-  });
-
-  it("does NOT show an attention dot when nothing is installed", async () => {
-    registryServer.use(
-      http.get("*/uplinks/registry.local.json", () =>
-        HttpResponse.json({ uplinks: [] }),
-      ),
-    );
-    const stream = setupTelemetryStream();
-    registerDataSource(makeSitrepStub(vi.fn(), "connected"));
-    renderWithRealQuery(
-      <stream.Provider>
-        <SettingsModal />
-      </stream.Provider>,
-    );
-
-    stream.emit({ uplinks: [] });
-
-    // Confirm the roster + registry have both settled by observing the Data
-    // Sources tab's own placeholder: tab buttons stay queryable regardless
-    // of which panel is active, so this is a reliable settlement signal
-    // before asserting the Uplink Hub tab's dot is absent.
-    await openDataSourcesTab();
-    await waitFor(() =>
-      expect(screen.getByText("No uplinks registered")).toBeInTheDocument(),
-    );
-    expect(
-      screen.getByRole("tab", { name: "Uplink Hub" }).querySelector("span"),
-    ).toBeNull();
   });
 });
 

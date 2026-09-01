@@ -5,7 +5,6 @@ import type { HostCompat } from "./hostCompat";
 import {
   descriptorFromClientSource,
   loadEnabledUplinks,
-  loadUplinkById,
   manifestUrlFor,
   type RosterEntry,
 } from "./loader";
@@ -515,19 +514,16 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     expect(outcomes).toHaveLength(0);
     expect(importBundle).not.toHaveBeenCalled();
     // No outcome recorded at all (never "quarantined: not found in the
-    // registry index" either): this id was never enabled in the first
-    // place, distinct from an enabled-but-missing-descriptor case. The
-    // wizard's `useUplinkGap` (`computeUplinkGap`) is what turns this exact
-    // shape (installed, no loaded outcome, hub index has no descriptor for
-    // it) into the visible `installed-no-client` gap row; see
-    // `useUplinkGap.test.ts`'s "installed-no-client" cases, which exercise
-    // the same shared join (`rosterGap.ts`) this derivation calls.
+    // registry index" either): this id was never enabled in the first place,
+    // distinct from an enabled-but-missing-descriptor case. An installed id
+    // with neither an index descriptor nor a `clientSource` has nothing to
+    // fetch, so there is nothing to report on.
     expect(getUplinkOutcomes()).toHaveLength(0);
   });
 
   // No shipped fallback list stands behind an absent roster, deliberately: a
-  // list would have to name ids, and a first-party name loading on this path is
-  // one a fourth author's Uplink could never reach. Nothing has told us what is
+  // list would have to name ids, and an id named on this path is one a
+  // third-party author's Uplink could never reach. Nothing has told us what is
   // installed, so nothing is attempted and the roster, or an explicit override,
   // is what says otherwise.
   it("roster ABSENT and no override attempts nothing, no bundle fetched", async () => {
@@ -605,154 +601,6 @@ describe("loadEnabledUplinks: installed-mod-roster drives the enabled set (2026-
     expect(outcomes).toHaveLength(1);
     expect(outcomes[0].status).toBe("quarantined");
     expect(outcomes[0].reason).toMatch(/unavailable/);
-    expect(importBundle).not.toHaveBeenCalled();
-  });
-});
-
-describe("loadUplinkById", () => {
-  it("fetches the registry and loads only the requested id", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    const outcome = await loadUplinkById(
-      "scansat",
-      ctx({ index: indexWith(goodHash), importBundle }),
-    );
-    expect(outcome.status).toBe("loaded");
-    expect(outcome.id).toBe("scansat");
-    expect(importBundle).toHaveBeenCalledWith(
-      IMPORTED_BYTES,
-      "/uplinks/scansat.client.js",
-    );
-    expect(getUplinkOutcomes()[0].status).toBe("loaded");
-  });
-
-  it("reuses the ensureConsent/fetchBytes/importBundle DI seam", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    const ensureConsent = vi.fn(async () => false);
-    const outcome = await loadUplinkById(
-      "scansat",
-      ctx({ index: indexWith(goodHash), importBundle, ensureConsent }),
-    );
-    expect(ensureConsent).toHaveBeenCalled();
-    expect(outcome.status).toBe("quarantined");
-    expect(outcome.reason).toMatch(/consent declined/);
-    expect(importBundle).not.toHaveBeenCalled();
-  });
-
-  it("quarantines when the id isn't in the registry index", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    stubRegistryFetch(indexWith(goodHash));
-    const outcome = await loadUplinkById("kos", {
-      registrySource: { url: "/uplinks/registry.local.json" },
-      hostCompat: HOST,
-      appVersion: "1.0.0",
-      ensureConsent: async () => true,
-      fetchBytes: async () => BUNDLE_BYTES,
-      importBundle,
-    });
-    expect(outcome.status).toBe("quarantined");
-    expect(outcome.reason).toMatch(/not found in the registry index/);
-    expect(importBundle).not.toHaveBeenCalled();
-  });
-
-  it("quarantines when the registry is unreadable", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    const outcome = await loadUplinkById(
-      "scansat",
-      ctx({ index: "fail", importBundle }),
-    );
-    expect(outcome.status).toBe("quarantined");
-    expect(outcome.reason).toMatch(/registry unavailable/);
-    expect(importBundle).not.toHaveBeenCalled();
-  });
-
-  it("single-picks a third-party id via clientSource when it's absent from the local index (follow-on #5)", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    stubRegistryFetch(indexWith(goodHash)); // local index only ever ships "scansat"
-    const bytes = new TextEncoder().encode("export const marker = 'widget-y';")
-      .buffer as ArrayBuffer;
-    const thirdPartyHash = await sha256Of(bytes);
-    const manifest: GonogoUplinkManifest = {
-      id: "widget-y",
-      version: "2.0.0",
-      minAppVersion: "1.0.0",
-      apiVersion: "1.2.5",
-      uiKitVersion: "0.3.9",
-      contractMajor: 3,
-      contractMinor: 3,
-      integrity: thirdPartyHash,
-    };
-    const roster: RosterEntry[] = [
-      {
-        id: "widget-y",
-        version: "2.0.0",
-        available: true,
-        reason: null,
-        expectedClientHash: thirdPartyHash,
-        clientSource: {
-          url: "https://cdn.example/widget-y.client.js",
-          devPath: null,
-        },
-      },
-    ];
-    const fetchManifest = vi.fn(async (url: string) => {
-      expect(url).toBe("https://cdn.example/gonogo-uplink.json");
-      return manifest;
-    });
-    const outcome = await loadUplinkById("widget-y", {
-      registrySource: { url: "/uplinks/registry.local.json" },
-      hostCompat: HOST,
-      appVersion: "1.0.0",
-      roster,
-      ensureConsent: async () => true,
-      fetchBytes: async () => bytes,
-      fetchManifest,
-      importBundle,
-    });
-    expect(outcome.status).toBe("loaded");
-    expect(outcome.id).toBe("widget-y");
-    expect(fetchManifest).toHaveBeenCalled();
-    expect(importBundle).toHaveBeenCalledWith(
-      IMPORTED_BYTES,
-      "https://cdn.example/widget-y.client.js",
-    );
-  });
-
-  it("still quarantines an id absent from BOTH the local index and the roster's clientSource (follow-on #5 negative)", async () => {
-    const importBundle = vi.fn<
-      (bytes: ArrayBuffer, url: string) => Promise<unknown>
-    >(async () => ({}));
-    stubRegistryFetch(indexWith(goodHash));
-    const outcome = await loadUplinkById("widget-z", {
-      registrySource: { url: "/uplinks/registry.local.json" },
-      hostCompat: HOST,
-      appVersion: "1.0.0",
-      // roster has widget-z installed but with NO clientSource → not loadable
-      roster: [
-        {
-          id: "widget-z",
-          version: "1.0.0",
-          available: true,
-          reason: null,
-          expectedClientHash: null,
-          clientSource: null,
-        },
-      ],
-      ensureConsent: async () => true,
-      fetchBytes: async () => BUNDLE_BYTES,
-      importBundle,
-    });
-    expect(outcome.status).toBe("quarantined");
-    expect(outcome.reason).toMatch(/not found in the registry index/);
     expect(importBundle).not.toHaveBeenCalled();
   });
 });
