@@ -101,7 +101,10 @@ describe("vessel.state on a partial vessel.flight frame", () => {
 
   for (const field of WIRE_SOURCED) {
     it(`answers null, never NaN, for an unreported ${field}`, () => {
-      const state = deriveWithout(field) as Record<string, unknown> | null;
+      // No `Record<string, unknown>` cast: `WIRE_SOURCED` is a const tuple, so
+      // every element of it is already a key of `VesselState` and the compiler
+      // checks that it stays one.
+      const state = deriveWithout(field);
       const value = state?.[field];
       // Both assertions, and in this order. `toBeNull` alone would report
       // `expected NaN to be null`, which is legible; the explicit isNaN check
@@ -119,13 +122,13 @@ describe("vessel.state on a partial vessel.flight frame", () => {
       if (topic === "vessel.flight") return point("VesselFlight", flight);
       return undefined;
     }) as never;
-    const state = deriveVesselState(get, 0) as Record<string, unknown>;
+    const state = deriveVesselState(get, 0);
     // The other half of the fix: a guard that nulls an absent field must not
     // also null a present one, and a test that only checks absence cannot
     // tell those apart.
-    expect(state.altitudeAsl).toBe(1000);
-    expect(state.verticalSpeed).toBe(5);
-    expect(state.surfaceSpeed).toBe(100);
-    expect(state.orbitalSpeed).toBe(2200);
+    expect(state?.altitudeAsl).toBe(1000);
+    expect(state?.verticalSpeed).toBe(5);
+    expect(state?.surfaceSpeed).toBe(100);
+    expect(state?.orbitalSpeed).toBe(2200);
   });
 });

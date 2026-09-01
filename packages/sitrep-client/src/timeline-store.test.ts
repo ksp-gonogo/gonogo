@@ -256,7 +256,9 @@ describe("TimelineStore", () => {
           spy?.();
           const a = get<number>("a");
           const b = get<number>("b");
-          if (a === undefined || b === undefined) return null;
+          // A tombstone on either input is an absent sum, not a sum of nothing:
+          // `payload` is nullable and this used to add straight through it.
+          if (a?.payload == null || b?.payload == null) return null;
           return {
             sum: a.payload + b.payload,
             viewUtSeenByA: viewUt,
@@ -275,7 +277,9 @@ describe("TimelineStore", () => {
       store.ingest("b", point(10, 3));
       store.beginFrame();
 
-      expect(store.sample<{ sum: number }>("derived.sum")?.payload.sum).toBe(5);
+      expect(store.sample<{ sum: number }>("derived.sum")?.payload?.sum).toBe(
+        5,
+      );
     });
 
     it("single-view-time: get() reads every input at the SAME frozen viewUt the derive call was invoked for", () => {
@@ -301,10 +305,10 @@ describe("TimelineStore", () => {
       }>("derived.sum", token);
 
       expect(token.viewUt).toBe(50);
-      expect(result?.payload.viewUtSeenByA).toBe(50);
-      expect(result?.payload.viewUtSeenByB).toBe(50);
+      expect(result?.payload?.viewUtSeenByA).toBe(50);
+      expect(result?.payload?.viewUtSeenByB).toBe(50);
       // At viewUt 50, both timelines are still holding their UT-0 point.
-      expect(result?.payload.sum).toBe(11);
+      expect(result?.payload?.sum).toBe(11);
     });
 
     it("fields subtopics: a '<topic>.<field>' read exposes one field off the memoized record", () => {
@@ -346,7 +350,9 @@ describe("TimelineStore", () => {
           fields: true,
           derive: (get) => {
             const a = get<number>("a");
-            if (a === undefined) return undefined; // input not whole yet
+            // Undefined is "not whole yet"; a tombstone is an input that has gone
+            // absent, and neither can produce an `n`.
+            if (a?.payload == null) return undefined;
             return { n: a.payload };
           },
         });
@@ -401,7 +407,7 @@ describe("TimelineStore", () => {
 
         const token = store.beginFrame();
         const first = store.sample<{ n: number }>("derived.counter", token);
-        expect(first?.payload.n).toBe(1);
+        expect(first?.payload?.n).toBe(1);
         expect(computeSpy).toHaveBeenCalledTimes(1);
 
         // Quickload rewind mid-frame: epoch bumps via an unrelated topic's
@@ -414,7 +420,7 @@ describe("TimelineStore", () => {
         // Not stale: recomputed (spy called again), not the frozen
         // pre-bump `{ n: 1 }` served for the rest of the frame.
         expect(computeSpy).toHaveBeenCalledTimes(2);
-        expect(second?.payload.n).toBe(2);
+        expect(second?.payload?.n).toBe(2);
         expect(second).not.toBe(first);
       });
     });
@@ -475,7 +481,7 @@ describe("TimelineStore", () => {
         const token = store.beginFrame();
 
         const first = store.sample<{ sum: number }>("derived.sum", token);
-        expect(first?.payload.sum).toBe(9);
+        expect(first?.payload?.sum).toBe(9);
 
         store.ingest("a", point(10, 100)); // mid-frame revision bump
         const second = store.sample<{ sum: number }>("derived.sum", token);
@@ -485,7 +491,7 @@ describe("TimelineStore", () => {
 
         const nextToken = store.beginFrame();
         const third = store.sample<{ sum: number }>("derived.sum", nextToken);
-        expect(third?.payload.sum).toBe(105); // the new frame picks up the revision
+        expect(third?.payload?.sum).toBe(105); // the new frame picks up the revision
         expect(computeSpy).toHaveBeenCalledTimes(2);
       });
     });

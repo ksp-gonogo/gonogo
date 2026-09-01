@@ -113,8 +113,10 @@ export {
 } from "./stream-fixture";
 export {
   makeMeta,
+  observedPayload,
   type SentCommand,
   StubTransport,
   type WireOf,
+  wrapWire,
 } from "./stub-transport";
 export { harnessTheme } from "./theme";

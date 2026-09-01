@@ -4,7 +4,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { describe, expect, it } from "vitest";
 import { TelemetryClient } from "./client";
 import { TelemetryProvider } from "./context";
-import { StubTransport } from "./stub-transport";
+import { StubTransport, type WireOf } from "./stub-transport";
 import { useStream } from "./use-stream";
 import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
 
@@ -24,7 +24,7 @@ import type { VesselFlightPayload, VesselOrbitPayload } from "./vessel-state";
  * the SAME provider a raw-topic `useStream` call already worked through.
  */
 
-const ORBIT: VesselOrbitPayload = {
+const ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -36,7 +36,7 @@ const ORBIT: VesselOrbitPayload = {
   mu: 3.5316e12,
 };
 
-const FLIGHT: VesselFlightPayload = {
+const FLIGHT: WireOf<VesselFlightPayload> = {
   latitude: -0.05,
   longitude: 42.3,
   altitudeAsl: 71_234,

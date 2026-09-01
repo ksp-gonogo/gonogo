@@ -1,14 +1,16 @@
-import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { propagateVesselOrbit } from "./fleet-position";
 import { solve } from "./kepler";
+import { type WireOf, wrapWire } from "./stub-transport";
 import { buildElements, type VesselOrbitPayload } from "./vessel-state";
 
-// `wrapTypePayload` turns bare wire numbers into the `{ magnitude }` Value shape
+// `wrapWire` turns bare wire numbers into the `{ magnitude }` Value shape
 // production hands the client (what `parseServerMessage` / `useStream` deliver),
 // so the fixture is exactly what `propagateVesselOrbit` sees at runtime.
-function orbit(overrides: Record<string, unknown> = {}): VesselOrbitPayload {
-  return wrapTypePayload("VesselOrbit", {
+function orbit(
+  overrides: Partial<WireOf<VesselOrbitPayload>> = {},
+): VesselOrbitPayload {
+  return wrapWire<VesselOrbitPayload>("VesselOrbit", {
     referenceBodyIndex: 1,
     sma: 700_000,
     ecc: 0.1,
@@ -19,7 +21,7 @@ function orbit(overrides: Record<string, unknown> = {}): VesselOrbitPayload {
     epoch: 0,
     mu: 3.5316e12,
     ...overrides,
-  }) as VesselOrbitPayload;
+  });
 }
 
 describe("propagateVesselOrbit", () => {

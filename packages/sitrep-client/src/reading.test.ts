@@ -333,33 +333,40 @@ describe("hasAnswered", () => {
     expect(hasAnswered({ state: "unowned" })).toBe(false);
   });
 
+  // `hasAnswered` takes the discriminant alone, so a whole arm written inline
+  // is a fresh literal with excess properties and does not compile. Naming each
+  // arm as a `Reading<number>` first keeps the arms visible, which is the point
+  // of the assertions, and puts them under the union's own check: an arm that
+  // stopped matching `Reading` would now fail here rather than pass as an
+  // anonymous bag.
+  const absent: Reading<number> = { state: "absent", atUt };
+  const observed: Reading<number> = { state: "observed", value: 1, atUt };
+  const stale: Reading<number> = {
+    state: "stale",
+    value: 1,
+    asOfUt: atUt,
+    grade: "held-stale",
+  };
+  const reckonable: Reading<number> = {
+    state: "reckonable",
+    value: 1,
+    asOfUt: atUt,
+    grade: "last-before-blackout",
+    reckoned: {
+      value: 2,
+      atUt,
+      basis: "linear-dead-reckoning",
+      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+    },
+  };
+
   it("is true for a tombstone, because a producer saying no is a producer", () => {
-    expect(hasAnswered({ state: "absent", atUt })).toBe(true);
+    expect(hasAnswered(absent)).toBe(true);
   });
 
   it("is true for every arm that carries an observation", () => {
-    expect(hasAnswered({ state: "observed", value: 1, atUt })).toBe(true);
-    expect(
-      hasAnswered({
-        state: "stale",
-        value: 1,
-        asOfUt: atUt,
-        grade: "held-stale",
-      }),
-    ).toBe(true);
-    expect(
-      hasAnswered({
-        state: "reckonable",
-        value: 1,
-        asOfUt: atUt,
-        grade: "last-before-blackout",
-        reckoned: {
-          value: 2,
-          atUt,
-          basis: "linear-dead-reckoning",
-          modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-        },
-      }),
-    ).toBe(true);
+    expect(hasAnswered(observed)).toBe(true);
+    expect(hasAnswered(stale)).toBe(true);
+    expect(hasAnswered(reckonable)).toBe(true);
   });
 });

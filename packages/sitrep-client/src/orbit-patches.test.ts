@@ -1,4 +1,3 @@
-import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   findImpactPoint,
@@ -7,13 +6,14 @@ import {
   type OrbitPatchWirePayload,
   ROTATION_PERIOD_SECONDS,
 } from "./orbit-patches";
+import { type WireOf, wrapWire } from "./stub-transport";
 
 function wirePatch(
-  overrides: Record<string, unknown> = {},
+  overrides: Partial<WireOf<OrbitPatchWirePayload>> = {},
 ): OrbitPatchWirePayload {
   // Wire-shaped, then wrapped: `OrbitPatch` is a nested contract shape and
   // the decode gives its declared quantities their units.
-  return wrapTypePayload("OrbitPatch", {
+  return wrapWire<OrbitPatchWirePayload>("OrbitPatch", {
     sma: 700_000,
     ecc: 0.1,
     inc: 15,
@@ -33,7 +33,7 @@ function wirePatch(
     referenceBody: "Kerbin",
     closestEncounterBody: null,
     ...overrides,
-  }) as OrbitPatchWirePayload;
+  });
 }
 
 describe("mapOrbitPatch", () => {

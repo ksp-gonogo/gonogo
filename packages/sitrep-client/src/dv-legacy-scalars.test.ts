@@ -16,10 +16,12 @@ interface VesselStructureWirePayload {
   currentStage?: number | null;
 }
 
+// `TimelinePoint.payload` is already `T | null`, so a tombstone needs no cast:
+// it needs its T naming at the call site, which `point<X>(null)` does.
 function point<T>(payload: T | null): TimelinePoint<T> {
   return {
     validAt: 0,
-    payload: payload as T,
+    payload,
     meta: makeMeta({ validAt: 0, quality: Quality.OnRails, source: "vessel" }),
     epoch: 0,
   };
@@ -54,7 +56,12 @@ describe("deriveDvLegacyScalars: dv.total/current/currentFuelMass/totalMass off 
 
   it("null on a confirmed dv.stages tombstone", () => {
     expect(
-      deriveDvLegacyScalars(fakeGet(point(null), point({ currentStage: 1 }))),
+      deriveDvLegacyScalars(
+        fakeGet(
+          point<StageDeltaVWireEntry[]>(null),
+          point({ currentStage: 1 }),
+        ),
+      ),
     ).toBeNull();
   });
 
@@ -66,7 +73,9 @@ describe("deriveDvLegacyScalars: dv.total/current/currentFuelMass/totalMass off 
 
   it("null on a confirmed vessel.structure tombstone", () => {
     expect(
-      deriveDvLegacyScalars(fakeGet(point(STAGES), point(null))),
+      deriveDvLegacyScalars(
+        fakeGet(point(STAGES), point<VesselStructureWirePayload>(null)),
+      ),
     ).toBeNull();
   });
 

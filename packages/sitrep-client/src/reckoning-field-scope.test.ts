@@ -6,7 +6,7 @@ import {
   getReckonerConflicts,
   registerReckoner,
 } from "./reckoners";
-import { makeMeta } from "./stub-transport";
+import { makeMeta, observedPayload } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import { ViewClock } from "./view-clock";
@@ -75,7 +75,7 @@ function registerPositionOnlyModel() {
     (point, _grade, viewUt) => ({
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
       reckon: () => ({
-        ...point.payload,
+        ...observedPayload(point),
         relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
       }),
     }),
@@ -177,7 +177,7 @@ describe("a per-topic model, expressed per field", () => {
       relativePositionError: number;
     }>("vessel.dock", "test", (point) => ({
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
-      reckon: () => point.payload,
+      reckon: () => observedPayload(point),
     }));
 
     store.ingest("vessel.dock", {
@@ -264,7 +264,7 @@ describe("every path to a reckoning shares the one cache", () => {
         reckon: () => {
           runs += 1;
           return {
-            ...point.payload,
+            ...observedPayload(point),
             relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
           };
         },

@@ -198,7 +198,7 @@ describe("TelemetryClient.attachStore: feeds the wire into a TimelineStore (M2 b
     // `.magnitude`: the transport wraps on the way out, same as the wire
     // decode does, so a store holds quantities rather than bare numbers.
     expect(
-      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+      store.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma.magnitude,
     ).toBe(700_000);
   });
 
@@ -216,10 +216,12 @@ describe("TelemetryClient.attachStore: feeds the wire into a TimelineStore (M2 b
     storeB.beginFrame();
 
     expect(
-      storeA.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+      storeA.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma
+        .magnitude,
     ).toBe(1);
     expect(
-      storeB.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload.sma.magnitude,
+      storeB.sample<{ sma: Value<"m"> }>("vessel.orbit")?.payload?.sma
+        .magnitude,
     ).toBe(1);
   });
 

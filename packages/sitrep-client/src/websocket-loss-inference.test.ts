@@ -1,4 +1,4 @@
-import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import type { CommandStatus, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { ManualClock } from "@ksp-gonogo/sitrep-server";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
@@ -41,6 +41,23 @@ afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
 const WAIT_TIMEOUT_MS = 4000;
+
+/**
+ * Narrows a command status to the in-flight arm, which is the only one carrying
+ * `etaConfirm`. The assertions used to read `?.etaConfirm` off the whole union,
+ * so a command that had already been refused or lost produced `undefined` and a
+ * "expected undefined to be 8" that named neither the phase nor the reason.
+ */
+function inFlight(
+  status: CommandStatus | undefined,
+): Extract<CommandStatus, { phase: "in-flight" }> {
+  if (status?.phase !== "in-flight") {
+    throw new Error(
+      `expected an in-flight command, got ${status?.phase ?? "no command at all"}`,
+    );
+  }
+  return status;
+}
 
 function waitForStatus(
   transport: WebSocketTransport,
@@ -99,7 +116,7 @@ describe("loss inference over the production WebSocket transport", () => {
 
     // A round trip is TWO legs, so the confirm is due at 8, not 4. This is the
     // assertion that fails if anyone sizes the deadline on one leg.
-    expect(client.getCommand(requestId)?.etaConfirm).toBe(8);
+    expect(inFlight(client.getCommand(requestId)).etaConfirm).toBe(8);
 
     // The negative, and the one that fails if the margin is ever shortened into live
     // commands: still in flight right up to the deadline.
@@ -147,12 +164,12 @@ describe("loss inference over the production WebSocket transport", () => {
     // second command gets its own window rather than the first one's.
     const near = client.dispatch("vessel.control.setThrottle");
     void near.result.catch(() => undefined);
-    expect(client.getCommand(near.requestId)?.etaConfirm).toBe(2);
+    expect(inFlight(client.getCommand(near.requestId)).etaConfirm).toBe(2);
 
     oneWay = 20;
     const far = client.dispatch("vessel.control.setThrottle");
     void far.result.catch(() => undefined);
-    expect(client.getCommand(far.requestId)?.etaConfirm).toBe(40);
+    expect(inFlight(client.getCommand(far.requestId)).etaConfirm).toBe(40);
   });
 
   it("says so out loud when nothing can supply a deadline", async () => {

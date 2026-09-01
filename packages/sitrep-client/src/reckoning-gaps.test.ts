@@ -1,14 +1,14 @@
-import {
-  Quality,
-  type Value,
-  value,
-  wrapTypePayload,
-} from "@ksp-gonogo/sitrep-sdk";
+import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ReckonerFor } from "./reading";
 import { observedAt } from "./reading";
 import { clearReckoners, registerReckoner } from "./reckoners";
-import { makeMeta } from "./stub-transport";
+import {
+  makeMeta,
+  observedPayload,
+  type WireOf,
+  wrapWire,
+} from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
 import type { VesselOrbitPayload } from "./vessel-state";
@@ -53,7 +53,7 @@ function predictedStore(wall: { now: () => number }) {
   return { clock, store: new TimelineStore(clock) };
 }
 
-const CIRCULAR_ORBIT: Record<string, unknown> = {
+const CIRCULAR_ORBIT: WireOf<VesselOrbitPayload> = {
   referenceBodyIndex: 1,
   sma: 700_000,
   ecc: 0,
@@ -68,10 +68,7 @@ const CIRCULAR_ORBIT: Record<string, unknown> = {
 function orbitPoint(validAt: number): TimelinePoint<VesselOrbitPayload> {
   return {
     validAt,
-    payload: wrapTypePayload(
-      "VesselOrbit",
-      CIRCULAR_ORBIT,
-    ) as VesselOrbitPayload,
+    payload: wrapWire<VesselOrbitPayload>("VesselOrbit", CIRCULAR_ORBIT),
     meta: makeMeta({
       validAt,
       deliveredAt: validAt,
@@ -160,7 +157,7 @@ describe("a reckoner can see the UT it is reckoning for", () => {
       seen.push(viewUt);
       return {
         modelled: [{ path: "", basis: "rate-integration" }],
-        reckon: () => point.payload,
+        reckon: () => observedPayload(point),
       };
     };
     registerReckoner("temperature", "test", reckoner);
@@ -180,7 +177,7 @@ describe("a reckoner can see the UT it is reckoning for", () => {
 
     registerReckoner<number>("temperature", "test", (point) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => point.payload + (at - point.validAt),
+      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
     }));
 
     store.ingest("temperature", numberPoint(100, 5));
@@ -211,7 +208,7 @@ describe("a reckonable arm withdraws when its model stops being offered", () => 
       if (viewUt - point.validAt > HORIZON_SECONDS) return undefined;
       return {
         modelled: [{ path: "", basis: "rate-integration" }],
-        reckon: () => point.payload,
+        reckon: () => observedPayload(point),
       };
     });
 
@@ -268,7 +265,7 @@ describe("a reckoning says which fields it actually modelled", () => {
       // Covers ONE field, never the root: the model has nothing to say about
       // the whole payload a topic-level read asks for.
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
-      reckon: () => ({ ...point.payload, relativePosition: 42 }),
+      reckon: () => ({ ...observedPayload(point), relativePosition: 42 }),
     }));
 
     store.ingest("vessel.target", {
@@ -303,7 +300,7 @@ describe("a reckoning advances with the clock, not only with the post", () => {
 
     registerReckoner<number>("temperature", "test", (point) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => point.payload + (at - point.validAt),
+      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
     }));
 
     store.ingest("temperature", numberPoint(100, 0));
@@ -338,7 +335,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
 
     registerReckoner<number>("temperature", "test", (point) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => point.payload + (at - point.validAt),
+      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
     }));
 
     store.ingest("temperature", numberPoint(100, 5));
@@ -363,7 +360,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
       modelled: [{ path: "", basis: "rate-integration" }],
       reckon: () => {
         runs += 1;
-        return point.payload;
+        return observedPayload(point);
       },
     }));
 
@@ -390,7 +387,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
 
     registerReckoner<number>("temperature", "test", (point) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => point.payload + (at - point.validAt),
+      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
     }));
 
     store.ingest("temperature", numberPoint(100, 0));
@@ -419,7 +416,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
 
     registerReckoner<number>("temperature", "test", (point) => ({
       modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => point.payload + (at - point.validAt),
+      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
     }));
 
     store.ingest("temperature", numberPoint(100, 5));

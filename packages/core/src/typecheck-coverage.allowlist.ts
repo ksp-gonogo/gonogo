@@ -39,7 +39,4 @@
  * `docs/ratchets.md`: an entry with no stated exit is a regression with a hall
  * pass, so the companion test fails on an empty or placeholder reason.
  */
-export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {
-  "packages/sitrep-client":
-    "78 test files, and the app-side spine, so second in value only to the sdk. 160 errors behind the config change, the most of anything left.",
-};
+export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {};
