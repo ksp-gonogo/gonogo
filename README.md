@@ -85,6 +85,7 @@ Main screen ◄──► Station screens (peer-to-peer data channels)
 - **[docs/NETWORKING.md](docs/NETWORKING.md)**: running KSP and the main screen on two computers, and connecting stations across networks
 - **[docs/creating-an-uplink.md](docs/creating-an-uplink.md)**: writing an Uplink, the extension unit for new telemetry, commands and widgets. The mod half, the client half, the codegen between them, testing, and distribution
 - **[docs/uplink-isolation.md](docs/uplink-isolation.md)**: which gonogo packages an Uplink may import, and why the answer is only two
+- **[asyncapi.yaml](asyncapi.yaml)**: the mod's wire contract as an AsyncAPI document, every core telemetry channel and command with its payload schema and the contract's own explanation of it. Generated, never hand-edited
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: the package map and how the app is put together (maintainer reference)
 - **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: GitHub Pages and the backend container images (maintainer reference)
 - **[packages/serial/README.md](packages/serial/README.md)**: wiring physical USB controllers (throttle quadrants, button boxes) to widget actions
