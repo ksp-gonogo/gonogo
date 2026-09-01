@@ -85,11 +85,31 @@
 
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# WHERE THE BIG LOCAL DATA LIVES, which is not always beside the checkout you ran
+# this from. `local_docs/` is gitignored and holds a 13GB syncthing mirror of the
+# KSP install; a git worktree therefore has none of it, and every path below that
+# reaches for a game assembly would resolve into an empty directory and report
+# "no KSP assemblies" on a machine that plainly has them.
+#
+# Resolved from the COMMON git dir, whose parent is the main working tree, so a
+# worktree borrows the real checkout's data without a symlink. Symlinking
+# `local_docs` into each worktree was tried and reverted: it puts a link to 13GB
+# of game data and the operator's design notes inside a directory that gets
+# pruned, which is how that folder was lost once already.
+#
+# GONOGO_DATA_ROOT overrides, for a checkout whose data sits somewhere else.
+DATA_ROOT="${GONOGO_DATA_ROOT:-$ROOT}"
+if [ ! -d "$DATA_ROOT/local_docs/syncthing" ]; then
+  _common="$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)"
+  if [ -n "$_common" ] && [ -d "$(dirname "$_common")/local_docs/syncthing" ]; then
+    DATA_ROOT="$(dirname "$_common")"
+  fi
+fi
 # The syncthing mirror is the normal local path. A cloud session has no
 # syncthing, but the CI image carries the same Managed directory, so fall back
 # to it rather than reporting "no KSP assemblies" and skipping a decompile that
 # was actually possible. KSP_MANAGED_DIR overrides both.
-DLL="$ROOT/local_docs/syncthing/kspdata/KSP_Data/Managed/Assembly-CSharp.dll"
+DLL="$DATA_ROOT/local_docs/syncthing/kspdata/KSP_Data/Managed/Assembly-CSharp.dll"
 if [ -n "${KSP_MANAGED_DIR:-}" ] && [ -f "$KSP_MANAGED_DIR/Assembly-CSharp.dll" ]; then
   DLL="$KSP_MANAGED_DIR/Assembly-CSharp.dll"
 elif [ ! -f "$DLL" ] && [ -f "/workspace/ksp-managed/KSP_Data/Managed/Assembly-CSharp.dll" ]; then
@@ -493,8 +513,8 @@ build_ocisly() {
   # The Mac-friendly SDK-style csproj lives in the syncthing fork dir;
   # source-of-truth .cs files live in ~/personal/OfCourseIStillLoveYou/.
   # The .Mac.csproj points <Compile Include> at those .cs files via $ForkRoot.
-  local mac_proj_dir="$ROOT/local_docs/syncthing/ocisly-fork"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/OfCourseIStillLoveYou/Plugins"
+  local mac_proj_dir="$DATA_ROOT/local_docs/syncthing/ocisly-fork"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/OfCourseIStillLoveYou/Plugins"
   local baseline=""
   if [ "${1:-}" = "--baseline" ]; then
     baseline="/p:KerbcastBaseline=true"
@@ -527,7 +547,7 @@ build_ocisly() {
 
 build_kerbcast() {
   local proj="$HOME/personal/kerbcast/Plugin/Kerbcast.csproj"
-  local ksp_root="$ROOT/local_docs/syncthing/kspdata"
+  local ksp_root="$DATA_ROOT/local_docs/syncthing/kspdata"
   local managed="$ksp_root/KSP_Data/Managed"
   local gamedata="$ksp_root/GameData"
   local install_dir="$gamedata/Kerbcast/Plugins"
@@ -688,13 +708,13 @@ fetch_kerbcast_sidecar() {
 build_gonogo() {
   local proj="$ROOT/mod/Gonogo.KSP/Gonogo.KSP.csproj"
   local out_dir="$ROOT/mod/Gonogo.KSP/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/Gonogo/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/Gonogo/Plugins"
   if [ ! -f "$proj" ]; then
     echo "Gonogo.KSP csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building Gonogo.KSP ==="
@@ -771,13 +791,13 @@ build_gonogo() {
 build_gonogoscansatuplink() {
   local proj="$ROOT/mod/GonogoScansatUplink/GonogoScansatUplink.csproj"
   local out_dir="$ROOT/mod/GonogoScansatUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoScansatUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoScansatUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoScansatUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoScansatUplink ==="
@@ -819,13 +839,13 @@ build_gonogoscansatuplink() {
 build_gonogorealantennasuplink() {
   local proj="$ROOT/mod/GonogoRealAntennasUplink/GonogoRealAntennasUplink.csproj"
   local out_dir="$ROOT/mod/GonogoRealAntennasUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoRealAntennasUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoRealAntennasUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoRealAntennasUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoRealAntennasUplink ==="
@@ -866,13 +886,13 @@ build_gonogorealantennasuplink() {
 build_gonogokosuplink() {
   local proj="$ROOT/mod/GonogoKosUplink/GonogoKosUplink.csproj"
   local out_dir="$ROOT/mod/GonogoKosUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKosUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoKosUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoKosUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoKosUplink ==="
@@ -912,13 +932,13 @@ build_gonogokosuplink() {
 build_gonogomechjebuplink() {
   local proj="$ROOT/mod/GonogoMechJebUplink/GonogoMechJebUplink.csproj"
   local out_dir="$ROOT/mod/GonogoMechJebUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoMechJebUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoMechJebUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoMechJebUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoMechJebUplink ==="
@@ -957,13 +977,13 @@ build_gonogomechjebuplink() {
 build_gonogoavionicsuplink() {
   local proj="$ROOT/mod/GonogoAvionicsUplink/GonogoAvionicsUplink.csproj"
   local out_dir="$ROOT/mod/GonogoAvionicsUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoAvionicsUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoAvionicsUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoAvionicsUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoAvionicsUplink ==="
@@ -1001,13 +1021,13 @@ build_gonogoavionicsuplink() {
 build_gonogorp1uplink() {
   local proj="$ROOT/mod/GonogoRp1Uplink/GonogoRp1Uplink.csproj"
   local out_dir="$ROOT/mod/GonogoRp1Uplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoRp1Uplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoRp1Uplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoRp1Uplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoRp1Uplink ==="
@@ -1039,13 +1059,13 @@ build_gonogorp1uplink() {
 build_gonogoferramaerospaceresearchuplink() {
   local proj="$ROOT/mod/GonogoFerramAerospaceResearchUplink/GonogoFerramAerospaceResearchUplink.csproj"
   local out_dir="$ROOT/mod/GonogoFerramAerospaceResearchUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoFerramAerospaceResearchUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoFerramAerospaceResearchUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoFerramAerospaceResearchUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoFerramAerospaceResearchUplink ==="
@@ -1079,13 +1099,13 @@ build_gonogoferramaerospaceresearchuplink() {
 build_gonogokerbcastuplink() {
   local proj="$ROOT/mod/GonogoKerbcastUplink/GonogoKerbcastUplink.csproj"
   local out_dir="$ROOT/mod/GonogoKerbcastUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKerbcastUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoKerbcastUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoKerbcastUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoKerbcastUplink ==="
@@ -1125,13 +1145,13 @@ build_gonogokerbcastuplink() {
 build_gonogokerbalismuplink() {
   local proj="$ROOT/mod/GonogoKerbalismUplink/GonogoKerbalismUplink.csproj"
   local out_dir="$ROOT/mod/GonogoKerbalismUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoKerbalismUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoKerbalismUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoKerbalismUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoKerbalismUplink ==="
@@ -1171,13 +1191,13 @@ build_gonogokerbalismuplink() {
 build_gonogoprincipiauplink() {
   local proj="$ROOT/mod/GonogoPrincipiaUplink/GonogoPrincipiaUplink.csproj"
   local out_dir="$ROOT/mod/GonogoPrincipiaUplink/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoPrincipiaUplink/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoPrincipiaUplink/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoPrincipiaUplink csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoPrincipiaUplink ==="
@@ -1206,7 +1226,7 @@ build_gonogoprincipiauplink() {
   # process to run Principia's own code outside the game, so it has to be on disk
   # where the mod can find it: an undeployed worker makes Spawn return null
   # forever, which reads as "this machine has no python" and is not that at all.
-  local worker_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoPrincipiaUplink/Worker"
+  local worker_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoPrincipiaUplink/Worker"
   mkdir -p "$worker_dir"
   cp "$ROOT/mod/GonogoPrincipiaUplink/worker/principia_worker.py" "$worker_dir/"
   {
@@ -1279,13 +1299,13 @@ build_gonogoprincipiauplink() {
 build_devtools() {
   local proj="$ROOT/mod/GonogoDevTools/GonogoDevTools.csproj"
   local out_dir="$ROOT/mod/GonogoDevTools/bin/Release"
-  local install_dir="$ROOT/local_docs/syncthing/kspdata/GameData/GonogoDevTools/Plugins"
+  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoDevTools/Plugins"
   if [ ! -f "$proj" ]; then
     echo "GonogoDevTools csproj not found at $proj"
     return 3
   fi
-  if [ ! -d "$ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $ROOT/local_docs/syncthing/kspdata"
+  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
+    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
     return 3
   fi
   echo "=== building GonogoDevTools ==="
