@@ -1025,110 +1025,120 @@ function LandingStatusComponent({
           </span>
         </div>
       }
-    >
-      {bodyName !== undefined && (
-        <Text tone="muted" size="xs">
-          {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
-        </Text>
-      )}
-      {/* The board is DESCRIBED, not suspended. No `role="status"`: the hero below
-          already owns one, and a second live region on the same panel floods a
-          screen reader rather than informing it. `isDated` rather than
-          "not observed", so a cold start says nothing at all: "described from last
-          known" is a lie when nothing has ever arrived. It stays on screen with a caption
-          naming which readings are no longer current, because losing contact
-          mid-descent is the expected case and a blank board is the worst answer
-          available. The ignition instant is refused separately, in CommitLayer. */}
-      {datedInputs.length > 0 && (
-        <ReadoutCaption>
-          {`Described from last known ${datedInputs.join(", ")}, not current`}
-        </ReadoutCaption>
-      )}
-      {board === "not-descending" && !landed ? (
-        <EmptyState>No landing in progress</EmptyState>
-      ) : (
-        // The rail beside the content, both inside the panel's own body, which
-        // owns the single inset. Bleeding to the panel edge with `padding: 0`
-        // makes every text band pay its own inset, which is how a widget ends
-        // up with five different ones and reads tight.
-        <div
-          ref={measureScroller}
-          style={{
-            display: "flex",
-            flex: 1,
-            minHeight: 0,
-            alignItems: "stretch",
-            // One rung up from space-8. This widget reads tight at close
-            // quarters and the plots, rail and readouts all abut each other.
-            gap: "var(--space-12)",
-          }}
-        >
-          {showRail && (
-            // Sticky, not scrolling. The rail is the instrument's spatial
-            // spine: an altitude scale that slides out of view while the
-            // readouts it indexes stay put is worse than useless. It sits in
-            // the scrolling body (so it takes the panel inset like everything
-            // else) but pins itself to the top of it. `align-self: flex-start`
-            // is what lets sticky engage: a stretched flex child is already as
-            // tall as the container and has nothing to stick within.
+      sections={[
+        bodyName !== undefined || datedInputs.length > 0 ? (
+          <Section key="context" full>
+            {bodyName !== undefined && (
+              <Text tone="muted" size="xs">
+                {`${bodyName}${atmospheric ? " · atmospheric" : " · vacuum"}`}
+              </Text>
+            )}
+            {/* The board is DESCRIBED, not suspended. No `role="status"`: the hero below
+              already owns one, and a second live region on the same panel floods a
+              screen reader rather than informing it. `isDated` rather than
+              "not observed", so a cold start says nothing at all: "described from last
+              known" is a lie when nothing has ever arrived. It stays on screen with a caption
+              naming which readings are no longer current, because losing contact
+              mid-descent is the expected case and a blank board is the worst answer
+              available. The ignition instant is refused separately, in CommitLayer. */}
+            {datedInputs.length > 0 && (
+              <ReadoutCaption>
+                {`Described from last known ${datedInputs.join(", ")}, not current`}
+              </ReadoutCaption>
+            )}
+          </Section>
+        ) : null,
+        /* The rail and the readouts beside it are the instrument: they take
+           the height the context captions leave, which is what the row did as
+           the body's one flexing child. */
+        <Section key="descent" fill>
+          {board === "not-descending" && !landed ? (
+            <EmptyState>No landing in progress</EmptyState>
+          ) : (
+            // The rail beside the content, both inside the panel's own body, which
+            // owns the single inset. Bleeding to the panel edge with `padding: 0`
+            // makes every text band pay its own inset, which is how a widget ends
+            // up with five different ones and reads tight.
             <div
+              ref={measureScroller}
               style={{
-                flex: "0 0 auto",
-                // An instrument dimension, not a spacing rung: the width the
-                // scale's labels and track need.
-                width: 64,
-                position: "sticky",
-                top: 0,
-                alignSelf: "flex-start",
-                // The scroller's visible height, measured. Full display height
-                // of the widget, so the scale spans what the operator can see
-                // however far the readouts below it have scrolled.
-                height: scrollerHeight > 0 ? scrollerHeight : undefined,
+                display: "flex",
+                flex: 1,
+                minHeight: 0,
+                alignItems: "stretch",
+                // One rung up from space-8. This widget reads tight at close
+                // quarters and the plots, rail and readouts all abut each other.
+                gap: "var(--space-12)",
               }}
             >
-              <AltitudeRail
-                aglMeters={heightFromTerrain?.magnitude ?? null}
-                ignitionAltitude={landed ? null : solution.ignitionAltitude}
-                suicideBurnCountdown={
-                  landed ? null : solution.suicideBurnCountdown
-                }
-              />
-            </div>
-          )}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {showPlots ? (
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {/* Every plot on this widget, arranged and nothing more. No
-                    `FramedDisplay` around it: a contributed plot's chart owns
-                    its own frame and a second one reads as a double border. */}
-                <div style={{ padding: "var(--space-8) 0" }}>
-                  {contributedPlots}
-                </div>
-                {/* Readouts UNDERNEATH the plots (inset text): verdict banner,
-                    terrain readout, then the numeric readout grid full-width. */}
+              {showRail && (
+                // Sticky, not scrolling. The rail is the instrument's spatial
+                // spine: an altitude scale that slides out of view while the
+                // readouts it indexes stay put is worse than useless. It sits in
+                // the scrolling body (so it takes the panel inset like everything
+                // else) but pins itself to the top of it. `align-self: flex-start`
+                // is what lets sticky engage: a stretched flex child is already as
+                // tall as the container and has nothing to stick within.
                 <div
                   style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "var(--space-12)",
+                    flex: "0 0 auto",
+                    // An instrument dimension, not a spacing rung: the width the
+                    // scale's labels and track need.
+                    width: 64,
+                    position: "sticky",
+                    top: 0,
+                    alignSelf: "flex-start",
+                    // The scroller's visible height, measured. Full display height
+                    // of the widget, so the scale spans what the operator can see
+                    // however far the readouts below it have scrolled.
+                    height: scrollerHeight > 0 ? scrollerHeight : undefined,
                   }}
                 >
-                  {verdictBannerEl}
-                  {terrainReadoutEl}
-                  {boardEl}
-                  {velocityEl}
-                  {readoutsStack}
-                  {comDatumNote}
-                  {divertEl}
+                  <AltitudeRail
+                    aglMeters={heightFromTerrain?.magnitude ?? null}
+                    ignitionAltitude={landed ? null : solution.ignitionAltitude}
+                    suicideBurnCountdown={
+                      landed ? null : solution.suicideBurnCountdown
+                    }
+                  />
                 </div>
+              )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {showPlots ? (
+                  <div style={{ display: "flex", flexDirection: "column" }}>
+                    {/* Every plot on this widget, arranged and nothing more. No
+                      `FramedDisplay` around it: a contributed plot's chart owns
+                      its own frame and a second one reads as a double border. */}
+                    <div style={{ padding: "var(--space-8) 0" }}>
+                      {contributedPlots}
+                    </div>
+                    {/* Readouts UNDERNEATH the plots (inset text): verdict banner,
+                      terrain readout, then the numeric readout grid full-width. */}
+                    <div
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "var(--space-12)",
+                      }}
+                    >
+                      {verdictBannerEl}
+                      {terrainReadoutEl}
+                      {boardEl}
+                      {velocityEl}
+                      {readoutsStack}
+                      {comDatumNote}
+                      {divertEl}
+                    </div>
+                  </div>
+                ) : (
+                  detailStack
+                )}
               </div>
-            ) : (
-              detailStack
-            )}
-          </div>
-        </div>
-      )}
-    </Panel>
+            </div>
+          )}
+        </Section>,
+      ]}
+    />
   );
 }
 
