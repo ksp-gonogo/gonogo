@@ -34,6 +34,7 @@ import {
   IconButton,
   NULL_DISPLAY,
   Panel,
+  Section,
   writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import {
@@ -490,36 +491,49 @@ export function GraphView({
     // "Altitude / Altitude" was the common case rather than the edge one.
     const readoutTitle = title ?? "GRAPH";
     return (
-      <Panel panelTitle={readoutTitle} panelAside={headerActions}>
-        <div ref={containerRef} style={READOUT_BODY}>
-          {seriesLabel !== readoutTitle && (
-            <div style={READOUT_LABEL}>{seriesLabel}</div>
-          )}
-          <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
-            {latest !== undefined ? formatReadoutValue(latest) : NULL_DISPLAY}
-            {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
-          </BigReadout>
-          <div style={SPARK_SLOT}>
-            {size && (
-              <Sparkline
-                values={sparkValues}
-                width={size.w}
-                height={Math.min(80, Math.max(24, Math.floor(size.h * 0.35)))}
-                color={color}
-                ariaLabel={`${seriesLabel} trend`}
-              />
-            )}
-          </div>
-        </div>
-        {/* Reuse the standard fetcher so live samples and queryRange backfill
-            stay consistent with the chart variant. */}
-        <GraphSeries
-          key={cfg.id}
-          dataKey={cfg.key}
-          windowSec={windowSec}
-          onData={handleData}
-        />
-      </Panel>
+      <Panel
+        panelTitle={readoutTitle}
+        panelAside={headerActions}
+        /* The readout and its sparkline are the drawing here: the value is set
+           against the tile, not against its own line height. */
+        sections={
+          <Section fill>
+            <div ref={containerRef} style={READOUT_BODY}>
+              {seriesLabel !== readoutTitle && (
+                <div style={READOUT_LABEL}>{seriesLabel}</div>
+              )}
+              <BigReadout aria-label={`${seriesLabel} ${latest ?? "no data"}`}>
+                {latest !== undefined
+                  ? formatReadoutValue(latest)
+                  : NULL_DISPLAY}
+                {unit && <ReadoutCaption>{unit}</ReadoutCaption>}
+              </BigReadout>
+              <div style={SPARK_SLOT}>
+                {size && (
+                  <Sparkline
+                    values={sparkValues}
+                    width={size.w}
+                    height={Math.min(
+                      80,
+                      Math.max(24, Math.floor(size.h * 0.35)),
+                    )}
+                    color={color}
+                    ariaLabel={`${seriesLabel} trend`}
+                  />
+                )}
+              </div>
+            </div>
+            {/* Reuse the standard fetcher so live samples and queryRange backfill
+                stay consistent with the chart variant. */}
+            <GraphSeries
+              key={cfg.id}
+              dataKey={cfg.key}
+              windowSec={windowSec}
+              onData={handleData}
+            />
+          </Section>
+        }
+      />
     );
   }
 
@@ -611,9 +625,10 @@ export function GraphView({
         )
       }
       panelAside={headerActions}
-    >
-      {chartBody}
-    </Panel>
+      /* The chart is the whole widget: it takes every pixel the header leaves,
+         which is what it did as the body's one flexing child. */
+      sections={<Section fill>{chartBody}</Section>}
+    />
   );
 }
 
