@@ -1057,14 +1057,6 @@ public sealed class Rp1Personnel
 }
 
 /// <summary>
-/// What rushing a launch complex costs, career-wide.
-///
-/// <para>Published whether or not anything is currently rushing, and that is the
-/// point: the operator decides at the moment nothing is, so the terms have to be
-/// readable then. RP-1 takes them from its own settings, so they are not
-/// constants a client may carry.</para>
-///
-/// <summary>
 /// What it costs to BUILD here: the terms a client needs to price a complex the
 /// operator is still describing.
 ///
@@ -1148,6 +1140,14 @@ public sealed class Rp1LcResourcePrice
     public double? PadCostPerUnit { get; set; }
 }
 
+/// <summary>
+/// What rushing a launch complex costs, career-wide.
+///
+/// <para>Published whether or not anything is currently rushing, and that is the
+/// point: the operator decides at the moment nothing is, so the terms have to be
+/// readable then. RP-1 takes them from its own settings, so they are not
+/// constants a client may carry.</para>
+///
 /// <para>A third term is not a number and so is not here: a complex earns no
 /// efficiency at all while it rushes, and efficiency is what makes a crew
 /// cheaper over a career. That one is stated by the client.</para>

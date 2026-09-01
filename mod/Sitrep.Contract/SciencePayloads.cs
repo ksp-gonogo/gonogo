@@ -478,7 +478,7 @@ public class SensorEntry
 /// <see cref="RemainingPotential"/> is the ABSOLUTE science still recoverable
 /// from the subject (<c>ScienceSubject.scienceCap - ScienceSubject.science</c>,
 /// via <c>ResearchAndDevelopment.GetSubjectByID</c>), matching the old
-/// GonogoTelemetry semantics: <c>0</c> in Sandbox mode (no R&D instance, no
+/// GonogoTelemetry semantics: <c>0</c> in Sandbox mode (no R&amp;D instance, no
 /// subject caps to speak of). The channel payload is a BARE ARRAY
 /// (<c>ExperimentBreakdownEntry[]</c>) or <c>null</c>: never a wrapper
 /// object, and never an empty-vs-absent distinction beyond "the whole array
@@ -543,13 +543,13 @@ public class ExperimentBreakdownEntry
 
 /// <summary>
 /// One entry in the <c>science.archive</c> channel payload: a single
-/// SUBJECT out of the whole-career R&D archive
+/// SUBJECT out of the whole-career R&amp;D archive
 /// (<c>ResearchAndDevelopment.GetSubjects()</c>): every subject the player
 /// has ever collected or recovered, across every mission and every body,
 /// not scoped to the active vessel. The channel payload is a BARE ARRAY
-/// (<c>ArchiveEntry[]</c>) or <c>null</c> when the save has no R&D
+/// (<c>ArchiveEntry[]</c>) or <c>null</c> when the save has no R&amp;D
 /// instance to walk (Sandbox mode), never an empty-vs-absent distinction
-/// beyond that (a Career save with an R&D instance but nothing collected
+/// beyond that (a Career save with an R&amp;D instance but nothing collected
 /// yet emits an empty array).
 ///
 /// <para>Distinct from <see cref="ExperimentBreakdownEntry"/>: that one

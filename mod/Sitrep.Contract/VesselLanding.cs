@@ -11,9 +11,8 @@ namespace Sitrep.Contract;
 /// lander-scale slope), plus an atmosphere-aware descent estimate that needs
 /// per-part drag the client does not have.
 ///
-/// <para>Distinct from the client-derived vacuum ballistic scalars (the
-/// LandingStatus widget's own <c>solveSuicideBurn</c>), which need no terrain
-/// and stay client-side.</para>
+/// <para>Distinct from the vacuum ballistic scalars a client solves for
+/// itself, which need no terrain and stay client-side.</para>
 ///
 /// <para>Whole-channel absence means "not descending toward a solid surface",
 /// relevance-gated at the source on situation + a descent test +

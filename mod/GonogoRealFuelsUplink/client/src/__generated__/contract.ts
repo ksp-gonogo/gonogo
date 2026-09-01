@@ -4,31 +4,172 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+/**
+* One RealFuels engine on the `realfuels.engines` channel: its ignition
+* budget, its ullage state and the two rated figures that bound a burn.
+*
+* Read off the live `RealFuels.ModuleEnginesRF` and its `UllageSet` by runtime
+* reflection (RealFuels is GPLv3; the Uplink never links its assembly, see
+* `GonogoRealFuelsUplink.csproj`'s header).
+*/
 export interface RealFuelsEngineEntry
 {
+	/**
+	* The engine part's stable flight id, so a consumer can join this row to the
+	* same part on `vessel.parts`.
+	*/
 	partId?: number;
+	/** The engine part's display title. */
 	partName?: string;
+	/**
+	* Ignitions left in the budget, RAW: the live counter RealFuels decrements on
+	* each successful light.
+	*
+	* It is NOT a plain count, and reading it as one is the mistake this Uplink
+	* exists to prevent. RealFuels overloads the value three ways: a positive
+	* number is a real budget, `-1` means unlimited, and `0` means the engine can
+	* be lit ONLY on the pad with a launch clamp attached
+	* (`ModuleEnginesRF.IgnitionUpdate` refuses the light otherwise). Telling an
+	* operator "0 ignitions" and telling them "ground ignition only" are the same
+	* wire value and opposite briefings.
+	*
+	* Consumers should read `RealFuelsEngineEntry.ignitionsUnlimited` and
+	* `RealFuelsEngineEntry.groundIgnitionOnly` rather than re-deriving the rule,
+	* and should show this number only when both are false.
+	*/
 	ignitionsRemaining?: Value<"count">;
+	/**
+	* This engine can be relit without limit. True when the budget is negative
+	* (RealFuels' unlimited sentinel) or when the game-wide ignition limit is
+	* switched off, mirroring `ModuleEnginesRF.GetUllageIgnition`'s own first
+	* branch.
+	*/
 	ignitionsUnlimited?: boolean;
+	/**
+	* This engine will light only while the vessel is on a launch clamp: the
+	* `ignitions == 0` reading, which RealFuels renders as "ground support clamps"
+	* rather than as a spent budget. An engine in this state has no in-flight
+	* relight at all, which is a stronger claim than a low count.
+	*/
 	groundIgnitionOnly?: boolean;
+	/**
+	* The part's `literalZeroIgnitions` flag, from its engine-config module.
+	*
+	* It is what decides which of the two meanings a configured `0` carries:
+	* `EngineConfigTechLevels.ConfigIgnitions` rewrites a config's 0 to the
+	* unlimited sentinel UNLESS the part sets this, in which case the 0 survives
+	* as a real ground-only budget. The normalisation happens on the way into the
+	* live module, so `RealFuelsEngineEntry.groundIgnitionOnly` is already
+	* unambiguous; this travels so a consumer can say WHY an engine is ground-only
+	* rather than merely that it is. Null when the part carries no engine-config
+	* module.
+	*/
 	literalZeroIgnitions?: boolean;
+	/**
+	* Whether this engine is subject to ullage at all. A pressure-fed or
+	* hypergolic-settled engine is not, and its stability reading is therefore
+	* absent rather than perfect.
+	*/
 	ullageModelled?: boolean;
+	/**
+	* Propellant settling, 0..1, from RealFuels' own ullage simulation. Its bands
+	* are 0.996 very stable, 0.95 stable, 0.75 risky, 0.30 very risky, 0.15
+	* unstable, below that very unstable. Null when the engine models no ullage or
+	* the simulation has not run.
+	*/
 	ullageStability?: Value<"ratio">;
+	/**
+	* The chance this engine survives an ignition attempt at the current settling,
+	* 0..1: RealFuels rolls against exactly this number each frame a running
+	* ullage-subject engine is throttled up, and a failed roll is a flameout.
+	* Derived from `RealFuelsEngineEntry.ullageStability` by RealFuels' own
+	* stability exponent, so it is not a restatement of it.
+	*/
 	ignitionProbability?: Value<"ratio">;
+	/** Whether the engine needs pressurised feed rather than a pump. */
 	pressureFed?: boolean;
+	/**
+	* Whether the tanks feeding a pressure-fed engine are pressurised enough to
+	* run it. Always true for a pumped engine, which has no feed-pressure
+	* requirement to fail.
+	*/
 	feedPressureOk?: boolean;
+	/**
+	* Total burn time the engine is rated for before it is running on borrowed
+	* life. Null when the config states none (RealFuels carries `-1` for
+	* "unrated", which is an absence and not a negative duration).
+	*/
 	ratedBurnTimeSeconds?: Value<"s">;
+	/**
+	* The longest single burn the engine is rated for, where that is shorter than
+	* `RealFuelsEngineEntry.ratedBurnTimeSeconds`. Null when the config states
+	* none.
+	*/
 	ratedContinuousBurnTimeSeconds?: Value<"s">;
+	/**
+	* The fraction of a tank's load RealFuels expects to be left unburnable when
+	* this engine flames out, 0..1. It is propellant that is loaded, paid for and
+	* unavailable, so a circularisation planned against the full load is planned
+	* against propellant that will not arrive.
+	*/
 	predictedMaximumResiduals?: Value<"ratio">;
 }
+/**
+* The `realfuels.engines` channel: every RealFuels engine on the active
+* vessel, under the two game-wide switches that decide whether their readings
+* bind.
+*
+* The switches travel with the rows rather than on a channel of their own
+* because they change what a row MEANS: with
+* `RealFuelsEngines.ignitionsLimited` off, every budget on the vessel is moot
+* and an operator reading "2 left" would be reading a limit the game is not
+* enforcing.
+*/
 export interface RealFuelsEngines
 {
+	/**
+	* Whether the game is enforcing ignition budgets at all (RealFuels'
+	* `limitedIgnitions` setting).
+	*/
 	ignitionsLimited?: boolean;
+	/**
+	* Whether the game is simulating ullage at all (RealFuels' `simulateUllage`
+	* setting). With it off, a poor stability reading costs nothing.
+	*/
 	ullageSimulated?: boolean;
+	/**
+	* The engines, in part order. An EMPTY list is a vessel with no RealFuels
+	* engines on it; a NULL list is a vessel the Uplink could not read. The two
+	* are different and are kept different.
+	*/
 	engines?: RealFuelsEngineEntry[];
 }
+/**
+* The `realfuels.boiloff` channel: cryogenic propellant leaving the vessel
+* through the tank walls, which is what bounds a coast before a
+* circularisation.
+*/
 export interface RealFuelsBoiloff
 {
+	/**
+	* Mass boiling off across every cryogenic tank on the vessel, as a RATE.
+	*
+	* RealFuels' own `ModuleFuelTanks.BoiloffMassRate` is misnamed and is not
+	* this: it is the mass ACCUMULATED over the physics interval just past
+	* (`CalculateTankBoiloff` multiplies by the interval before adding, and the
+	* one branch of it that does divide back out feeds a different property). This
+	* Uplink divides the vessel total by the same interval RealFuels itself was
+	* handed, so what reaches the wire is a true rate and the field name is
+	* honest. Null when that interval is unavailable, never a zero: a rate divided
+	* by an unknown is not a rate of nothing.
+	*/
 	boiloffRate?: Value<"kg/s">;
+	/**
+	* How many tanks on the vessel can boil off at all. Zero is a real and useful
+	* answer (a hypergolic stack has no cryogenic tanks and will never boil off),
+	* and it is what makes a null `RealFuelsBoiloff.boiloffRate` readable: no
+	* cryogenic tanks means nothing to measure, some tanks and no rate means the
+	* measurement failed.
+	*/
 	cryogenicTankCount?: Value<"count">;
 }

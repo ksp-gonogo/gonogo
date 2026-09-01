@@ -15,7 +15,7 @@ namespace Sitrep.Contract;
 /// <see cref="Other"/> covers docking ports/waypoints/anything not yet
 /// classified more finely (a future, more specific target-kind split is a
 /// non-breaking additive change, same convention as every other
-/// <see cref="Unknown"/>-style fallback in this contract).
+/// unknown-style fallback in this contract).
 ///
 /// <para><see cref="Position"/> (additive, appended never inserted: enum
 /// member order is wire-significant per this contract's numeric-serialisation
@@ -23,7 +23,7 @@ namespace Sitrep.Contract;
 /// <c>vessel.target.set</c> (see <see cref="SetTargetArgs.Latitude"/>/
 /// <see cref="SetTargetArgs.Longitude"/>), a map-picked lat/lon that isn't
 /// backed by any live KSP target object, so it never appears as
-/// <c>vessel.target</c>'s own reported <see cref="Kind"/>.</para>
+/// <c>vessel.target</c>'s own reported <see cref="VesselTarget.Kind"/>.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsEnum]

@@ -16,7 +16,19 @@ public static class RtConfig
         builder.Global(g => g
             .CamelCaseForProperties()
             .UseModules(true) // ES modules: `export interface`, no `module` wrapper
-            .AutoOptionalProperties()); // C# `T?` -> TS `prop?`
+            .AutoOptionalProperties() // C# `T?` -> TS `prop?`
+            // The contract's prose, carried onto the generated declarations.
+            // GenerateDocumentation is what makes rtcli's DocumentationFilePath
+            // (set in codegen.sh) reach the AST at all; RtDocVisitor is what
+            // turns the raw XMLDOC markup it carries into TSDoc, and decides
+            // which crefs an SDK reader can actually follow.
+            .GenerateDocumentation()
+            .UseVisitor<RtDocVisitor>());
+
+        // Must precede any registration below: the fluent configuration runs
+        // before the documentation is loaded, and that ordering is the whole
+        // reason this can be done from here at all.
+        RtDocText.MergeRemarksIntoSummaries(builder);
 
         // --- Envelope (non-generic) ---
         // Register directly via ExportAsInterface<T>(), which shares the same

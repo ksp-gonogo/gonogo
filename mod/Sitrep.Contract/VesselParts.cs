@@ -141,7 +141,7 @@ public class VesselPart
     [SitrepUnit(Units.Enumeration)]
     public KspPartCategory? CategoryOrdinal { get; set; }
 
-    /// <summary>Each <c>PartModule</c>'s CLR class name (e.g. <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>), what ShipMap's <c>classifyPart</c> matches on.</summary>
+    /// <summary>Each <c>PartModule</c>'s CLR class name (e.g. <c>"ModuleEngines"</c>, <c>"CModuleFuelLine"</c>), which is what a client classifies a part by.</summary>
     [SitrepUnit(Units.Text)]
     public List<string> Modules { get; set; } = new();
 
@@ -160,8 +160,8 @@ public class VesselPart
     /// <summary>
     /// Every resource this part carries (join key: resource name, e.g.
     /// <c>"ElectricCharge"</c>), storage plus live production/consumption
-    /// flow: the per-part live-data slice the SDK's <c>usePartsLive</c>
-    /// used to fetch off the legacy <c>r.resourceFor[flightId]</c> key.
+    /// flow: the per-part live-data slice a client used to have to fetch off
+    /// the legacy <c>r.resourceFor[flightId]</c> key.
     /// Empty dict when the part carries no resources.
     /// </summary>
     public Dictionary<string, PartResourceFlow> Resources { get; set; } = new();
@@ -227,8 +227,7 @@ public class ActionBinding
 /// <summary>
 /// One resource row in <see cref="VesselPart.Resources"/>: storage
 /// (<see cref="Amount"/>/<see cref="MaxAmount"/>) plus live flow
-/// (<see cref="Flow"/>/<see cref="NominalFlow"/>). Mirrors the SDK's
-/// <c>PartResources</c> row shape field-for-field.
+/// (<see cref="Flow"/>/<see cref="NominalFlow"/>).
 ///
 /// <para><b>Flow scope.</b> <see cref="Flow"/>/<see cref="NominalFlow"/>
 /// are populated only for the module types whose live rate is CHEAPLY
@@ -269,8 +268,9 @@ public class PartResourceFlow
 
 /// <summary>
 /// One module's behavioural state in <see cref="VesselPart.ModuleStates"/>.
-/// Mirrors the SDK's <c>PartStateModule</c> shape field-for-field: see that
-/// interface's doc comment for the full state vocabulary per <see cref="Type"/>.
+/// <see cref="Type"/> discriminates the module and <see cref="State"/> carries
+/// the standardised deploy/activation word, whose vocabulary is on that
+/// property.
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -282,7 +282,23 @@ public class PartModuleState
     [SitrepUnit(Units.Id)]
     public string Type { get; set; } = "";
 
-    /// <summary>The standardised deploy/activation state: see <c>PartStateModule</c>'s doc comment for the per-type vocabulary.</summary>
+    /// <summary>
+    /// The standardised deploy/activation state, one closed vocabulary across
+    /// every <see cref="Type"/> rather than each module's own enum spelling.
+    ///
+    /// <list type="bullet">
+    /// <item><c>extended</c> / <c>retracted</c> / <c>deploying</c> /
+    /// <c>retracting</c>, for anything that animates: solar panels, radiators,
+    /// antennas, landing gear.</item>
+    /// <item><c>stowed</c> / <c>armed</c> / <c>extended</c> / <c>broken</c>, the
+    /// parachute lifecycle. <c>armed</c> is armed and waiting for its
+    /// atmospheric trigger, which is not the same as deployed.</item>
+    /// <item><c>active</c> / <c>inactive</c>, for engines and drills.</item>
+    /// <item><c>unknown</c> when the underlying game enum maps to none of the
+    /// above, which is a statement that the state was read and not recognised
+    /// rather than a stand-in for retracted.</item>
+    /// </list>
+    /// </summary>
     [SitrepUnit(Units.Text)]
     public string State { get; set; } = "";
 

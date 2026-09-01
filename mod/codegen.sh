@@ -50,6 +50,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_UNITJSON_OUT="$UNIT_JSON_OUT" \
   SITREP_CHANNELMAP_OUT="$CHANNEL_MAP_OUT" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$BIN/Sitrep.Contract.xml" \
   SourceAssemblies="$BIN/Sitrep.Contract.dll" \
   TargetFile="$OUT" \
   ConfigurationMethod="Sitrep.Contract.RtConfig.Configure"
@@ -93,6 +94,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_MECHJEB_UNITMAP_OUT="$mechjeb_out_dir/units.ts" \
   SITREP_MECHJEB_UNITJSON_OUT="$mechjeb_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$mechjeb_bin/GonogoMechJebUplink.Contract.xml" \
   SourceAssemblies="$mechjeb_bin/GonogoMechJebUplink.Contract.dll" \
   TargetFile="$mechjeb_out_dir/contract.ts" \
   ConfigurationMethod="Gonogo.MechJebUplink.MechJebRtConfig.Configure"
@@ -115,6 +117,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_AVIONICS_UNITMAP_OUT="$avionics_out_dir/units.ts" \
   SITREP_AVIONICS_UNITJSON_OUT="$avionics_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$avionics_bin/GonogoAvionicsUplink.Contract.xml" \
   SourceAssemblies="$avionics_bin/GonogoAvionicsUplink.Contract.dll" \
   TargetFile="$avionics_out_dir/contract.ts" \
   ConfigurationMethod="GonogoAvionicsUplink.AvionicsRtConfig.Configure"
@@ -140,6 +143,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_KERBCAST_UNITMAP_OUT="$kerbcast_out_dir/units.ts" \
   SITREP_KERBCAST_UNITJSON_OUT="$kerbcast_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$kerbcast_bin/GonogoKerbcastUplink.Contract.xml" \
   SourceAssemblies="$kerbcast_bin/GonogoKerbcastUplink.Contract.dll" \
   TargetFile="$kerbcast_out_dir/contract.ts" \
   ConfigurationMethod="GonogoKerbcastUplink.KerbcastRtConfig.Configure"
@@ -171,6 +175,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_KERBALISM_UNITMAP_OUT="$kerbalism_out_dir/units.ts" \
   SITREP_KERBALISM_UNITJSON_OUT="$kerbalism_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$kerbalism_bin/GonogoKerbalismUplink.Contract.xml" \
   SourceAssemblies="$kerbalism_bin/GonogoKerbalismUplink.Contract.dll" \
   TargetFile="$kerbalism_out_dir/contract.ts" \
   ConfigurationMethod="GonogoKerbalismUplink.KerbalismRtConfig.Configure"
@@ -202,6 +207,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_KOS_UNITMAP_OUT="$kos_out_dir/units.ts" \
   SITREP_KOS_UNITJSON_OUT="$kos_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$kos_bin/GonogoKosUplink.Contract.xml" \
   SourceAssemblies="$kos_bin/GonogoKosUplink.Contract.dll" \
   TargetFile="$kos_out_dir/contract.ts" \
   ConfigurationMethod="Gonogo.KosUplink.KosRtConfig.Configure"
@@ -235,6 +241,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_REALANTENNAS_UNITMAP_OUT="$realantennas_out_dir/units.ts" \
   SITREP_REALANTENNAS_UNITJSON_OUT="$realantennas_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$realantennas_bin/GonogoRealAntennasUplink.Contract.xml" \
   SourceAssemblies="$realantennas_bin/GonogoRealAntennasUplink.Contract.dll" \
   TargetFile="$realantennas_out_dir/contract.ts" \
   ConfigurationMethod="Gonogo.RealAntennasUplink.RealAntennasRtConfig.Configure"
@@ -263,6 +270,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_PRINCIPIA_UNITMAP_OUT="$principia_out_dir/units.ts" \
   SITREP_PRINCIPIA_UNITJSON_OUT="$principia_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$principia_bin/GonogoPrincipiaUplink.Contract.xml" \
   SourceAssemblies="$principia_bin/GonogoPrincipiaUplink.Contract.dll" \
   TargetFile="$principia_out_dir/contract.ts" \
   ConfigurationMethod="GonogoPrincipiaUplink.PrincipiaRtConfig.Configure"
@@ -288,6 +296,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_RP1_UNITMAP_OUT="$rp1_out_dir/units.ts" \
   SITREP_RP1_UNITJSON_OUT="$rp1_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$rp1_bin/GonogoRp1Uplink.Contract.xml" \
   SourceAssemblies="$rp1_bin/GonogoRp1Uplink.Contract.dll" \
   TargetFile="$rp1_out_dir/contract.ts" \
   ConfigurationMethod="GonogoRp1Uplink.Rp1RtConfig.Configure"
@@ -314,6 +323,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_AERO_UNITMAP_OUT="$aero_out_dir/units.ts" \
   SITREP_AERO_UNITJSON_OUT="$aero_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$aero_bin/GonogoFerramAerospaceResearchUplink.Contract.xml" \
   SourceAssemblies="$aero_bin/GonogoFerramAerospaceResearchUplink.Contract.dll" \
   TargetFile="$aero_out_dir/contract.ts" \
   ConfigurationMethod="GonogoFerramAerospaceResearchUplink.AeroRtConfig.Configure"
@@ -340,6 +350,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_REALFUELS_UNITMAP_OUT="$realfuels_out_dir/units.ts" \
   SITREP_REALFUELS_UNITJSON_OUT="$realfuels_out_dir/units.json" \
   dotnet "$RTCLI" \
+  DocumentationFilePath="$realfuels_bin/GonogoRealFuelsUplink.Contract.xml" \
   SourceAssemblies="$realfuels_bin/GonogoRealFuelsUplink.Contract.dll" \
   TargetFile="$realfuels_out_dir/contract.ts" \
   ConfigurationMethod="GonogoRealFuelsUplink.RealFuelsRtConfig.Configure"

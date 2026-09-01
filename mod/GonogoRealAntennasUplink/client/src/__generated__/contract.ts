@@ -5,38 +5,112 @@
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 import { PayloadMeta } from '@ksp-gonogo/sitrep-sdk';
 
+/**
+* The `comms.linkQuality` payload: RealAntennas-ONLY (absent without RA). Link
+* margin normalised to 0..1 (comms-uplink-design.md §2.2/§4.3).
+*/
 export interface CommsLinkQuality
 {
 	value: Value<"ratio">;
 	meta: PayloadMeta;
 }
+/**
+* The `comms.dataRate` payload: RealAntennas-ONLY. Bidirectional link data
+* rate in bits/sec, read live per-hop off the RA CommNet graph
+* (comms-uplink-design.md §4.3: "reachable cleanly").
+*/
 export interface CommsDataRate
 {
 	upBitsPerSec: Value<"bit/s">;
 	downBitsPerSec: Value<"bit/s">;
 	meta: PayloadMeta;
 }
+/**
+* The `comms.linkMargin` payload: RealAntennas-ONLY. Re-derived by the
+* RealAntennas uplink from RA's public static link-budget math, NOT read off a
+* live field (comms-uplink-design.md §4.3: margin is computed transiently
+* inside RA's internal Precompute job and not stored anywhere public).
+*/
 export interface CommsLinkMargin
 {
 	decibelMargin: Value<"dB">;
 	closesLink: boolean;
 	meta: PayloadMeta;
 }
+/**
+* RealAntennas' namespace of a `CommsHop`'s provider extension bag: the
+* per-hop RA facts core's shared `CommsHop` shape does not (and should not)
+* declare, carried under the provider id `"realantennas"` and typed HERE
+* rather than in core (see `Sitrep.Contract/ProviderExtensions.cs` for the
+* mechanism, and a sibling Uplink's reliability extension for the exemplar).
+*
+* It rides `comms.path`, which is already the TrueNow geometry SignalDelay
+* consumes, so every field here is TrueNow like the rest of the comms family:
+* these are properties of the link KSC is computing right now, several of them
+* (data rate) parallel to the delay computation, so delay-gating them would be
+* circular.
+*
+* Every field is nullable: absent under bare CommNet (the vanilla backend
+* leaves the whole bag null), and individually absent when a particular RA
+* read fails, the same typed-absence posture as the rest of this slice. Read
+* client-side through `readRealAntennasHopExt`, never by reaching into
+* `hop.extensions?.realantennas` and casting.
+*/
 export interface RealAntennasHopExt
 {
+	/** RF band the hop is on (L/S/X/K): `RealAntenna.RFBand.name`. */
 	band?: string;
+	/** Antenna tech level (0..9): the progression axis behind the rate ceiling. */
 	techLevel?: Value<"count">;
+	/**
+	* Negotiated modulation order: shows the link stepping down under a thin
+	* margin.
+	*/
 	modulationBits?: Value<"count">;
+	/** Active FEC encoder name (e.g. "Reed-Solomon 255/223", "Turbo 1/2"). */
 	encoder?: string;
+	/** Encoder coding rate (0..1): the FEC overhead the rate already includes. */
 	codingRate?: Value<"ratio">;
+	/** Required Eb/N0 (dB) to close the link at this encoder: RA's own figure. */
 	requiredEbN0?: Value<"dB">;
+	/** Dish beamwidth (degrees): pointing tightness/sensitivity. */
 	beamwidth?: Value<"°">;
+	/** Transmit electric-charge draw (units/s): the comms power cost of this hop. */
 	powerDrawEc?: Value<"units/s">;
+	/**
+	* Reverse-direction throughput (bits/sec): the opposite of the forward rate
+	* this Uplink publishes on `realantennas.hopRates`, off the same live
+	* RACommLink. The backend only surfaced the forward direction before.
+	*/
 	reverseBitsPerSec?: Value<"bit/s">;
 }
+/**
+* One entry of the `realantennas.hopRates` channel: the RealAntennas forward
+* band rate for a single hop, keyed by the SAME node ids `comms.path` already
+* carries (`RaCommsBackend.NodeId(link.a)`/ `NodeId(link.b)`), so a client can
+* join a rate onto the route the core schedule already renders WITHOUT this
+* Uplink republishing the topology.
+*
+* RealAntennas' relay graph subclasses stock CommNet's (`RACommNode :
+* CommNet.CommNode`, `RACommLink : CommNet.CommLink`), so the hop set and its
+* node ids are identical to `comms.path`'s: this channel ONLY embellishes each
+* existing hop with its bitrate, it never re-derives the path. The channel
+* value is a bare ARRAY of these entries (one per hop that has a readable
+* rate), self-flattened at the publish boundary by `RaWire.HopRates` the same
+* way this Uplink's other channels flatten, so core's serializer never needs
+* to know the type exists.
+*
+* TRUE-NOW like the rest of the comms family: it describes the link AS KSC
+* SEES IT, computed ground-side. Absent entirely without RealAntennas
+* installed (this Uplink is not even elected), and a hop whose rate cannot be
+* read this tick simply yields no entry, never a 0 sentinel.
+*/
 export interface RealAntennasHopRate
 {
+	/** The hop's source node id, identical to the matching `CommsHop.From`. */
 	fromNodeId: string;
+	/** The hop's destination node id, identical to the matching `CommsHop.To`. */
 	toNodeId: string;
+	/** Forward band rate (bits/sec) for this hop, off the live RACommLink. */
 	bitsPerSec: Value<"bit/s">;
 }

@@ -30,7 +30,13 @@ public static class RealFuelsRtConfig
         builder.Global(g => g
             .CamelCaseForProperties()
             .UseModules(true)
-            .AutoOptionalProperties());
+            .AutoOptionalProperties()
+            // Carry this slice's `///` prose onto its generated declarations, the
+            // same way core does. See Sitrep.Contract.RtDocVisitor.
+            .GenerateDocumentation()
+            .UseVisitor<Sitrep.Contract.RtDocVisitor>());
+
+        Sitrep.Contract.RtDocText.MergeRemarksIntoSummaries(builder);
 
         // Held in a local because ApplyUnitValueTypes re-enters this exact set:
         // only a type registered with rtcli may have its properties retyped.

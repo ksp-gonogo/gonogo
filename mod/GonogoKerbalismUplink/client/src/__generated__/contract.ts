@@ -4,33 +4,151 @@
 
 import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 
+/**
+* Args shared by the two reversible flag commands, `kerbalism.file.send` and
+* `kerbalism.sample.analyze`: the stored result addressed by its stock subject
+* id (see this file's header comment), plus the desired end state.
+* `KerbalismSubjectFlagArgs.flag` is the state to SET, not "toggle from
+* whatever it is now", so a duplicate or reordered dispatch is a no-op rather
+* than an undo.
+*/
 export interface KerbalismSubjectFlagArgs
 {
 	subjectId: string;
 	flag: boolean;
 }
+/**
+* Args shared by the three one-shot subject actions, `kerbalism.file.delete`,
+* `kerbalism.sample.dump` and `kerbalism.sample.moveToLab`: the stored result
+* addressed by its stock subject id, nothing else. Delete/dump are
+* irreversible; a repeat dispatch against an already-gone subject resolves as
+* `CommandErrorCode.NotFound` rather than a second deletion, which is what
+* makes retrying a dropped acknowledgement safe.
+*/
 export interface KerbalismSubjectActionArgs
 {
 	subjectId: string;
 }
+/**
+* Kerbalism's `extensions["kerbalism"]` sub-tree of one `isru.drills` entry:
+* the diagnostic and the depletion state the shared shape has no field for.
+*
+* Read client-side through this Uplink's own `readKerbalismIsruDrillExt`,
+* never by reaching into the bag at a call site.
+*/
 export interface KerbalismIsruDrillExtension
 {
+	/**
+	* The live blocking-reason string ("no atmosphere", "not deployed", ...).
+	* Empty when the drill is fine, which is the normal case, so a renderer shows
+	* this only when it is non-empty.
+	*/
 	issue?: string;
+	/**
+	* The harvest-type variant: 0-3 are the stock-equivalent situations, 4 is
+	* asteroid/comet. Free text rather than a closed enum, mirroring the posture
+	* the shared `Resource` field already takes: the numbering is a Kerbalism
+	* implementation detail and a closed enum here would break on any renumber.
+	*/
 	harvestType?: string;
+	/**
+	* EC drawn per second, independent of abundance. A drill that is deployed and
+	* running still costs this even where there is nothing to extract, which is
+	* exactly the case an operator wants to catch.
+	*/
 	ecRate?: Value<"units/s">;
+	/**
+	* Asteroid/comet mining only: remaining rock mass. Null for surface, ocean and
+	* atmospheric harvesters, where abundance is a property of the environment
+	* rather than of a finite source.
+	*/
 	sourceMassRemaining?: Value<"t">;
+	/**
+	* Asteroid/comet mining only: the depletion threshold below which the source
+	* is exhausted. Paired with `KerbalismIsruDrillExtension.sourceMassRemaining`,
+	* this is what lets a reader show how much of the rock is actually still
+	* minable rather than how much of it is left.
+	*/
 	sourceMassThreshold?: Value<"t">;
 }
+/**
+* Kerbalism's `extensions["kerbalism"]` sub-tree of one `isru.converters`
+* entry: the `ProcessController`'s own throttle state, which is what a
+* Kerbalism converter actually is.
+*
+* Structurally the same field set `KerbalismProcessEntry` already models for
+* life-support processes, and deliberately so: Kerbalism does not distinguish
+* an ISRU process from a life-support one internally, a Process is a Process
+* regardless of what it converts. Inventing a parallel shape here would have
+* asserted a distinction the engine does not draw.
+*
+* **There is no issue field here, and there must not be one.** Unlike a
+* Harvester, a ProcessController has no discrete blocking-reason: a starved
+* recipe simply clamps its rate to zero. A reader derives that from the shared
+* shape (`running` true alongside zero rates) rather than from a string,
+* because a string here would be gonogo fabricating a diagnostic Kerbalism
+* never reports.
+*/
 export interface KerbalismIsruConverterExtension
 {
+	/**
+	* The pseudo-resource this ProcessController throttles on
+	* ("_MoltenRegolithElectrolysis", ...). The join key onto Kerbalism's own
+	* Process definition, not a real resource, which is why it is not the shared
+	* shape's resource field wearing a different name.
+	*/
 	processToken?: string;
+	/**
+	* The process's own display title, distinct from the part title (e.g. "Molten
+	* Regolith Electrolysis" running on an ISRU Chemical Plant part). One part can
+	* be reconfigured to run a different process, so the two genuinely differ.
+	*/
 	title?: string;
+	/**
+	* How many units of the process this part runs at once. Every rate on the
+	* shared shape is already scaled by this: it is the multiplier behind those
+	* numbers, surfaced so a reader can tell a half-capacity plant from a
+	* half-starved one.
+	*/
 	capacity?: Value<"units">;
+	/**
+	* Distinct from the shared `running` flag: a part-integrity failure, not
+	* merely toggled off. A broken plant cannot be started until it is repaired.
+	*/
 	broken?: boolean;
+	/**
+	* Active dump-valve index: which outputs vent overboard rather than being
+	* captured. Live per-part state that changes what the shared shape's outputs
+	* actually MEAN for this instance, which is why it belongs next to them.
+	*/
 	valveIndex?: Value<"count">;
 }
+/**
+* Space-weather situation for the active vessel, radiation, magnetic belts,
+* storm state. Mirrors `KERBALISM.API` vessel reads (`Radiation`,
+* `HabitatRadiation`, `Magnetosphere`/`InnerBelt`/`OuterBelt`,
+* `StormIncoming`/`StormInProgress`/`Blackout`, `InSunlight`) plus the
+* `Shielding` resource.
+*
+* **This payload names no vessel, deliberately.** Solar activity is
+* SUN-sourced: the storms, the ejection speed and the star geometry describe
+* what the Sun is doing, and the intended shape for this channel is a
+* sun-sourced one delayed by its own Sun-to-observer geometry rather than a
+* vessel-attributed sample, per
+* `local_docs/design/2026-08-10-spaceweather-sun-and-vantage.md`. Binding it
+* to a vessel id would encode the wrong subject and have to be unpicked.
+* Distinct from `KerbalismFeatures`/`KerbalismProfile`, which are install-wide
+* facts with no subject to name at all; this one HAS a subject, and it is the
+* Sun.
+*/
 export interface KerbalismSpaceWeather
 {
+	/**
+	* Raw `API.Radiation(v)`, i.e. `VesselData.EnvRadiation`. Units confirmed
+	* rad/s from Kerbalism source (UI/Monitor.cs computes rad/h display values as
+	* `EnvHabitatRadiation * 3600.0`, the same per-second-to-per-hour factor the
+	* client applies here).
+	*/
 	radiationRadPerSecond?: Value<"rad/s">;
 	habitatRadiationRadPerSecond?: Value<"rad/s">;
 	magnetosphere?: boolean;
@@ -40,38 +158,158 @@ export interface KerbalismSpaceWeather
 	stormInProgress?: boolean;
 	blackout?: boolean;
 	inSunlight?: boolean;
+	/**
+	* Shielding resource amount/capacity (0 in the default profile; present under
+	* RO/Habitat).
+	*/
 	shieldingAmount?: Value<"units">;
 	shieldingCapacity?: Value<"units">;
+	/**
+	* One entry per star Kerbalism enumerates (`Sim.suns`, populated from
+	* Kopernicus `LightShifter` bodies, or the stock single sun when none are
+	* found), this vessel's own vantage on each (`VesselData.EnvSunsInfo`).
+	* Star-agnostic: 1..N entries, uniform shape for a binary/trinary pack same as
+	* a single star.
+	*/
 	stars?: KerbalismStarInfo[];
+	/**
+	* One CME slot per star. Which slot depends on where the vessel is: around a
+	* body it is the shared (body, star) slot (`Storm.StormKey(body,
+	* star)`-keyed); in solar orbit the vessel is its own storm target and the
+	* slot is its private per-vessel one. Each entry names its own target, see
+	* `KerbalismStormEntry.targetKind`. See `KerbalismStormEntry` for the
+	* fair-vs-cheating read boundary that governs which of its members are
+	* populated.
+	*/
 	storms?: KerbalismStormEntry[];
+	/**
+	* Global CME transit speed, `PreferencesRadiation.Instance.StormEjectionSpeed`
+	* (a fraction of c; stock default 0.33c ≈ 99,000 km/s, read live in case a
+	* save overrides it). ONE value shared by every storm on every body/star pair,
+	* never per-storm (confirmed against Kerbalism source: `Storm.Time_to_impact`
+	* reads the same global preference for every call).
+	*/
 	stormEjectionSpeed?: Value<"m/s">;
 }
+/**
+* One star's vantage from the active vessel (Kerbalism's
+* `VesselData.EnvSunsInfo` entry, i.e. `SunInfo`). Join key onto
+* `KerbalismStormEntry.star` is `KerbalismStarInfo.star` (the star's
+* `CelestialBody.bodyName`).
+*/
 export interface KerbalismStarInfo
 {
+	/** Star body name (`Sim.SunData.body.bodyName`). */
 	star?: string;
+	/** Normalized vessel-to-sun direction, `VesselData.SunInfo.Direction`. */
 	direction?: Vec3Of<"1">;
+	/** Vessel-to-sun-surface distance, `VesselData.SunInfo.Distance`. */
 	distance?: Value<"m">;
 }
+/** What a CME is aimed at: a celestial body, or one vessel on its own. */
 export enum KerbalismStormTargetKind {
+	/**
+	* The shared per-(body, star) slot, `DB.Storm(Storm.StormKey(body, star))`.
+	* Every vessel in that body's SOI sees the SAME storm, so the target is the
+	* body and the storm is correlated across its traffic.
+	*/
 	Body = 0,
+	/**
+	* The vessel's own private slot, `VesselData.GetStormDataForStar(star)` /
+	* `stormDataByStar`. Kerbalism rolls this per-vessel for a craft with no body
+	* SOI (solar orbit or a barycenter), against that vessel's own sun distance,
+	* so the vessel IS the target and no other craft shares the storm.
+	*/
 	Vessel = 1
 }
+/**
+* One CME slot per star, read against Kerbalism's own `StormData`. Which slot
+* is read depends on where the vessel is, and
+* `KerbalismStormEntry.targetKind`/`KerbalismStormEntry.targetName` say which
+* one this entry came from: the shared `Storm.StormKey(body, star)` slot for a
+* vessel in a body's SOI, or the vessel's private `stormDataByStar` slot for a
+* vessel in solar orbit (Kerbalism's `Storm.Update(Vessel)` overload rolls
+* those per-vessel, so an interplanetary craft is its own target rather than
+* borrowing whatever body it happens to be reckoned against).
+*
+* **FAIR-vs-CHEATING boundary.** `KerbalismStormEntry.stormState` mirrors
+* `StormData.storm_state` (0 none / 1 inbound-in-transit / 2 in
+* progress-arrived) and is always read. `KerbalismStormEntry.stormTime`,
+* `KerbalismStormEntry.stormDuration` and `KerbalismStormEntry.dist` are
+* populated ONLY when `KerbalismStormEntry.stormState` is nonzero:
+* `Storm.CreateStorm` sets `storm_time`/`storm_duration` and flips
+* `storm_state` from 0 to 1 atomically, in the same call, on a successful
+* roll, so reading all three together observes one already-launched CME, never
+* a future one. When `storm_state` is 0 these are genuinely absent state on
+* the Kerbalism side too (`StormData.Reset()` zeroes them), so null is the
+* honest value, not a withheld one.
+*
+* `StormData.storm_generation` (the UT of the NEXT roll attempt, win or lose)
+* is NEVER read or shipped anywhere in this contract, by design. Unlike
+* `storm_time`/`storm_state` it is always populated whether or not a storm
+* currently exists, so reading it would expose the RNG's schedule for an event
+* that may never happen: information no in-universe sun-watcher could observe.
+* This is the one deliberate omission in an otherwise "capture everything
+* knowable" field, and it must stay that way.
+*/
 export interface KerbalismStormEntry
 {
+	/** Source star body name. Join key onto `KerbalismStarInfo.star`. */
 	star?: string;
+	/**
+	* Whether this slot is the shared per-body one or the vessel's own private
+	* one. Always populated (it describes which slot was READ, not the storm's
+	* state, so it is outside the fair-vs-cheating boundary below and carries even
+	* when `KerbalismStormEntry.stormState` is 0).
+	*/
 	targetKind?: KerbalismStormTargetKind;
+	/**
+	* The target's name: the body's `CelestialBody.bodyName` when
+	* `KerbalismStormEntry.targetKind` is `KerbalismStormTargetKind.Body`, the
+	* vessel's `Vessel.vesselName` when it is `KerbalismStormTargetKind.Vessel`.
+	* Always populated, alongside `KerbalismStormEntry.targetKind`.
+	*/
 	targetName?: string;
+	/**
+	* `StormData.storm_state`: 0 none, 1 inbound (in transit), 2 in progress
+	* (arrived).
+	*/
 	stormState?: Value<"count">;
+	/**
+	* Arrival UT, `StormData.storm_time`. Null when
+	* `KerbalismStormEntry.stormState` is 0.
+	*/
 	stormTime?: Value<"ut">;
+	/**
+	* Storm duration once it hits, `StormData.storm_duration`. Null when
+	* `KerbalismStormEntry.stormState` is 0.
+	*/
 	stormDuration?: Value<"s">;
+	/**
+	* Live sun-to-body distance (`Vector3d.Distance(body.position,
+	* star.position)`, the identical geometry `Storm.Update` itself computes).
+	* Kerbalism does not persist the roll-time distance on `StormData`, so this is
+	* the CURRENT distance, not necessarily the exact one the roll used; the two
+	* diverge only by however far the body has moved in its orbit since the roll,
+	* negligible at interplanetary scale. Null when
+	* `KerbalismStormEntry.stormState` is 0.
+	*/
 	dist?: Value<"m">;
 }
+/**
+* One life-support consumable: amount, capacity, signed net rate (units/s,
+* negative = draining).
+*/
 export interface KerbalismResource
 {
 	amount?: Value<"units">;
 	capacity?: Value<"units">;
 	rate?: Value<"units/s">;
 }
+/**
+* Habitat scalars from `KERBALISM.API` (all 0..1 factors except
+* Volume/Surface).
+*/
 export interface KerbalismHabitat
 {
 	pressure?: Value<"ratio">;
@@ -82,92 +320,456 @@ export interface KerbalismHabitat
 	volume?: Value<"m³">;
 	surface?: Value<"m²">;
 }
+/** One ProcessController process (scrubber / recycler / fuel cell). */
 export interface KerbalismProcessEntry
 {
+	/**
+	* The PSEUDO-RESOURCE this controller gates on ("_Scrubber", "_WaterRecycler",
+	* ...), not a real resource. It is the JOIN KEY onto
+	* `KerbalismProcessDef.modifiers`: the profile Process whose modifier list
+	* contains this token is the one this controller runs. Confirmed against a
+	* captured fixture and the stock profile config.
+	*/
 	resource?: string;
 	title?: string;
+	/**
+	* Process capacity of the hosting part. Kerbalism scales EVERY rate in the
+	* matched `KerbalismProcessDef` by this, so `profileRate * capacity` is this
+	* instance's contribution and the unit the per-source ledger is built from.
+	*/
 	capacity?: Value<"units">;
 	running?: boolean;
 	broken?: boolean;
+	/**
+	* Host part, as KSP's `Part.flightID`: matches `ShipMapPart.flightId` exactly,
+	* so a ledger row joins straight onto a part in the ship diagram. flightID and
+	* NOT the part name: the dev dump records its `_part` as a part name
+	* ("mk1pod.v2") for readability, which would collapse a vessel carrying two
+	* identical pods into one row. Without this field the ledger can say WHAT is
+	* consuming but never WHERE.
+	*/
 	flightId?: number;
+	/**
+	* Active dump valve, indexing `KerbalismProcessDef.dumpValves`
+	* (`ProcessController.valve_i`). Which outputs are vented rather than stored
+	* is live per-part state and changes what the ledger means, the profile only
+	* lists the possible combinations.
+	*/
 	valveIndex?: Value<"count">;
+	/**
+	* The live modifier product k, Kerbalism's own `Modifiers.Evaluate(vessel,
+	* vesselData, vesselResources, modifiers)`, evaluated over the matched
+	* `KerbalismProcessDef.modifiers` list MINUS the capacity join token
+	* (`KerbalismProcessEntry.resource` itself, already accounted for via
+	* `KerbalismProcessEntry.capacity`, so including it here too would
+	* double-count it). Multiply into the nominal per-capacity rate
+	* (`KerbalismProcessDef` input/output * `KerbalismProcessEntry.capacity`) for
+	* the actual rate. Null when Kerbalism's internals moved or the join could not
+	* be resolved; a consumer should treat null as 1.0 (no correction applied),
+	* same as an absent term elsewhere on this contract.
+	*/
 	envModifier?: Value<"1">;
 }
+/**
+* Static facts about one resource the loaded profile touches, from KSP's own
+* resource definition plus the profile's Supply declarations.
+*/
 export interface KerbalismResourceDef
 {
+	/**
+	* KSP `ResourceFlowMode` as its enum NAME (`ALL_VESSEL`, `ALL_VESSEL_BALANCE`,
+	* `STAGE_PRIORITY_FLOW`, `STACK_PRIORITY_SEARCH`, `NO_FLOW`). An open string
+	* rather than a closed enum: an unrecognised mode must degrade, not break the
+	* payload.
+	*
+	* Why it matters: for a POOLED mode the per-part split is bookkeeping and the
+	* vessel drains one pool, so a per-tank meter is at best decorative and at
+	* worst misleading. A consumer cannot know that without this field, which is
+	* why per-part resource meters depend on it.
+	*/
 	flowMode?: string;
+	/**
+	* `KerbalismResourceDef.flowMode`'s KSP ORDINAL, typed to
+	* `Sitrep.Contract.KspResourceFlowMode`. The enum is stock KSP's, not
+	* Kerbalism's, which is why the mirror lives in the core contract.
+	*
+	* The pooled/not-pooled verdict is derived from this ordinal, never from the
+	* name. Comparing the name against a set of known spellings fails in the ONE
+	* way this field's own doc rules out: an unrecognised name yields `false`, a
+	* confident "not pooled", rather than the `undefined` that means "vessel-wide
+	* pool, mode unknown". A resource that pools across the whole vessel then gets
+	* a per-part meter presented as a reading.
+	*
+	* `null` when the resource definition could not be read at all, the same case
+	* that already leaves `KerbalismResourceDef.flowMode` null.
+	*/
 	flowModeOrdinal?: number;
+	/**
+	* Localised display name from the KSP resource definition, when it differs
+	* from the key.
+	*/
 	displayName?: string;
 	density?: Value<"kg/m³">;
+	/**
+	* True when the profile declares a `Supply` for this resource, i.e. it is life
+	* support rather than a propellant some process merely touches.
+	*/
 	isSupply?: boolean;
+	/**
+	* Kerbalism's own warning level (`Supply.low_threshold`). Null when not a
+	* Supply.
+	*/
 	lowThreshold?: Value<"ratio">;
 }
+/**
+* One `Profile.rules[]` entry: a PER-KERBAL consumption, not a vessel process.
+* Crew rules scale with head count; processes scale with part capacity.
+*/
 export interface KerbalismRuleDef
 {
 	name?: string;
+	/**
+	* Consumed resource. Empty for rules modelling a pure accumulator (stress,
+	* radiation).
+	*/
 	input?: string;
+	/**
+	* Produced resource. Empty when the rule produces nothing; rule outputs are
+	* always dumped by Kerbalism.
+	*/
 	output?: string;
+	/**
+	* CANONICAL. Consumption per kerbal per SECOND, already divided by
+	* `KerbalismRuleDef.interval`. Use this one.
+	*
+	* Carried pre-divided, rather than leaving each consumer to do it, because
+	* forgetting to is a silent error that reads as entirely plausible: `drinking`
+	* has `interval = 5400` and `eating` has `interval = 10800`, so reading their
+	* raw `rate` as per-second overstates them by 5,400x and 10,800x. `breathing`
+	* has no interval and genuinely IS per second, which is why the mistake
+	* survives the one resource anybody sanity-checks first.
+	*/
 	ratePerSecond?: Value<"units/s">;
+	/**
+	* Raw `Profile.rules[].rate`, for fidelity. NOT a per-second figure unless
+	* `KerbalismRuleDef.interval` is 0.
+	*/
 	rate?: Value<"units">;
+	/**
+	* `Profile.rules[].interval`, seconds: the rule fires once per interval. 0
+	* means continuous, in which case `KerbalismRuleDef.ratePerSecond` equals
+	* `KerbalismRuleDef.rate`.
+	*/
 	interval?: Value<"s">;
 	degeneration?: Value<"units/s">;
 	fatalThreshold?: Value<"units">;
+	/**
+	* When true, reaching fatal redirects to a recoverable breakdown event instead
+	* of killing the kerbal.
+	*/
 	breakdown?: boolean;
+	/**
+	* Raw modifier keyword tokens, deliberately unparsed. See
+	* `KerbalismProcessDef.modifiers`.
+	*/
 	modifiers?: string[];
 }
+/**
+* One `Profile.processes[]` entry: a vessel converter. Every rate below is PER
+* UNIT OF PROCESS CAPACITY; multiply by a hosting
+* `KerbalismProcessEntry.capacity` for that instance's real contribution.
+*/
 export interface KerbalismProcessDef
 {
 	name?: string;
+	/** Resource name -> rate per unit of process capacity, per second. */
 	inputs?: { [key: string]: Value<"units/s"> };
+	/** Resource name -> rate per unit of process capacity, per second. */
 	outputs?: { [key: string]: Value<"units/s"> };
+	/**
+	* The Process's own modifier tokens. REQUIRED: this list contains the
+	* pseudo-resource (e.g. "_Scrubber") that joins to
+	* `KerbalismProcessEntry.resource`, which is how a part's controller is
+	* matched to the recipe it runs.
+	*
+	* Tokens are shipped RAW and unparsed on purpose. Kerbalism's `Modifiers.cs`
+	* recognises 14 keywords and its default case treats any UNKNOWN token as a
+	* resource-amount lookup (with an `inv:` prefix inverting it), so there is no
+	* closed set to model. Parsing them here would mean freezing a keyword list we
+	* would then have to chase, or shipping a half-interpretation the app cannot
+	* reason about. Raw tokens let a consumer act on what it recognises and render
+	* the rest as honest provenance.
+	*/
 	modifiers?: string[];
+	/**
+	* `dump_valve` options in the profile's own order, each an `&`-joined
+	* combination of output resources. `KerbalismProcessEntry.valveIndex` indexes
+	* into this list.
+	*/
 	dumpValves?: string[];
 }
+/**
+* The loaded Kerbalism profile's own definitions. Static for the life of the
+* KSP session (swapping profile is a restart), so this Topic is declared
+* low-cadence and built once.
+*/
 export interface KerbalismProfile
 {
+	/**
+	* Loaded profile name ("Default", "RealismOverhaul", ...). Display and fixture
+	* keying only, never a behavioural switch.
+	*/
 	name?: string;
+	/**
+	* Every resource this profile touches: the union of all rule and process
+	* inputs/outputs plus every declared Supply, keyed by KSP resource name.
+	*
+	* THE authoritative list. gonogo must never carry one of its own: the same
+	* enumeration drives which names the life-support capture asks Kerbalism for a
+	* rate about, so the two can never drift.
+	*/
 	resources?: { [key:string]: KerbalismResourceDef };
 	rules?: KerbalismRuleDef[];
 	processes?: KerbalismProcessDef[];
 }
+/**
+* One active Greenhouse part's growing state, field-for-field against
+* Kerbalism's own `Greenhouse.Data` class
+* (src/Kerbalism/Modules/Greenhouse.cs) plus the part's own (non-persistent)
+* config constants. `Greenhouse.Data` itself carries exactly three fields,
+* `Natural`, `Artificial`, `Issue`, there is no growth fraction or harvest
+* countdown anywhere in the module; Food is produced continuously via a
+* ResourceRecipe, not a discrete harvest event. `Natural`/`Artificial` are NOT
+* meaningfully summed: the lighting gate is `natural + artificial >=
+* light_tolerance`, so the lamp only ever needs to cover the shortfall, not
+* double the total, present both, never a combined figure.
+*/
 export interface KerbalismGreenhouseEntry
 {
+	/** The resource this greenhouse produces (stock: "Food"). */
 	cropResource?: string;
+	/**
+	* Derived continuous production rate, units/s (crop_size * crop_rate when
+	* active and lit; 0 when blocked).
+	*/
 	foodRatePerSec?: Value<"units/s">;
+	/**
+	* Natural light flux reaching the greenhouse, W/m^2
+	* (`Greenhouse.Data.natural`).
+	*/
 	natural?: Value<"W/m²">;
+	/** Supplemental lamp light flux, W/m^2 (`Greenhouse.Data.artificial`). */
 	artificial?: Value<"W/m²">;
+	/**
+	* Persisted on/off KSPField, the player's own toggle, independent of whether
+	* it is currently producing.
+	*/
 	active?: boolean;
+	/**
+	* Blocking reason string (`Greenhouse.Data.issue`), e.g. the localized
+	* "insufficient lighting". Empty when growing normally.
+	*/
 	issue?: string;
+	/** Part config: max lamp EC draw, units/s (`ec_rate`). */
 	ecRateMaxPerSec?: Value<"units/s">;
+	/**
+	* Derived actual lamp EC draw this tick, units/s (0 when lamps are off or
+	* fully unlit by the sun).
+	*/
 	lampEcDrawPerSec?: Value<"units/s">;
+	/** Part config: total light flux needed to grow, W/m^2 (`light_tolerance`). */
 	lightToleranceWm2?: Value<"W/m²">;
+	/**
+	* Part config: minimum habitat pressure fraction required
+	* (`pressure_tolerance`).
+	*/
 	pressureTolerance?: Value<"ratio">;
+	/** Part config: max radiation tolerated, rad/s (`radiation_tolerance`). */
 	radiationToleranceRadPerSec?: Value<"rad/s">;
 }
+/** Vessel life-support ledger: consumables, habitat, and the process list. */
 export interface KerbalismLifeSupport
 {
+	/**
+	* Signed net rate per resource, units/s, keyed by KSP resource name
+	* (Kerbalism's `ResourceAverageRate`). Negative = draining.
+	*
+	* **Amounts and capacities are deliberately NOT here.** `vessel.resources`
+	* already carries them for every resource on the vessel, and
+	* `ShipMapPart.resources` carries them per part. The rate is the one number
+	* the generic path cannot derive, so it is the only one this channel adds.
+	*
+	* **Three-way absence**, identical to `vessel.resources`'s convention: a key
+	* ABSENT means Kerbalism reports no rate for that resource; a key present with
+	* 0 is a real, measured zero (in balance); the whole channel absent means no
+	* vessel, or Kerbalism not installed. Every emission is the FULL map, never a
+	* delta, so a key disappearing is itself a real statement.
+	*
+	* Which resources appear is enumerated from the loaded profile
+	* (`KerbalismProfile.resources`), never from a list in gonogo. This map
+	* replaced four fixed properties (Food/Water/Oxygen/ElectricCharge) against a
+	* default profile that runs on twelve.
+	*/
 	rates?: { [key: string]: Value<"units/s"> };
 	habitat?: KerbalismHabitat;
+	/**
+	* The per-part process list, with a THREE-WAY absence that a consumer must
+	* respect: a populated list is what is running, an EMPTY list means the craft
+	* was read and carries no processes, and NULL means the list could not be read
+	* at all for this craft this tick.
+	*
+	* Null happens for a background craft: KSP discards a vessel's `Part` objects
+	* when it unloads, and every process fact here (which part, its title, whether
+	* it is broken, its dump valve) lives on the part module. Kerbalism keeps
+	* simulating the craft's processes from a pseudo-resource, so the SUPPLIES and
+	* rates alongside this field are real while the per-part detail is simply
+	* unavailable. Rendering null as "no processes running" would turn a gap in
+	* our reading into a false statement about the craft, which is why it is not
+	* an empty list.
+	*/
 	processes?: KerbalismProcessEntry[];
+	/**
+	* Live modifier product k per rule name, keyed to join against
+	* `KerbalismRuleDef.name` on `kerbalism.profile.rules` (same math as
+	* `KerbalismProcessEntry.envModifier`: Kerbalism's own `Modifiers.Evaluate`,
+	* over the rule's full modifier list, no capacity-token exclusion since a rule
+	* has no pseudo-resource join key).
+	*
+	* Rides THIS live/delayed channel rather than living directly on
+	* `KerbalismRuleDef` because `kerbalism.profile` is a pull-style channel whose
+	* mapper is declared KSP-free and runs off the main thread
+	* (`IUplinkHost.AddChannelSource`), while a live vessel/environment read like
+	* `Modifiers.Evaluate` needs `VesselData`/`VesselResources` and must run on
+	* the main thread (see `IUplinkHost.AddSampledSource`'s doc comment: a
+	* Courier-thread live-KSP read is a crash risk, not a style nit) — exactly the
+	* thread this `kerbalism.lifesupport` Topic is already captured on. A rule
+	* name absent from this map means "no correction available"; a consumer should
+	* treat that as k = 1.0, same as a null `KerbalismProcessEntry.envModifier`.
+	*/
 	ruleEnvModifiers?: { [key: string]: Value<"1"> };
+	/**
+	* Active Greenhouse parts on the vessel, if any (most vessels carry none, an
+	* empty/absent list is the normal case, not an error). NOT YET POPULATED by
+	* `GonogoKerbalismUplink`'s capture pipeline as of this field's addition,
+	* reflecting Kerbalism's `Greenhouses(Vessel)` API into the wire capture is
+	* separate mod-side work. This field defines the honest forward-looking wire
+	* shape so the widget-side augment can be built and fixture-tested against it
+	* now.
+	*/
 	greenhouses?: KerbalismGreenhouseEntry[];
+	/**
+	* The UT these values were last RECOMPUTED at by Kerbalism, which is not the
+	* UT they were read at and can be a long way behind it.
+	*
+	* Kerbalism steps exactly ONE unloaded vessel per physics tick, the one that
+	* has waited longest, catching it up with the whole interval it waited. So a
+	* background craft's life support is integrated correctly and refreshed
+	* rarely: with N unloaded craft, every N ticks. That staleness is independent
+	* of comms delay and invisible without this stamp, a fleet readout would
+	* otherwise show a value from several ticks ago as though it were current.
+	*
+	* Null when Kerbalism's own last-evaluation marker could not be read, which is
+	* a statement of ignorance and never a substituted capture time: stamping the
+	* read time would claim a freshness we did not measure.
+	*/
 	asOfUt?: Value<"ut">;
 }
+/**
+* One survival rule for a kerbal: the current accumulator value (from
+* `KerbalData.rules`) plus the per-rule config constants (from
+* `Profile.rules[]`) the two-stage death-clock needs.
+*/
 export interface KerbalismCrewRule
 {
 	name?: string;
+	/** Current accumulator value ("problem") from KerbalData.rules. */
 	value?: Value<"units">;
+	/**
+	* Per-rule degeneration rate (units/s) from Profile.rules[].degeneration.
+	* Stage-2 death-clock input. Confirmed against Kerbalism source:
+	* `Rule.degeneration` is a public double field (Profile/Rule.cs); values are
+	* set per-rule in GameData/KerbalismConfig/Profiles/Default.cfg.
+	*/
 	degenPerSec?: Value<"units/s">;
+	/**
+	* Fatal accumulator threshold from Profile.rules[].fatal_threshold. Confirmed
+	* against Kerbalism source (Profile/Rule.cs ctor defaults this to 1.0; the
+	* default profile overrides it only for the radiation rule, to 50.0,
+	* GameData/KerbalismConfig/Profiles/Default.cfg's radiation Rule block).
+	*/
 	fatalThreshold?: Value<"units">;
 }
+/** Per-kerbal survival state (dose is the rule named "radiation"). */
 export interface KerbalismCrewEntry
 {
 	name?: string;
 	trait?: string;
 	rules?: KerbalismCrewRule[];
+	/**
+	* The UT at which the soonest FATAL rule kills this kerbal, derived in two
+	* stages: how long the rule's input resource lasts at its current net rate,
+	* since a rule only degenerates once its input is gone, then how long the
+	* accumulator takes to climb from where it is to the fatal threshold.
+	*
+	* Computed mod-side because stage one needs resource AMOUNTS, which only
+	* `vessel.resources` carries and only for the active craft: a client holding a
+	* background craft's crew channel has the degeneration rate and no way to know
+	* when degeneration starts. Breakdown rules (stress) are excluded, because
+	* Kerbalism resets their accumulator at the threshold rather than killing
+	* anyone.
+	*
+	* NULL means not derivable, and is deliberately not a large number: a craft
+	* whose deadline cannot be computed and a craft with years of supplies must
+	* not render the same, and a sentinel is indistinguishable from a real answer
+	* to anything doing arithmetic on it. Null is also the answer when nothing is
+	* closing in at all, a craft in balance on its consumables has no deadline
+	* rather than an enormous one.
+	*
+	* **An INSTANT, not a remaining duration, and that is the whole reason for the
+	* name.** The deadline is derived from a reading taken at
+	* `KerbalismCrewEntry.asOfUt`, which for a background craft can be N ticks
+	* behind the read time, so a "seconds remaining" figure is only true measured
+	* from that stamp and a consumer rendering it raw is off by however long ago
+	* the stamp was. That is the same defect as an absolute UT reaching a
+	* countdown, and it had the same cause: `"s"` said nothing about what the
+	* duration was measured FROM.
+	*
+	* Emitting `AsOfUt + remaining` instead loses nothing (the same information,
+	* and `KerbalismCrewEntry.asOfUt` is still published beside it as provenance)
+	* and makes the arithmetic unskippable: the field is a `Value<"ut">`,
+	* `<Countdown>` refuses one outright, and a consumer has to subtract the
+	* frame's view time. It is NOT restamped to now: nothing is advanced, the
+	* instant is exactly the one the stamped-at reading implied.
+	*
+	* **Telling "nothing is closing in" from "this install cannot compute
+	* deadlines at all".** Both are null here, and they are not the same news: the
+	* second is a missing capability wearing the first's reassuring blank. The
+	* distinguishing fact is on `kerbalism.profile`, which carries the loaded
+	* profile's rules: if NO rule has `degeneration > 0` with `breakdown` false,
+	* no fatal rule exists and no deadline can ever be computed on this install,
+	* whatever the craft is doing. A profile that defines processes and no
+	* life-support rules is a real configuration, not a broken one
+	* (KerbalismModularScience is exactly that), so a consumer that means to show
+	* a deadline should read that list once and say "not modelled" rather than
+	* "stable".
+	*/
 	deathClockUt?: Value<"ut">;
+	/**
+	* The UT this kerbal's rule accumulators were last ADVANCED at, which for a
+	* kerbal aboard a background craft can be well behind the read time: the
+	* accumulators move on their vessel's Kerbalism turn, and unloaded craft take
+	* those turns one per tick, in rotation. Same meaning and same
+	* null-is-ignorance rule as `KerbalismLifeSupport.asOfUt`, on each entry
+	* rather than on the list because two kerbals can be on different craft with
+	* different turns.
+	*/
 	asOfUt?: Value<"ut">;
 }
+/**
+* Kerbalism feature toggles (auto-detected from the loaded profile). Drives
+* the per-domain "unmodeled vs healthy" gate, under RO, `Reliability` is
+* false.
+*/
 export interface KerbalismFeatures
 {
 	reliability?: boolean;
@@ -184,55 +786,282 @@ export interface KerbalismFeatures
 	automation?: boolean;
 	deploy?: boolean;
 }
+/**
+* Kerbalism's vessel-level reliability rollup: the `extensions["kerbalism"]`
+* sub-tree of `reliability.summary`. Read client-side through this Uplink's
+* own `readKerbalismReliabilityExt`, never by reaching into the bag and
+* casting at a call site.
+*
+* Absent entirely when Kerbalism is not the elected backend, and when
+* `Features.Reliability` is off (the summary reports `Unmodeled` and there is
+* no per-part list to roll up).
+*/
 export interface KerbalismReliabilityExt
 {
+	/**
+	* The shortest mean-time-between-failures on the vessel: Kerbalism's
+	* at-a-glance "what fails first" number. SECONDS, which is what
+	* `ReliabilityInfo.mtbf` has always been; it previously rode a field named
+	* `WorstMtbfHours` and was labelled hours by every reader of it, so a default
+	* part read 21,600,000 h. Null when no part on the vessel is modelled as
+	* failing over time.
+	*/
 	worstMtbfSeconds?: Value<"s">;
+	/** How many modelled parts are currently broken. */
 	brokenPartCount?: Value<"count">;
+	/**
+	* How many not-yet-broken parts report `NeedsMaintenance`: the engineer's
+	* preventive work list. Kerbalism calls this state "needs service" and keeps
+	* it distinct from "needs repair" (broken, not critical), which is why this
+	* counts only parts that have NOT failed.
+	*/
 	serviceDuePartCount?: Value<"count">;
+	/**
+	* Save-wide: given a failure happens, the chance it is the more severe class.
+	* A difficulty setting (`PreferencesReliability.criticalChance`), never a
+	* per-part probability, and there is no per-part probability in Kerbalism to
+	* confuse it with.
+	*/
 	criticalChance?: Value<"ratio">;
+	/**
+	* Save-wide: given a failure falls due on an uncrewed vessel, the chance it is
+	* absorbed as a safe-mode reset instead of a break. This is why crossing a
+	* Kerbalism maintenance clock is a coin flip rather than a deadline.
+	*/
 	safeModeChance?: Value<"ratio">;
+	/**
+	* Whether a repair consumes EVA repair kits, which decides whether a failure
+	* is fixable with what is aboard.
+	*/
 	requireRepairKits?: boolean;
+	/**
+	* Whether a part's redundancy siblings get their life extended when it breaks.
+	* Relevant because it moves the maintenance clock with no event the operator
+	* saw.
+	*/
 	incentiveRedundancy?: boolean;
 }
+/**
+* Kerbalism's `extensions["kerbalism"]` sub-tree of one `science.experiments`
+* entry: the stored result as Kerbalism actually holds it, on a drive, with a
+* size in megabytes, a per-megabyte science rate, and a
+* physical-vs-transmissible distinction stock does not draw.
+*
+* Read client-side through this Uplink's own
+* `readKerbalismScienceExperimentExt`, never by reaching into the bag and
+* casting at a call site. Absent entirely when Kerbalism is not the elected
+* backend.
+*/
 export interface KerbalismScienceExperimentExt
 {
+	/**
+	* The result's size in megabytes: what core's mits-typed
+	* `ExperimentEntry.DataAmount` would have held if the unit could vary by
+	* provider. It cannot, so core's field is null and this is the real figure.
+	*/
 	dataSizeMB?: Value<"MB">;
+	/**
+	* Science per megabyte for this subject (Kerbalism's `SciencePerMB`): LINEAR,
+	* no diminishing-returns curve, which is why the entry is tagged `valueModel:
+	* "kerbalism-linear"`. This is also the real answer to "what is transmitting
+	* this worth", the question core's `BaseTransmitValue`/`TransmitBonus` pair
+	* answers under stock and which Kerbalism leaves null rather than filling with
+	* the hardcoded 1.0/0.0 its stock-interop bridge uses.
+	*/
 	sciencePerMB?: Value<"science/MB">;
+	/**
+	* `"file"` (transmissible) or `"sample"` (physical, needs analysis or return).
+	* Stock has no type tag: every result is implicitly transmissible at some
+	* scalar. The distinction drives what an operator can DO with the result, so
+	* it is the most consequential Kerbalism-only field here.
+	*/
 	kind?: string;
+	/** Physical mass of a sample. Null for a file (a file weighs nothing). */
 	sampleMass?: Value<"t">;
+	/**
+	* Whether Kerbalism has this sample flagged for lab analysis
+	* (`Sample.analyze`). Null for a file.
+	*/
 	analyze?: boolean;
+	/**
+	* Total file capacity of the drive holding this result. Null when the drive is
+	* unlimited (Kerbalism's `-1` sentinel), which is a real state and must not
+	* arrive as a negative number.
+	*/
 	storageCapacityMB?: Value<"MB">;
+	/** Megabytes of that drive currently used by files. */
 	storageUsedMB?: Value<"MB">;
+	/** Sample slots on that drive. Null when unlimited. */
 	sampleSlotsTotal?: Value<"count">;
+	/** Sample slots currently occupied on that drive. */
 	sampleSlotsUsed?: Value<"count">;
+	/**
+	* Live transmission rate for this result. Zero (not null) when transmission is
+	* gated off: no link, no EC, or a higher-value file ahead of it in the queue.
+	* Kerbalism drains files highest-`SciencePerMB`-first, so a `transmitting:
+	* false` file on a connected vessel is normal, not a fault.
+	*/
 	transmitRateMBps?: Value<"MB/s">;
+	/** Whether this result is being sent right now. */
 	transmitting?: boolean;
+	/**
+	* Whether this file is flagged for transmission (`Drive.GetFileSend`), which
+	* is true even when nothing is currently flowing: no link, no EC, or a
+	* higher-value file draining first. This is the state the File Manager's send
+	* toggle actually reflects, distinct from
+	* `KerbalismScienceExperimentExt.transmitting`. Null for a sample, which has
+	* no send flag.
+	*/
 	sendFlagged?: boolean;
 }
+/**
+* Kerbalism's sub-tree of one `science.instruments` entry: the running-state
+* machine and its reason, which is what stock's flat `Deployed`/`Inoperable`
+* pair is a lossy projection OF.
+*
+* Stock asks "is it deployed, is it spent". Kerbalism's experiment is either
+* stopped, running, forced, or broken, and when it is not producing there is a
+* REASON, one of ten short-circuits it evaluates every tick (shrouded, no EC,
+* no crew, sample depleted, an unmet requirement out of 62, no storage, ...).
+* The reason is the single field that makes a 62-condition gate legible
+* without modelling 62 conditions, and it is the field an operator actually
+* needs: "why is my experiment not running".
+*
+* Two DIFFERENT modules land in this one bag, told apart by
+* `KerbalismScienceInstrumentExt.kind`. Kerbalism's own `Experiment` is the
+* usual one. A SCANsat map scanner is the other: Kerbalism's SCANsat support
+* strips the `SCANexperiment` module off the part and fits its own
+* `KerbalismScansat`, which turns coverage growth into files on a drive. That
+* leaves the scanner in nobody's instrument list unless this provider claims
+* it, so it claims it, and the four scanner-only fields below sit null on an
+* `Experiment` row (and the six experiment-only fields null on a scanner row).
+*/
 export interface KerbalismScienceInstrumentExt
 {
+	/**
+	* Which Kerbalism module this row came from: `experiment` or `scanner`. Says
+	* which of the fields below carry a fact, so a reader never has to infer it
+	* from which ones happen to be null.
+	*/
 	kind?: string;
+	/**
+	* Kerbalism's own free-text reason this experiment is not producing, empty
+	* when there is nothing wrong. The collapsed form of the whole requirement
+	* system: gonogo does not re-derive it, it forwards what Kerbalism computed.
+	* Filled for both kinds: a scanner's version is "no storage available" or
+	* "disabled by power failure".
+	*/
 	issue?: string;
+	/**
+	* The SIMULATED state: `Stopped` | `Running` | `Forced` | `Broken`. What the
+	* vessel is set to do.
+	*/
 	runningState?: string;
+	/**
+	* The DERIVED display state: `Stopped` | `Running` | `Forced` | `Waiting` |
+	* `Issue` | `Broken`. What is actually happening, which differs from
+	* `KerbalismScienceInstrumentExt.runningState` exactly when something is in
+	* the way.
+	*/
 	expStatus?: string;
+	/**
+	* Nominal data production rate. The field that makes Kerbalism science a
+	* process rather than an instant: stock has no "how far through this run" idea
+	* at all.
+	*/
 	dataRateMBps?: Value<"MB/s">;
+	/**
+	* Kerbalism's `prodFactor`, 0..1: the fraction of nominal rate actually
+	* achieved last tick (resource starvation scales it down). 0 with no
+	* `KerbalismScienceInstrumentExt.issue` means throttled, not stopped.
+	*/
 	prodFactor?: Value<"ratio">;
+	/**
+	* Sample material left in a finite-sample experiment. Null for an experiment
+	* that takes no material; 0 means depleted, which is Kerbalism's version of
+	* stock's `Inoperable`.
+	*/
 	remainingSampleMass?: Value<"t">;
+	/**
+	* SCANNER ONLY. Whether SCANsat is sweeping right now. A scanner produces data
+	* as a side effect of coverage growing, so this is the closest thing it has to
+	* an experiment's Running state. Null on older Kerbalism builds, which keep no
+	* such flag: `KerbalismScienceInstrumentExt.powerDisabled` is then the only
+	* state available.
+	*/
 	scanning?: boolean;
+	/**
+	* SCANNER ONLY. Kerbalism cut this scanner for want of EC and will restart it
+	* once the vessel is back above a quarter charge. Distinct from an operator
+	* switching it off, which this stays false for.
+	*/
 	powerDisabled?: boolean;
+	/**
+	* SCANNER ONLY. How much of the current body this sensor type has covered. The
+	* number the produced data is a function of: coverage rising is the event that
+	* writes a file, so a stalled percentage explains a scanner that is on and
+	* yielding nothing.
+	*/
 	bodyCoveragePercent?: Value<"%">;
+	/**
+	* SCANNER ONLY. The EC draw Kerbalism bills for this scanner, loaded or in the
+	* background. Zero means the part was patched without a rate rather than that
+	* scanning is free.
+	*/
 	ecRate?: Value<"units/s">;
 }
+/**
+* Kerbalism's sub-tree of one `science.lab` entry. The lab is the payload
+* where the two models differ most in KIND, not degree: stock's lab is
+* terminal (stored data becomes science per game-day), Kerbalism's is an
+* intermediate stage (a sample is analysed into a transmissible file, which
+* then still has to be sent). So the Kerbalism backend leaves core's
+* `ScienceRate` null, tags the entry `valueModel: "kerbalism-linear"` so a
+* widget can tell that null from "idle", and carries the real rate here.
+*/
 export interface KerbalismScienceLabExt
 {
+	/** Configured analysis rate for the lab part. */
 	analysisRateMBps?: Value<"MB/s">;
+	/**
+	* The rate actually in effect, with the researcher's experience level already
+	* multiplied in. Kerbalism exposes the OUTPUT of its crew bonus, not the
+	* headcount input stock's `ScientistCount` carries, so the two are not two
+	* views of one number and both are worth having.
+	*/
 	effectiveRateMBps?: Value<"MB/s">;
+	/**
+	* Kerbalism's lab status: `DISABLED` | `NO_EC` | `NO_STORAGE` | `NO_SAMPLE` |
+	* `NO_RESEARCHER` | `RUNNING`. A typed reason where core's `StatusText` is a
+	* display string.
+	*/
 	status?: string;
 }
+/**
+* Kerbalism's sub-tree of one `science.experimentBreakdown` entry: the full
+* per-subject ledger, of which stock's two fields (`DataMits` +
+* `RemainingPotential`) are a snapshot view.
+*
+* Stock answers "how much is stored, and how much is left in this subject".
+* Kerbalism additionally tracks what has been retrieved versus what is still
+* in flight, and how many times the subject has been completed, which is what
+* turns "should I run this again" from a guess into a reading.
+*/
 export interface KerbalismScienceBreakdownExt
 {
+	/** Science still recoverable from this subject across all runs. */
 	scienceRemainingTotal?: Value<"science">;
+	/**
+	* Fraction of this subject's total science already collected, 0..1. A ratio,
+	* not a percent: core's `DeployedEntry` percentages are the one place the mod
+	* carries hundredths, and copying that here would invite the mistake.
+	*/
 	percentCollectedTotal?: Value<"ratio">;
+	/**
+	* Science collected but not yet retrieved: aboard the vessel, not yet in R&D.
+	* Stock has no in-flight-versus-banked split.
+	*/
 	scienceCollectedInFlight?: Value<"science">;
+	/** How many times this subject has been completed. */
 	timesCompleted?: Value<"count">;
 }

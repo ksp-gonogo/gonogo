@@ -155,7 +155,7 @@ public enum CommandErrorCode
     /// contract asked to accept when it is not offered, an assigned kerbal asked
     /// to be sacked, a spent experiment asked to deploy.
     ///
-    /// <para>Authority: the entity's own state enum. <c>Strategy.IsActive</c>,
+    /// <para>Authority: the entity's own state enum. <c>Strategies.Strategy.IsActive</c>,
     /// <c>RDTech.State</c>, <c>Contract.State</c>,
     /// <c>ProtoCrewMember.RosterStatus</c>,
     /// <c>ModuleScienceExperiment.Deployed</c>/<c>Inoperable</c>. Every one of
@@ -321,7 +321,7 @@ public class CommandResult
     /// <summary>
     /// The refusal in the GAME's own words, when the game had any: the arm of
     /// <c>ClearToSaveStatus</c> it came back with,
-    /// <c>Strategy.CanBeActivated(out string reason)</c>'s reason,
+    /// <c>Strategies.Strategy.CanBeActivated(out string reason)</c>'s reason,
     /// <c>GameVariables.GetEVALockedReason</c>'s sentence, a
     /// <c>PreFlightTests.IPreFlightTest</c>'s <c>GetWarningTitle()</c>, a
     /// <c>[Description]</c>-tagged state member's name. Empty when the refusal

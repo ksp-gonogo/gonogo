@@ -23,7 +23,13 @@ public static class AeroRtConfig
         builder.Global(g => g
             .CamelCaseForProperties()
             .UseModules(true)
-            .AutoOptionalProperties());
+            .AutoOptionalProperties()
+            // Carry this slice's `///` prose onto its generated declarations, the
+            // same way core does. See Sitrep.Contract.RtDocVisitor.
+            .GenerateDocumentation()
+            .UseVisitor<Sitrep.Contract.RtDocVisitor>());
+
+        Sitrep.Contract.RtDocText.MergeRemarksIntoSummaries(builder);
 
         // Held in a local for the same reason core's own wirePayloadTypes is:
         // ApplyUnitValueTypes re-enters this exact set, and only a type
