@@ -16,6 +16,18 @@
   -->
   <PropertyGroup Condition="'$(KspManaged)' == ''">
     <_KspReferences>$(MSBuildThisFileDirectory)..\local_docs\ksp-references</_KspReferences>
+    <!--
+      A git worktree has no local_docs of its own (it is gitignored), so the path
+      above resolves into nothing there and a C# build in a worktree cannot find
+      the assemblies the main checkout plainly holds. GONOGO_DATA_ROOT names the
+      checkout that has them; `scripts/gonogo_claude_tools.sh` reads the same
+      variable, and `fleet-ephemeral.sh` exports it into every agent session.
+
+      NOT a symlink into the worktree. That was tried and reverted: it puts a
+      link to the syncthing mirror and the design notes inside a directory that
+      gets pruned, which is how that folder was lost once already.
+    -->
+    <_KspReferences Condition="!Exists('$(_KspReferences)') And '$(GONOGO_DATA_ROOT)' != ''">$(GONOGO_DATA_ROOT)\local_docs\ksp-references</_KspReferences>
     <!-- Named even when absent (a worktree, a fresh clone, CI without the
          checkout), so the "could not resolve Assembly-CSharp" message points
          at where the DLLs SHOULD go. -->
