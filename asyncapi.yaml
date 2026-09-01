@@ -10304,6 +10304,7 @@ components:
       properties:
         action:
           type: string
+          x-sitrep-unit: text
           description: |-
             The action's PAW label: `BaseAction.guiName` (e.g. "Toggle", "Extend
             Panel").
@@ -10311,12 +10312,14 @@ components:
           type: array
           items:
             type: string
+            x-sitrep-unit: text
           description: |-
             Named KSPActionGroup groups this action is bound to (e.g.
             `["SAS","Custom01"]`). Never empty, an action bound to no group isn't
             emitted. Display labels; see `ActionBinding.groupsMask`.
         groupsMask:
           type: number
+          x-sitrep-unit: enum
           description: |-
             `BaseAction.actionGroup`'s raw `[Flags]` BITMASK, the whole of it.
             `KspActionGroup` names the bits.
@@ -10353,6 +10356,7 @@ components:
       properties:
         index:
           type: number
+          x-sitrep-unit: id
           description: |-
             1-based group number: the same number `vessel.control.setActionGroup` takes.
             Stock KSP: 1..10 (`KSPActionGroup.Custom01..Custom10`). An AGX backend may
@@ -10360,6 +10364,7 @@ components:
             is dense or sorted.
         name:
           type: string
+          x-sitrep-unit: text
           description: |-
             Human display name. Stock KSP has no per-group naming, so the stock backend
             reports `"AG1".."AG10"`: exactly what the UI already showed, now sourced
@@ -10367,6 +10372,7 @@ components:
             player's own names instead.
         state:
           type: boolean
+          x-sitrep-unit: flag
           description: Whether the group is currently engaged.
     ActivateStrategyArgs:
       type: object
@@ -10386,8 +10392,10 @@ components:
       properties:
         strategyId:
           type: string
+          x-sitrep-unit: id
         factor:
           type: number
+          x-sitrep-unit: ratio
           description: 0..1 slider fraction; ignored by strategies without a factor slider.
     AddManeuverNodeArgs:
       type: object
@@ -10406,12 +10414,16 @@ components:
       properties:
         ut:
           type: number
+          x-sitrep-unit: ut
         prograde:
           type: number
+          x-sitrep-unit: m/s
         normal:
           type: number
+          x-sitrep-unit: m/s
         radialOut:
           type: number
+          x-sitrep-unit: m/s
     AlternatorEntry:
       type: object
       description: |-
@@ -10422,10 +10434,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         partId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         outputRate:
           type:
             - number
@@ -10461,30 +10475,37 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         experimentId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         experimentTitle:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         body:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         situation:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         biome:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         title:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         science:
           type:
             - number
@@ -10595,6 +10616,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the atmosphere is breathable / oxygenated
             (`CelestialBody.atmosphereContainsOxygen`); null when absent.
@@ -10676,10 +10698,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         partId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         current:
           type:
             - number
@@ -10707,9 +10731,11 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: Body name (e.g. "Kerbin"); null when the live game hasn't populated it.
         index:
           type: number
+          x-sitrep-unit: id
           description: |-
             This body's position in the list: stable per session. Always present (the
             provider falls back to the list index when the raw field is missing), never
@@ -10718,6 +10744,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index of the body this one orbits; null ONLY for the root star (no parent),
             never a sentinel like -1.
@@ -10798,6 +10825,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the body is tidally locked to its parent
             (`CelestialBody.tidallyLocked`); null when absent.
@@ -10813,6 +10841,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the body has a liquid ocean (`CelestialBody.ocean`); null when
             absent.
@@ -10820,6 +10849,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             KSP's per-body flavour text (`CelestialBody.bodyDescription`); null when
             absent. May be a raw `#autoLOC…` localization tag the client suppresses.
@@ -10827,6 +10857,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether KSC and the launch sites sit on this body
             (`CelestialBody.isHomeWorld`); true on exactly one body, null when absent.
@@ -10842,18 +10873,22 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         title:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         agent:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         state:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         fundsAdvance:
           type:
             - number
@@ -10911,10 +10946,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         state:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             `Contracts.ParameterState`'s enum NAME (`Incomplete`/`Complete`/`Failed`): a
             display label. `CareerContractParameter.stateOrdinal` is the field to branch
@@ -10934,6 +10971,7 @@ components:
             not be read as either arm.
           anyOf:
             - $ref: "#/components/schemas/KspParameterState"
+              x-sitrep-unit: enum
             - type: "null"
     CareerContracts:
       type: object
@@ -10995,6 +11033,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Which money model answered the four fields below, e.g. `"stock"`. Provenance
             only: a client reads the interpretation, never branches on who produced it.
@@ -11097,6 +11136,7 @@ components:
             `null` from a producer that predates this field.
           anyOf:
             - $ref: "#/components/schemas/KspSpaceCenterFacility"
+              x-sitrep-unit: enum
             - type: "null"
         currentTier:
           type:
@@ -11133,6 +11173,7 @@ components:
       properties:
         mode:
           $ref: "#/components/schemas/GameMode"
+          x-sitrep-unit: enum
     CareerStatus:
       type: object
       description: |-
@@ -11215,22 +11256,27 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         title:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         description:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         department:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         isActive:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         factor:
           type:
             - number
@@ -11265,6 +11311,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         factorSliderDefault:
           type:
             - number
@@ -11279,22 +11326,27 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         activateBlockedReason:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         canDeactivate:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         deactivateBlockedReason:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         effect:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
     CareerTech:
       type: object
       description: |-
@@ -11313,6 +11365,7 @@ components:
           type: array
           items:
             type: string
+            x-sitrep-unit: id
         nodes:
           type: array
           items:
@@ -11327,14 +11380,17 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         title:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         description:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The node's flavour line, as the tech tree itself writes it ("How hard can
             Rocket Science be anyway?").
@@ -11352,10 +11408,12 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         parents:
           type: array
           items:
             type: string
+            x-sitrep-unit: id
     CareerUpkeep:
       type: object
       description: |-
@@ -11456,6 +11514,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Stable authority/vantage key: `"ksc"` | `"ground:<name>"` | `"kk:<site>"` |
             `"vessel:<guid>"`.
@@ -11463,11 +11522,13 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: Human-facing name.
         kind:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             One of `GroundStation` / `CrewedVessel` / `Colony` / `Custom` (the
             `CommandCentreKind` name).
@@ -11475,6 +11536,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into `SystemBodies` of the body this centre sits on; null when unknown
             or not surface-anchored.
@@ -11510,11 +11572,13 @@ components:
             with it.
         active:
           type: boolean
+          x-sitrep-unit: flag
           description: Whether this centre is a valid command source right now.
         delayQuality:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Whether this centre can be routed to: `"routed"` (a CommNode ControlPath
             exists, occlusion-aware) or `"unroutable"` (no CommNode, so no command path
@@ -11784,8 +11848,10 @@ components:
       properties:
         success:
           type: boolean
+          x-sitrep-unit: flag
         errorCode:
           $ref: "#/components/schemas/CommandErrorCode"
+          x-sitrep-unit: enum
         breach:
           description: |-
             The numbers behind the refusal, when the refusal has any: the cap and the
@@ -11808,6 +11874,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The refusal in the GAME's own words, when the game had any: the arm of
             `ClearToSaveStatus` it came back with,
@@ -11851,6 +11918,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Stable authority/vantage key, same scheme as `CommandCentreEntry.id`: "ksc"
             | "ground:<name>" | "kk:<site>" | "vessel:<guid>". Null when no remote
@@ -11859,11 +11927,13 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: Human-facing name.
         kind:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             One of `GroundStation` / `CrewedVessel` / `Colony` / `Custom` (the
             `CommandCentreKind` name), same as `CommandCentreEntry.kind`.
@@ -11871,6 +11941,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into system.bodies of the body this centre sits on; null when unknown,
             not surface-anchored, or the centre is a moving vessel.
@@ -11890,10 +11961,13 @@ components:
       properties:
         connected:
           type: boolean
+          x-sitrep-unit: flag
         controlSource:
           $ref: "#/components/schemas/CommsControlSource"
+          x-sitrep-unit: enum
         hasLocalControl:
           type: boolean
+          x-sitrep-unit: flag
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     CommsControlSource:
@@ -11922,10 +11996,12 @@ components:
       properties:
         state:
           $ref: "#/components/schemas/CommsControlStateKind"
+          x-sitrep-unit: enum
         reason:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     CommsControlStateKind:
@@ -11971,6 +12047,7 @@ components:
           x-sitrep-unit: s
         source:
           $ref: "#/components/schemas/CommsDelaySource"
+          x-sitrep-unit: enum
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     CommsDelaySource:
@@ -12028,14 +12105,19 @@ components:
       properties:
         from:
           type: string
+          x-sitrep-unit: id
         to:
           type: string
+          x-sitrep-unit: id
         fromIsHome:
           type: boolean
+          x-sitrep-unit: flag
         toIsHome:
           type: boolean
+          x-sitrep-unit: flag
         kind:
           $ref: "#/components/schemas/CommsHopKind"
+          x-sitrep-unit: enum
         distanceMeters:
           type:
             - number
@@ -12091,6 +12173,7 @@ components:
       properties:
         connected:
           type: boolean
+          x-sitrep-unit: flag
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     CommsNetwork:
@@ -12125,10 +12208,13 @@ components:
       properties:
         a:
           type: string
+          x-sitrep-unit: id
         b:
           type: string
+          x-sitrep-unit: id
         active:
           type: boolean
+          x-sitrep-unit: flag
     CommsNetworkNode:
       type: object
       description: |-
@@ -12147,10 +12233,13 @@ components:
       properties:
         id:
           type: string
+          x-sitrep-unit: id
         displayName:
           type: string
+          x-sitrep-unit: text
         kind:
           $ref: "#/components/schemas/CommsHopKind"
+          x-sitrep-unit: enum
     CommsOcclusion:
       type: object
       description: |-
@@ -12177,11 +12266,13 @@ components:
       properties:
         modelId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The elected model's ICommsOcclusionModel.ModelId; `"unknown"` when no
             backend is elected.
         modelName:
           type: string
+          x-sitrep-unit: text
           description: The elected model's display name, so a UI can say which geometry is in play.
         bodies:
           type: array
@@ -12212,16 +12303,19 @@ components:
       properties:
         index:
           type: number
+          x-sitrep-unit: id
         name:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         radiusMeters:
           type: number
           x-sitrep-unit: m
           description: The body's own mean radius (`CelestialBody.Radius`).
         hasAtmosphere:
           type: boolean
+          x-sitrep-unit: flag
         occludingRadiusMeters:
           type: number
           x-sitrep-unit: m
@@ -12293,6 +12387,7 @@ components:
             default here would silently reinterpret every burn sent by the other one.
           allOf:
             - $ref: "#/components/schemas/ManeuverFrame"
+              x-sitrep-unit: enum
         dvRadial:
           type: number
           x-sitrep-unit: m/s
@@ -12309,6 +12404,7 @@ components:
           x-sitrep-unit: m/s
         inertiallyFixed:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             Hold the burn's direction against the stars rather than against the craft's
             moving frame.
@@ -12344,6 +12440,7 @@ components:
       properties:
         contractId:
           type: string
+          x-sitrep-unit: id
     ControlFrame:
       type: object
       description: |-
@@ -12373,10 +12470,12 @@ components:
       properties:
         kind:
           $ref: "#/components/schemas/ControlFrameKind"
+          x-sitrep-unit: enum
         centreBody:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The body the frame is centred on, when it has one. The rotating frames are
             defined by their pair rather than by a centre.
@@ -12384,11 +12483,13 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: The body a rotating frame turns about. Null for the centred frames.
         secondaryBody:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: The body a rotating frame is anchored to. Null for the centred frames.
         primaryBodies:
           type:
@@ -12396,6 +12497,7 @@ components:
             - "null"
           items:
             type: string
+            x-sitrep-unit: text
           description: |-
             Every body on the primary side, leading with `ControlFrame.primaryBody`. See
             this type's own doc for why the set travels rather than the head.
@@ -12405,11 +12507,13 @@ components:
             - "null"
           items:
             type: string
+            x-sitrep-unit: text
           description: Every body on the secondary side, leading with `ControlFrame.secondaryBody`.
         targetFrameSelected:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             The frame is defined against the current target rather than against a body,
             which sits orthogonally to `ControlFrame.kind` rather than inside it.
@@ -12419,6 +12523,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: The target the frame is defined against, when it is a target frame.
     ControlFrameKind:
       type: integer
@@ -12523,12 +12628,14 @@ components:
           description: Cumulative parts destroyed across the flight.
         flightEndMode:
           type: string
+          x-sitrep-unit: text
           description: How the flight ended (e.g. `"CATASTROPHIC_FAILURE"`).
         highestSpeedOverLand:
           type: number
           x-sitrep-unit: m/s
         missionEnd:
           type: boolean
+          x-sitrep-unit: flag
         highestGee:
           type: number
           x-sitrep-unit: g
@@ -12550,6 +12657,7 @@ components:
           x-sitrep-unit: m
         liftOff:
           type: boolean
+          x-sitrep-unit: flag
     CrashPartLost:
       type: object
       description: |-
@@ -12563,15 +12671,19 @@ components:
       properties:
         partId:
           type: number
+          x-sitrep-unit: id
           description: The part's `flightID`.
         partName:
           type: string
+          x-sitrep-unit: text
           description: The part's `partInfo.name` (e.g. `"mk1pod.v2"`).
         partTitle:
           type: string
+          x-sitrep-unit: text
           description: The part's `partInfo.title` (e.g. `"Mk1 Command Pod"`).
         msg:
           type: string
+          x-sitrep-unit: text
           description: "Destruction message for this part: often empty."
     CrashReport:
       type: object
@@ -12610,20 +12722,25 @@ components:
       properties:
         vesselId:
           type: string
+          x-sitrep-unit: id
           description: The crashed vessel's stable id (`Vessel.id` as a string GUID).
         eventKind:
           type: string
+          x-sitrep-unit: id
           description: "Which detector fired: `CrashSplashdown` / `Destroyed` / `Crash`."
         what:
           type: string
+          x-sitrep-unit: text
           description: |-
             The colliding object's name (`EventReport.other`): empty for a non-collision
             death.
         vesselType:
           type: string
+          x-sitrep-unit: id
           description: The crashed vessel's `VesselType` name (e.g. `"Ship"`).
         msg:
           type: string
+          x-sitrep-unit: text
           description: "The detector's message (`EventReport.msg`): often empty."
         latitude:
           type: number
@@ -12638,6 +12755,7 @@ components:
           description: Parts lost in the destroying event.
         body:
           type: string
+          x-sitrep-unit: text
           description: Name of the body the crash happened on (`mainBody.bodyName`).
         flightStats:
           description: Per-flight statistics accumulated up to the crash.
@@ -12645,18 +12763,22 @@ components:
             - $ref: "#/components/schemas/CrashFlightStats"
         vesselName:
           type: string
+          x-sitrep-unit: text
         events:
           type: array
           items:
             type: string
+            x-sitrep-unit: text
           description: Timestamped flight-event log (liftoff, staging, the crash line).
         kerbalsKilled:
           type: array
           items:
             type: string
+            x-sitrep-unit: text
           description: Names of the kerbals lost in this crash.
         situation:
           type: string
+          x-sitrep-unit: text
           description: |-
             The vessel's flight situation at the crash (`Vessel.Situations` name, e.g.
             `"FLYING"`).
@@ -12664,6 +12786,7 @@ components:
           type: array
           items:
             type: string
+            x-sitrep-unit: text
           description: Names of the crew aboard at the crash.
         altitude:
           type: number
@@ -12687,10 +12810,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         trait:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         experienceLevel:
           type:
             - number
@@ -12700,10 +12825,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         rosterStatus:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         carrying:
           type:
             - array
@@ -12780,6 +12907,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Kerbal name (`ProtoCrewMember.name`): the id the hire command resolves
             against the live applicant pool.
@@ -12787,6 +12915,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Specialisation (`ProtoCrewMember.trait`):
             `"Pilot"`/`"Engineer"`/`"Scientist"`/`"Tourist"`.
@@ -12802,6 +12931,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the kerbal can be assigned to a flight today.
 
@@ -12817,6 +12947,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Why the kerbal can't fly, in prose: `Assigned` reads "On mission",
             `Training` reads "In training", `Resting` reads "Standing down", and every
@@ -12842,11 +12973,13 @@ components:
             `CrewStanding` for the whole account.
           anyOf:
             - $ref: "#/components/schemas/CrewStanding"
+              x-sitrep-unit: enum
             - type: "null"
         standingSource:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Which provider decided `CrewRosterEntry.standing`: the elected backend's
             `ProviderId`, e.g. `"stock"` or `"rp1"`. Absent when no backend was
@@ -12888,6 +13021,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             `CrewRosterEntry.standing`'s display LABEL: its enum name, or `"Applicant"`
             for a hireable candidate. Text for an operator, never a branch: compare
@@ -12910,11 +13044,13 @@ components:
             the two apart. Also `null` when the capture carried no status.
           anyOf:
             - $ref: "#/components/schemas/KspRosterStatus"
+              x-sitrep-unit: enum
             - type: "null"
         inactive:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the kerbal is standing down rather than on duty
             (`ProtoCrewMember.inactive`): KSP's own field, published beside the derived
@@ -12943,6 +13079,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether this entry is a hireable candidate (`ProtoCrewMember.type ==
             KerbalType.Applicant`) rather than owned crew. Carried so a client never has
@@ -12980,6 +13117,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The role's stock tooltip description
             (`ProtoCrewMember.experienceTrait.Description`): the exact string the
@@ -12988,6 +13126,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The role's current-rank effects text
             (`ProtoCrewMember.experienceTrait.DescriptionEffects`): rank-aware, it
@@ -13075,6 +13214,7 @@ components:
       properties:
         strategyId:
           type: string
+          x-sitrep-unit: id
     DeployedEntry:
       type: object
       description: |-
@@ -13092,26 +13232,32 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         partName:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         body:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         situation:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         biome:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         experimentId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         scienceCompletedPercentage:
           type:
             - number
@@ -13136,6 +13282,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             `ModuleGroundSciencePart.PowerState` verbatim: KSP's own words for the power
             state, for display. DO NOT BRANCH ON THIS.
@@ -13149,6 +13296,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             `ModuleGroundSciencePart.ConnectionState` verbatim, for display. Localised
             prose on the same terms as `DeployedEntry.powerState`; read
@@ -13172,11 +13320,13 @@ components:
             and must not be read as either powered or unpowered.
           anyOf:
             - $ref: "#/components/schemas/DeployedPowerState"
+              x-sitrep-unit: enum
             - type: "null"
         controllerConnected:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the experiment is attached to a controller cluster at all, the fact
             behind `DeployedEntry.connectionState`'s "Connected"/"Not Connected". `null`
@@ -13185,6 +13335,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
     DeployedPowerState:
       type: integer
       description: |-
@@ -13294,18 +13445,23 @@ components:
         type:
           type: string
           const: error
+          x-sitrep-unit: id
         requestId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         topic:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         code:
           type: string
+          x-sitrep-unit: id
         message:
           type: string
+          x-sitrep-unit: text
     EventMsg:
       type: object
       required:
@@ -13317,10 +13473,13 @@ components:
         type:
           type: string
           const: event
+          x-sitrep-unit: id
         topic:
           type: string
+          x-sitrep-unit: id
         name:
           type: string
+          x-sitrep-unit: text
         meta:
           $ref: "#/components/schemas/Meta"
     ExperimentActionArgs:
@@ -13340,6 +13499,7 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
     ExperimentBreakdownEntry:
       type: object
       description: |-
@@ -13375,18 +13535,22 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         biome:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         situation:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         expTitle:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         dataMits:
           type:
             - number
@@ -13407,6 +13571,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Which value model produced `ExperimentBreakdownEntry.remainingPotential`,
             and which unit `ExperimentBreakdownEntry.dataMits` is really in. See
@@ -13448,10 +13613,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         location:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             "experiment" (a live science module) or "container" (a part storing
             collected results).
@@ -13459,14 +13626,17 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         subjectId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         title:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         dataAmount:
           type:
             - number
@@ -13500,18 +13670,22 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         inoperable:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         situation:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         valueModel:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Which value model produced `ExperimentEntry.scienceValueRatio` /
             `ExperimentEntry.baseTransmitValue` / `ExperimentEntry.labValue`, and which
@@ -13557,6 +13731,7 @@ components:
       properties:
         kerbalName:
           type: string
+          x-sitrep-unit: id
     FleetSilence:
       type: object
       description: |-
@@ -13603,11 +13778,13 @@ components:
       properties:
         vesselId:
           type: string
+          x-sitrep-unit: id
           description: |-
             Stable subject id (KSP vessel GUID), the same id the `fleet.` and `silence.`
             namespaces key on.
         state:
           type: string
+          x-sitrep-unit: enum
           description: One of `Nominal` / `Silent` / `Lost`.
         silenceSinceUt:
           type:
@@ -13627,6 +13804,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: enum
           description: One of `Sitrep.Host.Comms.SilenceDeadlineBasis`. Null while Nominal.
         predictedReacquisitionUt:
           type:
@@ -13673,19 +13851,23 @@ components:
       properties:
         flightId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The mod-minted stable flight id: KSP's `Vessel.id` GUID as a string, the
             same currency `VesselIdentity.VesselId`/`CrashReport.VesselId` already use.
         vesselId:
           type: string
+          x-sitrep-unit: id
         vesselName:
           type: string
+          x-sitrep-unit: text
         phase:
           description: |-
             The vessel's current flight phase: reuses `Situation`
             (PreLaunch/Flying/Landed/…), not a parallel enum.
           allOf:
             - $ref: "#/components/schemas/Situation"
+              x-sitrep-unit: enum
     FlightEndReason:
       type: integer
       description: |-
@@ -13734,12 +13916,16 @@ components:
       properties:
         flightId:
           type: string
+          x-sitrep-unit: id
         vesselId:
           type: string
+          x-sitrep-unit: id
         vesselName:
           type: string
+          x-sitrep-unit: text
         reason:
           $ref: "#/components/schemas/FlightEndReason"
+          x-sitrep-unit: enum
         ut:
           type: number
           x-sitrep-unit: ut
@@ -13769,12 +13955,14 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the flight on screen is a simulation. Null when the install has no
             such concept; see ISimulationBackend.IsSimulatedFlight for why that is
             different from false.
         delayApplied:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             Whether signal delay is currently being applied to this flight.
 
@@ -13787,6 +13975,7 @@ components:
             re-deriving it.
         delayInSimulation:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             The operator's standing choice: apply signal delay during a simulation
             anyway. Off by default, for the reason above.
@@ -13813,10 +14002,13 @@ components:
       properties:
         flightId:
           type: string
+          x-sitrep-unit: id
         vesselId:
           type: string
+          x-sitrep-unit: id
         vesselName:
           type: string
+          x-sitrep-unit: text
         ut:
           type: number
           x-sitrep-unit: ut
@@ -13841,14 +14033,18 @@ components:
       properties:
         flightId:
           type: string
+          x-sitrep-unit: id
         vesselId:
           type: string
+          x-sitrep-unit: id
         vesselName:
           type: string
+          x-sitrep-unit: text
         previousVesselId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             The vessel id the operator's focus moved FROM, null on the very first
             observation (nothing to switch away from).
@@ -13865,18 +14061,22 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         partId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         active:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         status:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
     GameDlc:
       type: object
       description: |-
@@ -13906,11 +14106,13 @@ components:
       properties:
         breakingGround:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             Whether the Breaking Ground expansion ("Serenity") is installed, deployed
             science, robotics, surface features.
         makingHistory:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             Whether the Making History expansion is installed, mission builder, extra
             parts.
@@ -13956,6 +14158,7 @@ components:
       properties:
         applicantName:
           type: string
+          x-sitrep-unit: id
     InstrumentEntry:
       type: object
       description: |-
@@ -13976,6 +14179,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             The part's KSP `flightID` (stringified): the stable join key for this
             instrument.
@@ -13983,34 +14187,42 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         experimentId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         title:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         deployed:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         inoperable:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         rerunnable:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         resettable:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         dataIsCollectable:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         extensions:
           type:
             - object
@@ -14036,6 +14248,7 @@ components:
       properties:
         name:
           type: string
+          x-sitrep-unit: id
           description: |-
             `AvailablePart.name`, the config id (e.g. `"evaRepairKit"`). The id a
             consumer matches on, never the title, which is localised.
@@ -14043,6 +14256,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: The part's display title, already localised by KSP.
         quantity:
           type: number
@@ -14064,11 +14278,13 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
           description: |-
             `Part.flightID` stringified, so a store id-joins to `vessel.parts` and the
             other per-part channels.
         partName:
           type: string
+          x-sitrep-unit: text
           description: The part's display title.
         items:
           type: array
@@ -14145,6 +14361,7 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The part's `flightID.ToString()`: the same id the read side stamps on
             `PartActions.partId` and `VesselPart.id`, so a widget round-trips the exact
@@ -14154,6 +14371,7 @@ components:
             doing nothing.
         eventName:
           type: string
+          x-sitrep-unit: id
           description: |-
             The `PartActionEntry.name` of the button to fire (`BaseEvent.name`, the
             stable code id, NEVER the localized `PartActionEntry.label`). An event name
@@ -14173,14 +14391,17 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         partTitle:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         running:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: Actively converting this tick.
         inputs:
           type: array
@@ -14223,6 +14444,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Part.flightID stringified: the same join key
             vessel.parts/parts.power/reliability.parts use.
@@ -14230,11 +14452,13 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: Part.partInfo.title, for display without a vessel.parts join.
         resource:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Resource this drill extracts (e.g. "Ore"). Free text, not a closed enum:
             whatever the running install's configs and profiles name, the same posture
@@ -14243,6 +14467,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Drill head deployed. Null for a harvester with no deploy animation, e.g.
             some asteroid drills.
@@ -14250,6 +14475,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: Actively extracting this tick.
         abundance:
           type:
@@ -14298,6 +14524,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         rate:
           type:
             - number
@@ -14440,6 +14667,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         dataStored:
           type:
             - number
@@ -14459,10 +14687,12 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         statusText:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         scientistCount:
           type:
             - number
@@ -14481,10 +14711,12 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         valueModel:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Which value model produced `LabEntry.scienceRate` and
             `LabEntry.storedScience`, and which unit `LabEntry.dataStored` /
@@ -14530,17 +14762,21 @@ components:
       properties:
         shipName:
           type: string
+          x-sitrep-unit: text
         facility:
           type: string
+          x-sitrep-unit: text
           description: |-
             `"VAB"` or `"SPH"` (case-insensitive). Any other value yields
             `CommandResult.errorCode` `CommandErrorCode.Range`.
         site:
           type: string
+          x-sitrep-unit: text
         crew:
           type: array
           items:
             type: string
+            x-sitrep-unit: text
           description: Kerbal names to seat, in order. Empty = launch unmanned.
     LaunchSiteEntry:
       type: object
@@ -14570,6 +14806,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Internal launch-site id (`LaunchSite.name`): the stable key used with
             `PSystemSetup`'s lookup APIs; null when the live game hasn't populated it.
@@ -14577,6 +14814,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Human-facing display name (`PSystemSetup.GetLaunchSiteDisplayName`, falling
             back to `LaunchSite.launchSiteName`).
@@ -14584,6 +14822,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Which editor this site launches from (the pad-vs-runway distinction) as the
             `EditorFacility` enum name (`"None"`/`"VAB"`/`"SPH"`); a VAB site is a pad,
@@ -14592,6 +14831,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into `SystemBodies` of the body this site sits on; null when absent or
             unresolved (never a sentinel like -1).
@@ -14618,6 +14858,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether this is a stock KSP launch site (`PSystemSetup.IsStockLaunchSite`),
             false for Making History / Kerbal Konstructs sites.
@@ -14625,6 +14866,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether a vessel is currently sitting on this pad. There is no clean stock
             per-site occupancy API, so for now this is populated ONLY on the stock KSC
@@ -14634,6 +14876,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Name of the vessel occupying this pad, when derivable (depends on
             `LaunchSiteEntry.padOccupied`); null until per-site occupancy exists beyond
@@ -14657,8 +14900,10 @@ components:
       properties:
         facility:
           type: string
+          x-sitrep-unit: id
         facilityName:
           type: string
+          x-sitrep-unit: text
           description: |-
             The facility's name as the GAME writes it ("Astronaut Complex"), for the
             sentence an operator reads. Empty when the producer had no display name to
@@ -14675,10 +14920,12 @@ components:
           description: Normalised facility level, as KSP reports it. Not a tier index.
         quantity:
           type: string
+          x-sitrep-unit: id
         limit:
           type:
             - number
             - "null"
+          x-sitrep-unit: n/a
           description: |-
             The limit, in whatever unit `LimitBreach.quantity` implies. NULL when the
             facility is unlimited.
@@ -14692,9 +14939,11 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: n/a
           description: What the call actually asked for, same unit as `LimitBreach.limit`.
         unit:
           type: string
+          x-sitrep-unit: id
           description: |-
             The unit token `LimitBreach.limit` and `LimitBreach.actual` are in, e.g. `t`
             for a mass limit, `count` for a part count.
@@ -14791,6 +15040,7 @@ components:
       properties:
         id:
           type: string
+          x-sitrep-unit: id
           description: |-
             Stable, opaque id: the M3 R3 fix for the read/write correlation gap
             (`packages/sitrep-client/src/map-command.ts`'s `KNOWN_COMMAND_GAPS`
@@ -14875,6 +15125,7 @@ components:
             integrating planner produces while looking right.
           anyOf:
             - $ref: "#/components/schemas/ManeuverFrame"
+              x-sitrep-unit: enum
             - type: "null"
         dvRadial:
           type:
@@ -14929,6 +15180,7 @@ components:
             gap.
           anyOf:
             - $ref: "#/components/schemas/ManeuverFrameReference"
+              x-sitrep-unit: enum
             - type: "null"
         frameReferenceBodyIndex:
           type:
@@ -14942,6 +15194,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether the craft holds a fixed inertial attitude through the burn rather
             than following the frame as it rotates.
@@ -15027,22 +15280,31 @@ components:
       properties:
         source:
           type: string
+          x-sitrep-unit: id
         validAt:
           type: number
+          x-sitrep-unit: ut
         seq:
           type: number
+          x-sitrep-unit: id
         deliveredAt:
           type: number
+          x-sitrep-unit: ut
         vantage:
           type: string
+          x-sitrep-unit: id
         quality:
           $ref: "#/components/schemas/Quality"
+          x-sitrep-unit: enum
         active:
           type: boolean
+          x-sitrep-unit: flag
         staleness:
           $ref: "#/components/schemas/Staleness"
+          x-sitrep-unit: enum
         timelineEpoch:
           type: number
+          x-sitrep-unit: id
           description: |-
             Generation counter for the current timeline: 0 at boot, incremented once for
             every quickload/rewind (ResetTimeline). Stamped on EVERY envelope `Meta`
@@ -15080,6 +15342,7 @@ components:
       properties:
         transitionType:
           $ref: "#/components/schemas/TransitionType"
+          x-sitrep-unit: enum
         transitionUt:
           type: number
           x-sitrep-unit: ut
@@ -15087,6 +15350,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into `system.bodies` of the body being transitioned INTO; null if that
             body couldn't be resolved.
@@ -15241,8 +15505,10 @@ components:
           x-sitrep-unit: ut
         patchStartTransition:
           $ref: "#/components/schemas/TransitionType"
+          x-sitrep-unit: enum
         patchEndTransition:
           $ref: "#/components/schemas/TransitionType"
+          x-sitrep-unit: enum
         peA:
           type: number
           x-sitrep-unit: m
@@ -15263,6 +15529,7 @@ components:
           x-sitrep-unit: m
         referenceBody:
           type: string
+          x-sitrep-unit: text
           description: |-
             Body this patch orbits: matches `system.bodies`' NAME, not its index (see
             class doc).
@@ -15270,6 +15537,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Body this patch's trajectory most closely encounters, if any, null when
             there is none. Same "name, not index" convention as
@@ -15297,6 +15565,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Body this patch orbits, as its `system.bodies` INDEX. The identity, where
             `OrbitPatch.referenceBody` is the display name: index is what every other
@@ -15318,6 +15587,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             `OrbitPatch.closestEncounterBody`'s `system.bodies` index, on the same
             index-is-identity terms as `OrbitPatch.referenceBodyIndex`. Null when there
@@ -15379,6 +15649,7 @@ components:
       properties:
         type:
           type: string
+          x-sitrep-unit: id
           description: |-
             Discriminator: `solarPanel` / `radiator` / `antenna` / `parachute` /
             `engine` / `drill` / `landingGear`. (`cargoBay` is a defined vocabulary
@@ -15386,6 +15657,7 @@ components:
             for why.)
         state:
           type: string
+          x-sitrep-unit: text
           description: |-
             The standardised deploy/activation state, one closed vocabulary across every
             `PartModuleState.type` rather than each module's own enum spelling.
@@ -15403,11 +15675,13 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: "Solar-panel-only: sun-tracking gimbal active. `null` for every other type."
         flameout:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Engine-only: fuel-starved. `null` unless `true` (never emitted as a bare
             `false`).
@@ -15530,8 +15804,10 @@ components:
       properties:
         source:
           type: string
+          x-sitrep-unit: id
         quality:
           $ref: "#/components/schemas/Quality"
+          x-sitrep-unit: enum
     PhysicsMode:
       type: integer
       description: |-
@@ -15583,6 +15859,7 @@ components:
       properties:
         kind:
           $ref: "#/components/schemas/PropagationHorizonKind"
+          x-sitrep-unit: enum
         trajectoryKind:
           description: |-
             What KIND of answer these elements are, which is the client's real question.
@@ -15609,6 +15886,7 @@ components:
             what a bug report wants more than a name.
           allOf:
             - $ref: "#/components/schemas/TrajectoryKind"
+              x-sitrep-unit: enum
         untilUt:
           type:
             - number
@@ -15667,11 +15945,14 @@ components:
       properties:
         name:
           type: string
+          x-sitrep-unit: text
         trait:
           type: string
+          x-sitrep-unit: text
           description: The kerbal's career trait (e.g. `"Pilot"`).
         isTourist:
           type: boolean
+          x-sitrep-unit: flag
         xpGained:
           type: number
           x-sitrep-unit: count
@@ -15696,9 +15977,11 @@ components:
       properties:
         partName:
           type: string
+          x-sitrep-unit: text
           description: The part's `partInfo.name` (e.g. `"mk1pod.v2"`).
         partTitle:
           type: string
+          x-sitrep-unit: text
           description: The part's `partInfo.title` (e.g. `"Mk1 Command Pod"`).
         count:
           type: number
@@ -15751,13 +16034,16 @@ components:
           description: Universal time of the recovery capture.
         vesselName:
           type: string
+          x-sitrep-unit: text
         recoveryLocation:
           type: string
+          x-sitrep-unit: text
           description: |-
             Where the vessel came down: KSP's own recovery-location string (e.g.
             `"KSC"`, `"Water"`).
         recoveryFactor:
           type: string
+          x-sitrep-unit: text
           description: |-
             KSP's own recovery-factor display string (e.g. `"100%"`), the payout
             multiplier for landing precision.
@@ -15781,6 +16067,7 @@ components:
           x-sitrep-unit: rep
         displayReputation:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             Whether reputation applies to this save (off in Science/Sandbox), gates the
             reputation row client-side.
@@ -15813,6 +16100,7 @@ components:
       properties:
         resourceName:
           type: string
+          x-sitrep-unit: text
         amount:
           type: number
           x-sitrep-unit: units
@@ -15835,8 +16123,10 @@ components:
       properties:
         subjectId:
           type: string
+          x-sitrep-unit: id
         subjectTitle:
           type: string
+          x-sitrep-unit: text
         dataGathered:
           type: number
           x-sitrep-unit: Mit
@@ -15860,6 +16150,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Provider-chosen dimension id, stable across frames. Reserved ids with fixed
             meanings: "service" (scheduled maintenance clock), "burn.continuous",
@@ -15870,6 +16161,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Display-ready lower-case noun phrase, rendered verbatim in the operator's
             sentence: "continuous rated burn", "service". Max 40 chars; the producer
@@ -15878,6 +16170,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: enum
           description: |-
             What crossing the limit means, and therefore which verb the client uses:
             "schedule" (a maintenance date falls due; nothing fails at the line),
@@ -15938,6 +16231,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             UNIQUE within one reliability.parts payload. Producers MUST enforce this; it
             is not a KSP flightID and must not be treated as one.
@@ -15945,6 +16239,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Which crew trait may act on this part, as the provider states it: a single
             name, or several comma-separated, or empty meaning anyone.
@@ -15970,10 +16265,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         condition:
           type:
             - string
             - "null"
+          x-sitrep-unit: enum
           description: |-
             One of: "nominal", "service-due", "failed", "failed-critical", "unknown".
             The provider's WORST condition for this part.
@@ -16000,6 +16297,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The provider's OWN word(s) for this condition, rendered verbatim as the
             row's detail clause: "busted", "needs service", "turbopump failure". Max 120
@@ -16080,6 +16378,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Which backend produced this: "kerbalism" | "testflight" | "none", or a
             third-party provider id.
@@ -16087,6 +16386,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: enum
           description: |-
             One of ReliabilityCoverage. Null only if a producer failed to set it; the
             client treats null and an unrecognised value identically.
@@ -16106,6 +16406,7 @@ components:
       properties:
         nodeId:
           type: string
+          x-sitrep-unit: id
     RepairCostItem:
       type: object
       description: |-
@@ -16118,6 +16419,7 @@ components:
       properties:
         name:
           type: string
+          x-sitrep-unit: id
           description: |-
             `AvailablePart.name`, the config id (e.g. `"evaRepairKit"`), matching
             `InventoryItem.name`. The provider names the item so no consumer has to know
@@ -16141,11 +16443,13 @@ components:
       properties:
         repaired:
           type: boolean
+          x-sitrep-unit: flag
           description: Whether the part was actually repaired.
         refusal:
           type:
             - string
             - "null"
+          x-sitrep-unit: enum
           description: |-
             Why not, when `RepairOutcome.repaired` is false: one of `no-such-crew`,
             `crew-not-qualified`, `eva-impossible`, `no-kits`, `not-modelled`,
@@ -16161,6 +16465,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Where the kit came from: `carried` when the kerbal already held it,
             otherwise the part id of the store it was taken from, so the operator can
@@ -16174,11 +16479,13 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The failed part, joined by the same id `reliability.parts` and
             `vessel.parts` use.
         crewName:
           type: string
+          x-sitrep-unit: text
           description: |-
             Who performs it. A NAME, because that is KSP's own stable identifier for a
             kerbal and what `vessel.crew` is keyed by.
@@ -16200,6 +16507,7 @@ components:
           x-sitrep-unit: units
         active:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             R7 Fix 2: explicit presence flag so a present-but-zero resource (`{current:
             0, max: > 0, active: true}`) is distinguishable from one that has stopped
@@ -16246,11 +16554,13 @@ components:
       properties:
         canRevertToEditor:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             Can the active flight be reverted back to the editor (VAB/SPH)? Mirrors
             `FlightDriver.CanRevertToPrelaunch`.
         canRevertToLaunch:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             Can the active flight be reverted to its launch (on-the-pad) state? Mirrors
             `FlightDriver.CanRevertToPostInit`.
@@ -16272,6 +16582,7 @@ components:
       properties:
         editor:
           type: string
+          x-sitrep-unit: text
           description: |-
             `"vab"` or `"sph"` (case-insensitive). Any other value yields
             `CommandResult.errorCode` `CommandErrorCode.Range`.
@@ -16305,6 +16616,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
     RosterCommsControlSource:
       type: integer
       description: |-
@@ -16335,6 +16647,7 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The part's `flightID.ToString()`: the id the read side stamps on each
             `parts.robotics` entry.
@@ -16352,11 +16665,13 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The part's `flightID.ToString()`: the id the read side stamps on each
             `parts.robotics` entry.
         value:
           type: number
+          x-sitrep-unit: ratio
           description: |-
             The absolute value to apply (rpm limit, torque-limit percent 0–100, or brake
             percent 0–200).
@@ -16411,6 +16726,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: Craft name (`CraftProfileInfo.shipName`).
         partCount:
           type:
@@ -16428,6 +16744,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Which editor built it: the `EditorFacility` enum name, `"VAB"` or `"SPH"`
             (`CraftProfileInfo.shipFacility`). A display label; see
@@ -16447,6 +16764,7 @@ components:
             must not be read as either editor.
           anyOf:
             - $ref: "#/components/schemas/KspEditorFacility"
+              x-sitrep-unit: enum
             - type: "null"
         requiresFunds:
           type:
@@ -16462,6 +16780,7 @@ components:
             - "null"
           items:
             type: string
+            x-sitrep-unit: text
           description: |-
             Parts referenced by the craft that are not yet unlocked/purchased
             (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
@@ -16488,10 +16807,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         requestId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Stable per-intent id, so a plan that is retransmitted after a silence is
             recognised as the same plan rather than applied twice.
@@ -16499,6 +16820,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: ut
           description: |-
             The view instant the plan was composed against: what the command centre
             could see when it decided.
@@ -16506,6 +16828,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: ut
           description: |-
             The instant the state used for planning was actually TRUE, at or before
             `SendManeuverPlanArgs.composedAtViewUt`.
@@ -16528,6 +16851,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: ut
           description: How far the plan is asked to run.
     SensorEntry:
       type: object
@@ -16553,6 +16877,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Flight-scoped `part.flightID` as a string (null when the sentinel 0), the
             join key that disambiguates symmetric same-named sensor parts.
@@ -16560,10 +16885,12 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         type:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             The raw `SensorType` enum name (`TEMP`/`PRES`/`GRAV`/`ACC`/…) passed through
             as a string so modded types survive.
@@ -16571,6 +16898,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The sensor's current human-readable readout string (KSP's `readoutInfo`,
             e.g. "293.1K" or "Off").
@@ -16578,6 +16906,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
     ServoEntry:
       type: object
       description: |-
@@ -16608,26 +16937,32 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         partId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         type:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         servoIsLocked:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         servoIsMotorized:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         servoMotorIsEngaged:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         servoMotorLimit:
           type:
             - number
@@ -16637,6 +16972,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         currentAngle:
           type:
             - number
@@ -16651,6 +16987,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: n/a
         currentRPM:
           type:
             - number
@@ -16685,6 +17022,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Rotor spin direction (rotor entries only: `null` for every other kind).
             Mirrors `ModuleRoboticServoRotor.rotateCounterClockwise`: `true` means the
@@ -16721,11 +17059,13 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The part's `flightID.ToString()`: the id the read side stamps on each
             `parts.robotics` entry.
         enabled:
           type: boolean
+          x-sitrep-unit: flag
     ServoSetTargetArgs:
       type: object
       description: |-
@@ -16742,11 +17082,13 @@ components:
       properties:
         partId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The part's `flightID.ToString()`: the id the read side stamps on each
             `parts.robotics` entry.
         value:
           type: number
+          x-sitrep-unit: ratio
           description: "Absolute target: hinge angle (degrees) or piston extension."
     SetActionGroupArgs:
       type: object
@@ -16760,11 +17102,13 @@ components:
       properties:
         group:
           type: number
+          x-sitrep-unit: id
           description: |-
             1..10. Any other value yields `CommandResult.errorCode`
             `CommandErrorCode.Range`.
         state:
           type: boolean
+          x-sitrep-unit: flag
     SetControlAxesArgs:
       type: object
       description: |-
@@ -16787,38 +17131,47 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         yaw:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         roll:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         x:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         y:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         z:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         pitchTrim:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         yawTrim:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
         rollTrim:
           type:
             - number
             - "null"
+          x-sitrep-unit: "1"
     SetControlFrameArgs:
       type: object
       description: |-
@@ -16840,25 +17193,30 @@ components:
       properties:
         kind:
           $ref: "#/components/schemas/ControlFrameKind"
+          x-sitrep-unit: enum
         centreBody:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: The body to centre on. Required for the centred frames.
         primaryBody:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: The body a rotating frame turns about. Required for the rotating frames.
         secondaryBody:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: The body a rotating frame is anchored to. Required for the rotating frames.
         targetFrameSelected:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Ask for the target frame, which sits orthogonally to
             `SetControlFrameArgs.kind` rather than inside it.
@@ -16876,6 +17234,7 @@ components:
       properties:
         enabled:
           type: boolean
+          x-sitrep-unit: flag
     SetFlyByWireArgs:
       type: object
       description: |-
@@ -16893,6 +17252,7 @@ components:
       properties:
         enabled:
           type: boolean
+          x-sitrep-unit: flag
     SetPausedArgs:
       type: object
       required:
@@ -16900,6 +17260,7 @@ components:
       properties:
         paused:
           type: boolean
+          x-sitrep-unit: flag
     SetSasModeArgs:
       type: object
       required:
@@ -16907,6 +17268,7 @@ components:
       properties:
         mode:
           $ref: "#/components/schemas/SasMode"
+          x-sitrep-unit: enum
     SetSimulationDelayPolicyArgs:
       type: object
       description: |-
@@ -16917,6 +17279,7 @@ components:
       properties:
         applyDuringSimulation:
           type: boolean
+          x-sitrep-unit: flag
     SetTargetArgs:
       type: object
       description: |-
@@ -16934,10 +17297,12 @@ components:
       properties:
         kind:
           $ref: "#/components/schemas/TargetKind"
+          x-sitrep-unit: enum
         vesselId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Required when `SetTargetArgs.kind` is `TargetKind.Vessel`. ALSO required
             when `SetTargetArgs.kind` is `TargetKind.Part`, the guid of the vessel that
@@ -16946,6 +17311,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Required when `SetTargetArgs.kind` is `TargetKind.Part`, the docking port's
             KSP `Part.flightID`, resolved server-side against the parts of the vessel
@@ -16954,6 +17320,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Required when `SetTargetArgs.kind` is `TargetKind.Body`, the same
             `system.bodies` index `VesselOrbit.referenceBodyIndex` uses. ALSO required
@@ -16964,6 +17331,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: °
           description: |-
             Required when `SetTargetArgs.kind` is `TargetKind.Position` (a map-picked
             surface fix, e.g. a `spaceCenter.pois` entry's own coordinate).
@@ -16971,6 +17339,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: °
           description: Required when `SetTargetArgs.kind` is `TargetKind.Position`.
     SetThrottleArgs:
       type: object
@@ -16979,6 +17348,7 @@ components:
       properties:
         value:
           type: number
+          x-sitrep-unit: ratio
           description: |-
             0..1: validated (not silently clamped) at admission; out of range yields
             `CommandResult.errorCode` `CommandErrorCode.Range` (A-10's inconsistency
@@ -16997,8 +17367,10 @@ components:
         type:
           type: string
           const: set-vantage
+          x-sitrep-unit: id
         centreId:
           type: string
+          x-sitrep-unit: id
           description: The command centre Id to adopt as this connection's vantage.
     SetWarpIndexArgs:
       type: object
@@ -17010,6 +17382,7 @@ components:
       properties:
         index:
           type: number
+          x-sitrep-unit: id
     Situation:
       type: integer
       description: |-
@@ -17054,14 +17427,17 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         partId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
         deployState:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
         flowRate:
           type:
             - number
@@ -17119,6 +17495,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             `"launchSite:<LaunchSite.name>"` for `ksc`/`launchSite` kinds,
             `"contract:<Waypoint.navigationId>"` for `contractTarget`.
@@ -17126,11 +17503,13 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: "`\"ksc\"` | `\"launchSite\"` | `\"contractTarget\"`."
         bodyIndex:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into `SystemBodies`; null when absent or unresolved (never a sentinel
             like -1).
@@ -17148,16 +17527,19 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: "Display label: the launch site's display name, or the contract's title."
         status:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: "`\"active\"` | `\"available\"` (null for `ksc`/`launchSite` kinds)."
         contractAgent:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: Contract-issuing agent name; null for `ksc`/`launchSite` kinds.
         contractFundsAdvance:
           type:
@@ -17197,6 +17579,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The current scene, one of
             `"Flight"`/`"SpaceCenter"`/`"Editor"`/`"TrackingStation"`/`"MainMenu"`/`"Other"`.
@@ -17204,6 +17587,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The launch site currently selected in the editor
             (`EditorLogic.launchSiteName`), the migration target for the legacy
@@ -17240,6 +17624,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: "`DeltaVStageInfo.stage`: the stage number this entry describes."
         dvVac:
           type:
@@ -17410,8 +17795,10 @@ components:
         type:
           type: string
           const: subscribe
+          x-sitrep-unit: id
         topic:
           type: string
+          x-sitrep-unit: id
     SwitchVesselArgs:
       type: object
       description: |-
@@ -17426,6 +17813,7 @@ components:
       properties:
         vesselId:
           type: string
+          x-sitrep-unit: id
     SystemBodies:
       type: object
       description: |-
@@ -17544,13 +17932,16 @@ components:
       properties:
         kind:
           $ref: "#/components/schemas/TargetKind"
+          x-sitrep-unit: enum
         name:
           type: string
+          x-sitrep-unit: text
           description: Clean display name (KSP `GetDisplayName()`, falling back to `GetName()`).
         vesselId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Stable vessel guid: set for `TargetKind.Vessel`, and the OWNING vessel for a
             `TargetKind.Part`. Null otherwise.
@@ -17558,11 +17949,13 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: "Index into `system.bodies`: set for `TargetKind.Body`. Null otherwise."
         partId:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             KSP `Part.flightID`: set for `TargetKind.Part` (scoped by
             `TargetListEntry.vesselId`). Null otherwise.
@@ -17572,11 +17965,13 @@ components:
             vessel's type). Null otherwise.
           anyOf:
             - $ref: "#/components/schemas/VesselType"
+              x-sitrep-unit: enum
             - type: "null"
         situation:
           description: "Flight situation: set for `TargetKind.Vessel`. Null otherwise."
           anyOf:
             - $ref: "#/components/schemas/Situation"
+              x-sitrep-unit: enum
             - type: "null"
         distance:
           type:
@@ -17590,6 +17985,7 @@ components:
             comes off `vessel.target`. Null when a transform wasn't available this tick.
         isCurrent:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             True when this entry is the active vessel's current target
             (`FlightGlobals.fetch.VesselTarget`) right now.
@@ -17622,6 +18018,7 @@ components:
           x-sitrep-unit: K
         name:
           type: string
+          x-sitrep-unit: text
           description: |-
             Display name of the hottest part (`Part.partInfo.title`, falling back to
             `Part.name`, same convention as `VesselPart.title`). Never null when
@@ -17699,6 +18096,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The real-world instant UT 0 corresponds to, ISO-8601 in UTC
             (`1951-01-01T00:00:00Z`), or `null` when the running game has no such
@@ -17726,6 +18124,7 @@ components:
             date the game itself never shows.
         kerbinTime:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             The stock `GameSettings.KERBIN_TIME` flag, for a consumer that wants to
             LABEL the calendar rather than just measure with it ("Kerbin time" against
@@ -17804,6 +18203,7 @@ components:
           description: Where the curve came from, so the mark can travel ON it.
           allOf:
             - $ref: "#/components/schemas/TrajectoryDerivation"
+              x-sitrep-unit: enum
         forceModel:
           description: |-
             What the integration was against, when the producer integrated. Null for a
@@ -17856,6 +18256,7 @@ components:
       properties:
         gravityModelFound:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             True when the force model's configuration was found and parsed. False means
             the curve is degraded and says which term is missing.
@@ -17875,6 +18276,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             How the perturbing bodies' FUTURE positions were obtained, and the one
             approximation in the whole curve.
@@ -17906,6 +18308,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Which term is absent, when the model could not be fully matched. Null when
             nothing is missing; a degraded curve always names one.
@@ -17913,6 +18316,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: The integrator's name.
         stepSeconds:
           type: number
@@ -17924,6 +18328,7 @@ components:
           description: How many steps were taken.
         vacuum:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             True when neither drag nor thrust was modelled, which is always. A reentry
             countdown computed in a vacuum is a vacuum countdown, and a reader that does
@@ -17990,16 +18395,19 @@ components:
       properties:
         kind:
           $ref: "#/components/schemas/TrajectoryFrameKind"
+          x-sitrep-unit: enum
         centreBodyIndex:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into `system.bodies` of the body the frame is centred on, or null for
             a frame with no centre. Three of the frames a player can plot in have none,
             which is also why apsides do not exist in them.
         lengthsPulsate:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             True when the frame's lengths are not lengths.
 
@@ -18146,6 +18554,7 @@ components:
       properties:
         techId:
           type: string
+          x-sitrep-unit: id
     Unsubscribe:
       type: object
       required:
@@ -18155,8 +18564,10 @@ components:
         type:
           type: string
           const: unsubscribe
+          x-sitrep-unit: id
         topic:
           type: string
+          x-sitrep-unit: id
     UpdateManeuverNodeArgs:
       type: object
       description: |-
@@ -18172,14 +18583,19 @@ components:
       properties:
         nodeId:
           type: string
+          x-sitrep-unit: id
         ut:
           type: number
+          x-sitrep-unit: ut
         prograde:
           type: number
+          x-sitrep-unit: m/s
         normal:
           type: number
+          x-sitrep-unit: m/s
         radialOut:
           type: number
+          x-sitrep-unit: m/s
     UpgradeFacilityArgs:
       type: object
       description: |-
@@ -18193,6 +18609,7 @@ components:
       properties:
         facilityId:
           type: string
+          x-sitrep-unit: id
     VantagePlanReply:
       type: object
       description: |-
@@ -18207,6 +18624,7 @@ components:
       properties:
         solved:
           type: boolean
+          x-sitrep-unit: flag
         arc:
           anyOf:
             - $ref: "#/components/schemas/TrajectoryArc"
@@ -18221,6 +18639,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             Which command centre's view produced it, echoed so a client that switched
             vantage mid-flight can tell whose answer it is holding.
@@ -18228,6 +18647,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: Why there is no trajectory. Null when there is one.
     VantagePlanRequest:
       type: object
@@ -18246,6 +18666,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: The channel carrying the craft's orbit.
         toUt:
           type: number
@@ -18336,11 +18757,13 @@ components:
       properties:
         connected:
           type: boolean
+          x-sitrep-unit: flag
         signalStrength:
           type: number
           x-sitrep-unit: ratio
         controlState:
           $ref: "#/components/schemas/ControlState"
+          x-sitrep-unit: enum
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     VesselControl:
@@ -18367,37 +18790,45 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             SAS master switch. Its control channel pairs it with `setSas` so a client
             can read the confirmed state and dispatch a change through ONE handle.
         sasMode:
           anyOf:
             - $ref: "#/components/schemas/SasMode"
+              x-sitrep-unit: enum
             - type: "null"
         rcs:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         gear:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         brakes:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         lights:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         abort:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
         precisionControl:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Precision-control (fine-control / caps-lock) mode. Mirrors KSP's
             `FlightInputHandler.fetch.precisionMode`. Null when there's no active flight
@@ -18606,20 +19037,25 @@ components:
       properties:
         vesselId:
           type: string
+          x-sitrep-unit: id
           description: |-
             The stable subject id (KSP's `Vessel.id` GUID, as a string), the currency of
             target/vessel-scoped commands (T-1 groundwork) and of `Meta.Source`'s
             "vessel:<guid>" provenance stamp.
         name:
           type: string
+          x-sitrep-unit: text
         vesselType:
           $ref: "#/components/schemas/VesselType"
+          x-sitrep-unit: enum
         situation:
           $ref: "#/components/schemas/Situation"
+          x-sitrep-unit: enum
         parentBodyIndex:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into the `system.bodies` collection; null when the vessel has no orbit
             driver yet (e.g. a just-spawned EVA before it attaches).
@@ -18699,6 +19135,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Which class of landing readout is valid this tick, so the client renders
             state rather than inferring it from a pile of nulls. One of:
@@ -18708,6 +19145,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Which sampling source produced the terrain fields this tick: `"predicted"`
             (sampled at the mod's predicted downrange touchdown point: the site you are
@@ -18805,6 +19243,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             KSP's biome name at the PREDICTED touchdown point (not the current position,
             that is `vessel.surface.biome`). Via `ScienceUtil.GetExperimentBiome` (which
@@ -18863,6 +19302,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The instantaneous descent regime: `"at-terminal"` / `"decelerating"` /
             `"accelerating"`. Null outside an atmosphere.
@@ -18880,6 +19320,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             Parachute state affecting the estimate: `"none"` / `"armed"` (a future step
             change the instant model cannot see, flag the estimate) / `"deployed"` (drag
@@ -18915,6 +19356,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             The elected maneuver-plan provider's id, or null when THERE IS NO PLANNER AT
             ALL.
@@ -18964,6 +19406,7 @@ components:
       properties:
         referenceBodyIndex:
           type: number
+          x-sitrep-unit: id
         sma:
           type: number
           x-sitrep-unit: m
@@ -19078,6 +19521,7 @@ components:
             where the integrated path never runs from one where it runs cleanly.
           allOf:
             - $ref: "#/components/schemas/TrajectoryRefusal"
+              x-sitrep-unit: enum
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     VesselOrbitTruth:
@@ -19131,6 +19575,7 @@ components:
             z: *a57
         frameRotating:
           type: boolean
+          x-sitrep-unit: flag
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     VesselPart:
@@ -19172,6 +19617,7 @@ components:
       properties:
         id:
           type: string
+          x-sitrep-unit: id
           description: |-
             `Part.flightID` stringified: the tree/cross-channel join key. Empty string
             only for the uninitialized-0 sentinel (no live flight id yet).
@@ -19179,14 +19625,17 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: "`Part.parent?.flightID` stringified; `null` for the root part."
         name:
           type: string
+          x-sitrep-unit: text
           description: |-
             `Part.partInfo.name` (the `AvailablePart.name` config id, e.g.
             `"solarPanels1"`).
         title:
           type: string
+          x-sitrep-unit: text
           description: |-
             `Part.partInfo.title` (the display title, e.g. `"OX-STAT Photovoltaic
             Panels"`).
@@ -19230,6 +19679,7 @@ components:
           description: "`Part.mass`: dry mass (tonnes)."
         inverseStage:
           type: number
+          x-sitrep-unit: id
           description: |-
             `Part.inverseStage` (KSP's own inverted staging numbering, carried forward
             unchanged; see `VesselStructure.currentStage`).
@@ -19261,6 +19711,7 @@ components:
           description: "`Part.skinTemperature`: current skin temperature (K)."
         category:
           type: string
+          x-sitrep-unit: text
           description: |-
             `Part.partInfo.category` (`PartCategories` enum name, e.g. `"Engine"`). A
             display label; see `VesselPart.categoryOrdinal`.
@@ -19278,19 +19729,23 @@ components:
             is a real value, NOT an absence.
           anyOf:
             - $ref: "#/components/schemas/KspPartCategory"
+              x-sitrep-unit: enum
             - type: "null"
         modules:
           type: array
           items:
             type: string
+            x-sitrep-unit: text
           description: |-
             Each `PartModule`'s CLR class name (e.g. `"ModuleEngines"`,
             `"CModuleFuelLine"`), which is what a client classifies a part by.
         isRobotics:
           type: boolean
+          x-sitrep-unit: flag
           description: "`Part.isRobotic()`: a Breaking Ground robotic servo part."
         isPowerRelated:
           type: boolean
+          x-sitrep-unit: flag
           description: |-
             True when the part carries a solar panel, alternator, EC-producing
             converter, or an ElectricCharge resource capacity.
@@ -19298,6 +19753,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             For a fuel-line part, the stringified `flightID` of the part it feeds;
             `null` otherwise.
@@ -19387,6 +19843,7 @@ components:
       properties:
         mode:
           $ref: "#/components/schemas/PhysicsMode"
+          x-sitrep-unit: enum
         meta:
           $ref: "#/components/schemas/PayloadMeta"
     VesselPropulsion:
@@ -19523,11 +19980,13 @@ components:
       properties:
         vesselId:
           type: string
+          x-sitrep-unit: id
           description: |-
             Stable subject id (KSP vessel GUID). Always present, entries without one are
             dropped.
         name:
           type: string
+          x-sitrep-unit: text
           description: Display name; defaults to the empty string, never null.
         vesselType:
           description: |-
@@ -19536,16 +19995,19 @@ components:
             whose numeric members match those ordinals.
           allOf:
             - $ref: "#/components/schemas/VesselType"
+              x-sitrep-unit: enum
         situation:
           description: |-
             Flight situation. On the wire this is the enum ORDINAL; typed here to the
             shared `Situation` enum.
           allOf:
             - $ref: "#/components/schemas/Situation"
+              x-sitrep-unit: enum
         bodyIndex:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             Index into `SystemBodies` of this vessel's main body; null when absent or
             unresolved.
@@ -19573,6 +20035,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             Whether stock CommNet reports a live control link home for this vessel right
             now: a raw `Vessel.connection.IsConnected` read against EVERY roster vessel
@@ -19593,6 +20056,7 @@ components:
             Debris/SpaceObject/Unknown-vessel-type case documented there.
           anyOf:
             - $ref: "#/components/schemas/RosterCommsControlSource"
+              x-sitrep-unit: enum
             - type: "null"
         orbit:
           description: |-
@@ -19623,6 +20087,7 @@ components:
       properties:
         currentStage:
           type: number
+          x-sitrep-unit: id
           description: |-
             KSP's own `Vessel.currentStage` numbering (capsule/high stages have LOW
             numbers); see the class doc comment.
@@ -19664,6 +20129,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             KSP's biome name at the vessel's current lat/long (e.g. "Highlands",
             "Shores"). Null when the body has no biome map (e.g. gas giants) or the
@@ -19672,6 +20138,7 @@ components:
           type:
             - string
             - "null"
+          x-sitrep-unit: text
           description: |-
             The named launch/landing site the vessel is currently at (e.g.
             "KSC_LaunchPad", "Runway"), null when landed/splashed somewhere with no
@@ -19718,12 +20185,15 @@ components:
       properties:
         name:
           type: string
+          x-sitrep-unit: text
         kind:
           $ref: "#/components/schemas/TargetKind"
+          x-sitrep-unit: enum
         vesselId:
           type:
             - string
             - "null"
+          x-sitrep-unit: id
           description: |-
             The target's own stable id: the M3 R3 fix for the "no target id to
             round-trip into `vessel.target.set`" gap this class's doc comment (§6.4)
@@ -19737,6 +20207,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             The target's `system.bodies` index: populated ONLY when `VesselTarget.kind`
             is `TargetKind.Body`, mirroring `VesselTarget.vesselId`'s vessel case and
@@ -19746,6 +20217,7 @@ components:
           type:
             - number
             - "null"
+          x-sitrep-unit: id
           description: |-
             The target part's KSP `Part.flightID`: populated ONLY when
             `VesselTarget.kind` is `TargetKind.Part` (a docking port), scoped by
@@ -19891,6 +20363,7 @@ components:
           type:
             - boolean
             - "null"
+          x-sitrep-unit: flag
           description: |-
             True when ANY engine part's internal-temperature ratio is at or above 0.9,
             the same ">90% max" threshold ThermalStatus's own inline alert copy already
@@ -19993,9 +20466,12 @@ components:
           x-sitrep-unit: "1"
         warpRateIndex:
           type: number
+          x-sitrep-unit: id
         warpMode:
           $ref: "#/components/schemas/WarpMode"
+          x-sitrep-unit: enum
         paused:
           type: boolean
+          x-sitrep-unit: flag
         meta:
           $ref: "#/components/schemas/PayloadMeta"

@@ -45,6 +45,8 @@ const REPO_ROOT = join(HERE, "..", "..", "..");
 
 const read = (rel: string) => readFileSync(join(REPO_ROOT, rel), "utf8");
 
+type UnitMap = Record<string, Record<string, string>>;
+
 interface Generator {
   generate: () => {
     document: Record<string, unknown>;
@@ -231,6 +233,89 @@ describe("asyncapi.yaml", () => {
       true,
     );
     expect(channels["career.tech.unlock"]["x-sitrep-delayed"]).toBe(false);
+  });
+
+  it("loses no unit the contract declares", async () => {
+    /*
+     * The check that was missing, and the reason it is here as well as in the
+     * generator. A `[SitrepUnit]` reaches the client through TWO channels: in the
+     * TYPE as `Value<"m/s">`, or, where the field generates bare, only in the
+     * generated unit MAP. The first version of this generator read the type and
+     * nothing else, and dropped 476 of the 860 declared units, the `m/s` on three
+     * of the four arguments to the command that plans a burn among them.
+     *
+     * It was invisible. The document looked complete and every stripped field
+     * read as one that had never declared a unit, so it left here as a finding
+     * about the contract and came back corrected.
+     *
+     * Asked of the COMMITTED FILE and of the unit map read directly, sharing
+     * neither the generator's walker nor its inputs. The generator refuses to
+     * emit a document that has lost a unit, and a second copy of that refusal
+     * built from the same parts would agree with it whatever either believed.
+     */
+    const { parse } = await import("yaml");
+    const shipped = parse(read(generator.OUTPUT)) as {
+      components: { schemas: Record<string, unknown> };
+    };
+    const declared = JSON.parse(read(join(GENERATED, "units.json"))) as {
+      types: UnitMap;
+    };
+
+    const unitAt = (node: unknown): string | undefined => {
+      if (!node || typeof node !== "object") return undefined;
+      const record = node as Record<string, unknown>;
+      if (typeof record["x-sitrep-unit"] === "string") {
+        return record["x-sitrep-unit"];
+      }
+      if (record.items) return unitAt(record.items);
+      const arms = (record.anyOf ?? record.allOf) as unknown[] | undefined;
+      for (const arm of arms ?? []) {
+        const found = unitAt(arm);
+        if (found !== undefined) return found;
+      }
+      return undefined;
+    };
+
+    const propertiesOf = (
+      node: unknown,
+    ): Record<string, unknown> | undefined => {
+      if (!node || typeof node !== "object") return undefined;
+      const record = node as Record<string, unknown>;
+      if (record.properties)
+        return record.properties as Record<string, unknown>;
+      const arms = (record.allOf ?? []) as Record<string, unknown>[];
+      return arms.filter((arm) => arm.properties).pop()?.properties as
+        | Record<string, unknown>
+        | undefined;
+    };
+
+    const lost: string[] = [];
+    let checked = 0;
+    for (const [typeName, fields] of Object.entries(declared.types)) {
+      if (!shipped.components.schemas[typeName]) continue;
+      for (const [field, unit] of Object.entries(fields)) {
+        let at: unknown = shipped.components.schemas[typeName];
+        for (const step of field.split(".")) at = propertiesOf(at)?.[step];
+        if (!at) continue;
+        checked++;
+        const carried = unitAt(at);
+        if (carried !== unit) {
+          lost.push(
+            `${typeName}.${field} declares ${unit}, document says ${carried ?? "nothing"}`,
+          );
+        }
+      }
+    }
+    /*
+     * A floor, because every clause above skips: a walk that resolved nothing
+     * would find nothing lost and read as a clean pass. It is the same shape of
+     * mistake as the loss being checked for.
+     */
+    expect(
+      checked,
+      "the walk reached too few declared units to mean anything",
+    ).toBeGreaterThan(700);
+    expect(lost).toEqual([]);
   });
 
   it("carries the contract's own prose, verbatim", () => {

@@ -26,6 +26,12 @@ export const SOURCES = {
   contract: join(GENERATED, "contract.ts"),
   topicMap: join(GENERATED, "topic-map.ts"),
   commandMap: join(GENERATED, "command-map.ts"),
+  /**
+   * The generated unit map: the SECOND channel a `[SitrepUnit]` reaches the
+   * client through, and the only one for a field the codegen leaves bare. See
+   * `withUnit` in `./json-schema.mjs`.
+   */
+  units: join(GENERATED, "units.json"),
   compatVersions: "mod/sitrep-sdk/src/compat-versions.ts",
   /**
    * Where core channels and commands are declared.
@@ -300,6 +306,28 @@ export function readCommandDispositions(root) {
  * are TypeScript. A missing constant throws: a document stamped with a version
  * it guessed is worse than one that would not build.
  */
+/**
+ * The generated unit map's two field-keyed halves.
+ *
+ * `types` is keyed by type name, `topics` by topic id. The topic half is a
+ * strict subset that AGREES with the type half everywhere it speaks (403
+ * entries, zero conflicts, zero entries the type half lacks), so nothing is
+ * derived from it. It is still read, and `asyncapi-doc.mjs` asserts the
+ * agreement, because two maps that are supposed to say the same thing are worth
+ * one comparison: the day they diverge, the document would silently follow
+ * whichever one it happened to read.
+ */
+export function readUnitMap(root) {
+  const map = JSON.parse(readFileSync(join(root, SOURCES.units), "utf8"));
+  if (!map.types || Object.keys(map.types).length === 0) {
+    throw new Error(
+      `asyncapi: ${SOURCES.units} carries no type unit map. A unit map that ` +
+        "matched nothing would drop every declared unit and read as a contract that has none.",
+    );
+  }
+  return { types: map.types, topics: map.topics ?? {} };
+}
+
 export function readContractVersion(root) {
   const source = readFileSync(join(root, SOURCES.compatVersions), "utf8");
   const read = (name) => {

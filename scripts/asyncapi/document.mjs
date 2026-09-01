@@ -324,20 +324,25 @@ export function buildDocument({
           type: { type: "string", const: "command-request" },
           requestId: schemas.fieldSchema(
             fieldOf(contract, "CommandRequest", "requestId"),
+            "CommandRequest",
           ),
           command: { type: "string", const: command },
           label: schemas.fieldSchema(
             fieldOf(contract, "CommandRequest", "label"),
+            "CommandRequest",
           ),
           topic: schemas.fieldSchema(
             fieldOf(contract, "CommandRequest", "topic"),
+            "CommandRequest",
           ),
           vantage: schemas.fieldSchema(
             fieldOf(contract, "CommandRequest", "vantage"),
+            "CommandRequest",
           ),
           args: schemas.typeSchema(argsType, `command ${command} args`),
           sentAt: schemas.fieldSchema(
             fieldOf(contract, "CommandRequest", "sentAt"),
+            "CommandRequest",
           ),
         },
       },
@@ -358,6 +363,7 @@ export function buildDocument({
           type: { type: "string", const: "command-response" },
           requestId: schemas.fieldSchema(
             fieldOf(contract, "CommandResponse", "requestId"),
+            "CommandResponse",
           ),
           result: schemas.typeSchema(replyType, `command ${command} reply`),
           meta: schemas.ref("Meta"),

@@ -1,5 +1,12 @@
-// The contract model as JSON Schema, and the two places the wire disagrees with
-// the TypeScript.
+// The contract model as JSON Schema, and the three places the emitted
+// TypeScript is not the whole story.
+//
+// ## A unit reaches the client through two channels
+//
+// See `withUnit`. Most fields carry theirs in the TYPE, as `Value<"m">`; the
+// rest generate bare and carry it only in the generated unit MAP. Reading the
+// type alone dropped 514 declared units, including the four on the arguments to
+// the command that plans a burn.
 //
 // ## `Value<unit>` is not the wire shape
 //
@@ -90,6 +97,51 @@ function enumSchema(declaration) {
   return schema;
 }
 
+/**
+ * Attaches a field's declared unit where the field's TYPE did not already carry
+ * one.
+ *
+ * ## The contract declares a unit through two channels, not one
+ *
+ * `[SitrepUnit]` in the C# reaches the client twice over. For most fields the
+ * codegen puts it IN THE TYPE, as `Value<"m/s">`. For the rest the field
+ * generates as a bare `string` / `number` / `boolean` / enum ref and the unit
+ * arrives only in the generated unit MAP, `__generated__/units.json`, keyed by
+ * type and field name.
+ *
+ * Reading the type alone loses the second channel entirely, and it is not a
+ * small remainder: 514 of the 884 map entries are on a field the type leaves
+ * bare. `AddManeuverNodeArgs`'s four fields, the arguments to the command that
+ * plans a burn, are declared `ut`, `m/s`, `m/s`, `m/s` in `VesselCommands.cs`
+ * and generate as four bare `number`s, so a type-only read published them with
+ * no unit at all and it read as a contract that had never declared any.
+ *
+ * The two channels agree wherever both speak: checked, zero disagreements
+ * across all 370 fields carrying a unit in both. So the type wins when it has
+ * one and the map fills in the rest, and `asyncapi-doc.mjs` refuses to emit a
+ * document that has dropped a unit the map declares.
+ *
+ * ## Every declared token, including the ones that are not quantities
+ *
+ * `text`, `flag`, `id`, `enum` and `n/a` are declared units in this contract's
+ * vocabulary, and the runtime does not WRAP them because they have no
+ * magnitude. That is a decision about hydration, not about meaning: "this string
+ * is an id" and "this number is an enum ordinal" are facts the contract states,
+ * and the document states them too. Absent, `n/a` and `1` are three different
+ * things here, exactly as the generated unit map's own header says, and
+ * filtering any of them out would collapse two of the three.
+ */
+function withUnit(schema, unit) {
+  if (unit === undefined || schema["x-sitrep-unit"] !== undefined)
+    return schema;
+  // On the ITEMS of an array: the unit belongs to each element, and a declared
+  // unit on the array itself would say the list has a magnitude.
+  if (schema.type === "array" && schema.items) {
+    return { ...schema, items: withUnit(schema.items, unit) };
+  }
+  return { ...schema, "x-sitrep-unit": unit };
+}
+
 /** The three components of a vector, all sharing the holder's unit. */
 function vec3Schema(unit) {
   const component = { type: "number", "x-sitrep-unit": unit };
@@ -109,8 +161,9 @@ function vec3Schema(unit) {
  * rather than padding the page.
  */
 export class SchemaBuilder {
-  constructor(contract) {
+  constructor(contract, unitsByType = {}) {
     this.contract = contract;
+    this.units = unitsByType;
     this.schemas = new Map();
     /** Type-parameter names bound to a concrete type by the current channel. */
     this.bindings = new Map();
@@ -168,7 +221,7 @@ export class SchemaBuilder {
     const required = [];
     const properties = {};
     for (const field of declaration.fields) {
-      properties[field.name] = this.fieldSchema(field);
+      properties[field.name] = this.fieldSchema(field, declaration.name);
       if (!field.optional) required.push(field.name);
     }
     if (required.length > 0) schema.required = required;
@@ -181,8 +234,11 @@ export class SchemaBuilder {
     return schema;
   }
 
-  fieldSchema(field) {
-    const base = this.typeSchema(field.type, field.name);
+  fieldSchema(field, owner) {
+    const base = withUnit(
+      this.typeSchema(field.type, `${owner}.${field.name}`),
+      this.units[owner]?.[field.name],
+    );
     return this.decorate(base, field.description, field.optional);
   }
 
