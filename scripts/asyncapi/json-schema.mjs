@@ -183,6 +183,30 @@ export class SchemaBuilder {
     return { $ref: `#/components/schemas/${componentKey(name)}` };
   }
 
+  /**
+   * Registers a schema this builder cannot derive, and hands back a `$ref` to
+   * it.
+   *
+   * The envelopes are the whole of the need. `StreamData<T>`,
+   * `CommandRequest<TArgs>` and `CommandResponse<TResult>` are generic over the
+   * slot each channel fills, so the walk has no single shape to emit for them:
+   * the caller binds the generic slot to a described placeholder and the
+   * per-channel message narrows it. A name already emitted from the contract is
+   * a collision rather than an override, because the two would disagree
+   * silently.
+   */
+  define(name, schema) {
+    const key = componentKey(name);
+    if (this.schemas.has(key)) {
+      throw new Error(
+        `asyncapi: ${name} is already in components.schemas, so defining it here ` +
+          "would overwrite a shape the contract produced. Rename one of the two.",
+      );
+    }
+    this.schemas.set(key, schema);
+    return { $ref: `#/components/schemas/${key}` };
+  }
+
   ensure(name) {
     if (this.schemas.has(componentKey(name))) return;
     const enumeration = this.contract.enums.get(name);

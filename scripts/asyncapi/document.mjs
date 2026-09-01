@@ -49,6 +49,11 @@ the \`command\` field on a \`command-request\`; it is not a URL path, and there 
 no second connection to open. The \`session\` channel carries the frames that
 belong to the connection rather than to any one channel.
 
+Everything the mod sends is one of four frame types, unioned as
+\`components.schemas.InboundFrame\` and discriminated on \`type\`. Write that
+router first: every per-channel message below narrows one of its arms, and none
+of them adds a fifth.
+
 ## Nothing arrives before you ask for it
 
 Delivery is subscription-gated. A client receives a topic only after sending
@@ -72,6 +77,43 @@ Never as its name. Where the member set is a real constraint it is a \`oneOf\` o
 no member set to validate against, because the wire carries an OR of members, so
 those carry the member table on \`x-sitrep-enum\` and constrain only
 \`integer\`. \`x-sitrep-enum-kind\` says which of the two an enum is.
+
+## The \`x-sitrep-*\` annotations
+
+Facts the contract states that JSON Schema and AsyncAPI have no slot for. Each
+is read off the declaration site rather than written here, so an annotation that
+is absent means the declaration did not state it.
+
+- \`x-sitrep-unit\`, on a schema: the token the value crosses in, from the
+  contract's \`[SitrepUnit]\`. \`text\`, \`flag\`, \`id\`, \`enum\` and \`n/a\`
+  are tokens in this vocabulary too and mean what they say, so absent, \`n/a\`
+  and \`1\` are three different things
+- \`x-sitrep-enum\` and \`x-sitrep-enum-kind\`, on an enum's schema: see the
+  section above
+- \`x-sitrep-delivery\`, on a telemetry channel: which outbox lane its samples
+  ride. \`lossy-latest\` coalesces to the freshest sample per topic, so a client
+  that falls behind sees the latest state and never the ones it skipped.
+  \`reliable-ordered\` delivers every sample, in order, never coalesced. This is
+  not a tuning knob: the \`reliable-ordered\` channels are the DISCRETE
+  occurrences, and a client that treats \`flight.started\` as lossy misses a
+  launch whose frame a later one replaced
+- \`x-sitrep-delay-role\`, on a telemetry channel: \`delayed\` rides the
+  light-time clock, so the value is what the vantage KNEW rather than what is
+  true now. \`true-now\` bypasses it, and is for a ground-side fact with no
+  analogue in flight, such as whether the SCANsat assembly is installed at all
+- \`x-sitrep-keyframe-interval-ut\`, on a telemetry channel: the UT seconds
+  after which it re-emits unconditionally, with nothing changed. It is what
+  makes a late subscriber, a quickload and a rejoin recoverable without waiting
+  for the next real change, and it is the interval to size a staleness timeout
+  against
+- \`x-sitrep-absence-is-data\`, on a telemetry channel: \`true\` means an empty
+  value is a real answer and arrives as a tombstone from the first tick (no
+  target selected, no crew aboard). Without it a channel is held back until it
+  has had a real value, so silence there means "not yet" rather than "none"
+- \`x-sitrep-delayed\`, on a command channel: whether the write rides the
+  uplink instead of taking effect when it is pressed
+- \`x-sitrep-empty\`, on a schema: the shape IS the absence of one, as
+  \`NoCommandArgs\` is, rather than a shape whose fields were dropped
 
 ## This is not a list of every channel on the wire
 
@@ -129,7 +171,96 @@ so there is nothing to report about what the game thought.
 
 A command the game REFUSED ran and said no. That arrives as a
 \`command-response\` with \`success: false\` and an \`errorCode\`, correlated on
-\`requestId\` like any other answer, and it is not an error frame.`;
+\`requestId\` like any other answer, and it is not an error frame.
+
+\`code\` is an open vocabulary rather than an enumeration, and the mod emits
+three values into it: \`unknown-vantage\`, a \`set-vantage\` naming a centre that
+is not active; \`E_UNAVAILABLE\`, a dispatch that reached no handler; and
+\`result-serialization-error\`, a command that ran and whose result could not be
+written. A client's own transport mints codes into the same field, so an
+unrecognised code is still a fault and \`message\` is what to show for it.
+\`CommandErrorCode\`, enumerated in full under \`components.schemas\`, is a
+different vocabulary: it names REFUSALS and never appears here.`;
+
+/**
+ * What an `event` frame is, and why it is on the topic channels rather than on
+ * the session.
+ *
+ * The frame's own payload requires a `topic`, and both names the mod emits are
+ * per-subscription. Carried here rather than on `EventMsg` because the contract
+ * declares no doc comment for it, and this is a fact about the protocol.
+ */
+const EVENT_DESCRIPTION = `Something that happened to a SUBSCRIPTION, on the topic it happened to.
+
+Two names are emitted, and each names one topic this connection is subscribed
+to:
+
+- \`subscribed\` acknowledges a \`subscribe\`, once per subscribe, on the
+  reliable lane. It is the frame to wait for rather than the first
+  \`stream-data\`: a channel with nothing to say yet sends the ack and then
+  nothing. A \`subscribe\` naming a topic no declared channel and no registered
+  dynamic namespace owns is answered with NOTHING, not an error, so a missing
+  ack is how a client learns a topic is unowned
+- \`timeline-reset\` says the game quickloaded and UT rewound. It is sent to
+  every session for every topic it holds, and the delayed view built from
+  frames before it is abandoned rather than reconciled
+
+An event carries no payload of its own: \`name\` is the whole of what happened,
+and \`meta\` describes the delivery as it does on any other frame. Events on a
+DYNAMIC topic are emitted the same way and are absent here for the reason the
+document description gives.`;
+
+const STREAM_DATA_DESCRIPTION = `The envelope every telemetry frame arrives in.
+
+\`topic\` is the channel's \`address\` and \`payload\` is that channel's own
+shape; each channel's \`stream-data\` message pins both, so this is the shape to
+route on and that one is the shape to read. \`meta\` is stamped by the mod on
+every frame and describes the DELIVERY rather than the value, which is where
+\`validAt\`, \`deliveredAt\` and staleness live.`;
+
+const COMMAND_REQUEST_DESCRIPTION = `The envelope every dispatch is sent in.
+
+\`command\` is the channel's \`address\` and \`args\` is that command's own args
+type; each command's \`command-request\` message pins both. The answer comes back
+as a \`command-response\` correlated on \`requestId\`, or as an \`error\` frame if
+the dispatch was never carried.`;
+
+const COMMAND_RESPONSE_DESCRIPTION = `The envelope every answer to a dispatch arrives in.
+
+\`result\` is the command's own reply type, pinned by that command's
+\`command-response\` message. A resolved response is a command that RAN: a
+refusal arrives here with \`success: false\` and an \`errorCode\`, and a fault
+arrives as an \`error\` frame on the session channel instead.
+
+There is no \`command\` field. \`requestId\` is the only link back to the
+dispatch, and a delayed command's answer can be minutes behind it.`;
+
+const INBOUND_FRAME_DESCRIPTION = `Every frame the mod sends, discriminated on \`type\`.
+
+The first thing a client writes is a router over these four, and they are the
+whole of the inbound surface: \`stream-data\` carries a subscribed topic's value,
+\`command-response\` answers a dispatch, \`event\` reports something that happened
+to a subscription, and \`error\` reports a request that could not be carried.
+Every per-channel message below narrows one of these; none of them adds a fifth
+\`type\`.`;
+
+const CORRELATION_DESCRIPTION =
+  "A dispatch and its answer are correlated on `requestId`, never on order: " +
+  "responses may arrive out of the order the requests were sent, and a " +
+  "delayed command's answer can be minutes behind it.";
+
+/** A `Meta` the examples share, so all three read as one frame's worth of traffic. */
+const EXAMPLE_META = {
+  source: "gonogo",
+  validAt: 1_842_006.5,
+  seq: 918,
+  deliveredAt: 1_842_006.5,
+  vantage: "ksc",
+  quality: 1,
+  active: true,
+  staleness: 0,
+  timelineEpoch: 3,
+};
 
 /**
  * Bindings the ORIGINAL declaration site knows and the generated contract does
@@ -152,6 +283,134 @@ function dispositionExtensions(disposition) {
     out["x-sitrep-absence-is-data"] = disposition.absenceIsData;
   }
   return out;
+}
+
+/**
+ * The three envelopes as named schemas, plus the union of every frame the mod
+ * sends.
+ *
+ * Each envelope is generic over one slot in the contract, so the walk has no
+ * single shape to emit for it: the slot is described here and each channel's
+ * message narrows it with an `allOf`. Naming them is what lets a client write a
+ * frame router before it has read a channel, which is the first thing it has to
+ * do and the one thing 178 inlined copies of the same envelope never said.
+ */
+function defineEnvelopes(schemas, contract) {
+  const field = (typeName, fieldName) =>
+    schemas.fieldSchema(fieldOf(contract, typeName, fieldName), typeName);
+
+  const streamData = schemas.define("StreamData", {
+    type: "object",
+    description: STREAM_DATA_DESCRIPTION,
+    required: ["type", "topic", "payload", "meta"],
+    properties: {
+      type: schemas.constSchema("StreamData", "type", "stream-data"),
+      topic: field("StreamData", "topic"),
+      payload: {
+        description:
+          "The topic's own value. Each channel's `stream-data` message narrows " +
+          "this to that channel's payload schema.",
+      },
+      meta: schemas.ref("Meta"),
+    },
+    examples: [
+      {
+        type: "stream-data",
+        topic: "vessel.flight",
+        payload: { altitude: 72840.31, verticalSpeed: -4.2 },
+        meta: EXAMPLE_META,
+      },
+    ],
+  });
+
+  const commandRequest = schemas.define("CommandRequest", {
+    type: "object",
+    description: COMMAND_REQUEST_DESCRIPTION,
+    required: [
+      "type",
+      "requestId",
+      "command",
+      "label",
+      "topic",
+      "args",
+      "sentAt",
+    ],
+    properties: {
+      type: schemas.constSchema("CommandRequest", "type", "command-request"),
+      requestId: field("CommandRequest", "requestId"),
+      command: field("CommandRequest", "command"),
+      label: field("CommandRequest", "label"),
+      topic: field("CommandRequest", "topic"),
+      vantage: field("CommandRequest", "vantage"),
+      args: {
+        description:
+          "The command's own arguments. Each command's `command-request` " +
+          "message narrows this to that command's args schema.",
+      },
+      sentAt: field("CommandRequest", "sentAt"),
+    },
+    examples: [
+      {
+        type: "command-request",
+        requestId: "0f3c9a12",
+        command: "vessel.control.setThrottle",
+        label: "Throttle 40%",
+        topic: "vessel.control",
+        vantage: "ksc",
+        args: { throttle: 0.4 },
+        sentAt: 0,
+      },
+    ],
+  });
+
+  const commandResponse = schemas.define("CommandResponse", {
+    type: "object",
+    description: COMMAND_RESPONSE_DESCRIPTION,
+    required: ["type", "requestId", "result", "meta"],
+    properties: {
+      type: schemas.constSchema("CommandResponse", "type", "command-response"),
+      requestId: field("CommandResponse", "requestId"),
+      result: {
+        description:
+          "The command's own reply. Each command's `command-response` message " +
+          "narrows this to that command's reply schema.",
+      },
+      meta: schemas.ref("Meta"),
+    },
+    examples: [
+      {
+        type: "command-response",
+        requestId: "0f3c9a12",
+        result: { success: true, errorCode: 0 },
+        meta: EXAMPLE_META,
+      },
+    ],
+  });
+
+  schemas.define("InboundFrame", {
+    description: INBOUND_FRAME_DESCRIPTION,
+    discriminator: "type",
+    oneOf: [
+      streamData,
+      commandResponse,
+      schemas.ref("EventMsg"),
+      schemas.ref("ErrorMsg"),
+    ],
+  });
+
+  /*
+   * A fresh `$ref` object per call, never the one object 122 times. The YAML
+   * writer anchors a repeated object and aliases every later use, so sharing one
+   * turned 121 of the messages into `- *a1` and left a reader chasing an anchor
+   * to find out which envelope the message narrows. It costs no lines either
+   * way: an aliased list item and a `$ref` list item are both one line, and the
+   * anchor's own definition is two.
+   */
+  return {
+    streamData: () => ({ ...streamData }),
+    commandRequest: () => ({ ...commandRequest }),
+    commandResponse: () => ({ ...commandResponse }),
+  };
 }
 
 /**
@@ -180,6 +439,8 @@ export function buildDocument({
   const operations = {};
   const messages = {};
 
+  const envelopes = defineEnvelopes(schemas, contract);
+
   channels.session = {
     title: "Connection session",
     description: SESSION_DESCRIPTION,
@@ -188,7 +449,6 @@ export function buildDocument({
       subscribe: { $ref: "#/components/messages/subscribe" },
       unsubscribe: { $ref: "#/components/messages/unsubscribe" },
       setVantage: { $ref: "#/components/messages/setVantage" },
-      event: { $ref: "#/components/messages/event" },
       error: { $ref: "#/components/messages/error" },
     },
   };
@@ -197,6 +457,16 @@ export function buildDocument({
     name: "subscribe",
     title: "Open delivery on a topic",
     payload: schemas.ref("Subscribe"),
+    examples: [
+      {
+        name: "open-vessel-flight",
+        summary:
+          "The first frame a client sends. Until it does the socket stays silent, " +
+          "and the mod answers this one with an `event` named `subscribed` on the " +
+          "`vessel.flight` channel.",
+        payload: { type: "subscribe", topic: "vessel.flight" },
+      },
+    ],
   };
   messages.unsubscribe = {
     name: "unsubscribe",
@@ -211,6 +481,7 @@ export function buildDocument({
   messages.event = {
     name: "event",
     title: "A named occurrence on a topic, carrying no payload of its own",
+    description: EVENT_DESCRIPTION,
     payload: schemas.ref("EventMsg"),
   };
   messages.error = {
@@ -229,6 +500,7 @@ export function buildDocument({
     action: "send",
     channel: { $ref: "#/channels/session" },
     title: "Open or close delivery, or change vantage",
+    tags: [{ name: "session" }],
     messages: [
       { $ref: "#/channels/session/messages/subscribe" },
       { $ref: "#/channels/session/messages/unsubscribe" },
@@ -238,11 +510,13 @@ export function buildDocument({
   operations["session.notices"] = {
     action: "receive",
     channel: { $ref: "#/channels/session" },
-    title: "Connection-scoped events and errors",
-    messages: [
-      { $ref: "#/channels/session/messages/event" },
-      { $ref: "#/channels/session/messages/error" },
-    ],
+    title: "Connection-scoped errors",
+    description:
+      "An `event` frame is NOT here. It names a topic and is only ever emitted " +
+      "for one this connection has subscribed to, so it sits on the topic " +
+      "channels alongside their `stream-data`.",
+    tags: [{ name: "session" }],
+    messages: [{ $ref: "#/channels/session/messages/error" }],
   };
 
   for (const { key: topic, type } of topics) {
@@ -253,34 +527,34 @@ export function buildDocument({
       title: `A frame on ${topic}`,
       contentType: "application/json",
       payload: {
-        type: "object",
-        description:
-          `The \`stream-data\` envelope carrying \`${topic}\`. \`meta\` is stamped ` +
-          "by the mod on every frame and describes the delivery, not the value.",
-        required: ["type", "topic", "payload", "meta"],
-        properties: {
-          type: schemas.constSchema("StreamData", "type", "stream-data"),
-          topic: schemas.constSchema("StreamData", "topic", topic),
-          payload,
-          meta: schemas.ref("Meta"),
-        },
+        description: `The \`stream-data\` envelope carrying \`${topic}\`.`,
+        allOf: [
+          envelopes.streamData(),
+          { properties: { topic: { const: topic }, payload } },
+        ],
       },
     };
     channels[topic] = {
       address: topic,
-      title: topic,
       description: channelDescription(contract, type, topic),
       servers: [{ $ref: `#/servers/${SERVER_KEY}` }],
       ...dispositionExtensions(dispositions.get(topic)),
-      messages: { streamData: { $ref: `#/components/messages/${messageKey}` } },
+      messages: {
+        streamData: { $ref: `#/components/messages/${messageKey}` },
+        event: { $ref: "#/components/messages/event" },
+      },
     };
     operations[`read:${topic}`] = {
       action: "receive",
       channel: { $ref: `#/channels/${escapeRefToken(topic)}` },
       title: `Read ${topic}`,
-      description: `Delivered only after \`subscribe\` names \`${topic}\` on the session channel.`,
+      description:
+        `Delivered only after \`subscribe\` names \`${topic}\` on the session ` +
+        "channel, which the mod answers here with an `event` named `subscribed`.",
+      tags: [{ name: namespaceOf(topic) }],
       messages: [
         { $ref: `#/channels/${escapeRefToken(topic)}/messages/streamData` },
+        { $ref: `#/channels/${escapeRefToken(topic)}/messages/event` },
       ],
     };
   }
@@ -295,93 +569,49 @@ export function buildDocument({
     }
     const requestKey = `commandRequest.${command}`;
     const responseKey = `commandResponse.${command}`;
-    const correlationId = {
-      description:
-        "A dispatch and its answer are correlated on `requestId`, never on order: " +
-        "responses may arrive out of the order the requests were sent, and a " +
-        "delayed command's answer can be minutes behind it.",
-      location: "$message.payload#/requestId",
-    };
+    // A fresh object per message, for the reason `defineEnvelopes` gives.
+    const correlationId = () => ({
+      $ref: "#/components/correlationIds/requestId",
+    });
 
     messages[requestKey] = {
       name: "command-request",
       title: `Dispatch ${command}`,
       contentType: "application/json",
-      correlationId,
+      correlationId: correlationId(),
       payload: {
-        type: "object",
         description: `The \`command-request\` envelope for \`${command}\`, with its typed \`args\`.`,
-        required: [
-          "type",
-          "requestId",
-          "command",
-          "label",
-          "topic",
-          "args",
-          "sentAt",
+        allOf: [
+          envelopes.commandRequest(),
+          {
+            properties: {
+              command: { const: command },
+              args: schemas.typeSchema(argsType, `command ${command} args`),
+            },
+          },
         ],
-        properties: {
-          type: schemas.constSchema(
-            "CommandRequest",
-            "type",
-            "command-request",
-          ),
-          requestId: schemas.fieldSchema(
-            fieldOf(contract, "CommandRequest", "requestId"),
-            "CommandRequest",
-          ),
-          command: schemas.constSchema("CommandRequest", "command", command),
-          label: schemas.fieldSchema(
-            fieldOf(contract, "CommandRequest", "label"),
-            "CommandRequest",
-          ),
-          topic: schemas.fieldSchema(
-            fieldOf(contract, "CommandRequest", "topic"),
-            "CommandRequest",
-          ),
-          vantage: schemas.fieldSchema(
-            fieldOf(contract, "CommandRequest", "vantage"),
-            "CommandRequest",
-          ),
-          args: schemas.typeSchema(argsType, `command ${command} args`),
-          sentAt: schemas.fieldSchema(
-            fieldOf(contract, "CommandRequest", "sentAt"),
-            "CommandRequest",
-          ),
-        },
       },
     };
     messages[responseKey] = {
       name: "command-response",
       title: `Reply to ${command}`,
       contentType: "application/json",
-      correlationId,
+      correlationId: correlationId(),
       payload: {
-        type: "object",
-        description:
-          `The \`command-response\` envelope for \`${command}\`. A resolved response ` +
-          "is a command that RAN; a refusal arrives as `success: false` with an " +
-          "`errorCode`, and a fault arrives as an `error` frame on the session channel.",
-        required: ["type", "requestId", "result", "meta"],
-        properties: {
-          type: schemas.constSchema(
-            "CommandResponse",
-            "type",
-            "command-response",
-          ),
-          requestId: schemas.fieldSchema(
-            fieldOf(contract, "CommandResponse", "requestId"),
-            "CommandResponse",
-          ),
-          result: schemas.typeSchema(replyType, `command ${command} reply`),
-          meta: schemas.ref("Meta"),
-        },
+        description: `The \`command-response\` envelope for \`${command}\`, with its typed \`result\`.`,
+        allOf: [
+          envelopes.commandResponse(),
+          {
+            properties: {
+              result: schemas.typeSchema(replyType, `command ${command} reply`),
+            },
+          },
+        ],
       },
     };
 
     channels[command] = {
       address: command,
-      title: command,
       description: commandChannelDescription(
         contract,
         argsType,
@@ -399,6 +629,7 @@ export function buildDocument({
       action: "send",
       channel: { $ref: `#/channels/${escapeRefToken(command)}` },
       title: `Dispatch ${command}`,
+      tags: [{ name: namespaceOf(command) }],
       messages: [
         {
           $ref: `#/channels/${escapeRefToken(command)}/messages/commandRequest`,
@@ -428,6 +659,14 @@ export function buildDocument({
         name: "MIT",
         url: "https://github.com/ksp-gonogo/gonogo/blob/main/LICENSE",
       },
+      tags: [
+        {
+          name: "session",
+          description:
+            "Frames belonging to the connection rather than a channel",
+        },
+        ...namespaceTags(topics, commandArgs),
+      ],
       externalDocs: {
         description:
           "Writing an Uplink: the client half, the mod half, and the codegen between them",
@@ -450,10 +689,56 @@ export function buildDocument({
     channels: sortKeys(channels),
     operations: sortKeys(operations),
     components: {
+      correlationIds: {
+        requestId: {
+          description: CORRELATION_DESCRIPTION,
+          location: "$message.payload#/requestId",
+        },
+      },
       messages: sortKeys(messages),
       schemas: schemas.components(),
     },
   };
+}
+
+/**
+ * A subject's namespace: the first dotted segment of its address.
+ *
+ * The only grouping in the contract that is not this document's invention. It is
+ * how the topics are named, how the providers are split, and the axis a rendered
+ * sidebar needs, because 122 operations under one alphabetical list is the
+ * navigation this document had.
+ */
+function namespaceOf(subject) {
+  const dot = subject.indexOf(".");
+  return dot === -1 ? subject : subject.slice(0, dot);
+}
+
+/**
+ * The tag list, each carrying its own size.
+ *
+ * A count rather than a sentence about what the namespace is for: the count is a
+ * fact off the same maps the channels came from, and a hand-written gloss on
+ * twenty-five namespaces would be prose this generator invented.
+ */
+function namespaceTags(topics, commandArgs) {
+  const counts = new Map();
+  const bump = (subject, kind) => {
+    const name = namespaceOf(subject);
+    const entry = counts.get(name) ?? { channels: 0, commands: 0 };
+    entry[kind]++;
+    counts.set(name, entry);
+  };
+  for (const { key } of topics) bump(key, "channels");
+  for (const { key } of commandArgs) bump(key, "commands");
+
+  const plural = (n, noun) => `${n} ${noun}${n === 1 ? "" : "s"}`;
+  return [...counts.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([name, { channels, commands }]) => ({
+      name,
+      description: `${plural(channels, "telemetry channel")}, ${plural(commands, "command")}`,
+    }));
 }
 
 /** A `$ref` JSON-Pointer token: `/` and `~` are the two characters that must escape. */

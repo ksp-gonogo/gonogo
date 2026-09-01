@@ -190,24 +190,45 @@ export function generate() {
   return { document, contract, topics, commandArgs, units };
 }
 
-/** A shape's own properties, whether it is plain or extends another. */
-function propertiesOf(schema) {
-  if (!schema) return undefined;
-  return (
-    schema.properties ??
-    schema.allOf?.filter((arm) => arm.properties).pop()?.properties
-  );
+/**
+ * Every schema that describes one property, across `$ref` and `allOf`.
+ *
+ * A shape reaches a property through three routes and this follows all three: a
+ * plain `properties` map, an `allOf` of a base and its own fields, and a message
+ * payload that `$ref`s a named envelope under an `allOf` with the arm pinning
+ * its topic. The last of those is why a plain read is not enough: the envelope
+ * carries the unit, the narrowing arm carries the `const`, and both describe the
+ * same property.
+ *
+ * Most specific first, so the arm nearest the reader wins where two speak. That
+ * is the order the single-arm read this replaced had, via its `pop()`.
+ */
+function propertySchemas(schema, name, schemas, seen = new Set()) {
+  const node = schema?.$ref ? schemas[schema.$ref.split("/").pop()] : schema;
+  if (!node || typeof node !== "object" || seen.has(node)) return [];
+  seen.add(node);
+  const found = [];
+  if (node.properties?.[name]) found.push(node.properties[name]);
+  for (const arm of [...(node.allOf ?? [])].reverse()) {
+    found.push(...propertySchemas(arm, name, schemas, seen));
+  }
+  return found;
 }
 
 /**
- * A field's schema inside `components.schemas`, following the dotted leaf form
- * the unit map uses for a vector's components (`relativePosition.x`).
+ * Every schema describing a field inside `components.schemas`, following the
+ * dotted leaf form the unit map uses for a vector's components
+ * (`relativePosition.x`).
  */
-function propertyAt(schema, path) {
-  let at = schema;
+function propertyAt(schema, path, schemas) {
+  let at = [schema];
   for (const step of path) {
-    at = propertiesOf(at)?.[step];
-    if (!at) return undefined;
+    const next = [];
+    for (const candidate of at) {
+      next.push(...propertySchemas(candidate, step, schemas));
+    }
+    if (next.length === 0) return undefined;
+    at = next;
   }
   return at;
 }
@@ -260,10 +281,10 @@ function assertUnitsSurvived(document, units) {
 
   const compare = (label, fields, target) => {
     for (const [field, unit] of Object.entries(fields)) {
-      const at = propertyAt(target, field.split("."));
+      const at = propertyAt(target, field.split("."), schemas);
       if (!at) continue;
       checked++;
-      const carried = unitAt(at);
+      const carried = at.map(unitAt).find((found) => found !== undefined);
       if (carried !== unit) {
         lost.push(
           `${label}.${field} declares ${unit}, document says ${carried ?? "nothing"}`,
@@ -278,18 +299,18 @@ function assertUnitsSurvived(document, units) {
   }
 
   /*
-   * The three envelope types whose payload the document INLINES rather than
-   * `$ref`s, because each channel binds their generic parameter to its own
-   * payload or args type. Their fields are drawn from the same contract
-   * declarations and so are subject to the same map, and reaching them means
-   * naming one emitted message rather than a component. Checked on the first
-   * such message of each kind: the builder writes all 122 from one code path, so
-   * one is representative and 122 would be the same assertion 122 times.
+   * The same three envelope types again, this time reached the way a READER
+   * reaches them: through an emitted message, which `$ref`s the named envelope
+   * under an `allOf` with the arm pinning its topic or command. The loop above
+   * only proves the component is right, and a component nothing resolves to is
+   * a component nobody sees, so this asks whether the path holds. Checked on the
+   * first message of each kind: the builder writes all 122 from one code path,
+   * so one is representative and 122 would be the same assertion 122 times.
    *
-   * Not academic. All three declare no unit at all today, alone among the eight
-   * envelope types, so without this the day somebody annotates
-   * `CommandRequest.SentAt` the document would silently drop it and the check
-   * above would not look.
+   * Not academic. Every unit these three declare now lives in one place rather
+   * than in 122 copies, so a broken `$ref` would drop all of them at once, and
+   * a document that had lost them reads exactly like one whose envelopes never
+   * declared any.
    */
   const firstOf = (prefix) =>
     Object.keys(messages)
@@ -327,17 +348,21 @@ function assertUnitsSurvived(document, units) {
   for (const [topic, fields] of Object.entries(units.topics)) {
     const channel = document.channels[topic];
     if (!channel) continue;
+    // The channel's own `payload`, which is the narrowing arm's rather than the
+    // envelope's placeholder: `propertySchemas` returns the most specific first.
+    const payload = propertySchemas(
+      document.components.messages[`streamData.${topic}`]?.payload,
+      "payload",
+      schemas,
+    )[0];
+    const target = payload?.$ref
+      ? schemas[payload.$ref.split("/").pop()]
+      : payload?.items?.$ref
+        ? schemas[payload.items.$ref.split("/").pop()]
+        : undefined;
     for (const [field, unit] of Object.entries(fields)) {
-      const payload =
-        document.components.messages[`streamData.${topic}`]?.payload?.properties
-          ?.payload;
-      const target = payload?.$ref
-        ? schemas[payload.$ref.split("/").pop()]
-        : payload?.items?.$ref
-          ? schemas[payload.items.$ref.split("/").pop()]
-          : undefined;
-      const at = target && propertyAt(target, field.split("."));
-      const carried = at && unitAt(at);
+      const at = target && propertyAt(target, field.split("."), schemas);
+      const carried = at && at.map(unitAt).find((found) => found !== undefined);
       if (at && carried !== unit) {
         throw new Error(
           `asyncapi: the unit map's topic half says ${topic}.${field} is ${unit} ` +
