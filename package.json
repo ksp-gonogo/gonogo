@@ -23,6 +23,8 @@
     "release:patch": "node scripts/release.mjs patch",
     "release:minor": "node scripts/release.mjs minor",
     "release:major": "node scripts/release.mjs major",
+    "asyncapi": "node scripts/asyncapi-doc.mjs",
+    "asyncapi:check": "node scripts/asyncapi-doc.mjs --check",
     "uplink-matrix": "node scripts/uplink-matrix.mjs",
     "uplink-docs": "bash scripts/uplink-docs.sh",
     "uplink-docs:check": "bash scripts/uplink-docs.sh --check",
@@ -33,6 +35,7 @@
     "uplink-csharp-extraction-probe": "node scripts/uplink-csharp-extraction-probe.mjs"
   },
   "devDependencies": {
+    "@asyncapi/parser": "^3.6.3",
     "@biomejs/biome": "2.4.12",
     "@grpc/grpc-js": "^1.12.2",
     "@grpc/proto-loader": "^0.7.13",
@@ -53,7 +56,8 @@
     "turbo": "latest",
     "typescript": "^5.0.0",
     "vitest": "^4.1.4",
-    "ws": "^8.21.0"
+    "ws": "^8.21.0",
+    "yaml": "^2.9.0"
   },
   "engines": {
     "node": ">=24"
