@@ -9,6 +9,7 @@ import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./AdminBuilding/programsScreen";
 import "./CrewSchedule";
+import "./CrewSchedule/enrolment";
 import "./ContractPayload";
 import "./CrewSchedule/programme";
 import "./KscComplexes";
@@ -25,6 +26,7 @@ export {
   RP1_CONTRACT_PAYLOAD_COMMAND,
 } from "./ContractPayload";
 export { CrewSchedule } from "./CrewSchedule";
+export { TrainingEnrolment } from "./CrewSchedule/enrolment";
 export { CrewProgramme } from "./CrewSchedule/programme";
 export {
   RP1_TRAINING_CANCEL_COMMAND,

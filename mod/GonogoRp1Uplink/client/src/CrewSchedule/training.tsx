@@ -15,12 +15,13 @@ import {
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { type ReactNode, useState } from "react";
+import { useState } from "react";
 import type {
   Rp1TrainingCourseEntry,
   Rp1TrainingTemplateEntry,
 } from "../__generated__/contract";
 import { current } from "../shared/current";
+import { Seats, titleOf } from "./template";
 // Side-effect import: hydrates these Topics' units at decode time, so a base
 // time decodes as a duration rather than a bare number of seconds.
 import "../topics";
@@ -268,37 +269,6 @@ function LeaveControls({
 }
 
 /**
- * The seat bounds, which are what decides whether this row can start the
- * training at all. Absent when RP-1 sent no minimum, rather than assumed: the
- * refusal below reads the same field and would then be guessing too.
- */
-function Seats({
-  template,
-}: Readonly<{ template: Rp1TrainingTemplateEntry }>): ReactNode {
-  const min = magnitudeOf(template.seatMin);
-  if (min === null) {
-    return null;
-  }
-  const max = magnitudeOf(template.seatMax);
-  return (
-    <>
-      {" · seats "}
-      <Unit value={template.seatMin} />
-      {/* RP-1 stores -1 for no maximum and the wire carries it as it stands,
-          so a non-positive maximum is a course with no ceiling rather than one
-          that seats nobody. */}
-      {max !== null && max <= 0 && ", no maximum"}
-      {max !== null && max > min && (
-        <>
-          {" to "}
-          <Unit value={template.seatMax} />
-        </>
-      )}
-    </>
-  );
-}
-
-/**
  * Why this row cannot start this training, or null.
  *
  * <para>The one refusal a naut's row can state on its own, and it exists
@@ -313,11 +283,6 @@ function seatRefusal(template: Rp1TrainingTemplateEntry): string | null {
     return null;
   }
   return `${titleOf(template)} needs ${min} students and a naut's row enrols one`;
-}
-
-/** RP-1's own name for a training, or the parts of one it did send. */
-function titleOf(template: Rp1TrainingTemplateEntry): string {
-  return template.name ?? template.target ?? template.id ?? "";
 }
 
 /**
