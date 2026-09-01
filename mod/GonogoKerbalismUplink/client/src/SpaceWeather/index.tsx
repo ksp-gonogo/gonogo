@@ -914,11 +914,17 @@ function SpaceWeatherComponent({
     // habitat, and the whole point of getting here is that there is nothing to
     // make it from.
     return (
-      <Panel panelTitle="Space Weather" compactTitle={["SPACE WX", "WX"]}>
-        <EmptyState layout="fill" role="status" aria-live="polite">
-          {ABSENCE_TEXT[read.absence]}
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="Space Weather"
+        compactTitle={["SPACE WX", "WX"]}
+        sections={
+          <Section fill>
+            <EmptyState layout="fill" role="status" aria-live="polite">
+              {ABSENCE_TEXT[read.absence]}
+            </EmptyState>
+          </Section>
+        }
+      />
     );
   }
 
@@ -962,128 +968,136 @@ function SpaceWeatherComponent({
           {status.label}
         </Badge>
       }
-    >
-      {/* Sun vantage first: the widget's subject is what the STAR is doing,
-          and the vessel-local consequence below is downstream of it. */}
-      <Section>
-        <SectionTitle>Stars</SectionTitle>
-        {d.stars.length === 0 ? (
-          <EmptyState>No stars detected yet.</EmptyState>
-        ) : (
-          // `justify="start"`, not Cluster's default `between`: with one or two
-          // stars, space-between shoves the cards to opposite edges with a
-          // canyon between them, which reads as broken rather than as "not much
-          // going on". Packing left with a fixed card width is what scales from
-          // a lone star to a five-star system, wrapping instead of stretching.
-          <Cluster gap="sm" wrap justify="start">
-            {d.stars.map((star) => {
-              const name = star.star ?? "Unknown star";
-              const activity = starActivity(allStorms, name);
-              return (
-                <Card
-                  key={name}
-                  tone={SEVERITY_CARD_TONE[activity.severity]}
-                  // Fixed width, not a minWidth: every card is the same size
-                  // whatever the star's name length, so a row packs and wraps
-                  // predictably. flexShrink 0 keeps that width honest under
-                  // `wrap`, so the browser wraps rather than squeezing.
-                  style={{ width: 128, flexShrink: 0 }}
-                >
-                  <Stack gap="xs">
-                    <StarDiagram
-                      starName={name}
-                      activity={activity}
-                      compact={compact}
-                    />
-                    <Text tone="default" weight="semibold" size="sm">
-                      {name}
-                    </Text>
-                    <Text tone="muted" size="xs">
-                      <Unit value={star.distance} />
-                    </Text>
-                  </Stack>
-                </Card>
-              );
-            })}
-          </Cluster>
-        )}
-      </Section>
-
-      <Section>
-        <SectionTitle>CME tracker</SectionTitle>
-        {activeStorms.length === 0 ? (
-          <EmptyState>No inbound CMEs detected.</EmptyState>
-        ) : (
-          <Stack gap="sm">
-            {activeStorms.map((storm) => (
-              <StormCard
-                key={storm.key}
-                storm={storm}
-                compact={compact}
-                fallbackBodyName={fallbackBodyName}
-              />
-            ))}
-          </Stack>
-        )}
-      </Section>
-
-      <StormTimeline state={d.stormState} />
-
-      <div style={midRowStyle(compact)}>
-        <div style={RINGS_SLOT}>
-          <BeltRings
-            inner={d.innerBelt}
-            outer={d.outerBelt}
-            magnetosphere={d.magnetosphere}
-            altitudeKm={d.altitudeKm}
-          />
-          {positionUnknown && (
-            // Says WHY the dot is gone. A diagram missing its "you are here"
-            // marker otherwise reads as a widget that failed to draw one.
-            <span style={POSITION_UNKNOWN_TAG}>Position unknown</span>
+      sections={[
+        /* Sun vantage first: the widget's subject is what the STAR is doing,
+           and the vessel-local consequence below is downstream of it. */
+        <Section key="stars">
+          <SectionTitle>Stars</SectionTitle>
+          {d.stars.length === 0 ? (
+            <EmptyState>No stars detected yet.</EmptyState>
+          ) : (
+            // `justify="start"`, not Cluster's default `between`: with one or two
+            // stars, space-between shoves the cards to opposite edges with a
+            // canyon between them, which reads as broken rather than as "not much
+            // going on". Packing left with a fixed card width is what scales from
+            // a lone star to a five-star system, wrapping instead of stretching.
+            <Cluster gap="sm" wrap justify="start">
+              {d.stars.map((star) => {
+                const name = star.star ?? "Unknown star";
+                const activity = starActivity(allStorms, name);
+                return (
+                  <Card
+                    key={name}
+                    tone={SEVERITY_CARD_TONE[activity.severity]}
+                    // Fixed width, not a minWidth: every card is the same size
+                    // whatever the star's name length, so a row packs and wraps
+                    // predictably. flexShrink 0 keeps that width honest under
+                    // `wrap`, so the browser wraps rather than squeezing.
+                    style={{ width: 128, flexShrink: 0 }}
+                  >
+                    <Stack gap="xs">
+                      <StarDiagram
+                        starName={name}
+                        activity={activity}
+                        compact={compact}
+                      />
+                      <Text tone="default" weight="semibold" size="sm">
+                        {name}
+                      </Text>
+                      <Text tone="muted" size="xs">
+                        <Unit value={star.distance} />
+                      </Text>
+                    </Stack>
+                  </Card>
+                );
+              })}
+            </Cluster>
           )}
-          {d.blackout && <span style={BLACKOUT_TAG}>Comms blackout</span>}
-        </div>
-        <div style={DOSE_SLOT}>
-          <div style={doseValueStyle(doseTone(d.radiationRadPerHour), compact)}>
-            {doseText}
+        </Section>,
+        <Section key="cme">
+          <SectionTitle>CME tracker</SectionTitle>
+          {activeStorms.length === 0 ? (
+            <EmptyState>No inbound CMEs detected.</EmptyState>
+          ) : (
+            <Stack gap="sm">
+              {activeStorms.map((storm) => (
+                <StormCard
+                  key={storm.key}
+                  storm={storm}
+                  compact={compact}
+                  fallbackBodyName={fallbackBodyName}
+                />
+              ))}
+            </Stack>
+          )}
+        </Section>,
+        <Section key="timeline" full>
+          <StormTimeline state={d.stormState} />
+        </Section>,
+        <Section key="environment" full>
+          <div style={midRowStyle(compact)}>
+            <div style={RINGS_SLOT}>
+              <BeltRings
+                inner={d.innerBelt}
+                outer={d.outerBelt}
+                magnetosphere={d.magnetosphere}
+                altitudeKm={d.altitudeKm}
+              />
+              {positionUnknown && (
+                // Says WHY the dot is gone. A diagram missing its "you are here"
+                // marker otherwise reads as a widget that failed to draw one.
+                <span style={POSITION_UNKNOWN_TAG}>Position unknown</span>
+              )}
+              {d.blackout && <span style={BLACKOUT_TAG}>Comms blackout</span>}
+            </div>
+            <div style={DOSE_SLOT}>
+              <div
+                style={doseValueStyle(doseTone(d.radiationRadPerHour), compact)}
+              >
+                {doseText}
+              </div>
+              <div style={DOSE_CAPTION}>habitat dose rate</div>
+            </div>
           </div>
-          <div style={DOSE_CAPTION}>habitat dose rate</div>
-        </div>
-      </div>
-
-      {!compact && (
-        <div style={FLUX_SECTION}>
-          <ReadoutCaption style={SPACED_CAPTION}>
-            Solar-wind flux
-          </ReadoutCaption>
-          <div style={CHART_SLOT}>
-            <SolarWindChart
-              radiation={d.radiationRadPerHour}
-              storm={d.stormState === "inprogress"}
-              seed={d.seed}
+        </Section>,
+        !compact ? (
+          <Section key="flux" full>
+            <div style={FLUX_SECTION}>
+              <ReadoutCaption style={SPACED_CAPTION}>
+                Solar-wind flux
+              </ReadoutCaption>
+              <div style={CHART_SLOT}>
+                <SolarWindChart
+                  radiation={d.radiationRadPerHour}
+                  storm={d.stormState === "inprogress"}
+                  seed={d.seed}
+                />
+              </div>
+            </div>
+          </Section>
+        ) : null,
+        <Section key="shielding" full>
+          <div style={FOOTER_ROW}>
+            <Meter
+              label="Shielding"
+              value={shieldFrac}
+              tone={
+                shieldFrac >= 0.6 ? "go" : shieldFrac >= 0.3 ? "warn" : "nogo"
+              }
+              valueLabel={`${d.shieldingValue.toFixed(1)} / ${d.shieldingCapacity.toFixed(1)}`}
+              size={compact ? "sm" : "md"}
             />
+            {!compact && (
+              <div style={ENV_ROW}>
+                <span style={envTagStyle(d.magnetosphere)}>Magnetosphere</span>
+                <span style={envTagStyle(d.outerBelt, "warn")}>Outer belt</span>
+                <span style={envTagStyle(d.innerBelt, "nogo")}>Inner belt</span>
+              </div>
+            )}
           </div>
-        </div>
-      )}
-
-      <div style={FOOTER_ROW}>
-        <Meter
-          label="Shielding"
-          value={shieldFrac}
-          tone={shieldFrac >= 0.6 ? "go" : shieldFrac >= 0.3 ? "warn" : "nogo"}
-          valueLabel={`${d.shieldingValue.toFixed(1)} / ${d.shieldingCapacity.toFixed(1)}`}
-          size={compact ? "sm" : "md"}
-        />
-        {!compact && (
-          <div style={ENV_ROW}>
-            <span style={envTagStyle(d.magnetosphere)}>Magnetosphere</span>
-            <span style={envTagStyle(d.outerBelt, "warn")}>Outer belt</span>
-            <span style={envTagStyle(d.innerBelt, "nogo")}>Inner belt</span>
-          </div>
-        )}
-      </div>
-    </Panel>
+        </Section>,
+      ]}
+    />
   );
 }
 
