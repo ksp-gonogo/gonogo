@@ -379,6 +379,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
     permanent: [
       /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here, Kerbalism's own
+       * science payload says a SCANsat scanner is one of the two things that
+       * produce data continuously, and names the module doing it. Text only,
+       * in a generated file, and naming the backend IS the fact being stated
+       * rather than a dependency on it, so this is the same class as the doc-
+       * mention citations already here.
+       */
+      "mod/GonogoKerbalismUplink/client/src/__generated__/contract.ts",
+      /*
        * The comment-stack ratchet's own inventory: a path-keyed debt list over
        * every hand-written JS/TS file in the repo, so it names this Uplink's paths
        * by construction and there is nowhere else for it to live. Permanent for
@@ -633,6 +644,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     ],
     permanent: [
+      /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here, `vessel.control`'s
+       * throttle note says a kOS-driven throttle can genuinely read above 1,
+       * which is why the field is not clamped upstream. Text only, in a
+       * generated file, and naming the backend IS the fact being stated rather
+       * than a dependency on it, so this is the same class as the doc-mention
+       * citations already here.
+       */
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -1000,6 +1022,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here, `CommsHop` says
+       * the per-hop band rate rides the RealAntennas Uplink's own channel
+       * rather than this shared shape. Text only, in a generated file, and
+       * naming the backend IS the fact being stated rather than a dependency
+       * on it, so this is the same class as the doc-mention citations already
+       * here.
+       */
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
+      /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
        * <Uplink>.Tests projects too, ten of which reach a private assembly.
@@ -1271,6 +1304,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here, `ActionGroupState`
+       * says Action Groups Extended raises the custom-group count from ten to
+       * 250, which is what makes that count a wire value. Text only, in a
+       * generated file, and naming the backend IS the fact being stated rather
+       * than a dependency on it, so this is the same class as the doc-mention
+       * citations already here.
+       */
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
+      /*
        * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
        * code-carrying subset of this file's own `permanent` lists. A gate over
        * the allowlist names Uplinks the same way the allowlist does, and its
@@ -1352,6 +1396,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
+      /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here, a centre-of-mass
+       * note attributes the `Vessel.CoM` construction it describes to MechJeb.
+       * Text only, in a generated file, and naming the backend IS the fact
+       * being stated rather than a dependency on it, so this is the same class
+       * as the doc-mention citations already here.
+       */
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -1515,6 +1569,16 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here, an RP-1 tooling
+       * field says one parameter of the avionics type comes off a private
+       * member. Text only, in a generated file, and naming the backend IS the
+       * fact being stated rather than a dependency on it, so this is the same
+       * class as the doc-mention citations already here.
+       */
+      "mod/GonogoRp1Uplink/client/src/__generated__/contract.ts",
       /*
        * RP-1's own type name, not this Uplink's concern. RP-1 declares
        * ModuleToolingProcAvionics, one of its tooling subclasses, and both files
@@ -1714,6 +1778,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   kerbalism: {
     domainDebt: [],
     permanent: [
+      /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here,
+       * `ReliabilityReading`'s backend field is literally the string
+       * "kerbalism" | "testflight" | "none". Text only, in a generated file,
+       * and naming the backend IS the fact being stated rather than a
+       * dependency on it, so this is the same class as the doc-mention
+       * citations already here.
+       */
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -2085,6 +2160,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   testflight: {
     domainDebt: [],
     permanent: [
+      /*
+       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
+       * carries the C# doc comments it is generated from, and a wire type
+       * describes what an ELECTED backend puts in it. Here,
+       * `ReliabilityReading`'s backend field is literally the string
+       * "kerbalism" | "testflight" | "none", and the rated-seconds field says
+       * whose seconds they are. Text only, in a generated file, and naming the
+       * backend IS the fact being stated rather than a dependency on it, so
+       * this is the same class as the doc-mention citations already here.
+       */
+      "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
