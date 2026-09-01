@@ -567,13 +567,13 @@ export interface CommandGateReport
 * enumerate. This enum makes the failure surface a closed, typed set instead.
 *
 * `CommandErrorCode.None` is the success sentinel (paired with
-* CommandResult.Success = true); `CommandErrorCode.Unknown` is the
+* `CommandResult.success` = true); `CommandErrorCode.Unknown` is the
 * forward-compatible fallback for any code a newer producer emits that an
 * older consumer doesn't recognise: the same `Unknown`-style read-fallback
 * convention every other enum in this contract uses.
 */
 export enum CommandErrorCode {
-	/** No error: the success sentinel, paired with CommandResult.Success = true. */
+	/** No error: the success sentinel, paired with `CommandResult.success` = true. */
 	None = 0,
 	/**
 	* Forward-compat fallback: a code a newer producer emitted that this consumer
@@ -627,7 +627,7 @@ export enum CommandErrorCode {
 	* This arm says the cap is reached and the world has to change before a retry
 	* means anything; freeing a slot is a thing an operator can actually do.
 	*
-	* The arm chooses the sentence, CommandResult.Breach supplies the numbers in
+	* The arm chooses the sentence, `CommandResult.breach` supplies the numbers in
 	* it. Neither is worth sending without the other: a code with no payload
 	* cannot say "16 of 16".
 	*/
@@ -648,7 +648,7 @@ export enum CommandErrorCode {
 	* valid range" and is not what happened: affordability is not about an
 	* argument, and a client reading the enum name aloud got it wrong.
 	*
-	* CommandResult.Breach carries the cost as `Actual` against the balance as
+	* `CommandResult.breach` carries the cost as `Actual` against the balance as
 	* `Limit`, so the client can say how short and in the operator's own currency
 	* rendering.
 	*/
@@ -683,7 +683,7 @@ export enum CommandErrorCode {
 	/**
 	* The game is in a scene this command cannot run from.
 	*
-	* Authority: `HighLogic.LoadedScene` (`GameScenes`). CommandResult.Detail
+	* Authority: `HighLogic.LoadedScene` (`GameScenes`). `CommandResult.detail`
 	* names the scene when the producer had one.
 	*/
 	WrongScene = 13,
@@ -696,7 +696,7 @@ export enum CommandErrorCode {
 	* Authority: the entity's own state enum. `Strategy.IsActive`, `RDTech.State`,
 	* `Contract.State`, `ProtoCrewMember.RosterStatus`,
 	* `ModuleScienceExperiment.Deployed`/`Inoperable`. Every one of those is
-	* `[Description]`-tagged or otherwise nameable, so CommandResult.Detail can
+	* `[Description]`-tagged or otherwise nameable, so `CommandResult.detail` can
 	* carry the state in the game's own words.
 	*/
 	WrongState = 14,
@@ -709,7 +709,7 @@ export enum CommandErrorCode {
 	* surface, about to crash, on a ladder, throttled up, orbit event imminent),
 	* plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch` and
 	* `GameParameters.Flight.CanLeaveToSpaceCenter`. The arm rides on
-	* CommandResult.Detail.
+	* `CommandResult.detail`.
 	*
 	* Distinct from `CommandErrorCode.WrongState`, which is about the entity and
 	* does not resolve by waiting.
@@ -759,7 +759,7 @@ export enum CommandErrorCode {
 	*
 	* Authority: `PreFlightTests.LaunchSiteClear`, whose
 	* `GetWarningTitle()`/`GetWarningDescription()` are the game's own words for
-	* it and ride on CommandResult.Detail.
+	* it and ride on `CommandResult.detail`.
 	*/
 	SiteOccupied = 19,
 	/**
@@ -780,7 +780,7 @@ export enum CommandErrorCode {
 	* this code never arrives on a stock install. Under RP-1 it is a vehicle that
 	* was never integrated, one still integrating, one finished but not rolled
 	* out, or one rolled out to a pad still being reconditioned.
-	* CommandResult.Detail says which.
+	* `CommandResult.detail` says which.
 	*
 	* Deliberately NOT `CommandErrorCode.LimitReached`, which is the launch
 	* refusal an operator already gets for a craft that is too heavy or too large
@@ -799,15 +799,15 @@ export enum CommandErrorCode {
 /**
 * R7 Fix 1: the ONE result shape every command returns, replacing the three
 * hand-rolled records (`Ack`/`StageResult`/`AddManeuverNodeResult`) that each
-* re-declared `Success` + `ErrorCode`. CommandResult.Success false pairs with
-* a typed CommandResult.ErrorCode (never a free-text message a client has to
-* string-match), the design doc §3's `Result<T, CommandError>` ruling: results
-* are always delivered (never a fire-and-forget void), and failure is
+* re-declared `Success` + `ErrorCode`. `CommandResult.success` false pairs
+* with a typed `CommandResult.errorCode` (never a free-text message a client
+* has to string-match), the design doc §3's `Result<T, CommandError>` ruling:
+* results are always delivered (never a fire-and-forget void), and failure is
 * structured data, not a thrown exception.
 *
 * This non-generic base is the "no payload" case (every plain actuation
 * command: the former `Ack`). Commands that return a real value use
-* `CommandResultOf`, whose `Payload` carries it (`vessel.control.stage`'s new
+* `CommandResult`, whose `Payload` carries it (`vessel.control.stage`'s new
 * stage index, `vessel.maneuver.add`'s created node id).
 */
 export interface CommandResult
@@ -819,7 +819,7 @@ export interface CommandResult
 	* count, the tier and the top tier, the price and the balance. Null on success
 	* and on every refusal that is not a comparison.
 	*
-	* CommandResult.ErrorCode alone cannot say "16 of 16 active crew", and the
+	* `CommandResult.errorCode` alone cannot say "16 of 16 active crew", and the
 	* code and the numbers only mean anything together: the code picks the
 	* sentence, this fills the gaps in it. Every number here was already in scope
 	* on the line that refused, and used to be discarded there.
@@ -843,7 +843,7 @@ export interface CommandResult
 	* of KSP's own vocabulary that goes stale on every update and is wrong in
 	* every other language.
 	*
-	* Prose for a human, never parsed: CommandResult.ErrorCode is the
+	* Prose for a human, never parsed: `CommandResult.errorCode` is the
 	* machine-readable half and this is the readable one. The same split, and the
 	* same field name, as `GateVerdict.detail`.
 	*
@@ -855,12 +855,12 @@ export interface CommandResult
 	detail?: string;
 }
 /**
-* R7 Fix 1: the payload-carrying result, `CommandResultOf` plus a typed
-* `CommandResultOf.payload`. `vessel.control.stage` returns
-* `CommandResult<int>` (the new current stage index, rather than a void
-* fire-and-forget); `vessel.maneuver.add` returns `CommandResult<string>` (the
-* created node's opaque id, O-6 fixed). `CommandResultOf.payload` is default
-* (null for reference types) when CommandResult.Success is false.
+* R7 Fix 1: the payload-carrying result, `CommandResult` plus a typed
+* CommandResult.Payload. `vessel.control.stage` returns `CommandResult<int>`
+* (the new current stage index, rather than a void fire-and-forget);
+* `vessel.maneuver.add` returns `CommandResult<string>` (the created node's
+* opaque id, O-6 fixed). CommandResult.Payload is default (null for reference
+* types) when `CommandResult.success` is false.
 */
 export interface CommandResultOf<T> extends CommandResult
 {
@@ -2055,7 +2055,7 @@ export interface RevertToEditorArgs
 {
 	/**
 	* `"vab"` or `"sph"` (case-insensitive). Any other value yields
-	* CommandResult.ErrorCode `CommandErrorCode.Range`.
+	* `CommandResult.errorCode` `CommandErrorCode.Range`.
 	*/
 	editor: string;
 }
@@ -2092,7 +2092,7 @@ export interface LaunchArgs
 	shipName: string;
 	/**
 	* `"VAB"` or `"SPH"` (case-insensitive). Any other value yields
-	* CommandResult.ErrorCode `CommandErrorCode.Range`.
+	* `CommandResult.errorCode` `CommandErrorCode.Range`.
 	*/
 	facility: string;
 	site: string;
@@ -2608,7 +2608,7 @@ export interface InvokePartActionArgs
 	* `PartActions.partId` and `VesselPart.id`, so a widget round-trips the exact
 	* id it already holds with no correlation step. An id that no longer resolves
 	* (the part was staged away, undocked, or the vessel unloaded) comes back
-	* CommandResult.ErrorCode `CommandErrorCode.NotFound` rather than silently
+	* `CommandResult.errorCode` `CommandErrorCode.NotFound` rather than silently
 	* doing nothing.
 	*/
 	partId: string;
@@ -3308,7 +3308,7 @@ export interface RevertAvailability
 * `flightID.ToString()` the read side emits on each `parts.robotics` servo
 * entry, so a widget round-trips the exact id it already displays. A rotor has
 * no target (it spins continuously); a `setTarget` aimed at one comes back
-* CommandResult.ErrorCode `CommandErrorCode.ModeUnavailable`.
+* `CommandResult.errorCode` `CommandErrorCode.ModeUnavailable`.
 */
 export interface ServoSetTargetArgs
 {
@@ -3342,7 +3342,7 @@ export interface ServoSetEnabledArgs
 * (`robotics.rotor.setRpmLimit`/`setTorqueLimit`/`setBrake`), the ABSOLUTE
 * value to apply, keyed by `RotorSetValueArgs.partId`. The bounded ones
 * (torque 0–100, brake 0–200) are range-validated at the send gate; out of
-* range yields CommandResult.ErrorCode `CommandErrorCode.Range`.
+* range yields `CommandResult.errorCode` `CommandErrorCode.Range`.
 */
 export interface RotorSetValueArgs
 {
@@ -3380,7 +3380,7 @@ export interface RotorReverseArgs
 * `flightID`). The host resolves it against the active vessel's live parts; a
 * client never supplies a live array index. An empty
 * `ExperimentActionArgs.partId` resolves to nothing and yields
-* CommandResult.ErrorCode `CommandErrorCode.NotFound`.
+* `CommandResult.errorCode` `CommandErrorCode.NotFound`.
 */
 export interface ExperimentActionArgs
 {
@@ -5489,20 +5489,20 @@ export interface SetThrottleArgs
 {
 	/**
 	* 0..1: validated (not silently clamped) at admission; out of range yields
-	* CommandResult.ErrorCode `CommandErrorCode.Range` (A-10's inconsistency fixed
-	* at the send gate).
+	* `CommandResult.errorCode` `CommandErrorCode.Range` (A-10's inconsistency
+	* fixed at the send gate).
 	*/
 	value: number;
 }
 /**
 * `vessel.control.stage`'s result is `CommandResult<int>`, a real value comes
 * back (the new current stage index in `Payload`), unlike the legacy `f.stage`
-* void fire-and-forget. See `CommandResultOf`.
+* void fire-and-forget. See `CommandResult`.
 */
 export interface SetActionGroupArgs
 {
 	/**
-	* 1..10. Any other value yields CommandResult.ErrorCode
+	* 1..10. Any other value yields `CommandResult.errorCode`
 	* `CommandErrorCode.Range`.
 	*/
 	group: number;
@@ -5526,7 +5526,7 @@ export interface AddManeuverNodeArgs
 /**
 * Result of `vessel.maneuver.add` is `CommandResult<string>`, O-6 fixed: the
 * created node's opaque id is actually returned in `Payload`. See
-* `CommandResultOf`.
+* `CommandResult`.
 */
 export interface UpdateManeuverNodeArgs
 {

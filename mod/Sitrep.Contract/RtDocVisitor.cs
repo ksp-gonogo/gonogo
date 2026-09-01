@@ -50,6 +50,9 @@ public class RtDocVisitor : TypeScriptExportVisitor
         new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
 
     private bool _collected;
+    private int _blocks;
+    private int _pointers;
+    private int _demoted;
 
     public RtDocVisitor(TextWriter writer, ExportContext exportContext)
         : base(writer, exportContext)
@@ -65,6 +68,14 @@ public class RtDocVisitor : TypeScriptExportVisitor
     {
         Collect(file);
         base.VisitFile(file);
+        // Printed for the same reason the unit pass prints its own count: a
+        // carrier that silently carried nothing looks exactly like one that had
+        // nothing to carry, and the demoted figure is the one worth watching,
+        // because it counts the places the prose names something the reader
+        // cannot open.
+        Console.WriteLine(
+            $"codegen (docs) -> {_blocks} declarations documented, "
+            + $"{_pointers} crefs carried as pointers, {_demoted} as prose");
     }
 
     public override void Visit(RtJsdocNode node)
@@ -72,6 +83,7 @@ public class RtDocVisitor : TypeScriptExportVisitor
         if (node == null) return;
         var lines = RtDocText.ToDocLines(node.Description ?? string.Empty, RenderCref);
         if (lines.Count == 0 && node.TagToDescription.Count == 0) return;
+        _blocks++;
 
         if (lines.Count == 1 && node.TagToDescription.Count == 0)
         {
@@ -117,11 +129,26 @@ public class RtDocVisitor : TypeScriptExportVisitor
         // The bridge from a cref's C# name to the emitted one. `TypeResolver` is
         // the same resolver the file's own type references went through, so the
         // mapping is RT's answer rather than a second guess at it.
-        foreach (var type in file.TypesToExport)
+        //
+        // Sorted, and taking the name-for-name match first, because two C# types
+        // can share a simple name: `CommandResult` and `CommandResult<T>` both
+        // key on `CommandResult` while the generic one emits as
+        // `CommandResultOf`. Whichever landed last used to win, so a cref to
+        // `CommandResult.ErrorCode` looked up the generic's members, found no
+        // such field, and degraded eleven live pointers to prose. Order in a
+        // `HashSet` is not a thing to leave a generated file resting on either.
+        var exportable = new List<Type>(file.TypesToExport);
+        exportable.Sort((a, b) => string.CompareOrdinal(a.FullName, b.FullName));
+        foreach (var pass in new[] { true, false })
         {
-            var emitted = Resolve(file, type);
-            if (emitted != null && _exportedMembers.ContainsKey(emitted))
-                _exportedTypes[Simple(type)] = emitted;
+            foreach (var type in exportable)
+            {
+                var simple = Simple(type);
+                var emitted = Resolve(file, type);
+                if (emitted == null || !_exportedMembers.ContainsKey(emitted)) continue;
+                if (pass != (emitted == simple)) continue;
+                if (!_exportedTypes.ContainsKey(simple)) _exportedTypes[simple] = emitted;
+            }
         }
 
         // Types the SDK exports from a file this run is not writing: an Uplink
@@ -237,6 +264,7 @@ public class RtDocVisitor : TypeScriptExportVisitor
     {
         if (RtDocText.IsUnresolvedCref(cref))
         {
+            _demoted++;
             var stale = RtDocText.CrefSegments(cref);
             return stale.Length == 0 ? string.Empty : stale[stale.Length - 1];
         }
@@ -249,7 +277,13 @@ public class RtDocVisitor : TypeScriptExportVisitor
 
         if (kind == 'T' || kind == 'N')
         {
-            return _exportedTypes.TryGetValue(last, out var exported) ? "`" + exported + "`" : last;
+            if (_exportedTypes.TryGetValue(last, out var exported))
+            {
+                _pointers++;
+                return "`" + exported + "`";
+            }
+            _demoted++;
+            return last;
         }
 
         var owner = segments.Length >= 2 ? segments[segments.Length - 2] : null;
@@ -257,10 +291,19 @@ public class RtDocVisitor : TypeScriptExportVisitor
             && _exportedTypes.TryGetValue(owner, out var exportedOwner)
             && _exportedMembers.TryGetValue(exportedOwner, out var members))
         {
-            if (members.Contains(last)) return "`" + exportedOwner + "." + last + "`";
+            if (members.Contains(last))
+            {
+                _pointers++;
+                return "`" + exportedOwner + "." + last + "`";
+            }
             var camel = TypeBlueprint.ConvertToCamelCase(last);
-            if (members.Contains(camel)) return "`" + exportedOwner + "." + camel + "`";
+            if (members.Contains(camel))
+            {
+                _pointers++;
+                return "`" + exportedOwner + "." + camel + "`";
+            }
         }
+        _demoted++;
         return owner == null ? last : owner + "." + last;
     }
 }
