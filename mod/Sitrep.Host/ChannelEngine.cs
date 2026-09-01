@@ -282,6 +282,54 @@ namespace Sitrep.Host
         /// </summary>
         internal const double GateEvaluationBudget = 100;
 
+        /*
+         * The last built system.channels roster, and the wall clock that paces
+         * rebuilding it. Courier-thread-only: unlike _commandGateReport above,
+         * nothing here crosses a thread, because every input (the emitter, the
+         * subscription registry, _born, _availability) is Courier-owned and the
+         * mapper runs on the Courier thread too. So no Volatile, and no lock.
+         */
+        private readonly System.Diagnostics.Stopwatch _channelCounterClock = System.Diagnostics.Stopwatch.StartNew();
+        private double _lastChannelCounterAtSec = double.NegativeInfinity;
+        private double _channelCounterIntervalSec = ChannelCounterIntervalSec;
+        private ChannelEmissionReport _channelCounterReport = new ChannelEmissionReport();
+        private PerfBudget? _channelCounterBudget;
+
+        /// <summary>
+        /// How often the <see cref="ChannelsTopic"/> roster is actually rebuilt,
+        /// however often its mapper is called.
+        ///
+        /// <para>Wall clock rather than UT, for the same reason the gate sampler
+        /// next door uses one: the cost this paces is building and serialising a
+        /// list once per declared channel, which is spent in wall-clock time
+        /// whatever the game's clock is doing. A UT throttle would rebuild it a
+        /// hundred times a second under time warp and never under a pause.</para>
+        ///
+        /// <para>Five seconds because this is a counter, not a sample. Nobody
+        /// reads a monotonic total to watch it move; they read it to see whether
+        /// it moved at all, and the answer to that does not improve with
+        /// cadence. Emission follows the throttle for free: an unchanged report
+        /// is the same object, so the change-gate declines it, which is why the
+        /// declaration below needs no deadband of its own.</para>
+        /// </summary>
+        internal const double ChannelCounterIntervalSec = 5.0;
+
+        /// <summary>
+        /// Soft cap on channel rows published per second from
+        /// <see cref="ChannelsTopic"/>.
+        ///
+        /// <para>Rows rather than payloads, because rows are what the wire and
+        /// the serialiser actually cost and a payload count cannot see the
+        /// roster growing. Steady state is the declared-channel count divided by
+        /// <see cref="ChannelCounterIntervalSec"/>: around 120 bundled channels
+        /// plus the dynamic per-vessel and per-processor ones, so roughly 30 to
+        /// 60 rows a second. Three hundred is about 5x that, which tolerates the
+        /// roster doubling and trips on the two ways this becomes a firehose:
+        /// the throttle collapsing to per-tick (thousands a second), or a
+        /// dynamic namespace minting topics without bound.</para>
+        /// </summary>
+        internal const double ChannelCounterRowBudget = 300;
+
         private readonly ConcurrentQueue<IEngineJob> _jobs = new ConcurrentQueue<IEngineJob>();
         private readonly SemaphoreSlim _jobSignal = new SemaphoreSlim(0, int.MaxValue);
         private readonly Thread _courierThread;
@@ -452,6 +500,29 @@ namespace Sitrep.Host
         // directly" treatment as the two topics above, for the same reason:
         // it describes the CONTRACT rather than anything an uplink owns.
         internal const string UnitsTopic = "system.units";
+
+        /*
+         * Every declared channel's emission counters, so a silent Topic can be
+         * told apart from a Topic nobody looked at. Same "engine declares and
+         * sources it directly" treatment as the four topics above, and for the
+         * strongest version of the same reason: only the engine holds the
+         * emitter, the subscription registry, the birth set and the
+         * availability map, and the answer is the four of them read together.
+         *
+         * This exists because an outside observer cannot get it. vessel.maneuver
+         * delivered zero frames in a 20-second Principia capture while
+         * vessel.orbit delivered in the same capture, and every explanation was
+         * eliminated by test or measurement without narrowing anything, because
+         * "the engine never considered this channel" and "the engine considered
+         * it and the emitter declined every value" are indistinguishable from
+         * the wire: both are silence. Considered separates them, and the flags
+         * on ChannelEmissionEntry name which upstream gate held a
+         * never-considered channel back.
+         *
+         * See ChannelEmissionReport for the shape and for the two ways this
+         * report is behind the frame that carries it.
+         */
+        internal const string ChannelsTopic = "system.channels";
 
         // Current one-way signal delay (seconds), snooped off the comms.delay
         // channel's latest revealed value (§7.3 Step 2). 0 = no delay authority
@@ -986,6 +1057,88 @@ namespace Sitrep.Host
             // build: the reflection is not free and the answer is immutable
             // for the lifetime of the process.
             _channelSources[UnitsTopic] = _ => UnitsDescriptorJson();
+
+            // Built-in system.channels declaration + source: see ChannelsTopic's
+            // comment. Declared before Start(), same single-writer-before-start
+            // rule as the four above.
+            _channelDeclarations[ChannelsTopic] = new ChannelDeclaration
+            {
+                Topic = ChannelsTopic,
+                Delivery = Delivery.LossyLatest,
+                // MinSampleIntervalUt matters more than the keyframe floor here.
+                // The mapper's own throttle already decides how often the report
+                // CHANGES, but without a cadence gate the emitter would still
+                // structurally compare a roster of a few hundred rows against
+                // its predecessor on every tick to conclude nothing moved. The
+                // gate is checked before that compare, so it is what keeps a
+                // diagnostic channel off the hot path. Five UT seconds pairs it
+                // with ChannelCounterIntervalSec at 1x time; under warp the gate
+                // opens sooner and finds the cached report unchanged.
+                Emission = new EmissionPolicy(
+                    keyframeIntervalUt: 30,
+                    quantum: EmissionQuantum.Absolute(0),
+                    minSampleIntervalUt: 5),
+                // A fact about the ENGINE, not about a vessel, so it does not
+                // ride the reveal clock. Same class as UplinksTopic. Holding a
+                // diagnostic behind the light-time horizon would be perverse:
+                // the operator asking why a channel is silent is asking about
+                // the mod in front of them.
+                Delay = DelayRole.TrueNow,
+            };
+            _channelSources[ChannelsTopic] = _ => ChannelEmissionRoster();
+            _channelCounterBudget = new PerfBudget(
+                "ChannelEngine channel-counter rows/sec",
+                threshold: ChannelCounterRowBudget,
+                windowSec: 1.0,
+                unit: "rows",
+                warn: LogHost);
+        }
+
+        /// <summary>
+        /// The <see cref="ChannelsTopic"/> mapper: every declared channel's
+        /// emission counters, rebuilt at most once per
+        /// <see cref="ChannelCounterIntervalSec"/> and otherwise handed back
+        /// unchanged, so the change-gate declines the repeat.
+        ///
+        /// <para>Courier-thread only, which is what makes it able to answer at
+        /// all: <c>_emitter</c>, <c>_subscriptions</c> and <c>_born</c> are all
+        /// Courier-owned, and this reads the three of them plus the availability
+        /// map together to say which gate held a never-considered channel
+        /// back.</para>
+        /// </summary>
+        private ChannelEmissionReport ChannelEmissionRoster()
+        {
+            var nowSec = _channelCounterClock.Elapsed.TotalSeconds;
+            if (nowSec - _lastChannelCounterAtSec < _channelCounterIntervalSec)
+            {
+                return _channelCounterReport;
+            }
+            _lastChannelCounterAtSec = nowSec;
+
+            var rows = new List<ChannelEmissionEntry>(_channelDeclarations.Count);
+            foreach (var topic in _channelDeclarations.Keys)
+            {
+                var counters = _emitter.CountersFor(topic);
+                rows.Add(new ChannelEmissionEntry
+                {
+                    Topic = topic,
+                    Considered = counters.Considered,
+                    Emitted = counters.Emitted,
+                    Skipped = counters.Skipped,
+                    Subscribers = _subscriptions.SubscriberCount(topic),
+                    Available = IsChannelAvailable(topic),
+                    Born = _born.Contains(topic),
+                    TickMapped = _channelSources.ContainsKey(topic),
+                });
+            }
+            // Sorted so a reader diffing two captures compares like with like:
+            // dictionary order is registration order, which a dynamic namespace
+            // changes as vessels come and go.
+            rows.Sort((left, right) => string.CompareOrdinal(left.Topic, right.Topic));
+
+            _channelCounterBudget?.Record(rows.Count, nowSec);
+            _channelCounterReport = new ChannelEmissionReport { Channels = rows };
+            return _channelCounterReport;
         }
 
         // NOTE: every RegisterUplink call MUST happen before Start().
@@ -3282,6 +3435,21 @@ namespace Sitrep.Host
 
         /// <summary>Test-only visibility into one topic's emission counters; see <c>GonogoBodiesServer.BodiesEmitterCounters</c>'s equivalent doc comment for why tests need this rather than inferring it from wire silence.</summary>
         internal EmissionCounters ChannelCounters(string topic) => _emitter.CountersFor(topic);
+
+        /// <summary>
+        /// Test-only: how long the <see cref="ChannelsTopic"/> roster may be
+        /// served from cache. Call BEFORE <see cref="Start"/>, so the write
+        /// lands under the same single-writer-before-start rule registration
+        /// does and never races the Courier thread's read of it.
+        ///
+        /// <para>A seam rather than a slower test. The production value is a
+        /// wall clock (see <see cref="ChannelCounterIntervalSec"/>) because the
+        /// cost it paces is wall-clock cost, and a test that proved a counter
+        /// had moved by sleeping five seconds per assertion would trade a
+        /// readable suite for nothing: the throttle is not what the counters are
+        /// for.</para>
+        /// </summary>
+        internal void SetChannelCounterIntervalForTests(double seconds) => _channelCounterIntervalSec = seconds;
 
         /// <summary>
         /// Test-only visibility into the OUTER (<see cref="SubscriptionRegistry"/>)

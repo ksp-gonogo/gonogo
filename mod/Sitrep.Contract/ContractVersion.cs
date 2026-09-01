@@ -1395,7 +1395,24 @@ namespace Sitrep.Contract
         /// complex's own crew and is not. And a space centre had only an id, so
         /// three surfaces were rendering <c>us_cape_canaveral</c> at the
         /// operator.</para>
+        ///
+        /// <para><b>Bumped 5 -&gt; 6: a silent channel can say which silence it
+        /// is.</b> Two new types, <see cref="ChannelEmissionEntry"/> and
+        /// <see cref="ChannelEmissionReport"/>, backing the new
+        /// <c>system.channels</c> Topic. Additive, nothing removed or retyped, so
+        /// an Uplink built against 14.5 is unaffected and the frozen Major-14
+        /// floor is NOT re-frozen.</para>
+        ///
+        /// <para>They exist because the wire could not answer the question. A
+        /// Topic that delivers nothing looks the same whether the engine never
+        /// considered it or considered it and declined every value, and those two
+        /// have completely different causes. <c>vessel.maneuver</c> delivered
+        /// zero frames in a 20-second Principia capture while
+        /// <c>vessel.orbit</c> delivered in the same one, and every explanation
+        /// was eliminated by test or measurement without narrowing anything,
+        /// because the counters that separate the two cases were internal to the
+        /// host.</para>
         /// </remarks>
-        public const int Minor = 5;
+        public const int Minor = 6;
     }
 }

@@ -363,6 +363,17 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.CommandGate commandGate:
                     AppendCommandGate(sb, commandGate);
                     break;
+                case Sitrep.Contract.ChannelEmissionReport channelEmissionReport:
+                    // Same "producer owns the flatten" boundary once more:
+                    // system.channels' channel source (ChannelEngine's
+                    // ChannelsTopic mapper) hands back a ChannelEmissionReport
+                    // POCO directly. A diagnostic Topic that threw at the wire
+                    // boundary would be the very silence it exists to explain.
+                    AppendChannelEmissionReport(sb, channelEmissionReport);
+                    break;
+                case Sitrep.Contract.ChannelEmissionEntry channelEmissionEntry:
+                    AppendChannelEmissionEntry(sb, channelEmissionEntry);
+                    break;
                 case Sitrep.Contract.ReliabilitySummary reliabilitySummary:
                     // Same "producer owns the flatten" boundary as CommsDelay
                     // above: reliability.summary's producer
@@ -1271,6 +1282,88 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "verdict");
             sb.Append(':');
             AppendGateVerdict(sb, gate.Verdict ?? Sitrep.Contract.GateVerdict.Pass());
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens a <see cref="Sitrep.Contract.ChannelEmissionReport"/> to the
+        /// wire object <c>{ channels: [...] }</c>. See the <c>case</c> in
+        /// <see cref="AppendValue"/>.
+        /// </summary>
+        private static void AppendChannelEmissionReport(
+            StringBuilder sb, Sitrep.Contract.ChannelEmissionReport report)
+        {
+            sb.Append('{');
+            AppendString(sb, "channels");
+            sb.Append(':');
+            sb.Append('[');
+            for (var i = 0; i < report.Channels.Count; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+                AppendChannelEmissionEntry(sb, report.Channels[i]);
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// Flattens one <see cref="Sitrep.Contract.ChannelEmissionEntry"/> to
+        /// <c>{ topic, considered, emitted, skipped, subscribers, available,
+        /// born, tickMapped }</c>.
+        ///
+        /// <para>Hand-enumerated, so a field added to the POCO is invisible on
+        /// the wire until it is added here too, the same trap
+        /// <see cref="AppendPendingUplink"/> below records. Every field is
+        /// written unconditionally, including the zeros and the falses: this
+        /// payload's whole purpose is to let a reader tell zero apart from
+        /// absent, so omitting a zero the way an optional field is omitted
+        /// would defeat it.</para>
+        /// </summary>
+        private static void AppendChannelEmissionEntry(
+            StringBuilder sb, Sitrep.Contract.ChannelEmissionEntry entry)
+        {
+            sb.Append('{');
+            AppendString(sb, "topic");
+            sb.Append(':');
+            AppendString(sb, entry.Topic ?? "");
+
+            sb.Append(',');
+            AppendString(sb, "considered");
+            sb.Append(':');
+            AppendNumber(sb, entry.Considered);
+
+            sb.Append(',');
+            AppendString(sb, "emitted");
+            sb.Append(':');
+            AppendNumber(sb, entry.Emitted);
+
+            sb.Append(',');
+            AppendString(sb, "skipped");
+            sb.Append(':');
+            AppendNumber(sb, entry.Skipped);
+
+            sb.Append(',');
+            AppendString(sb, "subscribers");
+            sb.Append(':');
+            AppendNumber(sb, entry.Subscribers);
+
+            sb.Append(',');
+            AppendString(sb, "available");
+            sb.Append(':');
+            AppendBool(sb, entry.Available);
+
+            sb.Append(',');
+            AppendString(sb, "born");
+            sb.Append(':');
+            AppendBool(sb, entry.Born);
+
+            sb.Append(',');
+            AppendString(sb, "tickMapped");
+            sb.Append(':');
+            AppendBool(sb, entry.TickMapped);
             sb.Append('}');
         }
 

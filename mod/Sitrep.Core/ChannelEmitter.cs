@@ -224,11 +224,25 @@ namespace Sitrep.Core
             }
         }
 
-        /// <summary>Per-channel emission-rate visibility: see <see cref="EmissionCounters"/>.</summary>
+        /// <summary>
+        /// Per-channel emission-rate visibility: see <see cref="EmissionCounters"/>.
+        /// A channel this emitter has never been asked about reads zero for
+        /// both, which is the same answer it would give for a channel that was
+        /// registered and never considered, and deliberately so: the caller is
+        /// asking how many times Decide ran, and for both of those it is none.
+        ///
+        /// <para>Unlike every other method here this one does NOT create
+        /// per-channel state, because the whole-roster reader
+        /// (<c>ChannelEngine.ChannelsTopic</c>) asks about every declared
+        /// channel on a cadence, and a read that materialised an entry per
+        /// unconsidered channel would grow this dictionary as a side effect of
+        /// being observed.</para>
+        /// </summary>
         public EmissionCounters CountersFor(string channelId)
         {
-            var state = GetOrCreateState(channelId);
-            return new EmissionCounters(state.Considered, state.Emitted);
+            return _channels.TryGetValue(channelId, out var state)
+                ? new EmissionCounters(state.Considered, state.Emitted)
+                : default;
         }
 
         private ChannelState GetOrCreateState(string channelId)

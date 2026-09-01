@@ -283,6 +283,12 @@ public static class RtConfig
                 // system.uplink.pending above.
                 typeof(CommandGate),
                 typeof(CommandGateReport),
+                // system.channels, every declared channel's emission counters:
+                // the reading that tells a channel the engine never considered
+                // from one it considered and declined. Same engine-declared
+                // treatment as system.uplink.gates above.
+                typeof(ChannelEmissionEntry),
+                typeof(ChannelEmissionReport),
                 typeof(SystemBodies),
                 typeof(BodyEntry),
                 typeof(OrbitEntry),
