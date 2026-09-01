@@ -166,8 +166,9 @@ export interface TelemetryProviderProps {
  *   read cycle... never once per read") instead of re-minting a fresh
  *   `FrameToken` and re-running `deriveVesselState`'s Kepler solve, on
  *   every single message in a burst. This is what makes
- *   `useStream`/`useStreamStatus`/`useCertainty`'s `useSyncExternalStore`
- *   subscriptions (keyed off `store.subscribeFrame`) actually re-render.
+ *   `useStream` and `@ksp-gonogo/sitrep-client`'s
+ *   `useStreamStatus`/`useCertainty` `useSyncExternalStore` subscriptions
+ *   (keyed off `store.subscribeFrame`) actually re-render.
  *
  * `useStream`/the `@ksp-gonogo/core` `useDataValue` shim both read through
  * `store.sample(topic, store.currentFrame())` now (never `client.getValue`
@@ -732,8 +733,8 @@ export function useUtNow(): number | undefined {
 
 /**
  * Non-React `useViewUt()` equivalent: for callers that can't use hooks
- * (plain classes like `LocalManeuverTriggerService`, the maneuver-trigger and
- * alarm host services). Reads `viewUt()` off whichever `TelemetryProvider`
+ * (plain classes like `@ksp-gonogo/components`'s `LocalManeuverTriggerService`,
+ * the maneuver-trigger and alarm host services). Reads `viewUt()` off whichever `TelemetryProvider`
  * most recently mounted (`activeViewClock`), the same method `onFrame`
  * hands `useViewUt`'s per-frame callback: so it follows the exact same
  * delay-consistent, scrub-respecting clock, just polled on demand instead of
@@ -846,8 +847,9 @@ export function sampleActiveTopic<T>(topic: string): T | undefined {
 /**
  * Non-React equivalent of `useTelemetry("vessel.orbit")`: the vessel's own
  * Keplerian orbit elements (`sma`/`ecc`/`inc`/`lan`/`argPe`/`mu`/...). For
- * plain-class callers (`LocalManeuverTriggerService`, the maneuver-trigger
- * host service), which get the whole record in one read rather than a field at
+ * plain-class callers (`@ksp-gonogo/components`'s
+ * `LocalManeuverTriggerService`, the maneuver-trigger host service), which get
+ * the whole record in one read rather than a field at
  * a time off `getDataSource(...)`.
  */
 export function getVesselOrbit(): VesselOrbit | undefined {
@@ -893,7 +895,8 @@ export function getVesselState(): VesselState | undefined {
  * `useTelemetry` consults, covering both a flat legacy key and a field path, and
  * the resulting Topic is sampled off the active `TimelineStore`. Narrowed to
  * `number`: the one type every threshold comparison
- * (`AlarmTrigger`/`ArmedTrigger`) needs, so a non-numeric or not-yet-arrived
+ * (`AlarmTrigger` and `@ksp-gonogo/components`'s `ArmedTrigger`) needs, so a
+ * non-numeric or not-yet-arrived
  * read is a plain `undefined`.
  *
  * Deliberately restricted to keys the routing actually resolves: the alarm and

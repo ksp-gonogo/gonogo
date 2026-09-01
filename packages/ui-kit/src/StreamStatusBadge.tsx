@@ -17,7 +17,8 @@ export interface StreamStatusBadgeProps {
  *
  * Extracted from the four widgets that grew an identical copy during the M3
  * migration pilot (`WarpControl`, `Navball`, `ThermalStatus`, `FuelStatus`):
- * each adopted the same `useDataStreamStatus` -> badge pattern independently
+ * each adopted the same `@ksp-gonogo/core` `useDataStreamStatus` -> badge
+ * pattern independently
  * and left a "follow-up to extract" comment. This is that follow-up.
  */
 export function formatStreamStatus(status: StreamStatusValue): string | null {

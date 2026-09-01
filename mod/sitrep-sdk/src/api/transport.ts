@@ -57,8 +57,9 @@ export interface Transport {
    * Note the client prefers THIS over the authority when both are available, because a
    * transport that owns its delay model knows better than a generic authority whose
    * fail-safe is zero. So implementing it on a server-delayed transport would not merely
-   * duplicate the authority, it would OVERRIDE it. `WebSocketTransport` deliberately
-   * does not implement it, and that is not an omission to fix.
+   * duplicate the authority, it would OVERRIDE it. `@ksp-gonogo/sitrep-client`'s
+   * `WebSocketTransport` deliberately does not implement it, and that is not an
+   * omission to fix.
    */
   predictConfirmEta?(): number | undefined;
 

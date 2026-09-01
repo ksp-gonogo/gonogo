@@ -100,8 +100,9 @@ export interface UplinkHealthEntry {
   /**
    * Every topic/prefix this uplink owns, mod-side source of truth
    * (`ChannelEngine._channelOwner` / `_dynamicNamespaceOwner`): the client
-   * NEVER re-derives a TOPIC_OWNER map. `useUplinkHealthFor` resolves a
-   * widget's declared channels against this via longest-prefix match.
+   * NEVER re-derives a TOPIC_OWNER map. `@ksp-gonogo/core`'s
+   * `useUplinkHealthFor` resolves a widget's declared channels against this via
+   * longest-prefix match.
    * Empty array (never absent) for a pre-Phase-1 mod build.
    */
   ownedPrefixes: string[];

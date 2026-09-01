@@ -180,7 +180,7 @@ export interface GonogoHost {
 
   /** The authoritative host every Uplink dials (`saved ?? seed ?? build-default`). */
   /**
-   * Retired members: `getGameHost` and `useDataSchema`.
+   * Retired members: `getGameHost` and `@ksp-gonogo/data`'s `useDataSchema`.
    *
    * `getGameHost` is implemented in `api/index.ts` now: it reads one setting this
    * package already owns. `useDataSchema` was called by no Uplink, and its default

@@ -9,7 +9,8 @@
  * This is deliberately an explicit opt-in list rather than a hard-coded
  * transport declaration: the mod server does not yet advertise a channel list
  * on connect, so until it does, this dev list is how a topic is reliably
- * promoted to the stream. `WebSocketTransport` additionally marks channels
+ * promoted to the stream. `@ksp-gonogo/sitrep-client`'s `WebSocketTransport`
+ * additionally marks channels
  * carried as their frames first arrive (best-effort fallback), but that grows
  * too late to flip this gate for the current session, so it is informational
  * only for now.

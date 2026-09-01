@@ -89,10 +89,14 @@ export const TIERS = {
   T1b: "the other published package, not in its barrel",
   /**
    * A private npm workspace package. 37 seeded and the most interesting tier:
-   * `BufferedDataSource`'s public doc says "callers use `queryRange` or the
+   * `BufferedDataSource`'s public doc said "callers use `queryRange` or the
    * `useDataSeries` hook", and `useDataSeries` lives in `@ksp-gonogo/data`,
    * which is `private: true`. Same shape as `useViewUt`, one notch softer
    * because it names an alternative rather than a required step.
+   *
+   * Cleared to zero on 2026-09-01, all of it by predicate 5: the docs now name
+   * the package each symbol lives in, so the reader is told why they cannot
+   * import it instead of being pointed at a dead end.
    */
   T2: "a private npm workspace package",
 } as const;
@@ -247,33 +251,19 @@ export const CS_CAPABILITY_ELECTION_PATTERNS: readonly string[] = [
  *
  * Seeded 2026-08-20 from the census: 59 references across 36 files, T1a 20,
  * T1b 2, T2 37. Maximum 6 in any one file.
+ *
+ * T2 IS EMPTY as of 2026-09-01. All 34 that were still standing were
+ * provenance, and every one was fixed by qualifying the mention rather than by
+ * moving an export: none of the 34 named something the reader actually needed.
+ * A new T2 entry is therefore a fresh violation, not seed residue.
  */
 export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
-  "mod/sitrep-sdk/src/api/host.ts": { T2: 1 },
   "mod/sitrep-sdk/src/api/index.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/api/logger.ts": { T1a: 1 },
-  "mod/sitrep-sdk/src/api/transport.ts": { T2: 1 },
-  "mod/sitrep-sdk/src/default-carried-topics.ts": { T2: 1 },
-  /**
-   * "callers use `queryRange` or the `useDataSeries` hook (which composes
-   * both)", and `useDataSeries` is in `@ksp-gonogo/data`. The clearest live TS
-   * instance of the rule: an author reading this is told what callers do and
-   * cannot do it.
-   */
-  "mod/sitrep-sdk/src/flight/BufferedDataSource.ts": { T2: 2 },
-  "mod/sitrep-sdk/src/flight/fixtureIO.ts": { T1a: 1, T2: 1 },
-  "mod/sitrep-sdk/src/flight/storage/Store.ts": { T2: 3 },
-  "mod/sitrep-sdk/src/flight/types.ts": { T2: 1 },
+  "mod/sitrep-sdk/src/flight/fixtureIO.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/media/frame-delay.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/media/shared-delayed-streams.ts": { T1a: 2 },
-  "mod/sitrep-sdk/src/reading.ts": { T2: 1 },
-  "mod/sitrep-sdk/src/spine/client.ts": { T2: 1 },
-  "mod/sitrep-sdk/src/spine/context.tsx": { T1a: 1, T2: 5 },
-  "mod/sitrep-sdk/src/spine/orbit-patches.ts": { T2: 1 },
-  "mod/sitrep-sdk/src/spine/timeline-store.ts": { T2: 4 },
-  "mod/sitrep-sdk/src/spine/uplink-health.ts": { T2: 1 },
-  "mod/sitrep-sdk/src/spine/use-stream.ts": { T2: 1 },
-  "mod/sitrep-sdk/src/spine/vessel-state.ts": { T2: 3 },
+  "mod/sitrep-sdk/src/spine/context.tsx": { T1a: 1 },
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/testing/memory-storage.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/testing/mock-data-source.ts": { T1a: 1 },
@@ -283,13 +273,10 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
   "packages/ui-kit/src/ActionMenu.tsx": { T1b: 1 },
   "packages/ui-kit/src/CommandDelay/InFlightList.tsx": { T1a: 1 },
   "packages/ui-kit/src/CommandDelay/toInFlightListItems.ts": { T1a: 1 },
-  "packages/ui-kit/src/NullValue.tsx": { T1a: 2, T2: 2 },
-  "packages/ui-kit/src/Panel.tsx": { T1a: 1, T2: 1 },
-  "packages/ui-kit/src/StreamStatusBadge.tsx": { T2: 1 },
+  "packages/ui-kit/src/NullValue.tsx": { T1a: 2 },
+  "packages/ui-kit/src/Panel.tsx": { T1a: 1 },
   "packages/ui-kit/src/configEqual.ts": { T1b: 1 },
   "packages/ui-kit/src/formatDuration.ts": { T1a: 1 },
-  "packages/ui-kit/src/renderWidget.tsx": { T2: 2 },
-  "packages/ui-kit/src/status/severity.ts": { T2: 1 },
 };
 
 /**

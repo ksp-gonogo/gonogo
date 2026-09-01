@@ -17,8 +17,9 @@ import { Text } from "./Text";
  *    option: a formatter's return value, a `??`/ternary fallback baked
  *    into a template literal, a `title`/`aria-label` attribute value.
  *    This covers most call sites in this codebase (`formatNumber`,
- *    `formatDuration`, `formatKspDate`, `formatDensity`,
- *    `AttitudeIndicator`'s heading/pitch/roll readouts, and so on).
+ *    `formatDuration`, `formatKspDate`, and so on), and the same again over
+ *    in `@ksp-gonogo/components` (`formatDensity`, `AttitudeIndicator`'s
+ *    heading/pitch/roll readouts).
  *  - `NullValue`, a component, for a bare JSX node with no styled
  *    wrapper of its own already carrying a placeholder look. Most call
  *    sites already have one (a `Chip`, a bespoke `Dash`/`Muted` span,

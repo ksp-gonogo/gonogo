@@ -70,9 +70,10 @@ export interface RenderWidgetOptions {
  * The dashboard also wraps a widget in three things this deliberately omits,
  * because each one would make a test quieter rather than truer:
  *
- * - `ErrorBoundary`, which turns a throw into a fallback UI. In a test a throw
- *   should reach the test
- * - `RequiresGuard`, which hides a widget whose `requires` domain is absent. A
+ * - `@ksp-gonogo/core`'s `ErrorBoundary`, which turns a throw into a fallback
+ *   UI. In a test a throw should reach the test
+ * - `@ksp-gonogo/components`'s `RequiresGuard`, which hides a widget whose
+ *   `requires` domain is absent. A
  *   test asserting on a widget's contents wants the widget, not the gate; test
  *   the gate by asserting on `def.requires` directly
  * - `AlarmStatusBridge`, which folds firing alarms into the status store. It

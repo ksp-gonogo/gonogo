@@ -13,9 +13,9 @@ import type { TextTone } from "../Text";
  * first placed it) because core already depends on ui-kit at runtime, so a
  * severity type in core that `Badge`/`Panel` import would be a circular import.
  * ui-kit is the published, export-safe design-system package and the home of
- * `Badge`/`Panel`, so it is the correct floor for the shared vocabulary. Core
- * and app fold their own private vocabularies (`TransferStatus`, `AlarmState`)
- * onto this type from their own side.
+ * `Badge`/`Panel`, so it is the correct floor for the shared vocabulary.
+ * `@ksp-gonogo/core` and the app fold their own private vocabularies
+ * (`TransferStatus`, `AlarmState`) onto this type from their own side.
  */
 export type Severity =
   | "nominal"

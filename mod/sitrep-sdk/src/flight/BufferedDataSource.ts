@@ -140,7 +140,8 @@ interface SampleRow {
  *
  * Subscription semantics mirror the wrapped source: callbacks fire on new
  * samples only, not on subscribe. For historical backfill, callers use
- * `queryRange` or the `useDataSeries` hook (which composes both).
+ * `queryRange` or `@ksp-gonogo/data`'s `useDataSeries` hook (which composes
+ * both).
  *
  * Flight identification runs off `v.name` + `v.missionTime` for now; an
  * authoritative `vesselUid` from the vessel takes precedence once
@@ -464,7 +465,8 @@ export class BufferedDataSource extends DataSourceWrapper {
 
   /**
    * Timestamped variant of `subscribe`. Fires on every sample with both
-   * the store-side timestamp and value: used by `useDataSeries` so its
+   * the store-side timestamp and value: used by `@ksp-gonogo/data`'s
+   * `useDataSeries` so its
    * appended points share the store's clock (matters in tests where the
    * store uses an injected `now()`).
    */

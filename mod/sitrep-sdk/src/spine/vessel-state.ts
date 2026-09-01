@@ -443,7 +443,7 @@ export interface VesselState {
   targetRelativeSpeed: number | null | undefined;
   /**
    * Apoapsis RADIUS (distance from the reference body's CENTER, metres),
-   * `sma·(1+ecc)` (`useOrbitElements`,
+   * `sma·(1+ecc)` (`@ksp-gonogo/core`'s `useOrbitElements`,
    * CurrentOrbit/OrbitView/ManeuverPlanner read it as a plain number). Derived
    * straight from the orbit elements, so: unlike `apoapsisAlt`, which
    * subtracts the body radius and is therefore `undefined` until
@@ -458,7 +458,8 @@ export interface VesselState {
   /**
    * Current orbital RADIUS: distance from the reference body's center,
    * metres: `|position|` (the propagated parent-body-relative position vector,
-   * which ManeuverPlanner feeds into its vis-viva `computeMu`). OnRails basis
+   * which `@ksp-gonogo/components`'s ManeuverPlanner feeds into its vis-viva
+   * `computeMu`). OnRails basis
    * only (needs the propagated position); `null`
    * in the "measured" basis (no position vector there) or on a non-finite
    * result.
@@ -773,7 +774,8 @@ function trySolve(elements: OrbitElements, ut: number): StateVector | null {
  * elements at `ut`, via the SAME `buildElements` normalization + `trySolve`
  * (kepler.solve) path the active vessel uses. Returns null for a hyperbolic /
  * unsolvable orbit rather than throwing. This is what the fleet dead-reckons per
- * vessel (see `useFleetVesselPosition`); no new math, just the shared propagator.
+ * vessel (see `@ksp-gonogo/sitrep-client`'s `useFleetVesselPosition`); no new
+ * math, just the shared propagator.
  */
 export function propagateVesselOrbit(
   orbit: VesselOrbitPayload,
