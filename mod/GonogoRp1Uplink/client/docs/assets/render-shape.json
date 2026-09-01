@@ -227,31 +227,6 @@
       "elements": 92,
       "text": "640ff391"
     },
-    "career-history--default.png": {
-      "hash": "30e15f69998ad9be",
-      "elements": 41,
-      "text": "c16eb6d7"
-    },
-    "career-history--landscape-18x5.png": {
-      "hash": "e83093fa13e32a55",
-      "elements": 41,
-      "text": "c16eb6d7"
-    },
-    "career-history--min.png": {
-      "hash": "e83093fa13e32a55",
-      "elements": 41,
-      "text": "c16eb6d7"
-    },
-    "career-history--mobile-9x8.png": {
-      "hash": "30e15f69998ad9be",
-      "elements": 41,
-      "text": "c16eb6d7"
-    },
-    "career-history--portrait-5x18.png": {
-      "hash": "30e15f69998ad9be",
-      "elements": 41,
-      "text": "c16eb6d7"
-    },
     "completed-program--default.png": {
       "hash": "f833ab8aa9d725cb",
       "elements": 263,
@@ -307,81 +282,6 @@
       "elements": 156,
       "text": "63d9c1f4"
     },
-    "failure-joined-to-its-launch--default.png": {
-      "hash": "17bff7caf9d54240",
-      "elements": 18,
-      "text": "af67f3ea"
-    },
-    "failure-joined-to-its-launch--landscape-18x5.png": {
-      "hash": "17bff7caf9d54240",
-      "elements": 18,
-      "text": "af67f3ea"
-    },
-    "failure-joined-to-its-launch--min.png": {
-      "hash": "486136526ce7c1ec",
-      "elements": 18,
-      "text": "af67f3ea"
-    },
-    "failure-joined-to-its-launch--mobile-9x8.png": {
-      "hash": "17bff7caf9d54240",
-      "elements": 18,
-      "text": "af67f3ea"
-    },
-    "failure-joined-to-its-launch--portrait-5x18.png": {
-      "hash": "17bff7caf9d54240",
-      "elements": 18,
-      "text": "af67f3ea"
-    },
-    "handler-silent--default.png": {
-      "hash": "c094170cdf73c0fc",
-      "elements": 11,
-      "text": "7a85bea0"
-    },
-    "handler-silent--landscape-18x5.png": {
-      "hash": "c094170cdf73c0fc",
-      "elements": 11,
-      "text": "7a85bea0"
-    },
-    "handler-silent--min.png": {
-      "hash": "c094170cdf73c0fc",
-      "elements": 11,
-      "text": "7a85bea0"
-    },
-    "handler-silent--mobile-9x8.png": {
-      "hash": "c094170cdf73c0fc",
-      "elements": 11,
-      "text": "7a85bea0"
-    },
-    "handler-silent--portrait-5x18.png": {
-      "hash": "c094170cdf73c0fc",
-      "elements": 11,
-      "text": "7a85bea0"
-    },
-    "logging-switched-off--default.png": {
-      "hash": "9b22a0f9a1900a21",
-      "elements": 11,
-      "text": "f249ecbe"
-    },
-    "logging-switched-off--landscape-18x5.png": {
-      "hash": "9b22a0f9a1900a21",
-      "elements": 11,
-      "text": "f249ecbe"
-    },
-    "logging-switched-off--min.png": {
-      "hash": "35c0edb80ef1d643",
-      "elements": 11,
-      "text": "f249ecbe"
-    },
-    "logging-switched-off--mobile-9x8.png": {
-      "hash": "9b22a0f9a1900a21",
-      "elements": 11,
-      "text": "f249ecbe"
-    },
-    "logging-switched-off--portrait-5x18.png": {
-      "hash": "9b22a0f9a1900a21",
-      "elements": 11,
-      "text": "f249ecbe"
-    },
     "no-curve-table--default.png": {
       "hash": "5b89ef2af23ca949",
       "elements": 251,
@@ -393,13 +293,13 @@
       "text": "835da823"
     },
     "pad-holding-a-finished-vehicle--default.png": {
-      "hash": "1343e22153144228",
-      "elements": 64,
+      "hash": "4fdeaffb62ca88ad",
+      "elements": 66,
       "text": "374c8936"
     },
     "pad-rolling-out--default.png": {
-      "hash": "8621befe07398c31",
-      "elements": 61,
+      "hash": "89a44c0b610009f1",
+      "elements": 63,
       "text": "a7a7aabc"
     },
     "personnel-staffed--default.png": {
@@ -421,31 +321,6 @@
       "hash": "edbb1e2bcaf20a7d",
       "elements": 131,
       "text": "17459c0f"
-    },
-    "recording-nothing-yet--default.png": {
-      "hash": "87e51aa80c6bbb9c",
-      "elements": 11,
-      "text": "f314e663"
-    },
-    "recording-nothing-yet--landscape-18x5.png": {
-      "hash": "87e51aa80c6bbb9c",
-      "elements": 11,
-      "text": "f314e663"
-    },
-    "recording-nothing-yet--min.png": {
-      "hash": "3cd1fa889c46388f",
-      "elements": 11,
-      "text": "f314e663"
-    },
-    "recording-nothing-yet--mobile-9x8.png": {
-      "hash": "87e51aa80c6bbb9c",
-      "elements": 11,
-      "text": "f314e663"
-    },
-    "recording-nothing-yet--portrait-5x18.png": {
-      "hash": "87e51aa80c6bbb9c",
-      "elements": 11,
-      "text": "f314e663"
     },
     "research-queue-throttled-and-stalled--default.png": {
       "hash": "b580ae67fc8c25e3",
