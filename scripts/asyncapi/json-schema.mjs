@@ -207,6 +207,39 @@ export class SchemaBuilder {
     return { $ref: `#/components/schemas/${key}` };
   }
 
+  /**
+   * Prose for a contract type the C# documents nowhere, written onto the SCHEMA
+   * rather than onto the one message that happens to carry it.
+   *
+   * `EventMsg` and `ErrorMsg` are the two frames a client routes on that are not
+   * envelopes, so they are read through `InboundFrame`'s `oneOf` as often as
+   * through a message, and an arm with no description is an arm a router author
+   * has nothing to write against. Prose hung on the message reached only the
+   * second of those two routes.
+   *
+   * Refuses to overwrite: a description here means the contract carries none,
+   * and the day the C# gains a `<summary>` the two would disagree with the
+   * generator silently preferring this one.
+   */
+  describe(name, description) {
+    this.ensure(name);
+    const schema = this.schemas.get(componentKey(name));
+    if (schema.description) {
+      throw new Error(
+        `asyncapi: ${name} already carries a description from the contract, so the ` +
+          "document-level prose for it is now a second answer to the same question. " +
+          "Delete the one in document.mjs and let the C# doc comment through.",
+      );
+    }
+    // Rebuilt rather than assigned into, so the description sits where every
+    // other schema's does: `type` then the prose, ahead of `required` and
+    // `properties`. YAML preserves insertion order, so an assignment would have
+    // put the paragraph after the fields it introduces.
+    const { type, ...rest } = schema;
+    this.schemas.set(componentKey(name), { type, description, ...rest });
+    return { $ref: `#/components/schemas/${componentKey(name)}` };
+  }
+
   ensure(name) {
     if (this.schemas.has(componentKey(name))) return;
     const enumeration = this.contract.enums.get(name);

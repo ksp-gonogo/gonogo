@@ -25,9 +25,19 @@ info:
     belong to the connection rather than to any one channel.
 
     Everything the mod sends is one of four frame types, unioned as
-    `components.schemas.InboundFrame` and discriminated on `type`. Write that
-    router first: every per-channel message below narrows one of its arms, and none
-    of them adds a fifth.
+    `components.schemas.InboundFrame`: `stream-data`, `command-response`,
+    `event` and `error`. Write that router first: every per-channel message below
+    narrows one of its arms, and none of them adds a fifth.
+
+    Route on the `type` field. Each arm pins it with a `const`, so a plain JSON
+    Schema validator discriminates the union without help, and the `discriminator`
+    keyword on `InboundFrame` is a label on that rather than the thing doing the
+    work. `InboundFrame` is a named union nothing `$ref`s: it exists to be read,
+    and the two arms that are frames in their own right carry their vocabularies on
+    their schemas, `EventMsg` for the two `name` values and `ErrorMsg` for the
+    three `code` values. The same prose reaches you through
+    `components.messages.event` and `components.messages.error`, which is where
+    the channels point.
 
     ## Nothing arrives before you ask for it
 
@@ -79,8 +89,14 @@ info:
     - `x-sitrep-keyframe-interval-ut`, on a telemetry channel: the UT seconds
       after which it re-emits unconditionally, with nothing changed. It is what
       makes a late subscriber, a quickload and a rejoin recoverable without waiting
-      for the next real change, and it is the interval to size a staleness timeout
-      against
+      for the next real change. The seconds are GAME seconds and the two clocks are
+      not proportional: UT runs at up to 100000x wall-clock under timewarp and does
+      not advance at all while the game is paused. So this is not a wall-clock
+      duration, and a wall-clock timer sized off it fires long before the keyframe
+      under warp and never fires at all while paused. Measure staleness in the same
+      clock the number is in, by watching `Meta.validAt` advance; if you need a
+      wall-clock bound, convert with the live `warpRate` on `time.warp` and treat
+      its `paused` as "no keyframe is due"
     - `x-sitrep-absence-is-data`, on a telemetry channel: `true` means an empty
       value is a real answer and arrives as a tombstone from the first tick (no
       target selected, no crew aboard). Without it a channel is held back until it
@@ -92,14 +108,19 @@ info:
 
     ## This is not a list of every channel on the wire
 
-    It cannot become one. A DYNAMIC namespace (`fleet.`, `silence.`,
-    `currency.`, per-vessel part actions, and each Uplink's own) is registered at
-    RUNTIME and materialises its channels per subject, so no statically declared type
-    exists for the generator to find and nothing about it appears here. Asking this
-    document "is there a per-vessel X" gets a confident no about a channel that has
-    been published all along. An Uplink's own channels and commands are likewise
-    absent: they live in the Uplink's contract slice, not in the core one this
-    document is generated from.
+    It cannot become one. A DYNAMIC namespace is registered at RUNTIME and
+    materialises its channels per subject, so no statically declared type exists for
+    the generator to find and nothing about it appears here: `silence.<guid>.*`,
+    `currency.<guid>.<currency>`, per-vessel part actions, and each Uplink's own.
+    Asking this document "is there a per-vessel X" gets a confident no about a
+    channel that has been published all along. An Uplink's own channels and commands
+    are likewise absent: they live in the Uplink's contract slice, not in the core
+    one this document is generated from.
+
+    The prefix alone does not tell you which half a channel is in, and `fleet.` is
+    the case that proves it: `fleet.silence` is STATICALLY declared and is in this
+    document, while `fleet.<guid>.<field>` is dynamic and is not. Reading the one
+    as evidence about the other goes wrong in both directions.
 
     ## What a schema cannot say about this contract
 
@@ -6355,26 +6376,6 @@ components:
     error:
       name: error
       title: A dispatch that could not be carried, or a bad session request
-      description: |-
-        A fault, never a refusal, and the difference decides how a client handles it.
-
-        An `error` frame means the request was never CARRIED: an unknown command, a
-        command whose provider has fail-softed, a result the codec could not serialise,
-        or a `set-vantage` naming a command centre that is not active. No handler ran,
-        so there is nothing to report about what the game thought.
-
-        A command the game REFUSED ran and said no. That arrives as a
-        `command-response` with `success: false` and an `errorCode`, correlated on
-        `requestId` like any other answer, and it is not an error frame.
-
-        `code` is an open vocabulary rather than an enumeration, and the mod emits
-        three values into it: `unknown-vantage`, a `set-vantage` naming a centre that
-        is not active; `E_UNAVAILABLE`, a dispatch that reached no handler; and
-        `result-serialization-error`, a command that ran and whose result could not be
-        written. A client's own transport mints codes into the same field, so an
-        unrecognised code is still a fault and `message` is what to show for it.
-        `CommandErrorCode`, enumerated in full under `components.schemas`, is a
-        different vocabulary: it names REFUSALS and never appears here.
       payload:
         $ref: "#/components/schemas/ErrorMsg"
       correlationId:
@@ -6383,26 +6384,6 @@ components:
     event:
       name: event
       title: A named occurrence on a topic, carrying no payload of its own
-      description: |-
-        Something that happened to a SUBSCRIPTION, on the topic it happened to.
-
-        Two names are emitted, and each names one topic this connection is subscribed
-        to:
-
-        - `subscribed` acknowledges a `subscribe`, once per subscribe, on the
-          reliable lane. It is the frame to wait for rather than the first
-          `stream-data`: a channel with nothing to say yet sends the ack and then
-          nothing. A `subscribe` naming a topic no declared channel and no registered
-          dynamic namespace owns is answered with NOTHING, not an error, so a missing
-          ack is how a client learns a topic is unowned
-        - `timeline-reset` says the game quickloaded and UT rewound. It is sent to
-          every session for every topic it holds, and the delayed view built from
-          frames before it is abandoned rather than reconciled
-
-        An event carries no payload of its own: `name` is the whole of what happened,
-        and `meta` describes the delivery as it does on any other frame. Events on a
-        DYNAMIC topic are emitted the same way and are absent here for the reason the
-        document description gives.
       payload:
         $ref: "#/components/schemas/EventMsg"
     setVantage:
@@ -9005,7 +8986,7 @@ components:
           topic: vessel.control
           vantage: ksc
           args:
-            throttle: 0.4
+            value: 0.4
           sentAt: 0
     CommandResponse:
       type: object
@@ -10661,6 +10642,26 @@ components:
           $ref: "#/components/schemas/PayloadMeta"
     ErrorMsg:
       type: object
+      description: |-
+        A fault, never a refusal, and the difference decides how a client handles it.
+
+        An `error` frame means the request was never CARRIED: an unknown command, a
+        command whose provider has fail-softed, a result the codec could not serialise,
+        or a `set-vantage` naming a command centre that is not active. No handler ran,
+        so there is nothing to report about what the game thought.
+
+        A command the game REFUSED ran and said no. That arrives as a
+        `command-response` with `success: false` and an `errorCode`, correlated on
+        `requestId` like any other answer, and it is not an error frame.
+
+        `code` is an open vocabulary rather than an enumeration, and the mod emits
+        three values into it: `unknown-vantage`, a `set-vantage` naming a centre that
+        is not active; `E_UNAVAILABLE`, a dispatch that reached no handler; and
+        `result-serialization-error`, a command that ran and whose result could not be
+        written. A client's own transport mints codes into the same field, so an
+        unrecognised code is still a fault and `message` is what to show for it.
+        `CommandErrorCode`, enumerated in full under `components.schemas`, is a
+        different vocabulary: it names REFUSALS and never appears here.
       required:
         - type
         - code
@@ -10688,6 +10689,26 @@ components:
           x-sitrep-unit: text
     EventMsg:
       type: object
+      description: |-
+        Something that happened to a SUBSCRIPTION, on the topic it happened to.
+
+        Two names are emitted, and each names one topic this connection is subscribed
+        to:
+
+        - `subscribed` acknowledges a `subscribe`, once per subscribe, on the
+          reliable lane. It is the frame to wait for rather than the first
+          `stream-data`: a channel with nothing to say yet sends the ack and then
+          nothing. A `subscribe` naming a topic no declared channel and no registered
+          dynamic namespace owns is answered with NOTHING, not an error, so a missing
+          ack is how a client learns a topic is unowned
+        - `timeline-reset` says the game quickloaded and UT rewound. It is sent to
+          every session for every topic it holds, and the delayed view built from
+          frames before it is abandoned rather than reconciled
+
+        An event carries no payload of its own: `name` is the whole of what happened,
+        and `meta` describes the delivery as it does on any other frame. Events on a
+        DYNAMIC topic are emitted the same way and are absent here for the reason the
+        document description gives.
       required:
         - type
         - topic
@@ -11392,6 +11413,15 @@ components:
         to a subscription, and `error` reports a request that could not be carried.
         Every per-channel message below narrows one of these; none of them adds a fifth
         `type`.
+
+        Each arm pins `type` with a `const`, and that is what the discrimination is
+        made of: a plain JSON Schema validator picks the right arm from the constants
+        alone. The `discriminator` beside this is the AsyncAPI Schema keyword, a bare
+        string naming that property, and it is a LABEL on the constants rather than the
+        mechanism. Two things follow. It is not OpenAPI 3's `discriminator` object, so
+        `propertyName` and `mapping` do not belong here and the object form does not
+        validate. And a JSON Schema tool that has never heard of it loses nothing,
+        because the constants are still there.
       discriminator: type
       oneOf:
         - $ref: "#/components/schemas/StreamData"
@@ -15075,8 +15105,22 @@ components:
         - type: stream-data
           topic: vessel.flight
           payload:
-            altitude: 72840.31
+            latitude: -0.0972
+            longitude: -74.5577
+            altitudeAsl: 72840.31
+            altitudeTerrain: 72837.02
             verticalSpeed: -4.2
+            surfaceSpeed: 2287.4
+            orbitalSpeed: 2301.8
+            gForce: 0.02
+            dynamicPressureKPa: 0.0004
+            mach: 7.63
+            atmDensity: 0.0000012
+            externalTemperature: 231.4
+            atmosphericTemperature: 228.9
+            meta:
+              source: vessel:8f2c1d40-97ab-4a2e-9c1f-6d0b3e5a7c11
+              quality: 1
           meta: *a5
     Subscribe:
       type: object

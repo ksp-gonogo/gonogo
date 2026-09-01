@@ -18,14 +18,30 @@
 // clients dispatch counts what a widget presses today rather than what the
 // mod accepts, and gets a quarter of the answer. Read this file.
 //
-// THIS IS NOT A LIST OF EVERY COMMAND ON THE WIRE, for the same reason the
-// topic map is not one: a command in a DYNAMIC namespace is addressed per
-// subject at runtime and has no tagged type to find. What is below is every
-// command that can be named before the game is running. How many that
-// excludes is not knowable from here and is not a fixed number: a dynamic
-// command materialises per subject, so the count is per CPU, per vessel, per
-// compute topic, and it is zero in a session that has none. Grep the mod for
-// `RegisterDynamicNamespace` to enumerate the namespaces themselves.
+// THE TOPIC MAP'S DYNAMIC CAVEAT DOES NOT CARRY OVER. There is no such
+// thing as a dynamic command. `AddCommandHandler` and
+// `AddVantageCommandHandler` both refuse a command with no matching
+// `CommandDeclaration` in the registering uplink's Manifest, and
+// `ChannelEngine` dispatches by exact dictionary key with no prefix
+// matching anywhere, so a per-subject write cannot BE a command id.
+//
+// The subject travels in the ARGS instead, which is the fact an author
+// needs: `vessel.invokePartAction` is ONE command taking a `partId`, not one
+// command per part, and `science.experiment.deploy` is one taking a
+// `partId`, not one per instrument. A widget composes a topic string per
+// subject and never composes a command string. An Uplink's own commands
+// work the same way; see that Uplink's map for its examples.
+//
+// So every command a client can send is nameable before the game is running,
+// and this map is that set as far as the [SitrepCommand] reflection reaches.
+// What it does NOT prove is that every declared command is tagged: nothing
+// checks a Manifest's `Command(...)` entries against the attributes, so one
+// declared and handled without a tag would be dispatchable and absent here.
+//
+// An earlier version of this header said the opposite of all of it, in
+// arithmetic: that the count excluded a number "per CPU, per vessel, per
+// compute topic". That described a mechanism which has never existed, and
+// was inherited from the topic map's caveat, where it is real.
 
 import type {
   KerbalismSubjectActionArgs,

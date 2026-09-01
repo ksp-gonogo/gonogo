@@ -42,7 +42,11 @@ import { fileURLToPath } from "node:url";
 import { Parser } from "@asyncapi/parser";
 import { stringify } from "yaml";
 import { readContract, readMapInterface } from "./asyncapi/contract-model.mjs";
-import { buildDocument } from "./asyncapi/document.mjs";
+import {
+  buildDocument,
+  EXAMPLE_COMMAND,
+  EXAMPLE_TOPIC,
+} from "./asyncapi/document.mjs";
 import { SchemaBuilder } from "./asyncapi/json-schema.mjs";
 import {
   readChannelDispositions,
@@ -186,8 +190,230 @@ export function generate() {
   });
 
   assertUnitsSurvived(document, units);
+  assertExamplesMatchTheirSchemas(document);
 
   return { document, contract, topics, commandArgs, units };
+}
+
+/**
+ * Every schema an `allOf` chain contributes, flattened and dereferenced.
+ *
+ * `allOf` means all of them apply, so a value has to satisfy each arm and the
+ * declared property names are the UNION across arms. That is exactly the shape a
+ * narrowed message has: one arm `$ref`s the envelope and the other pins `topic`
+ * and re-declares `payload` as the channel's own type, and both describe the
+ * same object.
+ */
+function flattenAllOf(schema, schemas, seen = new Set()) {
+  const node = schema?.$ref ? schemas[schema.$ref.split("/").pop()] : schema;
+  if (!node || typeof node !== "object" || seen.has(node)) return [];
+  seen.add(node);
+  const flat = [];
+  if (!node.allOf) flat.push(node);
+  for (const arm of node.allOf ?? []) {
+    flat.push(...flattenAllOf(arm, schemas, seen));
+  }
+  return flat;
+}
+
+/**
+ * A worked example against the schema it claims to be an example OF.
+ *
+ * A deliberately small subset of JSON Schema: `$ref`, `allOf`, `type`,
+ * `required`, `properties`, `const`, `oneOf` and `anyOf`. That is everything
+ * this generator emits, and a fuller validator would be a dependency for no
+ * extra coverage.
+ *
+ * STRICTER than JSON Schema in one place, on purpose: a property the object's
+ * schemas do not declare is an error here, where the spec's default would allow
+ * it. Permissiveness is what let `args: { throttle: 0.4 }` read as valid against
+ * an args type whose field is `value`, and an example is the one place in a
+ * contract document where an undeclared field can only be a mistake.
+ */
+function validateExample(schema, value, schemas, path = "") {
+  const arms = flattenAllOf(schema, schemas);
+  const errors = [];
+  const at = path || "(root)";
+
+  for (const arm of arms) {
+    if (arm.const !== undefined && value !== arm.const) {
+      errors.push(`${at}: expected the constant ${JSON.stringify(arm.const)}`);
+    }
+    const types = arm.type
+      ? Array.isArray(arm.type)
+        ? arm.type
+        : [arm.type]
+      : undefined;
+    if (types && !types.some((t) => matchesType(t, value))) {
+      errors.push(`${at}: expected ${types.join(" or ")}`);
+    }
+    for (const branch of ["oneOf", "anyOf"]) {
+      const options = arm[branch];
+      if (!options) continue;
+      const passing = options.filter(
+        (option) => validateExample(option, value, schemas, path).length === 0,
+      );
+      if (passing.length === 0) {
+        errors.push(`${at}: matched no ${branch} arm`);
+      }
+    }
+  }
+
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    if (Array.isArray(value)) {
+      const items = arms.find((arm) => arm.items)?.items;
+      if (items) {
+        value.forEach((entry, index) => {
+          errors.push(
+            ...validateExample(items, entry, schemas, `${at}[${index}]`),
+          );
+        });
+      }
+    }
+    return errors;
+  }
+
+  const declaresProperties = arms.some((arm) => arm.properties);
+  const required = new Set(arms.flatMap((arm) => arm.required ?? []));
+  for (const name of required) {
+    if (!(name in value)) errors.push(`${at}.${name}: required, and absent`);
+  }
+  for (const [name, child] of Object.entries(value)) {
+    const declared = arms
+      .map((arm) => arm.properties?.[name])
+      .filter((found) => found !== undefined);
+    if (declared.length === 0) {
+      if (declaresProperties) {
+        errors.push(`${at}.${name}: not a property this schema declares`);
+      }
+      continue;
+    }
+    for (const property of declared) {
+      errors.push(
+        ...validateExample(property, child, schemas, `${at}.${name}`),
+      );
+    }
+  }
+  return errors;
+}
+
+function matchesType(type, value) {
+  switch (type) {
+    case "object":
+      return (
+        value !== null && typeof value === "object" && !Array.isArray(value)
+      );
+    case "array":
+      return Array.isArray(value);
+    case "null":
+      return value === null;
+    case "integer":
+      return Number.isInteger(value);
+    case "number":
+      return typeof value === "number";
+    case "string":
+      return typeof value === "string";
+    case "boolean":
+      return typeof value === "boolean";
+    default:
+      return true;
+  }
+}
+
+/**
+ * The envelope examples, checked against the NARROWED message rather than
+ * against the envelope they hang on.
+ *
+ * The envelope is where a reader finds them and the narrowed message is what
+ * they have to satisfy, and nothing connected the two. `StreamData.payload` and
+ * `CommandRequest.args` are unconstrained on the base by design, because the
+ * type lives on the per-channel message, so a `payload` or `args` example on the
+ * base validates against a slot that accepts anything: BOTH examples were wrong
+ * against their own contract and neither the parser nor the lint could say so.
+ *
+ * Each example names its subject, so the message is resolved rather than
+ * guessed. A subject that no longer exists is an error, not a skip: an example
+ * pinned to a deleted channel silently stops being checked, which is the same
+ * failure in a slower form.
+ *
+ * The instrument is checked against a planted fault before it is trusted. A
+ * validator with a bug in its property walk reports zero errors, and zero errors
+ * is exactly what a correct document looks like.
+ */
+function assertExamplesMatchTheirSchemas(document) {
+  const schemas = document.components.schemas;
+  const pairs = [
+    ["StreamData", `streamData.${EXAMPLE_TOPIC}`],
+    ["CommandRequest", `commandRequest.${EXAMPLE_COMMAND}`],
+    ["CommandResponse", `commandResponse.${EXAMPLE_COMMAND}`],
+  ];
+
+  const failures = [];
+  let checked = 0;
+  for (const [envelope, messageKey] of pairs) {
+    const message = document.components.messages[messageKey];
+    if (!message) {
+      throw new Error(
+        `asyncapi: ${envelope}'s example is pinned to ${messageKey}, which this ` +
+          "document does not emit. The subject was renamed or removed; repoint the " +
+          "example in document.mjs rather than leaving it unchecked.",
+      );
+    }
+    for (const example of schemas[envelope].examples ?? []) {
+      checked++;
+      assertCatchesAPlantedFault(envelope, example, message.payload, schemas);
+      for (const error of validateExample(message.payload, example, schemas)) {
+        failures.push(`${envelope} example vs ${messageKey}: ${error}`);
+      }
+    }
+  }
+
+  if (checked !== pairs.length) {
+    throw new Error(
+      `asyncapi: ${checked} envelope examples were checked and there are ` +
+        `${pairs.length} envelopes. An envelope lost its example, so the frame a ` +
+        "client has to construct is no longer worked anywhere.",
+    );
+  }
+  if (failures.length > 0) {
+    throw new Error(
+      `asyncapi: ${failures.length} problem(s) in the worked examples:\n  ` +
+        `${failures.join("\n  ")}\n` +
+        "These are the only worked examples of the frames a client sends and reads, " +
+        "so a reader copies them verbatim and gets a silent failure.",
+    );
+  }
+}
+
+/**
+ * The validator, run against an example that is KNOWN to be wrong.
+ *
+ * Renames the first required leaf of the narrowed slot, which is the exact
+ * mistake both shipped examples made: a field name that is not the one the
+ * schema declares. If that does not produce an error the walk is not reaching
+ * the slot, and a walk that reaches nothing passes everything.
+ */
+function assertCatchesAPlantedFault(envelope, example, payload, schemas) {
+  const slot = { StreamData: "payload", CommandRequest: "args" }[envelope];
+  if (!slot) return;
+  const inner = example[slot];
+  if (inner === null || typeof inner !== "object" || Array.isArray(inner)) {
+    return;
+  }
+  const [first] = Object.keys(inner);
+  if (first === undefined) return;
+  const { [first]: moved, ...rest } = inner;
+  const planted = {
+    ...example,
+    [slot]: { ...rest, [`${first}_not_a_field`]: moved },
+  };
+  if (validateExample(payload, planted, schemas).length === 0) {
+    throw new Error(
+      `asyncapi: the example check cannot see a wrong field name in ` +
+        `${envelope}.${slot}. It reported the document clean, and a check that ` +
+        "cannot see the fault it exists for reports clean on a broken document too.",
+    );
+  }
 }
 
 /**
