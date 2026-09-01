@@ -284,8 +284,32 @@ function checkCompat(
     );
   }
 
-  // Mod-hash gate (design §3.3 row B, the H_mod == H_index half, checked here,
-  // before fetch). Only enforceable once the mod emits expectedClientHash.
+  /*
+   * Mod-hash gate (design §3.3 row B, the H_mod == H_index half, checked here,
+   * before fetch). Unenforceable until the mod emits `expectedClientHash`, which
+   * no bundled Uplink did until Kos and MechJeb were armed on 2026-09-01.
+   *
+   * ## What arming changed, and why this gate keeps its shape anyway
+   *
+   * This is a hash equality test standing in for a VERSION question, and it
+   * cannot tell "different" from "incompatible": an operator whose CKAN mod is
+   * one release behind the web app now loses those Uplinks entirely, with a
+   * refusal that reads like tampering. `checkUplinkCompat` above is the
+   * instrument for compatibility and it has already ruled.
+   *
+   * The reason it is not simply demoted to an advisory is that the descriptor is
+   * a PACKAGE: the version metadata, the bundleUrl and the integrity come from
+   * one index entry, and `checkUplinkCompat` gated on that metadata. Fetching
+   * past a hash the mod contradicts means loading bytes whose compat was decided
+   * from a description of something else.
+   *
+   * The durable fix is not here. It is to let the mod anchor the load the way
+   * `loadThirdParty` already does: `clientSource` for the URL,
+   * `expectedClientHash` for the hash, and the bundle's own `gonogo-uplink.json`
+   * for its compat metadata, at which point there is no index claim left to
+   * disagree with and skew is answered by the compat table alone. That path is
+   * built; nothing in `mod/` populates `clientSource` yet.
+   */
   if (roster?.expectedClientHash != null) {
     if (roster.expectedClientHash !== version.integrity) {
       refuse(
@@ -672,15 +696,31 @@ async function loadOne(
     const bytes = await fetchBytes(version.bundleUrl, version.integrity);
     const digest = await sha256Hex(bytes);
 
+    /*
+     * The reason string names the party whose claim the bytes missed, and the
+     * INSTALLED MOD outranks the index whenever it vouched.
+     *
+     * It said "index" unconditionally until 2026-09-01, on every path, and that
+     * was already wrong for a third-party `clientSource` load, where the mod
+     * supplies the hash and there is no index entry in the story at all. It
+     * became wrong for the bundled Uplinks too the moment their DLLs started
+     * carrying a real `ExpectedClientHash`: "these bytes are not what the mod you
+     * installed vouches for" is the more serious of the two readings and the one
+     * an operator can act on, and `vouchedBy` had been carrying it while the line
+     * a human reads did not.
+     */
+    const vouchedBy = vouchersFor(version, roster, integrityAnchor);
     if (digest !== version.integrity) {
       refuseIntegrity(
         {
           subject: "bundle",
           observed: digest,
           expected: version.integrity,
-          vouchedBy: vouchersFor(version, roster, integrityAnchor),
+          vouchedBy,
         },
-        `bundle hash ${digest} != index ${version.integrity} (tampered or wrong URL)`,
+        `bundle hash ${digest} != ${
+          vouchedBy.includes("installed-mod") ? "mod-expected" : "index"
+        } ${version.integrity} (tampered or wrong URL)`,
       );
     }
     /*
@@ -688,11 +728,11 @@ async function loadOne(
      *
      * `checkCompat` refuses before the fetch whenever `expectedClientHash`
      * differs from `version.integrity`, so reaching this line means the two are
-     * equal and the check above already fired on the same digest. Nothing here
-     * is a second, independent verification of the bytes, and reading the two
-     * refusal strings as evidence of one would be wrong: the mod-hash arm is
-     * reconciled against the index BEFORE any bytes exist, and the bytes are
-     * then checked once, against the hash both parties agreed on.
+     * equal and the check above already fired on the same digest, naming the mod.
+     * Nothing here is a second, independent verification of the bytes, and
+     * reading the two refusal strings as evidence of one would be wrong: the
+     * mod-hash arm is reconciled against the index BEFORE any bytes exist, and
+     * the bytes are then checked once, against the hash both parties agreed on.
      *
      * It stays as a floor under a future change to that pre-fetch gate, which
      * is the only thing standing between here and a real second arm.

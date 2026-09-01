@@ -1010,9 +1010,12 @@ At load time the app runs `checkUplinkCompat(manifest, app)` and gets one of thr
   honour); the Uplink is quarantined with the exact reason shown in the in-app Uplinks list
 - **`warn-load`** the only soft case: the app is older than `minAppVersion`, logged but still loaded
 
-Build these numbers, never type them. The mod side bakes its matching client hash the same way
-(`gonogo-uplink bake-hash`, or `mod/scripts/bake-client-hash.mjs` in this repo, which writes
-`ExpectedClientHash.g.cs`), so the running mod can vouch for the exact bundle it expects.
+Build these numbers, never type them. The mod side bakes its matching client hash the same way, with
+`gonogo-uplink bake-hash` writing `ExpectedClientHash.g.cs`, so the running mod can vouch for the exact
+bundle it expects. Hash the bundle you actually publish: a hash of a differently-built copy is one the
+loader can never match, and it fails as tampering rather than as a bad build. (The Uplinks bundled with
+this repo take `pnpm --filter @ksp-gonogo/app bake-uplink-hash <UplinkId>` instead, because their bundle
+is emitted by the app's own build rather than by their author.)
 
 ---
 

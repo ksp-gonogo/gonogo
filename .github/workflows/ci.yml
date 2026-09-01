@@ -428,8 +428,11 @@ jobs:
 
       # An empty ExpectedClientHash silently degrades the loader's three-way
       # bundle check to two-way while the author docs promise a check that fires.
-      # Shrink-only: the nine currently-unarmed Uplinks are grandfathered, a new
-      # one is held to armed.
+      # Shrink-only: the eight still-unarmed Uplinks are grandfathered, a new
+      # one is held to armed. The two armed ones are separately held CURRENT by
+      # `bakedClientHash.test.ts` in the `test` job, which rebuilds their bundles
+      # and compares; a hash here is only worth having if it still describes the
+      # bytes the app serves.
       - name: Uplink client hashes are armed
         run: node scripts/client-hash-armed.mjs
 

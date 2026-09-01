@@ -367,4 +367,33 @@ describe("the reason string survives alongside the record", () => {
       `bundle hash ${goodHash} != index ${WRONG_HASH} (tampered or wrong URL)`,
     );
   });
+
+  /*
+   * The arming half of the three-way check, which had never fired for a bundled
+   * Uplink: every `ExpectedClientHash.g.cs` in the tree read `""` until
+   * 2026-09-01, so `roster.expectedClientHash` was null everywhere and no load
+   * could ever produce a finding against the mod. With a real hash baked, an
+   * operator whose bundle does not match their installed mod has to be told
+   * that, not told a catalogue entry disagrees.
+   */
+  it("names the MOD, not the index, when an armed mod vouched the hash the bytes missed", async () => {
+    const [outcome] = await load({
+      index: indexWith(WRONG_HASH),
+      roster: [
+        {
+          id: "widget-a",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          expectedClientHash: WRONG_HASH,
+        },
+      ],
+    });
+
+    expect(outcome.status).toBe("quarantined");
+    expect(outcome.reason).toBe(
+      `bundle hash ${goodHash} != mod-expected ${WRONG_HASH} (tampered or wrong URL)`,
+    );
+    expect(outcome.integrity?.vouchedBy).toContain("installed-mod");
+  });
 });
