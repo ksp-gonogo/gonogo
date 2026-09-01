@@ -50,9 +50,19 @@ no second connection to open. The \`session\` channel carries the frames that
 belong to the connection rather than to any one channel.
 
 Everything the mod sends is one of four frame types, unioned as
-\`components.schemas.InboundFrame\` and discriminated on \`type\`. Write that
-router first: every per-channel message below narrows one of its arms, and none
-of them adds a fifth.
+\`components.schemas.InboundFrame\`: \`stream-data\`, \`command-response\`,
+\`event\` and \`error\`. Write that router first: every per-channel message below
+narrows one of its arms, and none of them adds a fifth.
+
+Route on the \`type\` field. Each arm pins it with a \`const\`, so a plain JSON
+Schema validator discriminates the union without help, and the \`discriminator\`
+keyword on \`InboundFrame\` is a label on that rather than the thing doing the
+work. \`InboundFrame\` is a named union nothing \`$ref\`s: it exists to be read,
+and the two arms that are frames in their own right carry their vocabularies on
+their schemas, \`EventMsg\` for the two \`name\` values and \`ErrorMsg\` for the
+three \`code\` values. The same prose reaches you through
+\`components.messages.event\` and \`components.messages.error\`, which is where
+the channels point.
 
 ## Nothing arrives before you ask for it
 
@@ -104,8 +114,14 @@ is absent means the declaration did not state it.
 - \`x-sitrep-keyframe-interval-ut\`, on a telemetry channel: the UT seconds
   after which it re-emits unconditionally, with nothing changed. It is what
   makes a late subscriber, a quickload and a rejoin recoverable without waiting
-  for the next real change, and it is the interval to size a staleness timeout
-  against
+  for the next real change. The seconds are GAME seconds and the two clocks are
+  not proportional: UT runs at up to 100000x wall-clock under timewarp and does
+  not advance at all while the game is paused. So this is not a wall-clock
+  duration, and a wall-clock timer sized off it fires long before the keyframe
+  under warp and never fires at all while paused. Measure staleness in the same
+  clock the number is in, by watching \`Meta.validAt\` advance; if you need a
+  wall-clock bound, convert with the live \`warpRate\` on \`time.warp\` and treat
+  its \`paused\` as "no keyframe is due"
 - \`x-sitrep-absence-is-data\`, on a telemetry channel: \`true\` means an empty
   value is a real answer and arrives as a tombstone from the first tick (no
   target selected, no crew aboard). Without it a channel is held back until it
@@ -117,14 +133,19 @@ is absent means the declaration did not state it.
 
 ## This is not a list of every channel on the wire
 
-It cannot become one. A DYNAMIC namespace (\`fleet.\`, \`silence.\`,
-\`currency.\`, per-vessel part actions, and each Uplink's own) is registered at
-RUNTIME and materialises its channels per subject, so no statically declared type
-exists for the generator to find and nothing about it appears here. Asking this
-document "is there a per-vessel X" gets a confident no about a channel that has
-been published all along. An Uplink's own channels and commands are likewise
-absent: they live in the Uplink's contract slice, not in the core one this
-document is generated from.
+It cannot become one. A DYNAMIC namespace is registered at RUNTIME and
+materialises its channels per subject, so no statically declared type exists for
+the generator to find and nothing about it appears here: \`silence.<guid>.*\`,
+\`currency.<guid>.<currency>\`, per-vessel part actions, and each Uplink's own.
+Asking this document "is there a per-vessel X" gets a confident no about a
+channel that has been published all along. An Uplink's own channels and commands
+are likewise absent: they live in the Uplink's contract slice, not in the core
+one this document is generated from.
+
+The prefix alone does not tell you which half a channel is in, and \`fleet.\` is
+the case that proves it: \`fleet.silence\` is STATICALLY declared and is in this
+document, while \`fleet.<guid>.<field>\` is dynamic and is not. Reading the one
+as evidence about the other goes wrong in both directions.
 
 ## What a schema cannot say about this contract
 
@@ -156,11 +177,17 @@ This channel has no \`address\` because these frames are not routed by one: they
 are typed by their own \`type\` field and belong to the socket itself.`;
 
 /**
- * The distinction between an `error` frame and a failed `command-response`.
+ * The distinction between an `error` frame and a failed `command-response`, and
+ * the three codes the mod puts in `code`.
  *
  * Written out because it is the question the surface could not answer and the
  * one an author has to get right to handle a write at all: the two are not
  * degrees of the same thing.
+ *
+ * Attached to the SCHEMA rather than to the message, via `schemas.describe`. The
+ * contract declares no doc comment for `ErrorMsg`, and a reader routing off
+ * `InboundFrame` never passes through the message at all, so on the message this
+ * reached one of the two ways in.
  */
 const ERROR_DESCRIPTION = `A fault, never a refusal, and the difference decides how a client handles it.
 
@@ -187,8 +214,9 @@ different vocabulary: it names REFUSALS and never appears here.`;
  * the session.
  *
  * The frame's own payload requires a `topic`, and both names the mod emits are
- * per-subscription. Carried here rather than on `EventMsg` because the contract
- * declares no doc comment for it, and this is a fact about the protocol.
+ * per-subscription. Written here rather than in the C# because it is a fact
+ * about the protocol, and attached to the `EventMsg` SCHEMA for the reason
+ * `ERROR_DESCRIPTION` gives.
  */
 const EVENT_DESCRIPTION = `Something that happened to a SUBSCRIPTION, on the topic it happened to.
 
@@ -242,7 +270,16 @@ whole of the inbound surface: \`stream-data\` carries a subscribed topic's value
 \`command-response\` answers a dispatch, \`event\` reports something that happened
 to a subscription, and \`error\` reports a request that could not be carried.
 Every per-channel message below narrows one of these; none of them adds a fifth
-\`type\`.`;
+\`type\`.
+
+Each arm pins \`type\` with a \`const\`, and that is what the discrimination is
+made of: a plain JSON Schema validator picks the right arm from the constants
+alone. The \`discriminator\` beside this is the AsyncAPI Schema keyword, a bare
+string naming that property, and it is a LABEL on the constants rather than the
+mechanism. Two things follow. It is not OpenAPI 3's \`discriminator\` object, so
+\`propertyName\` and \`mapping\` do not belong here and the object form does not
+validate. And a JSON Schema tool that has never heard of it loses nothing,
+because the constants are still there.`;
 
 const CORRELATION_DESCRIPTION =
   "A dispatch and its answer are correlated on `requestId`, never on order: " +
@@ -260,6 +297,69 @@ const EXAMPLE_META = {
   active: true,
   staleness: 0,
   timelineEpoch: 3,
+};
+
+/*
+ * The two frames a client has to CONSTRUCT, worked in full.
+ *
+ * Both are pinned to a real subject, `vessel.flight` and
+ * `vessel.control.setThrottle`, and both carry every field those subjects
+ * require rather than an abbreviated sketch. `EXAMPLE_TOPIC` and
+ * `EXAMPLE_COMMAND` are here because `assertExamplesMatchTheirSchemas` in
+ * `asyncapi-doc.mjs` resolves the message for each and checks the example
+ * against it.
+ *
+ * Written out in full because the shorter version was WRONG and shipped for
+ * months: the command example sent `args: { throttle: 0.4 }` against a
+ * `SetThrottleArgs` whose one required field is `value`, and the telemetry
+ * example sent `payload: { altitude, verticalSpeed }` against a `VesselFlight`
+ * that requires fourteen fields and has no `altitude` among them (it has
+ * `altitudeAsl` and `altitudeTerrain`, which is the distinction the sketch
+ * collapsed). Nothing caught it: `StreamData.payload` and `CommandRequest.args`
+ * are deliberately unconstrained on the base envelope, since the narrowing lives
+ * on the per-channel message, so an example on the base validated against a slot
+ * that accepts anything. These are the only two examples of the only two frames
+ * a client sends or reads, so a reader copies them, and both failed silently.
+ */
+export const EXAMPLE_TOPIC = "vessel.flight";
+export const EXAMPLE_COMMAND = "vessel.control.setThrottle";
+
+const EXAMPLE_STREAM_DATA = {
+  type: "stream-data",
+  topic: EXAMPLE_TOPIC,
+  payload: {
+    latitude: -0.0972,
+    longitude: -74.5577,
+    altitudeAsl: 72840.31,
+    altitudeTerrain: 72837.02,
+    verticalSpeed: -4.2,
+    surfaceSpeed: 2287.4,
+    orbitalSpeed: 2301.8,
+    gForce: 0.02,
+    dynamicPressureKPa: 0.0004,
+    mach: 7.63,
+    atmDensity: 0.0000012,
+    externalTemperature: 231.4,
+    atmosphericTemperature: 228.9,
+    meta: { source: "vessel:8f2c1d40-97ab-4a2e-9c1f-6d0b3e5a7c11", quality: 1 },
+  },
+  meta: EXAMPLE_META,
+};
+
+const EXAMPLE_COMMAND_REQUEST = {
+  type: "command-request",
+  requestId: "0f3c9a12",
+  command: EXAMPLE_COMMAND,
+  label: "Throttle 40%",
+  topic: "vessel.control",
+  vantage: "ksc",
+  args: { value: 0.4 },
+  /*
+   * Zero, and not a placeholder. `CommandRequest.sentAt`'s own doc comment says
+   * every client sends 0 today, so an example carrying a UT here would teach a
+   * habit the contract does not have.
+   */
+  sentAt: 0,
 };
 
 /**
@@ -313,14 +413,7 @@ function defineEnvelopes(schemas, contract) {
       },
       meta: schemas.ref("Meta"),
     },
-    examples: [
-      {
-        type: "stream-data",
-        topic: "vessel.flight",
-        payload: { altitude: 72840.31, verticalSpeed: -4.2 },
-        meta: EXAMPLE_META,
-      },
-    ],
+    examples: [EXAMPLE_STREAM_DATA],
   });
 
   const commandRequest = schemas.define("CommandRequest", {
@@ -349,18 +442,7 @@ function defineEnvelopes(schemas, contract) {
       },
       sentAt: field("CommandRequest", "sentAt"),
     },
-    examples: [
-      {
-        type: "command-request",
-        requestId: "0f3c9a12",
-        command: "vessel.control.setThrottle",
-        label: "Throttle 40%",
-        topic: "vessel.control",
-        vantage: "ksc",
-        args: { throttle: 0.4 },
-        sentAt: 0,
-      },
-    ],
+    examples: [EXAMPLE_COMMAND_REQUEST],
   });
 
   const commandResponse = schemas.define("CommandResponse", {
@@ -481,14 +563,12 @@ export function buildDocument({
   messages.event = {
     name: "event",
     title: "A named occurrence on a topic, carrying no payload of its own",
-    description: EVENT_DESCRIPTION,
-    payload: schemas.ref("EventMsg"),
+    payload: schemas.describe("EventMsg", EVENT_DESCRIPTION),
   };
   messages.error = {
     name: "error",
     title: "A dispatch that could not be carried, or a bad session request",
-    description: ERROR_DESCRIPTION,
-    payload: schemas.ref("ErrorMsg"),
+    payload: schemas.describe("ErrorMsg", ERROR_DESCRIPTION),
     correlationId: {
       description:
         "Present when the error answers a dispatch, absent when it is about the connection or a topic.",
