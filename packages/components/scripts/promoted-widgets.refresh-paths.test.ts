@@ -45,23 +45,6 @@ const WORKFLOW = resolve(
 );
 const SRC = "packages/components/src";
 
-/** The `push.paths` entries, read out of the YAML by shape rather than parsed. */
-function triggerPaths(yaml: string): string[] {
-  const push = yaml.indexOf("\n  push:");
-  expect(push, `${WORKFLOW} has no push trigger`).toBeGreaterThan(-1);
-  const paths = yaml.indexOf("paths:", push);
-  expect(paths, `${WORKFLOW}'s push trigger has no paths list`).toBeGreaterThan(
-    -1,
-  );
-  const out: string[] = [];
-  for (const line of yaml.slice(paths).split("\n").slice(1)) {
-    const entry = /^\s+-\s+'([^']+)'\s*$/.exec(line);
-    if (!entry?.[1]) break;
-    out.push(entry[1]);
-  }
-  return out;
-}
-
 /**
  * Source directories, under `packages/components/src`, that the promoted set
  * reaches.
@@ -107,55 +90,58 @@ function dirForWidgetId(widgetId: string): string {
   );
 }
 
-/** Does any trigger entry cover `packages/components/src/<dir>/…`? */
-function covered(paths: readonly string[], dir: string): boolean {
-  const target = `${SRC}/${dir}/`;
-  return paths.some((entry) => {
-    const prefix = entry.replace(/\*+$/, "");
-    return target.startsWith(prefix) || entry === `${SRC}/${dir}/**`;
-  });
-}
-
-describe("refresh-promoted-assets.yml triggers on what it refreshes", () => {
+describe("refresh-promoted-assets.yml cannot omit a promoted widget", () => {
   const yaml = readFileSync(WORKFLOW, "utf8");
-  const paths = triggerPaths(yaml);
 
-  it("reads a non-empty paths list, so a passing assertion below means something", () => {
-    expect(paths.length).toBeGreaterThan(0);
+  /* THE INVARIANT CHANGED, AND SO DID ITS PROOF.
+   *
+   * This suite was written against a `push.paths` list, and its job was to stop
+   * that hand-kept list going stale in the one checkable direction: every
+   * promoted widget's own directory had to be named. The list is gone. The
+   * workflow now runs NIGHTLY, because it COMMITS assets back and a commit
+   * landing on `staging` mid-hook rejected a developer's push and cost the whole
+   * hook again, four times in one evening.
+   *
+   * The RISK is unchanged: a promoted widget whose asset quietly stops being
+   * refreshed, when those assets are what the operator approves. The list was
+   * one way to be sure and it was a poor one, because it could omit a widget
+   * silently. A schedule with no filter cannot: there is nothing to omit FROM.
+   *
+   * So the assertions invert. What used to be "the list covers every widget"
+   * becomes "there is no list to miss a widget", and both are the same claim
+   * about the same risk.
+   */
+
+  it("has no paths filter, so no promoted widget can be left out of one", () => {
+    expect(
+      /\n\s+paths:/.test(yaml),
+      `${WORKFLOW} has a paths filter again. It ran nightly with none, and a ` +
+        "filter can omit a promoted widget silently, which is exactly what it " +
+        "did before: it named this job's own scripts and ONE widget's " +
+        "directory, so a change to the design system every promoted widget " +
+        "draws through refreshed nothing.",
+    ).toBe(false);
   });
 
-  it("finds at least one promoted widget, for the same reason", () => {
+  it("runs on a schedule rather than on a push that races a developer", () => {
+    expect(
+      /\n\s+schedule:/.test(yaml),
+      `${WORKFLOW} has no schedule trigger, so nothing refreshes a promoted ` +
+        "asset on its own and an approved render can go stale unnoticed.",
+    ).toBe(true);
+    expect(
+      /\n {2}push:/.test(yaml),
+      `${WORKFLOW} triggers on push again. It commits assets back, so a push ` +
+        "trigger puts it in a race with anyone pushing to the same branch.",
+    ).toBe(false);
+  });
+
+  it("can still be run by hand, which is how a page is healed without waiting for the night", () => {
+    expect(/\n\s+workflow_dispatch:/.test(yaml)).toBe(true);
+  });
+
+  it("finds at least one promoted widget, so the suite is not vacuous", () => {
     expect(PROMOTED_WIDGETS.length).toBeGreaterThan(0);
     expect(promotedDirs().size).toBeGreaterThan(0);
-  });
-
-  it("covers every promoted widget's own source directory", () => {
-    const missing = [...promotedDirs()]
-      .filter((dir) => !covered(paths, dir))
-      .sort();
-    expect(
-      missing,
-      `${WORKFLOW}'s push.paths does not cover ${missing.length} promoted ` +
-        `widget director${missing.length === 1 ? "y" : "ies"}, so a change ` +
-        "there will not refresh the asset and nothing else will notice. Add " +
-        `${missing.map((d) => `'${SRC}/${d}/**'`).join(", ")}.`,
-    ).toEqual([]);
-  });
-
-  it("keeps the design system on the list, because every promoted render draws through it", () => {
-    expect(paths.some((p) => p.startsWith("packages/ui-kit"))).toBe(true);
-  });
-
-  it("runs on the branch the work lands on", () => {
-    const branches = /\n {2}push:\s*\n\s+branches:\s*\[([^\]]+)\]/.exec(yaml);
-    expect(branches?.[1], `${WORKFLOW} has no push branches list`).toBeTruthy();
-    expect(branches?.[1]).toContain("staging");
-  });
-
-  // The planted case, because a checker that cannot see a violation reports zero
-  // and zero reads as success.
-  it("would SEE an uncovered directory", () => {
-    expect(covered(paths, "SomeWidgetNobodyListed")).toBe(false);
-    expect(covered(paths, "LandingStatus")).toBe(true);
   });
 });
