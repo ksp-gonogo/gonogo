@@ -40,8 +40,6 @@
  * pass, so the companion test fails on an empty or placeholder reason.
  */
 export const TYPECHECK_COVERAGE_DEBT: Readonly<Record<string, string>> = {
-  "mod/sitrep-sdk":
-    "53 test files, and the published leaf everything else builds against, so its fixtures are the ones most worth checking. 41 errors behind the config change, over half of them unit-system tests that pass a deliberately mismatched unit to prove the runtime guard: those want a `@ts-expect-error` saying so, not a fixture change.",
   "packages/components":
     "254 test files, the biggest single block of unchecked test code in the repo. 100 errors behind the config change.",
   "packages/sitrep-client":

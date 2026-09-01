@@ -77,6 +77,9 @@ function recordingSink(): FrameSink<ColourFrame> & { written: string[] } {
   return {
     written,
     write(frame) {
+      // The writer contract allows a chunkless `write()`; the pipeline never
+      // makes one, and this fails loudly rather than recording an absence.
+      if (!frame) throw new Error("the pipeline wrote no frame");
       written.push(frame.colour);
       return Promise.resolve();
     },

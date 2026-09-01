@@ -141,7 +141,12 @@ describe("naming the frame in force", () => {
   it("renders an unnamed kind as the kind rather than the nearest neighbour", () => {
     // A wrong frame name is a wrong claim about what every coordinate on the
     // board means, so an unknown one reads as obviously incomplete.
-    expect(controlFrameLabel({ kind: 99 } as ControlFrame)).toBe("Frame 99");
+    // Through `unknown`, because no `ControlFrameKind` is 99 and the compiler
+    // is right about that: the value models a mod that is ahead of this client,
+    // which is the only way such a frame reaches the label.
+    expect(controlFrameLabel({ kind: 99 } as unknown as ControlFrame)).toBe(
+      "Frame 99",
+    );
   });
 
   it("names nothing when no frame has been reported", () => {

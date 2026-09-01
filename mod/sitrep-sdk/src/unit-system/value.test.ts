@@ -39,7 +39,13 @@ describe("dimension arithmetic", () => {
     // `{m:1, s:0}`. Every operation normalises; this pins the hand-written
     // source they start from.
     const withZeros = Object.entries(UNIT_DEFINITIONS)
-      .filter(([, def]) => Object.values(def.dim).some((e) => e === 0))
+      .filter(([, def]) => {
+        // Widened: the exponent type excludes 0 outright, so comparing against
+        // it is a type error, and the runtime check is what holds if that type
+        // is ever loosened.
+        const exponents: number[] = Object.values(def.dim);
+        return exponents.some((e) => e === 0);
+      })
       .map(([symbol]) => symbol);
     expect(withZeros).toEqual([]);
   });
@@ -52,21 +58,29 @@ describe("plus and minus", () => {
     expect(value("W", 5).plus(value("J/s", 3)).unit).toBe("W");
   });
 
+  // Every mismatch below is refused by the COMPILER as well, which is why each
+  // one carries a `@ts-expect-error`: the pragma is the assertion that the
+  // static half holds, and the `toThrow` is the assertion that the runtime half
+  // does too, for a caller who arrived from untyped JSON or a JS Uplink.
   it("refuses torque plus energy, from either side", () => {
     // Same dimension, unrelated quantities, and both declare `coincidentWith`.
     // The message names the two kinds rather than the dimension they agree on,
     // because "kg·m²/s² is not kg·m²/s²" is what the old dimension check would
     // have had to say and it explains nothing.
+    // @ts-expect-error torque plus energy: refused statically and at runtime
     expect(() => value("N·m", 5).plus(value("J", 3))).toThrow(
       /torque and energy share the dimension/,
     );
+    // @ts-expect-error energy plus torque: the same refusal from the other side
     expect(() => value("J", 3).plus(value("N·m", 5))).toThrow(
       /energy and torque share the dimension/,
     );
   });
 
   it("refuses to convert, order or equate a torque against an energy", () => {
+    // @ts-expect-error converting energy to torque: refused statically too
     expect(() => value("J", 1).in("N·m")).toThrow(/unrelated quantities/);
+    // @ts-expect-error ordering energy against torque: refused statically too
     expect(() => value("J", 1).lessThan(value("N·m", 2))).toThrow(
       /unrelated quantities/,
     );
@@ -91,12 +105,14 @@ describe("plus and minus", () => {
   });
 
   it("refuses a different dimension", () => {
+    // @ts-expect-error metres plus seconds: refused statically and at runtime
     expect(() => value("m", 5).plus(value("s", 35))).toThrow(
       /Cannot add m and s/,
     );
   });
 
   it("names both dimensions when it refuses", () => {
+    // @ts-expect-error power plus temperature: refused statically and at runtime
     expect(() => value("kW", 1).plus(value("K", 1))).toThrow(/kg·m²\/s³/);
   });
 });
@@ -161,6 +177,7 @@ describe("dimensionless units", () => {
   it("keeps a count out of the dimensionless bucket", () => {
     // Adding three crew to a 0.5 ratio is nonsense; collapsing count into
     // dimensionless is what would have allowed it.
+    // @ts-expect-error count plus ratio: refused statically and at runtime
     expect(() => value("count", 3).plus(value("ratio", 0.5))).toThrow();
   });
 });
@@ -170,6 +187,7 @@ describe("collisions the catalog has to survive", () => {
     // `rad` is a plane angle AND, in `rad/s`, an absorbed dose. Declaring the
     // compound outright is what stops it decomposing into angle-per-second,
     // which is rpm's dimension and would have compared equal.
+    // @ts-expect-error dose rate plus angular rate: refused statically and at runtime
     expect(() => value("rad/s", 1).plus(value("rpm", 1))).toThrow();
   });
 
@@ -215,6 +233,7 @@ describe("units outside the catalog", () => {
     // An Uplink's symbol stays usable: it adds to itself, it renders, it
     // divides. What it does not do is get guessed at.
     expect(value("widgets", 2).plus(value("widgets", 3)).magnitude).toBe(5);
+    // @ts-expect-error an unknown symbol plus metres: refused statically and at runtime
     expect(() => value("widgets", 2).plus(value("m", 3))).toThrow();
     expect(value("widgets", 6).dividedBy(value("s", 2)).unit).toBe("widgets/s");
   });
