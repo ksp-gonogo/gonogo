@@ -70,6 +70,14 @@ function mountSchedule(kerbalName = "Wernher Kerman") {
      time they ran, red on CI where it had. A test that does not care about a
      channel should still feed it. */
   fixture.emit("rp1.trainingCatalogue", []);
+  /* The enrolment control reads FIVE channels and reports an unread one in a
+     short line, which is correct for an unreadable state and is what the
+     emptiness assertions here were racing. Feeding the catalogue alone left four
+     unfed, so the race survived: green locally where the control had not
+     rendered by the time the assertion ran, red on CI where it had. Feed every
+     channel the control reads, not just the one that was noticed first. */
+  fixture.emit("spaceCenter.crewRoster", []);
+  fixture.emit("rp1.training", []);
   return { fixture, view };
 }
 
