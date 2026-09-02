@@ -232,10 +232,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 3 |  |
-| `rp1-training-enrolment` | `astronaut-complex.sections` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.training`, `spaceCenter.crewRoster` |  | 2 |  |
+| `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 2 |  |
+| `rp1-training-courses` | `astronaut-complex.training` | `rp1.available`, `rp1.training`, `rp1.crew` |  | 2 |  |
+| `rp1-training-enrolment` | `astronaut-complex.training` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.crewProgram`, `rp1.training`, `spaceCenter.crewRoster` |  | 2 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
-| `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
 | `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `rp1.constructions` | only while `rp1` | 2 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 12 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
@@ -251,19 +251,19 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-warp-targets` | `warp-control.stepper` | – |  | 3 |  |
 
-![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
+![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own with the sack control at the end of the identity line: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes. Each line names itself, and only the lapse is toned](docs/assets/crew-schedule-three-states--default.png)
 
-![The three training commands on the nauts they are about, sharing one card with the dates they move: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked](docs/assets/crew-training-both-ways-out--default.png)
+![Retirement and mission training both switched off: no retirement date, no extension line, no lapse date and no mention that any of them are disabled, because on this save they are not concepts an operator has to hold](docs/assets/crew-settings-honoured--default.png)
 
-![Both training refusals: an enrolment a naut's row cannot fill because the course seats two, and a removal RP-1 withholds on a course that would be left below its minimum, with cancelling the whole course still open](docs/assets/crew-training-refused--default.png)
+![One course two kerbals share, carrying its own progress, the date the course ends, the later date its crew comes free, and RP-1's two ways off it: one cancel that ends it for both and one removal per student, with the roster rows above stating only where each kerbal stands](docs/assets/crew-training-both-ways-out--default.png)
+
+![Mission training for Gemini seats exactly two, so RP-1 withholds both removals rather than stranding whoever is left, and cancelling the whole course is the only way off it](docs/assets/crew-training-refused--default.png)
 
 ![Gemini seats two and the career has one naut free: Valentina is off-world and Nedcas is standing down after a flight, so the enrolment is dark with the count rather than failing at the press](docs/assets/crew-enrolment-blocked--default.png)
 
 ![Two of three idle nauts picked for Gemini, which seats exactly two: the crew fits its bounds, so the enrolment is one press away and the third name is still there to swap in](docs/assets/crew-enrolment-ready--default.png)
 
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
-
-![The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started](docs/assets/crew-programme-rules--default.png)
 
 ![A career with two tiers it could commit to and one building already in the queue, priced against a balance that cannot meet either: RP-1 bills a construction as it builds, so this is a slower upgrade rather than a refused one](docs/assets/facility-upgrades-at-centre--default.png)
 
@@ -346,6 +346,9 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Contribution | Into | Computed from | Presence |
 | --- | --- | --- | --- |
 | `rp1:programs-screen` | `strategies.screens` | – | only while `rp1` |
+| `rp1:crew-core-stats` | `astronaut-complex.readouts` | `rp1.crew`, `rp1.crewProgram` | only while `rp1` |
 
 ![The tab strip this Uplink's contribution puts on the Administration Building: Programs is the screen it names, the host draws the strip and lists the Programs department under it with its own Activate and Deactivate controls, and the Leaders no screen has claimed stay reachable on Other rather than disappearing. The Program Detail body below the list is a separate augment, photographed fed in its own scenes: a contribution scene carries only the contribution's OWN topics, so the catalogue it reads does not reach it here](docs/assets/programs-screen--default.png)
+
+![RP-1's two core stats in the Astronaut Complex's own strip: how much of the roster is mid-course, with the courses nobody has started called out, and how many kerbals are about to lose a qualification, toned because that one is a date somebody has to act before](docs/assets/crew-core-stats--default.png)
 
