@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "A renovation, priced live against what the operator is typing. Nothing is spent at the press: a construction is not a purchase under RP-1, the project joins its queue and funds are drawn AS IT BUILDS at a rate that falls when the career is short, so a balance that does not cover the quote is a pace problem rather than a refusal. The two facts RP-1 discloses only afterwards are said first: it takes the complex's whole crew off for the whole build (ChangeEngineers(lc, -lc.Engineers) is the first thing it does), and a reduction is a bill rather than a refund. The complex's fluids are sent back verbatim because Rp1ComplexModifyArgs.resources is a SET whose absence means NONE, which is why rp1.complexes[].resourceCapacities is on the wire at all."
+    "notes": "A renovation, priced live against what the operator is typing, which is why the price is transcribed into the client at all: these commands are delay-aware and a quote per keystroke would be a round trip a remote vantage waits minutes for. The scene harness can press but cannot type, so this is the form at rest and the quote is honestly 0f. Nothing is spent at the press either way: a construction is not a purchase under RP-1, the project joins its queue and funds are drawn AS IT BUILDS at a rate that falls when the career is short, so a balance that does not cover the quote is a pace problem rather than a refusal. The two facts RP-1 discloses only afterwards are said first: it takes the complex's whole crew off for the whole build (ChangeEngineers(lc, -lc.Engineers) is the first thing it does), and a reduction is a bill rather than a refund. The complex's fluids are sent back verbatim because Rp1ComplexModifyArgs.resources is a SET whose absence means NONE, which is why rp1.complexes[].resourceCapacities is on the wire at all."
   },
   "_scene": {
     "augment": "rp1-ksc-complexes",
@@ -9,7 +9,7 @@
       "w": 12,
       "h": 30
     },
-    "caption": "The renovation form open on LC-1 at its current specification: the envelope RP-1 holds it to, the crew it takes off, and the quote a short balance slows rather than stops",
+    "caption": "The renovation form open on LC-1, every field starting at what the complex already is, so the quote is 0f until something moves; beside it the 18 engineers it takes off for the whole build and the toggle that puts them back",
     "paints": [
       "SPACE CENTRES",
       "LC-1",

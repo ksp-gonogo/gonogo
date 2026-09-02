@@ -1,6 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  ActionButton,
   Cluster,
   CommandButton,
   Disclosure,
@@ -9,6 +8,7 @@ import {
   Row,
   RowName,
   Stack,
+  Switch,
   Text,
   Unit,
   UnitInput,
@@ -191,7 +191,10 @@ function HireTargetForm({
   const targetCount = Math.round(magnitudeOf(wanted) ?? 0);
   const reserveFunds = magnitudeOf(reserve) ?? 0;
 
-  const tooLow = current !== null && targetCount <= current;
+  // Only once a headcount has actually been entered. At the form's opening zero
+  // the refusal is true and useless: it would greet every operator with RP-1's
+  // complaint about a number they have not typed yet.
+  const tooLow = current !== null && targetCount > 0 && targetCount <= current;
   const clamped = ceiling !== null && targetCount > ceiling;
   const spendable = Math.max(0, funds - reserveFunds);
   const press = `Hire up to ${targetCount} ${kind}${where}, spending no lower than ${reserveFunds.toLocaleString("en-GB")} funds`;
@@ -211,25 +214,26 @@ function HireTargetForm({
           Researchers first, because a career hires them from the moment it has an
           R&D building and the engineer half needs a complex that exists.
         */}
+        {/*
+          `Switch` rather than a row of toggle buttons, matching the centre picker
+          in `NewComplexControl`. A toggle button carries the better semantics for
+          an exclusive choice, and a render settled it anyway: `ActionButton` has
+          one appearance, so `aria-pressed` moved and nothing on screen did, and
+          an operator could not see which half the form was on.
+        */}
         <Cluster gap="xs" wrap>
-          <ActionButton
-            aria-label="Hire researchers"
-            aria-pressed={at === undefined}
-            onClick={() => setLcId(null)}
-            type="button"
-          >
-            researchers
-          </ActionButton>
+          <Switch
+            checked={at === undefined}
+            label="researchers"
+            onChange={() => setLcId(null)}
+          />
           {staffable.map((complex) => (
-            <ActionButton
-              aria-label={`Hire engineers at ${complex.name ?? NULL_DISPLAY}`}
-              aria-pressed={complex.lcId === lcId}
+            <Switch
+              checked={complex.lcId === lcId}
               key={complex.lcId}
-              onClick={() => setLcId(complex.lcId ?? null)}
-              type="button"
-            >
-              {complex.name ?? NULL_DISPLAY}
-            </ActionButton>
+              label={complex.name ?? NULL_DISPLAY}
+              onChange={() => setLcId(complex.lcId ?? null)}
+            />
           ))}
         </Cluster>
 

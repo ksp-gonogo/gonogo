@@ -380,16 +380,24 @@ function RefitControl({
       variant="inline"
     >
       <Stack gap="xs">
+        {/*
+          One line rather than a paragraph and a warning band, on the repo's own
+          compress-the-rows rule and on a render: three lines of warn tone above
+          two presses read as a hazard, and a refit is a free reversible edit.
+          The reach is a FACT about what the press does, so it is stated in the
+          same muted line as the money.
+        */}
         <Text size="xs" tone="muted">
           costs nothing, and drops the{" "}
           <Unit value={part.untooledSurcharge} decimals={0} /> per build
+          {others > 0 && (
+            <>
+              {" · takes "}
+              {others} other part{others === 1 ? "" : "s"} in symmetry, and the
+              material goes on the group
+            </>
+          )}
         </Text>
-        {others > 0 && (
-          <Text size="xs" tone="warn">
-            reshapes {others} other part{others === 1 ? "" : "s"} in symmetry
-            with it, and applies the material to the whole group
-          </Text>
-        )}
         {targets.map((target) => (
           <RefitRow
             handle={handle}

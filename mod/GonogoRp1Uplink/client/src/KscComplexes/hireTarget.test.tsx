@@ -123,9 +123,9 @@ describe("the standing hire instruction", () => {
     await user.click(
       await screen.findByRole("button", { name: "Set a hire target" }),
     );
-    await user.click(
-      await screen.findByRole("button", { name: "Hire engineers at LC-1" }),
-    );
+    // A Switch rather than a toggle button, so the checked state is VISIBLE: see
+    // the picker's own comment for the render that settled it.
+    await user.click(await screen.findByRole("checkbox", { name: "LC-1" }));
     const headcount = await screen.findByLabelText("Target headcount");
     await user.clear(headcount);
     await user.type(headcount, "25");

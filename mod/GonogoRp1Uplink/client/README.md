@@ -53,7 +53,8 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
 | `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
 | `Rp1RequiredTechEntry` | `id` id, `parts` text, `title` text |
-| `Rp1ToolingEntry` | `parameterSummary` text, `partId` id, `partTitle` text, `refittable` flag, `symmetryCounterparts` count, `tooled` flag, `toolingCost` funds, `toolingType` id, `toolingTypeTitle` text, `untooledSurcharge` funds |
+| `Rp1ToolingEntry` | `parameterSummary` text, `partId` id, `partTitle` text, `refitTargets` Rp1ToolingRefitTarget[], `refittable` flag, `symmetryCounterparts` count, `tooled` flag, `toolingCost` funds, `toolingType` id, `toolingTypeTitle` text, `untooledSurcharge` funds |
+| `Rp1ToolingRefitTarget` | `diameter` m, `length` m, `rfType` id |
 
 ## Commands
 
@@ -129,7 +130,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.buildable`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `rp1.buildCost`, `rp1.tooling`, `career.status` |
 | Slots | `rp1-vehicle-assembly.sections` |
 | Default size | 7 × 16 |
-| Scenes | 9 |
+| Scenes | 10 |
 
 ![Nothing built and nothing on order, which is where a career starts](docs/assets/assembly-empty--default.png)
 
@@ -217,6 +218,16 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The same widget at 18 × 5](docs/assets/tooling-one-purchase-two-parts--landscape-18x5.png)
 
+![The refit expander open on a tank the career owns two sizes for: what it drops per build, how many parts it takes with it, and a press per owned size](docs/assets/tooling-refit-instead--default.png)
+
+![The same widget at its minimum size](docs/assets/tooling-refit-instead--min.png)
+
+![The same widget at 9 × 8](docs/assets/tooling-refit-instead--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/tooling-refit-instead--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/tooling-refit-instead--landscape-18x5.png)
+
 ## Augments
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
@@ -226,7 +237,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
 | `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `rp1.constructions` | only while `rp1` | 2 |  |
-| `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
+| `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 12 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
 | `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 5 |  |
@@ -238,7 +249,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-tooling` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
-| `rp1-warp-targets` | `warp-control.stepper` | – |  | 2 |  |
+| `rp1-warp-targets` | `warp-control.stepper` | – |  | 3 |  |
 
 ![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
 
@@ -268,7 +279,13 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; LP-1B still shows the closed one-button state, now the same bordered control as the Dismantle beside it](docs/assets/complexes-rename--default.png)
 
+![The renovation form open on LC-1 at its current specification: the envelope RP-1 holds it to, the crew it takes off, and the quote a short balance slows rather than stops](docs/assets/complexes-renovate--default.png)
+
 ![LC-1 rushing with its detail open, so the terms in force and the way out of rush mode are both on screen; LC-2 stays collapsed, which is what a complex costs to read when nobody is asking about it](docs/assets/complexes-rushing--default.png)
+
+![The hire-target form open on the researcher half: the count it is measured against, the target, the reserve hiring will not spend below, and what that bounds the spend to](docs/assets/hire-target-standing-order--default.png)
+
+![A standing researcher hire instruction: the headcount it is reaching, how many are still to hire, RP-1's own forecast of when the funds for them exist, and the one press that withdraws it](docs/assets/hire-target-standing--default.png)
 
 ![A payroll mid-career with six engineers assigned to nothing, the daily charge that pool carries, and the stepped controls that would move them onto either complex](docs/assets/personnel-staffed--default.png)
 
@@ -321,6 +338,8 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![A fund target standing, so both presses are live and each names what it warps to. No ETA line: the operator ruled that funds needs less, so the reason a press is dark lives in its accessible name.](docs/assets/warp-fund-target-standing--default.png)
 
 ![No fund target standing, so its press is dark and nothing on screen explains why: the reason is in the accessible name, where a screen reader gets it and the panel spends no space on it.](docs/assets/warp-no-fund-target--default.png)
+
+![The fund-target form open: the balance the target is measured against, the field, and one press. No cost line anywhere, because a stop condition spends nothing.](docs/assets/warp-set-a-fund-target--default.png)
 
 ## Contributions
 

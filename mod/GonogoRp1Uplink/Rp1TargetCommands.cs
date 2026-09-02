@@ -1,13 +1,18 @@
-// Cancelling the two standing targets: a hire instruction and a warp's fund
-// stop-condition.
+// Standing up and withdrawing the two standing targets: a hire instruction and a
+// warp's fund stop-condition.
 //
-// WHY CANCEL AND NOT SET. Both are read-and-cancel rather than read-and-write,
-// because the two halves are not equally safe. Cancelling is a Clear() that
-// spends nothing and can be undone by setting the target again; SETTING a hire
-// target commits the career to spending funds it does not yet have, at a moment
-// nobody is watching, and RP-1 computes the reserve it must keep back from
-// settings this file does not read. A command that got that reserve wrong would
-// hire into a hole.
+// THE TWO HALVES ARE NOT EQUALLY SAFE, and the difference is where the care went
+// rather than a reason to omit one. Cancelling is a Clear() that spends nothing
+// and is undone by setting the target again. SETTING a hire target commits the
+// career to spending funds it does not yet have, at a moment nobody is watching,
+// so the RESERVE is a required argument here: it is the balance hiring will not
+// spend below, and it is the operator's number rather than one this file derives
+// from settings it cannot see. An instruction that omits it is refused, because
+// without one the career buys staff until the money runs out.
+//
+// (This header said "WHY CANCEL AND NOT SET" until 2026-09-02, describing a file
+// that had grown both setters. The reasoning was not wrong, it was answered: the
+// reserve is asked for rather than computed.)
 //
 // WHAT MAKES CANCELLING SAFE. Both Clear() implementations are pure field
 // resets, read on the shipped RP-1 v4.6.0.0 RP0.dll:
