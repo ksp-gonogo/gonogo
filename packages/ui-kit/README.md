@@ -97,7 +97,7 @@ The host app mounts the tokens and the theme once. Inside a Gonogo dashboard tha
 done for you: widgets just compose:
 
 ```tsx
-import { Panel, Row, Value } from "@ksp-gonogo/ui-kit";
+import { Panel, Row, Unit } from "@ksp-gonogo/ui-kit";
 
 export function Altitude({ metres }: { metres: number }) {
   return (
@@ -105,7 +105,7 @@ export function Altitude({ metres }: { metres: number }) {
       <ul>
         <Row>
           <Row.Name>ASL</Row.Name>
-          <Value>{metres.toFixed(0)} m</Value>
+          <Unit value={metres} unit="m" />
         </Row>
       </ul>
     </Panel>
@@ -299,7 +299,7 @@ Also exported: `DefaultThemeProvider` (the default dark theme, mounted), `defaul
 **Panels and chrome**: `Panel` (see below), `ScrollArea`, `Card`,
 `WidgetHeader`, `SectionTitle`
 
-**Readouts**: `Readout`, `BigReadout`, `ReadoutCaption`, `Value`, `Badge`, `StatusPill`,
+**Readouts**: `Readout`, `BigReadout`, `ReadoutCaption`, `Text`, `Unit`, `Badge`, `StatusPill`,
 `StatusIndicator`, `ProgressBar`, `Spinner`
 
 **Everything else**: `ActionButton`, `EmptyState`, `Truncate`, `ScienceExperimentRow`
