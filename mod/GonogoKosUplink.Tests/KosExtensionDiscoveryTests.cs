@@ -45,18 +45,31 @@ namespace GonogoKosUplink.Tests
         }
 
         [Fact]
-        public void Manifest_ExpectedClientHash_IsNull_WhenGeneratedConstIsEmpty()
+        public void Manifest_ExpectedClientHash_MirrorsTheGeneratedConst()
         {
-            // The two-pass client-hash bake (mod/scripts/bake-client-hash.mjs) only fills
-            // ExpectedClientHash.g.cs at RELEASE build. In dev / CI-unit the committed const
-            // is empty, so the manifest must report null → the loader degrades to the
-            // two-way index==bytes check with the mod-hash arm recorded as pending.
+            /*
+             * The manifest must surface whatever ExpectedClientHash.g.cs holds, and the
+             * mapping either way is the invariant: an empty const reports null, so the
+             * loader degrades to the two-way index==bytes check with the mod-hash arm
+             * pending; a filled one reports the hash, so the loader can enforce the
+             * three-way agreement.
+             *
+             * This asserted the null half alone until 2026-09-02, on the premise that the
+             * const is only filled at release build. That premise no longer holds: kOS is
+             * armed and its hash is COMMITTED, deliberately, so the parity test can fail on
+             * the first byte of drift. A test pinned to the unarmed state failed the moment
+             * arming landed, having described a transient condition as a rule.
+             */
             var manifest = UplinkDiscovery
                 .Discover(new[] { typeof(KosExtension).Assembly })
                 .Single(d => d.Uplink.Manifest.Id == "kos")
                 .Uplink.Manifest;
 
-            Assert.Null(manifest.ExpectedClientHash);
+            var expected = string.IsNullOrEmpty(ExpectedClientHash.Value)
+                ? null
+                : ExpectedClientHash.Value;
+
+            Assert.Equal(expected, manifest.ExpectedClientHash);
         }
 
         [Fact]
