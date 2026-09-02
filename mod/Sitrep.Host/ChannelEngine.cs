@@ -3054,16 +3054,77 @@ namespace Sitrep.Host
             Console.Error.WriteLine("[ChannelEngine] command \"" + command + "\" handler threw: " + SafeExceptionMessage(ex));
         }
 
-        private void FailSoftChannel(string topic, Exception ex)
+        /// <summary>
+        /// <paramref name="what"/> names WHICH part of the channel failed, and
+        /// defaults to the mapper because that is every caller but one. The
+        /// delivery-time serialization guard passes its own wording instead:
+        /// a payload the wire codec cannot write is not a mapper fault at all
+        /// (the mapper returned a perfectly good value), and an author sent to
+        /// audit a mapper that never threw is being sent to the wrong file.
+        /// </summary>
+        private void FailSoftChannel(string topic, Exception ex, string what = "mapper threw")
         {
             // Same rationale as FailSoftCommand above: see its doc comment.
+            var reason = $"channel \"{topic}\" {what}: {SafeExceptionMessage(ex)}";
             if (_channelOwner.TryGetValue(topic, out var ownerId))
             {
-                MarkUplinkUnavailable(ownerId, $"channel \"{topic}\" mapper threw: {SafeExceptionMessage(ex)}");
+                MarkUplinkUnavailable(ownerId, reason);
+                return;
             }
-            Console.Error.WriteLine("[ChannelEngine] channel \"" + topic + "\" mapper threw: " + SafeExceptionMessage(ex));
+            // No owner to attribute it to, so MarkUplinkUnavailable's LogHost
+            // call never runs: log it here instead. Console.Error alone is
+            // invisible in KSP (see SetDiagnosticLog), and an unattributable
+            // fail-soft is exactly the one worth not losing.
+            LogHost(reason);
         }
 
+        /// <summary>
+        /// Tell the SUBSCRIBER that its channel's payload could not be put on
+        /// the wire, instead of leaving it acked and then starved forever.
+        ///
+        /// <para>Without this the failure is invisible on the only surface an
+        /// Uplink author is usually watching: the app receives
+        /// <c>subscribed</c> and then nothing at all, which is byte-for-byte
+        /// what a channel that has simply not produced a value yet looks like.
+        /// The host log does carry the fault (FailSoftChannel above marks the
+        /// uplink Unavailable, and MarkUplinkUnavailable logs through
+        /// LogHost/UnityEngine.Debug), but only someone who already suspects
+        /// the host goes looking there.</para>
+        ///
+        /// <para>This is the channel-side twin of the command path's
+        /// <c>result-serialization-error</c>, which has sent an
+        /// <see cref="ErrorMsg"/> rather than silence since C2-4; channels
+        /// were simply never given the same treatment.</para>
+        ///
+        /// <para>The offending CLR type is read off the payload directly
+        /// rather than trusted to appear in the exception message: the
+        /// unsupported-type throw does name it, but a flattener that failed
+        /// for some other reason (a property getter that threw) would not, and
+        /// the type is the single most useful fact for the author.
+        /// <c>GetType()</c> is non-virtual, so unlike <c>ex.Message</c> it
+        /// cannot be overridden to throw.</para>
+        /// </summary>
+        private void PublishPayloadSerializationError(ClientSession session, string topic, object? payload, Exception ex)
+        {
+            var clrType = payload == null ? "null" : payload.GetType().FullName;
+            var error = new ErrorMsg
+            {
+                Topic = topic,
+                Code = "payload-serialization-error",
+                Message = $"channel \"{topic}\" payload of type {clrType} could not be serialized: {SafeExceptionMessage(ex)}",
+            };
+            try
+            {
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }
+            catch (Exception publishEx)
+            {
+                // Reporting the failure must never become a second failure on
+                // the Courier thread. The uplink is already marked Unavailable
+                // by this point, so the log line is all that is left to do.
+                LogHost("could not deliver the payload-serialization error for channel \"" + topic + "\": " + SafeExceptionMessage(publishEx));
+            }
+        }
         /// <summary>
         /// Sampler counterpart of <see cref="FailSoftChannel"/>/<see cref="FailSoftCommand"/>,
         /// the coverage-sweep fix for the sampler loop's missing owner
@@ -4777,7 +4838,8 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        FailSoftChannel(topic, ex);
+                        FailSoftChannel(topic, ex, "payload could not be serialized");
+                        PublishPayloadSerializationError(session, topic, streamData.Payload, ex);
                         return;
                     }
 

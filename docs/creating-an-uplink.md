@@ -142,6 +142,16 @@ Key points:
   silently, with no log line and no degraded mode
 - **Topic and Command names are namespaced by your id** (`example.reactor`), which keeps them from
   colliding with other Uplinks
+- **Flatten your payload before you publish it.** The example above returns a `ReactorStatus` for
+  readability, but what actually reaches the wire has to be a shape the core serializer can write:
+  numbers, strings, booleans, enums, `Dictionary<string, object?>` and arrays, nested however you
+  like. It cannot write a class of your own, and by design it never will be able to, a core
+  serializer may not reference your assembly. So build the dictionary in a small `Wire` class,
+  keyed camelCase to match your generated TS interfaces field for field, and publish that.
+  `GonogoRealAntennasUplink/RaWire.cs` is the pattern to copy; your POCO stays as the typing mirror
+  codegen reflects over. Publish the POCO raw and the mod tells you so: the subscriber gets a
+  `payload-serialization-error` naming your type, the app logs it, and your Uplink is marked
+  Unavailable with the same reason on the `system.uplinks` roster and in KSP.log
 
 ### Reading another mod's internals
 
