@@ -9,13 +9,7 @@
       "h": 20
     },
     "caption": "The refit expander open on a tank the career owns two sizes for: what it drops per build, how many parts it takes with it, and a press per owned size",
-    "paints": [
-      "TOOLING",
-      "costs nothing",
-      "per build",
-      "in symmetry with it",
-      "Refit"
-    ],
+    "paints": ["TOOLING", "costs nothing", "per build", "in symmetry", "Refit"],
     "before": [
       {
         "press": "Refit Procedural Tank to a size the career already owns"
