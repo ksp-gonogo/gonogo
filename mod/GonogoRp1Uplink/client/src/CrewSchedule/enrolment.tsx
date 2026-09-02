@@ -55,10 +55,17 @@ import { RP1_TRAINING_ENROL_COMMAND } from "./training";
  * enrolled-but-unstarted course to add anybody to and nothing to compose across
  * two presses.</para>
  *
- * <para><b>Nothing here spends funds.</b> The catalogue carries no cost, and
- * RP-1's own enrolment path charges nothing: it starts the course and tells the
- * maintenance handler its upkeep figure is stale. So no funds readout, which the
- * repo would otherwise require of a control that spends career funds.</para>
+ * <para><b>Nothing is charged at the press, and something is charged for as long
+ * as the course runs.</b> The first half is why there is no balance here and why
+ * "cannot afford" would be a falsehood: `TrainingCourse.StartCourse` charges
+ * nothing, checks nothing but its seat counts, and there is no affordability arm
+ * anywhere on RP-1's enrolment path. The second half is what this file used to
+ * miss. Starting a course puts a line on `MaintenanceHandler.TrainingUpkeepPerDay`
+ * that `FixedUpdate` deducts every tick with no balance test at all, so the press
+ * commits the career to a per-day drain for the length of the training and a
+ * shortfall neither slows it nor refuses it. `TrainingUpkeep` draws that rate; see
+ * it for why the rate and not a balance, and why RP-1's own line rather than a
+ * marginal figure derived here.</para>
  */
 export function TrainingEnrolment() {
   const available = current(useTelemetry("rp1.available"));
