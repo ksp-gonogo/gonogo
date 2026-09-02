@@ -4,6 +4,7 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { ContributionsPanelStore } from "./contributionsRead";
+import { NULL_DISPLAY } from "./NullValue";
 import { Stat, StatStrip } from "./Stat";
 import { StatContributions } from "./StatContributions";
 import { Unit } from "./Unit";
@@ -132,10 +133,12 @@ describe("StatContributions", () => {
       </WithStats>,
     );
 
-    // Three siblings of the strip, not one vanilla cell beside a wrapper
-    // holding the contributed pair: a contributed figure has to be
-    // indistinguishable from a built-in one, and a wrapper is what would make
-    // the Uplink's stats read as a block bolted onto the end of the row.
+    /*
+     * Three siblings of the strip, not one vanilla cell beside a wrapper holding
+     * the contributed pair: a contributed figure has to be indistinguishable
+     * from a built-in one, and a wrapper is what would make the Uplink's stats
+     * read as a block bolted onto the end of the row.
+     */
     const strip = screen.getByTestId("strip");
     expect(strip.children).toHaveLength(3);
     expect(container.querySelectorAll("dl")).toHaveLength(3);
@@ -150,7 +153,7 @@ describe("StatContributions", () => {
 
     // The null token, the same one every unread reading in the app draws.
     expect(screen.getByText("Lapsing")).toBeInTheDocument();
-    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText(NULL_DISPLAY)).toBeInTheDocument();
   });
 
   it("renders no DOM at all when nothing is contributed", () => {

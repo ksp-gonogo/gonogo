@@ -32,9 +32,11 @@ export interface StatContributionsProps {
  * unconditionally.</para>
  */
 export function StatContributions({ slot }: StatContributionsProps) {
-  // Untyped-by-slot read, the same route `useWidgetBadges` takes: the kit cannot
-  // name a host widget's own slot id, so the entry type is asserted here against
-  // the contract shape the registry declares for it.
+  /*
+   * Untyped-by-slot read, the same route `useWidgetBadges` takes: the kit cannot
+   * name a host widget's own slot id, so the entry type is asserted here against
+   * the contract shape the registry declares for it.
+   */
   const entries = useContributionsBySlotId(slot) as readonly StatEntry[];
   if (entries.length === 0) return null;
 
@@ -64,9 +66,11 @@ export function StatContributions({ slot }: StatContributionsProps) {
  * there rather than leaving the cell blank.
  */
 function StatFigure({ entry }: { entry: StatEntry }) {
-  // A `value` the contributor gave at all goes through `Unit`, `null` included:
-  // Unit draws the null token itself, which is exactly the statement a
-  // contributor asking for the cell with no reading to put in it is making.
+  /*
+   * A `value` the contributor gave at all goes through `Unit`, `null` included:
+   * Unit draws the null token itself, which is exactly the statement a
+   * contributor asking for the cell with no reading to put in it is making.
+   */
   if (entry.value !== undefined) return <Unit value={entry.value} />;
   if (entry.text !== undefined) return <>{entry.text}</>;
   return <NullValue />;
