@@ -534,6 +534,147 @@ describe("FleetRosterComponent", () => {
     });
   });
 
+  /**
+   * The blackout contradiction the operator actually reported. `fleet.<guid>.delay`
+   * is Delayed and NOT freeze-exempt, and the mod arms the per-subject freeze one
+   * statement before that tick's `.delay` publish, so the LAST payload a client
+   * ever receives for a vessel entering blackout carries `connected: true` and a
+   * last-known light-time. `fleet.<guid>.contact` is freeze-exempt precisely so
+   * the disconnect edge can escape, and it is what the Link row must read.
+   */
+  const BLACKED_OUT_PROBE = {
+    vessels: [
+      {
+        ...ONE_PROBE.vessels[0],
+        commsConnected: false,
+        commsControlSource: RosterCommsControlSource.None,
+      },
+    ],
+  };
+
+  function openSignalDisclosure(trigger: HTMLElement): HTMLElement {
+    const panel = document.getElementById(
+      trigger.getAttribute("aria-controls") ?? "",
+    );
+    expect(panel).not.toBeNull();
+    return panel as HTMLElement;
+  }
+
+  /**
+   * The value of one term in the signal disclosure's definition list.
+   *
+   * Deliberately NOT a `visibleText` regex over the whole panel: that
+   * concatenates with no separator ("LinkconnectedDelayone-way ~4s"), so a
+   * `\bconnected\b` assertion has no word boundary to anchor on and passes
+   * against the very text it was written to catch. Asking the `<dd>` beside a
+   * named `<dt>` is the question the test actually means.
+   */
+  function definitionFor(panel: HTMLElement, term: RegExp): string {
+    const dt = Array.from(panel.querySelectorAll("dt")).find((el) =>
+      term.test(el.textContent ?? ""),
+    );
+    return dt?.parentElement?.querySelector("dd")?.textContent ?? "";
+  }
+
+  async function renderBlackout() {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+      pinnedUt: 2_000,
+      suspendFrames: true,
+    });
+    renderRoster(fixture);
+    act(() => {
+      fixture.emit("system.vessels", BLACKED_OUT_PROBE);
+    });
+    const trigger = await screen.findByRole("button", {
+      name: /Explorer signal/i,
+    });
+    // The frozen pre-blackout .delay frame: what a real client is still
+    // holding, claiming a live link.
+    act(() => {
+      fixture.emit("fleet.v-probe.delay", {
+        oneWaySeconds: 4.5,
+        connected: true,
+      });
+    });
+    // The freeze-exempt .contact frame, which does get through.
+    act(() => {
+      fixture.emit("fleet.v-probe.contact", {
+        connected: false,
+        lastContactUt: 1_200,
+      });
+    });
+    act(() => {
+      trigger.click();
+    });
+    await waitFor(() => expect(openSignalDisclosure(trigger)).not.toBeNull());
+    return { fixture, trigger };
+  }
+
+  it("does not call a blacked-out link connected, whatever the frozen delay frame says", async () => {
+    const { trigger } = await renderBlackout();
+
+    // The row's own chip already reads NONE off live `system.vessels`; the
+    // cell must not contradict it one line below.
+    expect(screen.getByText("NONE")).toBeInTheDocument();
+    await waitFor(() => {
+      expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).toMatch(
+        /no path/i,
+      );
+    });
+    expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).not.toMatch(
+      /connected/i,
+    );
+  });
+
+  it("marks a light-time held over from before a blackout as last known, not current", async () => {
+    const { trigger } = await renderBlackout();
+
+    // The figure is still worth showing, an operator planning a reacquisition
+    // wants the last measured light-time. What it must not do is read as a
+    // live measurement of a link that is down.
+    await waitFor(() => {
+      expect(visibleText(openSignalDisclosure(trigger))).toMatch(/last known/i);
+    });
+    // ... and the figure itself survives, an operator planning a reacquisition
+    // still needs it.
+    expect(visibleText(openSignalDisclosure(trigger))).toMatch(
+      /round-trip[\s~]*9\s*s/i,
+    );
+  });
+
+  it("reports an unarrived contact as unknown rather than trusting the delay frame", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["system.vessels", "system.bodies", "fleet."],
+      pinnedUt: 2_000,
+      suspendFrames: true,
+    });
+    renderRoster(fixture);
+    act(() => {
+      fixture.emit("system.vessels", ONE_PROBE);
+    });
+    const trigger = await screen.findByRole("button", {
+      name: /Explorer signal/i,
+    });
+    act(() => {
+      fixture.emit("fleet.v-probe.delay", {
+        oneWaySeconds: 4.5,
+        connected: true,
+      });
+    });
+    act(() => {
+      trigger.click();
+    });
+    await waitFor(() => {
+      expect(visibleText(openSignalDisclosure(trigger))).toMatch(/round-trip/i);
+    });
+    // `.delay`'s own `connected` is the field the freeze makes unreliable, so
+    // it is never the source of the Link row, not even as a fallback.
+    expect(definitionFor(openSignalDisclosure(trigger), /^Link$/)).toBe(
+      "unknown",
+    );
+  });
+
   it("has no accessible violations with a delay disclosure open", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["system.vessels", "system.bodies", "fleet."],

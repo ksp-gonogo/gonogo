@@ -9,6 +9,7 @@ import {
   contactPhase,
   overdueSeconds,
   type Reading,
+  useFleetVesselContact,
   useFleetVesselLink,
   useFleetVesselSilence,
   useSelectedVantage,
@@ -445,11 +446,23 @@ function FleetContactCell({
 
 /**
  * The per-row Link cell: the connectivity glyph is the trigger of an accessible
- * Disclosure whose panel shows this vessel's own signal delay + reachability,
- * read from `fleet.<guid>.delay`. Focus/tap reachable, NOT
- * hover-only. Each row subscribing to its own `fleet.<guid>.delay` IS the
- * dynamic-subscription reconcile: rows mount/unmount as `system.vessels` changes
- * and each `useFleetVesselLink` ref-counts its own topic.
+ * Disclosure whose panel shows this vessel's own reachability and signal delay.
+ * Focus/tap reachable, NOT hover-only. Each row subscribing to its own
+ * `fleet.<guid>.*` topics IS the dynamic-subscription reconcile: rows
+ * mount/unmount as `system.vessels` changes and each hook ref-counts its own
+ * topic.
+ *
+ * Reachability comes off `fleet.<guid>.contact` and the light-time off
+ * `fleet.<guid>.delay`, and the split is load-bearing rather than tidy.
+ * `.delay` is Delayed and deliberately not freeze-exempt, and the mod arms the
+ * per-subject freeze one statement before that tick's `.delay` publish, so the
+ * LAST payload a client ever receives for a vessel entering blackout carries
+ * `connected: true` and a last-known one-way. Reading that field put "Link:
+ * connected" and a live-looking round-trip in the body of a row whose own chip
+ * read NONE off live `system.vessels`, a contradiction inside one row that an
+ * operator reported. `.contact` is freeze-exempt precisely so the disconnect
+ * edge can escape, so it is the only field here that can answer whether the
+ * link is up, and `.delay`'s own `connected` is never read.
  */
 function FleetSignalCell({
   guid,
@@ -462,10 +475,20 @@ function FleetSignalCell({
   tone: Tone;
   label: string;
 }) {
+  const contact = useFleetVesselContact(guid);
   const link = useFleetVesselLink(guid);
   const oneWay = link?.oneWaySeconds ?? null;
+  // ONE reading of the one field, so the Link term and the Delay label cannot
+  // disagree about it. Read separately, an arrived record whose `connected` was
+  // absent said "no path" in one place and labelled its light-time current in
+  // the other.
+  const reachable = contact == null ? null : contact.connected === true;
   const linkState =
-    link == null ? "unknown" : link.connected ? "connected" : "no path";
+    reachable == null ? "unknown" : reachable ? "connected" : "no path";
+  // A light-time measured before the link went down. Still worth showing (it is
+  // what a reacquisition is planned against) but it is not a present reading,
+  // and the freeze means it cannot become one until the vessel is back.
+  const heldOver = reachable === false;
   return (
     <Disclosure
       ariaLabel={`${vesselName} signal`}
@@ -503,7 +526,7 @@ function FleetSignalCell({
                 letterSpacing: "0.05em",
               }}
             >
-              Delay
+              {heldOver ? "Delay (last known)" : "Delay"}
             </dt>
             <dd style={{ margin: 0, color: "var(--color-text-primary)" }}>
               one-way ~<Unit value={value("s", oneWay)} decimals={1} /> ·

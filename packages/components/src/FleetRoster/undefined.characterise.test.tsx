@@ -419,7 +419,7 @@ describe("FleetRoster: partial vessel records", () => {
 
 /*
  * ---------------------------------------------------------------------------
- * 5. fleet.<guid>.delay absent
+ * 5. fleet.<guid>.contact / fleet.<guid>.delay absent
  * ---------------------------------------------------------------------------
  */
 
@@ -436,8 +436,8 @@ async function openSignalPanel(name: RegExp): Promise<HTMLElement> {
   return panel as HTMLElement;
 }
 
-describe("FleetRoster: the `link == null` absence gate", () => {
-  it("reports the link state as `unknown` and omits the delay row entirely before fleet.<guid>.delay arrives", async () => {
+describe("FleetRoster: the `contact == null` absence gate", () => {
+  it("reports the link state as `unknown` and omits the delay row entirely before either fleet.<guid> topic arrives", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
@@ -446,7 +446,7 @@ describe("FleetRoster: the `link == null` absence gate", () => {
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
-    // `link == null ? "unknown"` fires. Note the row's own comms tag still
+    // `contact == null ? "unknown"` fires. Note the row's own comms tag still
     // reads DIRECT off `system.vessels`, so the two disagree inside one row.
     expect(visibleText(panel)).toContain("unknown");
     // `oneWay != null` gates the whole Delay term, so there is no label at
@@ -456,7 +456,34 @@ describe("FleetRoster: the `link == null` absence gate", () => {
     expect(screen.getByText("DIRECT")).toBeInTheDocument();
   });
 
-  it("does not distinguish a delay tombstone from a delay that never arrived", async () => {
+  it("does not distinguish a contact tombstone from a contact that never arrived", async () => {
+    const fixture = newFixture();
+    renderRoster(fixture);
+
+    act(() => {
+      fixture.emit("system.vessels", ONE_CRAFT);
+    });
+    await screen.findByRole("button", { name: /Explorer signal/i });
+    act(() => {
+      fixture.emit("fleet.v-probe.contact", { connected: true });
+    });
+
+    const panel = await openSignalPanel(/Explorer signal/i);
+    await waitFor(() => expect(visibleText(panel)).toContain("connected"));
+
+    act(() => {
+      /*
+       * A confirmed "there is no contact record" is written `== null`, the
+       * same test the never-arrived case takes, so the Link term falls back to
+       * exactly the cold-start render.
+       */
+      fixture.emit("fleet.v-probe.contact", null, { validAt: 100 });
+    });
+
+    await waitFor(() => expect(visibleText(panel)).toContain("unknown"));
+  });
+
+  it("reads an absent `connected` field inside an arrived contact record as a confident `no path`", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
@@ -469,51 +496,24 @@ describe("FleetRoster: the `link == null` absence gate", () => {
         oneWaySeconds: 4.5,
         connected: true,
       });
-    });
-
-    const panel = await openSignalPanel(/Explorer signal/i);
-    await waitFor(() => expect(visibleText(panel)).toContain("connected"));
-
-    act(() => {
       /*
-       * A confirmed "there is no link record" is written `== null`, the same
-       * test the never-arrived case takes, so the panel falls back to exactly
-       * the cold-start render.
-       */
-      fixture.emit("fleet.v-probe.delay", null, { validAt: 100 });
-    });
-
-    await waitFor(() => expect(visibleText(panel)).toContain("unknown"));
-    expect(visibleText(panel)).not.toContain("Delay");
-    expect(visibleText(panel)).not.toContain("round-trip");
-  });
-
-  it("reads an absent `connected` field inside an arrived delay record as a confident `no path`", async () => {
-    const fixture = newFixture();
-    renderRoster(fixture);
-
-    act(() => {
-      fixture.emit("system.vessels", ONE_CRAFT);
-    });
-    await screen.findByRole("button", { name: /Explorer signal/i });
-    act(() => {
-      /*
-       * Partial payload: a light-time but no reachability flag.
-       * `link.connected` is undefined, and the ternary has no third arm, so
+       * Partial payload: a contact record with no reachability flag.
+       * `contact.connected` is undefined, and the ternary has no third arm, so
        * an unread field is stated as a confirmed lack of a path.
        */
-      fixture.emit("fleet.v-probe.delay", { oneWaySeconds: 4.5 });
+      fixture.emit("fleet.v-probe.contact", { lastContactUt: 100 });
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
     await waitFor(() => expect(visibleText(panel)).toContain("no path"));
     expect(visibleText(panel)).not.toContain("unknown");
-    // The delay half of the same record IS present, so this row simultaneously
-    // shows a light-time and claims no path exists.
+    // The light-time from the separate `.delay` record IS present, and reads
+    // as what it is: the last measurement before the path closed.
+    expect(visibleText(panel)).toContain("Delay (last known)");
     expect(visibleText(panel)).toMatch(/round-trip[\s~]*9\s*s/i);
   });
 
-  it("omits the delay row for an arrived record whose oneWaySeconds is absent", async () => {
+  it("omits the delay row for a contact-resolved link whose oneWaySeconds never arrived", async () => {
     const fixture = newFixture();
     renderRoster(fixture);
 
@@ -522,12 +522,12 @@ describe("FleetRoster: the `link == null` absence gate", () => {
     });
     await screen.findByRole("button", { name: /Explorer signal/i });
     act(() => {
-      fixture.emit("fleet.v-probe.delay", { connected: true });
+      fixture.emit("fleet.v-probe.contact", { connected: true });
     });
 
     const panel = await openSignalPanel(/Explorer signal/i);
-    // `connected` resolves the Link term while `oneWay != null` still gates
-    // the Delay term away: the two fields of one record are read separately.
+    // The Link term resolves off `.contact` while `oneWay != null` still gates
+    // the Delay term away: the two topics are read separately.
     await waitFor(() => expect(visibleText(panel)).toContain("connected"));
     expect(visibleText(panel)).not.toContain("Delay");
   });
