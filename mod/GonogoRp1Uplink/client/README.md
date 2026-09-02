@@ -279,7 +279,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; LP-1B still shows the closed one-button state, now the same bordered control as the Dismantle beside it](docs/assets/complexes-rename--default.png)
 
-![The renovation form open on LC-1 at its current specification: the envelope RP-1 holds it to, the crew it takes off, and the quote a short balance slows rather than stops](docs/assets/complexes-renovate--default.png)
+![The renovation form open on LC-1, every field starting at what the complex already is, so the quote is 0f until something moves; beside it the 18 engineers it takes off for the whole build and the toggle that puts them back](docs/assets/complexes-renovate--default.png)
 
 ![LC-1 rushing with its detail open, so the terms in force and the way out of rush mode are both on screen; LC-2 stays collapsed, which is what a complex costs to read when nobody is asking about it](docs/assets/complexes-rushing--default.png)
 
