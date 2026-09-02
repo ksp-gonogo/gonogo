@@ -3,7 +3,7 @@
 
 # Principia
 
-Publishes Principia's n-body state: trajectory arcs, the flight plan and its burns, the reference frame they are expressed in, and the integrator settings.
+Publishes Principia n-body state (DELIBERATE STALENESS, evidence only): trajectory arcs, the flight plan and its burns, the reference frame they are expressed in, and the integrator settings.
 
 | | |
 | --- | --- |
