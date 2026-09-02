@@ -24,6 +24,7 @@ import type {
   WidgetChannelId,
   WidgetFieldPath,
 } from "../topics";
+import type { Value } from "../value";
 
 /** A dashboard component's declared data dependency, e.g. `"vessel.altitude"`. */
 export type DataRequirement = string;
@@ -275,6 +276,53 @@ export interface MeterEntry {
    * is a contribution rather than an augment.
    */
   row?: string;
+}
+
+/**
+ * One cell of a widget's core-stat strip: the label, the figure, and at most one
+ * line qualifying it.
+ *
+ * Declared here rather than beside the `Stat` that draws it, for the reason
+ * `MeterEntry` is: it is contribution DATA an Uplink writes, so the contract has
+ * to name it. Unlike `MeterEntry` it is the entry of a WIDGET-LED slot rather
+ * than a universal segment, because a strip of headline figures is not something
+ * every widget has: the sixty that have none aggregate nothing, the same reason
+ * `plots` is not a segment either.
+ *
+ * <internal>
+ * A career overhaul's idea of what belongs beside the vanilla figures is the
+ * case this was built for: the Astronaut Complex quotes funds, hire price and
+ * roster occupancy, and RP-1 considers crew-in-training as core as any of them.
+ * The alternative was an RP-1 branch inside a vanilla widget.
+ * </internal>
+ */
+export interface StatEntry {
+  /** Stable id, unique within the contributing Uplink. */
+  id: string;
+  /** The heading over the figure; also the cell's accessible label. */
+  label: string;
+  /**
+   * The figure, as a value carrying its own unit. Rendered through the host's
+   * `Unit`, so the number is laddered and the symbol drawn the same way as
+   * every other reading on the screen, and a contributor never formats one.
+   *
+   * `null` is a reading that is absent rather than one nobody sent, and draws
+   * the null token. Absent entirely, {@link text} is used instead.
+   */
+  value?: Value | null;
+  /**
+   * The figure when it is NOT a quantity: an occupancy ("3 / 13"), a name, a
+   * bare count of things that carry no unit. Ignored when {@link value} is
+   * given, which is the one that gets unit rendering.
+   */
+  text?: string;
+  /** One line under the figure, qualifying it: a rate, a horizon, a count it is drawn from. */
+  detail?: string;
+  /**
+   * How alarming the figure is. Inlined, and the same five words `BadgeEntry`
+   * and `MeterEntry` carry, for the reason `BadgeEntry.tone` gives.
+   */
+  tone?: "neutral" | "go" | "warn" | "nogo" | "info";
 }
 
 export interface ComponentSlotRegistry {

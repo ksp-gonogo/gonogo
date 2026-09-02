@@ -173,6 +173,7 @@ export type {
   SlotRegistry,
   SourceBackedSetting,
   SourceBackedSettingOf,
+  StatEntry,
   StreamBackedSetting,
   StreamBackedSettingOf,
   StreamStatusValue,

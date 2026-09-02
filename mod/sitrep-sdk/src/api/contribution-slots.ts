@@ -46,6 +46,8 @@
 // colour rather than an identity.
 // ---------------------------------------------------------------------------
 
+import type { StatEntry } from "./types";
+
 /** Mirrors ui-kit's `MeterTone` (`packages/ui-kit/src/Meter.tsx`). */
 export type ShipMapMeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
 
@@ -392,6 +394,22 @@ declare module "./types" {
     };
     "experiments.instruments": {
       entry: ExperimentsInstrumentEntry;
+    };
+    /**
+     * The Astronaut Complex's core-stat strip, beside funds, hire price and
+     * roster occupancy: what the career model running the save considers as core
+     * as those three. Drawn by the host's own `Stat`, in the same cell treatment
+     * and the same row, so a contributed figure is indistinguishable from a
+     * vanilla one.
+     *
+     * The strip is where an operator reads the state of the whole complex, and a
+     * career overhaul owns half of that state: how many nauts are in training,
+     * how many qualifications are about to lapse. It declares the crew roster as
+     * the topic every contributor can rely on, and nothing of any mod's.
+     */
+    "astronaut-complex.readouts": {
+      entry: StatEntry;
+      topics: "spaceCenter.crewRoster";
     };
   }
 }

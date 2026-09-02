@@ -44,6 +44,7 @@ import type {
   SlotId,
   SlotProps,
   SlotRegistry,
+  StatEntry,
   StreamStatusValue,
   TaggedLogger,
   TelemetryClient,
@@ -99,6 +100,7 @@ declare const _useRouteCommandsResult: UseRouteCommandsResult;
 declare const _host: GonogoHost;
 declare const _logger: Logger;
 declare const _taggedLogger: TaggedLogger;
+declare const _statEntry: StatEntry;
 declare const _streamStatusValue: StreamStatusValue;
 declare const _lateTelemetrySubscribe: LateTelemetrySubscribe;
 declare const _uplinkClientHandle: UplinkClientHandle;
@@ -156,6 +158,7 @@ export type _ApiShapeProbe = [
   typeof _host,
   typeof _logger,
   typeof _taggedLogger,
+  typeof _statEntry,
   typeof _streamStatusValue,
   typeof _lateTelemetrySubscribe,
   typeof _uplinkClientHandle,

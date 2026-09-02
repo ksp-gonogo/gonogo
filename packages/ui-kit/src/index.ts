@@ -218,6 +218,7 @@ export {
   type DataKeyPickerProps,
   type KeyOption,
 } from "./DataKeyPicker";
+export { DataLine, type DataLineProps } from "./DataLine";
 export {
   DataTable,
   type DataTableColumn,
@@ -465,6 +466,11 @@ export {
 } from "./SelectableRow";
 export { Spinner, type SpinnerProps } from "./Spinner";
 export { type SpaceToken, Stack, type StackProps } from "./Stack";
+export { Stat, type StatProps, StatStrip } from "./Stat";
+export {
+  StatContributions,
+  type StatContributionsProps,
+} from "./StatContributions";
 export {
   StatusIndicator,
   type StatusIndicatorProps,
@@ -480,6 +486,7 @@ export {
   type StreamStatusBadgeProps,
 } from "./StreamStatusBadge";
 export { Switch } from "./Switch";
+export { STAT_TONE_COLOR, type StatTone } from "./statTone";
 export {
   PanelStatusDot,
   type PanelStatusDotProps,
