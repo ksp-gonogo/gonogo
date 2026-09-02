@@ -234,7 +234,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | --- | --- | --- | --- | --- | --- |
 | `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 2 |  |
 | `rp1-training-courses` | `astronaut-complex.training` | `rp1.available`, `rp1.training`, `rp1.crew` |  | 2 |  |
-| `rp1-training-enrolment` | `astronaut-complex.training` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.crewProgram`, `rp1.training`, `spaceCenter.crewRoster` |  | 2 |  |
+| `rp1-training-enrolment` | `astronaut-complex.training` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.crewProgram`, `rp1.training`, `spaceCenter.crewRoster`, `career.status` |  | 3 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `rp1.constructions` | only while `rp1` | 2 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 12 |  |
@@ -251,7 +251,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-warp-targets` | `warp-control.stepper` | – |  | 3 |  |
 
-![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own with the sack control at the end of the identity line: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes. Each line names itself, and only the lapse is toned](docs/assets/crew-schedule-three-states--default.png)
+![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own with the sack control at the end of the identity line: a retirement and the two things that will push it out, a course being worked and a course nobody has started, and mission training lapsing before either finishes. Each line names itself, and only the lapse is toned](docs/assets/crew-schedule-three-states--default.png)
 
 ![Retirement and mission training both switched off: no retirement date, no extension line, no lapse date and no mention that any of them are disabled, because on this save they are not concepts an operator has to hold](docs/assets/crew-settings-honoured--default.png)
 
@@ -262,6 +262,8 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![Gemini seats two and the career has one naut free: Valentina is off-world and Nedcas is standing down after a flight, so the enrolment is dark with the count rather than failing at the press](docs/assets/crew-enrolment-blocked--default.png)
 
 ![Two of three idle nauts picked for Gemini, which seats exactly two: the crew fits its bounds, so the enrolment is one press away and the third name is still there to swap in](docs/assets/crew-enrolment-ready--default.png)
+
+![The Training tab open on the Astronaut Complex: the courses the career is running, then the crew and the training to put them through](docs/assets/crew-training-tab--default.png)
 
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 
