@@ -72,7 +72,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void ScanFindsEveryUplinkProject()
         {
-            var uplinks = DiscoverUplinkProjects();
+            var uplinks = UplinkProjects.Discover();
 
             Assert.True(
                 uplinks.Count >= MinimumUplinkProjectCount,
@@ -81,7 +81,7 @@ namespace Sitrep.Core.Tests
                 "scan finding nothing reports no violations and looks exactly like a clean repo. " +
                 "Found: " + string.Join(", ", uplinks.Keys.OrderBy(k => k, StringComparer.Ordinal)));
 
-            var declared = UplinkProjectsDeclaredInSolution();
+            var declared = UplinkProjects.DeclaredInSolution();
             Assert.True(
                 declared.Count >= MinimumUplinkProjectCount,
                 $"Gonogo.sln declares only {declared.Count} Uplink project(s). It is the " +
@@ -104,7 +104,7 @@ namespace Sitrep.Core.Tests
         {
             var unwired = new List<string>();
 
-            foreach (var (name, directory) in DiscoverUplinkProjects().OrderBy(u => u.Key, StringComparer.Ordinal))
+            foreach (var (name, directory) in UplinkProjects.Discover().OrderBy(u => u.Key, StringComparer.Ordinal))
             {
                 if (BakedHash(directory) is null)
                 {
@@ -138,7 +138,7 @@ namespace Sitrep.Core.Tests
             var literal = new Regex(@"ExpectedClientHash\s*=\s*""", RegexOptions.Compiled);
             var offenders = new List<string>();
 
-            foreach (var (name, directory) in DiscoverUplinkProjects().OrderBy(u => u.Key, StringComparer.Ordinal))
+            foreach (var (name, directory) in UplinkProjects.Discover().OrderBy(u => u.Key, StringComparer.Ordinal))
             {
                 if (literal.IsMatch(SourceOf(directory)))
                 {
@@ -164,7 +164,7 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void TheWalkCanSeeAViolationItIsPlanted()
         {
-            var armed = DiscoverUplinkProjects()
+            var armed = UplinkProjects.Discover()
                 .Where(u => BakedHash(u.Value) is not null)
                 .OrderBy(u => u.Key, StringComparer.Ordinal)
                 .ToList();
@@ -231,70 +231,6 @@ namespace Sitrep.Core.Tests
                 .Select(File.ReadAllText);
 
             return Regex.Replace(string.Join("\n", sources), @"\s+", " ");
-        }
-
-        /// <summary>
-        /// The Uplink projects <c>Gonogo.sln</c> declares: the independent source
-        /// the directory walk is checked against.
-        /// </summary>
-        private static HashSet<string> UplinkProjectsDeclaredInSolution()
-        {
-            var solution = Path.Combine(ResolveModDir(), "Gonogo.sln");
-            var declared = new HashSet<string>(StringComparer.Ordinal);
-            if (!File.Exists(solution))
-            {
-                return declared;
-            }
-
-            foreach (Match match in Regex.Matches(File.ReadAllText(solution), @"=\s*""([A-Za-z0-9_.]+Uplink)"""))
-            {
-                declared.Add(match.Groups[1].Value);
-            }
-
-            return declared;
-        }
-
-        /// <summary>Uplink project name -&gt; its source directory. The
-        /// <c>.Contract</c> and <c>.Tests</c> siblings are not Uplinks.</summary>
-        private static Dictionary<string, string> DiscoverUplinkProjects()
-        {
-            var modDir = ResolveModDir();
-            var uplinks = new Dictionary<string, string>(StringComparer.Ordinal);
-
-            foreach (var directory in Directory.EnumerateDirectories(modDir))
-            {
-                var name = Path.GetFileName(directory);
-                if (!name.StartsWith("Gonogo", StringComparison.Ordinal) ||
-                    !name.EndsWith("Uplink", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                if (File.Exists(Path.Combine(directory, name + ".csproj")))
-                {
-                    uplinks[name] = directory;
-                }
-            }
-
-            return uplinks;
-        }
-
-        private static string ResolveModDir()
-        {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory is not null)
-            {
-                var candidate = Path.Combine(directory.FullName, "mod", "Sitrep.Contract");
-                if (Directory.Exists(candidate))
-                {
-                    return Path.Combine(directory.FullName, "mod");
-                }
-
-                directory = directory.Parent;
-            }
-
-            throw new InvalidOperationException(
-                "Could not locate mod/ walking up from " + AppContext.BaseDirectory);
         }
     }
 }
