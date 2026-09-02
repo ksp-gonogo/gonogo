@@ -23,6 +23,11 @@ import { RP1 } from "../uplink";
 import "../topics";
 import { Centre } from "./Centre";
 import {
+  HireTargetControl,
+  RP1_HIRE_TARGET_CANCEL_COMMAND,
+  RP1_HIRE_TARGET_SET_COMMAND,
+} from "./HireTarget";
+import {
   RP1_COMPLEX_DISMANTLE_COMMAND,
   RP1_COMPLEX_RENAME_COMMAND,
   RP1_PAD_DISMANTLE_COMMAND,
@@ -101,6 +106,8 @@ export function KscComplexes() {
   const renameComplex = useCommand(RP1_COMPLEX_RENAME_COMMAND);
   const renamePad = useCommand(RP1_PAD_RENAME_COMMAND);
   const newComplex = useCommand(RP1_COMPLEX_NEW_COMMAND);
+  const setHireTarget = useCommand(RP1_HIRE_TARGET_SET_COMMAND);
+  const cancelHireTarget = useCommand(RP1_HIRE_TARGET_CANCEL_COMMAND);
   usePanelDelay(rush);
   usePanelDelay(assign);
   usePanelDelay(dismantle);
@@ -109,6 +116,8 @@ export function KscComplexes() {
   usePanelDelay(renameComplex);
   usePanelDelay(renamePad);
   usePanelDelay(newComplex);
+  usePanelDelay(setHireTarget);
+  usePanelDelay(cancelHireTarget);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -140,6 +149,19 @@ export function KscComplexes() {
       <Stack gap="xs">
         <SectionTitle>PAYROLL</SectionTitle>
         <Payroll personnel={personnel} />
+        {/*
+          Under the counts it changes. Hiring is the act the payroll section
+          deliberately did not perform, on the grounds that it spends funds and
+          belongs beside a balance: the balance is the one this control carries
+          in its own body, as the bound on what the instruction can draw.
+        */}
+        <HireTargetControl
+          cancel={cancelHireTarget}
+          complexes={complexRows}
+          funds={magnitudeOf(career?.economy?.funds)}
+          personnel={personnel}
+          set={setHireTarget}
+        />
       </Stack>
 
       {centreRows.length === 0 ? (
@@ -200,8 +222,10 @@ export function KscComplexes() {
  *
  * <para>The top rung, and the only one of the three that is not per-centre.
  * These are the counts an operator plans HIRING against, which is a different
- * act from assignment and one this widget deliberately does not perform: hiring
- * spends funds up front, and belongs with the other spend controls.</para>
+ * act from assignment: assignment moves staff already on the books, and hiring
+ * commits the career to buying more. The instruction that does the buying is
+ * `HireTargetControl`, drawn directly under these counts, and it carries its own
+ * balance because it is the one control here that spends.</para>
  *
  * <para>What the idle engineers cost is NOT here: the pool belongs to a centre
  * rather than to the career, so it is drawn on the centre holding it. A total

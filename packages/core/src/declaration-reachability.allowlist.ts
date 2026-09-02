@@ -91,8 +91,6 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
   ],
   GonogoRp1Uplink: [
     "command rp1.complex.modify",
-    "command rp1.hireTarget.cancel",
-    "command rp1.hireTarget.set",
     /*
      * The surviving half of the `rp1.tooling` fold that prompted this gate:
      * `rp1.tooling.toolAll` has since been wired to
