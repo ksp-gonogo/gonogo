@@ -2,6 +2,7 @@ import { CommandErrorCode, type LimitBreach } from "../__generated__/contract";
 import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import type { ServerMessage } from "../envelope";
+import { warnChannelError } from "./channel-error-warning";
 import { type Clock, RealTimeClock } from "./clock";
 import { CommandError, type CommandStatus } from "./lifecycle";
 import type { TimelineStore } from "./timeline-store";
@@ -192,6 +193,8 @@ export class TelemetryClient {
 
   /** Listeners for a topic reaching a verdict of unowned. See `onTopicUnowned`. */
   private readonly unownedListeners = new Set<(topic: string) => void>();
+  /** Topic+code pairs already reported by `warnChannelError`, once per session. */
+  private readonly channelErrorsWarned = new Set<string>();
 
   /**
    * Which widgets are reading each topic, refcounted, so the unowned warning
@@ -722,6 +725,21 @@ export class TelemetryClient {
       return;
     }
     if (message.type === "error") {
+      // An error carrying a TOPIC and no requestId is not a reply to any
+      // command: it is a channel that was acked and then could not be put on
+      // the wire. The command correlator below returns immediately on a
+      // missing requestId, so before this branch the frame was discarded and
+      // the author was left with the exact silence the mod had just gone to
+      // the trouble of explaining. See `channel-error-warning.ts`.
+      if (!message.requestId && message.topic) {
+        warnChannelError(
+          this.channelErrorsWarned,
+          message.topic,
+          message.code,
+          message.message,
+        );
+        return;
+      }
       this.handleCommandError(message.requestId, message.code, message.message);
       return;
     }

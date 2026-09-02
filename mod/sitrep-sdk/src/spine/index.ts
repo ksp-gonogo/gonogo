@@ -44,6 +44,7 @@
 
 export * from "./body-derivations";
 export * from "./celestial-facts";
+export * from "./channel-error-warning";
 export * from "./client";
 export * from "./client-reading";
 export * from "./client-timeline";

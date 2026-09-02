@@ -1839,6 +1839,11 @@ namespace Sitrep.Host.IntegrationTests
         /// <c>Considered</c>: pinned at 1 (IMPORTANT-A's availability gate
         /// stops the channel from even being considered again) rather than
         /// climbing with every subsequent tick.
+        ///
+        /// <para>The fail-soft is no longer silent TOWARDS THE CLIENT either:
+        /// the subscriber gets one <c>payload-serialization-error</c> naming
+        /// the topic and the offending CLR type, instead of an ack followed by
+        /// nothing at all. See <see cref="UnsupportedPayloadDiagnosticsTests"/>.</para>
         /// </summary>
         [Fact]
         public async Task GenuinelyUnserializablePayloadFailsSoftTheOwningUplinkInsteadOfRecurringSilently()
@@ -1855,7 +1860,16 @@ namespace Sitrep.Host.IntegrationTests
                 engine.TickAndWait(1.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
                 engine.TickAndWait(2.0, PoisonPayloadTestUplink.Snapshot(), TimeSpan.FromMilliseconds(500));
 
-                // Never reaches the wire -- the payload can never serialize.
+                // Announced ONCE and then quiet: the payload can never
+                // serialize, so no telemetry frame ever reaches the wire, but
+                // the subscriber is now told why rather than left to read the
+                // silence as "no data yet" (see
+                // UnsupportedPayloadDiagnosticsTests). One error, not one per
+                // tick: the availability gate below stops the channel from
+                // being considered again.
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+                Assert.Equal("payload-serialization-error", error.Code);
+                Assert.Equal(PoisonPayloadTestUplink.Topic, error.Topic);
                 await client.AssertNoMessageArrivesAsync(TimeSpan.FromMilliseconds(300));
 
                 Assert.False(engine.AvailabilityOf(PoisonPayloadTestUplink.UplinkId).IsAvailable);

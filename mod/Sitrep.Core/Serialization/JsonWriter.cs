@@ -122,6 +122,12 @@ namespace Sitrep.Core.Serialization
         /// <c>double</c>, matching the emitter's own conversion) and routed
         /// through <see cref="AppendNumber"/> exactly like any other number.
         ///
+        /// ENUMS: a boxed enum is written as its integer ordinal, matching
+        /// how every DECLARED enum in this codec already serializes. It needs
+        /// its own case because a boxed enum's runtime type is the enum type,
+        /// so it matches neither <c>case int</c> nor any other numeric case
+        /// and used to reach the <c>default</c> throw.
+        ///
         /// ARRAYS: anything else that's an <see cref="IEnumerable"/> (e.g.
         /// <c>double[]</c>, <c>object?[]</c>, <c>float[]</c>: any real
         /// capture code writes a typed array, not a hand-built
@@ -174,6 +180,26 @@ namespace Sitrep.Core.Serialization
                     break;
                 case decimal dec:
                     AppendNumber(sb, (double)dec);
+                    break;
+                case System.Enum e:
+                    // An enum is written as its integer ordinal, the same
+                    // convention every DECLARED enum in this codec already
+                    // follows (Meta.quality, Meta.staleness,
+                    // CommandResult.errorCode, and every enum a hand-written
+                    // Append<Type> flattener writes). Without this case a
+                    // boxed enum matched no case at all -- `case int i` does
+                    // not match a boxed enum, whose runtime type is the enum
+                    // type, not Int32 -- and reached the default branch, so
+                    // an uplink publishing one of its own enums got the
+                    // unsupported-type throw and its frame never left the
+                    // host, despite the codec being perfectly willing to
+                    // write the identical value under a contract type.
+                    // Convert.ToInt64 covers every underlying integral type
+                    // an enum may declare, including a ulong-backed one whose
+                    // ordinal is read back through the unchecked cast below.
+                    AppendInteger(sb, e.GetTypeCode() == System.TypeCode.UInt64
+                        ? unchecked((long)System.Convert.ToUInt64(e, CultureInfo.InvariantCulture))
+                        : System.Convert.ToInt64(e, CultureInfo.InvariantCulture));
                     break;
                 case string s:
                     AppendString(sb, s);
