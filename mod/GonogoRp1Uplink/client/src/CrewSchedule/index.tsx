@@ -145,9 +145,13 @@ function retirementLine(
   return (
     <DataLine aligned key="retirement" label="Retires">
       <MissionDate value={row.retiresAtUt} />
+      {/* Two words shorter than "flights and completed training", which took
+          three lines of a roster row on its own at the narrow tile. The
+          completed half is not lost: the cancel confirm on the course itself is
+          where an operator learns that leaving early grants nothing. */}
       {extendable && (
         <>
-          {" · flights and completed training push this to "}
+          {" · flights and training push this to "}
           <MissionDate value={row.latestRetiresAtUt} />
         </>
       )}

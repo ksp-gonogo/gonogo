@@ -159,9 +159,7 @@ describe("CrewSchedule", () => {
     // read as an offer, and an operator went looking for the button. There is
     // none, in RP-1 or here, and the two things that DO move the date are a
     // completed course and a recovered crewed flight.
-    expect(visibleText()).toContain(
-      "flights and completed training push this to",
-    );
+    expect(visibleText()).toContain("flights and training push this to");
     expect(visibleText()).not.toContain("extendable");
     await expectNoA11yViolations(view.container);
   });
