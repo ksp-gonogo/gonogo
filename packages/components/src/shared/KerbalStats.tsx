@@ -147,14 +147,14 @@ function RatioChip({
   if (typeof reading !== "number") {
     return (
       <Level title={`${name} unknown`} aria-label={`${name} unknown`}>
-        {symbol} {NULL_DISPLAY}
+        <StatSymbol>{symbol}</StatSymbol> {NULL_DISPLAY}
       </Level>
     );
   }
   const spoken = speakQuantity(value("ratio", reading));
   return (
     <Level title={`${name}: ${spoken}`} aria-label={`${name} ${spoken}`}>
-      {symbol} <Unit value={value("ratio", reading)} />
+      <StatSymbol>{symbol}</StatSymbol> <Unit value={value("ratio", reading)} />
     </Level>
   );
 }
@@ -304,11 +304,26 @@ const KerbalStats__Name = styled.span`
   white-space: nowrap;
 `;
 
+/**
+ * The row a reader takes a kerbal in from, so it is spaced to be read at a
+ * glance rather than packed. At the 4px gap it shipped with, "PILOT L2 C 45% S
+ * 40% XP 15%" ran together into one undifferentiated line of green and an
+ * operator had to parse it a character at a time.
+ */
 const KerbalStats__Meta = styled.span`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-8);
   align-items: center;
+`;
+
+/**
+ * The letter naming a stat, held back from the figure beside it. Both were the
+ * accent colour, so the eye had nothing to catch on and every chip read at the
+ * same weight as its value.
+ */
+const StatSymbol = styled.span`
+  color: var(--color-text-muted);
 `;
 
 const TraitTag = styled.span`
