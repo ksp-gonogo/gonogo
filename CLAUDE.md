@@ -450,11 +450,37 @@ solution open.
 
 ---
 
-## Spending funds: always show the balance
+## Spending: show what the spend costs, in the currency it costs
 
-Any widget that exposes an action which spends career funds (launch a craft, upgrade a facility, accept an advance, unlock a tech) **must display the current funds balance somewhere visible in the same widget**. Mount on the `career.status` channel and read the `career.status.economy.funds` field, then surface it next to the spend control, a small "Funds: 289,848f" readout is enough. **Not `career.funds`**: that is a retired flat key, and `defineTopicManifest` rejects it at compile time in both `channels` and `fields` (`packages/core/src/hooks/defineTopicManifest.test-d.ts`). Put the readout in the Panel body rather than its aside, the aside collapses at narrow widths and takes the balance with it. The operator should never be forced to look at another widget to find out whether they can afford the thing they're about to confirm.
+Any **widget** that exposes an action which spends a career resource must show the operator
+what that action will cost them, next to the control, in the same widget. A small readout in
+the header or beside the confirm is enough. They should never have to look at another widget
+to find out whether they can afford the thing they are about to confirm.
 
-Applies to widgets like `LaunchDirector`, `SpaceCenterStatus` (facility upgrades), future Tech Tree, and Strategies/Admin Building. The rule is per-widget, not per-screen, duplicate the readout across widgets that each spend funds rather than relying on a single elsewhere-on-the-dashboard balance.
+**The currency is not always funds, and the shape is not always a balance.** Verified against
+the shipped RP-1 assemblies, 2026-09-02, three commands and three different models:
+
+| command | model | what to show |
+|---|---|---|
+| `rp1.facility.upgrade` | **progressive**: nothing is charged at the press. Funds are drawn as the project advances, throttled to whatever fraction the career can meet | the RATE, and what it means for the finish date. A shortfall SLOWS it, it never refuses, so "cannot afford" is a falsehood here |
+| `rp1.tech.research` | **up-front, in SCIENCE**, charged at enqueue, genuinely refused on affordability | the science balance. "Cannot afford" is honest |
+| `rp1.strategy.activate` | a **program** costs CONFIDENCE and PAYS the career in funds; a **leader** is free, and the real cost is the change to ongoing upkeep | the confidence cost, or the upkeep delta. Not a funds balance |
+
+**So the spirit of the rule is the RATE OF SPEND, not a balance.** A balance answers "can I
+afford this" only for an up-front purchase. For a progressive spend the operator's real
+question is how fast it drains and how long it takes, and a balance alone will not answer it.
+Establish which model a command follows BEFORE writing any affordability copy: telling an
+operator they cannot afford something RP-1 would simply build more slowly is a lie about their
+own save.
+
+**Applies to WIDGETS, not to extensions.** A widget owns a control and therefore owns the
+question. An augment or a contribution that merely renders inside someone else's panel does
+not, and bolting a balance onto every extension point is how the readout ends up duplicated
+three times on one screen. If you are adding a spend control to an existing widget, the
+widget's own readout is the one to extend rather than a second one to add.
+
+Put the readout in the widget BODY. A `Panel` aside COLLAPSES at narrow widths and takes the
+readout with it, which has already hidden a funds balance once.
 
 ---
 
