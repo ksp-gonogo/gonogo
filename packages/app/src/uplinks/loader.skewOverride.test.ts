@@ -258,9 +258,11 @@ describe("a measured byte mismatch cannot be overridden", () => {
   });
 
   it("reads as un-overridden even when a key for it sits in storage", () => {
-    // Plant the key by hand: the guard in `grantSkewOverride` is one layer, and
-    // a hand-written localStorage entry is what it would take to get past it.
-    // `hasSkewOverride` must refuse on the finding's KIND regardless.
+    /*
+     * Plant the key by hand: the guard in `grantSkewOverride` is one layer, and
+     * a hand-written localStorage entry is what it would take to get past it.
+     * `hasSkewOverride` must refuse on the finding's KIND regardless.
+     */
     window.localStorage.setItem(
       "gonogo.uplinkSkewOverride",
       JSON.stringify([skewOverrideKey("widget-a", "1.0.0", bytesMismatch)]),
@@ -280,9 +282,11 @@ describe("a measured byte mismatch cannot be overridden", () => {
       "gonogo.uplinkSkewOverride",
       JSON.stringify([
         skewOverrideKey("widget-a", "1.0.0", failure),
-        // And the declaration key too, so the pre-fetch gate is genuinely
-        // passed and the run reaches the byte check rather than stopping short
-        // of it: the refusal below is the POST-fetch one.
+        /*
+         * And the declaration key too, so the pre-fetch gate is genuinely
+         * passed and the run reaches the byte check rather than stopping short
+         * of it: the refusal below is the POST-fetch one.
+         */
         skewOverrideKey("widget-a", "1.0.0", skewFailure(WRONG_HASH)),
       ]),
     );

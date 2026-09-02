@@ -55,9 +55,11 @@ function outcome(
   };
 }
 
-// Before, not after: the outcome store notifies its `useSyncExternalStore`
-// subscribers, and a clear in this file's own teardown would run before Testing
-// Library's auto-cleanup and fire into a tree that was still mounted.
+/*
+ * Before, not after: the outcome store notifies its `useSyncExternalStore`
+ * subscribers, and a clear in this file's own teardown would run before Testing
+ * Library's auto-cleanup and fire into a tree that was still mounted.
+ */
 beforeEach(() => {
   __resetUplinkOutcomes();
   __resetSkewOverrides();

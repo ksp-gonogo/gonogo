@@ -305,7 +305,8 @@ function checkCompat(
   /*
    * Mod-hash gate (design §3.3 row B, the H_mod == H_index half, checked here,
    * before fetch). Unenforceable until the mod emits `expectedClientHash`, which
-   * no bundled Uplink did until Kos and MechJeb were armed on 2026-09-01.
+   * no bundled Uplink did until the first two were armed on 2026-09-01. Which
+   * ones are armed is not this file's business: ask `client-hash-armed.mjs`.
    *
    * ## What arming changed, and why this gate keeps its shape anyway
    *
