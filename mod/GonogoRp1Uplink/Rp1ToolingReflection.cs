@@ -83,6 +83,14 @@ namespace GonogoRp1Uplink
 
         private const string EditorLogicTypeName = "EditorLogic";
 
+        private const string DatabaseTypeName = "RP0.ToolingDatabase";
+
+        private const string ParametersTypeName = "RP0.Tooling.Parameters";
+
+        private const string ResizerTypeName = "RP0.ToolingPartResizer";
+
+        private const string PartTypeName = "Part";
+
         private readonly Type? _manager;
 
         private readonly Type? _moduleTooling;
@@ -90,6 +98,12 @@ namespace GonogoRp1Uplink
         private readonly Type? _scm;
 
         private readonly Type? _editor;
+
+        private readonly Type? _database;
+
+        private readonly Type? _parameters;
+
+        private readonly Type? _resizer;
 
         /// <summary>
         /// The funds half, read on this walk rather than its own, so the surcharge
@@ -103,6 +117,9 @@ namespace GonogoRp1Uplink
             _moduleTooling = Rp1Types.Find(ModuleToolingTypeName);
             _scm = Rp1Types.Find(ScmTypeName);
             _editor = Rp1Types.Find(EditorLogicTypeName);
+            _database = Rp1Types.Find(DatabaseTypeName);
+            _parameters = Rp1Types.Find(ParametersTypeName);
+            _resizer = Rp1Types.Find(ResizerTypeName);
         }
 
         /// <summary>
@@ -138,11 +155,19 @@ namespace GonogoRp1Uplink
 
             var raw = new Rp1ToolingRaw { Ut = ut, ToolAllCost = ToolAllCost() };
             double? surcharge = null;
+            /*
+             * One merge per tooling type per tick, not per part. Several parts on a
+             * vessel share a type, and GetMergedEntries rebuilds the tree each
+             * call; RP-1's own window caches it against ToolingDatabase.Generation
+             * for the same reason. A tick's worth is enough here: nothing can buy
+             * a tooling between two parts of one walk.
+             */
+            var ownedByType = new Dictionary<string, List<object>?>(StringComparer.Ordinal);
             foreach (var part in parts)
             {
                 foreach (var module in ToolingModules(part))
                 {
-                    var row = Describe(part, module);
+                    var row = Describe(part, module, ownedByType);
                     if (row == null)
                     {
                         continue;
@@ -219,7 +244,10 @@ namespace GonogoRp1Uplink
         /// One tooling module, flattened. Null when the module answers nothing at
         /// all, which is a module whose shape is not the one this was read against.
         /// </summary>
-        private static Rp1ToolingPartRaw? Describe(object part, object module)
+        private Rp1ToolingPartRaw? Describe(
+            object part,
+            object module,
+            Dictionary<string, List<object>?> ownedByType)
         {
             var type = Rp1Types.ReadString(module, "ToolingType");
             if (type == null)
@@ -227,13 +255,16 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
+            var tooled = Invoke(module, "IsUnlocked") as bool?;
+            var refittable = HasModule(part, "ModuleROTank") || HasModule(part, "ProceduralPart");
+
             return new Rp1ToolingPartRaw
             {
                 PartTitle = Rp1Types.ReadString(Rp1Types.Member(part, "partInfo"), "title"),
                 ToolingType = type,
                 ToolingTypeTitle = EmptyAsAbsent(Rp1Types.ReadString(module, "ToolingTypeTitle")),
                 ParameterSummary = EmptyAsAbsent(Invoke(module, "GetToolingParameterInfo") as string),
-                Tooled = Invoke(module, "IsUnlocked") as bool?,
+                Tooled = tooled,
                 ToolingCost = Rp1Types.ToDouble(Invoke(module, "GetToolingCost")),
 
                 // RP-1's own cached surcharge rather than the one-line formula
@@ -255,8 +286,172 @@ namespace GonogoRp1Uplink
                 // A refit reshapes through ModuleROTank or ProceduralPart and
                 // silently does nothing on a part with neither. Answered here so a
                 // control can be dark rather than inert.
-                Refittable = HasModule(part, "ModuleROTank") || HasModule(part, "ProceduralPart"),
+                Refittable = refittable,
+
+                // Only for the part a refit is FOR: one that is refittable and not
+                // already tooled. A tooled part has nothing to close, and the walk
+                // below costs a PickRfType call per owned size, so asking it for
+                // every part on the vessel every tick would buy nothing.
+                RefitTargets = refittable && tooled == false
+                    ? RefitTargets(part, type, ownedByType)
+                    : null,
             };
+        }
+
+        /// <summary>
+        /// The owned sizes this part could be reshaped to, as RP-1's own window
+        /// offers them.
+        ///
+        /// <para><b>What makes a row offerable, read out of
+        /// <c>ToolingGUI.DisplayRow</c>.</b> RP-1 draws a Refit press only on a
+        /// LEAF of the owned-tooling tree, only for a type whose parameter tuple is
+        /// two long, and only when <c>PickRfType</c> answers with a material the
+        /// part can actually use: a part that cannot use any material the tooling
+        /// covers gets a dark button and a sentence about tech locks. Each of those
+        /// three is applied here, so a row that reaches the wire is one RP-1 would
+        /// have pressed.</para>
+        ///
+        /// <para><b>The bound, stated rather than hidden.</b> This merges the
+        /// part's OWN tooling type and nothing else, so the sizes offered are the
+        /// ones owned for the material the part already is. RP-1's window merges a
+        /// whole BUCKET of types, which is what lets it offer a refit onto another
+        /// material's tooling, and the bucketing is
+        /// <c>ToolingGUI.GetGroupingKey</c>: a ten-branch private over tooling-type
+        /// name prefixes. Transcribing a GUI private to widen a picker is not a
+        /// trade worth making blind, and the narrow answer is a true subset rather
+        /// than a wrong one.</para>
+        ///
+        /// <para>The parameter count is ASKED rather than assumed, through RP-1's
+        /// own public <c>Parameters.GetParametersForToolingType</c>. Its rule today
+        /// is "three for Avionics-, two for everything else", and a copy of that
+        /// would go quietly wrong the day a third family arrives.</para>
+        /// </summary>
+        private List<Rp1ToolingRefitTargetRaw>? RefitTargets(
+            object part,
+            string toolingType,
+            Dictionary<string, List<object>?> ownedByType)
+        {
+            if (_resizer == null || ParameterCount(toolingType) != 2)
+            {
+                return null;
+            }
+
+            if (!ownedByType.TryGetValue(toolingType, out var owned))
+            {
+                owned = MergedEntries(toolingType);
+                ownedByType[toolingType] = owned;
+            }
+            if (owned == null)
+            {
+                return null;
+            }
+
+            var pick = Rp1Types.StaticMethodOn(_resizer, "PickRfType", PartTypeName, 2);
+            if (pick == null)
+            {
+                return null;
+            }
+
+            var targets = new List<Rp1ToolingRefitTargetRaw>();
+            foreach (var diameter in owned)
+            {
+                var diameterValue = Rp1Types.ToDouble(Rp1Types.Member(diameter, "Value"));
+                if (diameterValue == null)
+                {
+                    continue;
+                }
+                foreach (var length in Rp1Types.Enumerate(Rp1Types.Member(diameter, "Children")))
+                {
+                    var lengthValue = Rp1Types.ToDouble(Rp1Types.Member(length, "Value"));
+                    var sources = Rp1Types.Member(length, "Sources");
+                    if (lengthValue == null || sources == null)
+                    {
+                        continue;
+                    }
+
+                    string? rfType;
+                    try
+                    {
+                        rfType = pick.Invoke(null, new[] { part, sources }) as string;
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+                    if (string.IsNullOrEmpty(rfType))
+                    {
+                        continue;
+                    }
+
+                    targets.Add(new Rp1ToolingRefitTargetRaw
+                    {
+                        Diameter = diameterValue.Value,
+                        Length = lengthValue.Value,
+                        RfType = rfType,
+                    });
+                }
+            }
+            return targets;
+        }
+
+        /// <summary>
+        /// How many parameters a tooling of this type is keyed on, asked of RP-1
+        /// rather than derived from the type's name.
+        /// </summary>
+        private int? ParameterCount(string toolingType)
+        {
+            var method = _parameters == null
+                ? null
+                : Rp1Types.StaticMethod(_parameters, "GetParametersForToolingType", 1);
+            if (method == null)
+            {
+                return null;
+            }
+            try
+            {
+                var count = 0;
+                foreach (var _ in Rp1Types.Enumerate(method.Invoke(null, new object?[] { toolingType })))
+                {
+                    count++;
+                }
+                return count;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// The owned toolings for one type, as the tree RP-1's own window walks:
+        /// the first parameter's entries at the top, each carrying the second's as
+        /// children.
+        /// </summary>
+        /// <remarks>
+        /// <c>GetMergedEntries</c> rather than the raw <c>toolings</c> dictionary,
+        /// because it is the call that populates each leaf's <c>Sources</c>, and
+        /// <c>Sources</c> is what the material picker needs. Reading the dictionary
+        /// directly would give the same sizes with no way to tell whether the part
+        /// can use any of them.
+        /// </remarks>
+        private List<object>? MergedEntries(string toolingType)
+        {
+            var method = _database == null
+                ? null
+                : Rp1Types.StaticMethod(_database, "GetMergedEntries", 1);
+            if (method == null)
+            {
+                return null;
+            }
+            try
+            {
+                var merged = method.Invoke(null, new object?[] { new List<string> { toolingType } });
+                return merged == null ? null : new List<object>(Rp1Types.Enumerate(merged));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         /// <summary>

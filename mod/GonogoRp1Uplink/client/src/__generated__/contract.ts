@@ -2602,6 +2602,61 @@ export interface Rp1ToolingEntry
 	* neither, so a control can be dark rather than inert.
 	*/
 	refittable?: boolean;
+	/**
+	* The sizes this part could be REFITTED to: owned toolings it can be reshaped
+	* onto instead of buying a new one.
+	*
+	* **Why a list and not two numbers.** A refit moves a part TO a size, so it
+	* needs a size to move to, and there is no default one. The career's owned
+	* toolings are the only legal targets, and which of them a given part can take
+	* depends on the tank materials it has unlocked, so the answer is per part
+	* rather than per career.
+	*
+	* **Every row here is one RP-1 itself would offer.** Its own window draws a
+	* Refit press only on a leaf of the owned-tooling tree, only for a type keyed
+	* on two parameters, and only when its material picker answers with something
+	* the part can use; all three are applied before a row reaches this list.
+	*
+	* **It is a true SUBSET of what RP-1's window offers, deliberately.** The rows
+	* are the sizes owned for the part's OWN tooling type. RP-1 merges a whole
+	* bucket of related types, which also lets it offer a refit onto another
+	* material's tooling, and the bucketing is a ten-branch private over type-name
+	* prefixes inside its GUI. Narrowing loses options; transcribing a GUI private
+	* would risk offering an illegal one.
+	*
+	* NULL where the question does not apply: a part already tooled, a part
+	* nothing can reshape (see `Rp1ToolingEntry.refittable`), or a tooling type
+	* RP-1 offers no refit for. EMPTY is the real, different answer that the
+	* career owns nothing this part could move to.
+	*/
+	refitTargets?: Rp1ToolingRefitTarget[];
+}
+/**
+* One owned tooling a part could be reshaped to fit, and the material the
+* refit would put it in.
+*
+* A refit reaches further than the part named, and both reaches are RP-1's
+* own: every symmetry counterpart is resized too (see
+* `Rp1ToolingEntry.symmetryCounterparts`), and the material is applied across
+* the part's group. RP-1 discloses them afterwards in a screen message; a
+* console can say them first.
+*/
+export interface Rp1ToolingRefitTarget
+{
+	/** The diameter to reshape to, which is what the command carries. */
+	diameter: Value<"m">;
+	/** The length to reshape to. */
+	length: Value<"m">;
+	/**
+	* The tank material this row would put the part in, chosen by RP-1's own
+	* picker rather than by the client.
+	*
+	* Never absent on a published row: a part that can use no material the tooling
+	* covers is one RP-1 refuses to refit, and the row is dropped rather than
+	* offered with nothing to move to. Pass it as `Rp1ToolingRefitArgs.rfType`
+	* unchanged.
+	*/
+	rfType?: string;
 }
 /**
 * The `rp1.tooling` channel: what the ship on the editor's table would cost to

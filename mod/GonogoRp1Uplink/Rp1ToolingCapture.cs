@@ -46,6 +46,7 @@ namespace GonogoRp1Uplink
                     ["untooledSurcharge"] = part.UntooledSurcharge,
                     ["symmetryCounterparts"] = part.SymmetryCounterparts,
                     ["refittable"] = part.Refittable,
+                    ["refitTargets"] = RefitTargets(part.RefitTargets),
                 });
             }
 
@@ -58,6 +59,31 @@ namespace GonogoRp1Uplink
                 ["untooledCount"] = untooled,
                 ["parts"] = parts,
             };
+        }
+
+        /// <summary>
+        /// The refit rows, or NOTHING. Null carries through rather than becoming an
+        /// empty list, because the two say different things: null is a part the
+        /// question does not apply to, empty is a part the career owns nowhere to
+        /// move.
+        /// </summary>
+        private static List<object?>? RefitTargets(List<Rp1ToolingRefitTargetRaw>? targets)
+        {
+            if (targets == null)
+            {
+                return null;
+            }
+            var rows = new List<object?>();
+            foreach (var target in targets)
+            {
+                rows.Add(new Dictionary<string, object?>
+                {
+                    ["diameter"] = target.Diameter,
+                    ["length"] = target.Length,
+                    ["rfType"] = target.RfType,
+                });
+            }
+            return rows;
         }
     }
 }

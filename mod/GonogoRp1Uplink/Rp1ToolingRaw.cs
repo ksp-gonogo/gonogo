@@ -65,5 +65,28 @@ namespace GonogoRp1Uplink
 
         /// <summary>Whether a refit could reshape this part at all.</summary>
         public bool? Refittable;
+
+        /// <summary>
+        /// The sizes this part could be refitted TO, already filtered to ones it
+        /// can use. Empty when the career owns none it could move to; null when
+        /// the question does not apply, which is a tooled part, a part nothing can
+        /// reshape, or a tooling type RP-1 offers no refit for.
+        /// </summary>
+        public List<Rp1ToolingRefitTargetRaw>? RefitTargets;
+    }
+
+    /// <summary>One owned tooling a part could be reshaped to fit.</summary>
+    public sealed class Rp1ToolingRefitTargetRaw
+    {
+        public double Diameter;
+        public double Length;
+
+        /// <summary>
+        /// The tank material RP-1's own picker chose for this row, which is what
+        /// makes the row offerable at all: null means the part cannot use any
+        /// material the tooling covers, and the row is dropped rather than
+        /// published.
+        /// </summary>
+        public string? RfType;
     }
 }

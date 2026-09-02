@@ -54,6 +54,7 @@ public static class Rp1RtConfig
             typeof(Rp1TrainingLeaveArgs),
             typeof(Rp1Tooling),
             typeof(Rp1ToolingEntry),
+            typeof(Rp1ToolingRefitTarget),
             typeof(Rp1ToolAllArgs),
             typeof(Rp1ToolingRefitArgs),
             typeof(Rp1BuildCost),

@@ -8,16 +8,21 @@ import {
   Badge,
   Cluster,
   CommandButton,
+  Disclosure,
   NULL_DISPLAY,
   Row,
   RowName,
   Section,
   SectionTitle,
+  Stack,
   Text,
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import type { Rp1ToolingEntry } from "../__generated__/contract";
+import type {
+  Rp1ToolingEntry,
+  Rp1ToolingRefitTarget,
+} from "../__generated__/contract";
 import { current } from "../shared/current";
 import { ProjectCard, ProjectCardList } from "../shared/ProjectCard";
 import { RP1 } from "../uplink";
@@ -32,6 +37,12 @@ import { VEHICLE_ASSEMBLY_SECTIONS } from "./slot";
  * purchase. Must match `Rp1ToolingCommands.ToolAllCommand`.
  */
 export const RP1_TOOL_ALL_COMMAND = "rp1.tooling.toolAll";
+
+/**
+ * Reshape one part to a size the career already owns, instead of buying its
+ * tooling. Must match `Rp1ToolingCommands.RefitCommand`.
+ */
+export const RP1_TOOLING_REFIT_COMMAND = "rp1.tooling.refit";
 
 /**
  * What tooling the vehicle being designed needs, what finishing it costs, and
@@ -64,13 +75,14 @@ export const RP1_TOOL_ALL_COMMAND = "rp1.tooling.toolAll";
  * producer's to make. The command asks RP-1 and refuses in RP-1's own words. The
  * host draws both balances for the same reason.</para>
  *
- * <para><b>There is no refit control, and its absence is a wire gap rather than
- * a choice.</b> `rp1.tooling.refit` reshapes a part to a size the career already
- * owns and takes a diameter and a length as numbers. This channel carries the
- * parameters only as RP-1's own rendered STRING, because the tuple's arity
- * varies by tooling type and RP-1 exposes no uniform accessor for it, and there
- * is no catalogue of owned toolings on the wire to pick a target from. Both
- * would have to be carried before a control could name a size to move to.</para>
+ * <para><b>Two ways to close the gap, and the second one is free.</b> A part can
+ * have its tooling bought, or it can be RESHAPED to a size the career already
+ * owns. The second spends nothing at all and is the one an early career reaches
+ * for, so it is offered on the part rather than left to the game's own window:
+ * `rp1.tooling[].refitTargets` carries the owned sizes this part could move to,
+ * already filtered by RP-1's own material picker to ones it can actually use.
+ * A refit is per PART where a purchase is per SIZE, which is why the presses
+ * live on the part rows and the price lives on the card.</para>
  */
 export function ToolingSection() {
   const available = current(useTelemetry("rp1.available"));
@@ -79,7 +91,9 @@ export function ToolingSection() {
   // Unconditional and above the early returns on purpose: a hook after one
   // would change count on the first frame RP-1 answers.
   const toolAll = useCommand(RP1_TOOL_ALL_COMMAND);
+  const refit = useCommand(RP1_TOOLING_REFIT_COMMAND);
   usePanelDelay(toolAll);
+  usePanelDelay(refit);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -136,7 +150,7 @@ export function ToolingSection() {
 
       <ProjectCardList>
         {purchases.map((purchase) => (
-          <PurchaseCard key={purchase.key} purchase={purchase} />
+          <PurchaseCard key={purchase.key} purchase={purchase} refit={refit} />
         ))}
       </ProjectCardList>
     </Section>
@@ -210,7 +224,13 @@ function groupIntoPurchases(parts: readonly Rp1ToolingEntry[]): Purchase[] {
  * say the money has already been spent rather than leaving an operator to infer
  * it from a part's absence.</para>
  */
-function PurchaseCard({ purchase }: Readonly<{ purchase: Purchase }>) {
+function PurchaseCard({
+  purchase,
+  refit,
+}: Readonly<{
+  purchase: Purchase;
+  refit: Parameters<typeof CommandButton>[0]["handle"];
+}>) {
   return (
     <ProjectCard
       badge={
@@ -239,6 +259,7 @@ function PurchaseCard({ purchase }: Readonly<{ purchase: Purchase }>) {
           key={part.partId ?? part.partTitle}
           owned={purchase.tooled}
           part={part}
+          refit={refit}
         />
       ))}
     </ProjectCard>
@@ -279,7 +300,12 @@ function PurchaseCard({ purchase }: Readonly<{ purchase: Purchase }>) {
 function PartCharge({
   owned,
   part,
-}: Readonly<{ owned: boolean; part: Rp1ToolingEntry }>) {
+  refit,
+}: Readonly<{
+  owned: boolean;
+  part: Rp1ToolingEntry;
+  refit: Parameters<typeof CommandButton>[0]["handle"];
+}>) {
   const name = part.partTitle ?? part.partId ?? NULL_DISPLAY;
   if (owned || part.untooledSurcharge == null) {
     return (
@@ -291,10 +317,132 @@ function PartCharge({
     );
   }
   return (
-    <Row as="div" nested wrap data-tooling-per-build="">
-      <Text size="xs" tone="muted">
-        {name} · <Unit value={part.untooledSurcharge} decimals={0} /> per build
+    <Stack gap="xs">
+      <Row as="div" nested wrap data-tooling-per-build="">
+        <Text size="xs" tone="muted">
+          {name} · <Unit value={part.untooledSurcharge} decimals={0} /> per
+          build
+        </Text>
+      </Row>
+      <RefitControl handle={refit} name={name} part={part} />
+    </Stack>
+  );
+}
+
+/**
+ * The other way to close this part's gap: move it to a size the career has
+ * already paid for.
+ *
+ * <para><b>It spends nothing, and that is the whole of its money statement.</b>
+ * `ToolingPartResizer.Resize` changes the part's geometry and its tank material
+ * and touches no currency anywhere, read on the shipped RP-1 v4.6.0.0 RP0.dll.
+ * So the line beside the presses names what the refit STOPS costing rather than
+ * what it costs: the untooled surcharge is charged on every copy of the vehicle
+ * ever built, and a part refitted onto an owned tooling stops paying it.</para>
+ *
+ * <para><b>It reaches further than the part named, and says so first.</b> Every
+ * symmetry counterpart is resized too and the material is applied across the
+ * part's group. RP-1 discloses both AFTERWARDS in a screen message; the count is
+ * on the wire so it can be said while it can still change the answer.</para>
+ *
+ * <para><b>Each row is a size, and the material is the producer's.</b> The rows
+ * are owned toolings RP-1's own picker has already matched to something this
+ * part can use, tech locks included, so the press sends back the material it was
+ * given rather than choosing one. A part with no rows gets no control: EMPTY
+ * means the career owns nowhere to move, and buying the tooling is then the only
+ * way.</para>
+ */
+function RefitControl({
+  handle,
+  name,
+  part,
+}: Readonly<{
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+  name: string;
+  part: Rp1ToolingEntry;
+}>) {
+  const partId = part.partId;
+  const targets = part.refitTargets ?? [];
+  if (partId == null || targets.length === 0) {
+    return null;
+  }
+
+  const others = magnitudeOf(part.symmetryCounterparts) ?? 0;
+
+  return (
+    <Disclosure
+      ariaLabel={`Refit ${name} to a size the career already owns`}
+      asButton
+      buttonSize="sm"
+      chevron={false}
+      label={(open: boolean) => (open ? "Hide refit" : "Refit instead")}
+      panelHeight="auto"
+      variant="inline"
+    >
+      <Stack gap="xs">
+        <Text size="xs" tone="muted">
+          costs nothing, and drops the{" "}
+          <Unit value={part.untooledSurcharge} decimals={0} /> per build
+        </Text>
+        {others > 0 && (
+          <Text size="xs" tone="warn">
+            reshapes {others} other part{others === 1 ? "" : "s"} in symmetry
+            with it, and applies the material to the whole group
+          </Text>
+        )}
+        {targets.map((target) => (
+          <RefitRow
+            handle={handle}
+            key={`${magnitudeOf(target.diameter)}x${magnitudeOf(target.length)}`}
+            name={name}
+            partId={partId}
+            target={target}
+          />
+        ))}
+      </Stack>
+    </Disclosure>
+  );
+}
+
+/**
+ * One owned size, and the press that moves the part onto it.
+ *
+ * <para>The accessible name is RP-1's own sentence for the act, in RP-1's own
+ * three-decimal rendering, because that is the wording an operator who has used
+ * the game's window already reads. A row missing either figure is dropped rather
+ * than pressed at a size nobody named.</para>
+ */
+function RefitRow({
+  handle,
+  name,
+  partId,
+  target,
+}: Readonly<{
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+  name: string;
+  partId: string;
+  target: Rp1ToolingRefitTarget;
+}>) {
+  const diameter = magnitudeOf(target.diameter);
+  const length = magnitudeOf(target.length);
+  if (diameter === null || length === null || target.rfType == null) {
+    return null;
+  }
+  const press = `Refit ${name} to d=${diameter.toFixed(3)}m, L=${length.toFixed(3)}m in ${target.rfType}`;
+
+  return (
+    <Row as="div" nested>
+      <Text size="xs">
+        <Unit value={target.diameter} /> × <Unit value={target.length} />
       </Text>
+      <CommandButton
+        args={{ diameter, length, partId, rfType: target.rfType }}
+        aria-label={press}
+        commandLabel={press}
+        handle={handle}
+        label="Refit"
+        size="sm"
+      />
     </Row>
   );
 }

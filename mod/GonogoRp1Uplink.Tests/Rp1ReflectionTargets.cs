@@ -248,7 +248,13 @@ namespace GonogoRp1Uplink.Tests
             // list of subclass names), and the resizer is the refit.
             new Rp1TypeTarget(Rp0, "RP0.ToolingManager", "Rp1ToolingReflection"),
             new Rp1TypeTarget(Rp0, "RP0.ModuleTooling", "Rp1ToolingReflection, Rp1ToolingCommands"),
-            new Rp1TypeTarget(Rp0, "RP0.ToolingPartResizer", "Rp1ToolingCommands"),
+            new Rp1TypeTarget(Rp0, "RP0.ToolingPartResizer", "Rp1ToolingCommands, Rp1ToolingReflection"),
+            // The owned-tooling database, and the one type that says how many
+            // parameters a tooling of a given type is keyed on. Both are read for
+            // the refit targets: RP-1 offers a refit only onto a size the career
+            // already owns, and only for a two-parameter type.
+            new Rp1TypeTarget(Rp0, "RP0.ToolingDatabase", "Rp1ToolingReflection"),
+            new Rp1TypeTarget(Rp0, "RP0.Tooling.Parameters", "Rp1ToolingReflection"),
             // The career's own history. Resolved by name because its handler is a
             // ScenarioModule and a save RP-1 does not manage has none.
             new Rp1TypeTarget(Rp0, "RP0.CareerLog", "Rp1CareerCostReflection"),
@@ -487,6 +493,20 @@ namespace GonogoRp1Uplink.Tests
             // Matched on its first parameter too, because a resizer overload taking
             // something other than a Part would silently accept the wrong subject.
             new Rp1MethodTarget(Rp0, "RP0.ToolingPartResizer", "Resize", 4, true, "Rp1ToolingCommands"),
+            // The refit-target walk. GetMergedEntries rather than the raw toolings
+            // dictionary because it is the call that fills each leaf's Sources, and
+            // Sources is what PickRfType needs; PickRfType rather than a material
+            // guess because it is what decides whether a part can use a tooling at
+            // all, tech locks included, and RP-1's own window darkens the press on
+            // its null. Both live on an INTERNAL static class whose members are
+            // public, so a public-static lookup finds them.
+            new Rp1MethodTarget(Rp0, "RP0.ToolingDatabase", "GetMergedEntries", 1, true, "Rp1ToolingReflection"),
+            new Rp1MethodTarget(Rp0, "RP0.ToolingPartResizer", "PickRfType", 2, true, "Rp1ToolingReflection"),
+            // Its rule today is "three parameters for Avionics-, two for everything
+            // else". ASKED rather than copied: a copy goes quietly wrong the day a
+            // third family arrives, and the answer decides whether a refit is
+            // offered at all.
+            new Rp1MethodTarget(Rp0, "RP0.Tooling.Parameters", "GetParametersForToolingType", 1, true, "Rp1ToolingReflection"),
             new Rp1MethodTarget(Rp0, "RP0.UnlockCreditHandler", "GetPrePostCostAndAffordability", 6, false, "Rp1ToolingCommands"),
             // The money calls. All three are read-only on the shipped assembly
             // and are CALLED rather than mirrored for that reason: they return a
@@ -1197,6 +1217,13 @@ namespace GonogoRp1Uplink.Tests
             // behind it: GetUntooledPenaltyCost is protected, and this is the value
             // RP-1's own part-cost modifier bills.
             Add("RP0.ModuleTooling", "addedCost", Rp1Reader.Numeric, Tooling);
+            // One node of the owned-tooling tree. Value is the parameter (a
+            // diameter at the top level, a length under it), Children is the next
+            // parameter's nodes, and Sources is the set of tooling types the leaf
+            // came from, which is what the material picker is handed.
+            Add("RP0.ToolingEntry", "Value", Rp1Reader.Numeric, Tooling);
+            Add("RP0.ToolingEntry", "Children", Rp1Reader.Presence, Tooling);
+            Add("RP0.ToolingEntry", "Sources", Rp1Reader.Presence, Tooling);
             Add("RP0.UnlockCreditHandler", "Instance", Rp1Reader.Presence, ToolingWrites, @static: true);
 
             // ── The funds breakdown, and the career log ─────────────────────

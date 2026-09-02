@@ -491,6 +491,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partId: "id",
     rfType: "id",
   },
+  "Rp1ToolingRefitTarget": {
+    diameter: "m",
+    length: "m",
+    rfType: "id",
+  },
   "Rp1TrainingCourseEntry": {
     completed: "flag",
     completesAtUt: "ut",
@@ -888,6 +893,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "Rp1Tooling": {
     parts: "Rp1ToolingEntry[]",
+  },
+  "Rp1ToolingEntry": {
+    refitTargets: "Rp1ToolingRefitTarget[]",
   },
 };
 

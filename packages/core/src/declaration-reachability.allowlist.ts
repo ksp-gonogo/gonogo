@@ -89,15 +89,7 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
      */
     "topic comms.linkQuality",
   ],
-  GonogoRp1Uplink: [
-    /*
-     * The surviving half of the `rp1.tooling` fold that prompted this gate:
-     * `rp1.tooling.toolAll` has since been wired to
-     * `VehicleAssembly/Tooling.tsx` and `.refit` has not.
-     */
-    "command rp1.tooling.refit",
-    "topic rp1.careerEvents",
-  ],
+  GonogoRp1Uplink: ["topic rp1.careerEvents"],
 };
 
 /**

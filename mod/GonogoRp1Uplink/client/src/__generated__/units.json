@@ -457,6 +457,11 @@
       "partId": "id",
       "rfType": "id"
     },
+    "Rp1ToolingRefitTarget": {
+      "diameter": "m",
+      "length": "m",
+      "rfType": "id"
+    },
     "Rp1TrainingCourseEntry": {
       "completed": "flag",
       "completesAtUt": "ut",
@@ -824,6 +829,9 @@
     },
     "Rp1Tooling": {
       "parts": "Rp1ToolingEntry[]"
+    },
+    "Rp1ToolingEntry": {
+      "refitTargets": "Rp1ToolingRefitTarget[]"
     }
   },
   "topicShapes": {
