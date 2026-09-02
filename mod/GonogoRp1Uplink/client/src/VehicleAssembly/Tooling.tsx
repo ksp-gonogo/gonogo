@@ -415,10 +415,13 @@ function RefitControl({
 /**
  * One owned size, and the press that moves the part onto it.
  *
- * <para>The accessible name is RP-1's own sentence for the act, in RP-1's own
+ * <para>The accessible name follows RP-1's own sentence for the act and its
  * three-decimal rendering, because that is the wording an operator who has used
- * the game's window already reads. A row missing either figure is dropped rather
- * than pressed at a size nobody named.</para>
+ * the game's window already reads. It spells METRES rather than carrying RP-1's
+ * `d=3.000m, L=5.000m`: a symbol beside a number in a string is announced as a
+ * letter, and the visible figures beside the press are `Unit`s, which is where
+ * the symbol belongs. A row missing either figure is dropped rather than pressed
+ * at a size nobody named.</para>
  */
 function RefitRow({
   handle,
@@ -436,7 +439,7 @@ function RefitRow({
   if (diameter === null || length === null || target.rfType == null) {
     return null;
   }
-  const press = `Refit ${name} to d=${diameter.toFixed(3)}m, L=${length.toFixed(3)}m in ${target.rfType}`;
+  const press = `Refit ${name} to ${diameter.toFixed(3)} metres across by ${length.toFixed(3)} metres long, in ${target.rfType}`;
 
   return (
     <Row as="div" nested>

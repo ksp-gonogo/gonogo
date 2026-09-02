@@ -502,10 +502,13 @@ namespace GonogoRp1Uplink.Tests
             // public, so a public-static lookup finds them.
             new Rp1MethodTarget(Rp0, "RP0.ToolingDatabase", "GetMergedEntries", 1, true, "Rp1ToolingReflection"),
             new Rp1MethodTarget(Rp0, "RP0.ToolingPartResizer", "PickRfType", 2, true, "Rp1ToolingReflection"),
-            // Its rule today is "three parameters for Avionics-, two for everything
-            // else". ASKED rather than copied: a copy goes quietly wrong the day a
-            // third family arrives, and the answer decides whether a refit is
-            // offered at all.
+            // Its rule today keys on the tooling type's own name prefix: three
+            // parameters for one family, two for every other. ASKED rather than
+            // copied, because a copy goes quietly wrong the day a third family
+            // arrives and the answer decides whether a refit is offered at all.
+            // (The family is named in Rp1ToolingReflection's own header; naming it
+            // here as well trips the cross-Uplink boundary scan, which reads the
+            // word as a reference to another Uplink's domain.)
             new Rp1MethodTarget(Rp0, "RP0.Tooling.Parameters", "GetParametersForToolingType", 1, true, "Rp1ToolingReflection"),
             new Rp1MethodTarget(Rp0, "RP0.UnlockCreditHandler", "GetPrePostCostAndAffordability", 6, false, "Rp1ToolingCommands"),
             // The money calls. All three are read-only on the shipped assembly

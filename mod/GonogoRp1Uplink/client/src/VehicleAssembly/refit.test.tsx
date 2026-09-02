@@ -80,7 +80,7 @@ describe("refitting a part onto tooling the career already owns", () => {
 
     await user.click(
       await screen.findByRole("button", {
-        name: "Refit Procedural Tank to d=3.000m, L=5.000m in Tank-Sep-1",
+        name: "Refit Procedural Tank to 3.000 metres across by 5.000 metres long, in Tank-Sep-1",
       }),
     );
 
