@@ -17,8 +17,9 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
 
 /**
  * Subscribe to a live value. The **canonical** telemetry read hook of the
- * Uplink architecture: the rename of the historical
- * `useDataValue`, which now re-exports this as a deprecated alias.
+ * Uplink architecture: the rename of the historical `useDataValue`, which is
+ * gone entirely. No alias survives it, `@ksp-gonogo/core` re-exports this hook
+ * under its own name and nothing exports the old one.
  *
  * **Canonical Topic overload**: the forward-looking shape. Keyed directly by
  * a typed `TopicId` from `@ksp-gonogo/sitrep-sdk`, it reads that Topic's payload

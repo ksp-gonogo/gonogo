@@ -45,7 +45,7 @@ function plotValue(payload: unknown): unknown {
  * `GraphView`-based widgets read (`GraphSeries`, `SemiMajorAxis`, `Twr`,
  * `PowerSystems`, `KeplerPeriod`, `OrbitalAscent`, `EscapeProfile`). Same
  * `mapTopic(sourceId, key)` migration table, same carried-channels allowlist
- * gate (`isTopicCarried`): see `useDataValue.ts`'s doc comment for the full
+ * gate (`isTopicCarried`): see `use-telemetry.ts`'s doc comment for the full
  * "why" on both; not reproduced here.
  *
  * The one thing genuinely different from `useDataValue`: a DERIVED topic

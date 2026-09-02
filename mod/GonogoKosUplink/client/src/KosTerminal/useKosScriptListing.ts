@@ -38,12 +38,12 @@ const IDLE: KosScriptListingResult = { paths: [], loading: false, hint: null };
  * `KOS_FILES_SCRIPT` ("list" op) via the surviving `KosDataSource.
  * executeScript` RPC for each of `LISTED_VOLUMES`, merges the FILE (not
  * directory) entries, and filters to `*.ks`/`*.ksm`: the only RUNPATH-able
- * kinds. This is the "raw executeScript" RPC-shaped one-shot case
- * (per-call args, request/response), NOT the centralised `kos.compute.*`
- * feed pattern: a directory listing is neither passive telemetry nor a
- * fixed no-args interval script, so it stays outside that registry by
- * design (see the repo CLAUDE.md's "when to use this vs raw executeScript"
- * section).
+ * kinds. This is the RPC-shaped one-shot case (per-call args,
+ * request/response), which is the only kOS read pattern that still exists:
+ * the centralised `kos.compute.*` feed and the `registerKosScript` registry
+ * behind it were deleted with the widgets that consumed them. A directory
+ * listing would not have belonged there anyway, being neither passive
+ * telemetry nor a fixed no-args interval script.
  *
  * Lazy + single-shot: does nothing until `enabled` is true (the terminal
  * only passes `true` once the `/`-picker is actually open AND no static

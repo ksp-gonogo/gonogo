@@ -4,6 +4,8 @@ This page is for whoever maintains the deployed gonogo. Day-to-day use runs loca
 
 ## Frontend (GitHub Pages)
 
+> **Currently dormant.** Every trigger below gates on `main`, and `main` has not moved since 2026-07-13; day-to-day work lands on `staging` (see the Workflow section of `CLAUDE.md`). Nothing has deployed since then. The gate is deliberate and unresolved, so treat this document as describing what happens *when* `main` next moves, not what is happening now.
+
 The app is deployed to GitHub Pages at [ksp-gonogo.github.io/gonogo](https://ksp-gonogo.github.io/gonogo/) on every push to `main` that passes CI. The workflow is `.github/workflows/deploy.yml`, triggered on `workflow_run` (CI succeeding on `main`). It builds with `pnpm turbo build --filter=@ksp-gonogo/app...` and the Vite base is set to `/gonogo/`.
 
 > The hosted page can't run the **main screen**. The main screen needs to reach your KSP install over a plain `ws://` connection, which a browser blocks from an `https://` page (mixed content), so the main screen always runs locally against your own KSP. What the hosted page is for is **station** screens: a station on someone else's network loads the app from here and joins with the share code.

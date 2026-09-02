@@ -60,8 +60,7 @@ The main-screen-is-sole-consumer constraint falls out of this:
 The foundation for everything extensible.
 
 - **Plugin registry**: `registerComponent(def)`, `registerTheme(def)`, and `registerDataSource(def)` are the three extension points. Calling these at module load time is all that's needed to extend the app.
-- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `DataSourceDefinition`, `StationConfig`, `DataRequirement`, `Behavior`, …
-- **React contexts**: `DashboardContext` (current layout, orchestrator state), `PeerContext` (PeerJS connection state), `StationContext` (station identity/role from localStorage).
+- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `ComponentBehavior`, `DataSource`, `DataRequirement`, …
 - **GO/NO-GO system** aggregates the human GO/NO-GO readiness state across all active stations. It is a human readiness ceremony (operators voting) that triggers a stage transition and nothing else, so no widget feeds into it.
 
 ### The data-source interface (repository pattern)
@@ -88,16 +87,18 @@ interface DataSource {
 This interface covers the app's non-Sitrep data sources, kOS, the camera feed, serial devices: each still read and driven through the same two universal hooks:
 
 ```ts
-const altitude = useDataValue('kos', 'kos.compute.altitude-feed.value');
+const value = useTelemetry(dataSourceId, legacyFlatKey);
 ```
 
-This hook is the **PeerJS boundary**. On the main screen it calls the DataSource directly; on a station screen it routes through PeerJS instead. The widget code doesn't change; only the hook routing does. Widgets never call a `DataSource` method directly.
+That two-argument form is the **PeerJS boundary**. On the main screen it calls the DataSource directly; on a station screen it routes through PeerJS instead. The widget code doesn't change; only the hook routing does. Widgets never call a `DataSource` method directly.
+
+The form is legacy and shrinking: it is a compile error through `@ksp-gonogo/sitrep-sdk/spine`, and survives only on the SDK's published root barrel for an Uplink reading a legacy flat key. It is torn out with the shim at M4.
 
 ### Sitrep telemetry: Domain/Topic/Value
 
-The Sitrep stream (the Gonogo mod's WebSocket feed) doesn't go through the `DataSource` interface, it has its own Uplink model, layered on top of `@ksp-gonogo/sitrep-client`. The mod's contract is organised into **Domains** (e.g. `vessel`, `career`, `spaceCenter`), each exposing named **Topics** (e.g. `vessel.orbit`, `career.funds`); every Topic carries a typed **Value** payload generated from the C# contract (`@ksp-gonogo/sitrep-sdk`). `SitrepTelemetryProvider` (in `@ksp-gonogo/app`) owns the one `WebSocketTransport` to the mod and feeds a `TelemetryClient`/`TimelineStore` pair down through React context.
+The Sitrep stream (the Gonogo mod's WebSocket feed) doesn't go through the `DataSource` interface, it has its own Uplink model, layered on top of `@ksp-gonogo/sitrep-client`. The mod's contract is organised into **Domains** (e.g. `vessel`, `career`, `spaceCenter`), each exposing named **Topics** (e.g. `vessel.orbit`, `career.status`); every Topic carries a typed **Value** payload generated from the C# contract (`@ksp-gonogo/sitrep-sdk`). `SitrepTelemetryProvider` (in `@ksp-gonogo/app`) owns the one `WebSocketTransport` to the mod and feeds a `TelemetryClient`/`TimelineStore` pair down through React context.
 
-Widgets read and command Topics with `useTelemetry`/`useCommand`. `useDataValue` still works as a deprecated read alias and remains the only way to reach a non-Sitrep source; its write twin `useExecuteAction` is gone, so every command goes through `useCommand`:
+Widgets read and command Topics with `useTelemetry`/`useCommand`. There is no `useDataValue`: the name is retired and nothing exports it, the two-argument `useTelemetry` overload above is what remains of that shim for reaching a non-Sitrep source. Its write twin `useExecuteAction` is gone too, so every command goes through `useCommand`:
 
 ```ts
 const orbit = useTelemetry('vessel.orbit');            // canonical Topic read

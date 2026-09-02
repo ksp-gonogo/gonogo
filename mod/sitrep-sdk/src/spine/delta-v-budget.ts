@@ -12,9 +12,9 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 //
 //   FuelStatus        `parseStages` for the rows, `dv.summary.totalDv*` for the
 //                     total, `judgeable` for the arm (withholds when stale)
-//   ManeuverPlanner   `useVesselDeltaV`, which SUMS `dv.stages` client-side for
-//                     the total, spells an absent per-stage field `0`, and also
-//                     withholds when stale
+//   ManeuverPlanner   `useProcessor(DELTA_V_BUDGET)` (this processor), which
+//                     SUMS `dv.stages` client-side for the total, spells an
+//                     absent per-stage field `0`, and also withholds when stale
 //   TransferWindow    `dv.summary.totalDvVac` raw, carried and dated
 //   LandingStatus     the active `dv.stages` row for the rocket-equation solve,
 //                     `dv.summary` as the whole-vessel fallback
@@ -32,8 +32,8 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 //
 // AN ABSENT PER-STAGE FIELD IS `NaN`, never `0`. They are opposite facts: a
 // stage with no engine has no ΔV figure, and a spent stage has 0 m/s. Spelling
-// both `0` is the same mistake `useVesselDeltaV` avoids one level up by making
-// its total nullable. NaN is affordable here precisely BECAUSE the total does
+// both `0` is the same mistake the processor above avoids one level up by
+// making its total nullable. NaN is affordable here precisely BECAUSE the total does
 // not come from summing these rows.
 //
 // THE BUDGET IS CARRIED AND DATED, never withheld. A ΔV budget only falls by

@@ -26,7 +26,7 @@ import { useDataSeries } from "./useDataSeries";
 
 /**
  * The M3 `useDataSeries` shim (the last M3 read-side unlock): mirrors
- * `@ksp-gonogo/core`'s `useDataValue.shim.test.tsx` pattern one level up: a
+ * `@ksp-gonogo/core`'s `useTelemetry.shim.test.tsx` pattern one level up: a
  * MAPPED + CARRIED key builds its `SeriesRange` from the `TimelineStore`'s
  * `ClientTimeline`, either straight off `TimelineStore.sampleRange` (a raw
  * topic: `timeline-store-sample-range.test.ts`) or, for a DERIVED topic,

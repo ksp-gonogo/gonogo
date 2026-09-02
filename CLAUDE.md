@@ -29,7 +29,18 @@ packages/
   components/: Built-in dashboard component library (uses core registry)
   serial/    : Serial input platform: device types, transports, render styles,
                 InputDispatcher, VirtualDevice widget + UI (see Serial section below)
-  ui/        : Reusable UI primitives (buttons, inputs, tabs, modal, icons, etc.)
+  ui/        : Private, app-side UI: dashboard chrome, settings-modal furniture,
+                PeerJS banners, plus one-line re-exports of ui-kit primitives
+  ui-kit/    : The PUBLISHED design system. The only UI package an Uplink may
+                import (see UI Components below)
+  theme/     : Private. The typed theme contract, the default dark theme, and
+                the design tokens behind it; inlined into ui-kit's dist
+  data/      : Private. Series-shaped reads over the telemetry store
+                (`useDataSeries`, the plotted/sparkline path)
+  sitrep-client/: Private. App-side spine + hooks over the Sitrep stream
+  logger/    : Private. ConsoleLogger, the log ring buffer and the tag registry
+                (see Logs (Axiom) below)
+  test-utils/: Private. Shared test helpers
   app/       : Vite + React SPA (main screen + station mode)
   relay/     : Fastify server hosting the /ice-config endpoint, a coturn
                 TURN/STUN child process with a per-restart-rotated shared
@@ -37,17 +48,25 @@ packages/
                 stable share-code to the host's current PeerJS peer id,
                 and /bootstrap-config republishing the bundle's KSP_HOST
                 so the SPA can seed data-source defaults on first run
+
+mod/         : The Gonogo mod (C#) and the generated `sitrep-sdk`, plus each
+                bundled Uplink and the client TS it ships. See the folder rule
+                in the Sitrep section above
 ```
 
-**Tooling:** pnpm workspaces + Turborepo. Package names use the `@ksp-gonogo/` scope.
+**Tooling:** pnpm workspaces + Turborepo. Package names use the `@ksp-gonogo/` scope. Only `@ksp-gonogo/sitrep-sdk` and `@ksp-gonogo/ui-kit` are published; every other workspace package is `private: true` and unreachable by a third-party Uplink.
 
 ---
 
 ## Workflow
 
-Solo-developer repo. Work directly on `main`, no feature branches, no pull requests. Commit and push straight to `main`.
+Solo-developer repo. **`staging` is the integration branch and the default target**: it is what `origin/HEAD` points at, and it is where all work lands. Small work goes straight onto `staging`, no pull requests. Large features get a branch cut from current `origin/staging` and folded back in.
 
-If a Claude Code session opens with an auto-assigned working branch (e.g. `claude/<task-slug>`), treat this note as the user's standing override: check out `main` and proceed there.
+`main` is NOT the working branch and has not moved since 2026-07-13; `staging` is 1250 commits ahead of it. Never commit to `main`, and never treat "push to main" advice in an older doc as current.
+
+`deploy.yml` still gates on `main` (`branches: [main]`), so nothing has deployed while work has been landing on `staging`. That is a known state and the operator's call to change, not something to fix in passing.
+
+If a Claude Code session opens with an auto-assigned working branch (e.g. `claude/<task-slug>`), treat this note as the user's standing override: check out `staging` and proceed there.
 
 ## Commits
 
@@ -102,8 +121,7 @@ kOS integration now rides the same Sitrep WS stream as telemetry, script dispatc
 The foundation for everything extensible:
 
 - **Plugin registry**: `registerComponent(def)`, `registerTheme(def)`, and `registerDataSource(def)` are the three extension points. Calling these at module load time is all that's needed to extend the app.
-- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `DataSourceDefinition`, `StationConfig`, `DataRequirement`, `Behavior`, etc.
-- **React contexts**: `DashboardContext` (current layout, orchestrator state), `PeerContext` (PeerJS connection state), `StationContext` (station identity/role from localStorage).
+- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `ComponentBehavior`, `DataSource`, `DataRequirement`, etc.
 - **GO/NO-GO system**: aggregates the human GO/NO-GO readiness state across all active stations. It is a human readiness ceremony (operators voting) that triggers a stage transition and nothing else; no component feeds into it (`behaviors: ['gonogo-participant']` is inert by design).
 - **Data source interface (repository pattern)**: all data sources implement a common `DataSource` interface:
   ```ts
@@ -122,13 +140,16 @@ The foundation for everything extensible:
     getConfig(): Record<string, unknown>;
   }
   ```
-- **`useDataValue(dataSourceId, key)`** is the universal read hook for the non-Sitrep `DataSource` sources (kOS, camera, serial). Components never call `getDataSource()` or any `DataSource` method directly. It is the **PeerJS boundary**: on the main screen it calls the DataSource directly; on a station screen (future) it will route through PeerJS instead. The component code doesn't change, only the hook routing does. There is no longer a write twin: `useExecuteAction` was deleted once its last two callers migrated, and every command goes through the delay-aware `useCommand(topic)`.
+- **`useTelemetry(topic)`** is the universal read hook. It lives in `@ksp-gonogo/sitrep-sdk/spine` and `@ksp-gonogo/core` re-exports it, so both import sites work. Keyed by a typed `TopicId`, it returns that Topic's `Reading`, not a bare payload: reaching a value requires branching on how current it is, which is the whole point of the type. Components never call `getDataSource()` or any `DataSource` method directly.
+  - **There is no `useDataValue`.** It was the historical name and it is gone: no definition, no export, no call site. `import { useDataValue } from "@ksp-gonogo/core"` is a compile error (TS2305). Roughly sixty comments across the tree still mention it, correctly, as "the retired `useDataValue` shim"; that is history, not a live API. Any doc telling you to call it is stale.
+  - A two-arg legacy form, `useTelemetry(dataSourceId, key)`, is what survives of that shim for reaching a non-Sitrep `DataSource` (kOS, camera, serial). It is a **compile error** through `@ksp-gonogo/sitrep-sdk/spine`, every production caller having migrated, and is declared only on the SDK's published root barrel for an Uplink reading a legacy flat key. It goes away with the shim at M4; do not write new code against it.
+  - There is no write twin: `useExecuteAction` was deleted once its last two callers migrated (a ratchet in `packages/core/src/styleguide-delay-ux.test.ts` keeps it deleted), and every command goes through the delay-aware `useCommand(topic)`.
 
 ### `@ksp-gonogo/components`
 
 The built-in component library. Each component file calls `registerComponent()` on import, there is no central index that manually lists them; the orchestrator just needs to import the package and registration happens automatically.
 
-Components declare their `dataRequirements` (e.g. `['vessel.altitude']`) so the orchestrator knows what data to subscribe to. The data layer resolves requirements against registered data sources.
+Components declare the Topics they mount on through `defineTopicManifest` (`channels`, `optionalChannels`, and `fields` for what the widget actually draws), which also yields the bound `useTelemetry` hook, so declaration and read cannot drift. `dataRequirements` is the legacy flat-key form of the same idea: it still exists on `ComponentDefinition` and coexists during migration, but new widgets use the manifest.
 
 Components are styled with **styled-components**. Component names and styled sub-components follow BEM-inspired naming for readability (e.g. `AltitudeGauge`, `AltitudeGauge__Label`, `AltitudeGauge__Value`).
 
@@ -137,8 +158,8 @@ Components are styled with **styled-components**. Component names and styled sub
 The Vite SPA. Key responsibilities:
 
 - **Dashboard orchestrator**: a layout engine built on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout) (`ResponsiveGridLayout`) that reads the current layout config and renders registered components by ID. It does not hardcode any component, it only knows about the registry. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised layout format stores a per-breakpoint map (`lg`, `md`, `sm`, etc.) so the grid reflows across screen sizes. Per-instance component config is stored alongside the layout.
-- **Sitrep telemetry client**: `SitrepTelemetryProvider` mounts a live `WebSocketTransport` to the Gonogo mod (see the Data Flow section above). Components declare data requirements the same as before; `useDataValue`/`useTelemetry` routes mapped, carried topics through the stream automatically.
-- **kOS integration**, rides the Sitrep stream: `KosDataSource.executeScript` dispatches over the `kos.run` Uplink command and correlates the `kos.run.<coreId>` result; CPU discovery comes off the `kos.processors` channel (`KosCpuDiscovery` stands up the standing subscription; `onProcessorsChanged` feeds the CPU registry). If no stream is mounted, kOS features degrade gracefully.
+- **Sitrep telemetry client**: `SitrepTelemetryProvider` mounts a live `WebSocketTransport` to the Gonogo mod (see the Data Flow section above). Components declare the Topics they mount on the same as before; `useTelemetry` routes mapped, carried topics through the stream automatically.
+- **kOS integration** lives entirely in the kOS Uplink (`mod/GonogoKosUplink/`), not in `packages/`, and rides the Sitrep stream: `KosDataSource.executeScript` dispatches over the `kos.run` Uplink command and correlates the `kos.run.<coreId>` result; CPU discovery comes off the `kos.processors` channel (`KosCpuDiscovery` stands up the standing subscription; `onProcessorsChanged` feeds the CPU registry). If no stream is mounted, kOS features degrade gracefully.
 - **PeerJS integration**: the main screen acts as the peer host. Stations connect as peers. The main screen distributes a serialised snapshot of data to all peers; stations can also send state back (e.g. GO/NO-GO votes).
 - **Station config**: localStorage-first. Stations can request a config from the main screen over PeerJS; the main screen can push saved configs to connecting stations.
 
@@ -146,25 +167,31 @@ The Vite SPA. Key responsibilities:
 
 ## Extension Pattern
 
-Both components and themes follow the same self-registration pattern:
+Both components and themes follow the same self-registration pattern. Note the import specifier: an outside author installs `@ksp-gonogo/sitrep-sdk`, never `@ksp-gonogo/core`, which is `private: true` and on the isolation gate's forbidden list. Every bundled Uplink imports it that way.
+
+`id`, `name`, `description`, `tags` and `component` are required; everything below them is optional.
 
 ```ts
 // An external npm package can do this:
-import { registerComponent } from '@ksp-gonogo/core';
+import { registerComponent, useTelemetry } from '@ksp-gonogo/sitrep-sdk';
 
 registerComponent({
   id: 'my-custom-gauge',
   name: 'My Custom Gauge',
-  category: 'telemetry',
-  component: MyCustomGauge,
-  dataRequirements: ['vessel.altitude'],
-  behaviors: [],           // opt-in behavior flags
+  description: 'Shows the thing.',
+  tags: ['telemetry'],        // free-form; the UI styles known values
+  component: MyCustomGauge,   // reads with useTelemetry('vessel.state')
+  channels: ['vessel.state'], // Topics this widget mounts on
+  defaultSize: { w: 4, h: 4 },
+  behaviors: [],              // opt-in behavior flags
   defaultConfig: {},
 });
 ```
 
+`defineTopicManifest` (the bound-hook form used by the built-in library) is exported from `@ksp-gonogo/core` only and is **not** reachable from the SDK, so an Uplink declares `channels` directly and calls the free `useTelemetry`, as every bundled Uplink does.
+
 ```ts
-import { registerTheme } from '@ksp-gonogo/core';
+import { registerTheme } from '@ksp-gonogo/sitrep-sdk';
 
 registerTheme({
   id: 'retro-nasa',
@@ -197,85 +224,39 @@ Prefer tests that mock as little of the system as possible. Use [Mock Service Wo
 
 ---
 
-## Centralised kOS scripts
+## kOS integration
 
-The kOS data source runs registered kerboscripts on the user's active CPU and fans the parsed payloads out to subscribers as standard `kos.compute.<id>.<field>` data keys. One loop per script, regardless of how many widgets subscribe. This is the **default path for any new kOS-driven widget**, `useKosScriptPayload` / `useKosWidget` are reserved for the niche RPC case (per-call args, request/response).
+kOS lives entirely in its own Uplink, `mod/GonogoKosUplink/` (C# mod plus the client TS it ships). Nothing kOS-specific remains in `packages/`. It rides the Sitrep telemetry stream, there is no separate proxy process, and kOS features degrade gracefully when no stream is mounted.
 
-### When to use this vs. raw `executeScript`
+**There is no centralised kOS script registry.** `registerKosScript` / `getKosScripts`, the `shared/scriptRegistry.ts` that held them, and the `KosComputeManager` that fanned their output out as `kos.compute.<id>.<field>` keys were deleted as dead code once the feed-style widgets that were their only consumers were removed. The shared UI-authoring chrome went with them: `KosScriptFrame`, `KosCpuPicker`, the kos-cpu-registry chrome provider, `useKosScriptPayload` and `useKosScriptStatus` are all gone. So are the widgets themselves (`KosProcessors`, `KosFiles`, `KosScriptRunner`, `KosWidget`, `KosWrapperTester`). If you find a recipe anywhere that calls `registerKosScript`, it cannot be followed.
 
-- **Centralised feed** (this section): passive listing / telemetry / state snapshot, same payload for every subscriber. Examples: ShipMap parts, KosProcessors listing. The widget calls `useDataValue` and is done. (NOT TargetPicker, its Bodies/Vessels/Parts list is the `target.available` stream Topic, read with `useTelemetry`, not a kOS feed.)
-- **Raw `executeScript`**: RPC-shaped one-shots that take per-call args. Examples: KosFiles (op + path → contents). The widget calls `getDataSource("kos").executeScript(cpu, scriptPath, args, managed)` directly. No registry entry, no fanout. (NOT TargetPicker's set-target click, that dispatches the `vessel.target.set` command through `useCommand`, not a kOS script.)
+The `kos.compute.<id>.<field>` namespace is still identity-mapped in `map-topic.ts` against a future compute-feed slice, but nothing produces values on it today. Reading one gets you `undefined` forever.
 
-### Adding a new feed-style widget
+### What actually exists
 
-Three pieces: the kerboscript, the registration, and the widget consumption.
+- **`KosDataSource`** (`mod/GonogoKosUplink/client/src/dataSource/kos.ts`): a plain RPC client. It holds no persistent socket and carries no subscribable data keys of its own, so it is registered via `registerUplinkHandle("kos", kosSource)` rather than `registerDataSource`, and never appears in the generic Data Sources panel. kOS health surfaces mod-side through `IUplinkHealthReporter` (`KosHealth`).
+- **`executeScript(cpu, script, args, managed?)`**: runs a script on the named CPU over the `kos.run` Uplink command, correlates the `kos.run.<coreId>` result, and resolves with the parsed `[KOSDATA]` object. Calls to one CPU are serialised by a per-core FIFO queue; different CPUs run in parallel. Pass `managed` to have the dispatch wrapped in a check-and-write preamble that keeps the on-volume copy in sync with the bundled body, versioned against a `<script>.ver` sidecar.
+- **CPU discovery**: `onProcessorsChanged(cb)` subscribes to the mod's native `kos.processors` push channel and replays the current snapshot on subscribe. `KosCpuDiscovery` mounts it and maps `procs.map(p => p.tag)` into the CPU registry.
+- **`KosTerminal`**: the one surviving kOS widget, and the valuable surface. It uses none of the deleted feed pattern, it reads `kos.processors` and the terminal frame stream directly.
+- **PerfBudget**: `KosDataSource.executeScript dispatches/sec`, threshold 10. Each run holds a CPU's REPL for hundreds of ms, so a sustained rate above ~5/sec means widgets are stomping each other.
 
-**1. The kerboscript**: emit a topic-tagged `[KOSDATA]` block:
+### Writing a new kOS-driven widget
+
+The RPC one-shot is the only pattern available: call `kosSource.executeScript(...)` directly and own the call's lifecycle yourself (when to fire, caching, error surfacing). `useKosScriptListing` (`KosTerminal/useKosScriptListing.ts`) is the reference implementation and worth reading first, it is lazy, single-shot, caches per `(coreId, cpuTag)`, and degrades to an empty result plus a human hint on every failure mode rather than throwing.
+
+The kerboscript still emits a topic-tagged block that the `[KOSDATA]` parser reads:
 
 ```
-PRINT "[KOSDATA:my-feed]parts=" + json + "[/KOSDATA]".
+PRINT "[KOSDATA:my-op]paths=" + json + "[/KOSDATA]".
 ```
 
-The topic id (`my-feed`) must match the `id` you register below. JSON values are passed as JSON-encoded strings; scalars (number / boolean / string) can be emitted directly.
+If you want a passive, on-interval, no-args feed shared by many subscribers, that mechanism does not currently exist. Build the RPC call, or restore the compute slice deliberately, rather than writing against the deleted registry.
 
-**2. Self-register at module load**, alongside `registerComponent`. Same lifecycle pattern. Put this at the bottom of your `<widget>Script.ts`:
-
-```ts
-import { registerKosScript } from "@ksp-gonogo/core";
-
-registerKosScript({
-  id: "my-feed",                       // must match [KOSDATA:<id>]
-  name: "My Feed",                     // shown in debug surfaces
-  script: MY_FEED_SCRIPT,              // kerboscript source
-  intervalMs: 5_000,                   // passive cadence (script-defined, not subscriber-driven)
-  fields: [
-    { name: "parts", type: "json" },   // JSON.parse before delivery
-    { name: "count", type: "scalar" }, // pass-through number/bool/string
-  ],
-});
-```
-
-The data source runs the script on `0:/widget_scripts/<id>.ks` via the managed wrapper (auto-syncs the on-volume copy). No script-name config needed.
-
-**3. Read from the widget** with the standard hooks:
-
-```ts
-import { useDataValue } from "@ksp-gonogo/core";
-import { useKosScriptStatus } from "@ksp-gonogo/data";
-import { useCommand } from "@ksp-gonogo/sitrep-client";
-
-const parts = useDataValue<MyPart[]>("kos", "kos.compute.my-feed.parts");
-const status = useKosScriptStatus("my-feed");
-const dispatchNowCmd = useCommand("kos.dispatchNow");
-const reEnableCmd = useCommand("kos.reEnable");
-usePanelDelay(dispatchNowCmd);
-usePanelDelay(reEnableCmd);
-
-const dispatchNow = () => void dispatchNowCmd.send({ coreId, scriptId: "my-feed" });
-const reEnable = () => void reEnableCmd.send({ scriptId: "my-feed" });
-```
-
-`useDataValue` carries the value; `useKosScriptStatus` carries `running / lastGoodAt / scriptError / parseError / paused`, bits that don't fit the value channel. The standard `KosScriptFrame` chrome accepts all those props directly.
-
-Add the data key to the widget's `dataRequirements` so the orchestrator's debug surfaces know about it.
-
-### Lifecycle, breaker, sticky cache
-
-- **0 → 1 subscriber** on a topic starts the loop. **1 → 0** schedules teardown after a 5s grace so React StrictMode remounts don't churn the dispatcher.
-- The loop runs the script on `KosConfig.activeCpu`. If unset, the loop surfaces a "no CPU" error and idles. CPU is global on the data source, no per-widget picker.
-- **Sticky cache**: late subscribers get the most recent value immediately on the next microtask, no full-cycle wait.
-- **Breaker**: three consecutive `KosScriptError`s (script-author faults: runtime exceptions, `[KOSERROR]`, KOSUndefinedIdentifierException) trip a per-topic breaker. Transport / proxy / timeout errors don't count. Cleared via `kos.compute.<id>.reEnable`.
-- **PerfBudget**: the fanout is covered by `KosDataSource.compute samples emitted/sec` (500/sec). New scripts inherit it, no per-script budget needed.
-
-### What NOT to do
-
-- Don't call `KosDataSource.executeScript` directly from a feed widget, you'll get a duplicate dispatch and break the "one loop per script" invariant.
-- Don't mock `useDataValue` or `useKosScriptStatus` in tests. Use a fake `kos` source that implements `subscribe / getTopicStatus / onTopicStatusChange` (see `KosProcessors/index.test.tsx` for the reusable pattern).
-- Don't put per-call args in the script. The centralised registry assumes a no-args, on-interval contract; if you need args, you're in the RPC case and should use `executeScript` directly.
+---
 
 ## CI/CD
 
-- `.github/workflows/ci.yml`: runs on pushes to `main` and PRs targeting `main`. Three jobs run in parallel: `test` (lint + `pnpm test`), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way; see below).
+- `.github/workflows/ci.yml`: runs on pushes to `main`, `ci-dev` and `staging`, and on PRs targeting `main` or `staging`. Three jobs run in parallel: `test` (lint + `pnpm test`), `e2e` (Playwright, matrixed chromium/firefox/webkit), and `visual` (the per-engine visual regression gate, matrixed the same way; see below).
 - `.github/workflows/uplink.yml`: one leg per Uplink, **discovered** by `scripts/uplink-matrix.mjs` rather than hand-listed. Each leg builds, tests, typechecks and lints its own Uplink, and runs the **extraction probe** (`scripts/uplink-extraction-probe.mjs`), which materialises the client OUTSIDE the pnpm workspace and checks it against the PUBLISHED `sitrep-sdk` and `ui-kit`. That is the only check that means "this Uplink can leave": the isolation ratchets gate imports, and the build still resolves through workspace links, so an Uplink can pass every gate and depend on API that was never published. Non-blocking for now (`continue-on-error`), running alongside `ci.yml` rather than replacing it. Debt lives in `scripts/uplink-extraction-debt.mjs` and is **empty**: a new Uplink is held to zero.
   - It asks four things, and three of them are not typechecks, because a typecheck-only probe reported zero errors while the published sdk could not be imported at all: (1) a control typechecks clean under **both** `moduleResolution: bundler` and `nodenext`, (2) every published entry point **LOADS** in a bare `node` import, (3) the types it typechecked against came out of `dist` and not the `src` the sdk also ships, (4) each of those can be seen to FAIL, via a planted bad export and a planted missing subpath.
   - **Bare `node`, never vitest, is the load gate.** A consumer needs `server: { deps: { inline: [/@ksp-gonogo/] } }` for `ui-kit` (see below), and that setting makes Vite do the extension search Node refuses to, so it PASSES a package that cannot be loaded. A green vitest run is not evidence the sdk is loadable.
@@ -428,7 +409,7 @@ and the reasoning: `docs/uplink-isolation.md`.
 
 ## Spending funds: always show the balance
 
-Any widget that exposes an action which spends career funds (launch a craft, upgrade a facility, accept an advance, unlock a tech) **must display the current funds balance somewhere visible in the same widget**. Subscribe to `career.funds` and surface it next to the spend control, a small "Funds: 289,848f" readout in the header is enough. The operator should never be forced to look at another widget to find out whether they can afford the thing they're about to confirm.
+Any widget that exposes an action which spends career funds (launch a craft, upgrade a facility, accept an advance, unlock a tech) **must display the current funds balance somewhere visible in the same widget**. Mount on the `career.status` channel and read the `career.status.economy.funds` field, then surface it next to the spend control, a small "Funds: 289,848f" readout is enough. **Not `career.funds`**: that is a retired flat key, and `defineTopicManifest` rejects it at compile time in both `channels` and `fields` (`packages/core/src/hooks/defineTopicManifest.test-d.ts`). Put the readout in the Panel body rather than its aside, the aside collapses at narrow widths and takes the balance with it. The operator should never be forced to look at another widget to find out whether they can afford the thing they're about to confirm.
 
 Applies to widgets like `LaunchDirector`, `SpaceCenterStatus` (facility upgrades), future Tech Tree, and Strategies/Admin Building. The rule is per-widget, not per-screen, duplicate the readout across widgets that each spend funds rather than relying on a single elsewhere-on-the-dashboard balance.
 

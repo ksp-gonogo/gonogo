@@ -30,8 +30,8 @@ export interface DvLegacyScalars {
   currentFuelMass: number | null;
   /**
    * Sum of every stage's `dryMass + fuelMass`. `StageDeltaVEntry` carries no
-   * `stageMass` field at all (`useVesselDeltaV.ts`'s own doc comment), so the
-   * per-stage total is reconstructed from the two fields the wire does carry.
+   * `stageMass` field at all, so the per-stage total is reconstructed from the
+   * two fields the wire does carry.
    */
   totalMass: number;
 }

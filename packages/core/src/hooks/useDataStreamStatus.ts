@@ -54,7 +54,7 @@ export function useDataStreamStatus(
   dataSourceId: string,
   key: string,
 ): StreamStatusValue {
-  // Memoized (matches `useDataValue.ts`'s `legacySetup`): an inline
+  // Memoized (matches `use-telemetry.ts`'s `legacySetup`): an inline
   // function here would give `useDataSourceSubscription`'s `subscribe` a new
   // identity every render, and `useSyncExternalStore` requires a stable
   // `subscribe` reference to correctly resolve the "already-connected before
