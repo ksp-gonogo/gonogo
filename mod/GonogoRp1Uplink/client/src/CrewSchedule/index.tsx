@@ -2,11 +2,9 @@ import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
-  Card,
-  Inline,
+  DataLine,
   MissionDate,
   magnitudeOf,
-  ReadoutCaption,
   Stack,
 } from "@ksp-gonogo/ui-kit";
 import type { Rp1CrewEntry } from "../__generated__/contract";
@@ -34,12 +32,22 @@ import { kindOf } from "./template";
  * name a whole crew where a row can only ever name one kerbal; the specifics of
  * a running course, and the two ways off it, are `courses.tsx`.</para>
  *
- * <para><b>No tab strip of its own.</b> This renders inside ONE roster row, and
- * the Astronaut Complex builds a tab per crew standing around those rows: the
- * scenes press "Active" to reach them. A second tab strip inside a row would be
- * tabs over one kerbal, under the tabs that already sort the kerbals. What the
- * row does get is a Card, so the RP-1 block reads as one thing rather than as
- * loose lines trailing off the host's own readout.</para>
+ * <para><b>No tab strip of its own, and no box either.</b> This renders inside
+ * ONE roster row, and the Astronaut Complex builds a tab per crew standing
+ * around those rows: the scenes press "Active" to reach them. A second tab strip
+ * inside a row would be tabs over one kerbal, under the tabs that already sort
+ * the kerbals. It used to draw a `Card` so the block read as one thing rather
+ * than as loose lines; the host draws the roster row as a card now, so a card
+ * here is a box inside a box, and what holds the lines together instead is that
+ * each of them names itself.</para>
+ *
+ * <para><b>Labelled readings, not sentences.</b> Every line was a whole sentence
+ * in `ReadoutCaption`, which is uppercase and muted by construction: three of
+ * them in a column read as one undifferentiated block of shouted grey, with the
+ * dates, the part an operator is actually looking for, drawn no louder than the
+ * words introducing them. `DataLine` splits each one into the quiet half and the
+ * reading, and aligns the three labels into a column so the readings start at
+ * the same place.</para>
  *
  * <para>It carries no standing and draws no fatality distinction. Whether a
  * kerbal is RETIRED rather than dead rides the stock roster's own `standing`
@@ -86,18 +94,11 @@ export function CrewSchedule({
   }
 
   return (
-    /*
-      ONE Card for the whole contribution, on the operator's "reaching for the
-      Card component more": what a roster row grows here is a block of dates, so
-      the boundary belongs around all of them rather than in the middle.
-    */
-    <Card>
-      <Stack gap="xs">
-        {retirement}
-        {training}
-        {expiry}
-      </Stack>
-    </Card>
+    <Stack gap="xs">
+      {retirement}
+      {training}
+      {expiry}
+    </Stack>
   );
 }
 
@@ -129,15 +130,15 @@ function retirementLine(
   const latest = magnitudeOf(row.latestRetiresAtUt);
   const extendable = latest !== null && latest > retires;
   return (
-    <ReadoutCaption key="retirement">
-      Retires <MissionDate value={row.retiresAtUt} />
+    <DataLine aligned key="retirement" label="Retires">
+      <MissionDate value={row.retiresAtUt} />
       {extendable && (
         <>
-          {", extendable to "}
+          {" · extendable to "}
           <MissionDate value={row.latestRetiresAtUt} />
         </>
       )}
-    </ReadoutCaption>
+    </DataLine>
   );
 }
 
@@ -167,15 +168,19 @@ function trainingLine(row: Rp1CrewEntry) {
   const started = row.trainingStarted === true;
   const kind = kindOf(row.trainingType);
   return (
-    <Inline gap="xs" key="training" wrap>
-      <Badge severity={started ? "nominal" : "caution"} size="sm">
-        {started ? "TRAINING" : "ENROLLED"}
-      </Badge>
-      <ReadoutCaption>
-        {kind === null ? "" : `${kind}: `}
-        {target}
-      </ReadoutCaption>
-    </Inline>
+    <DataLine
+      aligned
+      key="training"
+      label="Course"
+      lead={
+        <Badge severity={started ? "nominal" : "caution"} size="sm">
+          {started ? "TRAINING" : "ENROLLED"}
+        </Badge>
+      }
+    >
+      {kind === null ? "" : `${kind}: `}
+      {target}
+    </DataLine>
   );
 }
 
@@ -214,14 +219,20 @@ function expiryLine(
   }
   const count = magnitudeOf(row.trainingExpiryCount) ?? 0;
   return (
-    <ReadoutCaption key="expiry">
+    /* `tone="warn"`, and only on this line. It is the one reading here an
+       operator acts on: a retirement date is years out and a course finishes on
+       its own, while mission training lapsing turns a qualified crew into an
+       unqualified one while the vehicle is still being integrated. A column
+       where every line is coloured is a column with no emphasis left to spend. */
+    <DataLine aligned key="expiry" label="Lapses" tone="warn">
       Mission training
       {row.nextTrainingExpiryTarget
         ? ` for ${row.nextTrainingExpiryTarget}`
-        : ""}{" "}
-      lapses <MissionDate value={row.nextTrainingExpiryUt} />
+        : ""}
+      {" · "}
+      <MissionDate value={row.nextTrainingExpiryUt} />
       {count > 1 && ` (+${count - 1} more)`}
-    </ReadoutCaption>
+    </DataLine>
   );
 }
 

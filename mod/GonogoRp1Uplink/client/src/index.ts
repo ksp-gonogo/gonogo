@@ -9,6 +9,7 @@ import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./AdminBuilding/programsScreen";
 import "./CrewSchedule";
+import "./CrewSchedule/coreStats";
 import "./CrewSchedule/courses";
 import "./CrewSchedule/enrolment";
 import "./ContractPayload";

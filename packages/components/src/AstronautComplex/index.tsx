@@ -19,12 +19,19 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
+  Card,
+  Cluster,
   CommandButton,
   type CommandButtonHandle,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
   Section,
+  Stack,
+  Stat,
+  StatContributions,
+  StatStrip,
   speakQuantity,
   type TabDescriptor,
   Tabs,
@@ -32,9 +39,14 @@ import {
   usePanelDelay,
   useSlotBound,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
-import { FundsDrain, netFundsPerDay } from "../shared/FundsDrain";
+import {
+  FundsDrain,
+  netFundsPerDay,
+  reportsFundsDrain,
+} from "../shared/FundsDrain";
 import { type KerbalStatFields, KerbalStats } from "../shared/KerbalStats";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
@@ -124,6 +136,28 @@ const UNLIMITED_CREW_CAP = 2_147_483_647;
  * fills it reads its own channels.</p>
  */
 const ASTRONAUT_COMPLEX_TRAINING_SLOT = "astronaut-complex.training";
+
+/**
+ * The `astronaut-complex.readouts` contribution slot: further cells in the
+ * core-stat strip, beside funds, hire price and roster occupancy.
+ *
+ * <p>Those three are what STOCK considers core about a complex, and they are the
+ * whole of what stock has. A career overhaul owns the other half of the same
+ * state: how many nauts are mid-course, how many qualifications are about to
+ * lapse, what the payroll does next quarter. An operator reads the strip to
+ * learn where the complex stands, so a figure the career model considers as core
+ * as the hire price belongs in the strip and not two tabs away.</p>
+ *
+ * <p>A CONTRIBUTION and not an augment, which is the difference that matters
+ * here. The point of the row is that everything in it is drawn the same way; an
+ * augment renders its own React, so an Uplink's figures would arrive in the
+ * Uplink's own treatment and the row would read as two widgets sharing a line.
+ * A contribution is data, so the host draws every cell with its own `Stat` and a
+ * contributed figure is indistinguishable from a built-in one. It also means the
+ * host keeps what a slot owner should keep: it can count the cells, order them,
+ * and lay them out in its own grid.</p>
+ */
+const ASTRONAUT_COMPLEX_READOUTS_SLOT = "astronaut-complex.readouts";
 
 const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 
@@ -362,6 +396,38 @@ function AstronautComplexComponent(
     (careerFunds === null || careerFunds >= nextHireCost);
   const canHire = affordable && !rosterFull;
 
+  /**
+   * The lines qualifying the funds figure: the rate it is moving at, and the
+   * sentence saying the balance is withheld rather than absent.
+   *
+   * Composed here rather than handed to `Stat` unconditionally, because
+   * `FundsDrain` renders nothing on a career with no standing cost and a `Stat`
+   * cannot tell an element that will draw nothing from one that will: an empty
+   * detail line would still take its height, on the one cell in the strip, and
+   * lift the funds figure out of line with every other.
+   */
+  const fundsDetail: ReactNode =
+    reportsFundsDrain(netFunds) || fundsNotCurrent ? (
+      <>
+        <FundsDrain funds={careerFunds} netPerDay={netFunds} />
+        {fundsNotCurrent && <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>}
+      </>
+    ) : undefined;
+
+  const fundsStat = (
+    <Stat label="Funds" detail={fundsDetail}>
+      {careerFunds !== null ? (
+        <span
+          title={speakQuantity(value("funds", careerFunds), { decimals: 0 })}
+        >
+          <Unit value={value("funds", careerFunds)} />
+        </span>
+      ) : (
+        NULL_DISPLAY
+      )}
+    </Stat>
+  );
+
   // Off career (or before telemetry warms up): no applicant pool at all. Show a
   // graceful empty state, still surfacing funds when they are known.
   if (complex === undefined) {
@@ -371,20 +437,10 @@ function AstronautComplexComponent(
         compactTitle={["ASTRONAUTS", "CREW"]}
         sections={
           <Section full gap="lg">
-            <FundsLine role="status">
-              <FundsLabel>Funds</FundsLabel>
-              {careerFunds !== null ? (
-                <FundsValue title="Available funds">
-                  <Unit value={value("funds", careerFunds)} />
-                </FundsValue>
-              ) : (
-                <FundsValue>{NULL_DISPLAY}</FundsValue>
-              )}
-              <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-            </FundsLine>
-            {fundsNotCurrent && (
-              <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
-            )}
+            <StatStrip role="status" aria-live="polite">
+              {fundsStat}
+              <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
+            </StatStrip>
             <Empty>
               {complexConfirmedEmpty
                 ? "No applicant data (career mode only)"
@@ -407,54 +463,37 @@ function AstronautComplexComponent(
       panelTitle="ASTRONAUT COMPLEX"
       compactTitle={["ASTRONAUTS", "CREW"]}
       sections={[
-        /* Both span. The stat row is already three boxes wrapping on their own,
-           and a tab strip beside anything reads as two widgets. */
+        /* Both span. The strip is a grid that reflows on its own, and a tab
+           strip beside anything reads as two widgets. */
         <Section key="stats" full>
-          <Header role="status" aria-live="polite">
-            <StatBox>
-              <StatLabel>Funds</StatLabel>
-              {careerFunds !== null ? (
-                <StatValue
-                  title={speakQuantity(value("funds", careerFunds), {
-                    decimals: 0,
-                  })}
-                >
-                  <Unit value={value("funds", careerFunds)} />
-                </StatValue>
-              ) : (
-                <StatValue>{NULL_DISPLAY}</StatValue>
-              )}
-              <DrainLine>
-                <FundsDrain funds={careerFunds} netPerDay={netFunds} />
-              </DrainLine>
-              {fundsNotCurrent && (
-                <ReadoutCaption>{FUNDS_STALE_NOTE}</ReadoutCaption>
-              )}
-            </StatBox>
-            <StatBox>
-              <StatLabel>Next Hire</StatLabel>
+          <StatStrip role="status" aria-live="polite">
+            {fundsStat}
+            <Stat label="Next Hire" tone={affordable ? "neutral" : "nogo"}>
               {nextHireCost !== null ? (
-                <StatValue
-                  $critical={!affordable}
+                <span
                   title={speakQuantity(value("funds", nextHireCost), {
                     decimals: 0,
                   })}
                 >
                   <Unit value={value("funds", nextHireCost)} />
-                </StatValue>
+                </span>
               ) : (
-                <StatValue>{NULL_DISPLAY}</StatValue>
+                NULL_DISPLAY
               )}
-            </StatBox>
-            <StatBox>
-              <StatLabel>Active Kerbals</StatLabel>
-              <StatValue $critical={rosterFull}>
-                {activeCrew !== null ? activeCrew : NULL_DISPLAY}
-                {capText !== null ? ` / ${capText}` : ""}
-                {rosterFull && <FullBadge>FULL</FullBadge>}
-              </StatValue>
-            </StatBox>
-          </Header>
+            </Stat>
+            <Stat label="Active Kerbals" tone={rosterFull ? "nogo" : "neutral"}>
+              {activeCrew !== null ? activeCrew : NULL_DISPLAY}
+              {capText !== null ? ` / ${capText}` : ""}
+              {rosterFull && (
+                <Badge severity="critical" size="sm">
+                  FULL
+                </Badge>
+              )}
+            </Stat>
+            {/* Whatever the career model running this save considers as core as
+                the three above. Nothing under stock, which has none of it. */}
+            <StatContributions slot={ASTRONAUT_COMPLEX_READOUTS_SLOT} />
+          </StatStrip>
         </Section>,
         <Section key="roster" full>
           <Tabs
@@ -534,14 +573,31 @@ function ApplicantsPanel({
       {applicants.map((a) => (
         // Kerbal names are unique within the applicant pool, so the name is
         // a stable key (no array index).
-        <Applicant__Row key={a.name}>
-          <Who>
-            <KerbalStats
-              kerbal={applicantStats(a)}
-              showRank={false}
-              showTraits
-              showInfo
-            />
+        <Card as="li" key={a.name}>
+          <Stack gap="xs">
+            <Cluster justify="between" align="start" gap="sm">
+              <Who>
+                <KerbalStats
+                  kerbal={applicantStats(a)}
+                  showRank={false}
+                  showTraits
+                  showInfo
+                />
+              </Who>
+              <HireButton
+                applicantName={a.name}
+                hireCost={hireCost}
+                enabled={canHire}
+                disabledReason={
+                  rosterFull
+                    ? "Roster full"
+                    : !affordable
+                      ? "Insufficient funds"
+                      : undefined
+                }
+                hireCmd={hireCmd}
+              />
+            </Cluster>
             {/* An applicant has a schedule too under a career overhaul: RP-1
                 gives an applicant a retirement date and retires them out of the
                 pool. Same slot as the Active rows, flagged so an augment can
@@ -554,21 +610,8 @@ function ApplicantsPanel({
                 isApplicant: true,
               }}
             />
-          </Who>
-          <HireButton
-            applicantName={a.name}
-            hireCost={hireCost}
-            enabled={canHire}
-            disabledReason={
-              rosterFull
-                ? "Roster full"
-                : !affordable
-                  ? "Insufficient funds"
-                  : undefined
-            }
-            hireCmd={hireCmd}
-          />
-        </Applicant__Row>
+          </Stack>
+        </Card>
       ))}
     </List>
   );
@@ -641,7 +684,8 @@ function ActivePanel({
         content: (
           <List>
             {members.map((m, i) => (
-              <Applicant__Row
+              <Card
+                as="li"
                 key={keys[i]}
                 aria-current={
                   fireable && i === highlightedFireIndex % members.length
@@ -649,18 +693,33 @@ function ActivePanel({
                     : undefined
                 }
               >
-                <Who>
-                  <KerbalStats
-                    kerbal={crewRowStats(m)}
-                    showRank
-                    showTraits
-                    showExperienceProgress
-                    showInfo
-                  />
+                <Stack gap="xs">
+                  {/* The identity line, and the sack control at the END of it
+                      rather than in a column of its own down the side of the
+                      card. Weight follows how often a control is reached for,
+                      and firing an astronaut is close to the rarest thing an
+                      operator does here: given its own full-height column it
+                      claimed a fixed slice of every row on the roster, and took
+                      that width off the schedule underneath, which is the part
+                      that is read on every glance. */}
+                  <Cluster justify="between" align="start" gap="sm">
+                    <Who>
+                      <KerbalStats
+                        kerbal={crewRowStats(m)}
+                        showRank
+                        showTraits
+                        showExperienceProgress
+                        showInfo
+                      />
+                    </Who>
+                    {fireable && (
+                      <FireButton kerbalName={m.name} fireCmd={fireCmd} />
+                    )}
+                  </Cluster>
                   {/* This kerbal's schedule, contributed by whichever Uplink
-                    manages their career: a retirement date, a training ETA,
-                    the mission training about to lapse. Nothing renders under
-                    stock, which has none of those concepts. */}
+                      manages their career: a retirement date, a training ETA,
+                      the mission training about to lapse. Nothing renders under
+                      stock, which has none of those concepts. */}
                   <AugmentSlot
                     name="astronaut-complex.crew"
                     props={{
@@ -669,11 +728,8 @@ function ActivePanel({
                       isApplicant: false,
                     }}
                   />
-                </Who>
-                {fireable && (
-                  <FireButton kerbalName={m.name} fireCmd={fireCmd} />
-                )}
-              </Applicant__Row>
+                </Stack>
+              </Card>
             ))}
           </List>
         ),
@@ -981,88 +1037,21 @@ function readApplicants(raw: unknown): Applicant[] {
   return out;
 }
 
-const Header = styled.div`
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-12);
-  flex-wrap: wrap;
-`;
-
-const StatBox = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-`;
-
-const StatLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-`;
-
-const DrainLine = styled.span`
-  display: block;
-  font-size: var(--font-size-2xs);
-`;
-
-const StatValue = styled.span<{ $critical?: boolean }>`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-4);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: ${(p) =>
-    p.$critical ? "var(--color-status-nogo-bg)" : "var(--color-status-go-fg)"};
-`;
-
-const FullBadge = styled.span`
-  font-size: var(--font-size-2xs);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--color-status-nogo-bg);
-`;
-
-const FundsLine = styled.div`
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-6);
-`;
-
-const FundsLabel = styled.span`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-text-faint);
-`;
-
-const FundsValue = styled.span`
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-status-go-fg);
-  font-variant-numeric: tabular-nums;
-`;
-
+/**
+ * The roster list. `--space-6` between cards rather than `--space-4`: each row
+ * is a bordered `Card` now, and at the tighter gap two adjacent borders read as
+ * one thick divider instead of as two records.
+ */
 const List = styled.ul`
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-6);
 `;
 
-const Applicant__Row = styled.li`
-  display: flex;
-  align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-4) var(--space-8);
-  background: var(--color-surface-panel);
-  border-radius: var(--radius-xs);
-`;
-
+/** The identity column: takes the row's width and lets the name ellipsise. */
 const Who = styled.div`
   display: flex;
   flex-direction: column;
@@ -1081,7 +1070,7 @@ registerComponent<AstronautComplexConfig>({
   id: "astronaut-complex",
   name: "Astronaut Complex",
   description:
-    "Astronaut Complex: funds, single next-hire cost and the active/max crew cap (unlimited-aware) in the header, then Applicants and Active tabs. Applicants shows each candidate through the shared crew-stat row (trait, courage, stupidity) with a per-row arm-then-confirm Hire action disabled when funds are short or the roster is at the facility cap. Active is itself tabbed, one sub-tab per CrewStanding present on the roster (Available/Assigned/Retired/Dead/Missing), each showing name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row, plus a RESTING badge for a kerbal standing down after a flight. The Available sub-tab additionally carries a per-row arm-then-confirm Fire action (no cost, reversible). Every row exposes an astronaut-complex.crew augment slot so a career-overhaul Uplink can render that kerbal's retirement date, training ETA and lapsing training.",
+    "Astronaut Complex: funds, single next-hire cost and the active/max crew cap (unlimited-aware) in a core-stat strip, then Applicants and Active tabs. The strip takes further cells from the astronaut-complex.readouts contribution slot, so the career model running the save can put what IT considers core beside the three vanilla figures, in the same cell treatment and the same row. Applicants shows each candidate through the shared crew-stat row (trait, courage, stupidity) with a per-row arm-then-confirm Hire action disabled when funds are short or the roster is at the facility cap. Active is itself tabbed, one sub-tab per CrewStanding present on the roster (Available/Assigned/Retired/Dead/Missing), each showing name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row, plus a RESTING badge for a kerbal standing down after a flight. The Available sub-tab additionally carries an arm-then-confirm Fire action at the end of each identity line (no cost, reversible). Every row exposes an astronaut-complex.crew augment slot so a career-overhaul Uplink can render that kerbal's retirement date, training ETA and lapsing training, and an astronaut-complex.training slot adds a whole tab beside Applicants and Active for the courses that career is running.",
   tags: ["career", "crew", "kc"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },
@@ -1090,7 +1079,8 @@ registerComponent<AstronautComplexConfig>({
   fields: topics.fields,
   defaultConfig: {},
   actions: astronautComplexActions,
-  augmentSlots: ["astronaut-complex.crew"],
+  augmentSlots: ["astronaut-complex.crew", ASTRONAUT_COMPLEX_TRAINING_SLOT],
+  contributionSlots: [ASTRONAUT_COMPLEX_READOUTS_SLOT],
   pushable: true,
 });
 

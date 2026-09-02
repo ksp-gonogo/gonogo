@@ -272,7 +272,11 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(visibleText()).toContain("Proficiency: Mercury-Redstone");
     });
-    expect(visibleText()).not.toContain("lapses");
+    /* The LABEL, capitalised as the DOM carries it: the line names itself
+       "Lapses" and the word no longer appears in the reading beside it, so a
+       lowercase "lapses" here would match nothing whatever the widget drew and
+       pass on a lapse line that had rendered in full. */
+    expect(visibleText()).not.toContain("Lapses");
   });
 
   /**
@@ -346,8 +350,10 @@ describe("CrewSchedule", () => {
     ]);
 
     await waitFor(() => {
-      expect(visibleText()).toContain("Mission training for Minmus lapses");
+      expect(visibleText()).toContain("Mission training for Minmus");
     });
+    // The line names itself, so the kind and the target are the reading.
+    expect(visibleText()).toContain("Lapses");
     expect(visibleText()).toContain("+2 more");
   });
 
@@ -364,8 +370,9 @@ describe("CrewSchedule", () => {
     ]);
 
     await waitFor(() => {
-      expect(visibleText()).toContain("Mission training for Minmus lapses");
+      expect(visibleText()).toContain("Mission training for Minmus");
     });
+    expect(visibleText()).toContain("Lapses");
     expect(visibleText()).not.toContain("more");
   });
 

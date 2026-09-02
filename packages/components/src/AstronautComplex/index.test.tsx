@@ -1,11 +1,14 @@
 import {
+  ContributionsProvider,
   clearActionHandlers,
   clearAugments,
+  clearContributions,
   DashboardItemContext,
   dispatchAction,
   registerAugment,
+  registerContribution,
 } from "@ksp-gonogo/core";
-import { CrewStanding } from "@ksp-gonogo/sitrep-sdk";
+import { CrewStanding, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render as rtlRender,
@@ -13,6 +16,7 @@ import {
   waitFor,
   within,
 } from "@ksp-gonogo/test-utils";
+import { WidgetMetaContext } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
@@ -236,6 +240,7 @@ describe("AstronautComplexComponent", () => {
     unmountAll();
     clearActionHandlers();
     clearAugments();
+    clearContributions();
   });
 
   function renderWidget(id = "astronaut-complex") {
@@ -243,6 +248,31 @@ describe("AstronautComplexComponent", () => {
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: id }}>
           <AstronautComplexComponent config={{}} id={id} w={6} h={8} />
+        </DashboardItemContext.Provider>
+      </fixture.Provider>,
+    );
+  }
+
+  /**
+   * The same widget with the contribution chrome a dashboard puts around it.
+   * `renderWidget` alone mounts no contribution store, so `useContributions`
+   * silently returns empty, exactly as it does for a bare widget with no
+   * dashboard around it. Only the core-stat contribution tests need this.
+   */
+  function renderWidgetWithContributions(id = "astronaut-complex") {
+    return render(
+      <fixture.Provider>
+        <DashboardItemContext.Provider value={{ instanceId: id }}>
+          <WidgetMetaContext.Provider
+            value={{
+              componentId: "astronaut-complex",
+              contributionSlots: ["astronaut-complex.readouts"],
+            }}
+          >
+            <ContributionsProvider>
+              <AstronautComplexComponent config={{}} id={id} w={6} h={8} />
+            </ContributionsProvider>
+          </WidgetMetaContext.Provider>
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -1021,6 +1051,75 @@ describe("AstronautComplexComponent", () => {
     // Same strip, not a second one nested inside a tab.
     expect(screen.getByRole("tab", { name: "Applicants" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Active" })).toBeVisible();
+  });
+
+  /**
+   * Nothing under stock, which has no career model with an opinion. The strip is
+   * three cells wide and stays that way, so an empty slot costs no pixels and no
+   * empty cell.
+   */
+  it("keeps the stat strip to its own three figures until something contributes", async () => {
+    renderWidgetWithContributions();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+    });
+
+    const strip = await screen.findByRole("status");
+    expect(within(strip).getByText("Funds")).toBeInTheDocument();
+    expect(strip.children).toHaveLength(3);
+  });
+
+  /**
+   * The extension the row exists for: a career overhaul puts what IT considers
+   * core beside the vanilla three, and the host draws it.
+   *
+   * A CONTRIBUTION rather than an augment, and the assertion is on what that
+   * buys: the contributed cell is a SIBLING of the vanilla ones in the host's
+   * own strip, in the host's own `Stat`, with its figure drawn through the
+   * host's own `Unit`. An augment renders its own React, so it could only ever
+   * have arrived as a block beside the row in a treatment of its own.
+   */
+  it("takes further core stats from an Uplink, in the same row and the same treatment", async () => {
+    registerContribution({
+      id: "test-crew-in-training",
+      contributes: "astronaut-complex.readouts",
+      compute: () => [
+        {
+          id: "in-training",
+          label: "In Training",
+          value: value("count", 4),
+          detail: "across 3 courses",
+        },
+      ],
+    });
+
+    renderWidgetWithContributions();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+    });
+
+    const strip = await screen.findByRole("status");
+    await waitFor(() =>
+      expect(within(strip).getByText("In Training")).toBeInTheDocument(),
+    );
+    // One row, four cells. Not three cells and a block.
+    expect(strip.children).toHaveLength(4);
+    // The same cell treatment: a `dl` per stat, label as the `dt`.
+    const contributed = within(strip).getByText("In Training");
+    expect(contributed.tagName).toBe("DT");
+    expect(within(strip).getByText("across 3 courses")).toBeInTheDocument();
   });
 
   it("renders a bound crew augment per row, carrying that kerbal's identity and standing", async () => {

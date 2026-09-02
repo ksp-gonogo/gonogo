@@ -98,6 +98,10 @@ const Stat__Label = styled.dt`
 const Stat__Figure = styled.dd<{ $tone: StatTone }>`
   margin: 0;
   min-width: 0;
+  /* Bottom of the cell, so the figures line up across the strip even where one
+     label wraps to two lines and its neighbours do not. Grid rows stretch, so
+     every cell is the same height and this is all the alignment needs. */
+  margin-top: auto;
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;

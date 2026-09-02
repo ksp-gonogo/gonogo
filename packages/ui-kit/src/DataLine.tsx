@@ -9,8 +9,10 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
    */
   label: ReactNode;
   /**
-   * A chip that qualifies the whole line rather than the label or the reading: a
-   * `Badge` saying which of two states the reading is in. Sits between them.
+   * A chip qualifying the reading: a `Badge` saying which of two states it is in.
+   * Sits at the head of the reading rather than between it and the label, so an
+   * `aligned` line keeps the badge inside the reading's own column and the two
+   * wrap together.
    */
   lead?: ReactNode;
   /** The reading. A quantity belongs in a `<Unit>`; nothing else formats one. */
@@ -21,9 +23,16 @@ export interface DataLineProps extends HTMLAttributes<HTMLDivElement> {
    * Give the label a fixed column so the readings on consecutive lines line up
    * down their left edge.
    *
-   * Off by default: a line whose label is much longer than its neighbours' would
-   * set a column that wastes width on every other line, and one line on its own
-   * has nothing to align with.
+   * <para>A GRID rather than a flex basis, which is what the first version used
+   * and what did not work: a reading longer than the space left beside its label
+   * wrapped the whole flex item onto the next LINE, so the label sat alone above
+   * its own reading and the column it was supposed to establish was gone exactly
+   * where it was needed. Two columns, and a long reading wraps inside its
+   * own.</para>
+   *
+   * <para>Off by default: a line whose label is much longer than its neighbours'
+   * would set a column that wastes width on every other line, and one line on
+   * its own has nothing to align with.</para>
    */
   aligned?: boolean;
 }
@@ -60,38 +69,53 @@ export function DataLine({
   ...rest
 }: DataLineProps) {
   return (
-    <DataLine__Root {...rest}>
-      <DataLine__Label $aligned={aligned}>{label}</DataLine__Label>
-      {lead}
-      <DataLine__Value $tone={tone}>{children}</DataLine__Value>
+    <DataLine__Root $aligned={aligned} {...rest}>
+      <DataLine__Label>{label}</DataLine__Label>
+      <DataLine__Value $tone={tone}>
+        {lead}
+        {children}
+      </DataLine__Value>
     </DataLine__Root>
   );
 }
 
-/** Wide enough for "Lapses" and "Retires" at the 2xs rung, in ch so it tracks the font. */
-const LABEL_COLUMN = "8ch";
+/**
+ * The label column's width.
+ *
+ * In `ch` so it tracks whatever font the theme is set in, and measured against
+ * the ROOT's font size rather than the label's: `ch` resolves on the grid
+ * container, and the label renders four rungs below it, so seven of these is
+ * room for about ten of the label's own characters.
+ */
+const LABEL_COLUMN = "7ch";
 
-const DataLine__Root = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+const DataLine__Root = styled.div<{ $aligned: boolean }>`
+  display: ${({ $aligned }) => ($aligned ? "grid" : "flex")};
   align-items: baseline;
   gap: var(--space-4, 4px) var(--space-6, 6px);
   min-width: 0;
+  ${({ $aligned }) =>
+    $aligned
+      ? css`
+          grid-template-columns: ${LABEL_COLUMN} minmax(0, 1fr);
+        `
+      : css`
+          flex-wrap: wrap;
+        `}
 `;
 
-const DataLine__Label = styled.span<{ $aligned: boolean }>`
+const DataLine__Label = styled.span`
   font-size: var(--font-size-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--color-text-muted);
-  ${({ $aligned }) =>
-    $aligned &&
-    css`
-      flex: 0 0 ${LABEL_COLUMN};
-    `}
 `;
 
 const DataLine__Value = styled.span<{ $tone: StatTone }>`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-4, 4px) var(--space-6, 6px);
   font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
   min-width: 0;

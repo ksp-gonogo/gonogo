@@ -3,13 +3,14 @@ import {
   DashboardItemContext,
   dispatchAction,
 } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render as rtlRender,
   screen,
   waitFor,
 } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, speakQuantity } from "@ksp-gonogo/ui-kit";
 import type { ReactElement } from "react";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -127,16 +128,26 @@ describe("AstronautComplex, what undefined telemetry renders today", () => {
    */
   it("still shows the funds figure inside the waiting empty state when only funds have arrived", async () => {
     // Partial: the widget's own funds rule survives the early return, so an
-    // undefined complex does NOT suppress a known balance. Pinned because the
-    // funds readout is rendered by a DIFFERENT branch here than in the header
-    // below, and only one of the two is reachable at a time.
+    // undefined complex does NOT suppress a known balance.
+    //
+    // The two branches now render the SAME cell: this used to assert a
+    // `title="Available funds"` that existed only on the empty state's own
+    // funds readout, because the empty state and the header each drew the
+    // figure themselves and only one was reachable at a time. Both go through
+    // one `Stat` built once above the gate, so the assertion is on the spoken
+    // quantity the header always used, and there is no second treatment left to
+    // pin.
     renderWidget();
     act(() => {
       fixture.emit("career.status", { economy: { funds: 500000 } });
     });
 
     await waitFor(() =>
-      expect(screen.getByTitle("Available funds")).toBeInTheDocument(),
+      expect(
+        screen.getByTitle(
+          speakQuantity(value("funds", 500_000), { decimals: 0 }),
+        ),
+      ).toBeInTheDocument(),
     );
     expect(
       screen.getByText("No applicant data yet (waiting for telemetry)"),
