@@ -634,7 +634,7 @@ describe("TimelineStore.isUnresolvableField: RAW-FIELD phantom-mapping diagnosti
    * fell straight through that guard and always returned `false`, even once
    * its RAW parent had arrived whole and genuinely lacked the field, so a
    * wrong/drifted raw fieldpath served a permanent `undefined` with no
-   * legacy fallback (`useDataValue.ts`'s belt-and-suspenders check never
+   * legacy fallback (`use-telemetry.ts`'s belt-and-suspenders check never
    * fired for it). This mirrors the derived-channel behavior for the raw
    * case: `false` while the parent hasn't arrived (ordinary loading) or is
    * tombstoned (confirmed absence), `true` only once the parent is a whole,

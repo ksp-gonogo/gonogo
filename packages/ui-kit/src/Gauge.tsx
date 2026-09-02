@@ -7,8 +7,8 @@ import { useMemo } from "react";
  * glance.
  *
  * The component is purely presentational: it draws the arc, the zones, the
- * needle, and the optional centre value/label. Wire it up to live data
- * via `useDataValue` in the consumer.
+ * needle, and the optional centre value/label. The consumer supplies `value`
+ * from wherever it reads telemetry.
  */
 export interface GaugeZone {
   /** Lower bound of the zone (inclusive). */
