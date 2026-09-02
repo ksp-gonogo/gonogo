@@ -125,6 +125,13 @@ export const SCAN_FLOORS = {
   filesParsed: 60,
   /** Topics plus commands found across every Uplink client. */
   declarations: 85,
-  /** Uplink clients contributing at least one declaration. */
-  uplinksWithDeclarations: 9,
+  /**
+   * Uplink clients contributing at least one declaration. Was 9 when this gate
+   * was written; one Uplink departed this repo on 2026-09-02 and took its
+   * declarations with it. Lowered to the count the gate itself measured,
+   * not to a number chosen to make it pass: raise it again the moment an Uplink
+   * arrives, because the point of this floor is to catch a per-client walk that
+   * has started failing silently.
+   */
+  uplinksWithDeclarations: 8,
 } as const;
