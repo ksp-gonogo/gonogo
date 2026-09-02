@@ -18,7 +18,7 @@ namespace Sitrep.Core.Tests
             Line = line;
         }
 
-        /// <summary>The argument exactly as written, e.g. <c>KosChannels.RunCommand</c>.</summary>
+        /// <summary>The argument exactly as written, e.g. <c>SomeUplinkChannels.RunCommand</c>.</summary>
         public string Expression { get; }
 
         /// <summary>The string it resolves to, or null when the walk could not resolve it.</summary>
@@ -116,8 +116,8 @@ namespace Sitrep.Core.Tests
     /// hand the Uplink a recording host and compare what it asked for against its
     /// manifest, which is what <c>Sitrep.Contract.TestSupport.CommandRegistrationAssertion</c>
     /// does. That form only sees what the headless test build can RUN, and on most
-    /// Uplinks here it runs nothing: <c>KosExtension</c> and <c>MechJebUplink</c>
-    /// keep their whole registration body in a <c>.Ksp.cs</c> half the test csproj
+    /// Uplinks here it runs nothing: several keep their whole registration body in
+    /// a <c>.Ksp.cs</c> half the test csproj
     /// deliberately excludes, so <c>Register</c> forwards to an unimplemented
     /// <c>partial void</c> and compiles away to nothing, and the Uplinks that gate
     /// registration on a reflection probe of an absent mod return early. Both pass

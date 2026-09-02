@@ -25,15 +25,16 @@ namespace Sitrep.Core.Tests
     /// <para><b>Why a walk, and why it replaced the per-Uplink form.</b> The guard
     /// written after that outage was a runtime one: hand the Uplink a recording
     /// host, compare against its manifest. It was added to four Uplinks, and on
-    /// three of the four it could not fail. <c>KosExtension</c> and
-    /// <c>MechJebUplink</c> keep their entire registration body in a
-    /// <c>.Ksp.cs</c> half that the headless test csproj deliberately excludes, so
-    /// <c>Register</c> forwards to an unimplemented <c>partial void</c> that
-    /// compiles away to nothing: the test registered nothing, compared nothing to
-    /// nothing, and passed. <c>ActionGroupsExtendedUplink</c> declares and
+    /// three of the four it could not fail. Two of them keep their entire
+    /// registration body in a <c>.Ksp.cs</c> half that the headless test csproj
+    /// deliberately excludes, so <c>Register</c> forwards to an unimplemented
+    /// <c>partial void</c> that compiles away to nothing: the test registered
+    /// nothing, compared nothing to nothing, and passed. The third declares and
     /// registers no commands or channels at all, so it had nothing to check.
-    /// Meanwhile Principia (ten commands) and Kerbalism (five) had no such test at
-    /// all, and neither did the four publish-only Uplinks. A per-project assertion
+    /// Meanwhile the two Uplinks with the largest command surfaces, ten and five,
+    /// had no such test at all, and neither did the four publish-only ones. This
+    /// file names none of them on purpose: core may not reach an Uplink, and a
+    /// comment is a reach the boundary ratchet counts. A per-project assertion
     /// is the thing that gets forgotten; a walk enrols an Uplink by existing.</para>
     ///
     /// <para><b>The runtime form is still the stronger one where it runs.</b>

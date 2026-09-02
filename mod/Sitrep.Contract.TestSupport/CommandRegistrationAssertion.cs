@@ -25,9 +25,9 @@
 //
 // WHAT THESE CANNOT SEE, and it is not a small caveat. They ask what Register
 // DID, so they are worth exactly as much as the Register the headless test build
-// can run, and for most Uplinks here that is nothing. KosExtension and
-// MechJebUplink keep their whole registration body in a .Ksp.cs half the test
-// csproj deliberately excludes, so Register forwards to an unimplemented
+// can run, and for most Uplinks here that is nothing. Several keep their whole
+// registration body in a .Ksp.cs half the test csproj deliberately excludes, so
+// Register forwards to an unimplemented
 // `partial void` that compiles away to nothing; an Uplink that gates
 // registration on a reflection probe of a mod that is not loaded returns early.
 // Either way nothing registers, nothing is compared, and the test passes against
