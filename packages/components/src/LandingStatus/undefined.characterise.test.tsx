@@ -293,6 +293,34 @@ describe("LandingStatus: what undefined means today", () => {
     expect(screen.queryByText("LIVE")).toBeNull();
   });
 
+  it("reads the REAL no-path frame (source None AND oneWaySeconds null) as NO LINK", async () => {
+    /*
+     * The combination the mod actually emits when there is no path home
+     * (`SignalDelay.Compute` over an empty or incomplete path: source None,
+     * value null) and the one combination neither test above reaches. The
+     * null test emits source 1, the zero test emits value 0, so the
+     * `source === None → return 0` short-circuit was never crossed by a frame
+     * carrying a null, and a craft with no path home kept its green LIVE pill.
+     */
+    renderWidget();
+
+    act(() => {
+      stream.emit("comms.delay", { source: 1, oneWaySeconds: 4 });
+    });
+    await waitFor(() => expect(screen.getByText("STAGED")).toBeInTheDocument());
+
+    act(() => {
+      stream.emit("comms.delay", { source: 0, oneWaySeconds: null });
+    });
+    await waitFor(() =>
+      expect(screen.getByText("NO LINK")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText("LIVE")).toBeNull();
+    const hero = screen.getByRole("status");
+    expect(hero).toHaveTextContent("BURN TIMING NEEDS A LINK");
+    expect(hero).not.toHaveTextContent("SUICIDE BURN");
+  });
+
   it("still reads a CommsDelaySource.None record as a LIVE zero-delay link", async () => {
     // The one place zero is a real measurement rather than a fabrication:
     // source None is a LAN loop with genuinely no delay. This is what stops the

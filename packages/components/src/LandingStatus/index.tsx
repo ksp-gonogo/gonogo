@@ -8,7 +8,6 @@ import {
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
 import {
-  CommsDelaySource,
   type Value as Quantity,
   Situation,
   value,
@@ -214,8 +213,16 @@ export function deriveActiveBurnParams(
  * that arm reachable only by the whole payload being absent, and the two halves
  * of the design then disagree about which value means "no path".
  *
- * `CommsDelaySource.None` keeps its zero: that is a LAN loop with genuinely no
- * delay, the one place the number is a measurement rather than a fabrication.
+ * The VALUE decides, never `source`. `CommsDelaySource.None` covers both of
+ * these states at once: a 0 under it is a LAN loop with genuinely no delay
+ * (the one place the number is a measurement rather than a fabrication), and a
+ * null under it is the no-path case above. Short-circuiting on the source read
+ * the second as the first, so the null arm below was unreachable for the
+ * frames the mod ACTUALLY emits when there is no path home
+ * (`SignalDelay.Compute`: source None, value null). The null test either side
+ * of this missed it because it emits a `SignalDelay` source, and the zero test
+ * because it emits a real zero.
+ *
  * A NEGATIVE delay is impossible, so it reads as unknown rather than as zero:
  * fabricating a live link is the one direction it must not fail in.
  */
@@ -223,7 +230,6 @@ function readOneWaySeconds(
   delay: { source?: number; oneWaySeconds?: Quantityish<"s"> } | undefined,
 ): number | null {
   if (!delay) return null;
-  if (delay.source === CommsDelaySource.None) return 0;
   const s = magnitudeOf(delay.oneWaySeconds);
   if (s === null || s < 0) return null;
   return s;
