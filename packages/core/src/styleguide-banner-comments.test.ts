@@ -3,7 +3,9 @@
 // Node realm rather than the package's jsdom default, matching
 // `uplink-isolation.test.ts`: the shrink-only half transpiles the allowlist at a
 // git ref through esbuild, which asserts a real TextEncoder/Uint8Array realm.
+
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { transformSync } from "esbuild";
 import { describe, expect, it } from "vitest";
@@ -349,10 +351,23 @@ describe("banner comments", () => {
       return { ref: at.ref, sha: at.sha, lists: load(source) };
     }
 
+    /**
+     * A module at a git ref, transpiled and evaluated in this process.
+     *
+     * `require` is passed in rather than left out. The allowlist is pure data
+     * and imports nothing, so it did not need one; the matcher reaches for
+     * `node:fs` and friends, and without a require in scope the transpiled CJS
+     * dies with "require is not defined" the first time a widening tries to
+     * re-run the previous matcher, which is the one moment this has to work.
+     */
     function load(source: string): Record<string, unknown> {
       const js = transformSync(source, { loader: "ts", format: "cjs" }).code;
       const module_ = { exports: {} as Record<string, unknown> };
-      new Function("module", "exports", js)(module_, module_.exports);
+      new Function("module", "exports", "require", js)(
+        module_,
+        module_.exports,
+        createRequire(import.meta.url),
+      );
       return module_.exports;
     }
 
