@@ -35,6 +35,36 @@ public static class RtDocText
     private static readonly Regex GenericArity = new Regex("`\\d+", RegexOptions.Compiled);
     private static readonly Regex WhitespaceRun = new Regex("\\s+", RegexOptions.Compiled);
 
+    /// <summary>
+    /// The element a summary marks its maintainer rationale with, dropped whole
+    /// on the way to TSDoc.
+    ///
+    /// <para>The doc comment is one text with two audiences. A client author
+    /// reading the SDK or the AsyncAPI document needs WHAT the value is: its
+    /// vocabulary, its null rule, its shape on the wire. A maintainer needs WHY
+    /// it is that way: which provider fills it, what it used to be, which defect
+    /// made it nullable. Both belong in the C#, beside the type, where the next
+    /// person changing it will read them. Only the first belongs on the published
+    /// surface, and today all of it goes: 34% of the document's prose is the
+    /// second kind, and the longest descriptions are long BECAUSE of it.</para>
+    ///
+    /// <para>An explicit element rather than a heuristic on the prose. A
+    /// generator guessing which sentence is which would be wrong quietly, and
+    /// wrong in the direction that loses a client-relevant fact buried inside an
+    /// implementation sentence, which is the shape most of these have.</para>
+    /// </summary>
+    public const string InternalElement = "internal";
+
+    /// <summary>
+    /// How many <c>internal</c> blocks have been dropped this run.
+    ///
+    /// <para>Printed by <see cref="RtDocVisitor"/> for the reason every other
+    /// count in this codegen is printed: a stripper that silently stripped
+    /// nothing reads exactly like a tree that had nothing to strip, and the two
+    /// want opposite fixes.</para>
+    /// </summary>
+    public static int InternalBlocksStripped { get; private set; }
+
     private sealed class Paragraph
     {
         public string Text = string.Empty;
@@ -53,7 +83,16 @@ public static class RtDocText
     /// </param>
     public static List<string> ToDocLines(string summaryXml, Func<string, string> renderCref)
     {
-        var paragraphs = Parse(summaryXml, renderCref);
+        var paragraphs = Parse(summaryXml, renderCref, out var stripped);
+        if (stripped > 0 && paragraphs.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "codegen (docs): a summary is entirely <" + InternalElement + ">, so the "
+                + "published surface would carry nothing at all for it. The marker separates "
+                + "the two audiences; it is not a way to hide a declaration. Say what the "
+                + "value IS outside the marker, however briefly. The summary began: "
+                + Excerpt(summaryXml));
+        }
         var lines = new List<string>();
         for (var i = 0; i < paragraphs.Count; i++)
         {
@@ -67,8 +106,10 @@ public static class RtDocText
         return lines;
     }
 
-    private static List<Paragraph> Parse(string summaryXml, Func<string, string> renderCref)
+    private static List<Paragraph> Parse(
+        string summaryXml, Func<string, string> renderCref, out int stripped)
     {
+        stripped = 0;
         var paragraphs = new List<Paragraph>();
         var sb = new StringBuilder();
         var closers = new Stack<string>();
@@ -84,6 +125,13 @@ public static class RtDocText
         // are one occurrence in the whole tree, and that one is on a type the
         // SDK does not export.
         var afterTag = false;
+
+        // Depth inside an `internal` subtree, rather than `XmlReader.Skip()`,
+        // because the loop's own read goes through `SafeRead` and `Skip` leaves
+        // the reader on the node AFTER the element: the next read would then step
+        // over a sibling. Counting is the version that cannot lose a node.
+        var skipDepth = 0;
+        var strippedHere = 0;
 
         void Flush(bool nextBullet = false)
         {
@@ -103,6 +151,13 @@ public static class RtDocText
         {
             while (SafeRead(reader))
             {
+                if (skipDepth > 0)
+                {
+                    if (reader.NodeType == XmlNodeType.Element && !reader.IsEmptyElement) skipDepth++;
+                    else if (reader.NodeType == XmlNodeType.EndElement) skipDepth--;
+                    continue;
+                }
+
                 switch (reader.NodeType)
                 {
                     case XmlNodeType.Text:
@@ -117,6 +172,18 @@ public static class RtDocText
                     {
                         var name = reader.Name.ToLowerInvariant();
                         var empty = reader.IsEmptyElement;
+
+                        // Before the spacing fix-up below, because nothing in
+                        // here reaches the buffer: the whole subtree goes.
+                        if (name == InternalElement)
+                        {
+                            Flush();
+                            strippedHere++;
+                            if (!empty) skipDepth = 1;
+                            afterTag = false;
+                            break;
+                        }
+
                         if (afterTag && sb.Length > 0 && !char.IsWhiteSpace(sb[sb.Length - 1]))
                             sb.Append(' ');
                         afterTag = empty;
@@ -200,7 +267,21 @@ public static class RtDocText
         }
 
         Flush();
+        stripped = strippedHere;
+        InternalBlocksStripped += strippedHere;
         return paragraphs;
+    }
+
+    /// <summary>
+    /// The first few words of a summary, flattened, for an error that has no
+    /// declaration name to hand: <c>RtJsdocNode</c> carries the prose and
+    /// not whose prose it is, and the opening words identify a block faster than
+    /// a type name would anyway.
+    /// </summary>
+    private static string Excerpt(string summaryXml)
+    {
+        var text = Collapse(Regex.Replace(summaryXml ?? string.Empty, "<[^>]*>", " "));
+        return text.Length <= 90 ? text : text.Substring(0, 90) + "...";
     }
 
     /// <summary>

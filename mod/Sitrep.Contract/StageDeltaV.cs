@@ -6,32 +6,38 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// One stage in the <c>dv.stages</c> channel payload, a single
-/// ΔV-producing stage of the active vessel, straight from KSP's STOCK
-/// <c>VesselDeltaV</c> stage simulation (the same numbers the in-game ΔV
-/// app shows: atmosphere/ISP/crossfeed/staging all handled by the game, no
-/// rocket-equation hand-rolling). The channel payload is a BARE ARRAY of these
-/// (<c>StageDeltaVEntry[]</c>) or <c>null</c>: never a wrapper object, and
-/// never an empty-vs-absent distinction beyond "the whole array is
-/// <c>null</c> when the stock sim isn't ready / there is no active vessel"
-/// (see <c>Sitrep.Host.StageDeltaVViewProvider.BuildStages</c>). Uses
-/// <c>VesselDeltaV.OperatingStageInfo</c>: the stages that actually have ΔV,
-/// mirroring the in-game app: not the raw stage list.
+/// One ΔV-producing stage of the active vessel, straight from KSP's STOCK
+/// <c>VesselDeltaV</c> stage simulation: the same numbers the in-game ΔV app
+/// shows, with atmosphere, ISP, crossfeed and staging all handled by the game.
+/// Only the stages that actually produce ΔV appear, the same set the in-game app
+/// lists rather than the raw stage list, so stage numbers can be sparse.
 ///
+/// <para>The <c>dv.stages</c> payload is a BARE ARRAY of these or <c>null</c>:
+/// never a wrapper object. The whole array is <c>null</c> when the stock
+/// simulation is not ready or there is no active vessel.</para>
+///
+/// <para><b>Every field is nullable, and <c>null</c> is never a sentinel.</b> A
+/// field is <c>null</c> whenever the raw value is absent OR non-finite, so a
+/// stage the simulation reports as <c>NaN</c> or <c>Infinity</c> reaches you as
+/// <c>null</c> rather than as a number you would have to test.</para>
+///
+/// <para>Carries no <c>meta</c> of its own: provenance rides the envelope
+/// (<c>StreamData.Meta</c>), never the payload body.</para>
+///
+/// <internal>
 /// <para><b>Typing-only mirror.</b> This type reproduces, field-for-field, the
-/// exact serialized shape <c>StageDeltaVViewProvider.BuildStages</c> already
-/// emits (same names, same camelCase wire keys via
+/// exact serialized shape <c>Sitrep.Host.StageDeltaVViewProvider.BuildStages</c>
+/// already emits (same names, same camelCase wire keys via
 /// <c>RtConfig.CamelCaseForProperties</c>, same units). It is NOT serialized
 /// itself: the wire is written by <c>JsonWriter</c> walking the provider's
-/// dictionary: so adding it changes no bytes. Every field is nullable because
-/// each is read through <c>SnapshotDict.Get*</c>, which yields <c>null</c>
-/// (not a sentinel) whenever the raw value is absent or non-finite, so a
-/// stage the sim reports as <c>NaN</c>/<c>Infinity</c> becomes <c>null</c>.</para>
+/// dictionary, so adding it changed no bytes. The nullability rule above is
+/// <c>SnapshotDict.Get*</c>'s, not a choice made per field. Source is
+/// <c>VesselDeltaV.OperatingStageInfo</c>.</para>
 ///
-/// <para>Deliberately carries NO <c>Meta</c> field: like the
-/// <c>system.*</c> family, this is a hand-built snapshot payload with no
-/// per-payload provenance: its <c>Meta</c> rides the envelope
-/// (<c>StreamData.Meta</c>), never the payload body.</para>
+/// <para>Deliberately carries no <c>Meta</c> field: like the <c>system.*</c>
+/// family, this is a hand-built snapshot payload with no per-payload
+/// provenance.</para>
+/// </internal>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("dv.stages", isArray: true)]
