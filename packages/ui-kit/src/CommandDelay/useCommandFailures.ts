@@ -2,9 +2,10 @@ import type { CommandDelayHandle } from "./CommandDelay";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 
 export interface CommandFailures {
-  /** This handle's own dead dispatches (overdue or lost). */
+  /** This handle's own dead dispatches that HAVE an in-flight row (overdue or lost). */
   failed: InFlightCommandLike[];
-  /** True when any command has failed, for a control's `data-failed` tint. */
+  /** True when any command has failed, including one that got no reply and so
+   *  never had a row at all. For a control's `data-failed` tint. */
   hasFailure: boolean;
   /**
    * Clear a dead command, the SAME dismiss the widget-top queue uses (from
@@ -29,9 +30,16 @@ export function useCommandFailures(
   const failed = handle.inFlight.filter(
     (c) => c.predictedPhase === "overdue" || c.predictedPhase === "lost",
   );
+  // `hasFailure` counts the handle's losses too, and `failed` deliberately does
+  // not. `failed` is the set of in-flight ROWS a surface renders, and a loss has
+  // none: the engine drops a command for an unreachable subject before it mints
+  // a queue entry. That is exactly why the tint was invisible for the case it
+  // was written for, so the flag asks the wider question and the rail renders
+  // the loss itself (`CommandLossList`).
+  const hasFailure = failed.length > 0 || (handle.losses?.length ?? 0) > 0;
   return {
     failed,
-    hasFailure: failed.length > 0,
+    hasFailure,
     dismiss: handle.dismiss ?? (() => {}),
   };
 }

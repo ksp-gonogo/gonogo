@@ -340,6 +340,69 @@ describe("useCommand inFlight", () => {
     },
   );
 
+  it("keeps a never-acknowledged command on the rail as overdue, never as assumed-arrived", async () => {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DeployWithInFlight />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit(
+        "comms.link",
+        { connected: true },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    // Nothing will ever answer this dispatch: the up-path silence the delay UI
+    // has to be able to express.
+    fixture.transport.holdCommands();
+    fireEvent.click(screen.getByText("go1"));
+    const [id] = fixture.transport.sentCommands.map((c) => c.requestId);
+
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        {
+          pending: [
+            {
+              id,
+              command: "deploy",
+              label: "",
+              topic: "t",
+              vantage: "ksc",
+              dispatchedAt: 0,
+              oneWaySeconds: 2,
+            },
+          ],
+        },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+    await waitFor(() =>
+      expect(screen.getByText("phases:in-transit")).toBeTruthy(),
+    );
+
+    // The mod prunes at exactly `DispatchedAt + 2*OneWaySeconds`, with no
+    // margin (ChannelEngine.PrunePendingUplinks), so past the reply the entry
+    // is gone from the queue whether or not anything answered. Queue presence
+    // therefore cannot be what tells silence from arrival.
+    act(() => {
+      fixture.transport.emit(
+        "system.uplink.pending",
+        { pending: [] },
+        { validAt: 4 + LOSS_MARGIN + 1, deliveredAt: 4 + LOSS_MARGIN + 1 },
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByText("phases:overdue")).toBeTruthy(),
+    );
+    expect(screen.getByText("count:1")).toBeTruthy();
+  });
+
   it("degrades gracefully: a dispatch that never gets a queue entry drops after the never-tracked grace window", async () => {
     const fixture = setupFixture();
     render(
@@ -375,6 +438,113 @@ describe("useCommand inFlight", () => {
       );
     });
     await waitFor(() => expect(screen.getByText("count:0")).toBeTruthy());
+  });
+});
+
+// ── losses: a dispatch nothing ever answered ─────────────────────────────
+
+/**
+ * The comms-loss drop, exactly as the engine performs it: a command dispatched
+ * while the subject's link is down is dropped at `ChannelEngine`'s
+ * `if (!SubjectConnected(NodeId))` gate, which sits BEFORE the pending-uplink
+ * bookkeeping and before `Courier.DispatchCommand`. So no queue entry is ever
+ * minted, no `command-response` and no `error` frame ever comes back, and the
+ * only thing that ever settles the dispatch is the client's own loss timer.
+ *
+ * `EtaTransport` reproduces that precisely: it predicts a confirm eta (so the
+ * timer arms) and its `send` answers nothing, ever.
+ */
+function DeployWithLosses() {
+  const cmd = useCommand("deploy");
+  return (
+    <div>
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
+        go
+      </button>
+      <span>phase:{cmd.status.phase}</span>
+      <span>losses:{cmd.losses.length}</span>
+      <span>lostCommands:{cmd.losses.map((l) => l.command).join(",")}</span>
+      <span>lostArgs:{cmd.losses.map((l) => String(l.args)).join(",")}</span>
+      <span>inflight:{cmd.inFlight.length}</span>
+      <button
+        type="button"
+        onClick={() => cmd.dismiss(cmd.losses[0]?.id ?? "")}
+      >
+        clear
+      </button>
+      <CommandDelay handle={cmd} />
+    </div>
+  );
+}
+
+describe("useCommand losses", () => {
+  function renderDropped() {
+    const clock = new FakeClock(0);
+    const client = new TelemetryClient(new EtaTransport(4), clock);
+    render(
+      <TelemetryProvider client={client}>
+        <DeployWithLosses />
+      </TelemetryProvider>,
+    );
+    fireEvent.click(screen.getByText("go"));
+    return clock;
+  }
+
+  it("collects a comms-dropped dispatch, which has no queue entry to render", async () => {
+    const clock = renderDropped();
+    expect(screen.getByText("losses:0")).toBeTruthy();
+
+    /*
+     * `handleLoss` sets the status synchronously but REJECTS the promise, and
+     * the collection rides that rejection's microtask: the act scope has to
+     * stay open across it.
+     */
+    await act(async () => {
+      clock.advanceTo(4 + LOSS_MARGIN);
+    });
+
+    // The client always knew. What it had no way of TELLING anyone is the
+    // defect: `inFlight` is empty because the engine minted no queue entry, so
+    // every delay surface derived from that queue rendered nothing at all.
+    expect(screen.getByText("phase:lost")).toBeTruthy();
+    expect(screen.getByText("inflight:0")).toBeTruthy();
+    expect(screen.getByText("losses:1")).toBeTruthy();
+  });
+
+  it("names the command in the loss, so a surface can say WHICH one went quiet", async () => {
+    const clock = renderDropped();
+    await act(async () => {
+      clock.advanceTo(4 + LOSS_MARGIN);
+    });
+    expect(screen.getByText("lostCommands:deploy")).toBeTruthy();
+    expect(screen.getByText("lostArgs:1")).toBeTruthy();
+  });
+
+  it("collects nothing from a command that answered", async () => {
+    const t = new StubTransport();
+    t.setCommandHandler(() => ({ ok: true }));
+    const client = new TelemetryClient(t);
+    render(
+      <TelemetryProvider client={client}>
+        <DeployWithLosses />
+      </TelemetryProvider>,
+    );
+    fireEvent.click(screen.getByText("go"));
+    await waitFor(() =>
+      expect(screen.getByText("phase:confirmed")).toBeTruthy(),
+    );
+    expect(screen.getByText("losses:0")).toBeTruthy();
+  });
+
+  it("clears one through the same dismiss the refusals and the queue use", async () => {
+    const clock = renderDropped();
+    await act(async () => {
+      clock.advanceTo(4 + LOSS_MARGIN);
+    });
+    expect(screen.getByText("losses:1")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("clear"));
+    expect(screen.getByText("losses:0")).toBeTruthy();
   });
 });
 

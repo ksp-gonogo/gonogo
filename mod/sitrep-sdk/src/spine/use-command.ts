@@ -9,6 +9,7 @@ import {
 import type { CommandGateReport } from "../__generated__/contract";
 import { classifyCommandRejection } from "../api/command-rejection";
 import type {
+  CommandLoss,
   CommandRefusal,
   CommandStatus,
   UseCommandOptions,
@@ -61,6 +62,9 @@ const NO_IN_FLIGHT: InFlightCommand[] = [];
 /** Same reason as `NO_IN_FLIGHT`: a fresh `[]` per render would re-render every
  *  consumer of a hook that has refused nothing, which is nearly all of them. */
 const NO_REFUSALS: CommandRefusal[] = [];
+
+/** Same reason as `NO_REFUSALS`. */
+const NO_LOSSES: CommandLoss[] = [];
 
 /**
  * How long (real UT seconds) a dispatched id may go without EVER appearing
@@ -156,6 +160,20 @@ export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
    */
   refusals: CommandRefusal[];
   /**
+   * Every dispatch from this hook that got NO ANSWER, newest last, until the
+   * operator clears it with the same `dismiss`.
+   *
+   * Separate from both `inFlight` and `refusals`, and it has to be. A loss can
+   * have no queue entry at all: the engine drops a command for an unreachable
+   * subject before it mints a `PendingUplink`, so `inFlight` is empty for the
+   * command's whole life and every surface derived from that queue drew
+   * nothing while the issuing control settled as though the command had
+   * worked. And it is not a refusal, because nothing was decided: saying the
+   * game said no would be a confident wrong answer, which is why `refusals`
+   * deliberately kept `lost` out and why this exists instead of widening it.
+   */
+  losses: CommandLoss[];
+  /**
    * What the mod says about this command BEFORE anyone presses anything: the
    * standing verdict of its declared gates, off `system.uplink.gates`.
    *
@@ -181,16 +199,23 @@ type TrackedResolution =
   | { kind: "classified"; item: InFlightCommand }
   /** No queue entry yet, but still within the never-tracked grace window; keep tracking, nothing to render yet. */
   | { kind: "waiting" }
-  /** Reached `predictedPhase: "due"` under a connected path, assumed arrived, stop tracking. */
+  /** Reached `predictedPhase: "due"` AND actually came back, stop tracking. */
   | { kind: "resolved" }
   /** No queue entry ever arrived within the grace window, assume this dispatch never used the pending-uplink queue at all. */
   | { kind: "expired" };
 
 /**
  * Resolve one tracked dispatch id against the live queue, this hook's own
- * entry cache, and (when never queued) the never-tracked grace clock.
- * Shared by the render-time `inFlight` computation and the prune effect
- * below so the two can never drift on what counts as resolved/expired.
+ * entry cache, this client's own record of what came back, and (when never
+ * queued) the never-tracked grace clock. Shared by the render-time `inFlight`
+ * computation and the prune effect below so the two can never drift on what
+ * counts as resolved/expired.
+ *
+ * `acknowledged` is what stops a dispatch being dropped on faith. It used to
+ * be enough for a command to reach `predictedPhase: "due"` under a connected
+ * path: the row left the rail at the exact moment the reply was DUE, whether
+ * or not one came, so a command nobody ever answered read as one that arrived.
+ * The client knows the difference per dispatch and is asked for it here.
  */
 function resolveTracked(
   id: string,
@@ -199,6 +224,7 @@ function resolveTracked(
   firstSeenAt: Map<string, number>,
   nowUt: number,
   pathConnectedDuring: PathConnectedDuring,
+  acknowledged: (id: string) => boolean,
 ): TrackedResolution {
   const inQueue = queue?.pending.find((entry) => entry.id === id);
   if (inQueue) cache.set(id, inQueue);
@@ -215,13 +241,22 @@ function resolveTracked(
     return { kind: "waiting" };
   }
 
+  const acked = acknowledged(id);
   const classified = classifyRetained({
     entry,
     nowUt,
     present: Boolean(inQueue),
+    acknowledged: acked,
     pathConnectedDuring,
   });
-  if (classified.predictedPhase === "due") return { kind: "resolved" };
+  /*
+   * Still anchored on `due` rather than on the acknowledgement alone: the rail
+   * shows the PREDICTED round trip, and a stub or a zero-delay path can answer
+   * before the predicted reply without the window having elapsed.
+   */
+  if (acked && classified.predictedPhase === "due") {
+    return { kind: "resolved" };
+  }
   return { kind: "classified", item: classified };
 }
 
@@ -291,6 +326,11 @@ export function useCommand(
   // refusal, and a refusal is terminal so there is nothing to re-derive it from
   // later.
   const [refusals, setRefusals] = useState<CommandRefusal[]>(NO_REFUSALS);
+  // Dispatches nothing ever answered. Accumulated on the promise's own `lost`
+  // rejection for the same reason `refusals` is: `status` tracks only the
+  // LATEST requestId, and a loss is terminal so there is nothing to re-derive
+  // it from later.
+  const [losses, setLosses] = useState<CommandLoss[]>(NO_LOSSES);
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
@@ -306,6 +346,36 @@ export function useCommand(
     () => selectCommandGate(gateReport, command),
     [gateReport, command],
   );
+  // Whether a tracked dispatch has actually been ANSWERED, which is what
+  // separates a command that arrived from one nobody ever heard. Read straight
+  // off the client's own per-request record: `confirmed` and `failed` are both
+  // answers (a refusal arrives as a `failed`), while `lost` and `in-flight` are
+  // the absence of one.
+  const acknowledged = useCallback(
+    (id: string) => {
+      const phase = client?.getCommand(id).phase;
+      return phase === "confirmed" || phase === "failed";
+    },
+    [client],
+  );
+  /*
+   * A primitive fingerprint of those phases, read through the same store
+   * subscription, purely so an answer landing for an OLDER dispatch re-renders
+   * this hook. `status`'s own snapshot tracks only the latest requestId, so
+   * `useSyncExternalStore` bails out of the re-render when the one before it
+   * settles, and the prune below would then run on a stale reading.
+   */
+  const ackPhases = useSyncExternalStore(
+    subscribe,
+    useCallback(
+      () =>
+        dispatchedIds
+          .map((id) => client?.getCommand(id).phase ?? "idle")
+          .join(","),
+      [client, dispatchedIds],
+    ),
+  );
+
   const connectivity = useLatestValue<CommsLinkLike>("comms.link");
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
 
@@ -391,6 +461,7 @@ export function useCommand(
         firstSeenAtRef.current,
         nowUt,
         pathConnectedDuring,
+        acknowledged,
       );
       if (resolution.kind === "classified") computed.push(resolution.item);
     }
@@ -421,6 +492,7 @@ export function useCommand(
   // resolution actually changed (`queue`, or the connectivity history via
   // `pathConnectedDuring`'s identity), reading the latest `nowUt` off the
   // ref at that point.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ackPhases is a re-run trigger, not a body input
   useEffect(() => {
     setDispatchedIds((prev) => {
       const keep = prev.filter((id) => {
@@ -431,6 +503,7 @@ export function useCommand(
           firstSeenAtRef.current,
           nowUtRef.current,
           pathConnectedDuring,
+          acknowledged,
         );
         return (
           resolution.kind === "classified" || resolution.kind === "waiting"
@@ -450,6 +523,7 @@ export function useCommand(
           firstSeenAtRef.current,
           nowUtRef.current,
           pathConnectedDuring,
+          acknowledged,
         );
         return (
           resolution.kind === "classified" || resolution.kind === "waiting"
@@ -457,7 +531,12 @@ export function useCommand(
       });
       return keep.length === prev.length ? prev : keep;
     });
-  }, [queue, pathConnectedDuring]);
+    /*
+     * `ackPhases` is a re-run TRIGGER, not a value read in the body: a response
+     * landing for a tracked dispatch changes what resolves, exactly as a queue
+     * snapshot does.
+     */
+  }, [queue, pathConnectedDuring, acknowledged, ackPhases]);
 
   const dismiss = useCallback((id: string) => {
     setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
@@ -467,6 +546,12 @@ export function useCommand(
     // refusal that came back would read as the game refusing a second time.
     setRefusals((prev) => {
       const keep = prev.filter((r) => r.id !== id);
+      return keep.length === prev.length ? prev : keep;
+    });
+    // Dropped outright for the same reason a refusal is: a loss is terminal, so
+    // a dismissed one that came back would read as a second silence.
+    setLosses((prev) => {
+      const keep = prev.filter((l) => l.id !== id);
       return keep.length === prev.length ? prev : keep;
     });
   }, []);
@@ -511,6 +596,23 @@ export function useCommand(
         // indicators already speak for. Calling either of them a refusal would
         // be a confident wrong answer about what the game said.
         const rejection = classifyCommandRejection(err);
+        // No answer arrived. Kept because the queue CANNOT show this one: a
+        // comms-loss drop is refused a `PendingUplink` before it is dispatched,
+        // so `inFlight` is empty and there is nothing else that knows the
+        // command existed. The loss carries the command and args from this
+        // closure, since a `lost` rejection has no reply to name them from.
+        if (rejection.kind === "lost") {
+          setLosses((prev) => [
+            ...prev,
+            {
+              id: newRequestId,
+              command,
+              args,
+              label: opts?.label ?? "",
+            },
+          ]);
+          return;
+        }
         if (rejection.kind !== "refused") return;
         setRefusals((prev) => [
           ...prev,
@@ -535,6 +637,7 @@ export function useCommand(
     status,
     inFlight,
     refusals,
+    losses,
     shape,
     effectiveDelaySeconds,
     dismiss,

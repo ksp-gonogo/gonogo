@@ -73,7 +73,7 @@ describe("classifyRetained", () => {
     });
     expect(c.predictedPhase).toBe("overdue");
   });
-  it("aged out of queue but path was fine and within window => due (assumed arrived)", () => {
+  it("aged out of queue but path was fine and within the margin => due", () => {
     const c = classifyRetained({
       entry: e,
       nowUt: 109,
@@ -81,6 +81,24 @@ describe("classifyRetained", () => {
       pathConnectedDuring: () => true,
     });
     expect(c.predictedPhase).toBe("due");
+  });
+
+  /**
+   * The mod ages an entry out at exactly `DispatchedAt + 2*OneWaySeconds`
+   * (`ChannelEngine.PrunePendingUplinks`), so `present` is false for every
+   * command that is LATE. Gating `overdue` on queue presence therefore made
+   * the phase unreachable and read every unanswered command as an arrival.
+   */
+  it("goes overdue past reply + margin even once the queue has aged the entry out", () => {
+    const c = classifyRetained({
+      entry: e,
+      nowUt: 120,
+      present: false,
+      acknowledged: false,
+      overdueMarginSeconds: 5,
+      pathConnectedDuring: () => true,
+    });
+    expect(c.predictedPhase).toBe("overdue");
   });
   it("defaults pathConnectedDuring to always-connected when omitted", () => {
     const c = classifyRetained({ entry: e, nowUt: 106, present: true });

@@ -24,6 +24,7 @@ import {
 export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 
 import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
+import type { CommandLossEntry } from "./CommandLossList";
 import type { CommandRefusalEntry } from "./commandRefusalSentence";
 
 /**
@@ -71,6 +72,18 @@ export interface CommandDelayHandle {
    * structurally; a handle from another source omits it.
    */
   refusals?: CommandRefusalEntry[];
+  /**
+   * Dispatches from this command that got NO ANSWER, until dismissed. Rendered
+   * by the Panel rail beside the refusals, and for the same reason it renders
+   * those: a loss can have no in-flight entry at all (the engine drops a
+   * command for an unreachable subject before it mints a queue entry), so
+   * neither an in-flight list nor a stream strip can carry it.
+   *
+   * Kept apart from `refusals` because a loss carries no verdict. Nothing was
+   * decided, and the command may well have executed. `useCommand().losses`
+   * satisfies this structurally; a handle from another source omits it.
+   */
+  losses?: CommandLossEntry[];
   /**
    * Clear a dead command (`overdue`/`lost`) from this handle's shared delay
    * queue. Supplied by `useCommand` (acting on the shared per-grid-item

@@ -367,42 +367,40 @@ describe("PanelDelayRail", () => {
     });
   });
 
-  describe("a command the game refused", () => {
-    const refusal = (id: string) => ({
+  const refusal = (id: string) => ({
+    id,
+    errorCode: CommandErrorCode.AlreadyAtMaximum,
+    command: "career.facility.upgrade",
+    args: { facilityId: "LaunchPad" },
+    breach: {
+      facility: "LaunchPad",
+      facilityName: "Launch Pad",
+      facilityLevel: value("ratio", 1),
+      quantity: "tier",
+      limit: 3,
+      actual: 3,
+      unit: "count",
+    },
+  });
+
+  function refusedHandle(
+    id: string,
+    count: number,
+    dismiss?: (id: string) => void,
+  ): CommandHandle {
+    return {
       id,
-      errorCode: CommandErrorCode.AlreadyAtMaximum,
-      command: "career.facility.upgrade",
-      args: { facilityId: "LaunchPad" },
-      breach: {
-        facility: "LaunchPad",
-        facilityName: "Launch Pad",
-        facilityLevel: value("ratio", 1),
-        quantity: "tier",
-        limit: 3,
-        actual: 3,
-        unit: "count",
-      },
-    });
+      // Nothing in flight: a refusal is terminal, so it has already left the
+      // pending queue. This is the case that used to render nothing at all.
+      inFlight: [],
+      shape: "discrete",
+      effectiveDelaySeconds: 5,
+      refusals: Array.from({ length: count }, (_, i) => refusal(`${id}-r${i}`)),
+      dismiss,
+    };
+  }
 
-    function refusedHandle(
-      id: string,
-      count: number,
-      dismiss?: (id: string) => void,
-    ): CommandHandle {
-      return {
-        id,
-        // Nothing in flight: a refusal is terminal, so it has already left the
-        // pending queue. This is the case that used to render nothing at all.
-        inFlight: [],
-        shape: "discrete",
-        effectiveDelaySeconds: 5,
-        refusals: Array.from({ length: count }, (_, i) =>
-          refusal(`${id}-r${i}`),
-        ),
-        dismiss,
-      };
-    }
-
+  describe("a command the game refused", () => {
     it("mounts the rail for a handle carrying only refusals", () => {
       const store = createDelayRailStore();
       store.register(refusedHandle("cmd", 1));
@@ -502,6 +500,87 @@ describe("PanelDelayRail", () => {
       expect(
         screen.getByRole("listitem", { name: /Launch, lost/ }),
       ).toBeTruthy();
+    });
+  });
+
+  describe("a command nothing ever answered", () => {
+    /**
+     * The comms-loss drop: the engine drops a command for an unreachable
+     * subject BEFORE it mints a pending-uplink entry, so there is nothing in
+     * flight and no refusal, and this rail used to render zero pixels for the
+     * command's entire life.
+     */
+    function droppedHandle(
+      id: string,
+      count: number,
+      dismiss?: (id: string) => void,
+    ): CommandHandle {
+      return {
+        id,
+        inFlight: [],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+        losses: Array.from({ length: count }, (_, i) => ({
+          id: `${id}-l${i}`,
+          command: "vessel.control.setSas",
+          args: { enabled: true },
+          label: "",
+        })),
+        dismiss,
+      };
+    }
+
+    it("mounts the rail for a handle carrying only losses", () => {
+      const store = createDelayRailStore();
+      store.register(droppedHandle("cmd", 1));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      expect(container.querySelector("[data-panel-rail]")).not.toBeNull();
+    });
+
+    it("counts a loss in the collapsed strip alongside a refusal", () => {
+      const store = createDelayRailStore();
+      store.register(droppedHandle("dropped", 1));
+      store.register(refusedHandle("refused", 1));
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.getByText("2 commands failed")).toBeTruthy();
+    });
+
+    it("says the command got no reply once expanded, and never that it worked", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(droppedHandle("cmd", 1));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      const list = screen.getByRole("list", { name: /no reply/i });
+      expect(list.textContent).toMatch(/no reply/i);
+      // The one thing it must not do is claim the game said no: nothing was
+      // decided, and the command may well have executed.
+      expect(list.textContent).not.toMatch(/refused/i);
+    });
+
+    it("clears a loss through the handle that owns it", async () => {
+      const user = userEvent.setup();
+      const dismissed: string[] = [];
+      const store = createDelayRailStore();
+      store.register(droppedHandle("cmd", 1, (id) => dismissed.push(id)));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await user.click(
+        screen.getByRole("button", { name: /Dismiss Set Sas/i }),
+      );
+      expect(dismissed).toEqual(["cmd-l0"]);
+    });
+
+    it("has no axe violations collapsed or expanded", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(droppedHandle("cmd", 2, () => {}));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      await expectNoA11yViolations(container);
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await expectNoA11yViolations(container);
     });
   });
 

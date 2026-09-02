@@ -119,6 +119,22 @@ export function classifyRetained(args: {
   entry: PendingEntry;
   nowUt: number;
   present: boolean;
+  /**
+   * Did a response actually come back for this dispatch?
+   *
+   * The `overdue` gate, and it has to be asked separately from `present`
+   * because queue presence cannot answer it. `system.uplink.pending` is
+   * prediction-only and the mod ages an entry out at exactly
+   * `DispatchedAt + 2*OneWaySeconds` with no margin
+   * (`ChannelEngine.PrunePendingUplinks`), so by the time `nowUt` passes
+   * `replyUt + overdueMarginSeconds` the entry has left the queue whether it
+   * was answered or ignored. Gating on `present` alone made `overdue`
+   * unreachable, and every unanswered command read as one that arrived.
+   *
+   * Defaults to `!present`, which is that same unreachable rule stated out
+   * loud, for a caller with no per-dispatch acknowledgement to offer.
+   */
+  acknowledged?: boolean;
   overdueMarginSeconds?: number;
   pathConnectedDuring?: PathConnectedDuring;
 }): InFlightCommand {
@@ -126,6 +142,7 @@ export function classifyRetained(args: {
     entry,
     nowUt,
     present,
+    acknowledged = !present,
     overdueMarginSeconds = LOSS_MARGIN,
     pathConnectedDuring = () => true,
   } = args;
@@ -138,9 +155,9 @@ export function classifyRetained(args: {
   if (!pathConnectedDuring(entry.dispatchedAt.magnitude, replyUt.magnitude)) {
     return { ...base, predictedPhase: "lost" };
   }
-  // 'overdue': past reply + margin and still tracked with no resolution.
+  // 'overdue': past reply + margin and nothing has come back.
   const overdueAfter = replyUt.plus(value("s", overdueMarginSeconds));
-  if (present && value("ut", nowUt).greaterThan(overdueAfter)) {
+  if (!acknowledged && value("ut", nowUt).greaterThan(overdueAfter)) {
     return { ...base, predictedPhase: "overdue" };
   }
   return base;

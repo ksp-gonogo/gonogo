@@ -28,6 +28,8 @@ function makeHandle(
   };
 }
 
+type Deferred<T = unknown> = ReturnType<typeof deferred<T>>;
+
 /** A dispatch the test settles by hand, which is what a delay window IS. */
 function deferred<T = unknown>() {
   let resolve!: (v: T) => void;
@@ -357,9 +359,65 @@ describe("CommandButton: the refused phase", () => {
       d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
     });
 
-    const button = screen.getByRole("button", { name: "Go" });
-    expect(button).toHaveAttribute("data-command-phase", "idle");
+    const button = screen.getByRole("button");
     expect(button).not.toHaveTextContent("Refused");
+    expect(button).toHaveAttribute("data-command-phase", "lost");
+  });
+
+  /**
+   * The defect this exists for: `lost` settled the control to `idle` with a
+   * null reason, byte-identical to the confirmed path one line above it, so a
+   * command the engine dropped for a downed link looked exactly like one that
+   * ran. It affects every control built on this one.
+   */
+  it("does not settle a dropped command the way it settles a confirmed one", async () => {
+    async function settledPhase(settle: (d: Deferred) => void) {
+      const user = userEvent.setup();
+      const d = deferred();
+      const { unmount } = render(
+        <CommandButton handle={makeHandle(() => d.promise)} label="Go" />,
+      );
+      await user.click(screen.getByRole("button", { name: "Go" }));
+      await act(async () => {
+        settle(d);
+      });
+      const button = screen.getByRole("button");
+      const state = {
+        phase: button.getAttribute("data-command-phase"),
+        text: button.textContent,
+      };
+      unmount();
+      return state;
+    }
+
+    const confirmed = await settledPhase((d) => d.resolve(undefined));
+    const dropped = await settledPhase((d) =>
+      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" })),
+    );
+
+    expect(confirmed).toEqual({ phase: "idle", text: "Go" });
+    expect(dropped).not.toEqual(confirmed);
+    expect(dropped.text).toMatch(/no reply/i);
+  });
+
+  it("returns a dropped command's control to rest once the loss has been read", async () => {
+    const user = useArmClock();
+    const d = deferred();
+    render(<CommandButton handle={makeHandle(() => d.promise)} label="Go" />);
+
+    await user.click(screen.getByRole("button", { name: "Go" }));
+    await act(async () => {
+      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
+    });
+    expect(screen.getByRole("button")).toHaveTextContent(/no reply/i);
+
+    await act(async () => {
+      vi.advanceTimersByTime(REFUSAL_TIMEOUT_MS + 1);
+    });
+    expect(screen.getByRole("button", { name: "Go" })).toHaveAttribute(
+      "data-command-phase",
+      "idle",
+    );
   });
 
   it("does not call a machinery failure refused either", async () => {

@@ -136,6 +136,19 @@ export {
   type CommandGroupProps,
 } from "./CommandDelay/CommandGroup";
 export {
+  type CommandLossEntry,
+  type CommandLossLike,
+  CommandLossList,
+  type CommandLossListProps,
+  commandLossSentence,
+  type RailLoss,
+} from "./CommandDelay/CommandLossList";
+export {
+  type CommandOutcomeItem,
+  CommandOutcomeList,
+  type CommandOutcomeListProps,
+} from "./CommandDelay/CommandOutcomeList";
+export {
   CommandRefusalList,
   type CommandRefusalListProps,
   type RailRefusal,

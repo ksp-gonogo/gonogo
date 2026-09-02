@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import { CommandDelay } from "./CommandDelay";
+import { CommandLossList, type RailLoss } from "./CommandLossList";
 import { CommandRefusalList, type RailRefusal } from "./CommandRefusalList";
 import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
 import { usePanelRailTarget } from "./PanelRailTarget";
@@ -58,7 +59,11 @@ function handleHasContent(handle: CommandHandle): boolean {
  *
  * Renders `null` when no active handle has anything to draw, so a widget whose
  * commands are all instant or idle gets no rail element at all and the panel
- * reads the `var(--panel-rail-height, 0px)` fallback.
+ * reads the `var(--panel-rail-height, 0px)` fallback. "Anything to draw" is
+ * three things, not one: something in flight, something the game refused, and
+ * something nothing ever answered. The last two are terminal and so have
+ * nothing in flight by definition, which is precisely why they are asked for
+ * separately.
  */
 export function PanelDelayRail() {
   const handles = useActiveHandles();
@@ -70,7 +75,16 @@ export function PanelDelayRail() {
   const refusals: RailRefusal[] = handles.flatMap((h) =>
     (h.refusals ?? []).map((r) => ({ ...r, shape: h.shape })),
   );
-  const hasContent = visible.length > 0 || refusals.length > 0;
+  /*
+   * Same rule, and the case for it is stronger: a comms-loss drop is refused a
+   * queue entry BEFORE dispatch, so `handleHasContent` is false for the whole
+   * of the command's life and the rail rendered nothing at all.
+   */
+  const losses: RailLoss[] = handles.flatMap((h) =>
+    (h.losses ?? []).map((l) => ({ ...l, shape: h.shape })),
+  );
+  const deadCount = refusals.length + losses.length;
+  const hasContent = visible.length > 0 || deadCount > 0;
   const railRef = useRef<HTMLDivElement>(null);
   const targetRef = usePanelRailTarget();
   const [pinned, setPinned] = useState(false);
@@ -137,6 +151,13 @@ export function PanelDelayRail() {
     ? (id: string) =>
         handles.find((h) => h.refusals?.some((r) => r.id === id))?.dismiss?.(id)
     : undefined;
+  const canDismissLoss = handles.some(
+    (h) => h.dismiss && (h.losses?.length ?? 0) > 0,
+  );
+  const dismissLoss = canDismissLoss
+    ? (id: string) =>
+        handles.find((h) => h.losses?.some((l) => l.id === id))?.dismiss?.(id)
+    : undefined;
 
   return (
     <PanelDelayRail__Frame data-panel-rail-frame="" ref={railRef}>
@@ -180,11 +201,11 @@ export function PanelDelayRail() {
             ariaLabel={pinned ? "Delay detail" : undefined}
           />
         ))}
-        {refusals.length > 0 && !pinned && (
+        {deadCount > 0 && !pinned && (
           <PanelDelayRail__FailureSummary role="status">
-            {refusals.length === 1
+            {deadCount === 1
               ? "1 command failed"
-              : `${refusals.length} commands failed`}
+              : `${deadCount} commands failed`}
           </PanelDelayRail__FailureSummary>
         )}
       </PanelDelayRail__Rail>
@@ -194,6 +215,9 @@ export function PanelDelayRail() {
           control they cannot reach past the one wrapping it. */}
       {pinned && refusals.length > 0 && (
         <CommandRefusalList refusals={refusals} onDismiss={dismissRefusal} />
+      )}
+      {pinned && losses.length > 0 && (
+        <CommandLossList losses={losses} onDismiss={dismissLoss} />
       )}
     </PanelDelayRail__Frame>
   );

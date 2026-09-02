@@ -622,7 +622,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/src/Card.test.tsx": 3,
   "packages/ui-kit/src/CommandButton/CommandButton.tsx": 4,
   "packages/ui-kit/src/CommandDelay/CommandDelay.tsx": 1,
-  "packages/ui-kit/src/CommandDelay/CommandRefusalList.tsx": 1,
   "packages/ui-kit/src/CommandDelay/ControlDelayStream.test.tsx": 2,
   "packages/ui-kit/src/CommandDelay/ControlDelayStream.tsx": 5,
   "packages/ui-kit/src/CommandDelay/DelayRailContext.tsx": 1,

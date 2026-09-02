@@ -47,6 +47,34 @@ export interface CommandRefusal extends CommandRefusalDetail {
 }
 
 /**
+ * One dispatch nothing ever answered, as a widget surface renders it.
+ *
+ * Separate from {@link CommandRefusal} because the two say opposite things. A
+ * refusal is the game's verdict and carries a typed reason; a loss carries no
+ * reason at all, because nothing was decided and the command may well have
+ * executed. What the operator is owed here is the identity of the command that
+ * went quiet, and nothing that reads as a judgement.
+ *
+ * It exists because a loss can have NO queue entry to render. The engine drops
+ * a command for an unreachable subject before it mints a `PendingUplink`
+ * (`ChannelEngine`'s `if (!SubjectConnected(NodeId))` gate), so the whole delay
+ * UI, derived from that queue, had nothing to draw for the command's entire
+ * life while the button settled as though it had worked.
+ *
+ * The `id` is the dispatch's own `requestId`, so one `dismiss(id)` clears a
+ * loss, a refusal and a dead in-flight command alike.
+ */
+export interface CommandLoss {
+  id: string;
+  /** The command id that was dispatched, e.g. `vessel.control.setSas`. */
+  command: string;
+  /** The args it was dispatched with, verbatim. */
+  args: unknown;
+  /** The dispatch's own operator-facing description; `""` when it carried none. */
+  label: string;
+}
+
+/**
  * Lifecycle state for a single dispatched command, keyed by `requestId`.
  *
  * With zero delay a command moves `idle -> in-flight -> confirmed|failed`

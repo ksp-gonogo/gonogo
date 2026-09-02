@@ -3,6 +3,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
+import { commandLossSentence } from "../CommandDelay/CommandLossList";
 import {
   type CommandRefusalLike,
   commandGateSentence,
@@ -103,6 +104,11 @@ export interface CommandButtonHandle extends CommandDelayHandle {
  *   and the phase a command button without one cannot express
  * - `refused`: the game evaluated it and said no. A retry changes nothing until
  *   the situation does, so this is a reason rather than a try-again
+ * - `lost`: nothing came back. Deliberately NOT folded into `idle`: settling a
+ *   dropped command at rest made it byte-identical to a confirmed one, so a
+ *   command the engine threw away for a downed link looked exactly like one
+ *   that ran. It is also not `refused`, because the game decided nothing and
+ *   the command may well have executed; the wording says only what was heard
  * - `blocked`: the game will refuse this, and said so before anyone pressed.
  *   The control is dark and NOT `disabled`, for two reasons. A `disabled`
  *   button is skipped by some screen readers, so a dimmed dead control tells a
@@ -117,6 +123,7 @@ export type CommandButtonPhase =
   | "armed"
   | "pending"
   | "refused"
+  | "lost"
   | "blocked";
 
 export type CommandButtonTone = "neutral" | "go" | "nogo" | "warn";
@@ -138,6 +145,8 @@ export interface CommandButtonState {
   isArmed: boolean;
   /** The game said no, and `refusalText` says what it said. */
   isRefused: boolean;
+  /** Nothing came back. Not a verdict, and not the same as at rest. */
+  isLost: boolean;
   /**
    * The game will refuse this if it is pressed, and said so in advance.
    * `refusalText` carries the reason here too, so a caller renders one string
@@ -160,8 +169,9 @@ export interface CommandButtonState {
   hasFailure: boolean;
   /**
    * The control was pressed. Advances the machine: arm, then dispatch; a press
-   * while pending is ignored; a press while refused clears the refusal; a press
-   * while BLOCKED dispatches nothing and shows the reason instead.
+   * while pending is ignored; a press while refused or lost clears that
+   * outcome; a press while BLOCKED dispatches nothing and shows the reason
+   * instead.
    *
    * `armable` says whether there is a confirm step, which is the caller's
    * decision (it owns the confirm copy), not something this hook can infer.
@@ -217,9 +227,11 @@ export function useCommandButton({
     return () => clearTimeout(id);
   }, [phase]);
 
-  // Let a refusal be read, then return to rest. See REFUSAL_TIMEOUT_MS.
+  // Let a refusal, or a silence, be read, then return to rest. Both get the
+  // same window for the same reason: the operator is READING it, and the
+  // situation behind it can change. See REFUSAL_TIMEOUT_MS.
   useEffect(() => {
-    if (phase !== "refused") return;
+    if (phase !== "refused" && phase !== "lost") return;
     const id = setTimeout(() => {
       setPhase("idle");
       setRefusal(null);
@@ -269,11 +281,19 @@ export function useCommandButton({
       },
       (err: unknown) => {
         const rejection = classifyCommandRejection(err);
+        if (rejection.kind === "lost") {
+          // Nothing came back, which is neither the game saying no nor a
+          // success. It used to settle at `idle` with a null reason, which is
+          // the confirmed path exactly, so a dropped command was
+          // indistinguishable from one that ran. It says what it heard instead:
+          // nothing.
+          settle("lost", null);
+          return;
+        }
         if (rejection.kind !== "refused") {
-          // `lost` decided nothing and the command may well have executed;
-          // `failed` is the machinery. Neither is the game saying no, so neither
-          // gets said as one. Both surface through the shared `data-failed`
-          // tint instead, off the handle's own in-flight set.
+          // `failed` is the machinery, and the machinery is what the panel rail
+          // and the link indicators already speak for. It surfaces through the
+          // shared `data-failed` tint, off the handle's own in-flight set.
           settle("idle", null);
           return;
         }
@@ -308,8 +328,9 @@ export function useCommandButton({
       // A refused control is not inert: the operator may well be pressing it
       // again because the situation changed. The press clears the refusal and
       // starts the handshake over rather than dispatching straight back into
-      // the same no.
-      if (phase === "refused") {
+      // the same no. A silent one clears the same way, and there the retry is
+      // the whole point: nobody knows whether the first attempt landed.
+      if (phase === "refused" || phase === "lost") {
         setRefusal(null);
         setPhase("idle");
         return;
@@ -328,7 +349,7 @@ export function useCommandButton({
   // because a command already travelling has not been stopped by a gate that
   // shut behind it.
   const effectivePhase: CommandButtonPhase =
-    phase === "pending" || phase === "refused"
+    phase === "pending" || phase === "refused" || phase === "lost"
       ? phase
       : gateBlocks
         ? "blocked"
@@ -339,6 +360,7 @@ export function useCommandButton({
     isPending: effectivePhase === "pending",
     isArmed: effectivePhase === "armed",
     isRefused: effectivePhase === "refused",
+    isLost: effectivePhase === "lost",
     isBlocked: effectivePhase === "blocked",
     isShowingReason: effectivePhase === "blocked" && reasonShown,
     refusalText: refusal
@@ -389,6 +411,12 @@ export interface CommandButtonProps extends NativeButtonProps {
   pendingLabel?: ReactNode;
   /** The refused label. Defaults to "Refused". */
   refusedLabel?: ReactNode;
+  /**
+   * The label for a dispatch nothing answered. Defaults to "No reply", which is
+   * the whole of what is known: not "failed", which claims the machinery broke,
+   * and not "refused", which claims the game said no.
+   */
+  lostLabel?: ReactNode;
   /**
    * The blocked phase's accessible name, for a control whose gate reason is
    * already spelled out beside it (a row that renders the same sentence itself).
@@ -477,6 +505,7 @@ export function CommandButton({
   confirmLabel,
   pendingLabel = "Working...",
   refusedLabel = "Refused",
+  lostLabel = "No reply",
   confirmAriaLabel,
   pendingAriaLabel,
   blockedAriaLabel,
@@ -495,6 +524,7 @@ export function CommandButton({
     isPending,
     isArmed,
     isRefused,
+    isLost,
     isBlocked,
     isShowingReason,
     refusalText,
@@ -511,6 +541,8 @@ export function CommandButton({
     );
   } else if (isRefused) {
     body = refusedLabel;
+  } else if (isLost) {
+    body = lostLabel;
   } else if (isShowingReason) {
     // The reason IN the control, not only in its title and its accessible name.
     // A gate sentence runs to about a hundred characters and the numbers are at
@@ -524,7 +556,7 @@ export function CommandButton({
   return (
     <CommandButton__Body
       type="button"
-      $tone={isRefused ? "warn" : isArmed ? confirmTone : tone}
+      $tone={isRefused || isLost ? "warn" : isArmed ? confirmTone : tone}
       $size={size}
       $filled={active === true || isArmed || isRefused}
       $armed={isArmed}
@@ -563,15 +595,22 @@ export function CommandButton({
       aria-label={
         isRefused
           ? (refusalText ?? undefined)
-          : isBlocked
-            ? // Same rule as a refusal: the sentence names the command and the
-              // numbers behind the no, and the resting name says none of that.
-              (blockedAriaLabel ?? refusalText ?? ariaLabel)
-            : isPending
-              ? pendingAriaLabel
-              : isArmed
-                ? confirmAriaLabel
-                : ariaLabel
+          : isLost
+            ? // The visible words are two and the fact needs a sentence: a
+              // screen-reader user landing on "No reply" learns that something
+              // is up and nothing about what is unknown. The handle carries no
+              // command id, so `commandLabel` is what names this one, the same
+              // half a refusal is named after.
+              commandLossSentence({ args, label: commandLabel })
+            : isBlocked
+              ? // Same rule as a refusal: the sentence names the command and the
+                // numbers behind the no, and the resting name says none of that.
+                (blockedAriaLabel ?? refusalText ?? ariaLabel)
+              : isPending
+                ? pendingAriaLabel
+                : isArmed
+                  ? confirmAriaLabel
+                  : ariaLabel
       }
       title={refusalText ?? title}
       onClick={() => press(confirmLabel !== undefined)}
