@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "notes": "The state with no control, which is the half a happy-path render never shows. Every tooling this vehicle needs is already owned, so there is nothing to buy and no button is drawn: the command's only answer here is a refusal, and a control whose sole outcome is a refusal is a control that should not be on screen. The cards remain, because an owned tooling is a real reading and says the money has already been spent, rather than leaving an operator to infer it from an absence. Note also what is NOT on these cards: no price and no standing charge. RP-1 reports a tooled part's surcharge as a zero rather than as absent, and a zero drawn beside the words per build is a bill for nothing. This is deliberately NOT the same picture as the channel saying nothing at all, which renders no section whatsoever: no sample means no ship on the editor's table or RP-1's tooling switched off, and neither of those is a finished vehicle. Scoped to the AUGMENT, so the section is photographed on its own terms rather than inside a host whose balances are the subject of the other scene.",
+    "notes2": "No career record is emitted, and it is not an omission: this section draws no balance of its own. The funds and the unlock credit belong to the host, once, and the widget-scoped scene beside this is where they are shown."
+  },
+  "_scene": {
+    "augment": "rp1-vehicle-assembly-tooling",
+    "size": {
+      "w": 7,
+      "h": 12
+    },
+    "caption": "Every tooling on this vehicle is already owned: the cards say so and no purchase control is offered, because there is nothing left to buy",
+    "paints": ["TOOLING", "Tooled", "Structural tank", "Avionics Core"],
+    "modes": ["default"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.tooling",
+        "payload": {
+          "toolAllCost": 0,
+          "untooledCount": 0,
+          "parts": [
+            {
+              "partTitle": "Procedural Tank",
+              "toolingType": "TankStructural",
+              "toolingTypeTitle": "Structural tank",
+              "parameterSummary": "3.000m x 5.000m",
+              "tooled": true,
+              "toolingCost": 0,
+              "untooledSurcharge": 0,
+              "partId": "part-1",
+              "symmetryCounterparts": 1,
+              "refittable": true
+            },
+            {
+              "partTitle": "Avionics Core",
+              "toolingType": "Avionics",
+              "toolingTypeTitle": "Procedural avionics",
+              "parameterSummary": "12.5 t x 1.200m x 0.400m",
+              "tooled": true,
+              "toolingCost": 0,
+              "untooledSurcharge": 0,
+              "partId": "part-2",
+              "symmetryCounterparts": 0,
+              "refittable": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
