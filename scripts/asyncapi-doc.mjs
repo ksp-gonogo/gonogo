@@ -549,8 +549,24 @@ function unitAt(schema) {
  *
  * 397 assertions at the time of writing, 0 violations.
  */
+/*
+ * A leaf is one unit-carrying slot: a scalar `Value<U>` field, or one axis of a
+ * `Vec3Of<U>`. The floor exists because "zero examined" and "everything agreed"
+ * are the same green without it: when the TYPE route stops carrying units there
+ * is nothing left to iterate, so the loop below finds no disagreements and
+ * passes. Measured against a plant that made `Value<U>` parse as a plain number,
+ * which collapsed 397 leaves to 30 and stayed fully green with the document
+ * byte-identical.
+ *
+ * Live count is 397 (367 scalar fields + 10 Vec3Of x 3). Floored well under it so
+ * ordinary contract churn does not trip it, and far above the 30 that survive a
+ * dead scalar route.
+ */
+const UNIT_ROUTE_LEAF_FLOOR = 300;
+
 function assertUnitRoutesAgree(contract, units) {
   const disagree = [];
+  let leavesExamined = 0;
   for (const [typeName, iface] of contract.interfaces) {
     for (const field of iface.fields ?? []) {
       const type = field.type;
@@ -561,6 +577,7 @@ function assertUnitRoutesAgree(contract, units) {
           ? ["x", "y", "z"].map((axis) => `${field.name}.${axis}`)
           : [field.name];
       for (const leaf of leaves) {
+        leavesExamined += 1;
         if (mapped[leaf] !== type.unit) {
           disagree.push(
             `${typeName}.${leaf}: the type says ${type.unit}, the unit map says ${mapped[leaf] ?? "nothing"}`,
@@ -568,6 +585,14 @@ function assertUnitRoutesAgree(contract, units) {
         }
       }
     }
+  }
+  if (leavesExamined < UNIT_ROUTE_LEAF_FLOOR) {
+    throw new Error(
+      `asyncapi: the unit-route agreement check only examined ${leavesExamined} ` +
+        `unit-carrying leaves, below the floor of ${UNIT_ROUTE_LEAF_FLOOR}. It agrees ` +
+        "with itself because it found almost nothing to check: the TYPE route has " +
+        "probably stopped carrying units, which is exactly the failure this asserts against.",
+    );
   }
   if (disagree.length > 0) {
     throw new Error(
