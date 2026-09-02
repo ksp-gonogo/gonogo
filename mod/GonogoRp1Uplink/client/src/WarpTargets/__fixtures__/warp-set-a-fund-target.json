@@ -1,0 +1,57 @@
+{
+  "_meta": {
+    "notes": "The form that stands a fund target up, which the dark press next to it exists to warp toward. It spends nothing: RP-1's FundTargetProject ends a warp and touches no currency, and its Clear() is a pure field reset, so the figure in the form is the BALANCE the target is measured against rather than a price. Two refusals RP-1 can give are not checked here and come back in RP-1's words instead: a target equal to the balance is 'already at this funding', and one the career's income cannot reach inside RP-1's own two-year search is refused as unreachable. Both are real statements about the save."
+  },
+  "_scene": {
+    "augment": "rp1-warp-targets",
+    "host": "warp-control",
+    "size": {
+      "w": 6,
+      "h": 14
+    },
+    "caption": "The fund-target form open: the balance the target is measured against, the field, and one press. No cost line anywhere, because a stop condition spends nothing.",
+    "paints": ["Balance now", "Target balance", "Set"],
+    "before": [
+      {
+        "press": "Set a fund target"
+      }
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "time.warp",
+        "payload": {
+          "warpRate": 1,
+          "warpRateIndex": 0,
+          "warpMode": 0,
+          "paused": false
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 118400,
+            "reputation": 62,
+            "science": 340
+          }
+        }
+      },
+      {
+        "topic": "rp1.fundTarget",
+        "payload": {
+          "active": false,
+          "targetFunds": null,
+          "originalFunds": null,
+          "timeLeft": null
+        }
+      }
+    ]
+  }
+}

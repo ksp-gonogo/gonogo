@@ -1,0 +1,115 @@
+{
+  "_meta": {
+    "notes": "The other way to close the gap, and it is FREE. ToolingPartResizer.Resize changes a part's geometry and its tank material and touches no currency anywhere, so the line in the expander names what the refit stops costing rather than what it costs: the untooled surcharge, charged on every copy of the vehicle ever built. The rows are owned toolings RP-1's own picker has already matched to something this part can use, tech locks included, which is why the material comes off the wire and is never chosen here. Two disclosures come first that RP-1 makes only afterwards in a screen message: every symmetry counterpart is resized too, and the material is applied to the part's whole group. The second card is the state that has no control: an untooled part the career owns nowhere to move, where buying the tooling is the only way."
+  },
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": {
+      "w": 7,
+      "h": 20
+    },
+    "caption": "The refit expander open on a tank the career owns two sizes for: what it drops per build, how many parts it takes with it, and a press per owned size",
+    "paints": [
+      "TOOLING",
+      "costs nothing",
+      "per build",
+      "in symmetry with it",
+      "Refit"
+    ],
+    "before": [
+      {
+        "press": "Refit Procedural Tank to a size the career already owns"
+      }
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 8400,
+            "reputation": 62,
+            "science": 340,
+            "unlockCredit": 0
+          }
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.complexes",
+        "payload": []
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": []
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildQueue",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
+      },
+      {
+        "topic": "rp1.tooling",
+        "payload": {
+          "toolAllCost": 14600,
+          "untooledCount": 2,
+          "parts": [
+            {
+              "partTitle": "Procedural Tank",
+              "toolingType": "Tank-Sep-1",
+              "toolingTypeTitle": "Separate tank",
+              "parameterSummary": "3.400m x 5.200m",
+              "tooled": false,
+              "toolingCost": 9000,
+              "untooledSurcharge": 4100,
+              "partId": "part-1",
+              "symmetryCounterparts": 1,
+              "refittable": true,
+              "refitTargets": [
+                {
+                  "diameter": 3,
+                  "length": 5,
+                  "rfType": "Tank-Sep-1"
+                },
+                {
+                  "diameter": 3.6,
+                  "length": 6,
+                  "rfType": "Tank-Sep-1"
+                }
+              ]
+            },
+            {
+              "partTitle": "Upper Tank",
+              "toolingType": "Tank-Balloon-1",
+              "toolingTypeTitle": "Balloon tank",
+              "parameterSummary": "2.900m x 3.200m",
+              "tooled": false,
+              "toolingCost": 5600,
+              "untooledSurcharge": 2400,
+              "partId": "part-2",
+              "symmetryCounterparts": 0,
+              "refittable": true,
+              "refitTargets": []
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

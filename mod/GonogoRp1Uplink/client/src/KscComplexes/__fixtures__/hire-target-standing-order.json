@@ -1,0 +1,163 @@
+{
+  "_meta": {
+    "notes": "The career's only hiring surface. rp1.personnel.assign moves staff already on the books and deliberately buys none; the standing hire instruction is the command that spends. Nothing is charged at the press: HireStaffProject.IncrementProgress hires min(applicants + (funds - reserve) / perHire, left) every tick, so a career that cannot pay for the whole target hires what it can and comes back for the rest. A short balance SLOWS it and never refuses it, which is why the line beside the press is a BOUND on the spend and not an affordability verdict, and the bound is the operator's own reserve. RP-1 keeps one staffTarget per career and stores no field for the kind, only whether a complex is named, so this is one control and the picker sends lcId or omits it."
+  },
+  "_scene": {
+    "augment": "rp1-ksc-complexes",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 22
+    },
+    "caption": "The hire-target form open on the researcher half: the count it is measured against, the target, the reserve hiring will not spend below, and what that bounds the spend to",
+    "paints": [
+      "PAYROLL",
+      "researchers now",
+      "Target headcount",
+      "Reserve",
+      "draws at most",
+      "Set"
+    ],
+    "before": [
+      {
+        "press": "Set a hire target"
+      }
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 118400,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.personnel",
+        "payload": {
+          "totalEngineers": 24,
+          "researchers": 31,
+          "applicants": 7,
+          "engineerSalaryPerDay": 53.4,
+          "researcherSalaryPerDay": 42.4,
+          "engineerSalaryPerYear": 1000,
+          "researcherSalaryPerYear": 1000,
+          "idleSalaryMult": 0.25,
+          "hireTarget": {
+            "active": false
+          }
+        }
+      },
+      {
+        "topic": "rp1.rushTerms",
+        "payload": {
+          "rateMult": 1.5,
+          "salaryMult": 2
+        }
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "isActive": true,
+            "engineers": 24,
+            "unassignedEngineers": 6,
+            "launchComplexCount": 1,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral",
+            "salaryPerDay": 53.4,
+            "idleSalaryPerDay": 4.1,
+            "upkeepPerDay": 45
+          }
+        ]
+      },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 18,
+            "maxEngineers": 60,
+            "efficiency": 0.72,
+            "canIntegrate": true,
+            "rate": 0.0001929012345679,
+            "humanRated": false,
+            "massMin": 6,
+            "massMax": 180,
+            "massOrig": 180,
+            "sizeMaxHeight": 40,
+            "sizeMaxWidth": 9,
+            "sizeMaxDepth": 12,
+            "resourcesHandled": ["Kerosene", "LqdOxygen"],
+            "resourceCapacities": {
+              "Kerosene": 1500,
+              "LqdOxygen": 3000
+            },
+            "launchPadCount": 1,
+            "salaryPerDay": 32.9,
+            "upkeepPerDay": 45
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "isOperational": true,
+            "name": "LP-1",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false
+          }
+        ]
+      }
+    ]
+  }
+}

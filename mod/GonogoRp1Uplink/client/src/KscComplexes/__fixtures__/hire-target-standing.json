@@ -1,0 +1,157 @@
+{
+  "_meta": {
+    "notes": "A hire instruction already standing, which is the state the cancel exists for. RP-1 keeps ONE staffTarget per career, so set and cancel are transitions of one piece of state rather than two features and the form is never drawn beside the target it would overwrite. The timeLeft is RP-1's own forecast and it is a forecast of when the FUNDS will exist rather than of a queue: HireStaffProject.GetTimeLeft asks FundTargetProject.EstimateTimeToFunds for the reserve plus what the remaining heads cost. Nothing was charged when the instruction was given."
+  },
+  "_scene": {
+    "augment": "rp1-ksc-complexes",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 18
+    },
+    "caption": "A standing researcher hire instruction: the headcount it is reaching, how many are still to hire, RP-1's own forecast of when the funds for them exist, and the one press that withdraws it",
+    "paints": ["PAYROLL", "Hiring to researchers", "left", "away", "Cancel"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 118400,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "level": 1,
+              "max": 2
+            },
+            "VehicleAssemblyBuilding": {
+              "level": 1,
+              "max": 2
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.personnel",
+        "payload": {
+          "totalEngineers": 24,
+          "researchers": 31,
+          "applicants": 7,
+          "engineerSalaryPerDay": 53.4,
+          "researcherSalaryPerDay": 42.4,
+          "engineerSalaryPerYear": 1000,
+          "researcherSalaryPerYear": 1000,
+          "idleSalaryMult": 0.25,
+          "hireTarget": {
+            "active": true,
+            "targetCount": 40,
+            "currentCount": 31,
+            "leftToHire": 9,
+            "isResearch": true,
+            "lcId": null,
+            "timeLeft": 1728000
+          }
+        }
+      },
+      {
+        "topic": "rp1.rushTerms",
+        "payload": {
+          "rateMult": 1.5,
+          "salaryMult": 2
+        }
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "isActive": true,
+            "engineers": 24,
+            "unassignedEngineers": 6,
+            "launchComplexCount": 1,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral",
+            "salaryPerDay": 53.4,
+            "idleSalaryPerDay": 4.1,
+            "upkeepPerDay": 45
+          }
+        ]
+      },
+      {
+        "topic": "rp1.complexes",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "name": "LC-1",
+            "lcType": "Pad",
+            "isOperational": true,
+            "isRushing": false,
+            "engineers": 18,
+            "maxEngineers": 60,
+            "efficiency": 0.72,
+            "canIntegrate": true,
+            "rate": 0.0001929012345679,
+            "humanRated": false,
+            "massMin": 6,
+            "massMax": 180,
+            "massOrig": 180,
+            "sizeMaxHeight": 40,
+            "sizeMaxWidth": 9,
+            "sizeMaxDepth": 12,
+            "resourcesHandled": ["Kerosene", "LqdOxygen"],
+            "resourceCapacities": {
+              "Kerosene": 1500,
+              "LqdOxygen": 3000
+            },
+            "launchPadCount": 1,
+            "salaryPerDay": 32.9,
+            "upkeepPerDay": 45
+          }
+        ]
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "lcId": "lc-1",
+            "padId": "pad-1",
+            "isOperational": true,
+            "name": "LP-1",
+            "launchSiteName": "LaunchPad",
+            "level": 1,
+            "fractionalLevel": 1,
+            "state": "Free",
+            "hasVesselWaiting": false
+          }
+        ]
+      }
+    ]
+  }
+}
