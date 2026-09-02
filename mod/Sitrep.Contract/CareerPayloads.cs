@@ -6,27 +6,37 @@ using System.Collections.Generic;
 namespace Sitrep.Contract;
 
 /// <summary>
-/// The <c>career.status</c> channel payload: the KSC/career-mode snapshot
-/// (economy, facilities, contracts, strategies, tech). The whole payload is
-/// <c>null</c> in the SANDBOX / no-career case (no <c>"career"</c> group in
-/// the snapshot at all: see <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>);
-/// a non-null payload with any/all sub-groups themselves <c>null</c> is the
-/// "career mode, that group genuinely unavailable this tick" case. All five
-/// top-level keys are ALWAYS emitted (each nullable), never omitted.
+/// The <c>career.status</c> channel payload: the KSC and career-mode snapshot,
+/// in five groups (economy, facilities, contracts, strategies, tech).
 ///
+/// <para><b>Three states, and they mean different things.</b> The whole payload
+/// is <c>null</c> in SANDBOX, where there is no career at all. A non-null
+/// payload with a sub-group <c>null</c> means career mode is running and that
+/// group is genuinely unavailable this tick. All five top-level keys are ALWAYS
+/// present, each nullable, never omitted, so a missing key is a protocol error
+/// rather than an absent group.</para>
+///
+/// <para>Every number is nullable and <c>null</c> is never a sentinel: a field
+/// is <c>null</c> whenever the raw value is absent or non-finite. The two counts
+/// (<see cref="CareerStrategies.ActiveCount"/>,
+/// <see cref="CareerTech.UnlockedCount"/>) are the only non-nullable numbers,
+/// because an empty list counts as zero rather than as unknown.</para>
+///
+/// <internal>
 /// <para><b>Typing-only mirror (P0.5).</b> This type reproduces, field for
-/// field, the EXACT serialized shape <c>CareerViewProvider.BuildCareer</c>
-/// already emits: same names, same camelCase wire keys (via
-/// <c>RtConfig.CamelCaseForProperties</c>), same types, same units. It is NOT
-/// serialized itself: the wire bytes are written by
+/// field, the EXACT serialized shape
+/// <c>Sitrep.Host.CareerViewProvider.BuildCareer</c> already emits: same names,
+/// same camelCase wire keys (via <c>RtConfig.CamelCaseForProperties</c>), same
+/// types, same units. It is NOT serialized itself: the wire bytes are written by
 /// <c>Sitrep.Core.Serialization.JsonWriter</c> walking the provider's live
-/// <c>Dictionary&lt;string, object?&gt;</c> tree, so adding this type changes
-/// no bytes. The hierarchical-naming / unit cleanup is a later phase (P5) and
-/// is deliberately NOT done here. Nullability mirrors <c>SnapshotDict.Get*</c>
-/// (null on absence / non-finite, never a sentinel); the two counts
-/// (<see cref="CareerStrategies.ActiveCount"/>, <see cref="CareerTech.UnlockedCount"/>)
-/// are the only non-nullable numbers because the provider defaults them to a
-/// list count rather than emitting null.</para>
+/// <c>Dictionary&lt;string, object?&gt;</c> tree, so adding this type changed no
+/// bytes. The sandbox case is the absence of a <c>"career"</c> group in the
+/// snapshot. Nullability is <c>SnapshotDict.Get*</c>'s rule, not a per-field
+/// choice.</para>
+///
+/// <para>The hierarchical-naming and unit cleanup is a later phase (P5) and is
+/// deliberately NOT done here.</para>
+/// </internal>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("career.status")]
@@ -39,10 +49,13 @@ public class CareerStatus
 
     /// <summary>
     /// DYNAMIC-KEY MAP keyed by <c>SpaceCenterFacility</c> name (e.g.
-    /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>): not a fixed
-    /// record. Modelled as a <c>Dictionary&lt;string, CareerFacility&gt;</c>
-    /// so codegen emits a TS index signature (<c>{ [k]: CareerFacility }</c>),
-    /// matching how <c>VesselResources.Resources</c> is done.
+    /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>): not a fixed record,
+    /// so enumerate the keys rather than reaching for one you expect to be there.
+    /// <internal>
+    /// Modelled as a <c>Dictionary&lt;string, CareerFacility&gt;</c> so codegen
+    /// emits a TS index signature, matching how <c>VesselResources.Resources</c>
+    /// is done.
+    /// </internal>
     /// </summary>
     public Dictionary<string, CareerFacility>? Facilities { get; set; }
 

@@ -407,6 +407,49 @@ and the reasoning: `docs/uplink-isolation.md`.
 
 ---
 
+## Contract doc comments: `<internal>` keeps the "why" out of the published document
+
+A `Sitrep.Contract` doc comment has two audiences and only one of them is a
+client. What the value IS (its vocabulary, its null rule, its shape on the wire)
+belongs on the published surface; WHY it is that way (which provider fills it,
+what it used to be, which defect made it nullable) belongs beside the type, where
+the next maintainer reads it, and nowhere else.
+
+Mark the second half with `<internal>` INSIDE the `<summary>`:
+
+```csharp
+/// <summary>
+/// One ΔV-producing stage of the active vessel, from KSP's stock simulation.
+/// Every field is <c>null</c> whenever the raw value is absent or non-finite.
+/// <internal>
+/// Typing-only mirror of what Sitrep.Host.StageDeltaVViewProvider.BuildStages
+/// already emits; the wire is written by JsonWriter walking its dictionary.
+/// </internal>
+/// </summary>
+```
+
+`RtDocText` drops the subtree on the way to TSDoc, so it reaches neither
+`contract.ts` (the published SDK, where an Uplink author hovers it) nor
+`asyncapi.yaml`. It stays in the C# and in the IDE hover for anyone with the
+solution open.
+
+- **Look for a client fact buried in an implementation sentence before you move a
+  paragraph.** The null-on-non-finite rule and the `"vessel:<guid>"` / `"game"`
+  vocabulary were both sitting inside "typing-only mirror" paragraphs; those get
+  REWRITTEN on the outside, never dropped with the rest
+- **Field-level prose is good.** The contamination is at type and channel level;
+  do not thin a field description to shorten a block
+- A summary that is entirely `<internal>` fails codegen: the marker separates two
+  audiences, it is not a way to hide a declaration
+- `scripts/asyncapi/prose-hygiene.mjs` is the ratchet, five marker families over
+  the contract model, shrink-only debt list, and it plants a violation of every
+  family per run so a pattern that stopped matching fails as BLIND rather than
+  reporting a clean tree. Tighten it with
+  `node scripts/asyncapi-doc.mjs --update-prose-debt` in the same commit as the
+  conversion
+
+---
+
 ## Spending funds: always show the balance
 
 Any widget that exposes an action which spends career funds (launch a craft, upgrade a facility, accept an advance, unlock a tech) **must display the current funds balance somewhere visible in the same widget**. Mount on the `career.status` channel and read the `career.status.economy.funds` field, then surface it next to the spend control, a small "Funds: 289,848f" readout is enough. **Not `career.funds`**: that is a retired flat key, and `defineTopicManifest` rejects it at compile time in both `channels` and `fields` (`packages/core/src/hooks/defineTopicManifest.test-d.ts`). Put the readout in the Panel body rather than its aside, the aside collapses at narrow widths and takes the balance with it. The operator should never be forced to look at another widget to find out whether they can afford the thing they're about to confirm.

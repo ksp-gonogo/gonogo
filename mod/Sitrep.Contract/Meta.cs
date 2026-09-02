@@ -84,21 +84,33 @@ public class Meta
 }
 
 /// <summary>
-/// The slim, payload-specific sibling of <see cref="Meta"/>, carried on
-/// every <c>vessel.*</c>/<c>time.warp</c> PAYLOAD (<c>VesselOrbit.Meta</c>,
-/// <c>VesselIdentity.Meta</c>, etc.), as opposed to the ENVELOPE <see cref="Meta"/>
-/// that <c>Sitrep.Core.Courier</c> stamps onto every <c>StreamData&lt;T&gt;</c>
-/// with the real <c>seq</c>/<c>deliveredAt</c>/<c>vantage</c>/<c>validAt</c>
-/// (see <c>Courier.MakeMeta</c>). Before this type existed, every payload
-/// carried a full <see cref="Meta"/> of its own, fabricating
-/// <c>seq:0</c>/<c>deliveredAt:0</c>/<c>vantage:""</c>/<c>validAt:0</c>:
-/// dead duplicates of the envelope's real values that a consumer could
-/// easily mistake for genuine delivery metadata. <see cref="Source"/>
-/// (subject provenance, <c>"vessel:&lt;guid&gt;"</c> or <c>"game"</c>) and
-/// <see cref="Quality"/> (on-rails/loaded) are the only two fields a payload
-/// mapper actually produces itself: everything else belongs to the
-/// envelope alone. Staleness is a separate, not-yet-implemented M2 concern
-/// and deliberately has no home here either.
+/// The slim, payload-specific sibling of <see cref="Meta"/>, carried on every
+/// <c>vessel.*</c> and <c>time.warp</c> PAYLOAD (<c>VesselOrbit.Meta</c>,
+/// <c>VesselIdentity.Meta</c> and so on).
+///
+/// <para>It says what the payload is ABOUT, and nothing about its delivery. The
+/// real <c>seq</c>, <c>deliveredAt</c>, <c>vantage</c> and <c>validAt</c> are on
+/// the ENVELOPE <see cref="Meta"/>, one per <c>stream-data</c> frame: read those
+/// there, never here.</para>
+///
+/// <para><see cref="Source"/> is the subject's provenance, and takes one of two
+/// forms: <c>"vessel:&lt;guid&gt;"</c> when the payload describes one craft, or
+/// <c>"game"</c> when it describes the session. <see cref="Quality"/> says
+/// whether that craft is on rails or fully loaded. Those two are the whole of
+/// this type.</para>
+///
+/// <internal>
+/// <para>Stamped by <c>Sitrep.Core.Courier.MakeMeta</c> onto every
+/// <c>StreamData&lt;T&gt;</c>. Before this type existed, every payload carried a
+/// full <see cref="Meta"/> of its own, fabricating <c>seq:0</c>,
+/// <c>deliveredAt:0</c>, <c>vantage:""</c> and <c>validAt:0</c>: dead duplicates
+/// of the envelope's real values that a consumer could easily mistake for
+/// genuine delivery metadata. Source and Quality are the only two fields a
+/// payload mapper actually produces itself.</para>
+///
+/// <para>Staleness is a separate, not-yet-implemented M2 concern and
+/// deliberately has no home here either.</para>
+/// </internal>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

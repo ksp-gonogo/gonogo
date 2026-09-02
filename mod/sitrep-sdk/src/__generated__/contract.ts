@@ -131,36 +131,29 @@ export interface CareerMode
 	mode: GameMode;
 }
 /**
-* The `career.status` channel payload: the KSC/career-mode snapshot (economy,
-* facilities, contracts, strategies, tech). The whole payload is `null` in the
-* SANDBOX / no-career case (no `"career"` group in the snapshot at all: see
-* `Sitrep.Host.CareerViewProvider.BuildCareer`); a non-null payload with
-* any/all sub-groups themselves `null` is the "career mode, that group
-* genuinely unavailable this tick" case. All five top-level keys are ALWAYS
-* emitted (each nullable), never omitted.
+* The `career.status` channel payload: the KSC and career-mode snapshot, in
+* five groups (economy, facilities, contracts, strategies, tech).
 *
-* **Typing-only mirror (P0.5).** This type reproduces, field for field, the
-* EXACT serialized shape `CareerViewProvider.BuildCareer` already emits: same
-* names, same camelCase wire keys (via `RtConfig.CamelCaseForProperties`),
-* same types, same units. It is NOT serialized itself: the wire bytes are
-* written by `Sitrep.Core.Serialization.JsonWriter` walking the provider's
-* live `Dictionary<string, object?>` tree, so adding this type changes no
-* bytes. The hierarchical-naming / unit cleanup is a later phase (P5) and is
-* deliberately NOT done here. Nullability mirrors `SnapshotDict.Get*` (null on
-* absence / non-finite, never a sentinel); the two counts
+* **Three states, and they mean different things.** The whole payload is
+* `null` in SANDBOX, where there is no career at all. A non-null payload with
+* a sub-group `null` means career mode is running and that group is genuinely
+* unavailable this tick. All five top-level keys are ALWAYS present, each
+* nullable, never omitted, so a missing key is a protocol error rather than an
+* absent group.
+*
+* Every number is nullable and `null` is never a sentinel: a field is `null`
+* whenever the raw value is absent or non-finite. The two counts
 * (`CareerStrategies.activeCount`, `CareerTech.unlockedCount`) are the only
-* non-nullable numbers because the provider defaults them to a list count
-* rather than emitting null.
+* non-nullable numbers, because an empty list counts as zero rather than as
+* unknown.
 */
 export interface CareerStatus
 {
 	economy?: CareerEconomy;
 	/**
 	* DYNAMIC-KEY MAP keyed by `SpaceCenterFacility` name (e.g. `"LaunchPad"`,
-	* `"VehicleAssemblyBuilding"`): not a fixed record. Modelled as a
-	* `Dictionary<string, CareerFacility>` so codegen emits a TS index signature
-	* (`{ [k]: CareerFacility }`), matching how `VesselResources.Resources` is
-	* done.
+	* `"VehicleAssemblyBuilding"`): not a fixed record, so enumerate the keys
+	* rather than reaching for one you expect to be there.
 	*/
 	facilities?: { [key:string]: CareerFacility };
 	contracts?: CareerContracts;
@@ -2614,20 +2607,18 @@ export interface Meta
 	timelineEpoch: number;
 }
 /**
-* The slim, payload-specific sibling of `Meta`, carried on every
-* `vessel.*`/`time.warp` PAYLOAD (`VesselOrbit.Meta`, `VesselIdentity.Meta`,
-* etc.), as opposed to the ENVELOPE `Meta` that `Sitrep.Core.Courier` stamps
-* onto every `StreamData<T>` with the real
-* `seq`/`deliveredAt`/`vantage`/`validAt` (see `Courier.MakeMeta`). Before
-* this type existed, every payload carried a full `Meta` of its own,
-* fabricating `seq:0`/`deliveredAt:0`/`vantage:""`/`validAt:0`: dead
-* duplicates of the envelope's real values that a consumer could easily
-* mistake for genuine delivery metadata. `PayloadMeta.source` (subject
-* provenance, `"vessel:<guid>"` or `"game"`) and `PayloadMeta.quality`
-* (on-rails/loaded) are the only two fields a payload mapper actually produces
-* itself: everything else belongs to the envelope alone. Staleness is a
-* separate, not-yet-implemented M2 concern and deliberately has no home here
-* either.
+* The slim, payload-specific sibling of `Meta`, carried on every `vessel.*`
+* and `time.warp` PAYLOAD (`VesselOrbit.Meta`, `VesselIdentity.Meta` and so
+* on).
+*
+* It says what the payload is ABOUT, and nothing about its delivery. The real
+* `seq`, `deliveredAt`, `vantage` and `validAt` are on the ENVELOPE `Meta`,
+* one per `stream-data` frame: read those there, never here.
+*
+* `PayloadMeta.source` is the subject's provenance, and takes one of two
+* forms: `"vessel:<guid>"` when the payload describes one craft, or `"game"`
+* when it describes the session. `PayloadMeta.quality` says whether that craft
+* is on rails or fully loaded. Those two are the whole of this type.
 */
 export interface PayloadMeta
 {
@@ -2638,16 +2629,11 @@ export interface PayloadMeta
 * The empty args shape, for the core commands that operate on the current
 * flight or the active vessel and so take nothing: `vessel.control.stage`,
 * `vessel.target.clear`, `ksp.recover`, `ksp.revertToLaunch` and
-* `ksp.toTrackingStation`. Each is tagged onto this class with
-* SitrepCommandAttribute, so a command with no arguments is still enumerable
-* and still names its result.
+* `ksp.toTrackingStation`.
 *
-* The handlers bind `TArgs` as `object?` and ignore what arrives, so this type
-* describes the ABSENCE rather than a wire shape: it generates as an empty
-* interface, which is what makes the SDK's `send()` take no argument for these
-* five and an argument for everything else. An Uplink with its own no-args
-* commands declares its own marker in its own slice, never this one: it
-* belongs to core.
+* **Send no `args` at all for these five.** The SDK's `send()` takes no second
+* argument for a command typed this way, and anything you do put on the wire
+* is read and discarded. Every other command requires its args.
 */
 export interface NoCommandArgs
 {
@@ -4491,29 +4477,23 @@ export interface SpaceCenterPoiEntry
 	contractDateDeadline?: Value<"ut">;
 }
 /**
-* One stage in the `dv.stages` channel payload, a single ΔV-producing stage of
-* the active vessel, straight from KSP's STOCK `VesselDeltaV` stage simulation
-* (the same numbers the in-game ΔV app shows: atmosphere/ISP/crossfeed/staging
-* all handled by the game, no rocket-equation hand-rolling). The channel
-* payload is a BARE ARRAY of these (`StageDeltaVEntry[]`) or `null`: never a
-* wrapper object, and never an empty-vs-absent distinction beyond "the whole
-* array is `null` when the stock sim isn't ready / there is no active vessel"
-* (see `Sitrep.Host.StageDeltaVViewProvider.BuildStages`). Uses
-* `VesselDeltaV.OperatingStageInfo`: the stages that actually have ΔV,
-* mirroring the in-game app: not the raw stage list.
+* One ΔV-producing stage of the active vessel, straight from KSP's STOCK
+* `VesselDeltaV` stage simulation: the same numbers the in-game ΔV app shows,
+* with atmosphere, ISP, crossfeed and staging all handled by the game. Only
+* the stages that actually produce ΔV appear, the same set the in-game app
+* lists rather than the raw stage list, so stage numbers can be sparse.
 *
-* **Typing-only mirror.** This type reproduces, field-for-field, the exact
-* serialized shape `StageDeltaVViewProvider.BuildStages` already emits (same
-* names, same camelCase wire keys via `RtConfig.CamelCaseForProperties`, same
-* units). It is NOT serialized itself: the wire is written by `JsonWriter`
-* walking the provider's dictionary: so adding it changes no bytes. Every
-* field is nullable because each is read through `SnapshotDict.Get*`, which
-* yields `null` (not a sentinel) whenever the raw value is absent or
-* non-finite, so a stage the sim reports as `NaN`/`Infinity` becomes `null`.
+* The `dv.stages` payload is a BARE ARRAY of these or `null`: never a wrapper
+* object. The whole array is `null` when the stock simulation is not ready or
+* there is no active vessel.
 *
-* Deliberately carries NO `Meta` field: like the `system.*` family, this is a
-* hand-built snapshot payload with no per-payload provenance: its `Meta` rides
-* the envelope (`StreamData.Meta`), never the payload body.
+* **Every field is nullable, and `null` is never a sentinel.** A field is
+* `null` whenever the raw value is absent OR non-finite, so a stage the
+* simulation reports as `NaN` or `Infinity` reaches you as `null` rather than
+* as a number you would have to test.
+*
+* Carries no `meta` of its own: provenance rides the envelope
+* (`StreamData.Meta`), never the payload body.
 */
 export interface StageDeltaVEntry
 {

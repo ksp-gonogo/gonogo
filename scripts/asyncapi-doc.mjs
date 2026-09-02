@@ -6,13 +6,15 @@
 //   node scripts/asyncapi-doc.mjs            write the document
 //   node scripts/asyncapi-doc.mjs --check    fail if the committed file is stale
 //   node scripts/asyncapi-doc.mjs --stdout   print it and write nothing
+//   node scripts/asyncapi-doc.mjs --update-prose-debt    tighten the prose ratchet
+//   node scripts/asyncapi-doc.mjs --reseed-prose-debt    re-baseline it (detector change only)
 //
 // A DERIVED file. Do not edit `asyncapi.yaml`; change the C# in
 // `mod/Sitrep.Contract/` (or the declaration in `mod/Gonogo.KSP/`) and
 // regenerate. `--check` is what stops a hand edit surviving, and it is the step
 // CI runs.
 //
-// ## Five things are verified, not one
+// ## Six things are verified, not one
 //
 // Emitting a document and calling it valid is how a page of
 // named-but-unexplained shapes ships looking like an answer. So:
@@ -34,6 +36,10 @@
 //    to the command that plans a burn. Nothing in the output looked wrong,
 //    because a field that lost its unit reads exactly like a field that never
 //    had one
+// 6. The prose it carries is written for the READER of the contract, not for its
+//    maintainer. See `./asyncapi/prose-hygiene.mjs` and the `<internal>`
+//    convention it gates: the check that catches a doc comment explaining the
+//    mod's internals to somebody who cannot see them
 
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
@@ -48,6 +54,11 @@ import {
   EXAMPLE_TOPIC,
 } from "./asyncapi/document.mjs";
 import { SchemaBuilder } from "./asyncapi/json-schema.mjs";
+import {
+  assertProseHygiene,
+  measure,
+  PROSE_DEBT,
+} from "./asyncapi/prose-hygiene.mjs";
 import {
   readChannelDispositions,
   readCommandDispositions,
@@ -192,8 +203,9 @@ export function generate() {
   assertUnitRoutesAgree(contract, units);
   assertUnitsSurvived(document, units);
   assertExamplesMatchTheirSchemas(document);
+  const hygiene = assertProseHygiene(contract);
 
-  return { document, contract, topics, commandArgs, units };
+  return { document, contract, topics, commandArgs, units, hygiene };
 }
 
 /**
@@ -735,12 +747,103 @@ async function validate(yaml) {
   return { warnings: warnings.length };
 }
 
+/**
+ * Rewrites the `PROSE_DEBT` literal in place from a fresh measurement.
+ *
+ * Only entries that FELL or vanished are written; a key that grew is left where
+ * it was, so this cannot be used to make a red gate green. Growth is a
+ * conversion going backwards, and the fix for that is the C#.
+ *
+ * `--reseed-prose-debt` is the one way to write a HIGHER number, and it exists
+ * for exactly one situation: the detector got sharper. Widening a pattern finds
+ * offences that were always there and always shipped, and refusing to record
+ * them would leave the only options as "revert the improvement" or "convert
+ * every newly-visible block in the same commit". Named separately from the
+ * ordinary flag so it cannot be reached for absent-mindedly, and it prints what
+ * it raised.
+ */
+function updateProseDebt({ reseed = false } = {}) {
+  const contract = readContract(join(ROOT, SOURCES.contract));
+  const { counts } = measure(contract);
+  const path = join(ROOT, "scripts/asyncapi/prose-hygiene.mjs");
+  const source = readFileSync(path, "utf8");
+
+  // The imported object, not a re-parse of the file's text. The module is
+  // already loaded, so this IS the committed state, and a second parser for the
+  // literal would have to track its quoting: the first version read only quoted
+  // keys and would have silently zeroed every allowance the moment the writer
+  // stopped quoting identifiers for biome.
+  const committed = PROSE_DEBT;
+  const merged = {};
+  const raised = [];
+  for (const [key, count] of Object.entries(counts)) {
+    const allowed = committed[key];
+    if (allowed === undefined || reseed) {
+      if (allowed !== undefined && count > allowed)
+        raised.push(`${key} ${allowed}->${count}`);
+      merged[key] = count;
+      continue;
+    }
+    merged[key] = Math.min(allowed, count);
+  }
+  if (raised.length > 0) {
+    console.log(
+      `asyncapi: reseeded ${raised.length} entry(s) UPWARD: ${raised.join(", ")}`,
+    );
+  }
+  // Quoted only where the key needs it, which is the member form. Biome's
+  // formatter unquotes anything that is a valid identifier, so a uniformly
+  // quoted list would be a lint failure on every regeneration of this list.
+  const body = Object.keys(merged)
+    .sort()
+    .map((key) => {
+      const literal = /^[A-Za-z_$][\w$]*$/.test(key)
+        ? key
+        : JSON.stringify(key);
+      return `  ${literal}: ${merged[key]},`;
+    })
+    .join("\n");
+  // Whether the literal was FOUND is a separate question from whether it
+  // changed, and conflating them made an idempotent second run report the
+  // pattern as broken. The list not moving is the normal case once a conversion
+  // has been recorded.
+  const literal =
+    /export const PROSE_DEBT = \{[\s\S]*?\n\};|export const PROSE_DEBT = \{\};/;
+  if (!literal.test(source)) {
+    throw new Error(
+      "asyncapi: could not find the PROSE_DEBT literal to rewrite. Its shape " +
+        "changed; update the pattern rather than hand-editing the list.",
+    );
+  }
+  const rewritten = source.replace(
+    literal,
+    `export const PROSE_DEBT = {\n${body}\n};`,
+  );
+  const total = Object.values(merged).reduce((sum, n) => sum + n, 0);
+  if (rewritten === source) {
+    console.log(
+      `asyncapi: prose debt already current, ${Object.keys(merged).length} declaration(s), ${total} marker(s)`,
+    );
+    return;
+  }
+  writeFileSync(path, rewritten);
+  console.log(
+    `asyncapi: prose debt rewritten, ${Object.keys(merged).length} declaration(s), ${total} marker(s)`,
+  );
+}
+
 async function main() {
   const argv = process.argv.slice(2);
   const check = argv.includes("--check");
   const toStdout = argv.includes("--stdout");
 
-  const { document, topics, commandArgs } = generate();
+  const reseed = argv.includes("--reseed-prose-debt");
+  if (reseed || argv.includes("--update-prose-debt")) {
+    updateProseDebt({ reseed });
+    return;
+  }
+
+  const { document, topics, commandArgs, hygiene } = generate();
   const yaml = serialise(document);
   const { warnings } = await validate(yaml);
 
@@ -756,7 +859,8 @@ async function main() {
   const summary =
     `asyncapi: ${topics.length} channels, ${commandArgs.length} commands, ` +
     `${Object.keys(document.components.schemas).length} schemas, ${prose} descriptions, ` +
-    `${countUnits(document)} unit annotations, ${warnings} spec warning(s)`;
+    `${countUnits(document)} unit annotations, ${warnings} spec warning(s), ` +
+    `${hygiene.markers} maintainer marker(s) left in ${hygiene.dirty} declaration(s)`;
 
   if (toStdout) {
     process.stdout.write(yaml);

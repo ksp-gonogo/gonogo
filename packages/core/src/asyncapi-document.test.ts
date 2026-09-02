@@ -365,6 +365,118 @@ describe("asyncapi.yaml", () => {
     ).toBeGreaterThan(100);
   });
 
+  describe("the <internal> prose convention", () => {
+    /**
+     * The gate that keeps maintainer rationale off the published surface.
+     *
+     * Every assertion here is about the DETECTOR rather than about the contract's
+     * current state, because the contract's state is a ratchet that moves every
+     * time somebody converts a block, and a test asserting today's number would
+     * fail on the next conversion. What must not move is the gate's ability to
+     * SEE: a pattern that matches nothing reports zero markers, zero reads as a
+     * clean contract, and the build goes green over prose nobody wanted shipped.
+     */
+    let hygiene: {
+      FAMILIES: Record<string, { pattern: RegExp; plant: string }>;
+      PROSE_DEBT: Record<string, number>;
+      markersIn: (text: string) => { family: string; text: string }[];
+      assertDetectorSees: () => void;
+      assertProseHygiene: (
+        contract: unknown,
+        options?: { debt?: Record<string, number> },
+      ) => { markers: number; dirty: number };
+      assertMarkerWasStripped: (contract: unknown) => void;
+    };
+
+    beforeAll(async () => {
+      const url = pathToFileURL(
+        join(REPO_ROOT, "scripts/asyncapi/prose-hygiene.mjs"),
+      ).href;
+      hygiene = (await import(url)) as typeof hygiene;
+    });
+
+    it("can see a planted violation of every family", () => {
+      // The gate's own blindness check, run here as well as in the generator so
+      // a widened-then-broken pattern fails a test rather than only a build.
+      expect(() => hygiene.assertDetectorSees()).not.toThrow();
+
+      for (const [family, { plant }] of Object.entries(hygiene.FAMILIES)) {
+        expect(
+          hygiene.markersIn(plant).map((marker) => marker.family),
+          `the ${family} plant`,
+        ).toContain(family);
+      }
+    });
+
+    it("sees a marker that the 76-column re-wrap split across a line", () => {
+      // `RtDocText` re-wraps every summary, so where a phrase breaks depends on
+      // the length of the sentence before it. A line-oriented detector read one
+      // marker on `StageDeltaVSummary` and was blind to its second, and blind to
+      // `CommandErrorCode` and `SasMode` entirely.
+      const wrapped = "This type is never\nserialized itself.";
+      expect(hygiene.markersIn(wrapped).map((m) => m.family)).toContain(
+        "typing-only",
+      );
+      expect(hygiene.markersIn(wrapped.replace("\n", " "))).toHaveLength(
+        hygiene.markersIn(wrapped).length,
+      );
+    });
+
+    it("fails when a declaration publishes more than its allowance", () => {
+      // Against the real contract with an EMPTY debt list: every entry currently
+      // on the list is over allowance, so the gate must refuse. A gate that
+      // passed here would be one whose comparison never runs.
+      expect(() => hygiene.assertProseHygiene(contract, { debt: {} })).toThrow(
+        /publish maintainer prose beyond their allowance/,
+      );
+    });
+
+    it("passes against its own committed debt list", () => {
+      expect(() => hygiene.assertProseHygiene(contract)).not.toThrow();
+    });
+
+    it("refuses a literal <internal> that reached the emitted TypeScript", () => {
+      // If the marker survives codegen the strip did not run, so every
+      // conversion in the tree is inert while reading as deliberate publication.
+      expect(() => hygiene.assertMarkerWasStripped(contract)).not.toThrow();
+
+      const leaked = {
+        interfaces: new Map([
+          [
+            "Planted",
+            {
+              name: "Planted",
+              description: "What it is. <internal>Why it is.</internal>",
+              fields: [],
+            },
+          ],
+        ]),
+        enums: new Map(),
+      };
+      expect(() => hygiene.assertMarkerWasStripped(leaked)).toThrow(
+        /still carry a literal <internal> marker/,
+      );
+    });
+
+    it("keeps the debt list shrink-only, and the converted blocks off it", () => {
+      // The five converted in the landing commit. Named rather than counted:
+      // a count would pass if a different five were converted and these five
+      // silently came back.
+      for (const converted of [
+        "StageDeltaVEntry",
+        "PayloadMeta",
+        "NoCommandArgs",
+        "CareerStatus",
+        "CareerStatus.facilities",
+      ]) {
+        expect(
+          hygiene.PROSE_DEBT[converted],
+          `${converted} was converted; it must not reappear on the debt list`,
+        ).toBeUndefined();
+      }
+    });
+  });
+
   it("is not carrying the codegen's method leaks as wire fields", () => {
     // Two C# static factory helpers reach the emitted contract as method
     // signatures on a payload type. They are not fields, and a schema listing

@@ -75,7 +75,8 @@ public class RtDocVisitor : TypeScriptExportVisitor
         // cannot open.
         Console.WriteLine(
             $"codegen (docs) -> {_blocks} declarations documented, "
-            + $"{_pointers} crefs carried as pointers, {_demoted} as prose");
+            + $"{_pointers} crefs carried as pointers, {_demoted} as prose, "
+            + $"{RtDocText.InternalBlocksStripped} <{RtDocText.InternalElement}> blocks withheld");
     }
 
     public override void Visit(RtJsdocNode node)
