@@ -9,7 +9,7 @@ Answers the two questions a Realism Overhaul burn turns on: can this engine be l
 | --- | --- |
 | Uplink id | `realfuels` |
 | Version | `0.0.1` |
-| Built against | contract 14.6, api 1.0.0, ui-kit 0.2.0 |
+| Built against | contract 14.6, api 1.0.0, ui-kit 0.1.0 |
 
 ## Wire
 
