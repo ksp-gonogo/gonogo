@@ -1,5 +1,4 @@
-import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
-import type { BadgeTone } from "../Badge";
+import type { BadgeEntry, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
 import type { ReadoutTone } from "../Readout";
 import type { StatusTone } from "../StatusIndicator";
 import type { TextTone } from "../Text";
@@ -104,12 +103,18 @@ export function severityFromReadoutTone(tone: ReadoutTone): Severity {
 }
 
 /**
- * `BadgeTone` -> `Severity`. `neutral` is a decorative kind-chip with no
- * severity, folded to the floor for the merge; `Badge` itself still paints a
- * neutral `tone` as its own decorative grey rather than nominal green (see
- * `Badge`).
+ * A contributed `BadgeEntry`'s `tone` -> `Severity`. This is a DATA fold, not a
+ * prop one: `Badge` speaks only `Severity`, but the `badges` contribution
+ * segment is part of the published contract and names its own tone vocabulary,
+ * so an Uplink's badge data still has to reach the scale.
+ *
+ * `neutral` folds to the floor so it can take part in a merge. A caller
+ * rendering the entry should map `neutral` to NO severity instead, which draws
+ * the decorative grey chip that a kind-tag wants (see `Panel`'s badge pills).
  */
-export function severityFromBadgeTone(tone: BadgeTone): Severity {
+export function severityFromBadgeEntryTone(
+  tone: NonNullable<BadgeEntry["tone"]>,
+): Severity {
   switch (tone) {
     case "neutral":
     case "go":
@@ -123,7 +128,7 @@ export function severityFromBadgeTone(tone: BadgeTone): Severity {
   }
 }
 
-/** `StatusTone` -> `Severity`. Same folding as `BadgeTone` over its own names. */
+/** `StatusTone` -> `Severity`. Same folding as `BadgeEntry`'s over its own names. */
 export function severityFromStatusTone(tone: StatusTone): Severity {
   switch (tone) {
     case "neutral":

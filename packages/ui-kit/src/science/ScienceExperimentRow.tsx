@@ -80,10 +80,10 @@ export function ScienceExperimentRow({
           rest of it goes, the same as Panel's compacted title. */}
       <RowName title={instrument.partTitle}>{instrument.partTitle}</RowName>
       <Inline wrap>
-        {instrument.hasData && <Badge tone="go">DATA</Badge>}
-        {instrument.deployed && <Badge tone="neutral">DEPLOYED</Badge>}
-        {!instrument.rerunnable && <Badge tone="neutral">ONE-SHOT</Badge>}
-        {instrument.inoperable && <Badge tone="nogo">INOPERABLE</Badge>}
+        {instrument.hasData && <Badge severity="nominal">DATA</Badge>}
+        {instrument.deployed && <Badge>DEPLOYED</Badge>}
+        {!instrument.rerunnable && <Badge>ONE-SHOT</Badge>}
+        {instrument.inoperable && <Badge severity="critical">INOPERABLE</Badge>}
       </Inline>
       {/* Inoperable instruments can't deploy or transmit. Hide the controls
           entirely rather than greying them out: the INOPERABLE badge

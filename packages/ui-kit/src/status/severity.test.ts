@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   type Severity,
-  severityFromBadgeTone,
+  severityFromBadgeEntryTone,
   severityFromReadoutTone,
   severityFromStatusTone,
   severityFromStreamStatus,
@@ -104,21 +104,21 @@ describe("severityFromReadoutTone (mapping table)", () => {
   });
 });
 
-describe("severityFromBadgeTone (mapping table)", () => {
+describe("severityFromBadgeEntryTone (mapping table)", () => {
   it("go -> nominal", () => {
-    expect(severityFromBadgeTone("go")).toBe("nominal");
+    expect(severityFromBadgeEntryTone("go")).toBe("nominal");
   });
   it("info -> info", () => {
-    expect(severityFromBadgeTone("info")).toBe("info");
+    expect(severityFromBadgeEntryTone("info")).toBe("info");
   });
   it("warn -> warning", () => {
-    expect(severityFromBadgeTone("warn")).toBe("warning");
+    expect(severityFromBadgeEntryTone("warn")).toBe("warning");
   });
   it("nogo -> critical", () => {
-    expect(severityFromBadgeTone("nogo")).toBe("critical");
+    expect(severityFromBadgeEntryTone("nogo")).toBe("critical");
   });
   it("neutral -> nominal (decorative folds to the floor)", () => {
-    expect(severityFromBadgeTone("neutral")).toBe("nominal");
+    expect(severityFromBadgeEntryTone("neutral")).toBe("nominal");
   });
 });
 

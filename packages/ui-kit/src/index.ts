@@ -68,7 +68,6 @@ export {
   Badge,
   type BadgeProps,
   type BadgeSize,
-  type BadgeTone,
 } from "./Badge";
 // `Unit`'s interval twin: a quantity that arrived as a range stays one, because
 // the width of a mean orbital element is the number that says whether the orbit
@@ -491,7 +490,7 @@ export {
 // ── Status system (canonical severity vocabulary + panel status store) ────────
 export {
   type Severity,
-  severityFromBadgeTone,
+  severityFromBadgeEntryTone,
   severityFromReadoutTone,
   severityFromStatusTone,
   severityFromStreamStatus,

@@ -14,5 +14,4 @@ export {
   Badge,
   type BadgeProps,
   type BadgeSize,
-  type BadgeTone,
 } from "@ksp-gonogo/ui-kit";

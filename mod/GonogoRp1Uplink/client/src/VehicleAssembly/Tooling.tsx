@@ -213,7 +213,9 @@ function groupIntoPurchases(parts: readonly Rp1ToolingEntry[]): Purchase[] {
 function PurchaseCard({ purchase }: Readonly<{ purchase: Purchase }>) {
   return (
     <ProjectCard
-      badge={purchase.tooled ? <Badge tone="go">Tooled</Badge> : undefined}
+      badge={
+        purchase.tooled ? <Badge severity="nominal">Tooled</Badge> : undefined
+      }
       detail={purchase.size}
       name={purchase.heading}
       tone={purchase.tooled ? "go" : "warning"}

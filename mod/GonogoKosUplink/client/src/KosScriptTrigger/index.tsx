@@ -255,13 +255,13 @@ function KosScriptTriggerComponent({
             )}
             {run.status === "ok" && (
               <Result>
-                <Badge tone="go">OK</Badge>
+                <Badge severity="nominal">OK</Badge>
                 <ResultFields data={run.data} />
               </Result>
             )}
             {run.status === "error" && (
               <Result>
-                <Badge tone="nogo">
+                <Badge severity="critical">
                   {run.scriptFault ? "Script error" : "Dispatch error"}
                 </Badge>
                 <ErrorText>{run.message}</ErrorText>

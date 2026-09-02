@@ -231,11 +231,10 @@ export type ContributionSlotId = keyof ContributionRegistry;
  * below: contribution data, which an Uplink writes and the contract has to name.
  * The component stays in ui-kit and re-exports this.
  *
- * `tone` is inlined rather than referring to ui-kit's `BadgeTone`, and not only
- * because the leaf cannot name it: `BadgeTone` is deprecated there, folding into
- * `severity` under the styleguide ratchet. Publishing it from here would give a
- * name that is on its way out a second, undeprecated home. A contribution's tone
- * outlives that migration because it is data, not a prop.
+ * `tone` is inlined rather than naming a ui-kit type because the leaf cannot
+ * reach one. It is DATA, not a prop: ui-kit's `Badge` now speaks only
+ * `Severity`, and a renderer folds an entry's tone onto that scale with
+ * `severityFromBadgeEntryTone`.
  */
 export interface BadgeEntry {
   id: string;

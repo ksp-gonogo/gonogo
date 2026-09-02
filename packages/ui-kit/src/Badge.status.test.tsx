@@ -32,24 +32,6 @@ describe("Badge severity vocabulary", () => {
   });
 });
 
-describe("Badge tone (deprecated alias) folds onto severity", () => {
-  it("renders neutral tone as the decorative grey, not nominal", () => {
-    const { rerender } = render(<Badge tone="neutral">N</Badge>);
-    const neutralClass = screen.getByText("N").className;
-    rerender(<Badge>N</Badge>);
-    // neutral tone === no severity === decorative default.
-    expect(screen.getByText("N").className).toBe(neutralClass);
-  });
-
-  it("maps a semantic tone to the matching severity look", () => {
-    const { rerender } = render(<Badge tone="nogo">X</Badge>);
-    const nogoClass = screen.getByText("X").className;
-    rerender(<Badge severity="critical">X</Badge>);
-    // nogo folds to critical, so they render identically.
-    expect(screen.getByText("X").className).toBe(nogoClass);
-  });
-});
-
 describe("Badge live-region behaviour", () => {
   it("announces when live", () => {
     render(

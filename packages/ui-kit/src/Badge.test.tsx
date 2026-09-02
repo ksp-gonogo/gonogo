@@ -8,11 +8,11 @@ describe("Badge", () => {
     expect(screen.getByText("kos")).toBeInTheDocument();
   });
 
-  it("applies a different class for different tones", () => {
-    const { rerender } = render(<Badge tone="neutral">N</Badge>);
-    const neutralClass = screen.getByText("N").className;
-    rerender(<Badge tone="warn">N</Badge>);
-    expect(screen.getByText("N").className).not.toBe(neutralClass);
+  it("applies a different class for different severities", () => {
+    const { rerender } = render(<Badge>N</Badge>);
+    const decorativeClass = screen.getByText("N").className;
+    rerender(<Badge severity="warning">N</Badge>);
+    expect(screen.getByText("N").className).not.toBe(decorativeClass);
   });
 
   it("applies a different class for different sizes", () => {

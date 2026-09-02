@@ -522,7 +522,7 @@ function ActionGroupView({
         unavailableReason && getSizeBucket(w, h) !== "tiny" && (
           <Section key="unavailable" full>
             <Badge
-              tone="warn"
+              severity="warning"
               size="sm"
               role="status"
               aria-live="polite"

@@ -1,6 +1,6 @@
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useProcessor } from "@ksp-gonogo/sitrep-sdk";
-import { Badge, formatDuration, type MeterTone } from "@ksp-gonogo/ui-kit";
+import { Badge, formatDuration, type Severity } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
 // Side-effect: registers the per-kerbal survival METERS, which were the
 // `crew-status.survival` augment in this file until they became data. See that
@@ -42,7 +42,7 @@ function findKerbal(
  */
 function warningFor(
   kerbal: KerbalSurvival,
-): { label: string; tone: MeterTone } | null {
+): { label: string; severity: Severity } | null {
   if (kerbal.tone !== "nogo") return null;
   if (kerbal.deathClockSec !== null) {
     // A death clock is a DURATION, not a scalar quantity: it must render
@@ -53,13 +53,13 @@ function warningFor(
     // `text-transform: uppercase` gets hold of it.
     return {
       label: `~${formatDuration(Math.max(0, kerbal.deathClockSec))} to fatal`,
-      tone: kerbal.tone,
+      severity: "critical",
     };
   }
   if (kerbal.worstRule) {
     return {
       label: `${ruleLabel(kerbal.worstRule.name)} critical`,
-      tone: kerbal.tone,
+      severity: "critical",
     };
   }
   return null;
@@ -87,7 +87,7 @@ function CrewSurvivalBadgeAugment({
   const warning = warningFor(kerbal);
   if (!warning) return null;
   return (
-    <Badge tone={warning.tone} size="sm">
+    <Badge severity={warning.severity} size="sm">
       {warning.label}
     </Badge>
   );

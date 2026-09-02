@@ -9,7 +9,6 @@ import {
 import { Placeholder } from "@ksp-gonogo/ui";
 import {
   Badge,
-  type BadgeTone,
   BigReadout,
   Box,
   Cluster,
@@ -25,6 +24,7 @@ import {
   PrimaryButton,
   ReadoutCaption,
   Section,
+  type Severity,
   Stack,
   StatusIndicator,
   type StatusTone,
@@ -294,7 +294,6 @@ function RemoteVersionPill({ sourceId }: { sourceId: string }) {
   if (kind === "same" || kind === "patch") {
     return (
       <Badge
-        tone="neutral"
         size="sm"
         title={`v${remote.version}${remote.buildTime ? ` (build ${remote.buildTime})` : ""}`}
       >
@@ -304,7 +303,7 @@ function RemoteVersionPill({ sourceId }: { sourceId: string }) {
   }
   return (
     <Badge
-      tone={VERSION_BADGE_TONE[kind]}
+      severity={VERSION_BADGE_SEVERITY[kind]}
       size="sm"
       title={`Local ↔ remote: ${kind} mismatch (remote v${remote.version})`}
     >
@@ -354,8 +353,13 @@ const SETUP_INSTRUCTIONS_STYLE = {
   lineHeight: "var(--line-height-prose)",
 } as const;
 
-const VERSION_BADGE_TONE: Record<"minor" | "major" | "unknown", BadgeTone> = {
-  minor: "warn",
-  major: "nogo",
-  unknown: "neutral",
+// `unknown` gets NO severity, not the nominal floor: an unreadable version
+// pairing is a decorative grey chip, it is not a healthy reading.
+const VERSION_BADGE_SEVERITY: Record<
+  "minor" | "major" | "unknown",
+  Severity | undefined
+> = {
+  minor: "warning",
+  major: "critical",
+  unknown: undefined,
 };

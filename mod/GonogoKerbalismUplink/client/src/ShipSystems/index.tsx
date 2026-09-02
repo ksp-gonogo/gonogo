@@ -25,7 +25,7 @@ import {
   Section,
   type Severity,
   Stack,
-  severityFromBadgeTone,
+  severityFromBadgeEntryTone,
   speakQuantity,
   Text,
   Unit,
@@ -59,7 +59,7 @@ type ShipSystemsConfig = Record<string, never>;
 
 // ---------------------------------------------------------------------------
 // Tone + format helpers. `Tone` mirrors the vocabulary `Meter`/`Value`/
-// `Badge` (via `severityFromBadgeTone`) already speak; nothing here invents a
+// `Badge` (via `severityFromBadgeEntryTone`) already speak; nothing here invents a
 // second colour system.
 //
 // `neutral` is the RESTING tone, and it is load-bearing (operator feedback:
@@ -400,7 +400,7 @@ function ShipSystemsBody({
         <Badge
           role="status"
           aria-live="polite"
-          severity={severityFromBadgeTone(status.tone)}
+          severity={severityFromBadgeEntryTone(status.tone)}
         >
           {status.label}
         </Badge>

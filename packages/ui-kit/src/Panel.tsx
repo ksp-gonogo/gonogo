@@ -27,7 +27,10 @@ import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
 import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 import { PanelStatusDot } from "./status/PanelStatusDot";
 import type { StatusSummary } from "./status/PanelStatusStore";
-import { severityFromStreamStatus } from "./status/severity";
+import {
+  severityFromBadgeEntryTone,
+  severityFromStreamStatus,
+} from "./status/severity";
 import { useStatusBreakdown } from "./status/useStatusBreakdown";
 import { useStatusContribution } from "./status/useStatusContribution";
 import { useStatusSummary } from "./status/useStatusSummary";
@@ -1849,7 +1852,17 @@ function PanelRoot({
     badges.length === 0 ? null : (
       <>
         {badges.map((b) => (
-          <Badge key={b.id} tone={b.tone ?? "neutral"}>
+          /* An absent or `neutral` entry tone is a decorative kind-chip, so
+             it gets NO severity rather than the nominal floor: a contributed
+             label with nothing to report must not paint itself go-green. */
+          <Badge
+            key={b.id}
+            severity={
+              b.tone === undefined || b.tone === "neutral"
+                ? undefined
+                : severityFromBadgeEntryTone(b.tone)
+            }
+          >
             {b.label}
           </Badge>
         ))}

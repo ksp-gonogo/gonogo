@@ -9,11 +9,11 @@ describe("Badge", () => {
     expect(screen.getByText("kos")).toBeInTheDocument();
   });
 
-  it("applies a different class for different tones", () => {
-    const { rerender } = render(<Badge tone="neutral">N</Badge>);
-    const neutralClass = screen.getByText("N").className;
-    rerender(<Badge tone="warn">N</Badge>);
-    expect(screen.getByText("N").className).not.toBe(neutralClass);
+  it("applies a different class for different severities", () => {
+    const { rerender } = render(<Badge>N</Badge>);
+    const decorativeClass = screen.getByText("N").className;
+    rerender(<Badge severity="warning">N</Badge>);
+    expect(screen.getByText("N").className).not.toBe(decorativeClass);
   });
 
   it("applies a different class for different sizes", () => {
@@ -33,14 +33,16 @@ describe("Badge", () => {
     expect(node).toHaveAttribute("title", "alarm state");
   });
 
-  it("has no axe violations across all tones and sizes", async () => {
+  it("has no axe violations across all severities and sizes", async () => {
     const { container } = render(
       <>
-        <Badge tone="neutral">neutral</Badge>
-        <Badge tone="go">go</Badge>
-        <Badge tone="nogo">nogo</Badge>
-        <Badge tone="warn">warn</Badge>
-        <Badge tone="info">info</Badge>
+        <Badge>decorative</Badge>
+        <Badge severity="nominal">nominal</Badge>
+        <Badge severity="info">info</Badge>
+        <Badge severity="caution">caution</Badge>
+        <Badge severity="warning">warning</Badge>
+        <Badge severity="critical">critical</Badge>
+        <Badge severity="offline">offline</Badge>
         <Badge size="sm">small</Badge>
       </>,
     );

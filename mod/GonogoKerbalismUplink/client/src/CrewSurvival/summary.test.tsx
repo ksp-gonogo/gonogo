@@ -59,7 +59,7 @@ describe("radiationSummaryFor", () => {
       radiationSummaryFor({
         habitatRadiationRadPerSecond: radPerSec(5 / 3600),
       }),
-    ).toEqual({ label: "High radiation environment", tone: "warn" });
+    ).toEqual({ label: "High radiation environment", severity: "warning" });
   });
 
   it("flags a storm in progress as the most severe condition, regardless of dose", () => {
@@ -68,13 +68,13 @@ describe("radiationSummaryFor", () => {
         habitatRadiationRadPerSecond: radPerSec(0.01 / 3600),
         stormInProgress: true,
       }),
-    ).toEqual({ label: "Radiation storm in progress", tone: "nogo" });
+    ).toEqual({ label: "Radiation storm in progress", severity: "critical" });
   });
 
   it("falls back to the ambient reading when no habitat-specific figure is reported", () => {
     expect(
       radiationSummaryFor({ radiationRadPerSecond: radPerSec(5 / 3600) }),
-    ).toEqual({ label: "High radiation environment", tone: "warn" });
+    ).toEqual({ label: "High radiation environment", severity: "warning" });
   });
 });
 
@@ -122,7 +122,7 @@ describe("CrewRadiationSummaryAugment", () => {
     expect(banner.querySelector("[data-unit]")).not.toBeNull();
   });
 
-  it("shows the storm banner in the nogo tone", async () => {
+  it("shows the storm banner at critical severity", async () => {
     const fixture = newFixture();
     renderAugment(fixture);
     act(() => {

@@ -3,9 +3,9 @@ import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
-  type MeterTone,
   magnitudeOf,
   ReadoutCaption,
+  type Severity,
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { KerbalismSpaceWeather } from "../__generated__/contract";
@@ -38,7 +38,7 @@ export const HIGH_RADIATION_RAD_PER_HOUR = 0.5;
 
 interface RadiationSummary {
   label: string;
-  tone: MeterTone;
+  severity: Severity;
 }
 
 /**
@@ -57,7 +57,7 @@ function radiationSummaryFor(
 ): RadiationSummary | null {
   if (!weather) return null;
   if (weather.stormInProgress === true) {
-    return { label: "Radiation storm in progress", tone: "nogo" };
+    return { label: "Radiation storm in progress", severity: "critical" };
   }
   // Habitat dose (post-shielding, what the crew actually absorbs) is the
   // right reading for a CREW status summary; falls back to the ambient
@@ -70,7 +70,7 @@ function radiationSummaryFor(
   if (doseRadPerSecond === null) return null;
   const doseRadPerHour = doseRadPerSecond * 3600;
   if (doseRadPerHour >= HIGH_RADIATION_RAD_PER_HOUR) {
-    return { label: "High radiation environment", tone: "warn" };
+    return { label: "High radiation environment", severity: "warning" };
   }
   return null;
 }
@@ -100,7 +100,7 @@ function CrewRadiationSummaryAugment(_props: SlotProps<"crew-status.summary">) {
       aria-live="polite"
       aria-label="crew radiation status"
     >
-      <Badge tone={summary.tone} size="sm">
+      <Badge severity={summary.severity} size="sm">
         {summary.label}
       </Badge>
       {doseValue && (

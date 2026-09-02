@@ -70,7 +70,7 @@ function CommSignalRaBadges() {
     // readings, not one run-on label, and `xs`'s 2px gap read as the rate
     // crowding the pill's rounded edge rather than sitting beside it.
     <Cluster gap="sm" align="center">
-      {ext?.band ? <Badge tone="info">{ext.band}-band</Badge> : null}
+      {ext?.band ? <Badge severity="info">{ext.band}-band</Badge> : null}
       {down !== undefined ? (
         <Text size="xs" tone="muted">
           <Unit value={down} />

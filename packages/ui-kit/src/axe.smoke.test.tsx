@@ -55,14 +55,16 @@ describe("a11y smoke (jest-axe)", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("Badge has no axe violations across tones", async () => {
+  it("Badge has no axe violations across severities", async () => {
     const { container } = render(
       <>
-        <Badge tone="neutral">neutral</Badge>
-        <Badge tone="go">go</Badge>
-        <Badge tone="nogo">nogo</Badge>
-        <Badge tone="warn">warn</Badge>
-        <Badge tone="info">info</Badge>
+        <Badge>decorative</Badge>
+        <Badge severity="nominal">nominal</Badge>
+        <Badge severity="info">info</Badge>
+        <Badge severity="caution">caution</Badge>
+        <Badge severity="warning">warning</Badge>
+        <Badge severity="critical">critical</Badge>
+        <Badge severity="offline">offline</Badge>
       </>,
     );
     await expectNoA11yViolations(container);

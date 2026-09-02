@@ -31,7 +31,7 @@ import {
   Panel,
   ReadoutCaption,
   Section,
-  severityFromBadgeTone,
+  severityFromBadgeEntryTone,
   Text,
   Truncate,
   Unit,
@@ -592,7 +592,7 @@ function FleetRosterComponent({
     <Panel
       panelTitle="Fleet"
       panelAside={
-        <Badge severity={severityFromBadgeTone(rollup.tone)}>
+        <Badge severity={severityFromBadgeEntryTone(rollup.tone)}>
           {rollup.badgeLabel}
         </Badge>
       }

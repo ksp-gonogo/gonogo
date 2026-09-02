@@ -1,16 +1,10 @@
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { fitBox } from "./fitBox";
-import { type Severity, severityFromBadgeTone } from "./status/severity";
+import type { Severity } from "./status/severity";
 import { severityDotColor } from "./status/severityDotColor";
 import { useStatusContribution } from "./status/useStatusContribution";
 
-/**
- * @deprecated Use `severity`. Kept as a fold alias through the migration window,
- * then removed by the styleguide ratchet. `neutral` has no severity and stays a
- * decorative grey chip; the rest fold through `severityFromBadgeTone`.
- */
-export type BadgeTone = "neutral" | "go" | "nogo" | "warn" | "info";
 export type BadgeSize = "sm" | "md";
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
@@ -20,8 +14,6 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
    * grey chip and never moves a panel summary.
    */
   severity?: Severity;
-  /** @deprecated Use `severity`. Folds through `severityFromBadgeTone`. */
-  tone?: BadgeTone;
   size?: BadgeSize;
   /**
    * Announce this badge as a screen-reader live region (`role="status"`). Use
@@ -52,22 +44,12 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
  */
 export function Badge({
   severity,
-  tone,
   size = "md",
   live = false,
   report,
   children,
   ...rest
 }: BadgeProps) {
-  // `neutral` tone (and no tone at all) is decorative: render grey, no severity.
-  // Every other tone folds onto the scale, so an un-migrated `tone=` caller
-  // renders exactly as before.
-  const resolvedSeverity: Severity | undefined =
-    severity ??
-    (tone !== undefined && tone !== "neutral"
-      ? severityFromBadgeTone(tone)
-      : undefined);
-
   const reportLabel =
     report?.label ?? (typeof children === "string" ? children : "");
   useStatusContribution(
@@ -75,7 +57,7 @@ export function Badge({
       ? {
           id: report.id,
           // A reporting badge with no severity sits at the floor.
-          severity: resolvedSeverity ?? "nominal",
+          severity: severity ?? "nominal",
           label: reportLabel,
         }
       : null,
@@ -86,12 +68,7 @@ export function Badge({
     : {};
 
   return (
-    <Badge__Body
-      $severity={resolvedSeverity}
-      $size={size}
-      {...liveAttrs}
-      {...rest}
-    >
+    <Badge__Body $severity={severity} $size={size} {...liveAttrs} {...rest}>
       {children}
     </Badge__Body>
   );
