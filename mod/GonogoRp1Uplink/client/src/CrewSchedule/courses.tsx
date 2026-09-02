@@ -181,11 +181,11 @@ function progressOf(
 
 registerAugment({
   id: "rp1-training-courses",
-  augments: "astronaut-complex.sections",
+  augments: "astronaut-complex.training",
   channels: ["rp1.available", "rp1.training", "rp1.crew"],
   component: TrainingCourses,
-  // Between the rules and the way onto a course: an operator reads what is
-  // already running before deciding to start another.
+  // Before the way onto a course: an operator reads what is already running
+  // before deciding to start another.
   priority: 10,
   owner: RP1,
 });

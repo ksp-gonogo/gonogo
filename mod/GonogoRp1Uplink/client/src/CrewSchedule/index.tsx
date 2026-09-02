@@ -78,7 +78,7 @@ export function CrewSchedule({
 
   const retirement = retirementLine(row, program?.retirementEnabled);
   const training = trainingLine(row);
-  const expiry = expiryLine(row);
+  const expiry = expiryLine(row, program?.missionTrainingEnabled);
   // A row with no date to state renders no wrapper at all rather than an empty
   // one, which is most rows on most careers.
   if (!retirement && !training && !expiry) {
@@ -192,8 +192,22 @@ function trainingLine(row: Rp1CrewEntry) {
  * on the part, and mission training expires a set interval after the course
  * completes. "Atlas-D training lapses" left an operator to work out which of the
  * two they were about to lose.</para>
+ *
+ * <para>Absent entirely on a save with mission training switched off, and that
+ * is not tidiness: RP-1 stops CHECKING mission training there, so a lapse date
+ * that survived the switch being thrown is a deadline nothing will enforce.
+ * <c>CheckCrewForPart</c> returns true without asking, and
+ * <c>NautHasTrainingForPart</c> clears its mission branch on the same flag. A
+ * date an operator would plan around and the game would never act on is worse
+ * than no date.</para>
  */
-function expiryLine(row: Rp1CrewEntry) {
+function expiryLine(
+  row: Rp1CrewEntry,
+  missionTrainingEnabled: boolean | undefined,
+) {
+  if (missionTrainingEnabled === false) {
+    return null;
+  }
   const at = magnitudeOf(row.nextTrainingExpiryUt);
   if (at === null) {
     return null;

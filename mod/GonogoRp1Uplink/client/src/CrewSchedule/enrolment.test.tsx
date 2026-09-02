@@ -20,9 +20,19 @@ const TOPICS = [
   "rp1.crew",
   "rp1.training",
   "rp1.trainingCatalogue",
+  "rp1.crewProgram",
   "spaceCenter.crewRoster",
   RP1_TRAINING_ENROL_COMMAND,
 ];
+
+/** RP-1's own crew rules: every mechanic on, both training rates at 1. */
+const DEFAULT_RULES = {
+  crewRnREnabled: true,
+  missionTrainingEnabled: true,
+  missionTrainingRate: 1,
+  proficiencyTrainingRate: 1,
+  retirementEnabled: true,
+};
 
 const LUDREY = "Ludrey Kerman";
 const NEDCAS = "Nedcas Kerman";
@@ -107,11 +117,16 @@ async function present(
     catalogue = [PAIR, SOLO],
     courses = [] as Record<string, unknown>[],
     crew = [] as Record<string, unknown>[],
+    program = {} as Record<string, unknown>,
     roster = [rosterRow(LUDREY), rosterRow(NEDCAS)],
   }: {
     catalogue?: Record<string, unknown>[];
     courses?: Record<string, unknown>[];
     crew?: Record<string, unknown>[];
+    /* The crew rules, which this section reads for one thing only: whether
+       mission training is running at all. Defaulted to RP-1's own, so a test
+       that says nothing about the settings gets a save on the defaults. */
+    program?: Record<string, unknown>;
     roster?: Record<string, unknown>[];
   } = {},
 ) {
@@ -124,6 +139,7 @@ async function present(
     fixture.emit("spaceCenter.crewRoster", roster);
     fixture.emit("rp1.crew", crew);
     fixture.emit("rp1.training", courses);
+    fixture.emit("rp1.crewProgram", { ...DEFAULT_RULES, ...program });
     fixture.emit("rp1.trainingCatalogue", catalogue);
   });
 }
@@ -215,11 +231,6 @@ describe("filling a multi-seat training", () => {
   });
 
   /**
-   * `rp1.training.enrol` does not ask whether a training is unlocked, because
-   * RP-1's own screen answers that by not listing it. Offering one would start a
-   * course on hardware the career has not researched.
-   */
-  /**
    * RP-1 generates two trainings per crewed part and the operator is choosing
    * between them: a proficiency is a permanent qualification, mission training
    * expires a set interval after the course completes. The picker cannot say so,
@@ -242,6 +253,34 @@ describe("filling a multi-seat training", () => {
     expect(visibleText()).not.toContain("Lapses after completion");
   });
 
+  /**
+   * The setting is honoured rather than reported. With mission training off
+   * RP-1 generates no such template and never checks one, so offering a
+   * survivor from before the switch was thrown would start a course nothing
+   * will ever look at.
+   */
+  it("offers no mission training on a save that has it off", async () => {
+    const { fixture } = mount();
+    await present(fixture, {
+      catalogue: [PAIR, SOLO],
+      program: { missionTrainingEnabled: false },
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("option", { name: "Proficiency: Mercury-Redstone" }),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByRole("option", { name: "Mission training: Gemini" }),
+    ).not.toBeInTheDocument();
+  });
+
+  /**
+   * `rp1.training.enrol` does not ask whether a training is unlocked, because
+   * RP-1's own screen answers that by not listing it. Offering one would start a
+   * course on hardware the career has not researched.
+   */
   it("offers only the trainings the career has unlocked", async () => {
     const { fixture } = mount();
     await present(fixture, { catalogue: [SOLO, LOCKED] });

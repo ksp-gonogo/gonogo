@@ -12,7 +12,6 @@ import "./CrewSchedule";
 import "./CrewSchedule/courses";
 import "./CrewSchedule/enrolment";
 import "./ContractPayload";
-import "./CrewSchedule/programme";
 import "./FacilityUpgrades";
 import "./KscComplexes";
 import "./KscConstruction";
@@ -31,7 +30,6 @@ export {
 export { CrewSchedule } from "./CrewSchedule";
 export { TrainingCourses } from "./CrewSchedule/courses";
 export { TrainingEnrolment } from "./CrewSchedule/enrolment";
-export { CrewProgramme } from "./CrewSchedule/programme";
 export {
   RP1_TRAINING_CANCEL_COMMAND,
   RP1_TRAINING_ENROL_COMMAND,

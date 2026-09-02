@@ -290,8 +290,8 @@ describe("TrainingCourses", () => {
     expect(control).toHaveAccessibleName(`${NAUT} off`);
   });
 
-  it("registers itself into the Astronaut Complex's sections slot", () => {
-    const augments = getAugmentsForSlot("astronaut-complex.sections");
+  it("registers itself into the Astronaut Complex training tab", () => {
+    const augments = getAugmentsForSlot("astronaut-complex.training");
     expect(augments.map((a) => a.id)).toContain("rp1-training-courses");
   });
 });

@@ -1,7 +1,8 @@
 {
   "_meta": {
     "notes": "A Gemini crew that cannot be filled, and the two names that are the reason. RP-1 refuses the whole command by the name of the first student it will not take rather than starting the course a seat short, so a generic failure would send an operator through the roster hunting for who. Valentina is off-world and Nedcas is standing down after a flight, both dark and both carrying their reason; Ludrey is picked and is the only name the career has left, one short of the two Gemini needs. The dark Enrol says which arithmetic failed, not that something did",
-    "why-two-refusals": "One dark name reads as that kerbal's problem. Two, for two different reasons, is what makes the sentence a fact about the CAREER: this crew is not available this month"
+    "why-two-refusals": "One dark name reads as that kerbal's problem. Two, for two different reasons, is what makes the sentence a fact about the CAREER: this crew is not available this month",
+    "why-an-applicant-in-the-roster": "Sinta is an APPLICANT, and she is here to be absent from the picker. RP-1 refuses a kerbal who is not yet crew, so candidatesOf drops an applicant rather than refusing them, and a roster that carries nobody with isApplicant set never exercises that branch on any render"
   },
   "_scene": {
     "augment": "rp1-training-enrolment",
@@ -95,6 +96,20 @@
             "stupidity": 0.1,
             "experienceLevelDelta": 0.7,
             "standing": 3
+          },
+          {
+            "name": "Sinta Kerman",
+            "trait": "Scientist",
+            "experienceLevel": 0,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.5,
+            "stupidity": 0.5,
+            "experienceLevelDelta": 0,
+            "standing": 2,
+            "isApplicant": true
           }
         ]
       },

@@ -64,6 +64,7 @@ export function TrainingEnrolment() {
   const roster = current(useTelemetry("spaceCenter.crewRoster"));
   const crew = current(useTelemetry("rp1.crew"));
   const courses = current(useTelemetry("rp1.training"));
+  const program = current(useTelemetry("rp1.crewProgram"));
 
   const [pickedTemplate, setPickedTemplate] = useState<string | null>(null);
   const [picked, setPicked] = useState<ReadonlySet<string>>(NOBODY);
@@ -90,9 +91,21 @@ export function TrainingEnrolment() {
   /* The trainings the career has UNLOCKED and no others. `rp1.training.enrol`
      does not ask whether a training is unlocked, because RP-1's own screen
      answers that by not listing it, so an offered locked training would start a
-     course on hardware the career has not researched rather than be refused. */
+     course on hardware the career has not researched rather than be refused.
+
+     Mission training goes with the SETTING as well as with the unlock. RP-1
+     generates a mission template only while `IsMissionTrainingEnabled`
+     (`CrewHandler.AddPartCourses`), so on a save with the mechanic off the
+     catalogue should carry none; the filter holds anyway, because a template
+     generated before the switch was thrown would otherwise still be offered and
+     would start a course nothing will ever check. */
   const offered = catalogue.filter(
-    (template) => template.unlocked === true && template.id,
+    (template) =>
+      template.unlocked === true &&
+      template.id &&
+      !(
+        template.type === "Mission" && program?.missionTrainingEnabled === false
+      ),
   );
   const candidates = candidatesOf(roster, crew, courses);
   if (offered.length === 0 || candidates.length === 0) {
@@ -150,10 +163,24 @@ export function TrainingEnrolment() {
               `titleOf` has already put at the front of every option above.
               Stating the kind twice said "Mission" twice on one line; the lapse
               rule is what an operator choosing between the two trainings on one
-              part is actually deciding between. */}
+              part is actually deciding between.
+
+              "at standard rate" is not a hedge, it is what the number IS.
+              `baseTime` is RP-1's `template.time`, and the elapsed time a save
+              actually sees is that divided by `TrainingCourse.CalculateBuildRate`,
+              three factors of which only one could ever reach a client: the
+              Astronaut Complex tier (1 to 1.4 in CrewSettings.cfg), the training
+              rate slider, and `CurrencyUtils.Rate(RateTraining)`, which three
+              shipped Flight Director leaders modify. That last one cannot be READ
+              at all, only run, because its body fires a modifier query at every
+              modifier in the save, which is the fence Rp1CrewMath stands behind.
+              So the rate-corrected figure is unavailable here, and the base
+              quoted as though it were the duration is the one thing that would be
+              a lie. A running course states its real finish date, and that one is
+              RP-1's own. */}
           <ReadoutCaption>
             {lapseRule(selected) === null ? "" : `${lapseRule(selected)} · `}
-            <Unit value={selected.baseTime} />
+            <Unit value={selected.baseTime} /> at standard rate
             <Seats template={selected} />
           </ReadoutCaption>
           <Cluster
@@ -409,11 +436,12 @@ const NOBODY: ReadonlySet<string> = new Set<string>();
 
 registerAugment({
   id: "rp1-training-enrolment",
-  augments: "astronaut-complex.sections",
+  augments: "astronaut-complex.training",
   channels: [
     "rp1.available",
     "rp1.trainingCatalogue",
     "rp1.crew",
+    "rp1.crewProgram",
     "rp1.training",
     /* The roster the command itself keys on. Named here rather than taken from
        the host, so this section carries its own reads the way ProgramDetail
@@ -421,9 +449,9 @@ registerAugment({
     "spaceCenter.crewRoster",
   ],
   component: TrainingEnrolment,
-  // After the Crew Programme's rules. An operator opens the Astronaut Complex to
-  // read where their crew stands; starting a course is what they do once they
-  // have, which is the order Buildable takes below the build queue.
+  // After the running courses. An operator opens the tab to read what is
+  // already under way; starting another is what they do once they have, which
+  // is the order Buildable takes below the build queue.
   priority: 20,
   owner: RP1,
 });
