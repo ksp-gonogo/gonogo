@@ -6,7 +6,6 @@ import {
   NULL_DISPLAY,
   Row,
   RowName,
-  ScrollArea,
   Section,
   SectionTitle,
   Stack,
@@ -146,21 +145,34 @@ function RequiredTechs({ techs }: { techs?: string[] }) {
        saying what they were. A list of badges is a sub-list rather than a value,
        and it cannot compete with its own label for the same line. */
     <Stack gap="xs" data-required-techs="">
-      <Text size="sm">Needs tech</Text>
-      {/* A SCROLLER, because a tech id is an identifier and a truncated one is a
-          different id rather than a shorter one. A render at the widget's minimum
-          size cut `supersonicFlight` by four pixels, which is the failure mode
-          that reads as a name and is not one. Wrapping cannot help: a single
-          badge wider than the row has nowhere to wrap to. */}
-      <ScrollArea>
-        <Cluster justify="start" gap="sm">
-          {techs.map((tech) => (
-            <Badge key={tech} severity="critical">
-              {tech}
-            </Badge>
-          ))}
-        </Cluster>
-      </ScrollArea>
+      {/* ONE badge, and it is the STATE rather than the contents.
+
+          This drew a critical badge per tech id, so a vehicle missing five nodes
+          got five red alarms whose redness said nothing the first one did not.
+          Severity is a reading about the vehicle and the vehicle has one state
+          here: it needs tech the career has not researched. The badge carries
+          that; the nodes are content, not severity.
+
+          Its own label went with the change. The badge IS the label now, and
+          "Needs tech" over a badge reading NEEDS TECH said it twice. */}
+      <Cluster justify="start" gap="sm">
+        <Badge severity="critical">Needs tech</Badge>
+      </Cluster>
+      {/* Plain text, which WRAPS, and that is a better answer to the truncation
+          this block was already carrying a fix for than the scroller it replaces.
+          A tech id is an identifier and a truncated one is a different id, so a
+          render at the widget's minimum size cutting `supersonicFlight` by four
+          pixels was a real defect; a badge could not wrap out of it because a
+          single badge wider than the row has nowhere to wrap to, hence the
+          scroller. Text has somewhere to go, so the ids are whole at every size
+          and nothing has to be scrolled to be read.
+
+          Still the raw node ids, and they are what the wire carries: RP-1 hands
+          over `SpaceCenterManagement.EditorRequiredTechs`, a flat list of node
+          ids with no titles and no link to the parts needing them. */}
+      <Text size="xs" tone="muted">
+        {techs.join(", ")}
+      </Text>
     </Stack>
   );
 }

@@ -297,7 +297,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![Three queued nodes: one being worked with a countdown and its era window, one throttled down to a fifth of full rate, and one stalled with nothing to date it from](docs/assets/research-queue-throttled-and-stalled--default.png)
 
-![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without](docs/assets/build-cost-absences-and-tech-gate--default.png)
+![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and four tech nodes it cannot fly without under ONE severity badge](docs/assets/build-cost-absences-and-tech-gate--default.png)
 
 ![Three builds under integration: one with a date at a rushing complex, one stalled because nobody is assigned to its complex, and one RP-1 has not costed yet](docs/assets/building-three-clocks--default.png)
 

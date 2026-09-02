@@ -178,9 +178,9 @@
       "text": "942b1ca1"
     },
     "build-cost-absences-and-tech-gate--default.png": {
-      "hash": "f11b0da4c6d95576",
-      "elements": 40,
-      "text": "6ef60ed5"
+      "hash": "e9105c1d713a7283",
+      "elements": 36,
+      "text": "dd68c282"
     },
     "build-cost-mostly-surcharge--default.png": {
       "hash": "6404fed056555086",
@@ -213,7 +213,7 @@
       "text": "b6c63acd"
     },
     "catalogue-picker--default.png": {
-      "hash": "e58e9caf6059c5fe",
+      "hash": "ea560779907d1285",
       "elements": 263,
       "text": "176067ac"
     },
@@ -223,32 +223,32 @@
       "text": "2284a518"
     },
     "complexes-add-pad--default.png": {
-      "hash": "cf50db8434265e59",
+      "hash": "8722cb0abd0d59fa",
       "elements": 262,
       "text": "09035bd1"
     },
     "complexes-dismantle-warnings--default.png": {
-      "hash": "d4082bb5b044b14b",
+      "hash": "434e4b777f11b119",
       "elements": 206,
       "text": "4cbb8950"
     },
     "complexes-last-pad--default.png": {
-      "hash": "15f65bd73f0ca7e9",
+      "hash": "e572d3b40f6f0a19",
       "elements": 245,
       "text": "3d89340f"
     },
     "complexes-new--default.png": {
-      "hash": "2180e4442fcfabde",
+      "hash": "cf8ee0ac23bd0012",
       "elements": 247,
       "text": "c015784a"
     },
     "complexes-rename--default.png": {
-      "hash": "f94536296e8d0a43",
+      "hash": "ac78b6234437033d",
       "elements": 263,
       "text": "82789206"
     },
     "complexes-rushing--default.png": {
-      "hash": "1f2713894cdbfe97",
+      "hash": "523393237c9fdf67",
       "elements": 272,
       "text": "a8b6efcd"
     },
@@ -283,12 +283,12 @@
       "text": "3b941eca"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "59ff4c0195442eec",
+      "hash": "41a159ef6264388d",
       "elements": 47,
       "text": "bcd95d2e"
     },
     "crew-enrolment-ready--default.png": {
-      "hash": "9203f7adfa7876f6",
+      "hash": "bb1cf073cb591209",
       "elements": 47,
       "text": "6f278b89"
     },
@@ -348,7 +348,7 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "681498703e43e50a",
+      "hash": "52ebab326279ce02",
       "elements": 130,
       "text": "abb9d1ce"
     },
