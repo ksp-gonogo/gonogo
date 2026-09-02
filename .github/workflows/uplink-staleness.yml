@@ -1,0 +1,132 @@
+name: Uplink page staleness
+
+# Does every generated Uplink page still describe the code? Regenerate each one
+# in memory and fail on any difference.
+#
+# ## Why this is its own workflow, and why it does not block
+#
+# It was a step of `ci.yml`'s `test` job until 2026-09-02. The pages are DERIVED
+# and the only sanctioned regeneration is `uplink-docs.yml`, which runs nightly
+# or on manual dispatch, so a legitimate UI change that moved a rendered page
+# failed the blocking job on the commit that made it and stayed failed until a
+# human dispatched a heal. Four times in one day (fc061fdd2, 5840d306b,
+# 84a00db309, 69b1564b5), every one a real change, `pnpm test` passing 46/46 on
+# each. A gate whose only fix is a manual dispatch blocks more than it protects.
+#
+# What moved is WHERE the finding lands, not whether it is made. Same script,
+# same build filter, same triggers as `test`, and this job still goes RED on a
+# stale page: a check that exits 0 with a warning is a check nobody reads. What
+# it no longer does is fail the `CI` workflow, so it no longer holds up a merge
+# or the dev-channel deploy that gates on CI's conclusion.
+#
+# ## What the check asks that nothing else can
+#
+# Not "did the pixels drift" (`visual`, which is red on purpose) and not "did the
+# harness render anything" (`probe-render-smoke`), but "does the page still
+# describe the Uplink the code actually is". A page that quietly stops listing a
+# widget reads exactly like an Uplink with fewer widgets.
+#
+# Asset BYTES are not compared: rasterisation is per-engine and per-OS, so a byte
+# comparison would fail on every machine but the one that generated it. What is
+# compared is each asset's SHAPE, the rendered DOM reduced to what the CSS
+# cascade computes rather than what a glyph rasteriser measures, so it is the
+# same on any machine. Without it the check read the PROSE of a page whose
+# content is pictures, and Vehicle Assembly's showed a layout the code had
+# stopped producing for five commits with every run agreeing.
+#
+# `uplink-docs.yml` is the repair and stays nightly. Making it per-push was tried
+# and cost four lost pushes in one evening: it commits, and a commit landing while
+# a developer's pre-push hook is still running rejects that push as
+# non-fast-forward. The division is deliberate: the CHECK is per-push because
+# staleness should be visible immediately, the REPAIR is nightly because it writes.
+
+on:
+  push:
+    branches: [main, ci-dev, staging]
+  pull_request:
+    branches: [main, staging]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+# Latest push on a ref wins. This reports rather than gates, so an older run's
+# verdict is of no use once a newer commit exists.
+concurrency:
+  group: uplink-staleness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  staleness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: Get pnpm store path
+        id: pnpm-cache
+        run: echo "store=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - uses: actions/cache@v5
+        with:
+          path: ${{ steps.pnpm-cache.outputs.store }}
+          key: ${{ runner.os }}-pnpm-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-
+
+      - name: pnpm install
+        env:
+          # .npmrc references ${GITHUB_TOKEN} for the @jonpepler scope
+          # registry on GitHub Packages.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
+      # `components` alongside ui-kit, and pnpm cannot infer it: five Uplinks
+      # declare a `gonogo.renderWith` host naming a PATH into
+      # packages/components/src rather than a package, so nothing in the
+      # dependency graph says the harness will bundle that source. Without it the
+      # generator dies with unresolved imports on exactly those five and the
+      # check reports them stale for a reason that has nothing to do with their
+      # pictures. `ci.yml` and `uplink-docs.yml` both carry the same filter.
+      - name: Build
+        run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... build
+
+      # Asking whether the committed renders are current means rendering them.
+      # Chromium alone, the engine the page harness launches.
+      - name: Install the browser the page harness renders in
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Uplink pages are not stale
+        run: |
+          set -o pipefail
+          pnpm uplink-docs:check 2>&1 | tee "$RUNNER_TEMP/staleness.log"
+
+      # The finding on the run's SUMMARY page, not only at the bottom of a log.
+      # Nothing forces anyone to open a job that blocks nothing, and a signal
+      # that costs a click to read is a signal that gets ignored.
+      - name: Say which pages are stale, on the summary page
+        if: failure()
+        run: |
+          {
+            echo "## Uplink pages no longer describe the code"
+            echo
+            echo '```'
+            tail -40 "$RUNNER_TEMP/staleness.log"
+            echo '```'
+            echo
+            echo "The pages are generated, so the fix is never to edit one by hand:"
+            echo
+            echo '```'
+            echo "gh workflow run uplink-docs.yml --ref ${{ github.ref_name }}"
+            echo '```'
+            echo
+            echo "This job does not block \`CI\`. Left alone, the nightly run of"
+            echo "\`uplink-docs.yml\` heals these pages within a day."
+          } >> "$GITHUB_STEP_SUMMARY"
