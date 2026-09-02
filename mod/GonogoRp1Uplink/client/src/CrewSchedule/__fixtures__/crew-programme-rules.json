@@ -1,29 +1,29 @@
 {
   "_meta": {
-    "notes": "The mixed save, which is the only one worth a picture: retirement on with a cap, R&R off, mission training on at a rate that is not 1. A career with every rule on renders five identical On lines and says nothing about whether the section can express the other state. The NOT STARTED badge is here for the same reason: three courses enrolled and one of them being worked is progress nobody is making on two kerbals, and it is the one line an operator acts on"
+    "notes": "The ONLY save worth a picture, because a save running RP-1's own crew rules draws nothing here at all. These five are KSP difficulty settings off RP0Settings rather than career state, so a career that took the defaults has nothing an operator has to hold, and the section that used to restate all five on every save now states only the ones a reader who assumed the defaults would be wrong about. This one has R&R switched off and both training rates moved, which are exactly those",
+    "why-retirement-is-absent": "Retirement is ON here, which is RP-1's default, so it is not drawn. The extension ceiling that used to sit beside it is gone for a different reason: it is not a setting at all but Database.SettingsCrew.retireIncreaseCap, a config constant with no UI, and each kerbal's own row already says where their date can be pushed to"
   },
   "_scene": {
     "augment": "rp1-crew-programme",
-    "size": { "w": 8, "h": 12 },
-    "caption": "The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started",
+    "size": {
+      "w": 8,
+      "h": 8
+    },
+    "caption": "The three crew rules this save runs differently from RP-1's own: post-flight R&R switched off, proficiency training at 0.80x and mission training at 1.25x, which is why a course's ETA is not the length the catalogue quotes",
     "paints": [
-      "CREW PROGRAMME",
-      "Retirement",
-      "extension",
-      "Post-flight R&R",
-      "Off",
-      "Mission training",
-      "rate",
-      "Proficiency rate",
-      "In training",
-      "courses",
-      "NOT STARTED"
+      "CREW RULES",
+      "Post-flight R&R off",
+      "Proficiency training at",
+      "Mission training at"
     ]
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.crewProgram",
         "payload": {

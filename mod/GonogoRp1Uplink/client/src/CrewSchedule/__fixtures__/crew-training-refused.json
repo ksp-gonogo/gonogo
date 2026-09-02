@@ -1,20 +1,27 @@
 {
   "_meta": {
-    "notes": "The two refusals in one picture, because both come from the same fact and neither is visible anywhere else. Ludrey is idle and the picker rests on Gemini, which RP-1 will not run below two students: a naut's row names one kerbal and enrolling is all-or-none, so the control is dark and the seat bounds beside it say why. Nedcas is on a course with the same minimum, which is exactly when RP-1 stops offering to take one student out and leaves only cancelling the whole thing. Desdin carries an RP-1 row so the training channels have a subscriber while the Applicants tab is the one on screen",
-    "why-gemini-first": "The picker rests on the first training RP-1 lists rather than on the first one this row could start. A control that quietly skipped to a training the operator did not choose would hide the refusal rather than state it"
+    "notes": "The refusal RP-1 expresses by not drawing a button at all: mission training for Gemini seats exactly two, so taking either student out would strand the other below the minimum, and both removals are dark carrying that sentence while the cancel that ends the whole course stays live. It is the one state where RP-1's two ways off a course are not interchangeable",
+    "why-both-removals-are-dark": "The minimum is a fact about the COURSE rather than about either kerbal, so it refuses both of them, and a picture with one dark control would read as that student's problem"
   },
   "_scene": {
-    "augment": "rp1-crew-schedule",
+    "augment": "rp1-training-courses",
     "host": "astronaut-complex",
-    "size": { "w": 14, "h": 20 },
-    "caption": "Both training refusals: an enrolment a naut's row cannot fill because the course seats two, and a removal RP-1 withholds on a course that would be left below its minimum, with cancelling the whole course still open",
-    "before": [{ "press": "Active" }],
+    "size": {
+      "w": 14,
+      "h": 20
+    },
+    "caption": "Mission training for Gemini seats exactly two, so RP-1 withholds both removals rather than stranding whoever is left, and cancelling the whole course is the only way off it",
+    "before": [
+      {
+        "press": "Active"
+      }
+    ],
     "paints": [
-      "Enrol",
-      "seats 2",
-      "Mission",
+      "TRAINING COURSES",
+      "Mission training: Gemini",
       "Cancel course",
-      "Take Nedcas Kerman off"
+      "Nedcas Kerman off",
+      "Valentina Kerman off"
     ]
   },
   "_stream": {
@@ -22,7 +29,11 @@
     "emits": [
       {
         "topic": "career.status",
-        "payload": { "economy": { "funds": 289848 } }
+        "payload": {
+          "economy": {
+            "funds": 289848
+          }
+        }
       },
       {
         "topic": "spaceCenter.astronautComplex",
@@ -99,7 +110,10 @@
           }
         ]
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.crewProgram",
         "payload": {
@@ -138,7 +152,7 @@
             "retired": false,
             "retiresAtUt": 40000000,
             "latestRetiresAtUt": 40000000,
-            "trainingCourse": "MissionTraining_Gemini",
+            "trainingCourse": "msn_Gemini",
             "trainingType": "Mission",
             "trainingTarget": "Gemini",
             "trainingStarted": true,
@@ -150,7 +164,7 @@
             "retired": false,
             "retiresAtUt": 210000000,
             "latestRetiresAtUt": 260000000,
-            "trainingCourse": "MissionTraining_Gemini",
+            "trainingCourse": "msn_Gemini",
             "trainingType": "Mission",
             "trainingTarget": "Gemini",
             "trainingStarted": true,
@@ -163,8 +177,8 @@
         "topic": "rp1.training",
         "payload": [
           {
-            "id": "MissionTraining_Gemini",
-            "name": "Gemini",
+            "id": "msn_Gemini",
+            "name": "Mission: Gemini",
             "type": "Mission",
             "target": "Gemini",
             "students": ["Nedcas Kerman", "Valentina Kerman"],
@@ -173,7 +187,8 @@
             "started": true,
             "completed": false,
             "completesAtUt": 8600000,
-            "isTemporary": false
+            "isTemporary": false,
+            "studentsAvailableAtUt": 9460000
           }
         ]
       },
@@ -181,8 +196,8 @@
         "topic": "rp1.trainingCatalogue",
         "payload": [
           {
-            "id": "MissionTraining_Gemini",
-            "name": "Gemini",
+            "id": "msn_Gemini",
+            "name": "Mission: Gemini",
             "type": "Mission",
             "target": "Gemini",
             "baseTime": 2592000,
@@ -192,8 +207,8 @@
             "isTemporary": false
           },
           {
-            "id": "ProficiencyTraining_AtlasD",
-            "name": "Atlas-D",
+            "id": "prof_Atlas-D",
+            "name": "Proficiency: Atlas-D",
             "type": "Proficiency",
             "target": "Atlas-D",
             "baseTime": 1296000,

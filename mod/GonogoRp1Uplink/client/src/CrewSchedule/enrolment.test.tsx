@@ -160,7 +160,9 @@ describe("filling a multi-seat training", () => {
 
     await pick(user, LUDREY, NEDCAS);
     await user.click(
-      screen.getByRole("button", { name: "Enrol 2 students on Gemini" }),
+      screen.getByRole("button", {
+        name: "Enrol 2 students on Mission training: Gemini",
+      }),
     );
     // Armed, not sent: starting a course grounds every student on it for the
     // length of the course, so one press must not commit them.
@@ -172,7 +174,7 @@ describe("filling a multi-seat training", () => {
 
     await user.click(
       screen.getByRole("button", {
-        name: "Confirm enrolling 2 students on Gemini",
+        name: "Confirm enrolling 2 students on Mission training: Gemini",
       }),
     );
 
@@ -196,12 +198,12 @@ describe("filling a multi-seat training", () => {
     await pick(user, NEDCAS);
     await user.click(
       screen.getByRole("button", {
-        name: "Enrol 1 student on Mercury-Redstone",
+        name: "Enrol 1 student on Proficiency: Mercury-Redstone",
       }),
     );
     await user.click(
       screen.getByRole("button", {
-        name: "Confirm enrolling 1 student on Mercury-Redstone",
+        name: "Confirm enrolling 1 student on Proficiency: Mercury-Redstone",
       }),
     );
 
@@ -217,13 +219,36 @@ describe("filling a multi-seat training", () => {
    * RP-1's own screen answers that by not listing it. Offering one would start a
    * course on hardware the career has not researched.
    */
+  /**
+   * RP-1 generates two trainings per crewed part and the operator is choosing
+   * between them: a proficiency is a permanent qualification, mission training
+   * expires a set interval after the course completes. The picker cannot say so,
+   * because a closed select shows one option, so the consequence of the pick is
+   * stated beside it.
+   */
+  it("states whether the picked training lapses or is permanent", async () => {
+    const user = userEvent.setup();
+    const { fixture } = mount();
+    await present(fixture, { catalogue: [PAIR, SOLO] });
+
+    await waitFor(() => {
+      expect(visibleText()).toContain("Lapses after completion");
+    });
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Training to start" }),
+      SOLO.id,
+    );
+    expect(visibleText()).toContain("Permanent once complete");
+    expect(visibleText()).not.toContain("Lapses after completion");
+  });
+
   it("offers only the trainings the career has unlocked", async () => {
     const { fixture } = mount();
     await present(fixture, { catalogue: [SOLO, LOCKED] });
 
     await screen.findByRole("combobox", { name: "Training to start" });
     expect(
-      screen.queryByRole("option", { name: "Saturn V" }),
+      screen.queryByRole("option", { name: "Proficiency: Saturn V" }),
     ).not.toBeInTheDocument();
   });
 });
@@ -239,7 +264,7 @@ describe("the seat bounds", () => {
     expect(control).toBeDisabled();
     expect(control).toHaveAttribute(
       "title",
-      "Gemini needs 2 students and 1 student is picked",
+      "Mission training: Gemini needs 2 students and 1 student is picked",
     );
     // And the bounds are on screen, so the dark control reads as a fact about
     // the training rather than about the operator.
@@ -258,7 +283,7 @@ describe("the seat bounds", () => {
     expect(control).toBeDisabled();
     expect(control).toHaveAttribute(
       "title",
-      "Gemini seats 2 and 3 students are picked",
+      "Mission training: Gemini seats 2 and 3 students are picked",
     );
   });
 
@@ -288,7 +313,9 @@ describe("the seat bounds", () => {
 
     await pick(user, LUDREY);
     expect(
-      screen.getByRole("button", { name: "Enrol 1 student on Gemini" }),
+      screen.getByRole("button", {
+        name: "Enrol 1 student on Mission training: Gemini",
+      }),
     ).toBeEnabled();
   });
 
@@ -319,7 +346,7 @@ describe("the seat bounds", () => {
 
     await pick(user, LUDREY, NEDCAS);
     const live = screen.getByRole("button", {
-      name: "Enrol 2 students on Gemini",
+      name: "Enrol 2 students on Mission training: Gemini",
     });
     expect(live).toBeEnabled();
     expect(live).toHaveAttribute("data-command-phase", "idle");
@@ -466,7 +493,9 @@ describe("who RP-1 would refuse", () => {
 
     await pick(user, LUDREY, NEDCAS);
     expect(
-      screen.getByRole("button", { name: "Enrol 2 students on Gemini" }),
+      screen.getByRole("button", {
+        name: "Enrol 2 students on Mission training: Gemini",
+      }),
     ).toBeEnabled();
 
     act(() => {
@@ -513,7 +542,7 @@ describe("who RP-1 would refuse", () => {
 
     expect(screen.getByRole("button", { name: "Enrol" })).toHaveAttribute(
       "title",
-      "Gemini needs 2 students and 1 student is picked",
+      "Mission training: Gemini needs 2 students and 1 student is picked",
     );
   });
 });

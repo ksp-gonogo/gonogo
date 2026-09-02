@@ -20,7 +20,7 @@
     ],
     "paints": [
       "START A TRAINING",
-      "Mission",
+      "Lapses after completion",
       "seats 2",
       "Ludrey Kerman",
       "Nedcas Kerman",
@@ -129,8 +129,8 @@
         "topic": "rp1.trainingCatalogue",
         "payload": [
           {
-            "id": "MissionTraining_Gemini",
-            "name": "Gemini",
+            "id": "msn_Gemini",
+            "name": "Mission: Gemini",
             "type": "Mission",
             "target": "Gemini",
             "baseTime": 2592000,
@@ -140,8 +140,8 @@
             "isTemporary": false
           },
           {
-            "id": "ProficiencyTraining_AtlasD",
-            "name": "Atlas-D",
+            "id": "prof_Atlas-D",
+            "name": "Proficiency: Atlas-D",
             "type": "Proficiency",
             "target": "Atlas-D",
             "baseTime": 1296000,

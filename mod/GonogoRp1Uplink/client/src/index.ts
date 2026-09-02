@@ -9,6 +9,7 @@ import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./AdminBuilding/programsScreen";
 import "./CrewSchedule";
+import "./CrewSchedule/courses";
 import "./CrewSchedule/enrolment";
 import "./ContractPayload";
 import "./CrewSchedule/programme";
@@ -28,13 +29,13 @@ export {
   RP1_CONTRACT_PAYLOAD_COMMAND,
 } from "./ContractPayload";
 export { CrewSchedule } from "./CrewSchedule";
+export { TrainingCourses } from "./CrewSchedule/courses";
 export { TrainingEnrolment } from "./CrewSchedule/enrolment";
 export { CrewProgramme } from "./CrewSchedule/programme";
 export {
   RP1_TRAINING_CANCEL_COMMAND,
   RP1_TRAINING_ENROL_COMMAND,
   RP1_TRAINING_REMOVE_COMMAND,
-  TrainingControls,
 } from "./CrewSchedule/training";
 // This Uplink's own commands: the `CommandArgsMap`/`CommandReplyMap`
 // augmentation and the runtime registration. RE-EXPORTED rather than imported

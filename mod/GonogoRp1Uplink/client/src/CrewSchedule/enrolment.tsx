@@ -31,27 +31,21 @@ import { RP1 } from "../uplink";
 // Side-effect import: hydrates these Topics' units at decode time, so a base
 // time decodes as a duration rather than a bare number of seconds.
 import "../topics";
-import { Seats, titleOf } from "./template";
+import { lapseRule, Seats, titleOf } from "./template";
 import { RP1_TRAINING_ENROL_COMMAND } from "./training";
 
 /**
  * A training and the crew to put through it, picked together and sent as one
  * press.
  *
- * <para><b>What was missing.</b> `rp1.training.enrol` names a LIST of kerbals
- * and RP-1 refuses the whole command rather than starting a course a seat short,
- * so a training seating more than one has to be filled in a single dispatch. The
- * only control that sent the command was on a naut's row, which names one
- * kerbal, so every multi-seat training in the catalogue was unstartable from
- * anywhere in the app. Gemini seats two; RP-1's whole mission-training tier for
- * crewed capsules seats more than one.</para>
- *
- * <para><b>Its own section rather than a row on the Crew Programme.</b> The
- * Programme states the career-wide RULES a kerbal's dates are read under and it
- * has something to say on every RP-1 save. This has something to say only when
- * the career has unlocked a training and holds crew who could take it, and it
- * renders nothing otherwise. Folding them together would make one of those two
- * visibility rules lose.</para>
+ * <para><b>The ONLY way onto a course, and the only one that ever worked for a
+ * multi-seat training.</b> `rp1.training.enrol` names a LIST of kerbals and RP-1
+ * refuses the whole command rather than starting a course a seat short, so a
+ * training seating more than one has to be filled in a single dispatch. A naut's
+ * roster row names one kerbal, so the picker that used to sit on every row could
+ * not start Gemini at all, and RP-1's whole mission-training tier for crewed
+ * capsules seats more than one. That row control is gone; this is what
+ * replaced it.</para>
  *
  * <para><b>ONE press, and that is RP-1's own shape rather than a
  * simplification.</b> RP-1 builds a course from a template, collects its
@@ -85,21 +79,18 @@ export function TrainingEnrolment() {
   }
 
   // Silent on an unread channel, both of them, rather than the one short line an
-  // unreadable state is otherwise worth. Neither absence is unsaid: the crew
-  // roster is the HOST's channel and the Astronaut Complex says so above this,
-  // and an unread catalogue is stated on every naut's row by the per-row
-  // control. That coverage holds rather than nearly holding, because the rows
-  // that would go quiet are the ones whose kerbal is already on a course, and a
-  // career whose every naut is on one leaves this section nobody to offer
-  // anyway.
+  // unreadable state is otherwise worth. A section offering no training is
+  // indistinguishable from a career that has unlocked none, and neither is worth
+  // a row of chrome on the Astronaut Complex; the crew roster is the HOST's
+  // channel and the panel above already says when that has not arrived.
   if (catalogue === undefined) {
     return null;
   }
 
-  /* The trainings the career has UNLOCKED and no others, the same rule the
-     per-row control follows and for the same reason: `rp1.training.enrol` does
-     not ask whether a training is unlocked, because RP-1's own screen answers
-     that by not listing it. */
+  /* The trainings the career has UNLOCKED and no others. `rp1.training.enrol`
+     does not ask whether a training is unlocked, because RP-1's own screen
+     answers that by not listing it, so an offered locked training would start a
+     course on hardware the career has not researched rather than be refused. */
   const offered = catalogue.filter(
     (template) => template.unlocked === true && template.id,
   );
@@ -155,8 +146,13 @@ export function TrainingEnrolment() {
               title={refusal ?? undefined}
             />
           </Cluster>
+          {/* The CONSEQUENCE of the pick rather than the kind word, which
+              `titleOf` has already put at the front of every option above.
+              Stating the kind twice said "Mission" twice on one line; the lapse
+              rule is what an operator choosing between the two trainings on one
+              part is actually deciding between. */}
           <ReadoutCaption>
-            {selected.type ? `${selected.type} · ` : ""}
+            {lapseRule(selected) === null ? "" : `${lapseRule(selected)} · `}
             <Unit value={selected.baseTime} />
             <Seats template={selected} />
           </ReadoutCaption>

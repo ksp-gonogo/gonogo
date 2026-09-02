@@ -1,19 +1,28 @@
 {
   "_meta": {
-    "notes": "Hosted on the real Astronaut Complex, because the whole claim of this augment is that it fits in a roster row the host already drew and an isolated render cannot test that. Three kerbals in the three states that make the surface do different work: one whose date can still be pushed and who is mid-course with training already lapsing behind it, one enrolled on a course nobody has started and whose finish RP-1 has not rated, and one RP-1 holds no retirement date for at all so only the lapse line renders. The Active tab is pressed because Applicants is first and carries none of this"
+    "notes": "Hosted on the real Astronaut Complex, because the whole claim of this augment is that it fits in a roster row the host already drew and an isolated render cannot test that. Three kerbals in the three states that make the surface do different work: one whose date can still be pushed and who is mid-course with training already lapsing behind it, one enrolled on a course nobody has started and whose finish RP-1 has not rated, and one RP-1 holds no retirement date for at all so only the lapse line renders. The Active tab is pressed because Applicants is first and carries none of this",
+    "why-no-controls-on-a-row": "A row states WHERE a kerbal is and nothing else. It used to carry a training picker and two leave buttons under the dates, which put a whole enrolment form on every idle naut and drew one shared course's cancel button once per student. The way onto a course is the START A TRAINING section, which can name a crew where a row can only name one kerbal; a running course's specifics and the two ways off it are the TRAINING COURSES section"
   },
   "_scene": {
     "augment": "rp1-crew-schedule",
     "host": "astronaut-complex",
-    "size": { "w": 10, "h": 18 },
+    "size": {
+      "w": 10,
+      "h": 18
+    },
     "caption": "Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes",
-    "before": [{ "press": "Active" }],
+    "before": [
+      {
+        "press": "Active"
+      }
+    ],
     "paints": [
       "Retires",
       "extendable to",
       "TRAINING",
       "ENROLLED",
-      "training lapses",
+      "Mission training for",
+      "lapses",
       "more"
     ]
   },
@@ -22,7 +31,11 @@
     "emits": [
       {
         "topic": "career.status",
-        "payload": { "economy": { "funds": 289848 } }
+        "payload": {
+          "economy": {
+            "funds": 289848
+          }
+        }
       },
       {
         "topic": "spaceCenter.astronautComplex",
@@ -85,7 +98,10 @@
           }
         ]
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.crewProgram",
         "payload": {
@@ -109,7 +125,7 @@
             "retiresAtUt": 95608000,
             "latestRetiresAtUt": 158723200,
             "retirementExtensionUsedSeconds": 15778800,
-            "trainingCourse": "MissionTraining_MercuryRedstone",
+            "trainingCourse": "msn_Mercury-Redstone",
             "trainingType": "Mission",
             "trainingTarget": "Mercury-Redstone",
             "trainingStarted": true,
@@ -125,7 +141,7 @@
             "retiresAtUt": 40000000,
             "latestRetiresAtUt": 40000000,
             "retirementExtensionUsedSeconds": 0,
-            "trainingCourse": "ProficiencyTraining_TitanII",
+            "trainingCourse": "prof_TitanII",
             "trainingType": "Proficiency",
             "trainingTarget": "Titan II",
             "trainingStarted": false

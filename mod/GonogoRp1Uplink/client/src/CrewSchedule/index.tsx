@@ -1,9 +1,5 @@
 import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import {
-  isOffTheBooks,
-  registerAugment,
-  useTelemetry,
-} from "@ksp-gonogo/sitrep-sdk";
+import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Card,
@@ -12,12 +8,11 @@ import {
   magnitudeOf,
   ReadoutCaption,
   Stack,
-  Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { Rp1CrewEntry } from "../__generated__/contract";
 import { RP1 } from "../uplink";
 import "../topics";
-import { TrainingControls } from "./training";
+import { kindOf } from "./template";
 
 /**
  * One kerbal's RP-1 schedule, rendered into the Astronaut Complex row the host
@@ -31,11 +26,13 @@ import { TrainingControls } from "./training";
  * has nothing to say about any of them, because stock has none of the
  * concepts.</para>
  *
- * <para>The dates are read alongside the controls that change them, because
- * they are the same decision: a course finishing after a kerbal's retirement,
- * or after the mission training it is meant to support has lapsed, is a course
- * an operator wants off the roster. See `training.tsx` for the three
- * commands.</para>
+ * <para><b>Dates only, and no controls.</b> A roster row's question is WHERE
+ * this kerbal stands, and it answers that in at most three lines. It used to
+ * carry a training picker and two leave buttons as well, which put a full
+ * enrolment form on every idle naut and rendered one shared course's cancel
+ * button once per student. The way onto a course is `enrolment.tsx`, which can
+ * name a whole crew where a row can only ever name one kerbal; the specifics of
+ * a running course, and the two ways off it, are `courses.tsx`.</para>
  *
  * <para><b>No tab strip of its own.</b> This renders inside ONE roster row, and
  * the Astronaut Complex builds a tab per crew standing around those rows: the
@@ -53,8 +50,6 @@ import { TrainingControls } from "./training";
  */
 export function CrewSchedule({
   kerbalName,
-  standing,
-  isApplicant,
 }: Readonly<SlotProps<"astronaut-complex.crew">>) {
   const available = current(useTelemetry("rp1.available"));
   const crew = current(useTelemetry("rp1.crew"));
@@ -84,37 +79,23 @@ export function CrewSchedule({
   const retirement = retirementLine(row, program?.retirementEnabled);
   const training = trainingLine(row);
   const expiry = expiryLine(row);
-  // The same two facts the controls read to decide they have nothing to draw,
-  // asked here so a row with neither dates nor a control renders no wrapper at
-  // all rather than an empty one. The narrowing is the slot's loose props
-  // again: an unread standing is not a standing that bars anybody.
-  const schedulable =
-    isApplicant !== true &&
-    !isOffTheBooks(typeof standing === "number" ? standing : null);
-  if (!retirement && !training && !expiry && !schedulable) {
+  // A row with no date to state renders no wrapper at all rather than an empty
+  // one, which is most rows on most careers.
+  if (!retirement && !training && !expiry) {
     return null;
   }
 
   return (
     /*
       ONE Card for the whole contribution, on the operator's "reaching for the
-      Card component more": what a roster row grows here is a block of dates and
-      the controls that move them, and it was three loose caption lines with a
-      boxed button strip under them, so the boundary fell in the middle of the
-      thing rather than around it. The controls' own Cards came off when this one
-      went on, because a card inside a card draws two borders around one block.
+      Card component more": what a roster row grows here is a block of dates, so
+      the boundary belongs around all of them rather than in the middle.
     */
     <Card>
       <Stack gap="xs">
         {retirement}
         {training}
         {expiry}
-        <TrainingControls
-          isApplicant={isApplicant === true}
-          kerbalName={name}
-          onCourse={Boolean(row.trainingTarget ?? row.trainingCourse)}
-          standing={typeof standing === "number" ? standing : null}
-        />
       </Stack>
     </Card>
   );
@@ -161,18 +142,22 @@ function retirementLine(
 }
 
 /**
- * The course this kerbal is on, and when it finishes.
+ * WHICH course this kerbal is on, and nothing else about it.
  *
- * <para>Enrolment and progress are separate facts and both are shown, because
- * an operator who reads enrolment as progress will plan a mission around a crew
- * that is not being trained: RP-1 lets a course sit unstarted indefinitely. An
- * unstarted course therefore says so instead of quoting a completion it is not
- * working toward.</para>
+ * <para>The course's own progress, its finish date, the date its crew comes free
+ * and the two ways off it are one row down the panel in `courses.tsx`, on the
+ * course itself. Drawn here they were drawn once per student, so a course two
+ * kerbals share stated its percentage and its ETA twice on one screen and then a
+ * third time in the course list. A roster row's question is which of them is
+ * where, and this answers exactly that.</para>
  *
- * <para>The finish date is absent while RP-1 has not rated the course's build
- * rate, which is the state a freshly queued course sits in. That absence is
- * carried rather than filled: RP-1's own helper divides by the unrated rate and
- * produces an infinity, and an infinity is not a date.</para>
+ * <para>Enrolment is still told from progress, because an operator who reads one
+ * as the other will plan a flight around a crew nobody is training: RP-1 lets a
+ * course sit unstarted indefinitely, and the badge is what says so.</para>
+ *
+ * <para>The kind is named in full ("Mission training", not "Mission") for the
+ * reason `kindOf` gives: RP-1's raw enum beside a date and a seat count reads as
+ * a flight rather than as the training for one.</para>
  */
 function trainingLine(row: Rp1CrewEntry) {
   const target = row.trainingTarget ?? row.trainingCourse;
@@ -180,28 +165,15 @@ function trainingLine(row: Rp1CrewEntry) {
     return null;
   }
   const started = row.trainingStarted === true;
-  const finishes = magnitudeOf(row.trainingFinishesAtUt);
-  const fraction = magnitudeOf(row.trainingFractionComplete);
+  const kind = kindOf(row.trainingType);
   return (
-    <Inline gap="xs" key="training">
+    <Inline gap="xs" key="training" wrap>
       <Badge severity={started ? "nominal" : "caution"} size="sm">
         {started ? "TRAINING" : "ENROLLED"}
       </Badge>
       <ReadoutCaption>
-        {row.trainingType ? `${row.trainingType}: ` : ""}
+        {kind === null ? "" : `${kind}: `}
         {target}
-        {fraction !== null && (
-          <>
-            {" · "}
-            <Unit value={row.trainingFractionComplete} />
-          </>
-        )}
-        {finishes !== null && (
-          <>
-            {" · finishes "}
-            <MissionDate value={row.trainingFinishesAtUt} />
-          </>
-        )}
       </ReadoutCaption>
     </Inline>
   );
@@ -214,6 +186,12 @@ function trainingLine(row: Rp1CrewEntry) {
  * <para>The one an operator acts on: mission training lapsing is what turns a
  * qualified crew into an unqualified one while the vehicle is still being
  * integrated, and it happens on a date nothing else on the dashboard shows.</para>
+ *
+ * <para>The kind is stated rather than left to the target, because only ONE of
+ * RP-1's two kinds can lapse at all: a proficiency is a permanent qualification
+ * on the part, and mission training expires a set interval after the course
+ * completes. "Atlas-D training lapses" left an operator to work out which of the
+ * two they were about to lose.</para>
  */
 function expiryLine(row: Rp1CrewEntry) {
   const at = magnitudeOf(row.nextTrainingExpiryUt);
@@ -223,8 +201,11 @@ function expiryLine(row: Rp1CrewEntry) {
   const count = magnitudeOf(row.trainingExpiryCount) ?? 0;
   return (
     <ReadoutCaption key="expiry">
-      {row.nextTrainingExpiryTarget ?? "Mission"} training lapses{" "}
-      <MissionDate value={row.nextTrainingExpiryUt} />
+      Mission training
+      {row.nextTrainingExpiryTarget
+        ? ` for ${row.nextTrainingExpiryTarget}`
+        : ""}{" "}
+      lapses <MissionDate value={row.nextTrainingExpiryUt} />
       {count > 1 && ` (+${count - 1} more)`}
     </ReadoutCaption>
   );

@@ -1,21 +1,28 @@
 {
   "_meta": {
-    "notes": "Hosted on the real Astronaut Complex, for the reason the three-states scene is: the controls are drawn inside a roster row the host already owns and an isolated render cannot show whether they fit. Two states side by side, both of them the working case. Ludrey is halfway through a course another kerbal is also on, which is the only shape where RP-1's two ways out are genuinely different acts: cancelling takes Nedcas off too, removing does not. Valentina is idle, so her row carries the way IN. Desdin has an RP-1 row and no dates worth a control because the Applicants tab is what the widget opens on, and the training channels have no subscriber until a scheduled kerbal is on screen",
-    "why-catalogue-order": "Mercury-Redstone is first because the picker rests on the first training RP-1 lists and does not reorder them. See the sibling scene for what that looks like when the first one seats more than a row can name"
+    "notes": "Hosted on the real Astronaut Complex because the claim being tested is a division of labour across the whole panel: the roster rows above state WHERE each kerbal is and carry no controls at all, and the two ways off a course sit once, together, on the course itself. Ludrey and Nedcas share one course, which is the only shape where RP-1's two ways out are genuinely different acts: cancelling ends it for both, removing takes one of them off and leaves it running. Drawn on the rows instead, that single course rendered its name, its progress, its finish date and its cancel button twice",
+    "why-a-removal-per-student": "The subject is what decides where a control lives. Cancelling is about the COURSE, so there is one of it; removing is about one named student, so there is one per student, and both are on the thing they act on rather than scattered across the roster"
   },
   "_scene": {
-    "augment": "rp1-crew-schedule",
+    "augment": "rp1-training-courses",
     "host": "astronaut-complex",
-    "size": { "w": 14, "h": 20 },
-    "caption": "The three training commands on the nauts they are about, sharing one card with the dates they move: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked",
-    "before": [{ "press": "Active" }],
+    "size": {
+      "w": 14,
+      "h": 20
+    },
+    "caption": "One course two kerbals share, carrying its own progress, the date the course ends, the later date its crew comes free, and RP-1's two ways off it: one cancel that ends it for both and one removal per student, with the roster rows above stating only where each kerbal stands",
+    "before": [
+      {
+        "press": "Active"
+      }
+    ],
     "paints": [
-      "TRAINING",
-      "Also on it",
+      "TRAINING COURSES",
+      "Proficiency: Mercury-Redstone",
+      "Crew free",
       "Cancel course",
-      "Take Ludrey Kerman off",
-      "Enrol",
-      "Proficiency"
+      "Ludrey Kerman off",
+      "Nedcas Kerman off"
     ]
   },
   "_stream": {
@@ -23,7 +30,11 @@
     "emits": [
       {
         "topic": "career.status",
-        "payload": { "economy": { "funds": 289848 } }
+        "payload": {
+          "economy": {
+            "funds": 289848
+          }
+        }
       },
       {
         "topic": "spaceCenter.astronautComplex",
@@ -86,7 +97,10 @@
           }
         ]
       },
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "rp1.crewProgram",
         "payload": {
@@ -116,7 +130,7 @@
             "retiresAtUt": 95608000,
             "latestRetiresAtUt": 158723200,
             "retirementExtensionUsedSeconds": 15778800,
-            "trainingCourse": "ProficiencyTraining_MercuryRedstone",
+            "trainingCourse": "prof_Mercury-Redstone",
             "trainingType": "Proficiency",
             "trainingTarget": "Mercury-Redstone",
             "trainingStarted": true,
@@ -128,7 +142,7 @@
             "retired": false,
             "retiresAtUt": 40000000,
             "latestRetiresAtUt": 40000000,
-            "trainingCourse": "ProficiencyTraining_MercuryRedstone",
+            "trainingCourse": "prof_Mercury-Redstone",
             "trainingType": "Proficiency",
             "trainingTarget": "Mercury-Redstone",
             "trainingStarted": true,
@@ -150,8 +164,8 @@
         "topic": "rp1.training",
         "payload": [
           {
-            "id": "ProficiencyTraining_MercuryRedstone",
-            "name": "Mercury-Redstone",
+            "id": "prof_Mercury-Redstone",
+            "name": "Proficiency: Mercury-Redstone",
             "type": "Proficiency",
             "target": "Mercury-Redstone",
             "students": ["Ludrey Kerman", "Nedcas Kerman"],
@@ -160,7 +174,8 @@
             "started": true,
             "completed": false,
             "completesAtUt": 6184000,
-            "isTemporary": false
+            "isTemporary": false,
+            "studentsAvailableAtUt": 6802400
           }
         ]
       },
@@ -168,8 +183,8 @@
         "topic": "rp1.trainingCatalogue",
         "payload": [
           {
-            "id": "ProficiencyTraining_AtlasD",
-            "name": "Atlas-D",
+            "id": "prof_Atlas-D",
+            "name": "Proficiency: Atlas-D",
             "type": "Proficiency",
             "target": "Atlas-D",
             "baseTime": 1296000,
@@ -179,8 +194,8 @@
             "isTemporary": false
           },
           {
-            "id": "MissionTraining_Gemini",
-            "name": "Gemini",
+            "id": "msn_Gemini",
+            "name": "Mission: Gemini",
             "type": "Mission",
             "target": "Gemini",
             "baseTime": 2592000,

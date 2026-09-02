@@ -252,7 +252,12 @@ describe("CrewSchedule", () => {
     expect(visibleText(view.container)).toBe("");
   });
 
-  it("shows a running course with its progress and finish date", async () => {
+  /**
+   * WHICH course, not how it is going. The percentage, the finish date and the
+   * two ways off it belong to the course and are drawn once on it; drawn here
+   * they appeared once per student on a course two kerbals share.
+   */
+  it("names the course a kerbal is on, and none of its specifics", async () => {
     const { fixture, view } = mountSchedule();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.crewProgram", PROGRAM);
@@ -271,8 +276,9 @@ describe("CrewSchedule", () => {
       expect(screen.getByText("TRAINING")).toBeInTheDocument();
     });
     const text = visibleText();
-    expect(text).toContain("Mission: Mun");
-    expect(text).toContain("finishes");
+    expect(text).toContain("Mission training: Mun");
+    expect(text).not.toContain("finishes");
+    expect(text).not.toContain("25");
     await expectNoA11yViolations(view.container);
   });
 
@@ -317,7 +323,7 @@ describe("CrewSchedule", () => {
     ]);
 
     await waitFor(() => {
-      expect(visibleText()).toContain("Minmus training lapses");
+      expect(visibleText()).toContain("Mission training for Minmus lapses");
     });
     expect(visibleText()).toContain("+2 more");
   });
@@ -335,7 +341,7 @@ describe("CrewSchedule", () => {
     ]);
 
     await waitFor(() => {
-      expect(visibleText()).toContain("Minmus training lapses");
+      expect(visibleText()).toContain("Mission training for Minmus lapses");
     });
     expect(visibleText()).not.toContain("more");
   });
@@ -371,19 +377,81 @@ describe("CrewProgramme", () => {
     expect(visibleText(view.container)).toBe("");
   });
 
-  it("shows the switches and rates every per-kerbal date depends on", async () => {
+  /**
+   * These are difficulty SETTINGS, not career state: `CrewHandler.LoadSettings`
+   * copies them off `RP0Settings` on `OnGameSettingsApplied` and nothing in
+   * RP-1's gameplay writes them back. A save that took RP-1's own defaults has
+   * nothing here an operator has to hold, so the section is not drawn at all.
+   */
+  it("renders nothing on a save running RP-1's own crew rules", async () => {
     const { fixture, view } = mountProgramme();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.crewProgram", PROGRAM);
 
     await waitFor(() => {
-      expect(screen.getByText("Retirement")).toBeInTheDocument();
+      expect(fixture.transport.isSubscribed("rp1.crewProgram")).toBe(true);
+    });
+    // Settle before asserting ABSENCE: with nothing to wait for, the assertion
+    // would otherwise pass on a render that had not happened yet.
+    await act(async () => {});
+    expect(view.container).toBeEmptyDOMElement();
+  });
+
+  it("names each mechanic the save has switched off", async () => {
+    const { fixture, view } = mountProgramme();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.crewProgram", {
+      ...PROGRAM,
+      crewRnREnabled: false,
+      missionTrainingEnabled: false,
+      retirementEnabled: false,
+    });
+
+    await waitFor(() => {
+      expect(visibleText()).toContain("Retirement off");
     });
     const text = visibleText();
-    expect(text).toContain("Post-flight R&R");
-    expect(text).toContain("Mission training");
-    expect(text).toContain("Proficiency rate");
+    expect(text).toContain("Post-flight R&R off");
+    expect(text).toContain("Mission training off");
     await expectNoA11yViolations(view.container);
+  });
+
+  /** The rate is why a course's ETA is not the length the catalogue quotes. */
+  it("names a training rate the save has moved off RP-1's own", async () => {
+    const { fixture } = mountProgramme();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.crewProgram", {
+      ...PROGRAM,
+      missionTrainingRate: 1.25,
+      proficiencyTrainingRate: 0.8,
+    });
+
+    await waitFor(() => {
+      expect(visibleText()).toContain("Proficiency training at");
+    });
+    const text = visibleText();
+    expect(text).toContain("Mission training at");
+    expect(text).toContain("0.80");
+    expect(text).toContain("1.25");
+  });
+
+  /**
+   * A rate on trainings that do not exist is not a rule anybody is running:
+   * RP-1 generates no mission template at all with the mechanic switched off.
+   */
+  it("says nothing about the mission rate while mission training is off", async () => {
+    const { fixture } = mountProgramme();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.crewProgram", {
+      ...PROGRAM,
+      missionTrainingEnabled: false,
+      missionTrainingRate: 1.25,
+    });
+
+    await waitFor(() => {
+      expect(visibleText()).toContain("Mission training off");
+    });
+    expect(visibleText()).not.toContain("Mission training at");
   });
 
   /**
@@ -392,50 +460,22 @@ describe("CrewProgramme", () => {
    * people, which is the same class of mistake as reading an absent date as a
    * date.
    */
-  it("shows an unread switch as absent rather than as off", async () => {
-    const { fixture } = mountProgramme();
-    fixture.emit("rp1.available", true);
-    fixture.emit("rp1.crewProgram", { ...PROGRAM, retirementEnabled: null });
-
-    await waitFor(() => {
-      expect(screen.getByText("Retirement")).toBeInTheDocument();
-    });
-    const row = screen.getByText("Retirement").closest("li") as HTMLElement;
-    expect(row.textContent).not.toContain("Off");
-  });
-
-  /**
-   * Progress nobody is making. A course enrolled but not started is the state
-   * an operator has to notice, because nothing else on the dashboard says the
-   * training queue has stalled.
-   */
-  it("flags courses that are enrolled but not started", async () => {
+  it("says nothing about an unread switch, rather than calling it off", async () => {
     const { fixture } = mountProgramme();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.crewProgram", {
       ...PROGRAM,
-      courses: 3,
-      coursesStarted: 1,
+      crewRnREnabled: false,
+      retirementEnabled: null,
     });
 
+    /* The R&R line is the positive signal that the section rendered at all, so
+       the retirement assertion is about a rule that was read and dropped rather
+       than about a section that had not painted yet. */
     await waitFor(() => {
-      expect(screen.getByText("NOT STARTED")).toBeInTheDocument();
+      expect(visibleText()).toContain("Post-flight R&R off");
     });
-  });
-
-  it("does not flag when every course has begun", async () => {
-    const { fixture } = mountProgramme();
-    fixture.emit("rp1.available", true);
-    fixture.emit("rp1.crewProgram", {
-      ...PROGRAM,
-      courses: 2,
-      coursesStarted: 2,
-    });
-
-    await waitFor(() => {
-      expect(screen.getByText("In training")).toBeInTheDocument();
-    });
-    expect(screen.queryByText("NOT STARTED")).not.toBeInTheDocument();
+    expect(visibleText()).not.toContain("Retirement off");
   });
 
   it("registers itself into the Astronaut Complex's sections slot", () => {
