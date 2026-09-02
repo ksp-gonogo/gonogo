@@ -1651,6 +1651,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
+       * -- BANNER-COMMENT debt list (2026-09-02): a ratchet inventory, so it is
+       * a list of PATHS that carry a banner comment, two of which are this
+       * Uplink's. It names the token the way every debt list names one, by
+       * quoting a file it is holding a count against, and it carries no code at
+       * all. Shrinks to nothing when those two banners are cleaned.
+       */
+      "packages/core/src/banner-comments.allowlist.ts",
+      /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here,
@@ -2377,6 +2385,8 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/components/src/FleetReliability/undefined.characterise.test.tsx",
     "packages/components/src/test/installProfile.test.ts",
     "packages/components/src/test/installProfile.ts",
+    // Two debt-list KEYS naming this Uplink's files. Paths, not code.
+    "packages/core/src/banner-comments.allowlist.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
