@@ -57,6 +57,7 @@ public static class Rp1RtConfig
             typeof(Rp1ToolAllArgs),
             typeof(Rp1ToolingRefitArgs),
             typeof(Rp1BuildCost),
+            typeof(Rp1RequiredTechEntry),
             typeof(Rp1CareerEvents),
             typeof(Rp1CareerEventEntry),
             typeof(Rp1HireTargetSetArgs),

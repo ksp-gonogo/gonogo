@@ -63,6 +63,7 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1ToolAllArgs),
                 nameof(Rp1ToolingRefitArgs),
                 nameof(Rp1BuildCost),
+                nameof(Rp1RequiredTechEntry),
                 nameof(Rp1CareerEvents),
                 nameof(Rp1CareerEventEntry),
                 nameof(Rp1HireTargetSetArgs),

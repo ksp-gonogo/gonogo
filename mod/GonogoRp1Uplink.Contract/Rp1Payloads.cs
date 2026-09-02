@@ -2662,14 +2662,84 @@ public sealed class Rp1BuildCost
     public double? RolloutCost { get; set; }
 
     /// <summary>
-    /// Tech nodes this vehicle needs that the career has not researched, by name.
+    /// Tech nodes this vehicle needs that the career has not researched, each with
+    /// what it is called and what on this vehicle is waiting for it.
     ///
     /// <para>Not a cost, and here anyway, because it is the reason a vehicle that
     /// prices fine still cannot be built. A breakdown that showed only money would
     /// let an operator budget for something they cannot fly.</para>
+    ///
+    /// <para><b>It used to be a flat list of node ids and that was not readable.</b>
+    /// `supersonicFlight` is an identifier, and an identifier on its own says
+    /// neither what the node is called nor what about the vehicle is blocked by it.
+    /// Both are answerable and both are here.</para>
+    /// </summary>
+    public List<Rp1RequiredTechEntry>? RequiredTechs { get; set; }
+}
+
+/// <summary>
+/// One tech node the editor vehicle needs and the career has not researched.
+///
+/// <para>RP-1 names the node and nothing else: its
+/// <c>SpaceCenterManagement.EditorRequiredTechs</c> is a flat list of ids with no
+/// titles and no link to the parts waiting on them. Both of the other two fields
+/// are read from KSP directly, beside it.</para>
+/// </summary>
+[SitrepContract]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1RequiredTechEntry
+{
+    /// <summary>
+    /// The node's id, as RP-1 named it, and the stable key for this row.
+    ///
+    /// <para>Carried even though <see cref="Title"/> is the readable half, because
+    /// an id is what survives a locale and a tree revision: it is what a player
+    /// searches a tech tree for and what any other surface would join on. A title
+    /// is a display string and is not a key.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
-    public List<string>? RequiredTechs { get; set; }
+    public string? Id { get; set; }
+
+    /// <summary>
+    /// The node as the career's own tech tree titles it, e.g. "Supersonic Flight".
+    ///
+    /// <para>KSP's <c>ResearchAndDevelopment.GetTechnologyTitle</c>, which is a
+    /// title dictionary keyed on node id and consults researched state NOWHERE, so
+    /// it answers for an unresearched node. It loads from
+    /// <c>Parameters.Career.TechTreeUrl</c>, so under RP-1 these are RP-1's own
+    /// titles rather than stock's, by construction and not by arrangement.</para>
+    ///
+    /// <para><b>ABSENT rather than the id when the tree has no title.</b>
+    /// <c>GetTechnologyTitle</c> answers an unknown id with the EMPTY STRING, and
+    /// two wrong things could be done with that: publish the blank, which renders
+    /// as a nameless node, or substitute the id, which makes this field a lie about
+    /// what it is. A client already holds <see cref="Id"/> and can fall back to it
+    /// itself, so absence is the honest answer and the only one it can act on.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// The parts on the editor's table that are waiting for this node, by their
+    /// display titles.
+    ///
+    /// <para>This is the half that makes the row an answer rather than a name. KSP
+    /// keeps a part's blocking node on <c>AvailablePart.TechRequired</c>, so the
+    /// link is stock and needs nothing from RP-1; the editor ship is walked and its
+    /// parts gathered under the node each one names.</para>
+    ///
+    /// <para><b>Three states, and the middle one is the one worth the care.</b>
+    /// ABSENT means the editor ship could not be read at all, so nothing is claimed
+    /// about which parts are waiting. EMPTY means the ship WAS read and nothing on
+    /// it names this node, which is a real answer and happens: a node can be
+    /// required by something other than a part. A populated list is the parts
+    /// themselves. An empty list is therefore never suppressed, because an operator
+    /// who saw the row vanish would go looking for a fault behind it.</para>
+    /// </summary>
+    [SitrepUnit(Sitrep.Contract.Units.Text)]
+    public List<string>? Parts { get; set; }
 }
 
 /// <summary>

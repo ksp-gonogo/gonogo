@@ -2676,13 +2676,74 @@ export interface Rp1BuildCost
 	*/
 	rolloutCost?: Value<"funds">;
 	/**
-	* Tech nodes this vehicle needs that the career has not researched, by name.
+	* Tech nodes this vehicle needs that the career has not researched, each with
+	* what it is called and what on this vehicle is waiting for it.
 	*
 	* Not a cost, and here anyway, because it is the reason a vehicle that prices
 	* fine still cannot be built. A breakdown that showed only money would let an
 	* operator budget for something they cannot fly.
+	*
+	* **It used to be a flat list of node ids and that was not readable.**
+	* `supersonicFlight` is an identifier, and an identifier on its own says
+	* neither what the node is called nor what about the vehicle is blocked by it.
+	* Both are answerable and both are here.
 	*/
-	requiredTechs?: string[];
+	requiredTechs?: Rp1RequiredTechEntry[];
+}
+/**
+* One tech node the editor vehicle needs and the career has not researched.
+*
+* RP-1 names the node and nothing else: its
+* `SpaceCenterManagement.EditorRequiredTechs` is a flat list of ids with no
+* titles and no link to the parts waiting on them. Both of the other two
+* fields are read from KSP directly, beside it.
+*/
+export interface Rp1RequiredTechEntry
+{
+	/**
+	* The node's id, as RP-1 named it, and the stable key for this row.
+	*
+	* Carried even though `Rp1RequiredTechEntry.title` is the readable half,
+	* because an id is what survives a locale and a tree revision: it is what a
+	* player searches a tech tree for and what any other surface would join on. A
+	* title is a display string and is not a key.
+	*/
+	id?: string;
+	/**
+	* The node as the career's own tech tree titles it, e.g. "Supersonic Flight".
+	*
+	* KSP's `ResearchAndDevelopment.GetTechnologyTitle`, which is a title
+	* dictionary keyed on node id and consults researched state NOWHERE, so it
+	* answers for an unresearched node. It loads from
+	* `Parameters.Career.TechTreeUrl`, so under RP-1 these are RP-1's own titles
+	* rather than stock's, by construction and not by arrangement.
+	*
+	* **ABSENT rather than the id when the tree has no title.**
+	* `GetTechnologyTitle` answers an unknown id with the EMPTY STRING, and two
+	* wrong things could be done with that: publish the blank, which renders as a
+	* nameless node, or substitute the id, which makes this field a lie about what
+	* it is. A client already holds `Rp1RequiredTechEntry.id` and can fall back to
+	* it itself, so absence is the honest answer and the only one it can act on.
+	*/
+	title?: string;
+	/**
+	* The parts on the editor's table that are waiting for this node, by their
+	* display titles.
+	*
+	* This is the half that makes the row an answer rather than a name. KSP keeps
+	* a part's blocking node on `AvailablePart.TechRequired`, so the link is stock
+	* and needs nothing from RP-1; the editor ship is walked and its parts
+	* gathered under the node each one names.
+	*
+	* **Three states, and the middle one is the one worth the care.** ABSENT means
+	* the editor ship could not be read at all, so nothing is claimed about which
+	* parts are waiting. EMPTY means the ship WAS read and nothing on it names
+	* this node, which is a real answer and happens: a node can be required by
+	* something other than a part. A populated list is the parts themselves. An
+	* empty list is therefore never suppressed, because an operator who saw the
+	* row vanish would go looking for a fault behind it.
+	*/
+	parts?: string[];
 }
 /**
 * One thing RP-1 recorded as having happened in the career, with the instant

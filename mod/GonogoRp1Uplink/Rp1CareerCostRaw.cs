@@ -25,7 +25,29 @@ namespace GonogoRp1Uplink
         /// <summary>Absent for a spaceplane: RP-1 computes a rollout only in the VAB.</summary>
         public double? RolloutCost;
 
-        public List<string>? RequiredTechs;
+        public List<Rp1RequiredTechRaw>? RequiredTechs;
+    }
+
+    /// <summary>
+    /// One unresearched node the editor vehicle needs: RP-1's id, KSP's title for
+    /// it, and the parts on the ship waiting for it.
+    /// </summary>
+    public sealed class Rp1RequiredTechRaw
+    {
+        public string? Id;
+
+        /// <summary>
+        /// ABSENT where the tree has no title, never the id and never a blank:
+        /// GetTechnologyTitle answers an unknown id with the empty string.
+        /// </summary>
+        public string? Title;
+
+        /// <summary>
+        /// NULL where the editor ship could not be read, EMPTY where it was read
+        /// and nothing on it names this node. The two are different answers and a
+        /// client renders them differently.
+        /// </summary>
+        public List<string>? Parts;
     }
 
     /// <summary>One tick's reading of RP-1's career event log.</summary>

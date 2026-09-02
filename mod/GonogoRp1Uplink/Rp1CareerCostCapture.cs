@@ -28,8 +28,35 @@ namespace GonogoRp1Uplink
                 ["toolingCost"] = raw.ToolingCost,
                 ["unlockCost"] = raw.UnlockCost,
                 ["rolloutCost"] = raw.RolloutCost,
-                ["requiredTechs"] = raw.RequiredTechs,
+                ["requiredTechs"] = RequiredTechs(raw.RequiredTechs),
             };
+        }
+
+        /// <summary>
+        /// The blocking nodes, each as its id, its title and what is waiting for it.
+        ///
+        /// <para>A null title and a null parts list are both written out as nulls
+        /// rather than dropped, because each means something on the wire: no title
+        /// in the career's tree, and no readable editor ship. An EMPTY parts list
+        /// is not the same as a null one and survives as an empty list.</para>
+        /// </summary>
+        private static List<object?>? RequiredTechs(List<Rp1RequiredTechRaw>? rows)
+        {
+            if (rows == null)
+            {
+                return null;
+            }
+            var techs = new List<object?>();
+            foreach (var row in rows)
+            {
+                techs.Add(new Dictionary<string, object?>
+                {
+                    ["id"] = row.Id,
+                    ["title"] = row.Title,
+                    ["parts"] = row.Parts,
+                });
+            }
+            return techs;
         }
 
         /// <summary>

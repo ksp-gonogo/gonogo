@@ -125,11 +125,17 @@ public class Part
     public List<object> Modules { get; } = new List<object>();
 }
 
-/// <summary>KSP's AvailablePart, reduced to the one member read.</summary>
+/// <summary>KSP's AvailablePart, reduced to the two members read.</summary>
 public class PartInfo
 {
 #pragma warning disable IDE1006
     public string? title;
+
+    /// <summary>
+    /// The tech node this part is waiting for, which is the whole of KSP's
+    /// part-to-tech link. Empty on a part that needs nothing.
+    /// </summary>
+    public string TechRequired = "";
 #pragma warning restore IDE1006
 }
 
