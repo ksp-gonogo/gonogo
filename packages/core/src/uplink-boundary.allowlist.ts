@@ -639,7 +639,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * budget is keyed by file path, so it names every Uplink that unwraps a
        * Value. Ratchet-inventory file, the case this bucket documents.
        */
-      "packages/core/src/styleguide-magnitude-budget.test.ts",
       // -- new test (Plan 3): a kOS-terminal-SHAPED keyframe diff-stream fixture
       // (the shared-vantage multi-client catch-up test). A text-only mention of
       // "kos" in a fixture comment/shape name, no code coupling to the kOS Uplink.
@@ -1753,7 +1752,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * names every Uplink with a blind dispatch. Ratchet-inventory file, the
        * case this bucket documents.
        */
-      "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
       /*
        * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
@@ -2380,7 +2378,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/contributionsRuntime.test.tsx",
     "packages/core/src/registry.replacement.test.ts",
-    "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
@@ -2418,7 +2415,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
-    "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
