@@ -9,6 +9,7 @@ import {
   expectNoA11yViolations,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
+import { act } from "react";
 import { describe, expect, it } from "vitest";
 import { CrewSchedule } from "./index";
 import { CrewProgramme } from "./programme";
@@ -90,6 +91,11 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.available")).toBe(true);
     });
+    /* Settle before asserting ABSENCE. There is no positive signal to wait
+       for when the expectation is that nothing renders, so without this the
+       assertion can run before the emit has been processed and pass because
+       the render had not happened yet rather than because it must not. */
+    await act(async () => {});
     expect(view.container).toBeEmptyDOMElement();
   });
 
@@ -106,6 +112,11 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.crew")).toBe(true);
     });
+    /* Settle before asserting ABSENCE. There is no positive signal to wait
+       for when the expectation is that nothing renders, so without this the
+       assertion can run before the emit has been processed and pass because
+       the render had not happened yet rather than because it must not. */
+    await act(async () => {});
     expect(view.container).toBeEmptyDOMElement();
   });
 
@@ -157,6 +168,11 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.crew")).toBe(true);
     });
+    /* Settle before asserting ABSENCE. There is no positive signal to wait
+       for when the expectation is that nothing renders, so without this the
+       assertion can run before the emit has been processed and pass because
+       the render had not happened yet rather than because it must not. */
+    await act(async () => {});
     expect(view.container).toBeEmptyDOMElement();
   });
 
@@ -174,6 +190,11 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.crewProgram")).toBe(true);
     });
+    /* Settle before asserting ABSENCE. There is no positive signal to wait
+       for when the expectation is that nothing renders, so without this the
+       assertion can run before the emit has been processed and pass because
+       the render had not happened yet rather than because it must not. */
+    await act(async () => {});
     expect(view.container).toBeEmptyDOMElement();
   });
 
@@ -279,6 +300,11 @@ describe("CrewProgramme", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.available")).toBe(true);
     });
+    /* Settle before asserting ABSENCE. There is no positive signal to wait
+       for when the expectation is that nothing renders, so without this the
+       assertion can run before the emit has been processed and pass because
+       the render had not happened yet rather than because it must not. */
+    await act(async () => {});
     expect(view.container).toBeEmptyDOMElement();
   });
 
