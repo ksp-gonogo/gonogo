@@ -27,7 +27,7 @@
 #
 # Skip e2e for a quick push:  SKIP_E2E=1 git push   (CI still runs the matrix)
 # Bypass the whole hook:      git push --no-verify
-echo "pre-push: lint + affected test gate (CI runs the full matrix)…"
+echo "pre-push: lint + affected test gate (CI runs the full matrix)..."
 
 # Output is captured and only shown on FAILURE. A successful run of this hook
 # printed 5178 lines, so everyone piped it to `tail` to read the verdict, and a
@@ -102,7 +102,7 @@ else
   elif git diff --quiet "$BASE" HEAD -- tests/playwright; then
     echo "pre-push: no e2e spec changes vs $BASE, skipping e2e (CI runs the full matrix)."
   else
-    echo "pre-push: e2e specs changed vs $BASE, running affected specs on chromium…"
+    echo "pre-push: e2e specs changed vs $BASE, running affected specs on chromium..."
     if ! pnpm exec playwright test --only-changed="$BASE" --project=chromium --pass-with-no-tests; then
       echo "✖ pre-push: affected Playwright e2e failed (full matrix still runs in CI)."
       echo "  If browsers are missing: pnpm exec playwright install --with-deps chromium"

@@ -77,7 +77,7 @@ Everything user-facing moves only when a release is cut; pushes to `main` move a
 | Surface | Release channel | Dev channel (every CI-green push to `main`) |
 | --- | --- | --- |
 | Pages site | `ksp-gonogo.github.io/gonogo/` | `ksp-gonogo.github.io/gonogo/dev/` (stations: `/gonogo/dev/station`) |
-| Bundle image | `ghcr.io/ksp-gonogo/gonogo:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo:dev` (+ `:sha-…`) |
+| Bundle image | `ghcr.io/ksp-gonogo/gonogo:<version>` + `:latest` | `ghcr.io/ksp-gonogo/gonogo:dev` (+ `:sha-...`) |
 | Service images | same pattern | same pattern |
 | App version | `X.Y.Z` | `X.Y.Z-dev.<shortsha>` |
 
@@ -101,6 +101,6 @@ gh workflow run prepare-release.yml --ref main
 | minor | new features, still interoperates | advisory mismatch banner |
 | major | peer protocol broke | mismatch banner; expect breakage |
 
-Dev builds compare by their base `X.Y.Z` (the `-dev.…` suffix is ignored), so a dev station against the release it forked from is silent. Because stations always load the newest deploy of their channel while main screens run a container pulled at install time, skew is normal, the banner is the nudge to `docker pull`. When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
+Dev builds compare by their base `X.Y.Z` (the `-dev.<shortsha>` suffix is ignored), so a dev station against the release it forked from is silent. Because stations always load the newest deploy of their channel while main screens run a container pulled at install time, skew is normal, the banner is the nudge to `docker pull`. When changing the peer protocol, keep new message fields optional (the codebase already follows this) so a minor-skewed pair degrades instead of crashing.
 
 **One caveat for dev testing:** `/gonogo/` and `/gonogo/dev/` share an origin, so a dev station and a release station on the same device share localStorage, layout, station identity, share-code. Convenient (your station keeps its identity across channels) but a dev-channel layout experiment edits the same saved layout the release station uses.

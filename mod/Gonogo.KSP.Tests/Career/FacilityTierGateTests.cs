@@ -10,7 +10,7 @@ namespace Gonogo.KSP.Tests.Career
     /// <c>ScenarioUpgradeableFacilities</c> to read.
     ///
     /// <para><b>The bug.</b> That scenario is declared
-    /// <c>[KSPScenario((ScenarioCreationOptions)1056, …)]</c>, which is
+    /// <c>[KSPScenario((ScenarioCreationOptions)1056, ...)]</c>, which is
     /// <c>AddToNewMissionGames | AddToNewCareerGames</c>, so its <c>Instance</c>
     /// is null in a sandbox save. Both gates guarded on that null and answered
     /// Unknown, and Unknown refuses at dispatch. The consequence was not that a

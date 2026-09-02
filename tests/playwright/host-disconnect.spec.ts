@@ -8,7 +8,7 @@
  * This test guards that the banner now fires within a few seconds of
  * losing the host.
  *
- * The banner copy ranges between "RECONNECTING TO HOST…" (warning) and
+ * The banner copy ranges between "RECONNECTING TO HOST..." (warning) and
  * "HOST DISCONNECTED" (nogo) depending on whether PeerJS is still
  * trying. Either text proves the banner is up.
  */
@@ -78,7 +78,7 @@ test.describe("host disconnect: station banner", () => {
       timeout: 15_000,
     });
 
-    // …and clears once the retry lands. RetryPolicy default interval
+    // ...and clears once the retry lands. RetryPolicy default interval
     // is 2s; allow ~20s for cold WebRTC negotiation against the local
     // broker.
     await expect(pair.station.getByText(BANNER_PATTERN)).not.toBeVisible({

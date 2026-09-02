@@ -428,7 +428,7 @@ public enum DeployedPowerState
 ///
 /// <para>Deliberately a GENERAL sensor group: one entry per sensor module,
 /// with <see cref="Type"/> carrying the raw <c>SensorType</c> enum name
-/// (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/…) as a string: rather than
+/// (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/...) as a string: rather than
 /// four fixed <c>temp/pres/grav/acc</c> Values. Modded sensor types and
 /// multiple instances of the same type both fall out naturally; the consumer
 /// (ScienceBench) groups/labels by <see cref="Type"/>.</para>
@@ -452,7 +452,7 @@ public class SensorEntry
     [SitrepUnit(Units.Text)]
     public string? PartName { get; set; }
 
-    /// <summary>The raw <c>SensorType</c> enum name (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/…) passed through as a string so modded types survive.</summary>
+    /// <summary>The raw <c>SensorType</c> enum name (<c>TEMP</c>/<c>PRES</c>/<c>GRAV</c>/<c>ACC</c>/...) passed through as a string so modded types survive.</summary>
     [SitrepUnit(Units.Id)]
     public string? Type { get; set; }
 

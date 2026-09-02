@@ -264,7 +264,7 @@ export async function bootstrapPair(
   // boot. Default is EMPTY = load
   // nothing: these specs test widget rendering + the peer handshake, not the
   // loader, and without the override the per-Uplink consent modal ("Load
-  // Uplink …?") covers the screen and `waitForMain` times out. `&` for the
+  // Uplink ...?") covers the screen and `waitForMain` times out. `&` for the
   // station because `?host=` is already present.
   //
   // For specs whose widget comes FROM an Uplink (`loadUplinkIds`) we must load
@@ -313,7 +313,7 @@ export async function teardownPair(pair: BootstrappedPair): Promise<void> {
  * text equals `panelTitle`. Looks for an element with text matching
  * `valuePattern` *after* the label in DOM order.
  *
- * The widgets render `<Label>X</Label><Value>…</Value>` pairs inside a
+ * The widgets render `<Label>X</Label><Value>...</Value>` pairs inside a
  * grid; this walks `nextElementSibling` from the label until it finds
  * a match. Use this for grid-laid-out widgets like CurrentOrbit. For
  * widgets with a single readout (CommSignal headline, etc.) just

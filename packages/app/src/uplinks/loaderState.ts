@@ -23,7 +23,7 @@ export interface UplinkLoadOutcome {
   status: UplinkLoadStatus;
   /**
    * Why it is in this state. For `quarantined` this is the operator-legible
-   * refusal reason (compat gate / hash mismatch / fetch error / no crypto / …).
+   * refusal reason (compat gate / hash mismatch / fetch error / no crypto / ...).
    */
   reason?: string;
   /**

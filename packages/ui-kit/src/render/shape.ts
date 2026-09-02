@@ -207,8 +207,8 @@ export const readShapeText = (args: {
   if (!host) throw new Error("render shape: no #root in the page");
   const attrRe = new RegExp(args.attributes);
   // Engines serialise a wide-gamut colour to different last digits: the same
-  // theme token came out `color(srgb 0.636078 …)` in chromium and
-  // `color(srgb 0.636079 …)` in firefox, and that one digit alone made every
+  // theme token came out `color(srgb 0.636078 ...)` in chromium and
+  // `color(srgb 0.636079 ...)` in firefox, and that one digit alone made every
   // asset's shape differ between the two. It is the same colour, and no change
   // anybody could see in a picture lives in the fourth decimal place, so the
   // text is normalised to three before it is hashed.

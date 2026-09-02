@@ -497,7 +497,7 @@ const ControlDelayStream__Zones = styled.div`
   display: flex;
   justify-content: space-between;
   /* The GRAPH and its dividers stay full-bleed, but the zone labels below it
-     ("outgoing 0" / "echo …" / "confirmed …") taper inward to the standard
+     ("outgoing 0" / "echo ..." / "confirmed ...") taper inward to the standard
      content margin, same as the legend, so the outermost labels don't touch
      the widget edges. */
   margin: 0 var(--space-16, 16px);

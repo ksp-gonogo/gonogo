@@ -22,7 +22,7 @@ import type { ComponentDefinition, DataSource, ThemeDefinition } from "./types";
  * a widget and had no supported way to reset or read the registry it added to.
  *
  * The ORCHESTRATION reads (`getResolvedComponents`, `getReplacementConflicts`,
- * `getThemes`, …) are deliberately not on the author barrel: see
+ * `getThemes`, ...) are deliberately not on the author barrel: see
  * `../registry/index.ts` for where they surface and why.
  */
 
@@ -113,7 +113,7 @@ function isSameRegistration(
 // Ids share one flat namespace across every registered package, and a duplicate
 // id is a hard error (below). There is no formal per-package namespace: external
 // and Uplink widgets SHOULD prefix their id with their package/mod slug (a "foo"
-// mod's widgets as `foo-status`, `foo-map`, …) to stay clear of the built-ins and
+// mod's widgets as `foo-status`, `foo-map`, ...) to stay clear of the built-ins and
 // each other. The hard error enforces uniqueness; the prefix convention is how
 // you avoid tripping it.
 export function registerComponent<TConfig = Record<string, unknown>>(

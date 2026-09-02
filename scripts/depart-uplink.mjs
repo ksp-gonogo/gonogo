@@ -11,7 +11,7 @@
  * and it has to be complete.
  *
  * Done by hand it is not. Removing some of the places leaves the app quarantining
- * the Uplink with `mod expects … Hub offers …`, which is a correct message about
+ * the Uplink with `mod expects ... Hub offers ...`, which is a correct message about
  * a stale artefact and reads as a problem with the external bundle. That happened
  * on the first live run of this, which is why it is a script.
  *

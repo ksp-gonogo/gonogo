@@ -12,7 +12,7 @@
 // `Sitrep.Contract`: every command's args class is tagged `[SitrepCommand("<id>")]`,
 // and `mod/codegen.sh` (via `RtConfig.EmitCommandMap`) reflects over those tags. A
 // command added or removed in C# flows through codegen into this file with no hand
-// edit, and `commands-cs-sync.test.ts` re-reads the C# `const string …Command`
+// edit, and `commands-cs-sync.test.ts` re-reads the C# `const string ...Command`
 // declarations and fails on a command the map has never heard of.
 //
 // ── The Uplink half ─────────────────────────────────────────────────────────────────

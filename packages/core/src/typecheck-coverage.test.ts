@@ -26,7 +26,7 @@ import { TYPECHECK_COVERAGE_DEBT } from "./typecheck-coverage.allowlist";
  * Typecheck-coverage ratchet: a package's `typecheck` script must actually
  * typecheck that package's test files.
  *
- * `packages/core/tsconfig.json` carried `"exclude": ["src/**\/*.test.ts", …]`
+ * `packages/core/tsconfig.json` carried `"exclude": ["src/**\/*.test.ts", ...]`
  * and was also the config `typecheck` ran, so no core test file had ever been
  * type checked. Roughly forty architectural gates live in those files: the ones
  * enforcing our rules were the ones with no type checking. Including them

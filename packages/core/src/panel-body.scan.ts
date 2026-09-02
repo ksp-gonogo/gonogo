@@ -115,7 +115,7 @@ export function stripComments(source: string): string {
 }
 
 /**
- * Every `<Panel …>` opening tag in one file, with whether it closed itself.
+ * Every `<Panel ...>` opening tag in one file, with whether it closed itself.
  *
  * A hand-written walk rather than a regex because the attribute list routinely
  * contains a `>` that is not the tag's: `panelAside={<Badge />}` and
@@ -197,7 +197,7 @@ export interface PanelBodyScan {
   /** Files skipped as a test or as generated. */
   skipped: number;
   /**
-   * Every `<Panel …>` opening tag seen, bodies and converted ones alike.
+   * Every `<Panel ...>` opening tag seen, bodies and converted ones alike.
    *
    * The instrument-check number, and the reason it counts TAGS rather than
    * bodies: converting a widget turns a body into a self-closing tag, so this

@@ -124,7 +124,7 @@ export function AboardTab({
   const slotFilled = getAugmentsForSlot("science-data.aboard-row").length > 0;
   // Searchable text is the subject plus where it was taken, which is what an
   // operator types when hunting a row: "goo", "grasslands", "flying".
-  const filter = useRowFilter({ placeholder: "Filter subjects…" });
+  const filter = useRowFilter({ placeholder: "Filter subjects..." });
   const shownBreakdown = (breakdown ?? []).filter((b) =>
     filter.matches(`${b.expTitle} ${b.biome} ${b.situation}`),
   );

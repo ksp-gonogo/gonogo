@@ -405,7 +405,7 @@ export { NULL_DISPLAY, NullValue } from "./NullValue";
 // a widget that needs
 // a variant can hand-compose the same arrangement. The named exports below are the same
 // objects, kept for widgets that render them as children; prefer
-// `<Panel panelTitle="…">` in new code. See README.md's Panel section.
+// `<Panel panelTitle="...">` in new code. See README.md's Panel section.
 export {
   FRAMEWORK_AUGMENT_SEGMENTS,
   Panel,
@@ -540,7 +540,7 @@ export {
 // The contract declares what a field IS; these decide how to SHOW it. The wire
 // is canonical SI and never pre-scaled, so every ladder lives here.
 // Only the extension point and the shapes it needs. Every formatter that used
-// to live here is gone: `<Unit value={…} />` is the one way to show a
+// to live here is gone: `<Unit value={...} />` is the one way to show a
 // quantity, and a second way is how eleven widgets each grew their own ladder.
 export {
   type FormatsFor,

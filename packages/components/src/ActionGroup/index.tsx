@@ -165,7 +165,7 @@ function stillTrue<T, A>(
  * The CANONICAL one-arg topic read lives here. This widget's last legacy
  * `useTelemetry("data", group.value)` shim read is GONE: it existed only
  * because the read key was resolved dynamically off the hardcoded
- * ACTION_GROUPS registry (`"v.sasValue"`, `"v.ag1Value"`, …), which is exactly
+ * ACTION_GROUPS registry (`"v.sasValue"`, `"v.ag1Value"`, ...), which is exactly
  * what made this widget the mapTopic coverage scan's own blind spot.
  *
  * `vessel.control` is read ONCE and serves both jobs, it carries the named

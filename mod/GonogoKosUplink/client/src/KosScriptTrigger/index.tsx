@@ -186,7 +186,7 @@ function KosScriptTriggerComponent({
                 onChange={(e) => setPickedTag(e.target.value || null)}
               >
                 <option value="" disabled>
-                  Select a CPU…
+                  Select a CPU...
                 </option>
                 {runnable.map((p) => (
                   <option key={p.coreId} value={p.tag}>
@@ -229,7 +229,7 @@ function KosScriptTriggerComponent({
         <Section key="actions" full>
           <FormActions>
             <PrimaryButton type="button" onClick={dispatch} disabled={!canRun}>
-              {run.status === "running" ? "Running…" : "Run"}
+              {run.status === "running" ? "Running..." : "Run"}
             </PrimaryButton>
             {oneWay !== null && oneWay > 0 && (
               <RoundTrip aria-label="Signal round-trip">
@@ -249,7 +249,7 @@ function KosScriptTriggerComponent({
               <Running>
                 <Spinner size={14} />
                 <span>
-                  Running on {run.cpu}, awaiting the round-trip result…
+                  Running on {run.cpu}, awaiting the round-trip result...
                 </span>
               </Running>
             )}

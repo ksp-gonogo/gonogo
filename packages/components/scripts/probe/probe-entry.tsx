@@ -11,7 +11,7 @@
  * fixture key. A second animation frame lets ResizeObserver and the
  * widget's internal layout settle before the driver screenshots.
  *
- * kOS feed widgets (kos-processors, …) read from a separate `"kos"` source
+ * kOS feed widgets (kos-processors, ...) read from a separate `"kos"` source
  * and pull topic status via `useKosScriptStatus` → `getTopicStatus` /
  * `onTopicStatusChange`. The probe registers a `ProbeKosDataSource` (a
  * MockDataSource subclass that adds those two methods, returning a static
@@ -53,11 +53,11 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import type { Meta, TopicId } from "@ksp-gonogo/sitrep-sdk";
-// Side-effect import: mod-client widgets (kOS terminal, processors, …)
+// Side-effect import: mod-client widgets (kOS terminal, processors, ...)
 // self-register on module load, same contract as the built-in library.
 import "@ksp-gonogo/gonogo-kos-uplink";
 // Side-effect import: the Kerbalism Uplink's own widgets (Ship Systems,
-// its Greenhouse augment, …) self-register on module load, same contract.
+// its Greenhouse augment, ...) self-register on module load, same contract.
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
 // Side-effect import: RealAntennas registers no standalone widget, but wires
 // its comm-signal.sections augment (+ the Topic registrations it reads) at
@@ -126,7 +126,7 @@ class ProbeKosDataSource extends MockDataSource {
   }
 
   // Healthy, recent, idle. `running:false` so a payload-less render shows the
-  // run prompt rather than a perpetual "Scanning…"; with a payload present
+  // run prompt rather than a perpetual "Scanning..."; with a payload present
   // the widget renders the list regardless.
   getTopicStatus() {
     return {
@@ -383,7 +383,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   // byte-identical until this reset was added.
   clearProcessorRuntime();
 
-  // Stream-driven mod-client widgets (kOS terminal, …) carry their fixture
+  // Stream-driven mod-client widgets (kOS terminal, ...) carry their fixture
   // data in `_stream` rather than plain data keys; see this file's top doc
   // comment and `StreamFixtureBlock`. Resolved once up-front so both the
   // provider-wrap choice below and the post-mount emit loop share it.

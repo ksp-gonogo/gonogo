@@ -13,7 +13,7 @@ const entry = (over: Partial<import("./command-delay").PendingEntry> = {}) => ({
   label: "boot",
   topic: "kos/7",
   vantage: "ksc",
-  // An instant, not an interval. Built as `value("s", …)` until the affine
+  // An instant, not an interval. Built as `value("s", ...)` until the affine
   // rules landed, which meant every test here exercised duration + duration
   // and none of them exercised the instant + duration the module actually does.
   dispatchedAt: value("ut", 100),

@@ -66,7 +66,7 @@ const UI_KIT = join(REPO, "packages/ui-kit/src");
 const DECLARED_RE =
   /^export\s+(?:default\s+)?(?:const|function|class|interface|type|enum)\s+([A-Za-z0-9_]+)/gm;
 
-/** A file whose whole job is `export { … } from "@ksp-gonogo/ui-kit"`. */
+/** A file whose whole job is `export { ... } from "@ksp-gonogo/ui-kit"`. */
 const ALIASES_UI_KIT_RE =
   /export\s*\{[^}]*\}\s*from\s*["']@ksp-gonogo\/ui-kit["']/s;
 

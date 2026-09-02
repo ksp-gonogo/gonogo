@@ -142,9 +142,9 @@ export interface DeltaVBudget {
 /**
  * The wire shape of a `dv.stages` row: `Sitrep.Contract.StageDeltaVEntry` and
  * only it, read by the contract's own names (`dvActual`, `twrActual`,
- * `thrustAsl`, …).
+ * `thrustAsl`, ...).
  *
- * Deliberately NO alias set (`deltaVActual`, `TWRActual`, …). A fixture that
+ * Deliberately NO alias set (`deltaVActual`, `TWRActual`, ...). A fixture that
  * spells a field the mod never sends should read as ABSENT, which is the only
  * reason an e2e spelling one another way is ever found.
  */

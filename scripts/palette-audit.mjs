@@ -221,7 +221,7 @@ function renderHtml({ rows, tokens, totalOccurrences }) {
           (o) => `
             <li class="${o.inComment ? "in-comment" : ""}">
               <code>${escapeHtml(o.file)}:${o.line}</code>
-              <span class="occ-text">${escapeHtml(o.text.length > 140 ? `${o.text.slice(0, 140)}…` : o.text)}</span>
+              <span class="occ-text">${escapeHtml(o.text.length > 140 ? `${o.text.slice(0, 140)}...` : o.text)}</span>
               ${o.inComment ? '<span class="comment-tag">in comment</span>' : ""}
             </li>`,
         )

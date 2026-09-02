@@ -1,7 +1,7 @@
 # Derived from CI's playwright image, plus the broad font set GitHub's
 # ubuntu-latest runner carries. The visual gate embeds JetBrains Mono (its
 # latin-400/700 woff2) but text still falls back to SYSTEM fonts for glyphs
-# outside that subset (°, ↓, →, ·, Δ, …) and for fontconfig's hinting/AA
+# outside that subset (°, ↓, →, ·, Δ, ...) and for fontconfig's hinting/AA
 # defaults. The stock playwright:noble image is minimal (only playwright's
 # --with-deps fonts), so those fall back DIFFERENTLY than on ubuntu-latest and
 # text-heavy widgets drift. Installing the same families ubuntu-latest resolves

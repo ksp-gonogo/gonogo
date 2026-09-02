@@ -295,13 +295,13 @@ export async function renderWidgets(
     slug,
   });
 
-  console.log(`Launching ${engine}…`);
+  console.log(`Launching ${engine}...`);
   const browser = await ENGINES[engine].launch();
   try {
     const context = await browser.newContext({
       viewport: { width: 800, height: 800 },
       deviceScaleFactor: 2,
-      // Several widgets pulse with `animation: … infinite` guarded by
+      // Several widgets pulse with `animation: ... infinite` guarded by
       // `@media (prefers-reduced-motion: no-preference)`. Emulate reduce so
       // those guards suppress the animation: otherwise a pulsing state is
       // captured at an arbitrary opacity phase and the visual gate flakes.
@@ -420,7 +420,7 @@ export async function renderWidgets(
  * The defining difference from `renderWidgets`: a screen owns the whole
  * viewport, so this resizes the PAGE viewport per breakpoint (and toggles
  * touch emulation) rather than sizing `#root`. That is what makes a screen's
- * `@media (max-width: …)` / `(pointer: coarse)` rules actually engage,
+ * `@media (max-width: ...)` / `(pointer: coarse)` rules actually engage,
  * those match against the viewport + device, not an element's box. A fresh
  * browser CONTEXT is created per breakpoint because `hasTouch` is a
  * context-level option (it can't be flipped on a live page).
@@ -439,7 +439,7 @@ export async function renderScreens(
   });
   const probeUrl = pathToFileURL(probeHtmlOut).toString();
 
-  console.log("Launching Chromium…");
+  console.log("Launching Chromium...");
   const browser = await chromium.launch();
   try {
     for (const config of configs) {
@@ -551,7 +551,7 @@ async function findCrushedGraphics(page: Page): Promise<string[]> {
     const host = document.getElementById("root");
     if (!host) return [] as string[];
     // A regex literal rather than a named arrow helper: tsx's keepNames wraps
-    // a named function in a `__name(…)` call that exists only in module scope,
+    // a named function in a `__name(...)` call that exists only in module scope,
     // and this body is serialized into the page without it.
     const ABSOLUTE = /^\s*\d+(\.\d+)?(px)?\s*$/;
     const out: string[] = [];
@@ -671,7 +671,7 @@ async function findOverlappingSections(page: Page): Promise<string[]> {
           // Painted extent: this element unioned with every in-flow descendant
           // that is not sealed behind a clipping ancestor. An explicit stack
           // rather than recursion, and no named helpers: tsx's keepNames wraps a
-          // named function in a `__name(…)` call that exists only in module
+          // named function in a `__name(...)` call that exists only in module
           // scope, and this body is serialized into the page without it.
           let x0 = Number.POSITIVE_INFINITY;
           let y0 = Number.POSITIVE_INFINITY;
@@ -1046,8 +1046,8 @@ async function renderOneWidget(
          vertical crop is lifted. */
       // OFF for the visual gate, so its per-tile baselines are unaffected.
       if (fullContent) {
-        // NB: no named `const fn = () => …` helpers inside this evaluate,
-        // tsx's keepNames wraps them with a `__name(…)` helper that is only
+        // NB: no named `const fn = () => ...` helpers inside this evaluate,
+        // tsx's keepNames wraps them with a `__name(...)` helper that is only
         // defined in the module scope, not the serialized page context, so a
         // named arrow here throws "__name is not defined". Keep it inline.
         await page.evaluate(() => {
@@ -1216,7 +1216,7 @@ export interface PreparePageOpts {
   entry: string;
   /** HTML template path with the `probe-theme` style + script placeholder. */
   htmlTemplate: string;
-  /** The exact `<script …></script>` string in the template to replace with
+  /** The exact `<script ...></script>` string in the template to replace with
    *  the inlined bundle. */
   scriptSrcPlaceholder: string;
   /** Filename slug for the tmpdir HTML. */
@@ -1268,7 +1268,7 @@ document.head.appendChild(__style);`,
  *  differ only in entry point + HTML template. Returns the generated HTML
  *  path. */
 export async function prepareProbePage(opts: PreparePageOpts): Promise<string> {
-  console.log(`Bundling ${opts.entry} with esbuild…`);
+  console.log(`Bundling ${opts.entry} with esbuild...`);
   const bundleResult = await build({
     entryPoints: [opts.entry],
     bundle: true,

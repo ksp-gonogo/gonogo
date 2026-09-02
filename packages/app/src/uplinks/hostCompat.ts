@@ -17,7 +17,7 @@
 // threaded in via vite.config.ts's `define` (`__GONOGO_CONTRACT_MAJOR__` /
 // `__GONOGO_CONTRACT_MINOR__`), same as before.
 //
-// Guarded with the `typeof … !== "undefined"` pattern (see version.ts) so the
+// Guarded with the `typeof ... !== "undefined"` pattern (see version.ts) so the
 // module is import-safe under vitest, where the defines are absent.
 
 import { EXTENSION_API_VERSION } from "@ksp-gonogo/core";

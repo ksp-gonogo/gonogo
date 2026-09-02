@@ -187,7 +187,7 @@ describe("ThermalStatus: what undefined means today", () => {
     expect(container.querySelector('[style*="width: 0%"]')).not.toBeNull();
   });
 
-  it("omits the '/ … max' tag when the max temperature is missing, keeping the temperature", async () => {
+  it("omits the '/ ... max' tag when the max temperature is missing, keeping the temperature", async () => {
     // `hottestMaxK !== undefined` is the gate. Absent max means no denominator
     // is drawn at all, and the bare temperature is left to read as if it were
     // the whole story.

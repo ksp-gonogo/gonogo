@@ -29,14 +29,14 @@ export interface ConfigField {
  *
  * Deliberately carries no read key. A per-entry key would force `ActionGroup`
  * to resolve its read dynamically off this registry, which is a blind spot for
- * the `mapTopic` coverage scan and would keep a `useTelemetry("data", …)` shim
+ * the `mapTopic` coverage scan and would keep a `useTelemetry("data", ...)` shim
  * read alive in the widget. The widget reads the canonical `vessel.control` /
  * `vessel.structure` topics directly and resolves each group's value from the
  * payload, so the registry only has to describe WHICH group an entry is, not
  * how to read it.
  */
 export interface ActionGroup {
-  /** Display name. Stock singletons: "SAS"/"Gear"/…. Customs: whatever the elected backend called it ("AG1" under stock, "Solar Panels" under AGX). */
+  /** Display name. Stock singletons: "SAS", "Gear" and the like. Customs: whatever the elected backend called it ("AG1" under stock, "Solar Panels" under AGX). */
   name: string;
   /** Legacy-era action key to toggle (bridged to a typed command by `map-command.ts`), or null for read-only indicators like Precision Control. */
   toggle: string | null;

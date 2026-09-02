@@ -66,7 +66,7 @@ describe("MissionEventLogComponent", () => {
     });
     // A row is no longer one text node: the stamp renders through
     // <Countdown>, which splits the number from its symbol. The MET stamp is
-    // relative to launchUt (T+…), a delay-honest happened-at time, and it is
+    // relative to launchUt (T+...), a delay-honest happened-at time, and it is
     // the row's OWN text rather than an aria-label that would override it.
     await waitFor(() =>
       expect(visibleText()).toMatch(/T\+.* · Launched Mun Tester/),

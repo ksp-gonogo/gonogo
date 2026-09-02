@@ -61,7 +61,7 @@ export interface KerbalStatFields {
    *  formatted in the client's calendar and never on the wire. */
   standingEndsAtUt?: number | null;
   currentVesselName: string;
-  /** Ratio 0-1. Carried as non-optional (defaulted via `magnitudeOr(…, 0)`),
+  /** Ratio 0-1. Carried as non-optional (defaulted via `magnitudeOr(..., 0)`),
    *  so presence alone can't gate the chips: a caller must opt in with
    *  `showTraits` below. */
   courage?: number | null;

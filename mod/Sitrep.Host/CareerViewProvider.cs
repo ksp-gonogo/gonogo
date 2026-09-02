@@ -132,7 +132,7 @@ namespace Sitrep.Host
         /// members. <c>SCIENCE_SANDBOX</c> → <see cref="GameMode.Science"/>,
         /// <c>SANDBOX</c> → <see cref="GameMode.Sandbox"/>, <c>CAREER</c> →
         /// <see cref="GameMode.Career"/>; everything else (SCENARIO,
-        /// MISSION, …, and any future KSP addition) →
+        /// MISSION, ..., and any future KSP addition) →
         /// <see cref="GameMode.Unknown"/>.
         /// </summary>
         private static GameMode ParseGameMode(string? raw)

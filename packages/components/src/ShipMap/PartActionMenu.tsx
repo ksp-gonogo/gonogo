@@ -31,7 +31,7 @@ export function PartActionCount({ flightId }: Readonly<{ flightId: number }>) {
       <span>actions</span>
       <span style={ROW_VALUE}>
         {pending
-          ? "checking…"
+          ? "checking..."
           : actions && actions.length > 0
             ? `${actions.length} available`
             : "none"}
@@ -99,7 +99,7 @@ export function PartActionMenu({
       // Two different empty states: a subscription that has not been answered
       // yet (a real wait under signal delay) versus a part that genuinely has no
       // buttons. Collapsing them would report "none" for a part still in transit.
-      emptyLabel={pending ? "Awaiting actions…" : "No actions"}
+      emptyLabel={pending ? "Awaiting actions..." : "No actions"}
       onSelect={(eventName) => {
         const action = actions?.find((a) => a.name === eventName);
         onInvoke(eventName, action?.label || eventName);

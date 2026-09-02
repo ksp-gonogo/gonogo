@@ -1169,7 +1169,7 @@ function modeShort(mode: SasMode): string {
  * on its buttons.
  *
  * The full member name is what pushed the badge row wide enough that the Panel
- * ellipsised its OWN title down to "GNC CO…". The panel header is one row by
+ * ellipsised its OWN title down to "GNC CO...". The panel header is one row by
  * design (title left, aside right, no wrap, the aside collapsing to dots rather
  * than dropping a line), so the aside taking more width can only cost the title
  * letters, and the grid directly below already spells the active mode out in

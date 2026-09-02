@@ -10,7 +10,7 @@
 # `biome check` here is verify-only (no --write): auto-fixing mid-commit
 # wouldn't make it into the staged snapshot. If it fails on formatting, run
 # `pnpm lint` to auto-fix, then re-commit. Bypass in a pinch: git commit --no-verify
-echo "pre-commit: biome check + pnpm typecheck…"
+echo "pre-commit: biome check + pnpm typecheck..."
 
 # Guard: never commit a file:/link: @jonpepler/kerbcast dependency. It's fine to
 # link kerbcast from disk during cross-repo dev, but a file:/link: path that

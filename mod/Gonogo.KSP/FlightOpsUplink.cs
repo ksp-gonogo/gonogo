@@ -18,7 +18,7 @@ namespace Gonogo.KSP
     /// <see cref="VesselUplink"/>'s command-classification table).
     ///
     /// <para>Read topics for the same domain (<c>ksp.revertAvailability</c>,
-    /// <c>ksp.scene</c>, …) are produced elsewhere; this uplink declares NO
+    /// <c>ksp.scene</c>, ...) are produced elsewhere; this uplink declares NO
     /// channels: it exists purely to carry the flight-ops command handlers.
     /// Mirrors <see cref="VesselUplink"/>'s KSP-free-provider / real-actuator
     /// split exactly: all the arg-parsing lives in the headlessly-testable

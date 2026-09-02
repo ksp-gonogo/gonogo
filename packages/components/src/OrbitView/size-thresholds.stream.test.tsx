@@ -6,7 +6,7 @@ import { renderOrbitViewStream } from "./streamHarness";
 /**
  * Two defects a live render surfaced at the smallest widget sizes:
  *
- * - the panel title truncated to "O…" (2 of 10 characters) despite room in the
+ * - the panel title truncated to "O..." (2 of 10 characters) despite room in the
  *   header row for far more; a short size-gated title uses that room instead.
  * - the "orbit plane" frame caption rendered alongside the tiny-mode status
  *   pill, captioning a diagram that at that size does not exist. Both were

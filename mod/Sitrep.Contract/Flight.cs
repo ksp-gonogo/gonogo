@@ -62,7 +62,7 @@ public class FlightCurrent
     [SitrepUnit(Units.Text)]
     public string VesselName { get; set; } = "";
 
-    /// <summary>The vessel's current flight phase: reuses <see cref="Situation"/> (PreLaunch/Flying/Landed/…), not a parallel enum.</summary>
+    /// <summary>The vessel's current flight phase: reuses <see cref="Situation"/> (PreLaunch/Flying/Landed/...), not a parallel enum.</summary>
     [SitrepUnit(Units.Enumeration)]
     public Situation Phase { get; set; }
 }

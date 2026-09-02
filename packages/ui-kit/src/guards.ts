@@ -101,8 +101,8 @@ export const HAND_TYPED_SYMBOLS: readonly string[] = [
  * findings entirely.
  *
  * The `[:(={]` covers all three spellings a length appears in: a declaration
- * (`width: …`), a call (`translate(…)`), and an SVG or JSX attribute
- * (`offset={…}`), which is how a gradient stop is written and which the first
+ * (`width: ...`), a call (`translate(...)`), and an SVG or JSX attribute
+ * (`offset={...}`), which is how a gradient stop is written and which the first
  * two forms missed.
  *
  * The colour functions (`hsl`/`rgb`/`hsla`/`rgba`) are here for the same
@@ -216,7 +216,7 @@ function walk(root: string, dir: string, out: string[]): void {
 }
 
 /**
- * The pattern every offender takes: a `${…}` interpolation, then optionally
+ * The pattern every offender takes: a `${...}` interpolation, then optionally
  * one space, then a unit symbol ending at a non-word boundary.
  *
  * Longest symbol first, so `m/s` cannot be matched as a bare `m` and reported

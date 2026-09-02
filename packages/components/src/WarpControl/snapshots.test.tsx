@@ -21,7 +21,7 @@ import { WarpControlComponent } from "./index";
  * readouts need and the hand-built stream carried neither of.
  *
  * `connectSource` stays on: the widget's status badge reads
- * `useDataStreamStatus("data", …)`, and a disconnected legacy source paints a
+ * `useDataStreamStatus("data", ...)`, and a disconnected legacy source paints a
  * badge these fixtures do not depict.
  */
 

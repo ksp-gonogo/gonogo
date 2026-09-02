@@ -125,7 +125,7 @@ describe("Panel sidebar, DOM order", () => {
       </Panel>,
     );
     expect(getComputedStyle(sidebar()).order).toBe("-1");
-    // …and the sized track leads, so the body lands in the flexible one.
+    // ...and the sized track leads, so the body lands in the flexible one.
     expect(getComputedStyle(split() as HTMLElement).gridTemplateColumns).toBe(
       "minmax(0, 14rem) minmax(0, 1fr)",
     );

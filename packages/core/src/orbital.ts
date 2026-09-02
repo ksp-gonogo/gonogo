@@ -257,12 +257,12 @@ export function latLonToMap(
 // ---------------------------------------------------------------------------
 
 // No duration/distance string formatters live here, deliberately. A quantity is
-// shown with `<Unit value={…} />`, and a wrapper whose only job is to turn a
+// shown with `<Unit value={...} />`, and a wrapper whose only job is to turn a
 // Value back into a string is the shape that let eleven widgets each grow their
 // own ladder.
 //
 // A duration computed here (an orbital period, a time to apoapsis) is wrapped
-// with `value("s", …)` at the point it is derived, and travels as a quantity
+// with `value("s", ...)` at the point it is derived, and travels as a quantity
 // from there.
 
 /**

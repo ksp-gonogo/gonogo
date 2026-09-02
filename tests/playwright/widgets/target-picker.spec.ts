@@ -24,7 +24,7 @@
  * checked on the station: the list is live Sitrep data and only the MAIN
  * screen mounts `SitrepTelemetryProvider` today (station stream forwarding
  * over PeerJS is a documented pending gap). On the station the widget sits on
- * "Waiting for target list…", by design, not a bug.
+ * "Waiting for target list...", by design, not a bug.
  */
 import { test } from "@playwright/test";
 import { bootstrapPair, expect, teardownPair } from "../helpers";

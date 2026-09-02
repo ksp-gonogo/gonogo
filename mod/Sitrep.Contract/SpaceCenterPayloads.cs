@@ -82,7 +82,7 @@ public class LaunchSiteEntry
 /// <c>{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}</c>
 /// (the provider folds KSP's <c>GameScenes</c> enum onto that fixed set; any
 /// scene outside the five named ones: <c>LOADING</c>, <c>PSYSTEM</c>,
-/// <c>MISSIONBUILDER</c>, …: maps to <c>"Other"</c>).
+/// <c>MISSIONBUILDER</c>, ...: maps to <c>"Other"</c>).
 ///
 /// <para>Mirrors the exact serialized shape the provider emits (a wrapper
 /// object <c>{ "scene": string }</c>); a TS-shape-only typing/codegen marker

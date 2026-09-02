@@ -359,7 +359,7 @@ async function reportFit(tab: Page, scene: Scene, mode: string): Promise<void> {
     console.log(`     ${f.kind} ${f.px}px [${f.axis}]  "${f.text}"`);
   }
   if (findings.length > 4) {
-    console.log(`     … and ${findings.length - 4} more`);
+    console.log(`     ... and ${findings.length - 4} more`);
   }
   console.log(
     "     A heading that will not fit wants <Panel compactTitle>; content " +
@@ -414,7 +414,7 @@ async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {
  * launch complex's own name rendered at nothing beside a detail sentence that
  * took the whole row. CLIPPING is the other, and it is the one a bounding box
  * alone cannot see, because `text-overflow: ellipsis` leaves a box of perfectly
- * respectable size showing "V…". Both are the same failure to a reader, so both
+ * respectable size showing "V...". Both are the same failure to a reader, so both
  * fail here.
  *
  * Collected across the whole list before throwing, so an author fixing a scene

@@ -164,7 +164,7 @@ if (failures.length > 0) {
     );
     for (const file of missing.slice(0, 8)) console.log(`    ${file}`);
     if (missing.length > 8) {
-      console.log(`    … and ${missing.length - 8} more`);
+      console.log(`    ... and ${missing.length - 8} more`);
     }
   }
   console.log(

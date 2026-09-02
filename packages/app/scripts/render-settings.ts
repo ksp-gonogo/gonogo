@@ -286,7 +286,7 @@ function themeCss(css: string): string {
 }
 
 async function prepareProbePage(): Promise<string> {
-  console.log("Bundling settings probe with esbuild…");
+  console.log("Bundling settings probe with esbuild...");
   const result = await build({
     entryPoints: [PROBE_ENTRY],
     bundle: true,
@@ -339,7 +339,7 @@ async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
   await cleanRenders(OUT_DIR);
 
-  console.log("Launching Chromium…");
+  console.log("Launching Chromium...");
   const browser = await chromium.launch();
   let failures = 0;
   try {

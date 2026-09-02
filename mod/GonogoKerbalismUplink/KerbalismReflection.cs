@@ -164,10 +164,10 @@ namespace Gonogo.KerbalismUplink
             _driveSampleCapacityAvailable = _driveType?.GetMethod("SampleCapacityAvailable", BindingFlags.Public | BindingFlags.Instance);
         }
 
-        /// <summary>Invoke a public static (Vessel)->double API method (Radiation, Pressure, Comfort, …).</summary>
+        /// <summary>Invoke a public static (Vessel)->double API method (Radiation, Pressure, Comfort, ...).</summary>
         public double? Api(string method, Vessel v) => AsDouble(InvokeVessel(method, v));
 
-        /// <summary>Invoke a public static (Vessel)->bool API method (Magnetosphere, InnerBelt, StormIncoming, …).</summary>
+        /// <summary>Invoke a public static (Vessel)->bool API method (Magnetosphere, InnerBelt, StormIncoming, ...).</summary>
         public bool? ApiBool(string method, Vessel v) => InvokeVessel(method, v) as bool?;
 
         /// <summary>Invoke a public static (Vessel,string)->double API method (ResourceAmount/Capacity/AverageRate).</summary>

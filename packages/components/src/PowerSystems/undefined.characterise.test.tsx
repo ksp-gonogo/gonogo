@@ -48,7 +48,7 @@ function render(ui: ReactElement) {
 
 const auxSources: MockDataSourceFixture[] = [];
 
-// `useDataSeries("data", …)` backs the sparkline, so the legacy aux source has
+// `useDataSeries("data", ...)` backs the sparkline, so the legacy aux source has
 // to exist for the same reason the sibling stream tests stand it up.
 async function legacyAux(): Promise<void> {
   auxSources.push(
@@ -134,7 +134,7 @@ describe("PowerSystems: what undefined means today", () => {
   });
 
   it("falls back to the same waiting hint when the topology is tombstoned", async () => {
-    // `useTopology` gates on `wire ? … : undefined`, so a CONFIRMED "this
+    // `useTopology` gates on `wire ? ... : undefined`, so a CONFIRMED "this
     // vessel has no parts" and "nothing has streamed yet" render the same
     // sentence. The real payload goes first so the tombstone is proven to have
     // landed rather than being silently dropped.

@@ -7,7 +7,7 @@ import type { ActionGroup } from "./types";
 /**
  * The STOCK, non-custom action groups: the fixed singletons KSP has always
  * had, each with its own first-class `vessel.control` field and its own
- * dedicated command (`vessel.control.setGear`, …).
+ * dedicated command (`vessel.control.setGear`, ...).
  *
  * ---------------------------------------------------------------------------
  * WHY THIS IS STILL A LITERAL, AND MUST STAY ONE
@@ -130,7 +130,7 @@ export function actionGroupIdOf(group: ActionGroup): ActionGroupId {
  * (`mod/Sitrep.Host/ActionGroups/IActionGroupsBackend.cs`).
  *
  * Yields the stock half alone while `vessel.control` hasn't arrived or carries
- * no action-group data, degrading to "SAS/RCS/… work, customs pending" rather
+ * no action-group data, degrading to "SAS/RCS/... work, customs pending" rather
  * than blanking the registry.
  */
 export function useActionGroups(): ActionGroup[] {

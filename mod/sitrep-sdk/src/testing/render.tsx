@@ -14,7 +14,7 @@ import { harnessTheme } from "./theme";
 /**
  * The render an Uplink's tests use.
  *
- * Every `@ksp-gonogo/ui-kit` primitive reads `theme.space[…]` / `theme.colors[…]`
+ * Every `@ksp-gonogo/ui-kit` primitive reads `theme.space[...]` / `theme.colors[...]`
  * straight off the styled-components theme. With no provider in scope
  * styled-components hands it `{}`, so `theme.colors.text.primary` is a property
  * access on `undefined` and the render throws: not a guard, not a fallback, a

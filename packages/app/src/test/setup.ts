@@ -7,7 +7,7 @@ import { installGonogoHost } from "../uplinks/host";
 installDomStubs();
 
 // The facade-sealed Uplink client packages resolve their stateful surface
-// (registerComponent, hooks, …) through the injected gonogo
+// (registerComponent, hooks, ...) through the injected gonogo
 // host: the same one main.tsx installs at boot. App integration tests that
 // import a real sealed client self-register at module load and would throw
 // "the gonogo host has not been installed" without this. Install the real

@@ -45,7 +45,7 @@ const LOCAL_DOCS = resolve(HERE, "../../../local_docs");
 const DOCS_ASSETS = resolve(HERE, "../../../docs/assets");
 
 // ── ImageMagick binary resolver ────────────────────────────────────────────
-// v7 ships a single `magick` dispatcher (`magick identify …`, `magick … out`);
+// v7 ships a single `magick` dispatcher (`magick identify ...`, `magick ... out`);
 // v6 (what `apt-get install imagemagick` gives on the CI runner) ships separate
 // `identify` / `convert`. Prefer `magick`, fall back to the v6 pair.
 interface ImTools {

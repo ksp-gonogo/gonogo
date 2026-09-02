@@ -143,7 +143,7 @@ It is not a duplicate of your test suite's assertions, and it is worth having
 because of what those cannot see. jsdom computes no layout, so a label squeezed
 to zero width by a neighbour that wrapped is present in the DOM, findable by role
 and name, and invisible on screen. `text-overflow: ellipsis` is the same failure
-with a respectable bounding box: what the reader gets is "V…". Both fail here.
+with a respectable bounding box: what the reader gets is "V...". Both fail here.
 
 Checked at every mode the scene renders, because the narrow shapes are where a
 neighbour wraps. When a widget legitimately drops a label at one size, narrow the

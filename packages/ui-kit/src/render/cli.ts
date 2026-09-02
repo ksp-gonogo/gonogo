@@ -29,7 +29,7 @@ import {
  *   gonogo-uplink docs --check              CI gate: fail on drift
  *
  * Zero required `package.json` script lines. An Uplink that wants
- * `pnpm … render` adds one alias.
+ * `pnpm ... render` adds one alias.
  */
 
 const ENGINES = new Set(["chromium", "firefox", "webkit"]);

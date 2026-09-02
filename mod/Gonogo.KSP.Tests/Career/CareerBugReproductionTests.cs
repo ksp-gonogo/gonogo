@@ -62,7 +62,7 @@ namespace Gonogo.KSP.Tests.Career
 
         /// <summary>
         /// Stock never compares a raw balance. It runs
-        /// <c>CurrencyModifierQuery.RunQuery(reason, …).CanAfford(…)</c>, whose
+        /// <c>CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(...)</c>, whose
         /// modifier chain an active strategy joins to discount or surcharge that
         /// exact <c>TransactionReasons</c>. Outsourced R&amp;D discounting a
         /// 300-science node by 90 makes it cost 210, and a 250-science balance

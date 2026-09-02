@@ -623,7 +623,7 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
      * mod, which `codeOnly` deliberately counts as a real reference for a mod
      * that is still installed. But the exemption it buys is whole-file and
      * never expires, so real coupling added to that file later, an import of
-     * the Uplink's package or a `useTelemetry("<mod>.…")` read, is covered
+     * the Uplink's package or a `useTelemetry("<mod>.<topic>")` read, is covered
      * silently. The gate would say nothing, because the file is already
      * excused.</p>
      *

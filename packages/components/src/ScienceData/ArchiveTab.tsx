@@ -87,7 +87,7 @@ function sectionsOf(
 
 /** The career-wide R&D archive: every subject ever recovered, any vessel. */
 export function ArchiveTab({ archive, groups }: Readonly<ArchiveTabProps>) {
-  const filter = useRowFilter({ placeholder: "Filter by body, biome…" });
+  const filter = useRowFilter({ placeholder: "Filter by body, biome..." });
   if (archive === null) {
     return (
       <EmptyState>

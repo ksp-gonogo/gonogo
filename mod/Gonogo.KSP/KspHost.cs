@@ -5629,7 +5629,7 @@ namespace Gonogo.KSP
         /// Per-action action-group bindings for the parts tree, one entry per
         /// part action bound to at least one action group. <c>BaseAction.actionGroup</c>
         /// is a <see cref="KSPActionGroup"/> Flags bitmask; decode it to the named
-        /// groups (Custom01…, SAS, Brakes, …) + the action's <c>guiName</c>.
+        /// groups (Custom01..., SAS, Brakes, ...) + the action's <c>guiName</c>.
         /// Actions bound to no group are omitted. Retires the legacy
         /// <c>f.ag.bindings</c> shim.
         /// </summary>

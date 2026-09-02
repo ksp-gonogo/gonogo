@@ -128,7 +128,7 @@ public class BodyEntry
     [SitrepUnit(Units.Flag)]
     public bool? HasOcean { get; set; }
 
-    /// <summary>KSP's per-body flavour text (<c>CelestialBody.bodyDescription</c>); null when absent. May be a raw <c>#autoLOC…</c> localization tag the client suppresses.</summary>
+    /// <summary>KSP's per-body flavour text (<c>CelestialBody.bodyDescription</c>); null when absent. May be a raw <c>#autoLOC...</c> localization tag the client suppresses.</summary>
     [SitrepUnit(Units.Text)]
     public string? Description { get; set; }
 

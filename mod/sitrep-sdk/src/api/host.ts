@@ -307,7 +307,7 @@ export function getHost(): GonogoHost {
   if (!host) {
     throw new Error(
       "@ksp-gonogo/sitrep-sdk: the gonogo host has not been installed. " +
-        "This package's stateful surface (the hooks, registerAugment, …) is " +
+        "This package's stateful surface (the hooks, registerAugment, ...) is " +
         "runtime-injected by the app: mark @ksp-gonogo/sitrep-sdk `external` in " +
         "your bundle so it resolves to the host, and do not bundle a second copy. " +
         "In tests, install a host with @ksp-gonogo/sitrep-sdk/testing.",

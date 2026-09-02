@@ -61,7 +61,7 @@ export interface UseRowFilterOptions {
 export function useRowFilter({
   segment = "filters",
   label = "Search",
-  placeholder = "Filter…",
+  placeholder = "Filter...",
 }: UseRowFilterOptions = {}): RowFilter {
   const terms = useContributions(segment);
   // Distinct terms, in contribution order: two providers can land the same

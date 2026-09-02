@@ -31,7 +31,7 @@ const PLACEMENT_STYLES = {
 
 /**
  * Faint degraded-state pill for a graph widget ("no reference data",
- * "unknown body", …), extracted from the near-identical `Notice =
+ * "unknown body", ...), extracted from the near-identical `Notice =
  * styled.div` blocks scattered across the Graph-family widgets
  * (OrbitalAscent, KeplerPeriod, and the still-styled-components
  * AtmosphereProfile / EscapeProfile).

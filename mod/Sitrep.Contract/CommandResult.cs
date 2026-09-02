@@ -117,7 +117,7 @@ public enum CommandErrorCode
     /// science does something entirely different about it from one short of
     /// funds.
     ///
-    /// <para>Authority: <c>CurrencyModifierQuery.RunQuery(reason, …).CanAfford(Currency.Science)</c>,
+    /// <para>Authority: <c>CurrencyModifierQuery.RunQuery(reason, ...).CanAfford(Currency.Science)</c>,
     /// which is what <c>RDTech.ResearchTech</c> asks. NOT
     /// <c>ResearchAndDevelopment.CanAfford</c>, which skips the modifier chain
     /// and so answers a different question from the one the game acts on.</para>

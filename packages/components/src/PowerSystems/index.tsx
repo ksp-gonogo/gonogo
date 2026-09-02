@@ -882,7 +882,7 @@ const SectionsScroll = styled(ScrollArea)<{ $landscape?: boolean }>`
 
 // The kit's Section is exactly the gap:2px column; $landscape is the only thing
 // it does not cover, and it is genuinely this widget's layout mode. Applied via
-// `<Section as="section" style={landscape ? PANEL_SECTION_LANDSCAPE …}>`.
+// `<Section as="section" style={landscape ? PANEL_SECTION_LANDSCAPE ...}>`.
 const PANEL_SECTION_LANDSCAPE: CSSProperties = {
   flex: "1 1 0",
   minWidth: 0,

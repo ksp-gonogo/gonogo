@@ -109,7 +109,7 @@ async function readOrbitAp(page: Page): Promise<string> {
     () => {
       // Find the ORBIT panel by its title text, then walk up to the panel
       // container. The panel renders Label/Value rows in DOM order: Ap
-      // label, Ap value, Pe label, Pe value, …
+      // label, Ap value, Pe label, Pe value, ...
       //
       // Walk up to whichever ancestor owns a `[data-panel-body]` rather
       // than trusting the title's immediate parent. The composed Panel

@@ -34,7 +34,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../../..");
 const generatedPath = (uplinkId: string): string =>
   join(ROOT, "mod", uplinkId, "ExpectedClientHash.g.cs");
 
-/** `Value = "…"` out of a generated const, or undefined when the file is absent. */
+/** `Value = "..."` out of a generated const, or undefined when the file is absent. */
 function bakedHash(path: string): string | undefined {
   if (!existsSync(path)) return undefined;
   return readFileSync(path, "utf8").match(

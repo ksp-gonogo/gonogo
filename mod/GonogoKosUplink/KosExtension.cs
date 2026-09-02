@@ -190,7 +190,7 @@ namespace Gonogo.KosUplink
             Id = "kos",
             Version = "0.2.0",
             // Null when the generated const is empty so the loader degrades to the two-way
-            // check. It is a real sha256-…: baked from the bundle the app's own build emits
+            // check. It is a real sha256-...: baked from the bundle the app's own build emits
             // (packages/app/scripts/bake-uplink-hash.ts → ExpectedClientHash.g.cs) and held
             // current by bakedClientHash.test.ts, because a hash that has fallen behind its
             // client source is a refusal on every load rather than a stale artifact.

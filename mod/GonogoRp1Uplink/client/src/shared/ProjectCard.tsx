@@ -64,7 +64,7 @@ export function ProjectCard({
         {/* The name WRAPS rather than truncating, which is what separates a
             card's heading from a row's label. `RowName` ellipsises and flexes
             to fill, so at the minimum width a widget promises "Atlas" rendered
-            as "Atl…" and a build-list card rendered its badge with no name at
+            as "Atl..." and a build-list card rendered its badge with no name at
             all beside it. The name is the only part of a card that says WHICH
             piece of work it is, so it is the last thing that may go. The
             cluster wraps for the same reason: a badge that will not fit beside

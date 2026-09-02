@@ -131,7 +131,7 @@ export default defineConfig({
       // without it vite happily falls back to the next free port when
       // a dev server is already on 5173, and Playwright then waits on
       // APP_PORT until timeout. --port pins the binding.
-      // `pnpm exec vite` (instead of `pnpm dev -- …`) skips pnpm's
+      // `pnpm exec vite` (instead of `pnpm dev -- ...`) skips pnpm's
       // arg-forwarding rules: the latter delivered `--` to vite as a
       // literal positional, which made vite treat --port as a no-op.
       command: `pnpm --filter @ksp-gonogo/app exec vite --port ${APP_PORT} --strictPort`,

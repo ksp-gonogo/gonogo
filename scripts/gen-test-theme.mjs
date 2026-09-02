@@ -2,7 +2,7 @@
  * Generates `mod/sitrep-sdk/src/__generated__/test-theme.ts`.
  *
  * `@ksp-gonogo/sitrep-sdk/testing`'s `render` mounts a theme, because every
- * ui-kit primitive reads `theme.space[…]` straight off the styled-components
+ * ui-kit primitive reads `theme.space[...]` straight off the styled-components
  * context and a render with no provider is a TypeError rather than a fallback.
  * The theme is a MODEL fact owned by `@ksp-gonogo/theme`, so this copies it
  * across.
@@ -26,12 +26,12 @@
  *
  * ## Not derived from the property path either
  *
- * The first design emitted `var(--…)` by kebab-casing the property path and
+ * The first design emitted `var(--...)` by kebab-casing the property path and
  * singularising the group. 18 of the 45 leaves do not follow it: `space.md` is
  * `--space-8` (the t-shirt names are the published `ThemeSpace` contract and are
  * deliberately not renamed to match the rung numbers), `typography.size.xs` is
  * `--font-size-xs`, `typography.weight.regular` is the number `400`, and
- * `borders.subtle` is `"1px solid var(…)"`. An arbitrary mapping is not
+ * `borders.subtle` is `"1px solid var(...)"`. An arbitrary mapping is not
  * recoverable from a naming rule, so the values are copied verbatim.
  *
  * Reads the real values by importing the module rather than parsing it, same as
@@ -84,7 +84,7 @@ const lines = [
   "// `@ksp-gonogo/ui-kit` (imports the sdk, so the edge would cycle). See the",
   "// generator's header for why an accessor or a path-derived Proxy does not work.",
   "//",
-  "// Every value here is a `var(--…)` handle or a literal; the numbers behind them",
+  "// Every value here is a `var(--...)` handle or a literal; the numbers behind them",
   "// live in `tokens.css`, which no test loads. So a test asserts on",
   "// `padding: var(--space-8)`, exactly as the app renders it.",
   "",

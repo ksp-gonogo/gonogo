@@ -7,7 +7,7 @@ import { listWidgets } from "../../scripts/widgets";
  * <p>A duplicate is invisible until it corrupts a snapshot file. The DOM
  * snapshot suites name each case `${fixture} @ ${mode.name}`, and vitest keys
  * its snapshot counter on the test's full name, so two modes sharing a name
- * produce two tests that share a name and write `… 1` and `… 2` for what the
+ * produce two tests that share a name and write `... 1` and `... 2` for what the
  * author believes is one case. The pair then drifts: one leg is pruned as
  * obsolete on a run where it did not execute, and the other mismatches.</p>
  *
@@ -37,7 +37,7 @@ describe("widget size modes", () => {
         "A render config lists the same size mode twice.",
         "",
         "Two modes with one name make two TESTS with one name, and vitest keys",
-        "its snapshot counter on the test name, so they write `… 1` and `… 2`",
+        "its snapshot counter on the test name, so they write `... 1` and `... 2`",
         "for what reads as a single case. Rename or remove the duplicate.",
       ].join("\n"),
     ).toEqual([]);

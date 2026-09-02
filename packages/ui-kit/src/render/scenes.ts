@@ -450,7 +450,7 @@ function modesFor(
     // by the back door. A host's `defaultSize` is chosen for the host ALONE,
     // and an operator who has added three sections to it has resized it: the
     // first section rendered this way came out at the host's 6-column default
-    // with its facility names ellipsised to "V…", a picture of a tile nobody
+    // with its facility names ellipsised to "V...", a picture of a tile nobody
     // running that Uplink is using. The host still mounts and still supplies
     // the layout; only the tile it is given is the scene's.
     all = scene.size

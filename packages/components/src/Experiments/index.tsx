@@ -250,7 +250,7 @@ function ExperimentsComponent({
    * Declared with the other reads so it sits above every early return: a hook
    * after a conditional return is a hooks-order bug waiting to happen.
    */
-  const filter = useRowFilter({ placeholder: "Filter instruments…" });
+  const filter = useRowFilter({ placeholder: "Filter instruments..." });
   const labRaw = stillTrue(useTelemetry("science.lab"), undefined);
   const labs = parseLab(labRaw);
 

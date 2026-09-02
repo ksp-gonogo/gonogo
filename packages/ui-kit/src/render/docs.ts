@@ -410,7 +410,7 @@ export function buildReadme(
         "opens with it.\n\n" +
         "Add one to `defineUplinkClient` in client/src/uplink.ts, in one or two " +
         "sentences saying what the Uplink does:\n" +
-        '  defineUplinkClient({ id, version, name, description: "…" })\n\n' +
+        '  defineUplinkClient({ id, version, name, description: "..." })\n\n' +
         "It is a field rather than a prose file on purpose. Everything else on " +
         "the page comes from your registrations, your contract slice and your " +
         "fixtures, so this is the only sentence anyone writes.",

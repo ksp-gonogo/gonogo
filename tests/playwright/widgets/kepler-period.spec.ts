@@ -9,8 +9,8 @@
  * panel title plus the absence of the two degraded notices the widget
  * surfaces when its inputs are bad:
  *
- *   - "Unknown body …" when `v.body` resolves but isn't in the registry.
- *   - "No reference data for …" when the matched body has no `gm`.
+ *   - "Unknown body ..." when `v.body` resolves but isn't in the registry.
+ *   - "No reference data for ..." when the matched body has no `gm`.
  *
  * The recorded fixture's final snapshot has:
  *   v.body    = "Kerbin"

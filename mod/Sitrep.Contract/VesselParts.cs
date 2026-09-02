@@ -192,7 +192,7 @@ public class VesselPart
 /// single part action and the named action groups it fires with. <see cref="Groups"/>
 /// are the <c>KSPActionGroup</c> enum member names (<c>SAS</c>/<c>RCS</c>/
 /// <c>Brakes</c>/<c>Gear</c>/<c>Light</c>/<c>Abort</c>/<c>Stage</c>/
-/// <c>Custom01</c>…) the action's Flags bitmask decodes to (<c>None</c> excluded).
+/// <c>Custom01</c>...) the action's Flags bitmask decodes to (<c>None</c> excluded).
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

@@ -70,7 +70,7 @@ function resolveVesselPartsWire(fixture: Fixture): unknown {
  * `ActionGroup` canonical-read migration: that widget dropped its legacy
  * `useTelemetry("data", group.value)` shim entirely and now reads
  * `vessel.control` / `vessel.structure` one-arg, so a fixture carrying the old
- * `v.sasValue`/`v.ag1Value`/… keys needs them reshaped onto the wire or the
+ * `v.sasValue`/`v.ag1Value`/... keys needs them reshaped onto the wire or the
  * widget would render the null-display placeholder for every group instead
  * of the fixture's real state.
  *
@@ -574,7 +574,7 @@ function modePixels(mode: WidgetSnapshotMode): { w: number; h: number } {
  * it exists to stop a mount crashing, and it never calls its callback. Any
  * widget that gates content on a measured box therefore renders that content
  * NEVER under this harness, whatever its fixture says. `Graph` is the big one
- * (`{size && <LineChart …>}`), and it is the whole body of six widgets: 90
+ * (`{size && <LineChart ...>}`), and it is the whole body of six widgets: 90
  * committed baselines across KeplerPeriod and EscapeProfile were one
  * byte-identical title bar over two empty divs, repeated across every scenario
  * and every size, and the accessibility sweep was scanning those same blank

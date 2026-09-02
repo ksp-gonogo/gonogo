@@ -7,7 +7,7 @@
 // instead. The runtime behaviour + C#-sync guarantees live in `topics.test.ts`.
 //
 // Any regression here is a compile error: a known Topic that stops resolving to its
-// payload fails an `Expect<Equal<…>>`; a widened union that starts accepting unknown
+// payload fails an `Expect<Equal<...>>`; a widened union that starts accepting unknown
 // Topic strings turns an `@ts-expect-error` into an unused-directive error.
 
 import type {

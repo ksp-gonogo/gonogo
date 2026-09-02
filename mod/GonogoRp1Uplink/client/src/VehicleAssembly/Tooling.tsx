@@ -267,7 +267,7 @@ function PurchaseCard({ purchase }: Readonly<{ purchase: Purchase }>) {
  * <para><b>One flowing line rather than a name-and-value row, and a render is
  * what settled it.</b> As a row this was a `RowName` beside the figure, and
  * `RowName` yields all of its width before the figure gives up any: at this
- * card's width two different tanks both rendered as "Procedural …", so the card
+ * card's width two different tanks both rendered as "Procedural ...", so the card
  * showed two identical rows naming two different parts. `Row`'s own `wrap` did
  * not buy back enough, because the minimum width it guarantees is still shorter
  * than a part title. A part title is the only thing here that says WHICH part

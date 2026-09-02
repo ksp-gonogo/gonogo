@@ -310,7 +310,7 @@ function writeDebt(rawMeasured) {
   if (!block.test(source)) {
     throw new Error(
       "Could not find the KNOWN_ACT_WARNINGS block in act-warning-debt.mjs. It has " +
-        "to span at least one line (`{\\n…\\n};`); a collapsed `{}` does not match. " +
+        "to span at least one line (`{\\n...\\n};`); a collapsed `{}` does not match. " +
         "Put a line inside it and re-run.",
     );
   }

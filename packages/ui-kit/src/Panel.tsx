@@ -827,7 +827,7 @@ const DEFAULT_SECTION_MIN_WIDTH = "13rem";
  * column simply becomes narrower than the nominal minimum, which is what a
  * single-column stack has always looked like.
  *
- * The `max(…, one-Nth-of-the-panel)` half was put there by a render, and would
+ * The `max(..., one-Nth-of-the-panel)` half was put there by a render, and would
  * not have been guessed from the CSS. `auto-fit` promises to collapse tracks
  * nothing lands in, and it does, but a track a FULL-WIDTH section spans is not
  * empty. So a panel with a full-width totals row over two columns laid out three

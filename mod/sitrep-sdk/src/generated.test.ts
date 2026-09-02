@@ -310,7 +310,7 @@ describe("generated command-map.ts", () => {
     "utf8",
   );
 
-  /** The keys of one `export interface <name> { … }` block. */
+  /** The keys of one `export interface <name> { ... }` block. */
   function interfaceKeys(name: string): string[] {
     const start = commandMap.indexOf(`export interface ${name} {`);
     expect(start, `${name} is not in the generated file`).toBeGreaterThan(-1);

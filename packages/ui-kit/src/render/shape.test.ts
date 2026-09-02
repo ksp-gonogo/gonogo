@@ -92,7 +92,7 @@ describe("readShapeText", () => {
   });
 
   it("rounds a long decimal, so one engine's last digit is not a difference", () => {
-    // The real case is `color(srgb 0.636078 …)` against `0.636079`, which needs
+    // The real case is `color(srgb 0.636078 ...)` against `0.636079`, which needs
     // a real engine's colour serialisation. An authored SVG path exercises the
     // same normalisation through a route jsdom can produce.
     mount(`<svg><path d="M2 20 L18.63607812 6"></path></svg>`);

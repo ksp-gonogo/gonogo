@@ -89,7 +89,7 @@ const URGENCY_COPY: Record<EnvelopeUrgency, string> = {
 // --- Atmosphere haze ---------------------------------------------------------
 // Rendered as a HANDFUL of soft "atmosphere levels" rather than one smooth
 // gradient (it should read like the in-game altimeter's banded blue). Bands are
-// density HALVINGS (1, 1/2, 1/4, …), since density decays exponentially with
+// density HALVINGS (1, 1/2, 1/4, ...), since density decays exponentially with
 // altitude, so halving-bands land compressed near the ground and spread out
 // higher up, the same shape as the real atmosphere.
 const HAZE_STOPS = 48;

@@ -44,7 +44,7 @@
  * topics without re-checking the spec that depends on their absence.
  * `vessel.parts`/`dv.stages`/`dv.summary`/`vessel.structure` are deliberately
  * ALSO never in `SNAPSHOT` for the same reason (this is what used to make
- * PowerSystems fall into its "Waiting for vessel topology…" branch here),
+ * PowerSystems fall into its "Waiting for vessel topology..." branch here),
  * power-systems.spec.ts/fuel-status.spec.ts now get that data from a
  * SEPARATE fixture/port instead: see `sitrep-stream-server-topology.mjs`,
  * which imports `startReplayServer` below and layers those topics on top of

@@ -3,7 +3,7 @@ name: Publish proxy images
 # Two publish channels share these jobs:
 #
 #   dev      every CI-green push to main (workflow_run). Images are tagged
-#            `dev` + `sha-…` and the bundle's app build carries a
+#            `dev` + `sha-...` and the bundle's app build carries a
 #            `-dev.<shortsha>` version suffix. Testers run `:dev`; end users
 #            never see it.
 #   release  dispatched by release.yml on a `v*` tag, with channel=release.

@@ -13,7 +13,7 @@
  * `notNumber(timeToImpact)` is true, so the widget short-circuits to the
  * EmptyState. Because vertical speed is non-negative the message is the
  * "No landing in progress" branch (not "Waiting for a landing
- * prediction…"), that branch only reads `descending` (`verticalSpeed !==
+ * prediction..."), that branch only reads `descending` (`verticalSpeed !==
  * undefined && verticalSpeed < 0`), which is also `false` when
  * `verticalSpeed` is simply absent, so this text renders identically with
  * or without live data and is safe to check on both screens.

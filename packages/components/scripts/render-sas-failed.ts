@@ -85,7 +85,7 @@ createRoot(document.getElementById("root")).render(<App />);
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
 
-  console.log("Bundling SAS-failed entry with esbuild…");
+  console.log("Bundling SAS-failed entry with esbuild...");
   const bundleResult = await build({
     stdin: {
       contents: ENTRY,
@@ -116,7 +116,7 @@ async function main(): Promise<void> {
   const htmlOut = join(tmpdir(), `gonogo-sas-failed-${process.pid}.html`);
   await writeFile(htmlOut, html, "utf8");
 
-  console.log("Launching Chromium…");
+  console.log("Launching Chromium...");
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext({

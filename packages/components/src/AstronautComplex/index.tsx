@@ -741,7 +741,7 @@ interface CrewRosterRow {
    *  grouping key. `null` for a producer that sent none, which is why the
    *  applicant test below reads {@link isApplicant} instead of this. */
   standing: number | null;
-  /** Which provider decided {@link standing} (`"stock"`, `"rp1"`, …); `null`
+  /** Which provider decided {@link standing} (`"stock"`, `"rp1"`, ...); `null`
    *  when the capture named none. Shown on a corrected row, so an operator can
    *  see which mod is claiming their astronaut retired rather than died. */
   standingSource: string | null;

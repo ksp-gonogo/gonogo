@@ -235,7 +235,7 @@ namespace GonogoPrincipiaUplink.Tests
         /// <summary>
         /// The name is asserted as a LITERAL, never through the constant. Every
         /// other case here builds its double with
-        /// <c>new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, …)</c>,
+        /// <c>new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, ...)</c>,
         /// which feeds the subject its own answer: the assertion then holds for
         /// any value of the constant, right or wrong. It was wrong. It read
         /// <c>ksp_plugin_adapter</c> while the shipped adapter is

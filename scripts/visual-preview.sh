@@ -82,7 +82,7 @@ fi
 # when $VISUAL_PREVIEW_IMAGE points elsewhere.
 if [ "$IMAGE" = "localhost/gonogo-visual-preview:pw${PLAYWRIGHT_VERSION}" ] \
    && ! "$PODMAN" image exists "$IMAGE" 2>/dev/null; then
-  echo "building font-baked image $IMAGE (first time, pulls the base + installs fonts)…"
+  echo "building font-baked image $IMAGE (first time, pulls the base + installs fonts)..."
   "$PODMAN" build \
     --build-arg "PW_VERSION=${PLAYWRIGHT_VERSION}" \
     -t "$IMAGE" \

@@ -114,7 +114,7 @@ watch_service() {
     current=$(find "$src_dir" -type f -exec cksum {} \; 2>/dev/null | sort)
     if [ "$current" != "$last" ]; then
       last="$current"
-      echo "[$service] source changed: rebuilding container…"
+      echo "[$service] source changed: rebuilding container..."
       podman compose up -d --build "$service"
       compute_fingerprint "$service" > "$CACHE_DIR/$service.hash"
     fi

@@ -167,8 +167,8 @@ the process, and it gets called from the default branch of an ordinary-looking s
 frame selector holds no native handle at all, and four of its parameterless members still reach it:
 
 ```text
-FrameParameters()   default branch -> Log.Fatal("Unexpected frame_type …")
-Name()              -> Log.Fatal("Unexpected type …"), plus three root-body cases
+FrameParameters()   default branch -> Log.Fatal("Unexpected frame_type ...")
+Name()              -> Log.Fatal("Unexpected type ..."), plus three root-body cases
 NavballName()       same naming path
 Abbreviation()      same naming path
 ```
@@ -980,7 +980,7 @@ Its shape:
   "contractMajor": 14,
   "contractMinor": 5,
   "bundleUrl": "example/example.client.js",
-  "integrity": "sha256-2b1f…",
+  "integrity": "sha256-2b1f...",
   "sdkVersion": "0.0.1"
 }
 ```
@@ -1291,7 +1291,7 @@ Two things that surprise everyone once:
 
 `render` and `renderHook` come from `@ksp-gonogo/sitrep-sdk/testing` and they mount
 the kit's theme for you. Every `@ksp-gonogo/ui-kit` primitive reads
-`theme.space[…]` off the styled-components context, and with no provider that is a
+`theme.space[...]` off the styled-components context, and with no provider that is a
 TypeError rather than a fallback. Everything else Testing Library offers
 (`screen`, `waitFor`, `within`, `act`, `fireEvent`) is re-exported unchanged, so
 this is a drop-in for the import source.
@@ -1371,7 +1371,7 @@ as a real `h4` under the panel's `h3`, so you stop hand-rolling the heading.
 
 Three things worth knowing:
 
-- **one section costs nothing.** `sections={<Section>…</Section>}` is the normal
+- **one section costs nothing.** `sections={<Section>...</Section>}` is the normal
   way to write a widget whose body is a single list, and it is not an abuse of
   the prop
 - **`full` spans every column.** For the section a wide layout should not put

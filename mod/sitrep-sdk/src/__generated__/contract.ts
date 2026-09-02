@@ -792,7 +792,7 @@ export enum CommandErrorCode {
 	* science does something entirely different about it from one short of funds.
 	*
 	* Authority: `CurrencyModifierQuery.RunQuery(reason,
-	* …).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` asks.
+	* ...).CanAfford(Currency.Science)`, which is what `RDTech.ResearchTech` asks.
 	* NOT `ResearchAndDevelopment.CanAfford`, which skips the modifier chain and
 	* so answers a different question from the one the game acts on.
 	*/
@@ -2117,7 +2117,7 @@ export interface FlightCurrent
 	vesselName: string;
 	/**
 	* The vessel's current flight phase: reuses `Situation`
-	* (PreLaunch/Flying/Landed/…), not a parallel enum.
+	* (PreLaunch/Flying/Landed/...), not a parallel enum.
 	*/
 	phase: Situation;
 }
@@ -3816,7 +3816,7 @@ export enum DeployedPowerState {
 *
 * Deliberately a GENERAL sensor group: one entry per sensor module, with
 * `SensorEntry.type` carrying the raw `SensorType` enum name
-* (`TEMP`/`PRES`/`GRAV`/`ACC`/…) as a string: rather than four fixed
+* (`TEMP`/`PRES`/`GRAV`/`ACC`/...) as a string: rather than four fixed
 * `temp/pres/grav/acc` Values. Modded sensor types and multiple instances of
 * the same type both fall out naturally; the consumer (ScienceBench)
 * groups/labels by `SensorEntry.type`.
@@ -3834,8 +3834,8 @@ export interface SensorEntry
 	partId?: string;
 	partName?: string;
 	/**
-	* The raw `SensorType` enum name (`TEMP`/`PRES`/`GRAV`/`ACC`/…) passed through
-	* as a string so modded types survive.
+	* The raw `SensorType` enum name (`TEMP`/`PRES`/`GRAV`/`ACC`/...) passed
+	* through as a string so modded types survive.
 	*/
 	type?: string;
 	/**
@@ -4089,8 +4089,8 @@ export interface LaunchSiteEntry
 * carries exactly one of the six strings
 * `{"Flight","SpaceCenter","Editor","TrackingStation","MainMenu","Other"}`
 * (the provider folds KSP's `GameScenes` enum onto that fixed set; any scene
-* outside the five named ones: `LOADING`, `PSYSTEM`, `MISSIONBUILDER`, …: maps
-* to `"Other"`).
+* outside the five named ones: `LOADING`, `PSYSTEM`, `MISSIONBUILDER`, ...:
+* maps to `"Other"`).
 *
 * Mirrors the exact serialized shape the provider emits (a wrapper object `{
 * "scene": string }`); a TS-shape-only typing/codegen marker that does NOT
@@ -4684,7 +4684,7 @@ export interface BodyEntry
 	hasOcean?: boolean;
 	/**
 	* KSP's per-body flavour text (`CelestialBody.bodyDescription`); null when
-	* absent. May be a raw `#autoLOC…` localization tag the client suppresses.
+	* absent. May be a raw `#autoLOC...` localization tag the client suppresses.
 	*/
 	description?: string;
 	/**
@@ -7087,7 +7087,7 @@ export interface VesselPart
 * One action-group binding in `VesselPart.actionBindings`: a single part
 * action and the named action groups it fires with. `ActionBinding.groups` are
 * the `KSPActionGroup` enum member names (`SAS`/`RCS`/
-* `Brakes`/`Gear`/`Light`/`Abort`/`Stage`/ `Custom01`…) the action's Flags
+* `Brakes`/`Gear`/`Light`/`Abort`/`Stage`/ `Custom01`...) the action's Flags
 * bitmask decodes to (`None` excluded).
 */
 export interface ActionBinding

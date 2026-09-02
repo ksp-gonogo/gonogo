@@ -35,7 +35,7 @@ namespace Sitrep.Host.IntegrationTests
         ///
         /// <para>Pinned deliberately as the current contract rather than "fixed"
         /// by refusing the subscribe: an ack after a fail-soft is load-bearing
-        /// elsewhere (see <c>ChannelEngineTests.SubscribeCatchUpThrowRollsBack…</c>,
+        /// elsewhere (see <c>ChannelEngineTests.SubscribeCatchUpThrowRollsBack...</c>,
         /// whose whole point is that a subscriber joining after a poison payload
         /// has already fail-softed the uplink is still acked rather than
         /// orphaned). What is worth changing is the diagnosis path, not this

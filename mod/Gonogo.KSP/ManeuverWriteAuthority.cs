@@ -51,7 +51,7 @@ namespace Gonogo.KSP
         /// <para>Every flag is read by the caller off the game, and a facility
         /// tier that is ABSENT rather than unread reads as its ceiling:
         /// <c>ScenarioUpgradeableFacilities</c> is a career/mission scenario
-        /// (<c>KSPScenario((ScenarioCreationOptions)1056, …)</c>) and is simply
+        /// (<c>KSPScenario((ScenarioCreationOptions)1056, ...)</c>) and is simply
         /// not in a sandbox save, where there are no facility tiers to be short
         /// of. That is not this rule being lenient, it is what the save means,
         /// and the facility GATES answer the same way off the same shared

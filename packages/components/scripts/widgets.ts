@@ -1985,7 +1985,7 @@ const SCREENS: ScreenRenderConfig[] = [
           everConnected: false,
         },
       },
-      // Code typed, connecting: button shows "Connecting…" + disabled.
+      // Code typed, connecting: button shows "Connecting..." + disabled.
       {
         name: "connecting",
         props: {

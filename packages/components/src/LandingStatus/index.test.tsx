@@ -423,7 +423,7 @@ describe("LandingStatusComponent", () => {
     });
     // The top-down site plot re-appears (was suppressed on atmospheric boards).
     expect(await screen.findByText("Touchdown site")).toBeInTheDocument();
-    // …alongside the atmospheric-aware descent read (both, near touchdown).
+    // ...alongside the atmospheric-aware descent read (both, near touchdown).
     expect(
       screen.getByText("Atmospheric descent (estimate)"),
     ).toBeInTheDocument();

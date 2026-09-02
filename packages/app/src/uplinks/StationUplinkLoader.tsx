@@ -153,7 +153,7 @@ export function StationUplinkLoader({
   if (!ready) {
     return (
       <LoadingPlaceholder role="status" aria-live="polite">
-        Loading station widgets…
+        Loading station widgets...
       </LoadingPlaceholder>
     );
   }

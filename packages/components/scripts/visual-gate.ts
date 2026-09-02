@@ -20,7 +20,7 @@
  * render into `local_docs/renders/_visual-gate-diffs/` (gitignored) so CI can
  * upload them as an artifact for review.
  *
- * Run via `pnpm --filter @ksp-gonogo/components visual-gate …`.
+ * Run via `pnpm --filter @ksp-gonogo/components visual-gate ...`.
  */
 import { cp, mkdir, readdir, rm } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -52,7 +52,7 @@ function usage(): never {
 }
 
 /** Baselines drop the `renders/` prefix the widget outPath carries so the tree
- *  reads `visual-baselines/<engine>/<widget>-widget/…`. */
+ *  reads `visual-baselines/<engine>/<widget>-widget/...`. */
 function baselineDirFor(engine: Engine, config: WidgetRenderConfig): string {
   return resolve(
     BASELINE_ROOT,

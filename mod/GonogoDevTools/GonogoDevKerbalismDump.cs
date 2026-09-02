@@ -40,7 +40,7 @@ namespace GonogoDevTools
         private string? _resultPath;
         private string? _pluginData;
 
-        // Candidate resource names for the (Vessel,string) API methods (ResourceAmount/Capacity/AverageRate/…).
+        // Candidate resource names for the (Vessel,string) API methods (ResourceAmount/Capacity/AverageRate/...).
         // Superset of stock + Kerbalism + RO/ROKerbalism; missing ones just read 0. Extend from a live dump.
         private static readonly string[] CandidateResources =
         {

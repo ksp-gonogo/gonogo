@@ -483,7 +483,7 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
-        private static string Truncate(string s) => s.Length <= 300 ? s : s.Substring(0, 300) + "…";
+        private static string Truncate(string s) => s.Length <= 300 ? s : s.Substring(0, 300) + "...";
 
         /// <summary>
         /// Builder-level maneuver/target emission counts against the SAME

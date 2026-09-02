@@ -20,13 +20,13 @@ const run = (cmd, args, env) =>
 
 const skipE2e = process.env.SKIP_E2E === "1";
 
-console.log("push: lint…");
+console.log("push: lint...");
 if (run("pnpm", ["exec", "biome", "check", "."]) !== 0) {
   console.error("push: lint failed, nothing pushed.");
   process.exit(1);
 }
 
-console.log("push: tests…");
+console.log("push: tests...");
 if (
   run(
     "pnpm",
@@ -43,7 +43,7 @@ if (!skipE2e)
     "push: (set SKIP_E2E=1 to skip Playwright; CI runs the matrix regardless)",
   );
 
-console.log("push: gate green, opening the connection…");
+console.log("push: gate green, opening the connection...");
 // GONOGO_GATE_DONE tells the hook the work is already done, so it does not repeat it
 // and hold the socket open for the length of a second full run.
 process.exit(

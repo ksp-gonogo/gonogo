@@ -8,7 +8,7 @@ gonogo is a pnpm + Turborepo monorepo. Everything is built around one idea: a co
 packages/
   core/          : Plugin registry, shared TS types, React contexts, GO/NO-GO system
   components/    : Built-in dashboard widget library (uses the core registry)
-  data/          : Flight history + data hooks (useDataSeries, useFlight, …)
+  data/          : Flight history + data hooks (useDataSeries, useFlight, ...)
   serial/        : Per-screen serial input platform: device types, transports,
                     render styles, InputDispatcher, VirtualDevice widget + UI
   ui/            : App-side UI: dashboard chrome, the settings modal's furniture,
@@ -60,7 +60,7 @@ The main-screen-is-sole-consumer constraint falls out of this:
 The foundation for everything extensible.
 
 - **Plugin registry**: `registerComponent(def)`, `registerTheme(def)`, and `registerDataSource(def)` are the three extension points. Calling these at module load time is all that's needed to extend the app.
-- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `ComponentBehavior`, `DataSource`, `DataRequirement`, …
+- **Shared TypeScript types**: `ComponentDefinition`, `ThemeDefinition`, `ComponentBehavior`, `DataSource`, `DataRequirement`, ...
 - **GO/NO-GO system** aggregates the human GO/NO-GO readiness state across all active stations. It is a human readiness ceremony (operators voting) that triggers a stage transition and nothing else, so no widget feeds into it.
 
 ### The data-source interface (repository pattern)
@@ -121,7 +121,7 @@ Widgets declare the Topics they read as `channels` (e.g. `['vessel.altitude']`),
 
 The Vite SPA. Key responsibilities:
 
-- **Dashboard orchestrator**: a layout engine on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout). It reads the layout config and renders registered widgets by id; it hardcodes no widget. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised format stores a per-breakpoint map (`lg`, `md`, `sm`, …) so the grid reflows across screen sizes. Per-instance widget config is stored alongside the layout.
+- **Dashboard orchestrator**: a layout engine on [React Grid Layout](https://github.com/react-grid-layout/react-grid-layout). It reads the layout config and renders registered widgets by id; it hardcodes no widget. Positions are stored in **grid units** (column/row spans), not pixels, so layouts are resolution-independent. The serialised format stores a per-breakpoint map (`lg`, `md`, `sm`, ...) so the grid reflows across screen sizes. Per-instance widget config is stored alongside the layout.
 - **Sitrep telemetry client**: `SitrepTelemetryProvider` mounts the live `WebSocketTransport` to the Gonogo mod and feeds it into `@ksp-gonogo/sitrep-client`'s `TelemetryClient`/`TimelineStore`, which `useTelemetry`/`useCommand` read from directly (see the Data flow section above).
 - **kOS integration** rides the Gonogo mod's sitrep stream: script dispatch over the `kos.run` Uplink command and CPU discovery over the `kos.processors` channel. It degrades gracefully when no stream is mounted.
 - **PeerJS integration**: the main screen is the peer host; stations connect as peers. The main screen distributes a serialised data snapshot to all peers; stations can send state back (e.g. GO/NO-GO votes).
@@ -160,7 +160,7 @@ import { registerTheme } from '@ksp-gonogo/core';
 registerTheme({
   id: 'retro-nasa',
   name: 'Retro NASA',
-  theme: { colors: { /* … */ }, fonts: { /* … */ } }, // passed to the styled-components ThemeProvider
+  theme: { colors: { /* ... */ }, fonts: { /* ... */ } }, // passed to the styled-components ThemeProvider
 });
 ```
 

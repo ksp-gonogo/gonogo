@@ -108,7 +108,7 @@ OUT_DIR="$REPO_ROOT/local_docs/renders/_before-after/$BRANCH_SLUG"
 # ── build the font-baked image on first use (shared with visual-preview.sh) ──
 if [ "$IMAGE" = "localhost/gonogo-visual-preview:pw${PLAYWRIGHT_VERSION}" ] \
    && ! "$PODMAN" image exists "$IMAGE" 2>/dev/null; then
-  echo "building font-baked image $IMAGE (first time)…"
+  echo "building font-baked image $IMAGE (first time)..."
   "$PODMAN" build \
     --build-arg "PW_VERSION=${PLAYWRIGHT_VERSION}" \
     -t "$IMAGE" \

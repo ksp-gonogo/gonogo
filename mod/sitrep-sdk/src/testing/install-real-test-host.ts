@@ -73,7 +73,7 @@ export interface UiKitHostPieces {
  * Install the REAL host for an Uplink's test run.
  *
  * A widget only ever touches sdk shims (`useTelemetry`, `registerComponent`,
- * `useCommand`, …), which delegate to whatever host is installed and throw a named
+ * `useCommand`, ...), which delegate to whatever host is installed and throw a named
  * error when none is. So a test has to install one, and every Uplink used to
  * hand-roll its own: nine `test/setup.ts` files each calling `installTestHost` with
  * a partial host "scoped to the subset this client's widget actually calls",

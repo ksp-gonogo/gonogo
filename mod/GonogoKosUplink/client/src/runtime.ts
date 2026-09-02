@@ -14,7 +14,7 @@
 // under the runtime-loader flag the loader's OWN dynamically-imported
 // `kos.client.js` bundle always collided with the copy MainScreen had already
 // registered at module-load time, and always quarantined
-// ("Component id \"kos-terminal\" is already registered…", caught by
+// ("Component id \"kos-terminal\" is already registered...", caught by
 // `uplink-loader.spec.ts`'s Settings "Loaded clients" panel assertion).
 //
 // Every registration this file DOES still trigger (`defineUplinkClient`,

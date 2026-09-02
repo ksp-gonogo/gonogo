@@ -1060,7 +1060,7 @@ namespace Sitrep.Host.IntegrationTests
     /// early. <see cref="FreezeGateTestUplink"/> itself can't be used for that:
     /// it registers <c>comms.delay</c> via BOTH <c>host.SetSignalDelaySource</c>
     /// (Path 1, the production-shape authoritative source) AND
-    /// <c>host.AddChannelSource(ChannelEngine.CommsDelayTopic, …)</c> (Path 2,
+    /// <c>host.AddChannelSource(ChannelEngine.CommsDelayTopic, ...)</c> (Path 2,
     /// the legacy pull-style fallback <c>RefreshSignalDelayFromCapability</c>
     /// keeps for uplinks that only register that way), so on the very tick
     /// the delay collapses (disconnect), <c>ChannelEngine.CaptureSignalDelay</c>

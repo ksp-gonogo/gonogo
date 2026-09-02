@@ -37,7 +37,7 @@ def load(path: str) -> dict[str, Any]:
 
 
 def short(s: str, n: int = 26) -> str:
-    return s if len(s) <= n else f"{s[: n - 1]}…"
+    return s if len(s) <= n else f"{s[: n - 1]}..."
 
 
 def round_vec(v: list[float], dp: int = 3) -> list[float]:

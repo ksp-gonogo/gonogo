@@ -35,7 +35,7 @@ namespace Gonogo.KSP
         /// is transiently UNLOADED (scene load/settle). An unloaded vessel has no
         /// valid CommNet control graph: its <c>connection</c>/<c>ControlPath</c>/
         /// <see cref="CommNet.CommNode"/> getters can dereference torn-down state
-        /// and throw an NRE deep inside stock code (the "Vessel … has been
+        /// and throw an NRE deep inside stock code (the "Vessel ... has been
         /// unloaded" transient). Gating on <c>vessel.loaded</c> here (plus the
         /// per-method try/catch below) makes the whole read path NULL-SAFE:
         /// a settling/no-control-path vessel yields a graceful "disconnected /

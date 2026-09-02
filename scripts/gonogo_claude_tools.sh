@@ -291,7 +291,7 @@ _resolve_type_range() {
     local cache="$cache_dir/$(basename "$cand").txt"
     [ -f "$cache" ] || continue
     # Find the FIRST line declaring this type. ilspycmd indents types
-    # one tab when they're inside a `namespace …;` block, so allow
+    # one tab when they're inside a `namespace ...;` block, so allow
     # leading whitespace before the modifiers.
     # `|| true` keeps `set -euo pipefail` from killing the function on
     # a grep miss (return 1 = "no match" propagates through the pipe).
@@ -368,7 +368,7 @@ body() {
       match($0, /^[[:space:]]*/)
       ind = RLENGTH
       if (ind <= ci) next
-      # Match signature: "<modifiers> [type] m("  or "<modifiers> [type] m<…>("
+      # Match signature: "<modifiers> [type] m("  or "<modifiers> [type] m<...>("
       # Skip variable declarations by requiring an `(` after the name.
       pat = "(public|protected|private|internal|static)[^(]*[[:space:]]+" m "[[:space:]<(]"
       if ($0 ~ pat) {

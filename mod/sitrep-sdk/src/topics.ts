@@ -14,7 +14,7 @@
 // `RtConfig.EmitTopicMap`) reflects over those tags to emit both the payload interfaces
 // (`contract.ts`) and the Topic→payload map (`topic-map.ts`). A Topic added or removed
 // in C# therefore flows through codegen into this file with no hand edit; `topics.test.ts`
-// additionally re-reads the C# `const string …Topic` declarations and asserts `TOPIC_IDS`
+// additionally re-reads the C# `const string ...Topic` declarations and asserts `TOPIC_IDS`
 // stays in exact sync.
 //
 // ── The hand-declared tail (NOT codegen-derived) ────────────────────────────────────

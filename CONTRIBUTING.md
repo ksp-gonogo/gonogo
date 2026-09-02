@@ -65,7 +65,7 @@ There's no required PR template; just give reviewers the context they need.
 
 ## Conventions worth knowing
 
-- **Commits** follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `test:`, …).
+- **Commits** follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `docs:`, `test:`, ...).
 - **Tests mock as little as possible.** Prefer [Mock Service Worker](https://mswjs.io/) at the network boundary over mocking internal modules or hooks. The real data source, real hook, and real component should run, with only the network intercepted.
 - **New widgets** declare both `dataRequirements` and `actions`, and ship a `jest-axe` accessibility smoke test. Interactive elements are real `<button>`/`<a>`/`<input>`; icon-only buttons get an `aria-label`.
 - **New data sources** must register a `PerfBudget` (sample-rate or dispatch-rate). See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#performance-budgets).

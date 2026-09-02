@@ -32,7 +32,7 @@ export function namesOf(members: object): readonly string[] {
  * The value→name map for a generated enum whose values are NOT a dense run
  * from zero, taken FROM the enum the same way `namesOf` takes its array.
  *
- * `namesOf` walks 0, 1, 2… and stops at the first gap, which is exactly right
+ * `namesOf` walks 0, 1, 2... and stops at the first gap, which is exactly right
  * for an enum this contract declares: the wire carries declaration order, so
  * our own enums are dense by convention and an array indexed by ordinal is the
  * natural shape. KSP's enums are not ours. `PartCategories` opens at `none =

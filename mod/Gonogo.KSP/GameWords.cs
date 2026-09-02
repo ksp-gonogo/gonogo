@@ -8,7 +8,7 @@ namespace Gonogo.KSP
     /// operator reads on a refusal.
     ///
     /// <para>Nothing here composes English. Many of KSP's state enums carry
-    /// <c>[Description("#autoLOC_…")]</c> and KSP's own <c>Localizer</c> resolves
+    /// <c>[Description("#autoLOC_...")]</c> and KSP's own <c>Localizer</c> resolves
     /// them, so a refusal quotes the game in the player's language instead of
     /// this mod keeping a table of KSP's vocabulary that goes stale on every
     /// update and is wrong everywhere but English.</para>

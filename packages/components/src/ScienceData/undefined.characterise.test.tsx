@@ -128,7 +128,7 @@ describe("ScienceData with nothing on the stream", () => {
     // The filter control is gated on the same two flags, so an operator gets no
     // search box to type into over an absent list.
     expect(
-      screen.queryByPlaceholderText("Filter subjects…"),
+      screen.queryByPlaceholderText("Filter subjects..."),
     ).not.toBeInTheDocument();
   });
 
@@ -220,7 +220,7 @@ describe("ScienceData with a partial payload", () => {
     const fixture = renderData();
     feedSituation(fixture);
     // `liveBiome ?? landedAt ?? ""` collapses both absent surface fields to an
-    // empty string, and the `situationLocale ? …` gate then drops the segment
+    // empty string, and the `situationLocale ? ...` gate then drops the segment
     // entirely: the line reads as though the biome were not part of it, rather
     // than marking it unknown.
     expect(screen.getByText("Mun · Landed")).toBeInTheDocument();

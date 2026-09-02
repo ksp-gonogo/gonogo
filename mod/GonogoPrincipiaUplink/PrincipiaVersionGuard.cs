@@ -74,7 +74,7 @@ namespace GonogoPrincipiaUplink
         /// of the Uplink, so the guard reported "Principia not loaded" on an
         /// install where Principia was loaded, and every slice behind it stood
         /// down. The tests could not catch it: they built their happy-path double
-        /// as <c>new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, …)</c>,
+        /// as <c>new FakeAdapterAssembly(PrincipiaVersionGuard.AssemblyName, ...)</c>,
         /// feeding the constant under test back into the subject, so the
         /// assertion held for any value of it. See
         /// <c>PrincipiaVersionGuardTests.MatchesTheNameTheShippedAdapterReallyHas</c>,

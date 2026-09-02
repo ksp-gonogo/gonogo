@@ -41,7 +41,7 @@
  * A heading answers the same question without touching the DOM, and answers a
  * slightly better one. What makes a title different from a vessel name is that
  * it is a fixed string the author chose, so it can always be made to fit, and
- * that is true of every heading a widget draws: a section heading cut to "Ang…"
+ * that is true of every heading a widget draws: a section heading cut to "Ang..."
  * is the same defect one level down.
  */
 const HEADINGS = 'h1, h2, h3, h4, h5, h6, [role="heading"]';

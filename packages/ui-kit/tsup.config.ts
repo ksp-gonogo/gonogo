@@ -92,7 +92,7 @@ export default defineConfig([
     dts: {
       // `true`, not `["@ksp-gonogo/theme"]`. Naming the package only inlines its
       // entry `.d.ts`; the relative re-exports *inside* it (`./theme`,
-      // `./defaultDarkTheme`, …) are then left as-is, emitting imports of files
+      // `./defaultDarkTheme`, ...) are then left as-is, emitting imports of files
       // that don't exist in our dist. `true` follows them through. Peers stay
       // external regardless: `external` above governs the dts pass too.
       resolve: true,

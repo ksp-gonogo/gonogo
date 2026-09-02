@@ -115,7 +115,7 @@ export const RowName = styled.span`
 
 /**
  * How much of the name a wrapping row refuses to give up. Twelve characters is
- * enough to tell "Mystery Goo™ …" from "PresMat Baro…", and the `min()` keeps
+ * enough to tell "Mystery Goo™ ..." from "PresMat Baro...", and the `min()` keeps
  * it from overflowing a row narrower than that.
  */
 const WRAPPED_NAME_FLOOR = "min(12ch, 100%)";

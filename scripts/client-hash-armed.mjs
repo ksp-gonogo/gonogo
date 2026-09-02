@@ -156,7 +156,7 @@ const rows = withClient.map((leg) => {
     return {
       id: leg.id,
       state: "unreadable",
-      detail: 'no `public const string Value = "…"` in the generated file',
+      detail: 'no `public const string Value = "..."` in the generated file',
     };
   }
   return matched[1]

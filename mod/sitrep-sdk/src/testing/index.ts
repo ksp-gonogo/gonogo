@@ -26,7 +26,7 @@
 // ---------------------------------------------------------------------------
 
 // Everything else Testing Library offers (`screen`, `waitFor`, `within`, `act`,
-// `fireEvent`, `cleanup`, …) passes straight through, so this subpath is a
+// `fireEvent`, `cleanup`, ...) passes straight through, so this subpath is a
 // drop-in for the import source. The named exports above take precedence, so
 // `render`/`renderHook` resolve to the themed versions.
 export * from "@testing-library/react";

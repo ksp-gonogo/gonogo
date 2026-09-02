@@ -129,7 +129,7 @@ const STATES: VantageState[] = [
 async function main(): Promise<void> {
   await mkdir(OUT_DIR, { recursive: true });
 
-  console.log(`Bundling ${ENTRY} with esbuild…`);
+  console.log(`Bundling ${ENTRY} with esbuild...`);
   const bundleResult = await build({
     entryPoints: [ENTRY],
     bundle: true,
@@ -178,7 +178,7 @@ async function main(): Promise<void> {
   await writeFile(probeHtmlOut, html, "utf8");
   const probeUrl = pathToFileURL(probeHtmlOut).toString();
 
-  console.log("Launching Chromium…");
+  console.log("Launching Chromium...");
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext({

@@ -7,7 +7,7 @@
  *
  * Those four topics are deliberately absent from the shared fixture (see
  * that file's doc comment): other specs (power-systems.spec.ts's own
- * ORIGINAL form) asserted the resulting "Waiting for vessel topology…" /
+ * ORIGINAL form) asserted the resulting "Waiting for vessel topology..." /
  * title-only state, and the shared snapshot must stay exactly as it is so
  * those assertions keep meaning what they say. Real topology-tree/ΔV-stack
  * rendering coverage instead comes from THIS variant, used only by

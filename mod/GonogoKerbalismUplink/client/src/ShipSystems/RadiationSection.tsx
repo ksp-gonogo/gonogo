@@ -336,7 +336,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
         />
         {!hasTrend && (
           <GraphNotice placement="overlay">
-            Collecting radiation history…
+            Collecting radiation history...
           </GraphNotice>
         )}
       </Fill>

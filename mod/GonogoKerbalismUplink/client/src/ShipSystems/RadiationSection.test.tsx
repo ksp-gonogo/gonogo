@@ -307,7 +307,7 @@ describe("RadiationSection", () => {
         habitatRadiationRadPerSecond: 0.00002,
       });
     });
-    await screen.findByText("Collecting radiation history…");
+    await screen.findByText("Collecting radiation history...");
 
     act(() => {
       setUtRef?.(20);
@@ -323,7 +323,7 @@ describe("RadiationSection", () => {
     // and a real trace renders.
     await screen.findByRole("img", { name: /Radiation dose rate trend/ });
     expect(
-      screen.queryByText("Collecting radiation history…"),
+      screen.queryByText("Collecting radiation history..."),
     ).not.toBeInTheDocument();
   });
 

@@ -3601,7 +3601,7 @@ namespace Sitrep.Host.IntegrationTests
         // below. This "subscribed straight through the load" variant is the
         // unverified edge; skipped to keep CI green (the branch never ran CI, so
         // this surfaced only on merge) pending a proper Decide/emission fix.
-        [Fact(Skip = "Deferred: missing corrective tombstone when subscribed continuously across a rewind to a different targetless vessel; realistic reconnect path covered by RewindTickWithNoVesselStillColdStarts… sibling. Tracked for a Decide/emission fix.")]
+        [Fact(Skip = "Deferred: missing corrective tombstone when subscribed continuously across a rewind to a different targetless vessel; realistic reconnect path covered by RewindTickWithNoVesselStillColdStarts... sibling. Tracked for a Decide/emission fix.")]
         public async Task RewindThatLandsOnADifferentActiveVesselDoesNotUndoTheArchiveRecomputedBirth()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);

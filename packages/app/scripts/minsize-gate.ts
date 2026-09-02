@@ -182,7 +182,9 @@ function describe(
     .slice(0, cap)
     .map((f) => `      ${f.kind} ${f.px}px [${f.axis}]  "${f.text}"`);
   const more =
-    findings.length > cap ? [`      … and ${findings.length - cap} more`] : [];
+    findings.length > cap
+      ? [`      ... and ${findings.length - cap} more`]
+      : [];
   return [head, ...lines, ...more].join("\n");
 }
 

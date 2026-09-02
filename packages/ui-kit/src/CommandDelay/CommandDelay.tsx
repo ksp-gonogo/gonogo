@@ -118,7 +118,7 @@ export interface CommandDelayProps {
  * meta-vantage / direct-link instant case), the continuous
  * `ControlDelayStream` for a single stream command, or the discrete
  * `InFlightList` (merged across handles) otherwise. A command widget renders
- * exactly `<CommandDelay handle={cmd} />` (or `handles={[…]}`) and gets the
+ * exactly `<CommandDelay handle={cmd} />` (or `handles={[...]}`) and gets the
  * correct delay UX for free, with no per-widget branching.
  *
  * Rendering `<CommandDelay>` is also what SATISFIES the must-consume invariant:

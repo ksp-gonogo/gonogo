@@ -156,7 +156,7 @@ const actions = [
 registerComponent({
   id: "my-widget",
   actions,
-  // …
+  // ...
 });
 ```
 
@@ -190,7 +190,7 @@ bytes arrive
   → parseCharPosition                        emits one InputEvent per input
   → SerialDeviceService.onInput              per-screen fan-out
   → InputDispatcher.handleInput              walks items' inputMappings
-  → dispatchAction(itemId, actionId, …)      finds the useActionInput handler
+  → dispatchAction(itemId, actionId, ...)      finds the useActionInput handler
   → handler runs                             and optionally returns a payload
   → SerialDeviceService.recordActionReturn   merges returns for this device
   → DeviceRenderStyle.render                 debounced, via code-registered style
@@ -270,7 +270,7 @@ that wants inputs configures them on that screen.
 
 ```
 packages/serial/src/
-├─ types.ts                        DeviceType, DeviceInstance, DeviceInput, …
+├─ types.ts                        DeviceType, DeviceInstance, DeviceInput, ...
 ├─ parsers/
 │   ├─ charPosition.ts             Fixed-width ASCII slicer
 │   └─ jsonState.ts                Self-describing NDJSON parser

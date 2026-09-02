@@ -30,7 +30,7 @@ import { ShipMapComponent } from "./index";
  *   - `vessel.flight.externalTemperature` absent -> no ambient tint, which is
  *     also what a confirmed comfortable 300 K renders
  *
- * `useTopology`'s own `wire ? … : undefined` additionally folds a store-level
+ * `useTopology`'s own `wire ? ... : undefined` additionally folds a store-level
  * tombstone into the pending placeholder, so "there is no vessel" and "nothing
  * has arrived" are the same sentence on screen.
  */
@@ -260,8 +260,8 @@ describe("ShipMap: the silent absence gates", () => {
       expect(screen.getByLabelText("Ship diagram")).toBeTruthy(),
     );
 
-    // `typeof hottestPartName === "string" ? … : null` -> `highlight` null ->
-    // `{highlight && …}`. Absence renders nothing at all, so the operator sees
+    // `typeof hottestPartName === "string" ? ... : null` -> `highlight` null ->
+    // `{highlight && ...}`. Absence renders nothing at all, so the operator sees
     // a diagram with no hottest part rather than a diagram with an unknown one.
     expect(screen.queryByText(/hot:/)).toBeNull();
 

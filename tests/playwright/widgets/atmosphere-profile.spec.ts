@@ -13,7 +13,7 @@
  *
  * Kerbin is a known body with an atmospheric model, so on the HOST:
  *   - The reference pressure curve renders (no GraphView empty-state,
- *     the "Waiting for body telemetry…" fallback only fires when `body`
+ *     the "Waiting for body telemetry..." fallback only fires when `body`
  *     is `undefined`).
  *   - Neither "No atmospheric model registered" nor "Unknown body"
  *     notices fire (Kerbin resolves cleanly with `body.atmosphere` set).
@@ -22,7 +22,7 @@
  * `SitrepTelemetryProvider` today (station stream forwarding over PeerJS
  * is a documented pending gap, see that provider's own doc comment), so
  * `body` stays `undefined` there and GraphView's "Waiting for body
- * telemetry…" empty state DOES fire. The "Unknown body"/"No atmospheric
+ * telemetry..." empty state DOES fire. The "Unknown body"/"No atmospheric
  * model registered" notices still correctly stay absent on the station
  * (they require a DEFINED-but-unregistered body name, not an absent one),
  * so those two checks are safe on both screens.
@@ -53,7 +53,7 @@ test.describe("widget DOM mirror: AtmosphereProfile", () => {
     }
 
     await expect(
-      pair.main.getByText("Waiting for body telemetry…", { exact: true }),
+      pair.main.getByText("Waiting for body telemetry...", { exact: true }),
     ).toHaveCount(0);
 
     await teardownPair(pair);

@@ -47,7 +47,7 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log("Bundling banner-probe-entry with esbuild…");
+  console.log("Bundling banner-probe-entry with esbuild...");
   const bundleResult = await build({
     entryPoints: [PROBE_ENTRY],
     bundle: true,
@@ -84,7 +84,7 @@ async function main(): Promise<void> {
   );
   await writeFile(probeHtmlOut, htmlWithBundle, "utf8");
 
-  console.log("Launching Chromium…");
+  console.log("Launching Chromium...");
   const browser = await chromium.launch();
   try {
     const context = await browser.newContext({

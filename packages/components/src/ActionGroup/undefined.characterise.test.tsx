@@ -313,7 +313,7 @@ describe("ActionGroup: null versus undefined", () => {
 
   it("a whole-topic tombstone reads exactly like nothing having arrived", async () => {
     // A `null` PAYLOAD (the store's confirmed "there is no value") reaches the
-    // widget through `control?.…`, which erases the difference between a
+    // widget through `control?.<field>`, which erases the difference between a
     // tombstone and a cold topic. Both render NULL_DISPLAY, so the operator
     // cannot tell "the mod says there is no vessel control" from "waiting".
     const { fixture } = mount("SAS");

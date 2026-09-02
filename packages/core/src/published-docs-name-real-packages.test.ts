@@ -33,7 +33,7 @@ const REPO_ROOT = join(HERE, "..", "..", "..");
 const DOCS_DIR = join(REPO_ROOT, "docs");
 
 /**
- * Every `@ksp-gonogo/…` string in the docs, with the file and line it sits on.
+ * Every `@ksp-gonogo/...` string in the docs, with the file and line it sits on.
  *
  * Matched with a deliberately loose head and a strict tail: a scoped name runs
  * to whitespace, a closing backtick or quote, or ordinary sentence punctuation.
@@ -87,7 +87,7 @@ interface KnownPackage {
 }
 
 /**
- * Every `@ksp-gonogo/…` package that exists: the workspace's own, plus any one a
+ * Every `@ksp-gonogo/...` package that exists: the workspace's own, plus any one a
  * workspace manifest depends on.
  *
  * The second half is not slack. Some `@ksp-gonogo/` packages are published from

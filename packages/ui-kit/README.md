@@ -121,7 +121,7 @@ a change to how titles look is one edit here, not one per widget.
 
 Your widget declares a `minSize`, and the dashboard enforces it as a floor:
 react-grid-layout refuses to drag the tile smaller and clamps a smaller saved
-layout up. So that size is a promise, and a title ellipsised to "AERODYNA…" at
+layout up. So that size is a promise, and a title ellipsised to "AERODYNA..." at
 the widget's own minimum is the widget failing to name itself. Sixteen widgets
 were doing it when the check for it landed.
 
@@ -136,7 +136,7 @@ Measured against the box, not guessed from a column count, so the full name
 comes back the moment the tile is wide enough. While a short form is showing,
 the full one stays the heading's accessible name and its hover tooltip.
 
-`compactTitle` and `<PanelTitle compact={…}>` are the same thing; use whichever
+`compactTitle` and `<PanelTitle compact={...}>` are the same thing; use whichever
 form your widget already renders its title in. Write real abbreviations rather
 than truncations: a machine-shortened title is the ellipsis this replaces.
 
@@ -177,7 +177,7 @@ parts you can reach individually:
   <Panel.Container>
     <Panel.Glow>
       <Panel.Title>ALTITUDE</Panel.Title>
-      <Panel.Body>{/* … */}</Panel.Body>
+      <Panel.Body>{/* ... */}</Panel.Body>
     </Panel.Glow>
   </Panel.Container>
 </Panel.Context>

@@ -10,7 +10,7 @@
 // `@ksp-gonogo/ui-kit` (imports the sdk, so the edge would cycle). See the
 // generator's header for why an accessor or a path-derived Proxy does not work.
 //
-// Every value here is a `var(--…)` handle or a literal; the numbers behind them
+// Every value here is a `var(--...)` handle or a literal; the numbers behind them
 // live in `tokens.css`, which no test loads. So a test asserts on
 // `padding: var(--space-8)`, exactly as the app renders it.
 

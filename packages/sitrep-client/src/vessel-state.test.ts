@@ -60,7 +60,7 @@ type WireFlight = WireOf<VesselFlightPayload>;
 /**
  * One entry of `vessel.orbit.patches`, pre-wrap.
  *
- * The patch fixtures used to call `wrapTypePayload("OrbitPatch", …)` themselves
+ * The patch fixtures used to call `wrapTypePayload("OrbitPatch", ...)` themselves
  * and cast the result. They did not need to: `GENERATED_TYPE_SHAPES` declares
  * `VesselOrbit.patches` as `OrbitPatch[]`, so `orbitPoint`'s wrap already
  * follows into the chain, and the extra call was a second wrap that the

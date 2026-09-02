@@ -70,7 +70,7 @@ If a Claude Code session opens with an auto-assigned working branch (e.g. `claud
 
 ## Commits
 
-Do not add a `Co-Authored-By: Claude …` (or any other Claude/Anthropic attribution) trailer to commit messages in this repo. Write the commit message as if a human authored it.
+Do not add a `Co-Authored-By: Claude ...` (or any other Claude/Anthropic attribution) trailer to commit messages in this repo. Write the commit message as if a human authored it.
 
 ## Commands
 
@@ -299,7 +299,7 @@ Top-level fields you can filter on:
 
 - `level`: `debug` | `info` | `warn` | `error`
 - `message`: human string (already prefixed with `[tag]` if tagged)
-- `tag`: optional verbose-tracing tag (`peer`, `peer:ice`, `peer:kos`, …)
+- `tag`: optional verbose-tracing tag (`peer`, `peer:ice`, `peer:kos`, ...)
 - `device.role`: `host` | `station` | `unknown`
 - `device.id`: host short id (e.g. `XK3F`) or station UUID (`stationKey`)
 - `device.peerId`: broker peer id (host: same as `id`; station: `station-<key>-<sessionToken>`, fresh each page-load)
