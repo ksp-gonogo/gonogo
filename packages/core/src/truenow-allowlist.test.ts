@@ -53,6 +53,28 @@ const EXPLICIT_TRUENOW = /Delay\s*=\s*DelayRole\.TrueNow/g;
 // EXPLICIT_TRUENOW regex to catch.
 const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
 
+/**
+ * KNOWN BLIND SPOT, measured 2026-09-02: the helper regex closes the hole only
+ * for a helper literally NAMED `TrueNow`. A helper that sets the same
+ * `Delay = DelayRole.TrueNow` under any other name contributes exactly ONE
+ * match, the line inside its own body, no matter how many channels are built
+ * through it.
+ *
+ * Two exist. `Rp1ScUplink.Ground(topic)` carries 25 channels and scores 1;
+ * `KerbalismUplink.Static(topic)` carries 1 and scores 1. So the numbers in
+ * this file total 48 while the mod actually declares 66 delay-bypassing
+ * channels, and rp1 alone is 25 of them, 38% of every bypass in the tree,
+ * behind a single allowlist line reading 1.
+ *
+ * The consequence is not a wrong number, it is an ungated one: a 26th rp1
+ * channel changes no count here, so nothing asks whether it is ground-side.
+ * The entries themselves are honest about this (Rp1ScUplink's own note says
+ * "1 explicit declaration, in the `Ground` helper every channel is built
+ * through"), which is why this is recorded rather than quietly re-seeded:
+ * counting per channel would rewrite every count and every arithmetic note in
+ * this file, and that is the operator's call, not a drive-by.
+ */
+
 const SCAN_EXTENSION = /\.cs$/;
 const SKIP_DIRS = new Set(["bin", "obj", "node_modules"]);
 const SKIP_DIR_PATTERN = /\.(Tests|IntegrationTests)$/;
@@ -145,10 +167,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // call sites + the helper's own declaration line = 6 helper matches. 1
   // explicit + 6 helper = 7.
   "mod/GonogoRealAntennasUplink/RealAntennasUplink.cs": 7,
-
-  // SCANsat scan-coverage availability: ground-side (the map data the
-  // centre already has), not a live vessel reading. 1 explicit
-  // declaration.
 
   // kerbalism.available (whether the Kerbalism mod is INSTALLED, same
   // install-fact class as scansat/kerbcast .available) + kerbalism.features

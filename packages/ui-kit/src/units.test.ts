@@ -820,10 +820,8 @@ describe("formatQuantity: a format across KINDS is refused, not applied", () => 
   });
 });
 
-// ---------------------------------------------------------------------------
 // A duration arrives in whatever unit the field declares, and only one of
 // those units is the baseline the composite formatter reads.
-// ---------------------------------------------------------------------------
 describe("a duration is converted to seconds before it is laddered", () => {
   it("reads a value declared in days as days", () => {
     // 43 days, not 43 seconds. The dimension reached this branch and the

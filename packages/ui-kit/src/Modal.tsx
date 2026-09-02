@@ -19,10 +19,6 @@ import {
   useModalSaveBar,
 } from "./ModalSaveBar";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 interface ModalEntry {
   id: string;
   title?: string;
@@ -41,10 +37,6 @@ interface ModalContextValue {
   close: (id: string) => void;
 }
 
-// ---------------------------------------------------------------------------
-// Context
-// ---------------------------------------------------------------------------
-
 const ModalContext = createContext<ModalContextValue | null>(null);
 
 /**
@@ -57,10 +49,6 @@ const ModalContext = createContext<ModalContextValue | null>(null);
  * to key a local array.
  */
 let modalSeq = 0;
-
-// ---------------------------------------------------------------------------
-// Provider
-// ---------------------------------------------------------------------------
 
 export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [modals, setModals] = useState<ModalEntry[]>([]);
@@ -93,19 +81,11 @@ export function ModalProvider({ children }: Readonly<{ children: ReactNode }>) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// Hook
-// ---------------------------------------------------------------------------
-
 export function useModal(): ModalContextValue {
   const ctx = useContext(ModalContext);
   if (!ctx) throw new Error("useModal must be used inside <ModalProvider>");
   return ctx;
 }
-
-// ---------------------------------------------------------------------------
-// Dialog
-// ---------------------------------------------------------------------------
 
 interface ModalDialogProps {
   entry: ModalEntry;
@@ -267,10 +247,6 @@ function ModalDialog({ entry, onClose }: Readonly<ModalDialogProps>) {
     </>
   );
 }
-
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
 
 const Backdrop = styled.div`
   position: fixed;

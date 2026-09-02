@@ -639,7 +639,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/src/Panel.asideCollapse.test.tsx": 1,
   "packages/ui-kit/src/Panel.delay.test.tsx": 1,
   "packages/ui-kit/src/Panel.sidebar.test.tsx": 2,
-  "packages/ui-kit/src/Panel.tsx": 6,
+  "packages/ui-kit/src/Panel.tsx": 5,
   "packages/ui-kit/src/ReadOnlyField.test.tsx": 1,
   "packages/ui-kit/src/Tabs.tsx": 1,
   "packages/ui-kit/src/Text.test.tsx": 1,
@@ -647,11 +647,10 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/src/Unit.test.tsx": 2,
   "packages/ui-kit/src/UnitInput.test.tsx": 2,
   "packages/ui-kit/src/WidgetMeters.test.tsx": 1,
-  "packages/ui-kit/src/augments.ts": 2,
   "packages/ui-kit/src/contributionsRuntime.tsx": 2,
   "packages/ui-kit/src/formatDuration.test.ts": 1,
   "packages/ui-kit/src/index.ts": 4,
-  "packages/ui-kit/src/render-probe.tsx": 8,
+  "packages/ui-kit/src/render-probe.tsx": 3,
   "packages/ui-kit/src/render/docs.ts": 1,
   "packages/ui-kit/src/render/driver.ts": 3,
   "packages/ui-kit/src/render/minFit.ts": 2,
@@ -661,7 +660,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/ui-kit/src/resourceColor.test.ts": 4,
   "packages/ui-kit/src/resourceColor.ts": 1,
   "packages/ui-kit/src/status/useStatusContribution.ts": 1,
-  "packages/ui-kit/src/units.test.ts": 5,
+  "packages/ui-kit/src/units.test.ts": 4,
   "packages/ui-kit/src/units.ts": 5,
   "packages/ui-kit/src/useFittedTitle.ts": 2,
   "packages/ui-kit/src/usePanelAsideSize.test.tsx": 1,
@@ -701,7 +700,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * does not trip this and only a broken enumeration does.
  */
 export const SCAN_FLOORS = {
-  files: 1160,
+  files: 1166,
   filesWithStack: 366,
   stacks: 805,
 } as const;

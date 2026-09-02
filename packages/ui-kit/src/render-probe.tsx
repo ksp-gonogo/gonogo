@@ -97,9 +97,7 @@ export { RENDER_PROBE_GLOBAL } from "./render/probe-global";
 export type { MinFitFinding };
 export { auditMinFit };
 
-// ---------------------------------------------------------------------------
 // The wire between the two halves
-// ---------------------------------------------------------------------------
 
 /** What a scene mounts. Exactly one of the three registration kinds. */
 export type SceneTargetKind = "widget" | "augment" | "contribution";
@@ -209,9 +207,7 @@ export interface SceneReport {
   unsubscribedTopics: string[];
 }
 
-// ---------------------------------------------------------------------------
 // The inventory: one read of the registries, shared by the renderer and the docs
-// ---------------------------------------------------------------------------
 
 /** A size the harness renders a widget at, in grid units and pixels. */
 export interface InventoryMode {
@@ -464,9 +460,7 @@ export function readInventory(uplinkId?: string): UplinkInventory {
   };
 }
 
-// ---------------------------------------------------------------------------
 // The author's optional browser-side glue
-// ---------------------------------------------------------------------------
 
 /**
  * What `client/gonogo-render.setup.ts` may do, for the two Uplinks in nine that
@@ -512,9 +506,7 @@ export function defineRenderSetup(setup: RenderSetup): RenderSetup {
   return setup;
 }
 
-// ---------------------------------------------------------------------------
 // Availability feeding
-// ---------------------------------------------------------------------------
 
 /**
  * Mirrors the app's `AugmentAvailabilityFeeder`: `<AugmentSlot>`'s `requires`
@@ -584,9 +576,7 @@ function DomainWatch({
   return null;
 }
 
-// ---------------------------------------------------------------------------
 // Mounting
-// ---------------------------------------------------------------------------
 
 let activeRoot: Root | null = null;
 let mountedFixture: StreamFixture | null = null;
@@ -943,9 +933,7 @@ function isCarried(topic: string, carried: readonly string[]): boolean {
   return false;
 }
 
-// ---------------------------------------------------------------------------
 // Measurement: what the driver decides on
-// ---------------------------------------------------------------------------
 
 /**
  * A scene's render, reduced to something two runs can be compared on.
@@ -1000,9 +988,7 @@ function hash(input: string): string {
   return h.toString(16).padStart(8, "0");
 }
 
-// ---------------------------------------------------------------------------
 // Motion
-// ---------------------------------------------------------------------------
 
 /** The scene's current pinned instant, moved only by an `advanceUt` step. */
 let currentUt = 0;
@@ -1040,9 +1026,7 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
   await frame();
 }
 
-// ---------------------------------------------------------------------------
 // Installation
-// ---------------------------------------------------------------------------
 
 export interface RenderProbeApi {
   readInventory: (uplinkId?: string) => UplinkInventory;
