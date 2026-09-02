@@ -91,8 +91,6 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
   ],
   GonogoRp1Uplink: [
     "command rp1.complex.modify",
-    "command rp1.fundTarget.cancel",
-    "command rp1.fundTarget.set",
     "command rp1.hireTarget.cancel",
     "command rp1.hireTarget.set",
     /*

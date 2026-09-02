@@ -8,8 +8,6 @@ import {
   Inline,
   magnitudeOf,
   Stack,
-  Text,
-  Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { current } from "../shared/current";
@@ -18,6 +16,11 @@ import { RP1 } from "../uplink";
 // than left to the entry point's import order, because this file is the
 // consumer that would silently receive bare numbers without it.
 import "../topics";
+import {
+  FundTargetControl,
+  RP1_FUND_TARGET_CANCEL_COMMAND,
+  RP1_FUND_TARGET_SET_COMMAND,
+} from "./FundTarget";
 
 /** Warp until the career's next project finishes. Must match `Rp1WarpCommands.ToCompleteCommand`. */
 export const RP1_WARP_TO_COMPLETE_COMMAND = "rp1.warp.toComplete";
@@ -49,13 +52,20 @@ export const RP1_WARP_TO_FUND_TARGET_COMMAND = "rp1.warp.toFundTarget";
 export function WarpTargets() {
   const available = current(useTelemetry("rp1.available"));
   const fundTarget = current(useTelemetry("rp1.fundTarget"));
+  // Read for the one figure the target is measured against. Absent on a save
+  // with no funding, which is what keeps the balance row off a sandbox career.
+  const career = current(useTelemetry("career.status"));
 
   // Unconditional and above the early return on purpose: a hook after it would
   // change count on the first frame RP-1 answers.
   const toComplete = useCommand(RP1_WARP_TO_COMPLETE_COMMAND);
   const toFundTarget = useCommand(RP1_WARP_TO_FUND_TARGET_COMMAND);
+  const setFundTarget = useCommand(RP1_FUND_TARGET_SET_COMMAND);
+  const cancelFundTarget = useCommand(RP1_FUND_TARGET_CANCEL_COMMAND);
   usePanelDelay(toComplete);
   usePanelDelay(toFundTarget);
+  usePanelDelay(setFundTarget);
+  usePanelDelay(cancelFundTarget);
 
   // Invisible on every install without RP-1, which is most of them. An augment
   // that renders an empty row on a stock game is clutter that says nothing.
@@ -71,8 +81,9 @@ export function WarpTargets() {
   const targetStanding = fundTarget?.active === true;
 
   return (
-    <Inline gap="xs">
-      {/*
+    <Stack gap="xs">
+      <Inline gap="xs">
+        {/*
         Named for WHAT it warps to, on the operator's ruling that "next" alone did
         not say. The specific project would be better still and is not on this
         widget's wire: the next-to-finish is whichever of rp1.buildQueue,
@@ -85,33 +96,47 @@ export function WarpTargets() {
         both of them cut off at 38px. The full sentence stays in the accessible
         name, which costs no width.
       */}
-      <CommandButton
-        args={{}}
-        aria-label="Warp until RP-1's next project finishes"
-        commandLabel="Warp to next project completion"
-        handle={toComplete}
-        label="next completion"
-        size="sm"
-      />
-      {/*
+        <CommandButton
+          args={{}}
+          aria-label="Warp until RP-1's next project finishes"
+          commandLabel="Warp to next project completion"
+          handle={toComplete}
+          label="next completion"
+          size="sm"
+        />
+        {/*
         No subtitle. The ETA and the "no fund target set" line both went on the
         operator's ruling that funds "needs LESS": the reason a press is dark
         stays in its accessible name, where it costs no space.
       */}
-      <CommandButton
-        args={{}}
-        aria-label={
-          targetStanding
-            ? "Warp until the balance reaches the fund target"
-            : "No fund target is standing, so there is no balance to warp toward"
-        }
-        commandLabel="Warp to fund target"
-        disabled={!targetStanding}
-        handle={toFundTarget}
-        label="fund target"
-        size="sm"
+        <CommandButton
+          args={{}}
+          aria-label={
+            targetStanding
+              ? "Warp until the balance reaches the fund target"
+              : "No fund target is standing, so there is no balance to warp toward"
+          }
+          commandLabel="Warp to fund target"
+          disabled={!targetStanding}
+          handle={toFundTarget}
+          label="fund target"
+          size="sm"
+        />
+      </Inline>
+
+      {/*
+        Under the presses rather than beside them, because it DECIDES one of
+        them: the fund-target press is dark until a target stands, and this is
+        what stands one up. RP-1 keeps one target per career, so this draws
+        whichever of set and cancel is the legal move.
+      */}
+      <FundTargetControl
+        cancel={cancelFundTarget}
+        funds={magnitudeOf(career?.economy?.funds)}
+        set={setFundTarget}
+        target={fundTarget}
       />
-    </Inline>
+    </Stack>
   );
 }
 
