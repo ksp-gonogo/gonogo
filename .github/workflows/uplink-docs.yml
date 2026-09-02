@@ -9,15 +9,15 @@ name: Uplink pages
 # each of those changes the page, and each of them lands in a commit whose author
 # was thinking about something else.
 #
-# ## Why this and the PR check both exist
+# ## Why this and the check both exist
 #
-# `ci.yml`'s "Uplink pages are not stale" step fails a pull request whose pages
-# have moved, and it is not made redundant by this. A workflow that silently
-# fixes main means nobody ever sees a generator that has quietly stopped emitting
-# a section: the page would keep being "current" against a generator that no
-# longer produces the wire table, and every run would agree. The PR check is
-# where a person looks; this is what keeps main from carrying a page it could
-# have fixed itself.
+# `uplink-staleness.yml` fails on a branch or a pull request whose pages have
+# moved, and it is not made redundant by this. A workflow that silently fixes a
+# branch means nobody ever sees a generator that has quietly stopped emitting a
+# section: the page would keep being "current" against a generator that no longer
+# produces the wire table, and every run would agree. The check is where a person
+# looks; this is what keeps the branch from carrying a page it could have fixed
+# itself.
 #
 # ## Why this cannot loop
 #
@@ -57,10 +57,11 @@ name: Uplink pages
 # branch while anyone is pushing to it.
 #
 # WHAT THIS TRADES AWAY, stated so nobody has to rediscover it: a page can now be
-# stale for up to a day. `ci.yml`'s "Uplink pages are not stale" step still runs
-# per push and will say so, which is the right division: the CHECK is per-push
-# because staleness should be visible immediately, and the REPAIR is nightly
-# because it writes.
+# stale for up to a day. `uplink-staleness.yml` still runs per push and will say
+# so, which is the right division: the CHECK is per-push because staleness should
+# be visible immediately, and the REPAIR is nightly because it writes. Since
+# 2026-09-02 that check reports rather than blocks, which widens the same trade:
+# a page can now stay stale past the nightly if nobody acts on the red.
 #
 # The history: this read `[main]` alone while every branch merged to `staging`,
 # so the self-heal did not run once for the whole time development sat there,
@@ -146,10 +147,11 @@ jobs:
       - name: Install the browser the page harness renders in
         run: pnpm exec playwright install --with-deps chromium
 
-      # The same script `ci.yml` runs with `--check`, so what heals main and what
-      # fails a pull request cannot disagree about which Uplinks they cover. It
-      # refuses rather than exiting clean when discovery hands it nothing, since a
-      # run that regenerates nothing commits nothing and reports success.
+      # The same script `uplink-staleness.yml` runs with `--check`, so what heals
+      # a branch and what reports on it cannot disagree about which Uplinks they
+      # cover. It refuses rather than exiting clean when discovery hands it
+      # nothing, since a run that regenerates nothing commits nothing and reports
+      # success.
       - name: Regenerate every Uplink page
         run: pnpm uplink-docs
 

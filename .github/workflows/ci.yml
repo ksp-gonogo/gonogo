@@ -218,47 +218,36 @@ jobs:
       - name: Every Uplink has a generated page
         run: node scripts/uplink-docs-gate.mjs
 
-      # Uplink page drift: regenerate every client-bearing Uplink's README and
-      # `gonogo-uplink.json` in memory and fail on any difference.
+      # ui-kit and components, built for the steps that follow. This used to be
+      # the first line of a "Uplink pages are not stale" step; the staleness
+      # check itself now lives in `uplink-staleness.yml` and only the build
+      # stayed, because the guide-examples typecheck below needs a ui-kit dist.
       #
-      # In `test` for the same reason as the two steps above: `visual` is red on
-      # purpose, so a finding placed there shows the colour that job always
-      # shows. It asks a question neither of them can, either: not "did the
-      # pixels drift" nor "did the harness render anything", but "does the page
-      # still describe the Uplink the code actually is". A page that quietly
-      # stops listing a widget reads exactly like an Uplink with fewer widgets.
+      # WHY THE CHECK LEFT, so nobody restores it here without knowing what it
+      # costs: the pages are DERIVED, and the only sanctioned regeneration is
+      # `uplink-docs.yml`, which runs nightly or on manual dispatch. So any
+      # change to ui-kit or components that moves a rendered page failed this
+      # job on the commit that made it, and stayed failed until a human
+      # dispatched a heal. That happened four times on 2026-09-02 (fc061fdd2,
+      # 5840d306b, 84a00db309, 69b1564b5) with `pnpm test` passing 46/46 on
+      # each; two of those four SHAs are merges, so `uplink-staleness.yml`'s
+      # header names what each red actually was. A gate whose only fix is a
+      # manual dispatch blocks more than it protects, so the check reports
+      # rather than blocks. It still runs on every trigger this job does, and it
+      # still goes red.
       #
-      # ALL TEN, where this used to name `gonogo-kos-uplink` alone. It was one
-      # line because the drift check was reached through a `docs:check` script
-      # exactly one Uplink had; the CLI needs no script line, so there is nothing
-      # left to opt into. `uplink-docs.yml` regenerates and commits back on main,
-      # and this stays anyway: a workflow that silently fixes main means nobody
-      # sees a generator that has quietly stopped emitting a section.
-      #
-      # Asset bytes are still not compared, and that reasoning holds:
-      # rasterisation is per-engine and per-OS, so a byte comparison would fail
-      # on every machine but the one that generated it, and a gate that cries
-      # wolf is a gate someone turns off. What the check now also compares is
-      # each asset's SHAPE, which is the rendered DOM reduced to the things the
-      # CSS cascade computes rather than the things a glyph rasteriser measures,
-      # so it is the same on any machine. Without it this step read the PROSE of
-      # a page whose content is pictures, and Vehicle Assembly's showed a layout
-      # the code had stopped producing for five commits with every run agreeing.
       # `components` is filtered in alongside ui-kit for the same reason
       # uplink-docs.yml needs it: five Uplinks declare a `gonogo.renderWith`
       # host and every one names a PATH into packages/components/src rather than
       # a package, so pnpm's dependency graph cannot see it. Without this the
-      # generator cannot resolve those five and the check reports them stale for
-      # a reason that has nothing to do with their pictures.
+      # generator cannot resolve those five.
       #
       # This is the THIRD place the same missing filter has been fixed. The
       # other two were uplink.yml (a per-Uplink matrix) and uplink-docs.yml (the
       # self-heal). A build filter is copied between workflows and the copy does
       # not carry the reason, so the next one will need it too.
-      - name: Uplink pages are not stale
-        run: |
-          pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... build
-          pnpm uplink-docs:check
+      - name: Build ui-kit and components
+        run: pnpm --filter @ksp-gonogo/ui-kit... --filter @ksp-gonogo/components... build
 
       # The authoring guide's code blocks are typechecked as ONE client, against
       # the published packages, resolving the way an installed client resolves
