@@ -21,9 +21,9 @@ namespace Sitrep.Core.Tests
     /// the app-side test compares the generated file against a rebake, which is a
     /// different question from "does the manifest carry it".</para>
     ///
-    /// <para>That gap was real. When arming landed, <c>GonogoMechJebUplink</c> was
-    /// armed with no test anywhere that its manifest surfaced its hash, and eleven
-    /// of the twelve Uplink test projects asserted nothing about
+    /// <para>That gap was real. When arming landed, one of the two armed Uplinks
+    /// had no test anywhere that its manifest surfaced its hash, and eleven of the
+    /// twelve Uplink test projects asserted nothing about
     /// <c>ExpectedClientHash</c> at all.</para>
     ///
     /// <para><b>Why a walk rather than a test per project.</b> A per-project
@@ -40,9 +40,9 @@ namespace Sitrep.Core.Tests
     /// prevent, and one loading them from <c>bin/</c> instead is green whenever
     /// they have not been built, which is the failure mode a coverage gate must not
     /// have. The runtime half is asserted per armed Uplink from inside that
-    /// Uplink's own Tests project, where the reference is legal:
-    /// <c>KosExtensionDiscoveryTests</c> and <c>MechJebUplinkTests</c>. This walk
-    /// covers the half that scales; those cover the half that needs a manifest.</para>
+    /// Uplink's own Tests project, where the reference is legal. This walk covers
+    /// the half that scales; those per-Uplink discovery tests cover the half that
+    /// needs a loaded manifest.</para>
     /// </summary>
     public class UplinkArmingCoverageTests
     {
