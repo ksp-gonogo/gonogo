@@ -19,8 +19,10 @@ import { describe, expect, it } from "vitest";
  *    them, and the mismatch is silent until the first Uplink ships a correctly
  *    generated manifest, at which point the app refuses it with a message about
  *    a contract mismatch rather than about a stale mirror
- *  - `UI_KIT_VERSION` said 0.1.0 against a published 0.2.0, carrying a
- *    `TODO(version)` in place of a check
+ *  - `UI_KIT_VERSION` and the kit's own `package.json` disagreed, carrying a
+ *    `TODO(version)` in place of a check. Neither number was ever published:
+ *    npm has only 0.1.0, so a bump written here is a claim about a release
+ *    that has not happened
  *
  * It lives in core because core is where this repo keeps its cross-package
  * ratchets, and because the C# file is not reachable from either package being
