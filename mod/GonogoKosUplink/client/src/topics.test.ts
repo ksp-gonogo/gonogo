@@ -136,7 +136,7 @@ describe("registerTopicUnits: the Topic-keyed half", () => {
 });
 
 describe("registerTypeUnits: the type-keyed half", () => {
-  // The one declared quantity in the whole eleven-type slice. Its type is
+  // The one declared quantity in the whole nine-type slice. Its type is
   // reached by no Topic's shape map, because `kos.compute.<id>.status` is a
   // dynamic channel name, so nothing decodes through it today, which was already
   // true while the type lived in core. The lookup is what the relocation broke
@@ -151,12 +151,10 @@ describe("registerTypeUnits: the type-keyed half", () => {
   // lookup that silently returned {} for the command args would be just as much
   // a regression, and this is the assertion that would catch a loop narrowed to
   // "only the interesting one".
-  it("restores unitsForType for all eleven relocated types", () => {
+  it("restores unitsForType for all nine relocated types", () => {
     for (const typeName of [
       "KosProcessorInfo",
       "KosComputeStatus",
-      "KosExecArgs",
-      "KosReEnableArgs",
       "KosTerminalFrame",
       "KosTerminalOpenArgs",
       "KosKeystrokeArgs",

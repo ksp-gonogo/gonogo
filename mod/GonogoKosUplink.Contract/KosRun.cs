@@ -9,8 +9,7 @@ namespace Gonogo.KosUplink;
 /// <summary>
 /// Args for the <c>kos.run</c> command, the general-purpose in-process
 /// replacement for the standalone telnet proxy's ad-hoc RUNPATH path
-/// (<c>kos-uplink-full-migration.md</c>). Unlike <see cref="KosExecArgs"/>
-/// (which triggers a fixed, pre-registered compute topic script by id), this
+/// (<c>kos-uplink-full-migration.md</c>). It
 /// carries the WHOLE literal command text to type into the CPU's REPL,
 /// exactly what the app already builds client-side for the telnet path
 /// (a bare <c>RUNPATH("path", args...).</c> line, or the multi-line managed-
@@ -21,8 +20,8 @@ namespace Gonogo.KosUplink;
 ///
 /// <para>Delivered DELAYED, single-in-flight-per-CPU (spec §3.0):
 /// reachability + the <c>HasBooted</c>/<c>IsWaitingForCommand()</c> idle-
-/// prompt guard are re-checked at delivery on the KSP main thread, mirroring
-/// <see cref="KosExecArgs"/>. A second <c>kos.run</c> for a CPU that already
+/// prompt guard are re-checked at delivery on the KSP main thread. A second
+/// <c>kos.run</c> for a CPU that already
 /// has one in flight is rejected with <c>CommandErrorCode.ModeUnavailable</c>,
 /// the caller (mirroring <c>KosComputeSession</c>'s existing per-CPU FIFO
 /// queue) is expected to serialize calls to the same CPU client-side.</para>

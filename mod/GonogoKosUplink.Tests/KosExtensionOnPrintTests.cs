@@ -203,7 +203,7 @@ namespace GonogoKosUplink.Tests
             var ext = NewExtension(source, counter, () => true);
             var runResults = new List<KosRunResult>();
             ext.WireRunForTests((_, result) => runResults.Add(result));
-            // No ArmRunForTests call: ordinary kos.compute / kos.exec path.
+            // No ArmRunForTests call: the ordinary kos.compute fanout path.
 
             ext.OnPrint(new object(), "[KOSDATA:feed]v=1[/KOSDATA]");
 

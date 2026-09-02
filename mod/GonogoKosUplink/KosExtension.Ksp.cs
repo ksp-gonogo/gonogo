@@ -125,11 +125,6 @@ namespace Gonogo.KosUplink
                 }
             }
 
-            // Commands (RUNPATH trigger + breaker re-enable).
-            host.AddCommandHandler<KosExecArgs, CommandResult>(KosChannels.ExecCommand, Exec);
-            host.AddCommandHandler<KosExecArgs, CommandResult>(KosChannels.DispatchNowCommand, Exec);
-            host.AddCommandHandler<KosReEnableArgs, CommandResult>(KosChannels.ReEnableCommand, ReEnable);
-
             // Interactive terminal: kos.terminal.<coreId> ReliableOrdered
             // screen downlink + single-owner keystroke/resize/open/close.
             // Replaces the standalone telnet proxy: the mod reads the CPU screen
@@ -295,39 +290,11 @@ namespace Gonogo.KosUplink
             return -1;
         }
 
-        private CommandResult Exec(KosExecArgs args)
-        {
-            if (args == null || string.IsNullOrEmpty(args.ScriptId))
-            {
-                return CommandResult.Fail(CommandErrorCode.NotFound);
-            }
-
-            return RunOnMainThread(() =>
-            {
-                var proc = FindProcessor(args.CoreId);
-                if (proc == null)
-                {
-                    return CommandResult.Fail(CommandErrorCode.NotFound);
-                }
-
-                // Guard: never type into a booting or busy prompt (spec §4(a)).
-                if (!proc.HasBooted || !(proc.GetScreen() is IInterpreter interp) || !interp.IsWaitingForCommand())
-                {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
-                }
-
-                var command = "RUNPATH(\"0:/widget_scripts/" + args.ScriptId + ".ks\").";
-                TypeLine(proc, command);
-                return CommandResult.Ok();
-            });
-        }
-
         /// <summary>
         /// <c>kos.run</c> command handler, the general-purpose replacement
         /// for the standalone telnet proxy's ad-hoc <c>executeScript</c> RPC
-        /// (see <c>kos-uplink-full-migration.md</c>). Unlike <see cref="Exec"/>
-        /// (a fixed, pre-registered compute-topic script id with no
-        /// correlated response), this types the caller's own literal
+        /// (see <c>kos-uplink-full-migration.md</c>). The only way to run
+        /// anything on a CPU: it types the caller's own literal
         /// <see cref="KosRunArgs.Command"/> text and arms
         /// <see cref="_runManager"/> so <see cref="KosExtension.OnPrint"/>
         /// routes the resulting completed block back to
@@ -335,10 +302,8 @@ namespace Gonogo.KosUplink
         ///
         /// <para><b>Unverified against live KSP</b>: this file has no
         /// reference DLLs to build against in a headless environment (see the
-        /// migration plan's "What's left"). Written mirroring <see cref="Exec"/>
-        /// exactly (same guard, same <c>RunOnMainThread</c> marshalling), but
-        /// only a real kOS smoke test proves <see cref="TypeCommand"/>'s
-        /// multi-line handling is correct.</para>
+        /// migration plan's "What's left"). Only a real kOS smoke test proves
+        /// <see cref="TypeCommand"/>'s multi-line handling is correct.</para>
         /// </summary>
         private CommandResult Run(KosRunArgs args)
         {
@@ -355,8 +320,7 @@ namespace Gonogo.KosUplink
                     return CommandResult.Fail(CommandErrorCode.NotFound);
                 }
 
-                // Guard: never type into a booting or busy prompt, same
-                // posture as Exec.
+                // Guard: never type into a booting or busy prompt (spec §4(a)).
                 if (!proc.HasBooted || !(proc.GetScreen() is IInterpreter interp) || !interp.IsWaitingForCommand())
                 {
                     return CommandResult.Fail(CommandErrorCode.ModeUnavailable);
@@ -383,34 +347,14 @@ namespace Gonogo.KosUplink
         }
 
         /// <summary>
-        /// Types <paramref name="line"/> into <paramref name="proc"/>'s
-        /// interpreter followed by Enter, via the pinned 4-arg
-        /// <c>ProcessOneInputChar</c> overload (spec §7). <c>forceQueue: true</c>
-        /// is the correct mode for a remote byte stream (preserves ordering
-        /// against the interpreter's async pace). Main thread only.
-        /// </summary>
-        private static void TypeLine(kOSProcessor proc, string line)
-        {
-            var window = proc.GetWindow();
-            if (window == null)
-            {
-                return;
-            }
-            foreach (var ch in line)
-            {
-                window.ProcessOneInputChar(ch, null, true, true);
-            }
-            window.ProcessOneInputChar('\r', null, true, true);
-        }
-
-        /// <summary>
         /// Types <paramref name="command"/>: potentially several kerboscript
         /// statements separated by <c>\n</c> (the shape
         /// <c>packages/app/src/dataSources/kosWrapper.ts</c>'s managed-sync
         /// wrapper already builds for the telnet path), into
-        /// <paramref name="proc"/>'s interpreter. Unlike <see cref="TypeLine"/>
-        /// (exactly one line, one trailing Enter), every embedded <c>\n</c>
-        /// here is itself converted to an Enter press (<c>\r</c> via
+        /// <paramref name="proc"/>'s interpreter via the pinned 4-arg
+        /// <c>ProcessOneInputChar</c> overload (spec §7, <c>forceQueue: true</c>
+        /// preserving order against the interpreter's async pace). Every
+        /// embedded <c>\n</c> is converted to an Enter press (<c>\r</c> via
         /// <c>ProcessOneInputChar</c>) so each statement submits to the REPL
         /// in turn, the same way a human pasting multi-line input would; a
         /// final Enter is appended when <paramref name="command"/> doesn't

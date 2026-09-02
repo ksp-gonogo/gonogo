@@ -16,16 +16,16 @@
 // alone) so the augmentation reaches the emitted `dist/index.d.ts`: see that
 // file's own comment.
 //
-// ## Why this Uplink registers ONE Topic against eleven relocated types
+// ## Why this Uplink registers ONE Topic against nine relocated types
 //
-// Only `KosProcessorInfo` carries `[SitrepTopic]`. The other ten are the
+// Only `KosProcessorInfo` carries `[SitrepTopic]`. The other eight are the
 // payloads of DYNAMIC channels and of commands, and neither can have a static
 // Topic entry:
 //
 //   kos.terminal.<coreId>       KosTerminalFrame   one channel per CPU
 //   kos.run.<coreId>            KosRunResult       one channel per CPU
 //   kos.compute.<id>.status     KosComputeStatus   one per compute topic id
-//   (seven command args)                           inbound only
+//   (five command args)                            inbound only
 //
 // A runtime-computed sub-topic has no fixed member in the Topic union, which the
 // SDK's own `TOPIC_IDS` doc states as a deliberate exclusion. The widgets that

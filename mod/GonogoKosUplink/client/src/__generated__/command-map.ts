@@ -44,9 +44,7 @@
 // was inherited from the topic map's caveat, where it is real.
 
 import type {
-  KosExecArgs,
   KosKeystrokeArgs,
-  KosReEnableArgs,
   KosRunArgs,
   KosTerminalCloseArgs,
   KosTerminalOpenArgs,
@@ -57,10 +55,7 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 
 export interface GeneratedCommandArgsMap {
-  "kos.dispatchNow": KosExecArgs;
-  "kos.exec": KosExecArgs;
   "kos.keystroke": KosKeystrokeArgs;
-  "kos.reEnable": KosReEnableArgs;
   "kos.run": KosRunArgs;
   "kos.terminal.close": KosTerminalCloseArgs;
   "kos.terminal.open": KosTerminalOpenArgs;
@@ -68,10 +63,7 @@ export interface GeneratedCommandArgsMap {
 }
 
 export interface GeneratedCommandReplyMap {
-  "kos.dispatchNow": CommandResult;
-  "kos.exec": CommandResult;
   "kos.keystroke": CommandResult;
-  "kos.reEnable": CommandResult;
   "kos.run": CommandResult;
   "kos.terminal.close": CommandResult;
   "kos.terminal.open": CommandResult;
@@ -79,10 +71,7 @@ export interface GeneratedCommandReplyMap {
 }
 
 export const GENERATED_COMMAND_IDS = [
-  "kos.dispatchNow",
-  "kos.exec",
   "kos.keystroke",
-  "kos.reEnable",
   "kos.run",
   "kos.terminal.close",
   "kos.terminal.open",

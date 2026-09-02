@@ -89,10 +89,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     running: "flag",
     scriptError: "text",
   },
-  "KosExecArgs": {
-    coreId: "id",
-    scriptId: "id",
-  },
   "KosKeystrokeArgs": {
     chars: "text",
     coreId: "id",
@@ -105,9 +101,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     partName: "text",
     processorMode: "text",
     tag: "text",
-  },
-  "KosReEnableArgs": {
-    scriptId: "id",
   },
   "KosRunArgs": {
     command: "text",

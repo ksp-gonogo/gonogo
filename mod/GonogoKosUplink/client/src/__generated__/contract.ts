@@ -77,46 +77,18 @@ export interface KosComputeStatus
 	/** Last `[KOSDATA]` parse failure: null when none. */
 	parseError?: string;
 	/**
-	* The per-topic breaker has tripped (three consecutive script faults),
-	* dispatch is paused until `kos.reEnable`.
+	* The per-topic breaker has tripped (three consecutive script faults) and
+	* dispatch is paused. No command clears it: the re-arm half was never built.
 	*/
 	paused: boolean;
 }
 /**
-* Args for the `kos.exec` / `kos.dispatchNow` command, the `RUNPATH` trigger
-* (`kos-migration-spec.md` §4(a)). Names the target CPU and the registered
-* compute script to run. Delivered DELAYED, single-owner (spec §3.0):
-* reachability + the `HasBooted` / `IsWaitingForCommand()` idle-prompt guard
-* are re-checked at delivery, on the KSP main thread.
-*/
-export interface KosExecArgs
-{
-	/** Target CPU, identified by its `KosProcessorInfo.coreId`. */
-	coreId: number;
-	/**
-	* The registered compute topic id whose script to run (its on-volume path is
-	* `0:/widget_scripts/<id>.ks`).
-	*/
-	scriptId: string;
-}
-/**
-* Args for the `kos.reEnable` command: re-arms one per-topic compute breaker
-* after it tripped (three consecutive script faults, spec §4.4 / the app-side
-* `reEnable` path).
-*/
-export interface KosReEnableArgs
-{
-	/** The compute topic id whose breaker to clear. */
-	scriptId: string;
-}
-/**
 * Args for the `kos.run` command, the general-purpose in-process replacement
 * for the standalone telnet proxy's ad-hoc RUNPATH path
-* (`kos-uplink-full-migration.md`). Unlike `KosExecArgs` (which triggers a
-* fixed, pre-registered compute topic script by id), this carries the WHOLE
-* literal command text to type into the CPU's REPL, exactly what the app
-* already builds client-side for the telnet path (a bare `RUNPATH("path",
-* args...).` line, or the multi-line managed- sync wrapper from
+* (`kos-uplink-full-migration.md`). It carries the WHOLE literal command text
+* to type into the CPU's REPL, exactly what the app already builds client-side
+* for the telnet path (a bare `RUNPATH("path", args...).` line, or the
+* multi-line managed- sync wrapper from
 * `packages/app/src/dataSources/kosWrapper.ts`). The mod does not parse or
 * interpret `KosRunArgs.command` at all, it types it into the interpreter
 * exactly like `kos.keystroke` types terminal input, via the same
@@ -124,11 +96,10 @@ export interface KosReEnableArgs
 *
 * Delivered DELAYED, single-in-flight-per-CPU (spec §3.0): reachability + the
 * `HasBooted`/`IsWaitingForCommand()` idle- prompt guard are re-checked at
-* delivery on the KSP main thread, mirroring `KosExecArgs`. A second `kos.run`
-* for a CPU that already has one in flight is rejected with
-* `CommandErrorCode.ModeUnavailable`, the caller (mirroring
-* `KosComputeSession`'s existing per-CPU FIFO queue) is expected to serialize
-* calls to the same CPU client-side.
+* delivery on the KSP main thread. A second `kos.run` for a CPU that already
+* has one in flight is rejected with `CommandErrorCode.ModeUnavailable`, the
+* caller (mirroring `KosComputeSession`'s existing per-CPU FIFO queue) is
+* expected to serialize calls to the same CPU client-side.
 */
 export interface KosRunArgs
 {

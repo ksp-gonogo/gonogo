@@ -106,7 +106,7 @@ namespace GonogoKosUplink.Tests
             mgr.SetPublisher((_, result) => published.Add(result));
 
             // No TryArm call: a completed block with nobody waiting (the
-            // ordinary kos.compute / kos.exec path) must not publish here.
+            // ordinary kos.compute fanout path) must not publish here.
             var block = new KosComputeBlock("t", new Dictionary<string, object> { ["v"] = 1.0 });
             mgr.Complete(7, block);
 

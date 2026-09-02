@@ -10,12 +10,13 @@ namespace Gonogo.KosUplink
     /// (<see cref="KosExtension"/>) and the headless tests reference the same
     /// constants. See <c>kos-migration-spec.md</c> §4.4's topic table.
     ///
-    /// <para><b>The compute topics are byte-identical to today's app-side
-    /// centralised-feed keys</b> (<c>kos.compute.&lt;id&gt;.&lt;field&gt;</c>
-    /// / <c>.status</c>: see the repo CLAUDE.md "Centralised kOS scripts"
-    /// section and <c>packages/core/src/kos/scriptRegistry.ts</c>), so the
-    /// client migrates by a pure <c>useDataValue → useStream</c> swap with no
-    /// topic change on the wire.</para>
+    /// <para><b>The compute namespace has no client left.</b>
+    /// <c>kos.compute.&lt;id&gt;.&lt;field&gt;</c> kept the app's old
+    /// centralised-feed keys byte-for-byte so the client could migrate without
+    /// a wire change; that registry was later deleted and nothing subscribes.
+    /// <see cref="ComputePrefix"/> and <see cref="ComputeStatusSubTopic"/>
+    /// survive as the shape a compute feed WOULD take, not as a live
+    /// surface.</para>
     /// </summary>
     public static class KosChannels
     {
@@ -24,15 +25,6 @@ namespace Gonogo.KosUplink
 
         /// <summary>Dynamic namespace prefix for every compute feed's parsed values: <c>kos.compute.&lt;id&gt;.&lt;field&gt;</c>.</summary>
         public const string ComputePrefix = "kos.compute.";
-
-        /// <summary>Command: run a registered compute script on a CPU (the <c>RUNPATH</c> trigger).</summary>
-        public const string ExecCommand = "kos.exec";
-
-        /// <summary>Command alias for <see cref="ExecCommand"/>: the app-side <c>dispatchNow</c> affordance.</summary>
-        public const string DispatchNowCommand = "kos.dispatchNow";
-
-        /// <summary>Command: re-arm a tripped per-topic compute breaker.</summary>
-        public const string ReEnableCommand = "kos.reEnable";
 
         /// <summary>
         /// Dynamic namespace prefix for the interactive terminal screen
@@ -95,15 +87,12 @@ namespace Gonogo.KosUplink
         /// Sub-topic (relative to <see cref="ComputePrefix"/>) for one compute
         /// feed's status: <c>"&lt;id&gt;.status"</c>.
         ///
-        /// <para><b>P1 has no producer for this sub-topic.</b> The status channel
+        /// <para><b>Nothing produces this sub-topic.</b> The status channel
         /// (<c>KosComputeStatus</c>: running / lastGoodAt / scriptError /
-        /// parseError / paused) is only fed once the mod-side per-topic breaker
-        /// lands in P2 (see <see cref="ReEnableCommand"/>'s P1-no-op note and the
-        /// spec §4.4 breaker). Until then the client's <c>useKosScriptStatus</c>
-        /// receives nothing on this topic: the additive contract type + the
-        /// topic convention ship now (so the wire shape is fixed and the client
-        /// can migrate), the producer follows in P2. This is a deliberate,
-        /// disclosed gap, not a wiring omission.</para>
+        /// parseError / paused) needs a mod-side per-topic breaker, which was
+        /// never built, and the app-side registry that would have consumed it
+        /// has since been deleted. The contract type and the topic convention
+        /// are all that survive: a subscriber gets nothing.</para>
         /// </summary>
         public static string ComputeStatusSubTopic(string scriptId) => scriptId + ".status";
 
@@ -113,10 +102,9 @@ namespace Gonogo.KosUplink
         /// block back via <see cref="RunTopic"/> (<see cref="Sitrep.Contract.KosRunArgs"/>).
         /// The general-purpose replacement for the standalone telnet proxy's
         /// ad-hoc <c>executeScript</c> RPC: see
-        /// <c>kos-uplink-full-migration.md</c>. Distinct from
-        /// <see cref="ExecCommand"/>: that one triggers a fixed, pre-registered
-        /// compute-topic script by id and reports nothing back directly; this
-        /// one runs whatever command text the caller built and reports back
+        /// <c>kos-uplink-full-migration.md</c>. The only way to run anything on
+        /// a CPU now that the fixed pre-registered compute-script trigger is
+        /// gone: it runs whatever command text the caller built and reports back
         /// exactly that call's result.
         /// </summary>
         public const string RunCommand = "kos.run";

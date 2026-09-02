@@ -27,10 +27,7 @@ Puts a kOS CPU's real terminal on the dashboard, streamed in process with no pro
 
 | Command | Args | Result |
 | --- | --- | --- |
-| `kos.dispatchNow` | `KosExecArgs` | `CommandResult` |
-| `kos.exec` | `KosExecArgs` | `CommandResult` |
 | `kos.keystroke` | `KosKeystrokeArgs` | `CommandResult` |
-| `kos.reEnable` | `KosReEnableArgs` | `CommandResult` |
 | `kos.run` | `KosRunArgs` | `CommandResult` |
 | `kos.terminal.close` | `KosTerminalCloseArgs` | `CommandResult` |
 | `kos.terminal.open` | `KosTerminalOpenArgs` | `CommandResult` |
@@ -38,9 +35,7 @@ Puts a kOS CPU's real terminal on the dashboard, streamed in process with no pro
 
 | Args | Fields |
 | --- | --- |
-| `KosExecArgs` | `coreId` id, `scriptId` id |
 | `KosKeystrokeArgs` | `chars` text, `coreId` id, `leaseToken` id |
-| `KosReEnableArgs` | `scriptId` id |
 | `KosRunArgs` | `command` text, `coreId` id, `requestId` id |
 | `KosTerminalCloseArgs` | `coreId` id, `leaseToken` id |
 | `KosTerminalOpenArgs` | `coreId` id, `leaseToken` id |

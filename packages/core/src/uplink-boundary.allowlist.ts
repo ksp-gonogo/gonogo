@@ -2431,11 +2431,15 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/map-topic.test.ts",
   ],
   kos: [
-    // The reachability ratchet's debt list: wire ids as DATA, one line per
-    // declared Topic/command with no consumer. Survives the strip because the
-    // ids are the inventory, not prose about it. Shrinks to zero as consumers
-    // are written.
-    "packages/core/src/declaration-reachability.allowlist.ts",
+    /*
+     * `declaration-reachability.allowlist.ts` was here, and it is gone because
+     * the three `kos.exec`/`kos.dispatchNow`/`kos.reEnable` commands it listed
+     * as unreached have been DELETED rather than wired: the centralised script
+     * registry they dispatched for was removed as dead code and nothing was
+     * left to reach. What survived the comment strip was the wire ids as DATA;
+     * with the entries gone the file names kOS only in prose, so the exemption
+     * is stale rather than merely unused.
+     */
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
     "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",

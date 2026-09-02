@@ -12,7 +12,7 @@ import { describe, expect, it } from "vitest";
 // C# call site.
 //
 // NOT vacuous, but only just, and the honest accounting is the point of this
-// file rather than a caveat to it: EXACTLY ONE property in the whole eleven-type
+// file rather than a caveat to it: EXACTLY ONE property in the whole nine-type
 // slice retypes, KosComputeStatus.lastGoodAt -> Value<"ut">. Every other declared
 // unit here is a non-quantity token (id / text / flag / count) or sits on an
 // inbound-only "...Args" type that ApplyUnitValueTypes deliberately skips, so
@@ -69,15 +69,13 @@ describe("generated contract.ts: Value usage resolves to core", () => {
 
   // Command args are wire-WRITES and are never wrapped: a widget
   // JSON-stringifies these straight to the mod, and there is no unwrap step
-  // coming back. Eight of the eleven types here are args, the highest
+  // coming back. Five of the nine types here are args, the highest
   // proportion of any relocated slice, so this rule governs most of this file's
   // subject matter and gets its own assertion.
   it("leaves every inbound-only command-arg type bare", () => {
     const src = source();
 
     for (const name of [
-      "KosExecArgs",
-      "KosReEnableArgs",
       "KosRunArgs",
       "KosTerminalOpenArgs",
       "KosKeystrokeArgs",

@@ -17,13 +17,12 @@ namespace Gonogo.KosUplink
     /// (<c>kOSProcessor.AllInstances()</c>, spec §5), the
     /// <c>kos.compute.&lt;id&gt;.&lt;field&gt;</c> dynamic feed captured at
     /// source via the observe-only <c>ScreenBuffer.Print</c> Harmony postfix
-    /// (<see cref="KosComputeHarmony"/>, spec §4(b)), the <c>RUNPATH</c>
-    /// trigger command (<c>kos.exec</c>/<c>kos.dispatchNow</c>, spec §4(a)),
-    /// and the version guard (<see cref="KosVersionGuard"/>, spec §7). P2-P4
-    /// (files / terminal / widgets) are NOT started.
+    /// (<see cref="KosComputeHarmony"/>, spec §4(b)) and the version guard
+    /// (<see cref="KosVersionGuard"/>, spec §7). P2-P4 (files / terminal /
+    /// widgets) are NOT started.
     ///
     /// <para><b>Every kOS call runs on the KSP main thread</b> (spec §2): CPU
-    /// enumeration and the <c>RUNPATH</c> injection route through
+    /// enumeration and the <c>kos.run</c> injection route through
     /// <see cref="Dispatcher"/>; the compute postfix is already on the main
     /// thread inside kOS's <c>PRINT</c>. The engine's own capture-on-main /
     /// handle-on-Courier seam (<see cref="IUplinkHost.AddSampledSource"/>)
@@ -212,12 +211,6 @@ namespace Gonogo.KosUplink
             },
             Commands = new List<CommandDeclaration>
             {
-                // RUNPATH trigger: DELAYED, single-owner (spec §3.0 flag is
-                // P3; P1 couriers normally). Reachability + idle-prompt guard
-                // are re-checked at delivery, on the main thread.
-                new CommandDeclaration { Command = KosChannels.ExecCommand, Delayed = true },
-                new CommandDeclaration { Command = KosChannels.DispatchNowCommand, Delayed = true },
-                new CommandDeclaration { Command = KosChannels.ReEnableCommand, Delayed = true },
                 // Interactive terminal uplink: keystrokes/open/close ride
                 // gonogo's SignalDelay to the craft (genuine remote input; the
                 // lease-token + idle guards are re-checked at delivery on the
@@ -405,8 +398,8 @@ namespace Gonogo.KosUplink
         /// <see cref="_runManager"/> (a <c>kos.run</c> is armed for that CPU:
         /// the block IS that call's correlated result, not a compute sample)
         /// or publishes each field to
-        /// <c>kos.compute.&lt;topic&gt;.&lt;field&gt;</c> (the ordinary
-        /// centralised-feed / <c>kos.exec</c> path).</item>
+        /// <c>kos.compute.&lt;topic&gt;.&lt;field&gt;</c> (the centralised-feed
+        /// path, which nothing subscribes to any more).</item>
         /// </list>
         /// Must be cheap and non-blocking (it is inside PRINT). Entirely
         /// KSP-free: <paramref name="screen"/> is an opaque <see cref="object"/>
@@ -468,18 +461,6 @@ namespace Gonogo.KosUplink
 
         /// <summary>Bounded wait for a main-thread kOS call to complete before the Courier gives up (F2 backstop analogue). Instance field so headless tests can shorten it.</summary>
         internal TimeSpan CommandMainThreadTimeout { get; set; } = TimeSpan.FromSeconds(5);
-
-        private CommandResult ReEnable(KosReEnableArgs args)
-        {
-            // The per-topic breaker/sticky-cache lives engine-side on the
-            // subscription gate (spec §4.4); at the mod boundary a re-enable is
-            // a no-op ack in P1 (the breaker state is not yet mod-owned), the
-            // command exists so the client's reEnable affordance has a real,
-            // typed target rather than a dropped call. Wiring the mod-side
-            // breaker is P2 scope.
-            _ = args;
-            return CommandResult.Ok();
-        }
 
         /// <summary>
         /// Marshals <paramref name="work"/> onto the main-thread dispatcher and

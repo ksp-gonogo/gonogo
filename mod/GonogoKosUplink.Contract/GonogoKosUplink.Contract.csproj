@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    GonogoKosUplink's OWN contract slice: the eleven wire payload/command-arg
+    GonogoKosUplink's OWN contract slice: the nine wire payload/command-arg
     types that used to live in mod/Sitrep.Contract/KosCommands.cs, KosRun.cs and
     KosTerminal.cs, relocated here per the operator mandate that NO
     uplink-specific wire type may live in core, even for an in-monorepo Uplink
@@ -8,23 +8,23 @@
     and last Uplink through the types-out-of-core mechanism, and the one the plan
     sequenced LAST for a reason: three files rather than one, three separate
     channel families in one slice (kos.processors discovery, the per-CPU
-    kos.terminal.<coreId> screen downlink, the kos.run.<coreId> RPC), and eight
-    of the eleven are inbound-only command args, more than every earlier slice
+    kos.terminal.<coreId> screen downlink, the kos.run.<coreId> RPC), and five
+    of the nine are inbound-only command args, more than every earlier slice
     put together.
 
-    The plan's inventory said "9+ types". It is eleven, recounted from
-    RtConfig.wirePayloadTypes rather than trusted: KosProcessorInfo,
-    KosComputeStatus, KosExecArgs, KosReEnableArgs, KosTerminalFrame,
-    KosTerminalOpenArgs, KosKeystrokeArgs, KosTerminalResizeArgs,
-    KosTerminalCloseArgs, KosRunArgs, KosRunResult. No enum of any kind, so this
-    slice needs no enum codegen leg.
+    Nine, recounted from KosRtConfig's wireTypes rather than trusted:
+    KosProcessorInfo, KosComputeStatus, KosTerminalFrame, KosTerminalOpenArgs,
+    KosKeystrokeArgs, KosTerminalResizeArgs, KosTerminalCloseArgs, KosRunArgs,
+    KosRunResult. Eleven when the slice was carved: KosExecArgs and
+    KosReEnableArgs went with the dead kOS dispatch commands. No enum of any
+    kind, so this slice needs no enum codegen leg.
 
     Deliberately its own small project rather than folding into
     GonogoKosUplink.csproj, and the reason is sharpest of all six here.
     GonogoKosUplink.csproj is net48-only and its HintPaths reach into a LIVE KSP
     install for kOS.dll / kOS.Safe.dll / 0Harmony.dll on top of the usual
     UnityEngine / Assembly-CSharp pair; rtcli could not load that assembly at
-    all without one. None of these eleven types touches kOS or KSP (they are
+    all without one. None of these nine types touches kOS or KSP (they are
     plain DTOs; every kOS type the Uplink needs is reached from the runtime
     project), so the split keeps the codegen input clean and, unlike every
     predecessor, keeps codegen runnable on a machine with no kOS installed.

@@ -26,7 +26,9 @@
 // (registerKosScript/getKosScripts, `shared/scriptRegistry.ts`) were
 // deleted as dead code once the KosProcessors-style feed widgets that were
 // their only consumers went with the widget streamline above, KosTerminal
-// never used them. This is NOT a thin UI-only client over an app-side
+// never used them. The mod-side dispatch controls that drove that registry
+// (`kos.exec`/`kos.dispatchNow`/`kos.reEnable`) outlived it by a month and are
+// gone too. This is NOT a thin UI-only client over an app-side
 // transport: see the kos migration plan (2026-07-18) for the full
 // before/after.
 
@@ -47,15 +49,13 @@ import "./shared/rootProvider";
 // core (relocated out of Sitrep.Contract, see ./topics.ts and
 // ../../GonogoKosUplink.Contract). A consumer that reads a kos.* channel names
 // its shape from HERE, the same way it used to name it from
-// @ksp-gonogo/sitrep-sdk. All eleven are exported, including the command args:
+// @ksp-gonogo/sitrep-sdk. All nine are exported, including the command args:
 // a caller building a kos.run or kos.keystroke payload needs the arg shape as
 // much as a reader needs the frame shape.
 export type {
   KosComputeStatus,
-  KosExecArgs,
   KosKeystrokeArgs,
   KosProcessorInfo,
-  KosReEnableArgs,
   KosRunArgs,
   KosRunResult,
   KosTerminalCloseArgs,

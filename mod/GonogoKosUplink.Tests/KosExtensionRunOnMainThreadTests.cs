@@ -85,7 +85,7 @@ namespace GonogoKosUplink.Tests
 
         /// <summary>
         /// Regression for the kos-uplink-gap self-deadlock: every kos command
-        /// (kos.run/kos.exec/kos.terminal.*) timed out with
+        /// (kos.run/kos.terminal.*) timed out with
         /// <see cref="CommandErrorCode.Timeout"/> (errorCode:6) after ~4s and
         /// its kOS side effect (TypeCommand/RUNPATH) never executed.
         ///

@@ -55,10 +55,6 @@
       "running": "flag",
       "scriptError": "text"
     },
-    "KosExecArgs": {
-      "coreId": "id",
-      "scriptId": "id"
-    },
     "KosKeystrokeArgs": {
       "chars": "text",
       "coreId": "id",
@@ -71,9 +67,6 @@
       "partName": "text",
       "processorMode": "text",
       "tag": "text"
-    },
-    "KosReEnableArgs": {
-      "scriptId": "id"
     },
     "KosRunArgs": {
       "command": "text",

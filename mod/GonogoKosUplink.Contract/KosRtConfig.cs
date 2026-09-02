@@ -7,15 +7,15 @@ namespace Gonogo.KosUplink;
 /// <summary>
 /// This Uplink's OWN codegen configuration: mirrors
 /// <c>Sitrep.Contract.RtConfig.Configure</c>'s shape exactly, scoped to just
-/// this assembly's eleven wire types, and reuses
+/// this assembly's nine wire types, and reuses
 /// <c>RtConfig.ApplyUnitValueTypes</c> the same way every Uplink's own
 /// <c>Configure</c> does. Deliberately names no sibling Uplink: doing so would
 /// trip THAT Uplink's own frontend uplink-boundary token.
 ///
-/// <para><b>One Topic-tagged root out of eleven types.</b> Only
+/// <para><b>One Topic-tagged root out of nine types.</b> Only
 /// <see cref="KosProcessorInfo"/> carries <c>[SitrepTopic]</c>
 /// (<c>kos.processors</c>, <c>isArray</c>), so <c>EmitTopicMap</c> is wired
-/// below but names exactly one entry. The other ten are not nested shapes
+/// below but names exactly one entry. The other eight are not nested shapes
 /// either: they are the payloads of DYNAMIC channels and commands, which by
 /// construction cannot carry a static <c>[SitrepTopic]</c> name.
 /// <list type="bullet">
@@ -26,17 +26,16 @@ namespace Gonogo.KosUplink;
 /// <item><see cref="KosComputeStatus"/> rides
 /// <c>kos.compute.&lt;id&gt;.status</c>, the same shape of dynamic name keyed by
 /// compute-topic id instead.</item>
-/// <item>The remaining seven are command ARGS (<c>kos.exec</c>,
-/// <c>kos.reEnable</c>, <c>kos.terminal.open</c>/<c>.resize</c>/<c>.close</c>,
+/// <item>The remaining five are command ARGS
+/// (<c>kos.terminal.open</c>/<c>.resize</c>/<c>.close</c>,
 /// <c>kos.keystroke</c>, <c>kos.run</c>), inbound-only by definition.</item>
 /// </list>
 /// </para>
 ///
-/// <para><b>Eight of the eleven are inbound-only, so
+/// <para><b>Five of the nine are inbound-only, so
 /// <c>ApplyUnitValueTypes</c> skips most of this slice.</b> Its <c>"Args"</c>
 /// suffix rule (see its own doc comment: a widget JSON-stringifies command args
 /// straight to the wire and there is no unwrap step coming back) means
-/// <see cref="KosExecArgs"/>, <see cref="KosReEnableArgs"/>,
 /// <see cref="KosRunArgs"/>, <see cref="KosTerminalOpenArgs"/>,
 /// <see cref="KosKeystrokeArgs"/>, <see cref="KosTerminalResizeArgs"/> and
 /// <see cref="KosTerminalCloseArgs"/> keep bare properties. Worth stating
@@ -58,7 +57,7 @@ namespace Gonogo.KosUplink;
 /// suspected bug.</para>
 ///
 /// <para><b>No nested payload types at all.</b> No property on any of the
-/// eleven holds another contract shape, so <c>EmitUnitMap</c>'s field -&gt;
+/// nine holds another contract shape, so <c>EmitUnitMap</c>'s field -&gt;
 /// nested-type SHAPE half comes out empty here, which the later relocations had
 /// all needed (naming which ones would trip THEIR own frontend
 /// uplink-boundary token from this file, so the plan doc is the
@@ -110,9 +109,6 @@ public static class KosRtConfig
             typeof(KosProcessorInfo),
             // kos.compute.<id>.status: out-of-band status for one compute topic
             typeof(KosComputeStatus),
-            // kos.exec / kos.dispatchNow / kos.reEnable command args
-            typeof(KosExecArgs),
-            typeof(KosReEnableArgs),
             // kos.terminal.<coreId> interactive terminal, downlink frame + command args
             typeof(KosTerminalFrame),
             typeof(KosTerminalOpenArgs),
@@ -133,7 +129,7 @@ public static class KosRtConfig
         // mod/GonogoKosUplink/client/src/__generated__/).
         Sitrep.Contract.RtConfig.ApplyUnitValueTypes(builder, wireTypes, valueImportFrom: "@ksp-gonogo/sitrep-sdk");
 
-        // One of the eleven carries [SitrepTopic], so there IS a topic to name
+        // One of the nine carries [SitrepTopic], so there IS a topic to name
         // here, unlike a command-arg-only slice.
         var topicMapOut = Environment.GetEnvironmentVariable("SITREP_KOS_TOPICMAP_OUT");
         if (!string.IsNullOrEmpty(topicMapOut))

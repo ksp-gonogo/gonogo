@@ -89,49 +89,7 @@ public class KosComputeStatus
     [SitrepUnit(Units.Text)]
     public string? ParseError { get; set; }
 
-    /// <summary>The per-topic breaker has tripped (three consecutive script faults), dispatch is paused until <c>kos.reEnable</c>.</summary>
+    /// <summary>The per-topic breaker has tripped (three consecutive script faults) and dispatch is paused. No command clears it: the re-arm half was never built.</summary>
     [SitrepUnit(Units.Flag)]
     public bool Paused { get; set; }
-}
-
-/// <summary>
-/// Args for the <c>kos.exec</c> / <c>kos.dispatchNow</c> command, the
-/// <c>RUNPATH</c> trigger (<c>kos-migration-spec.md</c> §4(a)). Names the
-/// target CPU and the registered compute script to run. Delivered DELAYED,
-/// single-owner (spec §3.0): reachability + the <c>HasBooted</c> /
-/// <c>IsWaitingForCommand()</c> idle-prompt guard are re-checked at delivery,
-/// on the KSP main thread.
-/// </summary>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-[SitrepCommand("kos.exec")]
-[SitrepCommand("kos.dispatchNow")]
-public class KosExecArgs
-{
-    /// <summary>Target CPU, identified by its <see cref="KosProcessorInfo.CoreId"/>.</summary>
-    [SitrepUnit(Units.Id)]
-    public int CoreId { get; set; }
-
-    /// <summary>The registered compute topic id whose script to run (its on-volume path is <c>0:/widget_scripts/&lt;id&gt;.ks</c>).</summary>
-    [SitrepUnit(Units.Id)]
-    public string ScriptId { get; set; } = "";
-}
-
-/// <summary>
-/// Args for the <c>kos.reEnable</c> command: re-arms one per-topic compute
-/// breaker after it tripped (three consecutive script faults, spec §4.4 /
-/// the app-side <c>reEnable</c> path).
-/// </summary>
-[SitrepContract]
-#if SITREP_CODEGEN
-[TsInterface]
-#endif
-[SitrepCommand("kos.reEnable")]
-public class KosReEnableArgs
-{
-    /// <summary>The compute topic id whose breaker to clear.</summary>
-    [SitrepUnit(Units.Id)]
-    public string ScriptId { get; set; } = "";
 }

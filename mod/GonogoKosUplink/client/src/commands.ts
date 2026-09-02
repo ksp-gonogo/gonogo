@@ -1,4 +1,4 @@
-// kOS client-owned command registration: this Uplink's eight commands, both
+// kOS client-owned command registration: this Uplink's five commands, both
 // halves.
 //
 // Its command args types live in THIS Uplink's own contract slice, never in
@@ -7,7 +7,7 @@
 //
 //   • TYPE: a `declare module "@ksp-gonogo/sitrep-sdk"` augmentation extends
 //     `CommandArgsMap` / `CommandReplyMap` with this slice's generated maps, so
-//     `useCommand("kos.dispatchNow")` resolves its args and its reply in
+//     `useCommand("kos.run")` resolves its args and its reply in
 //     any program that statically imports this module.
 //   • RUNTIME: `registerUplinkCommand` at module load feeds the SDK's runtime
 //     registry, so `isCommandId` / `getAllKnownCommandIds` enumerate them

@@ -8,21 +8,21 @@ namespace GonogoKosUplink.Tests
 {
     /// <summary>
     /// The per-Uplink half of the uplink-types-out-of-core plan's Unit guard
-    /// (§5b): now that the eleven <c>Kos*</c> payload and command-arg types live
+    /// (§5b): now that the nine <c>Kos*</c> payload and command-arg types live
     /// in their own assembly (<c>GonogoKosUplink.Contract</c>) instead of
     /// <c>Sitrep.Contract</c>, nothing FORCES a future property on this Uplink's
     /// own contract types to declare its unit. The sweep itself is
     /// <c>UnitCoverageAssertion.AssertExhaustive</c>, shared with every other
     /// relocated Uplink; this file names what is this Uplink's own.
     ///
-    /// <para><b>Why no baseline file.</b> Every scalar property on all eleven
+    /// <para><b>Why no baseline file.</b> Every scalar property on all nine
     /// types is already annotated, so the surface starts, and must stay, entirely
     /// covered: same zero-pending starting point as every other relocated
     /// slice.</para>
     ///
     /// <para><b>What is distinctive about this slice, and it is not the
-    /// quantities.</b> Eight of the eleven are inbound-only command args, and the
-    /// eleven types between them declare exactly ONE property whose token names a
+    /// quantities.</b> Five of the nine are inbound-only command args, and the
+    /// nine types between them declare exactly ONE property whose token names a
     /// real dimension (<see cref="KosComputeStatus.LastGoodAt"/>,
     /// <c>Units.Seconds</c>). Everything else is <c>Id</c>/<c>Text</c>/
     /// <c>Flag</c>/<c>Count</c>. That makes this the thinnest slice of the six on
@@ -49,7 +49,7 @@ namespace GonogoKosUplink.Tests
                 "Units.Seconds/Units.Count");
 
         /// <summary>
-        /// All eleven are reached by the sweep, and nothing else is.
+        /// All nine are reached by the sweep, and nothing else is.
         /// <see cref="EveryScalarWirePropertyDeclaresAUnit"/> passes VACUOUSLY on
         /// any type the sweep does not reach, and this slice spans three files, so
         /// one of them losing its <c>[SitrepContract]</c> tags wholesale would
@@ -60,7 +60,6 @@ namespace GonogoKosUplink.Tests
             UnitCoverageAssertion.AssertContractTypesAreExactly(
                 typeof(KosProcessorInfo).Assembly,
                 nameof(KosProcessorInfo), nameof(KosComputeStatus),
-                nameof(KosExecArgs), nameof(KosReEnableArgs),
                 nameof(KosTerminalFrame), nameof(KosTerminalOpenArgs),
                 nameof(KosKeystrokeArgs), nameof(KosTerminalResizeArgs),
                 nameof(KosTerminalCloseArgs),

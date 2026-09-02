@@ -34,7 +34,19 @@
  * overwhelmingly on the CONTROL side: the mod will accept instructions the
  * dashboard has no button for.
  *
- * CLEARED SO FAR, 8 of the 20, both on 2026-09-02.
+ * CLEARED SO FAR, 11 of the 20, all on 2026-09-02.
+ *
+ * Eight were cleared by BUILDING the surface that reaches them; three by
+ * DELETING them, which is the other honest answer and the one to reach for when
+ * the mechanism behind a command is already gone. `kos.dispatchNow`, `kos.exec`
+ * and `kos.reEnable` were the dispatch controls of the centralised kOS script
+ * registry: `registerKosScript`, `getKosScripts`, `shared/scriptRegistry.ts`,
+ * `KosComputeManager`, `useKosScriptStatus` and the feed widgets that consumed
+ * them have no definitions left anywhere in the tree, nothing ships a
+ * `0:/widget_scripts/<id>.ks` for `kos.exec` to RUNPATH, and the breaker
+ * `kos.reEnable` re-armed was never built (its handler was a no-op ack).
+ * Wiring them would have meant rebuilding a subsystem that was deliberately
+ * removed. `kos.run` is the surviving way to run anything on a CPU.
  *
  * The three career spends CLAUDE.md's funds rule names by hand,
  * `rp1.tech.research`, `rp1.facility.upgrade` and `rp1.strategy.activate`. Each
@@ -70,17 +82,6 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
      */
     "topic kerbalism.features",
   ],
-  GonogoKosUplink: [
-    /*
-     * The dispatch-control trio behind the centralised script registry. The
-     * registry itself was removed (`registerKosScript`, `useKosScriptStatus`
-     * and `KosDataSource` have no definitions left), and these three outlived
-     * it: nothing can pause, re-enable or force a run.
-     */
-    "command kos.dispatchNow",
-    "command kos.exec",
-    "command kos.reEnable",
-  ],
   GonogoRealAntennasUplink: [
     /*
      * Declared beside `comms.dataRate` and `comms.linkMargin`, which ARE read.
@@ -102,9 +103,12 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
  * before it bites, which is how the AsyncAPI unit check came to have a floor it
  * cannot reach.
  *
- * Live on 2026-09-02: 1,253 corpus files, 89 parsed, 101 declarations across 11
- * clients. Raise these when the tree grows; a drop below one is a broken walk,
- * not a smaller repo.
+ * Measured 2026-09-02, after the three dead kOS dispatch commands were deleted:
+ * 1,231 corpus files, 85 parsed, 94 declarations across 8 clients, 9 unreached.
+ * The seeding note above records 1,253 / 89 / 101 / 11 from earlier the same
+ * day; the walk itself has not changed, the tree has (an Uplink departed and
+ * took its declarations with it, see `uplinksWithDeclarations`). Raise these
+ * when the tree grows; a drop below one is a broken walk, not a smaller repo.
  */
 export const SCAN_FLOORS = {
   /** Non-test, non-generated `.ts`/`.tsx` under `mod/` and `packages/`. */
