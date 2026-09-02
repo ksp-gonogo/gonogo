@@ -68,16 +68,18 @@ test.describe("Serial devices: graceful degradation", () => {
       page.getByText(/web serial is not available in this browser/i),
     ).toBeVisible({ timeout: 10_000 });
 
-    // Ignore the pre-existing, unrelated kerbcast sidecar probe: the main
-    // screen eagerly connects every registered data source on boot
-    // (MainScreen.tsx), and with no kerbcast sidecar reachable in CI that
-    // probe always fails, on every spec, on every engine (see
-    // camera-feed.spec.ts's "no sidecar in CI" comments). WebKit is simply
-    // the one engine that surfaces the resulting network rejection as a
-    // page-level error instead of swallowing it silently. Real regressions
-    // in the Serial degradation path would show up as a *different*
-    // message, so filter this one known signature out rather than assert
-    // on a strictly empty array.
+    // Ignore a camera sidecar probe: the main screen eagerly connects every
+    // registered data source on boot (MainScreen.tsx), and a camera source
+    // has no sidecar to reach in CI, so the probe fails on every spec and
+    // every engine. WebKit is simply the one engine that surfaces the
+    // resulting network rejection as a page-level error instead of
+    // swallowing it silently. The Uplink that registers that source now
+    // lives outside this repo and this spec loads no Uplinks, so the filter
+    // should be inert: it stays because it costs nothing and the failure it
+    // absorbs is a boot-order fact rather than anything Serial does. Real
+    // regressions in the Serial degradation path show up as a *different*
+    // message, so filter this one known signature out rather than assert on
+    // a strictly empty array.
     const unexpectedErrors = pageErrors.filter(
       (msg) => !/:8088\/offer/.test(msg),
     );

@@ -58,7 +58,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
   "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
-  "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx": 4,
   // 2, both at the contribution boundary rather than in any arithmetic. The
   // mission-log slot declares a row's instant as a plain UT number, so the one
   // that reaches it is the unwrap that contract asks for; the other builds a

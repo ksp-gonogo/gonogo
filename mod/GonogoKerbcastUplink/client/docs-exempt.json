@@ -1,4 +1,0 @@
-{
-  "_comment": "Render-scene exemptions for this Uplink, read by `gonogo-uplink docs --check`. `sceneDebt` is SHRINK-ONLY: an entry is removed by giving its augment a scene, in the same commit. Both entries here are live-video augments gated on `requires: \"kerbcast\"`, so a scene needs the harness to stand up that data source; that is work, not an impossibility, which is why they are debt rather than `unrenderable`.",
-  "sceneDebt": ["kerbcast-crew-avatar", "kerbcast-docking-camera"]
-}

@@ -32,11 +32,9 @@ host, ready to commit. (This is the local equivalent of
 ## Prereqs
 
 - **podman** (default `/opt/podman/bin/podman`; override with `$PODMAN`).
-- **`~/.npmrc`**: mounted read-only for registry auth. `pnpm install` pulls
-  `@ksp-gonogo/kerbcast*` from npm; `~/.npmrc` carries the `@ksp-gonogo`
-  registry routing + token. Anyone who's run `pnpm install` locally already has
-  it. (If those packages ever move to GitHub Packages, `~/.npmrc` would need a
-  GitHub token instead.)
+- **`~/.npmrc`**: mounted read-only, so the install inside the container
+  resolves packages exactly as it does on the host. Anyone who has run
+  `pnpm install` locally already has one.
 
 ## Notes
 

@@ -81,7 +81,6 @@ const REGISTRATIONS = [
   "@ksp-gonogo/gonogo-breaking-ground-uplink",
   "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink",
   "@ksp-gonogo/gonogo-kerbalism-uplink",
-  "@ksp-gonogo/gonogo-kerbcast-uplink",
   "@ksp-gonogo/gonogo-kos-uplink",
   "@ksp-gonogo/gonogo-mechjeb-uplink",
   "@ksp-gonogo/gonogo-principia-uplink",

@@ -82,13 +82,20 @@ NOTICE.
 
 ## The kerbcast caveat: read this before relying on the SPA's MIT
 
-**gonogo's own source is MIT. The *built SPA bundle* is not currently MIT-usable as a whole.**
+**gonogo's own source is MIT. A build that carries the kerbcast Uplink's client is not
+MIT-usable as a whole.**
 
-`@ksp-gonogo/app` depends (via `@ksp-gonogo/gonogo-kerbcast-uplink`) on `@ksp-gonogo/kerbcast` and
-`@ksp-gonogo/kerbcast-react`: the camera client SDKs from the sibling kerbcast repo, which are
-currently **CC-BY-NC-SA-4.0**. Those SDKs are bundled into the shipped artifact, not merely
-aggregated alongside it. So the deployed SPA carries a NonCommercial restriction that gonogo's own
-MIT licence does not describe.
+The kerbcast Uplink client depends on `@ksp-gonogo/kerbcast` and `@ksp-gonogo/kerbcast-react`:
+the camera client SDKs from the sibling kerbcast repo, which are currently
+**CC-BY-NC-SA-4.0**. They are bundled into that client, not merely aggregated alongside it, so
+any artifact carrying it carries a NonCommercial restriction that gonogo's own MIT licence does
+not describe.
+
+**Since the kerbcast Uplink left this repo, the SPA bundle no longer contains that code**: the
+Uplink lives in its own repository, its client is fetched at runtime from the URL its mod
+publishes, and an operator who never installs it never receives an NC byte. The caveat is
+therefore about the INSTALLED combination rather than about what this repo ships, and it stays
+because the combination is the normal one for anyone running cameras.
 
 To be precise about what MIT does and does not fix here:
 
@@ -97,14 +104,13 @@ To be precise about what MIT does and does not fix here:
   further restrictions downstream, and NonCommercial is exactly such a restriction. MIT has no
   reciprocity clause and no "no further restrictions" clause, so MIT + an NC dependency breaks no
   licence text. The violation is gone.
-- **What it does not fix.** The bundle still contains NC code. A recipient reading "MIT" would
-  reasonably conclude they may use the artifact commercially, and for the bundle as a whole that is
-  **false** until the kerbcast SDKs are relicensed. MIT on `@ksp-gonogo/app` is an accurate
-  statement about gonogo's own code and an incomplete one about the artifact.
+- **What it does not fix.** A running install that loaded the kerbcast Uplink still holds NC
+  code. An operator reading "MIT" would reasonably conclude they may use the whole of what is in
+  front of them commercially, and that stays **false** until the kerbcast SDKs are relicensed.
 
 So: MIT is a genuine improvement over the status quo (violation → disclosure gap), not merely a
-lateral move: but it is not the fix. **The fix is relicensing the kerbcast client SDKs to MIT in
-`~/personal/kerbcam/` and consuming the new versions here.** They are the wire-protocol client
+lateral move: but it is not the fix. **The fix is relicensing the kerbcast client SDKs to MIT**
+and consuming the new versions in the Uplink. They are the wire-protocol client
 half: the exact structural analogue of `sitrep-sdk`, which is already MIT for this reason. The
 kerbcast KSP plugin itself can stay CC-BY-NC-SA-4.0; the SPA doesn't link it, it speaks WebRTC to it.
 

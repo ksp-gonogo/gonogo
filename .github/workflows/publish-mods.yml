@@ -127,13 +127,6 @@ jobs:
             extra_dlls: "GonogoRealAntennasUplink.Contract.dll"
             notice: mod/GonogoRealAntennasUplink/NOTICE-REALANTENNAS.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOREALANTENNASUPLINK
-          - id: GonogoKerbcastUplink
-            csproj: mod/GonogoKerbcastUplink/GonogoKerbcastUplink.csproj
-            dll: GonogoKerbcastUplink.dll
-            gamedata: GonogoKerbcastUplink
-            extra_dlls: "GonogoKerbcastUplink.Contract.dll"
-            notice: mod/GonogoKerbcastUplink/NOTICE-KERBCAST.txt
-            mod_id_var: SPACEDOCK_MOD_ID_GONOGOKERBCASTUPLINK
           - id: GonogoKosUplink
             csproj: mod/GonogoKosUplink/GonogoKosUplink.csproj
             dll: GonogoKosUplink.dll

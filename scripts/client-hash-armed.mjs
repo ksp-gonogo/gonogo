@@ -28,7 +28,7 @@
  *
  * Seeded red for every Uplink would be a second permanently-failing job, and this
  * repo already owns one and has twice had a real failure hide behind it. So the
- * remaining eight are grandfathered in `UNARMED_DEBT` and anything NOT listed is
+ * remaining seven are grandfathered in `UNARMED_DEBT` and anything NOT listed is
  * held to armed: a new Uplink vouches for its bundle from the day it lands.
  *
  * Both directions, like every other ratchet here. An entry that becomes armed and
@@ -91,7 +91,6 @@ const UNARMED_DEBT = new Set([
   "GonogoAvionicsUplink",
   "GonogoFerramAerospaceResearchUplink",
   "GonogoKerbalismUplink",
-  "GonogoKerbcastUplink",
   "GonogoPrincipiaUplink",
   "GonogoRealAntennasUplink",
   "GonogoRp1Uplink",

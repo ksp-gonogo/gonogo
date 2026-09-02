@@ -78,12 +78,17 @@ const SCAN_ROOTS = styleguideScanRoots(
 // Current baseline. When you drop the count, lower this number in the
 // same commit. The test surfaces a hint when you can. Goal: hold at 0.
 //
-// 1: `mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx`'s
-// `#c9c9c9` on the feed-unavailable scrim, the only offender the widened
-// roots turned up. It sat outside the scan for as long as the mod tree
-// did. Route it through a `--color-text-*` token (it is a near-miss of
-// `--color-text-primary`, so the swap is a visible change and wants its
-// own commit plus a baseline regen) and drop this to 0.
+// 1: `packages/components/src/SystemView/SystemDiagram.tsx`'s `#1a1a1a`, and it
+// is PROSE rather than a colour: a doc comment quoting what
+// `--color-status-warning-fg` resolves to. The scan reads a source file rather
+// than a stylesheet, so a hex it explains counts the same as one it uses.
+// Dropping this to 0 means either rewording that sentence or teaching the scan
+// about comments, and the second is the one worth doing.
+//
+// The entry this replaces named a departed Uplink's `CameraFeed.tsx` and its
+// `#c9c9c9`, which had already been fixed: the file held no hex at all by the
+// time it left. The count never moved because a different offender had taken
+// its place, so the note described the wrong file for as long as it stood.
 const HEX_OCCURRENCE_BASELINE = 1;
 
 const HEX_RE =

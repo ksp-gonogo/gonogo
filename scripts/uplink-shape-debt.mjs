@@ -41,7 +41,6 @@ export const UNRECORDED_DEBT = {
   "@ksp-gonogo/gonogo-breaking-ground-uplink": 11,
   "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink": 13,
   "@ksp-gonogo/gonogo-kerbalism-uplink": 13,
-  "@ksp-gonogo/gonogo-kerbcast-uplink": 6,
   "@ksp-gonogo/gonogo-kos-uplink": 5,
   "@ksp-gonogo/gonogo-mechjeb-uplink": 5,
   "@ksp-gonogo/gonogo-principia-uplink": 22,

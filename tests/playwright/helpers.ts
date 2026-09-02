@@ -214,13 +214,13 @@ export async function bootstrapPair(
      * (Dashboard/index.tsx:83: `if (isTouch) return <MobileDashboard
      * .../>;`). Without this every spec runs at the default desktop
      * viewport with no touch, so mobile-only sizing regressions (e.g.
-     * the CameraFeed 2x0.5 squish reported 2026-05-18) never surface
+     * the camera-feed 2x0.5 squish reported 2026-05-18) never surface
      * in CI.
      */
     contextOptions?: Parameters<Browser["newContext"]>[0];
     /**
      * Uplink ids the runtime loader should actually load, for specs testing a
-     * widget PROVIDED BY an Uplink (camera-feed = kerbcast) or one whose data
+     * widget PROVIDED BY an Uplink (mechjeb = MechJeb) or one whose data
      * comes from an Uplink feed (target-picker = kos). Default (omitted or
      * empty) = load NOTHING, the loader-agnostic boot every built-in-widget
      * spec wants. When set, both pages run against the PRODUCTION preview

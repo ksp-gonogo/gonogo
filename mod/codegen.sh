@@ -133,34 +133,6 @@ echo "codegen -> $avionics_out_dir/topic-map.ts"
 echo "codegen -> $avionics_out_dir/units.ts"
 echo "codegen -> $avionics_out_dir/units.json"
 
-# Kerbcast: the third relocation. KerbcastCameraEntry carries
-# [SitrepTopic("kerbcast.cameras")], same as Avionics, so
-# SITREP_KERBCAST_TOPICMAP_OUT is set here too. Unlike either predecessor
-# alone, this leg also carries two inbound-only command-arg types
-# (KerbcastSetFieldOfViewArgs/KerbcastSetPanArgs), same shape as MechJeb's.
-kerbcast_proj="$ROOT/mod/GonogoKerbcastUplink.Contract.Codegen"
-kerbcast_out_dir="$ROOT/mod/GonogoKerbcastUplink/client/src/__generated__"
-kerbcast_bin="$kerbcast_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$kerbcast_proj/GonogoKerbcastUplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$kerbcast_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_KERBCAST_TOPICMAP_OUT="$kerbcast_out_dir/topic-map.ts" \
-  SITREP_KERBCAST_UNITMAP_OUT="$kerbcast_out_dir/units.ts" \
-  SITREP_KERBCAST_UNITJSON_OUT="$kerbcast_out_dir/units.json" \
-  SITREP_KERBCAST_COMMANDMAP_OUT="$kerbcast_out_dir/command-map.ts" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$kerbcast_bin/GonogoKerbcastUplink.Contract.xml" \
-  SourceAssemblies="$kerbcast_bin/GonogoKerbcastUplink.Contract.dll" \
-  TargetFile="$kerbcast_out_dir/contract.ts" \
-  ConfigurationMethod="GonogoKerbcastUplink.KerbcastRtConfig.Configure"
-echo "codegen -> $kerbcast_out_dir/contract.ts"
-echo "codegen -> $kerbcast_out_dir/topic-map.ts"
-echo "codegen -> $kerbcast_out_dir/units.ts"
-echo "codegen -> $kerbcast_out_dir/units.json"
-echo "codegen -> $kerbcast_out_dir/command-map.ts"
-
 # Kerbalism: the fifth relocation, and the largest by every measure. FIFTEEN
 # types and FIVE [SitrepTopic]-tagged roots (kerbalism.spaceweather / .profile /
 # .lifesupport / .crew (isArray) / .features), so SITREP_KERBALISM_TOPICMAP_OUT

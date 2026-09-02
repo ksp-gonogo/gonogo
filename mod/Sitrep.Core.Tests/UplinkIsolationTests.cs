@@ -159,7 +159,6 @@ namespace Sitrep.Core.Tests
                 // ships, no source change needed here.
                 ["GonogoAvionicsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
-                ["GonogoKerbcastUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoRealFuelsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
 
@@ -230,7 +229,6 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Contract.TestSupport",
                     "Sitrep.Core.Serialization",
                 },
-                ["GonogoKerbcastUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoKosUplink.Tests"] = new[]
                 {
                     "Sitrep.Contract.TestSupport",

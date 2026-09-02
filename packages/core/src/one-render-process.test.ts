@@ -49,14 +49,7 @@ const DRIVER_ONLY = ["playwright", "playwright-core", "puppeteer"];
  * with the reason. Prose rather than a glob, because "this one is fine" is a
  * claim someone should be able to check in a year.
  */
-const NOT_A_RENDERER: Record<string, string> = {
-  "mod/GonogoKerbcastUplink/client/spike-encoded-transform-delay":
-    "Four one-off latency spikes measuring what an encoded-transform delay " +
-    "costs on a real WebRTC path. They photograph nothing and register " +
-    "nothing: what they produce is a number. Kept because the delayed-video " +
-    "work is built on them and rerunning the measurement is the only way to " +
-    "check it still holds.",
-};
+const NOT_A_RENDERER: Record<string, string> = {};
 
 const SOURCE = /\.(ts|tsx|mts|cts|js|jsx|mjs|cjs)$/;
 

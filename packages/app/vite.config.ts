@@ -26,8 +26,8 @@ import { UPLINK_BUNDLE_TARGETS } from "./uplink-bundle-targets";
 // workspace package" above is the intent and an Uplink client is no less a
 // workspace package for living beside its .cs. Scanning only `packages/*`
 // silently downgraded any package that moved to an Uplink client from
-// source-resolution to dist-resolution, which is what happened when the
-// kerbcast client moved to mod/GonogoKerbcastUplink/client.
+// source-resolution to dist-resolution, which is what happened the first time a
+// client moved out of `packages/` and in beside its own .cs.
 const packagesDir = resolve(__dirname, "..");
 const modDir = resolve(__dirname, "../../mod");
 

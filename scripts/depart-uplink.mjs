@@ -229,10 +229,19 @@ if (ciSrc.includes(dirBase) || ciSrc.includes(pkg)) {
   );
 }
 
-// 7. codegen: this Uplink's per-slice rtcli block
+/*
+ * 7. codegen: this Uplink's per-slice rtcli block.
+ *
+ * A leg ends where the NEXT leg's heading starts, and a heading is `# <Name>:`.
+ * Terminating on any `\n# [A-Z]` instead ends it at the first capitalised
+ * continuation line of its own comment, which left the whole leg behind under a
+ * headless comment: `# SITREP_KERBCAST_TOPICMAP_OUT is set here too`. Scansat's
+ * departure needed a follow-up commit for exactly that, so the terminator names
+ * a heading.
+ */
 const codegen = join(ROOT, "mod", "codegen.sh");
 const codegenSrc = readFileSync(codegen, "utf8");
-const block = new RegExp(`\\n# ${Name}:[\\s\\S]*?(?=\\n# [A-Z]|$)`, "i");
+const block = new RegExp(`\\n# ${Name}:[\\s\\S]*?(?=\\n# \\w+:|$)`, "i");
 if (block.test(codegenSrc)) {
   record(`the ${id} block in codegen.sh`, () =>
     writeFileSync(codegen, codegenSrc.replace(block, "")),
