@@ -1,0 +1,36 @@
+#!/bin/bash
+# Refuse a fold that says nothing about what changed.
+#
+# staging's history is heading toward release notes generated per release, so
+# every commit on it has to stand alone as a changelog line. A fold of a feature
+# branch is not exempt: `git merge --squash` then ONE commit describing the
+# CHANGE is the model, and `git merge` without --squash takes git's default
+# subject, which names the branch and says nothing.
+#
+# 100 of those accumulated on staging before anyone counted, 25 of them in a
+# single day. The branch name and the fact that it was a fold are noise.
+#
+# A merge of a REMOTE tracking branch is a different thing (syncing after a bot
+# push) and is allowed through: this only refuses local topic branches.
+set -euo pipefail
+
+subject=$(head -1 "$1")
+
+case "$subject" in
+  "Merge branch 'fleet/"*|"Merge branch 'worktree-"*|"Merge branch 'agent-"*)
+    cat >&2 <<MSG
+commit-msg: refusing a fold that describes the fold instead of the change.
+
+  $subject
+
+staging history becomes release notes, so this needs to read as a changelog
+line for the feature. Use:
+
+  git merge --squash <branch>
+  git commit          # subject: what CHANGED, imperative, no branch name
+
+If you genuinely want a merge commit here, write its subject by hand.
+MSG
+    exit 1
+    ;;
+esac
