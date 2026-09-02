@@ -193,6 +193,13 @@ export interface ScenePayload {
   steps?: SceneStep[];
 }
 
+/** The emitted topics still unread, and which of those the carried set never
+ *  named. What {@link SceneReport} carries, on its own, for a re-feed. */
+export interface UnreadTopics {
+  unsubscribedTopics: string[];
+  uncarriedTopics: string[];
+}
+
 /** What the driver reads back after a mount, to decide whether to keep the PNG. */
 export interface SceneReport {
   /** What a sighted reader sees, screen-reader-only words removed. */
@@ -583,6 +590,18 @@ let mountedFixture: StreamFixture | null = null;
 let activeSourceIds: string[] = [];
 let currentScene: ScenePayload | null = null;
 
+/**
+ * The emits that had no subscriber when the mount stopped growing.
+ *
+ * Held rather than discarded because a press can open one: content behind a tab
+ * is not mounted until the tab is selected, and `_scene.before` runs after the
+ * feed. See {@link refeedScene}.
+ */
+let pendingEmits: SceneEmit[] = [];
+
+/** The mounted scene's derived carried set, for {@link refeedScene}. */
+let carriedNow: string[] = [];
+
 function teardown(): void {
   // Media first. A `<video>` removed from the document while a `play()` is
   // still pending rejects with "the play() request was interrupted by a new
@@ -660,6 +679,7 @@ async function renderScene(scene: ScenePayload): Promise<SceneReport> {
   const carried = [
     ...new Set([...scene.carriedChannels, ...DYNAMIC_CARRIED_TOPIC_PREFIXES]),
   ];
+  carriedNow = carried;
   const fixture = setupStreamFixture({
     carriedChannels: carried,
     pinnedUt: scene.pinnedUt,
@@ -742,7 +762,45 @@ async function feedInRounds(
   fixture: StreamFixture,
   scene: ScenePayload,
 ): Promise<string[]> {
-  const pending = [...scene.emits];
+  pendingEmits = [...scene.emits];
+  return feedPending(fixture, scene, pendingEmits);
+}
+
+/**
+ * Feed what a press has just opened, and report what is still unread.
+ *
+ * <p>A tab's content is not mounted until the tab is selected, and
+ * `_scene.before` runs after the feed, so a topic only the tab's content reads
+ * had no subscriber when the fixture emitted it and was dropped in silence.
+ * Every training picture in the RP-1 Uplink was rendered in the stand-in host
+ * for exactly that reason, which meant the one thing an operator actually meets
+ * — the tab, with its sections in the order they appear — had never been
+ * photographed at all.</p>
+ *
+ * <p>This is production's own shape rather than a harness indulgence: the stream
+ * replays the last value on subscribe, so in a running app a tab fills the
+ * moment it is opened. What the harness must NOT do is pretend a topic nothing
+ * ever subscribed to landed, and it still does not: whatever is unread after
+ * this is the finding, and `assertEveryEmitLanded` is checked against it rather
+ * than against the pre-press list.</p>
+ */
+async function refeedScene(): Promise<UnreadTopics> {
+  const fixture = mountedFixture;
+  if (!fixture || !currentScene) {
+    throw new Error("render probe: refeedScene called before renderScene");
+  }
+  const unsubscribed = await feedPending(fixture, currentScene, pendingEmits);
+  return {
+    unsubscribedTopics: unsubscribed,
+    uncarriedTopics: unsubscribed.filter((t) => !isCarried(t, carriedNow)),
+  };
+}
+
+async function feedPending(
+  fixture: StreamFixture,
+  scene: ScenePayload,
+  pending: SceneEmit[],
+): Promise<string[]> {
   // Six is a budget, not a tuned number: each round is one more layer of
   // subscribe-on-what-just-arrived, and a widget nesting deeper than this is
   // better served by a clear failure than by a longer wait.
@@ -1031,6 +1089,9 @@ async function stepScene(step: SceneStep, deltaUt: number): Promise<void> {
 export interface RenderProbeApi {
   readInventory: (uplinkId?: string) => UplinkInventory;
   renderScene: (scene: ScenePayload) => Promise<SceneReport>;
+  /** Feed whatever a `_scene.before` press has just mounted, and report the
+   *  topics still unread. See {@link refeedScene}. */
+  refeedScene: () => Promise<UnreadTopics>;
   stepScene: (step: SceneStep, deltaUt: number) => Promise<void>;
   /** Whether the render just mounted fits its tile. See {@link auditMinFit}.
    *  Separate from `renderScene`'s report because the driver GROWS the mount
@@ -1066,6 +1127,7 @@ export async function installRenderProbe(): Promise<RenderProbeApi> {
       currentUt = scene.pinnedUt;
       return renderScene(scene);
     },
+    refeedScene,
     stepScene,
     auditMinFit: () => {
       const el = document.getElementById("root");

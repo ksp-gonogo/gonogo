@@ -7,6 +7,7 @@ import type {
   ScenePayload,
   SceneReport,
   SceneStep,
+  UnreadTopics,
   UplinkInventory,
 } from "../render-probe";
 import type { UplinkPackage } from "./context";
@@ -289,15 +290,21 @@ async function renderOneScene(
   for (const [index, mode] of scene.modes.entries()) {
     const fed = await mount(tab, payloadFor(scene, mode, false));
     if (index === 0) assertFedRenderMeansSomething(scene, fed, starved);
-    assertEveryEmitLanded(scene, fed);
 
     if (scene.steps && scene.steps.length > 0 && index === 0) {
       await captureMotion(tab, scene, mode, opts, assets);
+      assertEveryEmitLanded(scene, await refeed(tab));
       continue;
     }
     const file = `${scene.name}--${mode.name}.png`;
     await reportFit(tab, scene, mode.name);
     await performActs(tab, scene);
+    // After the presses, never before them. A tab's content is not mounted
+    // until its tab is selected, so a topic only that content reads had no
+    // subscriber while the fixture was emitting; production replays the last
+    // value on subscribe and this is where the harness does the same. What is
+    // still unread once the presses have run is the real finding.
+    assertEveryEmitLanded(scene, await refeed(tab));
     // Read BEFORE the grow, which writes a measured height into `#root`'s inline
     // style and lets every ResizeObserver in the tree settle against it. The
     // shape is meant to be the same on any machine, and the state after that
@@ -401,6 +408,18 @@ async function mount(tab: Page, payload: ScenePayload): Promise<SceneReport> {
     [RENDER_PROBE_GLOBAL, payload] as const,
   );
   return report;
+}
+
+/** Feed whatever `_scene.before` has just mounted, and read back what is still
+ *  unread. See the probe's `refeedScene`. */
+function refeed(tab: Page): Promise<UnreadTopics> {
+  return tab.evaluate(
+    (key) =>
+      (globalThis as unknown as ProbeWindow)[
+        key as typeof RENDER_PROBE_GLOBAL
+      ].refeedScene(),
+    RENDER_PROBE_GLOBAL,
+  );
 }
 
 /**
@@ -720,7 +739,7 @@ function assertFedRenderMeansSomething(
  * to a topic nothing subscribed to is dropped in silence and the render is of no
  * data. This turns that whole class of bug into a named error.
  */
-function assertEveryEmitLanded(scene: Scene, report: SceneReport): void {
+function assertEveryEmitLanded(scene: Scene, report: UnreadTopics): void {
   if (report.unsubscribedTopics.length === 0) return;
   throw new Error(
     `${scene.name} (${scene.target.kind} ${scene.target.id}): nothing in the ` +
