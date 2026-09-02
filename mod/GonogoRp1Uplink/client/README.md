@@ -52,6 +52,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `Rp1LeaderEntry` | `canRemoveFromUt` ut, `deactivateReputation` rep, `freeToRemoveFromUt` ut, `reactivateCooldown` s, `removeOnDeactivate` flag, `setupConfidence` confidence, `setupFunds` funds, `setupReputation` rep, `setupScience` science, `strategyId` id |
 | `Rp1ProgramPaymentEntry` | `cumulativeFunds` funds, `funds` funds, `year` count |
 | `Rp1ProgramSpeedOption` | `confidenceCost` confidence, `durationSeconds` s, `speed` enum |
+| `Rp1RequiredTechEntry` | `id` id, `parts` text, `title` text |
 | `Rp1ToolingEntry` | `parameterSummary` text, `partId` id, `partTitle` text, `refittable` flag, `symmetryCounterparts` count, `tooled` flag, `toolingCost` funds, `toolingType` id, `toolingTypeTitle` text, `untooledSurcharge` funds |
 
 ## Commands
@@ -297,7 +298,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![Three queued nodes: one being worked with a countdown and its era window, one throttled down to a fifth of full rate, and one stalled with nothing to date it from](docs/assets/research-queue-throttled-and-stalled--default.png)
 
-![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and four tech nodes it cannot fly without under ONE severity badge](docs/assets/build-cost-absences-and-tech-gate--default.png)
+![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and four blocking tech nodes under ONE severity badge, each named and each showing what on the vehicle is waiting for it](docs/assets/build-cost-absences-and-tech-gate--default.png)
 
 ![Three builds under integration: one with a date at a rushing complex, one stalled because nobody is assigned to its complex, and one RP-1 has not costed yet](docs/assets/building-three-clocks--default.png)
 
