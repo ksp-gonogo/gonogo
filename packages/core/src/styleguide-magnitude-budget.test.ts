@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { dirname } from "node:path";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -57,13 +59,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,
-  "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 1,
-  // 2, both at the contribution boundary rather than in any arithmetic. The
-  // mission-log slot declares a row's instant as a plain UT number, so the one
-  // that reaches it is the unwrap that contract asks for; the other builds a
-  // row's stable id, where the instant is being used as an identity component
-  // and not as a quantity. Neither is a calculation the algebra has a term for.
-  "mod/GonogoRp1Uplink/client/src/CareerLog/index.ts": 2,
   // 11, up from the 4 this file used while it was a React overlay drawing on a
   // host plot's axes, and the rise is the price of the overlay slot going away.
   // A CONTRIBUTION is handed raw Topic payloads rather than a host context, so
@@ -92,8 +87,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * in", and the two counts are cardinalities rather than measurements.
    */
   "mod/GonogoRealFuelsUplink/client/src/EngineRealism/index.tsx": 3,
-  "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
-  "mod/sitrep-sdk/src/command-delay.ts": 5,
+  "mod/sitrep-sdk/src/command-delay.ts": 4,
   // 1, in `frameVector`, and this file exists so that number stays 1. The frame
   // arithmetic works in bare metres throughout (a rotation matrix has no unit to
   // carry), so SOMETHING has to unwrap a wire vector before `toFrame` sees it.
@@ -148,7 +142,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/CrewStatus/badge.ts": 2,
   "packages/components/src/CrewStatus/index.tsx": 1,
   "packages/components/src/CurrentOrbit/index.tsx": 3,
-  "packages/components/src/FleetComms/index.tsx": 15,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
   // 19, down from 34: every plot on this widget is a contribution now, and each
@@ -183,7 +176,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // it is a horizontal-travel estimate that needs the speed, the time to impact
   // and, in vacuum, a surface gravity backed out of mu and the radius.
   "packages/components/src/LandingStatus/touchdownReticlePlot.ts": 20,
-  "packages/components/src/LaunchDirector/index.tsx": 1,
   // 1: the view instant, unwrapped to bucket it and to hand it to the frame
   // arithmetic. Every function that solves a body's position takes a bare UT,
   // because a Kepler solve is trigonometry on a number and not an operation the
@@ -205,17 +197,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/MissionEventLog/index.tsx": 1,
   "packages/components/src/MissionEventLog/useMissionEvents.ts": 1,
   "packages/components/src/Navball/index.tsx": 1,
-  "packages/components/src/OrbitView/index.tsx": 8,
-  "packages/components/src/ResourceOps/index.tsx": 1,
-  "packages/components/src/SemiMajorAxis/index.tsx": 2,
+  "packages/components/src/OrbitView/index.tsx": 6,
+  "packages/components/src/SemiMajorAxis/index.tsx": 1,
   // 1: the view instant, unwrapped to bound a history window. sampleRange
   // takes plain UT numbers because a store index is not a quantity.
   "packages/components/src/shared/usePastTrack.ts": 1,
   "packages/components/src/shared/dockAngles.ts": 1,
   "packages/components/src/shared/OrbitalEventChips.tsx": 1,
   "packages/components/src/Strategies/index.tsx": 4,
-  "packages/components/src/SystemView/index.tsx": 27,
-  "packages/components/src/SystemView/useCelestialBodies.ts": 2,
+  "packages/components/src/SystemView/index.tsx": 23,
   "packages/components/src/SystemView/usePhaseAngles.ts": 7,
   "packages/components/src/Targeting/index.tsx": 5,
   "packages/components/src/ThermalStatus/index.tsx": 13,
@@ -224,7 +214,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // own docs), so a `Value<"m/s">` off the wire has to shed its unit exactly once
   // to be compared against a solver's cost. Doing it in the algebra instead would
   // mean wrapping every figure the coplanar model returns.
-  "packages/components/src/TransferWindow/index.tsx": 3,
+  "packages/components/src/TransferWindow/index.tsx": 2,
   // The shared ΔV budget's one raw read: `totalVac` is `Value<"m/s"> | null` and
   // the feasibility deduction below it subtracts plain node magnitudes in a
   // running total. Doing it in the algebra would wrap and unwrap once per node
@@ -251,11 +241,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // and the budget's age against the frame's view UT, which arrives as a plain
   // number on `ProcessorFrame` rather than as an instant.
   "mod/sitrep-sdk/src/spine/delta-v-budget.ts": 2,
-  // The Value arm of the evaluator's result-equality walk. It compares the two
-  // own properties directly BECAUSE it must not go through the algebra: the
-  // algebra throws across dimensions, and a comparison that throws when a
-  // processor changes a unit is worse than one that answers "not equal".
-  "mod/sitrep-sdk/src/spine/processorEvaluator.ts": 1,
   "mod/sitrep-sdk/src/spine/delay-authority.ts": 1,
   "packages/sitrep-client/src/fleet-position.ts": 1,
   // The one decode of a `fleet.` payload's quantities. Whether a quantity
@@ -279,7 +264,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/orbit-patches.ts": 14,
   "mod/sitrep-sdk/src/spine/use-command.ts": 1,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
-  "mod/sitrep-sdk/src/spine/vessel-state.ts": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
   // 1, and it is the implementation: this is the ONE unwrap in the repo, moved
   // down from ui-kit on 2026-08-25 so `sitrep-sdk`'s own files could reach it
@@ -371,6 +355,66 @@ describe("the magnitude budget only shrinks", () => {
 
   it("is actually looking at the codebase", () => {
     expect(counts.size).toBeGreaterThanOrEqual(MINIMUM_FILES_EXPECTED);
+  });
+
+  it("can see a violation (planted)", () => {
+    // The file floor above catches a walk that stops finding files. It cannot
+    // catch a walk that finds them and a PATTERN that stops matching, which is
+    // the failure this regex has already had once: `git grep -E` takes no `\b`,
+    // and the first version of it matched nothing and reported a clean tree.
+    //
+    // Planted through `git grep` itself, never `new RegExp(PROPERTY_ACCESS)`.
+    // The two are not the same pattern: this is POSIX ERE, where the leading
+    // `]` in `[]A-Za-z0-9_$)?]` is a literal member of the class, while
+    // JavaScript reads `[]` as an EMPTY class and then chokes on the unmatched
+    // `)`. A JS-side check would either throw or, with the brackets respelt to
+    // make it parse, pass while measuring a pattern the scan never runs. The
+    // instrument has to be the engine under test.
+    const planted = join(mkdtempSync(join(tmpdir(), "mag-ratchet-")), "p.ts");
+    try {
+      writeFileSync(
+        planted,
+        [
+          "const a = reading.magnitude;", // identifier before the dot
+          "const b = readings[0].magnitude;", // `]`, the class's first member
+          "const c = f().magnitude;", // `)`
+          "const d = maybe?.magnitude;", // optional chain
+          "// prose about `.magnitude` is not a use of it",
+        ].join("\n"),
+      );
+      // `cwd` is the temp dir, which sits outside any repository: `git grep
+      // --no-index` refuses a path outside the repo it finds from cwd, so
+      // running it from inside this checkout would fail on the path rather
+      // than answer about the pattern.
+      const hits = execFileSync(
+        "git",
+        ["grep", "--no-index", "-nE", PROPERTY_ACCESS, "--", "p.ts"],
+        { cwd: dirname(planted), encoding: "utf8" },
+      )
+        .trim()
+        .split("\n");
+      // Four uses seen, and the comment line not charged: a budget that billed
+      // a file for explaining itself is how the explanations get deleted.
+      expect(hits).toHaveLength(4);
+    } finally {
+      rmSync(dirname(planted), { recursive: true, force: true });
+    }
+  });
+
+  it("has no entry for a path that no longer exists", () => {
+    // `mod/GonogoRp1Uplink/client/src/CareerLog/index.ts` sat on this list
+    // carrying 2 after its whole widget directory was deleted. A budget entry
+    // for a file that is gone can never be spent, so it never trips the
+    // over-budget arm and never gets removed: it is pure slack that no run
+    // reports. The sibling token ratchet already guards this
+    // (`styleguide-tokens`: "excuses no path that has moved or been deleted");
+    // this one did not, which is how the entry outlived its file.
+    const missing = Object.keys(MAGNITUDE_BUDGET)
+      .filter((rel) => !existsSync(join(root, rel)))
+      .sort();
+    expect(missing, "budgeted paths that no longer exist, delete them").toEqual(
+      [],
+    );
   });
 
   it("has no file over its budget, and no unbudgeted file using one", () => {
