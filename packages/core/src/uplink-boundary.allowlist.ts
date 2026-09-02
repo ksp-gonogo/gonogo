@@ -2474,11 +2474,13 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   principia: [
-    // The reachability ratchet's debt list: wire ids as DATA, one line per
-    // declared Topic/command with no consumer. Survives the strip because the
-    // ids are the inventory, not prose about it. Shrinks to zero as consumers
-    // are written.
-    "packages/core/src/declaration-reachability.allowlist.ts",
+    /*
+     * `declaration-reachability.allowlist.ts` was here, and it is gone because
+     * the five `principia.plan.*` write commands it listed as unreached now have
+     * a consumer. What survived the comment strip was the wire ids as DATA; with
+     * the entries deleted the file names Principia only in prose, so the
+     * exemption is stale rather than merely unused.
+     */
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",

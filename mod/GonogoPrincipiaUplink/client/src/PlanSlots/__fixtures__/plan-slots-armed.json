@@ -1,0 +1,112 @@
+{
+  "_meta": {
+    "notes": "The other half of the state machine, and the reason it is one section rather than four buttons: with a plan aboard, create is gone and copy and delete are live. The extent is the pair of quantities the plan actually is, an instant for where it begins and an interval for how long it runs, and the burn count is the number a delete would take with it. A burn is running, which the plugin permits editing around and will not warn about, so the badge is ours"
+  },
+  "_scene": {
+    "augment": "principia-plan-slots",
+    "size": {
+      "w": 13,
+      "h": 16
+    },
+    "caption": "An armed slot, one of three, mid-mission with a burn already running: copy and delete are the transitions available and create is not offered at all",
+    "paints": [
+      "PLAN SLOTS",
+      "PLAN 1 OF 3",
+      "ARMED",
+      "PLAN STARTS",
+      "PLAN RUNS FOR",
+      "BURNS",
+      "COPY TO A NEW SLOT",
+      "DELETE PLAN",
+      "discards the burns above",
+      "A BURN IS RUNNING",
+      "INSTALL A COMPOSED PLAN"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "principia.plan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "planExists": true,
+          "writeSurface": {
+            "available": true,
+            "armed": true,
+            "burnLayoutVerified": true,
+            "integratorLayoutVerified": true,
+            "analysedVersion": "principia Grassmann",
+            "detectedVersion": "principia Grassmann"
+          },
+          "planCount": 3,
+          "selectedPlan": 0,
+          "initialTimeUt": 992000,
+          "desiredFinalTimeUt": 1220000,
+          "actualFinalTimeUt": 1220000,
+          "anomalousBurnCount": 0,
+          "firstFutureBurnIndex": 1,
+          "optimisationRunning": false,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 999800,
+              "cutoffUt": 999830,
+              "durationSeconds": 30,
+              "timeToHalfDeltaVSeconds": 14,
+              "deltaV": 841.5,
+              "deltaVTangent": 840.1,
+              "deltaVNormal": -18.4,
+              "deltaVBinormal": 44.6,
+              "coordinateSystem": 1,
+              "inertiallyFixed": false,
+              "thrustKilonewtons": 1043.2,
+              "specificImpulseSeconds": 311,
+              "initialMassTons": 42.6,
+              "finalMassTons": 32.33,
+              "massFlowKilogramsPerSecond": 342.05,
+              "frameType": 6000,
+              "centreBody": "Kerbin",
+              "frameEditable": true,
+              "executing": true,
+              "anomalous": false
+            },
+            {
+              "index": 1,
+              "ignitionUt": 1010600,
+              "cutoffUt": 1010667,
+              "durationSeconds": 67,
+              "timeToHalfDeltaVSeconds": 32,
+              "deltaV": 1203.2,
+              "deltaVTangent": 1198.6,
+              "deltaVNormal": 62.9,
+              "deltaVBinormal": -84.2,
+              "coordinateSystem": 1,
+              "inertiallyFixed": true,
+              "thrustKilonewtons": 486.5,
+              "specificImpulseSeconds": 348,
+              "initialMassTons": 32.33,
+              "finalMassTons": 22.72,
+              "massFlowKilogramsPerSecond": 142.6,
+              "frameType": 6000,
+              "centreBody": "Kerbin",
+              "frameEditable": true,
+              "executing": false,
+              "anomalous": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

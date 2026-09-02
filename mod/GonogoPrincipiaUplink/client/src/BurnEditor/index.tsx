@@ -1,4 +1,3 @@
-import type { Reading, StaleGrade } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerAugment,
   useCommand,
@@ -34,110 +33,15 @@ import {
 import type { ComponentProps } from "react";
 import { useState } from "react";
 import type {
-  PrincipiaPlan,
   PrincipiaPlannedBurn,
   PrincipiaPlanWriteReceipt,
 } from "../__generated__/contract";
 import { PrincipiaBurnProfile } from "../__generated__/contract";
 import { commandWindow } from "../commandWindow";
+import { planView } from "../planReading";
 import { plottingFrameLabel } from "../plottingFrame";
 import { PRINCIPIA } from "../uplink";
 import "../topics";
-
-/**
- * The tuning loop: pick a burn, nudge its instant and its Dv, watch what the
- * plan does about it.
- *
- * <para><b>Why the console has to offer this at all.</b> Principia's flight plan
- * is the mod's actual new mechanic, and it is a mechanic because it is TUNED: a
- * transfer is found by moving one burn a few minutes and a few metres per second
- * at a time and reading what happens to two periapses. A console that mirrors
- * the plan and cannot change it turns the operator back to the game window for
- * the only part of the plan that is interactive.</para>
- *
- * <para><b>What is deliberately not here.</b> The resulting arc. Seeing the
- * curve before committing to the real burn wants an integrated trajectory, and
- * the only thing that can draw one is the propagation seam, which currently has
- * no production implementer. The instant-impulse profile IS here, because it is
- * a property of the burn rather than of the drawing, and Principia will draw its
- * arc in the game's own map.</para>
- *
- * <para>Every control is disabled until the write surface says it is armed, and
- * the reason it is not travels with the plan rather than being discovered by
- * trying.</para>
- */
-type PlanView =
-  | { kind: "none"; reason: string }
-  | {
-      kind: "plan";
-      plan: PrincipiaPlan;
-      /**
-       * Why this plan cannot be edited, or null when it can. A sentence rather
-       * than a flag, because the operator's next move is different for each of
-       * the three ways contact is lost.
-       */
-      outOfContact: string | null;
-    };
-
-/**
- * A plan the console has never been told about and a vessel with no plan are
- * different facts, and so is a plan we last heard about hours ago.
- *
- * A stale plan is still shown, because an operator who can see how old it is can
- * act on it. What is refused is EDITING one: the burn index and the burn count
- * both come off a reading, and a write bounded against a reading from an hour
- * ago is the exact mistake the producer's own protocol is built to prevent.
- *
- * `reading.value` on the stale arms and never `reckoned`: a modelled plan is a
- * guess at a burn LIST, and an index written back has to be one the producer
- * actually reported holding a burn.
- */
-function planView(reading: Reading<PrincipiaPlan>): PlanView {
-  switch (reading.state) {
-    case "pending":
-      return { kind: "none", reason: "Waiting for Principia." };
-    case "unowned":
-      return {
-        kind: "none",
-        reason:
-          "Nothing publishes this plan. The Principia Uplink declared no plan channel, so waiting will not help: check KSP's log for an Uplink load error.",
-      };
-    case "absent":
-      return {
-        kind: "none",
-        reason:
-          "No plan reading. Principia is not running, or the console has no vessel.",
-      };
-    case "observed":
-      return { kind: "plan", plan: reading.value, outOfContact: null };
-    case "stale":
-    case "reckonable":
-      return {
-        kind: "plan",
-        plan: reading.value,
-        outOfContact: outOfContactReason(reading.grade),
-      };
-  }
-}
-
-/**
- * What a stale reading has lost contact WITH, as something to go and check.
- *
- * The three grades ask for three different next moves: one channel's keyframes
- * drying up is a producer that stopped publishing, a down transport is the whole
- * link, and a last-before-blackout sample is the craft itself behind something.
- * An operator told only that the plan is old checks the wrong one.
- */
-function outOfContactReason(grade: StaleGrade): string {
-  switch (grade) {
-    case "held-stale":
-      return "This plan's updates stopped arriving. The burns below are the last set that did, and the burn count they are numbered against may have moved since.";
-    case "disconnected":
-      return "The stream is down. The burns below are the last set that reached us, and the burn count they are numbered against may have moved since.";
-    case "last-before-blackout":
-      return "This craft is out of contact. The burns below are the last set that got out before the blackout, and the burn count they are numbered against may have moved since.";
-  }
-}
 
 /**
  * When an edit to a burn stops being able to reach it: `commandWindow`, whose
@@ -289,6 +193,30 @@ export function deltaVMagnitude(draft: Draft): number {
   );
 }
 
+/**
+ * The tuning loop: pick a burn, nudge its instant and its Dv, watch what the
+ * plan does about it.
+ *
+ * <para><b>Why the console has to offer this at all.</b> Principia's flight plan
+ * is the mod's actual new mechanic, and it is a mechanic because it is TUNED: a
+ * transfer is found by moving one burn a few minutes and a few metres per second
+ * at a time and reading what happens to two periapses. A console that mirrors
+ * the plan and cannot change it turns the operator back to the game window for
+ * the only part of the plan that is interactive.</para>
+ *
+ * <para><b>What is deliberately not here.</b> The resulting arc. Seeing the
+ * curve before committing to the real burn wants an integrated trajectory, and
+ * the only thing that can draw one is the propagation seam, which currently has
+ * no production implementer. The instant-impulse profile IS here, because it is
+ * a property of the burn rather than of the drawing, and Principia will draw its
+ * arc in the game's own map.</para>
+ *
+ * <para>Every control is disabled until the write surface says it is armed, and
+ * the reason it is not travels with the plan rather than being discovered by
+ * trying. Which plan slot those burns belong to, and whether there is a slot at
+ * all, is `PlanSlots` above: this section edits the burns INSIDE whichever plan
+ * that names.</para>
+ */
 export function BurnEditor() {
   const view = planView(useTelemetry("principia.plan"));
   const viewUt = magnitudeOf(useViewUt());

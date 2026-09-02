@@ -1,0 +1,91 @@
+{
+  "_meta": {
+    "notes": "Every reason a slot cannot be written, on screen at once, which is the whole argument for a section that renders state rather than a row of buttons. The vessel is at Principia's ten-plan cap, so a copy would be the eleventh that makes the plugin's own planner window throw on every layout pass with the delete button inside the part that stopped drawing; an optimisation is running, so any write is reverted without being reported; and the next burn lights inside the round trip, so it flies whatever the slot holds however fast the operator moves. The last of those is REPORTED rather than enforced: a delete is legal at any instant, it simply lands too late to matter"
+  },
+  "_scene": {
+    "augment": "principia-plan-slots",
+    "size": {
+      "w": 13,
+      "h": 16
+    },
+    "caption": "At Principia's cap, mid-optimisation, at a thirty-light-minute vantage with the next burn already inside the round trip: nothing can be written and every reason says so",
+    "paints": [
+      "PLAN SLOTS",
+      "PLAN 10 OF 10",
+      "SLOTS FULL AT 10",
+      "OPTIMISING",
+      "COPY TO A NEW SLOT",
+      "DELETE PLAN",
+      "The next burn lights before a write sent now reaches Principia"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "comms.delay",
+        "payload": {
+          "oneWaySeconds": 1800
+        }
+      },
+      {
+        "topic": "principia.plan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "planExists": true,
+          "writeSurface": {
+            "available": true,
+            "armed": true,
+            "burnLayoutVerified": true,
+            "integratorLayoutVerified": true,
+            "analysedVersion": "principia Grassmann",
+            "detectedVersion": "principia Grassmann"
+          },
+          "planCount": 10,
+          "selectedPlan": 9,
+          "initialTimeUt": 999000,
+          "desiredFinalTimeUt": 1120000,
+          "actualFinalTimeUt": 1120000,
+          "anomalousBurnCount": 0,
+          "firstFutureBurnIndex": 0,
+          "optimisationRunning": true,
+          "burns": [
+            {
+              "index": 0,
+              "ignitionUt": 1002400,
+              "cutoffUt": 1002460,
+              "durationSeconds": 60,
+              "timeToHalfDeltaVSeconds": 29,
+              "deltaV": 318.4,
+              "deltaVTangent": 316.2,
+              "deltaVNormal": -12.1,
+              "deltaVBinormal": 33.9,
+              "coordinateSystem": 1,
+              "inertiallyFixed": false,
+              "thrustKilonewtons": 240.6,
+              "specificImpulseSeconds": 327,
+              "initialMassTons": 18.4,
+              "finalMassTons": 16.7,
+              "massFlowKilogramsPerSecond": 75.1,
+              "frameType": 6000,
+              "centreBody": "Kerbin",
+              "frameEditable": true,
+              "executing": false,
+              "anomalous": false
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

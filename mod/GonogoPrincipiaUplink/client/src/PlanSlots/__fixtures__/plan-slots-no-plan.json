@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "notes": "The state that made the whole write path reachable, and the one Principia's own arm handler has a special case for: a craft with NO plan. Arming needed a plan, creating a plan needed an arm, and creation is the only thing that makes a plan, so the mod arms anyway and says so. Here the slot badge reads zero, the sentence beside it is the mod's own naming create as the only edit available, and the end instant is the field create and install share. What this shot cannot photograph is the INSTALL control: it renders one row per SAVED draft in the screen's own draft store, and the render probe mounts one augment with an empty store, so the absence sentence is what appears. The install path is covered by unit tests instead"
+  },
+  "_scene": {
+    "augment": "principia-plan-slots",
+    "size": {
+      "w": 13,
+      "h": 16
+    },
+    "caption": "A craft with no flight plan: the only transition the slot offers is create, and the instant the new plan would end is stated before it is made",
+    "paints": [
+      "PLAN SLOTS",
+      "NO PLAN ON THIS VESSEL",
+      "ARMED",
+      "no flight plan",
+      "NEW PLAN ENDS AT",
+      "LENGTH FROM ARRIVAL",
+      "CREATE EMPTY PLAN",
+      "INSTALL A COMPOSED PLAN"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "name": "Ares IV",
+          "vesselType": 0,
+          "situation": 0
+        }
+      },
+      {
+        "topic": "principia.plan",
+        "payload": {
+          "vesselId": "Ares-IV",
+          "sampledAtUt": 1000000,
+          "planExists": false,
+          "writeSurface": {
+            "available": true,
+            "armed": true,
+            "burnLayoutVerified": false,
+            "integratorLayoutVerified": true,
+            "reason": "This vessel has no flight plan. Creating one is the only edit available.",
+            "analysedVersion": "principia Grassmann",
+            "detectedVersion": "principia Grassmann"
+          },
+          "planCount": 0,
+          "selectedPlan": -1,
+          "optimisationRunning": false,
+          "burns": []
+        }
+      }
+    ]
+  }
+}

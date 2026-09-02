@@ -10,6 +10,14 @@
 //     planner an operator is already reading, and that slot exists for exactly
 //     this case.
 //
+//   - `PlanSlots` → the same slot, for the plan's own existence: create an
+//     empty one, install a composed one, copy the selected one, delete it. One
+//     section rather than four controls because those are the transitions of one
+//     state machine over `planExists` and `planCount`, and the plugin refuses
+//     the illegal one by name. Its end-instant field is the one field create and
+//     install share, which is why installing a composed plan is here rather than
+//     in the composer.
+//
 //   - `OrbitAnalysis` -> registerAugment into `current-orbit.sections`, and
 //     `CoastAnalysis` -> `maneuver-planner.sections`. The producer's own n-body
 //     analysis: mean elements as bands, the three periods, the drift of the
@@ -62,6 +70,11 @@ export { UPLINK_COMMAND_IDS } from "./commands";
 
 import "./settings/registerPrincipiaSettings";
 import "./FlightPlanSection";
+// After the plan section and before the burn editor, which is the order an
+// operator reads the plan in: what the plan says, which slot it is and whether
+// there is one at all, then the burns inside it. Registration order IS slot
+// order for augments of equal priority.
+import "./PlanSlots";
 import "./OrbitAnalysis";
 import "./CoastAnalysis";
 import "./BurnEditor";
@@ -74,6 +87,9 @@ export { OrbitAnalysisRows, OrbitAnalysisSection } from "./OrbitAnalysis";
 export { orbitDescription } from "./orbitDescription";
 export { PlanComposer } from "./PlanComposer";
 export { MAX_STEPS_OPTIONS, PlanIntegrationBlock } from "./PlanIntegration";
+export { PlanSlots } from "./PlanSlots";
+export type { PlanWriteView } from "./planReading";
+export { outOfContactReason, planView } from "./planReading";
 export type { FrameBodies } from "./plottingFrame";
 export {
   FRAME_TYPE,
