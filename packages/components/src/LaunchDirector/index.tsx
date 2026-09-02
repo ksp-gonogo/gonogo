@@ -23,6 +23,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CommandButtonHandle,
+  commandLossSentence,
   Disclosure,
   NULL_DISPLAY,
   Panel,
@@ -1290,6 +1291,9 @@ function InFlightPanel({
     handle: toTrackingCmd,
     commandLabel: "Go to Tracking Station",
   });
+  const trackingStationLoss = commandLossSentence({
+    label: "Go to Tracking Station",
+  });
   const [showSpaceObjects, setShowSpaceObjects] = useState(false);
   const totalAvailable = availableVessels?.length ?? 0;
   const spaceObjectCount = useMemo(
@@ -1365,19 +1369,28 @@ function InFlightPanel({
           <TrackingStationConfirm type="button" disabled aria-busy="true">
             <Spinner size={12} /> Leaving...
           </TrackingStationConfirm>
-        ) : trackingStation.isArmed || trackingStation.isRefused ? (
+        ) : trackingStation.isArmed ||
+          trackingStation.isRefused ||
+          trackingStation.isLost ? (
           <TrackingStationConfirm
             type="button"
             onClick={() => trackingStation.press(true)}
             title={
               trackingStation.refusalText ??
-              "KSP may revert this flight to its last save if it can't save here (the in-game warning dialog has no equivalent on the wire)."
+              (trackingStation.isLost
+                ? trackingStationLoss
+                : "KSP may revert this flight to its last save if it can't save here (the in-game warning dialog has no equivalent on the wire).")
             }
-            aria-label={trackingStation.refusalText ?? undefined}
+            aria-label={
+              trackingStation.refusalText ??
+              (trackingStation.isLost ? trackingStationLoss : undefined)
+            }
           >
             {trackingStation.isRefused
               ? "Refused"
-              : "Confirm: flight may revert"}
+              : trackingStation.isLost
+                ? "No reply"
+                : "Confirm: flight may revert"}
           </TrackingStationConfirm>
         ) : (
           <TrackingStationButton
@@ -1502,8 +1515,15 @@ function ArmedButton({
   disabled?: boolean;
   pendingLabel?: string;
 }) {
-  const { isArmed, isPending, isRefused, refusalText, hasFailure, press } =
-    useCommandButton({ handle, args, commandLabel });
+  const {
+    isArmed,
+    isPending,
+    isRefused,
+    isLost,
+    refusalText,
+    hasFailure,
+    press,
+  } = useCommandButton({ handle, args, commandLabel });
 
   if (isPending) {
     return (
@@ -1523,6 +1543,23 @@ function ArmedButton({
         data-launch-action={`refused-${kind}`}
       >
         Refused
+      </ConfirmButton>
+    );
+  }
+  if (isLost) {
+    // Never the resting render, which is where a CONFIRMED action goes: a
+    // recover or a revert nobody answered may already have happened.
+    const sentence = commandLossSentence({ label: commandLabel });
+    return (
+      <ConfirmButton
+        type="button"
+        $kind={kind}
+        onClick={() => press(true)}
+        title={sentence}
+        aria-label={sentence}
+        data-launch-action={`lost-${kind}`}
+      >
+        No reply
       </ConfirmButton>
     );
   }

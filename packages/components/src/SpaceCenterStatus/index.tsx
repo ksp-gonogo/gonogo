@@ -19,6 +19,7 @@ import {
   CheckIcon,
   ChevronUpIcon,
   type CommandButtonHandle,
+  commandLossSentence,
   FitLabelButton,
   NULL_DISPLAY,
   Panel,
@@ -697,7 +698,7 @@ function TierBlock({ heading, text }: { heading: string; text: string }) {
 
 /**
  * The facility cell's upgrade control. Behaviour (arm, confirm, in-flight,
- * refused) is the shared `useCommandButton`; the CHROME stays local because a
+ * refused, no reply) is the shared `useCommandButton`; the CHROME stays local because a
  * facility cell is roughly two grid columns wide and the label has to collapse
  * to an icon, which is `FitLabelButton`'s measured job and not something the
  * default `CommandButton` rendering does.
@@ -715,12 +716,20 @@ function UpgradeButton({
   facilityLabel: string;
   titleOverride?: string;
 }) {
-  const { isArmed, isPending, isRefused, refusalText, hasFailure, press } =
-    useCommandButton({
-      handle: upgradeCmd,
-      args: { facilityId },
-      commandLabel: `Upgrade ${facilityLabel}`,
-    });
+  const commandLabel = `Upgrade ${facilityLabel}`;
+  const {
+    isArmed,
+    isPending,
+    isRefused,
+    isLost,
+    refusalText,
+    hasFailure,
+    press,
+  } = useCommandButton({
+    handle: upgradeCmd,
+    args: { facilityId },
+    commandLabel,
+  });
 
   if (isPending) {
     return (
@@ -740,6 +749,20 @@ function UpgradeButton({
         title={refusalText ?? titleOverride}
         aria-label={refusalText ?? undefined}
         label="Refused"
+        icon={<ChevronUpIcon size={12} />}
+      />
+    );
+  }
+  if (isLost) {
+    // Not the resting render, which is what a CONFIRMED upgrade returns to: an
+    // upgrade nobody answered may or may not be building.
+    const sentence = commandLossSentence({ label: commandLabel });
+    return (
+      <ConfirmUpgradeButton
+        onClick={() => press(true)}
+        title={sentence}
+        aria-label={sentence}
+        label="No reply"
         icon={<ChevronUpIcon size={12} />}
       />
     );
