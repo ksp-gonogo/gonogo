@@ -13,6 +13,7 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import type { Rp1ConstructionEntry } from "../__generated__/contract";
 import { current } from "../shared/current";
+import { FACILITY_LABEL } from "../shared/facilityLabels";
 import { ProjectCard, ProjectCardList } from "../shared/ProjectCard";
 import { RP1 } from "../uplink";
 // Side-effect import: hydrates these Topics' units at decode time. Here rather
@@ -235,27 +236,6 @@ const KIND_BADGE: Readonly<Record<string, string>> = {
   FacilityUpgrade: "FACILITY",
   LaunchComplex: "COMPLEX",
   Pad: "PAD",
-};
-
-/**
- * KSP's facility enum, spelled the way the building is signposted.
- *
- * RP-1's own list writes these out through a localised lookup that reaches KSP,
- * which a reflection-only Uplink cannot call, so the stored name arrives as the
- * enum member and "VehicleAssemblyBuilding" is not a thing anybody says. A
- * facility the table does not know falls back to the stored name rather than to
- * a dash: an unrecognised building still has to be identifiable.
- */
-const FACILITY_LABEL: Readonly<Record<string, string>> = {
-  Administration: "Administration",
-  AstronautComplex: "Astronaut Complex",
-  LaunchPad: "Launch Pad",
-  MissionControl: "Mission Control",
-  ResearchAndDevelopment: "Research and Development",
-  Runway: "Runway",
-  SpaceplaneHangar: "Spaceplane Hangar",
-  TrackingStation: "Tracking Station",
-  VehicleAssemblyBuilding: "Vehicle Assembly Building",
 };
 
 /**

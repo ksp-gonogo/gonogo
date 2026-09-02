@@ -12,12 +12,14 @@ import "./CrewSchedule";
 import "./CrewSchedule/enrolment";
 import "./ContractPayload";
 import "./CrewSchedule/programme";
+import "./FacilityUpgrades";
 import "./KscComplexes";
 import "./KscConstruction";
 import "./LaunchComplexStatus";
 import "./ProgramDetail";
 import "./ProgramStatus";
 import "./ResearchQueue";
+import "./StartResearch";
 import "./VehicleAssembly";
 import "./WarpTargets";
 
@@ -41,15 +43,26 @@ export {
 // boundary.
 export { UPLINK_COMMAND_IDS } from "./commands";
 export {
+  FacilityUpgrades,
+  RP1_FACILITY_UPGRADE_COMMAND,
+} from "./FacilityUpgrades";
+export {
   KscComplexes,
   RP1_COMPLEX_RUSH_COMMAND,
   RP1_PERSONNEL_ASSIGN_COMMAND,
 } from "./KscComplexes";
 export { KscConstruction } from "./KscConstruction";
 export { LaunchComplexStatus } from "./LaunchComplexStatus";
-export { ProgramDetail } from "./ProgramDetail";
+export {
+  ProgramDetail,
+  RP1_STRATEGY_ACTIVATE_COMMAND,
+} from "./ProgramDetail";
 export { ProgramStatus } from "./ProgramStatus";
 export { ResearchQueue } from "./ResearchQueue";
+export {
+  RP1_TECH_RESEARCH_COMMAND,
+  StartResearch,
+} from "./StartResearch";
 export { RP1_DELAY_IN_SIMULATION_SETTING } from "./settings/rp1SimulationSettings";
 export {
   RP1_AVAILABLE_TOPIC,

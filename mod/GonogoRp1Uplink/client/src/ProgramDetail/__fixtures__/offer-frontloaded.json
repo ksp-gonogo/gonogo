@@ -5,11 +5,13 @@
   "_scene": {
     "augment": "rp1-program-detail",
     "host": "strategies",
-    "caption": "An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years",
+    "caption": "An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years and the accept control dark on the Confidence it is short of",
     "paints": [
       "PROGRAM DETAIL",
       "Early X-Planes",
       "OFFERABLE",
+      "ACCEPT",
+      "Normal speed",
       "SPEED",
       "SHORT",
       "CLOSES OFF ON ACCEPT"

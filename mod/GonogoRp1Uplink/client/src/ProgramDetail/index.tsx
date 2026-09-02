@@ -1,8 +1,14 @@
 import type { Reading } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, useTelemetry, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  registerAugment,
+  useCommand,
+  useTelemetry,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Cluster,
+  CommandButton,
   DataTable,
   Disclosure,
   EmptyState,
@@ -22,6 +28,7 @@ import {
   Stack,
   Text,
   Unit,
+  usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import type {
@@ -38,6 +45,15 @@ import {
   plainCurveKeys,
   sampleFundingCurve,
 } from "./fundingCurve";
+
+/**
+ * Commit to a Program. Must match `Rp1StrategyCommands.ActivateCommand`.
+ *
+ * <para>It is the STRATEGY command and not a program-shaped one, because RP-1
+ * makes leaders and Programs one class family: a "leader" is any strategy whose
+ * department is not Programs, and the same procedure activates both.</para>
+ */
+export const RP1_STRATEGY_ACTIVATE_COMMAND = "rp1.strategy.activate";
 
 /**
  * One RP-1 Program in full: what it asks, what it pays, when, and what
@@ -76,6 +92,11 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
   const career = current(useTelemetry("career.status"));
 
   const [picked, setPicked] = useState<string | null>(null);
+
+  /* Unconditional and above the two early returns below: a hook after one would
+     change count on the first frame RP-1 answers. */
+  const accept = useCommand(RP1_STRATEGY_ACTIVATE_COMMAND);
+  usePanelDelay(accept);
 
   const rows = programs ?? [];
   const chosen = choose(rows, picked ?? "");
@@ -155,6 +176,7 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
           <EmptyState>RP-1 has not sent a Program catalogue</EmptyState>
         ) : (
           <ChosenProgram
+            accept={accept}
             program={chosen}
             curves={curves}
             confidenceHeld={magnitudeOf(confidence?.confidence)}
@@ -228,10 +250,12 @@ function ProgramPicker({
 
 /** Everything about the Program the operator picked. */
 function ChosenProgram({
+  accept,
   program,
   curves,
   confidenceHeld,
 }: Readonly<{
+  accept: Parameters<typeof CommandButton>[0]["handle"];
   program: Rp1ProgramEntry;
   curves: readonly Rp1FundingCurveEntry[] | undefined;
   confidenceHeld: number | null;
@@ -262,6 +286,12 @@ function ChosenProgram({
           </Row>
         </Stack>
       </Section>
+
+      <AcceptControl
+        confidenceHeld={confidenceHeld}
+        handle={accept}
+        program={program}
+      />
 
       {present(program.objectivesText) !== undefined && (
         <Section>
@@ -353,6 +383,115 @@ function ChosenProgram({
         </Section>
       )}
     </Stack>
+  );
+}
+
+/**
+ * Accept this Program, at the speed RP-1 currently has selected.
+ *
+ * <para><b>The price is CONFIDENCE and it is charged in full at the press.</b>
+ * `ProgramHandler.ActivateProgram` calls `Program.Accept()`, where the charge
+ * and the deadline both live, so this is an up-front purchase and not a drain
+ * like a construction. Funds run the other way entirely: a Program PAYS the
+ * career, on the curve above. Both balances are drawn at the head of this
+ * section for exactly that reason, and the Confidence one is the one this
+ * control spends.</para>
+ *
+ * <para><b>The speed is RP-1's, not the operator's.</b> Speed fixes both the
+ * term and the Confidence price and RP-1 fixes it at accept from whatever the
+ * Administration building has selected. No command on this Uplink can set it, so
+ * the control names the speed it would accept at rather than implying a choice
+ * that is not on offer, and the ladder below prices the alternatives.</para>
+ *
+ * <para><b>Dark on state rather than on the press.</b> `canAccept` is RP-1's own
+ * reading of everything but the money: not already active, not completed, not
+ * ruled out by a rival, requirements met. The Confidence comparison is the half
+ * RP-1 leaves to the client, because it makes that check with a broadcast query,
+ * and it is the same comparison the speed ladder marks SHORT with. Both refuse
+ * here with the reason on the control, and RP-1's own
+ * `ProgramStrategy.CanActivate` asks all of it again at the press, so a stale
+ * view cannot spend anything.</para>
+ */
+function AcceptControl({
+  confidenceHeld,
+  handle,
+  program,
+}: Readonly<{
+  confidenceHeld: number | null;
+  handle: Parameters<typeof CommandButton>[0]["handle"];
+  program: Rp1ProgramEntry;
+}>) {
+  /* Nothing at all for a Program that is not an offer. A dark Accept on the
+     Program already paying the career says nothing an operator can act on, and
+     the state badge beside the section title already says which it is. */
+  if (program.canAccept !== true) {
+    return null;
+  }
+
+  const short = outOfReach(program.confidenceCost, confidenceHeld);
+  const name = label(program);
+
+  return (
+    <Section>
+      <SectionTitle>ACCEPT</SectionTitle>
+      <Cluster gap="sm" justify="start" wrap>
+        <Text size="sm" tone="muted">
+          {program.confidenceCost == null ? (
+            <>{NULL_DISPLAY} RP-1 did not price this Program</>
+          ) : (
+            <>
+              <Unit value={program.confidenceCost} /> at{" "}
+              {program.speed ?? NULL_DISPLAY} speed
+            </>
+          )}
+          {short && (
+            <>
+              {" "}
+              <Badge severity="caution">SHORT</Badge>
+            </>
+          )}
+        </Text>
+        <CommandButton
+          args={{ strategyId: program.name }}
+          /* Named while it can act, and the bare label once it cannot: a
+             refused control announcing the acceptance it would have made
+             describes something that will not happen. */
+          aria-label={short ? undefined : `Accept ${name}`}
+          commandLabel={`Accept ${name}`}
+          confirmAriaLabel={`Confirm accepting ${name}`}
+          confirmLabel={<AcceptWording cost={program.confidenceCost} />}
+          disabled={short}
+          handle={handle}
+          label="Accept"
+          size="sm"
+          title={
+            short
+              ? "RP-1 charges the whole Confidence price when the Program is accepted, and the career is short of it"
+              : undefined
+          }
+        />
+      </Cluster>
+    </Section>
+  );
+}
+
+/**
+ * What the confirm press spends.
+ *
+ * <para>A price RP-1 did not send is the null dash rather than a zero, and the
+ * press is still offered: `ProgramStrategy.CanActivate` reads the threshold
+ * itself and refuses with the figure if it really cannot be met.</para>
+ */
+function AcceptWording({
+  cost,
+}: Readonly<{ cost: Rp1ProgramEntry["confidenceCost"] }>) {
+  if (cost == null) {
+    return <>Spend {NULL_DISPLAY}</>;
+  }
+  return (
+    <>
+      Spend <Unit value={cost} />
+    </>
   );
 }
 

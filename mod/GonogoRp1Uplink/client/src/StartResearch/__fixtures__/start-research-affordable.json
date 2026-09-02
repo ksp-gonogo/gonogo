@@ -1,0 +1,101 @@
+{
+  "_scene": {
+    "augment": "rp1-start-research",
+    "host": "tech-tree",
+    "size": {
+      "w": 12,
+      "h": 16
+    },
+    "caption": "The same frontier against a balance that can meet it, with a node already on the queue withheld from the picker: RP-1 refuses a second press ahead of the charge, so offering one would be offering a press that cannot land",
+    "paints": ["START RESEARCH", "Simple Rocketry", "at the press", "Research"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "tech": {
+            "unlockedCount": 2,
+            "unlockedIds": ["start", "unlockParts"],
+            "nodes": [
+              {
+                "id": "start",
+                "title": "Start",
+                "description": "Where every programme begins.",
+                "scienceCost": 0,
+                "unlocked": true,
+                "parents": []
+              },
+              {
+                "id": "unlockParts",
+                "title": "Basic Rocketry",
+                "description": "How hard can Rocket Science be anyway?",
+                "scienceCost": 4,
+                "unlocked": true,
+                "parents": ["start"]
+              },
+              {
+                "id": "basicRocketry",
+                "title": "Simple Rocketry",
+                "description": "Small solid motors and the tanks to feed them.",
+                "scienceCost": 12,
+                "unlocked": false,
+                "parents": ["unlockParts"]
+              },
+              {
+                "id": "earlyFlight",
+                "title": "Early Flight",
+                "description": "Wings, and the nerve to use them.",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["unlockParts"]
+              },
+              {
+                "id": "orbitalRocketry",
+                "title": "Orbital Rocketry",
+                "description": "Already on the queue, so not on offer here.",
+                "scienceCost": 160,
+                "unlocked": false,
+                "parents": ["unlockParts"]
+              }
+            ]
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.research",
+        "payload": [
+          {
+            "techId": "orbitalRocketry",
+            "techName": "Orbital Rocketry",
+            "scienceCost": 160,
+            "progress": 42,
+            "progressRatio": 0.26,
+            "workRate": 1,
+            "timeLeftSeconds": 5400000,
+            "stalled": false,
+            "startYear": 1957,
+            "endYear": 1962
+          }
+        ]
+      }
+    ]
+  }
+}

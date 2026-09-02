@@ -1,0 +1,112 @@
+{
+  "_scene": {
+    "augment": "rp1-facility-upgrades",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 16
+    },
+    "caption": "A career with two tiers it could commit to and one building already in the queue, priced against a balance that cannot meet either: RP-1 bills a construction as it builds, so this is a slower upgrade rather than a refused one",
+    "paints": [
+      "FACILITY UPGRADES",
+      "Launch Pad",
+      "now at tier 2 of 3",
+      "over the build",
+      "Queue upgrade",
+      "slows the work rather than stopping it"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 41250,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 112500
+            },
+            "VehicleAssemblyBuilding": {
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 40000
+            },
+            "ResearchAndDevelopment": {
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 60000
+            },
+            "TrackingStation": {
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "spaceCenter.launchSites",
+        "payload": [
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
+        ]
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.centres",
+        "payload": [
+          {
+            "kscName": "Cape",
+            "kscDisplayName": "Cape Canaveral",
+            "isActive": true,
+            "engineers": 24,
+            "unassignedEngineers": 6,
+            "launchComplexCount": 2,
+            "anyOperational": true,
+            "groundStation": "us_cape_canaveral"
+          }
+        ]
+      },
+      {
+        "topic": "rp1.constructions",
+        "payload": [
+          {
+            "kind": "FacilityUpgrade",
+            "kscName": "Cape",
+            "name": "ResearchAndDevelopment",
+            "facilityType": "ResearchAndDevelopment",
+            "currentLevel": 1,
+            "targetLevel": 2,
+            "cost": 60000,
+            "spentCost": 14200,
+            "progressRatio": 0.24,
+            "timeLeftSeconds": 8200000,
+            "workRate": 1,
+            "stalled": false,
+            "isModify": false
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -29,10 +29,11 @@
 // stock write, and the queue it names is already on the board: rp1.constructions
 // and rp1.research publish both.
 //
-// THE RESEARCH HALF NOW HAS ITS COMMAND. rp1.tech.research (Rp1ResearchCommands)
-// is the RP-1-native act this refusal describes, so the tech sentence names it.
-// The facility half still names a place rather than a command, because the
-// construction-project equivalent has not been written.
+// BOTH HALVES NOW HAVE THEIR COMMAND. rp1.tech.research (Rp1ResearchCommands)
+// and rp1.facility.upgrade (Rp1FacilityUpgradeCommands) are the RP-1-native acts
+// these refusals describe, so both sentences name one. Until the facility command
+// existed its sentence named a PLACE, and sending an operator into the game for
+// something now on their own board is exactly the drift this refusal is for.
 //
 // WHAT IS READ, and why each is safe:
 //
@@ -86,21 +87,19 @@ namespace GonogoRp1Uplink
         /// <summary>
         /// What an operator reads under a managed career, as the clause after
         /// "Upgrade Launch Pad unavailable:". Names the shape of RP-1's model
-        /// first, because that is what makes the refusal make sense, and then
-        /// where the same job is actually started.
+        /// first, because that is what makes the refusal make sense, and then the
+        /// command that actually starts the job.
         /// </summary>
         private const string FacilityDetail =
             "RP-1 builds a facility upgrade as a construction project with its own cost and duration, "
-            + "so it has to be started at the space centre rather than bought outright";
+            + "so it has to be queued rather than bought outright. Use rp1.facility.upgrade";
 
         /// <summary>
-        /// The research half of <see cref="FacilityDetail"/>, and the one that
-        /// now NAMES the command it defers to. This file's header said that
-        /// command belonged in this Uplink's own namespace and it has since been
-        /// written, so leaving the refusal pointing only at the R&amp;D complex
-        /// would send an operator into the game for something on their own board.
-        /// The facility half still names a place, because its own command does
-        /// not exist yet.
+        /// The research half of <see cref="FacilityDetail"/>. Both halves now name
+        /// the command they defer to: this file's header said each belonged in
+        /// this Uplink's own namespace and both have since been written, so a
+        /// refusal pointing only at a building would send an operator into the
+        /// game for something on their own board.
         /// </summary>
         private const string TechDetail =
             "RP-1 researches a tech node as a queued project with its own duration, "

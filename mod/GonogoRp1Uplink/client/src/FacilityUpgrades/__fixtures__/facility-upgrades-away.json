@@ -1,0 +1,54 @@
+{
+  "_scene": {
+    "augment": "rp1-facility-upgrades",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 16
+    },
+    "caption": "The same career read from the flight scene: KSP has not built the facilities, so every tier and every price is absent and the command's own gate refuses. Said out loud, because a career with nothing left to upgrade renders the same silence",
+    "paints": ["FACILITY UPGRADES", "only while the space centre is on screen"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            },
+            "VehicleAssemblyBuilding": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "Flight",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.constructions",
+        "payload": []
+      }
+    ]
+  }
+}

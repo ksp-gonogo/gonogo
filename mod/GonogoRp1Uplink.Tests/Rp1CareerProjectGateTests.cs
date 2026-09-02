@@ -124,8 +124,11 @@ namespace GonogoRp1Uplink.Tests
 
         /// <summary>
         /// Under a managed career the upgrade is refused, and the refusal says
-        /// what RP-1 makes of the act and where the same job is started. A bare
-        /// refusal would be a worse bug than the write it prevents.
+        /// what RP-1 makes of the act and which command starts the same job. A
+        /// bare refusal would be a worse bug than the write it prevents, and a
+        /// refusal naming a BUILDING rather than the command is the drift this
+        /// pins: it sent an operator into the game for something on their own
+        /// board for as long as rp1.facility.upgrade went unnamed.
         /// </summary>
         [Fact]
         public void A_facility_upgrade_is_refused_with_the_reason_in_words()
@@ -138,11 +141,11 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(CommandErrorCode.ModeUnavailable, verdict.ErrorCode);
             Assert.Equal(
                 "RP-1 builds a facility upgrade as a construction project with its own cost and duration, "
-                + "so it has to be started at the space centre rather than bought outright",
+                + "so it has to be queued rather than bought outright. Use rp1.facility.upgrade",
                 verdict.Detail);
         }
 
-        /// <summary>The research half, and a different sentence: the two are started in different places.</summary>
+        /// <summary>The research half, and a different sentence: the two are different commands.</summary>
         [Fact]
         public void A_tech_unlock_is_refused_with_the_reason_in_words()
         {

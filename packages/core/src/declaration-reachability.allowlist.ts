@@ -30,12 +30,21 @@
  *     mistaken for use.
  *
  * THE SHAPE OF THE DEBT is worth reading before clearing it. Seventeen of the
- * twenty are commands and three are Topics, which says the gap is overwhelmingly
- * on the CONTROL side: the mod will accept instructions the dashboard has no
- * button for. `principia.plan.*` is a whole five-command planning surface with
- * no caller, and `rp1.tech.research`, `rp1.facility.upgrade` and
- * `rp1.strategy.activate` are three of the four career spends CLAUDE.md's funds
- * rule names by hand.
+ * twenty as seeded were commands and three were Topics, which says the gap is
+ * overwhelmingly on the CONTROL side: the mod will accept instructions the
+ * dashboard has no button for. `principia.plan.*` is still a whole five-command
+ * planning surface with no caller.
+ *
+ * The three career spends CLAUDE.md's funds rule names by hand,
+ * `rp1.tech.research`, `rp1.facility.upgrade` and `rp1.strategy.activate`, have
+ * since been wired and are gone from the list. Each landed in the surface the
+ * operator was already looking at rather than in one RP-1 screen: research in
+ * `StartResearch` on the tech tree, the facility tier in `FacilityUpgrades` on
+ * the Space Center, and the Program accept in `ProgramDetail` on the
+ * Administration building. Note the LEADER half of `rp1.strategy.activate` has
+ * no control: RP-1 publishes no availability fact for a leader and the command
+ * asks RP-1's own `IsUnlocked` predicate for none, so a picker would offer
+ * appointments RP-1's own building forbids. See that command's report.
  */
 
 /**
@@ -82,18 +91,10 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
   ],
   GonogoRp1Uplink: [
     "command rp1.complex.modify",
-    /*
-     * Three of the four career spends CLAUDE.md's funds rule names by hand
-     * (upgrade a facility, unlock a tech, accept an advance). The mod will
-     * perform them and no widget can ask.
-     */
-    "command rp1.facility.upgrade",
     "command rp1.fundTarget.cancel",
     "command rp1.fundTarget.set",
     "command rp1.hireTarget.cancel",
     "command rp1.hireTarget.set",
-    "command rp1.strategy.activate",
-    "command rp1.tech.research",
     /*
      * The surviving half of the `rp1.tooling` fold that prompted this gate:
      * `rp1.tooling.toolAll` has since been wired to

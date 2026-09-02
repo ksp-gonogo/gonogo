@@ -437,6 +437,67 @@ describe("ProgramDetail", () => {
     }
   });
 
+  /*
+   * The accept control, and the whole reason it is here: `rp1.strategy.activate`
+   * was declared, handled and reachable from nothing at all.
+   *
+   * <para>The price is CONFIDENCE and it is charged in full by
+   * `Program.Accept()`, so this is an up-front purchase. Funds run the other
+   * way: a Program pays the career. Both balances are already at the head of
+   * this section, which is what satisfies the spend rule.</para>
+   */
+  it("offers no accept control on a Program that is not an offer", async () => {
+    const { fixture } = mount();
+    await feed(fixture);
+
+    expect(visibleText()).not.toContain("ACCEPT");
+    expect(screen.queryByRole("button", { name: /^accept/i })).toBeNull();
+  });
+
+  it("prices an offerable Program in Confidence, at the speed RP-1 has selected", async () => {
+    const { fixture } = mount();
+    await feed(fixture, [
+      program({
+        state: "offerable",
+        canAccept: true,
+        acceptedUt: null,
+        fundsPaidOut: null,
+        fundsRemaining: null,
+      }),
+    ]);
+
+    expect(await screen.findByText("ACCEPT")).toBeInTheDocument();
+    const button = screen.getByRole("button", {
+      name: /accept x-plane research/i,
+    });
+    expect(button).toBeEnabled();
+    // 350 Confidence at Normal, which is the row the ladder marks SELECTED.
+    expect(visibleText()).toContain("Normal speed");
+  });
+
+  /*
+   * Dark on STATE rather than on the press. The Confidence comparison is the
+   * half RP-1 leaves to the client, because it makes that check with a
+   * broadcast query, and `ProgramStrategy.CanActivate` asks it again at the
+   * press so a stale view cannot spend anything.
+   */
+  it("refuses on state when the career is short of the Confidence", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", [
+      program({ state: "offerable", canAccept: true, confidenceCost: 900 }),
+    ]);
+    fixture.emit("rp1.programSlots", slots());
+    fixture.emit("rp1.programFundingCurves", [flatCurve()]);
+    fixture.emit("rp1.confidence", { confidence: 500, earned: 0 });
+    fixture.emit("career.status", { economy: { funds: 289_848 } });
+
+    await waitFor(() => {
+      expect(screen.getByText("ACCEPT")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: /^accept$/i })).toBeDisabled();
+  });
+
   it("says so plainly before any catalogue has arrived", async () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);

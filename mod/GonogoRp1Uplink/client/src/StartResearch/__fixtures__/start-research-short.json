@@ -1,0 +1,106 @@
+{
+  "_scene": {
+    "augment": "rp1-start-research",
+    "host": "tech-tree",
+    "size": {
+      "w": 12,
+      "h": 16
+    },
+    "caption": "The reachable frontier of an RP-1 tree, cheapest first, against a science balance that cannot meet even that: RP-1 charges the whole cost at ENQUEUE, so the control is dark on state with the shortfall named",
+    "paints": [
+      "START RESEARCH",
+      "Science",
+      "Charged in full when the node is queued",
+      "SHORT"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 4
+          },
+          "tech": {
+            "unlockedCount": 2,
+            "unlockedIds": ["start", "unlockParts"],
+            "nodes": [
+              {
+                "id": "start",
+                "title": "Start",
+                "description": "Where every programme begins.",
+                "scienceCost": 0,
+                "unlocked": true,
+                "parents": []
+              },
+              {
+                "id": "unlockParts",
+                "title": "Basic Rocketry",
+                "description": "How hard can Rocket Science be anyway?",
+                "scienceCost": 4,
+                "unlocked": true,
+                "parents": ["start"]
+              },
+              {
+                "id": "basicRocketry",
+                "title": "Simple Rocketry",
+                "description": "Small solid motors and the tanks to feed them.",
+                "scienceCost": 12,
+                "unlocked": false,
+                "parents": ["unlockParts"]
+              },
+              {
+                "id": "earlyFlight",
+                "title": "Early Flight",
+                "description": "Wings, and the nerve to use them.",
+                "scienceCost": 45,
+                "unlocked": false,
+                "parents": ["unlockParts"]
+              },
+              {
+                "id": "advRocketry",
+                "title": "Advanced Rocketry",
+                "description": "Behind Simple Rocketry, and out of reach until it lands.",
+                "scienceCost": 90,
+                "unlocked": false,
+                "parents": ["basicRocketry"]
+              }
+            ]
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.research",
+        "payload": [
+          {
+            "techId": "orbitalRocketry",
+            "techName": "Orbital Rocketry",
+            "scienceCost": 160,
+            "progress": 42,
+            "progressRatio": 0.26,
+            "workRate": 1,
+            "timeLeftSeconds": 5400000,
+            "stalled": false,
+            "startYear": 1957,
+            "endYear": 1962
+          }
+        ]
+      }
+    ]
+  }
+}
