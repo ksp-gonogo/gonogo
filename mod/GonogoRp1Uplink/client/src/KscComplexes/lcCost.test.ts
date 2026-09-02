@@ -169,6 +169,8 @@ describe("quoting a renovation of a complex the career has", () => {
         sizeMaxHeight: c.sizeMaxHeight,
         sizeMaxWidth: c.sizeMaxWidth,
       },
+      // RP-1's shipped 0.5, which is what the cases were generated at.
+      { additionalPadCostMult: value("ratio", 0.5) },
     );
 
     expect(quote).not.toBeNull();
@@ -232,7 +234,43 @@ describe("quoting a renovation of a complex the career has", () => {
           massOrig: 100,
           resources: new Map([["Kerosene", 1000]]),
         },
+        { additionalPadCostMult: value("ratio", 0.5) },
       ),
     ).toBeNull();
+  });
+
+  it("refuses a multi-pad complex until RP-1 has said what an extra pad costs", () => {
+    /*
+     * A renovation reprices every pad the complex already has, so the
+     * additional-pad multiplier is part of the price rather than a detail of
+     * buying one. Absent is not 0.5: a career whose setting has been retuned
+     * would be quoted against a figure RP-1 does not use, and this transcription
+     * exists to agree with RP-1 rather than with its own defaults.
+     */
+    const geometry = {
+      humanRated: false,
+      isHangar: false,
+      resources: new Map<string, number>(),
+      sizeMaxDepth: 10,
+      sizeMaxHeight: 20,
+      sizeMaxWidth: 10,
+    };
+    const current = { ...geometry, massMax: 100, massOrig: 100 };
+
+    expect(
+      quoteModifyComplex(
+        { ...geometry, massMax: 180 },
+        { ...current, launchPadCount: 2 },
+        {},
+      ),
+    ).toBeNull();
+    // One pad needs no multiplier at all, so the same career still gets a quote.
+    expect(
+      quoteModifyComplex(
+        { ...geometry, massMax: 180 },
+        { ...current, launchPadCount: 1 },
+        {},
+      ),
+    ).not.toBeNull();
   });
 });

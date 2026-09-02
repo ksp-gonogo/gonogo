@@ -19,6 +19,7 @@ import {
 import { useState } from "react";
 import type {
   Rp1ComplexEntry,
+  Rp1LcPricing,
   Rp1PadEntry,
   Rp1RushTerms,
 } from "../__generated__/contract";
@@ -56,6 +57,7 @@ export function ComplexCard({
   funds,
   modify,
   newPad,
+  pricing,
   renameComplex,
   renamePad,
 }: Readonly<{
@@ -75,6 +77,8 @@ export function ComplexCard({
   funds: number | null;
   modify: Parameters<typeof CommandButton>[0]["handle"];
   newPad: Parameters<typeof CommandButton>[0]["handle"];
+  /** RP-1's pricing settings, for the renovation quote. */
+  pricing: Rp1LcPricing | undefined;
   renameComplex: Parameters<typeof CommandButton>[0]["handle"];
   renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
@@ -180,7 +184,12 @@ export function ComplexCard({
             {/* Immediately under the envelope and the costs, which are what a
                 renovation changes and what it is priced against. Above the
                 dismantle, because it is the reversible one of the two. */}
-            <ModifyControl complex={complex} funds={funds} handle={modify} />
+            <ModifyControl
+              complex={complex}
+              funds={funds}
+              handle={modify}
+              pricing={pricing}
+            />
 
             <DismantleControl
               complex={complex}

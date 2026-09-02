@@ -12,7 +12,7 @@ import {
   UnitInput,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import type { Rp1ComplexEntry } from "../__generated__/contract";
+import type { Rp1ComplexEntry, Rp1LcPricing } from "../__generated__/contract";
 import { type LcCurrent, type LcSpec, quoteModifyComplex } from "./lcCost";
 
 /** Renovate a complex into a new envelope. Must match `Rp1ComplexConstructionCommands.ModifyComplexCommand`. */
@@ -58,11 +58,18 @@ export function ModifyControl({
   complex,
   funds,
   handle,
+  pricing,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   /** The career balance, for the covers-it reading only. Absent means say nothing. */
   funds: number | null;
   handle: Parameters<typeof CommandButton>[0]["handle"];
+  /**
+   * RP-1's own pricing settings. Needed for the additional-pad multiplier, which
+   * a renovation applies to every pad the complex already has; the quote is
+   * refused rather than defaulted without it.
+   */
+  pricing: Rp1LcPricing | undefined;
 }>) {
   const lcId = complex.lcId;
   const capacities = complex.resourceCapacities;
@@ -76,6 +83,7 @@ export function ModifyControl({
       funds={funds}
       handle={handle}
       lcId={lcId}
+      pricing={pricing}
     />
   );
 }
@@ -98,12 +106,14 @@ function ModifyForm({
   funds,
   handle,
   lcId,
+  pricing,
 }: Readonly<{
   capacities: { [key: string]: number };
   complex: Rp1ComplexEntry;
   funds: number | null;
   handle: Parameters<typeof CommandButton>[0]["handle"];
   lcId: string;
+  pricing: Rp1LcPricing | undefined;
 }>) {
   const isHangar = complex.lcType === "Hangar";
   const name = complex.name ?? NULL_DISPLAY;
@@ -142,7 +152,7 @@ function ModifyForm({
     sizeMaxWidth: currentWidth,
   };
 
-  const quote = quoteModifyComplex(nextSpec, current);
+  const quote = quoteModifyComplex(nextSpec, current, pricing);
   const engineers = magnitudeOf(complex.engineers) ?? 0;
   const short = funds !== null && quote !== null && funds < quote.total;
 

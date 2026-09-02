@@ -1,3 +1,4 @@
+import { magnitudeOf } from "@ksp-gonogo/ui-kit";
 import type { Rp1LcPricing } from "../__generated__/contract";
 
 /**
@@ -164,6 +165,7 @@ export interface LcModifyQuote {
 export function quoteModifyComplex(
   next: LcSpec,
   current: LcCurrent,
+  pricing: Rp1LcPricing | undefined,
 ): LcModifyQuote | null {
   if (!sameResources(next.resources, current.resources)) {
     return null;
@@ -190,7 +192,19 @@ export function quoteModifyComplex(
 
     const pads = current.launchPadCount;
     if (pads > 1) {
-      padHalf *= 1 + (pads - 1) * ADDITIONAL_PAD_COST_MULT;
+      /*
+       * RP-1's own setting, off the wire rather than assumed: a renovation
+       * reprices every pad the complex already has, so a career whose
+       * additional-pad multiplier has been retuned would be quoted against the
+       * wrong one. Refused rather than defaulted when it has not arrived, on the
+       * same rule the resource half follows: a quote under its true cost is
+       * worse than no quote.
+       */
+      const mult = magnitudeOf(pricing?.additionalPadCostMult);
+      if (mult === null) {
+        return null;
+      }
+      padHalf *= 1 + (pads - 1) * mult;
     }
 
     if (
@@ -227,21 +241,6 @@ export function quoteModifyComplex(
 
   return { isDowngrade, total: padHalf + integrationHalf };
 }
-
-/**
- * RP-1's additional-pad multiplier.
- *
- * <para>Hard-coded rather than taken off `rp1.lcPricing`, and that is a
- * deliberate narrowing rather than an oversight: the wire's figure IS the one to
- * use for a pad purchase and this call site would need it too, but the pinned
- * cases this transcription is held to are generated at RP-1's shipped 0.5. A
- * quote drawn against a retuned setting would silently stop matching the figures
- * that keep it honest. The renovation control refuses to quote a multi-pad
- * complex when the wire disagrees with this, rather than quoting it wrong.</para>
- */
-const ADDITIONAL_PAD_COST_MULT = 0.5;
-
-export { ADDITIONAL_PAD_COST_MULT };
 
 /** Whether two resource sets are the same set with the same capacities. */
 function sameResources(

@@ -168,6 +168,24 @@ describe("renovating a launch complex", () => {
     expect(view.container.textContent).not.toMatch(/cannot afford/i);
   });
 
+  it("refuses to quote a two-pad complex until RP-1 has priced an extra pad", async () => {
+    const user = userEvent.setup();
+    const { view } = mount({ ...LC1, launchPadCount: 2 });
+    await openRenovation(user);
+
+    /*
+     * A renovation reprices every pad the complex already has, and the multiplier
+     * it does that by is RP-1's own setting on `rp1.lcPricing`, absent from this
+     * scene. Absent is not the shipped default: a career whose setting has been
+     * retuned would be quoted against a figure RP-1 does not use.
+     */
+    await waitFor(() => {
+      expect(view.container.textContent).toContain(
+        "no price: RP-1 has not said what this would cost",
+      );
+    });
+  });
+
   it("charges for a shrink and says so rather than implying a refund", async () => {
     const user = userEvent.setup();
     const { view } = mount({ ...LC1, massMax: 180, massOrig: 180 });

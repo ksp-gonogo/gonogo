@@ -189,6 +189,7 @@ export function KscComplexes() {
               funds={magnitudeOf(career?.economy?.funds)}
               modify={modifyComplex}
               newPad={newPad}
+              pricing={pricing}
               renameComplex={renameComplex}
               renamePad={renamePad}
               key={centre.kscName ?? ""}

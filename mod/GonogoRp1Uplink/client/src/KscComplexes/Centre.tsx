@@ -16,6 +16,7 @@ import {
 import type {
   Rp1CentreEntry,
   Rp1ComplexEntry,
+  Rp1LcPricing,
   Rp1PadEntry,
   Rp1RushTerms,
 } from "../__generated__/contract";
@@ -50,6 +51,7 @@ export function Centre({
   funds,
   newPad,
   modify,
+  pricing,
   renameComplex,
   renamePad,
 }: Readonly<{
@@ -68,6 +70,8 @@ export function Centre({
   newPad: Parameters<typeof CommandButton>[0]["handle"];
   /** Renovate a complex, threaded to each card. */
   modify: Parameters<typeof CommandButton>[0]["handle"];
+  /** RP-1's pricing settings, threaded to each card for the renovation quote. */
+  pricing: Rp1LcPricing | undefined;
   renameComplex: Parameters<typeof CommandButton>[0]["handle"];
   renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
@@ -139,6 +143,7 @@ export function Centre({
               funds={funds}
               newPad={newPad}
               modify={modify}
+              pricing={pricing}
               renameComplex={renameComplex}
               renamePad={renamePad}
               key={complex.lcId ?? complex.name ?? ""}
