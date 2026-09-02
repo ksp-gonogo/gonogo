@@ -1,30 +1,25 @@
 {
   "_meta": {
-    "notes": "Hosted on the real Astronaut Complex, because the whole claim of this augment is that it fits in a roster row the host already drew and an isolated render cannot test that. Three kerbals in the three states that make the surface do different work: one whose date can still be pushed and who is mid-course with training already lapsing behind it, one enrolled on a course nobody has started and whose finish RP-1 has not rated, and one RP-1 holds no retirement date for at all so only the lapse line renders. The Active tab is pressed because Applicants is first and carries none of this",
-    "why-no-controls-on-a-row": "A row states WHERE a kerbal is and nothing else. It used to carry a training picker and two leave buttons under the dates, which put a whole enrolment form on every idle naut and drew one shared course's cancel button once per student. The way onto a course is the START A TRAINING section, which can name a crew where a row can only name one kerbal; a running course's specifics and the two ways off it are the TRAINING COURSES section"
+    "notes": "Hosted on the real Astronaut Complex, because the claim is about the host's OWN core-stat strip: RP-1's two cells have to sit in that row, in that cell treatment, indistinguishable from the three the widget draws itself. An isolated render would show two boxes and prove nothing about the row they are supposed to be part of.",
+    "why-a-contribution": "The cells are DATA on `astronaut-complex.readouts`, so the host draws them with its own `Stat` in its own grid. An augment would have rendered RP-1's own markup beside the row, which is how a strip ends up reading as two widgets sharing a line."
   },
   "_scene": {
-    "augment": "rp1-crew-schedule",
+    "contribution": "rp1:crew-core-stats",
     "host": "astronaut-complex",
+    "modes": ["default"],
     "size": {
       "w": 10,
-      "h": 18
+      "h": 10
     },
-    "caption": "Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own with the sack control at the end of the identity line: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes. Each line names itself, and only the lapse is toned",
-    "before": [
-      {
-        "press": "Active"
-      }
-    ],
+    "caption": "RP-1's two core stats in the Astronaut Complex's own strip: how much of the roster is mid-course, with the courses nobody has started called out, and how many kerbals are about to lose a qualification, toned because that one is a date somebody has to act before",
     "paints": [
-      "Retires",
-      "extendable to",
-      "Course",
-      "TRAINING",
-      "ENROLLED",
-      "Lapses",
-      "Mission training for",
-      "more"
+      "Funds",
+      "Next Hire",
+      "Active Kerbals",
+      "In Training",
+      "3 courses",
+      "not started",
+      "Training Lapsing"
     ]
   },
   "_stream": {
