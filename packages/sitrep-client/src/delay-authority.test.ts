@@ -41,7 +41,14 @@ describe("DelayAuthority", () => {
     expect(authority.delaySeconds()).toBe(9);
   });
 
-  it("reads CommsDelaySource.None as 0 (typed absence, never a measured zero)", () => {
+  /**
+   * `CommsDelaySource.None` covers TWO opposite states and the contract
+   * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`) tells them apart by the VALUE,
+   * not by the source: a 0 is "delay switched off, vessel connected", a null
+   * is "no measurable path home". Reading the source alone collapsed the
+   * second onto the first.
+   */
+  it("reads a None frame carrying 0 as a real zero: delay off, vessel connected", () => {
     const authority = new DelayAuthority();
     authority.observe({
       oneWaySeconds: value("s", 7),
@@ -49,12 +56,51 @@ describe("DelayAuthority", () => {
     });
     expect(authority.delaySeconds()).toBe(7);
 
-    // Source flips to None (delay authority dropped), must collapse to 0
-    // even if a stale oneWaySeconds tags along.
+    // The operator turned `comms.signalDelay.enabled` off mid-flight. The
+    // craft is still reachable and the applied delay really is zero.
     authority.observe({
-      oneWaySeconds: value("s", 7),
+      oneWaySeconds: value("s", 0),
       source: CommsDelaySource.None,
     });
+    expect(authority.delaySeconds()).toBe(0);
+  });
+
+  it("HOLDS the last known delay on a no-path frame (None + null), never collapses to 0", () => {
+    const authority = new DelayAuthority();
+    authority.observe({
+      oneWaySeconds: value("s", 7),
+      source: CommsDelaySource.SignalDelay,
+    });
+    expect(authority.delaySeconds()).toBe(7);
+
+    // The exact frame `SignalDelay.Compute` emits for an empty/incomplete
+    // path (`CommsSignalDelayTests.EmptyPath_YieldsSourceNoneAndNullOneWaySeconds`),
+    // and the one that survives the wire as JSON null
+    // (`CommsWireTests.DelaySerializesOneWaySecondsAsJsonNullWhenNoMeasurablePath`).
+    // Losing the path does not move the craft closer.
+    authority.observe({
+      oneWaySeconds: null,
+      source: CommsDelaySource.None,
+    });
+    expect(authority.delaySeconds()).toBe(7);
+
+    // An omitted field is the same absence, and holds the same way.
+    authority.observe({ source: CommsDelaySource.None });
+    expect(authority.delaySeconds()).toBe(7);
+
+    // The path comes back: the measurement wins again immediately.
+    authority.observe({
+      oneWaySeconds: value("s", 11),
+      source: CommsDelaySource.SignalDelay,
+    });
+    expect(authority.delaySeconds()).toBe(11);
+  });
+
+  it("holds 0 through a no-path frame when no delay was ever established", () => {
+    // Nothing to hold: there is no honest horizon to invent before the first
+    // measurement, and 0 is the documented LAN-identical floor.
+    const authority = new DelayAuthority();
+    authority.observe({ oneWaySeconds: null, source: CommsDelaySource.None });
     expect(authority.delaySeconds()).toBe(0);
   });
 
@@ -78,6 +124,39 @@ describe("DelayAuthority", () => {
     ]) {
       authority.observe(bad);
       expect(authority.delaySeconds()).toBe(0);
+    }
+  });
+
+  it("a malformed frame HOLDS an established delay rather than resetting it to 0", () => {
+    // The test above starts from 0 and so cannot tell "reset to 0" from "held
+    // the 0 it already had". This one seeds a real delay first, which is the
+    // only state where the two differ, and the direction matters: no garbage
+    // frame is evidence that the craft got closer, and a zero is the reading
+    // that pins the clock to the predicted present.
+    const authority = new DelayAuthority();
+    authority.observe({
+      oneWaySeconds: value("s", 8),
+      source: CommsDelaySource.SignalDelay,
+    });
+
+    for (const bad of [
+      undefined,
+      null,
+      42,
+      "5",
+      {},
+      {
+        oneWaySeconds: value("s", Number.NaN),
+        source: CommsDelaySource.SignalDelay,
+      },
+      {
+        oneWaySeconds: value("s", Number.POSITIVE_INFINITY),
+        source: CommsDelaySource.SignalDelay,
+      },
+      { oneWaySeconds: value("s", -3), source: CommsDelaySource.SignalDelay },
+    ]) {
+      authority.observe(bad);
+      expect(authority.delaySeconds()).toBe(8);
     }
   });
 
@@ -197,6 +276,52 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
       source: CommsDelaySource.SignalDelay,
     });
     expect(clock.confirmedEdgeUt()).toBe(88);
+  });
+
+  /**
+   * The shipped defect, at the layer where it does the damage.
+   *
+   * Losing the path does not stop `observeSample`: `comms.delay` and
+   * `comms.link` are freeze-EXEMPT (see `CommsLink`'s contract doc), so they
+   * keep arriving at true-now through a blackout and keep pushing
+   * `maxSampleUt` forward. The sample clamp therefore does NOT hold the
+   * horizon back; the delay term is the only thing that does. Collapse the
+   * delay to 0 and `confirmedEdgeUt()` snaps a full light-time forward at the
+   * instant the craft becomes unreachable, which is the one direction it must
+   * never move: every delayed channel and the kerbcast playout buffer (same
+   * formula, `worker-delay-clock.ts`) release against this edge, so the
+   * operator is shown "live" video of a craft nothing can reach, and learns of
+   * the outage at T+0 instead of the T+delay the design promises.
+   */
+  it("does not jump the certainty horizon forward when the path is lost", () => {
+    const wall = createFakeWallClock(0);
+    const authority = new DelayAuthority();
+    authority.observe({
+      oneWaySeconds: value("s", 60),
+      source: CommsDelaySource.SignalDelay,
+    });
+    const clock = new ViewClock({
+      nowWall: wall.now,
+      warpRate: () => 1,
+      delaySeconds: authority.delaySeconds,
+    });
+
+    clock.observeSample(1000, 1000);
+    expect(clock.confirmedEdgeUt()).toBe(940); // 1000 − 60
+
+    // Blackout. The freeze-exempt channels keep landing at true-now.
+    wall.advanceBy(5);
+    clock.observeSample(1005, 1005);
+    expect(clock.confirmedEdgeUt()).toBe(945);
+
+    // ...and one of them is the no-path `comms.delay` frame itself.
+    authority.observe({
+      oneWaySeconds: null,
+      source: CommsDelaySource.None,
+    });
+
+    expect(clock.confirmedEdgeUt()).toBe(945);
+    expect(clock.utNowEstimate() - clock.confirmedEdgeUt()).toBe(60);
   });
 });
 

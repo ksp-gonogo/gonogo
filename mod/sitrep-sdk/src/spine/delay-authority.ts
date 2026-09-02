@@ -1,4 +1,4 @@
-import { type CommsDelay, CommsDelaySource } from "../__generated__/contract";
+import type { CommsDelay } from "../__generated__/contract";
 
 /**
  * The `comms.delay` channel topic: the CORE `SignalDelay` capability's
@@ -15,25 +15,33 @@ export interface DelaySubscribable {
 }
 
 /**
- * Extract the one-way delay (seconds) from a `comms.delay` payload, honoring
- * the contract's typed-absence rule
- * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`): `CommsDelaySource.None` means
- * "no delay authority" and MUST read as 0; never mistaken for a measured
- * zero-distance delay. Anything malformed / non-finite / negative also reads
- * as 0 (fail-safe to LAN-identical passthrough rather than fabricating a
- * horizon offset).
+ * Extract the one-way delay (seconds) a `comms.delay` payload REPORTS, or
+ * `null` when it reports no measurable one, which the caller holds through
+ * rather than reading as zero.
+ *
+ * The discriminator is the VALUE, never `source`
+ * (`mod/Sitrep.Contract/Comms.cs:CommsDelay`). `CommsDelaySource.None` covers
+ * two opposite states that share it: a 0 is "the delay feature is off and the
+ * vessel is connected", a null is "there is no path home to measure". Reading
+ * the source first collapsed the second onto the first, so a craft nothing
+ * could reach was clocked as if it were on the LAN. `command-delay.ts`'s
+ * `currentMode` reads the same payload the same value-first way; the two now
+ * agree.
+ *
+ * A wrapped, finite, non-negative reading is the only thing that MOVES the
+ * delay. Absence, malformation, NaN and a negative alike return `null`: not
+ * one of them is evidence that the craft got closer, and zero is the single
+ * direction this must never fail in, because a zero pins the whole clock to
+ * the predicted present and releases every delayed channel at once.
  */
-function readOneWaySeconds(payload: unknown): number {
-  if (!payload || typeof payload !== "object") return 0;
+function readOneWaySeconds(payload: unknown): number | null {
+  if (!payload || typeof payload !== "object") return null;
   const delay = payload as Partial<CommsDelay>;
-  if (delay.source === CommsDelaySource.None) return 0;
   // `.magnitude`: the field arrives wrapped from the decode. Reading the
-  // object itself as a number silently fails the finiteness check below and
-  // pins the whole clock to a zero delay, which is the one failure this
-  // function's fail-safe was never meant to cover.
+  // object itself as a number silently fails the finiteness check below.
   const seconds = delay.oneWaySeconds?.magnitude;
   if (typeof seconds !== "number" || !Number.isFinite(seconds) || seconds < 0) {
-    return 0;
+    return null;
   }
   return seconds;
 }
@@ -62,12 +70,37 @@ export class DelayAuthority {
   private oneWaySeconds = 0;
 
   /**
-   * Feed one `comms.delay` payload. `CommsDelaySource.None` (or a malformed
-   * payload) resets to 0: LAN-identical passthrough, byte-for-byte, since a
-   * 0 delay makes `confirmedEdgeUt()` collapse onto `utNowEstimate()`.
+   * Feed one `comms.delay` payload. A frame that reports a measurable one-way
+   * time sets it; one that reports none (no path home, or a malformed frame)
+   * HOLDS the last known delay.
+   *
+   * Holding is what makes a blackout behave like a blackout. Losing the path
+   * does not move the craft closer, and `comms.delay`/`comms.link` are
+   * freeze-exempt, so they keep arriving at true-now and keep
+   * `ViewClock.maxSampleUt` advancing through the outage: the sample clamp
+   * does not hold the horizon back, only the delay term does. Reset it to 0
+   * and `confirmedEdgeUt()` snaps a whole light-time forward at the moment the
+   * craft becomes unreachable, dumping the media playout buffer and reporting
+   * the disconnect at T+0 instead of the T+delay `CommsLink` promises.
+   *
+   * The three alternatives all lose something this keeps. Freezing the clock
+   * (a non-finite delay) drives `confirmedEdgeUt()` to `-Infinity`, which is
+   * the post-rewind "resynchronizing" state: every widget drops its last-known
+   * reading, where the blackout design wants exactly those held and labelled
+   * `LastBeforeBlackout`. Refusing to advance view time stalls the release of
+   * samples already in flight, which are real and still arriving. A large
+   * constant is a fabricated measurement, and would misplace the certainty
+   * horizon by however much it missed by.
+   *
+   * A LAN session is unaffected: nothing to hold before the first reading, so
+   * the delay stays 0 and `confirmedEdgeUt()` sits on `utNowEstimate()`
+   * byte-for-byte, and a real zero (delay switched off, vessel connected)
+   * still sets 0 like any other reading.
    */
   observe(payload: unknown): void {
-    this.oneWaySeconds = readOneWaySeconds(payload);
+    const reported = readOneWaySeconds(payload);
+    if (reported === null) return;
+    this.oneWaySeconds = reported;
   }
 
   /**
