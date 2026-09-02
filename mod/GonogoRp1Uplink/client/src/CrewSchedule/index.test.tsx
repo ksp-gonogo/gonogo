@@ -145,7 +145,7 @@ describe("CrewSchedule", () => {
     expect(visibleText(view.container)).toBe("");
   });
 
-  it("shows the retirement date and how far it can still be pushed", async () => {
+  it("names what pushes the retirement date, not a control that pushes it", async () => {
     const { fixture, view } = mountSchedule();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.crewProgram", PROGRAM);
@@ -155,17 +155,23 @@ describe("CrewSchedule", () => {
       expect(visibleText()).toContain("Retires");
     });
     // The ceiling is what makes the date actionable, so it is on screen rather
-    // than only in a tooltip.
-    expect(visibleText()).toContain("extendable to");
+    // than only in a tooltip. It names its two causes with it: "extendable to"
+    // read as an offer, and an operator went looking for the button. There is
+    // none, in RP-1 or here, and the two things that DO move the date are a
+    // completed course and a recovered crewed flight.
+    expect(visibleText()).toContain(
+      "flights and completed training push this to",
+    );
+    expect(visibleText()).not.toContain("extendable");
     await expectNoA11yViolations(view.container);
   });
 
   /**
    * A kerbal whose extension cap is spent has a ceiling equal to their date.
-   * Quoting "extendable to <the same date>" would tell an operator the date can
-   * move when it cannot.
+   * Quoting a ceiling equal to the date would tell an operator it can still move
+   * when it cannot.
    */
-  it("says nothing about extending a retirement that cannot be pushed further", async () => {
+  it("says nothing about pushing a retirement that cannot be pushed further", async () => {
     const { fixture } = mountSchedule();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.crewProgram", PROGRAM);
@@ -174,7 +180,7 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(visibleText()).toContain("Retires");
     });
-    expect(visibleText()).not.toContain("extendable");
+    expect(visibleText()).not.toContain("push this to");
   });
 
   /**

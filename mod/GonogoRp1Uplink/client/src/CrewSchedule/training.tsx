@@ -1,8 +1,8 @@
 import {
   Cluster,
   CommandButton,
+  DataLine,
   magnitudeOf,
-  ReadoutCaption,
 } from "@ksp-gonogo/ui-kit";
 import type { Rp1TrainingCourseEntry } from "../__generated__/contract";
 // Side-effect import: hydrates these Topics' units at decode time, so a base
@@ -114,13 +114,19 @@ export function CourseControls({
  *
  * <para>An empty list is a real state rather than a missing read: RP-1 builds a
  * course before it collects students, and the wire says so.</para>
+ *
+ * <para>A labelled reading rather than a bare `ReadoutCaption` run, so it sits
+ * in the same column as the course's two dates: a line of names in muted
+ * uppercase, between two dates in the same treatment, was three readings that
+ * could only be told apart by reading all of them.</para>
  */
 export function Students({
   course,
 }: Readonly<{ course: Rp1TrainingCourseEntry }>) {
   const students = course.students ?? [];
-  if (students.length === 0) {
-    return <ReadoutCaption>No students on it</ReadoutCaption>;
-  }
-  return <ReadoutCaption>{students.join(", ")}</ReadoutCaption>;
+  return (
+    <DataLine aligned label="Students">
+      {students.length === 0 ? "Nobody on it yet" : students.join(", ")}
+    </DataLine>
+  );
 }

@@ -22,6 +22,7 @@ const TOPICS = [
   "rp1.trainingCatalogue",
   "rp1.crewProgram",
   "spaceCenter.crewRoster",
+  "career.status",
   RP1_TRAINING_ENROL_COMMAND,
 ];
 
@@ -114,12 +115,17 @@ function mount() {
 async function present(
   fixture: ReturnType<typeof setupStreamFixture>,
   {
+    career = undefined as Record<string, unknown> | undefined,
     catalogue = [PAIR, SOLO],
     courses = [] as Record<string, unknown>[],
     crew = [] as Record<string, unknown>[],
     program = {} as Record<string, unknown>,
     roster = [rosterRow(LUDREY), rosterRow(NEDCAS)],
   }: {
+    /* The career's own economy. Undefined by default, because a save with no
+       RP-1 economy reading is a real state and most tests here are not about
+       it. */
+    career?: Record<string, unknown>;
     catalogue?: Record<string, unknown>[];
     courses?: Record<string, unknown>[];
     crew?: Record<string, unknown>[];
@@ -141,6 +147,9 @@ async function present(
     fixture.emit("rp1.training", courses);
     fixture.emit("rp1.crewProgram", { ...DEFAULT_RULES, ...program });
     fixture.emit("rp1.trainingCatalogue", catalogue);
+    if (career !== undefined) {
+      fixture.emit("career.status", career);
+    }
   });
 }
 
@@ -680,5 +689,74 @@ describe("the reading order", () => {
     const text = visibleText();
     expect(text.indexOf(LUDREY)).toBeLessThan(text.indexOf(VALENTINA));
     expect(text.indexOf(LUDREY)).toBeLessThan(text.indexOf(NEDCAS));
+  });
+});
+
+describe("the way onto a course, in the order an operator meets it", () => {
+  /**
+   * The picker BEFORE the press, which is the whole of the operator's question.
+   *
+   * <para>The send control used to sit on the same line as the training picker,
+   * above both the bounds and the names, so the reading order was: choose a
+   * training, press Enrol, and only then meet the kerbals the press was supposed
+   * to name. An operator who read the screen top to bottom found a dark button
+   * and no way to make it live, and asked how you enrol a kerbal on a course at
+   * all. The names are a step, so they come before the step that sends
+   * them.</para>
+   */
+  it("draws the students above the control that sends them", async () => {
+    const { fixture } = mount();
+    await present(fixture);
+
+    await screen.findByRole("button", { name: LUDREY });
+    const text = visibleText();
+    expect(text.indexOf(LUDREY)).toBeLessThan(text.indexOf("Enrol"));
+  });
+
+  /**
+   * A refused control states its reason where it can be READ.
+   *
+   * <para>The reason rode `title` alone, which is a hover: on the one picture
+   * this section exists for, a dark Enrol sat under a picker with nothing on
+   * screen saying which arithmetic had failed. `title` stays, because it is what
+   * a pointer reaches; the sentence is on screen as well because a refusal
+   * nobody can see is a refusal nobody can act on.</para>
+   */
+  it("states the refusal on screen and not only on hover", async () => {
+    const { fixture } = mount();
+    await present(fixture);
+
+    await screen.findByRole("button", { name: LUDREY });
+    expect(visibleText()).toContain("needs 2 students and nobody is picked");
+  });
+
+  /**
+   * What the career pays for training, beside the control that adds to it.
+   *
+   * <para>Enrolling charges nothing at the press and RP-1 never refuses one on
+   * affordability, so there is no balance to draw and "cannot afford" would be a
+   * falsehood. What it does do is start a per-day drain that runs for the length
+   * of the course, so the RATE is the reading, and it is RP-1's own line rather
+   * than one derived here.</para>
+   */
+  it("shows what training draws per day when the career reports it", async () => {
+    const { fixture } = mount();
+    await present(fixture, {
+      career: { economy: { upkeep: { training: 1234 } } },
+    });
+
+    await screen.findByRole("button", { name: LUDREY });
+    expect(visibleText()).toContain("Upkeep");
+    expect(visibleText()).toContain("1234");
+    expect(visibleText()).toContain("f/day");
+  });
+
+  /** Absent, not zero: a career with no economy reading levies no known rate. */
+  it("draws no upkeep line when the career reports none", async () => {
+    const { fixture } = mount();
+    await present(fixture);
+
+    await screen.findByRole("button", { name: LUDREY });
+    expect(visibleText()).not.toContain("Upkeep");
   });
 });

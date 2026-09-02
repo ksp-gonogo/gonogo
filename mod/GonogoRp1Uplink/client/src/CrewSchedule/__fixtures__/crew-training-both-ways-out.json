@@ -2,13 +2,13 @@
   "_meta": {
     "notes": "Hosted on the real Astronaut Complex because the claim being tested is a division of labour across the whole panel: the roster rows above state WHERE each kerbal is and carry no controls at all, and the two ways off a course sit once, together, on the course itself. Ludrey and Nedcas share one course, which is the only shape where RP-1's two ways out are genuinely different acts: cancelling ends it for both, removing takes one of them off and leaves it running. Drawn on the rows instead, that single course rendered its name, its progress, its finish date and its cancel button twice",
     "why-a-removal-per-student": "The subject is what decides where a control lives. Cancelling is about the COURSE, so there is one of it; removing is about one named student, so there is one per student, and both are on the thing they act on rather than scattered across the roster",
-    "why-the-stand-in-host": "Rendered in the stand-in host rather than on the real Astronaut Complex, and that is the harness telling the truth about the app: the courses live behind a TAB, a tab's content is not mounted until it is selected, and the scene driver's presses run after the fixture has emitted. Nothing would have subscribed. In a running app the stream replays the last value on subscribe, so the tab fills the moment it is opened; here the picture is of the tab's content on its own. The panel with the tab strip is the sibling crew-schedule-three-states scene"
+    "why-hosted": "Hosted on the real Astronaut Complex, behind the Training tab an operator has to press to reach it. It could not be until the render harness learned to feed a topic a press has just subscribed to: a tab's content is not mounted when the fixture emits, so `rp1.training` was dropped in silence and the only scene that could be written was one of the section floating in a stand-in host. A picture of markup rather than of a screen, which is why nobody could see that the tab had none of the spacing the other two got."
   },
   "_scene": {
     "augment": "rp1-training-courses",
     "size": {
-      "w": 11,
-      "h": 7
+      "w": 12,
+      "h": 11
     },
     "caption": "One course two kerbals share, carrying its own progress, the date the course ends, the later date its crew comes free, and RP-1's two ways off it: one cancel that ends it for both and one removal per student, with the roster rows above stating only where each kerbal stands",
     "paints": [
@@ -18,11 +18,91 @@
       "Ludrey Kerman off",
       "Nedcas Kerman off",
       "TRAINING COURSES"
+    ],
+    "host": "astronaut-complex",
+    "before": [
+      {
+        "press": "Training"
+      }
     ]
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
+      {
+        "topic": "spaceCenter.crewRoster",
+        "payload": [
+          {
+            "name": "Ludrey Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 2,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.45,
+            "stupidity": 0.4,
+            "experienceLevelDelta": 0.15,
+            "standing": 2
+          },
+          {
+            "name": "Nedcas Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 0,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.6,
+            "stupidity": 0.55,
+            "experienceLevelDelta": 0.05,
+            "standing": 2
+          },
+          {
+            "name": "Valentina Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 3,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.9,
+            "stupidity": 0.1,
+            "experienceLevelDelta": 0.7,
+            "standing": 2
+          }
+        ]
+      },
+      {
+        "topic": "spaceCenter.astronautComplex",
+        "payload": {
+          "applicants": [
+            {
+              "name": "Desdin Kerman",
+              "trait": "Scientist",
+              "experienceLevel": 0,
+              "courage": 0.65,
+              "stupidity": 0.2
+            }
+          ],
+          "activeCrew": 3,
+          "crewCapacity": 13,
+          "nextHireCost": 24000
+        }
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "upkeepPerDay": 4820,
+            "upkeep": {
+              "crewBase": 1710,
+              "training": 640
+            }
+          }
+        }
+      },
       {
         "topic": "rp1.available",
         "payload": true

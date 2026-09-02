@@ -1,4 +1,4 @@
-import type { CrewRosterEntry } from "@ksp-gonogo/sitrep-sdk";
+import type { CareerStatus, CrewRosterEntry } from "@ksp-gonogo/sitrep-sdk";
 import {
   CrewStanding,
   isOffTheBooks,
@@ -10,12 +10,14 @@ import {
   Card,
   Cluster,
   CommandButton,
+  DataLine,
   magnitudeOf,
   ReadoutCaption,
   Section,
   SectionTitle,
   Select,
   Stack,
+  Text,
   ToggleButton,
   Unit,
   usePanelDelay,
@@ -65,6 +67,9 @@ export function TrainingEnrolment() {
   const crew = current(useTelemetry("rp1.crew"));
   const courses = current(useTelemetry("rp1.training"));
   const program = current(useTelemetry("rp1.crewProgram"));
+  /* Named here rather than taken from the host, the way ProgramDetail names
+     `career.status`: an augment carries its own reads. */
+  const career = current(useTelemetry("career.status"));
 
   const [pickedTemplate, setPickedTemplate] = useState<string | null>(null);
   const [picked, setPicked] = useState<ReadonlySet<string>>(NOBODY);
@@ -122,8 +127,18 @@ export function TrainingEnrolment() {
     <Section>
       <SectionTitle>START A TRAINING</SectionTitle>
       <Card>
-        <Stack gap="xs">
-          <Cluster gap="sm" justify="start" wrap>
+        {/* THE ORDER IS THE ANSWER TO "how do you enrol a kerbal?".
+
+            The send control used to share a line with the training picker, above
+            both the bounds and the names, so the screen read: pick a training,
+            press Enrol, and then meet the kerbals the press was supposed to
+            name. Read top to bottom that is a dark button with no way to make it
+            live, which is exactly what an operator reported. A training, then
+            the crew, then what it costs, then the press: each step sits above
+            the one it decides. */}
+        <Stack gap="md">
+          <Stack gap="xs">
+            <ReadoutCaption>Training</ReadoutCaption>
             <Select
               aria-label="Training to start"
               onChange={(e) => setPickedTemplate(e.target.value)}
@@ -135,73 +150,132 @@ export function TrainingEnrolment() {
                 </option>
               ))}
             </Select>
-            <CommandButton
-              args={{
-                crew: chosen.map((candidate) => candidate.name),
-                templateId: selected.id,
-              }}
-              /* Named by the student count while it can act, and the bare
-                 visible label once it cannot: a refused control announcing an
-                 enrolment describes something that will not happen. The reason
-                 rides `title`. */
-              aria-label={
-                refusal === null
-                  ? `Enrol ${students(chosen.length)} on ${name}`
-                  : undefined
-              }
-              commandLabel={`Enrol ${students(chosen.length)} on ${name}`}
-              confirmAriaLabel={`Confirm enrolling ${students(chosen.length)} on ${name}`}
-              confirmLabel={`Enrol ${students(chosen.length)} on ${name}`}
-              disabled={refusal !== null}
-              handle={enrol}
-              label="Enrol"
-              size="sm"
-              title={refusal ?? undefined}
-            />
-          </Cluster>
-          {/* The CONSEQUENCE of the pick rather than the kind word, which
-              `titleOf` has already put at the front of every option above.
-              Stating the kind twice said "Mission" twice on one line; the lapse
-              rule is what an operator choosing between the two trainings on one
-              part is actually deciding between.
+            {/* The CONSEQUENCE of the pick rather than the kind word, which
+                `titleOf` has already put at the front of every option above.
+                Stating the kind twice said "Mission" twice on one line; the
+                lapse rule is what an operator choosing between the two trainings
+                on one part is actually deciding between.
 
-              "at standard rate" is not a hedge, it is what the number IS.
-              `baseTime` is RP-1's `template.time`, and the elapsed time a save
-              actually sees is that divided by `TrainingCourse.CalculateBuildRate`,
-              three factors of which only one could ever reach a client: the
-              Astronaut Complex tier (1 to 1.4 in CrewSettings.cfg), the training
-              rate slider, and `CurrencyUtils.Rate(RateTraining)`, which three
-              shipped Flight Director leaders modify. That last one cannot be READ
-              at all, only run, because its body fires a modifier query at every
-              modifier in the save, which is the fence Rp1CrewMath stands behind.
-              So the rate-corrected figure is unavailable here, and the base
-              quoted as though it were the duration is the one thing that would be
-              a lie. A running course states its real finish date, and that one is
-              RP-1's own. */}
-          <ReadoutCaption>
-            {lapseRule(selected) === null ? "" : `${lapseRule(selected)} · `}
-            <Unit value={selected.baseTime} /> at standard rate
-            <Seats template={selected} />
-          </ReadoutCaption>
-          <Cluster
-            aria-label={`Students for ${name}`}
-            gap="xs"
-            justify="start"
-            role="group"
-            wrap
-          >
-            {candidates.map((candidate) => (
-              <Student
-                candidate={candidate}
-                key={candidate.name}
-                onToggle={() => setPicked(toggled(picked, candidate.name))}
-                picked={picked.has(candidate.name)}
+                "at standard rate" is not a hedge, it is what the number IS.
+                `baseTime` is RP-1's `template.time`, and the elapsed time a save
+                actually sees is that divided by
+                `TrainingCourse.CalculateBuildRate`, three factors of which only
+                one could ever reach a client: the Astronaut Complex tier (1 to
+                1.4 in CrewSettings.cfg), the training rate slider, and
+                `CurrencyUtils.Rate(RateTraining)`, which three shipped Flight
+                Director leaders modify. That last one cannot be READ at all,
+                only run, because its body fires a modifier query at every
+                modifier in the save, which is the fence Rp1CrewMath stands
+                behind. So the rate-corrected figure is unavailable here, and the
+                base quoted as though it were the duration is the one thing that
+                would be a lie. A running course states its real finish date, and
+                that one is RP-1's own. */}
+            <ReadoutCaption>
+              {lapseRule(selected) === null ? "" : `${lapseRule(selected)} · `}
+              <Unit value={selected.baseTime} /> at standard rate
+              <Seats template={selected} />
+            </ReadoutCaption>
+          </Stack>
+          <Stack gap="xs">
+            <ReadoutCaption>Students</ReadoutCaption>
+            <Cluster
+              aria-label={`Students for ${name}`}
+              gap="xs"
+              justify="start"
+              role="group"
+              wrap
+            >
+              {candidates.map((candidate) => (
+                <Student
+                  candidate={candidate}
+                  key={candidate.name}
+                  onToggle={() => setPicked(toggled(picked, candidate.name))}
+                  picked={picked.has(candidate.name)}
+                />
+              ))}
+            </Cluster>
+          </Stack>
+          <Stack gap="xs">
+            <TrainingUpkeep career={career} />
+            {/* The refusal on SCREEN, not only in `title`. The dark-control-with
+                -its-reason-in-the-title pattern assumes a pointer, and the
+                picture this section exists for is one where a dark Enrol sat
+                under a picker with nothing anywhere saying which arithmetic had
+                failed. `title` stays for the pointer; the sentence is here for
+                everyone else. */}
+            {refusal !== null && (
+              <Text size="xs" tone="warn">
+                {refusal}
+              </Text>
+            )}
+            <Cluster gap="sm" justify="start" wrap>
+              <CommandButton
+                args={{
+                  crew: chosen.map((candidate) => candidate.name),
+                  templateId: selected.id,
+                }}
+                /* Named by the student count while it can act, and the bare
+                   visible label once it cannot: a refused control announcing an
+                   enrolment describes something that will not happen. The reason
+                   rides `title` and the line above. */
+                aria-label={
+                  refusal === null
+                    ? `Enrol ${students(chosen.length)} on ${name}`
+                    : undefined
+                }
+                commandLabel={`Enrol ${students(chosen.length)} on ${name}`}
+                confirmAriaLabel={`Confirm enrolling ${students(chosen.length)} on ${name}`}
+                confirmLabel={`Enrol ${students(chosen.length)} on ${name}`}
+                disabled={refusal !== null}
+                handle={enrol}
+                label="Enrol"
+                size="sm"
+                title={refusal ?? undefined}
               />
-            ))}
-          </Cluster>
+            </Cluster>
+          </Stack>
         </Stack>
       </Card>
     </Section>
+  );
+}
+
+/**
+ * What crew training draws from the career, per day, beside the control that
+ * adds to it.
+ *
+ * <para><b>A RATE, and never a balance.</b> Verified against the shipped RP-1
+ * assemblies: <c>TrainingCourse.StartCourse</c> charges nothing and checks
+ * nothing, and there is no affordability arm anywhere on the enrolment path, so
+ * "cannot afford this training" would be a falsehood. What enrolling does is
+ * start a per-day drain that runs for the length of the course:
+ * <c>MaintenanceHandler.UpdateUpkeep</c> adds a line per STARTED course and
+ * <c>FixedUpdate</c> deducts it every tick with no balance test at all. A
+ * shortfall neither slows the training nor refuses it; it takes the career
+ * negative. So the honest reading is the rate the career already pays, which is
+ * the figure this press moves.</para>
+ *
+ * <para>RP-1's own line rather than one derived here. The marginal cost of one
+ * more student is <c>nautTrainingCostPerFacLevel[ACLevel]</c> plus an adder that
+ * depends on what the target covers, and computing that client-side would mean
+ * mirroring an expression that mutates RP-1's own shared settings bools on the
+ * way through. The standing line is exact and costs nothing.</para>
+ *
+ * <para>Absent, never zero, when the career reports no economy: a money model
+ * with no upkeep concept does not levy nothing, it levies nothing KNOWN, and a
+ * zero would be a claim about the first.</para>
+ */
+function TrainingUpkeep({
+  career,
+}: Readonly<{ career: CareerStatus | undefined }>) {
+  const training = career?.economy?.upkeep?.training;
+  if (magnitudeOf(training) === null) {
+    return null;
+  }
+  return (
+    <DataLine aligned label="Upkeep">
+      <Unit value={training} />
+    </DataLine>
   );
 }
 
@@ -447,6 +521,9 @@ registerAugment({
        the host, so this section carries its own reads the way ProgramDetail
        names `career.status`. */
     "spaceCenter.crewRoster",
+    /* What training draws from the career per day. RP-1's own upkeep line, read
+       for the rate beside the press; see `TrainingUpkeep`. */
+    "career.status",
   ],
   component: TrainingEnrolment,
   // After the running courses. An operator opens the tab to read what is

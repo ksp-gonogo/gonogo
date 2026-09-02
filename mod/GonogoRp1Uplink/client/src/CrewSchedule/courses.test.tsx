@@ -126,8 +126,14 @@ describe("TrainingCourses", () => {
     });
     const text = visibleText();
     expect(text).toContain("TRAINING");
+    // Each reading names itself now rather than riding in one sentence, so the
+    // labels are the assertion: a percentage and two dates in a row could only
+    // be told apart by the order they happened to be in.
+    expect(text).toContain("Progress");
     expect(text).toContain("62");
-    expect(text).toContain("finishes");
+    expect(text).toContain("Finishes");
+    expect(text).toContain("Crew free");
+    expect(text).toContain("Students");
     await expectNoA11yViolations(view.container);
   });
 

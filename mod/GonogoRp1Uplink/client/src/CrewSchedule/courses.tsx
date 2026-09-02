@@ -6,13 +6,14 @@ import {
 import {
   Badge,
   Card,
+  DataLine,
   Inline,
   MissionDate,
   magnitudeOf,
-  ReadoutCaption,
   Section,
   SectionTitle,
   Stack,
+  Text,
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
@@ -125,33 +126,44 @@ function Course({
 
   return (
     <Card>
-      <Stack gap="xs">
+      <Stack gap="sm">
+        {/* The course's own name, at the body rung and its own weight, because
+            it is what the card is ABOUT. It used to be the first clause of a
+            `ReadoutCaption` sentence that also carried the percentage and the
+            finish date, which is the treatment the roster rows were taken out
+            of: uppercase and muted by construction, so the name, the progress
+            and the date were all drawn as one another's equals and none of them
+            could be found at a glance. */}
         <Inline gap="xs" wrap>
           <Badge severity={started ? "nominal" : "caution"} size="sm">
             {started ? "TRAINING" : "NOT STARTED"}
           </Badge>
-          <ReadoutCaption>
+          <Text size="base" tone="default" weight="semibold">
             {titleOf(course)}
-            {fraction !== null && started && (
-              <>
-                {" · "}
-                <Unit value={fraction} />
-              </>
-            )}
-            {finishes !== null && (
-              <>
-                {" · finishes "}
-                <MissionDate value={course.completesAtUt} />
-              </>
-            )}
-          </ReadoutCaption>
+          </Text>
         </Inline>
-        <Students course={course} />
-        {free !== null && (
-          <ReadoutCaption>
-            Crew free <MissionDate value={course.studentsAvailableAtUt} />
-          </ReadoutCaption>
-        )}
+        {/* Four labelled readings in one aligned column, the same treatment the
+            roster row's dates got and for the same reason. A course states two
+            dates that are easy to confuse, so each of them says which it is
+            rather than relying on the order they happen to be in. */}
+        <Stack gap="xs">
+          {fraction !== null && started && (
+            <DataLine aligned key="progress" label="Progress">
+              <Unit value={fraction} />
+            </DataLine>
+          )}
+          {finishes !== null && (
+            <DataLine aligned key="finishes" label="Finishes">
+              <MissionDate value={course.completesAtUt} />
+            </DataLine>
+          )}
+          {free !== null && (
+            <DataLine aligned key="free" label="Crew free">
+              <MissionDate value={course.studentsAvailableAtUt} />
+            </DataLine>
+          )}
+          <Students course={course} />
+        </Stack>
         <CourseControls cancel={cancel} course={course} remove={remove} />
       </Stack>
     </Card>

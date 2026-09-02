@@ -2,13 +2,13 @@
   "_meta": {
     "notes": "The refusal RP-1 expresses by not drawing a button at all: mission training for Gemini seats exactly two, so taking either student out would strand the other below the minimum, and both removals are dark carrying that sentence while the cancel that ends the whole course stays live. It is the one state where RP-1's two ways off a course are not interchangeable",
     "why-both-removals-are-dark": "The minimum is a fact about the COURSE rather than about either kerbal, so it refuses both of them, and a picture with one dark control would read as that student's problem",
-    "why-the-stand-in-host": "Rendered in the stand-in host for the reason the sibling both-ways-out scene gives: a tab's content is not mounted until the tab is selected, and the driver presses after the fixture emits"
+    "why-hosted": "Hosted on the real Astronaut Complex, behind the Training tab an operator has to press to reach it. It could not be until the render harness learned to feed a topic a press has just subscribed to: a tab's content is not mounted when the fixture emits, so `rp1.training` was dropped in silence and the only scene that could be written was one of the section floating in a stand-in host. A picture of markup rather than of a screen, which is why nobody could see that the tab had none of the spacing the other two got."
   },
   "_scene": {
     "augment": "rp1-training-courses",
     "size": {
-      "w": 11,
-      "h": 7
+      "w": 12,
+      "h": 11
     },
     "caption": "Mission training for Gemini seats exactly two, so RP-1 withholds both removals rather than stranding whoever is left, and cancelling the whole course is the only way off it",
     "paints": [
@@ -17,11 +17,91 @@
       "Nedcas Kerman off",
       "Valentina Kerman off",
       "TRAINING COURSES"
+    ],
+    "host": "astronaut-complex",
+    "before": [
+      {
+        "press": "Training"
+      }
     ]
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
+      {
+        "topic": "spaceCenter.crewRoster",
+        "payload": [
+          {
+            "name": "Ludrey Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 2,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.45,
+            "stupidity": 0.4,
+            "experienceLevelDelta": 0.15,
+            "standing": 2
+          },
+          {
+            "name": "Nedcas Kerman",
+            "trait": "Engineer",
+            "experienceLevel": 0,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.6,
+            "stupidity": 0.55,
+            "experienceLevelDelta": 0.05,
+            "standing": 2
+          },
+          {
+            "name": "Valentina Kerman",
+            "trait": "Pilot",
+            "experienceLevel": 3,
+            "situation": "Available",
+            "situationOrdinal": 0,
+            "available": true,
+            "unavailableReason": "",
+            "courage": 0.9,
+            "stupidity": 0.1,
+            "experienceLevelDelta": 0.7,
+            "standing": 2
+          }
+        ]
+      },
+      {
+        "topic": "spaceCenter.astronautComplex",
+        "payload": {
+          "applicants": [
+            {
+              "name": "Desdin Kerman",
+              "trait": "Scientist",
+              "experienceLevel": 0,
+              "courage": 0.65,
+              "stupidity": 0.2
+            }
+          ],
+          "activeCrew": 3,
+          "crewCapacity": 13,
+          "nextHireCost": 24000
+        }
+      },
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "upkeepPerDay": 4820,
+            "upkeep": {
+              "crewBase": 1710,
+              "training": 640
+            }
+          }
+        }
+      },
       {
         "topic": "rp1.available",
         "payload": true

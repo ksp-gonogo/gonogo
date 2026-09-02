@@ -1,30 +1,27 @@
 {
   "_meta": {
-    "notes": "Hosted on the real Astronaut Complex, because the whole claim of this augment is that it fits in a roster row the host already drew and an isolated render cannot test that. Three kerbals in the three states that make the surface do different work: one whose date can still be pushed and who is mid-course with training already lapsing behind it, one enrolled on a course nobody has started and whose finish RP-1 has not rated, and one RP-1 holds no retirement date for at all so only the lapse line renders. The Active tab is pressed because Applicants is first and carries none of this",
-    "why-no-controls-on-a-row": "A row states WHERE a kerbal is and nothing else. It used to carry a training picker and two leave buttons under the dates, which put a whole enrolment form on every idle naut and drew one shared course's cancel button once per student. The way onto a course is the START A TRAINING section, which can name a crew where a row can only name one kerbal; a running course's specifics and the two ways off it are the TRAINING COURSES section"
+    "notes": "The Training tab as an operator actually meets it: pressed open on the real Astronaut Complex, with the courses the career is running above and the way onto a new one below. Every other training picture in this Uplink is of a section floating in the stand-in host, which is a picture of markup rather than of a screen, and it is why nobody could see that the tab had none of the spacing the Applicants and Active tabs got.",
+    "why-hosted": "The question the operator asked was how you enrol a kerbal, and the answer is a section inside this tab. A scene that renders that section on its own cannot answer it: it shows the control exists, not that it is reachable."
   },
   "_scene": {
-    "augment": "rp1-crew-schedule",
+    "augment": "rp1-training-enrolment",
     "host": "astronaut-complex",
     "size": {
-      "w": 10,
-      "h": 18
+      "w": 12,
+      "h": 16
     },
-    "caption": "Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own with the sack control at the end of the identity line: a retirement and the two things that will push it out, a course being worked and a course nobody has started, and mission training lapsing before either finishes. Each line names itself, and only the lapse is toned",
+    "caption": "The Training tab open on the Astronaut Complex: the courses the career is running, then the crew and the training to put them through",
     "before": [
       {
-        "press": "Active"
+        "press": "Training"
       }
     ],
     "paints": [
-      "Retires",
-      "push this to",
-      "Course",
-      "TRAINING",
-      "ENROLLED",
-      "Lapses",
-      "Mission training for",
-      "more"
+      "TRAINING COURSES",
+      "START A TRAINING",
+      "Students",
+      "Upkeep",
+      "Enrol"
     ]
   },
   "_stream": {
@@ -34,7 +31,12 @@
         "topic": "career.status",
         "payload": {
           "economy": {
-            "funds": 289848
+            "funds": 289848,
+            "upkeepPerDay": 4820,
+            "upkeep": {
+              "crewBase": 1710,
+              "training": 640
+            }
           }
         }
       },
@@ -112,9 +114,9 @@
           "proficiencyTrainingRate": 0.8,
           "missionTrainingRate": 1.25,
           "retirementExtensionCapSeconds": 63115200,
-          "courses": 3,
+          "courses": 1,
           "coursesStarted": 1,
-          "crewInTraining": 4
+          "crewInTraining": 1
         }
       },
       {
@@ -126,33 +128,70 @@
             "retiresAtUt": 95608000,
             "latestRetiresAtUt": 158723200,
             "retirementExtensionUsedSeconds": 15778800,
-            "trainingCourse": "msn_Mercury-Redstone",
-            "trainingType": "Mission",
+            "trainingCourse": "prof_Mercury-Redstone",
+            "trainingType": "Proficiency",
             "trainingTarget": "Mercury-Redstone",
             "trainingStarted": true,
             "trainingFractionComplete": 0.62,
-            "trainingFinishesAtUt": 6184000,
-            "nextTrainingExpiryUt": 4456000,
-            "nextTrainingExpiryTarget": "Atlas-D",
-            "trainingExpiryCount": 3
+            "trainingFinishesAtUt": 6184000
           },
           {
             "name": "Nedcas Kerman",
             "retired": false,
             "retiresAtUt": 40000000,
             "latestRetiresAtUt": 40000000,
-            "retirementExtensionUsedSeconds": 0,
-            "trainingCourse": "prof_TitanII",
-            "trainingType": "Proficiency",
-            "trainingTarget": "Titan II",
-            "trainingStarted": false
+            "retirementExtensionUsedSeconds": 0
           },
           {
             "name": "Valentina Kerman",
             "retired": false,
-            "nextTrainingExpiryUt": 2300000,
-            "nextTrainingExpiryTarget": "Gemini",
-            "trainingExpiryCount": 1
+            "retiresAtUt": 210000000,
+            "latestRetiresAtUt": 260000000
+          }
+        ]
+      },
+      {
+        "topic": "rp1.training",
+        "payload": [
+          {
+            "id": "prof_Mercury-Redstone",
+            "name": "Proficiency: Mercury-Redstone",
+            "type": "Proficiency",
+            "target": "Mercury-Redstone",
+            "students": ["Ludrey Kerman"],
+            "seatMin": 1,
+            "seatMax": 4,
+            "started": true,
+            "completed": false,
+            "completesAtUt": 6184000,
+            "isTemporary": false,
+            "studentsAvailableAtUt": 6802400
+          }
+        ]
+      },
+      {
+        "topic": "rp1.trainingCatalogue",
+        "payload": [
+          {
+            "id": "msn_Gemini",
+            "name": "Mission: Gemini",
+            "type": "Mission",
+            "target": "Gemini",
+            "seatMin": 2,
+            "seatMax": 2,
+            "baseTime": 5184000,
+            "expirationMonths": 6,
+            "unlocked": true
+          },
+          {
+            "id": "prof_TitanII",
+            "name": "Proficiency: Titan II",
+            "type": "Proficiency",
+            "target": "Titan II",
+            "seatMin": 1,
+            "seatMax": 4,
+            "baseTime": 2592000,
+            "unlocked": true
           }
         ]
       }

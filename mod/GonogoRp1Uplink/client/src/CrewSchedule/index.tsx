@@ -103,12 +103,25 @@ export function CrewSchedule({
 }
 
 /**
- * When this career ends, and how far the date can still be pushed.
+ * When this career ends, how far the date can still be pushed, and BY WHAT.
  *
  * <para>The ceiling is the half that makes the date actionable: a retirement
  * three years out that interesting flights can push to fifteen is a different
  * planning problem from one that cannot move, and RP-1 caps the total extension
  * per kerbal so the two states both exist.</para>
+ *
+ * <para><b>It used to say "extendable to", which an operator read as an offer
+ * and went looking for the control.</b> There is no control, in RP-1 or
+ * anywhere: <c>CrewHandler.IncreaseRetireTime</c> is the only writer of an
+ * extension and it has exactly two callers in the shipped assembly,
+ * <c>TrainingCourse.CompleteCourse</c> and
+ * <c>CrewHandler.VesselRecoveryProcessing</c>. Both are consequences of
+ * something that has already happened: a course whose clock ran out, and a
+ * crewed vessel coming home. RP-1's own Astronaut Complex has no extend button
+ * either, and its hire popup says the same thing in words ("Retirement will be
+ * delayed the more interesting training they undergo and flights they fly").
+ * So the line names the two mechanisms instead of implying a press, which
+ * answers the question the old wording provoked.</para>
  *
  * <para>Absent when RP-1 holds no date, which is a real state and NOT a
  * retirement due now: RP-1's own getter answers zero there, and the mod side
@@ -134,7 +147,7 @@ function retirementLine(
       <MissionDate value={row.retiresAtUt} />
       {extendable && (
         <>
-          {" · extendable to "}
+          {" · flights and completed training push this to "}
           <MissionDate value={row.latestRetiresAtUt} />
         </>
       )}
