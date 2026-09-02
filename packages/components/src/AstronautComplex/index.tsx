@@ -30,6 +30,7 @@ import {
   Tabs,
   Unit,
   usePanelDelay,
+  useSlotBound,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo, useState } from "react";
 import styled from "styled-components";
@@ -103,6 +104,28 @@ declare module "@ksp-gonogo/core" {
  * unlimited.
  */
 const UNLIMITED_CREW_CAP = 2_147_483_647;
+
+/**
+ * The `astronaut-complex.training` slot: a whole TAB, beside Applicants and
+ * Active rather than nested under either.
+ *
+ * <p>Stock KSP has no crew training, so there is nothing for this widget to put
+ * behind the tab and the tab does not exist until an Uplink claims the slot.
+ * What goes in it is the career overhaul's own: the courses it is running and
+ * the way onto one.</p>
+ *
+ * <p>A tab rather than a section under the roster because the two answer
+ * different questions. The roster rows say WHERE each kerbal is, which is a
+ * per-kerbal reading; a course is a thing in its own right with its own dates
+ * and its own controls, and several kerbals share one. Under the roster it was
+ * read as a footnote to whichever kerbal happened to be last on screen.</p>
+ *
+ * <p>It takes no props: a tab is not about one kerbal, and every augment that
+ * fills it reads its own channels.</p>
+ */
+const ASTRONAUT_COMPLEX_TRAINING_SLOT = "astronaut-complex.training";
+
+const NO_SEGMENT_PROPS: Record<string, never> = Object.freeze({});
 
 /**
  * Said on screen whenever the balance is withheld for going stale, so the blank
@@ -274,6 +297,12 @@ function AstronautComplexComponent(
     () => readCrewRoster(crewRosterRaw),
     [crewRosterRaw],
   );
+  /**
+   * Whether anything claims the training slot, which decides whether the tab
+   * exists at all. Stock KSP has no such thing as crew training, so the strip
+   * stays two tabs wide until a career overhaul's Uplink binds one.
+   */
+  const trainingBound = useSlotBound(ASTRONAUT_COMPLEX_TRAINING_SLOT);
 
   // Hiring is a KSC ground action (no vessel signal delay), so it dispatches at
   // the meta-vantage (instant). usePanelDelay contributes the handle to the
@@ -455,6 +484,20 @@ function AstronautComplexComponent(
                   />
                 ),
               },
+              ...(trainingBound
+                ? [
+                    {
+                      id: "training",
+                      label: "Training",
+                      content: (
+                        <AugmentSlot
+                          name={ASTRONAUT_COMPLEX_TRAINING_SLOT}
+                          props={NO_SEGMENT_PROPS}
+                        />
+                      ),
+                    },
+                  ]
+                : []),
             ]}
           />
         </Section>,

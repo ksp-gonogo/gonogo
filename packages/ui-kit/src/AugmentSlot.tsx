@@ -100,6 +100,25 @@ export function useWidgetSegmentBound(segment: string): boolean {
   return useAugmentsFor(slotName).length > 0;
 }
 
+/**
+ * The same question for a slot named in full, which is what a host asks when
+ * the CHROME it would draw is not a wrapper but a whole affordance: a tab that
+ * must not exist unless something can fill it.
+ *
+ * The name form rather than the segment one, for the reason a host writes
+ * `<AugmentSlot name="...">`: the segment form resolves through
+ * `useWidgetMeta()`, so a widget rendered without that context silently reads
+ * as unbound, and a tab that vanishes depending on who mounted the widget is
+ * worse than one that is always there.
+ *
+ * Registration alone, NOT the Domain presence gate, the same as
+ * {@link useWidgetSegmentBound}: each augment's `requires` is evaluated inside
+ * its own entry at render.
+ */
+export function useSlotBound(name: string): boolean {
+  return useAugmentsFor(name).length > 0;
+}
+
 // useSyncExternalStore requires a referentially-stable snapshot between changes,
 // else it loops. getAugmentsForSlot builds a fresh array each call, so memoise
 // per slot name and only recompute when the registry actually notifies.

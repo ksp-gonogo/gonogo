@@ -965,6 +965,64 @@ describe("AstronautComplexComponent", () => {
     expect(title).not.toContain("9000000");
   });
 
+  /**
+   * Stock KSP has no crew training, so there is nothing to put behind a
+   * Training tab and the strip stays two wide. The tab is not empty-and-present,
+   * it does not exist: an unfillable tab is a promise the widget cannot keep.
+   */
+  it("grows no Training tab until something claims the slot", async () => {
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, CREW_ROSTER);
+    });
+
+    // Active is the positive signal that the strip rendered at all, so the
+    // absence below is about a tab that was not offered.
+    expect(await screen.findByRole("tab", { name: "Active" })).toBeVisible();
+    expect(
+      screen.queryByRole("tab", { name: "Training" }),
+    ).not.toBeInTheDocument();
+  });
+
+  /**
+   * A whole TAB rather than a section under the roster, and beside Applicants
+   * and Active rather than nested under either: a course is a thing in its own
+   * right that several kerbals share, so it is not a footnote to any one row.
+   */
+  it("grows a Training tab an Uplink fills, beside Applicants and Active", async () => {
+    registerAugment({
+      id: "test-training-tab",
+      augments: "astronaut-complex.training",
+      component: () => <span>Two courses running</span>,
+    });
+
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, CREW_ROSTER);
+    });
+
+    await user.click(await screen.findByRole("tab", { name: "Training" }));
+    expect(await screen.findByText("Two courses running")).toBeInTheDocument();
+    // Same strip, not a second one nested inside a tab.
+    expect(screen.getByRole("tab", { name: "Applicants" })).toBeVisible();
+    expect(screen.getByRole("tab", { name: "Active" })).toBeVisible();
+  });
+
   it("renders a bound crew augment per row, carrying that kerbal's identity and standing", async () => {
     // A test Uplink binds `astronaut-complex.crew` and echoes back the per-row
     // props. Proves (a) the slot is exposed, (b) an augment composes into it

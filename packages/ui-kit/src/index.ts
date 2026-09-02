@@ -49,6 +49,7 @@ export {
 export {
   AugmentSlot,
   useAugmentAvailable,
+  useSlotBound,
   useWidgetSegmentBound,
 } from "./AugmentSlot";
 export {
