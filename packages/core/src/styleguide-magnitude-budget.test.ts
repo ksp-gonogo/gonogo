@@ -358,18 +358,20 @@ describe("the magnitude budget only shrinks", () => {
   });
 
   it("can see a violation (planted)", () => {
-    // The file floor above catches a walk that stops finding files. It cannot
-    // catch a walk that finds them and a PATTERN that stops matching, which is
-    // the failure this regex has already had once: `git grep -E` takes no `\b`,
-    // and the first version of it matched nothing and reported a clean tree.
-    //
-    // Planted through `git grep` itself, never `new RegExp(PROPERTY_ACCESS)`.
-    // The two are not the same pattern: this is POSIX ERE, where the leading
-    // `]` in `[]A-Za-z0-9_$)?]` is a literal member of the class, while
-    // JavaScript reads `[]` as an EMPTY class and then chokes on the unmatched
-    // `)`. A JS-side check would either throw or, with the brackets respelt to
-    // make it parse, pass while measuring a pattern the scan never runs. The
-    // instrument has to be the engine under test.
+    /*
+     * The file floor above catches a walk that stops finding files. It cannot
+     * catch a walk that finds them and a PATTERN that stops matching, which is
+     * the failure this regex has already had once: `git grep -E` takes no `\b`,
+     * and the first version of it matched nothing and reported a clean tree.
+     *
+     * Planted through `git grep` itself, never `new RegExp(PROPERTY_ACCESS)`.
+     * The two are not the same pattern: this is POSIX ERE, where the leading
+     * `]` in `[]A-Za-z0-9_$)?]` is a literal member of the class, while
+     * JavaScript reads `[]` as an EMPTY class and then chokes on the unmatched
+     * `)`. A JS-side check would either throw or, with the brackets respelt to
+     * make it parse, pass while measuring a pattern the scan never runs. The
+     * instrument has to be the engine under test.
+     */
     const planted = join(mkdtempSync(join(tmpdir(), "mag-ratchet-")), "p.ts");
     try {
       writeFileSync(
@@ -382,10 +384,12 @@ describe("the magnitude budget only shrinks", () => {
           "// prose about `.magnitude` is not a use of it",
         ].join("\n"),
       );
-      // `cwd` is the temp dir, which sits outside any repository: `git grep
-      // --no-index` refuses a path outside the repo it finds from cwd, so
-      // running it from inside this checkout would fail on the path rather
-      // than answer about the pattern.
+      /*
+       * `cwd` is the temp dir, which sits outside any repository: `git grep
+       * --no-index` refuses a path outside the repo it finds from cwd, so
+       * running it from inside this checkout would fail on the path rather than
+       * answer about the pattern.
+       */
       const hits = execFileSync(
         "git",
         ["grep", "--no-index", "-nE", PROPERTY_ACCESS, "--", "p.ts"],
@@ -402,13 +406,14 @@ describe("the magnitude budget only shrinks", () => {
   });
 
   it("has no entry for a path that no longer exists", () => {
-    // `mod/GonogoRp1Uplink/client/src/CareerLog/index.ts` sat on this list
-    // carrying 2 after its whole widget directory was deleted. A budget entry
-    // for a file that is gone can never be spent, so it never trips the
-    // over-budget arm and never gets removed: it is pure slack that no run
-    // reports. The sibling token ratchet already guards this
-    // (`styleguide-tokens`: "excuses no path that has moved or been deleted");
-    // this one did not, which is how the entry outlived its file.
+    /*
+     * An Rp1 Uplink widget's entry sat on this list carrying 2 after its whole
+     * directory was deleted. A budget entry for a file that is gone can never
+     * be spent, so it never trips the over-budget arm and never gets removed:
+     * it is pure slack that no run reports. The sibling token ratchet already
+     * guards this ("excuses no path that has moved or been deleted"); this one
+     * did not, which is how the entry outlived its file.
+     */
     const missing = Object.keys(MAGNITUDE_BUDGET)
       .filter((rel) => !existsSync(join(root, rel)))
       .sort();

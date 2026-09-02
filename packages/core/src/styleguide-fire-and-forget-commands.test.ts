@@ -183,15 +183,17 @@ describe("the fire-and-forget command budget only shrinks", () => {
   });
 
   it("can see a violation (planted)", () => {
-    // The file floor catches a walk that stops finding files. It cannot catch a
-    // walk that finds them and a PATTERN that stops matching, and this one is
-    // POSIX ERE with a documented footgun sitting in it: the header warns that a
-    // `]` added anywhere but first in the bracket class ends the class early and
-    // silently matches nothing from then on.
-    //
-    // Driven through `git grep` rather than a JS RegExp so the engine under test
-    // is the one that runs, and from a temp dir outside any repository because
-    // `--no-index` refuses a path outside the repo it finds from cwd.
+    /*
+     * The file floor catches a walk that stops finding files. It cannot catch a
+     * walk that finds them and a PATTERN that stops matching, and this one is
+     * POSIX ERE with a documented footgun sitting in it: the header warns that
+     * a `]` added anywhere but first in the bracket class ends the class early
+     * and silently matches nothing from then on.
+     *
+     * Driven through `git grep` rather than a JS RegExp so the engine under
+     * test is the one that runs, and from a temp dir outside any repository
+     * because `--no-index` refuses a path outside the repo it finds from cwd.
+     */
     const dir = mkdtempSync(join(tmpdir(), "faf-ratchet-"));
     try {
       writeFileSync(
@@ -219,10 +221,12 @@ describe("the fire-and-forget command budget only shrinks", () => {
   });
 
   it("has no entry for a path that no longer exists", () => {
-    // An entry for a deleted file can never be spent, so it never trips the
-    // over-budget arm below and no run ever mentions it. The magnitude budget
-    // was carrying one of these for a widget directory that had been deleted
-    // outright; this list is clean today and this is what keeps it so.
+    /*
+     * An entry for a deleted file can never be spent, so it never trips the
+     * over-budget arm below and no run ever mentions it. The magnitude budget
+     * was found carrying one of these for a widget directory deleted outright;
+     * this list is clean today and this is what keeps it so.
+     */
     const missing = Object.keys(FIRE_AND_FORGET_BUDGET)
       .filter((rel) => !existsSync(join(root, rel)))
       .sort();
