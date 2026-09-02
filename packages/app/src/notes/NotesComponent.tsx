@@ -33,8 +33,11 @@ interface NotesActions {
 }
 
 function NotesComponent(_props: Readonly<ComponentProps>) {
+  // The host owns the canonical list; every other screen mirrors it over the
+  // peer mesh. A pilot page holds its own telemetry session and is still a
+  // mesh CLIENT, so it takes the peer-backed face, not the host's.
   const screen = useScreen();
-  if (screen === "station") return <StationView />;
+  if (screen !== "main") return <StationView />;
   return <MainView />;
 }
 

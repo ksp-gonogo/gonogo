@@ -1,6 +1,10 @@
 // Core shared types: expand as features are built
 
-import type { WidgetChannelId, WidgetFieldPath } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  Seat,
+  WidgetChannelId,
+  WidgetFieldPath,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ComponentType } from "react";
 import type { ContributionSlotId } from "./contributions";
 import type { GonogoTheme } from "./theme";
@@ -288,6 +292,22 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
    * context reports `Unknown` and widgets stay live.
    */
   requires?: readonly ComponentRequirement[];
+  /**
+   * Which seats this widget may be placed at. OMIT for the derived default:
+   * available everywhere unless the widget declares a topic in a GROUND domain
+   * (`spaceCenter.*`, `career.*`, `commandCentre.*`, `recovery.*`), because a
+   * topic's domain already says where the thing it describes physically lives
+   * and a pilot four light-minutes out cannot act on the VAB.
+   *
+   * That default fails CLOSED for known ground domains and OPEN for every
+   * other, including every domain an Uplink invents. Declare this only to
+   * overrule it: `["pilot"]` is the case no derivation can ever infer, because
+   * no topic says "aboard only".
+   *
+   * Mirrors the SDK's `ComponentDefinition`; `registerComponent` is re-exported
+   * from there, so the SDK's is the one an author writes against.
+   */
+  seats?: readonly Seat[];
   /**
    * Addressable augment slots this widget owns (Uplink architecture spec §4.1).
    * Each entry is a small, stable API the base widget exposes via

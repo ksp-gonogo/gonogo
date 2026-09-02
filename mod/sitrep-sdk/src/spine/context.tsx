@@ -567,10 +567,18 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  * quantity `onFrame` hands its callback, and the ONLY one that honours a scrub
  * target, so anything mirroring `useViewUt`'s contract has to read it rather
  * than `confirmedEdgeUt`.
+ *
+ * `utNowEstimate` is an observation on the same footing, and it is here for a
+ * consumer `confirmedEdgeUt` cannot serve: a human message carries a SEND UT
+ * minted at the sender's present, so the recipient reveals it against their own
+ * present rather than their delayed certainty horizon. Gating that on
+ * `confirmedEdgeUt` would hold it for `sentUt + 2 x delay`, a round trip for a
+ * one-way utterance. `useUtNow` reads the same quantity reactively; this is the
+ * callable form a `DelayClockLike` adapter needs.
  */
 export type ViewClockView = Pick<
   ViewClock,
-  "viewUt" | "confirmedEdgeUt" | "onFrame"
+  "viewUt" | "confirmedEdgeUt" | "onFrame" | "utNowEstimate"
 >;
 
 /**

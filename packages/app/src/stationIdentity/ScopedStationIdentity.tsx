@@ -8,8 +8,18 @@ import { StationIdentityService } from "./StationIdentityService";
  * via context. The service is intentionally singleton-per-mount: identity
  * is per physical screen, persisted in localStorage.
  */
-export function ScopedStationIdentity({ children }: { children: ReactNode }) {
-  const service = useMemo(() => new StationIdentityService(), []);
+export function ScopedStationIdentity({
+  children,
+  defaultName,
+}: {
+  children: ReactNode;
+  /** What to call this device before anyone has named it. */
+  defaultName?: string;
+}) {
+  const service = useMemo(
+    () => new StationIdentityService(globalThis.localStorage, defaultName),
+    [defaultName],
+  );
   return (
     <StationIdentityProvider service={service}>
       {children}

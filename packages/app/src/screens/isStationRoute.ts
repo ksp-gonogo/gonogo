@@ -6,14 +6,31 @@
 // not just inside the rendered component tree.
 
 /**
- * Is this page load a station (`/station`) rather than the main screen
- * (`/`)? Base-path-relative: `BASE_URL` is `/` in dev and `/gonogo/` on
- * GitHub Pages, so the raw pathname is stripped of that prefix before the
- * `/station` match: otherwise a sub-path deploy would never match.
+ * Which deployment configuration this page load is, from the URL alone.
+ *
+ * Base-path-relative: `BASE_URL` is `/` in dev and `/gonogo/` on GitHub
+ * Pages, so the raw pathname is stripped of that prefix before matching,
+ * otherwise a sub-path deploy would never match.
  */
-export function isStationRoute(): boolean {
+export function currentRoute(): "main" | "station" | "pilot" {
   const base = import.meta.env.BASE_URL;
   const path = globalThis.location.pathname;
   const relative = path.startsWith(base) ? `/${path.slice(base.length)}` : path;
-  return relative.startsWith("/station");
+  if (relative.startsWith("/station")) return "station";
+  if (relative.startsWith("/pilot")) return "pilot";
+  return "main";
+}
+
+/**
+ * Is this page load a station (`/station`) rather than the main screen
+ * (`/`)?
+ *
+ * Kept as its own predicate rather than folded into `currentRoute` at every
+ * call site, because what the boot sequence actually branches on is "does
+ * this screen talk to KSP directly", and a PILOT does: it holds its own
+ * session at its own vantage, so it takes the main screen's boot path and
+ * only a station skips it.
+ */
+export function isStationRoute(): boolean {
+  return currentRoute() === "station";
 }

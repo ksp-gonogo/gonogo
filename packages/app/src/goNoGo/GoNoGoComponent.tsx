@@ -64,8 +64,11 @@ function GoNoGoComponent({
   w,
   h,
 }: Readonly<ComponentProps<GoNoGoWidgetConfig>>) {
+  // The host aggregates every participant's vote; every other screen casts one
+  // and reads the tally back. A pilot page is a mesh CLIENT for this even
+  // though it holds its own telemetry session, so it votes rather than tallies.
   const screen = useScreen();
-  if (screen === "station") return <StationView w={w} h={h} />;
+  if (screen !== "main") return <StationView w={w} h={h} />;
   return <MainView config={config} w={w} h={h} />;
 }
 

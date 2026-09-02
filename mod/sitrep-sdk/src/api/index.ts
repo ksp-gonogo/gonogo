@@ -161,6 +161,7 @@ export type {
   PerfBudgetOptions,
   PredictedPhase,
   Screen,
+  Seat,
   SettingDefinition,
   SettingDefinitionBase,
   SettingDefinitionOf,

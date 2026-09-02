@@ -358,6 +358,11 @@ public static class RtConfig
                 typeof(AstronautComplexInfo),
                 // commandCentre.roster: the vantage/authority union (Plan 3)
                 typeof(CommandCentreEntry),
+                // commandCentre.separation: how far each vantage is from each
+                // other, the number a human at one needs to know how long their
+                // words take to reach a human at another
+                typeof(CommandCentreSeparation),
+                typeof(CentreSeparationEntry),
                 // dv.stages / dv.summary (P1b)
                 typeof(StageDeltaVEntry),
                 typeof(StageDeltaVSummary),

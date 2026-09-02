@@ -27,6 +27,18 @@ namespace Gonogo.KSP.CommandCentres
     public sealed class CommandCentreDelayUplink : ISitrepUplink
     {
         public const string RosterTopic = "commandCentre.roster";
+        public const string SeparationTopic = "commandCentre.separation";
+
+        /// <summary>
+        /// Soft cap on separation PAIRS published per second. The matrix is
+        /// centres squared, and a crewed-heavy career makes every controllable
+        /// craft a centre, so this is the number that grows quadratically in
+        /// something the operator controls. It is a publish-volume budget rather
+        /// than a work budget: the rows are already built for the ledger, and
+        /// what this watches is the wire.
+        /// </summary>
+        private static readonly PerfBudget SeparationPairsBudget = new PerfBudget(
+            "CommandCentreDelayUplink separation pairs", threshold: 4000, windowSec: 1.0, unit: "pairs");
 
         /// <summary>
         /// Soft cap on graph SOLVES per pass. Every non-KSC row and every
@@ -43,6 +55,7 @@ namespace Gonogo.KSP.CommandCentres
         private readonly CommandCentreRegistry _registry;
         private IUplinkHost? _host;
         private IChannelPublisher? _rosterPublisher;
+        private IChannelPublisher? _separationPublisher;
 
         public CommandCentreDelayUplink(CommandCentreRegistry registry) => _registry = registry;
 
@@ -60,6 +73,18 @@ namespace Gonogo.KSP.CommandCentres
                     Delivery = Delivery.LossyLatest,
                     // Ground-side facts about who can command; instant, same class
                     // as spaceCenter.launchSites / spaceCenter.pois.
+                    Delay = DelayRole.TrueNow,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                },
+                new ChannelDeclaration
+                {
+                    Topic = SeparationTopic,
+                    Delivery = Delivery.LossyLatest,
+                    // TRUE-NOW on the same reasoning as comms.delay: this value
+                    // GATES the reveal of what one vantage sends another, so
+                    // delaying it would make the gate depend on itself, and
+                    // freezing it through a blackout would hold a stale
+                    // separation exactly while the geometry is moving.
                     Delay = DelayRole.TrueNow,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
@@ -96,6 +121,7 @@ namespace Gonogo.KSP.CommandCentres
         {
             _host = host;
             _rosterPublisher = host.Publisher(RosterTopic);
+            _separationPublisher = host.Publisher(SeparationTopic);
             host.AddSampledSource(CaptureLedgerOnMain, ApplyLedgerOnCourier);
             host.AddSampledSource(CaptureRosterOnMain, PublishRosterOnCourier, RosterTopic);
         }
@@ -135,7 +161,7 @@ namespace Gonogo.KSP.CommandCentres
 
             PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
 
-            return new LedgerCapture { Rows = rows };
+            return new LedgerCapture { Rows = rows, Ut = snapshot != null ? snapshot.Ut : 0.0 };
         }
 
         /// <summary>COURIER-THREAD handle: write the explicit-pair delays into the engine's ledger.</summary>
@@ -165,6 +191,52 @@ namespace Gonogo.KSP.CommandCentres
                     : row.Node;
                 _host?.SetAuthorityDelay(row.Vantage, guid, row.Seconds);
             }
+
+            PublishSeparation(cap);
+        }
+
+        /// <summary>
+        /// Publishes the centre-to-centre half of the ledger as
+        /// <see cref="SeparationTopic"/>.
+        ///
+        /// <para>It rides the ledger's capture rather than a source of its own
+        /// because the rows are ALREADY BUILT here: re-deriving them under a
+        /// subscription gate would run the whole centres-squared graph solve a
+        /// second time to publish numbers the first pass had in hand. The cost
+        /// of that choice is that this channel emits whether or not anyone is
+        /// subscribed, which the emission policy keeps small (nothing goes out
+        /// while the matrix is unchanged).</para>
+        ///
+        /// <para>Only the <c>centre.</c> namespace: the <c>fleet.</c> rows in the
+        /// same list are a centre's delay to a SUBJECT craft it observes, which
+        /// is a different question from how far two vantages are apart, and a
+        /// craft that is a vantage appears here under its own centre id.</para>
+        /// </summary>
+        private void PublishSeparation(LedgerCapture cap)
+        {
+            if (_separationPublisher == null)
+            {
+                return;
+            }
+
+            var pairs = new List<CentreSeparationEntry>();
+            foreach (var row in cap.Rows)
+            {
+                if (!row.Node.StartsWith(ChannelEngine.CentreNodePrefix))
+                {
+                    continue;
+                }
+
+                pairs.Add(new CentreSeparationEntry
+                {
+                    From = row.Vantage,
+                    To = row.Node.Substring(ChannelEngine.CentreNodePrefix.Length),
+                    OneWaySeconds = row.Seconds,
+                });
+            }
+
+            SeparationPairsBudget.Record(pairs.Count, cap.Ut);
+            _separationPublisher.Publish(new CommandCentreSeparation { Pairs = pairs }, cap.Ut);
         }
 
         /// <summary>MAIN-THREAD capture: the active centres as roster entries.</summary>
@@ -290,6 +362,7 @@ namespace Gonogo.KSP.CommandCentres
         private sealed class LedgerCapture
         {
             public List<AuthorityRow> Rows = new List<AuthorityRow>();
+            public double Ut;
         }
 
         private sealed class RosterCapture

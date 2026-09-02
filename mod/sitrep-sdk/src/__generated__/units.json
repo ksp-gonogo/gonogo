@@ -206,6 +206,11 @@
       "researchSalary": "f/day",
       "training": "f/day"
     },
+    "CentreSeparationEntry": {
+      "from": "id",
+      "oneWaySeconds": "s",
+      "to": "id"
+    },
     "ChannelEmissionEntry": {
       "available": "flag",
       "born": "flag",
@@ -1898,6 +1903,9 @@
     "ChannelEmissionReport": {
       "channels": "ChannelEmissionEntry[]"
     },
+    "CommandCentreSeparation": {
+      "pairs": "CentreSeparationEntry[]"
+    },
     "CommandDeclaration": {
       "requires": "CommandRequirement[]"
     },
@@ -2178,6 +2186,9 @@
       "facilities": "*CareerFacility",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
+    },
+    "commandCentre.separation": {
+      "pairs": "CentreSeparationEntry[]"
     },
     "comms.commandCentre": {
       "meta": "PayloadMeta"

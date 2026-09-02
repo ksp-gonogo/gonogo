@@ -115,8 +115,23 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // enumerated (Phase 2), the roster's crewed entries MUST be delay-gated: move
   // the roster to Delayed, or split crewed entries onto a Delayed channel. Today
   // only StockHomeNodeSource (ground-registry) is honest as TrueNow; the crewed
-  // source's delay-gating is the Phase-2 follow-up. 1 explicit declaration.
-  "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 1,
+  // source's delay-gating is the Phase-2 follow-up.
+  //
+  // commandCentre.separation: how far each active centre is from each other,
+  // the number one human needs to know how long their words take to reach
+  // another. TrueNow on the same reasoning as comms.delay rather than as the
+  // roster: this value GATES the reveal of what one vantage sends another, so
+  // delaying it would make the gate depend on itself, and freezing it through
+  // a blackout would hold a stale separation exactly while the geometry moves.
+  //
+  // It INHERITS the roster's delay-honesty debt above and does not add to it:
+  // a row only exists for a pair of ACTIVE centres, so a crewed forward centre
+  // appearing in this matrix leaks the same fact the roster already leaks by
+  // listing it, one tick earlier than that vessel's own telemetry. When the
+  // roster's crewed entries are delay-gated in Phase 2, these rows go with
+  // them. Flagged rather than filed silently: the gate permits it, and that is
+  // not the same as it being right. 2 explicit declarations.
+  "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 2,
 
   // flight.simulation: whether the flight on screen is one of RP-1's
   // REHEARSALS. Meta about the stream rather than an observation of a craft,

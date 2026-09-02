@@ -61,6 +61,7 @@ import { PeerClientProvider } from "../peer/PeerClientContext";
 import { PeerClientDataSource } from "../peer/PeerClientDataSource";
 import type { ConnStatus } from "../peer/PeerClientService";
 import { PeerClientService } from "../peer/PeerClientService";
+import { StationInfoBroadcaster } from "../peer/StationInfoBroadcaster";
 import { PushClientProvider } from "../pushToMain/PushClientContext";
 import {
   initCalendarSettings,
@@ -69,11 +70,7 @@ import {
   SettingsService,
   useStationWakeLock,
 } from "../settings";
-import {
-  ScopedStationIdentity,
-  StationNameEditor,
-  useStationName,
-} from "../stationIdentity";
+import { ScopedStationIdentity, StationNameEditor } from "../stationIdentity";
 import { AugmentAvailabilityFeeder } from "../telemetry/AugmentAvailabilityFeeder";
 import { PeerTransport } from "../telemetry/PeerTransport";
 import {
@@ -82,7 +79,6 @@ import {
 } from "../telemetry/SitrepTelemetryProvider";
 import { StationUplinkLoader } from "../uplinks/StationUplinkLoader";
 import { UplinkIntegrityBanner } from "../uplinks/UplinkIntegrityBanner";
-import { BUILD_TIME, VERSION } from "../version";
 
 const HOST_ID_KEY = "gonogo-station-host-id";
 
@@ -407,7 +403,7 @@ export function StationScreen() {
         <MissionProfilesProvider service={missionProfiles}>
           <StationWakeLockBridge />
           <ScopedStationIdentity>
-            <StationInfoBroadcaster client={client} />
+            <StationInfoBroadcaster client={client} seat="mission-control" />
             <PeerClientProvider client={client}>
               <SitrepTelemetryProvider
                 transport={peerTransport}
@@ -576,32 +572,6 @@ const Layout = styled.div`
   background: var(--color-surface-app);
   min-height: 100vh;
 `;
-
-/**
- * Keeps the host up to date with this station's current name. Sends on every
- * transition into "connected" (covers reconnect) and again whenever the
- * user renames.
- */
-function StationInfoBroadcaster({ client }: { client: PeerClientService }) {
-  const name = useStationName();
-  useEffect(() => {
-    const send = () =>
-      client.sendStationInfo(name, {
-        version: VERSION,
-        buildTime: BUILD_TIME,
-      });
-    const unsub = client.onConnectionStatus((status) => {
-      if (status === "connected") send();
-    });
-    // Fire once immediately in case we're already connected by the time
-    // this effect runs (or the name changes while connected).
-    send();
-    return () => {
-      unsub();
-    };
-  }, [client, name]);
-  return null;
-}
 
 const StationNameChip = styled.div`
   position: fixed;

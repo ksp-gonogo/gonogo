@@ -7,7 +7,7 @@ export interface LogContext {
   [key: string]: unknown;
 }
 
-export type DeviceRole = "host" | "station" | "relay" | "unknown";
+export type DeviceRole = "host" | "station" | "pilot" | "relay" | "unknown";
 
 export interface DeviceIdentity {
   role: DeviceRole;

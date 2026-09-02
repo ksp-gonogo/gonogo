@@ -17,6 +17,7 @@ import { ThemeProvider } from "styled-components";
 // and data sources (from ./dataSources).
 import "@ksp-gonogo/components"; // triggers all component self-registration
 import "./dataSources"; // triggers all data source self-registration
+import "./commcast/CommcastComponent"; // app-level component: registers on import
 import "./goNoGo/GoNoGoComponent"; // app-level component: registers on import
 import "./notes/NotesComponent"; // app-level component: registers on import
 import App from "./App";

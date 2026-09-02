@@ -83,6 +83,7 @@ type ClientEventMap = {
   alarmFired: [fire: { id: string; name: string; ut: number }];
   triggerSnapshot: [snap: import("@ksp-gonogo/components").TriggerSnapshot];
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
+  commcastSnapshot: [snap: import("../commcast/types").CommcastSnapshot];
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
   flightChange: [flight: FlightRecord | null];
@@ -355,7 +356,11 @@ export class PeerClientService {
 
   sendStationInfo(
     name: string,
-    info?: { version?: string; buildTime?: string },
+    info?: {
+      version?: string;
+      buildTime?: string;
+      seat?: import("@ksp-gonogo/sitrep-sdk/spine").Seat;
+    },
   ) {
     this.conn?.send({
       type: "station-info",
@@ -363,6 +368,12 @@ export class PeerClientService {
       stationKey: this.stationKey,
       ...(info?.version ? { version: info.version } : {}),
       ...(info?.buildTime ? { buildTime: info.buildTime } : {}),
+      // Omitted rather than sent as the default, matching this message's
+      // existing back-compat posture: absence already means mission control,
+      // so a client that predates the pilot seat needs no change.
+      ...(info?.seat && info.seat !== "mission-control"
+        ? { seat: info.seat }
+        : {}),
     } satisfies PeerMessage);
   }
 
@@ -474,6 +485,40 @@ export class PeerClientService {
       type: "note-reorder",
       id,
       afterId,
+    } satisfies PeerMessage);
+  }
+
+  /**
+   * Speak into the shared thread. The author's own seat and stationKey go on
+   * the wire beside the body: the seat is what the host and every recipient
+   * compute the reveal from, and it is exactly what has not arrived yet when
+   * a peer connects and talks in the same breath.
+   *
+   * `conn?` means a send while disconnected is DROPPED, not queued, the same
+   * as every other client send in this file. The thread surfaces that rather
+   * than pretending: see the widget's disconnected state.
+   */
+  sendCommcastMessage(
+    author: import("../commcast/types").CommsParticipant,
+    input: import("../commcast/types").CommsSendInput,
+  ) {
+    this.conn?.send({
+      type: "commcast-send",
+      author,
+      input,
+    } satisfies PeerMessage);
+  }
+
+  sendCommcastRead(
+    reader: import("../commcast/types").CommsParticipant,
+    messageIds: string[],
+    atUt: number,
+  ) {
+    this.conn?.send({
+      type: "commcast-read",
+      reader,
+      messageIds,
+      atUt,
     } satisfies PeerMessage);
   }
 
@@ -865,6 +910,12 @@ export class PeerClientService {
     return this.events.on("notesSnapshot", cb);
   }
 
+  onCommcastSnapshot(
+    cb: (snap: import("../commcast/types").CommcastSnapshot) => void,
+  ) {
+    return this.events.on("commcastSnapshot", cb);
+  }
+
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
     return this.events.on("alarmFired", cb);
   }
@@ -1009,6 +1060,9 @@ export class PeerClientService {
     },
     "notes-snapshot": (msg) => {
       this.events.emit("notesSnapshot", msg.snapshot);
+    },
+    "commcast-snapshot": (msg) => {
+      this.events.emit("commcastSnapshot", msg.snapshot);
     },
     "alarm-fired": (msg) => {
       this.events.emit("alarmFired", {

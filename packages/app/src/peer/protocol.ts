@@ -193,6 +193,10 @@ export type PeerMessage =
       // station twice while waiting for the broker to reap the old conn.
       // Optional for back-compat: pre-stationKey clients still work.
       stationKey?: string;
+      // Which seat this peer is sitting at. Absent means mission control,
+      // matching this message's existing back-compat posture: every client
+      // that predates the pilot seat is at a command centre by construction.
+      seat?: import("@ksp-gonogo/sitrep-sdk/spine").Seat;
     }
   // Station → host whenever the local GO/NO-GO vote changes. `null` means
   // "no widget mounted" so the station-info is still registered but the
@@ -353,6 +357,41 @@ export type PeerMessage =
   | { type: "note-update"; id: string; body: string }
   | { type: "note-delete"; id: string }
   | { type: "note-reorder"; id: string; afterId: string | null }
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Commcast: the shared text thread between everyone flying one mission.
+  // Host owns the canonical list and broadcasts the full snapshot on change,
+  // exactly like notes, and pushes one to each peer as it connects so a
+  // message survives the recipient having been away for a whole flight.
+  //
+  // Unlike notes, the author's SEAT and stationKey ride on the wire rather
+  // than being resolved host-side from `station-info`. The seat is what the
+  // per-recipient reveal is computed from, so a message whose seat the host
+  // could not resolve could not be delayed at all: and the seat is exactly
+  // what has not arrived yet when a peer connects and speaks in the same
+  // breath. Only the display NAME is resolved host-side, and patched when
+  // the `station-info` lands.
+  //
+  // There is no delete arm, deliberately: a message already revealed at
+  // another seat cannot be un-said, so the thread has nothing to offer that
+  // would not be a lie about what the other operator saw.
+  // ──────────────────────────────────────────────────────────────────────
+  | {
+      type: "commcast-snapshot";
+      snapshot: import("../commcast/types").CommcastSnapshot;
+    }
+  | {
+      type: "commcast-send";
+      author: import("../commcast/types").CommsParticipant;
+      input: import("../commcast/types").CommsSendInput;
+    }
+  | {
+      type: "commcast-read";
+      reader: import("../commcast/types").CommsParticipant;
+      messageIds: string[];
+      /** The reader's own `utNowEstimate()` when they read them. */
+      atUt: number;
+    }
   // ──────────────────────────────────────────────────────────────────────
   // Sitrep telemetry-stream forwarding. The host taps its own
   // TelemetryClient (SitrepPeerRelay, one live subscriber to the mod,

@@ -1428,7 +1428,23 @@ namespace Sitrep.Contract
         /// did not have: that a delivered sample came off the subject's own
         /// recorder rather than the live link, and that a span of it is missing
         /// and must be drawn as a break rather than joined across.</para>
+        ///
+        /// <para><b>Bumped 7 -&gt; 8: how far one vantage is from another.</b>
+        /// Two new types, <see cref="CentreSeparationEntry"/> and
+        /// <see cref="CommandCentreSeparation"/>, backing the new
+        /// <c>commandCentre.separation</c> Topic. Additive, nothing removed or
+        /// retyped, so an Uplink built against 14.7 is unaffected and the frozen
+        /// Major-14 floor is NOT re-frozen.</para>
+        ///
+        /// <para>They exist because the wire could say how far a craft is from
+        /// HOME and nothing else. <c>comms.delay</c> measures the active
+        /// vessel's routed path to the ground, which answers exactly one pair,
+        /// and the moment two humans at two vantages talk to each other the
+        /// question becomes how far ANY vantage is from any other. The mod
+        /// already computed every one of those numbers, for the delay ledger
+        /// that prices command dispatch, and threw them away after writing them
+        /// into engine state no client can read.</para>
         /// </remarks>
-        public const int Minor = 7;
+        public const int Minor = 8;
     }
 }

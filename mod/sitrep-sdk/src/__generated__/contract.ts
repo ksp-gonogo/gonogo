@@ -616,6 +616,51 @@ export interface CommandCentreEntry
 	delayQuality?: string;
 }
 /**
+* One ordered pair in the `commandCentre.separation` channel: how far
+* `CentreSeparationEntry.from` is from `CentreSeparationEntry.to`, in one-way
+* seconds along the routed CommNet path.
+*
+* Both ends are command-centre ids from `commandCentre.roster`, so a pair is a
+* ground station against another ground station, a crewed craft against a
+* ground station, or two crewed craft: a crewed control-source vessel IS a
+* centre, so no separate vocabulary is needed for it.
+*/
+export interface CentreSeparationEntry
+{
+	/** The centre the separation is measured FROM, as a roster `Id`. */
+	from: string;
+	/** The centre the separation is measured TO, as a roster `Id`. */
+	to: string;
+	/** One-way signal time along the routed path between the two. */
+	oneWaySeconds: Value<"s">;
+}
+/**
+* How far every active command centre is from every other, one-way, along the
+* routed CommNet path. The number a human at one vantage needs to know how
+* long their words take to reach a human at another.
+*
+* **Sparse, and that is the contract.** A pair with no route has NO entry
+* rather than a zero or a sentinel: commands and messages ride the relay
+* network, so an unroutable pair has no separation to quote, and inventing one
+* would make an unreachable correspondent look merely distant. A reader that
+* finds no entry for a pair knows the separation is unavailable, which is a
+* different fact from it being large.
+*
+* Each centre against ITSELF is always present as an explicit zero: a node is
+* exactly no distance from itself, and without the row a reader would fall
+* through to "unavailable" for the one pair it is most certain about.
+*
+* TRUE-NOW, on the same reasoning as `comms.delay`: this value GATES the
+* reveal of things sent between vantages, so delaying it would make the gate
+* depend on itself, and freezing it through a blackout would hold a stale
+* separation exactly when the geometry is changing.
+*/
+export interface CommandCentreSeparation
+{
+	/** Every ordered pair with a routed path, plus each centre's own zero. */
+	pairs: CentreSeparationEntry[];
+}
+/**
 * One gated command and what its gate says RIGHT NOW, evaluated with no
 * arguments at all.
 *

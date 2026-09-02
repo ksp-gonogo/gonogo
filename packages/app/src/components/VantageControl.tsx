@@ -75,6 +75,13 @@ function useActiveCentres(): {
  * change, quite apart from being unwanted. But a station operator reading
  * delayed data still has to know WHICH centre it is delayed from or they cannot
  * interpret any of it, so the answer stays on screen; only the lever goes.
+ *
+ * A PILOT keeps the picker, deliberately. The design's end state pins a pilot
+ * to their own craft's vantage automatically, and once that lands the lever is
+ * a control to change the one thing the seat depends on. Until then the picker
+ * is the ONLY way a pilot reaches their craft's vantage at all, and removing it
+ * would leave them permanently reading at the ground's light-time with no
+ * recourse. Taking it away is the second half of that work, not this one.
  */
 export function VantageControl() {
   return useScreen() === "station" ? <VantageReadout /> : <VantagePicker />;

@@ -3,7 +3,7 @@ info:
   title: Gonogo Sitrep contract
   version: 14.7.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 71 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 72 telemetry
     channels a client subscribes to, and 51 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -146,7 +146,7 @@ info:
     - name: career
       description: 2 telemetry channels, 9 commands
     - name: commandCentre
-      description: 1 telemetry channel, 0 commands
+      description: 2 telemetry channels, 0 commands
     - name: comms
       description: 9 telemetry channels, 1 command
     - name: crash
@@ -465,6 +465,40 @@ channels:
     messages:
       streamData:
         $ref: "#/components/messages/streamData.commandCentre.roster"
+      event:
+        $ref: "#/components/messages/event"
+  commandCentre.separation:
+    address: commandCentre.separation
+    description: |-
+      Carries a `CommandCentreSeparation`.
+
+      How far every active command centre is from every other, one-way, along the
+      routed CommNet path. The number a human at one vantage needs to know how
+      long their words take to reach a human at another.
+
+      **Sparse, and that is the contract.** A pair with no route has NO entry
+      rather than a zero or a sentinel: commands and messages ride the relay
+      network, so an unroutable pair has no separation to quote, and inventing one
+      would make an unreachable correspondent look merely distant. A reader that
+      finds no entry for a pair knows the separation is unavailable, which is a
+      different fact from it being large.
+
+      Each centre against ITSELF is always present as an explicit zero: a node is
+      exactly no distance from itself, and without the row a reader would fall
+      through to "unavailable" for the one pair it is most certain about.
+
+      TRUE-NOW, on the same reasoning as `comms.delay`: this value GATES the
+      reveal of things sent between vantages, so delaying it would make the gate
+      depend on itself, and freezing it through a blackout would hold a stale
+      separation exactly when the geometry is changing.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: true-now
+    x-sitrep-keyframe-interval-ut: 1000
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.commandCentre.separation"
       event:
         $ref: "#/components/messages/event"
   comms.commandCentre:
@@ -4092,6 +4126,17 @@ operations:
     messages:
       - $ref: "#/channels/commandCentre.roster/messages/streamData"
       - $ref: "#/channels/commandCentre.roster/messages/event"
+  read:commandCentre.separation:
+    action: receive
+    channel:
+      $ref: "#/channels/commandCentre.separation"
+    title: Read commandCentre.separation
+    description: Delivered only after `subscribe` names `commandCentre.separation` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: commandCentre
+    messages:
+      - $ref: "#/channels/commandCentre.separation/messages/streamData"
+      - $ref: "#/channels/commandCentre.separation/messages/event"
   read:comms.commandCentre:
     action: receive
     channel:
@@ -6396,6 +6441,19 @@ components:
                 type: array
                 items:
                   $ref: "#/components/schemas/CommandCentreEntry"
+    streamData.commandCentre.separation:
+      name: stream-data
+      title: A frame on commandCentre.separation
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `commandCentre.separation`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: commandCentre.separation
+              payload:
+                $ref: "#/components/schemas/CommandCentreSeparation"
     streamData.comms.commandCentre:
       name: stream-data
       title: A frame on comms.commandCentre
@@ -8498,6 +8556,34 @@ components:
             - "null"
           x-sitrep-unit: f/day
           description: Engineer salaries on the integration teams.
+    CentreSeparationEntry:
+      type: object
+      description: |-
+        One ordered pair in the `commandCentre.separation` channel: how far
+        `CentreSeparationEntry.from` is from `CentreSeparationEntry.to`, in one-way
+        seconds along the routed CommNet path.
+
+        Both ends are command-centre ids from `commandCentre.roster`, so a pair is a
+        ground station against another ground station, a crewed craft against a
+        ground station, or two crewed craft: a crewed control-source vessel IS a
+        centre, so no separate vocabulary is needed for it.
+      required:
+        - from
+        - to
+        - oneWaySeconds
+      properties:
+        from:
+          type: string
+          x-sitrep-unit: id
+          description: The centre the separation is measured FROM, as a roster `Id`.
+        to:
+          type: string
+          x-sitrep-unit: id
+          description: The centre the separation is measured TO, as a roster `Id`.
+        oneWaySeconds:
+          type: number
+          x-sitrep-unit: s
+          description: One-way signal time along the routed path between the two.
     ClosestApproach:
       type: object
       description: |-
@@ -8618,6 +8704,36 @@ components:
             and no delay). There is deliberately no position-only approximation:
             commands ride the relay network, and a pair with no route has no delay to
             quote.
+    CommandCentreSeparation:
+      type: object
+      description: |-
+        How far every active command centre is from every other, one-way, along the
+        routed CommNet path. The number a human at one vantage needs to know how
+        long their words take to reach a human at another.
+
+        **Sparse, and that is the contract.** A pair with no route has NO entry
+        rather than a zero or a sentinel: commands and messages ride the relay
+        network, so an unroutable pair has no separation to quote, and inventing one
+        would make an unreachable correspondent look merely distant. A reader that
+        finds no entry for a pair knows the separation is unavailable, which is a
+        different fact from it being large.
+
+        Each centre against ITSELF is always present as an explicit zero: a node is
+        exactly no distance from itself, and without the row a reader would fall
+        through to "unavailable" for the one pair it is most certain about.
+
+        TRUE-NOW, on the same reasoning as `comms.delay`: this value GATES the
+        reveal of things sent between vantages, so delaying it would make the gate
+        depend on itself, and freezing it through a blackout would hold a stale
+        separation exactly when the geometry is changing.
+      required:
+        - pairs
+      properties:
+        pairs:
+          type: array
+          items:
+            $ref: "#/components/schemas/CentreSeparationEntry"
+          description: Every ordered pair with a routed path, plus each centre's own zero.
     CommandErrorCode:
       type: integer
       description: |-

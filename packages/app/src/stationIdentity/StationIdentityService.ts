@@ -47,7 +47,16 @@ export class StationIdentityService {
   private listeners = new Set<NameListener>();
   private readonly storage: Storage;
 
-  constructor(storage: Storage = globalThis.localStorage) {
+  /**
+   * `defaultName` is what a device that has never been named is called. It
+   * exists because the main screen and a pilot page are participants in the
+   * shared thread too, and "Station ABCD" is the wrong thing to call the
+   * operator running the mission from KSC.
+   */
+  constructor(
+    storage: Storage = globalThis.localStorage,
+    defaultName?: string,
+  ) {
     this.storage = storage;
 
     const saved = storage.getItem(NAME_KEY);
@@ -62,7 +71,7 @@ export class StationIdentityService {
       return;
     }
 
-    this.name = `Station ${generateSuffix()}`;
+    this.name = defaultName ?? `Station ${generateSuffix()}`;
     storage.setItem(NAME_KEY, this.name);
   }
 

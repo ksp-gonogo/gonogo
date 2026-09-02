@@ -85,13 +85,16 @@ export interface SettingsModalProps {
 export function SettingsModal({ initialTabId }: SettingsModalProps = {}) {
   const screen = useScreen();
   const settings = getSettingsForScreen(screen);
-  // The analytics-consent toggle is host-owned, so it only appears on the
-  // main screen. Stations follow the host's consent over PeerJS and have
-  // no local control.
-  const showConsent = screen === "main";
-  // Data-source management is main-only, stations follow the host over
-  // PeerJS and have nothing to manage locally.
-  const showDataSources = screen === "main";
+  // The analytics-consent toggle is host-owned, so it only appears where the
+  // screen owns its own boot. Stations follow the host's consent over PeerJS
+  // and have no local control.
+  const showConsent = screen !== "station";
+  // Data-source management belongs to whichever screen holds its OWN telemetry
+  // session. A station follows the host over PeerJS and has nothing to manage;
+  // a PILOT holds its own direct connection to the mod, so this is exactly
+  // where it configures the Sitrep host. Gating on `=== "main"` would lock a
+  // pilot out of its own connection settings.
+  const showDataSources = screen !== "station";
 
   // Data Sources now leads with the single Gonogo/Sitrep connection (no
   // more "Other Connections" list of every registered DataSource; see

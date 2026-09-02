@@ -111,6 +111,25 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   pushable?: boolean;
   /** Game-state preconditions for this widget to be "live". */
   requires?: readonly ComponentRequirement[];
+  /**
+   * Which seats this widget may be placed at. OMIT for the derived default:
+   * available everywhere unless the widget declares a topic in a GROUND
+   * domain (`spaceCenter.*`, `career.*`, `commandCentre.*`, `recovery.*`),
+   * because a topic's domain already says where the thing it describes
+   * physically lives and a pilot four light-minutes out cannot act on the VAB.
+   *
+   * That default fails CLOSED for known ground domains and OPEN for every
+   * other, including every domain an Uplink invents: a third-party widget
+   * reading only `vessel.*` works aboard with no annotation, and one reading
+   * `career.*` is absent aboard without its author having heard of the pilot
+   * seat.
+   *
+   * Declare this only to overrule that. `["mission-control"]` for a widget the
+   * derivation would let aboard and should not; `["pilot"]` for one that only
+   * makes sense aboard, which no derivation can ever infer because no topic
+   * says "aboard only"; both for a mixed widget that belongs in each.
+   */
+  seats?: readonly Seat[];
   /** Addressable augment slots this widget owns. */
   augmentSlots?: string[];
   /**
@@ -796,11 +815,21 @@ export interface DataSource<
 // constraint as the rest of this file.
 
 /**
- * Which screen a component is mounted on. The same registered component
- * can render different UIs on main vs station when it participates in a
+ * Which screen a component is mounted on: a DEPLOYMENT CONFIGURATION, not a
+ * role. `"main"` is direct-WS and peer-hosting, `"station"` is peer-fed,
+ * `"pilot"` is direct-WS aboard the craft without hosting. The same registered
+ * component can render different UIs on each when it participates in a
  * multi-role interaction (e.g. GO/NO-GO voting).
  */
-export type Screen = "main" | "station";
+export type Screen = "main" | "station" | "pilot";
+
+/**
+ * Where the operator is physically sitting. Derived from the screen by
+ * `seatOf`, never declared beside it: a widget's availability and a message's
+ * light-time are both questions about the seat, and a peer-fed pilot is a
+ * different screen at the same seat.
+ */
+export type Seat = "mission-control" | "pilot";
 
 // --- Settings tabs ---------------------------------------------------------
 

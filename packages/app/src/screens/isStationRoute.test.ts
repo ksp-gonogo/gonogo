@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { isStationRoute } from "./isStationRoute";
+import { currentRoute, isStationRoute } from "./isStationRoute";
 
 function setPath(path: string): void {
   globalThis.history.replaceState({}, "", path);
@@ -39,6 +39,47 @@ describe("isStationRoute", () => {
       // The main screen's own path under the same sub-path base must NOT match.
       setPath("/gonogo/");
       expect(isStationRoute()).toBe(false);
+    } finally {
+      import.meta.env.BASE_URL = original;
+    }
+  });
+});
+
+describe("currentRoute", () => {
+  afterEach(() => {
+    setPath("/");
+  });
+
+  it("reads the root as the main screen", () => {
+    setPath("/");
+    expect(currentRoute()).toBe("main");
+  });
+
+  it("reads /pilot as the pilot seat", () => {
+    setPath("/pilot");
+    expect(currentRoute()).toBe("pilot");
+  });
+
+  it("reads /pilot with a query string", () => {
+    setPath("/pilot?host=ABC123");
+    expect(currentRoute()).toBe("pilot");
+  });
+
+  it("does not read a pilot page as a station", () => {
+    // The two differ on the observation plane: a station is peer-fed and must
+    // skip the direct-to-KSP boot, a pilot holds its own session and must not.
+    setPath("/pilot");
+    expect(isStationRoute()).toBe(false);
+  });
+
+  it("is base-path-relative under a sub-path BASE_URL", () => {
+    const original = import.meta.env.BASE_URL;
+    import.meta.env.BASE_URL = "/gonogo/";
+    try {
+      setPath("/gonogo/pilot");
+      expect(currentRoute()).toBe("pilot");
+      setPath("/gonogo/");
+      expect(currentRoute()).toBe("main");
     } finally {
       import.meta.env.BASE_URL = original;
     }

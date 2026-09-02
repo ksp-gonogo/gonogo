@@ -29,11 +29,12 @@ export function SettingsFab({ bottom = 384 }: { bottom?: number } = {}) {
   const serialService = useSerialDeviceService();
   const screen = useScreen();
 
-  // Data sources only surface in Settings on the main screen, so only badge
-  // for them there. Serial devices are per-screen, so badge on both.
+  // Data sources surface in Settings on every screen that holds its own
+  // telemetry session, so badge for them there and not on a station. Serial
+  // devices are per-screen, so badge on all of them.
   const sources = useDataSources();
   const dataSourceIssue =
-    screen === "main" &&
+    screen !== "station" &&
     sources.some((s) => s.status === "disconnected" || s.status === "error");
   const serialStatus = useSerialAggregateStatus();
   const serialIssue = serialStatus === "partial" || serialStatus === "error";

@@ -7,6 +7,7 @@ import type {
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
 import { BUILD_TIME, VERSION } from "../version";
 import { BundleFetchCache } from "./BundleFetchCache";
@@ -181,7 +182,21 @@ interface MissionHistoryFlightApi {
 
 type StationInfoListener = (
   peerId: string,
-  info: { name: string; version?: string; buildTime?: string },
+  info: {
+    name: string;
+    version?: string;
+    buildTime?: string;
+    /**
+     * Stable per-device identity. Forwarded to subscribers, not only kept
+     * for ghost eviction: a shared thread attributes a message to the DEVICE
+     * rather than to a peer id that is fresh on every page load, so the
+     * author of something said an hour ago is still the same person after
+     * they refresh.
+     */
+    stationKey?: string;
+    /** Which seat this peer is at. Absent means mission control. */
+    seat?: Seat;
+  },
 ) => void;
 type GonogoVoteListener = (
   peerId: string,
@@ -220,6 +235,14 @@ type NoteUpdateListener = (
   msg: Extract<PeerMessage, { type: "note-update" }>,
 ) => void;
 type NoteDeleteListener = (peerId: string, id: string) => void;
+type CommcastSendListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "commcast-send" }>,
+) => void;
+type CommcastReadListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "commcast-read" }>,
+) => void;
 type NoteReorderListener = (
   peerId: string,
   msg: Extract<PeerMessage, { type: "note-reorder" }>,
@@ -256,6 +279,8 @@ type HostEventMap = {
   noteUpdate: Parameters<NoteUpdateListener>;
   noteDelete: Parameters<NoteDeleteListener>;
   noteReorder: Parameters<NoteReorderListener>;
+  commcastSend: Parameters<CommcastSendListener>;
+  commcastRead: Parameters<CommcastReadListener>;
 };
 
 export class PeerHostService {
@@ -1388,6 +1413,8 @@ export class PeerHostService {
         name: msg.name,
         version: msg.version,
         buildTime: msg.buildTime,
+        stationKey: msg.stationKey,
+        seat: msg.seat,
       });
     },
     "gonogo-vote": (msg, conn) => {
@@ -1437,6 +1464,12 @@ export class PeerHostService {
     },
     "note-reorder": (msg, conn) => {
       this.events.emit("noteReorder", conn.peer, msg);
+    },
+    "commcast-send": (msg, conn) => {
+      this.events.emit("commcastSend", conn.peer, msg);
+    },
+    "commcast-read": (msg, conn) => {
+      this.events.emit("commcastRead", conn.peer, msg);
     },
     "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
@@ -1572,6 +1605,14 @@ export class PeerHostService {
   }
   onNoteReorder(cb: NoteReorderListener): () => void {
     return this.events.on("noteReorder", cb);
+  }
+
+  onCommcastSend(cb: CommcastSendListener): () => void {
+    return this.events.on("commcastSend", cb);
+  }
+
+  onCommcastRead(cb: CommcastReadListener): () => void {
+    return this.events.on("commcastRead", cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {
