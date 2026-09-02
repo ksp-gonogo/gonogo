@@ -229,10 +229,12 @@ jobs:
       # change to ui-kit or components that moves a rendered page failed this
       # job on the commit that made it, and stayed failed until a human
       # dispatched a heal. That happened four times on 2026-09-02 (fc061fdd2,
-      # 5840d306b, 84a00db309, 69b1564b5), every one a legitimate UI change with
-      # `pnpm test` passing 46/46. A gate whose only fix is a manual dispatch
-      # blocks more than it protects, so the check reports rather than blocks.
-      # It still runs on every trigger this job does, and it still goes red.
+      # 5840d306b, 84a00db309, 69b1564b5) with `pnpm test` passing 46/46 on
+      # each; two of those four SHAs are merges, so `uplink-staleness.yml`'s
+      # header names what each red actually was. A gate whose only fix is a
+      # manual dispatch blocks more than it protects, so the check reports
+      # rather than blocks. It still runs on every trigger this job does, and it
+      # still goes red.
       #
       # `components` is filtered in alongside ui-kit for the same reason
       # uplink-docs.yml needs it: five Uplinks declare a `gonogo.renderWith`
