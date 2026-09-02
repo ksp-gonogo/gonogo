@@ -288,7 +288,7 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
    * horizon back; the delay term is the only thing that does. Collapse the
    * delay to 0 and `confirmedEdgeUt()` snaps a full light-time forward at the
    * instant the craft becomes unreachable, which is the one direction it must
-   * never move: every delayed channel and the kerbcast playout buffer (same
+   * never move: every delayed channel and the camera playout buffer (same
    * formula, `worker-delay-clock.ts`) release against this edge, so the
    * operator is shown "live" video of a craft nothing can reach, and learns of
    * the outage at T+0 instead of the T+delay the design promises.
