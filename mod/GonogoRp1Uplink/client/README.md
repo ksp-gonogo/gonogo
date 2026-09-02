@@ -225,12 +225,14 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-training-enrolment` | `astronaut-complex.sections` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.training`, `spaceCenter.crewRoster` |  | 2 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
 | `rp1-crew-programme` | `astronaut-complex.sections` | – |  | 1 |  |
+| `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `rp1.constructions` | only while `rp1` | 2 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
 | `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 5 |  |
 | `rp1-program-status` | `career-economy.sections` | – |  | 1 |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  | 1 |  |
+| `rp1-start-research` | `tech-tree.sections` | `rp1.available`, `career.status`, `rp1.research` | only while `rp1` | 2 |  |
 | `rp1-vehicle-assembly-build-cost` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
@@ -251,6 +253,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 
 ![The rules a career's personnel dates are read under: retirement on with a two-year extension ceiling, post-flight R&R off, mission training at 1.25x, and three enrolled courses of which two have never been started](docs/assets/crew-programme-rules--default.png)
+
+![A career with two tiers it could commit to and one building already in the queue, priced against a balance that cannot meet either: RP-1 bills a construction as it builds, so this is a slower upgrade rather than a refused one](docs/assets/facility-upgrades-at-centre--default.png)
+
+![The same career read from the flight scene: KSP has not built the facilities, so every tier and every price is absent and the command's own gate refuses. Said out loud, because a career with nothing left to upgrade renders the same silence](docs/assets/facility-upgrades-away--default.png)
 
 ![LC-1's detail open on a career with 400f against a 14,118f pad: the quote, the reading that it is more than the balance, and a press that is still live because RP-1 slows the build rather than refusing it](docs/assets/complexes-add-pad--default.png)
 
@@ -290,13 +296,17 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A Program whose funding curve RP-1 has not published: the chart refuses to draw and says so, rather than drawing zero](docs/assets/no-curve-table--default.png)
 
-![An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years](docs/assets/offer-frontloaded--default.png)
+![An offer the career cannot yet afford at any paid speed, with the front-loaded curve that would fund its first two years and the accept control dark on the Confidence it is short of](docs/assets/offer-frontloaded--default.png)
 
 ![A running Program part paid, on a strongly back-loaded curve: the chart is why the total alone cannot be planned against, almost none of this money arrives before the fourth year](docs/assets/running-backloaded--default.png)
 
 ![Both Program slots committed, the running Program past its deadline and losing reputation by the year, and the next one out of Confidence reach](docs/assets/programs-overrun-and-unaffordable--default.png)
 
 ![Three queued nodes: one being worked with a countdown and its era window, one throttled down to a fifth of full rate, and one stalled with nothing to date it from](docs/assets/research-queue-throttled-and-stalled--default.png)
+
+![The same frontier against a balance that can meet it, with a node already on the queue withheld from the picker: RP-1 refuses a second press ahead of the charge, so offering one would be offering a press that cannot land](docs/assets/start-research-affordable--default.png)
+
+![The reachable frontier of an RP-1 tree, cheapest first, against a science balance that cannot meet even that: RP-1 charges the whole cost at ENQUEUE, so the control is dark on state with the shortfall named](docs/assets/start-research-short--default.png)
 
 ![A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and four blocking tech nodes under ONE severity badge, each named and each showing what on the vehicle is waiting for it](docs/assets/build-cost-absences-and-tech-gate--default.png)
 

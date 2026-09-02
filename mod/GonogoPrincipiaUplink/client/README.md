@@ -63,6 +63,7 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `principia-flight-plan` | `maneuver-planner.sections` | – |  | 6 |  |
+| `principia-plan-slots` | `maneuver-planner.sections` | – |  | 3 |  |
 | `principia-orbit-analysis` | `current-orbit.sections` | – |  | 5 |  |
 | `principia-coast-analysis` | `maneuver-planner.sections` | – |  | 3 |  |
 | `principia-burn-editor` | `maneuver-planner.sections` | – |  | 3 |  |
@@ -79,6 +80,12 @@ Publishes Principia's n-body state: trajectory arcs, the flight plan and its bur
 ![The step limit sitting beside the failure it causes: the plan stopped fourteen hours short of its requested end, and the control that fixes it is on the same line](docs/assets/flight-plan-steps-exhausted--default.png)
 
 ![No reading at all. The one that must not read as no flight plan](docs/assets/flight-plan-unobserved--default.png)
+
+![An armed slot, one of three, mid-mission with a burn already running: copy and delete are the transitions available and create is not offered at all](docs/assets/plan-slots-armed--default.png)
+
+![A craft with no flight plan: the only transition the slot offers is create, and the instant the new plan would end is stated before it is made](docs/assets/plan-slots-no-plan--default.png)
+
+![At Principia's cap, mid-optimisation, at a thirty-light-minute vantage with the next burn already inside the round trip: nothing can be written and every reason says so](docs/assets/plan-slots-shut--default.png)
 
 ![A low equatorial orbit the analyser has followed down to the ground: reentry within the hour, then terrain risk, then the impact itself, each as a countdown rather than a flag](docs/assets/orbit-analysis-decaying--default.png)
 
