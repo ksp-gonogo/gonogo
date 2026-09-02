@@ -27,9 +27,17 @@ namespace Sitrep.Core.Tests
     /// every tick as the control: without it "few emissions" would be
     /// indistinguishable from an emitter that had stopped.</para>
     ///
+    /// <para>Most of them tick in whole UT from zero, which puts every tick on
+    /// a cadence boundary and makes "elapsed since the last keyframe" and "on a
+    /// multiple of the interval" agree on every value in the run. The live
+    /// channel ticks in fractions and lands on neither, so
+    /// <see cref="Decide_OffBoundaryTicks_StillEmitsKeyframesAndDrifts"/> runs
+    /// the shape a capture actually produces and is the only test here that
+    /// separates the two rules.</para>
+    ///
     /// <para>The reading that produced the paragraph above is right about the
     /// steady state and wrong about the start of a capture, which
-    /// <see cref="AFreshSubscriberGetsAKeyframeInsideAWindowTooShortToContainOne"/>
+    /// <see cref="NotifySubscribed_ShortCaptureWindow_ForcesAKeyframeAnyway"/>
     /// records: a genuine 0 to 1 subscribe forces an out-of-cadence keyframe
     /// (<see cref="ChannelEmitter.NotifySubscribed"/>), so a capture that opens
     /// by subscribing carries one frame however short it is. Cadence alone
@@ -94,7 +102,7 @@ namespace Sitrep.Core.Tests
         }
 
         [Fact]
-        public void AnUnchangingChannelEmitsOnlyKeyframesAndOnlyOnTheKeyframeCadence()
+        public void Decide_UnchangingChannel_EmitsOnlyKeyframesOnTheCadence()
         {
             var emitter = new ChannelEmitter(VesselPolicy());
             var emissions = new List<EmissionDecision>();
@@ -125,7 +133,7 @@ namespace Sitrep.Core.Tests
         /// having gone quiet.
         /// </summary>
         [Fact]
-        public void AChannelWhosePayloadMovesEveryTickEmitsOnEveryTickUnderTheSamePolicy()
+        public void Decide_PayloadMovesEveryTick_EmitsOnEveryTick()
         {
             var emitter = new ChannelEmitter(VesselPolicy());
             var emissions = new List<EmissionDecision>();
@@ -153,13 +161,104 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
+        /// The same cadence against the tick shape the live channel actually
+        /// produces: fractional UT that never lands on a multiple of the
+        /// interval.
+        ///
+        /// <para>Every other tick in this file is a whole UT counted from zero,
+        /// so every cadence boundary falls exactly on a tick and <c>ut -
+        /// lastKeyframeUt &gt;= KeyframeIntervalUt</c> agrees with a
+        /// boundary-locked <c>ut % KeyframeIntervalUt == 0</c> on every value in
+        /// the run. They do not agree here, and here is where the production
+        /// system lives: a 130 second capture with a vessel focused measured
+        /// <c>vessel.maneuver</c> keyframes at validAt 3566.4, 3597.0 and
+        /// 3627.6, gaps of 30.6 against a declared interval of 30. The epoch
+        /// below is the first of those, and the tick spacing is the one that
+        /// reproduces the other two, so this run replays that capture rather
+        /// than approximating its shape.</para>
+        ///
+        /// <para>Two properties separate the rules, and neither is visible on a
+        /// boundary. The elapsed-since rule emits on the first tick at or PAST
+        /// the interval, so every gap is at least the interval and less than one
+        /// tick more; and because the keyframe stamps itself with that tick's ut
+        /// rather than with the boundary it passed, the overshoot accumulates
+        /// and the keyframes drift off the boundary for good. A boundary-locked
+        /// rule has no overshoot to carry, so it neither drifts nor, on ticks
+        /// like these, fires at all.</para>
+        /// </summary>
+        [Fact]
+        public void Decide_OffBoundaryTicks_StillEmitsKeyframesAndDrifts()
+        {
+            // The live capture's own numbers: the first keyframe's validAt, and
+            // the spacing that puts the next tick at or past 30 UT exactly 30.6
+            // UT later, which is the gap the capture recorded.
+            const double Epoch = 3566.4;
+            const double TickSpacingUt = 1.02;
+            const double CaptureUt = 130;
+
+            var emitter = new ChannelEmitter(VesselPolicy());
+            var emissions = new List<EmissionDecision>();
+
+            // `Epoch + (spacing * tick)`, never an accumulating `ut += spacing`:
+            // the drift under test is the emitter's, and a tick clock that
+            // compounds its own rounding error would be a second one on top of
+            // it.
+            for (var tick = 0; TickSpacingUt * tick <= CaptureUt; tick++)
+            {
+                var decision = emitter.Decide(
+                    "vessel.maneuver", EmptyManeuverPayload(), Epoch + (TickSpacingUt * tick));
+                if (decision.ShouldEmit)
+                {
+                    emissions.Add(decision);
+                }
+            }
+
+            var uts = emissions.Select(e => e.Ut).ToArray();
+            Assert.True(
+                uts.Length == 5,
+                $"{CaptureUt} UT at a {TickSpacingUt} UT tick should carry five keyframes on a "
+                    + $"{KeyframeIntervalUt} UT cadence: the joining one and four due. Got {uts.Length} at "
+                    + $"[{string.Join(", ", uts)}]. A cadence keyed on `ut % interval == 0` scores exactly "
+                    + "one here, the forced joining keyframe, because no tick in this run is a multiple of "
+                    + "the interval.");
+
+            Assert.All(emissions, e => Assert.Equal(EmissionReason.Keyframe, e.Reason));
+            Assert.All(emissions, e => Assert.NotEqual(0.0, e.Ut % KeyframeIntervalUt, 6));
+
+            // The three the deck capture recorded, in order.
+            Assert.Equal(3566.4, uts[0], 6);
+            Assert.Equal(3597.0, uts[1], 6);
+            Assert.Equal(3627.6, uts[2], 6);
+
+            // Emitted on the first tick at or past the interval: never early,
+            // and never later than the tick after the boundary.
+            for (var i = 1; i < uts.Length; i++)
+            {
+                var gap = uts[i] - uts[i - 1];
+                Assert.True(
+                    gap >= KeyframeIntervalUt && gap < KeyframeIntervalUt + TickSpacingUt,
+                    $"Keyframe {i} landed {gap} UT after keyframe {i - 1}, outside the one tick of overshoot "
+                        + $"an elapsed-since rule can produce on a {KeyframeIntervalUt} UT cadence.");
+            }
+
+            // And the overshoot compounds. Four intervals of nominal 30 span
+            // 120 UT; these span 122.4, which is the drift the deck saw. A
+            // boundary-locked rule cannot produce it: it would read exactly 120.
+            Assert.Equal(122.4, uts[4] - uts[0], 6);
+
+            var counters = emitter.CountersFor("vessel.maneuver");
+            Assert.Equal(128, counters.Considered);
+            Assert.Equal(5, counters.Emitted);
+        }
+
+        /// <summary>
         /// The anomaly itself, as arithmetic: an established subscriber
         /// capturing a shorter span than the keyframe interval records nothing,
         /// because there is no keyframe due inside the window and the payload
         /// never clears the deadband.
         /// </summary>
         [Fact]
-        public void ACaptureShorterThanTheKeyframeIntervalContainsNoFrameAtAll()
+        public void Decide_CaptureShorterThanTheInterval_ContainsNoFrame()
         {
             var emitter = new ChannelEmitter(VesselPolicy());
 
@@ -206,7 +305,7 @@ namespace Sitrep.Core.Tests
         /// never considered at all, and the cause lies upstream of this class.
         /// </summary>
         [Fact]
-        public void AFreshSubscriberGetsAKeyframeInsideAWindowTooShortToContainOne()
+        public void NotifySubscribed_ShortCaptureWindow_ForcesAKeyframeAnyway()
         {
             var emitter = new ChannelEmitter(VesselPolicy());
 
