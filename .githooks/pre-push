@@ -53,7 +53,14 @@ echo "pre-push: lint clean."
 # alone carries a cache key over the whole repo. Both run here: the split is
 # about CACHING, not coverage, and dropping the scans locally would put the
 # em-dash / raw-hex / boundary guards back to CI-only.
-if ! CI=true pnpm exec turbo run test test:scans --concurrency=1 > "$GONOGO_HOOK_LOG" 2>&1; then
+# `pnpm push` (scripts/safe-push.mjs) runs this same gate BEFORE opening the
+# connection, because git opens its socket before the hook runs and GitHub closes
+# it if the hook outlives the idle timeout: git then dies with SIGPIPE while this
+# script prints "all checks passed". When the gate has already run, skip it here
+# rather than hold the socket open for a second full pass.
+if [ "${GONOGO_GATE_DONE:-}" = "1" ]; then
+  echo "pre-push: gate already run by pnpm push, not repeating it."
+elif ! CI=true pnpm exec turbo run test test:scans --concurrency=1 > "$GONOGO_HOOK_LOG" 2>&1; then
   cat "$GONOGO_HOOK_LOG"
   echo "✖ pre-push: tests failed (this is what CI would have caught)."
   exit 1
