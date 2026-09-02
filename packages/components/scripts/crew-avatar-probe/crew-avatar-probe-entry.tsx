@@ -10,8 +10,8 @@
  * Mirrors `crew-badge-probe-entry.tsx`'s own pattern (a narrow, standalone
  * copy of the real composition chain, scoped to CrewStatus only) but adds
  * ONE thing that probe doesn't: a stub `crew-status.avatar` augment,
- * registered before mount, standing in for the real
- * `mod/GonogoKerbcastUplink/client/src/CrewAvatarGate` augment (a live
+ * registered before mount, standing in for the kerbcast Uplink's real
+ * `CrewAvatarGate` augment, which ships from its own repository now (a live
  * facecam feed the probe harness has no camera to source). The stub renders
  * a plain initials box, not a real image, this render exists to prove the
  * ROW LAYOUT (avatar column spanning the block), not to preview kerbcast's

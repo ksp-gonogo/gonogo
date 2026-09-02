@@ -593,7 +593,6 @@ jobs:
             Sitrep.Host.Tests
             Sitrep.Host.IntegrationTests
             GonogoRealAntennasUplink.Tests
-            GonogoKerbcastUplink.Tests
             GonogoActionGroupsExtendedUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests

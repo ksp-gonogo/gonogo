@@ -9,7 +9,6 @@ import { fileURLToPath } from "node:url";
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
 import "@ksp-gonogo/gonogo-avionics-uplink";
 import "@ksp-gonogo/gonogo-principia-uplink";
-import "@ksp-gonogo/gonogo-kerbcast-uplink";
 import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-realantennas-uplink";
 import "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink";
@@ -134,7 +133,6 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
     // SDK's static TOPIC_IDS, so their presence proves the client imports above fired their
     // registration.
     const known = new Set<string>(getAllKnownTopicIds());
-    expect(known.has("kerbcast.available")).toBe(true);
     expect(known.has("kerbalism.available")).toBe(true);
     expect(known.has("avionics.available")).toBe(true);
   });

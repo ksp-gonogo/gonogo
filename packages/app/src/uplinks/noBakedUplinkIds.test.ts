@@ -78,21 +78,22 @@ function uplinkClientSpecifiers(source: string): string[] {
  * Shipped files that still import an Uplink client package. SHRINK-ONLY: remove
  * a line when the coupling goes, never add one.
  *
- * Seeded 2026-08-31 with exactly one entry, by the specifier check finding it on
- * its first run. It is a DIFFERENT privilege from the nine build-time imports
- * that same change removed, and a larger one, so it is stated rather than
- * absorbed: `StationScreen` wires one named Uplink's brokered (station-mode)
- * WebRTC handshake, reaching it by `getUplinkHandle<TheSource>("<that-id>")`
- * and relaying through `client.sendUplinkRelay("<id>", ...)`. The import is
- * `import type`, so nothing of it survives to the bundle, but the app still
- * knows that one Uplink exists and no other Uplink can ask for the same wiring.
+ * EMPTY, and only half of what it recorded is actually fixed. Its one entry was
+ * `screens/StationScreen.tsx`, whose `import type` went when that Uplink left
+ * the repo: an app cannot import a package that is not there. What the entry
+ * ALSO described is untouched, and this gate cannot see it, because it measures
+ * import specifiers: the station still wires one NAMED Uplink's brokered
+ * (station-mode) WebRTC handshake, by `getUplinkHandle<T>("<that-id>")` and
+ * `client.sendUplinkRelay("<id>", ...)`, so the app still knows that one Uplink
+ * exists and no other Uplink can ask for the same wiring.
  *
- * Fixing it is not a matter of moving an import. It needs the brokered-transport
- * attach to become something an Uplink DECLARES and the station applies to
- * whatever declared it, which is a design, not a tidy-up. Filed here so the next
- * person finds a named gap rather than a clean gate.
+ * Fixing THAT is not a matter of moving an import. It needs the brokered-
+ * transport attach to become something an Uplink DECLARES and the station
+ * applies to whatever declared it, which is a design, not a tidy-up. Stated
+ * here rather than dropped with the entry, so an empty list does not read as a
+ * closed gap.
  */
-const CLIENT_IMPORT_DEBT: readonly string[] = ["screens/StationScreen.tsx"];
+const CLIENT_IMPORT_DEBT: readonly string[] = [];
 
 function shippedSourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

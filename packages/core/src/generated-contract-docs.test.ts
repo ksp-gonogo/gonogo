@@ -80,8 +80,10 @@ describe("generated contract docs", () => {
   const contracts = generatedContracts();
 
   it("finds every generated contract", () => {
-    // A walk that matched nothing would pass every assertion below.
-    expect(contracts.length).toBeGreaterThanOrEqual(11);
+    // A walk that matched nothing would pass every assertion below. Ten since
+    // an Uplink left the repo and took its contract slice with it; a floor
+    // guards against the walk breaking, so it tracks what is here.
+    expect(contracts.length).toBeGreaterThanOrEqual(10);
   });
 
   it("sees markup it is meant to reject", () => {

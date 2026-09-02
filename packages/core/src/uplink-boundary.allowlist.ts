@@ -113,11 +113,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   kerbcast: {
     domainDebt: [
       /*
-       * -- HARD violations (audit §1, "HARD violations" table). The
-       * app's own bootstrap/peer wiring, which stays until the
-       * Uplink-client LOADER lands: today every Uplink client is still
-       * bundled at build, so the app must name them to import them. See
-       * uplink architecture §1's "P7 retires" tech-debt note.
+       * The station's brokered-camera wiring. The `import type` went when this
+       * Uplink left the repo, and the coupling did not: `StationScreen` still
+       * names one id to `getUplinkHandle` and `client.sendUplinkRelay`, so one
+       * Uplink can have its WebRTC handshake relayed through the host and no
+       * other can ask for the same. Clears when attaching a broker becomes
+       * something an Uplink DECLARES; see `noBakedUplinkIds.test.ts`, whose own
+       * debt list records the same gap from the import side.
        */
       "packages/app/src/screens/StationScreen.tsx",
       /*
@@ -127,9 +129,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * `targeting.camera` slot, and the widget names no camera mod at
        * all: so the entry went stale and ratcheted off.
        */
-
-      // -- TEST-only, exercising the HARD cluster above --
-      "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
     ],
     permanent: [
       /*
@@ -141,33 +140,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/uplink-permanent-code.test.ts",
       /*
-       * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
-       * keyed by project name, and since 2026-08-30 they cover the
-       * <Uplink>.Tests projects too, ten of which reach a private assembly.
-       * A debt list has to name its subjects, so this is a ratchet-inventory
-       * file and the entry goes when that Uplink's debt does. Nothing else in
-       * the file names a mod: both directory walks are checked against the
-       * project list in Gonogo.sln rather than a hardcoded one, precisely so
-       * these stay the only ones.
-       */
-      "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-      /*
-       * The comment-stack ratchet's own inventory: a path-keyed debt list over
-       * every hand-written JS/TS file in the repo, so it names this Uplink's paths
-       * by construction and there is nowhere else for it to live. Permanent for
-       * the reason the other tokens record: a gate placed inside an Uplink is one
-       * a third-party author could not run.
-       */
-      "packages/core/src/comment-stacks.allowlist.ts",
-      /*
-       * The one-render-process ratchet, which names this Uplink's
-       * encoded-transform latency spikes as the one directory allowed to drive
-       * a browser without rendering a widget. A ratchet inventory naming a PATH
-       * and a reason, holding no code coupling: the point of writing the
-       * exemption down is that someone can check the reason in a year.
-       */
-      "packages/core/src/one-render-process.test.ts",
-      /*
        * -- CATALOGUE ABSENCE INVENTORY (2026-08-25): the pinned list of carried
        * Topics the topic-field catalogue can describe nothing about names each
        * Uplink Topic that has none, so a Topic arriving unannotated is a test
@@ -178,17 +150,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/data/src/schema/topicFieldCatalog.test.ts",
       /*
-       * -- UPLINK WIDGET-DECLARATION gate: the app-side check that every Uplink
-       * widget's declarations resolve to something real has to LOAD every
-       * Uplink client to read the registries they register into, so it names
-       * all ten by construction. Permanent, not debt: it cannot clear when the
-       * runtime loader lands, because a gate over every Uplink's declarations
-       * will always have to load every Uplink. It lives outside them for the
-       * reason BLOCKED_FILENAMES records, that a gate inside an Uplink is one a
-       * third-party author cannot run.
-       */
-      "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-      /*
        * -- WORKER FEASIBILITY citation (2026-08-23): the Principia Uplink's
        * worker doc names `kerbcast-sidecar` as the evidence that a KSP plugin
        * can start a child process inside the pressure-vessel container, which
@@ -198,12 +159,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * in a doc comment, no import and no coupling.
        */
       "mod/GonogoPrincipiaUplink/PrincipiaWorkerHost.cs",
-      /*
-       * -- MAGNITUDE budget ratchet (2026-08-19): the per-file `.magnitude`
-       * budget is keyed by file path, so it names every Uplink that unwraps a
-       * Value. Ratchet-inventory file, the case this bucket documents.
-       */
-      "packages/core/src/styleguide-magnitude-budget.test.ts",
       /*
        * -- Uplink ISOLATION ratchet inventory (2026-08-18): the inward guard's
        * debt list is keyed by file path, so it necessarily names every Uplink
@@ -248,15 +203,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
       /*
-       * topic-cs-sync.test.ts: the relocated C#↔runtime-registry sync gate
-       * (2026-07-20). It statically imports every first-party Uplink client
-       * (kerbcast/kos/scansat) so their `registerBarePrimitiveTopic` calls fire
-       * before it reads `getAllKnownTopicIds()`, then asserts that union matches
-       * the C#-declared Topic set. A new test that imports the clients for
-       * registration; no product-code coupling.
-       */
-      "packages/app/src/__tests__/topic-cs-sync.test.ts",
-      /*
        * default-carried-topics.ts: the raw-topic promotion allowlist, which
        * is a literal-string set and so must name every Uplink's topics,
        * it already names scansat.*, kos.*, recovery.* and comms.* the same
@@ -295,14 +241,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * dependency.
        */
       "packages/core/src/truenow-allowlist.test.ts",
-      // styleguide.test.ts: the raw-hex ratchet. Its scan roots now cover
-      // mod/*/client/src (they did not, which is how three raw hex literals in
-      // shipped uplink widgets went ungated), so its baseline comment names the
-      // one remaining offender by path: CameraFeed.tsx's feed-unavailable
-      // scrim colour. A path string in a ratchet inventory, same category as
-      // truenow-allowlist.test.ts above; nothing is imported.
-      "packages/core/src/styleguide.test.ts",
-
       // -- Doc/comment-only mentions (audit §1, "DOC/comment-only") --
       "packages/app/src/dataSources/migrateGameHost.ts",
       "packages/app/src/dataSources/seedKspHost.ts",
@@ -808,8 +746,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * they exercise is the generic `system.uplink.pending` -> route pulse
        * wiring and never anything kOS-shaped. Ratcheted off.
        */
-      "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
-      "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.test.tsx",
       "mod/Sitrep.Contract/Comms.cs",
       "mod/sitrep-sdk/src/default-carried-topics.ts",
       "packages/sitrep-client/src/map-topic.test.ts",
@@ -1504,9 +1440,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * this assembly: provenance, not a reference to the types.
        */
       "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
-
-      "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
-      "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
     ],
   },
   /*
@@ -1686,10 +1619,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * GonogoAvionicsUplink code or type reference.
        */
       "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
-
-      "mod/GonogoKerbcastUplink.Contract/KerbcastRtConfig.cs",
-      "mod/GonogoKerbcastUplink/client/src/generated-value-import.test.ts",
-      "mod/GonogoKerbcastUplink/client/src/topics.test.ts",
     ],
   },
 
@@ -2032,7 +1961,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * Zero code or type coupling.
        */
       "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx",
-      "mod/GonogoKerbcastUplink/client/src/CameraFeed/CameraFeed.tsx",
       "mod/GonogoMechJebUplink/client/src/index.ts",
 
       /*
@@ -2459,17 +2387,9 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
   ],
   kerbcast: [
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "mod/sitrep-sdk/src/default-carried-topics.ts",
-    "packages/app/src/__tests__/gamehost-repoints-both.test.tsx",
-    "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/app/src/alarms/AlarmHostService.test.ts",
     "packages/app/src/screens/StationScreen.tsx",
-    "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/one-render-process.test.ts",
-    "packages/core/src/styleguide-magnitude-budget.test.ts",
-    "packages/core/src/truenow-allowlist.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",

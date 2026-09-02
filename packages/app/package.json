@@ -26,7 +26,6 @@
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/data": "workspace:*",
     "@ksp-gonogo/gonogo-kerbalism-uplink": "workspace:*",
-    "@ksp-gonogo/gonogo-kerbcast-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-kos-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-mechjeb-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-realantennas-uplink": "workspace:*",

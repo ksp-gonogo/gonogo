@@ -13,7 +13,6 @@ import {
   DEFAULT_PROFILE_ID,
   FlightsFab,
 } from "@ksp-gonogo/data";
-import type { KerbcastDataSource } from "@ksp-gonogo/gonogo-kerbcast-uplink";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import {
   InputDispatcher,
@@ -91,6 +90,20 @@ const DEFAULT_CONFIG: DashboardConfig = {
   items: [],
   layouts: {},
 };
+
+/**
+ * The one member of the camera Uplink's handle a station drives. Declared here,
+ * structurally, rather than imported: the Uplink that registers the handle is a
+ * third-party package this app must not depend on, and a station calls it
+ * through `getUplinkHandle` precisely because the id is all it knows.
+ */
+interface BrokeredCameraHandle {
+  attachBroker(broker: {
+    negotiate: (offer: unknown) => Promise<{ sdp: string; cameras: number[] }>;
+    iceServers: () => unknown;
+    onIceServersChange: (cb: (servers: unknown) => void) => unknown;
+  }): void;
+}
 
 export function StationScreen() {
   useEffect(() => {
@@ -224,7 +237,7 @@ export function StationScreen() {
   // the broker's negotiate just retries until the host link is up. Media flows
   // station↔sidecar directly off the answer's ICE candidates, never via PeerJS.
   useEffect(() => {
-    const kerbcast = getUplinkHandle<KerbcastDataSource>("kerbcast");
+    const kerbcast = getUplinkHandle<BrokeredCameraHandle>("kerbcast");
     kerbcast?.attachBroker({
       negotiate: (offer) =>
         client.sendUplinkRelay("kerbcast", "negotiate", offer) as Promise<{

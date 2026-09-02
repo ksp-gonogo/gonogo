@@ -6,7 +6,7 @@ import {
 import { describe, expect, it } from "vitest";
 /*
  * Side-effect imports: each Uplink client registers its widgets, augments and
- * Topics at module load, exactly as `main.tsx` gets them. Every one of the ten
+ * Topics at module load, exactly as `main.tsx` gets them. Every one of the nine
  * is already a declared dependency of this package, so this costs no new edge.
  *
  * `components` is here for the same reason and it is not incidental. A built-in
@@ -21,7 +21,6 @@ import "@ksp-gonogo/gonogo-avionics-uplink";
 import "@ksp-gonogo/gonogo-breaking-ground-uplink";
 import "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink";
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
-import "@ksp-gonogo/gonogo-kerbcast-uplink";
 import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-mechjeb-uplink";
 import "@ksp-gonogo/gonogo-principia-uplink";
@@ -36,7 +35,7 @@ import "@ksp-gonogo/gonogo-rp1-uplink";
  * it says plainly what it cannot see: the widgets THIS package registers, and
  * nothing else. An Uplink's widgets register into the same registry from
  * packages `components` does not depend on, so their declarations are governed
- * by nothing there. Ten Uplinks, and `mod/*​/client` is where new widgets now go.
+ * by nothing there. Nine Uplinks, and `mod/*​/client` is where new widgets now go.
  *
  * ## Why it lives here rather than in each Uplink
  *
@@ -146,14 +145,13 @@ describe("widget and augment declarations resolve to something real", () => {
   it("actually loaded the Uplinks' own widgets, so an empty result is not a pass", () => {
     const ids = new Set(getComponents().map((def) => def.id));
     // One widget from each Uplink that registers any, spelled out rather than
-    // counted: a count cannot tell ten loaded Uplinks from one loaded ten
+    // counted: a count cannot tell nine loaded Uplinks from one loaded nine
     // times, and one client failing to register is precisely the case where an
     // empty check reads as a clean one.
     const fromUplinks = [
       "avionics-go-no-go",
       "robotics-console",
       "ship-systems",
-      "camera-feed",
       "kos-terminal",
       "mechjeb",
     ];
@@ -184,7 +182,6 @@ describe("widget and augment declarations resolve to something real", () => {
   it("actually loaded the Uplinks' augments, which are a separate registry", () => {
     const ids = new Set(getAugments().map((def) => def.id));
     const fromUplinks = [
-      "kerbcast-docking-camera",
       "realantennas-comm-signal-badge",
       "realantennas-comm-signal-section",
       "rp1-research-queue",

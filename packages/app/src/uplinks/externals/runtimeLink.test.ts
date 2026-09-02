@@ -273,12 +273,20 @@ describe("runtime-loaded Uplink link surface", () => {
         seen.add(specifier);
       }
     }
-    // If the extractor ever stops seeing these, every assertion below passes
-    // against an empty list. The subpath matters most: a loader client already
-    // relies on one, so the mechanism under test is live rather than
-    // hypothetical.
+    // If the extractor ever stops seeing this, every assertion below passes
+    // against an empty list.
     expect(seen).toContain("@ksp-gonogo/sitrep-sdk");
-    expect([...seen].filter((s) => s.includes("/sitrep-sdk/"))).not.toEqual([]);
+    /*
+     * No SUBPATH here, and that is a statement about the clients rather than
+     * about the extractor: one client imported `/media` from its entry and was
+     * the only one that did, so when that Uplink left the repo the last shipped
+     * witness for subpath resolution went with it. The two probe tests at the
+     * bottom of this file are what covers the mechanism now, and they are
+     * synthetic. Asserting a subpath here again would be asserting on a thing
+     * no client currently does, which is a green that means nothing; if a
+     * client picks one up, tighten this back.
+     */
+    expect([...seen].filter((s) => s.includes("/sitrep-sdk/"))).toEqual([]);
   });
 
   it("resolves every specifier the real loader clients leave external", async () => {
