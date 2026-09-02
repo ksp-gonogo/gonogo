@@ -12,7 +12,10 @@ import {
   Text,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import type { Rp1BuildCost } from "../__generated__/contract";
+import type {
+  Rp1BuildCost,
+  Rp1RequiredTechEntry,
+} from "../__generated__/contract";
 import { current } from "../shared/current";
 import { RP1 } from "../uplink";
 import { VEHICLE_ASSEMBLY_SECTIONS } from "./slot";
@@ -128,13 +131,28 @@ function SurchargeRow({ cost }: { cost: Rp1BuildCost }) {
 }
 
 /**
- * Techs the vehicle needs and the career has not researched.
+ * Techs the vehicle needs and the career has not researched, each named and each
+ * with what on the vehicle is waiting for it.
  *
  * <para>Not a cost, and in the costs section anyway, because it is the reason a
  * vehicle that prices fine still cannot be flown. A breakdown showing only money
  * would let an operator budget for something they cannot build.</para>
+ *
+ * <para><b>The node is the row and the parts sit under it, rather than the other
+ * way round.</b> Both readings were available and they answer different
+ * questions: a part per row with its blocking node beside it answers "why is this
+ * part unavailable", and a node per row with its parts under it answers "what is
+ * this vehicle missing". This surface is about the VEHICLE, has no part list of
+ * its own, and sits in a breakdown of what stands between a design and a launch,
+ * so the second question is the one being asked here. It is also how the tooling
+ * section immediately below reads, for the same underlying shape: one thing to
+ * acquire, several parts waiting on it. The first question belongs on a
+ * part-level surface, which this is not.</para>
+ *
+ * <para>A node blocking four parts would otherwise repeat itself down four rows,
+ * turning a four-node answer into a twelve-row list on the same facts.</para>
  */
-function RequiredTechs({ techs }: { techs?: string[] }) {
+function RequiredTechs({ techs }: { techs?: Rp1RequiredTechEntry[] }) {
   if (techs == null || techs.length === 0) {
     return null;
   }
@@ -159,20 +177,70 @@ function RequiredTechs({ techs }: { techs?: string[] }) {
         <Badge severity="critical">Needs tech</Badge>
       </Cluster>
       {/* Plain text, which WRAPS, and that is a better answer to the truncation
-          this block was already carrying a fix for than the scroller it replaces.
-          A tech id is an identifier and a truncated one is a different id, so a
+          this block was already carrying a fix for than the scroller it replaced.
+          A node id is an identifier and a truncated one is a different id, so a
           render at the widget's minimum size cutting `supersonicFlight` by four
           pixels was a real defect; a badge could not wrap out of it because a
           single badge wider than the row has nowhere to wrap to, hence the
-          scroller. Text has somewhere to go, so the ids are whole at every size
-          and nothing has to be scrolled to be read.
+          scroller. Text has somewhere to go, so a name is whole at every size and
+          nothing has to be scrolled to be read. */}
+      {techs.map((tech) => (
+        <BlockingNode key={tech.id ?? tech.title} tech={tech} />
+      ))}
+    </Stack>
+  );
+}
 
-          Still the raw node ids, and they are what the wire carries: RP-1 hands
-          over `SpaceCenterManagement.EditorRequiredTechs`, a flat list of node
-          ids with no titles and no link to the parts needing them. */}
-      <Text size="xs" tone="muted">
-        {techs.join(", ")}
+/**
+ * One node the vehicle is waiting on: what it is called, and what on the vehicle
+ * is waiting for it.
+ *
+ * <para><b>The title, falling back to the id.</b> The wire leaves the title ABSENT
+ * where the career's tech tree has none rather than substituting the id, which is
+ * what lets this decide: a readable name where there is one, and the id, which is
+ * at least searchable in a tech tree, where there is not. Had the producer
+ * substituted, there would be no way to tell a titled node from an untitled
+ * one.</para>
+ *
+ * <para><b>The parts have THREE states and each says something different.</b>
+ * Named parts are the answer. An EMPTY list means the ship was read and nothing on
+ * it names this node, which happens because a node can be required by something
+ * other than a part, and it is said rather than left blank: an operator staring at
+ * a node with nothing under it would otherwise wonder which of the two it was.
+ * ABSENT means the editor ship could not be read at all, so nothing is claimed and
+ * nothing is drawn.</para>
+ */
+function BlockingNode({ tech }: { tech: Rp1RequiredTechEntry }) {
+  const name = tech.title ?? tech.id;
+  if (name == null) {
+    return null;
+  }
+  return (
+    <Stack gap="xs" data-blocking-node="">
+      {/* `tone="default"` and NOT the default tone, which is `accent`: a bare
+          `<Text>` renders in the theme's green. That is the other half of what
+          the operator reported, and it was a separate defect from the badges:
+          "a needs-tech GREEN heading with a critical badge". Green is the go
+          colour, so a blocker drawn in it says the opposite of what it is, and
+          under a critical badge the pair contradict each other. The severity is
+          said once, by the badge; a node's name is content and is drawn as
+          content. */}
+      <Text size="xs" tone="default">
+        {name}
       </Text>
+      {tech.parts != null && (
+        /* Nested, because the parts belong to the node above them and a flat run
+           of part names under a flat run of node names could not be told apart.
+           Same relationship, and the same rendering of it, as the tooling section
+           below draws for the parts a purchase covers. */
+        <Row as="div" nested wrap>
+          <Text size="xs" tone="muted">
+            {tech.parts.length === 0
+              ? "nothing on this vehicle names it"
+              : tech.parts.join(", ")}
+          </Text>
+        </Row>
+      )}
     </Stack>
   );
 }

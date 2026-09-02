@@ -666,11 +666,16 @@ namespace GonogoRp1Uplink.Tests
             ["ProtoCrewMember"] = "KSP's crew type, named to tell AddStudent(ProtoCrewMember) from AddStudent(string) and RemoveStudent's identical pair",
             ["Remove"] = "the list's own Remove, on ROUtils.DataTypes.PersistentList<T> from a separate assembly, resolved by arity on whatever collection CrewHandler.TrainingCourses hands back",
 
-            // ── KSP's editor and its parts, reached only by the tooling half ──
+            // ── KSP's editor and its parts ──────────────────────────────────
+            // Two readings walk this now, not one: the tooling half, and the cost
+            // half's blocked-parts list. The heading said "the tooling half" while
+            // that was true and is kept accurate rather than left to imply the
+            // walk has a single owner.
             ["EditorLogic"] = "KSP's editor, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
-            ["fetch"] = "KSP's EditorLogic.fetch, null outside the editor, which is how the tooling reading knows there is no ship",
+            ["fetch"] = "KSP's EditorLogic.fetch, null outside the editor, which is how the tooling reading knows there is no ship and how the cost reading knows the blocked parts are unreadable rather than absent",
             ["ship"] = "KSP's EditorLogic.ship, the vehicle being designed",
-            ["Parts"] = "KSP's ShipConstruct.Parts, the parts the tooling walk visits",
+            ["Parts"] = "KSP's ShipConstruct.Parts, the parts the tooling and cost walks visit",
+            ["TechRequired"] = "KSP's AvailablePart.TechRequired, the node a part is waiting for, and the whole of the part-to-tech link: it is stock, so gathering the editor's parts under their blocking node needs nothing from RP-1",
             ["Modules"] = "KSP's Part.Modules, walked and filtered by assignability to RP0.ModuleTooling rather than by module name",
             ["craftID"] = "KSP's Part.craftID, how a refit addresses a part instead of reading which part-action window is open",
             ["symmetryCounterparts"] = "KSP's Part.symmetryCounterparts, counted so a refit's reach can be stated BEFORE the press rather than reported after",

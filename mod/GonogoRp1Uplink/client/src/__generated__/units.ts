@@ -86,7 +86,6 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Rp1BuildCost": {
-    requiredTechs: "id",
     rolloutCost: "funds",
     toolingCost: "funds",
     unlockCost: "funds",
@@ -437,6 +436,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     durationSeconds: "s",
     speed: "enum",
   },
+  "Rp1RequiredTechEntry": {
+    id: "id",
+    parts: "text",
+    title: "text",
+  },
   "Rp1ResearchEntry": {
     endYear: "count",
     progress: "count",
@@ -545,7 +549,6 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   "rp1.buildCost": {
-    requiredTechs: "id",
     rolloutCost: "funds",
     toolingCost: "funds",
     unlockCost: "funds",
@@ -855,6 +858,9 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * sample reaches an `agent` under it.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "Rp1BuildCost": {
+    requiredTechs: "Rp1RequiredTechEntry[]",
+  },
   "Rp1BuildableCraftEntry": {
     complexes: "Rp1BuildableComplex[]",
   },
@@ -887,6 +893,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "rp1.buildCost": {
+    requiredTechs: "Rp1RequiredTechEntry[]",
+  },
   "rp1.buildable": {
     complexes: "Rp1BuildableComplex[]",
   },

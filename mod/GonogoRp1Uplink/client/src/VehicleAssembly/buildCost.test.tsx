@@ -54,6 +54,15 @@ const PRICED = {
   requiredTechs: [],
 };
 
+/** One blocking node, as the wire carries it. */
+function node(
+  id: string,
+  title?: string,
+  parts?: string[],
+): Record<string, unknown> {
+  return { id, title: title ?? null, parts: parts ?? null };
+}
+
 describe("BuildCostSection: funds, and only funds", () => {
   /**
    * The section is invisible without RP-1, which is most installs. Asserted
@@ -159,33 +168,58 @@ describe("BuildCostSection: funds, and only funds", () => {
     expect(visibleText(stream.container)).toContain(NULL_DISPLAY);
   });
 
+  // ── The blocking tech nodes ───────────────────────────────────────────────
+
   /**
    * Not a cost, and on the costs section anyway: it is the reason a vehicle that
    * prices fine still cannot be flown.
+   *
+   * <para>The node is named by its TITLE, which is what the wire now carries
+   * beside the id. `supersonicFlight` is an identifier and said nothing about
+   * what the node is.</para>
    */
   it("names the techs the vehicle cannot fly without", async () => {
     const stream = mount();
 
-    emit(stream, { ...PRICED, requiredTechs: ["supersonicFlight"] });
+    emit(stream, {
+      ...PRICED,
+      requiredTechs: [node("supersonicFlight", "Supersonic Flight")],
+    });
 
-    expect(await screen.findByText("supersonicFlight")).toBeInTheDocument();
+    expect(await screen.findByText("Supersonic Flight")).toBeInTheDocument();
     expect(screen.getByText("Needs tech")).toBeInTheDocument();
+  });
+
+  /**
+   * A node the career's tree has no title for falls back to its ID rather than
+   * rendering nameless.
+   *
+   * <para>This is why the wire leaves the title ABSENT instead of substituting
+   * the id: a producer that substituted would leave a client unable to tell a
+   * titled node from an untitled one, and unable to make this choice at all. An
+   * id is at least searchable in a tech tree.</para>
+   */
+  it("falls back to the node id where the tree has no title for it", async () => {
+    const stream = mount();
+
+    emit(stream, { ...PRICED, requiredTechs: [node("someModdedNode")] });
+
+    expect(await screen.findByText("someModdedNode")).toBeInTheDocument();
   });
 
   /**
    * ONE badge, however many nodes are missing.
    *
-   * <para>This drew a critical badge per tech id, so a vehicle missing five nodes
-   * got five red alarms. Severity is a reading about the VEHICLE and the vehicle
-   * has one state here: it needs tech the career has not researched. The fifth
-   * red badge says nothing the first did not, and using severity as decoration
-   * spends the one signal that is supposed to mean "this cannot fly".</para>
+   * <para>This drew a critical badge per tech id, so a vehicle missing five
+   * nodes got five red alarms. Severity is a reading about the VEHICLE and the
+   * vehicle has one state here: it needs tech the career has not researched.
+   * The fifth red badge says nothing the first did not, and using severity as
+   * decoration spends the one signal that is supposed to mean "this cannot
+   * fly".</para>
    *
-   * <para>Asserted through the CONTIGUOUS comma-joined run of ids, which is the
-   * thing a per-tech badge list can never produce: five badges put five separate
-   * elements on the page with no separator between their texts. That is a fact
-   * about the structure rather than about the styling, so the test fails if the
-   * badges come back and not if the design system restyles a badge.</para>
+   * <para>Both halves are asserted, and the pair is what makes it meaningful:
+   * five nodes ARE on screen as five rows, and the state is said ONCE over
+   * them.</para>
    */
   it("draws one severity badge whatever the number of missing nodes", async () => {
     const stream = mount();
@@ -193,47 +227,88 @@ describe("BuildCostSection: funds, and only funds", () => {
     emit(stream, {
       ...PRICED,
       requiredTechs: [
-        "supersonicFlight",
-        "highAltitudeFlight",
-        "heavyAerodynamics",
-        "hypersonicFlight",
-        "experimentalAerodynamics",
+        node("supersonicFlight", "Supersonic Flight"),
+        node("highAltitudeFlight", "High Altitude Flight"),
+        node("heavyAerodynamics", "Heavy Aerodynamics"),
+        node("hypersonicFlight", "Hypersonic Flight"),
+        node("experimentalAerodynamics", "Experimental Aerodynamics"),
       ],
     });
 
-    const block = await screen
-      .findByText("Needs tech")
-      .then((el) => el.closest("[data-required-techs]"));
-    expect(block).not.toBeNull();
-    expect(block?.textContent).toContain(
-      "supersonicFlight, highAltitudeFlight, heavyAerodynamics, " +
-        "hypersonicFlight, experimentalAerodynamics",
-    );
-    // The state is said ONCE. Five nodes used to mean five critical badges.
+    await screen.findByText("Supersonic Flight");
+    expect(
+      stream.container.querySelectorAll("[data-blocking-node]"),
+    ).toHaveLength(5);
     expect(screen.getAllByText("Needs tech")).toHaveLength(1);
   });
 
   /**
-   * And every id whole, which is what the plain text buys over the badges it
-   * replaced.
+   * The half that makes a row an ANSWER rather than a name, and the operator's
+   * actual question: "it's not clear what the tech is needed for".
    *
-   * <para>A tech id is an identifier: `supersonicFlight` cut by four pixels is a
-   * different id rather than a shorter one, and that render defect is already on
-   * this block's record. A badge could not wrap out of it, because one wider than
-   * the row has nowhere to wrap to. Text can.</para>
+   * <para>The parts sit UNDER their node rather than the node being repeated
+   * beside each part. This surface is about the vehicle and has no part list of
+   * its own, so the question it answers is what the vehicle is missing; a node
+   * blocking two parts is one thing to research, not two rows.</para>
    */
-  it("carries every node id in full rather than one per badge", async () => {
+  it("names what on the vehicle is waiting for each node", async () => {
     const stream = mount();
 
     emit(stream, {
       ...PRICED,
-      requiredTechs: ["supersonicFlight", "highAltitudeFlight"],
+      requiredTechs: [
+        node("supersonicFlight", "Supersonic Flight", [
+          "Ram Air Intake",
+          "XM-G50 Radial Intake",
+        ]),
+      ],
     });
 
-    await screen.findByText("Needs tech");
-    const block = stream.container.querySelector("[data-required-techs]");
-    expect(block?.textContent).toContain(
-      "supersonicFlight, highAltitudeFlight",
-    );
+    await screen.findByText("Supersonic Flight");
+    const row = stream.container.querySelector("[data-blocking-node]");
+    expect(row?.textContent).toContain("Ram Air Intake, XM-G50 Radial Intake");
+  });
+
+  /**
+   * A node NOTHING on the ship names says so, rather than leaving a blank under
+   * it.
+   *
+   * <para>A node can be required by something other than a part, so an empty
+   * list is a real answer. Said out loud because an operator looking at a node
+   * with nothing under it cannot otherwise tell "nothing needs this" from "we
+   * could not work out what needs this", and those are the two states the wire
+   * deliberately distinguishes.</para>
+   */
+  it("says so when nothing on the vehicle names a node", async () => {
+    const stream = mount();
+
+    emit(stream, {
+      ...PRICED,
+      requiredTechs: [node("flightControl", "Flight Control", [])],
+    });
+
+    await screen.findByText("Flight Control");
+    const row = stream.container.querySelector("[data-blocking-node]");
+    expect(row?.textContent).toContain("nothing on this vehicle names it");
+  });
+
+  /**
+   * And the third state: an ABSENT parts list draws nothing at all, because the
+   * editor ship could not be read and no claim is available to make.
+   *
+   * <para>The complement of the test above, and what stops that sentence being
+   * printed over an unknown.</para>
+   */
+  it("claims nothing about waiting parts when the ship could not be read", async () => {
+    const stream = mount();
+
+    emit(stream, {
+      ...PRICED,
+      requiredTechs: [node("supersonicFlight", "Supersonic Flight")],
+    });
+
+    await screen.findByText("Supersonic Flight");
+    const row = stream.container.querySelector("[data-blocking-node]");
+    expect(row?.textContent).not.toContain("nothing on this vehicle names it");
   });
 });

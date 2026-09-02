@@ -52,7 +52,6 @@
   ],
   "types": {
     "Rp1BuildCost": {
-      "requiredTechs": "id",
       "rolloutCost": "funds",
       "toolingCost": "funds",
       "unlockCost": "funds",
@@ -403,6 +402,11 @@
       "durationSeconds": "s",
       "speed": "enum"
     },
+    "Rp1RequiredTechEntry": {
+      "id": "id",
+      "parts": "text",
+      "title": "text"
+    },
     "Rp1ResearchEntry": {
       "endYear": "count",
       "progress": "count",
@@ -506,7 +510,6 @@
   },
   "topics": {
     "rp1.buildCost": {
-      "requiredTechs": "id",
       "rolloutCost": "funds",
       "toolingCost": "funds",
       "unlockCost": "funds",
@@ -791,6 +794,9 @@
     }
   },
   "typeShapes": {
+    "Rp1BuildCost": {
+      "requiredTechs": "Rp1RequiredTechEntry[]"
+    },
     "Rp1BuildableCraftEntry": {
       "complexes": "Rp1BuildableComplex[]"
     },
@@ -821,6 +827,9 @@
     }
   },
   "topicShapes": {
+    "rp1.buildCost": {
+      "requiredTechs": "Rp1RequiredTechEntry[]"
+    },
     "rp1.buildable": {
       "complexes": "Rp1BuildableComplex[]"
     },

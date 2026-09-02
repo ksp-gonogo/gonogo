@@ -30,6 +30,12 @@ public class Rp1CareerCostTests : IDisposable
         SpaceCenterManagement.EditorRolloutCost = 0.0;
         SpaceCenterManagement.EditorRequiredTechs = new List<string>();
         CareerLog.Instance = null;
+        // The blocking-node read reaches two KSP statics beside RP-1's, so both
+        // are cleared here: a title left over from another test would make a
+        // titleless node look titled, and a ship left standing would make an
+        // absent parts list look empty.
+        EditorLogic.fetch = null;
+        ResearchAndDevelopment.Reset();
     }
 
     private static SpaceCenterManagement Career()
@@ -75,8 +81,179 @@ public class Rp1CareerCostTests : IDisposable
         Assert.Equal(12_000.0, cost["toolingCost"]);
         Assert.Equal(3_000.0, cost["unlockCost"]);
         Assert.Equal(900.0, cost["rolloutCost"]);
-        Assert.Equal(new[] { "earlyRocketry" }, (List<string>)cost["requiredTechs"]!);
+        Assert.Equal("earlyRocketry", TechRow(cost, 0)["id"]);
     }
+
+    // ── The blocking tech nodes ─────────────────────────────────────────────
+
+    /// <summary>One row of the requiredTechs list, as the wire carries it.</summary>
+    private static Dictionary<string, object?> TechRow(
+        Dictionary<string, object?> cost, int index) =>
+        (Dictionary<string, object?>)((List<object?>)cost["requiredTechs"]!)[index]!;
+
+    /// <summary>
+    /// The node's TITLE travels beside its id, because `earlyRocketry` is an
+    /// identifier and an identifier says neither what the node is called nor what
+    /// is waiting for it.
+    /// </summary>
+    [Fact]
+    public void A_blocking_node_carries_the_careers_own_title_for_it()
+    {
+        var scm = Career();
+        scm.EditorVessel = new VesselProject { cost = 45_000f };
+        SpaceCenterManagement.EditorRequiredTechs = new List<string> { "supersonicFlight" };
+        ResearchAndDevelopment.Titles["supersonicFlight"] = "Supersonic Flight";
+
+        var row = TechRow(Cost()!, 0);
+
+        Assert.Equal("supersonicFlight", row["id"]);
+        Assert.Equal("Supersonic Flight", row["title"]);
+    }
+
+    /// <summary>
+    /// A node the tree has NO title for arrives with the title ABSENT, never the
+    /// id and never a blank.
+    ///
+    /// <para>GetTechnologyTitle answers an unknown id with the empty string, and
+    /// both of the obvious things to do with that are wrong: a blank renders as a
+    /// nameless node, and substituting the id makes a field called title a lie
+    /// about what it holds. The client already has the id.</para>
+    /// </summary>
+    [Fact]
+    public void A_node_the_tree_cannot_title_is_absent_rather_than_blank_or_the_id()
+    {
+        var scm = Career();
+        scm.EditorVessel = new VesselProject { cost = 45_000f };
+        SpaceCenterManagement.EditorRequiredTechs = new List<string> { "someModdedNode" };
+
+        var row = TechRow(Cost()!, 0);
+
+        Assert.Null(row["title"]);
+        // And the id is still there to fall back to, which is what makes absence
+        // an answer a client can act on rather than a hole.
+        Assert.Equal("someModdedNode", row["id"]);
+    }
+
+    /// <summary>
+    /// The parts waiting on a node, gathered from the editor ship under the node
+    /// each one names. This is the half that makes a row an ANSWER rather than a
+    /// name: it is what an operator meant by "what is this tech needed FOR".
+    /// </summary>
+    [Fact]
+    public void The_parts_waiting_on_a_node_are_gathered_under_it()
+    {
+        var scm = Career();
+        scm.EditorVessel = new VesselProject { cost = 45_000f };
+        SpaceCenterManagement.EditorRequiredTechs =
+            new List<string> { "supersonicFlight", "heavyAerodynamics" };
+        EditorLogic.fetch = new EditorLogic
+        {
+            ship = new ShipConstruct
+            {
+                Parts =
+                {
+                    Blocked("Ram Air Intake", "supersonicFlight"),
+                    Blocked("XM-G50 Radial Intake", "supersonicFlight"),
+                    Blocked("Swept Wings", "heavyAerodynamics"),
+                    // Needs nothing, so it is gathered under no node at all
+                    // rather than under an empty key.
+                    Blocked("Mk1 Command Pod", ""),
+                },
+            },
+        };
+
+        var cost = Cost()!;
+
+        Assert.Equal(
+            new[] { "Ram Air Intake", "XM-G50 Radial Intake" },
+            (List<string>)TechRow(cost, 0)["parts"]!);
+        Assert.Equal(
+            new[] { "Swept Wings" },
+            (List<string>)TechRow(cost, 1)["parts"]!);
+    }
+
+    /// <summary>
+    /// A part mounted several times is ONE thing waiting.
+    ///
+    /// <para>The question the row answers is what is waiting for this node, and a
+    /// booster in six-fold symmetry is one part in six places. Six identical
+    /// titles would read as six separate problems.</para>
+    /// </summary>
+    [Fact]
+    public void A_part_mounted_repeatedly_is_named_once()
+    {
+        var scm = Career();
+        scm.EditorVessel = new VesselProject { cost = 45_000f };
+        SpaceCenterManagement.EditorRequiredTechs = new List<string> { "solidRockets" };
+        EditorLogic.fetch = new EditorLogic
+        {
+            ship = new ShipConstruct
+            {
+                Parts =
+                {
+                    Blocked("Sepratron", "solidRockets"),
+                    Blocked("Sepratron", "solidRockets"),
+                    Blocked("Sepratron", "solidRockets"),
+                },
+            },
+        };
+
+        Assert.Equal(new[] { "Sepratron" }, (List<string>)TechRow(Cost()!, 0)["parts"]!);
+    }
+
+    /// <summary>
+    /// A node NOTHING on the ship names arrives with an EMPTY parts list, and the
+    /// row is not dropped.
+    ///
+    /// <para>A node can be required by something other than a part, so empty is a
+    /// real answer: the ship was read and nothing on it is waiting for this. An
+    /// operator who saw such a row vanish would go looking for a fault behind
+    /// it.</para>
+    /// </summary>
+    [Fact]
+    public void A_node_no_part_names_keeps_its_row_with_an_empty_list()
+    {
+        var scm = Career();
+        scm.EditorVessel = new VesselProject { cost = 45_000f };
+        SpaceCenterManagement.EditorRequiredTechs = new List<string> { "flightControl" };
+        EditorLogic.fetch = new EditorLogic
+        {
+            ship = new ShipConstruct { Parts = { Blocked("Mk1 Command Pod", "") } },
+        };
+
+        var row = TechRow(Cost()!, 0);
+
+        Assert.Equal("flightControl", row["id"]);
+        Assert.Empty((List<string>)row["parts"]!);
+    }
+
+    /// <summary>
+    /// NO READABLE SHIP leaves the parts list ABSENT, which is a different answer
+    /// from the empty one above.
+    ///
+    /// <para>Outside the editor `EditorLogic.fetch` is null, so nothing is known
+    /// about which parts are waiting. Empty would claim the ship was read and had
+    /// none, which is a statement this reading is in no position to make.</para>
+    /// </summary>
+    [Fact]
+    public void No_readable_ship_leaves_the_waiting_parts_absent_rather_than_empty()
+    {
+        var scm = Career();
+        scm.EditorVessel = new VesselProject { cost = 45_000f };
+        SpaceCenterManagement.EditorRequiredTechs = new List<string> { "supersonicFlight" };
+        EditorLogic.fetch = null;
+
+        var row = TechRow(Cost()!, 0);
+
+        Assert.Null(row["parts"]);
+        // The node itself still travels: the title and the id do not depend on
+        // the ship, and losing the row would hide the blocker entirely.
+        Assert.Equal("supersonicFlight", row["id"]);
+    }
+
+    /// <summary>A part with a title and the node it is waiting for.</summary>
+    private static Part Blocked(string title, string techRequired) =>
+        new Part { partInfo = new PartInfo { title = title, TechRequired = techRequired } };
 
     /// <summary>
     /// A spaceplane has no rollout, and RP-1 says so by leaving the figure at

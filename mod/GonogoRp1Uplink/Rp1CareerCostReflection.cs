@@ -52,14 +52,26 @@ namespace GonogoRp1Uplink
 
         private const string CareerLogTypeName = "RP0.CareerLog";
 
+        private const string ResearchTypeName = "ResearchAndDevelopment";
+
+        private const string EditorLogicTypeName = "EditorLogic";
+
         private readonly Type? _scm;
 
         private readonly Type? _careerLog;
+
+        /// <summary>KSP's, for the node titles. Absent leaves every title absent.</summary>
+        private readonly Type? _research;
+
+        /// <summary>KSP's, for the editor ship the blocked parts are read off.</summary>
+        private readonly Type? _editor;
 
         public Rp1CareerCostReflection()
         {
             _scm = Rp1Types.Find(ScmTypeName);
             _careerLog = Rp1Types.Find(CareerLogTypeName);
+            _research = Rp1Types.Find(ResearchTypeName);
+            _editor = Rp1Types.Find(EditorLogicTypeName);
         }
 
         public bool IsCostAvailable => _scm != null;
@@ -100,7 +112,8 @@ namespace GonogoRp1Uplink
                 RolloutCost = NonZero(
                     Rp1Types.ToDouble(Rp1Types.StaticValue(_scm!, "EditorRolloutCost"))),
 
-                RequiredTechs = Strings(Rp1Types.StaticValue(_scm!, "EditorRequiredTechs")),
+                RequiredTechs = RequiredTechs(
+                    Strings(Rp1Types.StaticValue(_scm!, "EditorRequiredTechs"))),
             };
         }
 
@@ -235,6 +248,130 @@ namespace GonogoRp1Uplink
                 }
             }
             return names;
+        }
+
+        /// <summary>
+        /// RP-1's flat list of blocking node ids, turned into rows that say what
+        /// each node is called and what on the vehicle is waiting for it.
+        ///
+        /// <para>RP-1 supplies only the ids. The title comes from KSP's own tech
+        /// tree and the parts from the editor ship, so this is where three sources
+        /// meet, and each one is allowed to be absent on its own: a missing title
+        /// does not cost the row its parts, and an unreadable ship does not cost
+        /// the row its title.</para>
+        /// </summary>
+        private List<Rp1RequiredTechRaw>? RequiredTechs(List<string>? ids)
+        {
+            if (ids == null)
+            {
+                return null;
+            }
+
+            // Walked ONCE for the whole list rather than per node: the ship can
+            // hold hundreds of parts and the node list is short, so a walk per
+            // node would be the same reading repeated.
+            var partsByTech = PartsByTech();
+
+            var rows = new List<Rp1RequiredTechRaw>();
+            foreach (var id in ids)
+            {
+                rows.Add(new Rp1RequiredTechRaw
+                {
+                    Id = id,
+                    Title = Title(id),
+                    // NULL where the ship could not be read, EMPTY where it was
+                    // read and nothing on it names this node. A node can be
+                    // required by something other than a part, so empty is a real
+                    // answer rather than a reason to drop the row.
+                    Parts = partsByTech == null
+                        ? null
+                        : partsByTech.TryGetValue(id, out var held)
+                            ? held
+                            : new List<string>(),
+                });
+            }
+            return rows;
+        }
+
+        /// <summary>
+        /// The node as the career's tech tree titles it, or ABSENT.
+        ///
+        /// <para><b>Absent rather than the id, and that is the difference from
+        /// <c>Rp1ResearchCommands.Title</c>, which substitutes the id
+        /// deliberately.</b> That one is authoring a node's persisted
+        /// <c>techName</c>, where a blank is what had to be avoided and the id is a
+        /// serviceable stand-in. This is publishing a field CALLED title beside the
+        /// id itself: substituting one for the other would make the field a lie
+        /// about what it holds, and would tell a client a tree has a title it does
+        /// not have. The client already holds the id.</para>
+        /// </summary>
+        private string? Title(string techId)
+        {
+            if (_research == null)
+            {
+                return null;
+            }
+            try
+            {
+                var getTitle = Rp1Types.StaticMethod(_research, "GetTechnologyTitle", 1);
+                return EmptyAsAbsent(getTitle?.Invoke(null, new object[] { techId }) as string);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Every part on the editor's table gathered under the tech node it names,
+        /// or NULL when there is no readable ship.
+        ///
+        /// <para>KSP's <c>AvailablePart.TechRequired</c> is the whole of the link
+        /// and it is stock, so this needs nothing from RP-1. A part naming no node
+        /// is skipped rather than gathered under an empty key: it is not waiting for
+        /// anything.</para>
+        /// </summary>
+        private Dictionary<string, List<string>>? PartsByTech()
+        {
+            var fetch = _editor == null ? null : Rp1Types.StaticValue(_editor, "fetch");
+            var parts = Rp1Types.Member(Rp1Types.Member(fetch, "ship"), "Parts");
+            if (parts == null)
+            {
+                return null;
+            }
+
+            var byTech = new Dictionary<string, List<string>>(StringComparer.Ordinal);
+            foreach (var part in Rp1Types.Enumerate(parts))
+            {
+                var info = Rp1Types.Member(part, "partInfo");
+                var tech = EmptyAsAbsent(Rp1Types.ReadString(info, "TechRequired"));
+                if (tech == null)
+                {
+                    continue;
+                }
+                // The part's display title, falling back to nothing rather than to
+                // its internal name: a row naming `liquidEngine2-2` has told an
+                // operator less than a row naming no part at all, because they
+                // would go looking for that string in the editor and not find it.
+                var title = EmptyAsAbsent(Rp1Types.ReadString(info, "title"));
+                if (title == null)
+                {
+                    continue;
+                }
+                if (!byTech.TryGetValue(tech, out var held))
+                {
+                    held = new List<string>();
+                    byTech[tech] = held;
+                }
+                // One part title once, however many copies of the part are on the
+                // ship: this answers "what is waiting for this node", and a booster
+                // mounted six times is one thing waiting.
+                if (!held.Contains(title))
+                {
+                    held.Add(title);
+                }
+            }
+            return byTech;
         }
 
         /// <summary>
