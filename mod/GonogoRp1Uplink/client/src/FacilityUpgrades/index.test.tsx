@@ -196,6 +196,36 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
   });
 
   /**
+   * The other side of that branch, and the one that makes it read the tiers
+   * rather than the steps.
+   *
+   * <para>A career whose buildings are all at their ceiling has no step left
+   * either, so a check on "did anything price a next tier" would send an
+   * operator to the space centre they are already standing in. The question is
+   * whether any facility ANSWERED its tiers.</para>
+   */
+  it("says nothing is left rather than blaming the scene when every tier is bought", async () => {
+    const stream = mount();
+
+    emit(stream, {
+      economy: { funds: 289848 },
+      facilities: {
+        LaunchPad: { currentTier: 2, maxTier: 2, upgradeCost: null },
+        VehicleAssemblyBuilding: {
+          currentTier: 2,
+          maxTier: 2,
+          upgradeCost: null,
+        },
+      },
+    });
+    await screen.findByText("FACILITY UPGRADES");
+
+    const text = visibleText(stream.container);
+    expect(text).toContain("No facility has a tier left to queue");
+    expect(text).not.toContain("only while the space centre is on screen");
+  });
+
+  /**
    * A price RP-1 did not send is said out loud rather than drawn as free, and
    * the press is still offered: the command reads `GetUpgradeCost()` itself and
    * refuses if it really cannot be had.

@@ -100,13 +100,25 @@ export function FacilityUpgrades() {
     return step === null || queued.has(name) ? [] : [{ name, step }];
   });
 
-  /* Outside the space centre KSP has not built the facilities, so every tier
-     and every price on this channel is absent and the command's own gate
-     refuses. That is a state worth naming: an empty section here and a career
-     with nothing left to upgrade look identical, and only one of them is a
-     reason to go and stand in the space centre. */
-  const priced = names.some((name) => nextTier(facilities[name]) !== null);
-  if (names.length > 0 && !priced) {
+  /* Outside the space centre KSP has not built the facilities, so every tier on
+     this channel is absent and the command's own gate refuses. That is a state
+     worth naming: an empty section here and a career with nothing left to
+     upgrade look identical, and only one of them is a reason to go and stand in
+     the space centre.
+
+     Asked of whether any facility ANSWERED its tiers, never of whether any has
+     a step left. A career whose buildings are all at their ceiling has no step
+     left either, and telling that operator to go to the space centre they are
+     already standing in would be the confident falsehood this branch exists to
+     avoid. */
+  const answered = names.some((name) => {
+    const entry = facilities[name];
+    return (
+      magnitudeOf(entry?.currentTier) !== null &&
+      magnitudeOf(entry?.maxTier) !== null
+    );
+  });
+  if (names.length > 0 && !answered) {
     return (
       <Section gap="sm">
         <SectionTitle>FACILITY UPGRADES</SectionTitle>
