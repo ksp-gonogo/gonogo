@@ -22,6 +22,23 @@
 //      tests passed; the manifest's tests passed; only the two together fail.
 //   3. Any Uplink that fail-softs a block of registrations has it. The shape is
 //      idiomatic here, so the bug is available to all of them.
+//
+// WHAT THESE CANNOT SEE, and it is not a small caveat. They ask what Register
+// DID, so they are worth exactly as much as the Register the headless test build
+// can run, and for most Uplinks here that is nothing. KosExtension and
+// MechJebUplink keep their whole registration body in a .Ksp.cs half the test
+// csproj deliberately excludes, so Register forwards to an unimplemented
+// `partial void` that compiles away to nothing; an Uplink that gates
+// registration on a reflection probe of a mod that is not loaded returns early.
+// Either way nothing registers, nothing is compared, and the test passes against
+// an Uplink whose wiring is entirely missing. That is how three of the four
+// projects holding these assertions held a guard that could not fail.
+//
+// So a caller that cannot ALSO show a non-zero registration count (as
+// Rp1UplinkStartsTests does, off its stand-in RP-1 types) is not covered by
+// these, and should not be read as covered. The gate that does not depend on
+// running Register is Sitrep.Core.Tests.UplinkWiringCoverageTests, which pairs
+// the same two halves by walking every Uplink's SOURCE.
 using System;
 using System.Collections.Generic;
 using System.Linq;
