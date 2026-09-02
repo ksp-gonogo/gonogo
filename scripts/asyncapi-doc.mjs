@@ -189,6 +189,7 @@ export function generate() {
     version: readContractVersion(ROOT),
   });
 
+  assertUnitRoutesAgree(contract, units);
   assertUnitsSurvived(document, units);
   assertExamplesMatchTheirSchemas(document);
 
@@ -493,22 +494,101 @@ function unitAt(schema) {
  * bookkeeping check passes when the attach step and the count step share the same
  * wrong idea of where a unit goes.
  *
- * A map entry naming a type the document does not emit, or a field the contract
- * does not declare, is skipped and not an error: 24 declared types are
- * unreachable from any core channel, and `CommandRequirement` is in the map with
- * no contract declaration at all. The floor below is what stops those skips
- * turning the whole check into a pass by reaching nothing.
+ * A map entry naming a TYPE the document does not emit is skipped and not an
+ * error: 24 declared types are unreachable from any core channel, and
+ * `CommandRequirement` is in the map with no contract declaration at all. A
+ * FIELD on a type the document DOES emit is a different case and is an error,
+ * see `unreachable` below.
+ *
+ * ## What a green here does NOT prove
+ *
+ * That both routes a unit can travel are working. `withUnit` backfills from the
+ * same `units.json` this reads, and it only fires when the type route left no
+ * annotation, so the two are alternatives rather than corroboration. Deleting
+ * the annotation from `typeSchema`'s `value` arm leaves this document
+ * BYTE-IDENTICAL and every assertion here green, measured.
+ *
+ * That is not a hole this check can close, because on that evidence the document
+ * is not wrong: the map covers every unit the type route contributes, so the
+ * output is complete either way. What closes it is `assertUnitRoutesAgree`
+ * below, which asserts that redundancy rather than assuming it, so the day a
+ * field's unit lives only in the type the loss stops being invisible.
  */
+/**
+ * The two routes a `[SitrepUnit]` travels must agree where both can speak.
+ *
+ * `assertUnitsSurvived` reads the document, and the document cannot tell the
+ * routes apart: `withUnit` only fires where the type route left nothing, so one
+ * silently covers for the other. Deleting the annotation from `typeSchema`'s
+ * `value` arm leaves the emitted file byte-identical, because all 367 scalar
+ * quantities are in the map as well. That is the map doing all the work and the
+ * type route being redundant, which is fine right up until it is not.
+ *
+ * So the redundancy is asserted here rather than assumed: every field whose TYPE
+ * declares a unit must carry the same unit in the generated map. A `Value<"m">`
+ * lands under the field's own name; a `Vec3<"m">` lands on its three components,
+ * because a unit belongs to the thing with a magnitude and the vector is not it.
+ *
+ * Asked of the two GENERATED artifacts, `contract.ts` against `units.json`.
+ * They share an upstream in the C# source, so this is a drift check between two
+ * emits rather than an independent reading of the truth. It catches a codegen
+ * that stops emitting one of them, which is the case that would otherwise make a
+ * whole route quietly stop carrying anything.
+ *
+ * 397 assertions at the time of writing, 0 violations.
+ */
+function assertUnitRoutesAgree(contract, units) {
+  const disagree = [];
+  for (const [typeName, iface] of contract.interfaces) {
+    for (const field of iface.fields ?? []) {
+      const type = field.type;
+      if (!type || (type.k !== "value" && type.k !== "vec3")) continue;
+      const mapped = units.types?.[typeName] ?? {};
+      const leaves =
+        type.k === "vec3"
+          ? ["x", "y", "z"].map((axis) => `${field.name}.${axis}`)
+          : [field.name];
+      for (const leaf of leaves) {
+        if (mapped[leaf] !== type.unit) {
+          disagree.push(
+            `${typeName}.${leaf}: the type says ${type.unit}, the unit map says ${mapped[leaf] ?? "nothing"}`,
+          );
+        }
+      }
+    }
+  }
+  if (disagree.length > 0) {
+    throw new Error(
+      `asyncapi: ${disagree.length} field(s) whose type declares a unit are not ` +
+        `carrying it in the generated unit map:\n  ${disagree.slice(0, 20).join("\n  ")}\n` +
+        "The document reads one route or the other, so a field missing from the map " +
+        "depends entirely on its type surviving, and nothing downstream would say so.",
+    );
+  }
+}
+
 function assertUnitsSurvived(document, units) {
   const schemas = document.components.schemas;
   const messages = document.components.messages;
   const lost = [];
+  const unreachable = [];
   let checked = 0;
 
   const compare = (label, fields, target) => {
     for (const [field, unit] of Object.entries(fields)) {
       const at = propertyAt(target, field.split("."), schemas);
-      if (!at) continue;
+      /*
+       * A field the walk cannot reach on a type the document emits is exactly
+       * the case this check exists for, so it is an error rather than a skip.
+       * It was a skip, and a deliberately broken envelope `$ref` proved what
+       * that costs: `StreamData.topic` was caught only because the narrowing
+       * arm happens to carry a `topic` property, while `StreamData.type` went
+       * through here silently and the run stayed green.
+       */
+      if (!at) {
+        unreachable.push(`${label}.${field}`);
+        continue;
+      }
       checked++;
       const carried = at.map(unitAt).find((found) => found !== undefined);
       if (carried !== unit) {
@@ -552,11 +632,36 @@ function assertUnitsSurvived(document, units) {
     if (fields && message) compare(typeName, fields, message.payload);
   }
 
-  if (checked < 300) {
+  if (unreachable.length > 0) {
+    throw new Error(
+      `asyncapi: ${unreachable.length} declared unit field(s) could not be reached ` +
+        `on a type the document emits:\n  ${unreachable.slice(0, 20).join("\n  ")}\n` +
+        "The walk lost the path to the field, so nothing was compared for it. That is " +
+        "the failure this check exists to catch, not a reason to pass.",
+    );
+  }
+  /*
+   * A floor, because every clause above skips a type the document does not
+   * emit: a walk that resolved almost nothing would find nothing lost and read
+   * as a clean pass. It is the same shape of mistake as the loss being checked
+   * for.
+   *
+   * 850 against a live 882. It was 300, which let two thirds of the walk stop
+   * resolving before the floor bit, and a floor that loose cannot tell a broken
+   * walk from a smaller contract. The margin is for a type or two leaving the
+   * core channels, not for structural breakage: losing an envelope or a schema
+   * family costs tens to hundreds and trips this immediately.
+   *
+   * RAISE it when the contract grows. Lower it only alongside the deletion that
+   * made the contract genuinely smaller, never to make a red go away: a drop
+   * here with no deletion behind it is the walk breaking.
+   */
+  if (checked < 850) {
     throw new Error(
       `asyncapi: the unit-survival check only reached ${checked} declared units, ` +
-        "which is fewer than this contract has ever had. The walk is broken rather " +
-        "than the document being clean; a check that reaches nothing reports nothing.",
+        "against a floor of 850. The walk is broken rather than the document being " +
+        "clean; a check that reaches nothing reports nothing. If a contract deletion " +
+        "made this legitimately smaller, lower the floor in the same commit.",
     );
   }
   if (lost.length > 0) {

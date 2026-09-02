@@ -290,13 +290,23 @@ describe("asyncapi.yaml", () => {
     };
 
     const lost: string[] = [];
+    const unreachable: string[] = [];
     let checked = 0;
     for (const [typeName, fields] of Object.entries(declared.types)) {
       if (!shipped.components.schemas[typeName]) continue;
       for (const [field, unit] of Object.entries(fields)) {
         let at: unknown = shipped.components.schemas[typeName];
         for (const step of field.split(".")) at = propertiesOf(at)?.[step];
-        if (!at) continue;
+        /*
+         * An error rather than a skip: the type is emitted, so a field on it the
+         * walk cannot reach is the walk failing, which is the case this exists
+         * for. Skipping it here let a broken envelope `$ref` drop
+         * `StreamData.type` silently while the suite stayed green.
+         */
+        if (!at) {
+          unreachable.push(`${typeName}.${field}`);
+          continue;
+        }
         checked++;
         const carried = unitAt(at);
         if (carried !== unit) {
@@ -306,15 +316,28 @@ describe("asyncapi.yaml", () => {
         }
       }
     }
+    expect(
+      unreachable,
+      "declared unit fields the walk could not reach on an emitted type",
+    ).toEqual([]);
     /*
-     * A floor, because every clause above skips: a walk that resolved nothing
-     * would find nothing lost and read as a clean pass. It is the same shape of
-     * mistake as the loss being checked for.
+     * A floor, because the type clause above still skips a type the document
+     * does not emit: a walk that resolved almost nothing would find nothing lost
+     * and read as a clean pass. It is the same shape of mistake as the loss being
+     * checked for.
+     *
+     * 850 against a live 871 here, and the generator's own copy uses the same
+     * number against its 882: it reaches the three envelopes a second time
+     * through an emitted message, which this walk does not. It was 700, loose
+     * enough that a fifth of the walk could stop resolving unnoticed.
+     *
+     * RAISE it when the contract grows. Lower it only alongside the deletion
+     * that made the contract smaller, never to clear a red.
      */
     expect(
       checked,
       "the walk reached too few declared units to mean anything",
-    ).toBeGreaterThan(700);
+    ).toBeGreaterThan(850);
     expect(lost).toEqual([]);
   });
 
