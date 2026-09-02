@@ -1135,9 +1135,7 @@ export const ScrollArea = forwardRef<
   );
 });
 
-// ---------------------------------------------------------------------------
 // Sidebar: a second region beside (or below) the body
-// ---------------------------------------------------------------------------
 
 /**
  * Where the sidebar sits relative to the body, in LOGICAL terms rather than

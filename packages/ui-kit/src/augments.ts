@@ -119,9 +119,7 @@ export type AugmentSegmentProps<Seg extends string> =
     ? AugmentSegmentRegistry[Seg]
     : Record<string, unknown>;
 
-// ---------------------------------------------------------------------------
 // Augment settings (spec §4.7)
-// ---------------------------------------------------------------------------
 
 /*
  * `AugmentSettingField` is a single per-instance setting an augment
@@ -140,9 +138,7 @@ export type {
   NamespacedAugmentSettings,
 } from "@ksp-gonogo/sitrep-sdk";
 
-// ---------------------------------------------------------------------------
 // Augment definition + registration (spec §4.2)
-// ---------------------------------------------------------------------------
 
 /**
  * Registration descriptor for an augment: a component bound into another
