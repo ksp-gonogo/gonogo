@@ -22,6 +22,17 @@ describe("Badge", () => {
     expect(screen.getByText("N").className).not.toBe(mdClass);
   });
 
+  /* jsdom computes no layout, so the assertion is on the declaration that
+     decides it. A badge beside a caption that wraps to several lines was
+     rendering as an ellipse the height of the whole caption, because a flex
+     parent stretches its items by default and the pill radius follows the box. */
+  it("sizes itself rather than stretching to a flex row", () => {
+    render(<Badge severity="nominal">TRAINING</Badge>);
+    expect(getComputedStyle(screen.getByText("TRAINING")).alignSelf).toBe(
+      "center",
+    );
+  });
+
   it("forwards arbitrary attributes (e.g. aria-label, title)", () => {
     render(
       <Badge aria-label="Firing" title="alarm state">

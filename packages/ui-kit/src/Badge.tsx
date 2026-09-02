@@ -176,6 +176,11 @@ const Badge__Body = styled.span<{
   $size: BadgeSize;
 }>`
   display: inline-block;
+  /* A badge is sized by its own text in every container. As a flex item it
+     would otherwise take the default stretch and grow to the tallest sibling,
+     which on a wrapped caption turns the pill radius into an ellipse several
+     lines tall. */
+  align-self: center;
   ${fitBox("badge")}
   border: 1px solid;
   font-weight: 600;
