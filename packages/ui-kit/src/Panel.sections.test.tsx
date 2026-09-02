@@ -254,7 +254,7 @@ describe("Section", () => {
 describe("Panel sections and the universal augment segment", () => {
   beforeEach(() => clearAugments());
 
-  function HostWidget(props: { sections?: React.ReactNode }) {
+  function HostWidget(props: { sections?: Exclude<React.ReactNode, boolean> }) {
     return (
       <WidgetMetaContext.Provider
         value={{ componentId: "host-widget", contributionSlots: [] }}

@@ -350,11 +350,11 @@ function StrategiesComponent({
         panelTitle="Strategies"
         compactTitle={["ADMIN", "ADM"]}
         sections={
-          showSubtitle && (
+          showSubtitle ? (
             <Section full>
               <Empty>Awaiting career data...</Empty>
             </Section>
-          )
+          ) : null
         }
       />
     );

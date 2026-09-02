@@ -1532,8 +1532,16 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    *
    * Distinct from `panelSections`, which is a boolean and is about the augment
    * SLOT, not about content. The two share a word and nothing else.
+   *
+   * Booleans are excluded on purpose, and that is not tidiness. `ReactNode`
+   * admits `boolean`, and `Children.toArray` strips it, so `sections={false}`
+   * used to typecheck and render an EMPTY PANEL. The two prop names are one
+   * word apart and the reverse typo is already caught, so the hole ran in one
+   * direction only. A conditional section still works: `cond && <Section/>`
+   * yields `false`, which is why the exclusion sits on the outer type and the
+   * array entries keep the full `ReactNode`.
    */
-  sections?: ReactNode | readonly ReactNode[];
+  sections?: Exclude<ReactNode, boolean> | readonly ReactNode[];
   /**
    * Narrowest a section column may be before the panel gives up on offering a
    * second one. Defaults to `DEFAULT_SECTION_MIN_WIDTH`.
