@@ -171,4 +171,69 @@ describe("BuildCostSection: funds, and only funds", () => {
     expect(await screen.findByText("supersonicFlight")).toBeInTheDocument();
     expect(screen.getByText("Needs tech")).toBeInTheDocument();
   });
+
+  /**
+   * ONE badge, however many nodes are missing.
+   *
+   * <para>This drew a critical badge per tech id, so a vehicle missing five nodes
+   * got five red alarms. Severity is a reading about the VEHICLE and the vehicle
+   * has one state here: it needs tech the career has not researched. The fifth
+   * red badge says nothing the first did not, and using severity as decoration
+   * spends the one signal that is supposed to mean "this cannot fly".</para>
+   *
+   * <para>Asserted through the CONTIGUOUS comma-joined run of ids, which is the
+   * thing a per-tech badge list can never produce: five badges put five separate
+   * elements on the page with no separator between their texts. That is a fact
+   * about the structure rather than about the styling, so the test fails if the
+   * badges come back and not if the design system restyles a badge.</para>
+   */
+  it("draws one severity badge whatever the number of missing nodes", async () => {
+    const stream = mount();
+
+    emit(stream, {
+      ...PRICED,
+      requiredTechs: [
+        "supersonicFlight",
+        "highAltitudeFlight",
+        "heavyAerodynamics",
+        "hypersonicFlight",
+        "experimentalAerodynamics",
+      ],
+    });
+
+    const block = await screen
+      .findByText("Needs tech")
+      .then((el) => el.closest("[data-required-techs]"));
+    expect(block).not.toBeNull();
+    expect(block?.textContent).toContain(
+      "supersonicFlight, highAltitudeFlight, heavyAerodynamics, " +
+        "hypersonicFlight, experimentalAerodynamics",
+    );
+    // The state is said ONCE. Five nodes used to mean five critical badges.
+    expect(screen.getAllByText("Needs tech")).toHaveLength(1);
+  });
+
+  /**
+   * And every id whole, which is what the plain text buys over the badges it
+   * replaced.
+   *
+   * <para>A tech id is an identifier: `supersonicFlight` cut by four pixels is a
+   * different id rather than a shorter one, and that render defect is already on
+   * this block's record. A badge could not wrap out of it, because one wider than
+   * the row has nowhere to wrap to. Text can.</para>
+   */
+  it("carries every node id in full rather than one per badge", async () => {
+    const stream = mount();
+
+    emit(stream, {
+      ...PRICED,
+      requiredTechs: ["supersonicFlight", "highAltitudeFlight"],
+    });
+
+    await screen.findByText("Needs tech");
+    const block = stream.container.querySelector("[data-required-techs]");
+    expect(block?.textContent).toContain(
+      "supersonicFlight, highAltitudeFlight",
+    );
+  });
 });

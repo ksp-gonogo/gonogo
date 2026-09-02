@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "Two figures that are ABSENT rather than zero, on one vehicle. A spaceplane has no rollout because RP-1 only computes one in the VAB, and this vehicle carries no untooled parts so there is no of-which row at all. Both would be a 0 in a lesser reading, and 0 means free. The tech gate is here because it is the reason a vehicle that prices fine still cannot be flown. Not scened at min: an RP-1 tech id is a long single word with nowhere to wrap, so a badge carrying one is cut. The badges sit in a ScrollArea, which is the right control because a truncated identifier is a DIFFERENT id rather than a shorter one, but a static render cannot scroll. A DIFFERENT cause from the other build-cost scene's min exclusion, which is about row width. Scened on the AUGMENT rather than the widget, so the build-cost section has a picture of its own rather than appearing incidentally inside the host: `docs --check` refuses a registration no reviewer can see. That conversion is why the width is 11 and not the 7 it carried as a widget scene. An augment renders under a STAND-IN HOST whose title is longer than the real widget's, and at 7 the harness clipped 'RP1 VEHICLE ASSEMBLY (stand-in host)' rather than anything this fixture draws. The sibling augment scenes are 11 wide for the same reason."
+    "notes": "Two figures that are ABSENT rather than zero, on one vehicle. A spaceplane has no rollout because RP-1 only computes one in the VAB, and this vehicle carries no untooled parts so there is no of-which row at all. Both would be a 0 in a lesser reading, and 0 means free. The tech gate is here because it is the reason a vehicle that prices fine still cannot be flown. Not scened at min: an RP-1 tech id is a long single word with nowhere to wrap, so a badge carrying one is cut. The badges sit in a ScrollArea, which is the right control because a truncated identifier is a DIFFERENT id rather than a shorter one, but a static render cannot scroll. A DIFFERENT cause from the other build-cost scene's min exclusion, which is about row width. Scened on the AUGMENT rather than the widget, so the build-cost section has a picture of its own rather than appearing incidentally inside the host: `docs --check` refuses a registration no reviewer can see. That conversion is why the width is 11 and not the 7 it carried as a widget scene. An augment renders under a STAND-IN HOST whose title is longer than the real widget's, and at 7 the harness clipped 'RP1 VEHICLE ASSEMBLY (stand-in host)' rather than anything this fixture draws. The sibling augment scenes are 11 wide for the same reason. FOUR nodes rather than one, and that is the point of the scene: the block used to draw a critical badge PER id, so this picture was four red alarms whose redness said nothing the first one said. Severity is a reading about the vehicle and the vehicle has one state here, so one badge carries it and the node ids are content beside it. One node could not show the defect and so could not show the fix. The ids are still RP-1's raw node ids because that is all the wire carries: EditorRequiredTechs is a flat list with no titles and no link to the parts that need them."
   },
   "_scene": {
     "augment": "rp1-vehicle-assembly-build-cost",
@@ -8,8 +8,14 @@
       "w": 11,
       "h": 12
     },
-    "caption": "A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and a tech it cannot fly without",
-    "paints": ["LAUNCH COST", "Rollout", "Needs tech", "supersonicFlight"]
+    "caption": "A fully tooled spaceplane: no rollout because it does not roll out, no surcharge row because there is no surcharge, and four tech nodes it cannot fly without under ONE severity badge",
+    "paints": [
+      "LAUNCH COST",
+      "Rollout",
+      "Needs tech",
+      "supersonicFlight",
+      "hypersonicFlight"
+    ]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -80,7 +86,12 @@
           "toolingCost": 0,
           "unlockCost": 4800,
           "rolloutCost": null,
-          "requiredTechs": ["supersonicFlight"]
+          "requiredTechs": [
+            "supersonicFlight",
+            "highAltitudeFlight",
+            "heavyAerodynamics",
+            "hypersonicFlight"
+          ]
         }
       }
     ]
