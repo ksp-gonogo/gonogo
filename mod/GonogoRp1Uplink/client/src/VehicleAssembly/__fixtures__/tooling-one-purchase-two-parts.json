@@ -1,0 +1,124 @@
+{
+  "_meta": {
+    "notes": "The finding, not the happy path: tooling is keyed on a SIZE and not on a part, so the two 3.000m x 5.000m tanks are ONE purchase and appear as one card with one price and two standing charges. Drawn as two rows an operator reads 18,000f for a purchase that costs 9,000f. Second finding in the same picture: RP-1's own Tool All price is 12,500f while the two purchases on screen come to 14,600f, because a tooling covers anything of its type within four per cent and paying for the 3.000m tank leaves the 2.900m one free. That is why the whole-ship figure sits on the control rather than at the foot of the column, where it would be read as that column's total and be wrong by the 2,100f the fuzzy match saves. Third: BOTH balances are on screen. RP-1 spends the unlock credit before funds on a purchase like this one, so 289,848f against 12,500f is not the affordability answer and the widget never draws one."
+  },
+  "_scene": {
+    "widget": "rp1-vehicle-assembly",
+    "size": {
+      "w": 7,
+      "h": 16
+    },
+    "caption": "Two tanks of one size are one purchase, priced once, with the standing charge each still carries; RP-1's whole-ship price is lower than the cards add up to, which is why it sits on the button",
+    "paints": [
+      "TOOLING",
+      "Tool all",
+      "Structural tank",
+      "3.000m x 5.000m",
+      "Once",
+      "per build",
+      "Unlock credit"
+    ],
+    "modes": ["default", "mobile-9x8", "portrait-5x18", "landscape-18x5"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340,
+            "unlockCredit": 42000
+          }
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.complexes",
+        "payload": []
+      },
+      {
+        "topic": "rp1.pads",
+        "payload": []
+      },
+      {
+        "topic": "rp1.operations",
+        "payload": []
+      },
+      {
+        "topic": "rp1.warehouse",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildQueue",
+        "payload": []
+      },
+      {
+        "topic": "rp1.buildable",
+        "payload": []
+      },
+      {
+        "topic": "rp1.tooling",
+        "payload": {
+          "toolAllCost": 12500,
+          "untooledCount": 3,
+          "parts": [
+            {
+              "partTitle": "Procedural Tank",
+              "toolingType": "TankStructural",
+              "toolingTypeTitle": "Structural tank",
+              "parameterSummary": "3.000m x 5.000m",
+              "tooled": false,
+              "toolingCost": 9000,
+              "untooledSurcharge": 4100,
+              "partId": "part-1",
+              "symmetryCounterparts": 1,
+              "refittable": true
+            },
+            {
+              "partTitle": "Procedural Tank",
+              "toolingType": "TankStructural",
+              "toolingTypeTitle": "Structural tank",
+              "parameterSummary": "3.000m x 5.000m",
+              "tooled": false,
+              "toolingCost": 9000,
+              "untooledSurcharge": 4100,
+              "partId": "part-2",
+              "symmetryCounterparts": 1,
+              "refittable": true
+            },
+            {
+              "partTitle": "Upper Tank",
+              "toolingType": "TankStructural",
+              "toolingTypeTitle": "Structural tank",
+              "parameterSummary": "2.900m x 3.200m",
+              "tooled": false,
+              "toolingCost": 5600,
+              "untooledSurcharge": 2400,
+              "partId": "part-3",
+              "symmetryCounterparts": 0,
+              "refittable": true
+            },
+            {
+              "partTitle": "Avionics Core",
+              "toolingType": "Avionics",
+              "toolingTypeTitle": "Procedural avionics",
+              "parameterSummary": "12.5 t x 1.200m x 0.400m",
+              "tooled": true,
+              "toolingCost": 0,
+              "untooledSurcharge": 0,
+              "partId": "part-4",
+              "symmetryCounterparts": 0,
+              "refittable": true
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

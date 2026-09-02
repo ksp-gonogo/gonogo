@@ -68,6 +68,7 @@ export {
   RP1_PROGRAMS_TOPIC,
   RP1_RESEARCH_TOPIC,
   RP1_RUSH_TERMS_TOPIC,
+  RP1_TOOLING_TOPIC,
   RP1_WAREHOUSE_TOPIC,
 } from "./topics";
 
@@ -79,6 +80,10 @@ export {
 export { BuildCostSection } from "./VehicleAssembly/BuildCost";
 export { BuildingSection } from "./VehicleAssembly/Building";
 export { VEHICLE_ASSEMBLY_SECTIONS } from "./VehicleAssembly/slot";
+export {
+  RP1_TOOL_ALL_COMMAND,
+  ToolingSection,
+} from "./VehicleAssembly/Tooling";
 export {
   RP1_ROLLBACK_COMMAND,
   RP1_ROLLOUT_COMMAND,

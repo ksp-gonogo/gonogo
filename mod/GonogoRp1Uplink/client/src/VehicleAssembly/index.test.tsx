@@ -220,12 +220,15 @@ describe("VehicleAssembly", () => {
     // the host directly it would not be here, and the slot could be inadequate
     // without anything failing.
     //
-    // The ORDER is asserted too, and the cost section leads on purpose: it is
-    // about the craft being designed right now, and the three lists below it are
-    // about craft already committed to.
+    // The ORDER is asserted too, and the two editor sections lead on purpose:
+    // they are about the craft being designed right now, and the three lists
+    // below them are about craft already committed to. Tooling follows the cost
+    // it breaks down, because the untooled line on that breakdown is the figure
+    // it accounts for.
     const ids = getAugmentsForSlot(VEHICLE_ASSEMBLY_SECTIONS).map((a) => a.id);
     expect(ids).toEqual([
       "rp1-vehicle-assembly-build-cost",
+      "rp1-vehicle-assembly-tooling",
       "rp1-vehicle-assembly-warehouse",
       "rp1-vehicle-assembly-building",
       "rp1-vehicle-assembly-buildable",

@@ -125,10 +125,10 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | | |
 | --- | --- |
 | Widget id | `rp1-vehicle-assembly` |
-| Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.buildable`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `career.status` |
+| Reads | `rp1.available`, `rp1.warehouse`, `rp1.buildQueue`, `rp1.buildable`, `rp1.complexes`, `rp1.pads`, `rp1.operations`, `rp1.buildCost`, `rp1.tooling`, `career.status` |
 | Slots | `rp1-vehicle-assembly.sections` |
 | Default size | 7 × 16 |
-| Scenes | 8 |
+| Scenes | 9 |
 
 ![Nothing built and nothing on order, which is where a career starts](docs/assets/assembly-empty--default.png)
 
@@ -208,6 +208,14 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The same widget at 18 × 5](docs/assets/build-cost-mostly-surcharge--landscape-18x5.png)
 
+![Two tanks of one size are one purchase, priced once, with the standing charge each still carries; RP-1's whole-ship price is lower than the cards add up to, which is why it sits on the button](docs/assets/tooling-one-purchase-two-parts--default.png)
+
+![The same widget at 9 × 8](docs/assets/tooling-one-purchase-two-parts--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/tooling-one-purchase-two-parts--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/tooling-one-purchase-two-parts--landscape-18x5.png)
+
 ## Augments
 
 | Augment | Into | Reads | Presence | Scenes | Notes |
@@ -225,6 +233,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-build-cost` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-building` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-buildable` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
+| `rp1-vehicle-assembly-tooling` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-warp-targets` | `warp-control.stepper` | – |  | 2 |  |
 
@@ -293,6 +302,8 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![Three builds under integration: one with a date at a rushing complex, one stalled because nobody is assigned to its complex, and one RP-1 has not costed yet](docs/assets/building-three-clocks--default.png)
 
 ![Three saved craft: one startable at either complex, one only at LC-1 with LC-2's refusal named, and one blocked on parts that are researched but not bought](docs/assets/buildable-blocked-and-buildable--default.png)
+
+![Every tooling on this vehicle is already owned: the cards say so and no purchase control is offered, because there is nothing left to buy](docs/assets/tooling-nothing-outstanding--default.png)
 
 ![Three finished vehicles in three different places: one standing on the pad, one still moving to it, and one RP-1 will not release at all with its reason on the card](docs/assets/warehouse-three-places--default.png)
 

@@ -114,4 +114,61 @@ describe("VehicleAssembly draws the balance wherever a section can spend", () =>
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(screen.queryByText(SPENDING_SECTION_TEXT)).toBeNull();
   });
+
+  /**
+   * The second balance, and the reason funds alone is not the whole rule here.
+   *
+   * <para>RP-1 keeps a prepaid allowance its money model spends BEFORE funds on
+   * the purchases it covers, and tooling a vehicle is one of them. So a funds
+   * balance of 500,000f beside a price of 12,500f is not the affordability
+   * answer: part of that price may already be paid. Its own contract says a
+   * surface offering such a purchase shows both balances rather than deriving
+   * the split, which is exactly what this widget does.</para>
+   */
+  it("draws the prepaid credit beside the funds where the career has one", async () => {
+    const fixture = mount();
+    act(() => {
+      fixture.emit("rp1.available", true);
+    });
+    act(() => {
+      fixture.emit("career.status", {
+        economy: {
+          funds: 500_000,
+          reputation: 0,
+          science: 0,
+          unlockCredit: 42_000,
+        },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle("Available funds")).toHaveLength(1);
+    });
+    expect(
+      screen.getByText(/Unlock credit/, { selector: "*" }),
+    ).toBeInTheDocument();
+  });
+
+  /**
+   * And the complement, which is what stops the row above being a decoration: a
+   * career whose model has no such pool leaves the field absent, and an absent
+   * allowance is not an empty one. A zero here would tell an operator they have
+   * spent a credit they never had.
+   */
+  it("draws no credit line at all where the money model has no such pool", async () => {
+    const fixture = mount();
+    act(() => {
+      fixture.emit("rp1.available", true);
+    });
+    act(() => {
+      fixture.emit("career.status", {
+        economy: { funds: 500_000, reputation: 0, science: 0 },
+      });
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByTitle("Available funds")).toHaveLength(1);
+    });
+    expect(screen.queryByText(/Unlock credit/)).toBeNull();
+  });
 });

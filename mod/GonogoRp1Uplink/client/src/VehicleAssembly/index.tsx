@@ -14,6 +14,7 @@ import "../topics";
 import "./BuildCost";
 import "./Building";
 import "./Buildable";
+import "./Tooling";
 import "./Warehouse";
 import { VEHICLE_ASSEMBLY_SECTIONS } from "./slot";
 
@@ -106,6 +107,30 @@ export function VehicleAssembly() {
           <Text size="sm" title="Available funds" tone="muted">
             Funds <Unit value={career?.economy?.funds} />
           </Text>
+
+          {/* The unlock credit, where the career has one, drawn BESIDE the funds
+              and never folded into them.
+
+              Its own contract says why: it is a prepaid allowance the money
+              model spends before funds on the purchases it covers, so part of a
+              price may already be paid and the funds balance alone is not an
+              affordability test. Tooling this vehicle is exactly such a
+              purchase, and so is unlocking its parts. The split between the two
+              pools is the producer's to make at transaction time, so both
+              balances are shown and neither is derived from the other here.
+
+              ABSENT on stock, which has no such pool, and absent is silence:
+              a zero would claim the career has an empty allowance rather than
+              no allowance. */}
+          {career?.economy?.unlockCredit != null && (
+            <Text
+              size="sm"
+              title="Prepaid credit, spent before funds on the purchases it covers"
+              tone="muted"
+            >
+              Unlock credit <Unit value={career.economy.unlockCredit} />
+            </Text>
+          )}
 
           <ComplexKey complexes={complexes ?? []} />
 
@@ -225,6 +250,12 @@ registerComponent<VehicleAssemblyConfig>({
     "rp1.complexes",
     "rp1.pads",
     "rp1.operations",
+    // The two editor channels, both read by contributed sections rather than by
+    // the host: what the vehicle on the table costs to fly, and what tooling it
+    // owes. Declared here because a widget's requirements are what the debug
+    // surfaces enumerate, and a section's reads are the widget's reads.
+    "rp1.buildCost",
+    "rp1.tooling",
     // The spend rule: a rollout is billed as the vehicle moves, a scrap refunds
     // it, and starting a build buys the vehicle outright, so the balance those
     // are judged against has to be in here.

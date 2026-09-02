@@ -213,7 +213,7 @@
       "text": "b6c63acd"
     },
     "catalogue-picker--default.png": {
-      "hash": "c845af4d0cdc2ee2",
+      "hash": "f877e75167d2d3cd",
       "elements": 263,
       "text": "176067ac"
     },
@@ -223,12 +223,12 @@
       "text": "2284a518"
     },
     "complexes-add-pad--default.png": {
-      "hash": "cf50db8434265e59",
+      "hash": "9aa103bcc9be8a87",
       "elements": 262,
       "text": "09035bd1"
     },
     "complexes-dismantle-warnings--default.png": {
-      "hash": "d4082bb5b044b14b",
+      "hash": "c475df28b9762552",
       "elements": 206,
       "text": "4cbb8950"
     },
@@ -238,17 +238,17 @@
       "text": "3d89340f"
     },
     "complexes-new--default.png": {
-      "hash": "2180e4442fcfabde",
+      "hash": "df6fbd47b353d953",
       "elements": 247,
       "text": "c015784a"
     },
     "complexes-rename--default.png": {
-      "hash": "f94536296e8d0a43",
+      "hash": "5c4ecd35b06336fc",
       "elements": 263,
       "text": "82789206"
     },
     "complexes-rushing--default.png": {
-      "hash": "857cf70bc6423ba0",
+      "hash": "41b7fc7b4fd2748d",
       "elements": 272,
       "text": "a8b6efcd"
     },
@@ -283,12 +283,12 @@
       "text": "3b941eca"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "59ff4c0195442eec",
+      "hash": "5db8b02e1697d722",
       "elements": 47,
       "text": "bcd95d2e"
     },
     "crew-enrolment-ready--default.png": {
-      "hash": "985dedfad0009d25",
+      "hash": "3705057a2a53c424",
       "elements": 47,
       "text": "6f278b89"
     },
@@ -348,7 +348,7 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "681498703e43e50a",
+      "hash": "52ebab326279ce02",
       "elements": 130,
       "text": "abb9d1ce"
     },
@@ -361,6 +361,31 @@
       "hash": "6e74ddfd2e9cd2d5",
       "elements": 264,
       "text": "a1714f1e"
+    },
+    "tooling-nothing-outstanding--default.png": {
+      "hash": "d1af3ac61aee1607",
+      "elements": 30,
+      "text": "e768ba2a"
+    },
+    "tooling-one-purchase-two-parts--default.png": {
+      "hash": "5f3e06b9003767c9",
+      "elements": 73,
+      "text": "a779cc0f"
+    },
+    "tooling-one-purchase-two-parts--landscape-18x5.png": {
+      "hash": "5f3e06b9003767c9",
+      "elements": 73,
+      "text": "a779cc0f"
+    },
+    "tooling-one-purchase-two-parts--mobile-9x8.png": {
+      "hash": "5f3e06b9003767c9",
+      "elements": 73,
+      "text": "a779cc0f"
+    },
+    "tooling-one-purchase-two-parts--portrait-5x18.png": {
+      "hash": "5f3e06b9003767c9",
+      "elements": 73,
+      "text": "a779cc0f"
     },
     "two-centres-unstaffed--default.png": {
       "hash": "4a82d7a1496b279b",
