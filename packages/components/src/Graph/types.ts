@@ -94,6 +94,4 @@ export interface GraphConfig {
   yScaleSecondary?: AxisScale;
   /** Horizontal reference lines drawn across the plot. */
   thresholds?: GraphThresholdConfig[];
-  /** @deprecated ignored; kept so older persisted configs stay assignable. */
-  style?: string;
 }

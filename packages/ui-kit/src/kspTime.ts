@@ -19,8 +19,6 @@
  * implementing `IDateTimeFormatter`.
  */
 
-import { STOCK_KERBIN_CALENDAR as STOCK } from "@ksp-gonogo/sitrep-sdk";
-
 export {
   type KspCalendar,
   kspCalendar,
@@ -28,18 +26,3 @@ export {
   STOCK_KERBIN_CALENDAR,
   setKspCalendar,
 } from "@ksp-gonogo/sitrep-sdk";
-
-/**
- * @deprecated A day is not a constant: see this module's header. Call
- * `kspCalendar()` instead, which answers for the game actually running.
- * Left at the stock value so an existing import still compiles and still
- * renders correctly for the stock player, rather than breaking every caller at
- * once.
- */
-export const KSP_DAY_SECONDS = STOCK.day;
-
-/** @deprecated See {@link KSP_DAY_SECONDS}. Use `kspYearDays()`. */
-export const KSP_YEAR_DAYS = 426;
-
-/** @deprecated See {@link KSP_DAY_SECONDS}. Use `kspCalendar().year`. */
-export const KSP_YEAR_SECONDS = STOCK.year;

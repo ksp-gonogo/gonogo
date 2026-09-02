@@ -45,10 +45,11 @@ const OUT_DIR =
 
 const VIEW_UT = 1_000_000;
 /**
- * A KSP day, in seconds, from the unit model's own calendar rather than
- * ui-kit's `KSP_DAY_SECONDS`. Same number, and it is the same source: this is
- * the NODE half of the harness, and importing the design system here pulls
- * styled-components into a runtime with no DOM for it.
+ * A stock Kerbin day, in seconds, taken from the unit model's own calendar
+ * rather than through ui-kit's re-export: this is the NODE half of the
+ * harness, and importing the design system here pulls styled-components into
+ * a runtime with no DOM for it. Pinned to the stock calendar on purpose, a
+ * render fixture must not shift with whatever the last test set.
  */
 const KSP_DAY = STOCK_KERBIN_CALENDAR.day;
 const TOPIC = "principia.settings";

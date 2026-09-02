@@ -55,7 +55,6 @@ describe("GraphComponent", () => {
 
   it("renders a <path> with data when a series receives numeric values", async () => {
     const config = {
-      style: "time-series" as const,
       series: [{ id: "s1", key: "v.altitude", axis: "auto" as const }],
       windowSec: 300,
     };
@@ -79,7 +78,6 @@ describe("GraphComponent", () => {
 
   it("shows empty state when no series are configured", () => {
     const config = {
-      style: "time-series" as const,
       series: [],
       windowSec: 300,
     };

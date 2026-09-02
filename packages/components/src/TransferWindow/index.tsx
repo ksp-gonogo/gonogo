@@ -21,8 +21,8 @@ import {
   Badge,
   Button,
   FieldLabel,
-  KSP_DAY_SECONDS,
-  KSP_YEAR_DAYS,
+  kspCalendar,
+  kspYearDays,
   NULL_DISPLAY,
   Panel,
   Section,
@@ -72,41 +72,6 @@ const NO_BODIES: CelestialBody[] = [];
  */
 
 const WINDOW_COUNT = 5;
-
-/**
- * UT the reach list's phase solve is quantised to: ONE KERBIN DAY, which is what its
- * countdown column can actually display.
- *
- * This was 60 seconds, and 60 seconds was arbitrary. Same trap as the porkchop's
- * (`porkchopGridQuantum`): a fixed quantum stops working under time warp, because at
- * 100,000x a frame advances UT by about 1,670 seconds and a 60-second bucket changes on
- * every one of them. It failed from roughly 10,000x upward, which for a transfer planner
- * is most of the time it is being looked at.
- *
- * **The porkchop's fix does not transfer here, and that is worth saying rather than
- * forcing.** That quantum scales with the Hohmann transfer time because the chart's axes
- * are drawn in transfer times. The reach list has N destinations with N different
- * transfer times and no single T to scale by.
- *
- * What it does have is a display granularity. `nowUt` reaches only `waitSeconds` (the
- * Window column); the Δv columns are functions of radii and μ, and Transit is the Hohmann
- * time, so neither moves with the clock at all. And Window renders as
- * `Math.round(days)`, or tenths of a Kerbin year past 1000 days. So one day is the finest
- * change the column can express, which makes it the honest quantum rather than merely a
- * bigger number: 0.46 rebuilds/s at 10,000x and 4.6 at 100,000x, of six closed-form
- * solves each.
- *
- * The cost is that a window opening reads "in 1 d" for up to a day before it says "now".
- * Acceptable because this is the SURVEY column: the actionable countdown is the windows
- * list below, which is exact and unquantised, and it owns the alarm button.
- *
- * **That makes this quantum conditional on the windows list existing.** If the exact,
- * unquantised countdown is ever removed or itself coarsened, a day's lag on the only
- * remaining countdown stops being a survey's rounding and becomes a defect: an operator
- * would be told "in 1 d" about a window that is open. Re-derive the quantum from
- * whatever column is then load-bearing rather than leaving this one in place.
- */
-const REACH_RECOMPUTE_UT = KSP_DAY_SECONDS;
 
 const VERDICT_LABEL: Record<ReachVerdict, string> = {
   go: "GO",
@@ -180,13 +145,13 @@ const STATUS_SEVERITY: Record<string, Severity | undefined> = {
 // Duna is quoted in the same calendar the game's own map view and the
 // dashboard's mission clock use.
 const fmtDays = (sec: number): string =>
-  `${Math.round(sec / KSP_DAY_SECONDS)} d`;
+  `${Math.round(sec / kspCalendar().day)} d`;
 
 const fmtCountdown = (sec: number): string => {
-  const d = sec / KSP_DAY_SECONDS;
+  const d = sec / kspCalendar().day;
   if (d < 1) return "now";
   if (d < 1000) return `in ${Math.round(d)} d`;
-  return `in ${(d / KSP_YEAR_DAYS).toFixed(1)} y`;
+  return `in ${(d / kspYearDays()).toFixed(1)} y`;
 };
 
 /** Whether a reading went stale, as opposed to never having arrived. */
@@ -425,6 +390,44 @@ function TransferWindowComponent({
 
   // Focus the porkchop on the selected window: window 0 is the base chart;
   /**
+   * UT the reach list's phase solve is quantised to: ONE DAY of the game's own
+   * calendar, which is what its countdown column can actually display. Read live
+   * rather than held as a constant: a day is 6h on stock Kerbin and 24h under
+   * RSS, and quantising an RSS save to 6h buys back none of the cost below.
+   *
+   * This was 60 seconds, and 60 seconds was arbitrary. Same trap as the porkchop's
+   * (`porkchopGridQuantum`): a fixed quantum stops working under time warp, because at
+   * 100,000x a frame advances UT by about 1,670 seconds and a 60-second bucket changes on
+   * every one of them. It failed from roughly 10,000x upward, which for a transfer planner
+   * is most of the time it is being looked at.
+   *
+   * **The porkchop's fix does not transfer here, and that is worth saying rather than
+   * forcing.** That quantum scales with the Hohmann transfer time because the chart's axes
+   * are drawn in transfer times. The reach list has N destinations with N different
+   * transfer times and no single T to scale by.
+   *
+   * What it does have is a display granularity. `nowUt` reaches only `waitSeconds` (the
+   * Window column); the Δv columns are functions of radii and μ, and Transit is the Hohmann
+   * time, so neither moves with the clock at all. And Window renders as
+   * `Math.round(days)`, or tenths of a year past 1000 days. So one day is the finest
+   * change the column can express, which makes it the honest quantum rather than merely a
+   * bigger number: 0.46 rebuilds/s at 10,000x and 4.6 at 100,000x, of six closed-form
+   * solves each.
+   *
+   * The cost is that a window opening reads "in 1 d" for up to a day before it says "now".
+   * Acceptable because this is the SURVEY column: the actionable countdown is the windows
+   * list below, which is exact and unquantised, and it owns the alarm button.
+   *
+   * **That makes this quantum conditional on the windows list existing.** If the exact,
+   * unquantised countdown is ever removed or itself coarsened, a day's lag on the only
+   * remaining countdown stops being a survey's rounding and becomes a defect: an operator
+   * would be told "in 1 d" about a window that is open. Re-derive the quantum from
+   * whatever column is then load-bearing rather than leaving this one in place.
+   */
+  const reachRecomputeUt = kspCalendar().day;
+  const reachUtBucket = Math.floor(nowUt / reachRecomputeUt);
+
+  /**
    * The reach list: every sibling, what it costs, and whether this craft affords it.
    *
    * Keyed on a COARSE view time rather than `nowUt`. `useViewUt` notifies at frame
@@ -432,7 +435,6 @@ function TransferWindowComponent({
    * inside a minute, so quantising here keeps a list of closed-form solves off the
    * per-frame path. The window countdowns it produces are quoted in whole days.
    */
-  const reachUtBucket = Math.floor(nowUt / REACH_RECOMPUTE_UT);
   const reach = useMemo(
     () =>
       origin && parkingRadius != null && Number.isFinite(parkingRadius)
@@ -440,10 +442,10 @@ function TransferWindowComponent({
             origin,
             bodies,
             parkingRadius,
-            nowUt: reachUtBucket * REACH_RECOMPUTE_UT,
+            nowUt: reachUtBucket * reachRecomputeUt,
           })
         : [],
-    [origin, bodies, parkingRadius, reachUtBucket],
+    [origin, bodies, parkingRadius, reachUtBucket, reachRecomputeUt],
   );
 
   // later windows rebuild centred on their own departure so their Δv surface
@@ -974,7 +976,7 @@ function Porkchop({
   const capped = scaleMax < max;
   const cellW = PLOT_W / cols;
   const cellH = PLOT_H / rows;
-  const days = (sec: number) => Math.round(sec / KSP_DAY_SECONDS);
+  const days = (sec: number) => Math.round(sec / kspCalendar().day);
   const dayOffset = (ut: number) => days(ut - nowUt);
   const kms = (ms: number) => (ms / 1000).toFixed(1);
 

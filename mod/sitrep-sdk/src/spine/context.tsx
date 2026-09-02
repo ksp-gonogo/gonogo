@@ -129,12 +129,13 @@ export interface TelemetryProviderProps {
    * Explicit per-topic promotion list (the carried-channels allowlist gate,
    * `./carried-channels.ts`): the "dev-first per-topic opt-in" half of the
    * allowlist, alongside `client.declaredChannels` (the transport's own
-   * served-channel declaration). Union of the two is what `useDataValue`'s shim
-   * (`@ksp-gonogo/core`) consults before ever routing a MAPPED topic to the
-   * stream instead of legacy. Monotonic: a topic named here (or ever
-   * declared by the transport) stays carried for the life of this mounted
-   * provider even if a later render omits it; see `unionGrow`. Omit
-   * entirely to carry only whatever the transport itself declares.
+   * served-channel declaration). Union of the two is what `isTopicCarried`
+   * consults before a read resolves against the stream, so a topic nothing
+   * delivers reads as absent rather than as a fabricated blank. Monotonic:
+   * a topic named here (or ever declared by the transport) stays carried for
+   * the life of this mounted provider even if a later render omits it; see
+   * `unionGrow`. Omit entirely to carry only whatever the transport itself
+   * declares.
    */
   carriedChannels?: Iterable<string>;
 }
@@ -146,10 +147,9 @@ export interface TelemetryProviderProps {
  * **The bridge:** without this provider, nothing in production ever
  * constructed a `TimelineStore` or registered a derived channel on one, so
  * `vessel.state.*` (and any future derived channel) was permanently
- * unreachable through `useStream`/`useDataValue` even once a provider was
- * mounted: the derivation machinery in `vessel-state.ts`/
- * `timeline-store.ts` existed but was wired to nothing. This provider is
- * what closes that gap:
+ * unreachable through `useStream` even once a provider was mounted: the
+ * derivation machinery in `vessel-state.ts`/`timeline-store.ts` existed but
+ * was wired to nothing. This provider is what closes that gap:
  *
  * - Unless `store` is supplied, it builds ONE `TimelineStore` (backed by a
  *   `ViewClock`) per `client` and registers the production derived channels
@@ -169,10 +169,9 @@ export interface TelemetryProviderProps {
  *   other `useSyncExternalStore` subscription keyed off
  *   `store.subscribeFrame`, actually re-render.
  *
- * `useStream`/the `@ksp-gonogo/core` `useDataValue` shim both read through
- * `store.sample(topic, store.currentFrame())` now (never `client.getValue`
- * directly) so raw AND derived topics resolve through the exact same
- * surface: see `use-stream.ts`.
+ * `useStream` reads through `store.sample(topic, store.currentFrame())`
+ * (never `client.getValue` directly) so raw AND derived topics resolve
+ * through the exact same surface: see `use-stream.ts`.
  */
 export function TelemetryProvider({
   client,
@@ -474,11 +473,10 @@ export function useTelemetryClient(): TelemetryClient {
  * Non-throwing variant of `useTelemetryClient`: `undefined` when no
  * `TelemetryProvider` is mounted, instead of throwing.
  *
- * Exists for compatibility shims (`@ksp-gonogo/core`'s `useDataValue` →
- * `useStream` migration) that must keep working, falling back to
- * a legacy code path: during the migration window before every screen
- * mounts a `TelemetryProvider`. Ordinary SDK-native call sites should keep
- * using `useTelemetryClient` so a missing provider fails loudly.
+ * For a caller that must render whether or not a stream exists: a widget in
+ * a probe harness, a station screen before its provider is up, an augment
+ * whose panel is there either way. Ordinary SDK-native call sites should
+ * keep using `useTelemetryClient` so a missing provider fails loudly.
  */
 export function useTelemetryClientOptional(): TelemetryClient | undefined {
   return useContext(TelemetryClientContext);
@@ -532,9 +530,8 @@ export function useTelemetryStore(): TimelineStore {
 /**
  * Non-throwing variant of `useTelemetryStore`: `undefined` when no
  * `TelemetryProvider` is mounted. Same rationale as
- * `useTelemetryClientOptional`: the `@ksp-gonogo/core` `useDataValue`
- * compatibility shim needs both the client AND the store, without throwing,
- * to decide whether it can route a call through the new stream pipeline.
+ * `useTelemetryClientOptional`, and a caller usually wants both: the client
+ * says whether a stream exists, the store says what it is carrying.
  */
 export function useTelemetryStoreOptional(): TimelineStore | undefined {
   return useContext(TimelineStoreContext);
@@ -1107,10 +1104,9 @@ export function useCarriedChannels(): ReadonlySet<string> {
 /**
  * Non-throwing variant of `useCarriedChannels`: `undefined` when no
  * `TelemetryProvider` is mounted. Same rationale as
- * `useTelemetryClientOptional`/`useTelemetryStoreOptional`: the
- * `@ksp-gonogo/core` `useDataValue` compatibility shim needs this without
- * throwing, to decide whether it can route a mapped topic through the
- * stream pipeline at all.
+ * `useTelemetryClientOptional`/`useTelemetryStoreOptional`: a caller that
+ * renders without a provider still has to ask whether a topic is carried,
+ * and must get "no" rather than an exception.
  */
 export function useCarriedChannelsOptional(): ReadonlySet<string> | undefined {
   return useContext(CarriedChannelsContext);

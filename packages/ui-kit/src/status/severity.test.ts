@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type Severity,
   severityFromBadgeEntryTone,
-  severityFromReadoutTone,
-  severityFromStatusTone,
   severityFromStreamStatus,
-  severityFromTextTone,
   severityRank,
   worstSeverity,
 } from "./severity";
@@ -89,21 +86,6 @@ describe("severityFromStreamStatus (mapping table)", () => {
   });
 });
 
-describe("severityFromReadoutTone (mapping table)", () => {
-  it("default -> nominal", () => {
-    expect(severityFromReadoutTone("default")).toBe("nominal");
-  });
-  it("go -> nominal", () => {
-    expect(severityFromReadoutTone("go")).toBe("nominal");
-  });
-  it("warning -> warning", () => {
-    expect(severityFromReadoutTone("warning")).toBe("warning");
-  });
-  it("alert -> warning", () => {
-    expect(severityFromReadoutTone("alert")).toBe("warning");
-  });
-});
-
 describe("severityFromBadgeEntryTone (mapping table)", () => {
   it("go -> nominal", () => {
     expect(severityFromBadgeEntryTone("go")).toBe("nominal");
@@ -119,31 +101,5 @@ describe("severityFromBadgeEntryTone (mapping table)", () => {
   });
   it("neutral -> nominal (decorative folds to the floor)", () => {
     expect(severityFromBadgeEntryTone("neutral")).toBe("nominal");
-  });
-});
-
-describe("severityFromStatusTone (mapping table)", () => {
-  it("neutral -> nominal", () => {
-    expect(severityFromStatusTone("neutral")).toBe("nominal");
-  });
-  it("info -> info", () => {
-    expect(severityFromStatusTone("info")).toBe("info");
-  });
-  it("go -> nominal", () => {
-    expect(severityFromStatusTone("go")).toBe("nominal");
-  });
-  it("warn -> warning", () => {
-    expect(severityFromStatusTone("warn")).toBe("warning");
-  });
-  it("nogo -> critical", () => {
-    expect(severityFromStatusTone("nogo")).toBe("critical");
-  });
-});
-
-describe("severityFromTextTone (display tones carry no severity)", () => {
-  it("folds every display tone to the nominal floor", () => {
-    for (const t of ["accent", "default", "muted", "faint"] as const) {
-      expect(severityFromTextTone(t)).toBe("nominal");
-    }
   });
 });

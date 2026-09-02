@@ -337,8 +337,9 @@ describe("design-system: the KSP day", () => {
     if (offenders.length > 0) {
       throw new Error(
         `Found an Earth day in ${offenders.length} place(s). A KSP day is 6 ` +
-          "hours (21,600s), not 24. Import KSP_DAY_SECONDS from " +
-          "@ksp-gonogo/ui-kit, or pass the seconds to formatDuration / " +
+          "hours (21,600s), not 24, and it is 24 again under RSS. Call " +
+          "kspCalendar().day from @ksp-gonogo/ui-kit, or pass the seconds to " +
+          "formatDuration / " +
           `formatCountdown and skip the arithmetic. Offenders:\n${offenders
             .map((f) => `  ${f}`)
             .join("\n")}`,

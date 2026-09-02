@@ -1,11 +1,10 @@
 /**
- * The carried-channels allowlist gate: the safety mechanism against a
- * "big-bang blank-out". Without it, mounting a `TelemetryProvider` stops
- * `@ksp-gonogo/core`'s `useDataValue` shim falling back for every MAPPED
- * topic, including the ones the mounted transport never actually delivers.
- * This module is the single place that decides "is `topic` actually carried
- * right now": both `TelemetryProvider` (to build the allowlist) and the
- * `useDataValue` shim (to consult it) go through this file rather than
+ * The carried-channels allowlist gate: the single place that decides "is
+ * `topic` actually carried right now". A read against a topic the mounted
+ * transport never delivers must answer ABSENT, not a blank that looks like a
+ * live zero, and a widget declaring such a topic must be able to say so.
+ * `TelemetryProvider` (building the allowlist), `useTelemetry`, `useDataSeries`
+ * and the field catalog all come through this file rather than each
  * duplicating the derived-topic resolution logic.
  *
  * A topic is carried iff EVERY raw wire topic it transitively depends on is
@@ -15,20 +14,19 @@
  *   carried namespace prefix, see below).
  * - A DERIVED topic (`vessel.state.*`) depends on its declared `inputs`,
  *   resolved recursively: carried iff ALL of them are. A derived channel with
- *   even one uncarried
- *   input can never produce a whole record, so treating it as carried would reintroduce
- *   exactly the permanent-`undefined`-blank-out this gate exists to prevent.
+ *   even one uncarried input can never produce a whole record, so treating it
+ *   as carried would report a live channel that can only ever read blank.
  *
  * An allowlist entry is EXACT unless it ends in `.`, in which case it is a
  * carried NAMESPACE PREFIX (`<namespace>.<sub>.`): a raw input is carried when
  * it `startsWith` that prefix. This is how a per-(body,type) DYNAMIC namespace,
  * one whose exact keys can't be enumerated up front (the injected
- * `dynamicWholeTopicPrefixes` topics an Uplink owns): gets promoted to the
- * stream instead of silently falling back to the removed legacy source. A real
- * wire topic never ends in `.`, so a prefix sentinel can never collide with the
- * exact-membership checks elsewhere (`useCommand`, catalog builders). Prefix
- * carrying stays monotonic (it only ever grows coverage) exactly like exact
- * membership, so the "legacy -> stream, never reverse" contract holds.
+ * `dynamicWholeTopicPrefixes` topics an Uplink owns): reads as carried rather
+ * than as permanently absent. A real wire topic never ends in `.`, so a prefix
+ * sentinel can never collide with the exact-membership checks elsewhere
+ * (`useCommand`, catalog builders). Prefix carrying stays monotonic (it only
+ * ever grows coverage) exactly like exact membership, so a topic that has once
+ * read as carried never reverts to absent.
  *
  * Reuses `TimelineStore.resolveSubscriptionTopics` (already the
  * subscription-side source of truth for "what raw topics does this resolve

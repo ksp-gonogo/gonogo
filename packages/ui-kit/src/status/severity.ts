@@ -1,12 +1,10 @@
 import type { BadgeEntry, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
-import type { ReadoutTone } from "../Readout";
-import type { StatusTone } from "../StatusIndicator";
-import type { TextTone } from "../Text";
 
 /**
  * The one canonical severity vocabulary (Scale B, operator-locked 2026-08-05).
- * Every legacy tone/status set folds onto this via the `severityFrom*` helpers
- * below, so the whole app can aggregate state with a single max-merge.
+ * `StreamStatusValue` and the published `BadgeEntry.tone` fold onto it via the
+ * `severityFrom*` helpers below, so the whole app can aggregate state with a
+ * single max-merge.
  *
  * Lives in `@ksp-gonogo/ui-kit` rather than `@ksp-gonogo/core` (where the spec
  * first placed it) because core already depends on ui-kit at runtime, so a
@@ -87,22 +85,6 @@ export function severityFromStreamStatus(status: StreamStatusValue): Severity {
 }
 
 /**
- * `ReadoutTone` -> `Severity`. `default`/`go` are the floor, `warning` and the
- * pulsing `alert` both fold to `warning` (an alert readout is a degrading
- * reading, not yet a data-loss).
- */
-export function severityFromReadoutTone(tone: ReadoutTone): Severity {
-  switch (tone) {
-    case "default":
-    case "go":
-      return "nominal";
-    case "warning":
-    case "alert":
-      return "warning";
-  }
-}
-
-/**
  * A contributed `BadgeEntry`'s `tone` -> `Severity`. This is a DATA fold, not a
  * prop one: `Badge` speaks only `Severity`, but the `badges` contribution
  * segment is part of the published contract and names its own tone vocabulary,
@@ -126,29 +108,4 @@ export function severityFromBadgeEntryTone(
     case "nogo":
       return "critical";
   }
-}
-
-/** `StatusTone` -> `Severity`. Same folding as `BadgeEntry`'s over its own names. */
-export function severityFromStatusTone(tone: StatusTone): Severity {
-  switch (tone) {
-    case "neutral":
-    case "go":
-      return "nominal";
-    case "info":
-      return "info";
-    case "warn":
-      return "warning";
-    case "nogo":
-      return "critical";
-  }
-}
-
-/**
- * `TextTone` -> `Severity`. `Text`'s tones (`accent`/`default`/`muted`/
- * `faint`) are display-emphasis tiers, not severity, so they all fold to the
- * nominal floor. The mapper exists only so a caller threading a value tone into
- * a severity slot compiles and is treated as non-alarming rather than breaking.
- */
-export function severityFromTextTone(_tone: TextTone): Severity {
-  return "nominal";
 }

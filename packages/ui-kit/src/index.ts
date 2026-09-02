@@ -330,9 +330,6 @@ export {
 export { Inline, type InlineProps } from "./Inline";
 export { JogWheel, type JogWheelProps } from "./JogWheel";
 export {
-  KSP_DAY_SECONDS,
-  KSP_YEAR_DAYS,
-  KSP_YEAR_SECONDS,
   type KspCalendar,
   kspCalendar,
   kspYearDays,
@@ -491,10 +488,7 @@ export {
 export {
   type Severity,
   severityFromBadgeEntryTone,
-  severityFromReadoutTone,
-  severityFromStatusTone,
   severityFromStreamStatus,
-  severityFromTextTone,
   severityRank,
   worstSeverity,
 } from "./status/severity";
