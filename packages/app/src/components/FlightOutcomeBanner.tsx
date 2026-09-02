@@ -322,18 +322,18 @@ export function FlightOutcomeBanner() {
         <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
         <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
         <BannerStats>
-          <Stat>
+          <BannerStat>
             +<Unit value={value("funds", outcome.fundsEarned)} />
-          </Stat>
-          <Stat>
+          </BannerStat>
+          <BannerStat>
             +{outcome.scienceEarned.toFixed(1)}
             <Unit>science</Unit>
-          </Stat>
+          </BannerStat>
           {outcome.displayReputation && (
-            <Stat>
+            <BannerStat>
               +{outcome.reputationEarned.toFixed(1)}
               <Unit>rep</Unit>
-            </Stat>
+            </BannerStat>
           )}
         </BannerStats>
         <BannerHint>Tap for breakdown</BannerHint>
@@ -358,10 +358,10 @@ export function FlightOutcomeBanner() {
       <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
       <BannerStats>
         {outcome.partsLostCount > 0 && (
-          <Stat>-{outcome.partsLostCount} parts</Stat>
+          <BannerStat>-{outcome.partsLostCount} parts</BannerStat>
         )}
         {outcome.kerbalsKilled.length > 0 && (
-          <Stat>{outcome.kerbalsKilled.length} KIA</Stat>
+          <BannerStat>{outcome.kerbalsKilled.length} KIA</BannerStat>
         )}
       </BannerStats>
       <BannerHint>Tap for breakdown</BannerHint>
@@ -647,7 +647,7 @@ const BannerStats = styled.span`
   gap: var(--space-8);
 `;
 
-const Stat = styled.span`
+const BannerStat = styled.span`
   color: var(--color-accent-fg);
   font-variant-numeric: tabular-nums;
 `;
