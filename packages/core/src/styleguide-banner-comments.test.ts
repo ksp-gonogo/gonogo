@@ -15,8 +15,8 @@ import {
   SECTIONED_CEILINGS,
 } from "./banner-comments.allowlist";
 import {
-  type BannerScan,
   bannersIn,
+  handWrittenSources,
   scanBanners,
 } from "./banner-comments.matcher";
 import {
@@ -405,44 +405,68 @@ describe("banner comments", () => {
           "nothing.",
       ).toBe(true);
 
-      if (then !== null) {
-        const old = load(then) as { bannersIn?: typeof bannersIn };
-        expect(
-          typeof old.bannersIn,
-          `${MATCHER_PATH} at ${base.ref} exports no bannersIn, so the previous ` +
-            "matcher cannot be re-run and the re-seed cannot be checked.",
-        ).toBe("function");
-        const oldCounts = recount(old.bannersIn as typeof bannersIn);
-        const oldTotal = [...oldCounts.values()].reduce((a, b) => a + b, 0);
-        const oldFloors = base.lists.SCAN_FLOORS as
-          | { filesWithBanner: number; banners: number }
-          | undefined;
-        if (oldFloors) {
-          expect(
-            oldTotal,
-            `The matcher at ${base.ref}, run over the CURRENT tree, finds ` +
-              `${oldTotal} banners across ${oldCounts.size} files, below its own ` +
-              `floor of ${oldFloors.banners}. That is not a widening: banners the ` +
-              "old matcher COULD see have been removed, or it no longer runs. A " +
-              "re-seed is only justified when everything newly counted is " +
-              "something the old instrument could not see.",
-          ).toBeGreaterThanOrEqual(oldFloors.banners);
-        }
+      const total = [...RESULT.counts.values()].reduce((a, b) => a + b, 0);
+      if (then === null) {
         console.info(
-          `[banner-comments] re-seed ${before} -> ${MATCHER_REVISION}: the old ` +
-            `matcher still finds ${oldTotal} banners in ${oldCounts.size} files, ` +
-            `the new one finds ${[...RESULT.counts.values()].reduce((a, b) => a + b, 0)} ` +
-            `in ${RESULT.counts.size}.`,
+          `[banner-comments] re-seed ${before} -> ${MATCHER_REVISION} at ` +
+            `${total} banners in ${RESULT.counts.size} files. ${MATCHER_PATH} ` +
+            `does not exist at ${base.ref}, so the previous matcher cannot be ` +
+            "re-run and this re-seed is UNCHECKED. True only of the commit that " +
+            "introduces the module; every later one is graded.",
         );
+        return { declared: true, before };
       }
+
+      const old = load(then) as { bannersIn?: typeof bannersIn };
+      expect(
+        typeof old.bannersIn,
+        `${MATCHER_PATH} at ${base.ref} exports no bannersIn, so the previous ` +
+          "matcher cannot be re-run and the re-seed cannot be checked.",
+      ).toBe("function");
+
+      // The whole point of the re-seed: re-grade the CURRENT tree with the OLD
+      // matcher against the OLD numbers. A floor on the old total would not do
+      // it, because a banner ADDED in the same commit only pushes that total up.
+      // Passing the old gate outright is what shows the tree is clean by the
+      // previous standard, so every number this commit raises is attributable to
+      // the matcher's new vision and to nothing a contributor wrote.
+      const offenders = regrade(
+        old.bannersIn as typeof bannersIn,
+        (base.lists.BANNER_COMMENT_DEBT as Record<string, number>) ?? {},
+        (base.lists.SCHEME_MIN as number) ?? SCHEME_MIN,
+        base.lists.SECTIONED_CEILINGS as { files: number; banners: number },
+      );
+      expect(
+        offenders,
+        [
+          `MATCHER_REVISION went ${before} -> ${MATCHER_REVISION}, which re-seeds`,
+          "every shrink-only number in the allowlist. That is only sound when the",
+          "tree still PASSES the previous gate, so that everything newly counted",
+          "is something the old matcher could not see.",
+          "",
+          `It does not. Run with the matcher as it stood at ${base.ref}, the`,
+          "current tree fails its own debt list. Clean these first, then re-seed:",
+        ].join("\n"),
+      ).toEqual([]);
+
+      console.info(
+        `[banner-comments] re-seed ${before} -> ${MATCHER_REVISION}: the tree ` +
+          `still passes the ${base.ref} gate, and the widened matcher now counts ` +
+          `${total} banners in ${RESULT.counts.size} files.`,
+      );
       return { declared: true, before };
     }
 
-    /** Re-walk the files this run already read, with a different matcher. */
-    function recount(match: typeof bannersIn): BannerScan["counts"] {
+    /** Grade the current tree with a given matcher against a given allowlist. */
+    function regrade(
+      match: typeof bannersIn,
+      debt: Record<string, number>,
+      schemeMin: number,
+      ceilings: { files: number; banners: number } | undefined,
+    ): string[] {
       const root = ratchetRepoRoot();
       const counts = new Map<string, number>();
-      for (const file of trackedSources()) {
+      for (const file of handWrittenSources()) {
         let source: string;
         try {
           source = readFileSync(join(root, file), "utf8");
@@ -452,22 +476,36 @@ describe("banner comments", () => {
         const n = match(source.split("\n")).length;
         if (n > 0) counts.set(file, n);
       }
-      return counts;
-    }
-
-    /**
-     * The same listing `scanBanners` walks. Taken from its own result plus the
-     * debt list rather than re-shelling out to git: the old matcher can only
-     * find FEWER files than the new one, so the union of what the new scan saw
-     * and what the lists name is a superset of anything it can hit.
-     */
-    function trackedSources(): string[] {
-      return [
-        ...new Set([
-          ...RESULT.counts.keys(),
-          ...Object.keys(BANNER_COMMENT_DEBT),
-        ]),
-      ];
+      const offenders: string[] = [];
+      const sectioned: Array<[string, number]> = [];
+      for (const [file, count] of counts) {
+        const budget = debt[file];
+        if (budget !== undefined) {
+          if (count > budget) {
+            offenders.push(`${file}: ${count}, debt list said ${budget}`);
+          }
+          continue;
+        }
+        if (count >= schemeMin) {
+          sectioned.push([file, count]);
+          continue;
+        }
+        offenders.push(`${file}: ${count}, unlisted`);
+      }
+      if (ceilings) {
+        const banners = sectioned.reduce((a, [, n]) => a + n, 0);
+        if (sectioned.length > ceilings.files) {
+          offenders.push(
+            `${sectioned.length} sectioned files, old ceiling ${ceilings.files}`,
+          );
+        }
+        if (banners > ceilings.banners) {
+          offenders.push(
+            `${banners} sectioned banner lines, old ceiling ${ceilings.banners}`,
+          );
+        }
+      }
+      return offenders;
     }
 
     it("BANNER_COMMENT_DEBT", () => {

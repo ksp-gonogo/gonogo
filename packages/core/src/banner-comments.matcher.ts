@@ -167,6 +167,26 @@ function sourceFiles(root: string): { kept: string[]; generated: number } {
   return { kept, generated: all.length - kept.length };
 }
 
+/**
+ * Every hand-written source file in the checkout, as repo-relative paths.
+ *
+ * Exported because the re-seed check re-runs a PREVIOUS matcher over the same
+ * listing: only the matching is versioned, the enumeration is not.
+ */
+export function handWrittenSources(): string[] {
+  const root = repoRoot();
+  return sourceFiles(root).kept.filter((file) => {
+    try {
+      const head = readFileSync(join(root, file), "utf8")
+        .split("\n")
+        .slice(0, 5);
+      return !GENERATED_HEADER_RE.test(head.join("\n"));
+    } catch {
+      return false;
+    }
+  });
+}
+
 /** Apply `bannersIn` to every hand-written source file in the checkout. */
 export function scanBanners(): BannerScan {
   const root = repoRoot();
