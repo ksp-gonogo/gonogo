@@ -1019,8 +1019,40 @@ export interface Rp1ComplexEntry
 	* from this list cannot be built here at all, however the complex is staffed.
 	* Empty is a real answer for a complex that handles none, and null is RP-1 not
 	* having said.
+	*
+	* The CAPACITIES behind these names are `Rp1ComplexEntry.resourceCapacities`,
+	* and a client renovating the complex needs those rather than these.
 	*/
 	resourcesHandled?: string[];
+	/**
+	* How much of each resource the complex is built to load, keyed by RP-1's own
+	* resource name, in units of that resource.
+	*
+	* **Carried because a renovation cannot be commanded without it.**
+	* `Rp1ComplexModifyArgs.Resources` is a SET and absent means NONE, so a client
+	* that renovates the tonnage and says nothing about resources strips every one
+	* of them: RP-1 would then price the removal, strand any vehicle that needed
+	* the fluid, and leave a complex that cannot fuel what it was built for. A
+	* client that means "keep these" has to send them, and it can only do that if
+	* it can read them.
+	*
+	* **The unit IS established, and an earlier note here said otherwise.** RP-1
+	* keeps `LCData.resourcesHandled` as a `Dictionary<string, double>` and prices
+	* it through `Formula.ResourceTankCost(name, amount, ...)`, which is linear in
+	* the amount and is the same expression `Rp1LcResourcePrice.padCostPerUnit` is
+	* stated per unit of. So an entry here multiplied by that price is the
+	* resource half of a build, exactly.
+	*
+	* Not SitrepUnitAttribute-tagged, and it cannot be: the unit differs per KEY,
+	* because a unit of liquid oxygen and a unit of kerosene are different
+	* quantities. A per-resource number is what RP-1 stores and what
+	* `Rp1ComplexNewArgs.Resources` already takes, so the reading matches the
+	* command's own shape.
+	*
+	* Null is RP-1 not having said. EMPTY is the real, different answer that the
+	* complex handles nothing, which is most early-career pads.
+	*/
+	resourceCapacities?: { [key:string]: number };
 	/**
 	* The identity RP-1 groups complexes by for crew rating: complexes sharing
 	* this key are on ONE efficiency record.
@@ -1033,13 +1065,13 @@ export interface Rp1ComplexEntry
 	* space centres share a record, and two complexes at one centre with different
 	* mass limits do not.
 	*
-	* Derived by this Uplink rather than left to a client, because RP-1 compares
-	* resource NAMES AND AMOUNTS and `Rp1ComplexEntry.resourcesHandled` carries
-	* only the names. A client grouping on what it can see would be right until
-	* two complexes handled the same resources in different amounts. The amounts
-	* are not published instead because nothing in the shipped assembly reads them
-	* except that comparison, so their unit is unestablished and a number on the
-	* wire would be unreadable.
+	* Derived by this Uplink rather than left to a client, because the equality
+	* RP-1 tests is over five things at once and getting it exactly right is the
+	* producer's job: a client comparing four of them would be right until two
+	* complexes differed only in the fifth. The amounts it compares are on the
+	* wire as `Rp1ComplexEntry.resourceCapacities`, so a client COULD now
+	* reconstruct this; it should not, because the key is RP-1's equivalence and
+	* not an arithmetic result.
 	*
 	* It names a group and nothing else: it is not an RP-1 id, it is not stable
 	* across game versions, and it must never be shown to an operator. Null when

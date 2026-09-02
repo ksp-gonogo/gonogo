@@ -447,6 +447,7 @@ namespace GonogoRp1Uplink
                 SizeMaxWidth = SizeAxis(lc, "x"),
                 SizeMaxDepth = SizeAxis(lc, "z"),
                 ResourcesHandled = ReadResourcesHandled(lc),
+                ResourceCapacities = ReadResourceCapacities(lc),
                 EfficiencyGroupKey = ReadEfficiencyGroupKey(lc),
                 SalaryPerDay = SalaryPerDay(payroll, payroll.ComplexSalary, lc),
                 UpkeepPerDay = ComplexUpkeep(payroll, lc),
@@ -1079,6 +1080,47 @@ namespace GonogoRp1Uplink
             }
             names.Sort(StringComparer.Ordinal);
             return names;
+        }
+
+        /// <summary>
+        /// The same dictionary with its VALUES, which is what a renovation has to
+        /// send back to keep the complex's fluids.
+        ///
+        /// <para>Read as a separate walk rather than folded into
+        /// <see cref="ReadResourcesHandled"/> because the two answer different
+        /// questions and are allowed to fail apart: an entry whose value will not
+        /// widen to a double is dropped from here while the NAME still travels,
+        /// so a client's eligibility reading stays complete even where its
+        /// capacity reading has a hole. RP-1 stores whole units, rounding up, so
+        /// what is read is what it charges for.</para>
+        /// </summary>
+        private static Dictionary<string, double>? ReadResourceCapacities(object lc)
+        {
+            if (!(Member(lc, "ResourcesHandled") is IDictionary handled))
+            {
+                return null;
+            }
+            var capacities = new Dictionary<string, double>();
+            try
+            {
+                foreach (DictionaryEntry entry in handled)
+                {
+                    if (!(entry.Key is string name) || name.Length == 0)
+                    {
+                        continue;
+                    }
+                    var amount = Rp1Types.ToDouble(entry.Value);
+                    if (amount != null)
+                    {
+                        capacities[name] = amount.Value;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+            return capacities;
         }
 
         /// <summary>

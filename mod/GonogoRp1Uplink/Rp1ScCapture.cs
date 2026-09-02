@@ -74,6 +74,9 @@ namespace GonogoRp1Uplink
                     // operator has to read, where an absent refusal means there
                     // was nothing to object to.
                     ["resourcesHandled"] = c.ResourcesHandled,
+                    // The capacities behind those names, on the same terms. A
+                    // renovation has to send the whole set back to keep them.
+                    ["resourceCapacities"] = c.ResourceCapacities,
                     ["efficiencyGroupKey"] = c.EfficiencyGroupKey,
                     ["salaryPerDay"] = c.SalaryPerDay,
                     ["upkeepPerDay"] = c.UpkeepPerDay,

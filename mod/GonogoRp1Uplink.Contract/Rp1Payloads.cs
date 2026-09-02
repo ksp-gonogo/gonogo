@@ -308,9 +308,45 @@ public sealed class Rp1ComplexEntry
     /// resource absent from this list cannot be built here at all, however the
     /// complex is staffed. Empty is a real answer for a complex that handles
     /// none, and null is RP-1 not having said.</para>
+    ///
+    /// <para>The CAPACITIES behind these names are
+    /// <see cref="ResourceCapacities"/>, and a client renovating the complex
+    /// needs those rather than these.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public List<string>? ResourcesHandled { get; set; }
+
+    /// <summary>
+    /// How much of each resource the complex is built to load, keyed by RP-1's
+    /// own resource name, in units of that resource.
+    ///
+    /// <para><b>Carried because a renovation cannot be commanded without it.</b>
+    /// <c>Rp1ComplexModifyArgs.Resources</c> is a SET and absent means NONE, so a
+    /// client that renovates the tonnage and says nothing about resources strips
+    /// every one of them: RP-1 would then price the removal, strand any vehicle
+    /// that needed the fluid, and leave a complex that cannot fuel what it was
+    /// built for. A client that means "keep these" has to send them, and it can
+    /// only do that if it can read them.</para>
+    ///
+    /// <para><b>The unit IS established, and an earlier note here said
+    /// otherwise.</b> RP-1 keeps
+    /// <c>LCData.resourcesHandled</c> as a <c>Dictionary&lt;string, double&gt;</c>
+    /// and prices it through <c>Formula.ResourceTankCost(name, amount, ...)</c>,
+    /// which is linear in the amount and is the same expression
+    /// <see cref="Rp1LcResourcePrice.PadCostPerUnit"/> is stated per unit of. So
+    /// an entry here multiplied by that price is the resource half of a build,
+    /// exactly.</para>
+    ///
+    /// <para>Not <see cref="SitrepUnitAttribute"/>-tagged, and it cannot be: the
+    /// unit differs per KEY, because a unit of liquid oxygen and a unit of
+    /// kerosene are different quantities. A per-resource number is what RP-1
+    /// stores and what <c>Rp1ComplexNewArgs.Resources</c> already takes, so the
+    /// reading matches the command's own shape.</para>
+    ///
+    /// <para>Null is RP-1 not having said. EMPTY is the real, different answer
+    /// that the complex handles nothing, which is most early-career pads.</para>
+    /// </summary>
+    public Dictionary<string, double>? ResourceCapacities { get; set; }
 
     /// <summary>
     /// The identity RP-1 groups complexes by for crew rating: complexes sharing
@@ -324,13 +360,13 @@ public sealed class Rp1ComplexEntry
     /// complexes at DIFFERENT space centres share a record, and two complexes at
     /// one centre with different mass limits do not.</para>
     ///
-    /// <para>Derived by this Uplink rather than left to a client, because RP-1
-    /// compares resource NAMES AND AMOUNTS and <see cref="ResourcesHandled"/>
-    /// carries only the names. A client grouping on what it can see would be
-    /// right until two complexes handled the same resources in different amounts.
-    /// The amounts are not published instead because nothing in the shipped
-    /// assembly reads them except that comparison, so their unit is unestablished
-    /// and a number on the wire would be unreadable.</para>
+    /// <para>Derived by this Uplink rather than left to a client, because the
+    /// equality RP-1 tests is over five things at once and getting it exactly
+    /// right is the producer's job: a client comparing four of them would be
+    /// right until two complexes differed only in the fifth. The amounts it
+    /// compares are on the wire as <see cref="ResourceCapacities"/>, so a client
+    /// COULD now reconstruct this; it should not, because the key is RP-1's
+    /// equivalence and not an arithmetic result.</para>
     ///
     /// <para>It names a group and nothing else: it is not an RP-1 id, it is not
     /// stable across game versions, and it must never be shown to an operator.

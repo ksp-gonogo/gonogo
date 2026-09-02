@@ -34,6 +34,7 @@ import {
   RP1_PAD_NEW_COMMAND,
   RP1_PAD_RENAME_COMMAND,
 } from "./Lifecycle";
+import { RP1_COMPLEX_MODIFY_COMMAND } from "./Modify";
 import { NewComplexControl, RP1_COMPLEX_NEW_COMMAND } from "./NewComplex";
 
 /** Rush a whole complex. Must match `Rp1VehicleCommands.RushCommand`. */
@@ -108,6 +109,7 @@ export function KscComplexes() {
   const newComplex = useCommand(RP1_COMPLEX_NEW_COMMAND);
   const setHireTarget = useCommand(RP1_HIRE_TARGET_SET_COMMAND);
   const cancelHireTarget = useCommand(RP1_HIRE_TARGET_CANCEL_COMMAND);
+  const modifyComplex = useCommand(RP1_COMPLEX_MODIFY_COMMAND);
   usePanelDelay(rush);
   usePanelDelay(assign);
   usePanelDelay(dismantle);
@@ -118,6 +120,7 @@ export function KscComplexes() {
   usePanelDelay(newComplex);
   usePanelDelay(setHireTarget);
   usePanelDelay(cancelHireTarget);
+  usePanelDelay(modifyComplex);
 
   // Invisible on every install without RP-1, which is most of them.
   if (available !== true) {
@@ -184,6 +187,7 @@ export function KscComplexes() {
               dismantle={dismantle}
               dismantlePad={dismantlePad}
               funds={magnitudeOf(career?.economy?.funds)}
+              modify={modifyComplex}
               newPad={newPad}
               renameComplex={renameComplex}
               renamePad={renamePad}

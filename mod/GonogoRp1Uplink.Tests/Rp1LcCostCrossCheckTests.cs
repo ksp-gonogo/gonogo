@@ -35,26 +35,43 @@ namespace GonogoRp1Uplink.Tests
     /// RealFuels tank definition and a KSP resource library that no test harness
     /// stands up, and the client does not transcribe it either: it arrives per
     /// resource on <c>rp1.lcPricing</c>.</para>
+    ///
+    /// <para><b>WHAT THIS FILE'S NAME OVERSTATES, and it matters for reading a
+    /// green run.</b> <c>using RP0</c> resolves to the STAND-IN types declared in
+    /// <c>ComplexLifecycleFixture.cs</c>, not to the shipped assembly: this
+    /// project takes no reference to RP0.dll and could not, since the type is a
+    /// ScenarioModule over half a dozen Unity assemblies. The stand-in's own
+    /// header says its <c>GetCostStats</c> and <c>ResModifyCost</c> are
+    /// "reproduced from the shipped source", so what these cases pin is the
+    /// CLIENT transcription against the C# one, and two copies of a reading agree
+    /// with each other for ever. RP-1's own binary is held only by
+    /// <c>Rp1InstalledCompatibilityTests</c>, which checks SHAPE and never value,
+    /// so a retune of RP-1's prices passes everything here. That gap is real and
+    /// unclosed; closing it needs a figure read off a running game.</para>
     /// </summary>
     public class Rp1LcCostCrossCheckTests
     {
-        private static string CasesPath
+        /// <summary>RP-1's shipped additional-pad multiplier, as Rp1LcCostModelTests names it.</summary>
+        private const double PadMult = 0.5;
+
+        private static string CasesPath => TestDataPath("lc-cost-cases.json");
+
+        private static string ModifyCasesPath => TestDataPath("lc-modify-cases.json");
+
+        private static string TestDataPath(string file)
         {
-            get
+            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
             {
-                for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+                var candidate = Path.Combine(
+                    dir.FullName, "mod", "GonogoRp1Uplink", "client", "src",
+                    "KscComplexes", "__testdata__", file);
+                if (Directory.Exists(Path.GetDirectoryName(candidate)!))
                 {
-                    var candidate = Path.Combine(
-                        dir.FullName, "mod", "GonogoRp1Uplink", "client", "src",
-                        "KscComplexes", "__testdata__", "lc-cost-cases.json");
-                    if (Directory.Exists(Path.GetDirectoryName(candidate)!))
-                    {
-                        return candidate;
-                    }
+                    return candidate;
                 }
-                throw new DirectoryNotFoundException(
-                    "Could not find the client's __fixtures__ from " + AppContext.BaseDirectory);
             }
+            throw new DirectoryNotFoundException(
+                "Could not find the client's __testdata__ from " + AppContext.BaseDirectory);
         }
 
         /// <summary>Mass, width, height, depth, human-rated, hangar.</summary>
@@ -78,6 +95,88 @@ namespace GonogoRp1Uplink.Tests
             // Small enough that the integration floor of 1000 is what applies.
             (1f, 1f, 1f, 1f, false, true),
         };
+
+        /// <summary>
+        /// Renovations: what the complex stands at, what it is renovated to, and
+        /// how many working pads it has.
+        ///
+        /// <para>Chosen for the clauses a transcription drops rather than for
+        /// coverage. In order: a plain growth; the same growth with two pads,
+        /// which reprices every pad the complex already has; a shrink, which is
+        /// charged at half in both halves and is the case an operator most expects
+        /// a refund for; a tonnage nudge small enough that the 1,000-fund floor is
+        /// what applies; an envelope change at a FIXED tonnage, where the floor
+        /// must NOT apply; a growth big enough for the "rebuilding cannot cost
+        /// more than building" cap to bite; and a hangar, which has no pad half
+        /// and a flat metre rate.</para>
+        /// </summary>
+        private static readonly (
+            float Mass, float W, float H, float D, bool Human,
+            float ToMass, float ToW, float ToH, float ToD, bool ToHuman,
+            int Pads, bool Hangar)[] ModifyCases =
+        {
+            (100f, 10f, 20f, 10f, false, 180f, 10f, 20f, 10f, false, 1, false),
+            (100f, 10f, 20f, 10f, false, 180f, 10f, 20f, 10f, false, 2, false),
+            (180f, 12f, 24f, 12f, false, 100f, 10f, 20f, 10f, false, 1, false),
+            (100f, 10f, 20f, 10f, false, 101f, 10f, 20f, 10f, false, 1, false),
+            (100f, 10f, 20f, 10f, false, 100f, 14f, 26f, 14f, false, 1, false),
+            (100f, 10f, 20f, 10f, false, 190f, 20f, 40f, 20f, true, 1, false),
+            // The hangar, whose tonnage and human rating a modify REFUSES rather
+            // than accepting: RP-1 draws neither field for it, forces the rating
+            // true and holds the limit where it is. So the case states both sides
+            // the way the command would leave them, and the client mirrors it
+            // rather than inferring it.
+            (100f, 10f, 20f, 10f, true, 100f, 14f, 26f, 14f, true, 1, true),
+        };
+
+        [Fact]
+        public void The_client_renovation_cases_are_what_the_cost_model_charges()
+        {
+            var rows = ModifyCases.Select(c =>
+            {
+                var current = new LCData
+                {
+                    Name = "case",
+                    massMax = c.Mass,
+                    massOrig = c.Mass,
+                    sizeMax = new UnityEngine.Vector3(c.W, c.H, c.D),
+                    isHumanRated = c.Human,
+                    lcType = c.Hangar ? LaunchComplexType.Hangar : LaunchComplexType.Pad,
+                };
+                var next = new LCData
+                {
+                    Name = "case",
+                    massMax = c.ToMass,
+                    // Carried through unchanged, which is what a renovation does:
+                    // massOrig fixes the envelope and is the curve the per-metre
+                    // charge is lerped over.
+                    massOrig = c.Mass,
+                    sizeMax = new UnityEngine.Vector3(c.ToW, c.ToH, c.ToD),
+                    isHumanRated = c.ToHuman,
+                    lcType = c.Hangar ? LaunchComplexType.Hangar : LaunchComplexType.Pad,
+                };
+
+                var complex = new LaunchComplex { Name = "case", StatsValue = new LCData(current) };
+                complex.SyncFromStats();
+
+                var quote = Rp1LcCostModel.QuoteModify(
+                    next, complex, complex.Stats, c.Hangar, c.Pads, typeof(LaunchComplex), PadMult);
+                Assert.NotNull(quote);
+                return (c, quote!.TotalCost, quote.IsDowngrade);
+            }).ToList();
+
+            var json = RenderModify(rows);
+
+            if (Environment.GetEnvironmentVariable("GONOGO_WRITE_LC_COST_CASES") == "1")
+            {
+                File.WriteAllText(ModifyCasesPath, json);
+                return;
+            }
+
+            Assert.True(File.Exists(ModifyCasesPath),
+                "lc-modify-cases.json is missing. Regenerate with GONOGO_WRITE_LC_COST_CASES=1.");
+            Assert.Equal(Normalise(File.ReadAllText(ModifyCasesPath)), Normalise(json));
+        }
 
         [Fact]
         public void The_client_cost_cases_are_what_the_shipped_assembly_charges()
@@ -140,6 +239,43 @@ namespace GonogoRp1Uplink.Tests
                 sb.Append("\"isHangar\": ").Append(c.Hangar ? "true" : "false").Append(", ");
                 sb.Append(Num("pad", pad)).Append(", ");
                 sb.Append(Num("integration", integration));
+                sb.Append(" }");
+                sb.Append(i == rows.Count - 1 ? "\n" : ",\n");
+            }
+            sb.Append("  ]\n}\n");
+            return sb.ToString();
+        }
+
+        private static string RenderModify(
+            List<((float Mass, float W, float H, float D, bool Human,
+                   float ToMass, float ToW, float ToH, float ToD, bool ToHuman,
+                   int Pads, bool Hangar) C, double Total, bool IsDowngrade)> rows)
+        {
+            var sb = new StringBuilder();
+            sb.Append("{\n");
+            sb.Append("  \"_comment\": \"GENERATED by Rp1LcCostCrossCheckTests from ");
+            sb.Append("Rp1LcCostModel.QuoteModify. Do not hand-edit: regenerate with ");
+            sb.Append("GONOGO_WRITE_LC_COST_CASES=1 and read the diff. See that file's ");
+            sb.Append("summary for what this pins and what it does NOT.\",\n");
+            sb.Append("  \"cases\": [\n");
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var (c, total, downgrade) = rows[i];
+                sb.Append("    { ");
+                sb.Append(Num("massMax", c.Mass)).Append(", ");
+                sb.Append(Num("sizeMaxWidth", c.W)).Append(", ");
+                sb.Append(Num("sizeMaxHeight", c.H)).Append(", ");
+                sb.Append(Num("sizeMaxDepth", c.D)).Append(", ");
+                sb.Append("\"humanRated\": ").Append(c.Human ? "true" : "false").Append(", ");
+                sb.Append(Num("toMassMax", c.ToMass)).Append(", ");
+                sb.Append(Num("toSizeMaxWidth", c.ToW)).Append(", ");
+                sb.Append(Num("toSizeMaxHeight", c.ToH)).Append(", ");
+                sb.Append(Num("toSizeMaxDepth", c.ToD)).Append(", ");
+                sb.Append("\"toHumanRated\": ").Append(c.ToHuman ? "true" : "false").Append(", ");
+                sb.Append(Num("launchPadCount", c.Pads)).Append(", ");
+                sb.Append("\"isHangar\": ").Append(c.Hangar ? "true" : "false").Append(", ");
+                sb.Append(Num("total", total)).Append(", ");
+                sb.Append("\"isDowngrade\": ").Append(downgrade ? "true" : "false");
                 sb.Append(" }");
                 sb.Append(i == rows.Count - 1 ? "\n" : ",\n");
             }

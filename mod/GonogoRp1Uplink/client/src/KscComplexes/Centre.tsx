@@ -49,6 +49,7 @@ export function Centre({
   dismantlePad,
   funds,
   newPad,
+  modify,
   renameComplex,
   renamePad,
 }: Readonly<{
@@ -65,6 +66,8 @@ export function Centre({
   /** The career balance, threaded down so a pad quote can say if it is covered. */
   funds: number | null;
   newPad: Parameters<typeof CommandButton>[0]["handle"];
+  /** Renovate a complex, threaded to each card. */
+  modify: Parameters<typeof CommandButton>[0]["handle"];
   renameComplex: Parameters<typeof CommandButton>[0]["handle"];
   renamePad: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
@@ -135,6 +138,7 @@ export function Centre({
               dismantlePad={dismantlePad}
               funds={funds}
               newPad={newPad}
+              modify={modify}
               renameComplex={renameComplex}
               renamePad={renamePad}
               key={complex.lcId ?? complex.name ?? ""}

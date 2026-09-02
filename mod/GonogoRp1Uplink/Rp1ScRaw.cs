@@ -120,6 +120,13 @@ namespace GonogoRp1Uplink
         public List<string>? ResourcesHandled;
 
         /// <summary>
+        /// The same resources with their capacities, which is what a renovation
+        /// has to send back to keep them: <c>rp1.complex.modify</c> takes a SET
+        /// and treats absent as none.
+        /// </summary>
+        public Dictionary<string, double>? ResourceCapacities;
+
+        /// <summary>
         /// The identity RP-1 groups complexes by for crew rating. Two complexes
         /// carrying the same key are on ONE efficiency record, so work at either
         /// moves the rating at both; a different key is a different record.

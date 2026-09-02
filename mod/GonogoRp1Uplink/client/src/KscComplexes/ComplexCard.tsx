@@ -23,6 +23,7 @@ import type {
   Rp1RushTerms,
 } from "../__generated__/contract";
 import { DismantleControl, PadRows, RenameControl } from "./Lifecycle";
+import { ModifyControl } from "./Modify";
 
 /**
  * ONE launch complex, drawn as the thing an operator administers.
@@ -53,6 +54,7 @@ export function ComplexCard({
   dismantle,
   dismantlePad,
   funds,
+  modify,
   newPad,
   renameComplex,
   renamePad,
@@ -71,6 +73,7 @@ export function ComplexCard({
   dismantlePad: Parameters<typeof CommandButton>[0]["handle"];
   /** The career balance, so a pad quote can say whether it is covered. */
   funds: number | null;
+  modify: Parameters<typeof CommandButton>[0]["handle"];
   newPad: Parameters<typeof CommandButton>[0]["handle"];
   renameComplex: Parameters<typeof CommandButton>[0]["handle"];
   renamePad: Parameters<typeof CommandButton>[0]["handle"];
@@ -174,6 +177,11 @@ export function ComplexCard({
             {operational && (
               <RushControl complex={complex} handle={rush} name={name} />
             )}
+            {/* Immediately under the envelope and the costs, which are what a
+                renovation changes and what it is priced against. Above the
+                dismantle, because it is the reversible one of the two. */}
+            <ModifyControl complex={complex} funds={funds} handle={modify} />
+
             <DismantleControl
               complex={complex}
               handle={dismantle}
