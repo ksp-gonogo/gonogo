@@ -622,6 +622,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     ],
     permanent: [
+      // The declaration-reachability ratchet's debt list: an inventory of
+      // declared Topics/commands with no client consumer, so it names the wire
+      // ids of every Uplink that has one. Inventory, not coupling: nothing here
+      // imports or renders anything of the Uplink's, and the list shrinks to
+      // zero as each consumer is written.
+      "packages/core/src/declaration-reachability.allowlist.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -987,6 +993,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   realantennas: {
     domainDebt: [],
     permanent: [
+      // The declaration-reachability ratchet's debt list: an inventory of
+      // declared Topics/commands with no client consumer, so it names the wire
+      // ids of every Uplink that has one. Inventory, not coupling: nothing here
+      // imports or renders anything of the Uplink's, and the list shrinks to
+      // zero as each consumer is written.
+      "packages/core/src/declaration-reachability.allowlist.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -1721,6 +1733,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   kerbalism: {
     domainDebt: [],
     permanent: [
+      // The declaration-reachability ratchet's debt list: an inventory of
+      // declared Topics/commands with no client consumer, so it names the wire
+      // ids of every Uplink that has one. Inventory, not coupling: nothing here
+      // imports or renders anything of the Uplink's, and the list shrinks to
+      // zero as each consumer is written.
+      "packages/core/src/declaration-reachability.allowlist.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -2223,6 +2241,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   principia: {
     domainDebt: [],
     permanent: [
+      // The declaration-reachability ratchet's debt list: an inventory of
+      // declared Topics/commands with no client consumer, so it names the wire
+      // ids of every Uplink that has one. Inventory, not coupling: nothing here
+      // imports or renders anything of the Uplink's, and the list shrinks to
+      // zero as each consumer is written.
+      "packages/core/src/declaration-reachability.allowlist.ts",
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
@@ -2433,6 +2457,11 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/truenow-allowlist.test.ts",
   ],
   kerbalism: [
+    // The reachability ratchet's debt list: wire ids as DATA, one line per
+    // declared Topic/command with no consumer. Survives the strip because the
+    // ids are the inventory, not prose about it. Shrinks to zero as consumers
+    // are written.
+    "packages/core/src/declaration-reachability.allowlist.ts",
     "packages/core/src/uplink-permanent-code.test.ts",
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
@@ -2475,6 +2504,11 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/map-topic.test.ts",
   ],
   kos: [
+    // The reachability ratchet's debt list: wire ids as DATA, one line per
+    // declared Topic/command with no consumer. Survives the strip because the
+    // ids are the inventory, not prose about it. Shrinks to zero as consumers
+    // are written.
+    "packages/core/src/declaration-reachability.allowlist.ts",
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "mod/Sitrep.Core.Tests/CommandRequestLabelWireTests.cs",
     "mod/Sitrep.Core.Tests/CourierReliableOrderedDeliveryTests.cs",
@@ -2514,6 +2548,11 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   principia: [
+    // The reachability ratchet's debt list: wire ids as DATA, one line per
+    // declared Topic/command with no consumer. Survives the strip because the
+    // ids are the inventory, not prose about it. Shrinks to zero as consumers
+    // are written.
+    "packages/core/src/declaration-reachability.allowlist.ts",
     "mod/Gonogo.KSP.Tests/UplinkDiscoverabilityTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
@@ -2523,6 +2562,11 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/truenow-allowlist.test.ts",
   ],
   realantennas: [
+    // The reachability ratchet's debt list: wire ids as DATA, one line per
+    // declared Topic/command with no consumer. Survives the strip because the
+    // ids are the inventory, not prose about it. Shrinks to zero as consumers
+    // are written.
+    "packages/core/src/declaration-reachability.allowlist.ts",
     "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
     "mod/GonogoDevTools/GonogoDevAntenna.cs",
     "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",

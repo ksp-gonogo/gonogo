@@ -44,22 +44,28 @@
  */
 export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
   GonogoKerbalismUplink: [
-    // Kerbalism's feature-flags payload. Nothing branches on it; the widgets
-    // gate on `kerbalism.available` instead, which is coarser.
+    /*
+     * Kerbalism's feature-flags payload. Nothing branches on it; the widgets
+     * gate on `kerbalism.available` instead, which is coarser.
+     */
     "topic kerbalism.features",
   ],
   GonogoKosUplink: [
-    // The dispatch-control trio behind the centralised script registry. The
-    // registry itself was removed (`registerKosScript`, `useKosScriptStatus`
-    // and `KosDataSource` have no definitions left), and these three outlived
-    // it: nothing can pause, re-enable or force a run.
+    /*
+     * The dispatch-control trio behind the centralised script registry. The
+     * registry itself was removed (`registerKosScript`, `useKosScriptStatus`
+     * and `KosDataSource` have no definitions left), and these three outlived
+     * it: nothing can pause, re-enable or force a run.
+     */
     "command kos.dispatchNow",
     "command kos.exec",
     "command kos.reEnable",
   ],
   GonogoPrincipiaUplink: [
-    // A complete manoeuvre-planning control surface with no caller of any kind.
-    // The read side is wired; every write is unreachable from the dashboard.
+    /*
+     * A complete manoeuvre-planning control surface with no caller of any kind.
+     * The read side is wired; every write is unreachable from the dashboard.
+     */
     "command principia.plan.create",
     "command principia.plan.delete",
     "command principia.plan.duplicate",
@@ -67,16 +73,20 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
     "command principia.plan.send",
   ],
   GonogoRealAntennasUplink: [
-    // Declared beside `comms.dataRate` and `comms.linkMargin`, which ARE read.
-    // The odd one out of the three, so most likely an omission rather than a
-    // decision.
+    /*
+     * Declared beside `comms.dataRate` and `comms.linkMargin`, which ARE read.
+     * The odd one out of the three, so most likely an omission rather than a
+     * decision.
+     */
     "topic comms.linkQuality",
   ],
   GonogoRp1Uplink: [
     "command rp1.complex.modify",
-    // Three of the four career spends CLAUDE.md's funds rule names by hand
-    // (upgrade a facility, unlock a tech, accept an advance). The mod will
-    // perform them and no widget can ask.
+    /*
+     * Three of the four career spends CLAUDE.md's funds rule names by hand
+     * (upgrade a facility, unlock a tech, accept an advance). The mod will
+     * perform them and no widget can ask.
+     */
     "command rp1.facility.upgrade",
     "command rp1.fundTarget.cancel",
     "command rp1.fundTarget.set",
@@ -84,9 +94,11 @@ export const UNREACHED_DECLARATION_DEBT: Record<string, readonly string[]> = {
     "command rp1.hireTarget.set",
     "command rp1.strategy.activate",
     "command rp1.tech.research",
-    // The surviving half of the `rp1.tooling` fold that prompted this gate:
-    // `rp1.tooling.toolAll` has since been wired to `VehicleAssembly/Tooling.tsx`
-    // and `.refit` has not.
+    /*
+     * The surviving half of the `rp1.tooling` fold that prompted this gate:
+     * `rp1.tooling.toolAll` has since been wired to
+     * `VehicleAssembly/Tooling.tsx` and `.refit` has not.
+     */
     "command rp1.tooling.refit",
     "topic rp1.careerEvents",
   ],
