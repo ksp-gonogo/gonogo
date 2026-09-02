@@ -93,14 +93,33 @@ namespace Sitrep.Core
             new Dictionary<string, PendingCommand>();
 
         // node -> vantage -> the UT the link was marked down since (absent =
-        // currently up). See MarkLinkDown/MarkLinkUp and ResolveStaleness --
-        // the M2 seam a future M3 comms-capability provider calls into so a
-        // late/reconnecting subscriber's catch-up sample is honestly labeled
-        // instead of Fresh. Deliberately untouched by ResetTimeline: link
+        // currently up). See MarkLinkDown/MarkLinkUp/MarkSubjectLinkDown and
+        // ResolveStaleness -- what makes a late or reconnecting subscriber's
+        // catch-up sample honestly labeled instead of Fresh. Driven by
+        // Sitrep.Host.ChannelEngine's blackout authority (SetSubjectConnected),
+        // which is the only thing that knows when a subject went dark; it sat
+        // here with no production caller until then.
+        // Deliberately untouched by ResetTimeline: link
         // reachability is a NETWORK-topology fact, orthogonal to the
         // quickload timeline it resets (same rationale as _subscribers).
         private readonly Dictionary<string, Dictionary<string, double>> _linkDownSince =
             new Dictionary<string, Dictionary<string, double>>();
+
+        // node -> topic -> the ONE sample on that topic that opens a known break
+        // in the record, as (its ValidAt, the ValidAt the break runs back to).
+        // See Meta.GapSinceUt.
+        //
+        // Keyed by the sample's ValidAt rather than "the next delivery" because a
+        // LossyLatest delivery is a fire-time archive RE-READ (see Deliver), so
+        // WHICH sample a scheduled callback resolves to is not known when Record
+        // runs, and there are as many deliveries of it as there are subscribed
+        // vantages. Matching on ValidAt attaches the gap to that sample however
+        // many times and by whatever route it is served (scheduled delivery,
+        // catch-up, in-flight reschedule), and stops attaching it the moment a
+        // newer sample supersedes it. Superseded entries are dropped by the next
+        // higher-ValidAt Record for the same topic rather than accumulating.
+        private readonly Dictionary<string, Dictionary<string, (double ValidAt, double GapSinceUt)>> _gapOpeningSample =
+            new Dictionary<string, Dictionary<string, (double, double)>>();
 
         // node -> topic -> the last REVEALED (i.e. already-Record()ed, so
         // already past whatever reveal gate the caller runs in front of this
@@ -313,15 +332,24 @@ namespace Sitrep.Core
                     }
                 }
             }
+            // A gap is a statement about one abandoned timeline's record; the
+            // sample it was pinned to is gone with the rewind, so nothing could
+            // ever match it again. Dropped whole rather than pruned by UT, the
+            // same treatment the reveal buffer gets in ChannelEngine.ProcessTick.
+            _gapOpeningSample.Clear();
             _clock.Reset(ut);
         }
 
         /// <summary>
-        /// C#-ONLY seam for a future M3 comms-capability provider (not yet
-        /// built: see <see cref="ResolveStaleness"/>'s doc comment): record
-        /// that the link between <paramref name="vantage"/> and
+        /// Record that the link between <paramref name="vantage"/> and
         /// <paramref name="node"/> has been down since <paramref name="sinceUt"/>.
         /// Idempotent (a later call overwrites the recorded since-UT).
+        ///
+        /// <para>C#-ONLY, no TS reference. Driven per-subject by
+        /// <see cref="MarkSubjectLinkDown"/>, which is what
+        /// <c>Sitrep.Host.ChannelEngine</c> calls; reach for this one directly
+        /// only where a single (node, vantage) pair is genuinely the subject,
+        /// which nothing in production is yet.</para>
         /// </summary>
         public void MarkLinkDown(string node, string vantage, double sinceUt)
         {
@@ -339,6 +367,137 @@ namespace Sitrep.Core
             if (_linkDownSince.TryGetValue(node, out var byVantage))
             {
                 byVantage.Remove(vantage);
+            }
+        }
+
+        /// <summary>
+        /// Mark <paramref name="node"/>'s link down since <paramref name="sinceUt"/>
+        /// for EVERY vantage that currently subscribes to it, the whole-subject
+        /// twin of <see cref="MarkLinkDown"/>.
+        ///
+        /// <para>A blackout is a fact about the SUBJECT, not about one observer's
+        /// choice of vantage, and the caller that knows about it
+        /// (<c>Sitrep.Host.ChannelEngine</c>'s reveal gate) is keyed by node with
+        /// no vantage in hand. Per-vantage remains the storage shape because
+        /// <see cref="ResolveStaleness"/> answers per delivery, and a future
+        /// relay where one vantage can hear a craft another cannot needs the axis
+        /// to exist.</para>
+        ///
+        /// <para>Covers the vantages present NOW. A vantage that subscribes
+        /// mid-outage is served through <see cref="SubscribeStream"/>'s catch-up
+        /// and gets the honest grade a different way: its catch-up read resolves
+        /// to a pre-outage sample because nothing from inside the outage has been
+        /// recorded, and <c>MarkSubjectLinkDown</c> is re-applied on the next
+        /// tick's connectivity refresh.</para>
+        /// </summary>
+        public void MarkSubjectLinkDown(string node, double sinceUt)
+        {
+            if (!_subscribers.TryGetValue(node, out var byTopic))
+            {
+                return;
+            }
+            foreach (var subs in byTopic.Values)
+            {
+                foreach (var subscriber in subs)
+                {
+                    MarkLinkDown(node, subscriber.Vantage, sinceUt);
+                }
+            }
+        }
+
+        /// <summary>Companion of <see cref="MarkSubjectLinkDown"/>: every vantage's link to <paramref name="node"/> is up again.</summary>
+        public void MarkSubjectLinkUp(string node)
+        {
+            _linkDownSince.Remove(node);
+        }
+
+        /// <summary>
+        /// Deliver a span of samples the SUBJECT recorded while out of contact,
+        /// as one dump transmitted from <paramref name="dumpedAtUt"/>: the
+        /// reacquisition instant, in the subject's own UT.
+        ///
+        /// <para>Each subscriber's copy is scheduled at
+        /// <c>dumpedAtUt + DelayTo(vantage, node)</c>, so the dump arrives at the
+        /// light-time of the REACQUISITION geometry rather than the geometry at
+        /// loss of signal. That is the whole point of routing it through here:
+        /// the two differ by however far the craft moved during the outage, and
+        /// the recording did not travel until the link came back.</para>
+        ///
+        /// <para>Every delivered sample keeps its own <c>ValidAt</c> (the instant
+        /// it describes) and is stamped <see cref="Staleness.Recorded"/> with
+        /// <c>DeliveredAt</c> = its real arrival. Both matter to a client:
+        /// <c>DeliveredAt</c> drives the heartbeat tracker and the
+        /// <c>ViewClock</c>'s UT-to-wall anchor, and a dump stamped with
+        /// <c>validAt + delay</c> would walk both of those backwards.</para>
+        ///
+        /// <para>The samples are archived at ARRIVAL, inside the scheduled
+        /// callback, never at schedule time. Archiving on the way in would let a
+        /// vantage that subscribes during the flight time read a blackout sample
+        /// through <see cref="Archive.ReadAtVantage"/> before the dump carrying it
+        /// has landed, which is a reveal leak of exactly the kind the reveal gate
+        /// exists to prevent.</para>
+        ///
+        /// <para>Forwards each captured sample rather than re-reading the archive
+        /// at fire time, the <see cref="Delivery.ReliableOrdered"/> discipline and
+        /// for a stronger version of the same reason: a state re-read at one scene
+        /// would coalesce the whole dump to its newest sample, which is precisely
+        /// the outage window being deleted again one layer down.</para>
+        ///
+        /// <para><paramref name="gapSinceUt"/> rides the FIRST sample of the dump
+        /// (see <see cref="Meta.GapSinceUt"/>): non-null when the recording
+        /// overran its storage bound and its oldest span is missing.</para>
+        /// </summary>
+        public void ReplayRecorded(
+            string node,
+            string topic,
+            IReadOnlyList<ArchiveSample> samples,
+            double dumpedAtUt,
+            double? gapSinceUt = null)
+        {
+            if (samples.Count == 0)
+            {
+                return;
+            }
+            if (!_subscribers.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var subs))
+            {
+                return;
+            }
+
+            var archived = false;
+            foreach (var subscriber in new List<Subscriber>(subs))
+            {
+                var fireUt = dumpedAtUt + _network.DelayTo(subscriber.Vantage, node);
+                _clock.Schedule(fireUt, () =>
+                {
+                    if (!archived)
+                    {
+                        // Archived once, at the first arrival: the dump becomes
+                        // readable history the moment any vantage has it, and
+                        // re-archiving per subscriber would duplicate every
+                        // sample in the node's archive.
+                        archived = true;
+                        var archive = ArchiveFor(node);
+                        foreach (var sample in samples)
+                        {
+                            archive.Record(topic, sample.Value, sample.ValidAt, sample.Epoch);
+                        }
+                    }
+                    if (!subs.Contains(subscriber))
+                    {
+                        return;
+                    }
+                    for (var i = 0; i < samples.Count; i++)
+                    {
+                        subscriber.OnData(StreamDataFor(
+                            node,
+                            topic,
+                            subscriber.Vantage,
+                            samples[i],
+                            fireUt,
+                            Staleness.Recorded,
+                            i == 0 ? gapSinceUt : null));
+                    }
+                });
             }
         }
 
@@ -374,9 +533,17 @@ namespace Sitrep.Core
         /// opts in for, leaving <see cref="SubscribeStream"/>'s catch-up on
         /// its original plain-archive-read path.</para>
         /// </summary>
-        public void Record(string node, string topic, object? value, double validAtUt, Delivery delivery = Delivery.LossyLatest, bool isKeyframe = false)
+        public void Record(
+            string node,
+            string topic,
+            object? value,
+            double validAtUt,
+            Delivery delivery = Delivery.LossyLatest,
+            bool isKeyframe = false,
+            double? gapSinceUt = null)
         {
             ArchiveFor(node).Record(topic, value, validAtUt, _epoch);
+            NoteGapOpeningSample(node, topic, validAtUt, gapSinceUt);
 
             // Bound the archives as time moves, so a long session does not make
             // every later subscribe walk the whole session to find the few samples
@@ -582,11 +749,72 @@ namespace Sitrep.Core
         private StreamData StreamDataFor(string node, string topic, string vantage, ArchiveSample sample, double deliveredAt, bool isCatchUp)
         {
             var staleness = isCatchUp ? ResolveStaleness(node, vantage, sample) : Staleness.Fresh;
+            return StreamDataFor(node, topic, vantage, sample, deliveredAt, staleness, GapFor(node, topic, sample.ValidAt));
+        }
+
+        /// <summary>
+        /// Record that the sample at <paramref name="validAtUt"/> opens a known
+        /// break in <paramref name="topic"/>'s record, and drop a superseded
+        /// entry: see <see cref="_gapOpeningSample"/>. A <c>null</c>
+        /// <paramref name="gapSinceUt"/> (every ordinary call site) only prunes.
+        /// </summary>
+        private void NoteGapOpeningSample(string node, string topic, double validAtUt, double? gapSinceUt)
+        {
+            if (!_gapOpeningSample.TryGetValue(node, out var byTopic))
+            {
+                if (gapSinceUt == null)
+                {
+                    return;
+                }
+                byTopic = new Dictionary<string, (double, double)>();
+                _gapOpeningSample[node] = byTopic;
+            }
+
+            if (gapSinceUt != null)
+            {
+                byTopic[topic] = (validAtUt, gapSinceUt.Value);
+                return;
+            }
+
+            if (byTopic.TryGetValue(topic, out var held) && validAtUt > held.ValidAt)
+            {
+                byTopic.Remove(topic);
+            }
+        }
+
+        /// <summary><see cref="Meta.GapSinceUt"/> for the sample at <paramref name="validAtUt"/>, or null when it opens no known break.</summary>
+        private double? GapFor(string node, string topic, double validAtUt)
+        {
+            if (_gapOpeningSample.TryGetValue(node, out var byTopic)
+                && byTopic.TryGetValue(topic, out var held)
+                && held.ValidAt == validAtUt)
+            {
+                return held.GapSinceUt;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// As the <c>isCatchUp</c> overload, with the wire
+        /// <see cref="Staleness"/> and <see cref="Meta.GapSinceUt"/> supplied by
+        /// the caller rather than derived: the replay lane
+        /// (<see cref="ReplayRecorded"/>) knows both outright, and neither is
+        /// reachable from the catch-up/fresh choice the other overload makes.
+        /// </summary>
+        private StreamData StreamDataFor(
+            string node,
+            string topic,
+            string vantage,
+            ArchiveSample sample,
+            double deliveredAt,
+            Staleness staleness,
+            double? gapSinceUt)
+        {
             return new StreamData
             {
                 Topic = topic,
                 Payload = sample.Value,
-                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt, sample.Epoch, staleness),
+                Meta = MakeMeta(node, vantage, sample.ValidAt, deliveredAt, sample.Epoch, staleness, gapSinceUt),
             };
         }
 
@@ -596,8 +824,9 @@ namespace Sitrep.Core
         /// <see cref="SubscribeStream"/>'s doc comment): every other
         /// delivery stays <see cref="Staleness.Fresh"/> unconditionally.
         /// Consults <see cref="MarkLinkDown"/>/<see cref="MarkLinkUp"/>'s
-        /// per-(node, vantage) state, the M2 seam a future M3 comms-capability
-        /// provider drives: no link marked down -> Fresh (the served sample
+        /// per-(node, vantage) state, which the blackout authority in
+        /// <c>Sitrep.Host.ChannelEngine.SetSubjectConnected</c> drives: no link
+        /// marked down -> Fresh (the served sample
         /// is, by construction of <see cref="Archive.ReadAtVantage"/>, always
         /// the freshest available as of this vantage's scene, an old
         /// <c>validAt</c> on a change-gated channel is FRESH, never inferred
@@ -640,10 +869,18 @@ namespace Sitrep.Core
             };
         }
 
-        private Meta MakeMeta(string node, string vantage, double validAt, double deliveredAt, int epoch, Staleness staleness)
+        private Meta MakeMeta(
+            string node,
+            string vantage,
+            double validAt,
+            double deliveredAt,
+            int epoch,
+            Staleness staleness,
+            double? gapSinceUt = null)
         {
             return new Meta
             {
+                GapSinceUt = gapSinceUt,
                 Source = node,
                 ValidAt = validAt,
                 Seq = NextSeq(),

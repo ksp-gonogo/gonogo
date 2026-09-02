@@ -679,13 +679,18 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
-        /// Reconnect: the backlog withheld during the outage is DROPPED (not
-        /// replayed), and delivery resumes from the reconnect moment. A value
-        /// buffered while disconnected must never reach the wire; a value emitted
-        /// after reconnect (delay 0 ⇒ live) must.
+        /// Reacquisition: the window withheld during the outage is REPLAYED as
+        /// the craft's own recording, and live delivery resumes alongside it.
+        ///
+        /// <para>This test asserted the opposite until the blackout recorder
+        /// landed, because dropping the backlog was the policy: the outage window
+        /// was deleted and the wire carried no trace of it. It is kept, inverted,
+        /// as the place a reader of the reveal gate meets the decision;
+        /// <c>BlackoutRecorderTests</c> is where the recorder's own behaviour
+        /// (light-time, storage bound, staleness, gaps) is pinned.</para>
         /// </summary>
         [Fact]
-        public async Task ReconnectDropsBacklogAndResumesFromReconnectMoment()
+        public async Task ReconnectReplaysTheRecordingAndResumesFromReconnectMoment()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new FreezeGateTestUplink());
@@ -710,11 +715,24 @@ namespace Sitrep.Host.IntegrationTests
                 var afterReconnect = await DrainAllStreamDataAsync(client, Quiet);
 
                 var delivered = afterReconnect.Where(f => f.Topic == FreezeGateTestUplink.DelayedTopic).ToList();
-                // Backlog dropped: the frozen 10 never surfaces.
-                Assert.DoesNotContain(delivered, f => Convert.ToDouble(f.Payload) == 10.0);
-                // Resumed: the post-reconnect 99 is delivered from the reconnect moment.
-                Assert.Contains(delivered, f => Convert.ToDouble(f.Payload) == 99.0);
-                Assert.Equal(4.0, delivered.Last(f => Convert.ToDouble(f.Payload) == 99.0).Meta.ValidAt);
+                // The recording surfaces, carrying the instant it was taken at
+                // (UT 1, inside the outage) and labelled as a recording.
+                //
+                // ONE sample, not three, and that is the change gate rather than
+                // the recorder: the fixture emits the same 10 on all three
+                // in-blackout ticks, and ChannelEmitter.Decide declines the
+                // repeats before the reveal gate ever sees them. A recorder holds
+                // what the channel decided to emit; it does not re-sample.
+                var replayed = delivered
+                    .Where(f => f.Meta.Staleness == Staleness.Recorded)
+                    .ToList();
+                Assert.Equal(new[] { 1.0 }, replayed.Select(f => f.Meta.ValidAt).ToArray());
+                Assert.All(replayed, f => Assert.Equal(10.0, Convert.ToDouble(f.Payload)));
+                // Resumed: the post-reconnect 99 is delivered from the reconnect
+                // moment, and it is LIVE, not part of the recording.
+                var live = delivered.Last(f => Convert.ToDouble(f.Payload) == 99.0);
+                Assert.Equal(4.0, live.Meta.ValidAt);
+                Assert.Equal(Staleness.Fresh, live.Meta.Staleness);
             }
             finally
             {

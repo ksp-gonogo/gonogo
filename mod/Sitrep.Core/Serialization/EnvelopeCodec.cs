@@ -76,6 +76,21 @@ namespace Sitrep.Core.Serialization
             AppendField(sb, "timelineEpoch");
             JsonWriter.AppendInteger(sb, meta.TimelineEpoch);
 
+            // OMITTED when null, unlike every field above it, which are always
+            // written. Two reasons and they point the same way. The generated TS
+            // envelope type declares it optional (`gapSinceUt?: number`), so the
+            // TS reference this codec is held byte-for-byte identical to cannot
+            // express an explicit null and simply leaves the key out; writing
+            // one here would break that conformance for every frame. And a gap
+            // is rare by construction (one sample per known break), so the
+            // absent case is the hot path and every frame on the wire would
+            // otherwise carry 17 bytes saying nothing happened.
+            if (meta.GapSinceUt.HasValue)
+            {
+                AppendField(sb, "gapSinceUt");
+                JsonWriter.AppendNumber(sb, meta.GapSinceUt.Value);
+            }
+
             sb.Append('}');
         }
 
@@ -92,6 +107,12 @@ namespace Sitrep.Core.Serialization
                 Active = RequireBool(raw, "active"),
                 Staleness = (Staleness)(int)RequireDouble(raw, "staleness"),
                 TimelineEpoch = (int)RequireDouble(raw, "timelineEpoch"),
+                // Optional on the way IN, unlike every field above it: a
+                // recording made by a host older than contract 14.7 has no
+                // gapSinceUt, and refusing to parse the envelope would make a
+                // fixture from last month unreadable. Absent and null both mean
+                // "this sample opens no known break", which is the same claim.
+                GapSinceUt = OptionalDouble(raw, "gapSinceUt"),
             };
         }
 
@@ -465,6 +486,16 @@ namespace Sitrep.Core.Serialization
                 return d;
             }
             throw new FormatException($"Missing or non-numeric required field \"{key}\".");
+        }
+
+        /// <summary>A numeric field that may be absent or explicitly null, both read as <c>null</c>.</summary>
+        private static double? OptionalDouble(Dictionary<string, object?> raw, string key)
+        {
+            if (raw.TryGetValue(key, out var value) && value is double d)
+            {
+                return d;
+            }
+            return null;
         }
 
         private static bool RequireBool(Dictionary<string, object?> raw, string key)

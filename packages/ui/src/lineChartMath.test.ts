@@ -50,6 +50,22 @@ describe("buildPath", () => {
       "M0.00,0.00 L1.00,10.00 L2.00,20.00",
     );
   });
+
+  // A break is a span the chart HAS NO READINGS FOR: a blackout, or a
+  // recording whose oldest span overran the recorder. Joined across, it draws a
+  // straight line the operator cannot tell from data, which is the one thing
+  // this chart must never do. A fresh `M` is what stops it.
+  it("starts a new subpath at a break index instead of joining across it", () => {
+    expect(buildPath([0, 1, 2, 3], [0, 10, 20, 30], id, id, [2])).toBe(
+      "M0.00,0.00 L1.00,10.00 M2.00,20.00 L3.00,30.00",
+    );
+  });
+
+  it("ignores an empty or absent break list", () => {
+    const joined = "M0.00,0.00 L1.00,10.00";
+    expect(buildPath([0, 1], [0, 10], id, id, [])).toBe(joined);
+    expect(buildPath([0, 1], [0, 10], id, id)).toBe(joined);
+  });
 });
 
 describe("buildStepPath", () => {
@@ -66,6 +82,18 @@ describe("buildStepPath", () => {
 
   it("returns empty for empty input", () => {
     expect(buildStepPath([], [], id, id)).toBe("");
+  });
+
+  /**
+   * The step builder needs the break too, and needs it MORE than the line
+   * builder does: a step holds its value across the gap, so joining across a
+   * blackout asserts the state did not change while out of contact, which is
+   * exactly what nobody knows.
+   */
+  it("starts a new subpath at a break index instead of holding across it", () => {
+    expect(buildStepPath([0, 1, 2], [0, 5, 2], id, id, [2])).toBe(
+      "M0.00,0.00 H1.00 V5.00 M2.00,2.00",
+    );
   });
 });
 

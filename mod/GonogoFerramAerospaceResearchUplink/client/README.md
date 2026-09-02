@@ -9,7 +9,7 @@ Puts a full-fidelity aerodynamic model's own numbers on the flight board: angle 
 | --- | --- |
 | Uplink id | `aero` |
 | Version | `0.0.1` |
-| Built against | contract 14.6, api 1.0.0, ui-kit 0.1.0 |
+| Built against | contract 14.7, api 1.0.0, ui-kit 0.1.0 |
 
 ## Wire
 

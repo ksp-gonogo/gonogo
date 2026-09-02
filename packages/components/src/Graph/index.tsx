@@ -401,8 +401,10 @@ export function GraphView({
   const liveSeries: ChartSeries[] = series.map((cfg, i) => {
     const meta = metaMap.get(cfg.key);
     const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
+    // On a time X axis the series indices ARE the plot's, so the break indices
+    // carry straight over; alignXY reindexes its own (see its doc).
     const baseData = xIsTime
-      ? { x: raw.t, y: raw.v as number[] }
+      ? { x: raw.t, y: raw.v as number[], breaks: raw.breaks }
       : alignXY(raw as SeriesRange<number>, xData);
 
     // Band series pair `key` (lower bound) with `keyHigh` (upper bound).
@@ -418,7 +420,12 @@ export function GraphView({
       // for time-X both fetchers share the same windowSec so lengths align.
       // Mismatched lengths fall through to LineChart's safe band builder
       // which clamps to the shortest array.
-      data = { x: baseData.x, y: baseData.y, y2: highData.y };
+      data = {
+        x: baseData.x,
+        y: baseData.y,
+        y2: highData.y,
+        breaks: baseData.breaks,
+      };
     }
 
     return {

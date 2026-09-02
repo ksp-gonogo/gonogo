@@ -59,19 +59,29 @@ export function formatTimeLabel(t: number, spanMs: number): string {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-/** Build an SVG path `d` string from x/y arrays run through scale functions. */
+/**
+ * Build an SVG path `d` string from x/y arrays run through scale functions.
+ *
+ * `breaks` names the indices that OPEN a known hole in the data: the path
+ * starts a fresh subpath (`M`) at each one instead of joining into it, so the
+ * chart shows a gap rather than a straight line across a span it has no
+ * readings for. See `SeriesRange.breaks`, which is where the indices come from,
+ * and `Meta.gapSinceUt`, which is where the server states the hole.
+ */
 export function buildPath(
   ts: number[],
   vs: number[],
   scaleX: (v: number) => number,
   scaleY: (v: number) => number,
+  breaks: readonly number[] = [],
 ): string {
   if (ts.length === 0) return "";
   const parts: string[] = [];
   for (let i = 0; i < ts.length; i++) {
     const x = scaleX(ts[i]).toFixed(2);
     const y = scaleY(vs[i]).toFixed(2);
-    parts.push(`${i === 0 ? "M" : "L"}${x},${y}`);
+    const starts = i === 0 || breaks.includes(i);
+    parts.push(`${starts ? "M" : "L"}${x},${y}`);
   }
   return parts.join(" ");
 }
@@ -86,6 +96,7 @@ export function buildStepPath(
   vs: number[],
   scaleX: (v: number) => number,
   scaleY: (v: number) => number,
+  breaks: readonly number[] = [],
 ): string {
   if (ts.length === 0) return "";
   const parts: string[] = [];
@@ -94,6 +105,14 @@ export function buildStepPath(
   for (let i = 1; i < ts.length; i++) {
     const x = scaleX(ts[i]).toFixed(2);
     const y = scaleY(vs[i]).toFixed(2);
+    if (breaks.includes(i)) {
+      // A break matters more to a step than to a line: the hold IS an
+      // assertion that the value did not change, and across a blackout that is
+      // precisely what nobody knows. See buildPath's own note.
+      parts.push(`M${x},${y}`);
+      prevY = y;
+      continue;
+    }
     // Horizontal hold to the new x at the previous y, then vertical jump.
     parts.push(`H${x}`);
     if (y !== prevY) parts.push(`V${y}`);

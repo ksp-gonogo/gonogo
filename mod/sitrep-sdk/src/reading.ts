@@ -323,6 +323,11 @@ export type Reading<T> =
  *   versus this craft is behind the Mun
  * - `last-before-blackout`: server-stamped, the newest sample that got out
  *   before a blackout the Courier already knew about
+ * - `recorded`: server-stamped, taken by the subject while out of contact and
+ *   replayed on reacquisition. The odd one out: the value is not uncertain at
+ *   all, it is exact for its own `asOfUt`, and what makes it a stale grade is
+ *   only that the instant is behind the live edge. Reckon FROM it freely; never
+ *   draw it as the state of the craft now
  *
  * Expect `reckonable` to correlate with `last-before-blackout` without the type
  * enforcing it. A model needs to know WHEN contact was lost to integrate from,
@@ -332,7 +337,11 @@ export type Reading<T> =
  * grade, which is why the arm split is by whether a model EXISTS rather than by
  * grade.
  */
-export type StaleGrade = "held-stale" | "disconnected" | "last-before-blackout";
+export type StaleGrade =
+  | "held-stale"
+  | "disconnected"
+  | "last-before-blackout"
+  | "recorded";
 
 /**
  * The discriminant alone, for the handful of types that carry a reading's ARM

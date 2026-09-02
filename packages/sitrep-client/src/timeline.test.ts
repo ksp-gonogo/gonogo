@@ -5,12 +5,16 @@ import { ClientTimeline, type TimelinePoint } from "./timeline";
 function point(
   validAt: number,
   payload: number | null,
-  overrides: { epoch?: number; seq?: number } = {},
+  overrides: { epoch?: number; seq?: number; deliveredAt?: number } = {},
 ): TimelinePoint<number | null> {
   return {
     validAt,
     payload,
-    meta: makeMeta({ validAt, seq: overrides.seq ?? 0 }),
+    meta: makeMeta({
+      validAt,
+      seq: overrides.seq ?? 0,
+      deliveredAt: overrides.deliveredAt ?? validAt,
+    }),
     epoch: overrides.epoch ?? 0,
   };
 }
@@ -82,6 +86,70 @@ describe("ClientTimeline", () => {
     expect(timeline.range(0, 50)).toEqual([]);
     expect(timeline.at(50)).toBeUndefined();
     expect(timeline.at(250)?.payload).toBe(250);
+  });
+
+  describe("a landed blackout dump", () => {
+    // The blackout recorder dumps a whole outage window at once, so the
+    // arriving points span the outage's UT while the newest of them sits at the
+    // reacquisition instant. The UT-relative auto-eviction this class used to
+    // run measured its floor from `latest.validAt`, so a dump wider than the
+    // window destroyed its own oldest half the moment it landed: the retained
+    // span collapsed to the newest `retentionSeconds` of it and everything
+    // behind, INCLUDING the pre-outage tail, went. The server holding the
+    // window carefully is worth nothing if the client discards it on arrival.
+    it("survives ingest whatever UT it spans, with no timelineOptions set", () => {
+      const timeline = new ClientTimeline<number | null>();
+      timeline.append(point(0, 0));
+
+      // A twenty-minute outage, sampled every two UT seconds: far wider than
+      // the 300s window that used to be the default.
+      for (let ut = 100; ut <= 1300; ut += 2) timeline.append(point(ut, ut));
+
+      expect(timeline.at(100)?.payload).toBe(100);
+      expect(timeline.at(0)?.payload).toBe(0);
+      expect(timeline.range(0, 1300).length).toBe(602);
+    });
+
+    it("is still bounded, by POINT COUNT, dropping the oldest and saying so", () => {
+      const timeline = new ClientTimeline<number | null>({ maxPoints: 10 });
+      for (let ut = 1; ut <= 25; ut += 1) timeline.append(point(ut, ut));
+
+      expect(timeline.range(0, 100).length).toBe(10);
+      expect(timeline.at(100)?.payload).toBe(25);
+      // The oldest went, not the newest.
+      expect(timeline.at(15)).toBeUndefined();
+      expect(timeline.at(16)?.payload).toBe(16);
+      // ...and what went is readable rather than inferred from a hole.
+      expect(timeline.droppedThroughUt).toBe(15);
+    });
+
+    // Verifying a claim rather than trusting it: a STEADY delay of any
+    // magnitude was never the hazard, because both bounds are measured off the
+    // buffer's own contents and neither reads a delay. What broke the old
+    // UT-window bound was the SPAN of one arriving burst, not how late it was.
+    // Delay is modelled here as an offset between validAt and deliveredAt: the
+    // points arrive in order at a steady rate, hours behind the instants they
+    // describe.
+    it("is unaffected by how large a steady delay is", () => {
+      const near = new ClientTimeline<number | null>({ maxPoints: 10 });
+      const far = new ClientTimeline<number | null>({ maxPoints: 10 });
+      for (let ut = 1; ut <= 8; ut += 1) {
+        near.append(point(ut, ut, { deliveredAt: ut }));
+        // Forty-five minutes of light-time, arriving at the same steady rate.
+        far.append(point(ut, ut, { deliveredAt: ut + 2700 }));
+      }
+      expect(far.range(0, 100).map((p) => p.payload)).toEqual(
+        near.range(0, 100).map((p) => p.payload),
+      );
+      expect(far.droppedThroughUt).toBe(near.droppedThroughUt);
+    });
+
+    it("reports nothing dropped while it is inside its bound", () => {
+      const timeline = new ClientTimeline<number | null>({ maxPoints: 10 });
+      timeline.append(point(1, 1));
+      timeline.append(point(2, 2));
+      expect(timeline.droppedThroughUt).toBeUndefined();
+    });
   });
 
   describe("per-epoch reset (client-side ghost avoidance)", () => {

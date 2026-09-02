@@ -10,6 +10,18 @@ export interface LineGraphSeries {
   color: string;
   /** Ascending by `x`. Fewer than two points renders no line for this series. */
   points: ReadonlyArray<{ x: number; y: number }>;
+  /**
+   * Indices into `points` that OPEN a known hole: no data between the previous
+   * point and that one, and missing rather than merely not sampled (a comms
+   * blackout, or a recording whose oldest span overran the recorder). The
+   * stroke breaks there instead of joining across, because a line drawn through
+   * a span with no readings is indistinguishable from data.
+   *
+   * The `"sparkline"` variant's area fill breaks with it, for the stronger
+   * version of the same reason: shading under a gap claims a quantity had a
+   * value throughout it.
+   */
+  breaks?: readonly number[];
 }
 
 export interface LineGraphThreshold {
@@ -93,6 +105,29 @@ function computeDomain(
   // 8% headroom top and bottom so a peak/trough never touches the frame.
   const span = max - min;
   return [min - span * 0.08, max + span * 0.08];
+}
+
+/**
+ * One series' points cut into unbroken runs at its `breaks` indices. Empty or
+ * absent breaks yield the whole series as a single run, which is the shape
+ * every caller had before holes could exist.
+ */
+function splitAtBreaks(
+  points: ReadonlyArray<{ x: number; y: number }>,
+  breaks: readonly number[] | undefined,
+): Array<ReadonlyArray<{ x: number; y: number }>> {
+  if (!breaks || breaks.length === 0) return [points];
+  const runs: Array<ReadonlyArray<{ x: number; y: number }>> = [];
+  const cuts = [...new Set(breaks)]
+    .filter((i) => i > 0 && i < points.length)
+    .sort((a, b) => a - b);
+  let start = 0;
+  for (const cut of cuts) {
+    runs.push(points.slice(start, cut));
+    start = cut;
+  }
+  runs.push(points.slice(start));
+  return runs;
 }
 
 function computeXDomain(series: readonly LineGraphSeries[]): [number, number] {
@@ -181,26 +216,31 @@ export function LineGraph({
             // below: an area under a single point is not a shape, it is a
             // triangle standing in for data that was never there.
             if (s.points.length < 2) return null;
-            const first = s.points[0];
-            const last = s.points[s.points.length - 1];
-            const areaPoints = [
-              ...s.points.map((p) => `${toX(p.x)},${toY(p.y)}`),
-              `${toX(last.x)},${VIEW_H}`,
-              `${toX(first.x)},${VIEW_H}`,
-            ].join(" ");
-            return (
-              <polygon
-                key={`${s.id}-area`}
-                points={areaPoints}
-                fill={s.color}
-                // Subtler than a chart-style fill: operator feedback on the
-                // second pass still read the sparkline as too instrument-like,
-                // a lighter shade reads as a glance trend rather than a
-                // filled-in area chart.
-                fillOpacity={0.12}
-                stroke="none"
-              />
-            );
+            // One polygon per unbroken run, so a hole leaves unshaded ground
+            // rather than a filled block standing in for readings nobody has.
+            return splitAtBreaks(s.points, s.breaks).map((run) => {
+              if (run.length < 2) return null;
+              const first = run[0];
+              const last = run[run.length - 1];
+              const areaPoints = [
+                ...run.map((p) => `${toX(p.x)},${toY(p.y)}`),
+                `${toX(last.x)},${VIEW_H}`,
+                `${toX(first.x)},${VIEW_H}`,
+              ].join(" ");
+              return (
+                <polygon
+                  key={`${s.id}-area-${first.x}`}
+                  points={areaPoints}
+                  fill={s.color}
+                  // Subtler than a chart-style fill: operator feedback on the
+                  // second pass still read the sparkline as too instrument-like,
+                  // a lighter shade reads as a glance trend rather than a
+                  // filled-in area chart.
+                  fillOpacity={0.12}
+                  stroke="none"
+                />
+              );
+            });
           })}
 
         {thresholdStyle === "full" &&
@@ -220,24 +260,35 @@ export function LineGraph({
 
         {series.map((s) => {
           if (s.points.length < 2) return null;
-          const points = s.points
-            .map((p) => `${toX(p.x)},${toY(p.y)}`)
-            .join(" ");
-          return (
-            <polyline
-              key={s.id}
-              points={points}
-              fill="none"
-              stroke={s.color}
-              // Thinner in the sparkline variant: a glance trend reads as a
-              // fine line, not the same weight an engineering `"chart"`
-              // instrument uses.
-              strokeWidth={isSparkline ? 1 : 1.4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              vectorEffect="non-scaling-stroke"
-            />
-          );
+          /**
+           * One polyline per unbroken run rather than one per series: a single
+           * stroke cannot express a gap, and joining across one draws a line
+           * the operator cannot tell from a reading.
+           *
+           * Each run is keyed on its own first x, never its position: the run
+           * COUNT and boundaries move as data slides through the window, so an
+           * index would have React reuse one run's element for a different
+           * span.
+           */
+          return splitAtBreaks(s.points, s.breaks).map((run) => {
+            if (run.length < 2) return null;
+            const points = run.map((p) => `${toX(p.x)},${toY(p.y)}`).join(" ");
+            return (
+              <polyline
+                key={`${s.id}-${run[0].x}`}
+                points={points}
+                fill="none"
+                stroke={s.color}
+                // Thinner in the sparkline variant: a glance trend reads as a
+                // fine line, not the same weight an engineering `"chart"`
+                // instrument uses.
+                strokeWidth={isSparkline ? 1 : 1.4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            );
+          });
         })}
       </svg>
 

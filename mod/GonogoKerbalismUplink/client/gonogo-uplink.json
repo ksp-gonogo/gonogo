@@ -9,7 +9,7 @@
   "apiVersion": "1.0.0",
   "uiKitVersion": "0.1.0",
   "contractMajor": 14,
-  "contractMinor": 6,
+  "contractMinor": 7,
   "bundleUrl": "kerbalism/kerbalism.client.js",
   "integrity": "",
   "sdkVersion": "0.0.1"

@@ -70,10 +70,14 @@ export function planView(reading: Reading<PrincipiaPlan>): PlanWriteView {
 /**
  * What a stale reading has lost contact WITH, as something to go and check.
  *
- * The three grades ask for three different next moves: one channel's keyframes
- * drying up is a producer that stopped publishing, a down transport is the whole
- * link, and a last-before-blackout sample is the craft itself behind something.
- * An operator told only that the plan is old checks the wrong one.
+ * The grades ask for different next moves: one channel's keyframes drying up is
+ * a producer that stopped publishing, a down transport is the whole link, and a
+ * last-before-blackout sample is the craft itself behind something. An operator
+ * told only that the plan is old checks the wrong one.
+ *
+ * `recorded` asks for no move at all, which is why it reads differently from the
+ * rest: nothing is broken, the craft simply wrote this down while it was dark
+ * and sent it when the link came back.
  */
 export function outOfContactReason(grade: StaleGrade): string {
   switch (grade) {
@@ -83,5 +87,7 @@ export function outOfContactReason(grade: StaleGrade): string {
       return "The stream is down. The burns below are the last set that reached us, and the burn count they are numbered against may have moved since.";
     case "last-before-blackout":
       return "This craft is out of contact. The burns below are the last set that got out before the blackout, and the burn count they are numbered against may have moved since.";
+    case "recorded":
+      return "The burns below came off this craft's own recording of the time it was out of contact, so they are exact for the moment shown and not for now. The burn count they are numbered against may have moved since.";
   }
 }

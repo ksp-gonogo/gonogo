@@ -10,26 +10,53 @@ export type { TimelinePoint } from "../timeline";
 
 export interface ClientTimelineOptions {
   /**
-   * How far behind the latest ingested `validAt` points are retained before
-   * being evicted automatically. Foundation-level default; a later task may
-   * additionally call `evictBelow` with the real confirmed-edge-minus-delay
-   * bound once a `ViewClock`/subscription option is wired in. Default is
-   * generous (5 minutes of UT): tight enough to bound memory, loose enough
-   * not to surprise a topic with no external eviction driver.
+   * An OPT-IN ceiling on how far behind the latest ingested `validAt` points
+   * are retained. Unset (and nothing in production sets it) means no UT bound
+   * at all: `maxPoints` is the always-on one.
+   *
+   * It used to default to 300 and be the only bound, and that was wrong in both
+   * directions. A UT window bounds MEMORY only if you assume a sample rate, so
+   * it held a few dozen points of a slow channel and thousands of a fast one
+   * for the same nominal cost. And its floor is measured from `latest.validAt`,
+   * which a landed blackout dump moves: a dump spanning more than the window
+   * destroyed its own oldest half, and the pre-outage tail with it, the instant
+   * it arrived. That is the failure this option now exists to stay out of the
+   * way of, so set it only for a consumer that genuinely wants a fixed-UT view
+   * and can afford to lose a wider dump.
    */
   retentionSeconds?: number;
+
+  /**
+   * The always-on bound: at most this many points per topic, dropping the
+   * OLDEST to make room. Bounds memory directly rather than through an assumed
+   * sample rate, and is indifferent to how much UT a burst spans, so a blackout
+   * dump survives ingest whatever its width.
+   *
+   * Drop-oldest matches the server-side recorder's own overrun policy
+   * (`ChannelEngine.RecorderCapacityPerTopic`) so the two do not fight: the
+   * span nearest the live edge is the one both keep. What a drop cost is
+   * readable off `droppedThroughUt` rather than left to be inferred from a
+   * hole.
+   *
+   * 1500, which is about what the old 300s window held for a channel emitting
+   * at 4 Hz, so the busiest topic's footprint is unchanged and every slower one
+   * simply keeps more history than it used to.
+   */
+  maxPoints?: number;
 }
 
-const DEFAULT_RETENTION_SECONDS = 300;
+const DEFAULT_MAX_POINTS = 1500;
 
 /**
  * Per-topic buffer of delivered samples, insert-sorted by `validAt` (samples
  * can arrive out of order, per-topic delays differ once comms modelling
  * lands, and the server's `Archive.Record` makes the same allowance).
  *
- * Bounded to a retention window behind the latest ingested sample so a
- * long-running client doesn't grow this unboundedly: see
- * `ClientTimelineOptions.retentionSeconds` and `evictBelow`.
+ * Bounded by POINT COUNT so a long-running client doesn't grow this
+ * unboundedly, dropping the oldest and reporting the edge it dropped through:
+ * see `ClientTimelineOptions.maxPoints` and `droppedThroughUt`. A UT window is
+ * available on top (`retentionSeconds`) and nothing sets it; that option's own
+ * doc has the history of why it stopped being the bound.
  *
  * Epoch-aware ("client-side ghost avoidance"): a
  * quickload rewind is detected per-topic from the incoming sample's own
@@ -48,14 +75,35 @@ const DEFAULT_RETENTION_SECONDS = 300;
 export class ClientTimeline<T = unknown> {
   private points: TimelinePoint<T>[] = [];
   private currentEpoch = 0;
-  private readonly retentionSeconds: number;
+  private readonly retentionSeconds: number | undefined;
+  private readonly maxPoints: number;
+  private droppedThrough: number | undefined;
 
   /** Bumped on every append that changes the buffer (insert or epoch-reset). Memo key for later tasks. */
   revision = 0;
 
   constructor(options: ClientTimelineOptions = {}) {
-    this.retentionSeconds =
-      options.retentionSeconds ?? DEFAULT_RETENTION_SECONDS;
+    this.retentionSeconds = options.retentionSeconds;
+    this.maxPoints = options.maxPoints ?? DEFAULT_MAX_POINTS;
+  }
+
+  /**
+   * The `validAt` of the newest point this timeline has dropped to stay inside
+   * its own bound, or `undefined` while nothing has been dropped. Data existed
+   * at-or-below it and this client no longer has it.
+   *
+   * The client-side twin of the server's `Meta.gapSinceUt`, and separate from it
+   * because the two say different things: that one reports what the SUBJECT
+   * could not send, this one what the VIEWER could not keep. A consumer reading
+   * a range that starts at-or-below this UT is looking at a truncated span, and
+   * has to be told rather than shown a chart that simply starts later and looks
+   * complete.
+   *
+   * Reset by a rewind (`adoptEpoch` / a higher-epoch append), because it
+   * describes a record that no longer exists.
+   */
+  get droppedThroughUt(): number | undefined {
+    return this.droppedThrough;
   }
 
   /** The epoch this timeline currently holds points for. */
@@ -76,6 +124,7 @@ export class ClientTimeline<T = unknown> {
       // see a mix of old and new epoch's points.
       this.points = [];
       this.currentEpoch = point.epoch;
+      this.droppedThrough = undefined;
     }
 
     const index = this.insertionIndex(point);
@@ -139,6 +188,7 @@ export class ClientTimeline<T = unknown> {
     if (epoch <= this.currentEpoch) return;
     this.points = [];
     this.currentEpoch = epoch;
+    this.droppedThrough = undefined;
     this.revision++;
   }
 
@@ -153,7 +203,16 @@ export class ClientTimeline<T = unknown> {
   private autoEvict(): void {
     const latest = this.latest();
     if (!latest) return;
-    this.evictBelow(latest.validAt - this.retentionSeconds);
+    if (this.retentionSeconds !== undefined) {
+      this.evictBelow(latest.validAt - this.retentionSeconds);
+    }
+    if (this.points.length <= this.maxPoints) return;
+    const surplus = this.points.length - this.maxPoints;
+    // Read the drop edge BEFORE splicing: it is the newest point going, which
+    // is the one at the boundary.
+    this.droppedThrough = this.points[surplus - 1].validAt;
+    this.points.splice(0, surplus);
+    this.revision++;
   }
 
   private insertionIndex(point: TimelinePoint<T>): number {

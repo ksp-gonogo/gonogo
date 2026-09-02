@@ -2557,10 +2557,29 @@ export enum Quality {
 	OnRails = 0,
 	Loaded = 1
 }
+/**
+* How current a delivered sample is, as the SERVER knows it (a client infers
+* the rest from its own heartbeat tracking).
+*
+* `Staleness.Fresh` is a sample delivered on its own schedule.
+* `Staleness.HeldStale` and `Staleness.LastBeforeBlackout` are catch-up grades
+* for a late or reconnecting subscriber. `Staleness.Recorded` is different in
+* kind from all three: the sample is EXACT as of its own `Meta.validAt`, it
+* simply did not travel at the time it was taken. It was held aboard through a
+* loss of signal and dumped on acquisition, so it arrives long after the
+* instant it describes, and its `Meta.deliveredAt` is the real arrival, not
+* `validAt + light-time`.
+*/
 export enum Staleness {
 	Fresh = 0,
 	HeldStale = 1,
-	LastBeforeBlackout = 2
+	LastBeforeBlackout = 2,
+	/**
+	* Recovered from the subject's own recorder: taken while it was out of
+	* contact, replayed on reacquisition. Precisely dated and never a guess, but
+	* not a live reading, and never the state of the subject NOW.
+	*/
+	Recorded = 3
 }
 export interface Meta
 {
@@ -2605,6 +2624,25 @@ export interface Meta
 	* could mask).
 	*/
 	timelineEpoch: number;
+	/**
+	* The `Meta.validAt` of the last sample on this topic that precedes a KNOWN
+	* break in the record, set only on the first sample delivered after that break
+	* and `null` on every other sample.
+	*
+	* Non-null is a positive claim, not an absence: data existed between this UT
+	* and the carrying sample's own `Meta.validAt`, and it is gone. Two things
+	* produce one. A blackout recording that overran its storage bound had its
+	* oldest span dropped, so the replay resumes mid-hole. A channel that does not
+	* record at all (a session fact, never aboard the craft: see
+	* `ChannelDeclaration.Recordable`) has no replay, so its first post-blackout
+	* sample carries the whole outage as the gap.
+	*
+	* A client draws it as a break rather than joining across it. Without it a
+	* chart interpolates a straight line through an outage it has no readings for,
+	* which is the one thing an operator must not be shown: the line looks like
+	* data.
+	*/
+	gapSinceUt?: number;
 }
 /**
 * The slim, payload-specific sibling of `Meta`, carried on every `vessel.*`

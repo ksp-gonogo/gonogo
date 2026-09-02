@@ -20,10 +20,22 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
     const numeric: SeriesRange<number> = {
       t: [],
       v: [],
+      breaks: [],
     };
+    // `breaks` is REINDEXED, not copied: this filter drops non-numeric samples,
+    // so an input index naming a hole names a different sample on the way out.
+    // A break whose own sample is dropped moves onto the next one that
+    // survives, because the hole is still there and still to its left.
+    const inBreaks = new Set(raw.breaks ?? []);
+    let pendingBreak = false;
     for (let i = 0; i < raw.t.length; i++) {
+      if (inBreaks.has(i)) pendingBreak = true;
       const n = Number(raw.v[i]);
       if (!Number.isNaN(n)) {
+        if (pendingBreak && numeric.t.length > 0) {
+          numeric.breaks?.push(numeric.t.length);
+        }
+        pendingBreak = false;
         numeric.t.push(raw.t[i]);
         numeric.v.push(n);
       }

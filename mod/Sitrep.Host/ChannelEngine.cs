@@ -672,6 +672,85 @@ namespace Sitrep.Host
         private readonly Dictionary<string, List<BufferedReveal>> _revealBuffer =
             new Dictionary<string, List<BufferedReveal>>();
 
+        // Per-topic UT of the last sample that reached the Courier, i.e. the last
+        // one the ground will ever have on that topic before whatever comes next.
+        // It is the left-hand edge a Meta.GapSinceUt names, so it has to be known
+        // at the moment a sample is DROPPED rather than reconstructed afterwards
+        // (by then the record has no entry to read it off).
+        // Courier-thread-only, same discipline as _revealBuffer.
+        private readonly Dictionary<string, double> _lastRecordedUt = new Dictionary<string, double>();
+
+        // Per-topic pending Meta.GapSinceUt: set the first time a sample is
+        // dropped rather than held, cleared when the next delivered sample
+        // carries it out. Set ONCE per break, not per dropped sample: every drop
+        // in one run of them widens the same hole, and its left-hand edge is
+        // fixed at the last sample the ground actually has.
+        // Courier-thread-only.
+        private readonly Dictionary<string, double> _pendingGapSinceUt = new Dictionary<string, double>();
+
+        // Per-subject UT of the current outage's start, held for as long as it
+        // runs so the Courier's link-down mark can be re-applied at the ORIGINAL
+        // instant on every disconnected tick rather than drifting forward.
+        // See SetSubjectConnected. Courier-thread-only.
+        private readonly Dictionary<string, double> _subjectDarkSinceUt = new Dictionary<string, double>();
+
+        /// <summary>
+        /// How many in-blackout samples the recorder holds PER TOPIC before the
+        /// oldest are dropped to make room (see <see cref="Emit"/>).
+        ///
+        /// <para>A cap is not optional: an outage has no upper bound in UT (a
+        /// Jool transfer's occultation, a probe abandoned for a career year) and
+        /// a channel emitting through it every tick would grow this without
+        /// limit. The old policy could not leak because it dropped the window
+        /// whole; holding it is what makes a bound necessary.</para>
+        ///
+        /// <para>Drop-OLDEST rather than refuse-newest, and neither decimation
+        /// nor a UT window. Drop-oldest keeps the span ADJACENT to reacquisition,
+        /// which is the half that still describes a live craft and the half a
+        /// chart's window is looking at; refuse-newest would fill the recorder in
+        /// the first minutes of a long outage and then record none of the
+        /// approach. Decimation was the other candidate and is rejected because
+        /// these channels are already change-gated: dropping every other sample
+        /// of a deadbanded series discards real transitions and leaves a series
+        /// that looks complete and is not, whereas a stated hole is a fact an
+        /// operator can act on. Whatever a drop costs is named on the wire as
+        /// <see cref="Meta.GapSinceUt"/> rather than left to be inferred.</para>
+        ///
+        /// <para>1200 entries. At the ~4 Hz a Delayed channel emits when
+        /// something is actually changing that is five minutes of continuous
+        /// full-rate recording per topic, and far longer for the change-gated
+        /// majority; under time warp, where the long outages happen, a tick
+        /// covers a large UT stride and the count for a given UT span collapses.
+        /// It is a COUNT rather than a UT window on purpose: memory is what is
+        /// being bounded, and a UT window bounds memory only if you assume a
+        /// sample rate, which is the assumption the client-side twin of this
+        /// guard was making (see <c>ClientTimelineOptions</c>).</para>
+        /// </summary>
+        internal const int RecorderCapacityPerTopic = 1200;
+
+        /// <summary>
+        /// Soft cap on samples the blackout recorder dumps into the Courier per
+        /// second of UT, across every topic and subject.
+        ///
+        /// <para>A dump is the one place in this class where a single tick hands
+        /// the Courier an unbounded-looking burst instead of one sample per topic,
+        /// so it is the path that needs watching. Steady state is ZERO: nothing is
+        /// recorded while the link is up, and a dump is a discrete event at a
+        /// reacquisition edge, seconds or hours apart.</para>
+        ///
+        /// <para>4000 per UT second. One subject reacquiring with every topic's
+        /// recorder full is about 40 x <see cref="RecorderCapacityPerTopic"/>, and
+        /// that is a legitimate one-off, so the threshold is set to catch the
+        /// shapes that are NOT one-off: a link flapping across the edge every
+        /// tick (which would dump, re-record and re-dump), or a subject whose
+        /// recorder is being drained without being emptied. Both show up as this
+        /// rate staying high across consecutive seconds rather than spiking
+        /// once.</para>
+        /// </summary>
+        internal const double BlackoutReplayBudget = 4000;
+
+        private PerfBudget? _blackoutReplayBudget;
+
         // Ground-side pending-uplink roster backing system.uplink.pending (see
         // UplinkPendingTopic's doc comment). Courier-thread-only, same
         // discipline as _signalDelaySeconds above: EVERY mutation/read happens
@@ -1091,6 +1170,13 @@ namespace Sitrep.Host
                 threshold: ChannelCounterRowBudget,
                 windowSec: 1.0,
                 unit: "rows",
+                warn: LogHost);
+
+            _blackoutReplayBudget = new PerfBudget(
+                "ChannelEngine blackout-replay samples/sec",
+                threshold: BlackoutReplayBudget,
+                windowSec: 1.0,
+                unit: "samples",
                 warn: LogHost);
         }
 
@@ -3618,17 +3704,102 @@ namespace Sitrep.Host
             var delay = RevealDelayFor(topic);
             if (delay <= 0.0)
             {
-                _courier.Record(NodeFor(topic), topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value));
+                RecordThrough(topic, value, ut);
                 return;
             }
 
+            // An infinite horizon is the in-blackout case (see RevealDelayFor):
+            // this sample is one the subject took while out of contact, so what
+            // happens to it is the recorder's decision, not the reveal window's.
+            if (double.IsInfinity(delay))
+            {
+                if (!IsRecordable(topic))
+                {
+                    // Never aboard the craft, so there is nothing to have
+                    // recorded it. Dropped, and the hole stated rather than
+                    // closed silently: the next sample to reach the ground
+                    // carries the span back to the last one that did.
+                    OpenGap(topic);
+                    return;
+                }
+
+                var recorder = BufferFor(topic);
+                if (recorder.Count >= RecorderCapacityPerTopic)
+                {
+                    // Storage bound reached: the oldest held sample makes room
+                    // for this one. See RecorderCapacityPerTopic for why oldest.
+                    recorder.RemoveAt(0);
+                    OpenGap(topic);
+                }
+                recorder.Add(new BufferedReveal(ut, value, delay));
+                return;
+            }
+
+            BufferFor(topic).Add(new BufferedReveal(ut, value, delay));
+        }
+
+        /// <summary>
+        /// Hand one sample to the Courier, carrying whatever
+        /// <see cref="Meta.GapSinceUt"/> is owed on this topic and remembering
+        /// its UT as the record's new right-hand edge. The single funnel every
+        /// non-replayed <see cref="Courier.Record"/> from this class goes through,
+        /// so a topic cannot deliver a sample and forget it delivered one.
+        /// </summary>
+        private void RecordThrough(string topic, object? value, double ut)
+        {
+            double? gap = null;
+            if (_pendingGapSinceUt.TryGetValue(topic, out var gapSince))
+            {
+                gap = gapSince;
+                _pendingGapSinceUt.Remove(topic);
+            }
+            _lastRecordedUt[topic] = ut;
+            _courier.Record(NodeFor(topic), topic, value, ut, DeliveryFor(topic), IsKeyframeFor(topic, value), gap);
+        }
+
+        /// <summary>
+        /// Note that <paramref name="topic"/>'s record now has a hole, running
+        /// back to the last sample the ground actually received. Idempotent
+        /// within one run of drops: the hole's left-hand edge does not move as it
+        /// widens, only its right, and the right is whichever sample eventually
+        /// carries the gap out.
+        /// </summary>
+        private void OpenGap(string topic)
+        {
+            if (_pendingGapSinceUt.ContainsKey(topic))
+            {
+                return;
+            }
+            if (_lastRecordedUt.TryGetValue(topic, out var lastUt))
+            {
+                _pendingGapSinceUt[topic] = lastUt;
+            }
+            // No entry means nothing has EVER been delivered on this topic, so
+            // there is no known-good edge for a gap to run back to and the
+            // client's "resyncing" (never heard from) is already the honest
+            // reading. A fabricated edge would claim data was lost that the
+            // ground was never going to have.
+        }
+
+        private List<BufferedReveal> BufferFor(string topic)
+        {
             if (!_revealBuffer.TryGetValue(topic, out var list))
             {
                 list = new List<BufferedReveal>();
                 _revealBuffer[topic] = list;
             }
-            list.Add(new BufferedReveal(ut, value, delay));
+            return list;
         }
+
+        /// <summary>
+        /// Whether <paramref name="topic"/>'s samples are held through a loss of
+        /// signal and replayed on reacquisition: see
+        /// <see cref="ChannelDeclaration.Recordable"/>. An UNDECLARED topic
+        /// records, matching that property's own default, so an engine-owned or
+        /// dynamically-published topic is never silently dropped by omission.
+        /// </summary>
+        private bool IsRecordable(string topic) =>
+            !_channelDeclarations.TryGetValue(topic, out var declaration) || declaration.Recordable;
 
         /// <summary>
         /// Whether <paramref name="value"/> is a self-contained "keyframe"
@@ -3751,7 +3922,8 @@ namespace Sitrep.Host
             // horizon were infinitely far off, Emit buffers it (Inf is not
             // ≤ 0) and FlushReveal never matures it (Ut ≤ now − Inf is always
             // false), so it stays frozen at last-known until the link returns
-            // (on reconnect the backlog is DROPPED, see SetCommsConnected).
+            // (on reacquisition the held recording is REPLAYED, see
+            // ReplayInBlackoutBacklog; it used to be dropped).
             // Critically this fires even when _signalDelaySeconds is 0 (the
             // disconnect case: no path means SignalDelay None means 0), which
             // is exactly where a gate keyed on delay MAGNITUDE alone would
@@ -3930,13 +4102,12 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Apply a CONNECTED/DISCONNECTED transition to the reveal gate. On a
-        /// DISCONNECTED→CONNECTED edge (reconnect) the withheld backlog is
-        /// DROPPED rather than replayed: delivery resumes from the reconnect
-        /// moment (current − normal delay), latest-value channels jump forward
-        /// on their next change/keyframe, cumulative channels reflect accumulated
-        /// state via their current value, and reconstructing the gap is the
-        /// client's job: never the API's. Courier-thread-only.
+        /// Apply a CONNECTED/DISCONNECTED transition to the reveal gate for the
+        /// ACTIVE vessel. On a DISCONNECTED→CONNECTED edge the withheld window
+        /// is now REPLAYED as the craft's own recording rather than dropped: see
+        /// <see cref="ReplayInBlackoutBacklog"/>. Reconstructing the gap used to
+        /// be the client's job and there was nothing to reconstruct it from.
+        /// Courier-thread-only.
         /// </summary>
         private void SetCommsConnected(bool connected, double ut) =>
             // Active-vessel connectivity entry point (the "system" subject),
@@ -3976,6 +4147,30 @@ namespace Sitrep.Host
             _subjectConnectivityHistory.Remove(node);
             _subjectLastConnectedDelay.Remove(node);
             _vesselNodeDelay.Remove(node);
+
+            // The recorder's per-topic bookkeeping is keyed by TOPIC, not node,
+            // so it needs its own sweep over this subject's namespace. Left
+            // behind it would accumulate an entry per (vessel guid, field) ever
+            // seen, and an unsubscribed-then-resubscribed vessel would claim a
+            // gap running back to a sample the current subscriber never had.
+            // Matched through NodeFor rather than a "<node>." prefix: this
+            // subject's topics also live under the disjoint per-vessel
+            // namespaces (currency., silence.), which route to the same node and
+            // would survive a prefix test.
+            foreach (var recordedTopic in new List<string>(_lastRecordedUt.Keys))
+            {
+                if (NodeFor(recordedTopic) == node)
+                {
+                    _lastRecordedUt.Remove(recordedTopic);
+                }
+            }
+            foreach (var gapTopic in new List<string>(_pendingGapSinceUt.Keys))
+            {
+                if (NodeFor(gapTopic) == node)
+                {
+                    _pendingGapSinceUt.Remove(gapTopic);
+                }
+            }
         }
 
         /// <summary>
@@ -3996,12 +4191,22 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Apply a CONNECTED/DISCONNECTED transition for ONE subject to the
-        /// reveal gate (Plan 2b). On a DISCONNECTED→CONNECTED edge (reconnect)
-        /// only THAT subject's withheld backlog is DROPPED rather than replayed:
-        /// the pre-outage tail already flushed through the outage via the
-        /// per-entry gate, so what remains is that subject's +Inf-horizon entries
-        /// emitted while its link was down. Other subjects are untouched.
-        /// Courier-thread-only.
+        /// reveal gate (Plan 2b). Other subjects are untouched.
+        ///
+        /// <para>On a DISCONNECTED→CONNECTED edge (reacquisition) that subject's
+        /// withheld backlog is REPLAYED, as a recording dumped from the craft the
+        /// moment the link returns: see
+        /// <see cref="ReplayInBlackoutBacklog"/>. It used to be dropped, which
+        /// deleted the outage window outright.</para>
+        ///
+        /// <para>On a CONNECTED→DISCONNECTED edge the Courier is told the subject's
+        /// link is down, so a late or reconnecting subscriber's catch-up is
+        /// stamped <see cref="Staleness.LastBeforeBlackout"/> instead of
+        /// <see cref="Staleness.Fresh"/>. That seam existed unused since M2; the
+        /// blackout authority is the only thing that ever knew enough to drive
+        /// it.</para>
+        ///
+        /// <para>Courier-thread-only.</para>
         /// </summary>
         private void SetSubjectConnected(string node, bool connected, double ut)
         {
@@ -4020,9 +4225,31 @@ namespace Sitrep.Host
                 history.Add((ut, connected));
             }
 
+            if (!connected)
+            {
+                if (connected != wasConnected)
+                {
+                    _subjectDarkSinceUt[node] = ut;
+                }
+                // Re-applied EVERY disconnected tick rather than on the edge
+                // alone, always at the ORIGINAL loss-of-signal instant. The
+                // Courier records the mark per (node, vantage) over the vantages
+                // subscribed when it is called, so an edge-only mark would miss
+                // an operator who opens a dashboard mid-outage: their catch-up
+                // would resolve to a pre-outage sample and be stamped
+                // Fresh, which is the exact lie this wiring exists to stop.
+                // Idempotent, and the since-UT is held rather than re-read so it
+                // cannot drift forward as the outage runs.
+                _courier.MarkSubjectLinkDown(
+                    node,
+                    _subjectDarkSinceUt.TryGetValue(node, out var darkSince) ? darkSince : ut);
+            }
+
             if (!wasConnected && connected)
             {
-                DropInBlackoutBacklog(node);
+                _subjectDarkSinceUt.Remove(node);
+                _courier.MarkSubjectLinkUp(node);
+                ReplayInBlackoutBacklog(node, ut);
             }
         }
 
@@ -4054,13 +4281,32 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Drop every buffered entry for subject <paramref name="node"/>'s topics
-        /// that was emitted with an infinite horizon (that subject's in-blackout
-        /// backlog): can never mature and must never surface post-reconnect.
-        /// Freeze-exempt entries (finite horizon) are retained. Other subjects'
-        /// buffers are untouched (Plan 2b per-subject reconnect).
+        /// Hand subject <paramref name="node"/>'s in-blackout recording to the
+        /// Courier as one dump transmitted from <paramref name="reacquiredAtUt"/>:
+        /// every buffered entry on that subject's topics carrying an infinite
+        /// horizon, which is exactly the set emitted while its link was down (see
+        /// <see cref="RevealDelayFor"/>). Freeze-exempt entries carry a finite
+        /// horizon and stay in the buffer to mature normally, as do the
+        /// pre-outage in-flight tail's. Other subjects' buffers are untouched
+        /// (Plan 2b per-subject reacquisition).
+        ///
+        /// <para>The dump's flight time is the light-time at the REACQUISITION
+        /// geometry, not at loss of signal, and this method does not compute it:
+        /// it hands the Courier the instant of transmission and the Courier
+        /// applies <c>DelayTo(vantage, node)</c> at that instant, which by now is
+        /// this tick's fresh value (the connectivity refresh runs after the delay
+        /// refresh, see <see cref="ProcessTick"/>). The two differ by however far
+        /// the craft moved during the outage, and telling them apart is the whole
+        /// point: a recording does not travel until the link is back.</para>
+        ///
+        /// <para>Delivered here rather than left to mature in the reveal buffer
+        /// because the buffer's per-entry horizon is a statement about ONE
+        /// sample's own light-time, and a dump is the opposite shape: many
+        /// samples, one transmission, one arrival. Encoding that as a re-stamped
+        /// per-entry delay would have every entry carry a different number
+        /// meaning the same instant.</para>
         /// </summary>
-        private void DropInBlackoutBacklog(string node)
+        private void ReplayInBlackoutBacklog(string node, double reacquiredAtUt)
         {
             foreach (var topic in new List<string>(_revealBuffer.Keys))
             {
@@ -4069,11 +4315,46 @@ namespace Sitrep.Host
                     continue;
                 }
                 var list = _revealBuffer[topic];
-                list.RemoveAll(entry => double.IsInfinity(entry.Delay));
+
+                var recorded = new List<ArchiveSample>();
+                var kept = 0;
+                for (var i = 0; i < list.Count; i++)
+                {
+                    var entry = list[i];
+                    if (double.IsInfinity(entry.Delay))
+                    {
+                        recorded.Add(new ArchiveSample(entry.Value, entry.Ut, _courier.CurrentEpoch));
+                    }
+                    else
+                    {
+                        list[kept++] = entry;
+                    }
+                }
+                if (kept < list.Count)
+                {
+                    list.RemoveRange(kept, list.Count - kept);
+                }
                 if (list.Count == 0)
                 {
                     _revealBuffer.Remove(topic);
                 }
+
+                if (recorded.Count == 0)
+                {
+                    continue;
+                }
+
+                _blackoutReplayBudget?.Record(recorded.Count, reacquiredAtUt);
+
+                double? gap = null;
+                if (_pendingGapSinceUt.TryGetValue(topic, out var gapSince))
+                {
+                    gap = gapSince;
+                    _pendingGapSinceUt.Remove(topic);
+                }
+                _lastRecordedUt[topic] = recorded[recorded.Count - 1].ValidAt;
+
+                _courier.ReplayRecorded(node, topic, recorded, reacquiredAtUt, gap);
             }
         }
 
@@ -4212,7 +4493,7 @@ namespace Sitrep.Host
                     // ones reporting connected:false / Silent / Lost).
                     if (horizonReached && (freezeExempt || ConnectivityAt(NodeFor(topic), entry.Ut)))
                     {
-                        _courier.Record(NodeFor(topic), topic, entry.Value, entry.Ut, DeliveryFor(topic), IsKeyframeFor(topic, entry.Value));
+                        RecordThrough(topic, entry.Value, entry.Ut);
                     }
                     else
                     {
@@ -4252,6 +4533,13 @@ namespace Sitrep.Host
                 // new one (the reveal-gate analogue of ResetTimeline dropping
                 // in-flight Courier deliveries: §7.3 Step 3, on-reset flush).
                 _revealBuffer.Clear();
+                // Including the recorder's own bookkeeping: a held recording
+                // describes the abandoned timeline, and both a "last delivered
+                // UT" and an owed gap are statements about a record that no
+                // longer exists. Carried forward, the first post-rewind sample
+                // on a topic would claim a hole back to a pre-rewind UT.
+                _lastRecordedUt.Clear();
+                _pendingGapSinceUt.Clear();
                 // The connectivity history's UTs belong to the abandoned
                 // timeline too: collapse it to the current link state seeded at
                 // -Inf so a post-rewind ConnectivityAt lookup fails soft to that
@@ -4367,8 +4655,9 @@ namespace Sitrep.Host
             // Freeze-on-disconnect (server-side enforcement): apply the
             // CONNECTED/DISCONNECTED authority BEFORE the channel loop (so this
             // tick's Emit buffering decisions see it) and before FlushReveal (so
-            // a down link withholds every buffered sample, and a reconnect drops
-            // the backlog). See RefreshConnectivityFromCapability.
+            // a down link withholds every buffered sample, and a reacquisition
+            // hands the held recording to the Courier in time for this tick's
+            // clock advance to schedule it). See RefreshConnectivityFromCapability.
             RefreshConnectivityFromCapability(tick);
 
             // Prune the pending-uplink roster BEFORE the channel loop below so
@@ -4843,7 +5132,17 @@ namespace Sitrep.Host
                         return;
                     }
 
-                    if (delivery == Delivery.ReliableOrdered)
+                    // A replayed sample rides the FIFO lane whatever the channel
+                    // declared, because the declaration is about LIVE state and
+                    // this is history. LossyLatest is correct for a state topic
+                    // in flight: only the newest reading matters, so the outbox
+                    // coalescing per topic loses nothing. A blackout dump is the
+                    // exact opposite shape, many readings each meaningful and
+                    // none superseded, so coalescing it deletes the outage window
+                    // one layer below the gate that just took care to keep it.
+                    // Measured: a 1200-sample dump arrived as 242 frames.
+                    if (delivery == Delivery.ReliableOrdered
+                        || streamData.Meta.Staleness == Staleness.Recorded)
                     {
                         // Reliable-ordered: rides the outbox's FIFO lane, never
                         // coalesced away: see Delivery's doc comment.

@@ -103,15 +103,19 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
  * back for `sampleRange` reads over the whole mission.
  *
  * Every production `TimelineStore` construction site (`TelemetryProvider`,
- * `ReplaySessionController.launch`) accepts the `ClientTimeline` default
- * retention of 300 seconds: fine for "keep the last 5 minutes of the live
- * stream", wrong for "graph a whole recorded flight". This helper is the
- * third, offline-range-read-only construction site: `retentionSeconds:
- * Number.POSITIVE_INFINITY` so `ClientTimeline.evictBelow` never throws
- * anything away (`latest.validAt - Infinity` clamps the eviction floor to
- * `-Infinity`, so every point stays `>=` it), fed by an `InstantClock` so the
- * whole fixture drains in one synchronous call instead of racing real or
- * scaled timers.
+ * `ReplaySessionController.launch`) accepts `ClientTimeline`'s defaults, which
+ * bound a LIVE stream: fine for "keep the recent past of the stream", wrong for
+ * "graph a whole recorded flight". This helper is the third,
+ * offline-range-read-only construction site, and it lifts BOTH bounds.
+ *
+ * `maxPoints: Number.POSITIVE_INFINITY` is the one that matters now: the point
+ * cap is the always-on bound, and at its 1500 default a flight of any length
+ * would be truncated to its last 1500 samples. `retentionSeconds:
+ * Number.POSITIVE_INFINITY` keeps the UT ceiling lifted too, which is
+ * belt-and-braces (the option is opt-in and this is the only site that sets
+ * it), stated rather than dropped so a future default cannot quietly re-arm it.
+ * Fed by an `InstantClock` so the whole fixture drains in one synchronous call
+ * instead of racing real or scaled timers.
  *
  * Frames travel through the *exact* production ingest path,
  * `ReplayTransport` → `TelemetryClient.handleMessage` → `store.ingest`: so
@@ -128,7 +132,10 @@ export class InstantClock implements Pick<Clock, "now" | "schedule"> {
 export function buildFullHistoryStore(fixture: ReplayFixture): TimelineStore {
   const clock = new ViewClock({ delaySeconds: () => 0, warpRate: () => 1 });
   const store = new TimelineStore(clock, {
-    timelineOptions: { retentionSeconds: Number.POSITIVE_INFINITY },
+    timelineOptions: {
+      retentionSeconds: Number.POSITIVE_INFINITY,
+      maxPoints: Number.POSITIVE_INFINITY,
+    },
     // Match the live store: resolve the injected dynamic namespaces as whole
     // topics so a full-history replay subscribes/samples the same wire strings.
     dynamicWholeTopicPrefixes: DYNAMIC_CARRIED_TOPIC_PREFIXES,

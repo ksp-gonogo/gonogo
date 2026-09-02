@@ -1036,6 +1036,7 @@ export type StreamStatusValue =
   | "held-stale"
   | "disconnected"
   | "last-before-blackout"
+  | "recorded"
   | "absent"
   | "resyncing";
 

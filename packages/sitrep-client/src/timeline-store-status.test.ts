@@ -102,6 +102,25 @@ describe("TimelineStore.sampleStatus (M2 T4: staleness/absence surface)", () => 
 
       expect(store.sampleStatus("vessel.target")).toBe("last-before-blackout");
     });
+
+    it("Staleness.Recorded on the latest point -> 'recorded', never 'live'", () => {
+      const clock = new ViewClock({
+        delaySeconds: () => 0,
+        warpRate: () => 1,
+      });
+      const store = new TimelineStore(clock);
+
+      // A sample off the subject's own blackout recorder: exact for UT 10, and
+      // emphatically not a live reading of the craft now. It used to arrive
+      // stamped Fresh, which read "live" and made an outage invisible.
+      store.ingest(
+        "vessel.target",
+        point(10, 1, { staleness: Staleness.Recorded }),
+      );
+      store.beginFrame();
+
+      expect(store.sampleStatus("vessel.target")).toBe("recorded");
+    });
   });
 
   describe("cold-start / post-reset resynchronizing", () => {

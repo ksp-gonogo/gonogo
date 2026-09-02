@@ -325,8 +325,8 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.DoesNotContain(duringOutage, f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0);
                 Assert.DoesNotContain(duringOutage, f => f.Topic == silenceTopic && f.Meta.ValidAt >= 2.0);
 
-                // Reconnect at UT 5: the point at which that subject's in-blackout
-                // backlog is dropped, and at which the UT-2 report's horizon is
+                // Reacquisition at UT 5: the point at which that subject's held
+                // recording is dumped, and at which the UT-2 report's horizon is
                 // finally reached.
                 engine.TickAndWait(5.0, ContactFixture(5.0, connected: true), Timeout);
                 engine.TickAndWait(6.0, ContactFixture(6.0, connected: true), Timeout);
@@ -334,18 +334,29 @@ namespace Sitrep.Host.IntegrationTests
                 var afterHorizon = await DrainAllStreamDataAsync(client, Quiet);
 
                 // The reports captured WHILE the craft was dark survived the
-                // freeze and the reconnect drop, and reached the client.
+                // freeze and reached the client, on their own last-known horizon.
                 Assert.Contains(
                     afterHorizon,
                     f => f.Topic == contactTopic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
                 Assert.Contains(
                     afterHorizon,
                     f => f.Topic == silenceTopic && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
-                // Surgical, not blanket: the SAME vessel's ordinary telemetry over
-                // the SAME window is still frozen and dropped, in both phases.
+                // Surgical, not blanket, and the distinction is still real now
+                // that the recorder replays rather than drops. The SAME vessel's
+                // ordinary telemetry over the SAME window is FROZEN throughout
+                // the outage: it reaches nobody while the craft is dark.
                 Assert.DoesNotContain(
-                    duringOutage.Concat(afterHorizon),
+                    duringOutage,
                     f => f.Topic == "fleet.q.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0);
+                // It arrives afterwards as the craft's RECORDING, which is the
+                // difference the exemption buys: the exempt reports get out on
+                // their own light-time as the outage runs, and everything else
+                // waits for the link and arrives labelled as a replay.
+                var orbitReplay = afterHorizon
+                    .Where(f => f.Topic == "fleet.q.orbit" && f.Meta.ValidAt >= 2.0 && f.Meta.ValidAt <= 4.0)
+                    .ToList();
+                Assert.NotEmpty(orbitReplay);
+                Assert.All(orbitReplay, f => Assert.Equal(Staleness.Recorded, f.Meta.Staleness));
             }
             finally
             {

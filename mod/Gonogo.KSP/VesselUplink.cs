@@ -155,14 +155,23 @@ namespace Gonogo.KSP
                 // time.warp -- see WarpState's doc comment for why this
                 // vessel-gated channel is still declared/registered here
                 // alongside the genuinely vessel-scoped ones.
-                Channel(VesselViewProvider.WarpTopic),
+                //
+                // NOT recordable, and the only two channels on this uplink that
+                // are not: warp rate and the calendar are stamped
+                // Source = "game" by BuildGameMeta, so neither was ever a
+                // reading taken aboard the craft, and a blackout recorder that
+                // dumped them would have the vessel report the player's own
+                // time-acceleration back to the player, hours late. They ride
+                // the delay clock because they arrive on the vessel snapshot,
+                // which is a routing fact, not a provenance one.
+                Channel(VesselViewProvider.WarpTopic, recordable: false),
                 // time.calendar -- the game's own day/year lengths, registered
                 // by this uplink for the same reason time.warp is: it rides the
                 // vessel snapshot. It MUST be declared here, not just wired in
                 // Register: AddChannelSource throws for an undeclared topic, and
                 // that throw takes the WHOLE uplink Unavailable, which is how
                 // every vessel.* channel once went silent on one missing line.
-                Channel(VesselViewProvider.CalendarTopic),
+                Channel(VesselViewProvider.CalendarTopic, recordable: false),
                 // ---- M3 R3 capture-adds -- same cadence/deadband posture
                 // as every other structured vessel.* channel above.
                 // vessel.dock: legitimately null when a present, active
@@ -535,9 +544,10 @@ namespace Gonogo.KSP
                 new List<PartActionsViewProvider.Publication>();
         }
 
-        private static ChannelDeclaration Channel(string topic, bool absenceIsData = false) => new ChannelDeclaration
+        private static ChannelDeclaration Channel(string topic, bool absenceIsData = false, bool recordable = true) => new ChannelDeclaration
         {
             Topic = topic,
+            Recordable = recordable,
             Delivery = Delivery.LossyLatest,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
             // Explicit retrofit, matching the DelayRole.Delayed default:

@@ -134,6 +134,29 @@ namespace Sitrep.Contract
         /// is not keyed by anything.</para>
         /// </summary>
         public bool PerVesselNode { get; set; } = false;
+
+        /// <summary>
+        /// Whether this channel's samples are held aboard the subject through a
+        /// loss of signal and replayed on reacquisition, rather than discarded.
+        ///
+        /// <para>Defaults to <c>true</c>, and the default is the reading of
+        /// <see cref="Delay"/> rather than a separate guess:
+        /// <see cref="DelayRole.Delayed"/> already asserts the channel carries a
+        /// flight-side fact that ground learns at light-time, and a flight-side
+        /// fact is by construction one the craft's own instruments produced and
+        /// could have written down. A <see cref="DelayRole.TrueNow"/> channel
+        /// never reaches the recorder at all (it is never withheld, so there is
+        /// nothing to hold), which is why this needs no coupling to that role.</para>
+        ///
+        /// <para>Set it <c>false</c> for a <see cref="DelayRole.Delayed"/> channel
+        /// whose value was never aboard: the session's warp rate, the game's
+        /// calendar, a roster of every other craft in the universe. Replaying
+        /// those would have the craft dump a recording of facts it could not
+        /// observe. A non-recording channel is not silent about the outage: its
+        /// first post-blackout sample carries <see cref="Meta.GapSinceUt"/>, so
+        /// the hole is stated rather than drawn through.</para>
+        /// </summary>
+        public bool Recordable { get; set; } = true;
     }
 
     /// <summary>

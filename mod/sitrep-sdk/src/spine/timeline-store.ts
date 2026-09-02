@@ -1297,6 +1297,7 @@ export class TimelineStore {
     if (point.meta.staleness === Staleness.LastBeforeBlackout) {
       return "last-before-blackout";
     }
+    if (point.meta.staleness === Staleness.Recorded) return "recorded";
     if (point.meta.staleness === Staleness.HeldStale) return "held-stale";
     if (!this.transportConnected) return "disconnected";
     return this.heartbeats.isOverdue(

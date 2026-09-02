@@ -68,6 +68,11 @@ export function worstSeverity(severities: readonly Severity[]): Severity {
  * table: a healthy stream is `nominal`, a cold/resyncing one `caution`, the two
  * staleness grades `warning`, and a lost transport or confirmed absence
  * `offline`.
+ *
+ * `recorded` is `info`, the only status that is not a degradation: the reading
+ * is exact, it simply describes an earlier instant because it was held aboard
+ * through a loss of signal. `warning` would say something is wrong with the
+ * value and nothing is.
  */
 export function severityFromStreamStatus(status: StreamStatusValue): Severity {
   switch (status) {
@@ -75,6 +80,8 @@ export function severityFromStreamStatus(status: StreamStatusValue): Severity {
       return "nominal";
     case "resyncing":
       return "caution";
+    case "recorded":
+      return "info";
     case "held-stale":
     case "last-before-blackout":
       return "warning";

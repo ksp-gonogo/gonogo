@@ -42,7 +42,8 @@ function Probe({ dataKey, windowSec }: { dataKey: string; windowSec: number }) {
   const range = useDataSeries("data", dataKey, windowSec);
   return (
     <div data-testid="range">
-      t:{range.t.join(",")}|v:{range.v.join(",")}
+      t:{range.t.join(",")}|v:{range.v.join(",")}|breaks:
+      {(range.breaks ?? []).join(",")}
     </div>
   );
 }
@@ -131,7 +132,7 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
 
     // Nothing arrived on the stream yet: empty, matching the legacy hook's
     // pre-backfill empty state.
-    expect(readProbe()).toBe("t:|v:");
+    expect(readProbe()).toBe("t:|v:|breaks:");
 
     // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated.
@@ -140,7 +141,7 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
     // Feeding the legacy source must have NO effect, the mapped+carried key
     // bypasses it entirely.
     act(() => legacySource.emit("vessel.orbit.sma", 999_999));
-    expect(readProbe()).toBe("t:|v:");
+    expect(readProbe()).toBe("t:|v:|breaks:");
 
     act(() => {
       fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 10 });
@@ -153,7 +154,7 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
     });
 
     await waitFor(() =>
-      expect(readProbe()).toBe("t:10,50,100|v:679400,679800,680000"),
+      expect(readProbe()).toBe("t:10,50,100|v:679400,679800,680000|breaks:"),
     );
     // Still never leaked the legacy value in.
     expect(readProbe()).not.toContain("999999");
@@ -179,7 +180,50 @@ describe("useDataSeries shim: mapped + carried key streams from the ClientTimeli
       fixture.transport.emit("vessel.orbit", { sma: 3 }, { validAt: 1000 });
     });
 
-    await waitFor(() => expect(readProbe()).toBe("t:950,1000|v:2,3"));
+    await waitFor(() => expect(readProbe()).toBe("t:950,1000|v:2,3|breaks:"));
+  });
+
+  /**
+   * A blackout hole reaches the chart as an INDEX, not as an absence to be
+   * inferred.
+   *
+   * `Meta.gapSinceUt` says "there is no data between that UT and this sample's
+   * own". The store has carried it since the recorder landed, and the series
+   * boundary threw it away: `SeriesRange` was `{t, v}` and nothing else, so a
+   * chart joined the last pre-outage reading straight to the first post-outage
+   * one and drew a line the operator cannot tell from data. This is the index
+   * that lets a chart break the path instead.
+   */
+  it("carries a gapSinceUt sample through as a break index", async () => {
+    const fixture = buildStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 100,
+    });
+    await buildLegacySource("vessel.orbit.sma");
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.sma" windowSec={300} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit("vessel.orbit", { sma: 1 }, { validAt: 10 });
+      fixture.transport.emit("vessel.orbit", { sma: 2 }, { validAt: 20 });
+      // The outage ran from UT 20 to UT 90 and this channel does not record,
+      // so the sample that resumes it names the hole it is on the far side of.
+      fixture.transport.emit(
+        "vessel.orbit",
+        { sma: 3 },
+        { validAt: 90, gapSinceUt: 20 },
+      );
+      fixture.transport.emit("vessel.orbit", { sma: 4 }, { validAt: 100 });
+    });
+
+    // Index 2 is the resuming sample: no data between t[1] (20) and t[2] (90).
+    await waitFor(() =>
+      expect(readProbe()).toBe("t:10,20,90,100|v:1,2,3,4|breaks:2"),
+    );
   });
 });
 
@@ -220,7 +264,7 @@ describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series compu
       </fixture.Provider>,
     );
 
-    expect(readProbe()).toBe("t:|v:");
+    expect(readProbe()).toBe("t:|v:|breaks:");
     // Real subscriptions must have happened for StubTransport (subscription-
     // gated) to deliver at all.
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
@@ -264,7 +308,9 @@ describe("useDataSeries shim: a DERIVED mapped topic streams a REAL series compu
       );
     });
 
-    await waitFor(() => expect(readProbe()).toBe("t:10,50,100|v:100,200,300"));
+    await waitFor(() =>
+      expect(readProbe()).toBe("t:10,50,100|v:100,200,300|breaks:"),
+    );
   });
 });
 
@@ -296,7 +342,7 @@ describe("useDataSeries: a MODERN path streams, so a migrated widget can plot it
     expect(fixture.transport.isSubscribed("vessel.orbit")).toBe(true);
 
     act(() => legacySource.emit("vessel.orbit.sma", 999_999));
-    expect(readProbe()).toBe("t:|v:");
+    expect(readProbe()).toBe("t:|v:|breaks:");
 
     act(() => {
       fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 10 });
@@ -307,7 +353,9 @@ describe("useDataSeries: a MODERN path streams, so a migrated widget can plot it
       );
     });
 
-    await waitFor(() => expect(readProbe()).toBe("t:10,100|v:679400,680000"));
+    await waitFor(() =>
+      expect(readProbe()).toBe("t:10,100|v:679400,680000|breaks:"),
+    );
     expect(readProbe()).not.toContain("999999");
   });
 
@@ -364,7 +412,9 @@ describe("useDataSeries: a MODERN path streams, so a migrated widget can plot it
 
     // The same replayed series the legacy `v.altitude` key produces above:
     // the spelling changed, the values did not.
-    await waitFor(() => expect(readProbe()).toBe("t:10,50,100|v:100,200,300"));
+    await waitFor(() =>
+      expect(readProbe()).toBe("t:10,50,100|v:100,200,300|breaks:"),
+    );
   });
 });
 

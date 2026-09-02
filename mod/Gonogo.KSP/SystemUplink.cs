@@ -105,6 +105,13 @@ namespace Gonogo.KSP
                     // of OTHER vessels is comms-derived (the same class as
                     // vessel.* telemetry), so this rides the delay clock.
                     Delay = DelayRole.Delayed,
+                    // Not recordable. It is comms-derived from the NETWORK's
+                    // view of every craft, not an instrument reading the active
+                    // vessel took: a craft out of contact is by definition not
+                    // hearing the rest of the fleet either, so there is nothing
+                    // for it to have written down. Its first post-blackout
+                    // sample carries the outage as a Meta.GapSinceUt instead.
+                    Recordable = false,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
                 // target.available -- everything the active vessel could target
@@ -119,6 +126,10 @@ namespace Gonogo.KSP
                     Topic = SystemViewProvider.TargetAvailableTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
+                    // Not recordable, same reasoning as system.vessels above:
+                    // it is the network's roster of what could be targeted, not
+                    // an onboard reading.
+                    Recordable = false,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
                 // system.frame -- what frame the game's navigation view is in.

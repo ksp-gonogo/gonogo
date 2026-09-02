@@ -657,6 +657,7 @@
     "Meta": {
       "active": "flag",
       "deliveredAt": "ut",
+      "gapSinceUt": "ut",
       "quality": "enum",
       "seq": "id",
       "source": "id",

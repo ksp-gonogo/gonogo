@@ -63,6 +63,26 @@ export interface Sample<V = unknown> {
 export interface SeriesRange<V = unknown> {
   t: number[];
   v: V[];
+
+  /**
+   * Indices at which a KNOWN break precedes the point: `breaks: [7]` means
+   * there is no data between `t[6]` and `t[7]`, and it is missing rather than
+   * simply not sampled. Absent or empty means the series is continuous.
+   *
+   * A chart must not join across one. Every consumer of this type before now
+   * assumed `t`/`v` were continuous, which was safe only while nothing could
+   * produce a hole: a stream's samples arrived one at a time and a stored
+   * flight was recorded start to finish. The blackout recorder produces holes
+   * (`Meta.gapSinceUt`), and without this index the store carried the
+   * discontinuity and the series boundary threw it away, so a chart drew a
+   * straight line through an outage it had no readings for. A line the operator
+   * cannot tell from data is worse than a visible break.
+   *
+   * Indices rather than a parallel per-point flag array so the continuous case
+   * (very nearly all of them) costs one empty array rather than one boolean per
+   * sample, and so a consumer that ignores the field behaves exactly as it did.
+   */
+  breaks?: number[];
 }
 
 /**

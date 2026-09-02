@@ -262,6 +262,19 @@ export function useDataSeries(
     if (!points || points.length === 0) return EMPTY;
 
     const nextT = points.map((p) => p.validAt);
+    // Known holes, carried out of the store instead of discarded at this
+    // boundary. `meta.gapSinceUt` is the server saying "there is no data
+    // between that UT and this sample's own", and until this line it reached
+    // the store and stopped: `SeriesRange` was `{t, v}`, so every chart in the
+    // tree joined across an outage it had no readings for. Index rather than UT
+    // because a chart splits its path by position, not by time.
+    const nextBreaks: number[] = [];
+    for (let i = 0; i < points.length; i++) {
+      // The FIRST point cannot open a break in the drawn series: there is no
+      // segment before it to break. The hole is real, and it is off the left
+      // edge of the window, where a chart already draws nothing.
+      if (i > 0 && points[i].meta.gapSinceUt != null) nextBreaks.push(i);
+    }
     // Magnitudes: a series feeds a sparkline and a graph axis, which plot
     // numbers. A declared quantity arrives wrapped from the decode, so
     // without this every stream-backed chart drew nothing.
@@ -280,14 +293,21 @@ export function useDataSeries(
     // changed" here, cheap at sparkline/window sizes, and reuses the last
     // built `SeriesRange`, the same referential-stability contract the
     // legacy path gets for free from its mutate-in-place buffer.
+    // `breaks` joins the equality check for the same reason `t` and `v` are in
+    // it: a window can slide so that a hole's opening sample changes index
+    // while every t and v stays put, and returning the memoised range there
+    // would leave a chart drawing across a hole it had already been told about.
     const prev = lastSnapshotRef.current;
+    const prevBreaks = prev.breaks ?? [];
     const unchanged =
       prev.t.length === nextT.length &&
       prev.t.every((t, i) => t === nextT[i]) &&
-      prev.v.every((v, i) => Object.is(v, nextV[i]));
+      prev.v.every((v, i) => Object.is(v, nextV[i])) &&
+      prevBreaks.length === nextBreaks.length &&
+      prevBreaks.every((b, i) => b === nextBreaks[i]);
     if (unchanged) return prev;
 
-    lastSnapshotRef.current = { t: nextT, v: nextV };
+    lastSnapshotRef.current = { t: nextT, v: nextV, breaks: nextBreaks };
     return lastSnapshotRef.current;
   }, [store, topic, windowSec]);
 

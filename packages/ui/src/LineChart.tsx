@@ -24,11 +24,19 @@ import {
  *
  * `y2` is only consulted for `type: "band"` series, it carries the upper
  * bound paired against `y` (the lower bound). Other series types ignore it.
+ *
+ * `breaks` names the indices that OPEN a known hole: no data between the
+ * previous sample and that one, and missing rather than merely not sampled.
+ * The `line` and `step` builders start a fresh subpath at each, so the trace
+ * shows the gap. Ignored by `scatter` (which joins nothing anyway) and by
+ * `band` (whose polygon would need its own split; no band series carries a
+ * hole today, and shading across one would be a worse lie than a line).
  */
 export interface ChartSeriesData {
   x: number[];
   y: number[];
   y2?: number[];
+  breaks?: number[];
 }
 
 /**
@@ -492,7 +500,7 @@ export function LineChart({
           kind: "stroked" as const,
           color: s.color,
           dashed: s.dashed ?? false,
-          d: builder(s.data.x, s.data.y, scaleX, scaleY),
+          d: builder(s.data.x, s.data.y, scaleX, scaleY, s.data.breaks),
         };
       });
   }, [series, scaleX, scaleYPrimary, scaleYSecondary]);

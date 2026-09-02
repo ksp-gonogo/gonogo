@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Sitrep.Contract;
 using Sitrep.Host;
 using Xunit;
 using static Sitrep.Host.IntegrationTests.WsTestHarness;
@@ -82,8 +83,16 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The FREEZE still holds last-known through the ledger, and the held
+        /// window is now REPLAYED on reacquisition rather than dropped: this
+        /// test asserted the drop, which was the policy at the time and is not
+        /// any more (see <c>BlackoutRecorderTests</c>). What it is here to prove
+        /// is unchanged: the freeze is the ledger's, not a delay magnitude's, so
+        /// at delay 0 a disconnected subject withholds anyway.
+        /// </summary>
         [Fact]
-        public async Task FreezeHoldsLastKnownAndDropsBacklogThroughTheLedger()
+        public async Task FreezeHoldsLastKnownAndReplaysTheBacklogThroughTheLedger()
         {
             using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
             engine.RegisterUplink(new FreezeGateTestUplink());
@@ -102,12 +111,19 @@ namespace Sitrep.Host.IntegrationTests
                 var duringOutage = await DrainAllStreamDataAsync(client, Quiet);
                 Assert.DoesNotContain(duringOutage, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
 
-                // Reconnect at UT 4: backlog dropped, resume from the reconnect moment.
+                // Reacquisition at UT 4: the held recording is dumped (delay 0,
+                // so it lands on this same tick) and live delivery resumes.
                 engine.TickAndWait(4.0, FreezeGateTestUplink.Snapshot(4.0, connected: true, delay: 0.0, delayed: 99.0), Timeout);
                 var afterReconnect = await DrainAllStreamDataAsync(client, Quiet);
                 var delivered = afterReconnect.Where(f => f.Topic == FreezeGateTestUplink.DelayedTopic).ToList();
-                Assert.DoesNotContain(delivered, f => Convert.ToDouble(f.Payload) == 10.0); // backlog dropped
-                Assert.Contains(delivered, f => Convert.ToDouble(f.Payload) == 99.0);       // resumed
+                // The recording arrives, labelled as a recording.
+                Assert.Contains(
+                    delivered,
+                    f => Convert.ToDouble(f.Payload) == 10.0 && f.Meta.Staleness == Staleness.Recorded);
+                // ...and the live value after it arrives as live.
+                Assert.Contains(
+                    delivered,
+                    f => Convert.ToDouble(f.Payload) == 99.0 && f.Meta.Staleness == Staleness.Fresh);
             }
             finally
             {

@@ -28,6 +28,12 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
       return "STALE";
     case "last-before-blackout":
       return "STALE";
+    case "recorded":
+      // Its own word, not "STALE". A recorded reading is EXACT for the instant
+      // it names; calling it stale would claim uncertainty the value does not
+      // have, and calling it nothing would read as live. "RECORDED" is what the
+      // operator needs to know: this came off the craft, not off the link.
+      return "RECORDED";
     case "disconnected":
       return "OFFLINE";
     case "resyncing":

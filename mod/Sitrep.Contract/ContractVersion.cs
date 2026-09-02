@@ -1412,7 +1412,23 @@ namespace Sitrep.Contract
         /// was eliminated by test or measurement without narrowing anything,
         /// because the counters that separate the two cases were internal to the
         /// host.</para>
+        ///
+        /// <para><b>Bumped 6 -&gt; 7: an outage window survives it.</b>
+        /// <see cref="Staleness"/> gains <c>Recorded</c> and <see cref="Meta"/>
+        /// gains <see cref="Meta.GapSinceUt"/>. Appending an enum member and
+        /// adding a nullable field are both additive, nothing is removed or
+        /// retyped, so an Uplink built against 14.6 is unaffected and the frozen
+        /// Major-14 floor is NOT re-frozen.</para>
+        ///
+        /// <para>They exist because the wire had no way to say "this reading is
+        /// exact, and it is not now". A blacked-out craft's telemetry used to be
+        /// DELETED on reacquisition and the first post-outage sample stamped
+        /// <c>Fresh</c>, so an outage left no trace at all and everything read
+        /// normal instantly. Holding the window instead needs two words a client
+        /// did not have: that a delivered sample came off the subject's own
+        /// recorder rather than the live link, and that a span of it is missing
+        /// and must be drawn as a break rather than joined across.</para>
         /// </remarks>
-        public const int Minor = 6;
+        public const int Minor = 7;
     }
 }

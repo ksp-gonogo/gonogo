@@ -691,6 +691,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "Meta": {
     active: "flag",
     deliveredAt: "ut",
+    gapSinceUt: "ut",
     quality: "enum",
     seq: "id",
     source: "id",

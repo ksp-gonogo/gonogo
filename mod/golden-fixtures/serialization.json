@@ -15,6 +15,11 @@
     "json": "{\"source\":\"vessel-1\",\"validAt\":\"NaN\",\"seq\":42,\"deliveredAt\":\"-Infinity\",\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":2,\"timelineEpoch\":2}"
   },
   {
+    "name": "meta-recorded-with-gap",
+    "kind": "meta",
+    "json": "{\"source\":\"fleet.9f2c\",\"validAt\":4210.5,\"seq\":77,\"deliveredAt\":5400.25,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":3,\"timelineEpoch\":1,\"gapSinceUt\":3980}"
+  },
+  {
     "name": "stream-data-number",
     "kind": "streamData",
     "json": "{\"type\":\"stream-data\",\"topic\":\"vessel.altitude\",\"payload\":70432.125,\"meta\":{\"source\":\"vessel-1\",\"validAt\":120.5,\"seq\":7,\"deliveredAt\":122.75,\"vantage\":\"KSC\",\"quality\":0,\"active\":true,\"staleness\":0,\"timelineEpoch\":0}}"

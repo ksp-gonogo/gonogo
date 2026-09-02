@@ -10,11 +10,37 @@ namespace Sitrep.Contract;
 [SitrepContract]
 public enum Quality { OnRails, Loaded }
 
+/// <summary>
+/// How current a delivered sample is, as the SERVER knows it (a client infers
+/// the rest from its own heartbeat tracking).
+///
+/// <para><see cref="Fresh"/> is a sample delivered on its own schedule.
+/// <see cref="HeldStale"/> and <see cref="LastBeforeBlackout"/> are catch-up
+/// grades for a late or reconnecting subscriber.
+/// <see cref="Recorded"/> is different in kind from all three: the sample is
+/// EXACT as of its own <see cref="Meta.ValidAt"/>, it simply did not travel at
+/// the time it was taken. It was held aboard through a loss of signal and dumped
+/// on acquisition, so it arrives long after the instant it describes, and its
+/// <see cref="Meta.DeliveredAt"/> is the real arrival, not
+/// <c>validAt + light-time</c>.</para>
+/// </summary>
 #if SITREP_CODEGEN
 [TsEnum]
 #endif
 [SitrepContract]
-public enum Staleness { Fresh, HeldStale, LastBeforeBlackout }
+public enum Staleness
+{
+    Fresh,
+    HeldStale,
+    LastBeforeBlackout,
+
+    /// <summary>
+    /// Recovered from the subject's own recorder: taken while it was out of
+    /// contact, replayed on reacquisition. Precisely dated and never a guess,
+    /// but not a live reading, and never the state of the subject NOW.
+    /// </summary>
+    Recorded,
+}
 
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -81,6 +107,27 @@ public class Meta
     /// </summary>
     [SitrepUnit(Units.Id)]
     public int TimelineEpoch { get; set; }
+
+    /// <summary>
+    /// The <see cref="ValidAt"/> of the last sample on this topic that precedes
+    /// a KNOWN break in the record, set only on the first sample delivered after
+    /// that break and <c>null</c> on every other sample.
+    ///
+    /// <para>Non-null is a positive claim, not an absence: data existed between
+    /// this UT and the carrying sample's own <see cref="ValidAt"/>, and it is
+    /// gone. Two things produce one. A blackout recording that overran its
+    /// storage bound had its oldest span dropped, so the replay resumes mid-hole.
+    /// A channel that does not record at all (a session fact, never aboard the
+    /// craft: see <c>ChannelDeclaration.Recordable</c>) has no replay, so its
+    /// first post-blackout sample carries the whole outage as the gap.</para>
+    ///
+    /// <para>A client draws it as a break rather than joining across it. Without
+    /// it a chart interpolates a straight line through an outage it has no
+    /// readings for, which is the one thing an operator must not be shown: the
+    /// line looks like data.</para>
+    /// </summary>
+    [SitrepUnit(Units.UniversalTime)]
+    public double? GapSinceUt { get; set; }
 }
 
 /// <summary>

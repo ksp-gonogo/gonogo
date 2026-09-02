@@ -8,6 +8,9 @@ const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
   live: null,
   "held-stale": "STALE",
   "last-before-blackout": "STALE",
+  // Its own word: a replayed recording is exact for the instant it names, so
+  // "STALE" would claim uncertainty the value does not have.
+  recorded: "RECORDED",
   disconnected: "OFFLINE",
   resyncing: "SYNCING",
   absent: "NO DATA",

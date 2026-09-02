@@ -140,6 +140,25 @@ const metaNonFinite: Meta = {
   timelineEpoch: 2,
 };
 
+// A sample off a blackout recorder, and the only vector carrying
+// `gapSinceUt`: the field is OPTIONAL on the envelope and omitted on every
+// other message here, which is exactly the shape the C# writer has to match
+// (it omits the key rather than writing an explicit null). Both halves of the
+// contract-14.7 addition ride this one vector, the `Recorded` staleness and the
+// gap, because they only ever occur together.
+const metaRecorded: Meta = {
+  source: "fleet.9f2c",
+  validAt: 4210.5,
+  seq: 77,
+  deliveredAt: 5400.25,
+  vantage: "KSC",
+  quality: Quality.OnRails,
+  active: true,
+  staleness: Staleness.Recorded,
+  timelineEpoch: 1,
+  gapSinceUt: 3980,
+};
+
 const streamDataNumber: StreamData<number> = {
   type: "stream-data",
   topic: "vessel.altitude",
@@ -221,6 +240,11 @@ const vectors: Vector[] = [
     name: "meta-nan-infinity",
     kind: "meta",
     json: safeStringify(metaNonFinite),
+  },
+  {
+    name: "meta-recorded-with-gap",
+    kind: "meta",
+    json: safeStringify(metaRecorded),
   },
   {
     name: "stream-data-number",
