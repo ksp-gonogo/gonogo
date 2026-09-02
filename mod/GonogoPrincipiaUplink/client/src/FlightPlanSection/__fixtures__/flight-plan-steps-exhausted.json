@@ -50,7 +50,14 @@
           "planIntegrated": false,
           "statusError": 8,
           "statusMessage": "max steps reached",
-          "firstFutureBurnIndex": 1
+          "firstFutureBurnIndex": 1,
+          "writeSurface": {
+            "available": true,
+            "armed": true,
+            "reason": null,
+            "burnLayoutVerified": true,
+            "integratorLayoutVerified": true
+          }
         }
       }
     ]
