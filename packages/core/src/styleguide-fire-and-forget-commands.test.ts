@@ -1,5 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { dirname } from "node:path";
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
@@ -61,17 +63,17 @@ import { describe, expect, it } from "vitest";
 const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 3,
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 6,
-  "mod/GonogoKerbalismUplink/client/src/ScienceFileManager/index.tsx": 5,
   "mod/GonogoMechJebUplink/client/src/MechJeb/index.tsx": 3,
   "packages/components/src/ActionGroup/index.tsx": 1,
-  "packages/components/src/AstronautComplex/index.tsx": 3,
-  "packages/components/src/ContractManager/index.tsx": 3,
-  "packages/components/src/Experiments/index.tsx": 2,
+  "packages/components/src/AstronautComplex/index.tsx": 1,
   // 7 -> 8 on 2026-08-21: `ksp.launch` moved off the deleted `useExecuteAction`,
   // whose own `result.then(()=>undefined, ()=>undefined)` swallowed the refusal
   // before any call site could see it. The blind dispatch is not new, only
   // countable: launch has six refusal arms and showed none of them either way.
-  "packages/components/src/LaunchDirector/index.tsx": 8,
+  // 8 -> 1: seven of them answered, launch's six refusal arms included. The
+  // number was never lowered as they were, so the widget that prompted the note
+  // above had been carrying the queue's largest single allowance for weeks.
+  "packages/components/src/LaunchDirector/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/index.tsx": 1,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 1,
   // 6 -> 7 on 2026-08-21: the three trim actions moved off the deleted
@@ -79,10 +81,7 @@ const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
   // note as LaunchDirector above: the swallow moved into view, it did not appear.
   "packages/components/src/Navball/index.tsx": 7,
   "packages/components/src/ShipMap/index.tsx": 1,
-  "packages/components/src/SpaceCenterStatus/index.tsx": 1,
-  "packages/components/src/Strategies/index.tsx": 2,
   "packages/components/src/TargetPicker/index.tsx": 5,
-  "packages/components/src/TechTree/index.tsx": 1,
   "packages/components/src/WarpControl/index.tsx": 2,
 };
 
@@ -91,10 +90,15 @@ const FIRE_AND_FORGET_BUDGET: Record<string, number> = {
  * moved root, a renamed extension) every count reads zero and this budget
  * reports a clean codebase while checking nothing.
  *
- * Deliberately well under the seeded 19 files, so ordinary shrinking never
- * trips it and only a broken scan does.
+ * Held well under the live file count, so ordinary shrinking never trips it and
+ * only a broken scan does. That is a moving target and the reason this is not
+ * simply the current number: seeded at 12 against 19 files, it was still 12
+ * when the list reached 12, one fix away from failing the build for doing
+ * exactly what the budget asks. A floor that has caught up with the count has
+ * turned from a guard into a tripwire, so it drops with the list rather than
+ * being left to meet it.
  */
-const MINIMUM_FILES_EXPECTED = 12;
+const MINIMUM_FILES_EXPECTED = 8;
 
 const SEARCH_GLOBS = ["*.ts", "*.tsx"];
 
@@ -176,6 +180,55 @@ describe("the fire-and-forget command budget only shrinks", () => {
 
   it("is actually looking at the codebase", () => {
     expect(counts.size).toBeGreaterThanOrEqual(MINIMUM_FILES_EXPECTED);
+  });
+
+  it("can see a violation (planted)", () => {
+    // The file floor catches a walk that stops finding files. It cannot catch a
+    // walk that finds them and a PATTERN that stops matching, and this one is
+    // POSIX ERE with a documented footgun sitting in it: the header warns that a
+    // `]` added anywhere but first in the bracket class ends the class early and
+    // silently matches nothing from then on.
+    //
+    // Driven through `git grep` rather than a JS RegExp so the engine under test
+    // is the one that runs, and from a temp dir outside any repository because
+    // `--no-index` refuses a path outside the repo it finds from cwd.
+    const dir = mkdtempSync(join(tmpdir(), "faf-ratchet-"));
+    try {
+      writeFileSync(
+        join(dir, "p.ts"),
+        [
+          "void cmd.send({});", // the plain handle
+          "void hireCmd.send(args);", // a suffixed one
+          "void this.engage.send();", // a dotted receiver
+          "void land.send(x);", // a handle named nothing like a command
+        ].join("\n"),
+      );
+      const hits = execFileSync(
+        "git",
+        ["grep", "--no-index", "-nE", FIRE_AND_FORGET, "--", "p.ts"],
+        { cwd: dir, encoding: "utf8" },
+      )
+        .trim()
+        .split("\n");
+      // Four, including the two receiver shapes an earlier suffix-matching pass
+      // missed: the header records it walking past four files for that reason.
+      expect(hits).toHaveLength(4);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("has no entry for a path that no longer exists", () => {
+    // An entry for a deleted file can never be spent, so it never trips the
+    // over-budget arm below and no run ever mentions it. The magnitude budget
+    // was carrying one of these for a widget directory that had been deleted
+    // outright; this list is clean today and this is what keeps it so.
+    const missing = Object.keys(FIRE_AND_FORGET_BUDGET)
+      .filter((rel) => !existsSync(join(root, rel)))
+      .sort();
+    expect(missing, "budgeted paths that no longer exist, delete them").toEqual(
+      [],
+    );
   });
 
   it("has no file over its budget, and no unbudgeted file dispatching blind", () => {

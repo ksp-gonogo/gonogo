@@ -303,7 +303,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/ShipMap/index.tsx": 2,
     "packages/components/src/SpaceCenterStatus/index.tsx": 1,
     "packages/components/src/Targeting/index.tsx": 2,
-    "packages/components/src/TechTree/index.tsx": 1,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/InputTester/index.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,

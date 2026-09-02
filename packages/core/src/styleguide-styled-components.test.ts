@@ -60,7 +60,13 @@ const MOD_CLIENT_SRC_SUFFIX = ["client", "src"];
 // their last styled-components import at some earlier point and the number
 // was never lowered. The ratchet had been printing its "can be lowered" nag
 // for that whole time.
-const STYLED_COMPONENTS_IMPORT_BASELINE = 71;
+// 71 -> 41: the same staleness again, and thirty deep. Growth throws; shrinkage
+// only warns, into a stream vitest suppresses for a passing test, so the nag
+// above was printed on every green run for as long as it took thirty imports to
+// disappear and nobody heard it. A baseline thirty above its live count is
+// permission for thirty new ones, which is a gate that has stopped gating while
+// still reporting green. Measured 41 lines in 41 files across 787 scanned files.
+const STYLED_COMPONENTS_IMPORT_BASELINE = 41;
 
 const STYLED_IMPORT_RE = /(?:from\s+|require\()\s*["']styled-components["']/;
 
@@ -87,15 +93,19 @@ function isScannedBundleFile(rel: string): boolean {
 // with dist/ output and temp fixtures other packages write during a
 // concurrent `turbo test`, making the count flicker; the git index is stable
 // for the duration of a test run.
-function collectOffenders(): { file: string; line: number }[] {
-  const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-  const tracked = execFileSync(
+function scannedFiles(root: string): string[] {
+  return execFileSync(
     "git",
     ["ls-files", "-z", "--", "packages/components/src", "mod"],
     { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
   )
     .split("\0")
     .filter(isScannedBundleFile);
+}
+
+function collectOffenders(): { file: string; line: number }[] {
+  const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+  const tracked = scannedFiles(root);
   const offenders: { file: string; line: number }[] = [];
   for (const rel of tracked) {
     let lines: string[];
@@ -113,7 +123,55 @@ function collectOffenders(): { file: string; line: number }[] {
   return offenders;
 }
 
+/**
+ * A guard on the guard, the two the sibling budgets
+ * (`styleguide-magnitude-budget`, `styleguide-fire-and-forget-commands`) carry
+ * and this one did not.
+ *
+ * A ratchet whose scan matches nothing counts zero and reads as a clean tree,
+ * and this one is a whole baseline BELOW its recorded number rather than above
+ * it, so a broken scan lands in the direction that passes. The two failure
+ * modes are separate and neither implies the other: the file walk can stop
+ * finding files (a moved root, a renamed extension), or the walk can be fine
+ * and the regex stop matching. So one check per failure.
+ *
+ * Deliberately far under the ~780 files the walk currently reaches, so ordinary
+ * churn never trips it and only a broken enumeration does.
+ */
+const MINIMUM_FILES_SCANNED = 300;
+
 describe("design-system: styled-components imports outside ui-kit", () => {
+  it("is actually looking at the codebase", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    expect(scannedFiles(root).length).toBeGreaterThanOrEqual(
+      MINIMUM_FILES_SCANNED,
+    );
+  });
+
+  it("can see a violation (planted)", () => {
+    // The regex half. `git grep -E` has no `\b` and this one is a JS RegExp,
+    // but the same class of silent-zero applies: a pattern edited to stop
+    // matching reports a migrated tree rather than a broken check. Every
+    // spelling here is one the scan is claimed to catch.
+    for (const planted of [
+      'import styled from "styled-components";',
+      "import styled from 'styled-components';",
+      'import styled, { css, keyframes } from "styled-components";',
+      'const styled = require("styled-components");',
+      'export { x } from "styled-components";',
+    ]) {
+      expect(STYLED_IMPORT_RE.test(planted)).toBe(true);
+    }
+    // And does not fire on prose about it, which is what a bare
+    // /styled-components/ would have done to every comment in this file.
+    for (const innocent of [
+      "// migrated off styled-components in favour of ui-kit",
+      'import { Stack } from "@ksp-gonogo/ui-kit";',
+    ]) {
+      expect(STYLED_IMPORT_RE.test(innocent)).toBe(false);
+    }
+  });
+
   it("does not exceed the ratchet baseline", () => {
     const offenders = collectOffenders();
     if (offenders.length > STYLED_COMPONENTS_IMPORT_BASELINE) {
