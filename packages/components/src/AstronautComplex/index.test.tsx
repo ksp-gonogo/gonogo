@@ -1054,6 +1054,40 @@ describe("AstronautComplexComponent", () => {
   });
 
   /**
+   * A claimed slot is not the same as a filled one, and the tab strip cannot
+   * tell them apart: `useSlotBound` counts REGISTRATIONS, so an Uplink whose
+   * augments all decide they have nothing to say still grows the tab. That is
+   * the normal case rather than an edge one, and it is what a career Uplink
+   * installed on a stock save looks like from here: every augment guards on its
+   * own domain being present and returns null, and the operator gets a tab with
+   * an empty rectangle behind it. Applicants and Active both say when they are
+   * empty and this said nothing at all.
+   */
+  it("says the tab is empty rather than showing a blank rectangle", async () => {
+    registerAugment({
+      id: "test-training-tab-silent",
+      augments: "astronaut-complex.training",
+      component: () => null,
+    });
+
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, CREW_ROSTER);
+    });
+
+    await user.click(await screen.findByRole("tab", { name: "Training" }));
+    expect(await screen.findByText("No training right now")).toBeVisible();
+  });
+
+  /**
    * Nothing under stock, which has no career model with an opinion. The strip is
    * three cells wide and stays that way, so an empty slot costs no pixels and no
    * empty cell.

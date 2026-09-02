@@ -19,6 +19,7 @@ import {
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  AutoEmptyState,
   Badge,
   Card,
   Cluster,
@@ -529,10 +530,34 @@ function AstronautComplexComponent(
                       id: "training",
                       label: "Training",
                       content: (
-                        <AugmentSlot
-                          name={ASTRONAUT_COMPLEX_TRAINING_SLOT}
-                          props={NO_SEGMENT_PROPS}
-                        />
+                        /* The same rhythm the other two tabs get from `List`,
+                           and the empty state they both have.
+
+                           A slot renders one element per augment, so a career
+                           overhaul contributing two sections had them butted
+                           edge to edge with nothing between: one card ending and
+                           the next section's title beginning on the following
+                           line. Applicants and Active space their rows and this
+                           did not, which is the whole of why this tab read as
+                           the odd one out.
+
+                           And a claimed slot is not a filled one. `useSlotBound`
+                           counts REGISTRATIONS, so an Uplink whose augments all
+                           decide they have nothing to say still grows the tab,
+                           which is exactly what a career Uplink installed on a
+                           stock save does. `AutoEmptyState` is the only thing
+                           here that can tell: the fallback hides itself the
+                           moment the content region has a child, so the host
+                           never has to introspect augments it does not own. */
+                        <AutoEmptyState
+                          fallback={<Empty>No training right now</Empty>}
+                          gap="lg"
+                        >
+                          <AugmentSlot
+                            name={ASTRONAUT_COMPLEX_TRAINING_SLOT}
+                            props={NO_SEGMENT_PROPS}
+                          />
+                        </AutoEmptyState>
                       ),
                     },
                   ]
