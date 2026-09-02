@@ -219,7 +219,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 9 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
-| `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 4 |  |
+| `rp1-program-detail` | `strategies.screen-body` | `rp1.available`, `rp1.programs`, `rp1.programSlots`, `rp1.programFundingCurves`, `rp1.confidence`, `career.status` | only while `rp1` | 5 |  |
 | `rp1-program-status` | `career-economy.sections` | – |  | 1 |  |
 | `rp1-research-queue` | `tech-tree.sections` | – |  | 1 |  |
 | `rp1-vehicle-assembly-build-cost` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
@@ -228,9 +228,9 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-vehicle-assembly-warehouse` | `rp1-vehicle-assembly.sections` | – |  | 1 |  |
 | `rp1-warp-targets` | `warp-control.stepper` | – |  | 2 |  |
 
-![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
+![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own: a retirement that can still be extended, a course being worked and a course nobody has started, and mission training lapsing before either finishes](docs/assets/crew-schedule-three-states--default.png)
 
-![The three training commands on the nauts they are about: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked](docs/assets/crew-training-both-ways-out--default.png)
+![The three training commands on the nauts they are about, sharing one card with the dates they move: a course two kerbals share, offering the cancel that ends it for both and the removal that takes one of them off, and an idle kerbal's picker resting on the first training the career has unlocked](docs/assets/crew-training-both-ways-out--default.png)
 
 ![Both training refusals: an enrolment a naut's row cannot fill because the course seats two, and a removal RP-1 withholds on a course that would be left below its minimum, with cancelling the whole course still open](docs/assets/crew-training-refused--default.png)
 
@@ -250,7 +250,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The new-complex form open at its defaults: every field priced, the tonnage limit stating the renovation range it fixes for life, and a 26,453f quote against a 400f balance that slows the build rather than refusing it](docs/assets/complexes-new--default.png)
 
-![A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; the other pad still shows the closed one-button state this costs when nobody is renaming](docs/assets/complexes-rename--default.png)
+![A pad rename open on LP-1, showing the field holding the current name and the press refused as unchanged; LP-1B still shows the closed one-button state, now the same bordered control as the Dismantle beside it](docs/assets/complexes-rename--default.png)
 
 ![LC-1 rushing with its detail open, so the terms in force and the way out of rush mode are both on screen; LC-2 stays collapsed, which is what a complex costs to read when nobody is asking about it](docs/assets/complexes-rushing--default.png)
 
@@ -258,7 +258,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![RP-1 is present and has answered for nothing: every count reads as the null token and the missing centre is stated rather than left as a gap](docs/assets/personnel-unanswered--default.png)
 
-![Two space centres with their launch complexes nested under each, each named the way an operator names it rather than by the site id the save keys it on, and SLC-3 staffed by nobody while Vandenberg's whole pool sits idle](docs/assets/two-centres-unstaffed--default.png)
+![Two space centres with their launch complexes columnised under each, each named the way an operator names it rather than by the site id the save keys it on, and SLC-3 staffed by nobody while Vandenberg's whole pool sits idle](docs/assets/two-centres-unstaffed--default.png)
 
 ![A modification, which takes the complex out of service and idles its engineers: the one row whose detail line is a warning rather than a label](docs/assets/construction-complex-modify--default.png)
 
@@ -273,6 +273,8 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model](docs/assets/pad-holding-a-finished-vehicle--default.png)
 
 ![A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul](docs/assets/pad-rolling-out--default.png)
+
+![The Program catalogue open as a list of rows rather than a dropdown: each carries its own state, the running one sorts first, and the Program every reading below belongs to is named beside the section heading rather than under it](docs/assets/catalogue-picker--default.png)
 
 ![A Program that has closed: the deadline row becomes the completion date, the funding is paid out in full, and nothing remains to plan against](docs/assets/completed-program--default.png)
 
