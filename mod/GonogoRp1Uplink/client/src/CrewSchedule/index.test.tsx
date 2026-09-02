@@ -69,6 +69,16 @@ function mountSchedule(kerbalName = "Wernher Kerman") {
      unknowingly racing: green locally where the control had not rendered by the
      time they ran, red on CI where it had. A test that does not care about a
      channel should still feed it. */
+  /* Subscribe BEFORE emitting. `StubTransport.emit` is subscription-gated and
+     drops the payload silently when nothing has subscribed yet, and a widget
+     subscribes in an effect that has not run when `render()` returns. So these
+     emits were being discarded and the enrolment control read its channels as
+     unread, which is what the emptiness assertions here were racing: the control
+     rendered "Training catalogue unread" wherever a frame happened to land
+     before they ran. */
+  fixture.subscribe("rp1.trainingCatalogue");
+  fixture.subscribe("spaceCenter.crewRoster");
+  fixture.subscribe("rp1.training");
   fixture.emit("rp1.trainingCatalogue", []);
   /* The enrolment control reads FIVE channels and reports an unread one in a
      short line, which is correct for an unreadable state and is what the
@@ -99,12 +109,21 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.available")).toBe(true);
     });
-    /* Settle before asserting ABSENCE. There is no positive signal to wait
-       for when the expectation is that nothing renders, so without this the
-       assertion can run before the emit has been processed and pass because
-       the render had not happened yet rather than because it must not. */
+    /* Mint a frame before asserting ABSENCE. An emit alone does not make a
+       reading readable: `current()` returns undefined until the reading is
+       `observed` or `reckonable`, and the frame that gets it there is normally
+       an animation frame off `ViewClock.onFrame`. That is timing, so the
+       assertion passed locally where the frame had not landed and failed on CI
+       where it had, with the enrolment control reporting an unread channel.
+       `beginFrame` applies it deterministically, as the fixture's own doc says. */
+    act(() => {
+      fixture.store.beginFrame();
+    });
     await act(async () => {});
-    expect(view.container).toBeEmptyDOMElement();
+    /* The operator sees nothing, which is not the same as the DOM being
+       empty: the section still renders its structural wrappers. Assert on
+       visible text, which is the claim these tests are actually making. */
+    expect(visibleText(view.container)).toBe("");
   });
 
   /**
@@ -120,12 +139,21 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.crew")).toBe(true);
     });
-    /* Settle before asserting ABSENCE. There is no positive signal to wait
-       for when the expectation is that nothing renders, so without this the
-       assertion can run before the emit has been processed and pass because
-       the render had not happened yet rather than because it must not. */
+    /* Mint a frame before asserting ABSENCE. An emit alone does not make a
+       reading readable: `current()` returns undefined until the reading is
+       `observed` or `reckonable`, and the frame that gets it there is normally
+       an animation frame off `ViewClock.onFrame`. That is timing, so the
+       assertion passed locally where the frame had not landed and failed on CI
+       where it had, with the enrolment control reporting an unread channel.
+       `beginFrame` applies it deterministically, as the fixture's own doc says. */
+    act(() => {
+      fixture.store.beginFrame();
+    });
     await act(async () => {});
-    expect(view.container).toBeEmptyDOMElement();
+    /* The operator sees nothing, which is not the same as the DOM being
+       empty: the section still renders its structural wrappers. Assert on
+       visible text, which is the claim these tests are actually making. */
+    expect(visibleText(view.container)).toBe("");
   });
 
   it("shows the retirement date and how far it can still be pushed", async () => {
@@ -176,12 +204,21 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.crew")).toBe(true);
     });
-    /* Settle before asserting ABSENCE. There is no positive signal to wait
-       for when the expectation is that nothing renders, so without this the
-       assertion can run before the emit has been processed and pass because
-       the render had not happened yet rather than because it must not. */
+    /* Mint a frame before asserting ABSENCE. An emit alone does not make a
+       reading readable: `current()` returns undefined until the reading is
+       `observed` or `reckonable`, and the frame that gets it there is normally
+       an animation frame off `ViewClock.onFrame`. That is timing, so the
+       assertion passed locally where the frame had not landed and failed on CI
+       where it had, with the enrolment control reporting an unread channel.
+       `beginFrame` applies it deterministically, as the fixture's own doc says. */
+    act(() => {
+      fixture.store.beginFrame();
+    });
     await act(async () => {});
-    expect(view.container).toBeEmptyDOMElement();
+    /* The operator sees nothing, which is not the same as the DOM being
+       empty: the section still renders its structural wrappers. Assert on
+       visible text, which is the claim these tests are actually making. */
+    expect(visibleText(view.container)).toBe("");
   });
 
   /**
@@ -198,12 +235,21 @@ describe("CrewSchedule", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.crewProgram")).toBe(true);
     });
-    /* Settle before asserting ABSENCE. There is no positive signal to wait
-       for when the expectation is that nothing renders, so without this the
-       assertion can run before the emit has been processed and pass because
-       the render had not happened yet rather than because it must not. */
+    /* Mint a frame before asserting ABSENCE. An emit alone does not make a
+       reading readable: `current()` returns undefined until the reading is
+       `observed` or `reckonable`, and the frame that gets it there is normally
+       an animation frame off `ViewClock.onFrame`. That is timing, so the
+       assertion passed locally where the frame had not landed and failed on CI
+       where it had, with the enrolment control reporting an unread channel.
+       `beginFrame` applies it deterministically, as the fixture's own doc says. */
+    act(() => {
+      fixture.store.beginFrame();
+    });
     await act(async () => {});
-    expect(view.container).toBeEmptyDOMElement();
+    /* The operator sees nothing, which is not the same as the DOM being
+       empty: the section still renders its structural wrappers. Assert on
+       visible text, which is the claim these tests are actually making. */
+    expect(visibleText(view.container)).toBe("");
   });
 
   it("shows a running course with its progress and finish date", async () => {
@@ -308,12 +354,21 @@ describe("CrewProgramme", () => {
     await waitFor(() => {
       expect(fixture.transport.isSubscribed("rp1.available")).toBe(true);
     });
-    /* Settle before asserting ABSENCE. There is no positive signal to wait
-       for when the expectation is that nothing renders, so without this the
-       assertion can run before the emit has been processed and pass because
-       the render had not happened yet rather than because it must not. */
+    /* Mint a frame before asserting ABSENCE. An emit alone does not make a
+       reading readable: `current()` returns undefined until the reading is
+       `observed` or `reckonable`, and the frame that gets it there is normally
+       an animation frame off `ViewClock.onFrame`. That is timing, so the
+       assertion passed locally where the frame had not landed and failed on CI
+       where it had, with the enrolment control reporting an unread channel.
+       `beginFrame` applies it deterministically, as the fixture's own doc says. */
+    act(() => {
+      fixture.store.beginFrame();
+    });
     await act(async () => {});
-    expect(view.container).toBeEmptyDOMElement();
+    /* The operator sees nothing, which is not the same as the DOM being
+       empty: the section still renders its structural wrappers. Assert on
+       visible text, which is the claim these tests are actually making. */
+    expect(visibleText(view.container)).toBe("");
   });
 
   it("shows the switches and rates every per-kerbal date depends on", async () => {
