@@ -811,8 +811,10 @@ export interface DataSource<
 
 // --- Screen identity -----------------------------------------------------------
 //
-// Mirrors `@ksp-gonogo/core`'s `contexts/ScreenContext.tsx`: same leaf
-// constraint as the rest of this file.
+// Mirrors `../spine/screen.tsx`, which owns the declarations and the hooks that
+// answer in them: same leaf constraint as the rest of this file. The hooks are
+// on the root barrel, so an author reaching a type here and a hook there lands
+// on one vocabulary.
 
 /**
  * Which screen a component is mounted on: a DEPLOYMENT CONFIGURATION, not a

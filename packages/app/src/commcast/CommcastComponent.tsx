@@ -1,15 +1,18 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
-import type { CommsDelay } from "@ksp-gonogo/sitrep-sdk";
-import { useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
+import type { CommsDelay, CommsLink } from "@ksp-gonogo/sitrep-sdk";
+import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
+  Badge,
   Button,
+  ComposerBar,
+  ConsoleFrame,
   EmptyState,
   formatDuration,
-  NULL_DISPLAY,
   Panel,
   ScrollArea,
+  Section,
   Text,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -54,20 +57,65 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const oneWaySeconds =
     judgeable<CommsDelay>(useTelemetry("comms.delay"))?.oneWaySeconds
       ?.magnitude ?? null;
+  /*
+   * A CONFIRMED loss of line of sight, and only that. `undefined` is "no link
+   * data yet" and reads as connected, the same rule the terminal widget applies
+   * to the same topic: a screen that has heard nothing about the link must not
+   * accuse the thread of being incomplete, which is exactly what a thread
+   * whose route has simply not published yet would do on every first frame.
+   *
+   * Read through `useLatestValue` rather than the certainty-gated hook the
+   * messages themselves come through, for the reason the terminal widget reads it
+   * the same way: `comms.link` is Delayed but freeze-EXEMPT, so its disconnect
+   * edge already reveals at the light-time horizon. Putting it through the
+   * gate a second time would hold the news of a lost link for another whole
+   * light-time, which is the one reading that must not be late.
+   */
+  const noSignal = useLatestValue<CommsLink>("comms.link")?.connected === false;
 
   if (!thread) {
+    /*
+     * A reading, not an explanation. This state and the empty thread below it
+     * are the two the operator has to tell apart, and the sentence that used
+     * to be here described the architecture (which screen owns the thread)
+     * rather than reporting what is wrong with this one.
+     */
     return (
       <Panel
         panelTitle="Commcast"
-        sections={
-          <EmptyState layout="fill">
-            No route to the thread. A station reaches it through its host; the
-            host screen owns it directly.
-          </EmptyState>
-        }
+        sections={<EmptyState layout="fill">No host connection</EmptyState>}
       />
     );
   }
+
+  /*
+   * Identity, in the header rather than in a body row. It is who this screen
+   * is, which the operator needs once and not while reading, so it does not
+   * need to cost the thread a row of its height.
+   */
+  const identity = (
+    <Commcast__Identity>
+      {/* The editor needs an identity provider; a screen without one still
+          posts under its seat's name, shown flat. */}
+      {named === undefined ? (
+        <Text size="xs">{thread.me.name}</Text>
+      ) : (
+        <StationNameEditor compact />
+      )}
+      {/* The kit's `Badge`, not a local square. What stood here was a
+          hand-rolled reimplementation of exactly this primitive, which is the
+          class of thing `styleguide-duplicate-primitives` exists to stop.
+          Carries no severity: a seat is an identity, and dressing "ABOARD" as
+          `nominal` would put a green go-pill on a fact that is neither good
+          nor bad and would contribute a meaningless rank to the panel's status
+          summary. No severity renders the kit's decorative chip, which is what
+          an identity is. The pilot-versus-ground COLOUR survives where it is
+          load-bearing, on the author names in the thread. */}
+      <Badge size="sm">
+        {me.seat === "pilot" ? "Aboard" : "Mission control"}
+      </Badge>
+    </Commcast__Identity>
+  );
 
   /*
    * Hoisted out of the `sections` attribute rather than written inline. The
@@ -77,84 +125,96 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    * A named value sidesteps that and reads better besides.
    */
   const body = (
-    <Commcast__Frame>
-      <Commcast__Chrome>
-        {/* The editor needs an identity provider; a screen without one still
-                  posts under its seat's name, shown flat. */}
-        {named === undefined ? (
-          <Text size="xs">{thread.me.name}</Text>
-        ) : (
-          <StationNameEditor compact />
-        )}
-        <SeatChip $pilot={me.seat === "pilot"}>
-          {me.seat === "pilot" ? "ABOARD" : "MISSION CONTROL"}
-        </SeatChip>
-        <Text size="xs" tone="faint">
-          {separationLabel(oneWaySeconds)}
-        </Text>
-      </Commcast__Chrome>
-
-      <ScrollArea>
-        <Commcast__List>
-          {feed.revealed.length === 0 && feed.inTransit.length === 0 && (
-            <EmptyState>Nothing spoken yet.</EmptyState>
-          )}
-          {feed.revealed.map((msg) => (
-            <MessageRow
-              key={msg.id}
-              msg={msg}
-              me={me}
-              utNow={utNow}
-              pairs={pairs}
-              thread={thread}
-              oneWaySeconds={oneWaySeconds}
-            />
-          ))}
-          {feed.inTransit.length > 0 && (
-            <Commcast__Group>
-              <GroupLabel>In transit ({feed.inTransit.length})</GroupLabel>
-              {feed.inTransit.map((msg) => (
-                <TransitRow
+    /*
+     * `fill`, because a thread is the tile. Without it the section keeps its
+     * content height (`PanelSections__Grid` is `align-items: start` on
+     * purpose) and the widget renders as a short box with a large empty
+     * bottom, which is the one shape the terminal it is aligned with never
+     * has: that one is `height: 100%` and always was.
+     */
+    <Section fill>
+      <Commcast__Frame>
+        <ConsoleFrame>
+          <Commcast__Scroll>
+            <Commcast__List>
+              {/* At the HEAD, because the front of the thread is where the drop
+                happened. A thread that forgets has to say it forgot, and
+                saying so in a footnote under the composer put it as far from
+                the gap as the widget allows. */}
+              {dropped > 0 && (
+                <ThreadMarker>
+                  {dropped} earlier message{dropped === 1 ? "" : "s"} dropped at
+                  the cap
+                </ThreadMarker>
+              )}
+              {feed.revealed.length === 0 && feed.inTransit.length === 0 && (
+                <EmptyState>Nothing spoken yet.</EmptyState>
+              )}
+              {feed.revealed.map((msg) => (
+                <MessageRow
                   key={msg.id}
                   msg={msg}
                   me={me}
                   utNow={utNow}
                   pairs={pairs}
-                  mine={msg.authorStationKey === thread.me.stationKey}
+                  thread={thread}
+                  oneWaySeconds={oneWaySeconds}
                 />
               ))}
-            </Commcast__Group>
-          )}
-          {feed.unreachable.length > 0 && (
-            <Commcast__Group>
-              <GroupLabel $warn>
-                Never reached you ({feed.unreachable.length})
-              </GroupLabel>
-              {feed.unreachable.map((msg) => (
-                <UnreachableRow key={msg.id} msg={msg} />
-              ))}
-            </Commcast__Group>
-          )}
-        </Commcast__List>
-      </ScrollArea>
+              {feed.unreachable.length > 0 && (
+                <Commcast__Group>
+                  <GroupLabel $warn>
+                    Never reached you ({feed.unreachable.length})
+                  </GroupLabel>
+                  {feed.unreachable.map((msg) => (
+                    <UnreachableRow key={msg.id} msg={msg} />
+                  ))}
+                </Commcast__Group>
+              )}
+              {/* At the TAIL, and a rule rather than a row: it terminates what
+                this seat knows was said. Everything above it arrived; past it
+                there may be words nobody here has heard. That is a different
+                claim from an in-transit message, which is one specific
+                utterance with an instant it lands at, and the two must not
+                read alike. */}
+              {noSignal && <ThreadMarker $blocked>no signal</ThreadMarker>}
+            </Commcast__List>
+          </Commcast__Scroll>
+        </ConsoleFrame>
 
-      <Composer
-        thread={thread}
-        utNow={utNow}
-        oneWaySeconds={oneWaySeconds}
-        vantageId={me.vantageId}
-      />
-      <Commcast__Footnote>
-        Ordered as it reached this seat. Another seat's order differs, and
-        neither is the transcript.
-        {dropped > 0 &&
-          ` ${dropped} older message${dropped === 1 ? "" : "s"} dropped at the cap.`}
-      </Commcast__Footnote>
-      <ReadReceipts thread={thread} feed={feed} utNow={utNow} />
-    </Commcast__Frame>
+        {/* PINNED between the thread and the composer rather than inside the
+          scroll, where the terminal widget puts its uplink queue. A transit list
+          inside the scroll takes the thread's bottom as it grows, which is the
+          part the operator is reading. It is not `InFlightList`: see the note
+          on `TransitRow`. */}
+        {feed.inTransit.length > 0 && (
+          <Commcast__Transit>
+            <GroupLabel>In transit ({feed.inTransit.length})</GroupLabel>
+            {feed.inTransit.map((msg) => (
+              <TransitRow
+                key={msg.id}
+                msg={msg}
+                me={me}
+                utNow={utNow}
+                pairs={pairs}
+                mine={msg.authorStationKey === thread.me.stationKey}
+              />
+            ))}
+          </Commcast__Transit>
+        )}
+
+        <Composer
+          thread={thread}
+          utNow={utNow}
+          oneWaySeconds={oneWaySeconds}
+          vantageId={me.vantageId}
+        />
+        <ReadReceipts thread={thread} feed={feed} utNow={utNow} />
+      </Commcast__Frame>
+    </Section>
   );
 
-  return <Panel panelTitle="Commcast" sections={body} />;
+  return <Panel panelTitle="Commcast" panelAside={identity} sections={body} />;
 }
 
 /** One message that has arrived here. */
@@ -209,7 +269,20 @@ function MessageRow({
   );
 }
 
-/** One message spoken but still crossing to this seat. */
+/**
+ * One message spoken but still crossing to this seat.
+ *
+ * Deliberately NOT a `ui-kit` `InFlightList` row, though the shape is close
+ * enough to be tempting. That component describes a delayed COMMAND, whose
+ * phases are the reach-and-reply geometry of a round trip: `awaiting-reply`
+ * and `overdue` have no meaning for a one-way utterance, and its `lost` is a
+ * different fact from this thread's no-path, which is a permanent row rather
+ * than a queue entry. It is also transient by design, an item leaves it on
+ * arrival and nothing remains, where a message has to arrive IN PLACE and stay
+ * in the order it reached this seat. Same call the terminal widget makes about
+ * `CommandDelay`: a surface that is already its own delay UX does not want a
+ * second one arguing with it.
+ */
 function TransitRow({
   msg,
   me,
@@ -243,10 +316,14 @@ function TransitRow({
             : `lands in ${formatDuration(Math.max(0, remaining))}`}
         </Text>
       </Commcast__Meta>
-      {/* Own words are readable in flight; someone else's have not arrived,
-          so showing them here would be the faster-than-light channel this
-          whole design exists to avoid. */}
-      <Commcast__Body>{mine ? msg.body : NULL_DISPLAY}</Commcast__Body>
+      {/* Own words are readable in flight; someone else's have not arrived, so
+          showing them here would be the faster-than-light channel this whole
+          design exists to avoid. What used to stand in for the withheld body
+          was a null-value dash, which READS as a separator rather than as
+          absence. A row with no body line at all is visibly shorter than a
+          message, which is the honest signal: there is nothing here to read
+          yet. */}
+      {mine && <Commcast__Body>{msg.body}</Commcast__Body>}
     </Commcast__Message>
   );
 }
@@ -254,11 +331,11 @@ function TransitRow({
 /**
  * One message spoken at a vantage with no path to this one.
  *
- * The body is WITHHELD, the same as an in-transit one: it did not reach this
- * seat and never will, so rendering it here would be the faster-than-light
- * channel the whole design exists to avoid. What the operator is told is that
- * somebody said something they cannot hear, which is itself a fact about the
- * link worth having.
+ * The body is WITHHELD, the same as an in-transit one, and by the same means:
+ * no body line is rendered. It did not reach this seat and never will, so
+ * printing it here would be the faster-than-light channel the whole design
+ * exists to avoid. What the operator is told is that somebody said something
+ * they cannot hear, which is itself a fact about the link worth having.
  */
 function UnreachableRow({ msg }: { msg: CommsMessage }) {
   return (
@@ -269,7 +346,6 @@ function UnreachableRow({ msg }: { msg: CommsMessage }) {
           no path from where it was spoken
         </Text>
       </Commcast__Meta>
-      <Commcast__Body>{NULL_DISPLAY}</Commcast__Body>
     </Commcast__Message>
   );
 }
@@ -349,17 +425,21 @@ function Composer({
     });
     setDraft("");
   };
+  const noPath = oneWaySeconds === null;
   return (
-    <Commcast__Composer>
+    /* The bar's own outline says whether this is going anywhere, the same way
+       the terminal widget's does: with no path home it turns error-toned while
+       the operator is still typing, rather than reporting the refusal only
+       after they have pressed send. The flag says why an outline has turned
+       red, which an outline cannot. */
+    <ComposerBar blocked={noPath} {...(noPath ? { flag: "NO PATH" } : {})}>
       <label htmlFor="commcast-draft">
         <VisuallyHidden>Message</VisuallyHidden>
       </label>
       <Commcast__Input
         id="commcast-draft"
         value={draft}
-        placeholder={
-          utNow === undefined ? "No clock yet" : "Say something to the crew"
-        }
+        placeholder={utNow === undefined ? "No clock yet" : "Message"}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
@@ -369,13 +449,13 @@ function Composer({
         }}
       />
       <Button disabled={!ready} onClick={submit}>
-        {oneWaySeconds === null
+        {noPath
           ? "Send (no path)"
           : oneWaySeconds > 0
             ? `Send (+${formatDuration(oneWaySeconds)})`
             : "Send"}
       </Button>
-    </Commcast__Composer>
+    </ComposerBar>
   );
 }
 
@@ -430,12 +510,6 @@ function useDroppedCount(thread: CommcastThread | null): number {
   return dropped;
 }
 
-function separationLabel(oneWaySeconds: number | null): string {
-  if (oneWaySeconds === null) return "no path home";
-  if (oneWaySeconds === 0) return "no delay";
-  return `${formatDuration(oneWaySeconds)} each way`;
-}
-
 /**
  * The widget mounts its own provider so it works wherever it is placed,
  * including a screen that never wired one. On the host the provider finds the
@@ -457,29 +531,76 @@ const Commcast__Frame = styled.div`
   gap: var(--space-6);
 `;
 
-const Commcast__Chrome = styled.div`
+const Commcast__Identity = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
-  flex-wrap: wrap;
+  gap: var(--space-6);
 `;
 
-const SeatChip = styled.span<{ $pilot: boolean }>`
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.1em;
-  padding: var(--space-hair) var(--space-6);
-  border-radius: var(--radius-sm);
-  border: 1px solid
-    ${({ $pilot }) =>
-      $pilot ? "var(--color-status-go-fg)" : "var(--color-status-info-fg)"};
-  color: ${({ $pilot }) =>
-    $pilot ? "var(--color-status-go-fg)" : "var(--color-status-info-fg)"};
+/*
+ * The thread's own inset, and its anchor. `ConsoleFrame` draws to its border
+ * with no gutter, which is right for a terminal emulator and wrong for text,
+ * so the padding goes on the scrolling children rather than on the frame.
+ *
+ * The inner is made a flex column so `Commcast__List` can take a `margin-top:
+ * auto` and sit against the BOTTOM of the frame, next to the composer, growing
+ * upward as the thread fills. A short thread otherwise starts at the top with
+ * the empty space between the newest line and the box it is typed into, which
+ * is the opposite of how the terminal this is aligned with reads. The auto
+ * margin resolves to zero once the thread is taller than the frame, so a full
+ * thread scrolls exactly as before.
+ */
+const Commcast__Scroll = styled(ScrollArea)`
+  & [data-scroll-area-inner] {
+    display: flex;
+    flex-direction: column;
+    padding: var(--space-8);
+  }
 `;
 
 const Commcast__List = styled.div`
   display: flex;
   flex-direction: column;
+  /* See the scroll wrapper above: pins a short thread to the frame's bottom. */
+  margin-top: auto;
   gap: var(--space-6);
+`;
+
+/*
+ * A boundary in the thread, not a row in it. A message is an author, a stamp
+ * and words; this is a rule across the column with a word on it, so the two
+ * can never be misread for one another. Two uses, at the two ends: what the
+ * thread has forgotten off the front, and where what this seat knows stops.
+ */
+const ThreadMarker = styled.div<{ $blocked?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: ${({ $blocked }) =>
+    $blocked ? "var(--color-status-nogo-fg)" : "var(--color-text-faint)"};
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1 1 auto;
+    border-top: 1px solid
+      ${({ $blocked }) =>
+        $blocked
+          ? "var(--color-status-nogo-fg)"
+          : "var(--color-border-subtle)"};
+  }
+`;
+
+// The pinned in-transit strip, outside the scroll. Never grows: it is one
+// short row per message still crossing, and the thread beneath keeps the rest.
+const Commcast__Transit = styled.div`
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--space-4);
 `;
 
 const Commcast__Group = styled.div`
@@ -533,12 +654,6 @@ const Commcast__Retry = styled.div`
   flex-wrap: wrap;
 `;
 
-const Commcast__Composer = styled.div`
-  display: flex;
-  gap: var(--space-6);
-  align-items: center;
-`;
-
 const Commcast__Input = styled.input`
   flex: 1 1 auto;
   min-width: 0;
@@ -556,11 +671,6 @@ const Commcast__Input = styled.input`
   }
 `;
 
-const Commcast__Footnote = styled.span`
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-faint);
-`;
-
 registerComponent({
   id: "commcast",
   name: "Commcast",
@@ -572,8 +682,10 @@ registerComponent({
   component: CommcastWidget,
   // `comms.delay` is what a message freezes its separation from at send. It is
   // TrueNow and never itself delay-gated, so it is the current number at the
-  // instant the operator presses send.
-  channels: ["comms.delay", "commandCentre.separation"],
+  // instant the operator presses send. `comms.link` is what terminates the
+  // thread: a confirmed loss of line of sight means there may be words this
+  // seat has not heard, which is a different claim from a message in transit.
+  channels: ["comms.delay", "commandCentre.separation", "comms.link"],
   // Aboard AND on the ground: the whole point is that both ends are in it.
   seats: ["mission-control", "pilot"],
   defaultConfig: {},

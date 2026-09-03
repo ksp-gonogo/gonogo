@@ -193,6 +193,8 @@ export {
   useCommandFailures,
 } from "./CommandDelay/useCommandFailures";
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
+export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
+export { ConsoleFrame, type ConsoleFrameProps } from "./ConsoleFrame";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 // ── Contribution seam ─────────────────────────────────────────────────────────

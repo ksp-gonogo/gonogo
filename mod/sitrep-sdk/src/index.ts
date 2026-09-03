@@ -260,6 +260,20 @@ export {
   defineProcessorContract,
   type ProcessorHandle,
 } from "./spine/processors";
+// Which screen the widget is mounted on, and which seat that puts the operator
+// in. The `Screen` and `Seat` TYPES are already on this barrel (via `./api`),
+// so until now an author had the vocabulary and not the hook that answers in
+// it: `useScreen` was reachable only through `/spine`, which is not an author
+// surface. A widget that draws differently aboard the craft than at mission
+// control, or that gates on light-time, is asking about the SEAT, so the three
+// seat helpers publish alongside it. `ScreenProvider` deliberately does not:
+// the app decides which screen a widget is mounted on, never the widget.
+export {
+  seatOf,
+  useIsPilot,
+  useScreen,
+  useSeat,
+} from "./spine/screen";
 // The shape of `system.uplinkHealth`, so an Uplink can read the roster it is
 // itself reported on. Published because health is where an Uplink says what it
 // depends on and whether that dependency is usable, which is the sort of thing a

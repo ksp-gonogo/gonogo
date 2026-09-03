@@ -17,8 +17,10 @@ import {
 import {
   ComboboxListbox,
   type ComboboxOption,
+  ComposerBar,
   ComputerIcon,
   ConfigForm,
+  ConsoleFrame,
   EmptyState,
   Field,
   FieldHint,
@@ -1222,7 +1224,15 @@ function KosTerminalScreen({
 
   return (
     <TerminalShell>
-      <TerminalFrame>
+      {/* All three overlays below are pinned INSIDE this frame rather than
+          stacked as flex siblings of it: each one, as a sibling, added its own
+          row height on top of everything else in `TerminalShell` and could
+          push the composition bar past the widget's visible bounds on a short
+          widget. `ConsoleFrame` is the box and the positioning context they
+          are pinned against; the corners themselves stay here, because a
+          character grid whose top corners are usually empty cells is the only
+          surface in the app that wants an overlay there. */}
+      <ConsoleFrame>
         <Container ref={containerRef} $readOnly={readOnly} />
         {badgeDelay && (
           <DelayBadge role="status" aria-label="Signal delay">
@@ -1239,13 +1249,6 @@ function KosTerminalScreen({
             />
           </DelayBadge>
         )}
-        {/* Pinned inside `TerminalFrame`'s own bordered box, same as
-            `DelayBadge` above: a flex sibling below the frame (its previous
-            spot) added its own row height on top of everything else in
-            `TerminalShell`, which could push later siblings (the composition
-            bar) past the widget's visible bounds on a short widget. See
-            `TerminalFrame`'s doc comment for the same reasoning applied to
-            `DelayBadge` originally. */}
         {!readOnly && noPath && (
           <NoPathBadge role="status">
             No path: commands are not being sent
@@ -1257,16 +1260,23 @@ function KosTerminalScreen({
             Change CPU
           </ChangeCpuButton>
         )}
-      </TerminalFrame>
+      </ConsoleFrame>
       {showStrip && (
         <InFlightList items={stripItems} ariaLabel="Uplink queue" />
       )}
       {lineMode && !readOnly && (
         <CompositionBarWrap>
+          {/* The bar's flag is a SECOND no-path indicator on purpose: the
+              corner badge in the terminal pane is easy to miss when attention
+              is on the input line, and the error-tone outline alone says the
+              box is refusing input without saying why. Deliberately shorter
+              text than the corner badge's, so a `getByText` query for either
+              cannot collide with the other. */}
           <CompositionBar
             role="group"
             aria-label={scriptComposer ? "Run script" : "Line-mode input"}
-            $noPath={noPath}
+            blocked={noPath}
+            {...(noPath ? { flag: "NO PATH" } : {})}
           >
             <CompositionBar__Prompt aria-hidden="true">
               ❯
@@ -1339,20 +1349,6 @@ function KosTerminalScreen({
               }}
               emptyLabel={scriptListHint ?? "No scripts found"}
             />
-          )}
-          {/* A second, compact "NO PATH" flag pinned right on the bar the
-              operator is actually looking at while typing, the existing
-              `NoPathBadge` above sits in the terminal pane's corner, which is
-              easy to miss when attention is on the input line, and the
-              error-tone outline alone (`CompositionBar`'s `$noPath` border)
-              doesn't say WHY the box turned red. Distinct, shorter text from
-              `NoPathBadge`'s so `getByText`-style queries for either can't
-              collide. `role="status"` (not `alert`): connectivity loss is an
-              ambient condition to note, not an interrupting emergency. */}
-          {noPath && (
-            <CompositionBar__NoPathFlag role="status">
-              NO PATH
-            </CompositionBar__NoPathFlag>
           )}
         </CompositionBarWrap>
       )}
@@ -1453,19 +1449,6 @@ const TerminalShell = styled.div`
   gap: var(--space-6);
 `;
 
-// Wraps the terminal pane so the delay badge can be pinned INSIDE its
-// bordered box (an absolutely-positioned corner overlay) instead of floating
-// below it as a separate flex sibling, a badge floating past the pane's own
-// border reads as rendering outside the widget's visual bounds. This carries
-// the flex sizing, leaving `Container` a plain 100%-of-frame box so xterm's own
-// mount target is unaffected.
-const TerminalFrame = styled.div`
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  display: flex;
-`;
-
 const Container = styled.div<{ $readOnly?: boolean }>`
   width: 100%;
   height: 100%;
@@ -1486,13 +1469,10 @@ const Container = styled.div<{ $readOnly?: boolean }>`
   }
 `;
 
-// Positioning context for `CompositionBar__NoPathFlag` below, pinned to the
-// bar itself rather than floating as its own flex row. This holds the
-// `flex: 0 0 auto` sizing as the `TerminalShell` child, so the bar's own
-// height and width are unaffected by the wrap: a plain block box hugs its sole
-// child's size.
+// Holds the whole composer STACK (the bar, the copy-local toggle, the script
+// picker) as one non-growing `TerminalShell` child, so none of it can grow the
+// widget. The bar's own flag positions against the bar, not against this.
 const CompositionBarWrap = styled.div`
-  position: relative;
   flex: 0 0 auto;
 `;
 
@@ -1513,54 +1493,17 @@ const ScriptComposerOptions = styled.div`
 // never collide with it. Cleared on Enter (the line is sent; kOS's own echo
 // lands in the terminal above a round-trip later), or, with no comms path,
 // left untouched and Enter refused (`reduceLineModeChar`'s `canSend` guard).
-// The outline itself carries that state: the same error/danger tone as
-// `NoPathBadge` (`--color-status-nogo-fg`) replaces the normal accent border
-// whenever `noPath`, so the box reads as blocked on sight, not just after a
-// refused Enter: instead of staying green (kos-nopath-block-input fix).
-const CompositionBar = styled.div<{ $noPath: boolean }>`
-  display: flex;
-  align-items: center;
-  padding: var(--space-6) var(--space-8);
+//
+// `ComposerBar` carries the box and the blocked-outline state (see its doc
+// comment). What stays here is the only part that is this widget's alone: the
+// character pitch, which has to equal the xterm screen's above so the composed
+// characters line up on the terminal's own cells.
+const CompositionBar = styled(ComposerBar)`
   /* 1.6em, i.e. relative to TERMINAL_FONT_PX below, not to a token. */
   min-height: 1.6em;
-  background: var(--color-surface-panel);
-  border: 1px solid
-    ${({ $noPath }) =>
-      $noPath ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
-  border-radius: var(--radius-md);
   font-family: monospace;
   /* Locked to xterm's own fontSize option; see TERMINAL_FONT_PX. */
   font-size: ${TERMINAL_FONT_PX}px;
-`;
-
-// Compact "NO PATH" flag pinned to the top edge of the composition bar
-// itself: see the render-site comment for why this exists alongside the
-// pre-existing `NoPathBadge` in the terminal pane's corner. Absolutely
-// positioned against `CompositionBarWrap`, so it never affects the bar's own
-// layout/height (and therefore never shifts anything below it in
-// `TerminalShell`).
-const CompositionBar__NoPathFlag = styled.div`
-  position: absolute;
-  /* -9px is hand-computed against this flag's OWN rendered height (~16px), so
-     that it straddles the top border of CompositionBarWrap. Every value
-     that feeds that height therefore stays literal with it: the 10px font
-     (--font-size-2xs is 11px under @media (pointer: coarse), i.e. on the
-     tier-1 Steam Deck, which grows the flag while -9px stays put) and the
-     vertical padding beside it. Recompute the -9px if any of them moves. */
-  top: -9px;
-  right: var(--space-8);
-  /* Local ordering only: this flag just has to sit over the composition bar
-     it is pinned to. Not app-global chrome, so not on the --z-* ladder. */
-  z-index: 1;
-  padding: 1px 6px;
-  font-family: monospace;
-  font-size: 10px;
-  font-weight: bold;
-  letter-spacing: 0.04em;
-  color: var(--color-status-nogo-on-bg);
-  background: var(--color-status-nogo-bg);
-  border: 1px solid var(--color-status-nogo-on-bg);
-  border-radius: var(--radius-md);
 `;
 
 // No gap here: the cursor block must sit flush against the trailing
@@ -1604,68 +1547,6 @@ const CompositionBar__Cursor = styled.span`
   }
 `;
 
-// Steady-state warning while `comms.link.connected === false`: a
-// confirmed line-of-sight loss, not merely "no link data yet" (see
-// `noPath`'s own doc comment). Error/danger tone (the same
-// `--color-status-nogo-*` pair `CommSignal` uses for its "lost" state) so it
-// reads unambiguously as a blocking condition, not an informational badge
-// like `DelayBadge` below it. Pinned as an absolutely-positioned corner
-// overlay INSIDE `TerminalFrame`: same fix, same reasoning as `DelayBadge`
-// (see its own doc comment): as a flex sibling in `TerminalShell` this added
-// its own row height on top of the composition bar beneath it, which could
-// push that bar past the widget's visible bounds on a short widget instead
-// of staying within the terminal's own bordered box (kos-nopath-block-input
-// fix). Opposite corner from `DelayBadge` so the two never overlap on the
-// (rare) render where both are showing: a stale delay reading can still be
-// latched (see `delay-authority.ts`) through a connectivity drop, so both
-// badges legitimately co-render. "Opposite corner" alone isn't enough at
-// narrow widths (e.g. the widget's own registered minSize, 8x6): this
-// badge's text is the longer of the two, and with no width cap it grows
-// straight across the frame into `DelayBadge`'s corner instead of stopping
-// short. Capped + truncated so it always leaves `DelayBadge` clear instead
-// of visually colliding with it.
-const NoPathBadge = styled.div`
-  position: absolute;
-  top: var(--space-8);
-  left: var(--space-8);
-  /* Local ordering inside TerminalFrame only; see CompositionBar__NoPathFlag. */
-  z-index: 1;
-  padding: var(--space-2) var(--space-8);
-  font-family: monospace;
-  font-size: var(--font-size-xs);
-  font-weight: bold;
-  color: var(--color-status-nogo-on-bg);
-  background: var(--color-status-nogo-bg);
-  border: 1px solid var(--color-status-nogo-on-bg);
-  border-radius: var(--radius-md);
-  max-width: 50%;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-`;
-
-// Compact delay readout: char-mode always, line-mode only when the delay is
-// too short (<=1s one-way) for a strip to be worth it; see `showBadge`.
-// Pinned as an absolutely-positioned corner overlay INSIDE `TerminalFrame`
-// (a sibling of `Container`, not a descendant, `Container`'s own
-// `overflow: hidden` is reserved for xterm's content) rather than a flex
-// item below the terminal pane, so it always renders within the terminal's
-// own bordered box instead of floating past it.
-const DelayBadge = styled.div`
-  position: absolute;
-  top: var(--space-8);
-  right: var(--space-8);
-  /* Local ordering inside TerminalFrame only; see CompositionBar__NoPathFlag. */
-  z-index: 1;
-  padding: var(--space-2) var(--space-8);
-  font-family: monospace;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-`;
-
 const CpuPicker = styled.div`
   display: flex;
   flex-wrap: wrap;
@@ -1685,19 +1566,70 @@ const CpuPicker__Button = styled(GhostButton)`
   font-size: var(--font-size-lg);
 `;
 
+// Steady-state warning while `comms.link.connected === false`: a confirmed
+// line-of-sight loss, not merely "no link data yet" (see `noPath`'s own doc
+// comment). Error/danger tone (the same `--color-status-nogo-*` pair
+// `CommSignal` uses for its "lost" state) so it reads unambiguously as a
+// blocking condition, not an informational badge like `DelayBadge` below it.
+// Pinned against `ConsoleFrame`, in the corner opposite `DelayBadge` so the
+// two never overlap on the (rare) render where both are showing: a stale delay
+// reading can still be latched (see `delay-authority.ts`) through a
+// connectivity drop, so both badges legitimately co-render. "Opposite corner"
+// alone isn't enough at narrow widths (e.g. the widget's own registered
+// minSize, 8x6): this badge's text is the longer of the two, and with no width
+// cap it grows straight across the frame into `DelayBadge`'s corner instead of
+// stopping short. Capped + truncated so it always leaves `DelayBadge` clear.
+const NoPathBadge = styled.div`
+  position: absolute;
+  top: var(--space-8);
+  left: var(--space-8);
+  /* Local ordering inside the frame only; see CompositionBar__NoPathFlag. */
+  z-index: 1;
+  padding: var(--space-2) var(--space-8);
+  font-family: monospace;
+  font-size: var(--font-size-xs);
+  font-weight: bold;
+  color: var(--color-status-nogo-on-bg);
+  background: var(--color-status-nogo-bg);
+  border: 1px solid var(--color-status-nogo-on-bg);
+  border-radius: var(--radius-md);
+  max-width: 50%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+`;
+
+// Compact delay readout: char-mode always, line-mode only when the delay is
+// too short (<=1s one-way) for a strip to be worth it; see `showBadge`. Pinned
+// against `ConsoleFrame` as a sibling of `Container`, not a descendant:
+// `Container`'s own `overflow: hidden` is reserved for xterm's content.
+const DelayBadge = styled.div`
+  position: absolute;
+  top: var(--space-8);
+  right: var(--space-8);
+  /* Local ordering inside the frame only; see CompositionBar__NoPathFlag. */
+  z-index: 1;
+  padding: var(--space-2) var(--space-8);
+  font-family: monospace;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  background: var(--color-surface-panel);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+`;
+
 /*
- * "Change CPU": pinned as an absolutely-positioned corner overlay INSIDE
- * `TerminalFrame` (same pattern + reasoning as `DelayBadge`/`NoPathBadge`), in
- * the bottom-right corner the badges leave free, so it never adds a flex row
- * that could push the composition bar past the widget's visible bounds.
+ * "Change CPU": pinned in the frame's bottom-right corner, the one the two
+ * badges leave free, so it never adds a flex row that could push the
+ * composition bar past the widget's visible bounds.
  */
 const ChangeCpuButton = styled(GhostButton)`
   position: absolute;
   bottom: var(--space-8);
   right: var(--space-8);
-  /* Local ordering inside TerminalFrame only, same as DelayBadge/NoPathBadge:
-     lift this overlay above xterm's own layers in the Container beneath it.
-     Not app-global chrome, so a named z rung would be wrong here. */
+  /* Local ordering inside the frame only, same as the two badges: lift this
+     overlay above xterm's own layers in the Container beneath it. Not
+     app-global chrome, so a named z rung would be wrong here. */
   z-index: 1;
   display: inline-flex;
   align-items: center;

@@ -351,6 +351,32 @@ const WIDGETS: WidgetRenderConfig[] = [
     ],
   },
   {
+    // Mission Log: the merged, newest-first timeline of what happened this
+    // mission. Two of its three scenes exist because the widget's two event
+    // tiers stamp their rows differently and only a render shows the result
+    // side by side: a Tier-A row carries its own game-time and reads as
+    // history, a Tier-B row is an edge the widget SAW and stamps at the view
+    // clock, so every edge in one fixture lands on the same instant at the top.
+    // The third is the empty state, which has to read as a quiet mission
+    // rather than a broken widget.
+    widgetId: "mission-event-log",
+    fixturesPath: "MissionEventLog/__render__",
+    outPath: "renders/mission-event-log",
+    fullContent: true,
+    modes: [
+      // Default registered size.
+      { name: "default-8x10", w: 8, h: 10 },
+      // At `minSize`, where `Truncate` decides which half of a row survives:
+      // the label gives way and the badge, stamp and figure are pinned.
+      { name: "min-4x4", w: 4, h: 4 },
+      // Wide: the width at which no row truncates, so the history can be read
+      // end to end. At the default 8 columns four of the nine labels are cut,
+      // which is the widget behaving correctly and not the scene to review the
+      // CONTENT in.
+      { name: "wide-14x10", w: 14, h: 10 },
+    ],
+  },
+  {
     // Astronaut Complex: header (funds, next-hire cost, active/max crew cap)
     // above the Applicants | Active tabs. Applicants renders each candidate
     // through the shared crew-stat row (trait, courage, stupidity, no rank)

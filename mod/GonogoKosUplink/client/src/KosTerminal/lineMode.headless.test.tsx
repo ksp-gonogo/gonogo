@@ -163,20 +163,20 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
     return f;
   }
 
-  const compositionBar = () =>
-    screen.getByLabelText("Line-mode input").textContent ?? "";
-  // The bar always renders a leading prompt glyph ("❯") ahead of the actual
-  // composition text: strip it so history-recall assertions can compare the
-  // composed line itself.
-  const compositionText = () => compositionBar().replace("❯", "");
-  // Reads the visible caret's split point directly off the DOM: the bar
-  // renders `[before-text, <caret span>, after-text]` as the three children
-  // of its text span (`CompositionBar__Text`): see the component's render.
-  // Asserting on this (rather than only on the flattened `compositionText`)
-  // proves the caret itself is positioned correctly, not just that the text
-  // round-trips.
+  // The composed line only, read off the bar's text span rather than off the
+  // whole bar. The bar also carries a leading prompt glyph and, with no comms
+  // path, a pinned "NO PATH" flag, and neither is the composition: a flattened
+  // read of the bar reported the flag's text as typed characters.
+  const compositionTextSpan = () =>
+    screen.getByLabelText("Line-mode input").children[1];
+  const compositionText = () => compositionTextSpan()?.textContent ?? "";
+  // Reads the visible caret's split point directly off the DOM: the text span
+  // renders `[before-text, <caret span>, after-text]`: see the component's
+  // render. Asserting on this (rather than only on the flattened
+  // `compositionText`) proves the caret itself is positioned correctly, not
+  // just that the text round-trips.
   function caretSplit(): [string, string] {
-    const textSpan = screen.getByLabelText("Line-mode input").children[1];
+    const textSpan = compositionTextSpan();
     return [
       textSpan?.childNodes[0]?.textContent ?? "",
       textSpan?.childNodes[2]?.textContent ?? "",
@@ -217,7 +217,7 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
     const s1 = await readScreen(term());
     expect(s1).toContain("kOS>");
     expect(s1).not.toContain("run");
-    expect(compositionBar()).toContain("run.");
+    expect(compositionText()).toContain("run.");
 
     // A periodic keyframe (unchanged screen) arrives WHILE composing, the
     // screen resyncs and the composition is untouched.
@@ -231,7 +231,7 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
     const s2 = await readScreen(term());
     expect(s2).toContain("kOS>");
     expect(s2).not.toContain("run");
-    expect(compositionBar()).toContain("run.");
+    expect(compositionText()).toContain("run.");
   });
 
   it("a full-width kOS line does not wrap (fixed-size terminal)", async () => {
@@ -377,7 +377,7 @@ describe("KosTerminal line mode: faithful VT (real @xterm/headless)", () => {
     expect(text).not.toContain("run");
     expect(text).not.toContain("MET 00:12run.");
     // The composition is intact in its bar.
-    expect(compositionBar()).toContain("run.");
+    expect(compositionText()).toContain("run.");
   });
 
   it("up/down arrow walks line-mode composition history, most recent first", async () => {
@@ -633,8 +633,11 @@ describe("KosTerminal line mode: no comms path (kos-nopath-block-input fix)", ()
   }
 
   const compositionBarEl = () => screen.getByLabelText("Line-mode input");
+  // The composed line only. This block emits `connected: false` deliberately,
+  // so the bar is carrying its pinned "NO PATH" flag throughout; a flattened
+  // read of the whole bar reported that flag's text as typed characters.
   const compositionText = () =>
-    (compositionBarEl().textContent ?? "").replace("❯", "");
+    compositionBarEl().children[1]?.textContent ?? "";
 
   it("refuses Enter with no path: the typed line stays in the box, nothing is sent, nothing joins history", async () => {
     const f = await mountAttached({ lineMode: true });

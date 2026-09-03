@@ -1,0 +1,142 @@
+{
+  "_meta": {
+    "notes": "An hour into a crewed Kerbin-orbit flight. The Tier-A rows carry their own game-time and read as history (launch at T+0, the switch to the spent booster, its recovery for funds); the Tier-B rows are edges the widget saw at the view clock's own instant, so they stamp at T+1h and stack at the top. Every badge severity in the nominal vocabulary appears: LAUNCH, SWITCH, RECOVER, STAGE, SOI, DOCK, EVA, SCIENCE, CONTRACT.",
+    "scenario": "mission-history",
+    "horizonAbsent": "The vessel.orbit emits here carry referenceBodyIndex and nothing else: they exist to name the body the log's rows are stamped against, not to give anything an orbit to propagate. A horizon would be an invention rather than a recording."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "flight.started",
+      "flight.ended",
+      "flight.vesselChanged",
+      "crash.lastCrash",
+      "recovery.lastSummary",
+      "vessel.structure",
+      "vessel.orbit",
+      "vessel.dock",
+      "vessel.identity",
+      "career.status"
+    ],
+    "pinnedUt": 12003600,
+    "emits": [
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselType": 0,
+          "launchUt": 12000000
+        }
+      },
+      {
+        "channel": "flight.started",
+        "value": {
+          "ut": 12000000,
+          "vesselName": "Auriga 3"
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1
+        }
+      },
+      {
+        "channel": "vessel.dock",
+        "value": null
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 486200,
+            "science": 214
+          },
+          "contracts": {
+            "completedRecent": [
+              {
+                "id": "c1",
+                "title": "Reach orbit"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "channel": "flight.vesselChanged",
+        "value": {
+          "ut": 12000480,
+          "vesselName": "Auriga 3 Booster"
+        }
+      },
+      {
+        "channel": "recovery.lastSummary",
+        "value": {
+          "ut": 12001260,
+          "vesselName": "Auriga 3 Booster",
+          "fundsRecovered": 18400
+        }
+      },
+      {
+        "channel": "vessel.structure",
+        "value": {
+          "currentStage": 3
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 2
+        }
+      },
+      {
+        "channel": "vessel.dock",
+        "value": {
+          "relativePosition": {
+            "x": 1,
+            "y": 0,
+            "z": 0
+          },
+          "relativeVelocity": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          },
+          "distance": 12
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselType": 7,
+          "launchUt": 12000000
+        }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "funds": 486200,
+            "science": 261.5
+          },
+          "contracts": {
+            "completedRecent": [
+              {
+                "id": "c1",
+                "title": "Reach orbit"
+              },
+              {
+                "id": "c2",
+                "title": "Recover a booster downrange"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}
