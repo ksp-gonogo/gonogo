@@ -56,12 +56,12 @@ export function RequiresGuard({
   // widget (e.g. a purely local Serial Devices control) has nothing to
   // block on here.
   if (hostDown && channels && channels.length > 0) {
-    return <RequiresPlaceholder message={NO_TELEMETRY_HOST_MESSAGE} />;
+    return <GuardPlaceholder message={NO_TELEMETRY_HOST_MESSAGE} />;
   }
 
   if (uplinkHealth.status === "resolved" && uplinkHealth.state !== "healthy") {
     return (
-      <RequiresPlaceholder
+      <GuardPlaceholder
         message={uplinkHealth.detail ?? `${uplinkHealth.ownerId}: unavailable`}
       />
     );
@@ -96,7 +96,7 @@ export function RequiresGuard({
   for (const req of requires) {
     if (req === "flight" && !ctx.inFlight) {
       return (
-        <RequiresPlaceholder
+        <GuardPlaceholder
           message="Vessel in flight required"
           hint={hintForScene(ctx.scene)}
         />
@@ -104,7 +104,7 @@ export function RequiresGuard({
     }
     if (req === "career" && !ctx.isCareerLike) {
       return (
-        <RequiresPlaceholder
+        <GuardPlaceholder
           message="Career or science save required"
           hint={
             ctx.careerMode === "SANDBOX"
@@ -119,7 +119,15 @@ export function RequiresGuard({
   return <>{children}</>;
 }
 
-function RequiresPlaceholder({
+/**
+ * The one placeholder every orchestrator-side gate renders.
+ *
+ * Exported so `SeatGuard` renders the identical chrome rather than a second
+ * copy of it: two gates that look different are read as two different KINDS of
+ * problem, and the four literal sizes below would then have to be kept in step
+ * across two files by hand.
+ */
+export function GuardPlaceholder({
   message,
   hint,
 }: {

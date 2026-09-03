@@ -10,9 +10,11 @@ import {
   groundDomainsOf,
 } from "./seatAvailability";
 
-// Importing the package for its side effect: every widget file calls
-// `registerComponent` on import, so this is how the derivation gets a real
-// catalogue to run over rather than a fixture that could drift from it.
+/*
+ * Importing the package for its side effect: every widget file calls
+ * `registerComponent` on import, so this is how the derivation gets a real
+ * catalogue to run over rather than a fixture that could drift from it.
+ */
 import "../index";
 
 describe("declaredDomains", () => {
@@ -49,18 +51,22 @@ describe("availableAtSeat", () => {
   });
 
   it("fails OPEN for a domain it has never heard of", () => {
-    // The direction is the whole point: a third-party widget reading an Uplink
-    // domain works aboard with no annotation from an author who never heard of
-    // the pilot seat.
+    /*
+     * The direction is the whole point: a third-party widget reading an Uplink
+     * domain works aboard with no annotation from an author who never heard of
+     * the pilot seat.
+     */
     expect(
       availableAtSeat({ channels: ["someUplink.thing" as never] }, "pilot"),
     ).toBe(true);
   });
 
   it("counts an OPTIONAL ground channel, unlike the health gate", () => {
-    // A widget renders through an optional channel it cannot read, but one
-    // that would draw the VAB's contents when they arrive is still a ground
-    // instrument.
+    /*
+     * A widget renders through an optional channel it cannot read, but one
+     * that would draw the VAB's contents when they arrive is still a ground
+     * instrument.
+     */
     expect(
       availableAtSeat(
         { optionalChannels: ["spaceCenter.scene" as never] },
@@ -96,27 +102,29 @@ describe("the built-in catalogue, derived", () => {
   });
 
   it("excludes exactly the widgets a ground domain excludes, and no others", () => {
-    // The LIST and its REASONS, so a new ground domain or a new widget reading
-    // one shows up as a failing diff rather than as a widget silently
-    // appearing on, or vanishing from, a pilot's screen. Update it
-    // deliberately.
-    //
-    // Eight of these are unambiguous ground instruments. THREE are mixed and
-    // are the honest cost of deriving rather than declaring, each excluded by
-    // a single ground channel among craft-side ones:
-    //
-    //   - `mission-event-log`, on `career.status` and `recovery.lastSummary`
-    //     beside seven craft channels. A crew watching their own launch, crash
-    //     and docking events is exactly who wants this, and the spec's own
-    //     predicted table missed it
-    //   - `science-data`, on `career`, though a crew running an experiment
-    //     aboard is the one taking the reading
-    //   - `contract-manager`, on `career`, though the crew is who fulfils it
-    //
-    // Each is one `seats: ["mission-control", "pilot"]` away from being forced
-    // aboard. That is a call about what belongs on a pilot's screen rather than
-    // about the rule, so the derivation is left honest and the three are named
-    // here instead of quietly overridden.
+    /*
+     * The LIST and its REASONS, so a new ground domain or a new widget reading
+     * one shows up as a failing diff rather than as a widget silently
+     * appearing on, or vanishing from, a pilot's screen. Update it
+     * deliberately.
+     *
+     * Eight of these are unambiguous ground instruments. THREE are mixed and
+     * are the honest cost of deriving rather than declaring, each excluded by
+     * a single ground channel among craft-side ones:
+     *
+     * - `mission-event-log`, on `career.status` and `recovery.lastSummary`
+     * beside seven craft channels. A crew watching their own launch, crash
+     * and docking events is exactly who wants this, and the spec's own
+     * predicted table missed it
+     * - `science-data`, on `career`, though a crew running an experiment
+     * aboard is the one taking the reading
+     * - `contract-manager`, on `career`, though the crew is who fulfils it
+     *
+     * Each is one `seats: ["mission-control", "pilot"]` away from being forced
+     * aboard. That is a call about what belongs on a pilot's screen rather than
+     * about the rule, so the derivation is left honest and the three are named
+     * here instead of quietly overridden.
+     */
     expect(excluded).toMatchInlineSnapshot(`
       [
         {

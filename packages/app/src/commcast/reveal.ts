@@ -86,9 +86,11 @@ export function separationFor(
   }
 
   if (msg.authorSeat !== me.seat) {
-    // A craft and the ground. `comms.delay` measures exactly this path, and
-    // both ends read the same number off it, so the sender's frozen figure is
-    // the right one until the matrix covers the pair.
+    /*
+     * A craft and the ground. `comms.delay` measures exactly this path, and
+     * both ends read the same number off it, so the sender's frozen figure is
+     * the right one until the matrix covers the pair.
+     */
     if (msg.oneWaySeconds === null) return { kind: "no-path" };
     return { kind: "light-time", seconds: msg.oneWaySeconds };
   }

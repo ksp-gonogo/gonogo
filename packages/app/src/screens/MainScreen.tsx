@@ -205,9 +205,11 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
   useEffect(() => {
     document.title = screen === "pilot" ? "gonogo - Pilot" : "gonogo - Main";
   }, [screen]);
-  // A pilot page holds its own telemetry session and is deliberately NOT a
-  // peer host: it joins the mesh as a client, so the canonical thread is
-  // somebody else's and this screen must not build one.
+  /*
+   * A pilot page holds its own telemetry session and is deliberately NOT a
+   * peer host: it joins the mesh as a client, so the canonical thread is
+   * somebody else's and this screen must not build one.
+   */
   const hostsThePeerMesh = screen !== "pilot";
   const { scene, inFlight, hasGameSignal } = useGameContext();
   const dashboard = useDashboardState(dashboardKeyForScene(scene), DEMO_CONFIG);

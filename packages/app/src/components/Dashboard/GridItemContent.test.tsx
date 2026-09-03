@@ -45,9 +45,11 @@ const guardCapture = vi.hoisted(() => ({
   } | null,
 }));
 vi.mock("@ksp-gonogo/components", () => ({
-  // Pass-through, like `RequiresGuard` below: this file is about the chrome's
-  // structure, and the seat gate's own behaviour is covered where the
-  // derivation lives (`seatAvailability.test.ts`).
+  /*
+   * Pass-through, like `RequiresGuard` below: this file is about the chrome's
+   * structure, and the seat gate's own behaviour is covered where the
+   * derivation lives (`seatAvailability.test.ts`).
+   */
   SeatGuard: (props: { children: React.ReactNode; def: unknown }) => {
     seatCapture.last = props.def;
     return <>{props.children}</>;

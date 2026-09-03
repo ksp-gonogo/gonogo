@@ -7,6 +7,7 @@ import {
   Button,
   EmptyState,
   formatDuration,
+  NULL_DISPLAY,
   Panel,
   ScrollArea,
   Text,
@@ -50,100 +51,110 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const pairs = useSeparationMatrix();
   const feed = useCommcastFeed(thread, me, pairs);
   const dropped = useDroppedCount(thread);
-  const delayReading = useTelemetry("comms.delay");
   const oneWaySeconds =
-    judgeable<CommsDelay>(delayReading)?.oneWaySeconds?.magnitude ?? null;
+    judgeable<CommsDelay>(useTelemetry("comms.delay"))?.oneWaySeconds
+      ?.magnitude ?? null;
 
   if (!thread) {
     return (
-      <Panel panelTitle="Commcast">
-        <EmptyState layout="fill">
-          No route to the thread. A station reaches it through its host; the
-          host screen owns it directly.
-        </EmptyState>
-      </Panel>
+      <Panel
+        panelTitle="Commcast"
+        sections={
+          <EmptyState layout="fill">
+            No route to the thread. A station reaches it through its host; the
+            host screen owns it directly.
+          </EmptyState>
+        }
+      />
     );
   }
 
-  return (
-    <Panel panelTitle="Commcast">
-      <Commcast__Frame>
-        <Commcast__Chrome>
-          {/* The editor needs an identity provider; a screen without one still
-              posts under its seat's name, shown flat. */}
-          {named === undefined ? (
-            <Text size="xs">{thread.me.name}</Text>
-          ) : (
-            <StationNameEditor compact />
+  /*
+   * Hoisted out of the `sections` attribute rather than written inline. The
+   * Panel-body scan tracks brace depth through an attribute value and reads a
+   * `'` as a string delimiter, so an odd number of apostrophes in JSX PROSE
+   * desynchronises it and a self-closing Panel is reported as carrying a body.
+   * A named value sidesteps that and reads better besides.
+   */
+  const body = (
+    <Commcast__Frame>
+      <Commcast__Chrome>
+        {/* The editor needs an identity provider; a screen without one still
+                  posts under its seat's name, shown flat. */}
+        {named === undefined ? (
+          <Text size="xs">{thread.me.name}</Text>
+        ) : (
+          <StationNameEditor compact />
+        )}
+        <SeatChip $pilot={me.seat === "pilot"}>
+          {me.seat === "pilot" ? "ABOARD" : "MISSION CONTROL"}
+        </SeatChip>
+        <Text size="xs" tone="faint">
+          {separationLabel(oneWaySeconds)}
+        </Text>
+      </Commcast__Chrome>
+
+      <ScrollArea>
+        <Commcast__List>
+          {feed.revealed.length === 0 && feed.inTransit.length === 0 && (
+            <EmptyState>Nothing spoken yet.</EmptyState>
           )}
-          <SeatChip $pilot={me.seat === "pilot"}>
-            {me.seat === "pilot" ? "ABOARD" : "MISSION CONTROL"}
-          </SeatChip>
-          <Text size="xs" tone="faint">
-            {separationLabel(oneWaySeconds)}
-          </Text>
-        </Commcast__Chrome>
+          {feed.revealed.map((msg) => (
+            <MessageRow
+              key={msg.id}
+              msg={msg}
+              me={me}
+              utNow={utNow}
+              pairs={pairs}
+              thread={thread}
+              oneWaySeconds={oneWaySeconds}
+            />
+          ))}
+          {feed.inTransit.length > 0 && (
+            <Commcast__Group>
+              <GroupLabel>In transit ({feed.inTransit.length})</GroupLabel>
+              {feed.inTransit.map((msg) => (
+                <TransitRow
+                  key={msg.id}
+                  msg={msg}
+                  me={me}
+                  utNow={utNow}
+                  pairs={pairs}
+                  mine={msg.authorStationKey === thread.me.stationKey}
+                />
+              ))}
+            </Commcast__Group>
+          )}
+          {feed.unreachable.length > 0 && (
+            <Commcast__Group>
+              <GroupLabel $warn>
+                Never reached you ({feed.unreachable.length})
+              </GroupLabel>
+              {feed.unreachable.map((msg) => (
+                <UnreachableRow key={msg.id} msg={msg} />
+              ))}
+            </Commcast__Group>
+          )}
+        </Commcast__List>
+      </ScrollArea>
 
-        <ScrollArea>
-          <Commcast__List>
-            {feed.revealed.length === 0 && feed.inTransit.length === 0 && (
-              <EmptyState>Nothing spoken yet.</EmptyState>
-            )}
-            {feed.revealed.map((msg) => (
-              <MessageRow
-                key={msg.id}
-                msg={msg}
-                me={me}
-                utNow={utNow}
-                pairs={pairs}
-                thread={thread}
-                oneWaySeconds={oneWaySeconds}
-              />
-            ))}
-            {feed.inTransit.length > 0 && (
-              <Commcast__Group>
-                <GroupLabel>In transit ({feed.inTransit.length})</GroupLabel>
-                {feed.inTransit.map((msg) => (
-                  <TransitRow
-                    key={msg.id}
-                    msg={msg}
-                    me={me}
-                    utNow={utNow}
-                    pairs={pairs}
-                    mine={msg.authorStationKey === thread.me.stationKey}
-                  />
-                ))}
-              </Commcast__Group>
-            )}
-            {feed.unreachable.length > 0 && (
-              <Commcast__Group>
-                <GroupLabel $warn>
-                  Never reached you ({feed.unreachable.length})
-                </GroupLabel>
-                {feed.unreachable.map((msg) => (
-                  <UnreachableRow key={msg.id} msg={msg} />
-                ))}
-              </Commcast__Group>
-            )}
-          </Commcast__List>
-        </ScrollArea>
-
-        <Composer
-          thread={thread}
-          utNow={utNow}
-          oneWaySeconds={oneWaySeconds}
-          vantageId={me.vantageId}
-        />
-        <Commcast__Footnote>
-          Ordered as it reached this seat. Another seat's order differs, and
-          neither is the transcript.
-          {dropped > 0 &&
-            ` ${dropped} older message${dropped === 1 ? "" : "s"} dropped at the cap.`}
-        </Commcast__Footnote>
-      </Commcast__Frame>
+      <Composer
+        thread={thread}
+        utNow={utNow}
+        oneWaySeconds={oneWaySeconds}
+        vantageId={me.vantageId}
+      />
+      <Commcast__Footnote>
+        Ordered as it reached this seat. Another seat's order differs, and
+        neither is the transcript.
+        {dropped > 0 &&
+          ` ${dropped} older message${dropped === 1 ? "" : "s"} dropped at the cap.`}
+      </Commcast__Footnote>
       <ReadReceipts thread={thread} feed={feed} utNow={utNow} />
-    </Panel>
+    </Commcast__Frame>
   );
+
+  return <Panel panelTitle="Commcast" sections={body} />;
 }
 
 /** One message that has arrived here. */
@@ -235,7 +246,7 @@ function TransitRow({
       {/* Own words are readable in flight; someone else's have not arrived,
           so showing them here would be the faster-than-light channel this
           whole design exists to avoid. */}
-      <Commcast__Body>{mine ? msg.body : "—"}</Commcast__Body>
+      <Commcast__Body>{mine ? msg.body : NULL_DISPLAY}</Commcast__Body>
     </Commcast__Message>
   );
 }
@@ -258,7 +269,7 @@ function UnreachableRow({ msg }: { msg: CommsMessage }) {
           no path from where it was spoken
         </Text>
       </Commcast__Meta>
-      <Commcast__Body>—</Commcast__Body>
+      <Commcast__Body>{NULL_DISPLAY}</Commcast__Body>
     </Commcast__Message>
   );
 }
@@ -456,7 +467,7 @@ const Commcast__Chrome = styled.div`
 const SeatChip = styled.span<{ $pilot: boolean }>`
   font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
-  padding: 1px var(--space-6);
+  padding: var(--space-hair) var(--space-6);
   border-radius: var(--radius-sm);
   border: 1px solid
     ${({ $pilot }) =>
@@ -490,7 +501,7 @@ const GroupLabel = styled.span<{ $warn?: boolean }>`
 const Commcast__Message = styled.div<{ $dim?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: var(--space-hair);
   opacity: ${({ $dim }) => ($dim ? 0.65 : 1)};
 `;
 

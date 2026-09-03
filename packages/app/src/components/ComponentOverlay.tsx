@@ -137,11 +137,13 @@ export function ComponentOverlay({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return allComponents.filter((def) => {
-      // The COSMETIC half of the seat rule: this stops a ground instrument
-      // being offered here, and `SeatGuard` in the orchestrator is what stops
-      // it rendering when one arrives by any of the other paths that put an
-      // item in `items[]` (mission-profile replace, scene auto-switch, backup
-      // restore, raw localStorage, peer widget-push).
+      /*
+       * The COSMETIC half of the seat rule: this stops a ground instrument
+       * being offered here, and `SeatGuard` in the orchestrator is what stops
+       * it rendering when one arrives by any of the other paths that put an
+       * item in `items[]` (mission-profile replace, scene auto-switch, backup
+       * restore, raw localStorage, peer widget-push).
+       */
       if (!availableAtSeat(def, seat)) return false;
       const searchTags = effectiveSearchTags(def);
       if (q) {

@@ -135,6 +135,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
+  /*
+   * 1 each, and both are the wire boundary. A Commcast message crosses PeerJS
+   * as JSON, so the separation it freezes has to be a plain `number | null`:
+   * a `Value<"s">` serialises to an object the receiving side would then have
+   * to unwrap by hand at every read, which is the same unwrap done N times
+   * instead of once. The context's is the mirror of it, turning the published
+   * pair matrix into the lookup the reveal rule indexes.
+   */
+  "packages/app/src/commcast/CommcastComponent.tsx": 1,
+  "packages/app/src/commcast/CommcastContext.tsx": 1,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 4,
   // 3, all three in `commsLegTimeSeconds`: a leg's share of the path delay is
   // `hopMeters * (delaySeconds / totalMeters)`, a length over a length, and the

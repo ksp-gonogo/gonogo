@@ -142,7 +142,7 @@ const PilotScreen__CommsBanner = styled.div`
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: var(--z-sticky);
   display: flex;
   align-items: center;
   gap: var(--space-8);

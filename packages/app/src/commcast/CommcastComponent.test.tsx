@@ -107,9 +107,11 @@ describe("Commcast, rendered", () => {
   });
 
   it("flags the operator's OWN message that reached nobody, in place", () => {
-    // Revealed here, because the author is standing next to it, and flagged
-    // rather than filed away: without this an author watches their own words
-    // sit in the thread looking delivered while nobody received them.
+    /*
+     * Revealed here, because the author is standing next to it, and flagged
+     * rather than filed away: without this an author watches their own words
+     * sit in the thread looking delivered while nobody received them.
+     */
     const host = new CommcastHostService();
     const me = localParticipant();
     // At UT 0, so it is at-or-before the stub clock's estimate and releases

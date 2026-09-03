@@ -115,9 +115,11 @@ export function useCommcastFeed(
         if (!msg) return;
         setRevealed((prev) => [...prev, msg]);
       },
-      // A message is never evicted for size: dropping somebody's words to save
-      // bytes would be the one failure this feature cannot afford, and a typed
-      // thread does not approach any cap worth having.
+      /*
+       * A message is never evicted for size: dropping somebody's words to save
+       * bytes would be the one failure this feature cannot afford, and a typed
+       * thread does not approach any cap worth having.
+       */
       maxBufferedBytes: Number.POSITIVE_INFINITY,
     });
     setBuffer(next);

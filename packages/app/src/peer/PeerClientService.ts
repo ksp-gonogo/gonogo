@@ -368,9 +368,11 @@ export class PeerClientService {
       stationKey: this.stationKey,
       ...(info?.version ? { version: info.version } : {}),
       ...(info?.buildTime ? { buildTime: info.buildTime } : {}),
-      // Omitted rather than sent as the default, matching this message's
-      // existing back-compat posture: absence already means mission control,
-      // so a client that predates the pilot seat needs no change.
+      /*
+       * Omitted rather than sent as the default, matching this message's
+       * existing back-compat posture: absence already means mission control,
+       * so a client that predates the pilot seat needs no change.
+       */
       ...(info?.seat && info.seat !== "mission-control"
         ? { seat: info.seat }
         : {}),

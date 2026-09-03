@@ -177,9 +177,11 @@ describe("Commcast, host to peer and back", () => {
     for (const msg of client.drainOutgoing()) host.feed(msg);
 
     expect(hostSvc.snapshot().messages).toHaveLength(1);
-    // The peer's own copy comes back through the snapshot round-trip, never
-    // from an optimistic local write: a message the host never received must
-    // not sit in the author's thread looking delivered.
+    /*
+     * The peer's own copy comes back through the snapshot round-trip, never
+     * from an optimistic local write: a message the host never received must
+     * not sit in the author's thread looking delivered.
+     */
     expect(clientSvc.snapshot().messages[0]?.body).toBe("staging nominal");
     expect(clientSvc.snapshot().messages[0]?.authorSeat).toBe("pilot");
   });

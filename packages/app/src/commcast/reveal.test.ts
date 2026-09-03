@@ -87,9 +87,11 @@ describe("separationFor", () => {
   });
 
   it("refuses to claim two command centres at different vantages are co-located", () => {
-    // The seat axis alone would say zero here, and it would be wrong: the
-    // number that answers this is the pairwise centre delay the mod computes
-    // and no channel publishes.
+    /*
+     * The seat axis alone would say zero here, and it would be wrong: the
+     * number that answers this is the pairwise centre delay the mod computes
+     * and no channel publishes.
+     */
     expect(separationFor(msg(), FAR_CENTRE)).toEqual({ kind: "unmeasured" });
   });
 
