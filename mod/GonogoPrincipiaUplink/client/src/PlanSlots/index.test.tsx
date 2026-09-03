@@ -13,7 +13,21 @@ import {
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
+import {
+  PrincipiaWriteOutcome,
+  PrincipiaWriteRefusal,
+} from "../__generated__/contract";
 import { PlanSlots } from "./index";
+
+/**
+ * A plan write's answer as the mod actually sends it: a `CommandResult` whose
+ * `payload` is the receipt. See `JsonWriter.AppendCommandResult`, and the
+ * sibling helper in `BurnEditor`'s suite for what scripting it FLAT used to
+ * hide.
+ */
+function planWriteReply(receipt: Record<string, unknown>) {
+  return { success: true, errorCode: 0, payload: receipt };
+}
 
 const renderedTrees: Array<() => void> = [];
 
@@ -346,6 +360,61 @@ describe("PlanSlots", () => {
     );
     // The count is the BURNS row's, not a number repeated inside the sentence.
     expect(await visibleText(body)).toContain("BURNS2");
+    await act(async () => {});
+  });
+
+  /**
+   * A delete the mod answered from its own store is not a delete.
+   *
+   * The request id is composed from the vessel alone, so a second press after a
+   * dropped reply sends the id the first one went under and the mod answers it
+   * out of its replay cache without calling the plugin. Both resolve, so the
+   * control cannot tell them apart; the receipt is the only place they differ.
+   */
+  it("says a delete answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "delete-vessel-1",
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete this flight plan" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirm deleting this flight plan" }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /** The other arm of the same fact: see the sibling test in `BurnEditor`. */
+  it("says a receipt reporting no write changed nothing, and names the guard", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "delete-vessel-1",
+        outcome: PrincipiaWriteOutcome.Refused,
+        refusal: PrincipiaWriteRefusal.SurfaceUnavailable,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete this flight plan" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirm deleting this flight plan" }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    expect(screen.getByText(/SurfaceUnavailable/)).toBeInTheDocument();
     await act(async () => {});
   });
 

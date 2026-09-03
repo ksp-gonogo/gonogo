@@ -70,12 +70,20 @@ export interface CommandGateLike extends CommandRefusalLike {
  * the vanilla design system, and `useCommand`'s real return value satisfies this
  * shape at every call site.
  */
-export interface CommandButtonHandle extends CommandDelayHandle {
+export interface CommandButtonHandle<TResult = unknown>
+  extends CommandDelayHandle {
   /**
    * Dispatch. The returned promise resolves when the command is confirmed and
    * rejects when it is refused, lost, or the machinery failed, which is what
    * lets this control clear its own pending state with no per-command telemetry
    * predicate.
+   *
+   * `TResult` is what it RESOLVES with, and it is the only reason this
+   * interface has a type parameter: it is what carries the reply's real type to
+   * {@link CommandButtonProps.onConfirmed}. A handle from `useCommand("...")`
+   * supplies it out of the generated command map with nothing written at the
+   * call site; a hand-built handle that says nothing gets `unknown`, exactly as
+   * every handle did before.
    *
    * A method rather than a property holding a function, so a handle whose args
    * are typed from the generated command map is still a handle: as a property,
@@ -85,7 +93,7 @@ export interface CommandButtonHandle extends CommandDelayHandle {
   send(
     args?: unknown,
     opts?: { label?: string; topic?: string },
-  ): Promise<unknown>;
+  ): Promise<TResult>;
   /**
    * The standing gate verdict, when the mod publishes one for this command.
    * Absent means nothing is known in advance, which is where every control was
@@ -129,12 +137,12 @@ export type CommandButtonPhase =
 export type CommandButtonTone = "neutral" | "go" | "nogo" | "warn";
 export type CommandButtonSize = "sm" | "md";
 
-export interface UseCommandButtonOptions {
-  handle: CommandButtonHandle;
+export interface UseCommandButtonOptions<TResult = unknown> {
+  handle: CommandButtonHandle<TResult>;
   args?: unknown;
   commandLabel?: string;
   /** Receives the dispatch's resolved result. See {@link CommandButtonProps.onConfirmed}. */
-  onConfirmed?: (result: unknown) => void;
+  onConfirmed?: (result: TResult) => void;
 }
 
 export interface CommandButtonState {
@@ -191,12 +199,12 @@ export interface CommandButtonState {
  * `CommandButton` below is this hook plus the default rendering, and is what a
  * caller with no such requirement should use.
  */
-export function useCommandButton({
+export function useCommandButton<TResult = unknown>({
   handle,
   args,
   commandLabel,
   onConfirmed,
-}: UseCommandButtonOptions): CommandButtonState {
+}: UseCommandButtonOptions<TResult>): CommandButtonState {
   const [phase, setPhase] = useState<CommandButtonPhase>("idle");
   const [refusal, setRefusal] = useState<CommandRefusalLike | null>(null);
   // A press on a blocked control shows its reason. Local, and cleared on the
@@ -275,7 +283,7 @@ export function useCommandButton({
       setPhase(next);
     };
     handle.send(args, commandLabel ? { label: commandLabel } : undefined).then(
-      (result: unknown) => {
+      (result: TResult) => {
         settle("idle", null);
         onConfirmed?.(result);
       },
@@ -386,9 +394,14 @@ type NativeButtonProps = Omit<
   "onClick" | "type" | "children" | "aria-pressed" | "aria-busy"
 >;
 
-export interface CommandButtonProps extends NativeButtonProps {
-  /** The command this control dispatches. */
-  handle: CommandButtonHandle;
+export interface CommandButtonProps<TResult = unknown>
+  extends NativeButtonProps {
+  /**
+   * The command this control dispatches. Its reply type is what
+   * {@link CommandButtonProps.onConfirmed} receives, inferred, so a caller
+   * declares nothing to get it.
+   */
+  handle: CommandButtonHandle<TResult>;
   /** Args for the dispatch, passed straight to `handle.send`. */
   args?: unknown;
   /**
@@ -459,14 +472,23 @@ export interface CommandButtonProps extends NativeButtonProps {
    * Called once a dispatch is confirmed, for a caller with local state to
    * settle. The pending state itself needs nothing from you.
    *
-   * Receives whatever the dispatch RESOLVED with, which is the command's own
-   * result payload. Worth reading, because a confirmed command is not always a
-   * command that did something: a mod that de-duplicates on request id answers a
-   * repeat with the receipt it stored the first time, and the receipt is the only
-   * place a repeat is distinguishable from a fresh write. A caller that ignores
-   * the argument behaves exactly as it did.
+   * Receives whatever the dispatch RESOLVED with, TYPED off the handle. Worth
+   * reading, because a confirmed command is not always a command that did
+   * something: a mod that de-duplicates on request id answers a repeat with the
+   * receipt it stored the first time, and the receipt is the only place a repeat
+   * is distinguishable from a fresh write. A caller that ignores the argument
+   * behaves exactly as it did.
+   *
+   * The type is the point. This was `(result: unknown) => void`, and `unknown`
+   * accepts every reader, including one that reads the command ENVELOPE as if it
+   * were the payload the envelope wraps. Seven controls across one Uplink did
+   * exactly that, reading a receipt's fields off the `CommandResult` that
+   * carries it: every one came back `undefined`, so every write reported success
+   * and the "nothing was written" banner those fields exist to raise could not
+   * fire at all. The reply type reaching here is what makes that reach a compile
+   * error instead of a silent `undefined`.
    */
-  onConfirmed?: (result: unknown) => void;
+  onConfirmed?: (result: TResult) => void;
 }
 
 /**
@@ -497,7 +519,7 @@ export interface CommandButtonProps extends NativeButtonProps {
  * must-consume assertion doing its job, so a widget that renders a
  * `CommandButton` and forgets the rail still throws on the first dispatch.
  */
-export function CommandButton({
+export function CommandButton<TResult = unknown>({
   handle,
   args,
   commandLabel,
@@ -518,7 +540,7 @@ export function CommandButton({
   title,
   "aria-label": ariaLabel,
   ...rest
-}: Readonly<CommandButtonProps>) {
+}: Readonly<CommandButtonProps<TResult>>) {
   const {
     phase,
     isPending,

@@ -1,8 +1,4 @@
-import type {
-  ComposedBurn,
-  PlanDraft,
-  UseCommandResult,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { ComposedBurn, PlanDraft } from "@ksp-gonogo/sitrep-sdk";
 import {
   ManeuverFrame,
   registerAugment,
@@ -39,6 +35,12 @@ import type {
 import { PrincipiaBurnProfile } from "../__generated__/contract";
 import { commandWindow } from "../commandWindow";
 import { planView } from "../planReading";
+import type { PrincipiaPlanWriteHandle } from "../planWrite";
+import {
+  nothingWasWritten,
+  planWriteReceipt,
+  planWriteRefusalLine,
+} from "../planWrite";
 import { PRINCIPIA } from "../uplink";
 import "../topics";
 
@@ -337,7 +339,7 @@ export function PlanSlots() {
                 confirmLabel="CONFIRM CREATE"
                 confirmTone="nogo"
                 pendingLabel="Creating..."
-                onConfirmed={(result) => setLastWrite(writeReceipt(result))}
+                onConfirmed={(result) => setLastWrite(planWriteReceipt(result))}
                 disabled={
                   frozen ||
                   endUt === null ||
@@ -364,22 +366,30 @@ export function PlanSlots() {
           onWrite={setLastWrite}
         />
 
-        {/* A confirmed dispatch is not always a write. The mod answers a
-            repeated request id with the receipt it stored the first time and
-            never touches the plugin; the control's own success state cannot tell
-            the two apart, because both resolve. Live-regioned because it is the
-            outcome of something the operator just pressed and it contradicts
-            what the button beside it is showing. */}
-        {lastWrite?.replayed === true && (
+        {/* A confirmed dispatch is not always a write, and the RECEIPT is what
+            says so: the mod answers a repeated request id with the one it stored
+            the first time and never touches the plugin, and a receipt can report
+            an outcome that is not `Written` whatever the envelope around it
+            said. The control's own success state sees neither, because both
+            resolve. Live-regioned because it is the outcome of something the
+            operator just pressed and it contradicts what the button beside it is
+            showing. */}
+        {nothingWasWritten(lastWrite) && (
           <Stack gap="xs" role="status" aria-live="polite">
             <Cluster justify="start">
               <Badge severity="warning">NOTHING WAS WRITTEN</Badge>
             </Cluster>
-            <Text tone="faint" size="sm">
-              This matched a request already sent, so the mod answered with the
-              earlier receipt instead of writing again. The slot still holds
-              whatever the last write that DID land put there.
-            </Text>
+            {lastWrite.replayed === true ? (
+              <Text tone="faint" size="sm">
+                This matched a request already sent, so the mod answered with
+                the earlier receipt instead of writing again. The slot still
+                holds whatever the last write that DID land put there.
+              </Text>
+            ) : (
+              <Text tone="faint" size="sm">
+                {planWriteRefusalLine(lastWrite)}
+              </Text>
+            )}
           </Stack>
         )}
 
@@ -430,8 +440,8 @@ function ExistingPlan({
   nextIgnitionUt: number | null;
   viewUt: number | null;
   oneWaySeconds: number;
-  duplicateCmd: UseCommandResult;
-  deleteCmd: UseCommandResult;
+  duplicateCmd: PrincipiaPlanWriteHandle;
+  deleteCmd: PrincipiaPlanWriteHandle;
   onWrite: (receipt: PrincipiaPlanWriteReceipt | null) => void;
 }>) {
   const executing = (plan.burns ?? []).some((burn) => burn.executing === true);
@@ -459,7 +469,7 @@ function ExistingPlan({
           confirmLabel="CONFIRM COPY"
           confirmTone="nogo"
           pendingLabel="Copying..."
-          onConfirmed={(result) => onWrite(writeReceipt(result))}
+          onConfirmed={(result) => onWrite(planWriteReceipt(result))}
           disabled={frozen || slotsFull}
           aria-label="Copy this flight plan into a new slot"
           confirmAriaLabel="Confirm copying this flight plan into a new slot"
@@ -473,7 +483,7 @@ function ExistingPlan({
           confirmLabel="CONFIRM DELETE"
           confirmTone="nogo"
           pendingLabel="Deleting..."
-          onConfirmed={(result) => onWrite(writeReceipt(result))}
+          onConfirmed={(result) => onWrite(planWriteReceipt(result))}
           disabled={frozen}
           aria-label="Delete this flight plan"
           confirmAriaLabel="Confirm deleting this flight plan"
@@ -544,7 +554,7 @@ function InstallDrafts({
   oneWaySeconds: number;
   frozen: boolean;
   burnCount: number;
-  sendCmd: UseCommandResult;
+  sendCmd: PrincipiaPlanWriteHandle;
   onWrite: (receipt: PrincipiaPlanWriteReceipt | null) => void;
 }>) {
   return (
@@ -602,7 +612,7 @@ function InstallRow({
   oneWaySeconds: number;
   frozen: boolean;
   burnCount: number;
-  sendCmd: UseCommandResult;
+  sendCmd: PrincipiaPlanWriteHandle;
   onWrite: (receipt: PrincipiaPlanWriteReceipt | null) => void;
 }>) {
   const wrongBasis = draft.burns.some(
@@ -672,7 +682,7 @@ function InstallRow({
         confirmLabel="CONFIRM INSTALL"
         confirmTone="nogo"
         pendingLabel="Installing..."
-        onConfirmed={(result) => onWrite(writeReceipt(result))}
+        onConfirmed={(result) => onWrite(planWriteReceipt(result))}
         disabled={blocked}
         aria-label="Install this plan as Principia's flight plan"
         confirmAriaLabel="Confirm installing this plan as Principia's flight plan"
@@ -759,19 +769,6 @@ function nextIgnitionUt(plan: PrincipiaPlan): number | null {
     (candidate) => magnitudeOf(candidate.index) === index,
   );
   return burn === undefined ? null : magnitudeOf(burn.ignitionUt);
-}
-
-/**
- * The receipt a confirmed dispatch resolved with, or null when it carried none.
- *
- * <p>Narrowed by hand because the resolved value crosses the wire as `unknown`,
- * and a cast would make a widget that renders a receipt out of whatever came
- * back. Only the field this section reads is checked; the rest of the receipt is
- * the producer's business.</p>
- */
-function writeReceipt(result: unknown): PrincipiaPlanWriteReceipt | null {
-  if (typeof result !== "object" || result === null) return null;
-  return result as PrincipiaPlanWriteReceipt;
 }
 
 registerAugment({

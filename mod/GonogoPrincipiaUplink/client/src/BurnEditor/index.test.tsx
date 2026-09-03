@@ -68,6 +68,32 @@ async function emitPlan(
   await screen.findByText(/^PLAN \d+ OF \d+$/);
 }
 
+/**
+ * A plan write's answer as the mod actually sends it: a `CommandResult` whose
+ * `payload` is the receipt.
+ *
+ * The receipt used to be scripted here FLAT, as if it were the whole reply, and
+ * the widget read it flat to match. Both halves of that were wrong in the same
+ * direction, so the pair agreed and the fixture proved nothing: the banner it
+ * asserted has never once appeared against a real mod. `JsonWriter`'s
+ * `AppendCommandResult` is what the wire actually carries, and this is that
+ * shape.
+ */
+function planWriteReply(receipt: Record<string, unknown>) {
+  return { success: true, errorCode: 0, payload: receipt };
+}
+
+/** Open burn 1, press APPLY, and confirm it. */
+async function applyTheEditedBurn() {
+  await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+  await userEvent.click(
+    screen.getByRole("button", { name: "Apply the edited burn" }),
+  );
+  await userEvent.click(
+    screen.getByRole("button", { name: "Confirm applying the edited burn" }),
+  );
+}
+
 function burn(overrides: Record<string, unknown> = {}) {
   return {
     index: 0,
@@ -552,25 +578,46 @@ describe("BurnEditor", () => {
    */
   it("says a write answered from an earlier receipt changed nothing", async () => {
     const stream = mount();
-    // The receipt the mod's replay path produces: the stored outcome, unchanged,
-    // plus the flag saying it was answered rather than performed.
-    stream.transport.setCommandHandler(() => ({
-      requestId: "replace-0",
-      replayed: true,
-      outcome: PrincipiaWriteOutcome.Written,
-      refusal: PrincipiaWriteRefusal.NotRefused,
-    }));
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "replace-0",
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
     await emitPlan(stream);
 
-    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
-    await userEvent.click(
-      screen.getByRole("button", { name: "Apply the edited burn" }),
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: "Confirm applying the edited burn" }),
-    );
+    await applyTheEditedBurn();
 
     expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * A receipt is the authority on whether anything landed, and `replayed` is
+   * only one of the two ways it can say no.
+   *
+   * The contract's own words: "Nothing here can render as a quiet success." A
+   * receipt reporting anything but `Written` is a write that did not happen,
+   * whatever the envelope around it said, and the widget has to read the
+   * receipt to know that.
+   */
+  it("says a receipt reporting no write changed nothing, and names the guard", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "replace-0",
+        outcome: PrincipiaWriteOutcome.Refused,
+        refusal: PrincipiaWriteRefusal.IgnitionInPast,
+      }),
+    );
+    await emitPlan(stream);
+
+    await applyTheEditedBurn();
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    expect(screen.getByText(/IgnitionInPast/)).toBeInTheDocument();
     await act(async () => {});
   });
 
