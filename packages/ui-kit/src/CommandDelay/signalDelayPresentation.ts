@@ -56,10 +56,10 @@ export interface SignalDelayPresentationInput {
    */
   canQueue: boolean;
   /**
-   * Force the badge whatever the magnitude. The kOS terminal in CHARACTER mode
-   * sets this: every keystroke goes to the wire on its own and the round trip
-   * shows as the terminal's own latency, so there is no composed line to queue
-   * and the strip has nothing to list at any delay.
+   * Force the badge whatever the magnitude. A terminal emulator in CHARACTER
+   * mode sets this: every keystroke goes to the wire on its own and the round
+   * trip shows as the emulator's own latency, so there is no composed line to
+   * queue and the strip has nothing to list at any delay.
    */
   alwaysBadge?: boolean;
 }

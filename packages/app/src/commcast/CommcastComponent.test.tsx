@@ -258,9 +258,11 @@ describe("Commcast, rendered", () => {
      */
     const log = makeLog();
     log.setVantage("ksc");
-    // Something actually out, so the strip has a row: it renders nothing at all
-    // for an empty set, and a test on an empty conversation would be asserting
-    // the absence of both readings and calling it the switch.
+    /*
+     * Something actually out, so the strip has a row: it renders nothing at
+     * all for an empty set, and a test on an empty conversation would be
+     * asserting the absence of both readings and calling it the switch.
+     */
     log.replaceForTesting({
       outbox: [{ msg: sent(), acks: [], neverLeft: false }],
     });

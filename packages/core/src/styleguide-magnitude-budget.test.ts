@@ -60,6 +60,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * Every figure a READER sees goes back out through `<Unit>`.
    */
   "mod/GonogoRp1Uplink/client/src/KscComplexes/lcCost.ts": 1,
+  /*
+   * ONE, where the delay reading leaves the contract for the design system.
+   * `signalDelayPresentation` decides which of the two delay readings a console
+   * draws, and it lives in `ui-kit`, which is props-driven and carries no
+   * contract types: `InFlightList` beside it takes plain seconds for the same
+   * reason. So the terminal unwraps once, here, and the figure a READER sees
+   * goes back out through `<Unit>` inside the badge.
+   */
+  "mod/GonogoKosUplink/client/src/KosTerminal/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/processor.ts": 1,
   "mod/GonogoKerbalismUplink/client/src/SpaceWeather/index.tsx": 1,
   "mod/GonogoKerbalismUplink/client/src/resourceProjection.ts": 4,

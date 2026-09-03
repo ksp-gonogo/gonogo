@@ -70,9 +70,11 @@ describe("ComposerBar", () => {
   });
 
   it("refuses the press without blocking the bar", () => {
-    // The two states are different: a composer with nothing typed is perfectly
-    // able to accept input and still has nothing to send, so the outline must
-    // not turn on it.
+    /*
+     * The two states are different: a composer with nothing typed is perfectly
+     * able to accept input and still has nothing to send, so the outline must
+     * not turn on it.
+     */
     render(
       <ComposerBar onSend={() => {}} sendDisabled>
         <input aria-label="Message" />
@@ -92,12 +94,14 @@ describe("ComposerBar", () => {
   });
 
   it("pushes the button to the far end without a spacer from the caller", () => {
-    // A terminal's composed line does not flex, so without the button's own
-    // auto margin it sits against the last character typed and moves with every
-    // keystroke.
+    /*
+     * A terminal's composed line does not flex, so without the button's own
+     * auto margin it sits against the last character typed and moves with
+     * every keystroke.
+     */
     render(
       <ComposerBar onSend={() => {}}>
-        <span>kOS&gt; run boot.</span>
+        <span>&gt; run boot.</span>
       </ComposerBar>,
     );
     expect(

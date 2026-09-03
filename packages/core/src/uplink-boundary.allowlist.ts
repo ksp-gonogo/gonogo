@@ -596,6 +596,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
+       * -- MAGNITUDE-BUDGET ratchet inventory: its per-file budget map is keyed
+       * by file path, so it names any Uplink client file that unwraps a Value.
+       * Ratchet-inventory file, the same case four other Uplinks already carry
+       * an entry for.
+       */
+      "packages/core/src/styleguide-magnitude-budget.test.ts",
+      /*
        * -- DYNAMIC-NAMESPACE ROUTING (2026-08-25): `mapTopic` identity-maps the
        * per-body scansat namespaces and the kOS compute namespace, because both
        * materialise their Topics per subject at runtime and so appear in no
@@ -2463,6 +2470,10 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/telemetry/PeerTransport.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
     "packages/core/src/hooks/useUplinkHealthFor.test.tsx",
+    // A budget-map KEY naming this Uplink's terminal, which unwraps the one-way
+    // delay so the kit's presentation switch can take a plain number. A path,
+    // not code, the same as the four Uplinks already listed for this file.
+    "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
