@@ -96,6 +96,8 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
                 me={me}
                 utNow={utNow}
                 pairs={pairs}
+                thread={thread}
+                oneWaySeconds={oneWaySeconds}
               />
             ))}
             {feed.inTransit.length > 0 && (
@@ -113,17 +115,13 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
                 ))}
               </Commcast__Group>
             )}
-            {feed.unsent.length > 0 && (
+            {feed.unreachable.length > 0 && (
               <Commcast__Group>
-                <GroupLabel $warn>Never sent ({feed.unsent.length})</GroupLabel>
-                {feed.unsent.map((msg) => (
-                  <UnsentRow
-                    key={msg.id}
-                    msg={msg}
-                    thread={thread}
-                    utNow={utNow}
-                    oneWaySeconds={oneWaySeconds}
-                  />
+                <GroupLabel $warn>
+                  Never reached you ({feed.unreachable.length})
+                </GroupLabel>
+                {feed.unreachable.map((msg) => (
+                  <UnreachableRow key={msg.id} msg={msg} />
                 ))}
               </Commcast__Group>
             )}
@@ -154,14 +152,19 @@ function MessageRow({
   me,
   utNow,
   pairs,
+  thread,
+  oneWaySeconds,
 }: {
   msg: CommsMessage;
   me: Vantage;
   utNow: number | undefined;
   pairs: SeparationMatrix | undefined;
+  thread: CommcastThread;
+  oneWaySeconds: number | null;
 }) {
   const sep = separationFor(msg, me, pairs);
   const receipts = msg.readBy.length;
+  const mine = msg.authorStationKey === thread.me.stationKey;
   return (
     <Commcast__Message>
       <Commcast__Meta>
@@ -183,10 +186,13 @@ function MessageRow({
         )}
       </Commcast__Meta>
       <Commcast__Body>{msg.body}</Commcast__Body>
-      {utNow !== undefined && msg.sentUt > utNow && (
-        <Text size="xs" tone="warn">
-          spoken ahead of this clock
-        </Text>
+      {mine && msg.oneWaySeconds === null && (
+        <WentNowhere
+          msg={msg}
+          thread={thread}
+          utNow={utNow}
+          oneWaySeconds={oneWaySeconds}
+        />
       )}
     </Commcast__Message>
   );
@@ -234,8 +240,40 @@ function TransitRow({
   );
 }
 
-/** One message the author had no path to send. */
-function UnsentRow({
+/**
+ * One message spoken at a vantage with no path to this one.
+ *
+ * The body is WITHHELD, the same as an in-transit one: it did not reach this
+ * seat and never will, so rendering it here would be the faster-than-light
+ * channel the whole design exists to avoid. What the operator is told is that
+ * somebody said something they cannot hear, which is itself a fact about the
+ * link worth having.
+ */
+function UnreachableRow({ msg }: { msg: CommsMessage }) {
+  return (
+    <Commcast__Message $dim>
+      <Commcast__Meta>
+        <Author $pilot={msg.authorSeat === "pilot"}>{msg.authorName}</Author>
+        <Text size="xs" tone="nogo">
+          no path from where it was spoken
+        </Text>
+      </Commcast__Meta>
+      <Commcast__Body>—</Commcast__Body>
+    </Commcast__Message>
+  );
+}
+
+/**
+ * The author's own message that reached nobody else.
+ *
+ * It is REVEALED here, because the author is standing next to it, so it is
+ * flagged in place rather than filed under a heading. Without this the author
+ * would watch their own words sit in the thread looking delivered while nobody
+ * anywhere received them, which is the failure the mod's blackout precedent
+ * gets wrong for a person's words: it drops the backlog on reconnect, right for
+ * telemetry and wrong here.
+ */
+function WentNowhere({
   msg,
   thread,
   utNow,
@@ -246,36 +284,29 @@ function UnsentRow({
   utNow: number | undefined;
   oneWaySeconds: number | null;
 }) {
-  const mine = msg.authorStationKey === thread.me.stationKey;
   return (
-    <Commcast__Message $dim>
-      <Commcast__Meta>
-        <Author $pilot={msg.authorSeat === "pilot"}>{msg.authorName}</Author>
-        <Text size="xs" tone="nogo">
-          no path home when spoken
-        </Text>
-      </Commcast__Meta>
-      <Commcast__Body>{msg.body}</Commcast__Body>
-      {mine && (
-        <Button
-          disabled={utNow === undefined || oneWaySeconds === null}
-          onClick={() => {
-            if (utNow === undefined) return;
-            thread.send({
-              kind: "text",
-              ...(msg.body === undefined ? {} : { body: msg.body }),
-              sentUt: utNow,
-              oneWaySeconds,
-              ...(thread.me.vantageId === undefined
-                ? {}
-                : { authorVantageId: thread.me.vantageId }),
-            });
-          }}
-        >
-          {oneWaySeconds === null ? "Still no path" : "Say it again"}
-        </Button>
-      )}
-    </Commcast__Message>
+    <Commcast__Retry>
+      <Text size="xs" tone="nogo">
+        no path home when sent: nobody else received this
+      </Text>
+      <Button
+        disabled={utNow === undefined || oneWaySeconds === null}
+        onClick={() => {
+          if (utNow === undefined) return;
+          thread.send({
+            kind: "text",
+            ...(msg.body === undefined ? {} : { body: msg.body }),
+            sentUt: utNow,
+            oneWaySeconds,
+            ...(thread.me.vantageId === undefined
+              ? {}
+              : { authorVantageId: thread.me.vantageId }),
+          });
+        }}
+      >
+        {oneWaySeconds === null ? "Still no path" : "Say it again"}
+      </Button>
+    </Commcast__Retry>
   );
 }
 
@@ -482,6 +513,13 @@ const Commcast__Body = styled.p`
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
   overflow-wrap: anywhere;
+`;
+
+const Commcast__Retry = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
 `;
 
 const Commcast__Composer = styled.div`

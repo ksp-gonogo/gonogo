@@ -22,13 +22,22 @@ import type { CommsMessage } from "./types";
 export interface CommcastFeed {
   /** Arrived here, in the order it arrived HERE. Never reordered. */
   revealed: readonly CommsMessage[];
-  /** Spoken, still crossing, soonest first. */
+  /** Spoken, still crossing, soonest first. Body withheld until it lands. */
   inTransit: readonly CommsMessage[];
-  /** Spoken with no path home: never delivered, and the author is told. */
-  unsent: readonly CommsMessage[];
+  /**
+   * Spoken at a vantage with no path to this one, so it never arrives HERE.
+   * Distinct from a message of your OWN that reached nobody: that one is
+   * revealed here (you said it, you are standing next to it) and is flagged in
+   * place. This list is the other side of the same failure.
+   */
+  unreachable: readonly CommsMessage[];
 }
 
-const EMPTY_FEED: CommcastFeed = { revealed: [], inTransit: [], unsent: [] };
+const EMPTY_FEED: CommcastFeed = {
+  revealed: [],
+  inTransit: [],
+  unreachable: [],
+};
 
 /**
  * Runs the per-recipient reveal for one seat.
@@ -137,14 +146,19 @@ export function useCommcastFeed(
     if (!thread) return EMPTY_FEED;
     const revealedIds = new Set(revealed.map((m) => m.id));
     const inTransit: CommsMessage[] = [];
-    const unsent: CommsMessage[] = [];
+    const unreachable: CommsMessage[] = [];
     for (const msg of snapshot) {
       if (revealedIds.has(msg.id)) continue;
-      if (pinned.current.has(msg.id)) inTransit.push(msg);
-      else unsent.push(msg);
+      // Classified from the reveal rule itself, NOT from whether the pin has
+      // been taken yet. The pin is set in an effect, so keying on it put every
+      // message in the unreachable list for one render, and that list shows
+      // bodies: a message still crossing to this seat was readable at it for a
+      // frame, which is the one thing this design cannot do.
+      if (revealUtFor(msg, me, pairs) === null) unreachable.push(msg);
+      else inTransit.push(msg);
     }
     inTransit.sort(byArrivalAt(me, pairs));
-    return { revealed, inTransit, unsent };
+    return { revealed, inTransit, unreachable };
   }, [thread, snapshot, revealed, me, pairs]);
 }
 
