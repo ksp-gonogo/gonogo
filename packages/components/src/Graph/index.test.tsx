@@ -8,7 +8,16 @@ import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GraphComponent } from "./index";
 
-describe("GraphComponent", () => {
+/**
+ * The LEGACY half of `useDataSeries`: a `BufferedDataSource` (which registers
+ * itself under the id `"data"`) driving the retired flat keys. Nothing
+ * registers a `"data"` source in production and nothing translates those keys
+ * any more, so this file covers a branch a running dashboard never reaches; it
+ * retires with the shim at M4. The production path, and anything that depends
+ * on a key's UNIT (which these keys do not have, since `useDataSchema` answers
+ * from the topic-field catalog), is in `stream.test.tsx` beside it.
+ */
+describe('GraphComponent (legacy "data" source, retires with the shim)', () => {
   let source: MockDataSource;
   let buffered: BufferedDataSource;
 
@@ -139,34 +148,12 @@ describe("GraphComponent", () => {
     });
   });
 
-  it("auto-splits two series with different units onto separate axes", async () => {
-    const config = {
-      series: [
-        { id: "alt", key: "v.altitude", axis: "auto" as const },
-        { id: "vs", key: "v.verticalSpeed", axis: "auto" as const },
-      ],
-      windowSec: 300,
-    };
-
-    const { container } = render(
-      <GraphComponent config={config} id="graph-test" />,
-    );
-
-    act(() => {
-      source.emit("v.name", "Kerbal X");
-      source.emit("v.missionTime", 0);
-      source.emit("v.altitude", 12_345);
-      source.emit("v.verticalSpeed", 42);
-    });
-
-    await waitFor(() => {
-      // Secondary y-axis tick labels sit at x = plotX1 + 4 with textAnchor="start".
-      const rightTicks = container.querySelectorAll(
-        'text[text-anchor="start"]',
-      );
-      expect(rightTicks.length).toBeGreaterThan(0);
-    });
-  });
+  // The axis-split case lives in `stream.test.tsx`. It cannot be made here:
+  // `resolveAxes` splits on a key's unit, `useDataSchema` answers from the
+  // topic-field catalog, and `v.altitude`/`v.verticalSpeed` are not in it, so
+  // both series get "raw" and land on ONE axis. The version that used to sit
+  // here asserted `text[text-anchor="start"]` was non-empty and passed on the
+  // X-axis time label, with no secondary axis rendered and no data needed.
 
   it("renders a path when X axis is a data key instead of time", async () => {
     const config = {
@@ -218,6 +205,13 @@ describe("GraphComponent", () => {
     });
 
     await waitFor(() => {
+      // The 500_000 sample really reached the plot: without this the pin is
+      // "respected" by a chart that was handed nothing to scale against.
+      expect(
+        container.querySelector(
+          'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',
+        ),
+      ).not.toBeNull();
       const texts = Array.from(container.querySelectorAll("text")).map(
         (t) => t.textContent ?? "",
       );
@@ -322,8 +316,18 @@ describe("GraphComponent", () => {
     });
 
     await waitFor(() => {
-      const axisTicks = container.querySelectorAll('text[text-anchor="end"]');
+      const axisTicks = Array.from(
+        container.querySelectorAll('text[text-anchor="end"]'),
+      ).map((t) => t.textContent ?? "");
       expect(axisTicks.length).toBeGreaterThan(0);
+      // And a drawn curve. Axis ticks are present on an EMPTY chart too, so on
+      // their own they say the variant is a chart and nothing about whether the
+      // data reached it.
+      expect(
+        container.querySelector(
+          'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',
+        ),
+      ).not.toBeNull();
     });
   });
 
@@ -349,9 +353,17 @@ describe("GraphComponent", () => {
     });
 
     await waitFor(() => {
-      // Chart renders axis tick labels.
-      const ticks = container.querySelectorAll("text");
-      expect(ticks.length).toBeGreaterThan(0);
+      // The chart, specifically: its labelled svg and one plotted curve per
+      // series. A bare `text` count is satisfied by the readout variant too,
+      // which is the thing this asserts did NOT happen.
+      expect(
+        container.querySelectorAll(
+          'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',
+        ).length,
+      ).toBe(2);
+      expect(
+        container.querySelectorAll('text[text-anchor="end"]').length,
+      ).toBeGreaterThan(0);
     });
   });
 });
