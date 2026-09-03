@@ -20,6 +20,31 @@ import { describe, expect, it } from "vitest";
  * packages/ui and packages/ui-kit are themselves allowed to depend on
  * styled-components: they're the styling layer everything else should
  * be composing instead.
+ *
+ * ## The baseline is an EQUALITY, and a shrink fails
+ *
+ * A migration that lowers the count fails this test until the number below is
+ * lowered with it. That is deliberate, and it replaced a `console.warn` that
+ * had gone unheard twice (see the 74 -> 71 and 71 -> 41 notes below, thirty
+ * imports between them). Vitest 4's default reporter suppresses console output
+ * for a test that PASSES, and `pnpm test` and CI both run the default reporter,
+ * so the nag reached no stream anyone reads: not a terminal, not a CI log.
+ * Measured, not assumed, with the baseline planted 3 above live.
+ *
+ * A quieter fix was available and rejected. Any "make the warning louder"
+ * variant (stderr, a job-summary annotation) still rests on someone reading it,
+ * which is the exact step that did not happen, and it cannot be tested: you can
+ * plant a shrink and assert a red build, you cannot plant one and assert a
+ * human noticed.
+ *
+ * Do NOT copy `act-warning-gate`'s reasoning here. That gate stays a ceiling
+ * because its quantity is a race whose count moves with machine load, so a drop
+ * is not evidence of a fix. This one is a static text count: same tree, same
+ * number, every run. Equality is free of flake here and is not there.
+ *
+ * There is deliberately no `--update` flag. The failure prints the exact number
+ * to type, and typing it is what brings a person past the note above the
+ * baseline, where the reasons for each previous move are written down.
  */
 
 // Package roots to scan: the built-in widget library plus every mod's
@@ -124,6 +149,39 @@ function collectOffenders(): { file: string; line: number }[] {
 }
 
 /**
+ * Where the growth most likely is, for a gate that only knows a TOTAL.
+ *
+ * This replaced `offenders.slice(-newCount)`, which read as "the newest ones"
+ * and was not: the list is in scan order, so the tail is simply whatever sorts
+ * last. Planting one import in `CurrentOrbit` produced a message naming
+ * `shared/dataPalette.ts`, an innocent file, which is worse than naming none.
+ *
+ * A file holding TWO is the real signal, because the migrated tree has exactly
+ * one import per importing file, so a second in one file is the shape almost
+ * every regression takes. When the growth is instead a whole new file with one
+ * import, no heuristic can find it from a total and the message says so rather
+ * than guessing.
+ */
+function locateGrowth(offenders: { file: string; line: number }[]): string {
+  const perFile = new Map<string, number[]>();
+  for (const o of offenders) {
+    perFile.set(o.file, [...(perFile.get(o.file) ?? []), o.line]);
+  }
+  const doubled = [...perFile]
+    .filter(([, lines]) => lines.length > 1)
+    .sort((a, b) => b[1].length - a[1].length)
+    .slice(0, 10)
+    .map(
+      ([file, lines]) =>
+        `  ${file}: ${lines.length} (lines ${lines.join(", ")})`,
+    );
+  return doubled.length > 0
+    ? `Files importing it more than once, which is where growth usually is:\n${doubled.join("\n")}`
+    : `Every importing file holds exactly one, so the added import is in a file ` +
+        `that had none. \`git diff -S'styled-components'\` against the base names it.`;
+}
+
+/**
  * A guard on the guard, the two the sibling budgets
  * (`styleguide-magnitude-budget`, `styleguide-fire-and-forget-commands`) carry
  * and this one did not.
@@ -172,31 +230,37 @@ describe("design-system: styled-components imports outside ui-kit", () => {
     }
   });
 
-  it("does not exceed the ratchet baseline", () => {
+  it("matches the ratchet baseline exactly", () => {
     const offenders = collectOffenders();
     if (offenders.length > STYLED_COMPONENTS_IMPORT_BASELINE) {
       const newCount = offenders.length - STYLED_COMPONENTS_IMPORT_BASELINE;
-      const sample = offenders
-        .slice(-Math.min(10, newCount))
-        .map((o) => `  ${o.file}:${o.line}`)
-        .join("\n");
       throw new Error(
         `styled-components import count (${offenders.length}) exceeds baseline ` +
           `(${STYLED_COMPONENTS_IMPORT_BASELINE}) by ${newCount}.\n` +
           `Migrated widgets carry zero bespoke CSS: compose @ksp-gonogo/ui-kit ` +
-          `primitives + layout + tokens instead. Recent offenders:\n${sample}`,
+          `primitives + layout + tokens instead.\n${locateGrowth(offenders)}`,
       );
     }
     if (offenders.length < STYLED_COMPONENTS_IMPORT_BASELINE) {
-      console.warn(
-        `[styleguide] styled-components baseline can be lowered: ` +
-          `${STYLED_COMPONENTS_IMPORT_BASELINE} → ${offenders.length}. ` +
-          `Update STYLED_COMPONENTS_IMPORT_BASELINE in packages/core/src/styleguide-styled-components.test.ts.`,
+      const slack = STYLED_COMPONENTS_IMPORT_BASELINE - offenders.length;
+      throw new Error(
+        `styled-components imports are down to ${offenders.length} and the ` +
+          `baseline still reads ${STYLED_COMPONENTS_IMPORT_BASELINE}. Those ` +
+          `${slack} of slack are permission for ${slack} new ones, which is why ` +
+          `this fails instead of warning.\n` +
+          `Set STYLED_COMPONENTS_IMPORT_BASELINE = ${offenders.length} in ` +
+          `packages/core/src/styleguide-styled-components.test.ts, and add a ` +
+          `line to the note above it saying which widget migrated.`,
       );
     }
-    expect(offenders.length).toBeLessThanOrEqual(
-      STYLED_COMPONENTS_IMPORT_BASELINE,
-    );
+    /*
+     * The load-bearing line. Both arms above only phrase the failure better,
+     * so neither needs a planted self-check the way the sibling per-file
+     * budgets' shrink arms do: those compute a stale-entry list in a loop, and
+     * a loop that stops comparing yields an empty list that passes. This
+     * compares the two numbers with nothing in between.
+     */
+    expect(offenders.length).toBe(STYLED_COMPONENTS_IMPORT_BASELINE);
     // Generous timeout: this scans every tracked source file, which is slow
     // under the CPU contention of a full concurrent `turbo test` run.
   }, 30_000);

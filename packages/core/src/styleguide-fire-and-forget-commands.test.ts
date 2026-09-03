@@ -41,7 +41,8 @@ import { describe, expect, it } from "vitest";
  *         })
  *
  * Then LOWER the file's count in the same commit. A file that improves and
- * leaves its number alone leaves slack for the next regression to hide in.
+ * leaves its number alone leaves slack for the next regression to hide in,
+ * which is why that is now a failure and not a nag.
  *
  * Counts are per FILE, never one total, so one widget's fix cannot pay for
  * another's regression. Per file rather than per line because line numbers
@@ -51,8 +52,10 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Per-file fire-and-forget dispatch budget, seeded 2026-08-20 at the census
- * count. A file may have FEWER than its number; it may not have more, and a
- * file absent from this map may not have any.
+ * count. Each entry EQUALS what its file dispatches blind: a file absent from
+ * this map may not have any, a file over its number fails, and so does a file
+ * under it, because slack in a queue entry is room for the next regression to
+ * hide in. See "has no entry above what its file actually dispatches" below.
  *
  * A number may only RISE for one reason: a dispatch that was already blind
  * became visible to this scan. `useExecuteAction` swallowed its own rejection
@@ -173,6 +176,29 @@ function countsByFile(root: string): Map<string, number> {
   return counts;
 }
 
+/**
+ * Entries sitting above what their file actually dispatches, formatted for the
+ * failure. A pure function of the two inputs so the planted check below can
+ * drive it with a synthetic pair whose answer is known: this arm exists to make
+ * a stale number visible, so it failing silently would restore precisely the
+ * defect it was added to fix.
+ */
+function staleEntries(
+  budget: Record<string, number>,
+  counts: Map<string, number>,
+): string[] {
+  const stale: string[] = [];
+  for (const [file, allowed] of Object.entries(budget).sort()) {
+    const used = counts.get(file) ?? 0;
+    if (used < allowed) {
+      stale.push(
+        `  ${file}: ${allowed} -> ${used}${used === 0 ? " (delete the entry)" : ""}`,
+      );
+    }
+  }
+  return stale;
+}
+
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
 
 describe("the fire-and-forget command budget only shrinks", () => {
@@ -220,6 +246,38 @@ describe("the fire-and-forget command budget only shrinks", () => {
     }
   });
 
+  it("can see a stale entry (planted)", () => {
+    /*
+     * The shrink arm's guard-on-the-guard. The planted check above proves the
+     * `git grep` pattern still matches; it says nothing about the comparison
+     * that turns a count into a stale-entry failure, and a comparison that
+     * stopped comparing would report a tight list forever. Synthetic inputs,
+     * because a tight list cannot demonstrate the arm firing.
+     */
+    const stale = staleEntries(
+      { over: 6, exact: 3, answered: 2 },
+      new Map([
+        ["over", 4],
+        ["exact", 3],
+      ]),
+    );
+    expect(stale).toEqual([
+      "  answered: 2 -> 0 (delete the entry)",
+      "  over: 6 -> 4",
+    ]);
+    // A file at its number is not stale, and a file OVER it belongs to the
+    // other arm: this one stays silent on both rather than double-reporting.
+    expect(
+      staleEntries(
+        { exact: 1, under: 2 },
+        new Map([
+          ["exact", 1],
+          ["under", 9],
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
   it("has no entry for a path that no longer exists", () => {
     /*
      * An entry for a deleted file can never be spent, so it never trips the
@@ -233,6 +291,44 @@ describe("the fire-and-forget command budget only shrinks", () => {
     expect(missing, "budgeted paths that no longer exist, delete them").toEqual(
       [],
     );
+  });
+
+  it("has no entry above what its file actually dispatches", () => {
+    /*
+     * The shrink arm. `LaunchDirector` is why it exists: it answered seven
+     * blind dispatches, its entry stayed at 8, and nothing said so, so the
+     * widget carried the queue's largest single allowance for weeks after
+     * earning the smallest (see its note above). An entry above the live count
+     * is not a record, it is room for that many new ones, and the over-budget
+     * arm below cannot see them because they fit inside it.
+     *
+     * It throws rather than warning because a warning was tried on the sibling
+     * styled-components ratchet and reached nobody: vitest 4's default reporter
+     * suppresses console output for a PASSING test, and `pnpm test` and CI both
+     * run the default reporter. A red build is the only signal here shown to
+     * move a number, and it is the only one that can be TESTED, by planting a
+     * shrink and asserting the failure.
+     *
+     * The sibling test above already hard-fails an entry whose file was
+     * deleted; this is the same rule applied to a file that merely improved.
+     *
+     * Lowering stays manual, with no `--update`, so an entry whose number was
+     * CHOSEN and explained in a comment cannot be quietly rewritten by a tool.
+     */
+    const stale = staleEntries(FIRE_AND_FORGET_BUDGET, counts);
+    if (stale.length > 0) {
+      throw new Error(
+        "These entries sit above what their file dispatches blind. That gap is " +
+          "room for exactly that many new blind dispatches, which the " +
+          "over-budget check below cannot see. Lower each one (or delete it, " +
+          "where the file now has none) in " +
+          "packages/core/src/styleguide-fire-and-forget-commands.test.ts. If an " +
+          "entry carries a comment, read it first: that number was chosen, and " +
+          "the note may want rewriting rather than deleting:\n" +
+          stale.join("\n"),
+      );
+    }
+    expect(stale).toEqual([]);
   });
 
   it("has no file over its budget, and no unbudgeted file dispatching blind", () => {

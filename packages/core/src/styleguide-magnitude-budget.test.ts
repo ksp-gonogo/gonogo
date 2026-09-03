@@ -37,8 +37,12 @@ import { describe, expect, it } from "vitest";
  */
 
 /**
- * Per-file `.magnitude` budget. A file may use FEWER than its number; it may
- * not use more, and a file absent from this map may not use any.
+ * Per-file `.magnitude` budget. Each entry EQUALS what its file uses: a file
+ * absent from this map may not use any, a file over its number fails, and so
+ * does a file under it, because an entry above the live count is permission for
+ * that many new unwraps rather than a record of anything. See "has no entry
+ * above what its file actually uses" below for why that arm throws rather than
+ * warning.
  */
 const MAGNITUDE_BUDGET: Record<string, number> = {
   // ONE, in a named `kilograms()` helper at the command boundary and nowhere else.
@@ -348,6 +352,29 @@ function countsByFile(root: string): Map<string, number> {
   return counts;
 }
 
+/**
+ * Entries sitting above what their file actually uses, formatted for the
+ * failure. A pure function of the two inputs so the planted check below can
+ * drive it with a synthetic pair whose answer is known: the shrink arm is the
+ * half whose whole purpose is to make a stale number visible, so it being
+ * silently broken would restore the exact defect it was added to fix.
+ */
+function staleEntries(
+  budget: Record<string, number>,
+  counts: Map<string, number>,
+): string[] {
+  const stale: string[] = [];
+  for (const [file, allowed] of Object.entries(budget).sort()) {
+    const used = counts.get(file) ?? 0;
+    if (used < allowed) {
+      stale.push(
+        `  ${file}: ${allowed} -> ${used}${used === 0 ? " (delete the entry)" : ""}`,
+      );
+    }
+  }
+  return stale;
+}
+
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
 
 describe("the magnitude budget only shrinks", () => {
@@ -405,6 +432,46 @@ describe("the magnitude budget only shrinks", () => {
     }
   });
 
+  it("can see a stale entry (planted)", () => {
+    /*
+     * The shrink arm's own guard-on-the-guard. The two planted checks around it
+     * prove the SCAN can still see a violation; neither says anything about the
+     * comparison that turns a scan result into a stale-entry failure, and a
+     * comparison that stopped comparing would report a tight list forever.
+     * That is not a hypothetical failure mode, it is the one this arm exists to
+     * fix: on the sibling styled-components ratchet the equivalent signal was a
+     * `console.warn` into a suppressed stream, which is indistinguishable from
+     * no signal at all and stayed that way through thirty imports.
+     *
+     * Synthetic inputs, because the real tree is tight and a tight tree cannot
+     * demonstrate the arm firing.
+     */
+    const stale = staleEntries(
+      { over: 4, exact: 2, gone: 1, absent: 3 },
+      new Map([
+        ["over", 2],
+        ["exact", 2],
+        ["gone", 0],
+      ]),
+    );
+    expect(stale).toEqual([
+      "  absent: 3 -> 0 (delete the entry)",
+      "  gone: 1 -> 0 (delete the entry)",
+      "  over: 4 -> 2",
+    ]);
+    // A file at its number is not stale, and a file OVER it is the other arm's
+    // business: this one must stay silent on both or it double-reports.
+    expect(
+      staleEntries(
+        { exact: 2, under: 1 },
+        new Map([
+          ["exact", 2],
+          ["under", 5],
+        ]),
+      ),
+    ).toEqual([]);
+  });
+
   it("has no entry for a path that no longer exists", () => {
     /*
      * An Rp1 Uplink widget's entry sat on this list carrying 2 after its whole
@@ -420,6 +487,45 @@ describe("the magnitude budget only shrinks", () => {
     expect(missing, "budgeted paths that no longer exist, delete them").toEqual(
       [],
     );
+  });
+
+  it("has no entry above what its file actually uses", () => {
+    /*
+     * The shrink arm, and the reason the sum of this list is exactly the live
+     * count rather than comfortably above it. An entry of 4 on a file that uses
+     * 2 is not a record of anything: it is permission for two more, and the
+     * over-budget arm below cannot see them because they fit.
+     *
+     * This used to be nothing at all here, and on the sibling styled-components
+     * ratchet it was a `console.warn`. Vitest 4's default reporter suppresses
+     * console output for a PASSING test and both `pnpm test` and CI run the
+     * default reporter, so that warning reached no stream anyone reads and went
+     * unheard through thirty imports. Failing is the only signal here that has
+     * been shown to move a number, and unlike "someone read the log" it can be
+     * tested by planting a shrink.
+     *
+     * Not a new contract so much as a consistent one: the sibling test above
+     * already hard-fails a budget entry whose file was DELETED. A file that
+     * merely dropped half its unwraps is the same stale slack, caught later.
+     *
+     * Lowering is by hand on purpose. There is no `--update`, so a number that
+     * was CHOSEN and explained in a comment above it can never be quietly
+     * rewritten by a tool: the failure hands you the figure and makes you walk
+     * past the reasoning to type it.
+     */
+    const stale = staleEntries(MAGNITUDE_BUDGET, counts);
+    if (stale.length > 0) {
+      throw new Error(
+        "These entries sit above what their file uses, and the gap is " +
+          "permission for that many new unwraps which the over-budget check " +
+          "cannot see. Lower each one (or delete it, where the file now uses " +
+          "none) in packages/core/src/styleguide-magnitude-budget.test.ts. If " +
+          "an entry carries a comment, read it first: the number was chosen, " +
+          "and the note may need rewriting rather than deleting:\n" +
+          stale.join("\n"),
+      );
+    }
+    expect(stale).toEqual([]);
   });
 
   it("has no file over its budget, and no unbudgeted file using one", () => {

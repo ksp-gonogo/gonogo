@@ -232,11 +232,40 @@ a pattern: the list holds a number per file rather than a name per violation.
 
 Two rules here were both learned by getting them wrong:
 
-**It is a ceiling, never an equality.** Some counts are races, and their true value
-moves between runs depending on how loaded the machine is. One file measured 0, 1 and
-21 across runs of an unchanged tree. A gate that failed on any _downward_ move would
-go red on an untouched branch on its own schedule, and people would learn to ignore
-it. So: more than your entry fails, fewer is reported and passes.
+**A ceiling if the count is a RACE, an equality if it is deterministic.** This was
+written here as "a ceiling, never an equality" and the "never" was wrong, which cost
+three gates most of their grip before anyone noticed.
+
+Where it is right: some counts are races, and their true value moves between runs
+depending on how loaded the machine is. One file measured 0, 1 and 21 across runs of an
+unchanged tree. A gate that failed on any _downward_ move would go red on an untouched
+branch on its own schedule, and people would learn to ignore it. `act-warning-gate` is
+this kind and stays a ceiling: more than your entry fails, fewer is reported and passes.
+
+Where it is wrong: a count produced by scanning text is the same number every time for
+the same tree. There is no flake to protect against, and the "fewer is reported and
+passes" half is then pure cost. **Slack in a shrink-only list does not catch the next
+violation, it absorbs it.** A styled-components baseline of 71 against a live 41 was
+not a record of anything; it was standing permission for thirty new imports, and the
+over-baseline arm could not see them arriving because they fit. All three of
+`styleguide-styled-components`, `styleguide-magnitude-budget` and
+`styleguide-fire-and-forget-commands` had drifted this way (71/41, 329/294, 55/32), and
+all three are now equalities.
+
+**"Reported" has to mean reported to someone.** The reason nobody noticed is the
+mechanism this whole document opens with, turned on itself: shrinkage was a
+`console.warn`, vitest 4's default reporter suppresses console output for a test that
+PASSES, and `pnpm test` and CI both run the default reporter. Measured with a baseline
+planted 3 above live: exit 0, and not one character about the slack in the output. The
+same gate under `--reporter=verbose` prints it fine, which is how we know the code path
+was firing the whole time. The styled-components header records this nag going unheard
+twice, thirty imports apart.
+
+So the fix was to make the shrink FAIL rather than to make the warning louder. Any
+louder-warning variant (stderr, a job-summary annotation) still rests on a person
+reading it, which is precisely the step that did not happen, and it cannot be tested:
+you can plant a shrink and assert a red build, you cannot plant one and assert that
+somebody noticed.
 
 **Per file, never one total.** A single number lets one file's improvement pay for
 another file's regression. The total sits still while the codebase gets worse.
@@ -245,6 +274,12 @@ We also found it necessary to distinguish a number that was **measured** from on
 was **chosen**. An entry carrying an explanatory comment is never lowered
 automatically by the regeneration tool, because a human picked it for a reason and a
 fresh measurement would silently overwrite that reason.
+
+The three equality gates above honour that by having no regeneration tool at all. The
+failure prints the exact figure to type and stops; typing it by hand is what walks a
+person past the note above the entry, where the reason it holds that number is written
+down. A `--update` flag would be the one thing capable of erasing those reasons, so it
+does not exist rather than existing with a comment-detecting exception.
 
 **The debt can be an ABSENCE, which is what makes it heal by itself.**
 `uplink-shape-debt.mjs` counts committed docs assets with no recorded shape, per
