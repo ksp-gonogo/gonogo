@@ -175,8 +175,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # The pages and the images they reference, and nothing else: a
           # regenerate must never carry along an unrelated file the build wrote.
-          git add 'mod/*/client/README.md' 'mod/*/client/gonogo-uplink.json' \
-            'mod/*/client/docs/assets'
+          git add 'mod/*/client/README.md' 'mod/*/client/gonogo-uplink.json'
+          # Looped rather than a wildcard pathspec: `git add 'mod/*/client/docs/assets'`
+          # aborts the whole step with exit 128 when any one Uplink has no assets
+          # directory, and the publish-only Uplinks do not.
+          for assets in mod/*/client/docs/assets; do
+            [ -d "$assets" ] && git add "$assets"
+          done
 
           # No filter: whatever the regenerate produced is what the page needs.
           # A shape-based filter and `docs --check` compared different things, so
