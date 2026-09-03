@@ -35,7 +35,7 @@ type ExperimentsConfig = Record<string, never>;
 // contribution entry. Re-exported here so every existing import site keeps
 // reading it off the widget it belongs to. That module also carries the
 // `ContributionRegistry` merge, beside the type it declares, the same way
-// CommSignal and MissionEventLog carry theirs.
+// CommSignal carries theirs.
 export type { Instrument } from "./instrument";
 
 /**

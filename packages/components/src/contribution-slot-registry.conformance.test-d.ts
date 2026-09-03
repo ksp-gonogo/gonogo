@@ -29,7 +29,6 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import type { CommSignalHopRateEntry } from "./CommSignal/commsRoute";
 import type { Instrument } from "./Experiments/instrument";
-import type { MissionLogSourceEntry } from "./MissionEventLog/sources";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 import type { SystemEntity } from "./SystemView";
 
@@ -143,37 +142,6 @@ type _CommSignalHopRatesRealBack = Expect<
   >
 >;
 
-// `mission-event-log.sources`, checked both directions.
-//
-// Importing `MissionLogSourceEntry` from `./MissionEventLog/sources` above also
-// loads that module's `declare module "@ksp-gonogo/core"` merge, the same way
-// the hop-rates checks above load CommSignal's.
-
-type _MissionEventLogSources = Expect<
-  Assignable<
-    SdkContributionEntry<"mission-event-log.sources">,
-    CoreContributionEntry<"mission-event-log.sources">
-  >
->;
-type _MissionEventLogSourcesBack = Expect<
-  Assignable<
-    CoreContributionEntry<"mission-event-log.sources">,
-    SdkContributionEntry<"mission-event-log.sources">
-  >
->;
-type _MissionEventLogSourcesReal = Expect<
-  Assignable<
-    SdkContributionEntry<"mission-event-log.sources">,
-    MissionLogSourceEntry
-  >
->;
-type _MissionEventLogSourcesRealBack = Expect<
-  Assignable<
-    MissionLogSourceEntry,
-    SdkContributionEntry<"mission-event-log.sources">
-  >
->;
-
 // `experiments.instruments`, checked both directions.
 //
 // Importing `Instrument` from `./Experiments/instrument` above also loads that
@@ -218,10 +186,6 @@ export type _ContributionRegistryConformance = [
   _CommSignalHopRatesBack,
   _CommSignalHopRatesReal,
   _CommSignalHopRatesRealBack,
-  _MissionEventLogSources,
-  _MissionEventLogSourcesBack,
-  _MissionEventLogSourcesReal,
-  _MissionEventLogSourcesRealBack,
   _ExperimentsInstruments,
   _ExperimentsInstrumentsBack,
   _ExperimentsInstrumentsReal,
