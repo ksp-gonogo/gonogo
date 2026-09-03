@@ -233,6 +233,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | Augment | Into | Reads | Presence | Scenes | Notes |
 | --- | --- | --- | --- | --- | --- |
 | `rp1-crew-schedule` | `astronaut-complex.crew` | – |  | 2 |  |
+| `rp1-crew-training-badge` | `astronaut-complex.crew-badge` | `rp1.available`, `rp1.crew` |  | 1 |  |
 | `rp1-training-courses` | `astronaut-complex.training` | `rp1.available`, `rp1.training`, `rp1.crew` |  | 2 |  |
 | `rp1-training-enrolment` | `astronaut-complex.training` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.crewProgram`, `rp1.training`, `spaceCenter.crewRoster`, `career.status` |  | 3 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
@@ -254,6 +255,8 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 ![Three kerbals' RP-1 schedules inside the roster rows the Astronaut Complex already draws, each on one card of its own with the sack control at the end of the identity line: a retirement and the two things that will push it out, a course being worked and a course nobody has started, and mission training lapsing before either finishes. Each line names itself, and only the lapse is toned](docs/assets/crew-schedule-three-states--default.png)
 
 ![Retirement and mission training both switched off: no retirement date, no extension line, no lapse date and no mention that any of them are disabled, because on this save they are not concepts an operator has to hold](docs/assets/crew-settings-honoured--default.png)
+
+![Four kerbals KSP calls Available, two of them on RP-1 courses: the corner of each card says which, and tells a course being worked from one nobody has started, with nothing else on any card to tell them apart](docs/assets/crew-training-corner--default.png)
 
 ![One course two kerbals share, carrying its own progress, the date the course ends, the later date its crew comes free, and RP-1's two ways off it: one cancel that ends it for both and one removal per student, with the roster rows above stating only where each kerbal stands](docs/assets/crew-training-both-ways-out--default.png)
 
