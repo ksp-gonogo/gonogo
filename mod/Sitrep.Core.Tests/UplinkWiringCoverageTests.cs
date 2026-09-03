@@ -68,6 +68,19 @@ namespace Sitrep.Core.Tests
     /// (<see cref="EveryNameTheWalkReadsResolvesToAValue"/> makes that visible
     /// rather than silent), and it does not look at dynamic-namespace sub-topics,
     /// which are correctly absent from the channel list.</para>
+    ///
+    /// <para><b>The same blindness has a shape worth naming, because it lands on
+    /// the publish half.</b> An Uplink whose fail-soft inert path registers a
+    /// channel source for the SAME topic it publishes when live gives that topic
+    /// two publish sites on mutually exclusive branches, and either one satisfies
+    /// the walk alone. Delete the live publisher, leave the inert one, and the
+    /// walk stays green while the topic reaches no subscriber on any install where
+    /// the Uplink IS available. One topic in this repo has that shape, out of
+    /// forty-seven; it is common in the repo the departed Uplinks live in, where
+    /// five of six do, so the note travels with the vendored copy of this file.
+    /// Telling the branches apart needs control flow a text walk does not have, so
+    /// read the publish half as a floor against a topic nothing publishes AT ALL
+    /// rather than as a guarantee the live path publishes it.</para>
     /// </summary>
     public class UplinkWiringCoverageTests
     {
@@ -353,13 +366,13 @@ namespace Sitrep.Core.Tests
             Func<UplinkWiring, IReadOnlyList<WiringUse>> reported,
             string what)
         {
-            var directory = UplinkProjects.Discover()[uplink];
-            var wiring = UplinkWiringScan.Scan(uplink, directory);
+            var directories = UplinkProjects.SourceDirectories(UplinkProjects.Discover()[uplink]);
+            var wiring = UplinkWiringScan.Scan(uplink, directories);
 
             Assert.Empty(reported(wiring));
 
             var (name, sites) = Pairing(blank(wiring), against(wiring));
-            var sabotaged = UplinkWiringScan.Scan(uplink, directory, Rewriting(sites));
+            var sabotaged = UplinkWiringScan.Scan(uplink, directories, Rewriting(sites));
 
             Assert.True(
                 reported(sabotaged).Any(u => u.Value == name),
@@ -441,7 +454,7 @@ namespace Sitrep.Core.Tests
         private static List<UplinkWiring> Scan() =>
             UplinkProjects.Discover()
                 .OrderBy(u => u.Key, StringComparer.Ordinal)
-                .Select(u => UplinkWiringScan.Scan(u.Key, u.Value))
+                .Select(u => UplinkWiringScan.Scan(u.Key, UplinkProjects.SourceDirectories(u.Value)))
                 .ToList();
     }
 }

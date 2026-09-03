@@ -67,23 +67,14 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// Every hand-written <c>.cs</c> under a directory, skipping the build
-        /// outputs and the TypeScript client's own folder.
+        /// Every directory holding one Uplink's C#, as THIS repo lays it out: the
+        /// project itself and its <c>.Contract</c> sibling, which is where the
+        /// command-name and topic constants usually live. The layout is stated
+        /// here rather than inside the walk because the walk is shared with the
+        /// repo departed Uplinks live in, which lays them out differently.
         /// </summary>
-        public static IEnumerable<string> SourceFiles(string directory)
-        {
-            foreach (var file in Directory.EnumerateFiles(directory, "*.cs", SearchOption.AllDirectories))
-            {
-                if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-                    file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal) ||
-                    file.Contains($"{Path.DirectorySeparatorChar}client{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                yield return file;
-            }
-        }
+        public static IReadOnlyList<string> SourceDirectories(string directory) =>
+            new[] { directory, directory + ".Contract" };
 
         public static string ResolveModDir()
         {
