@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using Sitrep.Host;
 using Xunit;
 using Xunit.Abstractions;
@@ -21,12 +20,12 @@ namespace Sitrep.Host.Tests
     /// wrote, not a hand-built fixture.
     ///
     /// The recording lives under the gitignored <c>local_docs/</c> tree (see
-    /// CLAUDE.md's Feature log section), so this test resolves the path via
-    /// <see cref="CallerFilePathAttribute"/> walk-up (same idiom as
-    /// <c>Sitrep.Propagation.Tests/GoldenFixtureConformanceTests.cs</c>'s
-    /// <c>FixturesPath</c>) and SKIPS CLEANLY (passes with a logged reason,
-    /// no failure) when the file is absent, so CI (which never has this
-    /// local-only asset) stays green.
+    /// CLAUDE.md's Feature log section), so every test here is a
+    /// <see cref="RecordingFactAttribute"/>: absent the file, xunit reports it
+    /// as SKIPPED, with the resolved path as the reason. It used to early-return
+    /// out of the body after logging "SKIPPING", which xunit reports as a PASS,
+    /// so in CI (which never has this asset) four tests claiming to replay a
+    /// 7.5 MB capture end to end went green having asserted nothing.
     /// </summary>
     public class ReferenceRecordingReplayTests
     {
@@ -39,25 +38,15 @@ namespace Sitrep.Host.Tests
 
         private const string RecordingFileName = "reference-session-2026-07-07.json";
 
-        private static string RecordingPath([CallerFilePath] string sourceFilePath = "")
-        {
-            // mod/Sitrep.Host.Tests/ReferenceRecordingReplayTests.cs -> repo root
-            // is two levels up from this file's directory (mod/Sitrep.Host.Tests -> mod -> repo root).
-            var testDir = Path.GetDirectoryName(sourceFilePath)!;
-            return Path.Combine(testDir, "..", "..", "local_docs", "telemetry-mod", "recordings", RecordingFileName);
-        }
+        // Same resolution the attribute used to decide whether to skip, so a
+        // body can never read a different file from the one that was checked.
+        private static string RecordingPath() =>
+            RecordingFactAttribute.ResolveRecordingPath(RecordingFileName);
 
-        [Fact]
+        [RecordingFact(RecordingFileName)]
         public void RealReferenceRecordingParsesAndReplaysWholeSessionThroughReplayKspHost()
         {
             var path = RecordingPath();
-            if (!File.Exists(path))
-            {
-                _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
-                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
-                return;
-            }
 
             // ----- Parse -----
             var bytes = File.ReadAllBytes(path);
@@ -174,20 +163,13 @@ namespace Sitrep.Host.Tests
         /// <c>vessel.flight</c> emits real lat/long, <c>vessel.identity</c>
         /// is stable, <c>meta.source</c> is <c>"vessel:&lt;guid&gt;"</c> on
         /// every payload, and a vessel-change event in the recording
-        /// produces a forced epoch/keyframe. Skips cleanly (like the test
-        /// above) when the gitignored recording is absent.
+        /// produces a forced epoch/keyframe. Reported as skipped, not passed,
+        /// when the gitignored recording is absent.
         /// </summary>
-        [Fact]
+        [RecordingFact(RecordingFileName)]
         public void RealReferenceRecordingProducesTypedVesselChannelsWithProvenanceAndEpoching()
         {
             var path = RecordingPath();
-            if (!File.Exists(path))
-            {
-                _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
-                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
-                return;
-            }
 
             var json = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(path));
             var session = RecordedSessionCodec.Parse(json);
@@ -313,17 +295,10 @@ namespace Sitrep.Host.Tests
         /// even though the raw recording itself is unchanged and still
         /// carries the fabricated data.
         /// </summary>
-        [Fact]
+        [RecordingFact(RecordingFileName)]
         public void RealReferenceRecordingOrbitSamplesRejectEveryPhantomInactivePatchEncounter()
         {
             var path = RecordingPath();
-            if (!File.Exists(path))
-            {
-                _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
-                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
-                return;
-            }
 
             var json = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(path));
             var session = RecordedSessionCodec.Parse(json);
@@ -389,21 +364,13 @@ namespace Sitrep.Host.Tests
         /// "replay-validate against the recording" requirement, with extra
         /// weight on <c>vessel.maneuver</c> (281 snapshots per the recording
         /// manifest) and <c>vessel.target</c> (107 snapshots) since those two
-        /// have real, non-trivial data in this specific recording. Skips
-        /// cleanly (like the tests above) when the gitignored recording is
-        /// absent.
+        /// have real, non-trivial data in this specific recording. Reported as
+        /// skipped, not passed, when the gitignored recording is absent.
         /// </summary>
-        [Fact]
+        [RecordingFact(RecordingFileName)]
         public void RealReferenceRecordingProducesTypedTask2ChannelsWithSaneValues()
         {
             var path = RecordingPath();
-            if (!File.Exists(path))
-            {
-                _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
-                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
-                return;
-            }
 
             var json = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(path));
             var session = RecordedSessionCodec.Parse(json);
@@ -539,18 +506,43 @@ namespace Sitrep.Host.Tests
                 $"target emissions: {targetEmissions} (with orbit: {sawTargetWithOrbit}), crew: {sawCrew}, structure: {sawStructure}, warp: {sawWarp}.");
         }
 
+        /// <summary>
+        /// The skip contract itself, asserted rather than assumed. This used to
+        /// build a path in the temp directory, assert it did not exist, and stop:
+        /// it named the mechanism and touched none of it, so a
+        /// <see cref="RecordingFactAttribute"/> that silently stopped setting
+        /// <see cref="FactAttribute.Skip"/> would leave it green while every test
+        /// it guards went back to passing on nothing.
+        ///
+        /// <para>Both directions, because only one of them is a false green: an
+        /// absent recording MUST produce a Skip reason, and a present one MUST
+        /// NOT. Constructing the attribute directly is what makes the second half
+        /// testable on a machine that has no capture.</para>
+        /// </summary>
         [Fact]
-        public void MissingRecordingFileIsSkippedNotFailed()
+        public void AnAbsentRecordingSkipsTheTestAndAPresentOneRunsIt()
         {
-            // Regression guard for the skip contract itself: a path that
-            // cannot possibly exist must not throw or fail the assembly,
-            // this proves the "absent file -> clean no-op" behavior
-            // independent of whether the real recording happens to be
-            // present on this machine.
-            var bogusPath = Path.Combine(Path.GetTempPath(), $"sitrep-does-not-exist-{Guid.NewGuid():N}.json");
-            Assert.False(File.Exists(bogusPath));
-            // No assertion beyond "this doesn't throw": mirrors the early-return
-            // shape used in the real test above when the reference file is absent.
+            var absent = new RecordingFactAttribute($"sitrep-does-not-exist-{Guid.NewGuid():N}.json");
+            Assert.False(File.Exists(absent.RecordingPath));
+            Assert.NotNull(absent.Skip);
+            Assert.Contains(absent.RecordingFileName, absent.Skip!);
+            Assert.Contains(absent.RecordingPath, absent.Skip!);
+
+            // A recording that IS there must not be skipped. Planted in the
+            // directory the attribute resolves to, so this exercises the real
+            // lookup rather than a stand-in for it.
+            var present = $"sitrep-skip-contract-probe-{Guid.NewGuid():N}.json";
+            var presentPath = RecordingFactAttribute.ResolveRecordingPath(present);
+            Directory.CreateDirectory(Path.GetDirectoryName(presentPath)!);
+            File.WriteAllText(presentPath, "{}");
+            try
+            {
+                Assert.Null(new RecordingFactAttribute(present).Skip);
+            }
+            finally
+            {
+                File.Delete(presentPath);
+            }
         }
     }
 }

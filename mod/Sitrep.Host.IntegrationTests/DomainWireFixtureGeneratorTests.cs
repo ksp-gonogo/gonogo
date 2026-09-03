@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
 using Sitrep.Host;
+using Sitrep.Host.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -46,6 +47,17 @@ namespace Sitrep.Host.IntegrationTests
             _output = output;
         }
 
+        // One spelling per recording, named by the attribute that decides
+        // whether the test runs and by the body that opens the file, so the
+        // two cannot drift onto different captures.
+        private const string ManeuverRecording = "reference-maneuver-2026-07-08.json";
+        private const string DockRecording = "reference-dock-2026-07-08.json";
+        private const string CareerRecording = "reference-career-2026-07-08.json";
+        private const string CommsRecording = "reference-comms-2026-07-08.json";
+        private const string ScienceRecording = "reference-science-parts-2026-07-08.json";
+        private const string LabRecording = "reference-lab-2026-07-08.json";
+        private const string PartsRecording = "reference-science-parts-2026-07-08.json";
+
         private static readonly TimeSpan TickTimeout = TimeSpan.FromSeconds(10);
         private static readonly TimeSpan ReaderPollTimeout = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan FinalDrainDelay = TimeSpan.FromMilliseconds(750);
@@ -56,17 +68,12 @@ namespace Sitrep.Host.IntegrationTests
             return Path.Combine(testDir, "..", "..", "local_docs", "telemetry-mod", "recordings");
         }
 
-        [Fact]
+        [RecordingFact(ManeuverRecording)]
         public async Task GeneratesManeuverWireFixtureFromManeuveringRecording()
         {
-            const string recordingFileName = "reference-maneuver-2026-07-08.json";
+            const string recordingFileName = ManeuverRecording;
             const string fixtureFileName = "reference-wire-fixture-maneuver.json";
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
-                return;
-            }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             var topics = new[]
@@ -99,17 +106,12 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
-        [Fact]
+        [RecordingFact(DockRecording)]
         public async Task GeneratesDockWireFixtureFromDockingRecording()
         {
-            const string recordingFileName = "reference-dock-2026-07-08.json";
+            const string recordingFileName = DockRecording;
             const string fixtureFileName = "reference-wire-fixture-dock.json";
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
-                return;
-            }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             var topics = new[]
@@ -129,17 +131,12 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
-        [Fact]
+        [RecordingFact(CareerRecording)]
         public async Task GeneratesCareerWireFixtureFromCareerRecording()
         {
-            const string recordingFileName = "reference-career-2026-07-08.json";
+            const string recordingFileName = CareerRecording;
             const string fixtureFileName = "reference-wire-fixture-career.json";
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
-                return;
-            }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             var topics = new[] { CareerViewProvider.Topic };
@@ -597,17 +594,12 @@ namespace Sitrep.Host.IntegrationTests
             };
         }
 
-        [Fact]
+        [RecordingFact(CommsRecording)]
         public async Task GeneratesCommsWireFixtureFromCommsTransitionRecording()
         {
-            const string recordingFileName = "reference-comms-2026-07-08.json";
+            const string recordingFileName = CommsRecording;
             const string fixtureFileName = "reference-wire-fixture-comms.json";
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
-                return;
-            }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             var topics = new[] { VesselViewProvider.CommsTopic };
@@ -662,17 +654,12 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
-        [Fact]
+        [RecordingFact(ScienceRecording)]
         public async Task GeneratesScienceWireFixtureFromScienceRecording()
         {
-            const string recordingFileName = "reference-science-parts-2026-07-08.json";
+            const string recordingFileName = ScienceRecording;
             const string fixtureFileName = "reference-wire-fixture-science.json";
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
-                return;
-            }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             // All three science.* channels, INCLUDING lab/deployed even
@@ -732,17 +719,12 @@ namespace Sitrep.Host.IntegrationTests
             WriteFixture(fixtureFileName, recordingFileName, session.Entries.Count, topics, capture);
         }
 
-        [Fact]
+        [RecordingFact(LabRecording)]
         public async Task GeneratesLabWireFixtureFromLabRecording()
         {
-            const string recordingFileName = "reference-lab-2026-07-08.json";
+            const string recordingFileName = LabRecording;
             const string fixtureFileName = "reference-wire-fixture-lab.json";
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
-                return;
-            }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             // Sibling to GeneratesScienceWireFixtureFromScienceRecording above,
@@ -1007,17 +989,12 @@ namespace Sitrep.Host.IntegrationTests
             };
         }
 
-        [Fact]
+        [RecordingFact(PartsRecording)]
         public async Task GeneratesPartsWireFixtureFromPartsRecording()
         {
-            const string recordingFileName = "reference-science-parts-2026-07-08.json";
+            const string recordingFileName = PartsRecording;
             const string fixtureFileName = "reference-wire-fixture-parts.json";
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine($"SKIPPING: reference recording not found at \"{recordingPath}\", gitignored local-only asset, not present in CI.");
-                return;
-            }
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
             var topics = new[]

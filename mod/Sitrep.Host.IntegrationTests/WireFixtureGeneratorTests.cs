@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
 using Sitrep.Host;
+using Sitrep.Host.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -77,21 +78,19 @@ namespace Sitrep.Host.IntegrationTests
             return Path.Combine(testDir, "..", "..", "local_docs", "telemetry-mod", "recordings");
         }
 
-        private static string RecordingPath() => Path.Combine(RecordingsDir(), RecordingFileName);
+        // Same resolution the attribute used to decide whether to skip, so the
+        // body can never open a different file from the one that was checked.
+        // `RecordingsDir` stays for the fixture this test WRITES, which no
+        // attribute checks.
+        private static string RecordingPath() =>
+            RecordingFactAttribute.ResolveRecordingPath(RecordingFileName);
 
         private static string FixtureOutputPath() => Path.Combine(RecordingsDir(), FixtureFileName);
 
-        [Fact]
+        [RecordingFact(RecordingFileName)]
         public async Task GeneratesReferenceWireFixtureFromRealRecordingForSdkValidation()
         {
             var recordingPath = RecordingPath();
-            if (!File.Exists(recordingPath))
-            {
-                _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{recordingPath}\", it is a gitignored " +
-                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
-                return;
-            }
 
             var json = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath));
             var session = RecordedSessionCodec.Parse(json);

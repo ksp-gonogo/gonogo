@@ -2,12 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using Sitrep.Contract;
 using Sitrep.Core.Serialization;
 using Sitrep.Host;
+using Sitrep.Host.Tests;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -59,26 +59,15 @@ namespace Sitrep.Host.IntegrationTests
         private static readonly TimeSpan ReaderPollTimeout = TimeSpan.FromSeconds(2);
         private static readonly TimeSpan FinalDrainDelay = TimeSpan.FromMilliseconds(750);
 
-        private static string RecordingPath([CallerFilePath] string sourceFilePath = "")
-        {
-            // mod/Sitrep.Host.IntegrationTests/MilestoneReplayEndToEndTests.cs ->
-            // repo root is two levels up (mod/Sitrep.Host.IntegrationTests -> mod -> repo root),
-            // same idiom as Sitrep.Host.Tests/ReferenceRecordingReplayTests.cs.
-            var testDir = Path.GetDirectoryName(sourceFilePath)!;
-            return Path.Combine(testDir, "..", "..", "local_docs", "telemetry-mod", "recordings", RecordingFileName);
-        }
+        // Same resolution the attribute used to decide whether to skip, so the
+        // body can never open a different file from the one that was checked.
+        private static string RecordingPath() =>
+            RecordingFactAttribute.ResolveRecordingPath(RecordingFileName);
 
-        [Fact]
+        [RecordingFact(RecordingFileName)]
         public async Task FullPipelineReplayValidatesAllChannelsDelayAndRewindWithNoWartsAcrossWholeSession()
         {
             var path = RecordingPath();
-            if (!File.Exists(path))
-            {
-                _output.WriteLine(
-                    $"SKIPPING: reference recording not found at \"{path}\", it is a gitignored " +
-                    "local-only asset (local_docs/ per CLAUDE.md), never present in CI. This is not a failure.");
-                return;
-            }
 
             var json = System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(path));
             var session = RecordedSessionCodec.Parse(json);

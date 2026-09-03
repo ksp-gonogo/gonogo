@@ -28,6 +28,14 @@
     <ProjectReference Include="../Sitrep.Transport/Sitrep.Transport.csproj" />
   </ItemGroup>
 
+  <!-- The recording-backed [Fact] attribute, one copy shared with
+       Sitrep.Host.Tests where it lives. Both suites' replay tests read the same
+       gitignored captures and must skip on the same terms; a second copy is how
+       one of them quietly goes back to passing on an absent file. -->
+  <ItemGroup>
+    <Compile Include="..\Sitrep.Host.Tests\RecordingFact.cs" />
+  </ItemGroup>
+
   <!-- The production wire builders the test uplinks publish through. They are
        plain C# with no KSP or Unity type in them, so they compile here directly
        (a ProjectReference on Gonogo.KSP would drag in the files that DO need a
