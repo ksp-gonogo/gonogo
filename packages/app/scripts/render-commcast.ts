@@ -41,6 +41,13 @@ const KSC = "ksc";
 const ARES = "vessel:ares-4";
 /** A second command centre, downrange and at its own vantage. */
 const WOOMERA = "ground:woomera";
+/**
+ * A recovery ship a few hundred kilometres out, on a terrestrial link. Under a
+ * second away, which is the whole reason it exists here: it is the only
+ * correspondent whose delay gets the standing BADGE rather than the countdown
+ * strip, and the two readings are never drawn together.
+ */
+const RECOVERY = "ground:recovery";
 
 /** Four minutes each way, the separation the headline scenes are built on. */
 const LIGHT_TIME = 240;
@@ -98,12 +105,15 @@ const PAIRS = [
   { from: ARES, to: KSC, oneWaySeconds: LIGHT_TIME },
   { from: KSC, to: WOOMERA, oneWaySeconds: 12 },
   { from: WOOMERA, to: KSC, oneWaySeconds: 12 },
+  { from: KSC, to: RECOVERY, oneWaySeconds: 0.4 },
+  { from: RECOVERY, to: KSC, oneWaySeconds: 0.4 },
 ];
 
 const ROSTER = [
   { id: KSC, displayName: "Kennedy", active: true },
   { id: ARES, displayName: "Ares 4", active: true },
   { id: WOOMERA, displayName: "Woomera Range", active: true },
+  { id: RECOVERY, displayName: "Recovery 1", active: true },
 ];
 
 /** From the ground to the craft, and back. */
@@ -398,10 +408,15 @@ const SCENES: Scene[] = [
   {
     /*
      * A conversation with a correspondent and nothing said in it yet, reached
-     * out of the picker. The ROUND TRIP is a chip pinned to the composer rather
-     * than words inside the send button, so the control keeps one size at the
-     * pad and four light-minutes out; that growing button is what this pass
-     * removed.
+     * out of the picker, and four light-minutes from the craft. The send button
+     * says the verb and nothing else: the round trip used to be inside its
+     * label, so the same control was two words at the pad and a sentence out
+     * here.
+     *
+     * NO delay chip, and that is the point of the pair this makes with
+     * `short-delay-badge` below. Past a second the countdown IS the reading and
+     * the strip carries it, so nothing is drawn here until something is
+     * actually crossing (see `author-side-in-transit`).
      */
     name: "empty-conversation",
     panes: [
@@ -417,6 +432,37 @@ const SCENES: Scene[] = [
     separation: PAIRS,
     roster: ROSTER,
     oneWaySeconds: LIGHT_TIME,
+    settleOn: "Nothing said yet",
+    pxW: 460,
+    pxH: 460,
+  },
+  {
+    /*
+     * The OTHER half of the delay switch, and the reason this scene sits beside
+     * `empty-conversation`: the same view, the same control, a correspondent
+     * under a second away, and now a standing chip on the composer saying how
+     * long the words take to REACH them. Never both readings at once, which is
+     * what the pair of pictures shows.
+     *
+     * ONE-WAY, not the round trip it used to say. A recovery ship acts on an
+     * instruction the moment it lands; the acknowledgement coming back is a
+     * separate wait, and quoting the sum of the two was quoting the wrong
+     * number.
+     */
+    name: "short-delay-badge",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        compose: true,
+        pick: ["Recovery 1"],
+        open: true,
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: 0.4,
     settleOn: "Nothing said yet",
     pxW: 460,
     pxH: 460,

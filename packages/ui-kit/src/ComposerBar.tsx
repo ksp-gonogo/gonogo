@@ -1,5 +1,6 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import styled, { css } from "styled-components";
+import { Button } from "./Button";
 
 /**
  * The input row at the foot of a console: a bordered, non-growing row whose
@@ -12,12 +13,13 @@ import styled, { css } from "styled-components";
  * they are still typing, and it says it about the box they are looking at
  * rather than in a badge somewhere else on the widget.
  *
- * It styles the row and nothing inside it. A terminal puts a prompt glyph, its
- * composed text and a blinking caret block in here, all locked to the character
- * pitch of the emulator screen above; a message thread puts an input and a send
- * button. Neither font nor pitch belongs to this component: an emulator's is a
- * device-specific px literal that has to equal the emulator's own JS font-size
- * option, which is one widget's problem and not the design system's.
+ * It styles the row and nothing inside it, with ONE exception: the send button
+ * (`onSend`). A terminal puts a prompt glyph, its composed text and a blinking
+ * caret block in here, all locked to the character pitch of the emulator screen
+ * above; a message thread puts an input in. Neither font nor pitch belongs to
+ * this component: an emulator's is a device-specific px literal that has to
+ * equal the emulator's own JS font-size option, which is one widget's problem
+ * and not the design system's.
  *
  * It also does not own the space BELOW itself. A composer that opens a picker
  * or a toggle row under the bar wraps the whole stack in its own non-growing
@@ -39,18 +41,59 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * height, which is the property that keeps a composer inside a short tile.
    */
   flag?: string;
+  /**
+   * Commit what is composed. Given, the bar grows a send button at its far end;
+   * omitted, it draws none and the composer's only send is whatever key it
+   * binds.
+   *
+   * The button is an ADDITION to that key, never a replacement for it. A
+   * console operator sends on Enter and always has; the button is for the one
+   * on a touch screen with no keyboard up, and for anybody who cannot see that
+   * a bordered box is waiting for Enter. So a caller wires this to the same
+   * entry point its key handler already calls, rather than to a second copy of
+   * the send path that can drift from it.
+   *
+   * It lives here rather than in each composer because the two that exist had
+   * grown different answers: one had a button, the other had none, and the
+   * operator moving between them had to remember which. It is also the one
+   * child whose SIZE the bar has an opinion about, hence not just a `children`
+   * convention: a control that grows with the reading beside it reflows the
+   * composer, so the label stays the caller's verb and the figure stays in the
+   * flag or in a badge.
+   */
+  onSend?: () => void;
+  /**
+   * Refuse the press. Distinct from `blocked`, which is about the bar as a
+   * whole: a composer with nothing typed in it is perfectly able to accept
+   * input and still has nothing to send.
+   */
+  sendDisabled?: boolean;
+  /** The verb. Defaults to "Send"; a console with a different one says so. */
+  sendLabel?: string;
   children?: ReactNode;
 }
 
 export function ComposerBar({
   blocked = false,
   flag,
+  onSend,
+  sendDisabled = false,
+  sendLabel = "Send",
   children,
   ...rest
 }: ComposerBarProps) {
   return (
     <ComposerBar__Row $blocked={blocked} {...rest}>
       {children}
+      {onSend !== undefined && (
+        <ComposerBar__Send
+          type="button"
+          disabled={sendDisabled}
+          onClick={onSend}
+        >
+          {sendLabel}
+        </ComposerBar__Send>
+      )}
       {flag !== undefined && (
         /* `role="status"`, never `alert`: a lost path is an ambient condition
            to note, not an interruption. */
@@ -74,6 +117,23 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
     ${({ $blocked }) =>
       $blocked ? "var(--color-status-nogo-fg)" : "var(--color-accent-fg)"};
   border-radius: var(--radius-md);
+`;
+
+/*
+ * Pushed to the far end by its own auto margin rather than by a spacer the
+ * caller has to remember: a terminal's composed line does not flex, so without
+ * this the button sits against the last character typed and moves with every
+ * keystroke.
+ *
+ * `font-size` is stated rather than inherited. The bar is where a caller sets
+ * an emulator's character pitch (a raw px literal locked to xterm's own option,
+ * see the doc above), and a button drawn at the terminal's cell size is a
+ * control sized by a device coincidence.
+ */
+const ComposerBar__Send = styled(Button)`
+  flex: 0 0 auto;
+  margin-left: auto;
+  font-size: var(--font-size-xs);
 `;
 
 const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`

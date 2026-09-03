@@ -30,6 +30,9 @@ const termSpies = vi.hoisted(() => ({
   onData: vi.fn(),
   onResize: vi.fn(),
   dispose: vi.fn(),
+  // Real xterm has one, and the Send button calls it: a click lands on the
+  // button, so without handing focus back the next thing typed goes nowhere.
+  focus: vi.fn(),
   rows: 24,
 }));
 
@@ -305,7 +308,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
   });
 
-  it("char-mode: shows a signal-delay badge with the round-trip time", async () => {
+  it("char-mode: shows a signal-delay badge with the time to reach the CPU", async () => {
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
@@ -325,14 +328,18 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
 
     /*
-     * `visibleText`, not `toHaveTextContent`: the badge renders through <Unit>
-     * now, whose raw textContent carries the unit's spoken word for a screen
-     * reader ("7.6 s seconds") alongside a thin space. `visibleText` is what a
-     * sighted reader sees.
+     * The ONE-WAY figure, not twice it. What the operator is waiting on is the
+     * keystroke arriving at the CPU; the echo coming back is the acknowledgement
+     * and is a separate wait. Doubling 3.8 into "7.6" quoted them the wrong one.
+     *
+     * `visibleText`, not `toHaveTextContent`: the badge renders through <Unit>,
+     * whose raw textContent carries the unit's spoken word for a screen reader
+     * ("3.8 s seconds") alongside a thin space. `visibleText` is what a sighted
+     * reader sees.
      */
     await waitFor(() =>
       expect(visibleText(screen.getByLabelText("Signal delay"))).toContain(
-        "~7.6 s",
+        "~3.8 s",
       ),
     );
   });
@@ -388,6 +395,71 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
       expect(keys).toHaveLength(1);
       expect((keys[0].args as { chars: string }).chars).toBe("list.\r");
     });
+  });
+
+  it("line-mode: the Send button commits the composed line exactly as Enter does", async () => {
+    /*
+     * The same affordance the message widget has, on the bar both share. It
+     * presses Enter through xterm's own handler rather than reimplementing the
+     * commit, so a press and the key cannot drift: what this asserts is that
+     * the wire sees the identical `chars`, trailing CR included.
+     */
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "list.") onData(ch);
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    await waitFor(() => {
+      const keys = fixture.commands.filter(
+        (c) => c.command === "kos.keystroke",
+      );
+      expect(keys).toHaveLength(1);
+      expect((keys[0].args as { chars: string }).chars).toBe("list.\r");
+    });
+    // The click took focus off the emulator; without this the next keystroke
+    // would go to the button and be lost.
+    expect(termSpies.focus).toHaveBeenCalled();
+  });
+
+  it("line-mode: the Send button refuses with no comms path, the same as Enter", async () => {
+    // `reduceLineModeChar`'s `canSend` guard is the one that keeps the typed
+    // line in the box; the button must not be a way around it.
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+    act(() => fixture.emit("comms.link", { connected: false }));
+
+    const onData = getOnData();
+    act(() => {
+      for (const ch of "list.") onData(ch);
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Send" })).toBeDisabled(),
+    );
+    expect(
+      fixture.commands.filter((c) => c.command === "kos.keystroke"),
+    ).toHaveLength(0);
+    // Still in the box, ready for when the path returns.
+    expect(screen.getByLabelText("Line-mode input").textContent).toContain(
+      "list.",
+    );
   });
 
   it("line-mode: the composed line is sent as the command's label", async () => {

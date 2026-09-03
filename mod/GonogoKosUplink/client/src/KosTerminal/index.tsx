@@ -1,4 +1,5 @@
 import type {
+  CommsDelay,
   CommsLink,
   ComponentProps,
   ConfigComponentProps,
@@ -12,7 +13,6 @@ import {
   useRouteCommands,
   useStream,
   useStreamEvent,
-  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   ComboboxListbox,
@@ -35,8 +35,9 @@ import {
   moveComboboxActiveIndex,
   Panel,
   Section,
+  SignalDelayBadge,
   Switch,
-  Unit,
+  signalDelayPresentation,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
 import { Terminal } from "@xterm/xterm";
@@ -751,6 +752,13 @@ function KosTerminalScreen({
   // natural "keep this ref current" companion, matching `sendKeystrokeRef`'s
   // own reassign-every-render pattern just below (kos-nopath-block-input fix).
   const noPathRef = useRef(false);
+  /*
+   * xterm's own input handler, published so the Send button can press Enter
+   * through it. `null` until the terminal has mounted, and again after it is
+   * disposed, which is what makes a press before or after a live terminal a
+   * no-op rather than a dispatch into a torn-down emulator.
+   */
+  const onDataRef = useRef<((data: string) => void) | null>(null);
   // Intentionally keyed on lineMode: this effect exists to clear the
   // composition WHEN the mode flips, not to react to values it reads.
   // biome-ignore lint/correctness/useExhaustiveDependencies: lineMode is the trigger, not a read dependency
@@ -782,9 +790,14 @@ function KosTerminalScreen({
   // there is no measurable ControlPath, as opposed to 0 for the delay-
   // feature-disabled-but-connected case. Both read as "nothing to show"
   // below, so the distinction matters upstream rather than here.
-  const commsDelay = useLatestValue<{ oneWaySeconds: number | null }>(
-    "comms.delay",
-  );
+  //
+  // `CommsDelay`, not a hand-written `{ oneWaySeconds: number | null }`. The
+  // local shape said the field was a bare number and it never was: this hook
+  // hands back the WRAPPED payload, so `oneWaySeconds` is a `Value<"s">`. The
+  // old badge only worked because it reached the figure through `2 * x`, and
+  // multiplication coerces through `valueOf`; a comparison against the same
+  // field would silently have been comparing an object.
+  const commsDelay = useLatestValue<CommsDelay>("comms.delay");
 
   // The in-transit strip's PURE prediction fuel, scoped to this terminal's
   // own CPU (`terminalTopic`): the shared delayed-command-ux primitive
@@ -796,8 +809,7 @@ function KosTerminalScreen({
   // execution/result-shaped: the payload has no such field, and a row
   // disappears only because the engine pruned it from a later snapshot,
   // never because this widget decided a command "completed".
-  const { items: routeItems, mode: routeMode } =
-    useRouteCommands(terminalTopic);
+  const { items: routeItems } = useRouteCommands(terminalTopic);
 
   /*
    * Whether the ground station has a path to the craft; read off the
@@ -951,7 +963,14 @@ function KosTerminalScreen({
         // per keystroke so a runtime line-mode toggle never recreates xterm.
         // Line mode accumulates into the composition bar (no echo into this
         // screen); char mode forwards each keystroke straight to the CPU.
-        term.onData((data) => {
+        //
+        // Named and published on a ref (rather than an inline lambda) so the
+        // composition bar's Send button can feed it a "\r" and take the EXACT
+        // path Enter takes: the `/`-composer's own send, the `canSend` refusal,
+        // the history push, all of it. A second send path beside this one would
+        // be a copy of every one of those decisions, free to drift from the key
+        // it is meant to duplicate.
+        const handleData = (data: string) => {
           if (!lineModeRef.current) {
             sendKeystrokeRef.current(data);
             return;
@@ -1132,12 +1151,15 @@ function KosTerminalScreen({
           );
           lineBufferRef.current = next;
           setComposition(next);
-        });
+        };
+        onDataRef.current = handleData;
+        term.onData(handleData);
       }
 
       teardown = () => {
         term.dispose();
         termRef.current = null;
+        onDataRef.current = null;
       };
     }
 
@@ -1171,27 +1193,29 @@ function KosTerminalScreen({
      */
   }, [readOnly]);
 
-  // Threshold split: char-mode always gets the badge; line-mode
-  // gets the badge ONLY when the delay is too short for a strip to be worth
-  // it (<=1s one-way), otherwise the full in-transit strip. The two are
-  // mutually exclusive: never both. A read-only viewer in line mode with a
-  // long delay gets neither (it dispatches no commands, so nothing to queue).
-  const showBadge =
-    commsDelay !== undefined &&
-    (commsDelay.oneWaySeconds ?? 0) > 0 &&
-    (!lineMode || (commsDelay.oneWaySeconds ?? 0) <= 1);
   /*
-   * `routeMode === "staged"` is exactly the `oneWaySeconds != null && > 1`
-   * threshold `currentMode` applies, with the `commsDelay !== undefined` check
-   * folded into "staged" itself rather than repeated here.
+   * The badge/strip split, in the kit rather than here: char mode has no
+   * composed line to queue so it always badges, line mode badges only a delay
+   * too short to count down and otherwise hands the reading to the strip, and
+   * the two are never drawn together. See `signalDelayPresentation`.
+   *
+   * The `"strip"` arm agrees with `routeMode === "staged"` by construction,
+   * both being `currentMode`'s one-second boundary; the kit's test pins them
+   * together, so the strip no longer needs to consult `routeMode` separately
+   * and risk disagreeing with the badge beside it.
    */
-  const showStrip = lineMode && !readOnly && routeMode === "staged";
+  const oneWaySeconds = commsDelay?.oneWaySeconds?.magnitude ?? null;
+  const delayPresentation = signalDelayPresentation({
+    oneWaySeconds,
+    canQueue: lineMode && !readOnly,
+    alwaysBadge: !lineMode,
+  });
   /*
-   * Narrowed, non-optional local for the JSX below, `showBadge` is a plain
-   * boolean, so TS can't carry its truthiness back onto `commsDelay` at the
+   * Narrowed, non-optional local for the JSX below: the presentation is a
+   * plain string, so TS can't carry its value back onto `oneWaySeconds` at the
    * read site; only-render-when-defined instead.
    */
-  const badgeDelay = showBadge ? commsDelay : undefined;
+  const badgeSeconds = delayPresentation === "badge" ? oneWaySeconds : null;
   /*
    * The in-transit strip's display shape: reach-leg items count down to
    * reaching the craft (↑), everything else counts down to the reply (↓),
@@ -1220,8 +1244,6 @@ function KosTerminalScreen({
   const scriptActiveIndex =
     scriptComposer?.phase === "picking" ? scriptComposer.activeIndex : -1;
 
-  const roundTrip = value("s", 2 * (badgeDelay?.oneWaySeconds ?? 0));
-
   return (
     <TerminalShell>
       {/* All three overlays below are pinned INSIDE this frame rather than
@@ -1234,21 +1256,7 @@ function KosTerminalScreen({
           surface in the app that wants an overlay there. */}
       <ConsoleFrame>
         <Container ref={containerRef} $readOnly={readOnly} />
-        {badgeDelay && (
-          <DelayBadge role="status" aria-label="Signal delay">
-            round-trip ~
-            {/* `scale: "never"` and a decimal, because a delay is a READOUT
-                rather than a countdown: the time ladder truncates to whole
-                units, so 7.6s would read as "7s". Above a minute the decimal
-                is noise and the ladder takes over. */}
-            <Unit
-              value={roundTrip}
-              {...(roundTrip.lessThan(60)
-                ? { scale: "never" as const, decimals: 1 }
-                : {})}
-            />
-          </DelayBadge>
-        )}
+        {badgeSeconds !== null && <DelayBadge oneWaySeconds={badgeSeconds} />}
         {!readOnly && noPath && (
           <NoPathBadge role="status">
             No path: commands are not being sent
@@ -1261,7 +1269,7 @@ function KosTerminalScreen({
           </ChangeCpuButton>
         )}
       </ConsoleFrame>
-      {showStrip && (
+      {delayPresentation === "strip" && (
         <InFlightList items={stripItems} ariaLabel="Uplink queue" />
       )}
       {lineMode && !readOnly && (
@@ -1272,11 +1280,25 @@ function KosTerminalScreen({
               box is refusing input without saying why. Deliberately shorter
               text than the corner badge's, so a `getByText` query for either
               cannot collide with the other. */}
+          {/* The button presses Enter, it does not reimplement it: `handleData`
+              is xterm's own handler, so a click and the key take one path.
+              Focus goes straight back to the emulator afterwards, because a
+              click lands on the button and the next thing typed would otherwise
+              go nowhere: xterm only hears input while its own textarea holds
+              focus. */}
           <CompositionBar
             role="group"
             aria-label={scriptComposer ? "Run script" : "Line-mode input"}
             blocked={noPath}
             {...(noPath ? { flag: "NO PATH" } : {})}
+            onSend={() => {
+              onDataRef.current?.("\r");
+              termRef.current?.focus();
+            }}
+            /* Exactly `reduceLineModeChar`'s own `canSend`. An empty line is
+               deliberately NOT refused: Enter on one sends a bare CR and kOS
+               answers with a fresh prompt, which is a thing an operator does. */
+            sendDisabled={noPath}
           >
             <CompositionBar__Prompt aria-hidden="true">
               ❯
@@ -1599,23 +1621,18 @@ const NoPathBadge = styled.div`
   text-overflow: ellipsis;
 `;
 
-// Compact delay readout: char-mode always, line-mode only when the delay is
-// too short (<=1s one-way) for a strip to be worth it; see `showBadge`. Pinned
-// against `ConsoleFrame` as a sibling of `Container`, not a descendant:
-// `Container`'s own `overflow: hidden` is reserved for xterm's content.
-const DelayBadge = styled.div`
+// The kit's delay readout, PINNED. Which of the two readings shows at all is
+// `signalDelayPresentation`'s call and the chip itself is the kit's; what stays
+// here is the corner, because a character grid whose top corners are usually
+// empty cells is the only surface in the app with one to spare. Pinned against
+// `ConsoleFrame` as a sibling of `Container`, not a descendant: `Container`'s
+// own `overflow: hidden` is reserved for xterm's content.
+const DelayBadge = styled(SignalDelayBadge)`
   position: absolute;
   top: var(--space-8);
   right: var(--space-8);
   /* Local ordering inside the frame only; see CompositionBar__NoPathFlag. */
   z-index: 1;
-  padding: var(--space-2) var(--space-8);
-  font-family: monospace;
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
 `;
 
 /*

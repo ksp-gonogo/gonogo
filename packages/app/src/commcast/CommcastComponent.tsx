@@ -10,7 +10,6 @@ import {
   ComposerBar,
   ConsoleFrame,
   EmptyState,
-  formatDuration,
   GhostButton,
   InFlightList,
   type InFlightListItem,
@@ -20,6 +19,8 @@ import {
   ScrollArea,
   Section,
   SelectableRow,
+  SignalDelayBadge,
+  signalDelayPresentation,
   Text,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -394,9 +395,15 @@ function ComposeView({
           </Commcast__Rows>
         </Commcast__Scroll>
       </ConsoleFrame>
+      {/* The bar's own commit slot, and its own verb: a picker opens rather
+          than sends, but it is the same control in the same place, so it needs
+          neither a second button nor the spacer that used to push one there. */}
       <ComposerBar
         blocked={group}
         {...(group ? { flag: "ONE AT A TIME" } : {})}
+        onSend={() => onOpen(picked)}
+        sendDisabled={picked.length !== 1}
+        sendLabel="Open"
       >
         <Text size="xs" tone={group ? "nogo" : "faint"}>
           {group
@@ -405,14 +412,6 @@ function ComposeView({
               ? "Ready"
               : "Choose a recipient"}
         </Text>
-        <Commcast__BarGap />
-        <Button
-          type="button"
-          disabled={picked.length !== 1}
-          onClick={() => onOpen(picked)}
-        >
-          Open
-        </Button>
       </ComposerBar>
     </>
   );
@@ -453,6 +452,19 @@ function ThreadView({
   target: RecipientId | null;
   onBack: () => void;
 }) {
+  /*
+   * The terminal widget's delay model, from the kit both widgets now share: a
+   * standing BADGE when the other end is close enough that a countdown would be
+   * over before it could be read, the in-transit STRIP when it is far enough
+   * that a countdown is the reading, and never both. Before this the chip and
+   * the strip were drawn together, saying the same separation twice in two
+   * shapes, and the operator had to work out which one was about the message
+   * they had just sent.
+   */
+  const delayPresentation = signalDelayPresentation({
+    oneWaySeconds: separationSeconds,
+    canQueue: true,
+  });
   return (
     <>
       <Commcast__Bar>
@@ -492,12 +504,27 @@ function ThreadView({
           pinned between the console and the composer, never inside the scroll,
           where it would take the bottom of the log as it grows. Same component
           and same two-leg vocabulary, because it is the same journey. */}
-      <OutboundQueue
-        outbound={thread.outbound}
-        me={me}
-        utNow={utNow}
-        pairs={pairs}
-      />
+      {/* Gated on NOT-badge rather than on `=== "strip"`, which is where this
+          departs from the terminal widget by one case and has to.
+
+          A message freezes its separation at send and keeps crossing on it, so
+          the queue outlives the live reading the badge is drawn from: words put
+          out at four light-minutes are still four light-minutes out after the
+          path drops, and this strip is the ONLY place they appear (the log
+          holds nothing until something comes back). The terminal's route items
+          are derived from the live route instead, so it has nothing to lose by
+          reading `=== "strip"`.
+
+          What the operator asked for survives either way: the badge and the
+          strip are still never drawn together. */}
+      {delayPresentation !== "badge" && (
+        <OutboundQueue
+          outbound={thread.outbound}
+          me={me}
+          utNow={utNow}
+          pairs={pairs}
+        />
+      )}
 
       <Composer
         log={log}
@@ -507,6 +534,7 @@ function ThreadView({
         target={target}
         separation={separation}
         separationSeconds={separationSeconds}
+        badgeSeconds={delayPresentation === "badge" ? separationSeconds : null}
       />
     </>
   );
@@ -788,6 +816,7 @@ function Composer({
   target,
   separation,
   separationSeconds,
+  badgeSeconds,
 }: {
   log: CommcastLog;
   me: Vantage;
@@ -796,6 +825,13 @@ function Composer({
   target: RecipientId | null;
   separation: ReturnType<typeof separationBetween>;
   separationSeconds: number | null;
+  /**
+   * The one-way separation to show beside the control, or `null` when this is
+   * not the view's delay reading. The CHOICE is the thread view's (it also owns
+   * the strip, the other half of the same either-or); this component only draws
+   * what it is handed.
+   */
+  badgeSeconds: number | null;
 }) {
   const [draft, setDraft] = useState("");
   const ready =
@@ -830,35 +866,25 @@ function Composer({
     setDraft("");
   };
   const noPath = separation.kind === "no-path";
-  const roundTrip = separationSeconds === null ? null : separationSeconds * 2;
-  /*
-   * The ROUND TRIP as a PINNED CHIP, never in the button's label.
-   *
-   * A control that grows as the figure beside it grows is the defect the
-   * operator named: the same button was two words at KSC and a whole sentence
-   * four light-minutes out, so the composer reflowed on a number that says
-   * nothing about what pressing it does. The terminal widget has no send
-   * button to borrow, its own send is Enter, but it has already answered the
-   * question: it puts the round trip in a chip pinned inside its frame, which
-   * costs no layout at all. `flag` is that mechanism in the kit, on the same
-   * bar both widgets compose in, so the reading is right next to the control
-   * whose cost it is and the control keeps one size.
-   *
-   * NO PATH wins the slot, because a journey that is not happening has no
-   * round trip to quote.
-   */
-  const flag = noPath
-    ? "NO PATH"
-    : roundTrip !== null && roundTrip > 0
-      ? `RT ${formatDuration(roundTrip)}`
-      : undefined;
   return (
     /* The bar's own outline says whether this is going anywhere, the same way
        the terminal widget's does: with no path to the chosen recipient it
        turns error-toned while the operator is still typing, rather than
        reporting the refusal only after they have pressed send. The flag says
-       why an outline has turned red, which an outline cannot. */
-    <ComposerBar blocked={noPath} {...(flag === undefined ? {} : { flag })}>
+       why an outline has turned red, which an outline cannot.
+
+       The flag now says ONLY that. It used to carry the round trip too, which
+       made one pinned slot answer two unrelated questions and put a figure
+       there that the strip below was already drawing. The delay reading moved
+       into the bar itself, as the terminal widget's badge, and the flag went
+       back to being about refusal. The two never contend: no path means no
+       separation to quote. */
+    <ComposerBar
+      blocked={noPath}
+      {...(noPath ? { flag: "NO PATH" } : {})}
+      onSend={submit}
+      sendDisabled={!ready}
+    >
       <label htmlFor="commcast-draft">
         <VisuallyHidden>Message</VisuallyHidden>
       </label>
@@ -883,9 +909,14 @@ function Composer({
           }
         }}
       />
-      <Button type="button" disabled={!ready} onClick={submit}>
-        Send
-      </Button>
+      {/* Between the input and the send button, so the reading sits on the path
+          the eye takes to the control whose cost it is. It only ever shows a
+          delay under a second (past that the strip above is the reading), so
+          the string is short by construction and the composer cannot reflow on
+          it, which is what the pinned chip was protecting against. */}
+      {badgeSeconds !== null && (
+        <SignalDelayBadge oneWaySeconds={badgeSeconds} />
+      )}
     </ComposerBar>
   );
 }

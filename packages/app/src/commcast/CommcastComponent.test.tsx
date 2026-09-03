@@ -17,7 +17,10 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import {
+  expectNoA11yViolations,
+  visibleText,
+} from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommcastWidget } from "./CommcastComponent";
@@ -85,7 +88,19 @@ function renderWidget(log: CommcastLog) {
  * and it is what the render harness uses, so the two agree about what a screen
  * with a correspondent looks like.
  */
-function renderOnStream(log: CommcastLog, roster: readonly unknown[]) {
+function renderOnStream(
+  log: CommcastLog,
+  roster: readonly unknown[],
+  /**
+   * Separations to publish, one-way seconds. Defaults to the headline pair,
+   * four light-minutes to the craft; a test about a NEAR correspondent passes
+   * its own, because which of the two delay readings the widget draws is
+   * decided off this number.
+   */
+  pairs: readonly { from: string; to: string; oneWaySeconds: number }[] = [
+    { from: "ksc", to: "vessel:ares", oneWaySeconds: 240 },
+  ],
+) {
   const fixture = setupStreamFixture({ carriedChannels: TOPICS, pinnedUt: 10 });
   const view = render(
     <fixture.Provider>
@@ -97,11 +112,7 @@ function renderOnStream(log: CommcastLog, roster: readonly unknown[]) {
   unmounts.push(view.unmount);
   act(() => {
     fixture.emit("commandCentre.roster", roster, { vantage: "ksc" });
-    fixture.emit(
-      "commandCentre.separation",
-      { pairs: [{ from: "ksc", to: "vessel:ares", oneWaySeconds: 240 }] },
-      { vantage: "ksc" },
-    );
+    fixture.emit("commandCentre.separation", { pairs }, { vantage: "ksc" });
     // The pinned frame has to advance onto the sample before the read matures.
     fixture.store.beginFrame();
   });
@@ -221,9 +232,9 @@ describe("Commcast, rendered", () => {
     /*
      * The defect the operator named: the label used to carry the round trip,
      * so the same button was two words at the pad and a sentence four
-     * light-minutes out. The terminal widget's answer is a chip that costs no
-     * layout, which is `ComposerBar`'s pinned flag, so the figure is still at
-     * the control and the control does not move.
+     * light-minutes out. The verb is now all the label ever says, and the
+     * figure is a separate reading whose shape the terminal widget's model
+     * decides.
      */
     const log = makeLog();
     log.setVantage("ksc");
@@ -233,10 +244,59 @@ describe("Commcast, rendered", () => {
     await userEvent.click(screen.getByRole("button", { name: /New message/ }));
     await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
     await userEvent.click(screen.getByRole("button", { name: "Open" }));
-    // The label carries the verb and nothing else, whatever the figure is.
     expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
-    // Eight minutes there and back, pinned to the bar rather than in the label.
-    expect(screen.getByText("RT 8min")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("leaves a long delay to the strip, with no chip saying the same thing", async () => {
+    /*
+     * The terminal widget's model, verbatim. Four light-minutes out a countdown
+     * IS the reading, so the strip carries it and there is no standing chip
+     * beside it: the two together said the same separation twice in two shapes
+     * and the operator had to work out which was about the message they had
+     * just sent.
+     */
+    const log = makeLog();
+    log.setVantage("ksc");
+    // Something actually out, so the strip has a row: it renders nothing at all
+    // for an empty set, and a test on an empty conversation would be asserting
+    // the absence of both readings and calling it the switch.
+    log.replaceForTesting({
+      outbox: [{ msg: sent(), acks: [], neverLeft: false }],
+    });
+    renderOnStream(log, [
+      { id: "vessel:ares", displayName: "Ares 4", active: true },
+    ]);
+    await openConversation(/do you copy/);
+    expect(screen.getByLabelText(/Uplink queue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Signal delay")).toBeNull();
+    await act(async () => {});
+  });
+
+  it("badges a delay too short to count down, and draws no strip for it", async () => {
+    /*
+     * The other end of the same switch. A correspondent under a second away has
+     * nothing worth counting down to, so the separation shows as a standing
+     * reading and the strip stays away. ONE-WAY, because what the operator is
+     * waiting on is their words landing; the acknowledgement coming back is a
+     * separate wait and doubling the figure quoted them the wrong one.
+     */
+    const log = makeLog();
+    log.setVantage("ksc");
+    renderOnStream(
+      log,
+      [{ id: "ground:woomera", displayName: "Woomera Range", active: true }],
+      [{ from: "ksc", to: "ground:woomera", oneWaySeconds: 0.4 }],
+    );
+    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Woomera Range/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    expect(visibleText(screen.getByLabelText("Signal delay"))).toContain(
+      "~0.4 s",
+    );
+    expect(screen.queryByLabelText(/Uplink queue/)).toBeNull();
     await act(async () => {});
   });
 

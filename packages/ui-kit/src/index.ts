@@ -185,6 +185,16 @@ export {
 } from "./CommandDelay/InFlightList";
 export { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 export {
+  SignalDelayBadge,
+  type SignalDelayBadgeProps,
+} from "./CommandDelay/SignalDelayBadge";
+export {
+  SIGNAL_DELAY_STRIP_THRESHOLD_SECONDS,
+  type SignalDelayPresentation,
+  type SignalDelayPresentationInput,
+  signalDelayPresentation,
+} from "./CommandDelay/signalDelayPresentation";
+export {
   type InFlightCommandLike,
   toInFlightListItems,
 } from "./CommandDelay/toInFlightListItems";
