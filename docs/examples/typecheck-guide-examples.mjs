@@ -16,6 +16,7 @@ import { execFileSync } from "node:child_process";
 import {
   existsSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -114,7 +115,10 @@ execFileSync("ln", ["-sfn", modules, join(work, "node_modules")]);
 // relative imports resolve and the whole set compiles as one client would.
 const FILE_LABEL = /^\/\/\s*(client\/src\/[\w./-]+\.tsx?)\s*$/;
 
-for (const f of ["contract.ts", "units.ts"]) {
+// Every fixture in the directory, rather than a list: a hand-listed set lets a
+// new fixture be added and silently ignored, which is how the guide came to
+// import a `command-map` that was never copied in.
+for (const f of readdirSync(join(here, "generated-fixture"))) {
   mkdirSync(join(work, "src/__generated__"), { recursive: true });
   writeFileSync(
     join(work, "src/__generated__", f),

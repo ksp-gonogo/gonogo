@@ -814,6 +814,10 @@ existed. That overload is the escape hatch for a DYNAMIC command whose id is com
 so can have no static member:
 
 ```ts
+import { useCommand } from "@ksp-gonogo/sitrep-sdk";
+
+declare const probeId: string;
+
 const reset = useCommand<{ id: string }>(`example.probe.${probeId}.reset`);
 ```
 
