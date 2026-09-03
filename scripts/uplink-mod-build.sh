@@ -135,8 +135,19 @@ unresolved_allowed() {
 
 # The other direction, for the same reason the EXEMPT list checks both: an entry
 # for an assembly that IS present reads as covered debt and is not.
+#
+# Fatal in CI only. The entry describes what ksp-managed lacks, so CI is where it
+# can go stale and where deleting it is the right answer. A local reference set is
+# routinely MORE complete than CI's, and failing there blocked every local build of
+# every Uplink on a discrepancy the developer cannot act on: deleting the entry to
+# unblock themselves would break CI, which still lacks the assembly.
 for entry in "${UNRESOLVED_OK[@]}"; do
   asm="${entry%%|*}"
+  if [ -f "$KSP_MANAGED/$asm.dll" ] && [ -z "${CI:-}" ]; then
+    echo "note: $asm is present here but absent from CI's reference set, so its"
+    echo "  accepted-unresolved entry is still load-bearing. Not an error locally."
+    continue
+  fi
   if [ -f "$KSP_MANAGED/$asm.dll" ]; then
     echo "✖ uplink mod build: $asm is listed as an accepted unresolved reference, but it is PRESENT in $KSP_MANAGED."
     echo "  The entry has outlived its cause: delete it and let the build gate."
