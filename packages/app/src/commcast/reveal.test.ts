@@ -74,9 +74,11 @@ describe("separationBetween", () => {
   });
 
   it("resolves a centre pair the seat axis alone cannot reach", () => {
-    // Both ends are `mission-control`, so nothing but the published pair
-    // separates them, and reading them as co-located would let two centres a
-    // continent apart hear each other instantly.
+    /*
+     * Both ends are `mission-control`, so nothing but the published pair
+     * separates them, and reading them as co-located would let two centres a
+     * continent apart hear each other instantly.
+     */
     const pairs = new Map([[KSC, new Map([[WOOMERA, 12]])]]);
     expect(separationBetween(KSC, WOOMERA, null, pairs)).toEqual({
       kind: "light-time",
@@ -109,9 +111,11 @@ describe("separationBetween", () => {
   });
 
   it("reads a screen with no vantage yet as one vantage, not as two", () => {
-    // Before the first frame lands nobody has an id at all, and inventing a
-    // separation out of that absence would put every fresh page load behind an
-    // imaginary delay.
+    /*
+     * Before the first frame lands nobody has an id at all, and inventing a
+     * separation out of that absence would put every fresh page load behind
+     * an imaginary delay.
+     */
     expect(separationBetween(undefined, undefined, undefined)).toEqual({
       kind: "co-located",
       seconds: 0,

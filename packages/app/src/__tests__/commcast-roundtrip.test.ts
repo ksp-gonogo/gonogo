@@ -228,7 +228,7 @@ describe("Commcast, addressed across the mesh", () => {
     expect(sentPhaseFor(out(), GROUND, 1479)).toBe("awaiting-reply");
     expect(sentPhaseFor(out(), GROUND, 1480)).toBe("confirmed");
     // Which is also when the author's own words enter their own log: an echo
-    // after the round trip, the kOS terminal's rule on a spoken line.
+    // after the round trip, the terminal widget's rule on a spoken line.
     expect(sentArrivalUtFor(out(), GROUND, 1480)).toBe(1480);
   });
 

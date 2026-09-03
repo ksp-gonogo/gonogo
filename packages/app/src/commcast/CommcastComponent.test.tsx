@@ -113,7 +113,7 @@ describe("Commcast, rendered", () => {
 
   it("shows NOTHING at all for a message still crossing toward this vantage", () => {
     /*
-     * The kOS rule: what has not arrived is absent, not described. Withholding
+     * The terminal widget's rule: what has not arrived is absent, not described. Withholding
      * the body while naming the author and printing a countdown still tells
      * this vantage that somebody spoke, a light-time before that could
      * possibly be known here.
@@ -140,7 +140,7 @@ describe("Commcast, rendered", () => {
 
   it("holds the operator's OWN words out of the log until they are answered", () => {
     /*
-     * The kOS terminal's round trip, on a whole composed line. The words are
+     * The terminal widget's round trip, on a whole composed line. The words are
      * in the uplink queue and nowhere else: not in the log, and with no
      * verdict on whether they arrived, because nothing has come back.
      */

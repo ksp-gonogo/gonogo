@@ -213,7 +213,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
           </Commcast__Scroll>
         </ConsoleFrame>
 
-        {/* The kOS terminal's uplink queue, in the kOS terminal's place:
+        {/* The terminal widget's uplink queue, in the terminal widget's place:
           pinned between the console and the composer, never inside the scroll,
           where it would take the bottom of the log as it grows. Same component
           and same two-leg vocabulary, because it is the same journey. */}
@@ -307,8 +307,9 @@ function MessageRow({
 /**
  * What came back about something this screen said.
  *
- * `confirmed` carries the round trip that actually elapsed, which is the kOS
- * terminal's latency stated after the fact rather than predicted before it.
+ * `confirmed` carries the round trip that actually elapsed, which is the
+ * terminal widget's latency stated after the fact rather than predicted
+ * before it.
  * Everything else is UNCONFIRMED, and unconfirmed is a state the message is in
  * rather than an error about it: no warning tone, no dismissal, just the
  * reading. It says which of two different things happened, because they call
@@ -444,7 +445,7 @@ function OutboundQueue({
       utNow === undefined ? "in-transit" : sentPhaseFor(out, me, utNow, pairs);
     return {
       id: out.msg.id,
-      // The words themselves, the way a kOS line-mode dispatch labels itself
+      // The words themselves, the way the terminal widget's line-mode dispatch labels itself
       // with the line that was typed. There is nothing else a message could be
       // called, and the author is the only person who sees this row.
       label: out.msg.body ?? out.msg.kind,
@@ -569,8 +570,8 @@ function Composer({
         A plain free-text line TODAY, and left addressable so it need not be
         unpicked: the submit path reads the draft once, at `submit`, rather
         than parsing as the operator types, so a leading-token mode could be
-        introduced ahead of it without touching anything else. The kOS terminal
-        this is aligned with already has a `/`-script picker on its own
+        introduced ahead of it without touching anything else. The terminal
+        widget this is aligned with already has a `/`-script picker on its own
         composer, which is where a structured-request affordance would go if
         Commcast ever grows one. Nothing here builds toward it.
       */}
@@ -588,7 +589,7 @@ function Composer({
       />
       {/* The ROUND TRIP, which is what pressing this actually costs the
           operator: their own words do not come back until the recipient is
-          shown to have heard them. The same number the kOS terminal prints in
+          shown to have heard them. The same number the terminal widget prints in
           its corner, and it is here rather than in a corner because this is
           where the decision is made. */}
       <Button disabled={!ready} onClick={submit}>
@@ -765,12 +766,14 @@ registerComponent({
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },
   component: CommcastWidget,
-  // `commandCentre.roster` is who can be addressed; `commandCentre.separation`
-  // is how far away each of them is. `comms.delay` is the craft-to-ground
-  // fallback for a pair the matrix has not reached. `comms.link` is what
-  // terminates the log: a confirmed loss of line of sight means there may be
-  // words this vantage has not heard, which is a different claim from a
-  // message in transit.
+  /*
+   * `commandCentre.roster` is who can be addressed; `commandCentre.separation`
+   * is how far away each of them is. `comms.delay` is the craft-to-ground
+   * fallback for a pair the matrix has not reached. `comms.link` is what
+   * terminates the log: a confirmed loss of line of sight means there may be
+   * words this vantage has not heard, which is a different claim from a
+   * message in transit.
+   */
   channels: [
     "commandCentre.roster",
     "commandCentre.separation",

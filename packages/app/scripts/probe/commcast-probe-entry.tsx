@@ -194,9 +194,11 @@ async function settle(
    * of rendered widget is not a subtle margin.
    */
   const mounted = () => document.getElementById("root")?.textContent ?? "";
-  // Short, because a scene that settles settles in well under a second and one
-  // that lost the race does not recover on its own: what recovers it is a fresh
-  // mount, which is `renderScene`'s job.
+  /*
+   * Short, because a scene that settles settles in well under a second and one
+   * that lost the race does not recover on its own: what recovers it is a
+   * fresh mount, which is `renderScene`'s job.
+   */
   const deadline = Date.now() + 3_000;
   // Waits BEFORE the first check, so a scene with nothing to wait for still
   // gets a paint rather than being captured on the frame its predicate happened

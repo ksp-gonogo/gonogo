@@ -317,7 +317,7 @@ export function sentPhaseFor(
  * Whether a sent message has settled: it is no longer travelling, so it
  * belongs in the log rather than in the uplink queue.
  *
- * The kOS terminal's rule, and the reason the queue never grows without bound:
+ * The terminal widget's rule, and the reason the queue never grows without bound:
  * a line leaves the strip when its journey ends, either because it echoed or
  * because the wait ran out. `overdue` and `lost` therefore never render as a
  * queue row; they render as an UNCONFIRMED message in the log, which is a
@@ -331,7 +331,7 @@ export function isSettled(phase: SentPhase): boolean {
  * The instant a sent message enters its own author's log, or `undefined` while
  * it is still travelling.
  *
- * This is the line that makes Commcast read like the kOS terminal in line
+ * This is the line that makes Commcast read like the terminal widget in line
  * mode: there, a composed line is echoed into the buffer only after the full
  * round trip, so the delay is felt as absence then arrival rather than
  * described by a number. Here an author's own words are held the same way and

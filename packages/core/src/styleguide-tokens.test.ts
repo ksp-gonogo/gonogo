@@ -254,6 +254,14 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // chrome, so a named rung would put a table header in the dashboard's
     // layer for no reason.
     "packages/ui-kit/src/DataTable.tsx": 1,
+    // The composer's blocked flag over the bar it is pinned to, local sibling
+    // ordering inside that bar's own stacking context. Not app-global chrome,
+    // so a named rung would put a one-word badge in the dashboard's layer.
+    // Arrived with the bar itself, in the change that lifted it out of the
+    // terminal widget; this entry is the baseline raise that change owed and
+    // did not make, which is why it lands with the branch that first ran the
+    // scan against it rather than with a Commcast change of its own.
+    "packages/ui-kit/src/ComposerBar.tsx": 1,
     // The disclosure panel overlay, local sibling ordering inside the
     // component's own stacking context (lifts the popped panel above following
     // content). Not app-global chrome, so no named z rung.

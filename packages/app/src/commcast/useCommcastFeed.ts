@@ -33,7 +33,7 @@ export interface CommcastEntry {
 /**
  * What one vantage can currently see.
  *
- * Two lists, and the split is the kOS terminal's in line mode: what is in the
+ * Two lists, and the split is the terminal widget's in line mode: what is in the
  * BUFFER, and what is still in the uplink queue. There is deliberately no
  * third list of messages on their way here. A message crossing toward this
  * screen is simply ABSENT until it lands, the way a terminal frame is, and
@@ -74,7 +74,7 @@ const EMPTY_FEED: CommcastFeed = { log: [], outbound: [] };
  * This screen's OWN words go through the same buffer on a different instant:
  * not when they were spoken, but when they settled (`sentArrivalUtFor`). That
  * is what makes an author's own line and the reply answering it land together,
- * the way a kOS line-mode command's echo and its output do.
+ * the way the terminal widget's own line-mode echo and its output do.
  */
 export function useCommcastFeed(
   log: CommcastLog | null,
