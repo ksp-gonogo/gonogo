@@ -1,18 +1,33 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
-import styled from "styled-components";
+import styled, { css } from "styled-components";
 
 /**
- * A bordered pane that takes the remaining height of a panel body, and gives
- * whatever is pinned inside it something to be pinned against.
+ * A bordered console: a scrolling surface that takes the remaining height of a
+ * panel body, and, pinned at its foot INSIDE the same border, whatever the
+ * operator types into it.
  *
- * The positioning context is half the point. A widget's status badge rendered
- * as a flex sibling above or below its main surface adds its own row height to
- * everything else in the body, and on a widget at its declared `minSize` that
- * pushes whatever sits beneath (a composer, a queue) past the tile's visible
- * bounds. A badge pinned INSIDE the pane costs no height at all. A
- * terminal-emulator widget discovered that three times over and wrote the
- * reasoning down three times, once per badge, because there was no primitive
- * whose job it was to hold it.
+ * ## The composer is inside
+ *
+ * It was outside, in both widgets that have one, and the border then contained
+ * different things in each: a terminal screen in one, a column of messages in
+ * the other, with the input hanging underneath as a separate box. Two consoles
+ * meant to read as siblings looked unrelated, and an input bar sitting outside
+ * its own panel does not look like any other widget in the app.
+ *
+ * So `footer` is a slot rather than a convention. A caller cannot put the
+ * composer above the frame by accident, and the outline contains the same two
+ * things in every console: what has been said, and where you say the next
+ * thing.
+ *
+ * ## The positioning context is half the point
+ *
+ * A widget's status badge rendered as a flex sibling above or below its main
+ * surface adds its own row height to everything else in the body, and on a
+ * widget at its declared `minSize` that pushes whatever sits beneath (the
+ * composer, a queue) past the tile's visible bounds. A badge pinned INSIDE the
+ * surface costs no height at all. A terminal-emulator widget discovered that
+ * three times over and wrote the reasoning down three times, once per badge,
+ * because there was no primitive whose job it was to hold it.
  *
  * Distinct from its two neighbours in this package, and not a third copy of
  * either:
@@ -37,23 +52,118 @@ import styled from "styled-components";
  * stays with the widget that has something to pin, and a corner API waits for
  * a second real use rather than being guessed at from one.
  */
+export type ConsoleTone = "accent" | "info";
+
 export interface ConsoleFrameProps extends ComponentPropsWithoutRef<"div"> {
+  /**
+   * Which accent this console answers in.
+   *
+   * A PROP rather than a per-widget stylesheet, because the two consoles in the
+   * app are the same components and differ only here: a terminal that dispatches
+   * to a craft keeps the primary accent, a message log that carries words takes
+   * the informational one. Both are theme tokens, so a theme moves them together
+   * and neither widget owns a colour.
+   *
+   * It reaches the foot as `--console-tone-fg`, which is how `ComposerBar`'s
+   * rule and a caller's own prompt glyph come out in the same tone without
+   * either being told separately.
+   */
+  tone?: ConsoleTone;
+  /**
+   * Input is not being accepted, so the WHOLE console takes the error tone
+   * rather than a chip in one corner of it.
+   *
+   * Both consoles refuse input at the input-acceptance step when there is no
+   * comms path, before anything is cleared or dispatched, and a refusal the
+   * operator only learns about by pressing the key is a refusal they read as a
+   * bug. Toning the border says it on sight, while they are still typing.
+   */
+  blocked?: boolean;
+  /**
+   * Pinned at the foot, inside the border, and non-growing: the composer, and
+   * anything belonging immediately above it such as an in-flight queue.
+   */
+  footer?: ReactNode;
   children?: ReactNode;
 }
 
-export function ConsoleFrame({ children, ...rest }: ConsoleFrameProps) {
-  return <ConsoleFrame__Box {...rest}>{children}</ConsoleFrame__Box>;
+export function ConsoleFrame({
+  tone = "accent",
+  blocked = false,
+  footer,
+  children,
+  ...rest
+}: ConsoleFrameProps) {
+  return (
+    /* `data-console-frame`, the same kind of stable structural hook
+       `ScrollArea` exposes as `data-scroll-area-inner`. It is what lets each
+       console prove its OWN composer is inside its own border: the property
+       this component exists for is invisible to a role query, because the
+       border is not a role and both widgets rendered perfectly good composers
+       while they hung outside it. */
+    <ConsoleFrame__Box
+      data-console-frame=""
+      $tone={tone}
+      $blocked={blocked}
+      {...rest}
+    >
+      <ConsoleFrame__Surface>{children}</ConsoleFrame__Surface>
+      {footer !== undefined && (
+        <ConsoleFrame__Foot>{footer}</ConsoleFrame__Foot>
+      )}
+    </ConsoleFrame__Box>
+  );
 }
 
-const ConsoleFrame__Box = styled.div`
-  /* The reason a caller can pin a badge inside instead of stacking it above. */
+const ConsoleFrame__Box = styled.div<{
+  $tone: ConsoleTone;
+  $blocked: boolean;
+}>`
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-panel);
+  border: 1px solid var(--console-tone-fg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+
+  ${({ $tone, $blocked }) =>
+    $blocked
+      ? css`
+          --console-tone-fg: var(--color-status-nogo-fg);
+        `
+      : $tone === "info"
+        ? css`
+            --console-tone-fg: var(--color-status-info-fg);
+          `
+        : css`
+            --console-tone-fg: var(--color-accent-fg);
+          `}
+`;
+
+/*
+ * The scrollback half, and what a badge is pinned against: an overlay belongs
+ * over what has already been said, never over the line being typed.
+ */
+const ConsoleFrame__Surface = styled.div`
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   display: flex;
-  background: var(--color-surface-panel);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+`;
+
+/*
+ * Non-growing, so a queue that fills or a picker that opens can never take
+ * height from the scrollback above. A positioning context of its own, so a
+ * composer's dropdown anchors inside the console rather than escaping the tile.
+ */
+const ConsoleFrame__Foot = styled.div`
+  position: relative;
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
 `;

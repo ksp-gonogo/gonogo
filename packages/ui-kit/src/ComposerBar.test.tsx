@@ -47,6 +47,32 @@ describe("ComposerBar", () => {
     );
   });
 
+  it("draws the prompt glyph the caller asks for, and hides it from readers", () => {
+    /*
+     * Here rather than in each console because it is the one thing both were
+     * going to draw and only one of them had. Decorative: "❯" announced as a
+     * character is noise on a control a screen reader already names.
+     */
+    const { container } = render(
+      <ComposerBar prompt="❯">
+        <input aria-label="Message" />
+      </ComposerBar>,
+    );
+    expect(container.querySelector("[aria-hidden='true']")?.textContent).toBe(
+      "❯",
+    );
+  });
+
+  it("draws no prompt for a composer that chooses rather than types", () => {
+    // The recipient picker sends on the same bar and has nothing to prompt for.
+    const { container } = render(
+      <ComposerBar>
+        <input aria-label="Message" />
+      </ComposerBar>,
+    );
+    expect(container.querySelector("[aria-hidden='true']")).toBeNull();
+  });
+
   it("draws no send button unless one is asked for", () => {
     // A composer whose only send is a key binding must not grow a control it
     // never wired.

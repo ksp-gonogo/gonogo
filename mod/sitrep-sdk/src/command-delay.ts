@@ -71,6 +71,68 @@ export function currentMode(commsDelay: CommsDelayLike | undefined): DelayMode {
   return d.lessThanOrEqual(STAGED_THRESHOLD_SECONDS) ? "live" : "staged";
 }
 
+/** Which ONE of the two delay readings a console draws. */
+export type SignalDelayPresentation = "badge" | "strip" | "none";
+
+export interface SignalDelayPresentationInput {
+  /**
+   * One-way separation, `null` when there is no measurable path. `null` and a
+   * measured zero are different readings and neither gets a badge: `null` is no
+   * path at all, zero is a link with no delay to report, and a chip saying
+   * "one-way ~0 s" is noise on a dashboard sitting at the pad.
+   */
+  oneWaySeconds: Value<"s"> | null;
+  /**
+   * Whether this console can put something in the strip. A read-only viewer
+   * dispatches nothing, so at a long delay it gets NEITHER reading: there is no
+   * queue to draw and a standing badge would be quoting a cost it never pays.
+   */
+  canQueue: boolean;
+  /**
+   * Force the badge whatever the magnitude. A terminal emulator in CHARACTER
+   * mode sets this: every keystroke goes to the wire on its own and the round
+   * trip shows as the emulator's own latency, so there is no composed line to
+   * queue and the strip has nothing to list at any delay.
+   */
+  alwaysBadge?: boolean;
+}
+
+/**
+ * Which ONE of the two delay readings a console shows, given how far away the
+ * other end is.
+ *
+ * A console that composes something and sends it has two ways to say what the
+ * delay costs, and they answer different questions:
+ *
+ *   - a BADGE is a standing readout of the separation itself, useful before
+ *     anything has been sent and worthless as a countdown
+ *   - a STRIP (`InFlightList` in the kit) is one row per thing actually
+ *     crossing, with the instant it lands, useful only once something is out
+ *
+ * They are MUTUALLY EXCLUSIVE, which is the whole reason this is a function and
+ * not two booleans at the call site. Drawn together they say the same number
+ * twice in two different shapes, and the operator has to work out which one is
+ * about the message they just sent.
+ *
+ * The boundary is `currentMode`'s and is not restated here. This lives beside
+ * it, and calls it, because "is the delay big enough to be worth a countdown"
+ * is the same question the engine already answers when it decides to STAGE a
+ * dispatch rather than send it live. It was for a while a second function in
+ * the kit carrying its own copy of the one-second literal, with a test pinning
+ * the two together; a pin is what you need when there are two, and there is one
+ * now.
+ */
+export function signalDelayPresentation({
+  oneWaySeconds,
+  canQueue,
+  alwaysBadge = false,
+}: SignalDelayPresentationInput): SignalDelayPresentation {
+  if (oneWaySeconds === null || oneWaySeconds.lessThanOrEqual(0)) return "none";
+  if (alwaysBadge) return "badge";
+  if (currentMode({ oneWaySeconds }) === "live") return "badge";
+  return canQueue ? "strip" : "none";
+}
+
 /**
  * Pure timing derivation: reach/reply etas and the predicted phase for each
  * pending entry, given the caller's `nowUt`. No memory, no connectivity,

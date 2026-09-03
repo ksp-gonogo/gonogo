@@ -308,6 +308,27 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
   });
 
+  it("keeps the composition bar INSIDE the console's own border", async () => {
+    /*
+     * The bar used to hang below the frame as a box of its own, which is not
+     * the shape of any other widget in the app and made this console and
+     * Commcast's read as unrelated components rather than one with two tones.
+     * A role query cannot see it: the bar rendered perfectly well outside.
+     */
+    const fixture = terminalFixture();
+    const { container } = render(
+      <fixture.Provider>
+        <KosTerminalComponent id="kos-terminal" config={{}} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+
+    const bar = await screen.findByRole("group", { name: "Line-mode input" });
+    const frame = container.querySelector("[data-console-frame]");
+    expect(frame).not.toBeNull();
+    expect(frame?.contains(bar)).toBe(true);
+  });
+
   it("char-mode: shows a signal-delay badge with the time to reach the CPU", async () => {
     const fixture = terminalFixture();
     render(

@@ -110,6 +110,17 @@ export interface ComboboxListboxProps<T extends ComboboxOption> {
    * `aria-input-field-name` rule flags an unnamed `role="listbox"`.
    */
   ariaLabel?: string;
+  /**
+   * Which side of the control the list opens on. Defaults to `"below"`, which
+   * is what a picker sitting in open page flow wants.
+   *
+   * `"above"` is for a control at the FOOT of a container that clips. A console
+   * composer is the last thing inside `ConsoleFrame`, so a list dropping
+   * downward from it is drawn entirely outside the frame and clipped to
+   * nothing. Opening upward puts it over the scrollback, which is both visible
+   * and where a shell's completions have always gone.
+   */
+  placement?: "below" | "above";
 }
 
 /**
@@ -132,9 +143,15 @@ export function ComboboxListbox<T extends ComboboxOption>({
   renderItem,
   emptyLabel = "No matches",
   ariaLabel,
+  placement = "below",
 }: Readonly<ComboboxListboxProps<T>>) {
   return (
-    <Dropdown role="listbox" id={id} aria-label={ariaLabel}>
+    <Dropdown
+      role="listbox"
+      id={id}
+      aria-label={ariaLabel}
+      $placement={placement}
+    >
       {flatOptions.length === 0 ? (
         <EmptyState layout="fill">{emptyLabel}</EmptyState>
       ) : (
@@ -171,9 +188,12 @@ export function ComboboxListbox<T extends ComboboxOption>({
   );
 }
 
-const Dropdown = styled.div`
+const Dropdown = styled.div<{ $placement: "below" | "above" }>`
   position: absolute;
-  top: calc(100% + 2px);
+  ${({ $placement }) =>
+    $placement === "above"
+      ? "bottom: calc(100% + 2px);"
+      : "top: calc(100% + 2px);"}
   left: 0;
   right: 0;
   background: var(--color-surface-raised);

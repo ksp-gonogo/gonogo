@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type { CommsDelay, CommsLink } from "@ksp-gonogo/sitrep-sdk";
+import { signalDelayPresentation, value } from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
   ArrowLeftIcon,
@@ -20,7 +21,6 @@ import {
   Section,
   SelectableRow,
   SignalDelayBadge,
-  signalDelayPresentation,
   Text,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -287,7 +287,10 @@ function InboxView({
           New message
         </Button>
       </Commcast__Bar>
-      <ConsoleFrame>
+      {/* No footer: the inbox is a list of conversations, and there is nothing
+          to type at it. The frame is the same one the other two views use, in
+          the same tone, so the tile does not change shape on the way in. */}
+      <ConsoleFrame tone={COMMCAST_TONE}>
         <Commcast__Scroll>
           <Commcast__Rows>
             {dropped > 0 && (
@@ -366,7 +369,31 @@ function ComposeView({
           New message
         </Text>
       </Commcast__Bar>
-      <ConsoleFrame>
+      <ConsoleFrame
+        tone={COMMCAST_TONE}
+        blocked={group}
+        footer={
+          /* The bar's own commit slot, and its own verb: a picker opens rather
+             than sends, but it is the same control in the same place, so it
+             needs neither a second button nor the spacer that used to push one
+             there. No prompt glyph: this composer chooses rather than types. */
+          <ComposerBar
+            blocked={group}
+            {...(group ? { flag: "ONE AT A TIME" } : {})}
+            onSend={() => onOpen(picked)}
+            sendDisabled={picked.length !== 1}
+            sendLabel="Open"
+          >
+            <Text size="xs" tone={group ? "nogo" : "faint"}>
+              {group
+                ? "Group delivery is not carried yet"
+                : picked.length === 1
+                  ? "Ready"
+                  : "Choose a recipient"}
+            </Text>
+          </ComposerBar>
+        }
+      >
         <Commcast__Scroll>
           <Commcast__Rows>
             {recipients.length === 0 && (
@@ -395,24 +422,6 @@ function ComposeView({
           </Commcast__Rows>
         </Commcast__Scroll>
       </ConsoleFrame>
-      {/* The bar's own commit slot, and its own verb: a picker opens rather
-          than sends, but it is the same control in the same place, so it needs
-          neither a second button nor the spacer that used to push one there. */}
-      <ComposerBar
-        blocked={group}
-        {...(group ? { flag: "ONE AT A TIME" } : {})}
-        onSend={() => onOpen(picked)}
-        sendDisabled={picked.length !== 1}
-        sendLabel="Open"
-      >
-        <Text size="xs" tone={group ? "nogo" : "faint"}>
-          {group
-            ? "Group delivery is not carried yet"
-            : picked.length === 1
-              ? "Ready"
-              : "Choose a recipient"}
-        </Text>
-      </ComposerBar>
     </>
   );
 }
@@ -462,9 +471,11 @@ function ThreadView({
    * they had just sent.
    */
   const delayPresentation = signalDelayPresentation({
-    oneWaySeconds: separationSeconds,
+    oneWaySeconds:
+      separationSeconds === null ? null : value("s", separationSeconds),
     canQueue: true,
   });
+  const noPath = separation.kind === "no-path";
   return (
     <>
       <Commcast__Bar>
@@ -473,7 +484,57 @@ function ThreadView({
           {thread.with.map(nameFor).join(", ")}
         </Text>
       </Commcast__Bar>
-      <ConsoleFrame>
+      {/* One box: the log, the outbound queue and the line being typed all
+          inside the same border, in the same order the terminal widget puts
+          them. They were three stacked boxes and the border contained only the
+          first, which is why the two consoles did not read as one component. */}
+      <ConsoleFrame
+        tone={COMMCAST_TONE}
+        blocked={noPath}
+        footer={
+          <>
+            {/* The terminal widget's uplink queue, in the terminal widget's
+                place: between the log and the composer, never inside the
+                scroll, where it would take the bottom of the log as it grows.
+                Same component and same two-leg vocabulary, because it is the
+                same journey. */}
+            {/* Gated on NOT-badge rather than on `=== "strip"`, which is where
+                this departs from the terminal widget by one case and has to.
+
+                A message freezes its separation at send and keeps crossing on
+                it, so the queue outlives the live reading the badge is drawn
+                from: words put out at four light-minutes are still four
+                light-minutes out after the path drops, and this strip is the
+                ONLY place they appear (the log holds nothing until something
+                comes back). The terminal's route items are derived from the
+                live route instead, so it has nothing to lose by reading
+                `=== "strip"`.
+
+                What the operator asked for survives either way: the badge and
+                the strip are still never drawn together. */}
+            {delayPresentation !== "badge" && (
+              <OutboundQueue
+                outbound={thread.outbound}
+                me={me}
+                utNow={utNow}
+                pairs={pairs}
+              />
+            )}
+            <Composer
+              log={log}
+              me={me}
+              local={local}
+              utNow={utNow}
+              target={target}
+              noPath={noPath}
+              separationSeconds={separationSeconds}
+              badgeSeconds={
+                delayPresentation === "badge" ? separationSeconds : null
+              }
+            />
+          </>
+        }
+      >
         <Commcast__Scroll>
           <Commcast__List>
             {thread.entries.length === 0 && thread.outbound.length === 0 && (
@@ -499,43 +560,6 @@ function ThreadView({
           </Commcast__List>
         </Commcast__Scroll>
       </ConsoleFrame>
-
-      {/* The terminal widget's uplink queue, in the terminal widget's place:
-          pinned between the console and the composer, never inside the scroll,
-          where it would take the bottom of the log as it grows. Same component
-          and same two-leg vocabulary, because it is the same journey. */}
-      {/* Gated on NOT-badge rather than on `=== "strip"`, which is where this
-          departs from the terminal widget by one case and has to.
-
-          A message freezes its separation at send and keeps crossing on it, so
-          the queue outlives the live reading the badge is drawn from: words put
-          out at four light-minutes are still four light-minutes out after the
-          path drops, and this strip is the ONLY place they appear (the log
-          holds nothing until something comes back). The terminal's route items
-          are derived from the live route instead, so it has nothing to lose by
-          reading `=== "strip"`.
-
-          What the operator asked for survives either way: the badge and the
-          strip are still never drawn together. */}
-      {delayPresentation !== "badge" && (
-        <OutboundQueue
-          outbound={thread.outbound}
-          me={me}
-          utNow={utNow}
-          pairs={pairs}
-        />
-      )}
-
-      <Composer
-        log={log}
-        me={me}
-        local={local}
-        utNow={utNow}
-        target={target}
-        separation={separation}
-        separationSeconds={separationSeconds}
-        badgeSeconds={delayPresentation === "badge" ? separationSeconds : null}
-      />
     </>
   );
 }
@@ -814,7 +838,7 @@ function Composer({
   local,
   utNow,
   target,
-  separation,
+  noPath,
   separationSeconds,
   badgeSeconds,
 }: {
@@ -823,7 +847,13 @@ function Composer({
   local: ReturnType<typeof useLocalParticipant>;
   utNow: number | undefined;
   target: RecipientId | null;
-  separation: ReturnType<typeof separationBetween>;
+  /**
+   * No path to the chosen recipient, so nothing typed here is going anywhere.
+   * Decided by the thread view rather than here, because the frame around this
+   * bar takes the same tone from the same boolean and two components reading
+   * the separation separately is two chances to disagree about it.
+   */
+  noPath: boolean;
   separationSeconds: number | null;
   /**
    * The one-way separation to show beside the control, or `null` when this is
@@ -865,22 +895,22 @@ function Composer({
     );
     setDraft("");
   };
-  const noPath = separation.kind === "no-path";
   return (
-    /* The bar's own outline says whether this is going anywhere, the same way
-       the terminal widget's does: with no path to the chosen recipient it
+    /* The console says whether this is going anywhere, the same way the
+       terminal widget's does: with no path to the chosen recipient the border
        turns error-toned while the operator is still typing, rather than
        reporting the refusal only after they have pressed send. The flag says
-       why an outline has turned red, which an outline cannot.
+       why it has turned red, which a border cannot.
 
        The flag now says ONLY that. It used to carry the round trip too, which
        made one pinned slot answer two unrelated questions and put a figure
-       there that the strip below was already drawing. The delay reading moved
+       there that the strip above was already drawing. The delay reading moved
        into the bar itself, as the terminal widget's badge, and the flag went
        back to being about refusal. The two never contend: no path means no
        separation to quote. */
     <ComposerBar
       blocked={noPath}
+      prompt="❯"
       {...(noPath ? { flag: "NO PATH" } : {})}
       onSend={submit}
       sendDisabled={!ready}
@@ -946,6 +976,17 @@ function CommcastWidget(props: Readonly<ComponentProps>) {
     </CommcastProvider>
   );
 }
+
+/**
+ * This console's accent, and the only visual difference between it and the
+ * terminal widget it shares its parts with.
+ *
+ * The terminal keeps the primary accent because it dispatches to a craft;
+ * carrying WORDS is informational, so this one takes the info tone. Named once
+ * rather than repeated at each of the three views, which is what stops the
+ * inbox and the thread drifting to different colours.
+ */
+const COMMCAST_TONE = "info" as const;
 
 const Commcast__Frame = styled.div`
   display: flex;
@@ -1124,19 +1165,30 @@ const Commcast__Actions = styled.div`
   flex-wrap: wrap;
 `;
 
+/*
+ * The line itself, and NOT a box. `ComposerBar` is already the bordered band
+ * inside `ConsoleFrame`'s border, so an input carrying its own outline made the
+ * one thing on the screen you type into the third box in a stack of three. The
+ * terminal widget's composed line has always sat flush on its bar; this is that
+ * line, drawn by a real `<input>` because these words are typed rather than
+ * relayed from an emulator.
+ *
+ * The focus ring survives the border going: it is the only thing that says
+ * which of the console's controls has the keyboard, and it takes the console's
+ * own tone so it is the same ring in both widgets.
+ */
 const Commcast__Input = styled.input`
   flex: 1 1 auto;
   min-width: 0;
   font: inherit;
   font-size: var(--font-size-sm);
   color: var(--color-text-primary);
-  background: var(--color-surface-sunken);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  padding: var(--space-4) var(--space-6);
+  background: transparent;
+  border: none;
+  padding: var(--space-2) 0;
 
   &:focus-visible {
-    outline: 2px solid var(--color-status-go-fg);
+    outline: 2px solid var(--console-tone-fg, var(--color-accent-fg));
     outline-offset: 2px;
   }
 `;

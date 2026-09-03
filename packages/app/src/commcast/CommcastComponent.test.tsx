@@ -228,6 +228,41 @@ describe("Commcast, rendered", () => {
     expect(screen.queryByLabelText("Message")).toBeNull();
   });
 
+  it("keeps the composer INSIDE the console's own border", async () => {
+    /*
+     * The same claim the terminal widget's suite makes about its own bar, and
+     * the reason both were changed at once: the composer used to hang below the
+     * frame as a third box in a stack, so the outline contained a column of
+     * messages here and a terminal screen there, and the two consoles read as
+     * unrelated components. A role query cannot see it, because the composer
+     * rendered perfectly well outside.
+     */
+    const log = makeLog();
+    log.replaceForTesting({
+      inbox: [
+        sent({
+          id: "heard",
+          from: "vessel:ares",
+          to: ["ksc"],
+          authorName: JEB.name,
+          authorSeat: "pilot",
+          sentUt: -600,
+          lastSentUt: -600,
+          body: "Kennedy, Ares. Go ahead.",
+        }),
+      ],
+    });
+    const { container } = renderWidget(log);
+    await openConversation(/Go ahead/);
+
+    const frame = container.querySelector("[data-console-frame]");
+    expect(frame).not.toBeNull();
+    expect(frame?.contains(screen.getByLabelText("Message"))).toBe(true);
+    expect(frame?.contains(screen.getByText("Kennedy, Ares. Go ahead."))).toBe(
+      true,
+    );
+  });
+
   it("keeps the send control one size whatever the delay beside it is", async () => {
     /*
      * The defect the operator named: the label used to carry the round trip,

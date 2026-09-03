@@ -4,6 +4,7 @@ import {
   currentMode,
   deriveInFlight,
   latchForward,
+  signalDelayPresentation,
 } from "./command-delay";
 import { value } from "./unit-system/value";
 
@@ -160,5 +161,96 @@ describe("latchForward", () => {
     latchForward(deriveInFlight([entry()], 102), memory); // in-transit
     const advanced = latchForward(deriveInFlight([entry()], 109), memory); // due
     expect(advanced[0].predictedPhase).toBe("due");
+  });
+});
+
+describe("signalDelayPresentation", () => {
+  const s = (n: number) => value("s", n);
+
+  it("shows nothing when there is no measurable path", () => {
+    expect(
+      signalDelayPresentation({ oneWaySeconds: null, canQueue: true }),
+    ).toBe("none");
+  });
+
+  it("shows nothing on a link with no delay to report", () => {
+    // 0 is a real reading, not an absence: a dashboard at the pad. A chip
+    // saying "one-way ~0 s" is noise, and neither is there anything to count.
+    expect(
+      signalDelayPresentation({ oneWaySeconds: s(0), canQueue: true }),
+    ).toBe("none");
+  });
+
+  it("badges a delay too short to count down", () => {
+    expect(
+      signalDelayPresentation({ oneWaySeconds: s(0.4), canQueue: true }),
+    ).toBe("badge");
+  });
+
+  it("hands a long delay to the strip", () => {
+    expect(
+      signalDelayPresentation({ oneWaySeconds: s(240), canQueue: true }),
+    ).toBe("strip");
+  });
+
+  it("never asks for both", () => {
+    // The property the whole function exists for: one reading of the delay,
+    // never two shapes of the same number on one console.
+    for (const oneWaySeconds of [0.01, 0.5, 1, 1.001, 12, 240, 4000]) {
+      for (const canQueue of [true, false]) {
+        for (const alwaysBadge of [true, false]) {
+          const got = signalDelayPresentation({
+            oneWaySeconds: s(oneWaySeconds),
+            canQueue,
+            alwaysBadge,
+          });
+          expect(["badge", "strip", "none"]).toContain(got);
+        }
+      }
+    }
+  });
+
+  it("gives a read-only viewer neither reading at a long delay", () => {
+    // It dispatches nothing, so there is no queue to draw, and a standing badge
+    // would quote a cost it never pays.
+    expect(
+      signalDelayPresentation({ oneWaySeconds: s(240), canQueue: false }),
+    ).toBe("none");
+  });
+
+  it("badges at any magnitude when the console cannot queue at all", () => {
+    // Character-mode terminal: every keystroke goes on its own, so there is no
+    // composed line for a strip to list however far away the craft is.
+    expect(
+      signalDelayPresentation({
+        oneWaySeconds: s(240),
+        canQueue: true,
+        alwaysBadge: true,
+      }),
+    ).toBe("badge");
+  });
+
+  it("turns over on whatever boundary currentMode is using", () => {
+    /*
+     * Not a pin between two copies of a literal: there is one copy, and this
+     * reads the boundary OFF `currentMode` rather than restating it. Whatever
+     * `live` means today, that is what gets the badge, so a change to the
+     * staging threshold moves both readings together and cannot leave a badge
+     * beside a strip drawing the same number.
+     */
+    const live = [0.001, 0.5, 1].map(s);
+    const staged = [1.001, 12, 240].map(s);
+    for (const oneWaySeconds of live) {
+      expect(currentMode({ oneWaySeconds })).toBe("live");
+      expect(signalDelayPresentation({ oneWaySeconds, canQueue: true })).toBe(
+        "badge",
+      );
+    }
+    for (const oneWaySeconds of staged) {
+      expect(currentMode({ oneWaySeconds })).toBe("staged");
+      expect(signalDelayPresentation({ oneWaySeconds, canQueue: true })).toBe(
+        "strip",
+      );
+    }
   });
 });

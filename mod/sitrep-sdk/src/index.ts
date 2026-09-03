@@ -32,12 +32,15 @@ export type {
   PathConnectedDuring,
   PendingEntry,
   PredictedPhase,
+  SignalDelayPresentation,
+  SignalDelayPresentationInput,
 } from "./command-delay";
 export {
   classifyRetained,
   currentMode,
   deriveInFlight,
   latchForward,
+  signalDelayPresentation,
 } from "./command-delay";
 /*
  * The typed command vocabulary: the write-side twin of the Topic registry below.

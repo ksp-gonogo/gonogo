@@ -189,12 +189,6 @@ export {
   type SignalDelayBadgeProps,
 } from "./CommandDelay/SignalDelayBadge";
 export {
-  SIGNAL_DELAY_STRIP_THRESHOLD_SECONDS,
-  type SignalDelayPresentation,
-  type SignalDelayPresentationInput,
-  signalDelayPresentation,
-} from "./CommandDelay/signalDelayPresentation";
-export {
   type InFlightCommandLike,
   toInFlightListItems,
 } from "./CommandDelay/toInFlightListItems";
@@ -204,7 +198,11 @@ export {
 } from "./CommandDelay/useCommandFailures";
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
-export { ConsoleFrame, type ConsoleFrameProps } from "./ConsoleFrame";
+export {
+  ConsoleFrame,
+  type ConsoleFrameProps,
+  type ConsoleTone,
+} from "./ConsoleFrame";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 // ── Contribution seam ─────────────────────────────────────────────────────────
