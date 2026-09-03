@@ -1,32 +1,50 @@
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 
 /**
- * Commcast: the shared text thread between everyone flying one mission, with
- * light-time applied per RECIPIENT rather than per message.
+ * Commcast: ADDRESSED text between the people flying one mission, with
+ * light-time applied across the one separation the message actually crosses.
  *
- * The thread is host-authoritative on the same pattern as mission notes: the
- * host holds the canonical list and broadcasts a full snapshot on change, and
- * pushes one to each peer as it connects so a message survives the recipient
- * being away for a whole flight. What it deliberately does NOT copy from notes
- * is notes' ordering (a manual drag index), its authorship (an optional raw
- * peer id that host edits omit), and its delete (anyone, immediately, for
- * everyone). A thread orders by time, names its author, and cannot un-say
- * something already revealed at another seat.
+ * It is not a broadcast and it has no canonical transcript. A message names who
+ * it is for, travels to them, and is acknowledged back; both ends keep only
+ * what reached them. Two vantages therefore hold genuinely different message
+ * SETS, not merely different orders, and that is the feature rather than a
+ * consistency bug to be fixed by a server.
  */
 
 /** Message modes. Only text exists; recorded audio and video are the next two. */
 export type CommsMessageKind = "text" | "audio" | "video";
 
 /**
- * Commcast carries no recipient, deliberately. One message goes to every
- * vantage: a command centre can speak to another centre, a pilot to another
- * pilot, either across, and a craft that does not exist yet joins the same
- * thread without a protocol change. What varies per reader is only WHEN it
- * arrives, which each reader works out from where and when it was spoken.
+ * Who a message is for, or who it came from: a VANTAGE key, the same
+ * vocabulary `SetVantage` and `commandCentre.roster` use (`"ksc"`,
+ * `"ground:<name>"`, `"kk:<site>"`, `"vessel:<guid>"`).
+ *
+ * A vantage rather than a person, because the separation is a property of
+ * where somebody is standing and not of who they are: two operators at one
+ * centre are one address, and the same person at a different centre is a
+ * different one. It is also the key the separation ledger is already published
+ * against, so no new geometry is needed to route a message.
  */
+export type RecipientId = string;
 
 export interface CommsMessage {
+  /**
+   * Stable for the life of the message, INCLUDING across a resend.
+   *
+   * This is the mechanism the single idempotent resend rests on rather than an
+   * implementation detail: the recipient dedupes on it, so a resend whose
+   * original also arrives is one message, and an acknowledgement of the first
+   * copy confirms the second. Minted once by the author and never re-minted.
+   */
   id: string;
+  /**
+   * Who it is for. A LIST, and every list in this pass holds exactly one
+   * entry: groups are an additive change to the UI and the reveal, and would
+   * be a wire change and a migration if this were a single field.
+   */
+  to: readonly RecipientId[];
+  /** The vantage it was spoken from, which is one half of its separation. */
+  from: RecipientId;
   /** Stable device identity of the author, as `station-info.stationKey`. */
   authorStationKey: string;
   /** Display name resolved from `station-info`, never a bare peer id. */
@@ -34,98 +52,134 @@ export interface CommsMessage {
   /** Which end of the light-path it was spoken from. */
   authorSeat: Seat;
   /**
-   * The vantage the author's session was OBSERVING at when they spoke
-   * (`useObservedVantage()`), or absent when no frame had arrived yet.
-   *
-   * The seat alone answers "how far apart are we" for pilot-versus-ground and
-   * gets two command centres at different vantages wrong, since they share one
-   * seat. This is what separates those, and it is why the reveal keys on the
-   * vantage with the seat as the coarse axis rather than the other way round.
-   */
-  authorVantageId?: string;
-  /**
-   * The author's `utNowEstimate()` at send: their own present, which carries
-   * no delay term. NOT `confirmedEdgeUt()`, which is already a light-time
-   * behind and would push the reveal out to `sentUt + 2 x delay`.
+   * The author's `utNowEstimate()` at the FIRST send: their own present, which
+   * carries no delay term. NOT `confirmedEdgeUt()`, which is already a
+   * light-time behind and would push the reveal out to a round trip.
    */
   sentUt: number;
   /**
-   * The author's own path home at send, frozen, or `null` for NO PATH (never a
-   * measured zero).
-   *
-   * NOT the separation to any particular reader. Commcast is a broadcast and no
-   * sender can know its distance to every receiver, so the general answer is
-   * the published pair matrix resolved by each reader against
-   * `authorVantageId`. This is the ONE pair `comms.delay` measures, craft to
-   * ground, and it is the headline case, so it stands in wherever the matrix
-   * has not reached the pair. It goes when the matrix covers everything.
-   *
-   * Frozen at send for the sender's own reading; the RECEIVER separately pins
-   * the separation it resolves the first time it resolves it, so a delay that
-   * changes afterwards can never un-deliver something already shown.
+   * The author's present at the LATEST transmission, equal to `sentUt` until a
+   * resend. Every leg the strip draws is measured from this one, because a
+   * resend starts a fresh journey with a fresh acknowledgement window; `sentUt`
+   * stays put so the log can say when the thing was first said.
    */
-  oneWaySeconds: number | null;
+  lastSentUt: number;
+  /** How many times it has been transmitted. 1 until the operator resends. */
+  attempts: number;
+  /**
+   * The author-to-recipient separation frozen at the latest transmission, or
+   * `null` for NO PATH (never a measured zero).
+   *
+   * Addressing is what makes this exact. Under a broadcast no sender could know
+   * its distance to every receiver, so the envelope carried the sender's path
+   * home and each reader resolved its own; with one named recipient there is
+   * one separation, the ledger already holds it, and both ends read the same
+   * number off it. The RECEIVER still resolves its own from the published
+   * matrix where it can, and falls back to this.
+   */
+  separationSeconds: number | null;
   kind: CommsMessageKind;
   /** Text body. Present for `kind: "text"`. */
   body?: string;
   /**
    * The craft the author was aboard at send, as `"vessel:<guid>"`. Absent from
    * a mission-control author, and absent aboard until the page knows its own
-   * vessel. A recipient whose active craft has changed under a message still
-   * in flight renders it on its OLD stamp and says so, rather than dropping it
-   * or restamping it against a separation that was never true of it.
+   * vessel.
    */
   authorVesselId?: string;
-  /** Wall-clock ms at the host, for a stable tiebreak on identical `sentUt`. */
-  receivedAtMs: number;
-  /** Who has read it, and when they read it in their own UT. */
-  readBy: readonly CommsReceipt[];
 }
 
-export interface CommsReceipt {
+/**
+ * One end of a message's return leg: the recipient telling the author it
+ * arrived.
+ *
+ * It is the delay UX and the LOSS SIGNAL in one. A vessel-to-vessel message
+ * that never lands is invisible to everyone by construction, so the only
+ * evidence available anywhere is the absence of this, at the author.
+ */
+export interface CommsAck {
+  messageId: string;
+  /** The acknowledging vantage, which is one half of the return separation. */
+  from: RecipientId;
   stationKey: string;
   seat: Seat;
-  /** The reader's observed vantage, on the same footing as `authorVantageId`. */
-  vantageId?: string;
-  /** The reader's `utNowEstimate()` when they read it. */
+  /** The recipient's `utNowEstimate()` when the message landed in front of them. */
   atUt: number;
 }
 
-export interface CommcastSnapshot {
-  messages: readonly CommsMessage[];
+/**
+ * One message this screen sent, and what has come back about it.
+ *
+ * The author's half of the ledger, and it lives here rather than on a host
+ * because a vantage owns what reached IT. Nobody else's copy of this message
+ * carries the acknowledgements, and nobody else's needs to.
+ */
+export interface OutboundMessage {
+  msg: CommsMessage;
   /**
-   * How many messages have been dropped off the front of the thread to stay
-   * under the cap, cumulative for this host's lifetime.
+   * Acknowledgements as they were RECEIVED here, raw. Each still has to cross
+   * the return leg before it may be read, which is `revealedAcks`' job: a
+   * receipt shown the instant the recipient tapped would be a
+   * faster-than-light channel hiding inside the UI.
+   */
+  acks: readonly CommsAck[];
+  /**
+   * Set when the author had no path to the recipient at the latest attempt, so
+   * nothing was transmitted at all. Distinct from an unanswered message: this
+   * one never left, and the operator is told so rather than watching a
+   * countdown for something that is not travelling.
+   */
+  neverLeft: boolean;
+}
+
+/** What one vantage holds: what it sent, and what reached it. */
+export interface CommcastLogSnapshot {
+  outbox: readonly OutboundMessage[];
+  inbox: readonly CommsMessage[];
+  /**
+   * Addressed here and still crossing. Held rather than shown: a message this
+   * screen can read before it arrived would be the faster-than-light channel
+   * the whole model exists to avoid, and the mesh delivers at the speed of the
+   * internet.
+   */
+  pending: readonly CommsMessage[];
+  /**
+   * How many messages have been dropped off the front of each list to stay
+   * under the cap, cumulative for this screen's lifetime.
    *
-   * A thread that forgets must SAY it forgot. Silently shortening a transcript
+   * A log that forgets must SAY it forgot. Silently shortening a transcript
    * leaves an operator reading a gap as though nothing was said across it,
-   * which is the one thing a comms log cannot do. This is the same claim the
-   * mod's own recorder makes with `Meta.GapSinceUt` when its ring drops a
-   * sample, expressed on a transport that has no such field.
+   * which is the one thing a comms log cannot do. The same claim the mod's own
+   * recorder makes with `Meta.GapSinceUt` when its ring drops a sample.
    */
   droppedCount: number;
 }
 
-export const EMPTY_COMMCAST_SNAPSHOT: CommcastSnapshot = {
-  messages: [],
+export const EMPTY_COMMCAST_LOG: CommcastLogSnapshot = {
+  outbox: [],
+  inbox: [],
+  pending: [],
   droppedCount: 0,
 };
 
-/** What the author asks the host to append. The host stamps the rest. */
+/** What the author asks the log to send. The log stamps the rest. */
 export interface CommsSendInput {
   kind: CommsMessageKind;
   body?: string;
+  to: readonly RecipientId[];
   sentUt: number;
-  oneWaySeconds: number | null;
+  separationSeconds: number | null;
   authorVesselId?: string;
-  authorVantageId?: string;
 }
 
-/** Who a peer is, as the host knows them. */
-export interface CommsParticipant {
-  stationKey: string;
+/** Somebody a message can be addressed to. */
+export interface CommsRecipient {
+  id: RecipientId;
   name: string;
-  seat: Seat;
-  /** The vantage this participant reads at, when a frame has told them. */
-  vantageId?: string;
+  /**
+   * Whether a live participant is reading at this vantage. A roster entry
+   * nobody is sitting at is still addressable, and the message will go
+   * unacknowledged, which is an honest outcome rather than a reason to hide it.
+   */
+  staffed: boolean;
 }

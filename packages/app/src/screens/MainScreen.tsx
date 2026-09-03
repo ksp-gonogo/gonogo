@@ -41,9 +41,9 @@ import {
 import type { AlarmSnapshot } from "../alarms/types";
 import { AnalyticsConsentHost } from "../analytics/AnalyticsConsentHost";
 import { analyticsConsentService } from "../analytics/AnalyticsConsentService";
-import { CommcastHostProvider } from "../commcast/CommcastHostContext";
-import type { CommcastHostService } from "../commcast/CommcastHostService";
-import { createCommcastHost } from "../commcast/createCommcastHost";
+import type { CommcastLog } from "../commcast/CommcastLog";
+import { CommcastLogProvider } from "../commcast/CommcastLogContext";
+import { createCommcastLog } from "../commcast/createCommcastLog";
 import {
   ComponentOverlay,
   OverlayProvider,
@@ -125,22 +125,25 @@ const DEFAULT_NAME_FOR: Record<Screen, string> = {
 };
 
 /**
- * Provides the canonical thread when this screen owns one. A pilot page does
- * not: it joins the mesh as a client and reads somebody else's thread, so it
- * renders its children with no provider and the widget finds the peer route
- * instead.
+ * Provides this screen's own Commcast log when the screen also routes the
+ * mesh. A pilot page does not route anything: it joins as a peer, so it renders
+ * its children with no provider and the widget builds its own log over the peer
+ * link.
+ *
+ * The log is NOT a thread on anybody else's behalf. What it holds is what
+ * reached THIS vantage, and the reason it is built here rather than in the
+ * widget is that a message addressed here arrives whether or not the tile is on
+ * the dashboard, and the relay has to keep running for the other stations.
  */
-function CommcastHostProviderOrPassthrough({
-  service,
+function CommcastLogProviderOrPassthrough({
+  log,
   children,
 }: {
-  service: CommcastHostService | null;
+  log: CommcastLog | null;
   children: ReactNode;
 }) {
-  if (!service) return <>{children}</>;
-  return (
-    <CommcastHostProvider service={service}>{children}</CommcastHostProvider>
-  );
+  if (!log) return <>{children}</>;
+  return <CommcastLogProvider log={log}>{children}</CommcastLogProvider>;
 }
 
 /**
@@ -237,8 +240,8 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
     }),
   );
   const [notesHost] = useState(() => createNotesHost(peerHostService));
-  const [commcastHost] = useState(() =>
-    hostsThePeerMesh ? createCommcastHost(peerHostService) : null,
+  const [commcastLog] = useState(() =>
+    hostsThePeerMesh ? createCommcastLog(peerHostService) : null,
   );
   const [maneuverTriggerHost] = useState(() =>
     createManeuverTriggerHost(peerHostService),
@@ -322,7 +325,7 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
             <AlarmHostProvider service={alarmHost}>
               <NotesHostProvider service={notesHost}>
                 <ScopedStationIdentity defaultName={DEFAULT_NAME_FOR[screen]}>
-                  <CommcastHostProviderOrPassthrough service={commcastHost}>
+                  <CommcastLogProviderOrPassthrough log={commcastLog}>
                     <ManeuverTriggerProvider service={maneuverTriggerHost}>
                       <RootProviders screen={screen}>
                         <MissionProfilesProvider service={missionProfiles}>
@@ -448,7 +451,7 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
                         ,
                       </RootProviders>
                     </ManeuverTriggerProvider>
-                  </CommcastHostProviderOrPassthrough>
+                  </CommcastLogProviderOrPassthrough>
                 </ScopedStationIdentity>
               </NotesHostProvider>
             </AlarmHostProvider>

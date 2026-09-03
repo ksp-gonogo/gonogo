@@ -1,248 +1,289 @@
 import { describe, expect, it } from "vitest";
 import {
-  byArrivalAt,
-  deliveryFor,
-  revealedReceipts,
+  ackRevealUt,
+  firstAckUtFor,
+  isSettled,
+  legOf,
+  revealedAcks,
   revealUtFor,
+  roundTripFor,
+  sentArrivalUtFor,
+  sentPhaseFor,
+  separationBetween,
   separationFor,
   type Vantage,
 } from "./reveal";
-import type { CommsMessage } from "./types";
+import type { CommsAck, CommsMessage, OutboundMessage } from "./types";
 
-const GROUND: Vantage = { seat: "mission-control", vantageId: "ksc" };
-const ABOARD: Vantage = { seat: "pilot", vantageId: "vessel:abc" };
-/** A second command centre, elsewhere. Same seat, different vantage. */
-const FAR_CENTRE: Vantage = {
-  seat: "mission-control",
-  vantageId: "vessel:dsn-woomera",
-};
+const KSC = "ksc";
+const ARES = "vessel:ares";
+const WOOMERA = "ground:woomera";
+
+const GROUND: Vantage = { seat: "mission-control", vantageId: KSC };
+const ABOARD: Vantage = { seat: "pilot", vantageId: ARES };
 
 function msg(over: Partial<CommsMessage> = {}): CommsMessage {
   return {
     id: "m1",
+    to: [ARES],
+    from: KSC,
     authorStationKey: "key-1",
     authorName: "KSC",
     authorSeat: "mission-control",
-    authorVantageId: "ksc",
     sentUt: 1000,
-    oneWaySeconds: 240,
+    lastSentUt: 1000,
+    attempts: 1,
+    separationSeconds: 240,
     kind: "text",
     body: "go for staging",
-    receivedAtMs: 0,
-    readBy: [],
     ...over,
   };
 }
 
-const fromPilot = (over: Partial<CommsMessage> = {}) =>
-  msg({ authorSeat: "pilot", authorVantageId: "vessel:abc", ...over });
+function outbound(over: Partial<OutboundMessage> = {}): OutboundMessage {
+  return { msg: msg(), acks: [], neverLeft: false, ...over };
+}
 
-describe("separationFor", () => {
-  it("puts two participants at one vantage at no distance", () => {
+function ack(over: Partial<CommsAck> = {}): CommsAck {
+  return {
+    messageId: "m1",
+    from: ARES,
+    stationKey: "pilot-key",
+    seat: "pilot",
+    atUt: 1240,
+    ...over,
+  };
+}
+
+describe("separationBetween", () => {
+  it("puts one vantage at no distance from itself", () => {
     // A station relays its host's frames verbatim, so it reads at the host's
     // vantage: host and station are genuinely co-located.
-    expect(separationFor(msg(), GROUND)).toEqual({
+    expect(separationBetween(KSC, KSC, 240)).toEqual({
       kind: "co-located",
       seconds: 0,
     });
   });
 
-  it("puts a pilot one light-time from the ground", () => {
-    expect(separationFor(msg(), ABOARD)).toEqual({
+  it("prefers the published pair matrix to anything derived", () => {
+    const pairs = new Map([[KSC, new Map([[ARES, 90]])]]);
+    expect(separationBetween(KSC, ARES, 240, pairs)).toEqual({
       kind: "light-time",
-      seconds: 240,
+      seconds: 90,
     });
   });
 
-  it("puts two pilots on ONE craft at no distance", () => {
-    expect(separationFor(fromPilot(), ABOARD)).toEqual({
-      kind: "co-located",
-      seconds: 0,
-    });
-  });
-
-  it("refuses to claim two pilots on DIFFERENT craft are co-located", () => {
-    // Commcast is a broadcast and must generalise to several craft. Reading
-    // the seat as "one active vessel, so they are together" is exactly the
-    // assumption a second craft breaks.
-    expect(
-      separationFor(fromPilot({ authorVantageId: "vessel:xyz" }), ABOARD),
-    ).toEqual({ kind: "unmeasured" });
-  });
-
-  it("uses the published pair matrix in preference to anything derived", () => {
-    const pairs = new Map([["ksc", new Map([["vessel:abc", 137]])]]);
-    expect(separationFor(msg(), ABOARD, pairs)).toEqual({
-      kind: "light-time",
-      seconds: 137,
-    });
-  });
-
-  it("resolves a centre pair the seat rule cannot reach", () => {
-    const pairs = new Map([["ksc", new Map([["vessel:dsn-woomera", 12]])]]);
-    expect(separationFor(msg(), FAR_CENTRE, pairs)).toEqual({
+  it("resolves a centre pair the seat axis alone cannot reach", () => {
+    // Both ends are `mission-control`, so nothing but the published pair
+    // separates them, and reading them as co-located would let two centres a
+    // continent apart hear each other instantly.
+    const pairs = new Map([[KSC, new Map([[WOOMERA, 12]])]]);
+    expect(separationBetween(KSC, WOOMERA, null, pairs)).toEqual({
       kind: "light-time",
       seconds: 12,
     });
   });
 
-  it("refuses to claim two command centres at different vantages are co-located", () => {
-    /*
-     * The seat axis alone would say zero here, and it would be wrong: the
-     * number that answers this is the pairwise centre delay the mod computes
-     * and no channel publishes.
-     */
-    expect(separationFor(msg(), FAR_CENTRE)).toEqual({ kind: "unmeasured" });
-  });
-
-  it("reads a single unnamed centre as one centre rather than as two", () => {
-    // Before the first frame lands nobody has a vantage id. Inventing a
-    // separation from that absence would put every fresh page load behind an
-    // imaginary delay.
-    expect(
-      separationFor(msg({ authorVantageId: undefined }), {
-        seat: "mission-control",
-      }),
-    ).toEqual({ kind: "co-located", seconds: 0 });
-  });
-
-  it("reports no path across seats when the author had none", () => {
-    expect(separationFor(msg({ oneWaySeconds: null }), ABOARD)).toEqual({
-      kind: "no-path",
+  it("falls back to the caller's own figure for a pair the matrix misses", () => {
+    expect(separationBetween(KSC, ARES, 240)).toEqual({
+      kind: "light-time",
+      seconds: 240,
     });
   });
 
   it("treats a measured zero as a real zero, not as an absence", () => {
-    expect(separationFor(msg({ oneWaySeconds: 0 }), ABOARD)).toEqual({
+    expect(separationBetween(KSC, ARES, 0)).toEqual({
       kind: "light-time",
+      seconds: 0,
+    });
+  });
+
+  it("reports no path when the fallback says there is none", () => {
+    expect(separationBetween(KSC, ARES, null)).toEqual({ kind: "no-path" });
+  });
+
+  it("says a pair is unpublished rather than implying a measured zero", () => {
+    expect(separationBetween(KSC, WOOMERA, undefined)).toEqual({
+      kind: "unmeasured",
+    });
+  });
+
+  it("reads a screen with no vantage yet as one vantage, not as two", () => {
+    // Before the first frame lands nobody has an id at all, and inventing a
+    // separation out of that absence would put every fresh page load behind an
+    // imaginary delay.
+    expect(separationBetween(undefined, undefined, undefined)).toEqual({
+      kind: "co-located",
       seconds: 0,
     });
   });
 });
 
 describe("revealUtFor", () => {
+  it("crosses once, never a round trip", () => {
+    expect(revealUtFor(msg(), ABOARD)).toBe(1240);
+  });
+
   it("reveals at the send instant for a reader at the author's own vantage", () => {
     expect(revealUtFor(msg(), GROUND)).toBe(1000);
   });
 
-  it("adds the frozen separation for a reader at the other seat", () => {
-    expect(revealUtFor(msg(), ABOARD)).toBe(1240);
+  it("measures from the LATEST attempt, so a resend really is a fresh journey", () => {
+    expect(revealUtFor(msg({ lastSentUt: 4000 }), ABOARD)).toBe(4240);
   });
 
-  it("is a one-way crossing, never a round trip", () => {
-    // The regression this exists for: gating on the reader's
-    // `confirmedEdgeUt()` (already `utNow - 240` at a delayed seat) would put
-    // the reveal at 1000 + 2 x 240. Nothing here may reach 1480.
-    expect(revealUtFor(msg(), ABOARD)).toBe(1000 + 240);
-  });
-
-  it("never delivers across seats with no path home", () => {
-    expect(revealUtFor(msg({ oneWaySeconds: null }), ABOARD)).toBeNull();
-  });
-
-  it("still shows a no-path message at the author's own vantage", () => {
-    // A lost link home does not stop two people at one centre talking.
-    expect(revealUtFor(msg({ oneWaySeconds: null }), GROUND)).toBe(1000);
+  it("never delivers when there was no path", () => {
+    expect(revealUtFor(msg({ separationSeconds: null }), ABOARD)).toBeNull();
   });
 });
 
-describe("deliveryFor", () => {
-  it("holds a message that has not landed yet", () => {
-    expect(deliveryFor(msg(), ABOARD, 1100)).toEqual({
-      state: "in-transit",
-      revealUt: 1240,
-      transitSeconds: 240,
-      separation: "light-time",
+describe("roundTripFor", () => {
+  it("spans the two legs plus the shipped loss margin", () => {
+    // Deliberately `classifyRetained`'s own geometry: reach, reply at twice
+    // the separation, and `LOSS_MARGIN` (3 s) before the wait is given up.
+    expect(roundTripFor(msg())).toEqual({
+      reachUt: 1240,
+      replyUt: 1480,
+      overdueUt: 1483,
     });
   });
 
-  it("releases it exactly at the reveal instant, not after", () => {
-    expect(deliveryFor(msg(), ABOARD, 1240).state).toBe("revealed");
+  it("has no geometry at all when the words never left", () => {
+    expect(roundTripFor(msg({ separationSeconds: null }))).toBeNull();
   });
 
-  it("marks a no-path message unsent rather than holding it forever", () => {
-    expect(deliveryFor(msg({ oneWaySeconds: null }), ABOARD, 1e9)).toEqual({
-      state: "no-path",
-    });
-  });
-
-  it("delivers an unmeasured centre pair rather than losing it, and says so", () => {
-    // Holding forever would black-hole a message the physics says CAN arrive;
-    // delivering it silently would imply a measured zero. It arrives, tagged.
-    expect(deliveryFor(msg(), FAR_CENTRE, 1000)).toEqual({
-      state: "revealed",
-      revealUt: 1000,
-      transitSeconds: 0,
-      separation: "unmeasured",
-    });
+  it("collapses to the send instant when the recipient is alongside", () => {
+    // Two participants at one vantage are ~0 apart, so the acknowledgement is
+    // effectively instant. That falls out rather than being special-cased.
+    expect(roundTripFor(msg({ separationSeconds: 0 }))?.replyUt).toBe(1000);
   });
 });
 
-describe("revealedReceipts", () => {
-  const read = msg({
-    readBy: [
-      {
-        stationKey: "pilot-1",
-        seat: "pilot",
-        vantageId: "vessel:abc",
-        atUt: 1300,
-      },
-    ],
+describe("ackRevealUt", () => {
+  it("delays an acknowledgement back across the same separation", () => {
+    expect(ackRevealUt(ack(), msg(), GROUND)).toBe(1480);
   });
 
-  it("delays a read receipt back across the same separation", () => {
-    expect(revealedReceipts(read, GROUND, 1400)).toHaveLength(0);
-    expect(revealedReceipts(read, GROUND, 1540)).toHaveLength(1);
-  });
-
-  it("shows a receipt immediately at the reader's own vantage", () => {
-    expect(revealedReceipts(read, ABOARD, 1300)).toHaveLength(1);
+  it("shows one from a vantage alongside immediately", () => {
+    expect(ackRevealUt(ack({ from: KSC }), msg(), GROUND)).toBe(1240);
   });
 });
 
-describe("byArrivalAt", () => {
-  it("orders by when each message landed here, not when it was spoken", () => {
-    // Ground speaks first at UT 1000 but is 240 s away; the pilot speaks at
-    // 1100 and is aboard. At the pilot's seat their own message lands first,
-    // and inserting the ground's above it later would rewrite a thread that
-    // has already been read.
-    const g = msg({ id: "g", sentUt: 1000, receivedAtMs: 1 });
-    const p = fromPilot({ id: "p", sentUt: 1100, receivedAtMs: 2 });
-    expect([g, p].sort(byArrivalAt(ABOARD)).map((m) => m.id)).toEqual([
-      "p",
-      "g",
-    ]);
+describe("revealedAcks", () => {
+  const out = outbound({ acks: [ack()] });
+
+  it("withholds one that has not got back yet", () => {
+    expect(revealedAcks(out, GROUND, 1479)).toHaveLength(0);
   });
 
-  it("gives the two seats genuinely different threads", () => {
-    const g = msg({ id: "g", sentUt: 1000, receivedAtMs: 1 });
-    const p = fromPilot({ id: "p", sentUt: 1100, receivedAtMs: 2 });
-    const pair = [g, p];
-    expect(
-      pair
-        .slice()
-        .sort(byArrivalAt(GROUND))
-        .map((m) => m.id),
-    ).toEqual(["g", "p"]);
-    expect(
-      pair
-        .slice()
-        .sort(byArrivalAt(ABOARD))
-        .map((m) => m.id),
-    ).toEqual(["p", "g"]);
+  it("counts it exactly at the instant it lands", () => {
+    expect(revealedAcks(out, GROUND, 1480)).toHaveLength(1);
+  });
+});
+
+describe("sentPhaseFor", () => {
+  it("is on the outbound leg while it is still crossing", () => {
+    expect(sentPhaseFor(outbound(), GROUND, 1100)).toBe("in-transit");
+    expect(legOf("in-transit")).toBe("outbound");
   });
 
-  it("keeps a no-path message at the end rather than dropping it", () => {
-    const ok = msg({ id: "a", sentUt: 1000, receivedAtMs: 1 });
-    const lost = msg({
-      id: "b",
-      sentUt: 900,
-      oneWaySeconds: null,
-      receivedAtMs: 2,
+  it("is on the return leg once it has reached the recipient", () => {
+    expect(sentPhaseFor(outbound(), GROUND, 1300)).toBe("awaiting-reply");
+    expect(legOf("awaiting-reply")).toBe("return");
+  });
+
+  it("is due from the reply instant until the loss margin runs out", () => {
+    expect(sentPhaseFor(outbound(), GROUND, 1480)).toBe("due");
+    expect(sentPhaseFor(outbound(), GROUND, 1482)).toBe("due");
+  });
+
+  it("goes overdue once the margin has passed with nothing back", () => {
+    expect(sentPhaseFor(outbound(), GROUND, 1483)).toBe("overdue");
+  });
+
+  it("is confirmed only once the acknowledgement has REACHED the author", () => {
+    const out = outbound({ acks: [ack()] });
+    // Recorded at 1240 at the far end; still crossing back at 1300.
+    expect(sentPhaseFor(out, GROUND, 1300)).toBe("awaiting-reply");
+    expect(sentPhaseFor(out, GROUND, 1480)).toBe("confirmed");
+  });
+
+  it("stays confirmed however late the clock runs on", () => {
+    // The guard on the resend: a late acknowledgement must never flip a
+    // confirmed message back to unconfirmed.
+    expect(sentPhaseFor(outbound({ acks: [ack()] }), GROUND, 99_000)).toBe(
+      "confirmed",
+    );
+  });
+
+  it("calls a message that never left lost, not a long wait", () => {
+    const out = outbound({
+      msg: msg({ separationSeconds: null }),
+      neverLeft: true,
     });
-    expect([lost, ok].sort(byArrivalAt(ABOARD)).map((m) => m.id)).toEqual([
-      "a",
-      "b",
-    ]);
+    expect(sentPhaseFor(out, GROUND, 1000)).toBe("lost");
+  });
+});
+
+describe("isSettled", () => {
+  it("keeps a travelling message in the queue and takes a finished one out", () => {
+    expect(isSettled("in-transit")).toBe(false);
+    expect(isSettled("awaiting-reply")).toBe(false);
+    expect(isSettled("due")).toBe(false);
+    expect(isSettled("confirmed")).toBe(true);
+    expect(isSettled("overdue")).toBe(true);
+    expect(isSettled("lost")).toBe(true);
+  });
+});
+
+describe("sentArrivalUtFor", () => {
+  it("holds the author's own words while the round trip is still running", () => {
+    expect(sentArrivalUtFor(outbound(), GROUND, 1300)).toBeUndefined();
+  });
+
+  it("lands them the instant an acknowledgement gets back", () => {
+    expect(sentArrivalUtFor(outbound({ acks: [ack()] }), GROUND, 1000)).toBe(
+      1480,
+    );
+  });
+
+  it("hands them back unconfirmed rather than losing them forever", () => {
+    expect(sentArrivalUtFor(outbound(), GROUND, 1482)).toBeUndefined();
+    expect(sentArrivalUtFor(outbound(), GROUND, 1483)).toBe(1483);
+  });
+
+  it("never waits past the give-up for an acknowledgement later still", () => {
+    const out = outbound({ acks: [ack({ atUt: 9000 })] });
+    expect(sentArrivalUtFor(out, GROUND, 9999)).toBe(1483);
+  });
+
+  it("shows words that never left at once, because the author is next to them", () => {
+    const out = outbound({
+      msg: msg({ separationSeconds: null }),
+      neverLeft: true,
+    });
+    expect(sentArrivalUtFor(out, GROUND, 1000)).toBe(1000);
+  });
+});
+
+describe("firstAckUtFor", () => {
+  it("takes the nearest ear, not the first entry in the list", () => {
+    const out = outbound({
+      acks: [ack(), ack({ stationKey: "s2", from: KSC, atUt: 1010 })],
+    });
+    expect(firstAckUtFor(out, GROUND)).toBe(1010);
+  });
+
+  it("is undefined while nobody has answered", () => {
+    expect(firstAckUtFor(outbound(), GROUND)).toBeUndefined();
+  });
+});
+
+describe("separationFor", () => {
+  it("resolves the reader's own distance from where it was spoken", () => {
+    expect(separationFor(msg(), ABOARD)).toEqual({
+      kind: "light-time",
+      seconds: 240,
+    });
   });
 });

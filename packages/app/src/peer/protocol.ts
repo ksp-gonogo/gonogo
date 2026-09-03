@@ -359,38 +359,33 @@ export type PeerMessage =
   | { type: "note-reorder"; id: string; afterId: string | null }
 
   // ──────────────────────────────────────────────────────────────────────
-  // Commcast: the shared text thread between everyone flying one mission.
-  // Host owns the canonical list and broadcasts the full snapshot on change,
-  // exactly like notes, and pushes one to each peer as it connects so a
-  // message survives the recipient having been away for a whole flight.
+  // Commcast: ADDRESSED messages between vantages, and their acknowledgements.
   //
-  // Unlike notes, the author's SEAT and stationKey ride on the wire rather
-  // than being resolved host-side from `station-info`. The seat is what the
-  // per-recipient reveal is computed from, so a message whose seat the host
-  // could not resolve could not be delayed at all: and the seat is exactly
-  // what has not arrived yet when a peer connects and speaks in the same
-  // breath. Only the display NAME is resolved host-side, and patched when
-  // the `station-info` lands.
+  // Deliberately NOT the notes shape, and this is the one place in the
+  // protocol where copying notes would be wrong. Notes has a host-owned
+  // canonical list and a full-snapshot broadcast; Commcast has no canonical
+  // anything. A vantage owns what reached it, so these two frames are a RELAY
+  // and the host stores nothing on anybody's behalf: it keeps a frame
+  // addressed to its own vantage and passes every frame on to the other
+  // peers, because PeerJS is a star and two stations cannot speak directly.
+  //
+  // Both frames travel host-to-peer and peer-to-host on the same shape, since
+  // the host is a participant like any other and not an authority. The
+  // envelope carries everything the recipient needs to place the message
+  // itself: who it is for, where it was spoken, and the separation the author
+  // froze at send.
   //
   // There is no delete arm, deliberately: a message already revealed at
-  // another seat cannot be un-said, so the thread has nothing to offer that
+  // another vantage cannot be un-said, so there is nothing to offer that
   // would not be a lie about what the other operator saw.
   // ──────────────────────────────────────────────────────────────────────
   | {
-      type: "commcast-snapshot";
-      snapshot: import("../commcast/types").CommcastSnapshot;
+      type: "commcast-transmit";
+      msg: import("../commcast/types").CommsMessage;
     }
   | {
-      type: "commcast-send";
-      author: import("../commcast/types").CommsParticipant;
-      input: import("../commcast/types").CommsSendInput;
-    }
-  | {
-      type: "commcast-read";
-      reader: import("../commcast/types").CommsParticipant;
-      messageIds: string[];
-      /** The reader's own `utNowEstimate()` when they read them. */
-      atUt: number;
+      type: "commcast-ack";
+      ack: import("../commcast/types").CommsAck;
     }
   // ──────────────────────────────────────────────────────────────────────
   // Sitrep telemetry-stream forwarding. The host taps its own

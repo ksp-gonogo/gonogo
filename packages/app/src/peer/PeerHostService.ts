@@ -235,13 +235,13 @@ type NoteUpdateListener = (
   msg: Extract<PeerMessage, { type: "note-update" }>,
 ) => void;
 type NoteDeleteListener = (peerId: string, id: string) => void;
-type CommcastSendListener = (
+type CommcastTransmitListener = (
   peerId: string,
-  msg: Extract<PeerMessage, { type: "commcast-send" }>,
+  msg: Extract<PeerMessage, { type: "commcast-transmit" }>,
 ) => void;
-type CommcastReadListener = (
+type CommcastAckListener = (
   peerId: string,
-  msg: Extract<PeerMessage, { type: "commcast-read" }>,
+  msg: Extract<PeerMessage, { type: "commcast-ack" }>,
 ) => void;
 type NoteReorderListener = (
   peerId: string,
@@ -279,8 +279,8 @@ type HostEventMap = {
   noteUpdate: Parameters<NoteUpdateListener>;
   noteDelete: Parameters<NoteDeleteListener>;
   noteReorder: Parameters<NoteReorderListener>;
-  commcastSend: Parameters<CommcastSendListener>;
-  commcastRead: Parameters<CommcastReadListener>;
+  commcastTransmit: Parameters<CommcastTransmitListener>;
+  commcastAck: Parameters<CommcastAckListener>;
 };
 
 export class PeerHostService {
@@ -1465,11 +1465,11 @@ export class PeerHostService {
     "note-reorder": (msg, conn) => {
       this.events.emit("noteReorder", conn.peer, msg);
     },
-    "commcast-send": (msg, conn) => {
-      this.events.emit("commcastSend", conn.peer, msg);
+    "commcast-transmit": (msg, conn) => {
+      this.events.emit("commcastTransmit", conn.peer, msg);
     },
-    "commcast-read": (msg, conn) => {
-      this.events.emit("commcastRead", conn.peer, msg);
+    "commcast-ack": (msg, conn) => {
+      this.events.emit("commcastAck", conn.peer, msg);
     },
     "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
@@ -1607,12 +1607,12 @@ export class PeerHostService {
     return this.events.on("noteReorder", cb);
   }
 
-  onCommcastSend(cb: CommcastSendListener): () => void {
-    return this.events.on("commcastSend", cb);
+  onCommcastTransmit(cb: CommcastTransmitListener): () => void {
+    return this.events.on("commcastTransmit", cb);
   }
 
-  onCommcastRead(cb: CommcastReadListener): () => void {
-    return this.events.on("commcastRead", cb);
+  onCommcastAck(cb: CommcastAckListener): () => void {
+    return this.events.on("commcastAck", cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {

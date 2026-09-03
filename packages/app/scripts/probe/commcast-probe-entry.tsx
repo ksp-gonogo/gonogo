@@ -15,9 +15,9 @@ import {
 import { createRoot, type Root } from "react-dom/client";
 import { ThemeProvider } from "styled-components";
 import { CommcastWidget } from "../../src/commcast/CommcastComponent";
-import { CommcastHostProvider } from "../../src/commcast/CommcastHostContext";
-import { CommcastHostService } from "../../src/commcast/CommcastHostService";
-import type { CommsParticipant } from "../../src/commcast/types";
+import { CommcastLog } from "../../src/commcast/CommcastLog";
+import { CommcastLogProvider } from "../../src/commcast/CommcastLogContext";
+import type { CommsAck, CommsMessage } from "../../src/commcast/types";
 import {
   StationIdentityProvider,
   StationIdentityService,
@@ -28,12 +28,11 @@ import {
  * `commcast-probe.html`, and `scripts/render-commcast.ts` drives it through
  * `window.__renderCommcast`, screenshotting `#root`.
  *
- * Two panes over ONE thread is the whole reason this exists. Commcast's
- * subject is that two seats see different threads at the same instant, and a
- * single-pane shot of either one is indistinguishable from a widget with no
- * delay in it at all. So a scene mounts the same `CommcastHostService` behind
- * two independent `TelemetryProvider`s, each with its own observed vantage,
- * and the two panes disagree on screen the way the two operators would.
+ * Two panes over TWO LOGS is the whole reason this exists. Commcast has no
+ * canonical thread: a vantage owns what reached it, so a scene mounts one log
+ * per pane and seeds each with what that vantage actually holds. The two panes
+ * then disagree on screen the way the two operators would, including about
+ * which messages exist at all.
  *
  * It lives app-side rather than in `packages/components`' probe because the
  * widget registers in `@ksp-gonogo/app`, which that package must not import.
@@ -54,7 +53,28 @@ setQuantityLocale("en-GB");
 /** UT the whole harness calls "now". Every scene's clock is anchored here. */
 const VIEW_UT = 12_000_000;
 
-/** One seat's view of the thread. */
+/** One message a pane's log holds, in whichever direction. */
+export interface Held {
+  /** Where it was spoken from, and who it was addressed to. */
+  from: string;
+  to: string[];
+  authorName: string;
+  authorSeat: "pilot" | "mission-control";
+  body: string;
+  /** Relative to `VIEW_UT`; negative is in the past. */
+  sentAt: number;
+  /** Relative to `VIEW_UT`. Defaults to `sentAt`, differs after a resend. */
+  lastSentAt?: number;
+  attempts?: number;
+  /** The author-to-recipient separation frozen at send. `null` is NO PATH. */
+  separationSeconds: number | null;
+  /** Acknowledgements this log has RECEIVED, each at the recipient's own UT. */
+  acks?: { from: string; stationKey: string; at: number }[];
+  /** Set on an outbound message that was never transmitted. */
+  neverLeft?: boolean;
+}
+
+/** One vantage's view: its own screen, and its own log. */
 export interface Pane {
   /** Drives `useSeat()`, and therefore which end of the light-path this is. */
   seat: "mission-control" | "pilot";
@@ -62,39 +82,35 @@ export interface Pane {
   vantage?: string;
   /** What this screen posts (and is captioned) as. */
   name: string;
-}
-
-/** One message already in the thread when the panes mount. */
-export interface Posted {
-  author: CommsParticipant;
-  body: string;
-  /** Relative to `VIEW_UT`; negative is in the past. */
-  sentAt: number;
-  /** The author's own path home at send. `null` is NO PATH, never a zero. */
-  oneWaySeconds: number | null;
+  /** What this vantage has SENT. Drawn as settled log rows or queue entries. */
+  sent?: Held[];
+  /** What has already ARRIVED here. */
+  received?: Held[];
+  /** Addressed here and still crossing. Shown nowhere, which is the point. */
+  crossing?: Held[];
+  /** Mount with no log at all, the other end of the empty state. */
+  noLog?: boolean;
 }
 
 export interface Scene {
   panes: Pane[];
-  messages?: Posted[];
   /** Published vantage-to-vantage separations, one-way seconds. */
   separation?: { from: string; to: string; oneWaySeconds: number }[];
+  /** Who each pane can address. */
+  roster?: { id: string; displayName: string; active: boolean }[];
   /** `comms.delay`'s own path home, or omitted for a screen with no craft. */
   oneWaySeconds?: number;
-  /**
-   * Mount without a host service and without a peer, so the widget has no
-   * route to a thread at all. The other end of the empty state.
-   */
-  noThread?: boolean;
   /** For the settle report, so an unsettled render names itself. */
   name: string;
   /**
-   * Publish `comms.link` as CONFIRMED disconnected, so the thread terminates
-   * with its no-signal marker. Distinct from an in-transit message: it says
-   * there may be words this seat has not heard, not that one specific
-   * utterance is on its way.
+   * Publish `comms.link` as CONFIRMED disconnected, so the log terminates with
+   * its no-signal marker. Distinct from a message in transit: it says there
+   * may be words this vantage has not heard, not that one specific utterance
+   * is on its way.
    */
   linkLost?: boolean;
+  /** Text the scene is not settled until it renders. */
+  settleOn?: string;
   pxW: number;
   pxH: number;
 }
@@ -125,19 +141,46 @@ function twoFrames(): Promise<void> {
   );
 }
 
+/*
+ * What each pane's log actually held on the last attempt, printed beside a
+ * failed settle. It is the one fact that tells a probe defect (the log was
+ * never seeded) from a widget one (it was, and nothing released), which a
+ * screenshot of an empty console cannot.
+ */
+let lastLogCounts: Record<string, number>[] = [];
+
+let nextId = 0;
+function toMessage(held: Held): CommsMessage {
+  nextId += 1;
+  return {
+    id: `probe-${nextId}`,
+    to: held.to,
+    from: held.from,
+    authorStationKey: `author-${held.from}`,
+    authorName: held.authorName,
+    authorSeat: held.authorSeat,
+    sentUt: VIEW_UT + held.sentAt,
+    lastSentUt: VIEW_UT + (held.lastSentAt ?? held.sentAt),
+    attempts: held.attempts ?? 1,
+    separationSeconds: held.separationSeconds,
+    kind: "text",
+    body: held.body,
+  };
+}
+
 /**
  * Waits for a scene to actually settle, rather than for a fixed number of
  * frames to have gone by.
  *
- * Two frames was a race and lost: the reveal runs off the view clock's own
+ * Two frames was a race and lost: the arrival runs off the view clock's own
  * frame callback, and how many frames it takes depends on how many
  * subscriptions the widget opened and when each was acked, which moves when
- * the widget declares one more channel. Losing it renders a scene whose thread
- * is entirely "in transit" and whose composer reads "No clock yet", which
- * photographs as a design claim rather than as a harness that ran early.
+ * the widget declares one more channel. Losing it renders a scene whose log is
+ * empty and whose composer reads "No clock yet", which photographs as a design
+ * claim rather than as a harness that ran early.
  *
  * `predicate` is what the scene is waiting to be true of the DOM. Frames, not
- * timers, so it stays on the same clock the reveal is on.
+ * timers, so it stays on the same clock the arrival is on.
  */
 async function settle(
   predicate: (mounted: string) => boolean,
@@ -145,29 +188,26 @@ async function settle(
   /*
    * The MOUNT's text, never the document's. The probe page carries the whole
    * bundle in an inline script, and a script element's text is part of
-   * `document.body.textContent`, so a predicate looking for a widget's own
-   * copy for "still crossing" found it in the component's SOURCE and waited
-   * for a condition that could never come true. Seven megabytes of body text
-   * against a few hundred bytes of rendered widget is not a subtle margin, and
-   * it read as a scene that would not settle.
+   * `document.body.textContent`, so a predicate looking for a widget's own copy
+   * found it in the component's SOURCE and waited for a condition that could
+   * never come true. Seven megabytes of body text against a few hundred bytes
+   * of rendered widget is not a subtle margin.
    */
   const mounted = () => document.getElementById("root")?.textContent ?? "";
   // Short, because a scene that settles settles in well under a second and one
   // that lost the race does not recover on its own: what recovers it is a fresh
-  // mount, which is `renderScene`'s job. A long wait here only makes four
-  // attempts slow.
+  // mount, which is `renderScene`'s job.
   const deadline = Date.now() + 3_000;
-  // Waits BEFORE the first check, so a scene with nothing to wait for (no
-  // composer at all) still gets a paint rather than being captured on the
-  // frame its predicate happened to be vacuously true on.
+  // Waits BEFORE the first check, so a scene with nothing to wait for still
+  // gets a paint rather than being captured on the frame its predicate happened
+  // to be vacuously true on.
   //
-  // A frame pair AND a macrotask, because rAF alone is not enough and that is
-  // what made a frame-count settle look adequate. Headless Chromium serves a
-  // tight rAF loop almost synchronously, so several hundred callbacks can run
-  // through before React flushes the effects that push into the reveal buffer
-  // at all: the loop then exhausts itself against a tree that was never given
-  // a turn to advance. The timeout yields to the macrotask queue those effects
-  // and the transport's own delivery run on.
+  // A frame pair AND a macrotask, because rAF alone is not enough. Headless
+  // Chromium serves a tight rAF loop almost synchronously, so several hundred
+  // callbacks can run through before React flushes the effects that push into
+  // the arrival buffer at all: the loop then exhausts itself against a tree
+  // that was never given a turn to advance. The timeout yields to the macrotask
+  // queue those effects and the transport's own delivery run on.
   while (Date.now() < deadline) {
     await twoFrames();
     await new Promise((r) => setTimeout(r, 16));
@@ -182,19 +222,27 @@ async function settle(
 }
 
 /**
- * One pane: a real widget over its own stream session.
+ * One pane: a real widget over its own stream session AND its own log.
  *
  * Each pane builds its own `TelemetryClient`, because the observed vantage is
  * a property of the session rather than of the tree, and two panes sharing one
- * client would be two operators who cannot help but agree.
+ * client would be two operators who cannot help but agree. Each also builds its
+ * own log, for the stronger version of the same reason: under this model the
+ * two vantages hold different message SETS, and a shared log would be the
+ * central store the design rejects.
  */
-function paneTree(pane: Pane, host: CommcastHostService | null) {
+function paneTree(pane: Pane, index: number) {
   const fixture: StreamFixture = setupStreamFixture({
-    carriedChannels: ["comms.delay", "commandCentre.separation", "comms.link"],
+    carriedChannels: [
+      "commandCentre.roster",
+      "commandCentre.separation",
+      "comms.delay",
+      "comms.link",
+    ],
     /*
      * The clock is deliberately left LIVE, not pinned to `VIEW_UT`. Pinning
-     * looks like the way to make a reveal deterministic and does the opposite
-     * here: the buffer releases by comparing each message's instant against
+     * looks like the way to make an arrival deterministic and does the opposite
+     * here: the buffer releases by comparing each instant against
      * `utNowEstimate()` on the view clock's own frame callback, and a pinned
      * clock stopped every scene revealing anything at all. Measured, both ways.
      */
@@ -205,39 +253,57 @@ function paneTree(pane: Pane, host: CommcastHostService | null) {
    * `StubTransport.emit` is subscription-gated and drops silently, and a widget
    * subscribes on mount, so emitting after a couple of frames is a race against
    * the mount rather than a wait for it. Losing it drops the separation matrix
-   * for good, and a scene then renders every message as still crossing with no
-   * countdown to print, which photographs as a design claim. It was lost about
-   * half the time, on whichever scenes the roll went against, which is what
-   * made it read as one scene being broken.
+   * for good, and a scene then renders with no correspondent to address.
    */
   for (const topic of [
-    "comms.delay",
+    "commandCentre.roster",
     "commandCentre.separation",
+    "comms.delay",
     "comms.link",
   ]) {
     fixture.subscribe(topic);
   }
   const identity = new StationIdentityService(memoryStorage(), pane.name);
+  const log = pane.noLog
+    ? null
+    : new CommcastLog({
+        screenKey: `probe-pane-${index}`,
+        storage: memoryStorage(),
+      });
+  if (log) {
+    log.setVantage(pane.vantage);
+    log.replaceForTesting({
+      outbox: (pane.sent ?? []).map((held) => {
+        const msg = toMessage(held);
+        const acks: CommsAck[] = (held.acks ?? []).map((a) => ({
+          messageId: msg.id,
+          from: a.from,
+          stationKey: a.stationKey,
+          seat: a.from.startsWith("vessel:") ? "pilot" : "mission-control",
+          atUt: VIEW_UT + a.at,
+        }));
+        return { msg, acks, neverLeft: held.neverLeft === true };
+      }),
+      inbox: (pane.received ?? []).map(toMessage),
+      pending: (pane.crossing ?? []).map(toMessage),
+    });
+  }
   // The SCREEN is what a provider carries; the seat is derived from it by `seatOf`, which is the whole reason a pane is declared by seat here: a peer-fed pilot would be a third screen at the same seat and this scene would not change.
   const widget = (
     <ScreenProvider value={pane.seat === "pilot" ? "pilot" : "main"}>
       <fixture.Provider>
         <StationIdentityProvider service={identity}>
-          <CommcastWidget
-            id={`commcast-${pane.seat}`}
-            config={{}}
-            w={6}
-            h={9}
-          />
+          <CommcastWidget id={`commcast-${index}`} config={{}} w={6} h={9} />
         </StationIdentityProvider>
       </fixture.Provider>
     </ScreenProvider>
   );
   return {
     fixture,
+    log,
     node: (
       <div
-        key={`${pane.seat}:${pane.vantage ?? ""}`}
+        key={`${pane.seat}:${pane.vantage ?? ""}:${index}`}
         style={{
           display: "flex",
           flexDirection: "column",
@@ -259,8 +325,8 @@ function paneTree(pane: Pane, host: CommcastHostService | null) {
           {`${pane.seat} · ${pane.vantage ?? "no vantage"}`}
         </div>
         <div style={{ display: "flex", flex: "1 1 auto", minHeight: 0 }}>
-          {host ? (
-            <CommcastHostProvider service={host}>{widget}</CommcastHostProvider>
+          {log ? (
+            <CommcastLogProvider log={log}>{widget}</CommcastLogProvider>
           ) : (
             widget
           )}
@@ -286,28 +352,20 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
     root = undefined;
   }
 
-  // The local participant's stationKey comes off `localStorage` and is shared by both panes, so pin it: a fresh uuid per scene changes nothing visible but makes the two runs of one scene differ in the thread's own ids.
+  // The local participant's stationKey comes off `localStorage`; pin it so two
+  // runs of one scene do not differ in ids that change nothing visible.
   localStorage.clear();
   localStorage.setItem("gonogo.station.key", "render-probe-local");
 
-  const host = scene.noThread
-    ? null
-    : // `load` rather than a storage stub: the constructor falls back to the real `localStorage` for persistence either way, and what a scene must not do is READ the previous scene's thread back.
-      new CommcastHostService({ now: () => 0, load: () => [] });
-
-  for (const m of scene.messages ?? []) {
-    host?.post(m.author, {
-      kind: "text",
-      body: m.body,
-      sentUt: VIEW_UT + m.sentAt,
-      oneWaySeconds: m.oneWaySeconds,
-      ...(m.author.vantageId === undefined
-        ? {}
-        : { authorVantageId: m.author.vantageId }),
-    });
-  }
-
-  const panes = scene.panes.map((p) => paneTree(p, host));
+  const panes = scene.panes.map((p, i) => paneTree(p, i));
+  lastLogCounts = panes.map((p) => {
+    const snap = p.log?.snapshot();
+    return {
+      outbox: snap?.outbox.length ?? -1,
+      inbox: snap?.inbox.length ?? -1,
+      pending: snap?.pending.length ?? -1,
+    };
+  });
 
   root = createRoot(mount);
   root.render(
@@ -331,11 +389,11 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
 
   // `StubTransport.emit` is subscription-gated, so nothing is published until
   // the widget has mounted and subscribed. `deliveredAt` is what anchors
-  // `utNowEstimate()`, which is the clock every reveal instant is compared
-  // against: without it the estimate sits at 0, nothing is ever revealed, and
-  // the composer reads "No clock yet" for a reason unrelated to the scene. So
-  // a scene modelling a screen with no craft still publishes an EMPTY
-  // separation, which anchors the clock while leaving the path home absent.
+  // `utNowEstimate()`, which every instant is compared against: without it the
+  // estimate sits at 0, nothing ever arrives, and the composer reads "No clock
+  // yet" for a reason unrelated to the scene. So a scene modelling a screen
+  // with no craft still publishes an EMPTY separation, which anchors the clock
+  // while leaving the path home absent.
   for (let i = 0; i < panes.length; i++) {
     const pane = scene.panes[i];
     const meta = {
@@ -357,12 +415,14 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
         meta,
       );
     }
+    if (scene.roster) {
+      panes[i].fixture.emit("commandCentre.roster", scene.roster, meta);
+    }
     /*
      * `comms.link` is declared by the widget, so a scene that never publishes
      * it leaves a declared channel unfed. Default connected: the widget treats
      * silence as connected anyway, and publishing it makes that the recorded
-     * state rather than the absent one. `linkLost` is the scene that says the
-     * link is confirmed gone, which is what terminates the thread.
+     * state rather than the absent one.
      */
     panes[i].fixture.emit(
       "comms.link",
@@ -372,51 +432,50 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
   }
 
   /*
-   * Two signatures of a scene that has not settled, and both are needed. A
-   * live composer says the CLOCK has landed, which is what every reveal
-   * instant is compared against. But the clock landing is not the reveal
-   * happening: the buffer releases on a later frame, and until the separation
-   * matrix has arrived with it every crossing message reads "lands when the
-   * clock is known", which is a message whose delivery has no computable
-   * instant. In a settled scene that is unreachable: a message with no path is
-   * filed as unreachable and says so in its own words, so an in-transit row
-   * always has a countdown. Waiting on the clock alone photographed a whole
-   * thread as still crossing.
+   * A live composer says the CLOCK has landed, which every instant is compared
+   * against. A scene that also expects specific text names it, because the
+   * clock landing is not the arrival happening: the buffer releases on a later
+   * frame, and a shot taken before it photographs an empty log as though that
+   * were the scene's intent.
    */
   return await settle(
     (mounted) =>
       document.querySelectorAll('input[placeholder="No clock yet"]').length ===
-        0 && !mounted.includes("lands when the clock is known"),
+        0 &&
+      (scene.settleOn === undefined || mounted.includes(scene.settleOn)),
   );
 }
 
 /**
  * Renders one scene, remounting it if it does not settle.
  *
- * A scene loses the reveal race some fraction of the time: the thread stays
- * empty, every message sits in the transit strip with no countdown to print,
- * and the widget's own `deliveryFor` disagrees with its feed about them. That
- * is a real defect and it wants a failing unit test on the feed rather than a
- * harness workaround.
- *
- * A remount is worth trying and is not reliable: a scene that has lost it often
- * loses all four, and what actually moves the odds is the fresh document and
- * the warm-up the caller does before the first mount. The retries stay because
- * they are cheap and they do sometimes win.
+ * A scene loses the arrival race some fraction of the time: the log stays
+ * empty and nothing releases. A remount is worth trying and is not reliable;
+ * what actually moves the odds is the fresh document and the warm-up the caller
+ * does before the first mount. The retries stay because they are cheap and they
+ * do sometimes win.
  *
  * What it does NOT do is fall silent when every attempt loses. A render that
- * reaches a reviewer showing an unsettled thread reads as a design claim, so
- * the last word is a warning naming the scene.
+ * reaches a reviewer showing an unsettled log reads as a design claim, so the
+ * last word is a warning naming the scene.
  */
 async function renderScene(scene: Scene): Promise<void> {
   for (let attempt = 1; attempt <= 4; attempt++) {
     if (await renderSceneOnce(scene)) return;
     console.warn(
-      `[retry ${attempt}] ${scene.name}: lost the reveal race, remounting`,
+      `[retry ${attempt}] ${scene.name}: lost the arrival race, remounting`,
     );
   }
+  /*
+   * The mounted text goes with the warning. A scene that did not settle failed
+   * for one of two reasons that look identical from outside, and the text tells
+   * them apart at a glance: the widget rendered the wrong state, or it rendered
+   * the right one and the predicate names something that is not on screen.
+   */
   console.warn(
-    `[did not settle] ${scene.name}: every message is still shown as crossing after four mounts. This render shows an UNSETTLED thread, NOT the scene's intent.`,
+    `[did not settle] ${scene.name}: the scene never reached the state it was built to show after four mounts. This render is NOT the scene's intent. Waiting on ${JSON.stringify(scene.settleOn)}; logs held ${JSON.stringify(lastLogCounts)}; mounted text was ${JSON.stringify(
+      (document.getElementById("root")?.textContent ?? "").slice(0, 600),
+    )}`,
   );
 }
 

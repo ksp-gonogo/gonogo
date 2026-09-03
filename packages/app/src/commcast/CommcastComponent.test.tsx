@@ -1,45 +1,39 @@
 /**
  * The widget renders, and the delayed states are visible ON SCREEN.
  *
- * The reveal rule is unit-tested where it lives; what only a render shows is
- * that a message still crossing to this seat does not leak its BODY, and that
- * the operator is told which of the three states each message is in. Both are
- * things a correct pure function can still get wrong in the UI.
+ * The arrival rules are unit-tested where they live; what only a render shows
+ * is that a message still crossing to this vantage leaks NOTHING, that the
+ * operator's own words are held out of the log until they are answered, and
+ * that an unanswered one comes back unconfirmed with something to do about it.
+ * All three are things a correct pure function can still get wrong in the UI.
  */
-import { clearRegistry, PerfBudget } from "@ksp-gonogo/core";
+import { clearRegistry } from "@ksp-gonogo/core";
 import {
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import { getStationKey } from "../peer/stationPeerId";
 import { CommcastWidget } from "./CommcastComponent";
-import { CommcastHostProvider } from "./CommcastHostContext";
-import { CommcastHostService } from "./CommcastHostService";
-import type { CommsParticipant } from "./types";
+import { CommcastLog } from "./CommcastLog";
+import { CommcastLogProvider } from "./CommcastLogContext";
+import type { CommsAck, CommsMessage } from "./types";
 
-function findBudget(name: string) {
-  return PerfBudget.getAll().find((b) => b.name === name);
-}
+/**
+ * The vantage a bare `StubTransport` gives a screen: none. `useObservedVantage`
+ * has had no frame, so the widget reads at an unnamed vantage, which is the
+ * state every fresh page load is in for its first frames.
+ */
+const NOWHERE = undefined;
 
-const PILOT: CommsParticipant = {
+const JEB = {
   stationKey: "pilot-1",
   name: "Jeb",
-  seat: "pilot",
+  seat: "pilot" as const,
+  vantageId: "vessel:ares",
 };
-
-/** The same identity the widget posts under, so a test can be its author. */
-function localParticipant(): CommsParticipant {
-  return {
-    stationKey: getStationKey(),
-    name: "Mission Control",
-    seat: "mission-control",
-  };
-}
 
 const unmounts: Array<() => void> = [];
 
@@ -49,7 +43,13 @@ afterEach(() => {
   localStorage.clear();
 });
 
-function renderWidget(host: CommcastHostService) {
+function makeLog(): CommcastLog {
+  const log = new CommcastLog({ screenKey: "screen-under-test" });
+  log.setVantage(NOWHERE);
+  return log;
+}
+
+function renderWidget(log: CommcastLog) {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const view = render(
@@ -57,157 +57,242 @@ function renderWidget(host: CommcastHostService) {
       client={client}
       carriedChannels={["comms.delay", "comms.link"]}
     >
-      <CommcastHostProvider service={host}>
+      <CommcastLogProvider log={log}>
         <CommcastWidget id="w1" config={{}} w={6} h={8} />
-      </CommcastHostProvider>
+      </CommcastLogProvider>
     </TelemetryProvider>,
   );
   unmounts.push(view.unmount);
   return { ...view, transport };
 }
 
+/** A message this screen sent, placed straight into its outbox. */
+function sent(over: Partial<CommsMessage> = {}): CommsMessage {
+  return {
+    id: "m1",
+    to: ["vessel:ares"],
+    from: "ksc",
+    authorStationKey: "screen-under-test",
+    authorName: "Mission Control",
+    authorSeat: "mission-control",
+    sentUt: 0,
+    lastSentUt: 0,
+    attempts: 1,
+    separationSeconds: 240,
+    kind: "text",
+    body: "Ares, Kennedy, do you copy",
+    ...over,
+  };
+}
+
+function ack(over: Partial<CommsAck> = {}): CommsAck {
+  return {
+    messageId: "m1",
+    from: "vessel:ares",
+    stationKey: "pilot-1",
+    seat: "pilot",
+    atUt: -240,
+    ...over,
+  };
+}
+
 describe("Commcast, rendered", () => {
-  it("renders an empty thread without a crash and without pretending", () => {
-    renderWidget(new CommcastHostService());
-    expect(screen.getByText("Nothing spoken yet.")).toBeInTheDocument();
+  it("renders an empty log without a crash and without pretending", () => {
+    renderWidget(makeLog());
+    expect(screen.getByText("Nothing said yet.")).toBeInTheDocument();
   });
 
-  it("offers a composer that says what the send will cost in light-time", () => {
-    const host = new CommcastHostService();
-    renderWidget(host);
-    // No delay has arrived on a stub transport, so the separation is unknown
-    // and the control says so rather than implying an instant send.
+  it("says what a send will cost when there is no path to say it over", () => {
+    // No delay has arrived on a stub transport and no roster names anyone, so
+    // the control says so rather than implying an instant send.
+    renderWidget(makeLog());
     expect(
       screen.getByRole("button", { name: /Send \(no path\)/ }),
     ).toBeInTheDocument();
   });
 
-  it("does NOT show the body of someone else's message still in transit", () => {
-    // The whole design in one assertion: a message that has not reached this
-    // seat must not be readable at it, however cheap it would be to render.
-    const host = new CommcastHostService();
-    host.post(PILOT, {
-      kind: "text",
-      body: "SECRET-IN-FLIGHT",
-      sentUt: 1_000_000,
-      oneWaySeconds: 240,
-    });
-    renderWidget(host);
-    expect(screen.queryByText("SECRET-IN-FLIGHT")).not.toBeInTheDocument();
-    expect(screen.getByText(/In transit/)).toBeInTheDocument();
-  });
-
-  it("withholds the body of a message spoken where no path reaches here", () => {
-    const host = new CommcastHostService();
-    host.post(PILOT, {
-      kind: "text",
-      body: "into the void",
-      sentUt: 1000,
-      oneWaySeconds: null,
-    });
-    renderWidget(host);
-    expect(screen.getByText(/Never reached you/)).toBeInTheDocument();
-    expect(
-      screen.getByText("no path from where it was spoken"),
-    ).toBeInTheDocument();
-    // Somebody said something this seat cannot hear, and that is the fact on
-    // screen. The words themselves never crossed and are not shown.
-    expect(screen.queryByText("into the void")).not.toBeInTheDocument();
-  });
-
-  it("flags the operator's OWN message that reached nobody, in place", () => {
+  it("shows NOTHING at all for a message still crossing toward this vantage", () => {
     /*
-     * Revealed here, because the author is standing next to it, and flagged
-     * rather than filed away: without this an author watches their own words
-     * sit in the thread looking delivered while nobody received them.
+     * The kOS rule: what has not arrived is absent, not described. Withholding
+     * the body while naming the author and printing a countdown still tells
+     * this vantage that somebody spoke, a light-time before that could
+     * possibly be known here.
      */
-    const host = new CommcastHostService();
-    const me = localParticipant();
-    // At UT 0, so it is at-or-before the stub clock's estimate and releases
-    // straight away: this test is about how an ARRIVED message is flagged.
-    host.post(me, {
-      kind: "text",
-      body: "anyone there",
-      sentUt: 0,
-      oneWaySeconds: null,
+    const log = makeLog();
+    log.setVantage("ksc");
+    log.receiveTransmission({
+      ...sent(),
+      id: "in-flight",
+      to: ["ksc"],
+      from: "vessel:ares",
+      authorStationKey: JEB.stationKey,
+      authorName: JEB.name,
+      authorSeat: "pilot",
+      sentUt: 1_000_000,
+      lastSentUt: 1_000_000,
+      body: "SECRET-IN-FLIGHT",
     });
-    renderWidget(host);
-    expect(screen.getByText("anyone there")).toBeInTheDocument();
-    expect(screen.getByText(/nobody else received this/)).toBeInTheDocument();
+    renderWidget(log);
+    expect(screen.queryByText("SECRET-IN-FLIGHT")).not.toBeInTheDocument();
+    expect(screen.queryByText("Jeb")).not.toBeInTheDocument();
+    expect(screen.getByText("Nothing said yet.")).toBeInTheDocument();
   });
 
-  it("terminates the thread with a no-signal marker on a CONFIRMED link loss", () => {
-    const host = new CommcastHostService();
-    host.post(PILOT, {
-      kind: "text",
-      body: "hello",
-      sentUt: 0,
-      oneWaySeconds: null,
+  it("holds the operator's OWN words out of the log until they are answered", () => {
+    /*
+     * The kOS terminal's round trip, on a whole composed line. The words are
+     * in the uplink queue and nowhere else: not in the log, and with no
+     * verdict on whether they arrived, because nothing has come back.
+     */
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [{ msg: sent(), acks: [], neverLeft: false }],
     });
-    const { transport } = renderWidget(host);
+    renderWidget(log);
+    expect(screen.getByLabelText(/Uplink queue/)).toBeInTheDocument();
+    expect(screen.queryByText("unconfirmed")).toBeNull();
+    expect(screen.queryByText(/confirmed after/)).toBeNull();
+  });
 
-    // Nothing said about the link yet reads as connected, so an unpublished
-    // route must not accuse the thread of being incomplete.
+  it("lands them the instant the acknowledgement gets back, and says how long", () => {
+    const log = makeLog();
+    // Spoken 480 s ago at a 240 s separation, read at the far end the instant
+    // it arrived: the acknowledgement has had exactly the return leg to cross.
+    log.replaceForTesting({
+      outbox: [
+        {
+          msg: sent({ sentUt: -480, lastSentUt: -480 }),
+          acks: [ack({ atUt: -240 })],
+          neverLeft: false,
+        },
+      ],
+    });
+    renderWidget(log);
+    expect(screen.getByText("Ares, Kennedy, do you copy")).toBeInTheDocument();
+    expect(screen.getByText(/confirmed after/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Uplink queue/)).toBeNull();
+  });
+
+  it("hands them back UNCONFIRMED rather than holding them for the mission", () => {
+    // Nobody answered. Past the give-up the author gets their own words back,
+    // marked, with the one action attached: send it again.
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [
+        {
+          msg: sent({ sentUt: -600, lastSentUt: -600 }),
+          acks: [],
+          neverLeft: false,
+        },
+      ],
+    });
+    renderWidget(log);
+    expect(screen.getByText("Ares, Kennedy, do you copy")).toBeInTheDocument();
+    expect(screen.getByText("unconfirmed")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /No path to resend|Send again/ }),
+    ).toBeInTheDocument();
+  });
+
+  it("counts only an acknowledgement that has REACHED this screen", () => {
+    /*
+     * One crosses the same separation its message did. Reading the raw list
+     * would tell the author their words had been received a light-time before
+     * the news could have got back, which is the faster-than-light channel the
+     * whole design exists to avoid.
+     */
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [
+        {
+          msg: sent({ sentUt: -600, lastSentUt: -600 }),
+          // Read at the far end 1 s ago, so the news is still 239 s away.
+          acks: [ack({ atUt: -1 })],
+          neverLeft: false,
+        },
+      ],
+    });
+    renderWidget(log);
+    expect(screen.getByText("unconfirmed")).toBeInTheDocument();
+    expect(screen.queryByText(/confirmed after/)).toBeNull();
+  });
+
+  it("says a message that never left is unconfirmed for a DIFFERENT reason", () => {
+    // "Nothing came back" and "nothing went out" call for different
+    // judgements, so they must not read the same.
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [
+        {
+          msg: sent({ separationSeconds: null }),
+          acks: [],
+          neverLeft: true,
+        },
+      ],
+    });
+    renderWidget(log);
+    expect(
+      screen.getByText("unconfirmed, no path when sent"),
+    ).toBeInTheDocument();
+  });
+
+  it("terminates the log with a no-signal marker on a CONFIRMED link loss", () => {
+    const log = makeLog();
+    const { transport } = renderWidget(log);
+    // Silence is NOT a lost link: a screen that has heard nothing about the
+    // route must not accuse its own log of being incomplete.
     expect(screen.queryByText("no signal")).toBeNull();
-
     act(() => transport.emit("comms.link", { connected: false }));
     expect(screen.getByText("no signal")).toBeInTheDocument();
-
     act(() => transport.emit("comms.link", { connected: true }));
     expect(screen.queryByText("no signal")).toBeNull();
   });
 
-  it("says how many messages the thread has dropped, at the head where the gap is", () => {
-    const host = new CommcastHostService();
-    // Past the host's 500-message cap by three, so the reading is a real drop
-    // rather than a number handed in. Filling the cap in one tick is 503
-    // commits the broadcast budget rightly objects to; reset it, because the
-    // cap is what this test is about and the send rate is not.
-    for (let i = 0; i < 503; i++) {
-      host.post(PILOT, {
-        kind: "text",
-        body: `m${i}`,
-        sentUt: 0,
-        oneWaySeconds: null,
-      });
-    }
-    findBudget("CommcastHostService snapshots/sec")?.reset();
-    renderWidget(host);
-
-    const marker = screen.getByText(/dropped at the cap/);
-    expect(marker.textContent).toContain("3 earlier messages");
-    // At the HEAD: the gap is at the front of the thread, so the marker is
-    // the first thing in the list rather than a footnote under the composer.
-    const list = marker.parentElement;
-    expect(list?.firstElementChild).toBe(marker);
-  });
-
-  it("shows no withheld-body placeholder, so nothing in the thread reads as a separator", () => {
-    // A message still crossing to this seat renders its author and how long
-    // it has to run, and NO body line. The dash that used to stand in for the
-    // withheld body read as a rule between messages.
-    const host = new CommcastHostService();
-    host.post(PILOT, {
-      kind: "text",
-      body: "still crossing",
-      sentUt: 10_000,
-      oneWaySeconds: 240,
+  it("loses NOTHING when the observed vantage arrives after the log did", () => {
+    /*
+     * The regression that made the render harness lose whole logs at random.
+     * The arrival buffer is rebuilt when this screen learns its own vantage,
+     * which happens on every fresh page load, and the pass that rebuilt it
+     * used to re-pin every message against the buffer it had just disposed.
+     * Those messages were then pinned to something that would never release
+     * them and vanished from the log.
+     */
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [-3000, -2400, -1800, -1200].map((at, i) => ({
+        msg: sent({
+          id: `m${i}`,
+          sentUt: at,
+          lastSentUt: at,
+          body: `line ${i}`,
+        }),
+        acks: [],
+        neverLeft: false,
+      })),
     });
-    renderWidget(host);
-    expect(screen.queryByText("still crossing")).toBeNull();
-    expect(screen.getByText(/In transit \(1\)/)).toBeInTheDocument();
-    expect(screen.queryByText(NULL_DISPLAY)).toBeNull();
+    const { transport } = renderWidget(log);
+    // The vantage arriving is what rebuilds the buffer, so this is the edge
+    // the defect lived on.
+    act(() =>
+      transport.emit("comms.link", { connected: true }, { vantage: "ksc" }),
+    );
+    for (let i = 0; i < 4; i++) {
+      expect(screen.getByText(`line ${i}`)).toBeInTheDocument();
+    }
   });
 
   it("has no accessibility violations", async () => {
-    const host = new CommcastHostService();
-    host.post(PILOT, {
-      kind: "text",
-      body: "hello",
-      sentUt: 1000,
-      oneWaySeconds: null,
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [
+        {
+          msg: sent({ sentUt: -600, lastSentUt: -600 }),
+          acks: [],
+          neverLeft: false,
+        },
+      ],
     });
-    const { container } = renderWidget(host);
+    const { container } = renderWidget(log);
     await expectNoA11yViolations(container);
     await act(async () => {});
   });

@@ -1,295 +1,384 @@
 /**
- * A message crosses the mesh and arrives LATE at the other seat.
+ * A message crosses the mesh, arrives LATE at the vantage it names, and is
+ * acknowledged back across the same separation.
  *
- * Skips PeerJS entirely: the bridge is two callback sets mimicking the peer
- * host/client surfaces the thread services consume, the same shape
- * `maneuver-trigger-roundtrip.test.ts` uses. That keeps the test on the thread's
- * own contracts rather than dragging the real PeerJS stack along.
+ * Skips PeerJS entirely: the mesh runs over two callback sets mimicking the
+ * peer host/client surfaces, the same shape `maneuver-trigger-roundtrip.test.ts`
+ * uses. That keeps the test on Commcast's own contracts rather than dragging
+ * the real PeerJS stack along.
  *
- * What it is actually for: every piece of this works in isolation, and the
- * thing that can only be shown end to end is that the SAME message reaches two
- * seats at two different instants, which is the entire feature.
+ * What it is actually for: every piece works in isolation, and the things that
+ * can only be shown end to end are that two vantages hold different SETS, that
+ * the relay stores nothing on anybody's behalf, and that the author's own
+ * confirmation is a full round trip late.
  */
 import { PerfBudget } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it } from "vitest";
-import { CommcastClientService } from "../commcast/CommcastClientService";
-import { CommcastHostService } from "../commcast/CommcastHostService";
-import { CommcastPeerBridge } from "../commcast/CommcastPeerBridge";
-import { deliveryFor, type Vantage } from "../commcast/reveal";
-import type { CommsParticipant } from "../commcast/types";
+import { CommcastLog } from "../commcast/CommcastLog";
+import { CommcastMesh } from "../commcast/CommcastMesh";
+import {
+  sentArrivalUtFor,
+  sentPhaseFor,
+  type Vantage,
+} from "../commcast/reveal";
 import type { PeerClientService } from "../peer/PeerClientService";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
 
-const KSC: CommsParticipant = {
+const KSC = "ksc";
+const ARES = "vessel:ares";
+const WOOMERA = "ground:woomera";
+const LIGHT_TIME = 240;
+
+const GROUND: Vantage = { seat: "mission-control", vantageId: KSC };
+const ABOARD: Vantage = { seat: "pilot", vantageId: ARES };
+
+const FLIGHT = {
   stationKey: "ksc-1",
-  name: "Mission Control",
-  seat: "mission-control",
-  vantageId: "ksc",
+  name: "Kennedy Flight",
+  seat: "mission-control" as const,
+  vantageId: KSC,
 };
-const PILOT: CommsParticipant = {
+const JEB = {
   stationKey: "pilot-1",
   name: "Jeb",
-  seat: "pilot",
-  vantageId: "vessel:abc",
+  seat: "pilot" as const,
+  vantageId: ARES,
 };
-const GROUND_VANTAGE: Vantage = { seat: "mission-control", vantageId: "ksc" };
-const ABOARD_VANTAGE: Vantage = { seat: "pilot", vantageId: "vessel:abc" };
 
-/** Minimal PeerHostService stub: only the surface the thread's bridge uses. */
-function fakePeerHost() {
-  let sendCb:
-    | ((
-        peerId: string,
-        msg: Extract<PeerMessage, { type: "commcast-send" }>,
-      ) => void)
-    | null = null;
-  let readCb:
-    | ((
-        peerId: string,
-        msg: Extract<PeerMessage, { type: "commcast-read" }>,
-      ) => void)
-    | null = null;
-  let infoCb:
-    | ((
-        peerId: string,
-        info: {
-          name: string;
-          stationKey?: string;
-          seat?: "pilot" | "mission-control";
-        },
-      ) => void)
-    | null = null;
-  let onBroadcast: ((msg: PeerMessage) => void) | null = null;
+type Transmit = Extract<PeerMessage, { type: "commcast-transmit" }>;
+type Ack = Extract<PeerMessage, { type: "commcast-ack" }>;
+
+/**
+ * The star, wired by hand: peers speak only to the host, and the host repeats
+ * what it hears. Every frame reaches every participant, which is the property
+ * the addressing rule has to survive.
+ */
+function fakeMesh() {
+  const fromPeers: Array<(peerId: string, msg: PeerMessage) => void> = [];
+  const toPeers: Array<(msg: PeerMessage) => void> = [];
+
+  const host = {
+    broadcast: (msg: PeerMessage) => {
+      for (const cb of toPeers) cb(msg);
+    },
+    onCommcastTransmit: (cb: (peerId: string, msg: Transmit) => void) => {
+      const fn = (peerId: string, msg: PeerMessage) => {
+        if (msg.type === "commcast-transmit") cb(peerId, msg);
+      };
+      fromPeers.push(fn);
+      return () => {
+        fromPeers.splice(fromPeers.indexOf(fn), 1);
+      };
+    },
+    onCommcastAck: (cb: (peerId: string, msg: Ack) => void) => {
+      const fn = (peerId: string, msg: PeerMessage) => {
+        if (msg.type === "commcast-ack") cb(peerId, msg);
+      };
+      fromPeers.push(fn);
+      return () => {
+        fromPeers.splice(fromPeers.indexOf(fn), 1);
+      };
+    },
+  } as unknown as PeerHostService;
+
+  function peer(): PeerClientService {
+    return {
+      sendCommcastMessage: (msg: Transmit["msg"]) => {
+        for (const cb of fromPeers)
+          cb("peer", { type: "commcast-transmit", msg });
+      },
+      sendCommcastAck: (ack: Ack["ack"]) => {
+        for (const cb of fromPeers) cb("peer", { type: "commcast-ack", ack });
+      },
+      onCommcastTransmit: (cb: (msg: Transmit["msg"]) => void) => {
+        const fn = (msg: PeerMessage) => {
+          if (msg.type === "commcast-transmit") cb(msg.msg);
+        };
+        toPeers.push(fn);
+        return () => {
+          toPeers.splice(toPeers.indexOf(fn), 1);
+        };
+      },
+      onCommcastAck: (cb: (ack: Ack["ack"]) => void) => {
+        const fn = (msg: PeerMessage) => {
+          if (msg.type === "commcast-ack") cb(msg.ack);
+        };
+        toPeers.push(fn);
+        return () => {
+          toPeers.splice(toPeers.indexOf(fn), 1);
+        };
+      },
+    } as unknown as PeerClientService;
+  }
+
+  return { host, peer };
+}
+
+function memoryStorage(): Storage {
+  const m = new Map<string, string>();
   return {
-    broadcast(msg: PeerMessage) {
-      onBroadcast?.(msg);
+    get length() {
+      return m.size;
     },
-    onCommcastSend(cb: NonNullable<typeof sendCb>) {
-      sendCb = cb;
-      return () => {
-        sendCb = null;
-      };
+    clear: () => m.clear(),
+    key: (i: number) => [...m.keys()][i] ?? null,
+    getItem: (k: string) => m.get(k) ?? null,
+    setItem: (k: string, v: string) => {
+      m.set(k, String(v));
     },
-    onCommcastRead(cb: NonNullable<typeof readCb>) {
-      readCb = cb;
-      return () => {
-        readCb = null;
-      };
+    removeItem: (k: string) => {
+      m.delete(k);
     },
-    onStationInfo(cb: NonNullable<typeof infoCb>) {
-      infoCb = cb;
-      return () => {
-        infoCb = null;
-      };
-    },
-    feed(msg: PeerMessage, peerId = "peer-1") {
-      if (msg.type === "commcast-send") sendCb?.(peerId, msg);
-      if (msg.type === "commcast-read") readCb?.(peerId, msg);
-    },
-    feedStationInfo(
-      peerId: string,
-      info: Parameters<NonNullable<typeof infoCb>>[1],
-    ) {
-      infoCb?.(peerId, info);
-    },
-    setOnBroadcast(cb: (msg: PeerMessage) => void) {
-      onBroadcast = cb;
-    },
-  };
+  } as Storage;
 }
 
-/** Minimal PeerClientService stub. */
-function fakePeerClient() {
-  let snapCb: ((snap: never) => void) | null = null;
-  let outgoing: PeerMessage[] = [];
-  return {
-    onCommcastSnapshot(cb: (snap: never) => void) {
-      snapCb = cb;
-      return () => {
-        snapCb = null;
-      };
-    },
-    sendCommcastMessage(author: CommsParticipant, input: unknown) {
-      outgoing.push({ type: "commcast-send", author, input } as PeerMessage);
-    },
-    sendCommcastRead(
-      reader: CommsParticipant,
-      messageIds: string[],
-      atUt: number,
-    ) {
-      outgoing.push({
-        type: "commcast-read",
-        reader,
-        messageIds,
-        atUt,
-      } as PeerMessage);
-    },
-    deliver(msg: PeerMessage) {
-      if (msg.type === "commcast-snapshot") snapCb?.(msg.snapshot as never);
-    },
-    drainOutgoing(): PeerMessage[] {
-      const out = outgoing;
-      outgoing = [];
-      return out;
-    },
-  };
+/** One participant: its own log, attached to its own end of the mesh. */
+function participant(
+  screenKey: string,
+  vantageId: string,
+  attach: (log: CommcastLog) => CommcastMesh,
+) {
+  const log = new CommcastLog({ screenKey, storage: memoryStorage() });
+  log.setVantage(vantageId);
+  const mesh = attach(log);
+  log.setTransmitter(mesh);
+  return { log, mesh };
 }
 
-function wire() {
-  localStorage.clear();
-  const host = fakePeerHost();
-  const client = fakePeerClient();
-  const hostSvc = new CommcastHostService();
-  const bridge = new CommcastPeerBridge(host as unknown as PeerHostService, {
-    post: (author, input) => {
-      hostSvc.post(author, input);
-    },
-    markRead: (reader, ids, atUt) => hostSvc.markRead(reader, ids, atUt),
-    noteParticipant: (p) => hostSvc.noteParticipant(p),
-  });
-  hostSvc.subscribe((snap) => bridge.broadcastSnapshot(snap));
-  host.setOnBroadcast((msg) => client.deliver(msg));
-  const clientSvc = new CommcastClientService(
-    client as unknown as PeerClientService,
-  );
-  return { host, client, hostSvc, clientSvc };
-}
-
+const meshes: CommcastMesh[] = [];
 afterEach(() => {
-  localStorage.clear();
-  PerfBudget.getAll()
-    .find((b) => b.name === "CommcastHostService snapshots/sec")
-    ?.reset();
+  for (const m of meshes.splice(0)) m.dispose();
+  for (const b of PerfBudget.getAll()) b.reset();
 });
 
-describe("Commcast, host to peer and back", () => {
-  it("carries a peer's message into the canonical thread and back to every peer", () => {
-    const { host, client, hostSvc, clientSvc } = wire();
+function scene() {
+  const wire = fakeMesh();
+  const ground = participant("ksc-1", KSC, (log) =>
+    CommcastMesh.forHost(wire.host, "ksc-1", {
+      onMessage: (msg) => log.receiveTransmission(msg),
+      onAck: (ack) => log.receiveAck(ack),
+    }),
+  );
+  const aboard = participant("pilot-1", ARES, (log) =>
+    CommcastMesh.forClient(wire.peer(), "pilot-1", {
+      onMessage: (msg) => log.receiveTransmission(msg),
+      onAck: (ack) => log.receiveAck(ack),
+    }),
+  );
+  const range = participant("woomera-1", WOOMERA, (log) =>
+    CommcastMesh.forClient(wire.peer(), "woomera-1", {
+      onMessage: (msg) => log.receiveTransmission(msg),
+      onAck: (ack) => log.receiveAck(ack),
+    }),
+  );
+  meshes.push(ground.mesh, aboard.mesh, range.mesh);
+  return { ground, aboard, range };
+}
 
-    clientSvc.send(PILOT, {
+describe("Commcast, addressed across the mesh", () => {
+  it("reaches the vantage it names and NOBODY else", () => {
+    const { ground, aboard, range } = scene();
+    ground.log.send(FLIGHT, {
       kind: "text",
-      body: "staging nominal",
+      body: "Ares, Kennedy. Go for the burn.",
+      to: [ARES],
       sentUt: 1000,
-      oneWaySeconds: 240,
-      authorVantageId: "vessel:abc",
+      separationSeconds: LIGHT_TIME,
     });
-    for (const msg of client.drainOutgoing()) host.feed(msg);
-
-    expect(hostSvc.snapshot().messages).toHaveLength(1);
-    /*
-     * The peer's own copy comes back through the snapshot round-trip, never
-     * from an optimistic local write: a message the host never received must
-     * not sit in the author's thread looking delivered.
-     */
-    expect(clientSvc.snapshot().messages[0]?.body).toBe("staging nominal");
-    expect(clientSvc.snapshot().messages[0]?.authorSeat).toBe("pilot");
+    // Woomera saw the frame go past, because the star gives it no choice, and
+    // kept nothing. That is the whole ownership rule in one assertion.
+    expect(aboard.log.snapshot().pending).toHaveLength(1);
+    expect(range.log.snapshot().pending).toHaveLength(0);
+    expect(range.log.snapshot().inbox).toHaveLength(0);
   });
 
-  it("reveals the SAME message at two seats at two different instants", () => {
-    // The whole feature in one assertion.
-    const { host, client, hostSvc, clientSvc } = wire();
-    clientSvc.send(PILOT, {
+  it("leaves the relay holding nothing on anybody else's behalf", () => {
+    const { ground, aboard } = scene();
+    aboard.log.send(JEB, {
       kind: "text",
-      body: "burn complete",
+      body: "Woomera, Ares. Reading you.",
+      to: [WOOMERA],
       sentUt: 1000,
-      oneWaySeconds: 240,
-      authorVantageId: "vessel:abc",
+      separationSeconds: LIGHT_TIME,
     });
-    for (const msg of client.drainOutgoing()) host.feed(msg);
-
-    const msg = hostSvc.snapshot().messages[0];
-    if (!msg) throw new Error("no message");
-
-    // Aboard, where it was spoken: visible immediately.
-    expect(deliveryFor(msg, ABOARD_VANTAGE, 1000).state).toBe("revealed");
-    // On the ground, a light-time later, and not one second sooner.
-    expect(deliveryFor(msg, GROUND_VANTAGE, 1239).state).toBe("in-transit");
-    expect(deliveryFor(msg, GROUND_VANTAGE, 1240).state).toBe("revealed");
+    // The ground is the ROUTER for this message and not its owner: it repeated
+    // the frame and kept no copy. A host-authoritative thread would have one.
+    expect(ground.log.snapshot().inbox).toHaveLength(0);
+    expect(ground.log.snapshot().pending).toHaveLength(0);
   });
 
-  it("hands a peer that connects mid-flight the whole thread", () => {
-    // The offline-delivery case, which is why the thread is host-authoritative
-    // at all: `broadcast()` only reaches peers connected right now.
-    const { hostSvc } = wire();
-    hostSvc.post(KSC, {
+  it("confirms the author a FULL round trip after they spoke", () => {
+    const { ground, aboard } = scene();
+    const msg = ground.log.send(FLIGHT, {
       kind: "text",
-      body: "we lost you at AOS",
-      sentUt: 500,
-      oneWaySeconds: 240,
+      body: "Ares, Kennedy. Go for the burn.",
+      to: [ARES],
+      sentUt: 1000,
+      separationSeconds: LIGHT_TIME,
     });
-
-    const latecomer = fakePeerClient();
-    const late = new CommcastClientService(
-      latecomer as unknown as PeerClientService,
-    );
-    expect(late.snapshot().messages).toHaveLength(0);
-    // What `createCommcastHost` sends on `onPeerConnect`.
-    latecomer.deliver({
-      type: "commcast-snapshot",
-      snapshot: hostSvc.snapshot(),
-    } as PeerMessage);
-    expect(late.snapshot().messages[0]?.body).toBe("we lost you at AOS");
-  });
-
-  it("patches an author named after the fact, from station-info", () => {
-    const { host, client, hostSvc, clientSvc } = wire();
-    clientSvc.send(
-      { ...PILOT, name: "" },
-      {
-        kind: "text",
-        body: "who am I",
-        sentUt: 1000,
-        oneWaySeconds: 240,
-      },
-    );
-    for (const msg of client.drainOutgoing()) host.feed(msg);
-    expect(hostSvc.snapshot().messages[0]?.authorName).toBe("Pilot");
-
-    host.feedStationInfo("peer-1", {
-      name: "Jeb",
+    // At 1240 it lands aboard and is acknowledged at that instant.
+    aboard.log.release(msg.id, {
+      from: ARES,
       stationKey: "pilot-1",
       seat: "pilot",
+      atUt: 1000 + LIGHT_TIME,
     });
-    expect(hostSvc.snapshot().messages[0]?.authorName).toBe("Jeb");
-    // And the peer's mirror is updated by the same broadcast, not left stale.
-    expect(clientSvc.snapshot().messages[0]?.authorName).toBe("Jeb");
+    const out = () => ground.log.snapshot().outbox[0];
+    expect(sentPhaseFor(out(), GROUND, 1479)).toBe("awaiting-reply");
+    expect(sentPhaseFor(out(), GROUND, 1480)).toBe("confirmed");
+    // Which is also when the author's own words enter their own log: an echo
+    // after the round trip, the kOS terminal's rule on a spoken line.
+    expect(sentArrivalUtFor(out(), GROUND, 1480)).toBe(1480);
   });
 
-  it("reads a peer's seat off station-info, defaulting a silent one to the ground", () => {
-    const { host, hostSvc } = wire();
-    host.feedStationInfo("peer-2", { name: "Old Client", stationKey: "old-1" });
-    expect(hostSvc.knownParticipants()).toContainEqual({
-      stationKey: "old-1",
-      name: "Old Client",
-      seat: "mission-control",
-    });
-  });
-
-  it("carries a read receipt back and delays it across the same separation", () => {
-    const { host, client, hostSvc, clientSvc } = wire();
-    hostSvc.post(KSC, {
+  it("gives two vantages different SETS, not merely different orders", () => {
+    const { ground, aboard, range } = scene();
+    ground.log.send(FLIGHT, {
       kind: "text",
-      body: "go for burn",
+      body: "for the crew",
+      to: [ARES],
       sentUt: 1000,
-      oneWaySeconds: 240,
+      separationSeconds: LIGHT_TIME,
     });
-    const id = hostSvc.snapshot().messages[0]?.id;
-    if (!id) throw new Error("no message");
+    ground.log.send(FLIGHT, {
+      kind: "text",
+      body: "for the range",
+      to: [WOOMERA],
+      sentUt: 1010,
+      separationSeconds: 12,
+    });
+    expect(aboard.log.snapshot().pending.map((m) => m.body)).toEqual([
+      "for the crew",
+    ]);
+    expect(range.log.snapshot().pending.map((m) => m.body)).toEqual([
+      "for the range",
+    ]);
+  });
 
-    clientSvc.markRead(PILOT, [id], 1300);
-    for (const msg of client.drainOutgoing()) host.feed(msg);
+  it("delivers ONE message when a resend and its original both arrive", () => {
+    const { ground, aboard } = scene();
+    const msg = ground.log.send(FLIGHT, {
+      kind: "text",
+      body: "do you copy",
+      to: [ARES],
+      sentUt: 1000,
+      separationSeconds: LIGHT_TIME,
+    });
+    ground.log.resend(msg.id, 2000, LIGHT_TIME);
+    expect(aboard.log.snapshot().pending).toHaveLength(1);
+  });
 
-    const msg = hostSvc.snapshot().messages[0];
-    if (!msg) throw new Error("no message");
-    expect(msg.readBy).toHaveLength(1);
-    // The ground learns they read it one light-time after they did, not at the
-    // instant they tapped.
-    const seen = (utNow: number) =>
-      msg.readBy.filter(
-        (r) => utNow >= r.atUt + (r.seat === "mission-control" ? 0 : 240),
-      ).length;
-    expect(seen(1400)).toBe(0);
-    expect(seen(1540)).toBe(1);
+  it("carries an acknowledgement back to the author and to nobody else", () => {
+    const { ground, aboard, range } = scene();
+    const msg = ground.log.send(FLIGHT, {
+      kind: "text",
+      body: "do you copy",
+      to: [ARES],
+      sentUt: 1000,
+      separationSeconds: LIGHT_TIME,
+    });
+    aboard.log.release(msg.id, {
+      from: ARES,
+      stationKey: "pilot-1",
+      seat: "pilot",
+      atUt: 1240,
+    });
+    expect(ground.log.snapshot().outbox[0].acks).toHaveLength(1);
+    // Woomera has no outbox entry for it, so the ack it saw pass changed
+    // nothing there.
+    expect(range.log.snapshot().outbox).toHaveLength(0);
+  });
+
+  it("never transmits a message with no path, and keeps it for the author", () => {
+    const { ground, aboard } = scene();
+    ground.log.send(FLIGHT, {
+      kind: "text",
+      body: "Ares, do you read",
+      to: [ARES],
+      sentUt: 1000,
+      separationSeconds: null,
+    });
+    expect(aboard.log.snapshot().pending).toHaveLength(0);
+    const [out] = ground.log.snapshot().outbox;
+    expect(out.neverLeft).toBe(true);
+    // Unconfirmed and recoverable: the author still has their words, and the
+    // one action attached to them is a resend.
+    expect(sentPhaseFor(out, GROUND, 9999)).toBe("lost");
+    expect(sentArrivalUtFor(out, GROUND, 1000)).toBe(1000);
+  });
+
+  it("ignores its own frames coming back round the relay", () => {
+    const { ground } = scene();
+    ground.log.send(FLIGHT, {
+      kind: "text",
+      body: "to the crew",
+      to: [KSC],
+      sentUt: 1000,
+      separationSeconds: 0,
+    });
+    // Addressed to its OWN vantage, so the echo would land in its own inbox if
+    // the author filter keyed on the vantage rather than on the station.
+    expect(ground.log.snapshot().pending).toHaveLength(0);
+  });
+
+  it("stays inside its transmission budget on an ordinary exchange", () => {
+    const { ground, aboard } = scene();
+    const msg = ground.log.send(FLIGHT, {
+      kind: "text",
+      body: "do you copy",
+      to: [ARES],
+      sentUt: 1000,
+      separationSeconds: LIGHT_TIME,
+    });
+    aboard.log.release(msg.id, {
+      from: ARES,
+      stationKey: "pilot-1",
+      seat: "pilot",
+      atUt: 1240,
+    });
+    const budget = PerfBudget.getAll().find(
+      (b) => b.name === "CommcastLog transmissions/sec",
+    );
+    expect(budget?.getExceedanceCount()).toBe(0);
+  });
+});
+
+/** A station reading at the host's vantage is genuinely co-located with it. */
+describe("Commcast, a station beside its host", () => {
+  it("hears a message addressed to the vantage they share", () => {
+    const wire = fakeMesh();
+    const host = participant("ksc-1", KSC, (log) =>
+      CommcastMesh.forHost(wire.host, "ksc-1", {
+        onMessage: (msg) => log.receiveTransmission(msg),
+        onAck: (ack) => log.receiveAck(ack),
+      }),
+    );
+    const station = participant("station-1", KSC, (log) =>
+      CommcastMesh.forClient(wire.peer(), "station-1", {
+        onMessage: (msg) => log.receiveTransmission(msg),
+        onAck: (ack) => log.receiveAck(ack),
+      }),
+    );
+    const aboard = participant("pilot-1", ARES, (log) =>
+      CommcastMesh.forClient(wire.peer(), "pilot-1", {
+        onMessage: (msg) => log.receiveTransmission(msg),
+        onAck: (ack) => log.receiveAck(ack),
+      }),
+    );
+    meshes.push(host.mesh, station.mesh, aboard.mesh);
+    aboard.log.send(JEB, {
+      kind: "text",
+      body: "Kennedy, Ares. Burn complete.",
+      to: [KSC],
+      sentUt: 1000,
+      separationSeconds: LIGHT_TIME,
+    });
+    expect(host.log.snapshot().pending).toHaveLength(1);
+    expect(station.log.snapshot().pending).toHaveLength(1);
+    // And it reaches them at the same instant, because they are at one vantage.
+    expect(
+      sentArrivalUtFor(aboard.log.snapshot().outbox[0], ABOARD, 1000),
+    ).toBeUndefined();
   });
 });

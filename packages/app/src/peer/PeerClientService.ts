@@ -83,7 +83,8 @@ type ClientEventMap = {
   alarmFired: [fire: { id: string; name: string; ut: number }];
   triggerSnapshot: [snap: import("@ksp-gonogo/components").TriggerSnapshot];
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
-  commcastSnapshot: [snap: import("../commcast/types").CommcastSnapshot];
+  commcastTransmit: [msg: import("../commcast/types").CommsMessage];
+  commcastAck: [ack: import("../commcast/types").CommsAck];
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
   flightChange: [flight: FlightRecord | null];
@@ -500,28 +501,12 @@ export class PeerClientService {
    * as every other client send in this file. The thread surfaces that rather
    * than pretending: see the widget's disconnected state.
    */
-  sendCommcastMessage(
-    author: import("../commcast/types").CommsParticipant,
-    input: import("../commcast/types").CommsSendInput,
-  ) {
-    this.conn?.send({
-      type: "commcast-send",
-      author,
-      input,
-    } satisfies PeerMessage);
+  sendCommcastMessage(msg: import("../commcast/types").CommsMessage) {
+    this.conn?.send({ type: "commcast-transmit", msg } satisfies PeerMessage);
   }
 
-  sendCommcastRead(
-    reader: import("../commcast/types").CommsParticipant,
-    messageIds: string[],
-    atUt: number,
-  ) {
-    this.conn?.send({
-      type: "commcast-read",
-      reader,
-      messageIds,
-      atUt,
-    } satisfies PeerMessage);
+  sendCommcastAck(ack: import("../commcast/types").CommsAck) {
+    this.conn?.send({ type: "commcast-ack", ack } satisfies PeerMessage);
   }
 
   sendAlarmWarpIntent(index: number) {
@@ -912,10 +897,14 @@ export class PeerClientService {
     return this.events.on("notesSnapshot", cb);
   }
 
-  onCommcastSnapshot(
-    cb: (snap: import("../commcast/types").CommcastSnapshot) => void,
+  onCommcastTransmit(
+    cb: (msg: import("../commcast/types").CommsMessage) => void,
   ) {
-    return this.events.on("commcastSnapshot", cb);
+    return this.events.on("commcastTransmit", cb);
+  }
+
+  onCommcastAck(cb: (ack: import("../commcast/types").CommsAck) => void) {
+    return this.events.on("commcastAck", cb);
   }
 
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
@@ -1063,8 +1052,11 @@ export class PeerClientService {
     "notes-snapshot": (msg) => {
       this.events.emit("notesSnapshot", msg.snapshot);
     },
-    "commcast-snapshot": (msg) => {
-      this.events.emit("commcastSnapshot", msg.snapshot);
+    "commcast-transmit": (msg) => {
+      this.events.emit("commcastTransmit", msg.msg);
+    },
+    "commcast-ack": (msg) => {
+      this.events.emit("commcastAck", msg.ack);
     },
     "alarm-fired": (msg) => {
       this.events.emit("alarmFired", {
