@@ -13,6 +13,13 @@ namespace Gonogo.KSP.CommandCentres
     /// pass. Keyed <c>vessel:&lt;guid&gt;</c> so the authority matrix can self-exclude
     /// a crewed centre from its own subject row. The enumerator is injectable for
     /// testability (run at the full-sln fold; this worktree has no KSP refs).
+    ///
+    /// <para>A control source is not automatically a centre: it must also be
+    /// REACHABLE, see <see cref="CommandCentreReach"/>. Nothing stops a config
+    /// patch making a part a control point without also giving it an antenna, and
+    /// the flag alone then put a node with no possible link on the operator's
+    /// vantage list. A crewed craft that carries no antenna is excluded for
+    /// exactly the same reason, which is the whole of the rule.</para>
     /// </summary>
     public sealed class CrewedVesselSource : ICommandCentreSource
     {
@@ -38,6 +45,20 @@ namespace Gonogo.KSP.CommandCentres
 
                 var comm = vessel.connection?.Comm;
                 if (comm == null || !comm.isControlSource)
+                {
+                    continue;
+                }
+
+                // isControlSource says a command that ARRIVES here may be obeyed.
+                // It says nothing about whether anything can arrive, and a seat
+                // CommNet can never route to is not a command centre. See
+                // CommandCentreReach for stock's own gate and for why the antenna
+                // parts are asked as well as the node's powers.
+                if (!CommandCentreReach.CanBeReached(
+                        comm.antennaTransmit?.power ?? 0.0,
+                        comm.antennaRelay?.power ?? 0.0,
+                        AntennaCandidateParts(vessel),
+                        CarriesCommAntenna))
                 {
                     continue;
                 }
@@ -68,6 +89,64 @@ namespace Gonogo.KSP.CommandCentres
                     latitude: latitude,
                     longitude: longitude);
             }
+        }
+
+        /// <summary>
+        /// The parts the antenna walk should look at, or null when the craft's parts
+        /// cannot be read at all. Mirrors what <c>CommNetVessel.UpdateComm</c> itself
+        /// walks: the live parts while loaded, and each proto part's PREFAB while on
+        /// rails, which is where an unloaded craft's modules are declared.
+        /// </summary>
+        private static IEnumerable<Part>? AntennaCandidateParts(Vessel vessel)
+        {
+            if (vessel.loaded)
+            {
+                return vessel.parts;
+            }
+
+            var snapshots = vessel.protoVessel?.protoPartSnapshots;
+            return snapshots == null ? null : PrefabsOf(snapshots);
+        }
+
+        private static IEnumerable<Part> PrefabsOf(IEnumerable<ProtoPartSnapshot> snapshots)
+        {
+            foreach (var snapshot in snapshots)
+            {
+                var prefab = snapshot?.partInfo?.partPrefab;
+                if (prefab != null)
+                {
+                    yield return prefab;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Whether one part carries a CommNet antenna. <see cref="ICommAntenna"/> is
+        /// the interface CommNet itself counts as an antenna, and the antenna modules
+        /// a replacement range model ships derive from <c>ModuleDataTransmitter</c>,
+        /// so the question holds across networks; see <see cref="CommandCentreReach"/>.
+        ///
+        /// <para>Presence, not <c>CanComm()</c>: a retracted or unpowered dish is a
+        /// craft that cannot be reached RIGHT NOW, which the roster has no business
+        /// reacting to. What is being asked is whether it can ever be reached.</para>
+        /// </summary>
+        private static bool CarriesCommAntenna(Part part)
+        {
+            var modules = part?.Modules;
+            if (modules == null)
+            {
+                return false;
+            }
+
+            for (var i = 0; i < modules.Count; i++)
+            {
+                if (modules[i] is ICommAntenna)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>

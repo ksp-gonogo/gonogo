@@ -935,6 +935,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   realantennas: {
     domainDebt: [],
     permanent: [
+      /*
+       * -- CITED EVIDENCE (2026-09-03): the command-centre reachability rule
+       * asks two questions, the node's stock antenna budget and whether any
+       * part carries an `ICommAntenna`, and the second only earns its place
+       * because a network that replaces stock's range model zeroes the first
+       * for every vessel in the game. This mod is the one that does it, so
+       * naming it is what makes the claim checkable against a shipped
+       * assembly; left generic, the part walk reads as belt-and-braces and
+       * invites deletion. Text only, in a doc comment: the rule references no
+       * type of the Uplink's, compiles without it, and behaves identically
+       * whether it is installed or not.
+       */
+      "mod/Gonogo.KSP/CommandCentres/CommandCentreReach.cs",
       // The declaration-reachability ratchet's debt list: an inventory of
       // declared Topics/commands with no client consumer, so it names the wire
       // ids of every Uplink that has one. Inventory, not coupling: nothing here
