@@ -1205,6 +1205,48 @@ describe("AstronautComplexComponent", () => {
   });
 
   /**
+   * The card's top-right corner, which is a different question from the crew
+   * slot underneath it. That one is a BLOCK of readings under the name, so
+   * anything put in it is read after the identity; a corner mark is read WITH
+   * it, at a glance down a roster, without any of the rows having to be read at
+   * all. A career overhaul owns marks of that kind (a kerbal RP-1 has on a
+   * course still stands as Available on KSP's own roster, so the host's own
+   * unavailable badge cannot say it) and there was nowhere to put one.
+   */
+  it("renders a bound corner augment in the identity line, beside the sack control", async () => {
+    registerAugment<"astronaut-complex.crew-badge">({
+      id: "test-crew-corner",
+      augments: "astronaut-complex.crew-badge",
+      component: ({ kerbalName }) => (
+        <span data-testid="crew-corner">{kerbalName} corner</span>
+      ),
+    });
+
+    const user = userEvent.setup();
+    renderWidget();
+    act(() => {
+      emitFunds(fixture, 500000);
+      emitComplex(fixture, {
+        applicants: APPLICANTS,
+        activeCrew: CREW_ROSTER.length,
+        crewCapacity: 13,
+        nextHireCost: NEXT_HIRE_COST,
+      });
+      emitCrewRoster(fixture, CREW_ROSTER);
+    });
+
+    await user.click(await screen.findByRole("tab", { name: "Active" }));
+    await user.click(await screen.findByRole("tab", { name: "Available (1)" }));
+
+    const corner = await screen.findByText("Bill Kerman corner");
+    const fire = screen.getByRole("button", { name: /^Fire Bill Kerman/ });
+    /* The corner mark and the sack control are in ONE group at the end of the
+       identity line: that group is the card's top right, and a mark placed
+       anywhere else is not the thing that was asked for. */
+    expect(fire.parentElement).toContainElement(corner);
+  });
+
+  /**
    * A row whose standing did not arrive is bucketed as Unknown rather than
    * dropped or quietly folded onto Available. Unknown is a third answer: the
    * kerbal exists and where they stand is not known.

@@ -105,8 +105,34 @@ export interface AstronautComplexCrewContext {
 declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "astronaut-complex.crew": AstronautComplexCrewContext;
+    "astronaut-complex.crew-badge": AstronautComplexCrewContext;
   }
 }
+
+/**
+ * The `astronaut-complex.crew-badge` slot: the top-right corner of a kerbal's
+ * card, at the end of the identity line, beside whichever action that list
+ * offers.
+ *
+ * <p>A different question from `astronaut-complex.crew`, which is why it is a
+ * second slot and not a rearrangement of the first. That one is a BLOCK of
+ * readings under the name: dates, a course, a deadline, each one read on its own
+ * terms once an operator has settled on a kerbal. A corner mark is read WITH the
+ * name, scanning a roster, without any of the rows underneath being read at all.
+ * A mark placed in the block cannot be scanned for, and a reading placed in the
+ * corner has nowhere to say what it is.</p>
+ *
+ * <p>Nothing under stock puts a mark there, and that is the point: KSP's own
+ * roster status is the whole of what stock knows, and the host already draws it
+ * through the unavailable badge on the identity line. A career overhaul has
+ * states KSP's roster does not carry at all, a kerbal mid-course still reads
+ * `Available` to KSP, so the host cannot derive the mark and must not try.</p>
+ *
+ * <p>Same props as the crew slot, because it is the same subject seen from a
+ * different distance, and an augment filling both should not have to learn two
+ * shapes.</p>
+ */
+const ASTRONAUT_COMPLEX_CREW_BADGE_SLOT = "astronaut-complex.crew-badge";
 
 /**
  * KSP's `int.MaxValue`, the literal sentinel `GameVariables.GetActiveCrewLimit`
@@ -609,19 +635,32 @@ function ApplicantsPanel({
                   showInfo
                 />
               </Who>
-              <HireButton
-                applicantName={a.name}
-                hireCost={hireCost}
-                enabled={canHire}
-                disabledReason={
-                  rosterFull
-                    ? "Roster full"
-                    : !affordable
-                      ? "Insufficient funds"
-                      : undefined
-                }
-                hireCmd={hireCmd}
-              />
+              {/* The corner: whatever mark the career model wants read WITH
+                  this name, then the action. An applicant gets one too, for the
+                  same reason they get the crew slot. */}
+              <Cluster align="center" gap="xs">
+                <AugmentSlot
+                  name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
+                  props={{
+                    kerbalName: a.name,
+                    standing: CrewStanding.Applicant,
+                    isApplicant: true,
+                  }}
+                />
+                <HireButton
+                  applicantName={a.name}
+                  hireCost={hireCost}
+                  enabled={canHire}
+                  disabledReason={
+                    rosterFull
+                      ? "Roster full"
+                      : !affordable
+                        ? "Insufficient funds"
+                        : undefined
+                  }
+                  hireCmd={hireCmd}
+                />
+              </Cluster>
             </Cluster>
             {/* An applicant has a schedule too under a career overhaul: RP-1
                 gives an applicant a retirement date and retires them out of the
@@ -737,9 +776,24 @@ function ActivePanel({
                         showInfo
                       />
                     </Who>
-                    {fireable && (
-                      <FireButton kerbalName={m.name} fireCmd={fireCmd} />
-                    )}
+                    {/* The corner, then the sack control. A career overhaul
+                        knows things about this kerbal that KSP's roster status
+                        does not carry (a naut mid-course still reads
+                        `Available` to KSP), and the corner is where a mark is
+                        read WITH the name rather than in the block below it. */}
+                    <Cluster align="center" gap="xs">
+                      <AugmentSlot
+                        name={ASTRONAUT_COMPLEX_CREW_BADGE_SLOT}
+                        props={{
+                          kerbalName: m.name,
+                          standing: m.standing,
+                          isApplicant: false,
+                        }}
+                      />
+                      {fireable && (
+                        <FireButton kerbalName={m.name} fireCmd={fireCmd} />
+                      )}
+                    </Cluster>
                   </Cluster>
                   {/* This kerbal's schedule, contributed by whichever Uplink
                       manages their career: a retirement date, a training ETA,
@@ -1095,7 +1149,7 @@ registerComponent<AstronautComplexConfig>({
   id: "astronaut-complex",
   name: "Astronaut Complex",
   description:
-    "Astronaut Complex: funds, single next-hire cost and the active/max crew cap (unlimited-aware) in a core-stat strip, then Applicants and Active tabs. The strip takes further cells from the astronaut-complex.readouts contribution slot, so the career model running the save can put what IT considers core beside the three vanilla figures, in the same cell treatment and the same row. Applicants shows each candidate through the shared crew-stat row (trait, courage, stupidity) with a per-row arm-then-confirm Hire action disabled when funds are short or the roster is at the facility cap. Active is itself tabbed, one sub-tab per CrewStanding present on the roster (Available/Assigned/Retired/Dead/Missing), each showing name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row, plus a RESTING badge for a kerbal standing down after a flight. The Available sub-tab additionally carries an arm-then-confirm Fire action at the end of each identity line (no cost, reversible). Every row exposes an astronaut-complex.crew augment slot so a career-overhaul Uplink can render that kerbal's retirement date, training ETA and lapsing training, and an astronaut-complex.training slot adds a whole tab beside Applicants and Active for the courses that career is running.",
+    "Astronaut Complex: funds, single next-hire cost and the active/max crew cap (unlimited-aware) in a core-stat strip, then Applicants and Active tabs. The strip takes further cells from the astronaut-complex.readouts contribution slot, so the career model running the save can put what IT considers core beside the three vanilla figures, in the same cell treatment and the same row. Applicants shows each candidate through the shared crew-stat row (trait, courage, stupidity) with a per-row arm-then-confirm Hire action disabled when funds are short or the roster is at the facility cap. Active is itself tabbed, one sub-tab per CrewStanding present on the roster (Available/Assigned/Retired/Dead/Missing), each showing name/role/courage/stupidity/rank/experience-toward-next-rank via the shared crew-stat row, plus a RESTING badge for a kerbal standing down after a flight. The Available sub-tab additionally carries an arm-then-confirm Fire action at the end of each identity line (no cost, reversible). Every row exposes an astronaut-complex.crew augment slot so a career-overhaul Uplink can render that kerbal's retirement date, training ETA and lapsing training, and an astronaut-complex.crew-badge slot at the top right of the same card for a mark that has to be read WITH the name while scanning the roster rather than in the block underneath it. An astronaut-complex.training slot adds a whole tab beside Applicants and Active for the courses that career is running.",
   tags: ["career", "crew", "kc"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 3, h: 4 },
@@ -1104,7 +1158,11 @@ registerComponent<AstronautComplexConfig>({
   fields: topics.fields,
   defaultConfig: {},
   actions: astronautComplexActions,
-  augmentSlots: ["astronaut-complex.crew", ASTRONAUT_COMPLEX_TRAINING_SLOT],
+  augmentSlots: [
+    "astronaut-complex.crew",
+    ASTRONAUT_COMPLEX_CREW_BADGE_SLOT,
+    ASTRONAUT_COMPLEX_TRAINING_SLOT,
+  ],
   contributionSlots: [ASTRONAUT_COMPLEX_READOUTS_SLOT],
   pushable: true,
 });

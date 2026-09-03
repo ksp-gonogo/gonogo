@@ -304,21 +304,21 @@ describe("CrewSchedule", () => {
     ]);
 
     await waitFor(() => {
-      expect(screen.getByText("TRAINING")).toBeInTheDocument();
+      expect(visibleText()).toContain("Mission training: Mun");
     });
     const text = visibleText();
-    expect(text).toContain("Mission training: Mun");
     expect(text).not.toContain("finishes");
     expect(text).not.toContain("25");
     await expectNoA11yViolations(view.container);
   });
 
   /**
-   * Enrolment and progress are separate facts. RP-1 lets a course sit unstarted
-   * indefinitely, and an operator who reads enrolment as progress will plan a
-   * mission around a crew that is not being trained.
+   * The line names the course whether or not anybody has started it, and says
+   * nothing else either way. Whether it is RUNNING is the corner mark's job
+   * (`badge.tsx`), read while scanning the roster rather than in this block; it
+   * used to lead this line, which is where the two facts were conflated.
    */
-  it("distinguishes an enrolled course from a running one", async () => {
+  it("names an unstarted course the same as a running one", async () => {
     const { fixture } = mountSchedule();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.crewProgram", PROGRAM);
@@ -333,8 +333,9 @@ describe("CrewSchedule", () => {
     ]);
 
     await waitFor(() => {
-      expect(screen.getByText("ENROLLED")).toBeInTheDocument();
+      expect(visibleText()).toContain("Proficiency: LR79");
     });
+    expect(screen.queryByText("ENROLLED")).not.toBeInTheDocument();
     expect(screen.queryByText("TRAINING")).not.toBeInTheDocument();
     // And no finish date, because there is none: an unstarted course makes no
     // progress, and RP-1's own helper would divide by an unrated rate.

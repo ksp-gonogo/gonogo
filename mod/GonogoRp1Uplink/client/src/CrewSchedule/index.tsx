@@ -1,12 +1,6 @@
 import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Badge,
-  DataLine,
-  MissionDate,
-  magnitudeOf,
-  Stack,
-} from "@ksp-gonogo/ui-kit";
+import { DataLine, MissionDate, magnitudeOf, Stack } from "@ksp-gonogo/ui-kit";
 import type { Rp1CrewEntry } from "../__generated__/contract";
 import { RP1 } from "../uplink";
 import "../topics";
@@ -169,9 +163,12 @@ function retirementLine(
  * third time in the course list. A roster row's question is which of them is
  * where, and this answers exactly that.</para>
  *
- * <para>Enrolment is still told from progress, because an operator who reads one
- * as the other will plan a flight around a crew nobody is training: RP-1 lets a
- * course sit unstarted indefinitely, and the badge is what says so.</para>
+ * <para>Enrolment is still told from progress, and the mark that tells them
+ * apart has moved to the CORNER of the card (`badge.tsx`). It used to lead this
+ * line, which is where WHICH course belongs and not where THAT there is one
+ * does: this block is read once an operator has settled on a kerbal, and whether
+ * that kerbal is on a course at all is what decides which one they settle on.
+ * The corner is read while scanning the names; this line is read after.</para>
  *
  * <para>The kind is named in full ("Mission training", not "Mission") for the
  * reason `kindOf` gives: RP-1's raw enum beside a date and a seat count reads as
@@ -182,19 +179,9 @@ function trainingLine(row: Rp1CrewEntry) {
   if (!target) {
     return null;
   }
-  const started = row.trainingStarted === true;
   const kind = kindOf(row.trainingType);
   return (
-    <DataLine
-      aligned
-      key="training"
-      label="Course"
-      lead={
-        <Badge severity={started ? "nominal" : "caution"} size="sm">
-          {started ? "TRAINING" : "ENROLLED"}
-        </Badge>
-      }
-    >
+    <DataLine aligned key="training" label="Course">
       {kind === null ? "" : `${kind}: `}
       {target}
     </DataLine>

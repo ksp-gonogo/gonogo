@@ -9,6 +9,7 @@ import "./topics";
 import "./settings/rp1SimulationSettings";
 import "./AdminBuilding/programsScreen";
 import "./CrewSchedule";
+import "./CrewSchedule/badge";
 import "./CrewSchedule/coreStats";
 import "./CrewSchedule/courses";
 import "./CrewSchedule/enrolment";
@@ -29,6 +30,7 @@ export {
   RP1_CONTRACT_PAYLOAD_COMMAND,
 } from "./ContractPayload";
 export { CrewSchedule } from "./CrewSchedule";
+export { CrewTrainingBadge } from "./CrewSchedule/badge";
 export { TrainingCourses } from "./CrewSchedule/courses";
 export { TrainingEnrolment } from "./CrewSchedule/enrolment";
 export {
