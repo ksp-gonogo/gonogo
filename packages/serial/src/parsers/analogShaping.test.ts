@@ -93,10 +93,11 @@ describe("applyAnalogShaping", () => {
       expect(
         applyAnalogShaping({ polarity: "unipolar", curve: "cubic" }, 0.5),
       ).toBeCloseTo(0.125, 5);
-      // Negative inputs, because for every non-negative one the unipolar
-      // branch computes exactly what the bipolar branch computes: feed it
-      // only those and the whole branch can be deleted with this file still
-      // green.
+      /*
+       * Negative inputs, because for every non-negative one the unipolar branch
+       * computes exactly what the bipolar branch computes: feed it only those
+       * and the whole branch can be deleted with this file still green.
+       */
       expect(
         applyAnalogShaping({ polarity: "unipolar", curve: "squared" }, -1),
       ).toBe(0);
