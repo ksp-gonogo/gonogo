@@ -31,8 +31,14 @@ namespace Sitrep.Core.Tests
             // latest sample at or before the vantage instant. Dropping everything
             // older than the cutoff deletes it, and the channel then answers null
             // forever with no error anywhere.
+            //
+            // Three samples on the slow topic rather than one, because `RetainFrom`
+            // returns immediately below three: a one-or-two-sample topic asserts the
+            // property against a prune that never ran.
             var archive = new Archive();
-            archive.Record("vessel.name", "Odyssey", 100);
+            archive.Record("vessel.name", "Odyssey I", 100);
+            archive.Record("vessel.name", "Odyssey II", 200);
+            archive.Record("vessel.name", "Odyssey", 300);
             archive.Record("vessel.altitude", 1.0, 2000);
 
             archive.PruneBefore(1000);
@@ -40,7 +46,14 @@ namespace Sitrep.Core.Tests
             var read = archive.ReadAtVantage("vessel.name", "ksc", 0, 1500);
             Assert.NotNull(read);
             Assert.Equal("Odyssey", read!.Value.Value);
-            Assert.Equal(100, read.Value.ValidAt);
+            Assert.Equal(300, read.Value.ValidAt);
+
+            // The prune did run: the unreachable middle name is gone, leaving the
+            // birth sample and the one still current at the cutoff.
+            var kept = archive.Samples("vessel.name");
+            Assert.Equal(2, kept.Count);
+            Assert.Equal(100, kept[0].ValidAt);
+            Assert.Equal(300, kept[1].ValidAt);
         }
 
         [Fact]
@@ -74,12 +87,26 @@ namespace Sitrep.Core.Tests
             // NEWER than the vantage should be able to see is a future leak, and
             // this asserts it does not happen.
             var archive = new Archive();
-            archive.Record("t", "old", 100);
+            archive.Record("t", "first", 50);
+            archive.Record("t", "second", 100);
+            archive.Record("t", "old", 200);
             archive.Record("t", "new", 900);
 
             archive.PruneBefore(800);
 
-            Assert.Null(archive.ReadAtVantage("t", "far", 0, 50));
+            // The prune ran and dropped "second": it is the only sample no vantage
+            // at or after the cutoff can reach.
+            Assert.Equal(3, archive.Samples("t").Count);
+
+            // Below the topic's birth there is nothing to say, and it says nothing.
+            Assert.Null(archive.ReadAtVantage("t", "before-birth", 0, 20));
+
+            // 150 is inside the pruned span, so the sample that would have answered
+            // it is gone. The answer is the OLDER survivor, never the newer one.
+            var insidePrunedSpan = archive.ReadAtVantage("t", "far", 0, 150);
+            Assert.NotNull(insidePrunedSpan);
+            Assert.Equal("first", insidePrunedSpan!.Value.Value);
+
             var atCutoff = archive.ReadAtVantage("t", "near", 0, 850);
             Assert.NotNull(atCutoff);
             Assert.Equal("old", atCutoff!.Value.Value);
@@ -98,19 +125,28 @@ namespace Sitrep.Core.Tests
             var afterFirst = archive.Samples("t").Count;
             archive.PruneBefore(25);
 
+            // Idempotence is worth nothing if the first prune was itself a no-op,
+            // which is what a prune that never runs looks like from here. Pin that
+            // the first pass actually dropped something before comparing passes.
+            Assert.Equal(5, afterFirst);
             Assert.Equal(afterFirst, archive.Samples("t").Count);
         }
 
         [Fact]
         public void ACutoffBelowEverythingKeepsEverything()
         {
+            // Four samples, not two: below three `RetainFrom` returns before it
+            // reaches the cutoff scan, so a two-sample topic proves nothing about
+            // what a cutoff below everything does.
             var archive = new Archive();
             archive.Record("t", 1, 500);
             archive.Record("t", 2, 600);
+            archive.Record("t", 3, 700);
+            archive.Record("t", 4, 800);
 
             archive.PruneBefore(100);
 
-            Assert.Equal(2, archive.Samples("t").Count);
+            Assert.Equal(4, archive.Samples("t").Count);
         }
 
         [Fact]
@@ -136,6 +172,15 @@ namespace Sitrep.Core.Tests
             var distant = archive.ReadAtVantage("t", "distant", 600, 900);
             Assert.NotNull(distant);
             Assert.Equal(300, distant!.Value.ValidAt);
+
+            // Both halves of the choice, because "distant still reads 300" is also
+            // true of an archive that never pruned at all. It DID prune, down to
+            // the distant cursor and no further: 100 and 200 are gone, and 400,
+            // which pruning to the NEAR cursor would have taken, is still here.
+            var kept = archive.Samples("t");
+            Assert.Equal(8, kept.Count);
+            Assert.DoesNotContain(kept, s => s.ValidAt == 100 || s.ValidAt == 200);
+            Assert.Contains(kept, s => s.ValidAt == 400);
         }
 
         [Fact]
@@ -144,13 +189,19 @@ namespace Sitrep.Core.Tests
             // No cursor means no evidence about what is reachable, and a topic
             // nobody has subscribed to yet is exactly the one whose history a first
             // subscriber will want.
+            //
+            // Four samples: with two, `RetainFrom` bails on count before the
+            // no-cursor guard can be the reason anything survived, so dropping the
+            // guard would not have shown up here.
             var archive = new Archive();
             archive.Record("t", 1, 100);
             archive.Record("t", 2, 200);
+            archive.Record("t", 3, 300);
+            archive.Record("t", 4, 400);
 
             archive.PruneToVantageCursors();
 
-            Assert.Equal(2, archive.Samples("t").Count);
+            Assert.Equal(4, archive.Samples("t").Count);
         }
 
         [Fact]
@@ -186,11 +237,18 @@ namespace Sitrep.Core.Tests
             // answer, and pruning purely by cursor had deleted it.
             var archive = new Archive();
             archive.Record("t", "birth", 0);
+            archive.Record("t", "early", 25);
             archive.Record("t", "mid", 50);
             archive.Record("t", "peak", 100);
             archive.ReadAtVantage("t", "ksc", 0, 100);
 
             archive.PruneToVantageCursors();
+
+            // The prune was real: "early" and "mid" sat below the only cursor and
+            // are gone. Keeping the birth sample matters precisely because its
+            // neighbours do not survive.
+            Assert.Equal(2, archive.Samples("t").Count);
+
             // The quickload: everything ahead of the new timeline goes.
             archive.ResetTimeline(20);
 
@@ -243,13 +301,25 @@ namespace Sitrep.Core.Tests
         [Fact]
         public void KeepsTheEpochOnASurvivingSample()
         {
+            // Two epochs and four samples, so this reads the epoch off a sample the
+            // prune actually chose to retain rather than off a topic it declined to
+            // touch, and a retained sample carrying the WRONG epoch is visible.
             var archive = new Archive();
             archive.Record("t", "a", 100, epoch: 7);
-            archive.Record("t", "b", 900, epoch: 7);
+            archive.Record("t", "b", 200, epoch: 7);
+            archive.Record("t", "c", 300, epoch: 9);
+            archive.Record("t", "d", 900, epoch: 9);
 
             archive.PruneBefore(800);
 
-            Assert.Equal(7, archive.Samples("t")[0].Epoch);
+            // The retained-at-cutoff sample keeps ITS epoch, which is only visible
+            // when the topic carries more than one: reading epoch 7 back off a
+            // single-epoch topic says nothing about whether the prune preserved it.
+            var kept = archive.Samples("t");
+            Assert.Equal(3, kept.Count);
+            Assert.Equal(7, kept[0].Epoch);
+            Assert.Equal(300, kept[1].ValidAt);
+            Assert.Equal(9, kept[1].Epoch);
         }
     }
 }
