@@ -17,7 +17,7 @@ namespace Sitrep.Host
     /// exactly the same KSP-free/real-impl split
     /// <see cref="IVesselActuator"/>/<c>KspVesselActuator</c> already established.
     ///
-    /// <para>Both methods operate on <c>FlightGlobals.ActiveVessel</c>: there
+    /// <para>Both methods operate on <c>Gonogo.KSP.ActiveVesselScope.Current</c>: there
     /// is no per-call vessel selector, matching every M1 read channel's "the
     /// vessel" scoping. A real implementation with no active vessel returns
     /// <see cref="CommandErrorCode.NoVessel"/>; an unknown <c>partId</c> (or a

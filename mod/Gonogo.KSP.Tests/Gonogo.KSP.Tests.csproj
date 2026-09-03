@@ -86,6 +86,13 @@
          anchor named something else, two anchors, none) are all stand-ins a
          headless test can declare. -->
     <Compile Include="..\Gonogo.KSP\CalendarEpoch.cs" />
+    <!-- EvaParentage.cs is the RULE behind ActiveVesselScope: which vessel gonogo
+         reports as active while a kerbal is outside their craft. It takes ids and
+         a liveness probe and names no KSP type, so it is exercised on every
+         checkout. ActiveVesselScope.cs itself reads FlightGlobals and subscribes
+         to GameEvents and is NOT here, the same carve-out as CommNetOcclusion.cs
+         and PlanOwner.cs above. -->
+    <Compile Include="..\Gonogo.KSP\EvaParentage.cs" />
   </ItemGroup>
 
   <!-- PendingCreditRow.cs was split out of PendingCreditLedger.cs specifically so this row/enum
@@ -186,6 +193,10 @@
          It compares Sitrep.Contract's KSP-enum mirrors against the real enums in
          Assembly-CSharp, so it is gated like every other KspManaged suite here. -->
     <Compile Remove="KspEnumMirrorTests.cs" />
+    <!-- ActiveVessel/ is otherwise unconditional (EvaParentageTests names no KSP
+         type at all), so only its ConfigNode half needs dropping here; it is
+         re-added under the gate below beside the other round-trip suites. -->
+    <Compile Remove="ActiveVessel\EvaParentagePersistenceTests.cs" />
   </ItemGroup>
 
   <!-- KscLightTimeTests.cs, VesselScienceAggregatorTests.cs, and
@@ -242,6 +253,19 @@
          KSP-free record (Sitrep.Host.Comms.VesselContactState, pulled in transitively via the
          Sitrep.Host ProjectReference above), so it needs the same KspManaged gating. -->
     <Compile Include="..\Gonogo.KSP\SilenceTracking\SilenceTrackerPersistence.cs" />
+    <!-- EvaParentagePersistence.cs is the same shape again: a ConfigNode round-trip
+         over a KSP-free book (EvaParentage.cs, compiled unconditionally above), so
+         it needs the same gating. It is the quickload half of the active-vessel
+         seam and the only place the kerbal-to-craft relation reaches the save. -->
+    <Compile Include="..\Gonogo.KSP\EvaParentagePersistence.cs" />
+    <Compile Include="ActiveVessel\EvaParentagePersistenceTests.cs" />
+    <!-- ActiveVesselScope.cs is here to RESOLVE, not to run: CommNetBackend.cs
+         below calls it for the vessel whose link it reports, so the type has to
+         exist. Its own reads are FlightGlobals fields and GameEvents
+         subscriptions, the same live-scene dependency CommNetBackend.cs already
+         has under this gate. The half worth exercising is EvaParentage.cs, which
+         is compiled unconditionally above. -->
+    <Compile Include="..\Gonogo.KSP\ActiveVesselScope.cs" />
     <Compile Include="SilenceTracking\**\*.cs" />
     <!-- FleetCommsReader.cs walks the live CommNet graph, but CommNode /
          CommLink / CommPath / CommNetwork are plain classes with no scene or

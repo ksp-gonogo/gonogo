@@ -34,7 +34,7 @@ namespace Gonogo.KSP
         {
             get
             {
-                var vessel = FlightGlobals.ActiveVessel;
+                var vessel = ActiveVesselScope.Current;
                 var body = vessel?.orbit?.referenceBody;
                 if (body == null || string.IsNullOrEmpty(body.bodyName))
                 {

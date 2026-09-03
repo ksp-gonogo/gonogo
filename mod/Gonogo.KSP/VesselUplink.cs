@@ -471,7 +471,7 @@ namespace Gonogo.KSP
                 return null;
             }
 
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 return null;

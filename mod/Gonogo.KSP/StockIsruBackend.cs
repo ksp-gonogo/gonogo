@@ -17,7 +17,7 @@ namespace Gonogo.KSP
     /// fact about the vessel, not a gap in the backend.</para>
     ///
     /// <para><b>Main thread only</b>: every method reads live KSP
-    /// (<c>FlightGlobals.ActiveVessel</c> and its PartModules). See
+    /// (<see cref="ActiveVesselScope.Current"/> and its PartModules). See
     /// <see cref="IIsruBackend"/>'s threading note: this is called from
     /// <see cref="IsruCoreUplink"/>'s main-thread capture, never from a channel
     /// mapper.</para>
@@ -47,7 +47,7 @@ namespace Gonogo.KSP
         public IReadOnlyList<IsruDrillEntry> Drills()
         {
             var entries = new List<IsruDrillEntry>();
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 return entries;
@@ -85,7 +85,7 @@ namespace Gonogo.KSP
         public IReadOnlyList<IsruConverterEntry> Converters()
         {
             var entries = new List<IsruConverterEntry>();
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 return entries;

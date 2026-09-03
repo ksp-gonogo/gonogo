@@ -7,7 +7,7 @@ namespace Gonogo.KSP
     /// <summary>
     /// The real <see cref="IPartActionActuator"/>: reads and fires the buttons of
     /// a part's right-click Part Action Window. Resolves the target part by
-    /// <c>flightID.ToString()</c> across <c>FlightGlobals.ActiveVessel.parts</c>
+    /// <c>flightID.ToString()</c> across <see cref="ActiveVesselScope.Current"/>'s parts
     /// (the same join key the read side stamps on <c>vessel.parts</c>), exactly
     /// as <see cref="KspRoboticsActuator"/> does, then walks or invokes
     /// <see cref="BaseEvent"/>s.
@@ -42,7 +42,7 @@ namespace Gonogo.KSP
         {
             var entries = new List<PartActionEntry>();
 
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 return entries;
@@ -80,7 +80,7 @@ namespace Gonogo.KSP
 
         public CommandResult Invoke(string partId, string eventName)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);

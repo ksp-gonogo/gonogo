@@ -385,6 +385,10 @@ namespace Gonogo.KSP.Gates
         {
             try
             {
+                // Deliberately NOT ActiveVesselScope: this only guards the
+                // FlightGlobals.ClearToSave() call below, which judges whatever KSP
+                // itself has active. Asking about the ship while stock answers about
+                // the kerbal would make the gate disagree with the thing it quotes.
                 if (FlightGlobals.fetch == null || FlightGlobals.ActiveVessel == null)
                 {
                     return GateVerdict.Unknown("there is no flight to judge");

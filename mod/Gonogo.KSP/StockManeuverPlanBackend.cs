@@ -7,7 +7,7 @@ namespace Gonogo.KSP
 {
     /// <summary>
     /// The vanilla maneuver-plan provider: KSP's own patched-conic solver,
-    /// read off <c>FlightGlobals.ActiveVessel</c>.
+    /// read off <see cref="ActiveVesselScope.Current"/>.
     ///
     /// <para>Lives here rather than in <c>Sitrep.Host</c> because it touches
     /// live KSP types, exactly as <c>StockActionGroupsBackend</c> and
@@ -47,7 +47,7 @@ namespace Gonogo.KSP
         private static List<BurnTiming.StageBudget> StageBudgets()
         {
             var budgets = new List<BurnTiming.StageBudget>();
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             var dv = vessel != null ? vessel.VesselDeltaV : null;
             if (dv == null || !dv.IsReady)
             {
@@ -87,7 +87,7 @@ namespace Gonogo.KSP
         /// </summary>
         public IList<Sitrep.Contract.ManeuverNode>? Plan()
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             var solver = vessel != null ? vessel.patchedConicSolver : null;
             if (solver == null || solver.maneuverNodes == null)
             {

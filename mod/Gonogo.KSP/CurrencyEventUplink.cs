@@ -484,6 +484,10 @@ namespace Gonogo.KSP
             // A death with no destruction behind it (an EVA kerbal, or a crew member lost
             // aboard a vessel that survives) belongs to the vessel being flown. An EVA
             // kerbal is itself a Vessel in KSP, so this resolves a real position either way.
+            //
+            // Deliberately NOT ActiveVesselScope: this names the thing that DIED, not
+            // the thing being reported. A kerbal who dies outside their ship died out
+            // there, and attributing the loss to the ship would put it in the wrong place.
             return FlightGlobals.ActiveVessel;
         }
 

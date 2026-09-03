@@ -199,6 +199,12 @@ namespace Gonogo.KSP
             GameEvents.onFlightReady.Add(OnFlightReady);
             GameEvents.onVesselChange.Add(OnVesselChange);
             GameEvents.onGameStateLoad.Add(OnGameStateLoad);
+
+            // The active-vessel seam's own hooks. Subscribed here rather than from a
+            // scene-scoped ScenarioModule because an EVA egress can land while a
+            // scene module is being torn down, and this host's lifetime is the
+            // process (GonogoAddon is DontDestroyOnLoad).
+            ActiveVesselScope.Hook();
         }
 
         /// <summary>Unsubscribes from every <see cref="GameEvents"/> hook. Call from <see cref="GonogoAddon"/>'s teardown - GameEvents are static/global, so a leaked subscription would outlive this instance.</summary>
@@ -208,6 +214,7 @@ namespace Gonogo.KSP
             GameEvents.onFlightReady.Remove(OnFlightReady);
             GameEvents.onVesselChange.Remove(OnVesselChange);
             GameEvents.onGameStateLoad.Remove(OnGameStateLoad);
+            ActiveVesselScope.Unhook();
         }
 
         /// <summary>
@@ -267,7 +274,7 @@ namespace Gonogo.KSP
                     // roster. Omitted entirely (no "vessel" key at all) at
                     // the main menu / between-flights rather than a null
                     // sentinel, matching the "bodies" convention above.
-                    var activeVessel = FlightGlobals.ActiveVessel;
+                    var activeVessel = ActiveVesselScope.Current;
                     if (activeVessel != null)
                     {
                         // Closest approach comes from the elected propagation
@@ -1824,7 +1831,7 @@ namespace Gonogo.KSP
         /// active-vessel-only elected-backend <c>ICommsBackend</c>/<c>CommsElection</c>
         /// machinery (<see cref="BuildComms"/> above and <c>CommNetBackend</c>
         /// are that family; they only ever run against
-        /// <c>FlightGlobals.ActiveVessel</c>). Stock CommNet maintains its
+        /// <see cref="ActiveVesselScope.Current"/>). Stock CommNet maintains its
         /// graph for every vessel regardless of load state, so this can read
         /// a background vessel's link -- but <c>CommNetBackend.Connection</c>'s
         /// own doc comment warns that <c>connection</c>/<c>ControlPath</c> can
@@ -2491,7 +2498,7 @@ namespace Gonogo.KSP
             }
 
             var fetch = FlightGlobals.fetch;
-            var active = FlightGlobals.ActiveVessel;
+            var active = ActiveVesselScope.Current;
             var target = fetch != null ? fetch.VesselTarget : null;
             if (active == null || target == null)
             {
@@ -2904,7 +2911,7 @@ namespace Gonogo.KSP
             // active vessel in the PRELAUNCH situation. Read defensively -
             // FlightGlobals may not be ready outside flight, in which case there
             // is no active vessel and nothing is on the pad.
-            var active = FlightGlobals.ready ? FlightGlobals.ActiveVessel : null;
+            var active = FlightGlobals.ready ? ActiveVesselScope.Current : null;
             var prelaunch = active != null && active.situation == Vessel.Situations.PRELAUNCH;
             var activeTitle = prelaunch && active != null ? active.vesselName : null;
 

@@ -100,7 +100,7 @@ namespace Gonogo.KSP
         {
             try
             {
-                var vessel = FlightGlobals.ActiveVessel;
+                var vessel = ActiveVesselScope.Current;
                 if (vessel == null)
                 {
                     return null;

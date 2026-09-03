@@ -39,8 +39,11 @@ public enum FlightEndReason
 /// The <c>flight.current</c> channel payload: a UT-indexed <b>Value</b>
 /// (LossyLatest + <see cref="DelayRole.Delayed"/>, mirroring every
 /// <c>vessel.*</c> channel): the authoritative "what flight is this, and what
-/// phase is it in" reading for whichever vessel is presently
-/// <c>FlightGlobals.ActiveVessel</c>. <see cref="Phase"/> reuses
+/// phase is it in" reading for whichever vessel gonogo is presently
+/// reporting as active. That is the vessel the game is flying, with one
+/// exception: a kerbal on EVA does not become the subject of this reading, the
+/// craft they stepped out of stays it for as long as that craft is in the
+/// world. <see cref="Phase"/> reuses
 /// <see cref="Situation"/> rather than inventing a parallel enum; see
 /// <see cref="FlightLifecycleSampler"/> doc reference in
 /// <c>Sitrep.Host.Flight</c> for the exact phase source.

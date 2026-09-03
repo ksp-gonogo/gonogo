@@ -165,7 +165,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Recovers the active vessel by firing
-        /// <c>GameEvents.OnVesselRecoveryRequested.Fire(FlightGlobals.ActiveVessel)</c>,
+        /// <c>GameEvents.OnVesselRecoveryRequested.Fire(vessel)</c>,
         /// the exact call KSP's own recover button makes (decompile-confirmed
         /// against the stock recovery-request path). That path first checks the
         /// vessel is in a recoverable state (<c>FlightGlobals.ClearToSave()</c>
@@ -177,10 +177,17 @@ namespace Gonogo.KSP
         /// <see cref="CommandErrorCode.NotClearToProceed"/> rather than firing a
         /// destructive recovery, carrying which of
         /// <c>ClearToSaveStatus</c>'s seven arms it was.
+        ///
+        /// <para>The vessel comes from <see cref="ActiveVesselScope"/>, so during an
+        /// EVA this recovers the SHIP rather than the kerbal - the same thing every
+        /// read channel is reporting, which is the point of the seam. The
+        /// <c>ClearToSave</c> gate below still judges whatever KSP itself has
+        /// active, because that is the question stock's own button asks and the
+        /// answer covers the whole scene.</para>
         /// </summary>
         public CommandResult Recover()
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
@@ -248,6 +255,9 @@ namespace Gonogo.KSP
             // A leftover ActiveVessel from an un-recovered prior flight wedges
             // KSP when a second craft is launched over it, refuse so the
             // operator recovers/reverts the existing vessel first.
+            // Deliberately NOT ActiveVesselScope: the question is whether KSP has ANY
+            // vessel left in the world, not which one gonogo reports. This also runs in
+            // the space centre and editor, where there is no flight to have a scope for.
             if (FlightGlobals.ActiveVessel != null)
             {
                 return CommandResult.Fail(

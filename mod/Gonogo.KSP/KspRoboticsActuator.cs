@@ -10,7 +10,7 @@ namespace Gonogo.KSP
     /// The real <see cref="IRoboticsActuator"/>: the actuation counterpart of
     /// <see cref="KspHost.BuildPartsRobotics"/>'s read scan. Resolves the
     /// target part by <c>flightID.ToString()</c> across
-    /// <c>FlightGlobals.ActiveVessel.parts</c> (the same join key the read side
+    /// <see cref="ActiveVesselScope.Current"/>'s parts (the same join key the read side
     /// stamps on each <c>parts.robotics</c> entry), dispatches on the concrete
     /// Breaking Ground servo subtype (<see cref="ModuleRoboticServoRotor"/>/
     /// <see cref="ModuleRoboticServoHinge"/>/<see cref="ModuleRoboticRotationServo"/>/
@@ -190,7 +190,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static CommandResult WithServo(string partId, Func<BaseServo, CommandResult> action)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
@@ -219,7 +219,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static CommandResult WithRotor(string partId, Func<ModuleRoboticServoRotor, CommandResult> action)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);

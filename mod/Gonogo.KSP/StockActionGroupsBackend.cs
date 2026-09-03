@@ -24,7 +24,7 @@ namespace Gonogo.KSP
     /// pure backend swap rather than a client change.</para>
     ///
     /// <para><b>Main thread only</b>: every method reads live KSP
-    /// (<c>FlightGlobals.ActiveVessel</c>). See
+    /// (<see cref="ActiveVesselScope.Current"/>). See
     /// <see cref="IActionGroupsBackend"/>'s threading note: this is called
     /// from <see cref="KspHost"/>'s main-thread capture and from the
     /// command queue (which <see cref="GonogoAddon"/> drains on the main
@@ -56,12 +56,11 @@ namespace Gonogo.KSP
 
         public IList<ActionGroupState>? Groups()
         {
-            // BuildVesselEntry only ever samples FlightGlobals.ActiveVessel, and
-            // IVesselActuator scopes every command to it too, so "the vessel" is
-            // unambiguous here: same scoping as CommNetBackend.
-            var actionGroups = FlightGlobals.ActiveVessel != null
-                ? FlightGlobals.ActiveVessel.ActionGroups
-                : null;
+            // BuildVesselEntry samples the same seam, and IVesselActuator scopes
+            // every command to it too, so "the vessel" is unambiguous here: same
+            // scoping as CommNetBackend.
+            var vessel = ActiveVesselScope.Current;
+            var actionGroups = vessel != null ? vessel.ActionGroups : null;
             if (actionGroups == null)
             {
                 // Null, NOT an empty list: the contract's documented "no
@@ -93,9 +92,8 @@ namespace Gonogo.KSP
                 return false;
             }
 
-            var actionGroups = FlightGlobals.ActiveVessel != null
-                ? FlightGlobals.ActiveVessel.ActionGroups
-                : null;
+            var vessel = ActiveVesselScope.Current;
+            var actionGroups = vessel != null ? vessel.ActionGroups : null;
             if (actionGroups == null)
             {
                 return false;

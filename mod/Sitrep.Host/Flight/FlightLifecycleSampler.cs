@@ -46,10 +46,13 @@ namespace Sitrep.Host.Flight
     /// EVERY vessel active immediately after a rewind, even a same-id
     /// quickload-resume, since a rewind is treated as a hard timeline reset
     /// for lifecycle purposes). <see cref="FlightVesselChanged"/> fires on
-    /// every OTHER active-vessel-id transition (docking/undocking/EVA/
+    /// every OTHER active-vessel-id transition (docking/undocking/
     /// tracking-station reselect): switching focus away from a still-flying
     /// vessel does not end its flight, and switching back to a known one is
-    /// not a new flight.</para>
+    /// not a new flight. An EVA is NOT one of those transitions any more:
+    /// <c>Gonogo.KSP.ActiveVesselScope</c> goes on reporting the craft the
+    /// kerbal stepped out of, so the id does not move and no flight changes
+    /// hands for the walk outside.</para>
     ///
     /// <para><b>Flight id:</b> the mod-minted "stable id" the spec calls for
     /// is simply <c>Vessel.id</c> (as a string), the exact currency
@@ -96,7 +99,7 @@ namespace Sitrep.Host.Flight
         // Monotonically-growing for the session -- deliberately never
         // .Remove()'d on end (see the class doc comment's started-vs-
         // vesselChanged note): a destroyed/recovered Vessel.id can never
-        // become FlightGlobals.ActiveVessel again in stock KSP, so treating
+        // become the reported active vessel again in stock KSP, so treating
         // "ever started" as permanent-for-session is strictly safer than
         // trying to track open/closed and risking a spurious double-start.
         private readonly HashSet<string> _startedVesselIds = new HashSet<string>();

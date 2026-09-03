@@ -11,7 +11,7 @@ namespace Gonogo.KSP
     /// <c>IScienceDataTransmitter</c> path (via <c>ScienceUtil.GetBestTransmitter</c>),
     /// confirmed against this KSP version's actual API shapes via decompile
     /// (see each method's own comment for the specific call). Both methods
-    /// operate on <c>FlightGlobals.ActiveVessel</c>: there is no per-call
+    /// operate on <see cref="ActiveVesselScope.Current"/>: there is no per-call
     /// vessel selector; the science read side scopes to the active vessel the
     /// same way.
     /// The experiment is addressed by the part's <c>flightID.ToString()</c>,
@@ -163,7 +163,7 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult TransmitExperiment(string partId)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
@@ -233,7 +233,7 @@ namespace Gonogo.KSP
         {
             experiments = new List<ModuleScienceExperiment>();
 
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.parts == null)
             {
                 error = CommandErrorCode.NoVessel;

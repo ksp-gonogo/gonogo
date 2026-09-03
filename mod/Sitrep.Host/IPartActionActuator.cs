@@ -18,7 +18,7 @@ namespace Sitrep.Host
     /// <c>Sitrep.Host.Tests.FakePartActionActuator</c> is the record-and-return
     /// double the provider's unit tests exercise.
     ///
-    /// <para>Both methods operate on <c>FlightGlobals.ActiveVessel</c>: there is
+    /// <para>Both methods operate on <c>Gonogo.KSP.ActiveVesselScope.Current</c>: there is
     /// no per-call vessel selector, matching the read side's "the vessel"
     /// scoping and <see cref="IRoboticsActuator"/>'s. The <c>partId</c> is the
     /// <c>flightID.ToString()</c> the read side stamps on

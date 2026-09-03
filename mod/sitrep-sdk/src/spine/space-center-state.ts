@@ -27,7 +27,7 @@ export interface SpaceCenterState {
   /**
    * Whether the ACTIVE VESSEL is sitting on the stock KSC pad in `PRELAUNCH`,
    * old `kc.padOccupied`. Despite the name this is not pad tenancy: the mod
-   * derives it from `FlightGlobals.ActiveVessel.situation`, so a craft parked
+   * derives it from the reported active vessel's `situation`, so a craft parked
    * on the pad while you are in the Space Centre scene reads `false`, and a
    * `true` implies the flight scene.
    *

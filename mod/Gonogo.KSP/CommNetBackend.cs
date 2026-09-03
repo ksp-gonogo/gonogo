@@ -21,7 +21,7 @@ namespace Gonogo.KSP
     /// MUST be called only on the Unity main thread, the comms core
     /// registration calls it exclusively from its capture-on-main sampler
     /// (<see cref="CommsCoreUplink"/>). It is a stateless view over
-    /// <c>FlightGlobals.ActiveVessel</c>, not a cached snapshot.</para>
+    /// <see cref="ActiveVesselScope.Current"/>, not a cached snapshot.</para>
     /// </summary>
     public sealed class CommNetBackend : ICommsBackend
     {
@@ -45,7 +45,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static CommNetVessel? Connection()
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || !vessel.loaded)
             {
                 return null;
@@ -446,7 +446,7 @@ namespace Gonogo.KSP
 
         private static PayloadMeta Meta()
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             return new PayloadMeta
             {
                 Source = vessel != null ? "vessel:" + vessel.id : "game",

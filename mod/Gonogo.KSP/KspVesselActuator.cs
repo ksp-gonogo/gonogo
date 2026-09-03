@@ -15,7 +15,7 @@ namespace Gonogo.KSP
     /// <c>Vessel.patchedConicSolver</c>/<c>FlightGlobals</c>/<c>TimeWarp</c>/
     /// <c>FlightDriver</c>: confirmed against this KSP version's actual API
     /// shapes via decompile (see each method's own comment for the specific
-    /// call). Every method operates on <c>FlightGlobals.ActiveVessel</c>:
+    /// call). Every method operates on <see cref="ActiveVesselScope.Current"/>:
     /// there is no per-call vessel selector, matching every M1 read channel's
     /// "the vessel" scoping.
     ///
@@ -132,7 +132,7 @@ namespace Gonogo.KSP
         /// </summary>
         private static Refusal? ManeuverWriteRefusal(bool plans)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
 
             // WHICH saves have no facility tiers is decided in one place, shared
             // with the gates (FacilityGateHelp.ReadFacilityTiers), so the two
@@ -231,7 +231,7 @@ namespace Gonogo.KSP
 
         public CommandResult SetSasMode(SasMode mode)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.Autopilot == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
@@ -308,7 +308,7 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult SetThrottle(double value)
         {
-            if (FlightGlobals.ActiveVessel == null)
+            if (ActiveVesselScope.Current == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
@@ -318,7 +318,7 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// Arms/disarms the persistent fly-by-wire override. Arming attaches
-        /// <see cref="_flyByWireCallback"/> to <c>FlightGlobals.ActiveVessel</c>'s
+        /// <see cref="_flyByWireCallback"/> to <see cref="ActiveVesselScope.Current"/>'s
         /// <c>OnFlyByWire</c> (idempotent remove-then-combine) and sets the armed
         /// flag; the axes resume from their last-set values (or 0 on first arm).
         /// Disarming clears the flag, detaches the callback, and neutralizes the
@@ -327,7 +327,7 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult SetFlyByWire(bool enabled)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
@@ -360,7 +360,7 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult SetControlAxes(SetControlAxesArgs axes)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
@@ -476,7 +476,7 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult<int> Stage()
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             var refusal = StageRule.RefusalFor(
                 hasVessel: vessel != null,
                 stagingUnlocked: InputLockManager.IsUnlocked(ControlTypes.STAGING));
@@ -548,7 +548,7 @@ namespace Gonogo.KSP
                 return CommandResult<string>.Fail(gate.Value.Code, gate.Value.Detail);
             }
 
-            var solver = FlightGlobals.ActiveVessel!.patchedConicSolver;
+            var solver = ActiveVesselScope.Current!.patchedConicSolver;
             var node = solver.AddManeuverNode(ut);
             node.DeltaV = new Vector3d(radialOut, normal, prograde);
             solver.UpdateFlightPlan();
@@ -621,7 +621,7 @@ namespace Gonogo.KSP
         /// </summary>
         private bool TryResolveNode(string nodeId, out ManeuverNode? node)
         {
-            var solver = FlightGlobals.ActiveVessel?.patchedConicSolver;
+            var solver = ActiveVesselScope.Current?.patchedConicSolver;
             var candidates = solver != null ? solver.maneuverNodes : null;
             if (candidates == null)
             {
@@ -811,7 +811,7 @@ namespace Gonogo.KSP
 
         private static CommandResult WithActionGroups(Func<ActionGroupList, CommandResult> action)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ActiveVesselScope.Current;
             if (vessel == null || vessel.ActionGroups == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);

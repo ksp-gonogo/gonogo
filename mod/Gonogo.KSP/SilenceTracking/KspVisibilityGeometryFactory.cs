@@ -675,6 +675,9 @@ namespace Gonogo.KSP.SilenceTracking
 
         private static Vessel FindAnyLoadedVessel()
         {
+            // Deliberately NOT ActiveVesselScope: this wants ANY vessel with a
+            // propagatable orbit to calibrate against, and falls through to the whole
+            // roster below when the first candidate will not do. It names no scope.
             var active = FlightGlobals.ActiveVessel;
             if (active != null && active.orbitDriver != null && active.orbitDriver.orbit != null
                 && IsPropagatable(active.orbitDriver.orbit))

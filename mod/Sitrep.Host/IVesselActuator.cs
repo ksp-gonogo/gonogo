@@ -18,7 +18,7 @@ namespace Sitrep.Host
     ///
     /// <para>Every method takes an ALREADY-ACTIVE-vessel assumption (there is
     /// no per-call vessel selector: same scoping as every M1 read channel:
-    /// "the vessel" means <c>FlightGlobals.ActiveVessel</c>). A real
+    /// "the vessel" means whatever <c>Gonogo.KSP.ActiveVesselScope</c> reports). A real
     /// implementation with no active vessel returns a failure result
     /// (<see cref="CommandResult.ErrorCode"/> <c>CommandErrorCode.NoVessel</c>) rather than
     /// throwing: <see cref="ChannelEngine"/>'s fail-soft dispatch already
