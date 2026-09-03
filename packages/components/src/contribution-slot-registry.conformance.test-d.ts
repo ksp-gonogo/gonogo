@@ -28,6 +28,7 @@ import type {
   ContributionRegistry as SdkContributionRegistry,
 } from "@ksp-gonogo/sitrep-sdk";
 import type { CommSignalHopRateEntry } from "./CommSignal/commsRoute";
+import type { Instrument } from "./Experiments/instrument";
 import type { MissionLogSourceEntry } from "./MissionEventLog/sources";
 import type { ShipMapPartMetaEntry, ShipMapPartMeterEntry } from "./ShipMap";
 import type { SystemEntity } from "./SystemView";
@@ -173,6 +174,31 @@ type _MissionEventLogSourcesRealBack = Expect<
   >
 >;
 
+// `experiments.instruments`, checked both directions.
+//
+// Importing `Instrument` from `./Experiments/instrument` above also loads that
+// module's `declare module "@ksp-gonogo/core"` merge, the same way the
+// hop-rates checks load CommSignal's.
+
+type _ExperimentsInstruments = Expect<
+  Assignable<
+    SdkContributionEntry<"experiments.instruments">,
+    CoreContributionEntry<"experiments.instruments">
+  >
+>;
+type _ExperimentsInstrumentsBack = Expect<
+  Assignable<
+    CoreContributionEntry<"experiments.instruments">,
+    SdkContributionEntry<"experiments.instruments">
+  >
+>;
+type _ExperimentsInstrumentsReal = Expect<
+  Assignable<SdkContributionEntry<"experiments.instruments">, Instrument>
+>;
+type _ExperimentsInstrumentsRealBack = Expect<
+  Assignable<Instrument, SdkContributionEntry<"experiments.instruments">>
+>;
+
 // Keep every alias "used" under noUnusedLocals.
 export type _ContributionRegistryConformance = [
   _SdkKeysAssignableToCore,
@@ -196,4 +222,8 @@ export type _ContributionRegistryConformance = [
   _MissionEventLogSourcesBack,
   _MissionEventLogSourcesReal,
   _MissionEventLogSourcesRealBack,
+  _ExperimentsInstruments,
+  _ExperimentsInstrumentsBack,
+  _ExperimentsInstrumentsReal,
+  _ExperimentsInstrumentsRealBack,
 ];

@@ -1,40 +1,16 @@
-import type { TopicPayload } from "@ksp-gonogo/sitrep-sdk"; // erased at build; no runtime edge
-import { Badge } from "../Badge";
 import {
+  Badge,
   CommandButton,
   type CommandButtonHandle,
-} from "../CommandButton/CommandButton";
-import { Inline } from "../Inline";
-import { Row, RowName } from "../Row";
-
-/**
- * The row's data contract. Presentational and already-normalised (plain
- * booleans, not optionals) so a widget's own parsed-instrument shape maps in
- * directly. This is the widget-facing projection of the SDK's
- * `InstrumentEntry` (`science.instruments` topic), *not* `ExperimentEntry`
- * (`science.experiments`): the row needs `partId`/`hasData`/`rerunnable`,
- * fields `ExperimentEntry` doesn't carry.
- */
-export interface ScienceInstrument {
-  partId: string;
-  partTitle: string;
-  expId: string;
-  deployed: boolean;
-  hasData: boolean;
-  rerunnable: boolean;
-  inoperable: boolean;
-}
-
-// Compile-time linkage to the SDK wire type (type-only; keeps the SDK
-// dependency real without a runtime edge). `InstrumentEntry`'s fields are
-// optional (wire uncertainty); `ScienceInstrument` is the normalised,
-// already-parsed shape a widget hands down after its own `parseInstruments`.
-// Asserted in `ScienceExperimentRow.test-d.ts`.
-export type WireInstrument = TopicPayload<"science.instruments">[number];
+  Inline,
+  Row,
+  RowName,
+} from "@ksp-gonogo/ui-kit";
+import type { Instrument } from "./instrument";
 
 export interface ScienceExperimentRowProps {
   /** The instrument this row renders. */
-  instrument: ScienceInstrument;
+  instrument: Instrument;
   /**
    * The deploy command. Omit for a READ-ONLY listing: the control is then not
    * rendered at all, rather than rendered inert. A control that renders
@@ -51,8 +27,9 @@ export interface ScienceExperimentRowProps {
  * A single science-instrument row: name, state badges, and the Deploy/Transmit
  * action cluster.
  *
- * Data- and framework-free by design, for export safety: this component
- * reads no telemetry. It does now DISPATCH, through the structural
+ * Data- and framework-free by design: it reads no telemetry and takes its
+ * already-parsed `Instrument` as a prop, so the same row draws a stock
+ * instrument and a contributed one. It does DISPATCH, through the structural
  * `CommandButtonHandle` the caller hands it, which is a plain object and no
  * more of a framework edge than the callback it replaced. What that buys is the
  * shared command lifecycle: arm, in-flight and refused all behave here exactly

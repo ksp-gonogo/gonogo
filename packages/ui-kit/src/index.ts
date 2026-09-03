@@ -480,11 +480,6 @@ export {
 } from "./StreamStatusBadge";
 export { Switch } from "./Switch";
 export {
-  ScienceExperimentRow,
-  type ScienceExperimentRowProps,
-  type ScienceInstrument,
-} from "./science/ScienceExperimentRow";
-export {
   PanelStatusDot,
   type PanelStatusDotProps,
 } from "./status/PanelStatusDot";

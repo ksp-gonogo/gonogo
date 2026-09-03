@@ -1,12 +1,11 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
-import type { CommandButtonHandle } from "../CommandButton/CommandButton";
-import {
-  ScienceExperimentRow,
-  type ScienceInstrument,
-} from "./ScienceExperimentRow";
+import type { Instrument } from "./instrument";
+import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
 /** A structural command handle, the shape `useCommand` returns. */
 function handle(send: CommandButtonHandle["send"]): CommandButtonHandle {
@@ -20,9 +19,7 @@ function renderRow(ui: ReactElement) {
   return render(<ul>{ui}</ul>);
 }
 
-function instrument(
-  overrides: Partial<ScienceInstrument> = {},
-): ScienceInstrument {
+function instrument(overrides: Partial<Instrument> = {}): Instrument {
   return {
     partId: "1",
     partTitle: "Mystery Goo",
@@ -144,5 +141,34 @@ describe("ScienceExperimentRow", () => {
     const badges = screen.getByText("INOPERABLE").parentElement;
     expect(badges).not.toBeNull();
     expect(getComputedStyle(badges as Element).flexWrap).toBe("wrap");
+  });
+  // Moved here with the component: this case lived in ui-kit's `axe.smoke.test.tsx`
+  // while the row did, and a11y coverage travels with the thing it covers.
+  it("has no axe violations across instrument states", async () => {
+    const { container } = renderRow(
+      <>
+        <ScienceExperimentRow instrument={instrument()} />
+        <ScienceExperimentRow
+          instrument={instrument({
+            partId: "2",
+            partTitle: "Thermometer",
+            expId: "temperatureScan",
+            deployed: true,
+            hasData: true,
+            rerunnable: false,
+          })}
+        />
+        <ScienceExperimentRow
+          instrument={instrument({
+            partId: "3",
+            partTitle: "Burned Sensor",
+            expId: "x",
+            rerunnable: false,
+            inoperable: true,
+          })}
+        />
+      </>,
+    );
+    await expectNoA11yViolations(container);
   });
 });

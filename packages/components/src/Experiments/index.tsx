@@ -1,5 +1,10 @@
-import type { ComponentProps } from "@ksp-gonogo/core";
-import { AugmentSlot, registerComponent, useTelemetry } from "@ksp-gonogo/core";
+import type { ComponentProps, Contributed } from "@ksp-gonogo/core";
+import {
+  AugmentSlot,
+  registerComponent,
+  useContributions,
+  useTelemetry,
+} from "@ksp-gonogo/core";
 import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -10,7 +15,6 @@ import {
   Inline,
   Panel,
   RowName,
-  ScienceExperimentRow,
   Section,
   SectionTitle,
   Stack,
@@ -21,18 +25,18 @@ import {
 } from "@ksp-gonogo/ui-kit";
 import { Fragment } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
+import type { Instrument } from "./instrument";
+import { ScienceExperimentRow } from "./ScienceExperimentRow";
 
 type ExperimentsConfig = Record<string, never>;
 
-export interface Instrument {
-  partId: string;
-  partTitle: string;
-  expId: string;
-  deployed: boolean;
-  hasData: boolean;
-  rerunnable: boolean;
-  inoperable: boolean;
-}
+// `Instrument` moved to `./instrument` when it became THREE things at once: the
+// parser's output, the row component's prop, and the `experiments.instruments`
+// contribution entry. Re-exported here so every existing import site keeps
+// reading it off the widget it belongs to. That module also carries the
+// `ContributionRegistry` merge, beside the type it declares, the same way
+// CommSignal and MissionEventLog carry theirs.
+export type { Instrument } from "./instrument";
 
 /**
  * Slot context for `experiments.instrument`: the per-instrument-row slot.
@@ -254,6 +258,18 @@ function ExperimentsComponent({
   const labRaw = stillTrue(useTelemetry("science.lab"), undefined);
   const labs = parseLab(labRaw);
 
+  /**
+   * Instruments aboard that this widget cannot observe for itself, off the
+   * `experiments.instruments` contribution slot (`./instrument` carries the
+   * slot's own doc comment).
+   *
+   * Declared up here with the other hooks for the same reason `science.lab` is:
+   * every early return below is beneath it. Read after them, a vessel whose
+   * only science hardware is contributed would be told "No instruments
+   * aboard", which is the reading this slot exists to stop the widget giving.
+   */
+  const contributedInstruments = useContributions("experiments.instruments");
+
   const rows = h ?? 8;
   const cols = w ?? 6;
   const showSubtitle = rows >= 4;
@@ -284,19 +300,34 @@ function ExperimentsComponent({
     />
   );
 
-  if (instruments === null) return waiting("Awaiting instrument telemetry");
-  if (instruments.length === 0) return waiting("No instruments aboard");
+  const contributed = ownContributed(contributedInstruments, instruments);
+
+  /*
+   * Both waits are conditional on there being no contributed instruments
+   * either: "awaiting" and "none aboard" are claims about the whole vessel, and
+   * the stock list pending or empty says nothing about an instrument another
+   * provider has already reported.
+   */
+  if (instruments === null && contributed.length === 0)
+    return waiting("Awaiting instrument telemetry");
+  if ((instruments?.length ?? 0) === 0 && contributed.length === 0)
+    return waiting("No instruments aboard");
+
+  const matchesFilter = (inst: Instrument) =>
+    filter.matches(`${inst.expId} ${inst.partTitle}`);
 
   // Group by expId so a vessel with three thermometers shows them in
   // one cluster rather than scattered.
   // Filter before grouping so a group that loses every instrument disappears
   // with its heading, rather than leaving an empty section behind.
-  const shown = instruments.filter((inst) =>
-    filter.matches(`${inst.expId} ${inst.partTitle}`),
-  );
-  const grouped = groupByExpId(shown);
+  const grouped = groupByExpId((instruments ?? []).filter(matchesFilter));
+  const contributedGroups = groupContributed(contributed.filter(matchesFilter));
 
-  const totals = summarise(instruments);
+  // Contributed instruments are counted: they are aboard, and a header total
+  // that omitted them would disagree with the rows underneath it. Summarised
+  // off the unfiltered lists, same as before, so the total is the vessel's and
+  // not the filter's.
+  const totals = summarise([...(instruments ?? []), ...contributed]);
 
   const sectionNodes = grouped.map(({ expId, items }) => (
     <Section key={expId}>
@@ -328,6 +359,34 @@ function ExperimentsComponent({
           </Fragment>
         ))}
       </Stack>
+    </Section>
+  ));
+
+  /**
+   * Contributed rows, in their own sections headed by whoever supplied them.
+   *
+   * Beside the stock groups rather than folded into them, because the
+   * provenance is the operator's answer to why these rows carry no Deploy or
+   * Transmit control: the host's commands reach a part through the stock
+   * science module, and a part the stock list never mentioned is not one they
+   * can act on. A section headed with the contributor's name says where the
+   * rows came from; the same rows interleaved with the stock ones would read as
+   * rows whose buttons had gone missing.
+   */
+  const contributedNodes = contributedGroups.map(({ ownerLabel, groups }) => (
+    <Section key={`contributed-${ownerLabel}`} full gap="sm" title={ownerLabel}>
+      {groups.map(({ expId, items }) => (
+        <Stack key={expId} gap="xs">
+          <SectionTitle as="h5">{expId || "(unknown)"}</SectionTitle>
+          {/* A real `<ul>`, for the same reason the stock list above needs
+              one: the row is a kit `Row`, which renders an `<li>`. */}
+          <Stack gap="xs" as="ul" style={INSTRUMENT_LIST}>
+            {items.map((inst) => (
+              <ScienceExperimentRow key={inst.partId} instrument={inst} />
+            ))}
+          </Stack>
+        </Stack>
+      ))}
     </Section>
   ));
 
@@ -365,13 +424,14 @@ function ExperimentsComponent({
             <LabSection labs={labs} />
           </Section>
         ),
-        sectionNodes.length === 0 ? (
+        sectionNodes.length === 0 && contributedNodes.length === 0 ? (
           <Section key="unmatched" full>
             <EmptyState>No instrument matches the filter.</EmptyState>
           </Section>
         ) : (
           sectionNodes
         ),
+        contributedNodes,
       ]}
     />
   );
@@ -440,6 +500,60 @@ function groupByExpId(instruments: Instrument[]): InstrumentGroup[] {
   return Array.from(map.entries()).map(([expId, items]) => ({ expId, items }));
 }
 
+/**
+ * The contributed entries this widget will actually draw.
+ *
+ * First entry per `partId` wins, the same convention ShipMap's `groupByPart`
+ * uses for its own slots. A `partId` the stock list already carries is dropped
+ * outright: a contributor naming a part `science.instruments` also reports is
+ * describing an instrument the host can already COMMAND, so the host's own row
+ * is the better of the two and a second one would be the same instrument twice.
+ */
+function ownContributed(
+  entries: readonly Contributed<Instrument>[],
+  stock: Instrument[] | null,
+): Contributed<Instrument>[] {
+  const seen = new Set((stock ?? []).map((inst) => inst.partId));
+  const out: Contributed<Instrument>[] = [];
+  for (const entry of entries) {
+    if (seen.has(entry.partId)) continue;
+    seen.add(entry.partId);
+    out.push(entry);
+  }
+  return out;
+}
+
+interface ContributedInstrumentGroup {
+  /** Who supplied these, for the section heading. */
+  ownerLabel: string;
+  groups: InstrumentGroup[];
+}
+
+/**
+ * Contributed instruments, by WHO supplied them and then by experiment, both in
+ * first-seen order so the sections do not reshuffle between frames.
+ *
+ * The label falls back to the contribution id when a contribution carries no
+ * owner, which is what a registration made without an Uplink handle looks like.
+ * A heading that named nobody would leave the operator with rows they cannot
+ * attribute, and the id is at least something to blame.
+ */
+function groupContributed(
+  entries: readonly Contributed<Instrument>[],
+): ContributedInstrumentGroup[] {
+  const byOwner = new Map<string, Contributed<Instrument>[]>();
+  for (const entry of entries) {
+    const label = entry.owner?.name ?? entry.contributionId;
+    const list = byOwner.get(label);
+    if (list) list.push(entry);
+    else byOwner.set(label, [entry]);
+  }
+  return Array.from(byOwner.entries()).map(([ownerLabel, items]) => ({
+    ownerLabel,
+    groups: groupByExpId(items),
+  }));
+}
+
 function summarise(instruments: Instrument[]): {
   total: number;
   hasData: number;
@@ -474,6 +588,12 @@ registerComponent<ExperimentsConfig>({
   defaultConfig: {},
   actions: [],
   augmentSlots: ["experiments.instrument", "experiments.actions"],
+  /*
+   * Declared, not decorative: the per-frame aggregation only runs for the slots
+   * a widget lists here, so a contribution to an undeclared slot is computed by
+   * nobody and read as an empty array with nothing to say so.
+   */
+  contributionSlots: ["experiments.instruments"],
   pushable: true,
   requires: ["flight"],
 });

@@ -302,7 +302,7 @@ Also exported: `DefaultThemeProvider` (the default dark theme, mounted), `defaul
 **Readouts**: `Readout`, `BigReadout`, `ReadoutCaption`, `Text`, `Unit`, `Badge`, `StatusPill`,
 `StatusIndicator`, `ProgressBar`, `Spinner`
 
-**Everything else**: `ActionButton`, `EmptyState`, `Truncate`, `ScienceExperimentRow`
+**Everything else**: `ActionButton`, `EmptyState`, `Truncate`
 
 **Formatters**: `formatNumber`, `formatDuration`, `formatCountdown`, `formatKspDate`
 

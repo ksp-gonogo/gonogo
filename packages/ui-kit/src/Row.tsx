@@ -34,9 +34,9 @@ export interface RowProps extends HTMLAttributes<HTMLElement> {
    * `RowName` is `flex: 1 1 0`, so it yields all of its width before anything
    * else gives up any: the line never overflows, `flex-wrap` never engages, and
    * what an operator gets is a full set of badges beside a name shaved to a
-   * single glyph. That is what a crowded `ScienceExperimentRow` was doing, and
-   * at a narrow grid column the badges then ran on past the row entirely and
-   * painted over the neighbouring column's text.
+   * single glyph. That is what a crowded four-badge row was doing, and at a
+   * narrow grid column the badges then ran on past the row entirely and painted
+   * over the neighbouring column's text.
    *
    * Off by default, on Cluster's reasoning: a row that wraps silently is how a
    * tidy list becomes a ragged block at a narrow width without anyone noticing.

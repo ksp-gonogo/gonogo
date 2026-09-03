@@ -320,6 +320,54 @@ export interface MissionLogSourceEntry {
   events?: readonly MissionLogEventEntry[];
 }
 
+/**
+ * One `experiments.instruments` entry: a science instrument aboard the active
+ * vessel that Experiments cannot observe for itself.
+ *
+ * <para>The widget reads `science.instruments`, which is the STOCK experiment
+ * list. A mod that runs its own experiment parts through its own science module
+ * rather than the stock one never appears there, so without this slot those
+ * instruments are invisible to the one widget whose whole subject is "what
+ * science hardware is aboard".</para>
+ *
+ * <para>Already normalised, and deliberately so: plain booleans rather than the
+ * wire's optionals, because a contributor has already parsed its own Topic and
+ * the host must not have to guess what a missing flag meant. `partId` is a
+ * string for the same reason it is one on the widget's own parsed shape: every
+ * consumer interpolates it into a key and none compares it numerically.</para>
+ *
+ * <para>The four booleans are the instrument's LIFECYCLE, and a contributor
+ * whose domain has no such lifecycle says so plainly rather than omitting them:
+ * a survey scanner that can be neither deployed nor made inoperable says
+ * `false` to both and `true` to `rerunnable`. There is no field for "this
+ * instrument's state is unknown", because the host draws a badge per flag and a
+ * third state would be a badge that means nothing.</para>
+ *
+ * <para>Contributed instruments render READ-ONLY. The host's Deploy and
+ * Transmit controls dispatch `science.experiment.deploy`/`.transmit`, which
+ * reach a part through the stock science module; a part the stock list never
+ * mentioned is not one those commands can act on, so the host renders no
+ * control rather than one that would arm and do nothing. A contributor wanting
+ * commands of its own has `experiments.instrument`, the per-instrument AUGMENT
+ * slot, which is a different mechanism for a different job: an augment renders,
+ * a contribution supplies.</para>
+ *
+ * Mirrors `ExperimentsInstrumentEntry` (`packages/components/src/Experiments/index.tsx`).
+ */
+export interface ExperimentsInstrumentEntry {
+  /** Stable within the contributing client; the row's React key. */
+  partId: string;
+  /** What the operator reads on the row, e.g. "2HOT Thermometer". */
+  partTitle: string;
+  /** KSP experiment id, e.g. `"temperatureScan"`. Groups the rows. */
+  expId: string;
+  deployed: boolean;
+  /** The instrument currently holds collectable data. */
+  hasData: boolean;
+  rerunnable: boolean;
+  inoperable: boolean;
+}
+
 declare module "./plots" {
   interface PlotSubjectRegistry {
     /** LandingStatus's velocity-height descent corridor: speed across, height
@@ -380,6 +428,9 @@ declare module "./types" {
     };
     "mission-event-log.sources": {
       entry: MissionLogSourceEntry;
+    };
+    "experiments.instruments": {
+      entry: ExperimentsInstrumentEntry;
     };
   }
 }

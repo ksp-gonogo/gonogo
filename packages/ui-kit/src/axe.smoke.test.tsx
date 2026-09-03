@@ -14,7 +14,6 @@ import { ProgressBar } from "./ProgressBar";
 import { Row, RowName } from "./Row";
 import { Section, SectionTitle } from "./Section";
 import { StatusIndicator } from "./StatusIndicator";
-import { ScienceExperimentRow } from "./science/ScienceExperimentRow";
 import { Tabs } from "./Tabs";
 import { Tape } from "./Tape";
 import { WidgetHeader } from "./WidgetHeader";
@@ -248,47 +247,6 @@ describe("a11y smoke (jest-axe)", () => {
         <ProgressBar value={64} ariaLabel="Altimetry coverage" />
         <span>64%</span>
       </Grid>,
-    );
-    await expectNoA11yViolations(container);
-  });
-
-  it("ScienceExperimentRow has no axe violations across instrument states", async () => {
-    const { container } = render(
-      <ul>
-        <ScienceExperimentRow
-          instrument={{
-            partId: "1",
-            partTitle: "Mystery Goo",
-            expId: "mysteryGoo",
-            deployed: false,
-            hasData: false,
-            rerunnable: true,
-            inoperable: false,
-          }}
-        />
-        <ScienceExperimentRow
-          instrument={{
-            partId: "2",
-            partTitle: "Thermometer",
-            expId: "temperatureScan",
-            deployed: true,
-            hasData: true,
-            rerunnable: false,
-            inoperable: false,
-          }}
-        />
-        <ScienceExperimentRow
-          instrument={{
-            partId: "3",
-            partTitle: "Burned Sensor",
-            expId: "x",
-            deployed: false,
-            hasData: false,
-            rerunnable: false,
-            inoperable: true,
-          }}
-        />
-      </ul>,
     );
     await expectNoA11yViolations(container);
   });
