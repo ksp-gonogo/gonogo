@@ -36,4 +36,4 @@ export const CONTRACT_MAJOR = 14;
  * against a NEWER minor than the host is refused; an older one loads, since a
  * minor is additive.
  */
-export const CONTRACT_MINOR = 7;
+export const CONTRACT_MINOR = 8;
