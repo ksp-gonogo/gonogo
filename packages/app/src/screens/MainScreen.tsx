@@ -144,6 +144,54 @@ function CommcastHostProviderOrPassthrough({
 }
 
 /**
+ * What a pilot sees when there is no craft to be aboard.
+ *
+ * NOT an error, and not a blank page. The operator is in the VAB or the
+ * tracking station and there is simply no vessel; a widget area that says so is
+ * the honest answer, and the shared thread keeps working underneath because a
+ * pilot sitting on the ground is still someone their crew can talk to.
+ *
+ * Suppressed until a game signal has arrived, the same way `RequiresGuard`
+ * suppresses its overlay: on a refresh `scene` is `"Unknown"` until the first
+ * frame, and announcing "no active vessel" across that window would be
+ * asserting something no channel has said yet.
+ */
+function NoActiveVessel({
+  hasGameSignal,
+  scene,
+}: {
+  hasGameSignal: boolean;
+  scene: GameScene;
+}) {
+  if (!hasGameSignal) return null;
+  return (
+    <NoActiveVessel__Body role="status" aria-live="polite">
+      <strong>No active vessel</strong>
+      <span>
+        {scene === "Editor"
+          ? "Editor scene: nothing is flying."
+          : scene === "SpaceCenter"
+            ? "At the space centre. Launch to take a seat."
+            : scene === "TrackingStation"
+              ? "Tracking station: switch to a vessel to fly it."
+              : "Nothing is flying right now."}
+      </span>
+    </NoActiveVessel__Body>
+  );
+}
+
+const NoActiveVessel__Body = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-12);
+  color: var(--color-text-muted);
+  font-size: var(--font-size-sm);
+  text-align: center;
+`;
+
+/**
  * The direct-WS screen, at whichever seat the route puts it.
  *
  * `"main"` is a command centre at KSC and hosts the peer mesh; `"pilot"` is a
@@ -161,7 +209,7 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
   // peer host: it joins the mesh as a client, so the canonical thread is
   // somebody else's and this screen must not build one.
   const hostsThePeerMesh = screen !== "pilot";
-  const { scene } = useGameContext();
+  const { scene, inFlight, hasGameSignal } = useGameContext();
   const dashboard = useDashboardState(dashboardKeyForScene(scene), DEMO_CONFIG);
   const [serialService] = useState(
     () => new SerialDeviceService({ screenKey: screen }),
@@ -295,6 +343,12 @@ export function MainScreen({ screen = "main" }: { screen?: Screen } = {}) {
                                       >
                                         <UplinkIntegrityBanner />
                                         <MissionBanner />
+                                        {screen === "pilot" && !inFlight ? (
+                                          <NoActiveVessel
+                                            hasGameSignal={hasGameSignal}
+                                            scene={scene}
+                                          />
+                                        ) : null}
                                         <Dashboard
                                           items={dashboard.items}
                                           layouts={dashboard.layouts}

@@ -48,6 +48,8 @@ export * from "./Strategies";
 export * from "./SystemView";
 export * from "./shared/AlarmsLauncher";
 export * from "./shared/RequiresGuard";
+export * from "./shared/SeatGuard";
+export * from "./shared/seatAvailability";
 export * from "./Targeting";
 export * from "./TargetPicker";
 export * from "./TechTree";

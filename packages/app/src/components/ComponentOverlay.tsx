@@ -1,3 +1,4 @@
+import { availableAtSeat } from "@ksp-gonogo/components";
 import type { ComponentDefinition } from "@ksp-gonogo/core";
 import {
   effectiveSearchTags,
@@ -5,6 +6,7 @@ import {
   safeRandomUuid,
   uplinkAdditions,
   useChromeWrap,
+  useSeat,
 } from "@ksp-gonogo/core";
 import {
   SerialDeviceProvider,
@@ -111,6 +113,7 @@ export function ComponentOverlay({
   const wrapChrome = useChromeWrap();
 
   const allComponents = getComponents();
+  const seat = useSeat();
 
   // Tag → count, descending. Drives the chip row below the search box so the
   // most-used tags appear first. Singleton tags (only one widget carries
@@ -134,6 +137,12 @@ export function ComponentOverlay({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return allComponents.filter((def) => {
+      // The COSMETIC half of the seat rule: this stops a ground instrument
+      // being offered here, and `SeatGuard` in the orchestrator is what stops
+      // it rendering when one arrives by any of the other paths that put an
+      // item in `items[]` (mission-profile replace, scene auto-switch, backup
+      // restore, raw localStorage, peer widget-push).
+      if (!availableAtSeat(def, seat)) return false;
       const searchTags = effectiveSearchTags(def);
       if (q) {
         const matchesQuery =
@@ -148,7 +157,7 @@ export function ComponentOverlay({
       }
       return true;
     });
-  }, [allComponents, query, selectedTags]);
+  }, [allComponents, query, selectedTags, seat]);
 
   // Clamp the roving cursor whenever the filtered list shrinks below it,
   // otherwise Enter would activate the wrong widget (or read undefined when

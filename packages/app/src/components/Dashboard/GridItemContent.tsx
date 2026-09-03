@@ -1,4 +1,4 @@
-import { RequiresGuard } from "@ksp-gonogo/components";
+import { RequiresGuard, SeatGuard } from "@ksp-gonogo/components";
 import type { ComponentDefinition } from "@ksp-gonogo/core";
 import {
   ContributionsProvider,
@@ -164,18 +164,20 @@ export const GridItemContent = memo(function GridItemContent({
               <WidgetContributions def={def}>
                 <WidgetBadges>
                   <ErrorBoundary fallback={renderErrorFallback}>
-                    <RequiresGuard
-                      requires={def.requires}
-                      channels={def.channels}
-                    >
-                      <Comp
-                        id={item.i}
-                        config={item.config}
-                        w={w}
-                        h={h}
-                        onConfigChange={onSaveConfig}
-                      />
-                    </RequiresGuard>
+                    <SeatGuard def={def}>
+                      <RequiresGuard
+                        requires={def.requires}
+                        channels={def.channels}
+                      >
+                        <Comp
+                          id={item.i}
+                          config={item.config}
+                          w={w}
+                          h={h}
+                          onConfigChange={onSaveConfig}
+                        />
+                      </RequiresGuard>
+                    </SeatGuard>
                   </ErrorBoundary>
                 </WidgetBadges>
               </WidgetContributions>

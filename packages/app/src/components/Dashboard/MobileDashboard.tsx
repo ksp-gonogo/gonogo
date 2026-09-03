@@ -1,4 +1,4 @@
-import { RequiresGuard } from "@ksp-gonogo/components";
+import { RequiresGuard, SeatGuard } from "@ksp-gonogo/components";
 import {
   DashboardItemContext,
   ErrorBoundary,
@@ -198,15 +198,17 @@ const MobileItemContent = memo(function MobileItemContent({
       <ComponentWrapper>
         <DashboardItemContext.Provider value={itemContext}>
           <ErrorBoundary fallback={renderErrorFallback}>
-            <RequiresGuard requires={def.requires} channels={def.channels}>
-              <Comp
-                id={item.i}
-                config={item.config}
-                w={gridW}
-                h={gridH}
-                onConfigChange={onSaveConfig}
-              />
-            </RequiresGuard>
+            <SeatGuard def={def}>
+              <RequiresGuard requires={def.requires} channels={def.channels}>
+                <Comp
+                  id={item.i}
+                  config={item.config}
+                  w={gridW}
+                  h={gridH}
+                  onConfigChange={onSaveConfig}
+                />
+              </RequiresGuard>
+            </SeatGuard>
           </ErrorBoundary>
         </DashboardItemContext.Provider>
       </ComponentWrapper>

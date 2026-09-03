@@ -1,4 +1,4 @@
-import { RequiresGuard } from "@ksp-gonogo/components";
+import { RequiresGuard, SeatGuard } from "@ksp-gonogo/components";
 import {
   DashboardItemContext,
   ErrorBoundary,
@@ -180,14 +180,16 @@ function PushedItem({
                 </MissingComponent>
               )}
             >
-              <RequiresGuard requires={def.requires} channels={def.channels}>
-                <def.component
-                  id={placement.widget.widgetInstanceId}
-                  config={placement.widget.config}
-                  w={placement.w}
-                  h={placement.h}
-                />
-              </RequiresGuard>
+              <SeatGuard def={def}>
+                <RequiresGuard requires={def.requires} channels={def.channels}>
+                  <def.component
+                    id={placement.widget.widgetInstanceId}
+                    config={placement.widget.config}
+                    w={placement.w}
+                    h={placement.h}
+                  />
+                </RequiresGuard>
+              </SeatGuard>
             </ErrorBoundary>
           </DashboardItemContext.Provider>
         ) : (

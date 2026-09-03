@@ -33,6 +33,10 @@ declare module "@ksp-gonogo/core" {
 /* Stub context hooks and heavy dependencies pulled in transitively. */
 // Capture what the chrome hands the render-gate so we can assert optionalChannels
 // never reaches it (see the optionalChannels test below).
+// Captured so the chrome can be shown to hand the seat gate the whole def,
+// which is what lets the gate read `optionalChannels` and `dataRequirements`
+// that the health gate deliberately never sees.
+const seatCapture = vi.hoisted(() => ({ last: null as unknown }));
 const guardCapture = vi.hoisted(() => ({
   last: null as {
     requires?: readonly string[];
@@ -41,6 +45,13 @@ const guardCapture = vi.hoisted(() => ({
   } | null,
 }));
 vi.mock("@ksp-gonogo/components", () => ({
+  // Pass-through, like `RequiresGuard` below: this file is about the chrome's
+  // structure, and the seat gate's own behaviour is covered where the
+  // derivation lives (`seatAvailability.test.ts`).
+  SeatGuard: (props: { children: React.ReactNode; def: unknown }) => {
+    seatCapture.last = props.def;
+    return <>{props.children}</>;
+  },
   RequiresGuard: (props: {
     children: React.ReactNode;
     requires?: readonly string[];
@@ -177,6 +188,14 @@ describe("GridItemContent: draggableCancel structural guard", () => {
 
     expect(guardCapture.last?.channels).toEqual(["comms.link"]);
     expect(guardCapture.last?.optionalChannels).toBeUndefined();
+    // The SEAT gate gets the whole def, and must: an optional ground channel
+    // still makes a widget a ground instrument, even though it must never gate
+    // that widget's health. The two gates ask different questions off the same
+    // declaration, and this is where the chrome keeps them apart.
+    expect(seatCapture.last).toMatchObject({
+      channels: ["comms.link"],
+      optionalChannels: ["vessel.orbit"],
+    });
     expect(screen.getByTestId("stub-widget")).toBeInTheDocument();
   });
 
