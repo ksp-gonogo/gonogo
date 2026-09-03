@@ -37,6 +37,6 @@ namespace Sitrep.Host.Reliability
         /// success would, so it says why.
         /// </summary>
         public RepairOutcome Repair(string partId, string crewName) =>
-            new RepairOutcome { Repaired = false, Refusal = "not-modelled" };
+            new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NotModelled };
     }
 }

@@ -88,13 +88,13 @@ namespace Gonogo.KerbalismUplink
         {
             if (Coverage != ReliabilityCoverage.Modeled)
             {
-                return new RepairOutcome { Repaired = false, Refusal = "not-modelled" };
+                return new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NotModelled };
             }
 
             var v = FlightGlobals.ActiveVessel;
             if (v == null)
             {
-                return new RepairOutcome { Repaired = false, Refusal = "no-such-part" };
+                return new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NoSuchPart };
             }
 
             var raw = _k.AttemptRepair(v, partId, crewName);

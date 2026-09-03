@@ -683,7 +683,7 @@ namespace Gonogo.KerbalismUplink
             var outcome = new RepairAttemptRaw();
             if (v == null || !v.loaded || v.parts == null)
             {
-                outcome.Refusal = "no-such-part";
+                outcome.Refusal = RepairRefusal.NoSuchPart;
                 return outcome;
             }
 
@@ -694,7 +694,7 @@ namespace Gonogo.KerbalismUplink
             }
             if (target == null)
             {
-                outcome.Refusal = "no-such-part";
+                outcome.Refusal = RepairRefusal.NoSuchPart;
                 return outcome;
             }
 
@@ -709,7 +709,7 @@ namespace Gonogo.KerbalismUplink
             }
             if (kerbal == null)
             {
-                outcome.Refusal = "no-such-crew";
+                outcome.Refusal = RepairRefusal.NoSuchCrew;
                 return outcome;
             }
 
@@ -725,41 +725,66 @@ namespace Gonogo.KerbalismUplink
             {
                 if (FlightEVA.hatchInsideFairing(from))
                 {
-                    outcome.Refusal = "eva-impossible";
+                    outcome.Refusal = RepairRefusal.EvaImpossible;
                     return outcome;
                 }
             }
             catch { }
 
-            var broken = new List<PartModule>();
+            /*
+             * Everything Kerbalism's own Repair() event would act on, which is
+             * MORE than the broken ones: that event clears needMaintenance
+             * unconditionally and only clears broken inside its own branch. The
+             * walk used to collect broken alone, so the client's "Service" verb
+             * on a service-due row matched nothing and every press came back
+             * no-such-part.
+             */
+            var actionable = new List<PartModule>();
+            var wasBroken = false;
             foreach (PartModule pm in target.Modules)
             {
                 if (pm == null || pm.GetType().FullName != "KERBALISM.Reliability") continue;
-                if (MemberBool(pm, "broken") == true) broken.Add(pm);
+                var broken = MemberBool(pm, "broken") == true;
+                var needsService = MemberBool(pm, "needMaintenance") == true;
+                if (!KerbalismRepairScope.IsActionable(broken, needsService)) continue;
+                /*
+                 * A part whose repair spec is DISABLED (CrewSpecs built from
+                 * repair = false, or from no value at all) is one Kerbalism will
+                 * not let anyone repair: RefreshFlightPAW gates Events["Repair"]
+                 * on (bool)repair_cs and hides it entirely. Repair() itself never
+                 * consults enabled, and its crew check passes for any crew when
+                 * no trait is named, so invoking the event directly would repair
+                 * a part the game treats as unrepairable. Ours is the only gate
+                 * on that path, because ours is the only caller that skips the PAW.
+                 */
+                if (RepairIsDisabled(pm)) continue;
+                actionable.Add(pm);
+                wasBroken |= broken;
             }
-            if (broken.Count == 0)
+            if (actionable.Count == 0)
             {
-                outcome.Refusal = "no-such-part";
+                outcome.Refusal = RepairRefusal.NoSuchPart;
                 return outcome;
             }
 
-            var critical = MemberBool(broken[0], "critical") == true;
+            var critical = MemberBool(actionable[0], "critical") == true;
             // The same arithmetic KerbalismReliabilityMap states on the wire, from
             // the same function: a console showing one number while a repair
-            // charges another is worse than either number alone.
-            var needed = KerbalismReliabilityMap.KitsForRepair(critical);
-            var kitsRequired = ReliabilityPreferences().RequireRepairKits == true;
+            // charges another is worse than either number alone. A service is
+            // charged nothing, because Kerbalism charges it nothing.
+            var needed = KerbalismRepairScope.KitsFor(wasBroken, critical);
+            var kitsRequired = needed > 0 && ReliabilityPreferences().RequireRepairKits == true;
 
             if (kitsRequired && !TakeRepairKits(v, kerbal, needed, outcome))
             {
-                outcome.Refusal = "no-kits";
+                outcome.Refusal = RepairRefusal.NoKits;
                 return outcome;
             }
 
             var restore = kitsRequired ? SuspendRepairKitRequirement() : null;
             try
             {
-                foreach (var pm in broken)
+                foreach (var pm in actionable)
                 {
                     try { pm.Events["Repair"].Invoke(); } catch { }
                 }
@@ -769,10 +794,13 @@ namespace Gonogo.KerbalismUplink
                 restore?.Invoke();
             }
 
-            outcome.Repaired = MemberBool(broken[0], "broken") != true;
+            outcome.Repaired = KerbalismRepairScope.Cleared(
+                wasBroken,
+                MemberBool(actionable[0], "broken") == true,
+                MemberBool(actionable[0], "needMaintenance") == true);
             if (!outcome.Repaired)
             {
-                outcome.Refusal = "crew-not-qualified";
+                outcome.Refusal = RepairRefusal.CrewNotQualified;
                 outcome.KitsUsed = 0;
                 outcome.KitsFrom = null;
             }
@@ -799,28 +827,57 @@ namespace Gonogo.KerbalismUplink
         {
             var held = kerbal.KerbalInventoryModule;
             var carried = CountKits(held);
-            if (carried >= needed)
+            var fromCarried = KerbalismRepairScope.FromCarried(needed, carried);
+            var shortfall = KerbalismRepairScope.Shortfall(needed, carried);
+
+            /*
+             * The carried half is REMOVED, not merely counted. It used to be
+             * counted: "enough aboard, carry on" returned true and took nothing,
+             * and because the invoke below runs with Kerbalism's own kit guard
+             * suspended, its ConsumeRepairKits returned true without removing
+             * anything either. So the common case charged nobody while the
+             * outcome reported the kits as spent, and the operator's console
+             * disagreed with their own inventory.
+             */
+            if (shortfall == 0)
             {
+                if (!RemoveKits(held, fromCarried)) return false;
                 outcome.KitsFrom = "carried";
                 return true;
             }
 
-            var shortfall = needed - carried;
             foreach (var part in v.parts)
             {
                 var store = part?.FindModuleImplementing<ModuleInventoryPart>();
                 if (store == null || store == held) continue;
                 if (CountKits(store) < shortfall) continue;
-                try
-                {
-                    store.RemoveNPartsFromInventory(RepairKitPartName, shortfall, true);
-                }
-                catch { continue; }
+                // The store first: if the fetch fails there is nothing to undo,
+                // where taking the carried half first would leave the kerbal short
+                // for a repair that then did not happen.
+                if (!RemoveKits(store, shortfall)) continue;
+                if (!RemoveKits(held, fromCarried)) return false;
                 outcome.KitsFrom = part!.flightID.ToString();
                 return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Take <paramref name="count"/> kits out of one inventory. A count of
+        /// zero is a success that touches nothing, so the two-source split does
+        /// not need a branch at either call site.
+        /// </summary>
+        private static bool RemoveKits(ModuleInventoryPart? inventory, int count)
+        {
+            if (count <= 0) return true;
+            if (inventory == null) return false;
+            try
+            {
+                inventory.RemoveNPartsFromInventory(RepairKitPartName, count, true);
+                return true;
+            }
+            catch { return false; }
         }
 
         /// <summary>
@@ -890,9 +947,31 @@ namespace Gonogo.KerbalismUplink
         /// would be a mistake: a second copy of a simple rule is the kind that
         /// silently stops matching.</para>
         ///
-        /// <para>Returns null when the spec is disabled, which means anyone may
-        /// do it, and null reads as "no requirement" all the way to the wire.</para>
+        /// <para>Returns null when the spec is disabled, and null reads as "no
+        /// requirement" all the way to the wire. That is a statement about the
+        /// TRAIT and not about permission: a disabled spec means Kerbalism lets
+        /// NOBODY repair the part (see <see cref="RepairIsDisabled"/>, which is
+        /// what actually refuses it), and this used to be doc-commented as
+        /// meaning anyone may.</para>
         /// </summary>
+        /// <summary>
+        /// Whether this module's repair is switched off in its config.
+        ///
+        /// <para>An unreadable spec answers FALSE, deliberately: the reflection
+        /// failing must not make every part on the craft unrepairable, which is a
+        /// far larger wrong than the one this guards. It fails the way the code
+        /// behaved before the guard existed.</para>
+        /// </summary>
+        private static bool RepairIsDisabled(PartModule pm)
+        {
+            try
+            {
+                var spec = pm.GetType().GetField("repair_cs")?.GetValue(pm);
+                return spec != null && MemberBool(spec, "enabled") == false;
+            }
+            catch { return false; }
+        }
+
         private static (string Trait, int? Level)? RepairSpecOf(PartModule pm)
         {
             try

@@ -48,14 +48,20 @@ namespace GonogoTestFlightUplink
         }
 
         /// <summary>
-        /// TestFlight models failures and their repair through its own in-game
-        /// surfaces, and this Uplink does not reach that path. Refused, and
-        /// named honestly: reporting "not modelled" would be false, since
-        /// TestFlight plainly does model repair, and silently succeeding would
-        /// be worse. The operator is told the console cannot drive it.
+        /// TestFlight's own repair, driven through
+        /// <c>ITestFlightCore.ForceRepair</c>. This used to be a hardcoded
+        /// <c>refused</c>, documented as deliberate on the grounds that TestFlight
+        /// repairs through surfaces of its own. It does not: there is no repair
+        /// button anywhere in the three TestFlight assemblies, only a public
+        /// static <c>TestFlightInterface.ForceRepair</c> facade meant for exactly
+        /// this, and nothing else in the install calls it.
+        ///
+        /// <para><paramref name="crewName"/> is unused because TestFlight's model
+        /// has nothing to check it against, not because the check was skipped. See
+        /// <see cref="TestFlightReflection.Repair"/>.</para>
         /// </summary>
         public RepairOutcome Repair(string partId, string crewName) =>
-            new RepairOutcome { Repaired = false, Refusal = "refused" };
+            _tf.Repair(FlightGlobals.ActiveVessel, partId);
 
     }
 }

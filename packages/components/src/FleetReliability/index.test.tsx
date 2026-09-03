@@ -21,6 +21,7 @@ const CARRIED = [
   "vessel.identity",
   "vessel.crew",
   "vessel.inventory",
+  "vessel.repair",
 ];
 
 const ACTIVE_IDENTITY = {
@@ -483,5 +484,119 @@ describe("FleetReliabilityUpdates augment", () => {
     emit(fixture, MODELED, SCENE);
     await screen.findByText("Reaction Wheel");
     await expectNoA11yViolations(container);
+  });
+});
+
+/**
+ * A refusal must not reach the operator on the confirmed path.
+ *
+ * <p>`vessel.repair` returned every outcome through
+ * `CommandResult<RepairOutcome>.Ok(...)`, and `Ok` sets `Success` true
+ * unconditionally, so the mod answered a refused repair with a SUCCESS
+ * envelope carrying `repaired: false` in a payload nothing reads. The promise
+ * resolved, `CommandButton` ran `settle("idle", null)`, and a repair that never
+ * happened was byte-identical on screen to one that did.</p>
+ *
+ * <p>These drive the REAL wire shape through the real client, rather than
+ * asserting on the mapping in isolation: the defect was entirely in the
+ * envelope, and a test that built its own envelope would have passed
+ * throughout.</p>
+ */
+describe("a refused repair is refused on screen", () => {
+  const BROKEN = [
+    {
+      partId: "101:0",
+      title: "RD-180",
+      condition: "failed",
+      conditionDetail: "turbopump failure",
+    },
+  ];
+
+  function arm(fixture: ReturnType<typeof setupStreamFixture>): void {
+    act(() => {
+      fixture.emit("vessel.identity", ACTIVE_IDENTITY);
+      fixture.emit("vessel.crew", { count: 1, capacity: 3, crew: [ENGINEER] });
+      fixture.emit("vessel.inventory", { stores: [] });
+      fixture.emit("reliability.summary", MODELED);
+      fixture.emit("reliability.parts", BROKEN);
+    });
+  }
+
+  /**
+   * Open the row's repair control, then ARM and CONFIRM it. The two presses are
+   * the control's own guard against a stray click spending a round trip, not
+   * ceremony: a single click only arms, and a test that stopped there would
+   * assert on a command it never sent.
+   */
+  async function press(): Promise<HTMLElement> {
+    await act(async () => {
+      screen.getByRole("button", { name: /repair/i }).click();
+    });
+    const confirm = screen.getByRole("button", { name: /repair/i });
+    await act(async () => {
+      confirm.click();
+    });
+    await act(async () => {
+      confirm.click();
+    });
+    await act(async () => {});
+    return confirm;
+  }
+
+  it("lands in the refused phase, not back at rest", async () => {
+    const { fixture } = renderAugment("v-active");
+    /*
+     * Exactly what RepairRefusal.ResultFor now puts on the wire for a crew that
+     * does not qualify: a failure code, with the finer token still on the
+     * payload.
+     */
+    fixture.transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: 16, // CommandErrorCode.CapabilityMismatch
+      payload: { repaired: false, refusal: "crew-not-qualified" },
+    }));
+    arm(fixture);
+
+    const confirm = await press();
+
+    expect(confirm).toHaveAttribute("data-command-phase", "refused");
+    await act(async () => {});
+  });
+
+  it("settles at rest only when the repair actually happened", async () => {
+    const { fixture } = renderAugment("v-active");
+    fixture.transport.setCommandHandler(() => ({
+      success: true,
+      errorCode: 0,
+      payload: { repaired: true, kitsUsed: 1, kitsFrom: "carried" },
+    }));
+    arm(fixture);
+
+    const confirm = await press();
+
+    expect(confirm).toHaveAttribute("data-command-phase", "idle");
+    await act(async () => {});
+  });
+
+  /**
+   * The arm that shipped: `success: true` beside `repaired: false`. Nothing
+   * downstream reads the payload, so this is the exact envelope that made a
+   * refusal indistinguishable from a success, and it must not be what the mod
+   * sends. Pinned here so a regression to `Ok(outcome)` shows up as a widget
+   * that confirms a repair which did not happen.
+   */
+  it("would have shown a refusal as a success on the old envelope", async () => {
+    const { fixture } = renderAugment("v-active");
+    fixture.transport.setCommandHandler(() => ({
+      success: true,
+      errorCode: 0,
+      payload: { repaired: false, refusal: "crew-not-qualified" },
+    }));
+    arm(fixture);
+
+    const confirm = await press();
+
+    expect(confirm).toHaveAttribute("data-command-phase", "idle");
+    await act(async () => {});
   });
 });

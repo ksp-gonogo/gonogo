@@ -295,6 +295,18 @@ namespace Sitrep.Core.Serialization
                     // meta } with camelCase keys, matching every sibling here.
                     AppendCommsCommandCentre(sb, commandCentre);
                     break;
+                case Sitrep.Contract.CommandCentreSeparation separation:
+                    // Same "producer owns the flatten" boundary as
+                    // CommsCommandCentre above: CommandCentreDelayUplink
+                    // publishes the POCO straight over. Without this case every
+                    // commandCentre.separation frame threw NotSupportedException
+                    // at the wire boundary and was silently dropped, so a client
+                    // that subscribed sat on "subscribed" forever.
+                    AppendCommandCentreSeparation(sb, separation);
+                    break;
+                case Sitrep.Contract.CentreSeparationEntry separationEntry:
+                    AppendCentreSeparationEntry(sb, separationEntry);
+                    break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
                     // Same "producer owns the flatten" boundary as CommsDelay
                     // above: the comms.connectivity channel
@@ -1554,6 +1566,51 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "meta");
             sb.Append(':');
             AppendPayloadMeta(sb, c.Meta);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// The separation roster. The pair list is written even when empty: an
+        /// absent <c>pairs</c> key and an empty one read differently, and the
+        /// contract's sparseness rule means a reader has to be able to tell "no
+        /// routed pairs" from "no roster".
+        /// </summary>
+        private static void AppendCommandCentreSeparation(
+            StringBuilder sb, Sitrep.Contract.CommandCentreSeparation s)
+        {
+            sb.Append('{');
+            AppendString(sb, "pairs");
+            sb.Append(':');
+            sb.Append('[');
+            var first = true;
+            if (s.Pairs != null)
+            {
+                foreach (var pair in s.Pairs)
+                {
+                    if (!first) sb.Append(',');
+                    first = false;
+                    AppendCentreSeparationEntry(sb, pair);
+                }
+            }
+            sb.Append(']');
+            sb.Append('}');
+        }
+
+        private static void AppendCentreSeparationEntry(
+            StringBuilder sb, Sitrep.Contract.CentreSeparationEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "from");
+            sb.Append(':');
+            AppendNullableString(sb, e.From);
+            sb.Append(',');
+            AppendString(sb, "to");
+            sb.Append(':');
+            AppendNullableString(sb, e.To);
+            sb.Append(',');
+            AppendString(sb, "oneWaySeconds");
+            sb.Append(':');
+            AppendNumber(sb, e.OneWaySeconds);
             sb.Append('}');
         }
 

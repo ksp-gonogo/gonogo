@@ -971,7 +971,27 @@ export enum CommandErrorCode {
 	* not exist, and collapsing them tells an operator to go looking for a file
 	* that is sitting right there.
 	*/
-	NotReady = 21
+	NotReady = 21,
+	/**
+	* The command consumes a countable ITEM and there are not enough of them
+	* aboard: Kerbalism's `evaRepairKit`, one for a malfunction and two for a
+	* critical failure.
+	*
+	* Authority: the provider's own charge, read back from the same function that
+	* STATES the cost on `ReliabilityPartEntry.repairCost`. The two come from one
+	* place precisely so a console cannot show one number while the repair takes
+	* another.
+	*
+	* `CommandErrorCode.InsufficientFunds`'s and
+	* `CommandErrorCode.InsufficientScience`'s third sibling, and separate for the
+	* same reason those two are separate from each other: an operator short of a
+	* physical item does something entirely different about it from one short of a
+	* currency, and nothing can be bought to fix it.
+	*
+	* Deliberately NOT `CommandErrorCode.LimitReached`, which is a capacity that
+	* is FULL. This is a store that is empty, and the two read as opposites.
+	*/
+	InsufficientResource = 22
 }
 /**
 * R7 Fix 1: the ONE result shape every command returns, replacing the three
@@ -3498,10 +3518,15 @@ export interface RepairOutcome
 	/** Whether the part was actually repaired. */
 	repaired: boolean;
 	/**
-	* Why not, when `RepairOutcome.repaired` is false: one of `no-such-crew`,
-	* `crew-not-qualified`, `eva-impossible`, `no-kits`, `not-modelled`,
-	* `no-such-part`, or `refused` when the backend declined without saying more.
-	* Null on success.
+	* Why not, when `RepairOutcome.repaired` is false: one of the RepairRefusal
+	* tokens. Null on success.
+	*
+	* The FINER half of the refusal. It travels beside the
+	* `CommandResult.errorCode` RepairRefusal.CodeFor derives from it, on the
+	* payload of a result whose `CommandResult.success` is false, because the enum
+	* deliberately collapses distinctions this vocabulary keeps: a part that does
+	* not resolve and a crew member who does not are both
+	* `CommandErrorCode.NotFound`, and only this says which.
 	*/
 	refusal?: string;
 	/**

@@ -270,6 +270,29 @@ public enum CommandErrorCode
     /// operator to go looking for a file that is sitting right there.</para>
     /// </summary>
     NotReady = 21,
+
+    /// <summary>
+    /// The command consumes a countable ITEM and there are not enough of them
+    /// aboard: an EVA repair kit for a repair, on a provider that charges one.
+    ///
+    /// <para>Authority: the provider's own charge, read back from the same
+    /// function that STATES the cost on
+    /// <see cref="ReliabilityPartEntry.RepairCost"/>. The two come from one
+    /// place precisely so a console cannot show one number while the repair
+    /// takes another, and the ITEM is always the provider's to name: this code
+    /// never asserts which one, only that there were too few.</para>
+    ///
+    /// <para><see cref="InsufficientFunds"/>'s and
+    /// <see cref="InsufficientScience"/>'s third sibling, and separate for the
+    /// same reason those two are separate from each other: an operator short of
+    /// a physical item does something entirely different about it from one
+    /// short of a currency, and nothing can be bought to fix it.</para>
+    ///
+    /// <para>Deliberately NOT <see cref="LimitReached"/>, which is a capacity
+    /// that is FULL. This is a store that is empty, and the two read as
+    /// opposites.</para>
+    /// </summary>
+    InsufficientResource = 22,
 }
 
 /// <summary>

@@ -22,6 +22,9 @@
   <ItemGroup>
     <Compile Include="..\GonogoTestFlightUplink\EngineReliabilityRaw.cs" />
     <Compile Include="..\GonogoTestFlightUplink\TestFlightReliabilityMap.cs" />
+    <!-- The id split and the refusal decision behind a repair, carved out of
+         TestFlightReflection (whose walk reaches a live Vessel and Part). -->
+    <Compile Include="..\GonogoTestFlightUplink\TestFlightRepairScope.cs" />
   </ItemGroup>
 
   <!-- The mapper builds Sitrep.Contract POCOs directly now, rather than plain

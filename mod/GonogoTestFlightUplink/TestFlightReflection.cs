@@ -11,6 +11,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using Sitrep.Contract;
 
 namespace GonogoTestFlightUplink
 {
@@ -43,6 +44,9 @@ namespace GonogoTestFlightUplink
         private readonly MethodInfo? _getReliabilityModules;
         private readonly MethodInfo? _failureRateToReliability;
         private readonly MethodInfo? _getFailureDetails;
+
+        private readonly MethodInfo? _canAttemptRepair;
+        private readonly MethodInfo? _forceRepair;
 
         private readonly object? _scopeCumulative;
         private readonly object? _scopeContinuous;
@@ -114,6 +118,27 @@ namespace GonogoTestFlightUplink
                 _util, "FailureRateToReliability", new[] { typeof(double), typeof(float) }, isStatic: true);
             _getFailureDetails = Method(
                 "ITestFlightFailure.GetFailureDetails", _failureInterface, "GetFailureDetails", Type.EmptyTypes);
+
+            /*
+             * TestFlight's repair path, and the whole of it. AttemptRepair() and
+             * GetRepairTime() are also on ITestFlightFailure, but nothing in any
+             * TestFlight assembly calls either and no shipped failure module
+             * overrides them: the base returns 0f from both. ForceRepair is what
+             * TestFlight's own ResetAllFailuresOnVessel drives.
+             *
+             * ITestFlightCore.ForceRepair(failure) rather than the failure's own
+             * ForceRepair(): the core's version calls it AND removes the failure
+             * from the core's list and recomputes hasMajorFailure. Calling the
+             * failure directly clears the part and leaves the core still
+             * reporting it, so the row would repair and stay red.
+             */
+            _canAttemptRepair = Method(
+                "ITestFlightFailure.CanAttemptRepair", _failureInterface, "CanAttemptRepair", Type.EmptyTypes);
+            _forceRepair = _failureInterface == null
+                ? Missing<MethodInfo>("ITestFlightCore.ForceRepair(ITestFlightFailure)")
+                : Method(
+                    "ITestFlightCore.ForceRepair(ITestFlightFailure)",
+                    _coreInterface, "ForceRepair", new[] { _failureInterface });
 
             if (_ratingScope != null && _ratingScope.IsEnum)
             {
@@ -204,6 +229,128 @@ namespace GonogoTestFlightUplink
                 if (raw.Survival.HasValue) raw.SurvivalHorizonSeconds = ratedCumulative;
             }
             return raw;
+        }
+
+        /// <summary>
+        /// Repair one published part id, through TestFlight's own
+        /// <c>ITestFlightCore.ForceRepair</c>.
+        ///
+        /// <para>The crew name is deliberately unused, and that is TestFlight's
+        /// answer rather than an omission: its repair path has no crew check, no
+        /// consumable, no EVA condition and no duration anywhere in the shipped
+        /// model. Inventing one here would put a second authority beside the one
+        /// that acts, and would refuse repairs the game allows. The reason it is
+        /// still on the interface is that another backend's path genuinely
+        /// needs it.</para>
+        ///
+        /// <para>A repair also AWARDS flight data (<c>duRepair</c>, read from the
+        /// part's config), which is why this must never be simulated: the state
+        /// change belongs to TestFlight.</para>
+        /// </summary>
+        public RepairOutcome Repair(Vessel? v, string partId)
+        {
+            var outcome = new RepairOutcome();
+            if (!IsAvailable || _forceRepair == null || _getActiveFailures == null)
+            {
+                outcome.Refusal = RepairRefusal.NotModelled;
+                return outcome;
+            }
+            if (!TestFlightRepairScope.TryParsePartId(partId, out var flightId, out var occurrence)
+                || v?.parts == null)
+            {
+                outcome.Refusal = RepairRefusal.NoSuchPart;
+                return outcome;
+            }
+
+            var core = CoreAt(v, flightId, occurrence);
+            var repairable = RepairableFailures(core);
+            var refusal = TestFlightRepairScope.RefusalFor(
+                core != null, ActiveFailureCount(core), repairable.Count);
+            if (refusal != null)
+            {
+                outcome.Refusal = refusal;
+                return outcome;
+            }
+
+            foreach (var failure in repairable)
+            {
+                Invoke(_forceRepair, core, failure);
+            }
+
+            outcome.Repaired = TestFlightRepairScope.Cleared(
+                repairable.Count, RepairableFailures(core).Count);
+            if (!outcome.Repaired)
+            {
+                // TestFlight gates a repair on nothing an operator can change, so
+                // a ForceRepair that left the failure standing is the mod
+                // declining without saying more, not a fact about the crew.
+                outcome.Refusal = RepairRefusal.Refused;
+            }
+            return outcome;
+        }
+
+        /// <summary>
+        /// The <paramref name="occurrence"/>-th ACTIVE core on the part with this
+        /// flightID, walked in the same order and with the same two liveness
+        /// filters <see cref="Engines"/> uses to mint the id. Two different walks
+        /// would number the cores differently and repair the wrong one.
+        /// </summary>
+        private object? CoreAt(Vessel v, uint flightId, int occurrence)
+        {
+            var seen = 0;
+            foreach (var part in v.parts)
+            {
+                if (part == null || part.flightID != flightId || part.Modules == null) continue;
+                foreach (PartModule pm in part.Modules)
+                {
+                    if (pm == null || _coreInterface == null) continue;
+                    if (!_coreInterface.IsAssignableFrom(pm.GetType())) continue;
+                    if (Bool(_testFlightEnabled, pm) == false) continue;
+                    if (Bool(_activeConfiguration, pm) == false) continue;
+                    if (seen == occurrence) return pm;
+                    seen++;
+                }
+            }
+            return null;
+        }
+
+        private int ActiveFailureCount(object? core)
+        {
+            if (core == null) return 0;
+            var count = 0;
+            if (Invoke(_getActiveFailures, core) is IEnumerable failures)
+            {
+                foreach (var failure in failures)
+                {
+                    if (failure != null) count++;
+                }
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// The active failures this part's model says can be repaired at all.
+        /// <c>CanAttemptRepair()</c> is a per-failure-CLASS predicate, not a
+        /// contingent one: an exploded part, a fired docking clamp and a snapped
+        /// solar mechanism answer false whatever the crew do.
+        ///
+        /// <para>A failure whose predicate did not BIND is treated as repairable,
+        /// which is the recoverable direction: attempting one TestFlight would
+        /// have declined costs a round trip, where declining one it would have
+        /// allowed hides a repair the operator could have made.</para>
+        /// </summary>
+        private List<object> RepairableFailures(object? core)
+        {
+            var repairable = new List<object>();
+            if (core == null) return repairable;
+            if (Invoke(_getActiveFailures, core) is not IEnumerable failures) return repairable;
+            foreach (var failure in failures)
+            {
+                if (failure == null) continue;
+                if (Invoke(_canAttemptRepair, failure) is bool can && !can) continue;
+                repairable.Add(failure);
+            }
+            return repairable;
         }
 
         /// <summary>

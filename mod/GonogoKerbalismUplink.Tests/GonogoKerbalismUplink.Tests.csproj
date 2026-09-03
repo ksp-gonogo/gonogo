@@ -31,6 +31,10 @@
          rules. -->
     <Compile Include="..\GonogoKerbalismUplink\KerbalismDeathClock.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismReliabilityMap.cs" />
+    <!-- Which modules a repair acts on and what it charges, carved out of
+         KerbalismReflection.AttemptRepair (whose walk reaches a live Part and
+         Vessel) so the scope that made the Service verb dead is checkable. -->
+    <Compile Include="..\GonogoKerbalismUplink\KerbalismRepairScope.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismScienceMap.cs" />
     <Compile Include="..\GonogoKerbalismUplink\KerbalismIsruMap.cs" />
     <!-- The science BACKEND is KSP-free too (it maps a plain captured bundle; the
