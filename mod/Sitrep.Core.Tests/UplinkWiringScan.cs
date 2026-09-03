@@ -10,11 +10,12 @@ namespace Sitrep.Core.Tests
     /// <summary>One command name or topic as the source writes it, with where it was written.</summary>
     internal sealed class WiringUse
     {
-        public WiringUse(string expression, string? value, string file, int line)
+        public WiringUse(string expression, string? value, string file, int index, int line)
         {
             Expression = expression;
             Value = value;
             File = file;
+            Index = index;
             Line = line;
         }
 
@@ -25,6 +26,15 @@ namespace Sitrep.Core.Tests
         public string? Value { get; }
 
         public string File { get; }
+
+        /// <summary>
+        /// Where <see cref="Expression"/> starts in the file's stripped text, so a
+        /// caller can rewrite exactly this occurrence. A line number is not enough
+        /// to plant a violation with: both sides of a pairing usually name the same
+        /// const, and RP-1 writes two command names inside one <c>foreach</c> array
+        /// whose elements are read from a call several lines below them.
+        /// </summary>
+        public int Index { get; }
 
         public int Line { get; }
 
@@ -82,6 +92,22 @@ namespace Sitrep.Core.Tests
         public IReadOnlyList<WiringUse> UndeclaredTopics => Missing(PublishedTopics, DeclaredTopics);
 
         /// <summary>
+        /// Declared commands nothing registers a handler for. The other direction
+        /// of the same pairing, and a quieter defect than an undeclared
+        /// registration: the manifest advertises the command, the client renders a
+        /// control for it, and the press is answered by the engine's "no handler"
+        /// rather than by the Uplink.
+        /// </summary>
+        public IReadOnlyList<WiringUse> UnregisteredCommands => Missing(DeclaredCommands, RegisteredCommands);
+
+        /// <summary>
+        /// Declared channels nothing publishes to. The subscribe is accepted and
+        /// then never produces a value, so the widget reading it holds an empty
+        /// reading for the life of the session with nothing logged anywhere.
+        /// </summary>
+        public IReadOnlyList<WiringUse> UnpublishedTopics => Missing(DeclaredTopics, PublishedTopics);
+
+        /// <summary>
         /// Every name on either side the walk read but could not turn into a
         /// string. The walk compares VALUES, so an unresolved name is not a
         /// violation, it is a hole: it would drop out of both sides and the
@@ -93,13 +119,19 @@ namespace Sitrep.Core.Tests
                 .Where(u => u.Value is null)
                 .ToList();
 
+        /// <summary>
+        /// The names on <paramref name="one"/> side of the pairing that the
+        /// <paramref name="other"/> side does not carry, one entry per distinct
+        /// value. Runs in both directions: an unresolved name is on neither side,
+        /// which <see cref="Unresolved"/> reports separately.
+        /// </summary>
         private static IReadOnlyList<WiringUse> Missing(
-            IReadOnlyList<WiringUse> used, IReadOnlyList<WiringUse> declared)
+            IReadOnlyList<WiringUse> one, IReadOnlyList<WiringUse> other)
         {
             var names = new HashSet<string>(
-                declared.Where(d => d.Value is not null).Select(d => d.Value!), StringComparer.Ordinal);
+                other.Where(d => d.Value is not null).Select(d => d.Value!), StringComparer.Ordinal);
 
-            return used
+            return one
                 .Where(u => u.Value is not null && !names.Contains(u.Value))
                 .GroupBy(u => u.Value!, StringComparer.Ordinal)
                 .Select(g => g.First())
@@ -461,7 +493,7 @@ namespace Sitrep.Core.Tests
             /// parameter the same, and an unscoped binding credits that helper with
             /// declaring the loop's names a second time.
             /// </summary>
-            private readonly List<(string Name, List<string> Elements, int Start, int End)> _loopBindings;
+            private readonly List<(string Name, List<(string Text, int Index)> Elements, int Start, int End)> _loopBindings;
 
             public NameReader(
                 string file,
@@ -473,7 +505,7 @@ namespace Sitrep.Core.Tests
                 _text = text;
                 _constants = constants;
                 _forwarded = forwarded;
-                _loopBindings = new List<(string, List<string>, int, int)>();
+                _loopBindings = new List<(string, List<(string, int)>, int, int)>();
 
                 foreach (Match match in LoopOverArray.Matches(text))
                 {
@@ -483,14 +515,44 @@ namespace Sitrep.Core.Tests
                         continue;
                     }
 
-                    var elements = match.Groups[2].Value
-                        .Split(',')
-                        .Select(e => e.Trim())
-                        .Where(e => e.Length > 0)
-                        .ToList();
-
-                    _loopBindings.Add((match.Groups[1].Value, elements, body, body + Braced(body).Length));
+                    _loopBindings.Add((
+                        match.Groups[1].Value,
+                        SplitKeepingOffsets(match.Groups[2].Value, match.Groups[2].Index),
+                        body,
+                        body + Braced(body).Length));
                 }
+            }
+
+            /// <summary>
+            /// The comma-separated elements of an array literal, each with where it
+            /// starts in the file, so a plant can rewrite the element rather than
+            /// the loop variable that stands for it.
+            /// </summary>
+            private static List<(string Text, int Index)> SplitKeepingOffsets(string list, int at)
+            {
+                var elements = new List<(string, int)>();
+                var start = 0;
+
+                for (var i = 0; i <= list.Length; i++)
+                {
+                    if (i < list.Length && list[i] != ',')
+                    {
+                        continue;
+                    }
+
+                    var raw = list.Substring(start, i - start);
+                    var lead = raw.Length - raw.TrimStart().Length;
+                    var trimmed = raw.Trim();
+
+                    if (trimmed.Length > 0)
+                    {
+                        elements.Add((trimmed, at + start + lead));
+                    }
+
+                    start = i + 1;
+                }
+
+                return elements;
             }
 
             /// <summary>
@@ -521,7 +583,7 @@ namespace Sitrep.Core.Tests
                     var argument = FirstArgument(after);
                     if (argument is not null)
                     {
-                        uses.AddRange(Uses(argument, at));
+                        uses.AddRange(Uses(argument.Value.Text, argument.Value.Start, at));
                     }
                 }
 
@@ -538,7 +600,8 @@ namespace Sitrep.Core.Tests
 
                 return call.Matches(_text)
                     .Where(m => m.Groups[1].Value != receiver)
-                    .Select(m => new WiringUse(m.Groups[1].Value + "." + member, null, _file, LineAt(m.Index)))
+                    .Select(m => new WiringUse(
+                        m.Groups[1].Value + "." + member, null, _file, m.Index, LineAt(m.Index)))
                     .ToList();
             }
 
@@ -554,10 +617,11 @@ namespace Sitrep.Core.Tests
 
                 foreach (Match match in opening.Matches(_text))
                 {
-                    var found = assignment.Match(Braced(match.Index + match.Length - 1));
+                    var open = match.Index + match.Length - 1;
+                    var found = assignment.Match(Braced(open));
                     if (found.Success)
                     {
-                        uses.AddRange(Uses(found.Groups[1].Value, match.Index));
+                        uses.AddRange(Uses(found.Groups[1].Value, open + 1 + found.Groups[1].Index, match.Index));
                     }
                 }
 
@@ -569,9 +633,17 @@ namespace Sitrep.Core.Tests
             /// the array it walks, a helper's own parameter stands for nothing
             /// (the name is at the call site), anything else is itself.
             /// </summary>
-            private IEnumerable<WiringUse> Uses(string expression, int at)
+            /// <param name="raw">The expression as written, leading space and all.</param>
+            /// <param name="index">Where <paramref name="raw"/> starts in the file.</param>
+            /// <param name="at">
+            /// The call this expression was read from, which is what decides whether
+            /// a loop variable is in scope. It is not where the NAME is written: a
+            /// loop's names are written in the array above the body.
+            /// </param>
+            private IEnumerable<WiringUse> Uses(string raw, int index, int at)
             {
-                expression = expression.Trim();
+                var expression = raw.Trim();
+                index += raw.Length - raw.TrimStart().Length;
 
                 if (expression.Length == 0 || TypedParameter.IsMatch(expression))
                 {
@@ -582,9 +654,10 @@ namespace Sitrep.Core.Tests
                     b => b.Name == expression && at >= b.Start && at <= b.End);
                 if (loop.Elements is not null)
                 {
-                    foreach (var element in loop.Elements)
+                    foreach (var (element, elementAt) in loop.Elements)
                     {
-                        yield return new WiringUse(element, Resolve(element), _file, LineAt(at));
+                        yield return new WiringUse(
+                            element, Resolve(element), _file, elementAt, LineAt(elementAt));
                     }
 
                     yield break;
@@ -595,7 +668,7 @@ namespace Sitrep.Core.Tests
                     yield break;
                 }
 
-                yield return new WiringUse(expression, Resolve(expression), _file, LineAt(at));
+                yield return new WiringUse(expression, Resolve(expression), _file, index, LineAt(index));
             }
 
             /// <summary>
@@ -633,7 +706,7 @@ namespace Sitrep.Core.Tests
             /// <paramref name="from"/>, stepping over any generic argument list.
             /// Null when what follows is not an argument list.
             /// </summary>
-            private string? FirstArgument(int from)
+            private (string Text, int Start)? FirstArgument(int from)
             {
                 var angle = 0;
                 var at = from;
@@ -678,14 +751,14 @@ namespace Sitrep.Core.Tests
                     {
                         if (depth == 0)
                         {
-                            return _text.Substring(start, at - start);
+                            return (_text.Substring(start, at - start), start);
                         }
 
                         depth--;
                     }
                     else if (c == ',' && depth == 0)
                     {
-                        return _text.Substring(start, at - start);
+                        return (_text.Substring(start, at - start), start);
                     }
                 }
 

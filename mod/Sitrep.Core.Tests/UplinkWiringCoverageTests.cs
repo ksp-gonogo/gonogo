@@ -22,6 +22,15 @@ namespace Sitrep.Core.Tests
     /// and is simply refused at subscribe, so it is missing from the wire with
     /// nothing logged.</para>
     ///
+    /// <para><b>Both directions, because only one of them is loud.</b> A
+    /// registration with no declaration throws, which is how the outage announced
+    /// itself. A DECLARATION with no registration announces nothing: the manifest
+    /// advertises the command, the client builds a control for it, and the press is
+    /// refused by the engine as unhandled. A declared channel nothing publishes to
+    /// is quieter again, because the subscribe is accepted and the reading simply
+    /// never arrives. Both sides are asserted both ways, and all four are at zero
+    /// across every Uplink, so none of them carries a debt list.</para>
+    ///
     /// <para><b>Why a walk, and why it replaced the per-Uplink form.</b> The guard
     /// written after that outage was a runtime one: hand the Uplink a recording
     /// host, compare against its manifest. It was added to four Uplinks, and on
@@ -107,6 +116,52 @@ namespace Sitrep.Core.Tests
                 + "throws: the publisher works, the Uplink publishes every tick, and the engine "
                 + "refuses every subscribe, so the topic is absent from the wire with nothing "
                 + "logged:\n  " + string.Join("\n  ", offenders));
+        }
+
+        /// <summary>
+        /// The other direction of the same pairing, which the outage's shape hides:
+        /// a registration with no declaration throws and takes the rest of Register
+        /// down with it, so it is loud, whereas a declaration with no registration
+        /// is silent all the way to the operator's finger. The manifest advertises
+        /// the command, the client builds a control for it, and the press is
+        /// answered by the engine rather than by the Uplink.
+        /// </summary>
+        [Fact]
+        public void EveryCommandAnUplinkDeclaresIsAlsoRegistered()
+        {
+            var offenders = Scan()
+                .Where(u => u.UnregisteredCommands.Count > 0)
+                .Select(u => u.Name + ": " + string.Join(", ", u.UnregisteredCommands))
+                .ToList();
+
+            Assert.True(
+                offenders.Count == 0,
+                "These commands are declared with no AddCommandHandler. Nothing throws and "
+                + "nothing is logged: the manifest advertises the command, a client renders a "
+                + "control for it, and the press is refused by the engine as unhandled:\n  "
+                + string.Join("\n  ", offenders));
+        }
+
+        /// <summary>
+        /// The channel half of the same direction, and the quietest of the four.
+        /// A subscribe to a declared topic nothing publishes to is ACCEPTED, so
+        /// there is no refusal to notice; the reading simply never arrives and the
+        /// widget holds an empty one for the life of the session.
+        /// </summary>
+        [Fact]
+        public void EveryTopicAnUplinkDeclaresIsAlsoPublishedTo()
+        {
+            var offenders = Scan()
+                .Where(u => u.UnpublishedTopics.Count > 0)
+                .Select(u => u.Name + ": " + string.Join(", ", u.UnpublishedTopics))
+                .ToList();
+
+            Assert.True(
+                offenders.Count == 0,
+                "These topics are declared with nothing publishing to them. The subscribe is "
+                + "accepted rather than refused, so the widget reading one holds an empty "
+                + "reading for the whole session with nothing logged:\n  "
+                + string.Join("\n  ", offenders));
         }
 
         /// <summary>
@@ -201,112 +256,187 @@ namespace Sitrep.Core.Tests
         }
 
         /// <summary>
-        /// The instrument check, and the reason anything above can be believed. A
+        /// The instrument checks, and the reason anything above can be believed. A
         /// guard that cannot fail is what this file replaces, so shipping a second
         /// one would be worse than shipping nothing: the walk is made to see a
-        /// violation that is known to be there, by deleting a real declaration
-        /// from a real Uplink's source IN MEMORY and requiring that the walk then
-        /// names exactly that command.
+        /// violation that is known to be there, by rewriting one side of one real
+        /// pairing in a real Uplink's source IN MEMORY and requiring that the walk
+        /// then names exactly that command or topic.
+        ///
+        /// <para><b>Per Uplink, not once.</b> The first version planted in the
+        /// ordinally-first Uplink that had anything to plant in, which proves the
+        /// walk can see ONE shape. The shapes differ: RP-1 writes two command names
+        /// inside a <c>foreach</c> over an array literal, several Uplinks declare
+        /// through a private helper method, two keep their whole registration body
+        /// in a <c>.Ksp.cs</c> half no test project compiles, and a topic is
+        /// usually an object-initialiser assignment where a command is a call
+        /// argument. A
+        /// plant in one of those says nothing about the others, so every Uplink
+        /// with wiring is planted in, in both directions.</para>
         /// </summary>
-        [Fact]
-        public void TheWalkNamesACommandWhoseDeclarationIsRemoved()
+        [Theory]
+        [MemberData(nameof(UplinksRegisteringCommands))]
+        public void TheWalkNamesACommandWhoseDeclarationIsRemoved(string uplink)
         {
-            var (name, directory) = FirstUplinkWith(u => u.RegisteredCommands.Count > 0);
-            var wiring = UplinkWiringScan.Scan(name, directory);
+            Plant(
+                uplink,
+                blank: w => w.DeclaredCommands,
+                against: w => w.RegisteredCommands,
+                reported: w => w.UndeclaredCommands,
+                what: "declaration of the command");
+        }
 
-            Assert.Empty(wiring.UndeclaredCommands);
+        /// <summary>
+        /// The direction <see cref="EveryCommandAnUplinkDeclaresIsAlsoRegistered"/>
+        /// asserts, proved the same way: the handler registration is taken out and
+        /// the declaration left standing.
+        /// </summary>
+        [Theory]
+        [MemberData(nameof(UplinksRegisteringCommands))]
+        public void TheWalkNamesACommandWhoseRegistrationIsRemoved(string uplink)
+        {
+            Plant(
+                uplink,
+                blank: w => w.RegisteredCommands,
+                against: w => w.DeclaredCommands,
+                reported: w => w.UnregisteredCommands,
+                what: "handler registration of the command");
+        }
 
-            var declaration = OnlyDeclarationOf(wiring.DeclaredCommands, wiring.RegisteredCommands);
-            var sabotaged = UplinkWiringScan.Scan(name, directory, Without(declaration));
+        /// <summary>
+        /// The channel half, separately from the command half, because the two are
+        /// read by different code: a command name is a call argument, a topic is
+        /// usually an object-initialiser assignment, so one half can go blind while
+        /// the other still sees.
+        /// </summary>
+        [Theory]
+        [MemberData(nameof(UplinksPublishingTopics))]
+        public void TheWalkNamesATopicWhoseDeclarationIsRemoved(string uplink)
+        {
+            Plant(
+                uplink,
+                blank: w => w.DeclaredTopics,
+                against: w => w.PublishedTopics,
+                reported: w => w.UndeclaredTopics,
+                what: "declaration of the topic");
+        }
+
+        /// <summary>The publish half of the same direction.</summary>
+        [Theory]
+        [MemberData(nameof(UplinksPublishingTopics))]
+        public void TheWalkNamesATopicWhosePublisherIsRemoved(string uplink)
+        {
+            Plant(
+                uplink,
+                blank: w => w.PublishedTopics,
+                against: w => w.DeclaredTopics,
+                reported: w => w.UnpublishedTopics,
+                what: "publisher of the topic");
+        }
+
+        public static IEnumerable<object[]> UplinksRegisteringCommands() =>
+            Scan().Where(u => u.RegisteredCommands.Count > 0).Select(u => new object[] { u.Name });
+
+        public static IEnumerable<object[]> UplinksPublishingTopics() =>
+            Scan().Where(u => u.PublishedTopics.Count > 0).Select(u => new object[] { u.Name });
+
+        /// <summary>
+        /// Rewrite every site on one side of one pairing, then require the walk to
+        /// name it. The name is picked rather than passed in so the theory enrols
+        /// an Uplink by having wiring at all, and every site of it is rewritten
+        /// because a name written twice would otherwise survive its own removal.
+        /// </summary>
+        private static void Plant(
+            string uplink,
+            Func<UplinkWiring, IReadOnlyList<WiringUse>> blank,
+            Func<UplinkWiring, IReadOnlyList<WiringUse>> against,
+            Func<UplinkWiring, IReadOnlyList<WiringUse>> reported,
+            string what)
+        {
+            var directory = UplinkProjects.Discover()[uplink];
+            var wiring = UplinkWiringScan.Scan(uplink, directory);
+
+            Assert.Empty(reported(wiring));
+
+            var (name, sites) = Pairing(blank(wiring), against(wiring));
+            var sabotaged = UplinkWiringScan.Scan(uplink, directory, Rewriting(sites));
 
             Assert.True(
-                sabotaged.UndeclaredCommands.Any(u => u.Value == declaration.Value),
-                $"{name}'s declaration of \"{declaration.Value}\" was removed from its source and "
-                + "the walk still reported it as declared, so it cannot tell a wired Uplink from "
-                + "an unwired one and every pass it reports is meaningless. Reported: "
-                + string.Join(", ", sabotaged.UndeclaredCommands));
+                reported(sabotaged).Any(u => u.Value == name),
+                $"The {what} \"{name}\" was rewritten out of {uplink}'s source at "
+                + string.Join(", ", sites.Select(s => $"{s.File}:{s.Line}"))
+                + " and the walk still reported the two sides as agreeing, so it cannot tell a "
+                + "wired Uplink from an unwired one and every pass it reports is meaningless. "
+                + "Reported instead: " + Describe(reported(sabotaged)));
         }
 
         /// <summary>
-        /// The same instrument check for the channel half, separately, because the
-        /// two halves are read by different code: a command name is a call
-        /// argument, a topic is usually an object-initialiser assignment, so one
-        /// half can go blind while the other still sees.
+        /// One name carried by both sides, with every site on the side being
+        /// rewritten. Sites shared with the other side are no use: RP-1 declares
+        /// two commands from one <c>foreach</c> array, and a name written once for
+        /// both sides would move both and leave them agreeing.
         /// </summary>
-        [Fact]
-        public void TheWalkNamesATopicWhoseDeclarationIsRemoved()
+        private static (string Name, IReadOnlyList<WiringUse> Sites) Pairing(
+            IReadOnlyList<WiringUse> side, IReadOnlyList<WiringUse> other)
         {
-            var (name, directory) = FirstUplinkWith(u => u.PublishedTopics.Count > 0);
-            var wiring = UplinkWiringScan.Scan(name, directory);
+            var shared = other.Select(u => (u.File, u.Index)).ToHashSet();
+            var wanted = other.Where(u => u.Value is not null)
+                .Select(u => u.Value!)
+                .ToHashSet(StringComparer.Ordinal);
 
-            Assert.Empty(wiring.UndeclaredTopics);
-
-            var declaration = OnlyDeclarationOf(wiring.DeclaredTopics, wiring.PublishedTopics);
-            var sabotaged = UplinkWiringScan.Scan(name, directory, Without(declaration));
+            var candidate = side
+                .Where(u => u.Value is not null && wanted.Contains(u.Value))
+                .GroupBy(u => u.Value!, StringComparer.Ordinal)
+                .Where(g => g.All(u => !shared.Contains((u.File, u.Index))))
+                .OrderBy(g => g.Key, StringComparer.Ordinal)
+                .FirstOrDefault();
 
             Assert.True(
-                sabotaged.UndeclaredTopics.Any(u => u.Value == declaration.Value),
-                $"{name}'s declaration of \"{declaration.Value}\" was removed from its source and "
-                + "the walk still reported it as declared: "
-                + string.Join(", ", sabotaged.UndeclaredTopics));
+                candidate is not null,
+                "No name is carried by both sides at sites of its own, so there is nothing here "
+                + "a plant could remove from one side and leave on the other.");
+
+            return (candidate!.Key, candidate.ToList());
         }
 
         /// <summary>
-        /// A declaration that is used and written exactly once, so removing it
-        /// removes the whole of one side of one pairing. Removing one of two
-        /// declarations of the same name would leave the other and prove nothing.
+        /// The named sites replaced by a name nothing else uses, nothing else
+        /// touched. Descending by position so an earlier rewrite does not move a
+        /// later one, and it throws rather than passing through a site whose text
+        /// is not what the walk read there: a plant that quietly lands nowhere
+        /// leaves the two sides agreeing, which is indistinguishable from a walk
+        /// that cannot see.
         /// </summary>
-        private static WiringUse OnlyDeclarationOf(
-            IReadOnlyList<WiringUse> declared, IReadOnlyList<WiringUse> used)
+        private static Func<string, string, string> Rewriting(IReadOnlyList<WiringUse> sites) => (file, text) =>
         {
-            var wanted = used.Where(u => u.Value is not null).Select(u => u.Value!).ToHashSet(StringComparer.Ordinal);
-
-            return declared
-                .Where(d => d.Value is not null && wanted.Contains(d.Value))
-                .GroupBy(d => d.Value!, StringComparer.Ordinal)
-                .Where(g => g.Count() == 1)
-                .Select(g => g.Single())
-                .First();
-        }
-
-        /// <summary>
-        /// The named declaration deleted from the one line it is written on, and
-        /// nothing else touched. Replacing the const everywhere would move the
-        /// registration with it and the two would still agree.
-        /// </summary>
-        private static Func<string, string, string> Without(WiringUse declaration) => (file, text) =>
-        {
-            if (!string.Equals(file, declaration.File, StringComparison.Ordinal))
+            foreach (var site in sites
+                .Where(s => string.Equals(s.File, file, StringComparison.Ordinal))
+                .OrderByDescending(s => s.Index))
             {
-                return text;
+                var found = site.Index >= 0 && site.Index + site.Expression.Length <= text.Length
+                    ? text.Substring(site.Index, site.Expression.Length)
+                    : null;
+
+                if (!string.Equals(found, site.Expression, StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"The walk read \"{site.Expression}\" at {file}:{site.Line} but that "
+                        + $"position holds \"{found ?? "<past the end of the file>"}\", so the "
+                        + "plant would land nowhere and the test would pass on a walk that sees "
+                        + "nothing.");
+                }
+
+                text = text.Remove(site.Index, site.Expression.Length).Insert(site.Index, Sabotage);
             }
 
-            var offset = 0;
-            for (var line = 1; line < declaration.Line; line++)
-            {
-                offset = text.IndexOf('\n', offset) + 1;
-            }
-
-            var at = text.IndexOf(declaration.Expression, offset, StringComparison.Ordinal);
-
-            return at < 0
-                ? text
-                : text.Remove(at, declaration.Expression.Length).Insert(at, "\"gonogo.notDeclared\"");
+            return text;
         };
 
-        private static (string Name, string Directory) FirstUplinkWith(Func<UplinkWiring, bool> predicate)
-        {
-            foreach (var (name, directory) in UplinkProjects.Discover().OrderBy(u => u.Key, StringComparer.Ordinal))
-            {
-                if (predicate(UplinkWiringScan.Scan(name, directory)))
-                {
-                    return (name, directory);
-                }
-            }
+        /// <summary>A name no Uplink declares, registers or publishes.</summary>
+        private const string Sabotage = "\"gonogo.notWired\"";
 
-            throw new InvalidOperationException(
-                "No Uplink matched, so this instrument check has nothing to plant a violation in.");
-        }
+        private static string Describe(IReadOnlyList<WiringUse> uses) =>
+            uses.Count == 0 ? "nothing" : string.Join(", ", uses);
 
         private static List<UplinkWiring> Scan() =>
             UplinkProjects.Discover()
