@@ -134,12 +134,17 @@ jobs:
       # Nothing forces anyone to open a job that blocks nothing, and a signal
       # that costs a click to read is a signal that gets ignored.
       #
-      # Gated on THIS step's outcome rather than `failure()`, which fires on a
-      # failure in any earlier step: a broken install would print a staleness
-      # heading over a log file that was never written, and then go red itself
-      # for the missing file. Two misleading reds for one unrelated fault.
+      # BOTH halves of the condition are load-bearing, and a run of this workflow
+      # is what proved it. `failure()` alone fires on a failure in any earlier
+      # step, so a broken install would print a staleness heading over a log file
+      # that was never written and then go red itself for the missing file: two
+      # misleading reds for one unrelated fault. The outcome test alone SKIPS,
+      # because a step with no status function carries an implicit `success()`
+      # and nothing after a failed step satisfies that. Written that way it was
+      # skipped on the run that was checking it, and the finding never reached
+      # the summary page.
       - name: Say which pages are stale, on the summary page
-        if: steps.check.outcome == 'failure'
+        if: failure() && steps.check.outcome == 'failure'
         # `github.ref_name` is `<n>/merge` on a pull_request, which is not a ref
         # anyone can dispatch against. `head_ref` is the source branch, and is
         # empty on a push, where `ref_name` is already right. Bound through env
