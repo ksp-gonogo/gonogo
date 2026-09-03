@@ -362,12 +362,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/MapView/useWorldCanvas.ts": 2,
   "packages/components/src/MapView/vanillaPoiProvider.test.ts": 2,
   "packages/components/src/MapView/vanillaPoiProvider.undefined.characterise.test.ts": 1,
-  "packages/components/src/MissionEventLog/events.ts": 1,
-  "packages/components/src/MissionEventLog/index.tsx": 1,
-  "packages/components/src/MissionEventLog/stale.test.tsx": 2,
-  "packages/components/src/MissionEventLog/undefined.characterise.test.tsx": 2,
-  "packages/components/src/MissionEventLog/useMissionEvents.ts": 1,
-  "packages/components/src/MissionEventLog/useMissionEvents.undefined.characterise.test.tsx": 6,
   "packages/components/src/Navball/AttitudeDialSvg.tsx": 1,
   "packages/components/src/Navball/AttitudeIndicator.tsx": 4,
   "packages/components/src/Navball/command-stream.test.tsx": 2,
@@ -699,7 +693,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
  * does not trip this and only a broken enumeration does.
  */
 export const SCAN_FLOORS = {
-  files: 1166,
+  files: 1173,
   filesWithStack: 366,
   stacks: 805,
 } as const;

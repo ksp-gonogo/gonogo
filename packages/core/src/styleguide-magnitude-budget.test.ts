@@ -198,8 +198,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // declarations must be structurally identical to merge, and a Value reached
   // by two module paths is not), so the raw number arrives by contract and the
   // unwrap is the reconstruction rather than an escape.
-  "packages/components/src/MissionEventLog/index.tsx": 1,
-  "packages/components/src/MissionEventLog/useMissionEvents.ts": 1,
   "packages/components/src/Navball/index.tsx": 1,
   "packages/components/src/OrbitView/index.tsx": 6,
   "packages/components/src/SemiMajorAxis/index.tsx": 1,
