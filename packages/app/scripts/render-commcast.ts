@@ -68,6 +68,14 @@ interface Pane {
   received?: Held[];
   crossing?: Held[];
   noLog?: boolean;
+  /** Correspondent whose conversation this pane is opened into. */
+  openThread?: string;
+  /** Walk into the recipient picker instead. */
+  compose?: boolean;
+  /** Names to select in the picker, in order. */
+  pick?: string[];
+  /** Press Open, landing in the conversation itself. */
+  open?: boolean;
 }
 
 interface Scene {
@@ -144,6 +152,7 @@ const SCENES: Scene[] = [
         seat: "mission-control",
         vantage: KSC,
         name: "Kennedy Flight",
+        openThread: "Ares 4",
         sent: [
           {
             ...toAres(
@@ -160,6 +169,7 @@ const SCENES: Scene[] = [
         seat: "pilot",
         vantage: ARES,
         name: "Jeb",
+        openThread: "Kennedy",
         received: [
           toAres("Ares, Kennedy. You are go for the insertion burn.", -900),
         ],
@@ -195,6 +205,7 @@ const SCENES: Scene[] = [
         seat: "pilot",
         vantage: ARES,
         name: "Jeb",
+        openThread: "Kennedy",
         sent: [
           {
             ...toKsc(
@@ -209,6 +220,7 @@ const SCENES: Scene[] = [
         seat: "mission-control",
         vantage: KSC,
         name: "Kennedy Flight",
+        openThread: "Ares 4",
         received: [
           toKsc(
             "Burn complete. Orbit is 249 by 251, residuals under a tenth.",
@@ -240,6 +252,7 @@ const SCENES: Scene[] = [
         seat: "mission-control",
         vantage: KSC,
         name: "Kennedy Flight",
+        openThread: "Ares 4",
         sent: [
           {
             ...toAres(
@@ -271,11 +284,13 @@ const SCENES: Scene[] = [
   },
   {
     /*
-     * A vantage owns what reached IT. Two ground centres, one thread each, and
-     * they are NOT the same thread: Kennedy holds what Woomera said to it and
-     * nothing of what Woomera said to the craft, because that never came here.
-     * A host-authoritative store would have shown both in both panes, which is
-     * the model this replaces.
+     * A vantage owns what reached IT, read off the two INBOXES rather than out
+     * of two open threads: Kennedy holds ONE correspondence and Woomera holds
+     * TWO, because what Woomera said to the craft never came to Kennedy at all.
+     * A host-authoritative store would have shown both conversations in both
+     * panes, which is the model this replaces, and the inbox is the view that
+     * shows the difference at a glance. Opening a thread in each pane hid it:
+     * the two then rendered as near-identical single threads.
      */
     name: "two-vantages-different-sets",
     panes: [
@@ -345,6 +360,7 @@ const SCENES: Scene[] = [
         seat: "mission-control",
         vantage: KSC,
         name: "Kennedy Flight",
+        openThread: "Ares 4",
         sent: [
           {
             ...toAres(
@@ -362,6 +378,7 @@ const SCENES: Scene[] = [
         seat: "pilot",
         vantage: ARES,
         name: "Jeb",
+        openThread: "Kennedy",
         received: [
           toAres(
             "Ares, Kennedy. Expect loss of signal on the far side.",
@@ -379,15 +396,99 @@ const SCENES: Scene[] = [
     pxH: 620,
   },
   {
-    // A screen with a correspondent and nothing said. The composer names the
-    // ROUND TRIP it is about to cost, because that is when the operator's own
-    // words come back, and it is stated at the control rather than in a corner.
-    name: "empty-with-a-correspondent",
-    panes: [{ seat: "mission-control", vantage: KSC, name: "Kennedy Flight" }],
+    /*
+     * A conversation with a correspondent and nothing said in it yet, reached
+     * out of the picker. The ROUND TRIP is a chip pinned to the composer rather
+     * than words inside the send button, so the control keeps one size at the
+     * pad and four light-minutes out; that growing button is what this pass
+     * removed.
+     */
+    name: "empty-conversation",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        compose: true,
+        pick: ["Ares 4"],
+        open: true,
+      },
+    ],
     separation: PAIRS,
     roster: ROSTER,
     oneWaySeconds: LIGHT_TIME,
     settleOn: "Nothing said yet",
+    pxW: 460,
+    pxH: 460,
+  },
+  {
+    /*
+     * THE INBOX, and the state the recipient dropdown could not show: two
+     * conversations that are genuinely separate rather than one log under a
+     * filter. Ares 4 is first because something is still crossing there, and
+     * its row says so; Woomera's is settled and says nothing.
+     */
+    name: "inbox",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        sent: [
+          {
+            ...toAres(
+              "Ares, Kennedy. You are go for the insertion burn.",
+              -3000,
+            ),
+            acks: acked(-3000),
+          },
+          toAres("Ares, Kennedy. Confirm residuals when you have them.", -60),
+        ],
+        received: [
+          toKsc("Copy go. Starting the sequence.", -2400),
+          {
+            from: WOOMERA,
+            to: [KSC],
+            authorName: "Woomera Range",
+            authorSeat: "mission-control",
+            body: "Kennedy, Woomera. We have the pass, tracking is locked.",
+            sentAt: -1800,
+            separationSeconds: 12,
+          },
+        ],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "tracking is locked",
+    pxW: 460,
+    pxH: 560,
+  },
+  {
+    /*
+     * Choosing who a message is for, and the one thing the picker refuses.
+     * The rows TOGGLE, because the envelope has always carried a list of
+     * recipients and a picker that could never hold a second name would have
+     * to be rebuilt to grow one. Group DELIVERY is not built: the author
+     * freezes ONE separation and the acknowledgement window is measured off
+     * it, so the second name is refused here, where the operator can see why,
+     * rather than sent and silently mis-timed.
+     */
+    name: "compose-recipients",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        compose: true,
+        pick: ["Ares 4", "Woomera Range"],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: "Group delivery is not carried yet",
     pxW: 460,
     pxH: 460,
   },

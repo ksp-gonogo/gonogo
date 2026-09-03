@@ -4,18 +4,22 @@ import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type { CommsDelay, CommsLink } from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
+  ArrowLeftIcon,
   Badge,
   Button,
   ComposerBar,
   ConsoleFrame,
   EmptyState,
   formatDuration,
+  GhostButton,
   InFlightList,
   type InFlightListItem,
+  MissionDate,
   Panel,
+  PlusIcon,
   ScrollArea,
   Section,
-  Select,
+  SelectableRow,
   Text,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
@@ -35,6 +39,7 @@ import {
   firstAckUtFor,
   legOf,
   revealedAcks,
+  revealUtFor,
   roundTripFor,
   type SentPhase,
   type SeparationMatrix,
@@ -43,6 +48,7 @@ import {
   separationFor,
   type Vantage,
 } from "./reveal";
+import { type CommcastThread, threadFor, threadsOf } from "./threads";
 import type { CommsRecipient, OutboundMessage, RecipientId } from "./types";
 import { type CommcastEntry, useCommcastFeed } from "./useCommcastFeed";
 
@@ -57,6 +63,23 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
+/**
+ * Which of the widget's three screens the operator is on.
+ *
+ * An INBOX and the conversations inside it, rather than one transcript with a
+ * recipient picker over it. The picker implied a single log filtered by
+ * selection, which is not what addressing made true: each correspondence is
+ * genuinely separate and only its own two ends hold it. Two views also take
+ * the recipient control out of the reading surface entirely, which is where it
+ * was costing the log a row of its height.
+ */
+type CommcastView =
+  | { kind: "inbox" }
+  /** Choosing who to start a conversation with. */
+  | { kind: "compose" }
+  /** Inside one conversation, with the ends it is with. */
+  | { kind: "thread"; with: readonly RecipientId[] };
+
 function CommcastComponent(_props: Readonly<ComponentProps>) {
   const log = useCommcastLog();
   const named = useStationNameOptional();
@@ -65,9 +88,10 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
   const pairs = useSeparationMatrix();
   const local = useLocalParticipant();
   const recipients = useRecipients(me);
-  const [to, setTo] = useState<RecipientId | null>(null);
+  const [view, setView] = useState<CommcastView>({ kind: "inbox" });
   const feed = useCommcastFeed(log, me, pairs);
   const dropped = useDroppedCount(log);
+  const threads = threadsOf(feed, me);
   /*
    * The craft-to-ground path home, and the FALLBACK separation only. Under the
    * broadcast model this was the whole answer, because no sender could know
@@ -94,9 +118,6 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    */
   const noSignal = useLatestValue<CommsLink>("comms.link")?.connected === false;
 
-  // Default to the first addressable centre so a screen that has only ever
-  // seen one correspondent needs no choice made before it can speak.
-  const target = to ?? recipients[0]?.id ?? null;
   /*
    * A vantage id is an ADDRESS, not a name: `vessel:8f2c-...` is what routes a
    * message and is not what anybody calls the craft. The roster carries the
@@ -105,6 +126,13 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    */
   const nameFor = (id: RecipientId) =>
     recipients.find((r) => r.id === id)?.name ?? id;
+  /*
+   * The one end a message actually goes to. Group DELIVERY is not built, so
+   * this pass sends to a single recipient and the picker says so when a second
+   * name is chosen; everything either side of it, the envelope's `to`, the
+   * thread key and the reveal, already carries a list.
+   */
+  const target = view.kind === "thread" ? (view.with[0] ?? null) : null;
   const separation = separationBetween(
     me.vantageId,
     target ?? undefined,
@@ -174,72 +202,324 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
      * has: that one is `height: 100%` and always was.
      */
     <Section fill>
+      {/*
+        One frame, three views, and the same geometry in all three: a header
+        row, the console taking the rest, and a bar at the foot. Switching view
+        must not resize the tile, which is the operator's "the UI should look
+        the same just with no recipient selection and a back button".
+      */}
       <Commcast__Frame>
-        <ConsoleFrame>
-          <Commcast__Scroll>
-            <Commcast__List>
-              {/* At the HEAD, because the front of the log is where the drop
-                happened. A log that forgets has to say it forgot, and saying so
-                in a footnote under the composer put it as far from the gap as
-                the widget allows. */}
-              {dropped > 0 && (
-                <ThreadMarker>
-                  {dropped} earlier message{dropped === 1 ? "" : "s"} dropped at
-                  the cap
-                </ThreadMarker>
-              )}
-              {feed.log.length === 0 && feed.outbound.length === 0 && (
-                <EmptyState>Nothing said yet.</EmptyState>
-              )}
-              {feed.log.map((entry) => (
-                <MessageRow
-                  key={entry.msg.id}
-                  entry={entry}
-                  me={me}
-                  utNow={utNow}
-                  pairs={pairs}
-                  log={log}
-                  separationSeconds={separationSeconds}
-                  nameFor={nameFor}
-                />
-              ))}
-              {/* At the TAIL, and a rule rather than a row: it terminates what
-                this vantage knows was said. Everything above it arrived; past
-                it there may be words nobody here has heard. That is a different
-                claim from a message in transit, which is one specific utterance
-                with an instant it lands at, and the two must not read alike. */}
-              {noSignal && <ThreadMarker $blocked>no signal</ThreadMarker>}
-            </Commcast__List>
-          </Commcast__Scroll>
-        </ConsoleFrame>
-
-        {/* The terminal widget's uplink queue, in the terminal widget's place:
-          pinned between the console and the composer, never inside the scroll,
-          where it would take the bottom of the log as it grows. Same component
-          and same two-leg vocabulary, because it is the same journey. */}
-        <OutboundQueue
-          outbound={feed.outbound}
-          me={me}
-          utNow={utNow}
-          pairs={pairs}
-        />
-
-        <Composer
-          log={log}
-          me={me}
-          local={local}
-          utNow={utNow}
-          recipients={recipients}
-          target={target}
-          onTarget={setTo}
-          separation={separation}
-          separationSeconds={separationSeconds}
-        />
+        {view.kind === "inbox" && (
+          <InboxView
+            threads={threads}
+            dropped={dropped}
+            nameFor={nameFor}
+            canCompose={recipients.length > 0}
+            onOpen={(ids) => setView({ kind: "thread", with: ids })}
+            onCompose={() => setView({ kind: "compose" })}
+          />
+        )}
+        {view.kind === "compose" && (
+          <ComposeView
+            recipients={recipients}
+            onBack={() => setView({ kind: "inbox" })}
+            onOpen={(ids) => setView({ kind: "thread", with: ids })}
+          />
+        )}
+        {view.kind === "thread" && (
+          <ThreadView
+            thread={threadFor(threads, view.with)}
+            me={me}
+            utNow={utNow}
+            pairs={pairs}
+            log={log}
+            noSignal={noSignal}
+            nameFor={nameFor}
+            local={local}
+            separation={separation}
+            separationSeconds={separationSeconds}
+            target={target}
+            onBack={() => setView({ kind: "inbox" })}
+          />
+        )}
       </Commcast__Frame>
     </Section>
   );
 
   return <Panel panelTitle="Commcast" panelAside={identity} sections={body} />;
+}
+
+/**
+ * The correspondences this vantage holds, and the way into a new one.
+ *
+ * This is the log-level view, so it is where a log that FORGOT says so: the
+ * drop happened off the front of everything this screen holds rather than
+ * inside one conversation, and repeating the notice in every thread would
+ * claim each of them lost something.
+ */
+function InboxView({
+  threads,
+  dropped,
+  nameFor,
+  canCompose,
+  onOpen,
+  onCompose,
+}: {
+  threads: readonly CommcastThread[];
+  dropped: number;
+  nameFor: (id: RecipientId) => string;
+  canCompose: boolean;
+  onOpen: (ids: readonly RecipientId[]) => void;
+  onCompose: () => void;
+}) {
+  return (
+    <>
+      <Commcast__Bar>
+        {threads.length > 0 && (
+          <Text size="xs" tone="muted">
+            {threads.length} conversation{threads.length === 1 ? "" : "s"}
+          </Text>
+        )}
+        <Commcast__BarGap />
+        <Button type="button" onClick={onCompose} disabled={!canCompose}>
+          <PlusIcon size={14} />
+          New message
+        </Button>
+      </Commcast__Bar>
+      <ConsoleFrame>
+        <Commcast__Scroll>
+          <Commcast__Rows>
+            {dropped > 0 && (
+              <ThreadMarker>
+                {dropped} earlier message{dropped === 1 ? "" : "s"} dropped at
+                the cap
+              </ThreadMarker>
+            )}
+            {threads.length === 0 && (
+              <EmptyState>
+                {canCompose
+                  ? "No conversations yet."
+                  : "No conversations, and no correspondents."}
+              </EmptyState>
+            )}
+            {threads.map((thread) => (
+              <SelectableRow
+                key={thread.key}
+                selected={false}
+                onClick={() => onOpen(thread.with)}
+              >
+                <Commcast__RowHead>
+                  <Commcast__RowName>
+                    {thread.with.map(nameFor).join(", ")}
+                  </Commcast__RowName>
+                  {/* The one state an inbox row needs: something is still
+                      crossing in there. Everything else about a message is a
+                      fact about that message, and belongs on its own row
+                      inside the conversation. */}
+                  {thread.outbound.length > 0 && (
+                    <Text size="xs" tone="info">
+                      {thread.outbound.length} out
+                    </Text>
+                  )}
+                </Commcast__RowHead>
+                <Commcast__Preview>{thread.preview}</Commcast__Preview>
+              </SelectableRow>
+            ))}
+          </Commcast__Rows>
+        </Commcast__Scroll>
+      </ConsoleFrame>
+    </>
+  );
+}
+
+/**
+ * Choosing who a new conversation is with.
+ *
+ * A LIST of recipients, and the rows toggle rather than select-one, because
+ * the envelope has always carried a list and a picker that could never hold a
+ * second name would have to be rebuilt to grow one. What is not built is group
+ * DELIVERY: the author's frozen separation is a single figure and the
+ * acknowledgement window is measured off it, so a second name is refused HERE,
+ * where the operator can see why, rather than sent and silently mis-timed.
+ */
+function ComposeView({
+  recipients,
+  onBack,
+  onOpen,
+}: {
+  recipients: readonly CommsRecipient[];
+  onBack: () => void;
+  onOpen: (ids: readonly RecipientId[]) => void;
+}) {
+  const [picked, setPicked] = useState<readonly RecipientId[]>([]);
+  const toggle = (id: RecipientId) =>
+    setPicked((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+  const group = picked.length > 1;
+  return (
+    <>
+      <Commcast__Bar>
+        <BackButton onClick={onBack} />
+        <Text size="sm" tone="default">
+          New message
+        </Text>
+      </Commcast__Bar>
+      <ConsoleFrame>
+        <Commcast__Scroll>
+          <Commcast__Rows>
+            {recipients.length === 0 && (
+              <EmptyState>No correspondents</EmptyState>
+            )}
+            {recipients.map((r) => (
+              <SelectableRow
+                key={r.id}
+                selected={picked.includes(r.id)}
+                onClick={() => toggle(r.id)}
+              >
+                <Commcast__RowHead>
+                  <Commcast__RowName>{r.name}</Commcast__RowName>
+                  {/* A roster entry nobody is sitting at is still addressable,
+                      and the message will go unacknowledged, which is an
+                      honest outcome rather than a reason to hide it. Saying so
+                      before it is sent is what stops that reading as a fault. */}
+                  {!r.staffed && (
+                    <Text size="xs" tone="faint">
+                      unstaffed
+                    </Text>
+                  )}
+                </Commcast__RowHead>
+              </SelectableRow>
+            ))}
+          </Commcast__Rows>
+        </Commcast__Scroll>
+      </ConsoleFrame>
+      <ComposerBar
+        blocked={group}
+        {...(group ? { flag: "ONE AT A TIME" } : {})}
+      >
+        <Text size="xs" tone={group ? "nogo" : "faint"}>
+          {group
+            ? "Group delivery is not carried yet"
+            : picked.length === 1
+              ? "Ready"
+              : "Choose a recipient"}
+        </Text>
+        <Commcast__BarGap />
+        <Button
+          type="button"
+          disabled={picked.length !== 1}
+          onClick={() => onOpen(picked)}
+        >
+          Open
+        </Button>
+      </ComposerBar>
+    </>
+  );
+}
+
+/**
+ * One conversation: what today's widget was, minus the recipient control and
+ * plus a way back.
+ *
+ * The back row carries the correspondent's name, and it is in the BODY rather
+ * than the panel aside: an aside collapses at narrow widths and would take the
+ * only way out of a thread with it.
+ */
+function ThreadView({
+  thread,
+  me,
+  utNow,
+  pairs,
+  log,
+  noSignal,
+  nameFor,
+  local,
+  separation,
+  separationSeconds,
+  target,
+  onBack,
+}: {
+  thread: CommcastThread;
+  me: Vantage;
+  utNow: number | undefined;
+  pairs: SeparationMatrix | undefined;
+  log: CommcastLog;
+  noSignal: boolean;
+  nameFor: (id: RecipientId) => string;
+  local: ReturnType<typeof useLocalParticipant>;
+  separation: ReturnType<typeof separationBetween>;
+  separationSeconds: number | null;
+  target: RecipientId | null;
+  onBack: () => void;
+}) {
+  return (
+    <>
+      <Commcast__Bar>
+        <BackButton onClick={onBack} />
+        <Text size="sm" tone="default">
+          {thread.with.map(nameFor).join(", ")}
+        </Text>
+      </Commcast__Bar>
+      <ConsoleFrame>
+        <Commcast__Scroll>
+          <Commcast__List>
+            {thread.entries.length === 0 && thread.outbound.length === 0 && (
+              <EmptyState>Nothing said yet.</EmptyState>
+            )}
+            {thread.entries.map((entry) => (
+              <MessageRow
+                key={entry.msg.id}
+                entry={entry}
+                me={me}
+                utNow={utNow}
+                pairs={pairs}
+                log={log}
+                separationSeconds={separationSeconds}
+              />
+            ))}
+            {/* At the TAIL, and a rule rather than a row: it terminates what
+                this vantage knows was said. Everything above it arrived; past
+                it there may be words nobody here has heard. That is a different
+                claim from a message in transit, which is one specific utterance
+                with an instant it lands at, and the two must not read alike. */}
+            {noSignal && <ThreadMarker $blocked>no signal</ThreadMarker>}
+          </Commcast__List>
+        </Commcast__Scroll>
+      </ConsoleFrame>
+
+      {/* The terminal widget's uplink queue, in the terminal widget's place:
+          pinned between the console and the composer, never inside the scroll,
+          where it would take the bottom of the log as it grows. Same component
+          and same two-leg vocabulary, because it is the same journey. */}
+      <OutboundQueue
+        outbound={thread.outbound}
+        me={me}
+        utNow={utNow}
+        pairs={pairs}
+      />
+
+      <Composer
+        log={log}
+        me={me}
+        local={local}
+        utNow={utNow}
+        target={target}
+        separation={separation}
+        separationSeconds={separationSeconds}
+      />
+    </>
+  );
+}
+
+/** Out of a conversation and back to the list of them. */
+function BackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Commcast__Back type="button" onClick={onClick}>
+      <ArrowLeftIcon size={14} />
+      Inbox
+    </Commcast__Back>
+  );
 }
 
 /** One message in this vantage's log: something heard, or something settled. */
@@ -250,7 +530,6 @@ function MessageRow({
   pairs,
   log,
   separationSeconds,
-  nameFor,
 }: {
   entry: CommcastEntry;
   me: Vantage;
@@ -258,35 +537,16 @@ function MessageRow({
   pairs: SeparationMatrix | undefined;
   log: CommcastLog;
   separationSeconds: number | null;
-  nameFor: (id: RecipientId) => string;
 }) {
   const { msg, out } = entry;
-  const sep = separationFor(msg, me, pairs);
   return (
     <Commcast__Message>
       <Commcast__Meta>
         <Author $pilot={msg.authorSeat === "pilot"}>{msg.authorName}</Author>
         {out ? (
-          <SentVerdict
-            out={out}
-            me={me}
-            utNow={utNow}
-            pairs={pairs}
-            nameFor={nameFor}
-          />
+          <SentVerdict out={out} me={me} utNow={utNow} pairs={pairs} />
         ) : (
-          <>
-            {sep.kind === "light-time" && sep.seconds > 0 && (
-              <Text size="xs" tone="info">
-                took {formatDuration(sep.seconds)}
-              </Text>
-            )}
-            {sep.kind === "unmeasured" && (
-              <Text size="xs" tone="warn">
-                separation to that vantage is unpublished
-              </Text>
-            )}
-          </>
+          <HeardVerdict msg={msg} me={me} pairs={pairs} />
         )}
       </Commcast__Meta>
       <Commcast__Body>{msg.body}</Commcast__Body>
@@ -305,45 +565,82 @@ function MessageRow({
 }
 
 /**
- * What came back about something this screen said.
+ * When something arrived HERE.
  *
- * `confirmed` carries the round trip that actually elapsed, which is the
- * terminal widget's latency stated after the fact rather than predicted
- * before it.
- * Everything else is UNCONFIRMED, and unconfirmed is a state the message is in
- * rather than an error about it: no warning tone, no dismissal, just the
- * reading. It says which of two different things happened, because they call
- * for different judgements: nothing came back, or nothing left.
+ * Every stamp in the log is an instant at this vantage, sent and received
+ * alike, which is what makes them comparable down a column: the row is in the
+ * log because it landed, and this is when. A crossing DURATION would be a
+ * second quantity in the same slot, and the crossing is already drawn while it
+ * is happening, on the queue strip above the composer.
+ */
+function HeardVerdict({
+  msg,
+  me,
+  pairs,
+}: {
+  msg: CommcastEntry["msg"];
+  me: Vantage;
+  pairs: SeparationMatrix | undefined;
+}) {
+  const at = revealUtFor(msg, me, pairs);
+  const sep = separationFor(msg, me, pairs);
+  return (
+    <>
+      {at !== null && (
+        <Text size="xs" tone="faint">
+          <MissionDate value={at} />
+        </Text>
+      )}
+      {sep.kind === "unmeasured" && (
+        <Text size="xs" tone="warn">
+          separation unpublished
+        </Text>
+      )}
+    </>
+  );
+}
+
+/**
+ * What came back about something this screen said, in one reading.
+ *
+ * Acknowledged gets the INSTANT the confirmation landed here, which is both the
+ * message's place in the log and the evidence it arrived. Everything else is
+ * UNCONFIRMED, and unconfirmed is a state the message is in rather than an
+ * error about it: no warning tone, no dismissal. It still says which of two
+ * different things happened, because they call for different judgements:
+ * nothing came back, or nothing left.
+ *
+ * The recipient is deliberately absent. A thread is a conversation with named
+ * ends, so "to Ares 4" on every row of it repeated the header once per
+ * message, which is what a per-row sentence costs when the addressing moved
+ * into the view.
  */
 function SentVerdict({
   out,
   me,
   utNow,
   pairs,
-  nameFor,
 }: {
   out: OutboundMessage;
   me: Vantage;
   utNow: number | undefined;
   pairs: SeparationMatrix | undefined;
-  nameFor: (id: RecipientId) => string;
 }) {
   const now = utNow ?? Number.NEGATIVE_INFINITY;
   const phase = sentPhaseFor(out, me, now, pairs);
-  const heard = revealedAcks(out, me, now, pairs).length;
   if (phase === "confirmed") {
+    const heard = revealedAcks(out, me, now, pairs).length;
     const ackUt = firstAckUtFor(out, me, pairs);
-    const elapsed = ackUt === undefined ? null : ackUt - out.msg.lastSentUt;
     return (
       <>
-        <Text size="xs" tone="faint">
-          to {out.msg.to.map(nameFor).join(", ")}
-        </Text>
-        {elapsed !== null && elapsed > 0 && (
-          <Text size="xs" tone="info">
-            confirmed after {formatDuration(elapsed)}
+        {ackUt !== undefined && (
+          <Text size="xs" tone="faint">
+            <MissionDate value={ackUt} />
           </Text>
         )}
+        {/* Two stations at one centre both hold a message addressed to that
+            vantage and both answer it, so a second confirmation is reachable
+            without group delivery. */}
         {heard > 1 && (
           <Text size="xs" tone="faint">
             heard by {heard}
@@ -355,14 +652,11 @@ function SentVerdict({
   return (
     <>
       <Text size="xs" tone="faint">
-        to {out.msg.to.map(nameFor).join(", ")}
-      </Text>
-      <Text size="xs" tone="faint">
-        {out.neverLeft ? "unconfirmed, no path when sent" : "unconfirmed"}
+        {out.neverLeft ? "never left, no path" : "unconfirmed"}
       </Text>
       {out.msg.attempts > 1 && (
         <Text size="xs" tone="faint">
-          sent {out.msg.attempts} times
+          attempt {out.msg.attempts}
         </Text>
       )}
     </>
@@ -400,6 +694,7 @@ function UnconfirmedActions({
   return (
     <Commcast__Actions>
       <Button
+        type="button"
         disabled={!ready}
         onClick={() => {
           if (utNow === undefined) return;
@@ -490,9 +785,7 @@ function Composer({
   me,
   local,
   utNow,
-  recipients,
   target,
-  onTarget,
   separation,
   separationSeconds,
 }: {
@@ -500,9 +793,7 @@ function Composer({
   me: Vantage;
   local: ReturnType<typeof useLocalParticipant>;
   utNow: number | undefined;
-  recipients: readonly CommsRecipient[];
   target: RecipientId | null;
-  onTarget: (id: RecipientId) => void;
   separation: ReturnType<typeof separationBetween>;
   separationSeconds: number | null;
 }) {
@@ -540,29 +831,34 @@ function Composer({
   };
   const noPath = separation.kind === "no-path";
   const roundTrip = separationSeconds === null ? null : separationSeconds * 2;
+  /*
+   * The ROUND TRIP as a PINNED CHIP, never in the button's label.
+   *
+   * A control that grows as the figure beside it grows is the defect the
+   * operator named: the same button was two words at KSC and a whole sentence
+   * four light-minutes out, so the composer reflowed on a number that says
+   * nothing about what pressing it does. The terminal widget has no send
+   * button to borrow, its own send is Enter, but it has already answered the
+   * question: it puts the round trip in a chip pinned inside its frame, which
+   * costs no layout at all. `flag` is that mechanism in the kit, on the same
+   * bar both widgets compose in, so the reading is right next to the control
+   * whose cost it is and the control keeps one size.
+   *
+   * NO PATH wins the slot, because a journey that is not happening has no
+   * round trip to quote.
+   */
+  const flag = noPath
+    ? "NO PATH"
+    : roundTrip !== null && roundTrip > 0
+      ? `RT ${formatDuration(roundTrip)}`
+      : undefined;
   return (
     /* The bar's own outline says whether this is going anywhere, the same way
        the terminal widget's does: with no path to the chosen recipient it
        turns error-toned while the operator is still typing, rather than
        reporting the refusal only after they have pressed send. The flag says
        why an outline has turned red, which an outline cannot. */
-    <ComposerBar blocked={noPath} {...(noPath ? { flag: "NO PATH" } : {})}>
-      <label htmlFor="commcast-to">
-        <VisuallyHidden>Send to</VisuallyHidden>
-      </label>
-      <Commcast__To
-        id="commcast-to"
-        value={target ?? ""}
-        onChange={(e) => onTarget(e.target.value)}
-        disabled={recipients.length === 0}
-      >
-        {recipients.length === 0 && <option value="">No correspondents</option>}
-        {recipients.map((r) => (
-          <option key={r.id} value={r.id}>
-            {r.name}
-          </option>
-        ))}
-      </Commcast__To>
+    <ComposerBar blocked={noPath} {...(flag === undefined ? {} : { flag })}>
       <label htmlFor="commcast-draft">
         <VisuallyHidden>Message</VisuallyHidden>
       </label>
@@ -587,17 +883,8 @@ function Composer({
           }
         }}
       />
-      {/* The ROUND TRIP, which is what pressing this actually costs the
-          operator: their own words do not come back until the recipient is
-          shown to have heard them. The same number the terminal widget prints in
-          its corner, and it is here rather than in a corner because this is
-          where the decision is made. */}
-      <Button disabled={!ready} onClick={submit}>
-        {noPath
-          ? "Send (no path)"
-          : roundTrip !== null && roundTrip > 0
-            ? `Send (round trip ${formatDuration(roundTrip)})`
-            : "Send"}
+      <Button type="button" disabled={!ready} onClick={submit}>
+        Send
       </Button>
     </ComposerBar>
   );
@@ -644,6 +931,33 @@ const Commcast__Identity = styled.div`
 `;
 
 /*
+ * The row above the console, in all three views: the way out of where you are,
+ * and what you are looking at. Non-growing, so it costs the console the same
+ * fixed height whichever view is up.
+ */
+const Commcast__Bar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex: 0 0 auto;
+  min-width: 0;
+`;
+
+/** Pushes what follows to the far end of a bar. */
+const Commcast__BarGap = styled.div`
+  flex: 1 1 auto;
+`;
+
+const Commcast__Back = styled(GhostButton)`
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 0 0 auto;
+  font-size: var(--font-size-xs);
+  padding: var(--space-2) var(--space-6);
+`;
+
+/*
  * The log's own inset, and its anchor. `ConsoleFrame` draws to its border with
  * no gutter, which is right for a terminal emulator and wrong for text, so the
  * padding goes on the scrolling children rather than on the frame.
@@ -670,6 +984,51 @@ const Commcast__List = styled.div`
   /* See the scroll wrapper above: pins a short log to the frame's bottom. */
   margin-top: auto;
   gap: var(--space-6);
+`;
+
+/*
+ * A LIST of choices, unlike the log above it, so it starts at the top and grows
+ * down: a conversation reads from its newest line at the bottom, and a list of
+ * things to pick reads from its first row.
+ */
+const Commcast__Rows = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+`;
+
+/*
+ * Unstyled but for its size, so `SelectableRow`'s own colour reaches it: the
+ * row go-tones its text when selected, and a name carrying its own tone would
+ * sit at the accent colour in both states and say nothing about which.
+ */
+const Commcast__RowName = styled.span`
+  font-size: var(--font-size-sm);
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+const Commcast__RowHead = styled.div`
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+  width: 100%;
+  min-width: 0;
+`;
+
+/* One line of the last thing said, clipped rather than wrapped: an inbox row
+   is a pointer into a conversation, and a row that grows with the message it
+   previews stops being scannable. */
+const Commcast__Preview = styled.span`
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 `;
 
 /*
@@ -734,12 +1093,6 @@ const Commcast__Actions = styled.div`
   flex-wrap: wrap;
 `;
 
-const Commcast__To = styled(Select)`
-  flex: 0 1 auto;
-  min-width: 0;
-  max-width: 40%;
-`;
-
 const Commcast__Input = styled.input`
   flex: 1 1 auto;
   min-width: 0;
@@ -761,7 +1114,7 @@ registerComponent({
   id: "commcast",
   name: "Commcast",
   description:
-    "Addressed messages between the command centres and craft on this mission. A message crosses the light-time to the vantage it names, is acknowledged back, and your own words appear only once that acknowledgement returns, so the wait you feel is the wait that is really there.",
+    "Addressed messages between the command centres and craft on this mission. An inbox of conversations, each one crossing the light-time to the vantage it names and acknowledged back, so your own words appear only once that acknowledgement returns and the wait you feel is the wait that is really there.",
   tags: ["mission-control", "comms"],
   defaultSize: { w: 6, h: 8 },
   minSize: { w: 4, h: 5 },

@@ -90,6 +90,22 @@ export interface Pane {
   crossing?: Held[];
   /** Mount with no log at all, the other end of the empty state. */
   noLog?: boolean;
+  /**
+   * Open the conversation with this correspondent, by clicking its inbox row.
+   *
+   * Driven through the real row rather than by reaching into the widget's own
+   * state: the widget opens on the inbox now, so a scene photographing a
+   * conversation has to get there the way an operator does, and a harness with
+   * a private door into a view is a harness that can photograph a state the UI
+   * cannot actually reach.
+   */
+  openThread?: string;
+  /** Click through to the recipient picker instead of opening a conversation. */
+  compose?: boolean;
+  /** Names to select in the picker, in order. Only read with `compose`. */
+  pick?: string[];
+  /** Press Open on what `pick` chose, landing in the conversation itself. */
+  open?: boolean;
 }
 
 export interface Scene {
@@ -169,6 +185,94 @@ function toMessage(held: Held): CommsMessage {
 }
 
 /**
+ * The MOUNT's text, never the document's.
+ *
+ * The probe page carries the whole bundle in an inline script, and a script
+ * element's text is part of `document.body.textContent`, so a predicate looking
+ * for a widget's own copy found it in the component's SOURCE and waited for a
+ * condition that could never come true. Seven megabytes of body text against a
+ * few hundred bytes of rendered widget is not a subtle margin.
+ */
+function mountedText(): string {
+  return document.getElementById("root")?.textContent ?? "";
+}
+
+/** One pane's own subtree, so a click cannot reach the other vantage's widget. */
+function paneEl(index: number): Element | null {
+  return document.querySelector(`[data-pane="${index}"]`);
+}
+
+/**
+ * The enabled button in `pane` whose label carries `text`, or `null`.
+ *
+ * Enabled matters: "New message" exists from the first frame and is refused
+ * until the roster lands, so a harness that clicked the first match it saw
+ * would click a dead control and then wait for a picker that never opened.
+ *
+ * `selector` narrows it to a kind of control. Every list row is a toggle and
+ * so carries `aria-pressed`, which is what separates a correspondent's ROW
+ * from the station-name editor that may be showing the same words up in the
+ * panel header.
+ */
+function buttonIn(
+  pane: Element,
+  text: string,
+  selector = "button",
+): HTMLButtonElement | null {
+  const found = [...pane.querySelectorAll<HTMLButtonElement>(selector)].find(
+    (b) => !b.disabled && (b.textContent ?? "").includes(text),
+  );
+  return found ?? null;
+}
+
+/** A list row, never a control that happens to carry the same words. */
+const ROW = "button[aria-pressed]";
+
+/** Clicks `text` in `pane` once it is there to click. Returns whether it was. */
+async function clickWhenReady(
+  pane: Element,
+  text: string,
+  selector?: string,
+): Promise<boolean> {
+  const deadline = Date.now() + 3_000;
+  while (Date.now() < deadline) {
+    const button = buttonIn(pane, text, selector);
+    if (button) {
+      button.click();
+      await twoFrames();
+      await new Promise((r) => setTimeout(r, 16));
+      return true;
+    }
+    await twoFrames();
+    await new Promise((r) => setTimeout(r, 16));
+  }
+  return false;
+}
+
+/**
+ * Walks one pane to the view its scene is about.
+ *
+ * The widget opens on the inbox, so every scene photographing a conversation
+ * or the picker is a couple of real clicks in. What it does NOT do is fail
+ * silently: a scene whose row never appeared reports it, because a screenshot
+ * of an inbox where a conversation was expected reads as a design claim.
+ */
+async function drivePane(pane: Pane, index: number): Promise<boolean> {
+  const el = paneEl(index);
+  if (!el) return false;
+  if (pane.compose === true) {
+    if (!(await clickWhenReady(el, "New message"))) return false;
+    for (const name of pane.pick ?? []) {
+      if (!(await clickWhenReady(el, name, ROW))) return false;
+    }
+    if (pane.open !== true) return true;
+    return await clickWhenReady(el, "Open");
+  }
+  if (pane.openThread === undefined) return true;
+  return await clickWhenReady(el, pane.openThread, ROW);
+}
+
+/**
  * Waits for a scene to actually settle, rather than for a fixed number of
  * frames to have gone by.
  *
@@ -182,18 +286,7 @@ function toMessage(held: Held): CommsMessage {
  * `predicate` is what the scene is waiting to be true of the DOM. Frames, not
  * timers, so it stays on the same clock the arrival is on.
  */
-async function settle(
-  predicate: (mounted: string) => boolean,
-): Promise<boolean> {
-  /*
-   * The MOUNT's text, never the document's. The probe page carries the whole
-   * bundle in an inline script, and a script element's text is part of
-   * `document.body.textContent`, so a predicate looking for a widget's own copy
-   * found it in the component's SOURCE and waited for a condition that could
-   * never come true. Seven megabytes of body text against a few hundred bytes
-   * of rendered widget is not a subtle margin.
-   */
-  const mounted = () => document.getElementById("root")?.textContent ?? "";
+async function settle(predicate: () => boolean): Promise<boolean> {
   /*
    * Short, because a scene that settles settles in well under a second and one
    * that lost the race does not recover on its own: what recovers it is a
@@ -213,7 +306,7 @@ async function settle(
   while (Date.now() < deadline) {
     await twoFrames();
     await new Promise((r) => setTimeout(r, 16));
-    if (predicate(mounted())) {
+    if (predicate()) {
       // One more pair, so the frame that satisfied the predicate has also been
       // painted with everything else it released alongside.
       await twoFrames();
@@ -306,6 +399,9 @@ function paneTree(pane: Pane, index: number) {
     node: (
       <div
         key={`${pane.seat}:${pane.vantage ?? ""}:${index}`}
+        // The handle a click is scoped to, so driving one pane's inbox can
+        // never reach the other vantage's widget.
+        data-pane={index}
         style={{
           display: "flex",
           flexDirection: "column",
@@ -434,17 +530,36 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
   }
 
   /*
-   * A live composer says the CLOCK has landed, which every instant is compared
-   * against. A scene that also expects specific text names it, because the
-   * clock landing is not the arrival happening: the buffer releases on a later
-   * frame, and a shot taken before it photographs an empty log as though that
-   * were the scene's intent.
+   * Two settles with the clicks between them, because the widget opens on the
+   * inbox: a conversation is a couple of real interactions in, and the row that
+   * leads to it does not exist until the feed has released what landed.
+   *
+   * The FIRST waits only for the clock, which every instant is compared
+   * against, and it is checked by the absence of a dead composer rather than by
+   * text. An inbox has no composer at all, so a pane that stays on the list
+   * passes it on nothing, which is why the row's own appearance is what
+   * `drivePane` waits for.
+   */
+  if (!(await settle(() => noDeadComposer()))) return false;
+  for (let i = 0; i < scene.panes.length; i++) {
+    if (!(await drivePane(scene.panes[i], i))) return false;
+  }
+  /*
+   * The SECOND is the scene's own claim. The clock landing is not the arrival
+   * happening: the buffer releases on a later frame, and a shot taken before it
+   * photographs an empty log as though that were the scene's intent.
    */
   return await settle(
-    (mounted) =>
-      document.querySelectorAll('input[placeholder="No clock yet"]').length ===
-        0 &&
-      (scene.settleOn === undefined || mounted.includes(scene.settleOn)),
+    () =>
+      noDeadComposer() &&
+      (scene.settleOn === undefined || mountedText().includes(scene.settleOn)),
+  );
+}
+
+/** Whether every composer on screen has a clock behind it. */
+function noDeadComposer(): boolean {
+  return (
+    document.querySelectorAll('input[placeholder="No clock yet"]').length === 0
   );
 }
 
@@ -476,7 +591,7 @@ async function renderScene(scene: Scene): Promise<void> {
    */
   console.warn(
     `[did not settle] ${scene.name}: the scene never reached the state it was built to show after four mounts. This render is NOT the scene's intent. Waiting on ${JSON.stringify(scene.settleOn)}; logs held ${JSON.stringify(lastLogCounts)}; mounted text was ${JSON.stringify(
-      (document.getElementById("root")?.textContent ?? "").slice(0, 600),
+      mountedText().slice(0, 600),
     )}`,
   );
 }

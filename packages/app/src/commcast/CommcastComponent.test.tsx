@@ -1,11 +1,13 @@
 /**
  * The widget renders, and the delayed states are visible ON SCREEN.
  *
- * The arrival rules are unit-tested where they live; what only a render shows
- * is that a message still crossing to this vantage leaks NOTHING, that the
- * operator's own words are held out of the log until they are answered, and
- * that an unanswered one comes back unconfirmed with something to do about it.
- * All three are things a correct pure function can still get wrong in the UI.
+ * The arrival rules are unit-tested where they live and the grouping in
+ * `threads.test.ts`; what only a render shows is that a message still crossing
+ * to this vantage leaks NOTHING, that the operator's own words are held out of
+ * the log until they are answered, that an unanswered one comes back
+ * unconfirmed with something to do about it, and that the send control keeps
+ * one size however far away the recipient is. All of those are things a correct
+ * pure function can still get wrong in the UI.
  */
 import { clearRegistry } from "@ksp-gonogo/core";
 import {
@@ -13,8 +15,10 @@ import {
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
+import { setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommcastWidget } from "./CommcastComponent";
 import { CommcastLog } from "./CommcastLog";
@@ -35,6 +39,14 @@ const JEB = {
   vantageId: "vessel:ares",
 };
 
+/** Everything the widget declares, so nothing it reads is left unfed. */
+const TOPICS = [
+  "commandCentre.roster",
+  "commandCentre.separation",
+  "comms.delay",
+  "comms.link",
+];
+
 const unmounts: Array<() => void> = [];
 
 afterEach(() => {
@@ -53,10 +65,7 @@ function renderWidget(log: CommcastLog) {
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const view = render(
-    <TelemetryProvider
-      client={client}
-      carriedChannels={["comms.delay", "comms.link"]}
-    >
+    <TelemetryProvider client={client} carriedChannels={TOPICS}>
       <CommcastLogProvider log={log}>
         <CommcastWidget id="w1" config={{}} w={6} h={8} />
       </CommcastLogProvider>
@@ -66,6 +75,48 @@ function renderWidget(log: CommcastLog) {
   return { ...view, transport };
 }
 
+/**
+ * The same widget over the REAL spine, for the two tests that need a roster and
+ * a published separation.
+ *
+ * A bare `StubTransport` cannot serve either: `useTelemetry` reads the delayed
+ * store, and without a `ViewClock` and a frame nothing it emits ever matures
+ * past `pending`. The fixture is the shipped way to run a widget off the stream
+ * and it is what the render harness uses, so the two agree about what a screen
+ * with a correspondent looks like.
+ */
+function renderOnStream(log: CommcastLog, roster: readonly unknown[]) {
+  const fixture = setupStreamFixture({ carriedChannels: TOPICS, pinnedUt: 10 });
+  const view = render(
+    <fixture.Provider>
+      <CommcastLogProvider log={log}>
+        <CommcastWidget id="w1" config={{}} w={6} h={8} />
+      </CommcastLogProvider>
+    </fixture.Provider>,
+  );
+  unmounts.push(view.unmount);
+  act(() => {
+    fixture.emit("commandCentre.roster", roster, { vantage: "ksc" });
+    fixture.emit(
+      "commandCentre.separation",
+      { pairs: [{ from: "ksc", to: "vessel:ares", oneWaySeconds: 240 }] },
+      { vantage: "ksc" },
+    );
+    // The pinned frame has to advance onto the sample before the read matures.
+    fixture.store.beginFrame();
+  });
+  return { ...view, fixture };
+}
+
+/**
+ * The widget opens on the inbox, so a test about a conversation has to open
+ * one. Clicked through the real row rather than reached round the UI: which
+ * conversation a row leads to is one of the things under test.
+ */
+async function openConversation(name: string | RegExp) {
+  await userEvent.click(await screen.findByRole("button", { name }));
+}
+
 /** A message this screen sent, placed straight into its outbox. */
 function sent(over: Partial<CommsMessage> = {}): CommsMessage {
   return {
@@ -73,7 +124,7 @@ function sent(over: Partial<CommsMessage> = {}): CommsMessage {
     to: ["vessel:ares"],
     from: "ksc",
     authorStationKey: "screen-under-test",
-    authorName: "Mission Control",
+    authorName: "Kennedy Flight",
     authorSeat: "mission-control",
     sentUt: 0,
     lastSentUt: 0,
@@ -97,26 +148,153 @@ function ack(over: Partial<CommsAck> = {}): CommsAck {
 }
 
 describe("Commcast, rendered", () => {
-  it("renders an empty log without a crash and without pretending", () => {
+  it("opens on the INBOX, not on a conversation", async () => {
+    /*
+     * The whole point of replacing the dropdown. A screen that opened straight
+     * into a thread would be the old widget with the picker hidden, and the
+     * operator would have no way to see that two correspondences are separate.
+     */
     renderWidget(makeLog());
-    expect(screen.getByText("Nothing said yet.")).toBeInTheDocument();
+    expect(await screen.findByText(/No conversations/)).toBeInTheDocument();
+    // The composer belongs to a conversation, so it is not on this screen.
+    expect(screen.queryByLabelText("Message")).toBeNull();
   });
 
-  it("says what a send will cost when there is no path to say it over", () => {
-    // No delay has arrived on a stub transport and no roster names anyone, so
-    // the control says so rather than implying an instant send.
-    renderWidget(makeLog());
+  it("lists one row per conversation, and says which has words still out", async () => {
+    const log = makeLog();
+    log.replaceForTesting({
+      inbox: [
+        sent({
+          id: "heard",
+          from: "ground:woomera",
+          to: ["ksc"],
+          authorName: "Woomera Range",
+          sentUt: -600,
+          lastSentUt: -600,
+          separationSeconds: 12,
+          body: "Kennedy, Woomera. Tracking is locked.",
+        }),
+      ],
+      outbox: [{ msg: sent(), acks: [], neverLeft: false }],
+    });
+    renderWidget(log);
+    const rows = await screen.findAllByRole("button", {
+      name: /Tracking is locked|do you copy/,
+    });
+    expect(rows).toHaveLength(2);
+    // Something is still crossing to the craft, so that conversation is first
+    // and says so; the settled one does not.
+    expect(rows[0]).toHaveAccessibleName(/do you copy/);
+    expect(rows[0]).toHaveAccessibleName(/1 out/);
+    expect(rows[1]).not.toHaveAccessibleName(/out/);
+  });
+
+  it("opens a conversation with no recipient control and a way back", async () => {
+    const log = makeLog();
+    log.replaceForTesting({
+      inbox: [
+        sent({
+          id: "heard",
+          from: "vessel:ares",
+          to: ["ksc"],
+          authorName: JEB.name,
+          authorSeat: "pilot",
+          sentUt: -600,
+          lastSentUt: -600,
+          body: "Kennedy, Ares. Go ahead.",
+        }),
+      ],
+    });
+    renderWidget(log);
+    await openConversation(/Go ahead/);
+    expect(screen.getByText("Kennedy, Ares. Go ahead.")).toBeInTheDocument();
+    expect(screen.getByLabelText("Message")).toBeInTheDocument();
+    // The control the operator asked to lose. A combobox anywhere in a
+    // conversation would be the dropdown back.
+    expect(screen.queryByRole("combobox")).toBeNull();
+    await userEvent.click(screen.getByRole("button", { name: "Inbox" }));
+    expect(screen.getByText(/conversation/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Message")).toBeNull();
+  });
+
+  it("keeps the send control one size whatever the delay beside it is", async () => {
+    /*
+     * The defect the operator named: the label used to carry the round trip,
+     * so the same button was two words at the pad and a sentence four
+     * light-minutes out. The terminal widget's answer is a chip that costs no
+     * layout, which is `ComposerBar`'s pinned flag, so the figure is still at
+     * the control and the control does not move.
+     */
+    const log = makeLog();
+    log.setVantage("ksc");
+    renderOnStream(log, [
+      { id: "vessel:ares", displayName: "Ares 4", active: true },
+    ]);
+    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+    // The label carries the verb and nothing else, whatever the figure is.
+    expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+    // Eight minutes there and back, pinned to the bar rather than in the label.
+    expect(screen.getByText("RT 8min")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("says over the composer when there is no path to send over", async () => {
+    /*
+     * No delay has arrived on a stub transport, so the bar's own outline turns
+     * and the chip says why, rather than the refusal reaching the operator only
+     * after they press.
+     */
+    const log = makeLog();
+    log.replaceForTesting({
+      outbox: [
+        {
+          msg: sent({ separationSeconds: null }),
+          acks: [],
+          neverLeft: true,
+        },
+      ],
+    });
+    renderWidget(log);
+    await openConversation(/do you copy/);
+    expect(screen.getByText("NO PATH")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
+  });
+
+  it("takes a list of recipients, and refuses the group case rather than faking it", async () => {
+    /*
+     * The envelope has always carried a list and the picker toggles, so
+     * growing groups is additive. What is NOT built is group DELIVERY: the
+     * author's separation is one frozen figure and the acknowledgement window
+     * is measured off it, so a second name is refused where the operator can
+     * see why.
+     */
+    const log = makeLog();
+    log.setVantage("ksc");
+    renderOnStream(log, [
+      { id: "vessel:ares", displayName: "Ares 4", active: true },
+      { id: "ground:woomera", displayName: "Woomera Range", active: true },
+    ]);
+    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Ares 4/ }));
+    expect(screen.getByRole("button", { name: "Open" })).toBeEnabled();
+    await userEvent.click(
+      screen.getByRole("button", { name: /Woomera Range/ }),
+    );
+    expect(screen.getByRole("button", { name: "Open" })).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: /Send \(no path\)/ }),
+      screen.getByText("Group delivery is not carried yet"),
     ).toBeInTheDocument();
+    await act(async () => {});
   });
 
-  it("shows NOTHING at all for a message still crossing toward this vantage", () => {
+  it("shows NOTHING at all for a message still crossing toward this vantage", async () => {
     /*
      * The terminal widget's rule: what has not arrived is absent, not described. Withholding
      * the body while naming the author and printing a countdown still tells
      * this vantage that somebody spoke, a light-time before that could
-     * possibly be known here.
+     * possibly be known here. There is not even a conversation for it to be in.
      */
     const log = makeLog();
     log.setVantage("ksc");
@@ -133,12 +311,12 @@ describe("Commcast, rendered", () => {
       body: "SECRET-IN-FLIGHT",
     });
     renderWidget(log);
+    expect(await screen.findByText(/No conversations/)).toBeInTheDocument();
     expect(screen.queryByText("SECRET-IN-FLIGHT")).not.toBeInTheDocument();
     expect(screen.queryByText("Jeb")).not.toBeInTheDocument();
-    expect(screen.getByText("Nothing said yet.")).toBeInTheDocument();
   });
 
-  it("holds the operator's OWN words out of the log until they are answered", () => {
+  it("holds the operator's OWN words out of the log until they are answered", async () => {
     /*
      * The terminal widget's round trip, on a whole composed line. The words are
      * in the uplink queue and nowhere else: not in the log, and with no
@@ -149,12 +327,18 @@ describe("Commcast, rendered", () => {
       outbox: [{ msg: sent(), acks: [], neverLeft: false }],
     });
     renderWidget(log);
+    await openConversation(/do you copy/);
     expect(screen.getByLabelText(/Uplink queue/)).toBeInTheDocument();
+    /*
+     * The queue row is labelled with the words, so the body is on screen
+     * there. What is absent is the LOG row: no author line, and no verdict
+     * either way, because nothing has come back to say anything yet.
+     */
+    expect(screen.queryByText("Kennedy Flight")).toBeNull();
     expect(screen.queryByText("unconfirmed")).toBeNull();
-    expect(screen.queryByText(/confirmed after/)).toBeNull();
   });
 
-  it("lands them the instant the acknowledgement gets back, and says how long", () => {
+  it("lands them the instant the acknowledgement gets back, stamped with when", async () => {
     const log = makeLog();
     // Spoken 480 s ago at a 240 s separation, read at the far end the instant
     // it arrived: the acknowledgement has had exactly the return leg to cross.
@@ -168,12 +352,17 @@ describe("Commcast, rendered", () => {
       ],
     });
     renderWidget(log);
+    await openConversation(/do you copy/);
     expect(screen.getByText("Ares, Kennedy, do you copy")).toBeInTheDocument();
-    expect(screen.getByText(/confirmed after/)).toBeInTheDocument();
+    // The author, and one reading: the instant the confirmation landed here.
+    // A sentence about how long it took is what this replaced.
+    expect(screen.getByText("Kennedy Flight")).toBeInTheDocument();
+    expect(screen.getByText(/^Y1 D1 /)).toBeInTheDocument();
+    expect(screen.queryByText(/confirmed after/)).toBeNull();
     expect(screen.queryByLabelText(/Uplink queue/)).toBeNull();
   });
 
-  it("hands them back UNCONFIRMED rather than holding them for the mission", () => {
+  it("hands them back UNCONFIRMED rather than holding them for the mission", async () => {
     // Nobody answered. Past the give-up the author gets their own words back,
     // marked, with the one action attached: send it again.
     const log = makeLog();
@@ -187,6 +376,7 @@ describe("Commcast, rendered", () => {
       ],
     });
     renderWidget(log);
+    await openConversation(/do you copy/);
     expect(screen.getByText("Ares, Kennedy, do you copy")).toBeInTheDocument();
     expect(screen.getByText("unconfirmed")).toBeInTheDocument();
     expect(
@@ -194,7 +384,7 @@ describe("Commcast, rendered", () => {
     ).toBeInTheDocument();
   });
 
-  it("counts only an acknowledgement that has REACHED this screen", () => {
+  it("counts only an acknowledgement that has REACHED this screen", async () => {
     /*
      * One crosses the same separation its message did. Reading the raw list
      * would tell the author their words had been received a light-time before
@@ -213,11 +403,11 @@ describe("Commcast, rendered", () => {
       ],
     });
     renderWidget(log);
+    await openConversation(/do you copy/);
     expect(screen.getByText("unconfirmed")).toBeInTheDocument();
-    expect(screen.queryByText(/confirmed after/)).toBeNull();
   });
 
-  it("says a message that never left is unconfirmed for a DIFFERENT reason", () => {
+  it("says a message that never left is unconfirmed for a DIFFERENT reason", async () => {
     // "Nothing came back" and "nothing went out" call for different
     // judgements, so they must not read the same.
     const log = makeLog();
@@ -231,14 +421,24 @@ describe("Commcast, rendered", () => {
       ],
     });
     renderWidget(log);
-    expect(
-      screen.getByText("unconfirmed, no path when sent"),
-    ).toBeInTheDocument();
+    await openConversation(/do you copy/);
+    expect(screen.getByText("never left, no path")).toBeInTheDocument();
+    expect(screen.queryByText("unconfirmed")).toBeNull();
   });
 
-  it("terminates the log with a no-signal marker on a CONFIRMED link loss", () => {
+  it("terminates the log with a no-signal marker on a CONFIRMED link loss", async () => {
     const log = makeLog();
+    log.replaceForTesting({
+      outbox: [
+        {
+          msg: sent({ sentUt: -600, lastSentUt: -600 }),
+          acks: [],
+          neverLeft: false,
+        },
+      ],
+    });
     const { transport } = renderWidget(log);
+    await openConversation(/do you copy/);
     // Silence is NOT a lost link: a screen that has heard nothing about the
     // route must not accuse its own log of being incomplete.
     expect(screen.queryByText("no signal")).toBeNull();
@@ -248,7 +448,7 @@ describe("Commcast, rendered", () => {
     expect(screen.queryByText("no signal")).toBeNull();
   });
 
-  it("loses NOTHING when the observed vantage arrives after the log did", () => {
+  it("loses NOTHING when the observed vantage arrives after the log did", async () => {
     /*
      * The regression that made the render harness lose whole logs at random.
      * The arrival buffer is rebuilt when this screen learns its own vantage,
@@ -276,12 +476,13 @@ describe("Commcast, rendered", () => {
     act(() =>
       transport.emit("comms.link", { connected: true }, { vantage: "ksc" }),
     );
+    await openConversation(/line 3/);
     for (let i = 0; i < 4; i++) {
       expect(screen.getByText(`line ${i}`)).toBeInTheDocument();
     }
   });
 
-  it("has no accessibility violations", async () => {
+  it("has no accessibility violations, in the inbox and in a conversation", async () => {
     const log = makeLog();
     log.replaceForTesting({
       outbox: [
@@ -293,6 +494,8 @@ describe("Commcast, rendered", () => {
       ],
     });
     const { container } = renderWidget(log);
+    await expectNoA11yViolations(container);
+    await openConversation(/do you copy/);
     await expectNoA11yViolations(container);
     await act(async () => {});
   });
