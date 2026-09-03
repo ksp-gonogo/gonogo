@@ -1,12 +1,13 @@
 {
   "_meta": {
-    "notes": "One booted CPU tagged 'lander', with the screen kOS itself draws on boot. The chunk is real VT (a clear-screen and a home, then the banner and prompt), so what renders is xterm's own interpretation of the bytes rather than a string in a box."
+    "notes": "One booted CPU tagged 'lander', with the screen kOS itself draws on boot. The chunk is real VT (a clear-screen and a home, then the banner and prompt), so what renders is xterm's own interpretation of the bytes rather than a string in a box. The CPU is 0.4 s away, which is the short arm of the delay switch: close enough that a countdown would be over before it could be read, so a standing badge is the reading and the in-transit strip stays away. The other arm is a long delay, where the strip carries the figure and there is no badge."
   },
   "_scene": {
     "widget": "kos-terminal",
-    "caption": "Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter sends it as one command",
+    "caption": "Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter, or the Send button beside it, commits it as one command",
     "config": { "cpuName": "lander", "lineMode": true },
-    "modes": ["default"]
+    "modes": ["default"],
+    "paints": ["Send", "one-way"]
   },
   "_stream": {
     "pinnedUt": 1000000,
@@ -21,6 +22,10 @@
             "processorMode": "READY"
           }
         ]
+      },
+      {
+        "topic": "comms.delay",
+        "payload": { "oneWaySeconds": 0.4, "source": "SignalDelay" }
       },
       {
         "topic": "kos.terminal.7",
