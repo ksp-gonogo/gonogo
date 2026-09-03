@@ -9,7 +9,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | --- | --- |
 | Uplink id | `rp1` |
 | Version | `0.0.1` |
-| Built against | contract 14.7, api 1.0.0, ui-kit 0.1.0 |
+| Built against | contract 14.8, api 1.0.0, ui-kit 0.1.0 |
 
 ## Wire
 
