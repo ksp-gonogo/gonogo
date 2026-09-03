@@ -24,13 +24,11 @@ describe("ConsoleFrame", () => {
     expect(frame && getComputedStyle(frame).position).toBe("relative");
   });
 
-  it("holds the footer inside its own border, with the scrollback", () => {
+  it("holds the footer inside itself, with the scrollback", () => {
     /*
      * The property this whole primitive gained a slot for. Both consoles used
-     * to stack their composer BELOW the frame, so the border contained a
-     * terminal screen in one and a column of messages in the other and the two
-     * widgets read as unrelated. Inside, the outline contains the same two
-     * things everywhere: what has been said, and where you say the next thing.
+     * to stack their composer BELOW the frame, where it read as a box strapped
+     * to the console rather than a control in the widget.
      */
     const { container } = render(
       <ConsoleFrame footer={<button type="button">Send</button>}>
@@ -46,8 +44,8 @@ describe("ConsoleFrame", () => {
   });
 
   it("draws no foot at all when there is nothing to type", () => {
-    // An inbox is a list of conversations with no composer, and an empty band
-    // at the bottom of it would be a control that is not there.
+    // An inbox is a list of conversations with no composer, and an inset empty
+    // row at the bottom of it would be a control that is not there.
     const { container } = render(
       <ConsoleFrame>
         <p>scrollback</p>
@@ -58,13 +56,16 @@ describe("ConsoleFrame", () => {
     ).toHaveLength(1);
   });
 
-  it("takes its accent from the tone prop, and the error tone over both", () => {
+  it("declares the tone for what is inside it, and wears none of it", () => {
     /*
      * The one difference between the app's two consoles, and a prop rather than
      * a stylesheet each: a terminal dispatching to a craft keeps the primary
-     * accent, a message log carrying words takes the informational one. Read
-     * off the custom property because that is also what the composer's rule and
-     * a caller's prompt glyph resolve, so this pins that they cannot disagree.
+     * accent, a message log carrying words takes the informational one.
+     *
+     * Read off the custom property rather than the frame's own border, because
+     * the frame paints NOTHING with it: the accent belongs to the input, and
+     * this is the declaration its border, prompt and focus ring all resolve, so
+     * they cannot come out in different colours.
      */
     const toneOf = (element: Element | null) =>
       element &&
@@ -79,20 +80,31 @@ describe("ConsoleFrame", () => {
     expect(
       toneOf(info.container.querySelector("[data-console-frame]")),
     ).toContain("--color-status-info-fg");
+  });
 
+  it("keeps its own border subtle, whatever the tone", () => {
     /*
-     * Refusing input outranks whichever accent the console normally answers in:
-     * an operator typing into a console that is not sending must see it on the
-     * box, not work it out from a chip.
+     * The operator's correction, and the reason `tone` paints nothing here:
+     * "I don't want that border to go round the entire widget, it can stay just
+     * around the input". A toned outline here would seal the scrollback and the
+     * composer into one console with a bottom section, instead of a widget with
+     * a bordered control in it.
+     *
+     * Read off the EMITTED RULE rather than `getComputedStyle`, which is blind
+     * to this: jsdom does not resolve a `border` shorthand carrying a `var()`
+     * and answers "medium none rgb(0, 0, 0)" whatever the stylesheet says, so a
+     * computed-style assertion here would pass just as happily with the tone
+     * back on the frame. `ruleFor` throws when it finds no rule, because an
+     * instrument that cannot see its own subject reports success.
      */
-    const blocked = render(
-      <ConsoleFrame tone="info" blocked>
-        c
-      </ConsoleFrame>,
-    );
-    expect(
-      toneOf(blocked.container.querySelector("[data-console-frame]")),
-    ).toContain("--color-status-nogo-fg");
+    for (const tone of ["accent", "info"] as const) {
+      const { container } = render(<ConsoleFrame tone={tone}>a</ConsoleFrame>);
+      const rule = ruleFor(
+        container.querySelector("[data-console-frame]") as HTMLElement,
+      );
+      expect(rule).toContain("border:1px solid var(--color-border-subtle)");
+      expect(rule).not.toContain("border:1px solid var(--console-tone-fg)");
+    }
   });
 
   it("has no a11y violations", async () => {
@@ -104,3 +116,32 @@ describe("ConsoleFrame", () => {
     await expectNoA11yViolations(container);
   });
 });
+
+/**
+ * The CSS styled-components actually emitted for `element`'s own generated
+ * class, as text.
+ *
+ * Needed because jsdom's computed style cannot resolve a shorthand containing a
+ * `var()` and returns the initial value instead, which makes every
+ * `getComputedStyle(...).border` assertion in this file's subject area vacuous.
+ * Throws rather than returning empty when no rule matches: a lookup that
+ * silently finds nothing turns "the border is subtle" into "no border was
+ * examined", and both read green.
+ */
+function ruleFor(element: HTMLElement): string {
+  const generated = Array.from(element.classList).filter(
+    (name) => !name.startsWith("sc-"),
+  );
+  const sheet = Array.from(document.querySelectorAll("style"))
+    .map((style) => style.textContent ?? "")
+    .join("");
+  for (const name of generated) {
+    const at = sheet.indexOf(`.${name}{`);
+    if (at !== -1) {
+      return sheet.slice(at, sheet.indexOf("}", at) + 1);
+    }
+  }
+  throw new Error(
+    `no emitted rule for any of [${generated.join(", ")}]; the stylesheet lookup is broken, not the border`,
+  );
+}

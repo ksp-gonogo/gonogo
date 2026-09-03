@@ -2,22 +2,28 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import styled, { css } from "styled-components";
 
 /**
- * A bordered console: a scrolling surface that takes the remaining height of a
- * panel body, and, pinned at its foot INSIDE the same border, whatever the
- * operator types into it.
+ * A console: a scrolling surface that takes the remaining height of a panel
+ * body, and, sitting INSIDE it at the foot, whatever the operator types into
+ * it.
  *
- * ## The composer is inside
+ * ## The composer is inside, and keeps its own box
  *
- * It was outside, in both widgets that have one, and the border then contained
- * different things in each: a terminal screen in one, a column of messages in
- * the other, with the input hanging underneath as a separate box. Two consoles
- * meant to read as siblings looked unrelated, and an input bar sitting outside
- * its own panel does not look like any other widget in the app.
+ * The composer was OUTSIDE, in both widgets that have one, hanging off the
+ * bottom edge as a box strapped to the console rather than a control in it.
+ * That is the shape of no other widget in the app, and it is what `footer`
+ * fixes: the input belongs in the widget's body.
  *
- * So `footer` is a slot rather than a convention. A caller cannot put the
- * composer above the frame by accident, and the outline contains the same two
- * things in every console: what has been said, and where you say the next
- * thing.
+ * What `footer` deliberately does NOT do is absorb the composer into one big
+ * outline. This frame's own border is SUBTLE, and the console's accent is worn
+ * by the bordered composer sitting inside it. Wrapping both halves in one loud
+ * outline with a rule across the middle was tried, and it read as a single
+ * sealed console with a bottom section rather than as a widget containing an
+ * input: "I don't want that border to go round the entire widget, it can stay
+ * just around the input".
+ *
+ * So the nesting is exactly two deep and stops there: a quiet frame, and one
+ * bordered input in it. A third box (an `<input>` with its own outline inside
+ * the composer, which Commcast had) is the thing to keep out.
  *
  * ## The positioning context is half the point
  *
@@ -64,24 +70,20 @@ export interface ConsoleFrameProps extends ComponentPropsWithoutRef<"div"> {
    * the informational one. Both are theme tokens, so a theme moves them together
    * and neither widget owns a colour.
    *
-   * It reaches the foot as `--console-tone-fg`, which is how `ComposerBar`'s
-   * rule and a caller's own prompt glyph come out in the same tone without
-   * either being told separately.
+   * The frame paints NOTHING with it. It declares it once, as
+   * `--console-tone-fg`, and the things inside that wear the accent read it
+   * from there: the composer's border, its prompt glyph, the focus ring on
+   * whatever the caller types into. Declaring it here rather than on each of
+   * them is what stops a console whose input is green from having a blue caret.
    */
   tone?: ConsoleTone;
   /**
-   * Input is not being accepted, so the WHOLE console takes the error tone
-   * rather than a chip in one corner of it.
+   * Sitting at the foot, inside the frame and inset from its edges, non-growing:
+   * the composer, and anything belonging immediately above it such as an
+   * in-flight queue.
    *
-   * Both consoles refuse input at the input-acceptance step when there is no
-   * comms path, before anything is cleared or dispatched, and a refusal the
-   * operator only learns about by pressing the key is a refusal they read as a
-   * bug. Toning the border says it on sight, while they are still typing.
-   */
-  blocked?: boolean;
-  /**
-   * Pinned at the foot, inside the border, and non-growing: the composer, and
-   * anything belonging immediately above it such as an in-flight queue.
+   * A slot rather than a convention, so a caller cannot go back to strapping the
+   * composer onto the outside of the console.
    */
   footer?: ReactNode;
   children?: ReactNode;
@@ -89,7 +91,6 @@ export interface ConsoleFrameProps extends ComponentPropsWithoutRef<"div"> {
 
 export function ConsoleFrame({
   tone = "accent",
-  blocked = false,
   footer,
   children,
   ...rest
@@ -101,12 +102,7 @@ export function ConsoleFrame({
        this component exists for is invisible to a role query, because the
        border is not a role and both widgets rendered perfectly good composers
        while they hung outside it. */
-    <ConsoleFrame__Box
-      data-console-frame=""
-      $tone={tone}
-      $blocked={blocked}
-      {...rest}
-    >
+    <ConsoleFrame__Box data-console-frame="" $tone={tone} {...rest}>
       <ConsoleFrame__Surface>{children}</ConsoleFrame__Surface>
       {footer !== undefined && (
         <ConsoleFrame__Foot>{footer}</ConsoleFrame__Foot>
@@ -115,32 +111,29 @@ export function ConsoleFrame({
   );
 }
 
-const ConsoleFrame__Box = styled.div<{
-  $tone: ConsoleTone;
-  $blocked: boolean;
-}>`
+const ConsoleFrame__Box = styled.div<{ $tone: ConsoleTone }>`
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
   background: var(--color-surface-panel);
-  border: 1px solid var(--console-tone-fg);
+  /* SUBTLE, and deliberately not the tone. The accent belongs to the input,
+     which wears it as its own border; a loud outline here would put a second
+     one around something already bordered and seal the two halves into one
+     console instead of a widget with a control in it. */
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   overflow: hidden;
 
-  ${({ $tone, $blocked }) =>
-    $blocked
+  ${({ $tone }) =>
+    $tone === "info"
       ? css`
-          --console-tone-fg: var(--color-status-nogo-fg);
+          --console-tone-fg: var(--color-status-info-fg);
         `
-      : $tone === "info"
-        ? css`
-            --console-tone-fg: var(--color-status-info-fg);
-          `
-        : css`
-            --console-tone-fg: var(--color-accent-fg);
-          `}
+      : css`
+          --console-tone-fg: var(--color-accent-fg);
+        `}
 `;
 
 /*
@@ -159,6 +152,10 @@ const ConsoleFrame__Surface = styled.div`
  * Non-growing, so a queue that fills or a picker that opens can never take
  * height from the scrollback above. A positioning context of its own, so a
  * composer's dropdown anchors inside the console rather than escaping the tile.
+ *
+ * The padding is what makes the composer read as a control sitting IN the
+ * console rather than as its bottom section: an inset bordered box has a widget
+ * around it, one flush to three edges is a region of the widget.
  */
 const ConsoleFrame__Foot = styled.div`
   position: relative;
@@ -166,4 +163,6 @@ const ConsoleFrame__Foot = styled.div`
   min-width: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-8);
 `;

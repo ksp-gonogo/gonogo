@@ -371,7 +371,6 @@ function ComposeView({
       </Commcast__Bar>
       <ConsoleFrame
         tone={COMMCAST_TONE}
-        blocked={group}
         footer={
           /* The bar's own commit slot, and its own verb: a picker opens rather
              than sends, but it is the same control in the same place, so it
@@ -484,13 +483,13 @@ function ThreadView({
           {thread.with.map(nameFor).join(", ")}
         </Text>
       </Commcast__Bar>
-      {/* One box: the log, the outbound queue and the line being typed all
-          inside the same border, in the same order the terminal widget puts
-          them. They were three stacked boxes and the border contained only the
-          first, which is why the two consoles did not read as one component. */}
+      {/* The composer lives IN the console rather than strapped under it, the
+          same as the terminal widget: the frame holds the log, the outbound
+          queue and the line being typed, in that order. The blue outline the
+          operator sees is the input's own; the frame around it stays
+          subtle. */}
       <ConsoleFrame
         tone={COMMCAST_TONE}
-        blocked={noPath}
         footer={
           <>
             {/* The terminal widget's uplink queue, in the terminal widget's
@@ -849,9 +848,9 @@ function Composer({
   target: RecipientId | null;
   /**
    * No path to the chosen recipient, so nothing typed here is going anywhere.
-   * Decided by the thread view rather than here, because the frame around this
-   * bar takes the same tone from the same boolean and two components reading
-   * the separation separately is two chances to disagree about it.
+   * Decided by the thread view rather than here, because the view already
+   * resolves the separation for the delay reading and two components resolving
+   * it separately is two chances to disagree about it.
    */
   noPath: boolean;
   separationSeconds: number | null;
@@ -896,11 +895,11 @@ function Composer({
     setDraft("");
   };
   return (
-    /* The console says whether this is going anywhere, the same way the
-       terminal widget's does: with no path to the chosen recipient the border
-       turns error-toned while the operator is still typing, rather than
-       reporting the refusal only after they have pressed send. The flag says
-       why it has turned red, which a border cannot.
+    /* The bar's own outline says whether this is going anywhere, the same way
+       the terminal widget's does: with no path to the chosen recipient it turns
+       error-toned while the operator is still typing, rather than reporting the
+       refusal only after they have pressed send. The flag says why an outline
+       has turned red, which an outline cannot.
 
        The flag now says ONLY that. It used to carry the round trip too, which
        made one pinned slot answer two unrelated questions and put a figure

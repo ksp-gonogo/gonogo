@@ -3,55 +3,59 @@ import styled, { css } from "styled-components";
 import { Button } from "./Button";
 
 /**
- * The input row at the foot of a console, inside `ConsoleFrame`'s border and
- * marked off from the scrollback above it by a rule in the console's own tone.
+ * The input at the foot of a console: a bordered, non-growing row whose OWN
+ * BORDER says whether input is being accepted.
  *
- * It is a BAND rather than a box, which is the difference between the two
- * consoles reading as one component and reading as two. A bordered composer
- * nested inside a bordered frame is a box in a box, and the widget that put a
- * bordered `<input>` inside that composer was three deep; whatever is typed in
- * here goes flush against the band, the way a terminal's composed line always
- * did.
+ * The border is the point, and it is this component's rather than the frame's.
+ * `ConsoleFrame` around it stays subtle and the accent lives HERE, so what the
+ * operator sees outlined is the thing they type into. Wrapping the scrollback
+ * and the input in one loud outline was tried and taken back out: it read as a
+ * sealed console with a bottom section instead of a widget with a control in
+ * it.
  *
- * The rule takes `--console-tone-fg`, which `ConsoleFrame` sets, so the console
- * and its input are the same colour without either being told twice. Standing
- * alone it falls back to the primary accent.
+ * The border takes `--console-tone-fg`, which `ConsoleFrame` declares from its
+ * `tone`, so the input, its prompt glyph and its focus ring cannot come out in
+ * different colours. Standing alone it falls back to the primary accent.
  *
- * ## The rule turns when input is refused
+ * ## The border turns when input is refused
  *
  * Both consumers refuse input at the input-acceptance step when there is no
  * comms path, before anything is cleared or dispatched, and a refusal the
  * operator only learns about by pressing the key is a refusal they read as a
- * bug. The error tone says it on sight, while they are still typing, and says
- * it about the band they are looking at. Pass the same boolean to the frame and
- * the whole console says it.
+ * bug. The error-toned outline says it on sight, while they are still typing,
+ * and says it about the box they are looking at rather than in a badge
+ * somewhere else on the widget.
  *
- * It styles the band and nothing inside it, with TWO exceptions: the send
- * button (`onSend`) and the prompt glyph (`prompt`). A terminal puts its
- * composed text and a blinking caret block in here, locked to the character
- * pitch of the emulator screen above; a message thread puts an input in.
- * Neither font nor pitch belongs to this component: an emulator's is a
- * device-specific px literal that has to equal the emulator's own JS font-size
- * option, which is one widget's problem and not the design system's.
+ * It styles the row and nothing inside it, with TWO exceptions: the send button
+ * (`onSend`) and the prompt glyph (`prompt`). A terminal puts its composed text
+ * and a blinking caret block in here, locked to the character pitch of the
+ * emulator screen above; a message thread puts an input in. Neither font nor
+ * pitch belongs to this component: an emulator's is a device-specific px
+ * literal that has to equal the emulator's own JS font-size option, which is
+ * one widget's problem and not the design system's.
+ *
+ * Whatever goes in sits FLUSH on the row. An `<input>` carrying its own outline
+ * in here is a third box in a stack of three, which is what Commcast had and
+ * what the alignment pass removed.
  */
 export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
   /**
-   * Input is not being accepted. Swaps the rule for the error tone, and tones
-   * `flag` to match.
+   * Input is not being accepted. Swaps the accent outline for the error one,
+   * and tones `flag` to match.
    */
   blocked?: boolean;
   /**
-   * A short chip straddling the band's top rule, saying WHY, since a rule that
-   * has turned red states the fact and not the cause.
+   * A short chip straddling the row's top border, saying WHY, since an outline
+   * that has turned red states the fact and not the cause.
    *
    * A string rather than a node: it is always a few upper-case words in the
-   * band's own state tone, and the two widgets that render one would otherwise
-   * each own a copy of the same chip. Pinned so it never changes the band's
+   * row's own state tone, and the two widgets that render one would otherwise
+   * each own a copy of the same chip. Pinned so it never changes the row's
    * height, which is the property that keeps a composer inside a short tile.
    */
   flag?: string;
   /**
-   * The glyph that says "type here", at the head of the band and in the
+   * The glyph that says "type here", at the head of the row and in the
    * console's tone.
    *
    * Here rather than in each console because it is the one thing both were
@@ -61,8 +65,8 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   prompt?: string;
   /**
-   * Commit what is composed. Given, the band grows a send button at its far
-   * end; omitted, it draws none and the composer's only send is whatever key it
+   * Commit what is composed. Given, the row grows a send button at its far end;
+   * omitted, it draws none and the composer's only send is whatever key it
    * binds.
    *
    * The button is an ADDITION to that key, never a replacement for it. A
@@ -75,14 +79,14 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * It lives here rather than in each composer because the two that exist had
    * grown different answers: one had a button, the other had none, and the
    * operator moving between them had to remember which. It is also the one
-   * child whose SIZE the band has an opinion about, hence not just a `children`
+   * child whose SIZE the row has an opinion about, hence not just a `children`
    * convention: a control that grows with the reading beside it reflows the
    * composer, so the label stays the caller's verb and the figure stays in the
    * flag or in a badge.
    */
   onSend?: () => void;
   /**
-   * Refuse the press. Distinct from `blocked`, which is about the band as a
+   * Refuse the press. Distinct from `blocked`, which is about the row as a
    * whole: a composer with nothing typed in it is perfectly able to accept
    * input and still has nothing to send.
    */
@@ -135,20 +139,19 @@ const ComposerBar__Row = styled.div<{ $blocked: boolean }>`
   align-items: center;
   gap: var(--space-6);
   padding: var(--space-6) var(--space-8);
-  /* Sunken against the frame's own surface, so the band reads as the place you
-     type without needing an outline of its own to say so. */
-  background: var(--color-surface-sunken);
-  border-top: 1px solid
+  background: var(--color-surface-panel);
+  border: 1px solid
     ${({ $blocked }) =>
       $blocked
         ? "var(--color-status-nogo-fg)"
         : "var(--console-tone-fg, var(--color-accent-fg))"};
+  border-radius: var(--radius-md);
 `;
 
 /*
  * No gap after it: a terminal's caret block must sit flush against the trailing
- * character of the composed line, so the band's own gap cannot be what
- * separates the glyph from the text. Its own margin instead.
+ * character of the composed line, so the row's own gap cannot be what separates
+ * the glyph from the text. Its own margin instead.
  */
 const ComposerBar__Prompt = styled.span`
   flex: 0 0 auto;
@@ -163,7 +166,7 @@ const ComposerBar__Prompt = styled.span`
  * this the button sits against the last character typed and moves with every
  * keystroke.
  *
- * `font-size` is stated rather than inherited. The band is where a caller sets
+ * `font-size` is stated rather than inherited. The row is where a caller sets
  * an emulator's character pitch (a raw px literal locked to xterm's own option,
  * see the doc above), and a button drawn at the terminal's cell size is a
  * control sized by a device coincidence.
@@ -176,14 +179,14 @@ const ComposerBar__Send = styled(Button)`
 
 const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
   position: absolute;
-  /* Straddles the top rule by half its OWN height, whatever that turns out to
+  /* Straddles the top border by half its OWN height, whatever that turns out to
      be. This replaced a hand-computed negative offset that had to be recomputed
      whenever the flag's font size moved, and did move: the 2xs token grows on a
      coarse pointer, i.e. on the Steam Deck, while a literal offset stayed put. */
   top: 0;
   transform: translateY(-50%);
   right: var(--space-8);
-  /* Local ordering against the band it is pinned to only; not app-global
+  /* Local ordering against the row it is pinned to only; not app-global
      chrome, so not on the --z-* ladder. */
   z-index: 1;
   padding: var(--space-hair) var(--space-6);

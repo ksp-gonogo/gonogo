@@ -1247,11 +1247,11 @@ function KosTerminalScreen({
 
   return (
     <TerminalShell>
-      {/* One box: the screen, the uplink queue and the line being typed all
-          inside the same border, which is what makes this and the app's other
-          console read as the same widget. The composer used to hang below the
-          frame as a separate outlined box, which looked unlike every other
-          widget and put a second border around something already bordered.
+      {/* The composer lives IN the console rather than strapped under it, the
+          same as the app's other console: the frame holds the screen, the
+          uplink queue and the line being typed, and the green outline the
+          operator sees is the input's own, not a second one wrapped around
+          everything.
 
           All three overlays below are pinned INSIDE the frame rather than
           stacked as flex siblings of it: each one, as a sibling, added its own
@@ -1261,15 +1261,15 @@ function KosTerminalScreen({
           whose top corners are usually empty cells is the only surface in the
           app that wants an overlay there.
 
-          `tone` is the widget's whole colour decision. Green is the terminal's
-          and stays. A read-only screen takes `info`, which is the fact the old
-          `Container` border was already carrying, now said on the one border
-          the widget has and in the READABLE half of the info pair: that border
-          was drawn in `--color-status-info-bg`, a near-black that said it to
-          nobody. */}
+          `tone` is the widget's whole colour decision, and the frame paints
+          nothing with it: it declares the accent that the composition bar's
+          border, its prompt and its caret all read. Green is the terminal's and
+          stays. A read-only screen takes `info`, which is the fact the old
+          `Container` border was already carrying, now said in the READABLE half
+          of the info pair: that border was drawn in `--color-status-info-bg`, a
+          near-black that said it to nobody. */}
       <ConsoleFrame
         tone={readOnly ? "info" : "accent"}
-        blocked={!readOnly && noPath}
         footer={
           <>
             {delayPresentation === "strip" && (
@@ -1279,7 +1279,7 @@ function KosTerminalScreen({
               <CompositionBarWrap>
                 {/* The bar's flag is a SECOND no-path indicator on purpose: the
                     corner badge in the terminal pane is easy to miss when
-                    attention is on the input line, and the error-toned rule
+                    attention is on the input line, and the error-toned outline
                     alone says the box is refusing input without saying why.
                     Deliberately shorter text than the corner badge's, so a
                     `getByText` query for either cannot collide with the
