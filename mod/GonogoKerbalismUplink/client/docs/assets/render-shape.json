@@ -3,17 +3,17 @@
   "engine": "chromium",
   "assets": {
     "binary--default.png": {
-      "hash": "0dd6d3a1124ac01a",
+      "hash": "988b4aded872a5d8",
       "elements": 101,
       "text": "52c0d842"
     },
     "ec-shortage-limits-water--default.png": {
-      "hash": "55c2c567ea6d6341",
+      "hash": "95419bc59d54c6d3",
       "elements": 159,
       "text": "ca2969e0"
     },
     "ec-shortage-limits-water--min.png": {
-      "hash": "1090ac744b790545",
+      "hash": "628d8c6a65470589",
       "elements": 159,
       "text": "ca2969e0"
     },
@@ -23,17 +23,17 @@
       "text": "1f3d9756"
     },
     "greenhouse-halted-in-the-dark--default.png": {
-      "hash": "9154e41143392628",
+      "hash": "25c04997c951d53a",
       "elements": 108,
       "text": "1a15f8e3"
     },
     "inner-belt--default.png": {
-      "hash": "aa0f0d841b9ff561",
+      "hash": "b7b27ee2bbe72557",
       "elements": 76,
       "text": "2e0d06fc"
     },
     "interplanetary--default.png": {
-      "hash": "885f73aec7667894",
+      "hash": "fc499e9fe239a289",
       "elements": 90,
       "text": "5db7f31e"
     },
@@ -43,27 +43,27 @@
       "text": "55062b4e"
     },
     "nominal--default.png": {
-      "hash": "715685fab70fdf9b",
+      "hash": "2f25d5b48a48b35f",
       "elements": 75,
       "text": "62b67fb2"
     },
     "nominal--min.png": {
-      "hash": "32b249e7435f736c",
+      "hash": "aa4d7c3a53dbee01",
       "elements": 64,
       "text": "970d0f26"
     },
     "radiation-dose-critical--default.png": {
-      "hash": "7f662274ee15f721",
+      "hash": "e44d21dcb07c2460",
       "elements": 102,
       "text": "806f8490"
     },
     "storm-inbound--default.png": {
-      "hash": "8c48e36fd7c6495c",
+      "hash": "7042d887eea20a3c",
       "elements": 90,
       "text": "e04b2f39"
     },
     "storm-peak--default.png": {
-      "hash": "562b996d058ffc31",
+      "hash": "f02c4848725b87b7",
       "elements": 91,
       "text": "78bd6f8c"
     }
