@@ -93,6 +93,35 @@ describe("applyAnalogShaping", () => {
       expect(
         applyAnalogShaping({ polarity: "unipolar", curve: "cubic" }, 0.5),
       ).toBeCloseTo(0.125, 5);
+      // Negative inputs, because for every non-negative one the unipolar
+      // branch computes exactly what the bipolar branch computes: feed it
+      // only those and the whole branch can be deleted with this file still
+      // green.
+      expect(
+        applyAnalogShaping({ polarity: "unipolar", curve: "squared" }, -1),
+      ).toBe(0);
+      expect(
+        applyAnalogShaping({ polarity: "unipolar", curve: "cubic" }, -0.5),
+      ).toBe(0);
+    });
+
+    it("rests at 0 for a released trigger reporting below rest, with no deadzone set", () => {
+      // The failure the polarity distinction exists to prevent, in the shape
+      // it actually arrives in. A trigger mapped to a gamepad AXIS reports -1
+      // when released, and `deadzone` is unset by default, so the snap-to-rest
+      // branch never ran: bound to a throttle, the rest position read full
+      // reverse.
+      expect(applyAnalogShaping({ polarity: "unipolar" }, -1)).toBe(0);
+      expect(applyAnalogShaping({ polarity: "unipolar" }, -0.2)).toBe(0);
+    });
+
+    it("is the bipolar answer's opposite below rest, which is the whole point of the branch", () => {
+      // Both polarities on the same input, side by side: a bipolar stick at
+      // -1 is a real deflection and stays -1, a unipolar trigger at -1 is
+      // released and is 0. Nothing else in this block can tell the two
+      // branches apart.
+      expect(applyAnalogShaping({ polarity: "bipolar" }, -1)).toBe(-1);
+      expect(applyAnalogShaping({ polarity: "unipolar" }, -1)).toBe(0);
     });
   });
 });

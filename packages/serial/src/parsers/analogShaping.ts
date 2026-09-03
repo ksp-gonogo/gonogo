@@ -6,9 +6,10 @@ import type { AnalogCurve, DeviceInput } from "../types";
  * `polarity` (default `bipolar`) selects the input's range: `bipolar` spans
  * -1..1 and rests at centre (sticks); `unipolar` spans 0..1 and rests at
  * zero (triggers). Without this distinction, a *released* unipolar input
- * fed through the bipolar deadzone math would read as fully negative
- * instead of resting at zero: bind a trigger to a throttle and the rest
- * position would read full reverse.
+ * would read as fully negative instead of resting at zero: bind a trigger to
+ * a throttle and the rest position would read full reverse. Below-rest values
+ * are clamped for that reason, ahead of the deadzone, which only sees them at
+ * all when one happens to be configured.
  *
  * Deadzone snaps values near rest to the rest value and rescales the
  * remaining travel so the curve still saturates at the input's max
@@ -30,7 +31,12 @@ export function applyAnalogShaping(
   const curve = input.curve ?? "linear";
 
   if (input.polarity === "unipolar") {
-    let v = normalised;
+    // Below rest IS rest. A trigger mapped to a gamepad axis reports -1 when
+    // released, and `deadzone` is unset by default, so the snap-to-rest branch
+    // below never ran for it: the released position passed straight through as
+    // -1 and a trigger bound to a throttle read full reverse, which is the
+    // exact failure this polarity exists to prevent.
+    let v = normalised < 0 ? 0 : normalised;
     if (dz > 0 && dz < 1) {
       if (v <= dz) return 0;
       v = (v - dz) / (1 - dz);
