@@ -162,13 +162,6 @@ describe("the built-in catalogue, derived", () => {
         {
           "domains": [
             "career",
-            "recovery",
-          ],
-          "id": "mission-event-log",
-        },
-        {
-          "domains": [
-            "career",
           ],
           "id": "objectives",
         },
