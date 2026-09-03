@@ -216,10 +216,11 @@ describe("filling a multi-seat training", () => {
     const { fixture } = mount();
     await present(fixture);
 
-    const picker = await screen.findByRole("combobox", {
-      name: "Training to start",
-    });
-    await user.selectOptions(picker, "tt-mercury");
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Proficiency: Mercury-Redstone",
+      }),
+    );
     await pick(user, NEDCAS);
     await user.click(
       screen.getByRole("button", {
@@ -242,9 +243,9 @@ describe("filling a multi-seat training", () => {
   /**
    * RP-1 generates two trainings per crewed part and the operator is choosing
    * between them: a proficiency is a permanent qualification, mission training
-   * expires a set interval after the course completes. The picker cannot say so,
-   * because a closed select shows one option, so the consequence of the pick is
-   * stated beside it.
+   * expires a set interval after the course completes. The row carries the
+   * title and nothing else, the same as RP-1's own course list, so the
+   * consequence of the pick is stated once, under the list, for the pick.
    */
   it("states whether the picked training lapses or is permanent", async () => {
     const user = userEvent.setup();
@@ -254,9 +255,8 @@ describe("filling a multi-seat training", () => {
     await waitFor(() => {
       expect(visibleText()).toContain("Lapses after completion");
     });
-    await user.selectOptions(
-      screen.getByRole("combobox", { name: "Training to start" }),
-      SOLO.id,
+    await user.click(
+      screen.getByRole("button", { name: "Proficiency: Mercury-Redstone" }),
     );
     expect(visibleText()).toContain("Permanent once complete");
     expect(visibleText()).not.toContain("Lapses after completion");
@@ -277,11 +277,11 @@ describe("filling a multi-seat training", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("option", { name: "Proficiency: Mercury-Redstone" }),
+        screen.getByRole("button", { name: "Proficiency: Mercury-Redstone" }),
       ).toBeInTheDocument();
     });
     expect(
-      screen.queryByRole("option", { name: "Mission training: Gemini" }),
+      screen.queryByRole("button", { name: "Mission training: Gemini" }),
     ).not.toBeInTheDocument();
   });
 
@@ -294,10 +294,56 @@ describe("filling a multi-seat training", () => {
     const { fixture } = mount();
     await present(fixture, { catalogue: [SOLO, LOCKED] });
 
-    await screen.findByRole("combobox", { name: "Training to start" });
+    await screen.findByRole("group", { name: "Training to start" });
     expect(
-      screen.queryByRole("option", { name: "Proficiency: Saturn V" }),
+      screen.queryByRole("button", { name: "Proficiency: Saturn V" }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("the shape of the training picker", () => {
+  /**
+   * RP-1's own Astronaut Complex offers a training by drawing EVERY template it
+   * will list as its own button, all of them on screen at once, and a press
+   * selects one (`TrainingGUI.RenderCourseSelector`, a scroll view of
+   * `GUILayout.Button` per `TrainingTemplate`). A collapsed dropdown is a
+   * different gesture for the same decision: it shows one training and hides the
+   * rest behind an interaction, where the screen an operator knows shows the
+   * whole catalogue and the pressed one.
+   */
+  it("draws every offered training as its own pressable row, the way RP-1 does", async () => {
+    const { fixture } = mount();
+    await present(fixture, { catalogue: [PAIR, SOLO] });
+
+    const gemini = await screen.findByRole("button", {
+      name: "Mission training: Gemini",
+    });
+    const mercury = screen.getByRole("button", {
+      name: "Proficiency: Mercury-Redstone",
+    });
+    expect(gemini).toHaveAttribute("aria-pressed", "true");
+    expect(mercury).toHaveAttribute("aria-pressed", "false");
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  /** The press moves the pick, the same as pressing a course in RP-1's list. */
+  it("moves the pick to the training that was pressed", async () => {
+    const user = userEvent.setup();
+    const { fixture } = mount();
+    await present(fixture, { catalogue: [PAIR, SOLO] });
+
+    await user.click(
+      await screen.findByRole("button", {
+        name: "Proficiency: Mercury-Redstone",
+      }),
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Proficiency: Mercury-Redstone" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: "Mission training: Gemini" }),
+    ).toHaveAttribute("aria-pressed", "false");
   });
 });
 

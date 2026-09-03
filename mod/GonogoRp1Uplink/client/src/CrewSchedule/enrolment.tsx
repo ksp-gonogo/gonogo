@@ -15,7 +15,7 @@ import {
   ReadoutCaption,
   Section,
   SectionTitle,
-  Select,
+  SelectableRow,
   Stack,
   Text,
   ToggleButton,
@@ -146,19 +146,42 @@ export function TrainingEnrolment() {
         <Stack gap="md">
           <Stack gap="xs">
             <ReadoutCaption>Training</ReadoutCaption>
-            <Select
-              aria-label="Training to start"
-              onChange={(e) => setPickedTemplate(e.target.value)}
-              value={selected.id ?? ""}
-            >
+            {/* EVERY offered training on screen at once, one press to pick one,
+                which is the gesture RP-1's own Astronaut Complex uses.
+                `TrainingGUI.RenderCourseSelector` is a scroll view holding one
+                `GUILayout.Button` per `TrainingTemplate`; pressing one opens
+                that course with the roster underneath it, the students are
+                toggled on and off there, and a single Start Training sends it.
+                So RP-1's interaction is course first, then as many students as
+                the seats allow, then one press, and the only part of it this
+                section did differently was collapsing the catalogue into a
+                dropdown.
+
+                That difference is not cosmetic. A `<select>` shows ONE training
+                and hides the rest behind an interaction, so the screen cannot
+                answer "what can this career train on?" without being opened, and
+                the training an operator wants is one they have to remember the
+                name of. RP-1's list answers that question and carries the
+                control at the same time.
+
+                A list rather than the chips the students use, because a training
+                is named in full ("Mission training: Gemini") where a kerbal is
+                one short name: chipped, the titles wrap mid-name and the row
+                stops being scannable. `SelectableRow` is the kit's pick-one list
+                row and sets `aria-pressed` from `selected` itself. */}
+            <Stack aria-label="Training to start" gap="xs" role="group">
               {offered.map((template) => (
-                <option key={template.id} value={template.id ?? ""}>
+                <SelectableRow
+                  key={template.id}
+                  onClick={() => setPickedTemplate(template.id ?? null)}
+                  selected={template.id === selected.id}
+                >
                   {titleOf(template)}
-                </option>
+                </SelectableRow>
               ))}
-            </Select>
+            </Stack>
             {/* The CONSEQUENCE of the pick rather than the kind word, which
-                `titleOf` has already put at the front of every option above.
+                `titleOf` has already put at the front of every row above.
                 Stating the kind twice said "Mission" twice on one line; the
                 lapse rule is what an operator choosing between the two trainings
                 on one part is actually deciding between.
