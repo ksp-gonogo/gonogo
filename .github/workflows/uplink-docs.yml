@@ -69,6 +69,11 @@ name: Uplink pages
 # Five commits of Vehicle Assembly's page showed a layout the code had stopped
 # producing.
 on:
+  # On every push to the integration branch, so a stale page is repaired by the
+  # run that made it stale rather than waiting for the night. A GITHUB_TOKEN
+  # push triggers no workflow, so committing back cannot loop.
+  push:
+    branches: [staging]
   schedule:
     # 03:00 UTC, well clear of a working day in either direction.
     - cron: "0 3 * * *"
@@ -170,28 +175,14 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # The pages and the images they reference, and nothing else: a
           # regenerate must never carry along an unrelated file the build wrote.
-          git add 'mod/*/client/README.md' 'mod/*/client/gonogo-uplink.json'
+          git add 'mod/*/client/README.md' 'mod/*/client/gonogo-uplink.json' \
+            'mod/*/client/docs/assets'
 
-          # Which asset changes are repairs and which are churn. This decided
-          # it by status alone and kept only `??` and `D`, so a MODIFIED asset
-          # was reverted and this job had never once healed a stale picture on
-          # any branch: Vehicle Assembly's page carried a layout the code had
-          # stopped producing for five commits, and a run of this would have
-          # re-rendered it, thrown the render away and committed nothing.
-          #
-          # The reasoning behind that was correct on the evidence gathered and
-          # untested on the case it governs. A PNG really does re-render
-          # byte-identically on the same runner while a motion scene's GIF does
-          # not, so staging bytes unconditionally really would push a churn GIF
-          # on every run forever. But byte stability holds precisely when
-          # nothing changed, which is the case where discarding costs nothing,
-          # and in the case this job exists FOR the same rule discards the only
-          # signal it was built to publish.
-          #
-          # `render-shape.json`, written beside the assets by `gonogo-uplink
-          # docs`, is the predicate it was missing: shape changed, keep it;
-          # shape identical and the bytes moved, discard it as before.
-          node scripts/uplink-asset-commit-filter.mjs
+          # No filter: whatever the regenerate produced is what the page needs.
+          # A shape-based filter and `docs --check` compared different things, so
+          # an asset the check called stale was discarded as churn and the pair
+          # never converged. Staging the whole set costs a churn commit on motion
+          # scenes and buys a heal that always reaches the state the check wants.
 
           if git diff --cached --quiet; then
             echo "Every Uplink page already describes the code. Nothing to commit."
