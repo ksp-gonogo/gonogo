@@ -180,7 +180,6 @@
             "seatMin": 2,
             "seatMax": 2,
             "baseTime": 5184000,
-            "expirationMonths": 6,
             "unlocked": true
           },
           {

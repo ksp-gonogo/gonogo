@@ -773,9 +773,9 @@ async function feedInRounds(
  * `_scene.before` runs after the feed, so a topic only the tab's content reads
  * had no subscriber when the fixture emitted it and was dropped in silence.
  * Every training picture in the RP-1 Uplink was rendered in the stand-in host
- * for exactly that reason, which meant the one thing an operator actually meets
- * — the tab, with its sections in the order they appear — had never been
- * photographed at all.</p>
+ * for exactly that reason, which meant the one thing an operator actually meets,
+ * the tab with its sections in the order they appear, had never been photographed
+ * at all.</p>
  *
  * <p>This is production's own shape rather than a harness indulgence: the stream
  * replays the last value on subscribe, so in a running app a tab fills the
