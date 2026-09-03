@@ -98,10 +98,10 @@ export function ConsoleFrame({
   return (
     /* `data-console-frame`, the same kind of stable structural hook
        `ScrollArea` exposes as `data-scroll-area-inner`. It is what lets each
-       console prove its OWN composer is inside its own border: the property
-       this component exists for is invisible to a role query, because the
-       border is not a role and both widgets rendered perfectly good composers
-       while they hung outside it. */
+       console prove its OWN composer is inside it: the property this component
+       exists for is invisible to a role query, because containment is not a
+       role and both widgets rendered perfectly good composers while they hung
+       underneath. */
     <ConsoleFrame__Box data-console-frame="" $tone={tone} {...rest}>
       <ConsoleFrame__Surface>{children}</ConsoleFrame__Surface>
       {footer !== undefined && (
