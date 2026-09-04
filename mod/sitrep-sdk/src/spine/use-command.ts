@@ -7,7 +7,10 @@ import {
   useSyncExternalStore,
 } from "react";
 import type { CommandGateReport } from "../__generated__/contract";
-import { classifyCommandRejection } from "../api/command-rejection";
+import {
+  COMMAND_LOST,
+  classifyCommandRejection,
+} from "../api/command-rejection";
 import type {
   CommandLoss,
   CommandRefusal,
@@ -21,7 +24,12 @@ import {
   type PathConnectedDuring,
   type PendingEntry,
 } from "../command-delay";
-import type { CommandArgs, CommandId, CommandReply } from "../commands";
+import type {
+  AnyCommandReply,
+  CommandArgs,
+  CommandId,
+  CommandReply,
+} from "../commands";
 import { type CommandGateStatus, selectCommandGate } from "./command-gate";
 import {
   type CommsLinkLike,
@@ -31,6 +39,7 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
+import { CommandError } from "./lifecycle";
 import { commandDelayed, commandShape } from "./map-command";
 import { useLatestValue } from "./use-stream";
 import { META_VANTAGE } from "./vantage";
@@ -84,8 +93,13 @@ interface PendingUplinkQueueLike {
 
 /**
  * The dispatch handle. `TArgs`/`TReply` come from the generated command map when
- * the hook was given a known `CommandId`, and stay `unknown` for a command
- * addressed by a computed string.
+ * the hook was given a known `CommandId`.
+ *
+ * `TReply` falls back to {@link AnyCommandReply}, the result envelope, rather
+ * than to `unknown`: see that type for why. It is what a handle addressed by a
+ * computed string, or reached through a prop declared bare, still knows about
+ * its own answer. `TArgs` has no such floor and stays `unknown`, because there
+ * is nothing every command's arguments have in common.
  *
  * `send` is declared method-style rather than as a property holding a function,
  * deliberately: that is what makes a typed handle assignable to the bare
@@ -93,7 +107,7 @@ interface PendingUplinkQueueLike {
  * `strictFunctionTypes` checks the parameter contravariantly and every typed
  * handle stops being a handle.
  */
-export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
+export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
   /**
    * `opts.label` is an opaque, operator-facing description of the command
    * (e.g. line-mode's composed line text) threaded straight through to
@@ -261,6 +275,33 @@ function resolveTracked(
 }
 
 /**
+ * The handle for a NAMED command, with both its argument type and its reply
+ * type resolved out of the generated command map.
+ *
+ * What to write on a prop, a field, or a helper that passes a dispatch handle
+ * around. `useCommand("...")` already returns this; the alias exists because the
+ * place a handle LOSES its type is the annotation it travels through, and
+ * `UseCommandResult` bare is one keystroke from that annotation. It takes a
+ * union of command ids as readily as one id, so a family of writes that answer
+ * alike can be declared once:
+ * `UseCommandResultFor<"vessel.control.setSas" | "vessel.control.setRcs">`.
+ *
+ * An Uplink reaches this the same way it reaches `useCommand`, off the published
+ * SDK root, and its own augmented `CommandArgsMap` keys work here with nothing
+ * extra registered.
+ *
+ * Named off `UseCommandResult` on purpose, twice over. It sits beside the type
+ * that is actually mistyped, so it is in the completion list of anyone about to
+ * write the bare one; and `CommandHandle`, the name it would otherwise have, is
+ * already a different type on `@ksp-gonogo/ui-kit`'s delay rail, which an Uplink
+ * imports from in the same file.
+ */
+export type UseCommandResultFor<C extends CommandId> = UseCommandResult<
+  CommandArgs<C>,
+  CommandReply<C>
+>;
+
+/**
  * Fires `command` against the `TelemetryClient` from the nearest
  * `TelemetryProvider` and reactively reflects its lifecycle
  * (`idle -> in-flight -> confirmed|failed`), plus this hook's OWN set of
@@ -284,7 +325,7 @@ export function useCommand<C extends CommandId>(
   command: C,
   options?: UseCommandOptions,
 ): UseCommandResult<CommandArgs<C>, CommandReply<C>>;
-export function useCommand<TArgs = unknown, TReply = unknown>(
+export function useCommand<TArgs = unknown, TReply = AnyCommandReply>(
   command: string,
   options?: UseCommandOptions,
 ): UseCommandResult<TArgs, TReply>;
@@ -557,8 +598,35 @@ export function useCommand(
   }, []);
 
   const send = useCallback(
-    (args?: unknown, opts?: { label?: string; topic?: string }) => {
-      if (!client) return Promise.resolve(undefined);
+    (
+      args?: unknown,
+      opts?: { label?: string; topic?: string },
+    ): Promise<AnyCommandReply> => {
+      // No provider mounted: nothing left the ground, so nothing can come back.
+      //
+      // This used to RESOLVE with `undefined`, which typechecked only while the
+      // reply was `unknown` and which every control read as a confirmed
+      // command: `CommandButton` awaits `send()`, calls `onConfirmed`, and
+      // returns to rest, so a press with no link rendered byte-identically to a
+      // press that worked. That is the same wrong answer this repo already
+      // refused to give for a command the engine dropped, and the client
+      // already answers it the same way on `dispose()`. A rejection is what the
+      // controls are built to read.
+      if (!client) {
+        const unsent = Promise.reject<AnyCommandReply>(
+          new CommandError(
+            COMMAND_LOST,
+            `command ${JSON.stringify(command)} was not dispatched: no telemetry provider is mounted`,
+          ),
+        );
+        // Marked handled without being consumed, exactly as the dispatched
+        // promise is below and for the same reason: a `void cmd.send(...)` call
+        // site would otherwise raise an unhandled rejection every time it ran
+        // with nothing mounted. The rejection stays fully observable to anyone
+        // who awaits it.
+        unsent.catch(() => undefined);
+        return unsent;
+      }
       const { requestId: newRequestId, result } = client.dispatch(
         command,
         args,
@@ -627,7 +695,15 @@ export function useCommand(
           },
         ]);
       });
-      return result;
+      // The one place the wire's guarantee is asserted, and the layer entitled
+      // to assert it. `TelemetryClient` is transport-level and deliberately
+      // knows nothing about the command contract, so it resolves `unknown`;
+      // this hook is keyed on the generated command map and does. Everything
+      // above this line reads the reply through `AnyCommandReply` or through a
+      // named command's own type, so the assertion is made once here instead of
+      // being re-made, undocumented, at every call site that wanted to read
+      // something.
+      return result as Promise<AnyCommandReply>;
     },
     [client, command, vantage],
   );

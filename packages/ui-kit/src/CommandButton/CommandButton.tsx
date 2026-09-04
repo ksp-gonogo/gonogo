@@ -62,6 +62,32 @@ export interface CommandGateLike extends CommandRefusalLike {
 }
 
 /**
+ * What a command reply is known to be BEFORE you know which command produced
+ * it: the result envelope, carrying the command's own value on `payload`.
+ *
+ * The default {@link CommandButtonHandle} reply, and the reason that default is
+ * no longer `unknown`. `unknown` is the top type, so it accepts every reader
+ * including one that treats the envelope AS the payload, and a handle passed a
+ * row deep through a bare `CommandButtonHandle` prop had forgotten its real
+ * reply by the time anyone read it. Twenty-one props in this repo's own widget
+ * library are declared bare; every one was a place a widget could read a field
+ * off the wrapper and get `undefined` forever with nothing complaining.
+ *
+ * Deliberately the floor rather than a mirror of the wire's `CommandResult`:
+ * ui-kit is the vanilla design system and declares this family structurally, as
+ * {@link CommandDelayHandle} and {@link CommandGateLike} already do. `success`
+ * is what every reply has and what an honest reader wants; `payload` stays
+ * `unknown`, so reaching into it means narrowing, which is the step the wrong
+ * cast skipped.
+ */
+export interface CommandReplyLike {
+  /** Whether the command ran. False pairs with the refusal the handle surfaces. */
+  success: boolean;
+  /** The command's own value, when it has one. `unknown` until the reader knows which command this is. */
+  payload?: unknown;
+}
+
+/**
  * The command handle this control dispatches on: the delay-rail handle plus the
  * one thing a rail never needed, a way to actually send.
  *
@@ -70,8 +96,10 @@ export interface CommandGateLike extends CommandRefusalLike {
  * the vanilla design system, and `useCommand`'s real return value satisfies this
  * shape at every call site.
  */
-export interface CommandButtonHandle<TResult = unknown>
-  extends CommandDelayHandle {
+export interface CommandButtonHandle<
+  TResult = CommandReplyLike,
+  TArgs = unknown,
+> extends CommandDelayHandle {
   /**
    * Dispatch. The returned promise resolves when the command is confirmed and
    * rejects when it is refused, lost, or the machinery failed, which is what
@@ -82,8 +110,8 @@ export interface CommandButtonHandle<TResult = unknown>
    * interface has a type parameter: it is what carries the reply's real type to
    * {@link CommandButtonProps.onConfirmed}. A handle from `useCommand("...")`
    * supplies it out of the generated command map with nothing written at the
-   * call site; a hand-built handle that says nothing gets `unknown`, exactly as
-   * every handle did before.
+   * call site; a handle that says nothing falls back to
+   * {@link CommandReplyLike}, the envelope every command answers with.
    *
    * A method rather than a property holding a function, so a handle whose args
    * are typed from the generated command map is still a handle: as a property,
@@ -91,7 +119,7 @@ export interface CommandButtonHandle<TResult = unknown>
    * `useCommand("vessel.control.setSas")` stops being assignable here.
    */
   send(
-    args?: unknown,
+    args?: TArgs,
     opts?: { label?: string; topic?: string },
   ): Promise<TResult>;
   /**
@@ -137,9 +165,13 @@ export type CommandButtonPhase =
 export type CommandButtonTone = "neutral" | "go" | "nogo" | "warn";
 export type CommandButtonSize = "sm" | "md";
 
-export interface UseCommandButtonOptions<TResult = unknown> {
-  handle: CommandButtonHandle<TResult>;
-  args?: unknown;
+export interface UseCommandButtonOptions<
+  TResult = CommandReplyLike,
+  TArgs = unknown,
+> {
+  handle: CommandButtonHandle<TResult, TArgs>;
+  /** See {@link CommandButtonProps.args}, including why this is `NoInfer`. */
+  args?: NoInfer<TArgs>;
   commandLabel?: string;
   /** Receives the dispatch's resolved result. See {@link CommandButtonProps.onConfirmed}. */
   onConfirmed?: (result: TResult) => void;
@@ -199,12 +231,12 @@ export interface CommandButtonState {
  * `CommandButton` below is this hook plus the default rendering, and is what a
  * caller with no such requirement should use.
  */
-export function useCommandButton<TResult = unknown>({
+export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   handle,
   args,
   commandLabel,
   onConfirmed,
-}: UseCommandButtonOptions<TResult>): CommandButtonState {
+}: UseCommandButtonOptions<TResult, TArgs>): CommandButtonState {
   const [phase, setPhase] = useState<CommandButtonPhase>("idle");
   const [refusal, setRefusal] = useState<CommandRefusalLike | null>(null);
   // A press on a blocked control shows its reason. Local, and cleared on the
@@ -402,16 +434,24 @@ type NativeButtonProps = Omit<
   "onClick" | "type" | "children" | "aria-pressed" | "aria-busy"
 >;
 
-export interface CommandButtonProps<TResult = unknown>
+export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
   extends NativeButtonProps {
   /**
    * The command this control dispatches. Its reply type is what
    * {@link CommandButtonProps.onConfirmed} receives, inferred, so a caller
    * declares nothing to get it.
    */
-  handle: CommandButtonHandle<TResult>;
-  /** Args for the dispatch, passed straight to `handle.send`. */
-  args?: unknown;
+  handle: CommandButtonHandle<TResult, TArgs>;
+  /**
+   * Args for the dispatch, passed straight to `handle.send`, and checked
+   * against what that command actually takes.
+   *
+   * `NoInfer` because this is a SECOND inference site for `TArgs` and the handle
+   * is the honest one. Without it a wrong args object widens `TArgs` to its own
+   * shape and agrees with itself, which is how this prop went from
+   * `args?: unknown` to a typed one and checked nothing on the first attempt.
+   */
+  args?: NoInfer<TArgs>;
   /**
    * The dispatch's operator-facing description. Worth passing: it is what a
    * refusal is NAMED after, so the operator reads "Hire Valentina Kerman
@@ -527,7 +567,7 @@ export interface CommandButtonProps<TResult = unknown>
  * must-consume assertion doing its job, so a widget that renders a
  * `CommandButton` and forgets the rail still throws on the first dispatch.
  */
-export function CommandButton<TResult = unknown>({
+export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   handle,
   args,
   commandLabel,
@@ -548,7 +588,7 @@ export function CommandButton<TResult = unknown>({
   title,
   "aria-label": ariaLabel,
   ...rest
-}: Readonly<CommandButtonProps<TResult>>) {
+}: Readonly<CommandButtonProps<TResult, TArgs>>) {
   const {
     phase,
     isPending,

@@ -24,7 +24,12 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
-import type { CommandArgs, CommandId, CommandReply } from "../commands";
+import type {
+  AnyCommandReply,
+  CommandArgs,
+  CommandId,
+  CommandReply,
+} from "../commands";
 import {
   type ComposedPlan,
   outcomeOfReply,
@@ -185,6 +190,7 @@ export type {
   UplinkRelay,
   UseCommandOptions,
   UseCommandResult,
+  UseCommandResultFor,
   UseMapPois,
   UseRouteCommandsResult,
   WidgetScope,
@@ -545,8 +551,9 @@ export function useCommand<C extends CommandId>(
  * Escape-hatch overload, for a command id this SDK's map does not carry: an
  * Uplink's own before its client package has augmented `CommandArgsMap`, or a
  * DYNAMIC command whose id is computed per subject and so can have no static
- * member. Args and reply stay `unknown` unless the caller names them, which is
- * exactly what every call did before the map existed.
+ * member. Args stay `unknown` unless the caller names them; the reply falls back
+ * to `AnyCommandReply`, the result envelope every command answers with, so even
+ * a command nobody could name is not readable as though it were its own payload.
  *
  *   const reset = useCommand<{ id: string }>(`my-uplink.probe.${probeId}.reset`);
  *
@@ -554,7 +561,7 @@ export function useCommand<C extends CommandId>(
  * `CommandArgsMap`/`CommandReplyMap` from the client package and call
  * `registerUplinkCommand`, and the first overload covers them like any other.
  */
-export function useCommand<TArgs = unknown, TReply = unknown>(
+export function useCommand<TArgs = unknown, TReply = AnyCommandReply>(
   command: string,
   options?: UseCommandOptions,
 ): UseCommandResult<TArgs, TReply>;

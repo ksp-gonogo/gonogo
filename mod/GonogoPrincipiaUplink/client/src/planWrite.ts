@@ -1,4 +1,4 @@
-import type { CommandReply, UseCommandResult } from "@ksp-gonogo/sitrep-sdk";
+import type { CommandReply, UseCommandResultFor } from "@ksp-gonogo/sitrep-sdk";
 import type { PrincipiaPlanWriteReceipt } from "./__generated__/contract";
 import {
   PrincipiaWriteOutcome,
@@ -41,18 +41,16 @@ export type PrincipiaPlanWriteReply = CommandReply<PrincipiaPlanWriteCommand>;
 /**
  * A plan-write handle passed DOWN to a subsection, keeping its reply type.
  *
- * <p>The subsections here took a bare `UseCommandResult`, whose reply defaults
- * to `unknown`, so a `useCommand("principia.plan.delete")` handed one row deep
- * arrived having forgotten what it answers with. That is the same hole as an
- * `unknown` `onConfirmed` and one prop annotation away from re-opening it: a
- * widget that types its control and not the prop it reaches it through has typed
- * nothing. Args stay open because the four commands take four different
- * argument types and no subsection reads them.</p>
+ * <p>Now nothing but the SDK's own `UseCommandResultFor`, named for this command
+ * family. It was written by hand because a bare `UseCommandResult` defaulted its
+ * reply to `unknown`, so a `useCommand("principia.plan.delete")` handed one row
+ * deep arrived having forgotten what it answers with, and every Uplink that
+ * wanted the guarantee had to know to write its own. The default is now the
+ * command envelope and the typed form ships on the SDK, so this alias is a NAME
+ * for the family rather than a repair of the hook.</p>
  */
-export type PrincipiaPlanWriteHandle = UseCommandResult<
-  unknown,
-  PrincipiaPlanWriteReply
->;
+export type PrincipiaPlanWriteHandle =
+  UseCommandResultFor<PrincipiaPlanWriteCommand>;
 
 /**
  * The receipt inside a resolved plan write, or null when the reply carried

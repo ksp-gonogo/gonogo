@@ -16,8 +16,17 @@ import type {
   SetThrottleArgs,
   VantagePlanReply,
 } from "./__generated__/contract";
-import type { CommandArgs, CommandId, CommandReply } from "./commands";
+import type {
+  AnyCommandReply,
+  CommandArgs,
+  CommandId,
+  CommandReply,
+} from "./commands";
 import { type COMMAND_IDS, isCommandId } from "./commands";
+import type {
+  UseCommandResult,
+  UseCommandResultFor,
+} from "./spine/use-command";
 
 type Equal<A, B> =
   (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
@@ -71,3 +80,62 @@ export type _IdsAreCommandIds = AssertTrue<
 export function _narrows(value: string): CommandId | null {
   return isCommandId(value) ? value : null;
 }
+
+// ── The floor a handle keeps when it does not know which command it holds ─────
+//
+// The half a per-widget annotation could never reach. `UseCommandResult` bare,
+// which is what a prop passing a handle a row deep is usually declared as, used
+// to default its reply to `unknown`, and `unknown` accepts every reader
+// including one that treats the envelope AS the payload it wraps. Seven
+// controls in one Uplink read a write receipt's fields off the `CommandResult`
+// carrying it and got `undefined` on every write ever made, with nothing
+// complaining.
+
+/** The reply is the envelope, not `unknown`, when nobody named a command. */
+export type _BareHandleKeepsTheEnvelope = AssertTrue<
+  Equal<Awaited<ReturnType<UseCommandResult["send"]>>, AnyCommandReply>
+>;
+
+/** And a NAMED command still overrules it: the floor never widens a known reply. */
+export type _NamedCommandBeatsTheFloor = AssertTrue<
+  Equal<
+    Awaited<ReturnType<UseCommandResultFor<"vessel.control.stage">["send"]>>,
+    CommandResultOf<number>
+  >
+>;
+
+declare const bare: UseCommandResult;
+
+async function _theHonestReaderIsWritable() {
+  const reply = await bare.send();
+  // Readable, because every command answers this. Under `unknown` it was
+  // TS18046 and a widget had to cast to say anything at all, which is how the
+  // wrong cast got written.
+  const succeeded: boolean = reply.success;
+  // The command's own value, still `unknown`: reaching a field means narrowing.
+  const payload: unknown = reply.payload;
+  return [succeeded, payload];
+}
+
+/** A receipt as a producer flattens it onto `payload`. Nothing like the envelope. */
+interface FlatReceipt {
+  outcome: number;
+  refusal: number;
+}
+
+async function _theWrongCastIsAnError() {
+  const reply = await bare.send();
+  // @ts-expect-error the envelope is not the receipt it carries
+  return reply as FlatReceipt;
+}
+
+/**
+ * A typed handle is still assignable to the bare one, which is what every
+ * delay-rail control depends on. The floor would be useless if flooring it cost
+ * that.
+ */
+export type _TypedHandleStillFitsTheBareOne = AssertTrue<
+  UseCommandResultFor<"vessel.control.setSas"> extends UseCommandResult
+    ? true
+    : false
+>;

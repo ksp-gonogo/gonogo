@@ -808,10 +808,11 @@ names the `T` of a handler's `CommandResult<T>`; leave it off and the command re
 `CommandResult`, which is success or nothing more. A command that takes no arguments carries its tag
 on an empty marker class of your own, the way a no-payload DTO already works.
 
-A command id you have NOT registered still dispatches: it falls to `useCommand`'s untyped overload and
-`send` stays `(args?: unknown) => Promise<unknown>`, which is where every call was before the map
-existed. That overload is the escape hatch for a DYNAMIC command whose id is computed per subject and
-so can have no static member:
+A command id you have NOT registered still dispatches: it falls to `useCommand`'s untyped overload,
+where `args` is `unknown` unless you name it. The reply is not: it stays `AnyCommandReply`, the result
+envelope every command answers with, so even a command nobody could name is not readable as though it
+were its own payload. That overload is the escape hatch for a DYNAMIC command whose id is computed per
+subject and so can have no static member:
 
 ```ts
 import { useCommand } from "@ksp-gonogo/sitrep-sdk";
@@ -824,6 +825,21 @@ const reset = useCommand<{ id: string }>(`example.probe.${probeId}.reset`);
 **A resolved reply is always a command that ran.** The game refusing is a REJECTION carrying a
 `CommandErrorCode`, and it also lands on `refusals` above, so `CommandResult` in the reply position
 never means "said no quietly".
+
+**Passing a handle down: write `UseCommandResultFor`, not `UseCommandResult`.** The place a handle
+loses its types is the annotation it travels through, and a prop typed bare gets the envelope floor
+and nothing more. A widget that types its control but not the prop it reaches that control through
+has typed nothing:
+
+```ts
+import type { UseCommandResultFor } from "@ksp-gonogo/sitrep-sdk";
+
+// One id, or a union of ids that answer alike.
+type SetOutputHandle = UseCommandResultFor<"example.setOutput">;
+```
+
+Both halves come off the command map, so `send` takes that command's args and `<CommandButton>`'s
+`onConfirmed` receives its reply, one row deep or ten.
 
 ### Sharing a derivation with other Uplinks
 

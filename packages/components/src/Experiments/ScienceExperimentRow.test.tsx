@@ -1,11 +1,18 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import type { CommandButtonHandle } from "@ksp-gonogo/ui-kit";
+import type { CommandButtonHandle, CommandReplyLike } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import type { ReactElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Instrument } from "./instrument";
 import { ScienceExperimentRow } from "./ScienceExperimentRow";
+
+/**
+ * What a confirmed dispatch resolves with, as the wire answers it: the result
+ * envelope. These fixtures used to resolve `undefined`, a reply no command has
+ * ever sent, which typechecked only while a bare handle's reply was `unknown`.
+ */
+const OK: CommandReplyLike = { success: true };
 
 /** A structural command handle, the shape `useCommand` returns. */
 function handle(send: CommandButtonHandle["send"]): CommandButtonHandle {
@@ -61,7 +68,7 @@ describe("ScienceExperimentRow", () => {
 
   it("dispatches deploy with the partId when Deploy is clicked", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     renderRow(
       <ScienceExperimentRow
         instrument={instrument({ partId: "42" })}
@@ -77,7 +84,7 @@ describe("ScienceExperimentRow", () => {
 
   it("requires arm-then-confirm before dispatching transmit", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     renderRow(
       <ScienceExperimentRow
         instrument={instrument({ partId: "99", hasData: true })}

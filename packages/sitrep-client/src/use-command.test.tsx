@@ -975,4 +975,23 @@ describe("useCommand gate", () => {
       expect(screen.getByText("blocked:false")).toBeTruthy();
     });
   });
+
+  /**
+   * A press with nothing mounted used to RESOLVE with `undefined`, so every
+   * control that awaits `send()` settled back at rest and rendered exactly as it
+   * does for a command that worked. Nothing was dispatched, so nothing decided:
+   * that is a LOSS, which is what the controls are already built to draw.
+   */
+  it("rejects a dispatch made with no provider mounted rather than resolving it", async () => {
+    let handle: ReturnType<typeof useCommand<unknown, unknown>> | null = null;
+    function Unmounted() {
+      handle = useCommand("deploy");
+      return null;
+    }
+    render(<Unmounted />);
+
+    expect(handle).not.toBeNull();
+    // biome-ignore lint/style/noNonNullAssertion: asserted non-null on the line above
+    await expect(handle!.send(1)).rejects.toMatchObject({ code: "E_LOST" });
+  });
 });

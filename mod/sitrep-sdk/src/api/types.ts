@@ -17,6 +17,12 @@
 // ---------------------------------------------------------------------------
 
 import type { ComponentType } from "react";
+import type {
+  AnyCommandReply,
+  CommandArgs,
+  CommandId,
+  CommandReply,
+} from "../commands";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   TopicId,
@@ -1025,14 +1031,16 @@ export interface UseCommandOptions {
 /**
  * Mirrors the spine's `UseCommandResult`: same leaf constraint as every other
  * type in this file. `TArgs`/`TReply` come from the generated command map when
- * the hook was given a known `CommandId`.
+ * the hook was given a known `CommandId`, and `TReply` falls back to
+ * {@link AnyCommandReply} rather than to `unknown`, for the reason that type
+ * gives.
  *
  * `send` is a method rather than a property holding a function for the reason
  * the spine's copy gives: as a property, `strictFunctionTypes` checks the
  * parameter contravariantly and a typed handle stops being assignable to the
  * bare `UseCommandResult` that `<CommandDelay handle>` takes.
  */
-export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
+export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
   send(
     args?: TArgs,
     opts?: { label?: string; topic?: string },
@@ -1059,6 +1067,25 @@ export interface UseCommandResult<TArgs = unknown, TReply = unknown> {
   /** Dev-only must-consume token (absent in production). See `CommandOutputToken`. */
   _output?: CommandOutputToken;
 }
+
+/**
+ * The handle for a NAMED command, with both its argument type and its reply type
+ * resolved out of the generated command map.
+ *
+ * What to write on a prop, a field, or a helper that passes a dispatch handle
+ * around: `useCommand("...")` already returns this, and the place a handle loses
+ * its types is the annotation it travels through. It takes a union of ids as
+ * readily as one, so a family of commands that answer alike can be declared
+ * once, and an Uplink's own augmented `CommandArgsMap` keys work here with
+ * nothing extra registered.
+ *
+ * See the spine's copy for why it is named off `UseCommandResult` rather than
+ * `CommandHandle`.
+ */
+export type UseCommandResultFor<C extends CommandId> = UseCommandResult<
+  CommandArgs<C>,
+  CommandReply<C>
+>;
 
 /**
  * One Uplink's own method call, as `useUplinkRelay` hands it over. `method` and

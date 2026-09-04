@@ -35,6 +35,7 @@ import type {
   GeneratedCommandReplyMap,
 } from "./__generated__/command-map";
 import { GENERATED_COMMAND_IDS } from "./__generated__/command-map";
+import type { CommandResultOf } from "./__generated__/contract";
 
 /**
  * The command → args-type map. Keys are the wire command strings; values are the
@@ -59,6 +60,29 @@ export interface CommandArgsMap extends SdkOwnedCommandArgsMap {}
  * `CommandResultOf<T>` with the value on `payload`.
  */
 export interface CommandReplyMap extends SdkOwnedCommandReplyMap {}
+
+/**
+ * What a reply is known to be BEFORE the command id is known: the result envelope,
+ * with the command's own value on `payload`.
+ *
+ * The DEFAULT reply of `useCommand` and of `UseCommandResult`, and the reason that
+ * default is no longer `unknown`. `unknown` is the top type, so it accepts every
+ * reader including one that treats the envelope AS the payload it wraps. A widget
+ * that typed its own control but declared the prop it passed the handle through as a
+ * bare `UseCommandResult` had typed nothing, and seven controls in one Uplink read a
+ * write receipt's fields off the `CommandResult` carrying it, so every one of them
+ * read `undefined` forever and the banner they exist to raise could not fire.
+ *
+ * True of every command but one. `vessel.trajectory.forVantage` declares
+ * `[SitrepCommand(Result = typeof(VantagePlanReply))]`, and a `Result` command's handler
+ * return value is what reaches the wire, so it genuinely answers something that is not a
+ * `CommandResult`. Its handle is therefore NOT assignable to a bare `UseCommandResult`,
+ * which is right rather than unfortunate: a reader that does not know which command it
+ * holds cannot be handed one whose reply is not an envelope. Deliberately not widened to
+ * a union with it, which would make the floor unreadable and grow a new arm every time a
+ * command declared `Result`.
+ */
+export type AnyCommandReply = CommandResultOf<unknown>;
 
 /**
  * The SDK's OWN command maps: the generated entries and nothing else. DELIBERATELY

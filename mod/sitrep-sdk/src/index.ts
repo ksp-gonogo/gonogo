@@ -48,6 +48,7 @@ export {
  * augments `CommandArgsMap`/`CommandReplyMap` and registers the id here.
  */
 export {
+  type AnyCommandReply,
   COMMAND_IDS,
   type CommandArgs,
   type CommandArgsMap,

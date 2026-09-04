@@ -6,8 +6,20 @@ import {
   ARM_TIMEOUT_MS,
   CommandButton,
   type CommandButtonHandle,
+  type CommandReplyLike,
   REFUSAL_TIMEOUT_MS,
 } from "./CommandButton";
+
+/**
+ * What a confirmed dispatch resolves with, as the wire actually answers it.
+ *
+ * These fixtures used to resolve `undefined`, which is a reply no command has
+ * ever sent: the mod answers a `CommandResult` envelope on every success. That
+ * only typechecked while the handle's reply defaulted to `unknown`, and it is
+ * the same absence that let seven controls read a receipt's fields off the
+ * envelope carrying it.
+ */
+const OK: CommandReplyLike = { success: true };
 
 /**
  * A hand-built handle satisfying the structural `CommandButtonHandle`, the same
@@ -28,10 +40,10 @@ function makeHandle(
   };
 }
 
-type Deferred<T = unknown> = ReturnType<typeof deferred<T>>;
+type Deferred<T = CommandReplyLike> = ReturnType<typeof deferred<T>>;
 
 /** A dispatch the test settles by hand, which is what a delay window IS. */
-function deferred<T = unknown>() {
+function deferred<T = CommandReplyLike>() {
   let resolve!: (v: T) => void;
   let reject!: (e: unknown) => void;
   const promise = new Promise<T>((res, rej) => {
@@ -72,7 +84,7 @@ afterEach(() => {
 describe("CommandButton: single-click dispatch", () => {
   it("dispatches on one click when no confirmLabel is given", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(
       <CommandButton handle={makeHandle(send)} args={{ id: "x" }} label="Go" />,
     );
@@ -86,7 +98,7 @@ describe("CommandButton: single-click dispatch", () => {
 
   it("passes commandLabel through as the dispatch label, so a refusal can name it", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(
       <CommandButton
         handle={makeHandle(send)}
@@ -107,7 +119,7 @@ describe("CommandButton: single-click dispatch", () => {
 describe("CommandButton: arm then confirm", () => {
   it("arms on the first click and dispatches nothing", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(
       <CommandButton
         handle={makeHandle(send)}
@@ -124,7 +136,7 @@ describe("CommandButton: arm then confirm", () => {
 
   it("dispatches on the second click", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(
       <CommandButton
         handle={makeHandle(send)}
@@ -143,7 +155,7 @@ describe("CommandButton: arm then confirm", () => {
 
   it("disarms itself after the arm window, so a forgotten arm does not sit live", async () => {
     const user = useArmClock();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(
       <CommandButton
         handle={makeHandle(send)}
@@ -188,7 +200,7 @@ describe("CommandButton: the in-flight window", () => {
     expect(screen.getByRole("button", { name: /Going/ })).toBeInTheDocument();
 
     await act(async () => {
-      d.resolve(undefined);
+      d.resolve(OK);
     });
     expect(screen.getByRole("button", { name: "Go" })).toBeInTheDocument();
   });
@@ -205,7 +217,7 @@ describe("CommandButton: the in-flight window", () => {
 
     expect(send).toHaveBeenCalledTimes(1);
     await act(async () => {
-      d.resolve(undefined);
+      d.resolve(OK);
     });
   });
 
@@ -225,7 +237,7 @@ describe("CommandButton: the in-flight window", () => {
     expect(onConfirmed).not.toHaveBeenCalled();
 
     await act(async () => {
-      d.resolve(undefined);
+      d.resolve(OK);
     });
     expect(onConfirmed).toHaveBeenCalledTimes(1);
   });
@@ -252,12 +264,17 @@ describe("CommandButton: the in-flight window", () => {
       />,
     );
 
+    // The envelope, with the command's own receipt on `payload`, which is where
+    // the wire puts it. This fixture used to be the bare receipt, and passing
+    // that off as a reply is the fiction the reply type now refuses.
+    const reply = { success: true, payload: { replayed: true } };
+
     await user.click(screen.getByRole("button", { name: "Go" }));
     await act(async () => {
-      d.resolve({ replayed: true });
+      d.resolve(reply);
     });
 
-    expect(onConfirmed).toHaveBeenCalledWith({ replayed: true });
+    expect(onConfirmed).toHaveBeenCalledWith(reply);
   });
 
   it("does not set state from a dispatch that settles after unmount", async () => {
@@ -271,7 +288,7 @@ describe("CommandButton: the in-flight window", () => {
     unmount();
 
     await act(async () => {
-      d.resolve(undefined);
+      d.resolve(OK);
     });
     // No act warning and no throw is the assertion; the row simply left.
     expect(screen.queryByRole("button")).toBeNull();
@@ -438,7 +455,7 @@ describe("CommandButton: the refused phase", () => {
       return state;
     }
 
-    const confirmed = await settledPhase((d) => d.resolve(undefined));
+    const confirmed = await settledPhase((d) => d.resolve(OK));
     const dropped = await settledPhase((d) =>
       d.reject(Object.assign(new Error("lost"), { code: "E_LOST" })),
     );
@@ -490,7 +507,7 @@ describe("CommandButton: the accessible name tracks the phase", () => {
     const user = userEvent.setup();
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined))}
+        handle={makeHandle(() => Promise.resolve(OK))}
         label="Hire"
         confirmLabel="Confirm"
         aria-label="Hire Desdin Kerman for 30,000 funds"
@@ -512,7 +529,7 @@ describe("CommandButton: the accessible name tracks the phase", () => {
     const user = userEvent.setup();
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined))}
+        handle={makeHandle(() => Promise.resolve(OK))}
         label="Hire"
         confirmLabel="Confirm"
         aria-label="Hire Desdin Kerman"
@@ -562,7 +579,7 @@ describe("CommandButton: representing state as well as acting", () => {
   it("carries aria-pressed when it represents a current state", () => {
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined))}
+        handle={makeHandle(() => Promise.resolve(OK))}
         label="SAS"
         active
       />,
@@ -576,7 +593,7 @@ describe("CommandButton: representing state as well as acting", () => {
   it("carries no aria-pressed when it only acts", () => {
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined))}
+        handle={makeHandle(() => Promise.resolve(OK))}
         label="Hire"
       />,
     );
@@ -605,7 +622,7 @@ describe("CommandButton: representing state as well as acting", () => {
       await screen.findByRole("button", { name: /Setting/ }),
     ).toHaveAttribute("aria-busy", "true");
     await act(async () => {
-      d.resolve(undefined);
+      d.resolve(OK);
     });
   });
 });
@@ -614,7 +631,7 @@ describe("CommandButton: a dead command echoes on the control that issued it", (
   it("carries data-failed while the handle holds an overdue dispatch", () => {
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined), {
+        handle={makeHandle(() => Promise.resolve(OK), {
           inFlight: [
             {
               id: "r1",
@@ -647,7 +664,7 @@ describe("CommandButton: the blocked phase", () => {
 
   it("dispatches nothing when the game has already said it will refuse", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(
       <CommandButton
         handle={makeHandle(send, { gate: blockedGate() })}
@@ -663,7 +680,7 @@ describe("CommandButton: the blocked phase", () => {
   it("is aria-disabled and NOT disabled, so a screen reader still finds it", () => {
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined))}
+        handle={makeHandle(() => Promise.resolve(OK))}
         label="Launch"
       />,
     );
@@ -673,7 +690,7 @@ describe("CommandButton: the blocked phase", () => {
 
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined), {
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
         })}
         label="Launch"
@@ -690,7 +707,7 @@ describe("CommandButton: the blocked phase", () => {
   it("makes the REASON the accessible name, not just the fact", () => {
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined), {
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
         })}
         label="Launch"
@@ -710,7 +727,7 @@ describe("CommandButton: the blocked phase", () => {
   it("quotes the numbers when the gate carried a breach", () => {
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined), {
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate({
             // CommandErrorCode.LimitReached
             errorCode: 8,
@@ -742,7 +759,7 @@ describe("CommandButton: the blocked phase", () => {
     const user = userEvent.setup();
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined), {
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
         })}
         label="Launch"
@@ -764,7 +781,7 @@ describe("CommandButton: the blocked phase", () => {
     const user = useArmClock();
     render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined), {
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
         })}
         label="Launch"
@@ -784,7 +801,7 @@ describe("CommandButton: the blocked phase", () => {
 
   it("comes back to life the moment the gate opens", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     const { rerender } = render(
       <CommandButton
         handle={makeHandle(send, { gate: blockedGate() })}
@@ -809,7 +826,7 @@ describe("CommandButton: the blocked phase", () => {
 
   it("leaves an ungated handle exactly as it was, so nothing changes for a command with no gates", async () => {
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(<CommandButton handle={makeHandle(send)} label="Launch" />);
 
     await user.click(screen.getByRole("button"));
@@ -839,7 +856,7 @@ describe("CommandButton: the blocked phase", () => {
     expect(screen.getByRole("button")).not.toHaveAttribute("aria-disabled");
 
     await act(async () => {
-      d.resolve(undefined);
+      d.resolve(OK);
     });
   });
 
@@ -849,7 +866,7 @@ describe("CommandButton: the blocked phase", () => {
     // Unknown. Darkening on that would black out a working control in every
     // sandbox game, with a sentence that reads like the game's own.
     const user = userEvent.setup();
-    const send = vi.fn(() => Promise.resolve(undefined));
+    const send = vi.fn(() => Promise.resolve(OK));
     render(
       <CommandButton
         handle={makeHandle(send, {
@@ -880,7 +897,7 @@ describe("CommandButton: the blocked phase", () => {
   it("has no axe violations while blocked", async () => {
     const { container } = render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined), {
+        handle={makeHandle(() => Promise.resolve(OK), {
           gate: blockedGate(),
         })}
         label="Launch"
@@ -898,7 +915,7 @@ describe("CommandButton: accessibility", () => {
   beforeEach(() => {
     ({ container } = render(
       <CommandButton
-        handle={makeHandle(() => Promise.resolve(undefined))}
+        handle={makeHandle(() => Promise.resolve(OK))}
         label="Hire"
         confirmLabel="Confirm hire"
         active={false}
