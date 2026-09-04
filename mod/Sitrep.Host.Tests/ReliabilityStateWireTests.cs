@@ -62,6 +62,25 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// What the core uplink does to a vanilla summary when a provider WITHDREW
+        /// from the capability: it was installed and switched off, so the vanilla
+        /// backend's "nothing is installed" reading is false. Restated here rather
+        /// than reached through the KSP-referencing uplink, exactly as the
+        /// activation-failure case above is.
+        /// </summary>
+        private static ReliabilitySummary AfterWithdrawal(
+            ReliabilitySummary summary, string providerId) =>
+            ReliabilityWithdrawal.Apply(summary, new[]
+            {
+                new ResolutionNotice
+                {
+                    Capability = ReliabilityElection.CapabilityId,
+                    Kind = "provider-declined",
+                    ProviderId = providerId,
+                },
+            });
+
+        /// <summary>
         /// Every reachable state, named, so a collapse fails with the pair that
         /// collapsed rather than with a count.
         /// </summary>
@@ -70,8 +89,15 @@ namespace Sitrep.Host.Tests
             ["stock, nothing installed"] = new NoneReliabilityBackend().Summary(),
             ["a selected provider's factory threw"] =
                 AfterActivationFailure(new NoneReliabilityBackend().Summary()),
-            ["kerbalism, not modelling this save"] =
-                new ReliabilitySummary { Source = "kerbalism", Coverage = ReliabilityCoverage.Disabled },
+            // ONE state, reached two ways, and they MUST agree: Kerbalism withdrew
+            // before the election (its CanServe saw the feature off at resolve
+            // time), or it won and then reported "disabled" itself (the player
+            // toggled the feature off mid-session, after resolution had run).
+            // Same fact about the same install, so the same bytes; building it
+            // through the real correction rather than as a literal is what makes
+            // the agreement checkable.
+            ["kerbalism installed, not modelling this save"] =
+                AfterWithdrawal(new NoneReliabilityBackend().Summary(), "kerbalism"),
             ["kerbalism, cannot tell whether it is modelling"] =
                 new ReliabilitySummary { Source = "kerbalism", Coverage = ReliabilityCoverage.Indeterminate },
             ["kerbalism, modelling"] =
@@ -116,6 +142,134 @@ namespace Sitrep.Host.Tests
             Assert.NotEqual(stock, threw);
             Assert.Contains("\"coverage\":\"none\"", stock);
             Assert.Contains("\"coverage\":\"unavailable\"", threw);
+        }
+
+        /// <summary>
+        /// The collapse this class exists to prevent, in the shape it actually
+        /// shipped in: a provider withdrawing is the ONLY way an installed,
+        /// switched-off modelling mod reaches the vanilla backend, and the vanilla
+        /// backend's reading says the opposite of what is true.
+        ///
+        /// <para>The direction matters. "Nothing is installed that could model
+        /// reliability" is heard as "nothing can be silently breaking"; the truth
+        /// is that nothing is watching. An operator who reads the reassuring one
+        /// off a save where they themselves turned the feature off has been told a
+        /// confident wrong answer rather than an honest absence.</para>
+        /// </summary>
+        [Fact]
+        public void AWithdrawnProviderIsNotTheSameWireFrameAsNothingInstalled()
+        {
+            var stock = Write(new NoneReliabilityBackend().Summary());
+            var switchedOff = Write(
+                AfterWithdrawal(new NoneReliabilityBackend().Summary(), "kerbalism"));
+
+            Assert.NotEqual(stock, switchedOff);
+            Assert.Contains("\"coverage\":\"none\"", stock);
+            Assert.Contains("\"source\":\"none\"", stock);
+            Assert.Contains("\"coverage\":\"disabled\"", switchedOff);
+            Assert.Contains("\"source\":\"kerbalism\"", switchedOff);
+        }
+
+        /// <summary>
+        /// The two routes to "Kerbalism is installed and not modelling" agree
+        /// byte-for-byte, because they are the same fact about the same install.
+        ///
+        /// <para>Kerbalism withdraws when its CanServe sees the feature off at
+        /// RESOLVE time; it wins and reports <c>disabled</c> itself when the player
+        /// toggles the feature off afterwards, since CanServe is asked once per
+        /// resolution and nothing re-runs it mid-session. An operator must not be
+        /// able to tell from the wire which side of resolution they flipped the
+        /// switch on: that is an implementation detail of ours, not a fact about
+        /// their save.</para>
+        /// </summary>
+        [Fact]
+        public void BothRoutesToKerbalismNotModellingProduceTheSameFrame()
+        {
+            var withdrewBeforeTheElection =
+                Write(AfterWithdrawal(new NoneReliabilityBackend().Summary(), "kerbalism"));
+            var wonThenReportedDisabled = Write(new ReliabilitySummary
+            {
+                Source = "kerbalism",
+                Coverage = ReliabilityCoverage.Disabled,
+            });
+
+            Assert.Equal(wonThenReportedDisabled, withdrewBeforeTheElection);
+        }
+
+        /// <summary>
+        /// A withdrawal on some OTHER capability must not be read as a reliability
+        /// one. The notices list is capability-wide, so a filter that forgets to
+        /// check <c>Capability</c> would report a switched-off comms provider as a
+        /// switched-off reliability provider on a stock install.
+        /// </summary>
+        [Fact]
+        public void AWithdrawalOnAnotherCapabilityLeavesTheVanillaReadingAlone()
+        {
+            var summary = ReliabilityWithdrawal.Apply(
+                new NoneReliabilityBackend().Summary(),
+                new[]
+                {
+                    new ResolutionNotice
+                    {
+                        Capability = "comms",
+                        Kind = "provider-declined",
+                        ProviderId = "some-comms-provider",
+                    },
+                });
+
+            Assert.Equal(ReliabilityCoverage.None, summary.Coverage);
+            Assert.Equal("none", summary.Source);
+        }
+
+        /// <summary>
+        /// A provider SUPERSEDED by a higher-priority one is not a withdrawal:
+        /// something did win, and it publishes its own reading. Only a decline
+        /// leaves the capability with nobody modelling it.
+        /// </summary>
+        [Fact]
+        public void ASupersededProviderIsNotAWithdrawal()
+        {
+            var summary = ReliabilityWithdrawal.Apply(
+                new NoneReliabilityBackend().Summary(),
+                new[]
+                {
+                    new ResolutionNotice
+                    {
+                        Capability = ReliabilityElection.CapabilityId,
+                        Kind = "superseded",
+                        ProviderId = "kerbalism",
+                    },
+                });
+
+            Assert.Equal(ReliabilityCoverage.None, summary.Coverage);
+        }
+
+        /// <summary>
+        /// A backend that actually won says what it is modelling, and a notice
+        /// cannot overrule it. Kerbalism withdrawing while TestFlight wins is the
+        /// ordinary RO install, and TestFlight's reading is the correct one.
+        /// </summary>
+        [Fact]
+        public void AWinningBackendsOwnReadingSurvivesAWithdrawalNotice()
+        {
+            var summary = ReliabilityWithdrawal.Apply(
+                new ReliabilitySummary
+                {
+                    Source = "testflight",
+                    Coverage = ReliabilityCoverage.Modeled,
+                },
+                new[]
+                {
+                    new ResolutionNotice
+                    {
+                        Capability = ReliabilityElection.CapabilityId,
+                        Kind = "provider-declined",
+                        ProviderId = "kerbalism",
+                    },
+                });
+
+            Assert.Equal(ReliabilityCoverage.Modeled, summary.Coverage);
+            Assert.Equal("testflight", summary.Source);
         }
 
         /// <summary>

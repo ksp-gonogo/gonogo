@@ -47,10 +47,18 @@ namespace Gonogo.KSP
         /// <summary>
         /// A selected provider threw during Kernel activation, so the elected
         /// instance is the vanilla None backend and its "nothing is installed"
-        /// reading is false. Computed once at Register from the Kernel's retained
-        /// notices, by notice KIND rather than by sniffing a Detail string.
+        /// reading is false. Matched by notice KIND rather than by sniffing a
+        /// Detail string.
+        ///
+        /// <para>Asked of the Kernel each time rather than snapshotted at
+        /// Register, because <c>ChannelEngine.ResolveCapabilities()</c> runs only
+        /// after EVERY uplink has registered: at Register time
+        /// <c>LastNotices</c> is still empty, so a snapshot taken there was
+        /// unconditionally false and this override could never fire.</para>
         /// </summary>
-        private bool _activationFailed;
+        private bool ActivationFailed() =>
+            _kernel != null && _kernel.LastNotices.Any(n =>
+                n.Capability == ReliabilityElection.CapabilityId && n.Kind == "factory-failed");
 
         private bool _lastCaptureFailed;
         private string _lastCaptureError = "";
@@ -92,8 +100,6 @@ namespace Gonogo.KSP
         public void Register(IUplinkHost host)
         {
             _kernel = host.Kernel;
-            _activationFailed = _kernel.LastNotices.Any(n =>
-                n.Capability == ReliabilityElection.CapabilityId && n.Kind == "factory-failed");
             _summary = host.Publisher(SummaryTopic);
             _parts = host.Publisher(PartsTopic);
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, SummaryTopic, PartsTopic);
@@ -140,12 +146,27 @@ namespace Gonogo.KSP
             try
             {
                 var summary = backend.Summary();
-                if (_activationFailed)
+                if (ActivationFailed())
                 {
                     // A selected provider threw during Kernel activation, so the
                     // elected instance is the vanilla None backend and its
                     // "no reliability model" reading is false. We are blind.
+                    //
+                    // Takes precedence over the withdrawal correction below: being
+                    // unable to read a provider is a stronger claim than knowing
+                    // one switched itself off, and the operator needs the blindness.
                     summary.Coverage = ReliabilityCoverage.Unavailable;
+                }
+                else if (_kernel != null)
+                {
+                    // A provider was installed and WITHDREW (Kerbalism with its
+                    // reliability feature off), so the capability fell to the
+                    // vanilla backend, whose "nothing is installed that could
+                    // model reliability" reading is false. Read from the Kernel
+                    // here rather than cached at Register, because resolution runs
+                    // AFTER every uplink has registered: the notice does not exist
+                    // yet at Register time.
+                    summary = ReliabilityWithdrawal.Apply(summary, _kernel.LastNotices);
                 }
                 _lastCaptureFailed = false;
                 return new ReliabilityCapture
@@ -193,7 +214,7 @@ namespace Gonogo.KSP
             {
                 return new UplinkHealth(UplinkHealthState.Unavailable, "reliability capability not resolved");
             }
-            if (_activationFailed)
+            if (ActivationFailed())
             {
                 return new UplinkHealth(
                     UplinkHealthState.Degraded,

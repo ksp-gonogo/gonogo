@@ -149,15 +149,33 @@ namespace Sitrep.Contract
     /// <c>ResolutionNotice</c>. <see cref="Kind"/> is one of:
     /// "superseded" (exclusive-conflict resolution), "version-excluded"
     /// (version gating), "vanilla-fallback" (no provider survived
-    /// selection, used the capability's vanilla factory instead), or
+    /// selection, used the capability's vanilla factory instead),
     /// "factory-failed" (a selected provider threw during activation and
-    /// contributes no instance).
+    /// contributes no instance), or "provider-declined" (a provider withdrew
+    /// through <see cref="ProviderRegistration.CanServe"/>, or its factory
+    /// returned null, so it never became a candidate).
     /// </summary>
     public sealed class ResolutionNotice
     {
         public string Capability { get; set; } = "";
         public string Kind { get; set; } = "";
         public string Detail { get; set; } = "";
+
+        /// <summary>
+        /// The provider this notice is ABOUT, when exactly one is implicated
+        /// ("superseded", "version-excluded", "factory-failed",
+        /// "provider-declined"). Null for a capability-wide notice such as
+        /// "vanilla-fallback", which is about the absence of every provider
+        /// rather than the conduct of one.
+        ///
+        /// <para>A field rather than something a reader digs back out of
+        /// <see cref="Detail"/>: a consumer that sniffs a prose string is one
+        /// rewording away from silently matching nothing. The reliability core
+        /// uplink needs this to say WHICH provider switched itself off, which
+        /// is the whole difference between "installed and not modelling this
+        /// save" and "nothing installed that could model it".</para>
+        /// </summary>
+        public string? ProviderId { get; set; }
     }
 
     /// <summary>Result of <see cref="Kernel.Resolve"/>.</summary>
@@ -398,6 +416,7 @@ namespace Sitrep.Contract
                     {
                         Capability = capability,
                         Kind = "provider-declined",
+                        ProviderId = provider.Id,
                         Detail =
                             $"Provider \"{provider.Id}\" withdrew from capability \"{capability}\": " +
                             "it cannot serve it on this install.",
@@ -432,6 +451,7 @@ namespace Sitrep.Contract
                 {
                     Capability = capability,
                     Kind = "version-excluded",
+                    ProviderId = candidate.Id,
                     Detail =
                         $"Provider \"{candidate.Id}\" excluded: incompatible with kernelVersion " +
                         $"\"{opts.KernelVersion}\"" +
@@ -495,6 +515,7 @@ namespace Sitrep.Contract
                 {
                     Capability = capability,
                     Kind = "superseded",
+                    ProviderId = candidate.Id,
                     Detail = $"Provider \"{candidate.Id}\" superseded by \"{winner.Id}\" ({reason}).",
                 });
             }
@@ -605,6 +626,7 @@ namespace Sitrep.Contract
                         {
                             Capability = selection.Descriptor.Id,
                             Kind = "provider-declined",
+                            ProviderId = provider.Id,
                             Detail =
                                 $"Provider \"{provider.Id}\" for capability \"{selection.Descriptor.Id}\" " +
                                 "declined to serve this capability on this install.",
@@ -619,6 +641,7 @@ namespace Sitrep.Contract
                     {
                         Capability = selection.Descriptor.Id,
                         Kind = "factory-failed",
+                        ProviderId = provider.Id,
                         Detail =
                             $"Provider \"{provider.Id}\" for capability \"{selection.Descriptor.Id}\" " +
                             $"threw during activation: {error.Message}",
