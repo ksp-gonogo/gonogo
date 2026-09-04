@@ -141,6 +141,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // unavailable for the session. Unwrapping once here is what stops every caller
   // building that shape by hand and finding out the same way.
   "mod/sitrep-sdk/src/plan-composition.ts": 8,
+  // 4: the same boundary as the entry above, for the Uplink's own send command.
+  // `PrincipiaComposedBurn` is carried INSIDE an args record rather than being
+  // one, so codegen's "an Args type is a wire-WRITE" exemption does not reach it
+  // and its instant and three components are typed as `Value`s. The receiving
+  // side binds each to a plain double and rejects an object bag from inside the
+  // handler, so passing them through lost the whole plan. Unwrapped where the
+  // command shape is built, exactly as `planSendArgs` does.
+  "mod/GonogoPrincipiaUplink/client/src/PlanSlots/index.tsx": 4,
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
