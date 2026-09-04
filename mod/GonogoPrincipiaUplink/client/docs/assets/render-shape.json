@@ -3,14 +3,14 @@
   "engine": "chromium",
   "assets": {
     "burn-editor-armed-mid-tune--default.png": {
-      "hash": "1c6e630586f94715",
+      "hash": "1685f955ce5cd84e",
       "elements": 275,
-      "text": "467e8b20"
+      "text": "bb4ce836"
     },
     "burn-editor-spherical-frozen--default.png": {
-      "hash": "908d241d6ccf90c4",
+      "hash": "48b4ec62864bfb27",
       "elements": 234,
-      "text": "7366f38b"
+      "text": "6c669562"
     },
     "burn-editor-writes-shut--default.png": {
       "hash": "a59ed8032ace9d60",
@@ -83,9 +83,9 @@
       "text": "8f33ffde"
     },
     "jogwheel-rate-mode--default.gif": {
-      "hash": "ca07d0bbd258f247",
+      "hash": "cd33536dd357d7f7",
       "elements": 92,
-      "text": "a86ae33a"
+      "text": "02a1e8b7"
     },
     "orbit-analysis-decaying--default.png": {
       "hash": "014f3a15f0f75bc5",
