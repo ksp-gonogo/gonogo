@@ -3631,9 +3631,26 @@ namespace Gonogo.KSP
         /// GetFacilityLevelCount</c> itself just proxies to this same
         /// <c>facilityRefs[0].MaxLevel</c> read, returning the sentinel
         /// <c>-1</c> otherwise - there never was a scene-independent tier
-        /// source). All three are commonly <c>null</c> outside the Space
-        /// Center scene - that's a genuine "not available right now," not a
-        /// bug.</para>
+        /// source).</para>
+        ///
+        /// <para><b>A facility that cannot be read is left out, and a capture
+        /// where none can be read is <c>null</c>.</b> The reading is gone
+        /// through most of a session, and it used to be reported as nine
+        /// entries of nulls, which travelled as a current answer of "no tier"
+        /// and blanked a space centre that was still standing. Absence is now
+        /// said by omission, once, and the <c>career.facilities</c> channel is
+        /// declared <c>NullIsUnreadable</c> so a whole-capture null goes out as
+        /// silence: the client holds its last reading and dates it.</para>
+        ///
+        /// <para>There is no stock way to recover the ladder off-scene. The
+        /// persisted level is NORMALISED
+        /// (<c>UpgradeableFacility.Save</c> writes <c>lvl =
+        /// FacilityLevel / MaxLevel</c>), <c>upgradeLevels</c> is a serialized
+        /// field on the scene component rather than anything the game database
+        /// loads, and every <c>GameVariables</c> entry point takes a normalised
+        /// level rather than exposing a count. So "0.5" cannot be told from
+        /// tier 1 of 3 or tier 2 of 5 without the count that only the live
+        /// object has.</para>
         /// </summary>
         private static Dictionary<string, object?>? BuildCareerFacilities()
         {
@@ -3648,18 +3665,19 @@ namespace Gonogo.KSP
                 var facilityName = facility.ToString();
                 var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityName);
 
-                int? currentTier = null;
-                int? maxTier = null;
-                double? upgradeCost = null;
-                if (ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) &&
-                    proto?.facilityRefs != null && proto.facilityRefs.Count > 0 && proto.facilityRefs[0] != null)
+                if (!ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) ||
+                    proto?.facilityRefs == null || proto.facilityRefs.Count == 0 || proto.facilityRefs[0] == null)
                 {
-                    var live = proto.facilityRefs[0];
-                    currentTier = live.FacilityLevel;
-                    maxTier = live.MaxLevel;
-                    upgradeCost = live.GetUpgradeCost();
+                    // Nothing to read from here, so nothing is written. The
+                    // entry used to be emitted with all three values null,
+                    // which spends a key on saying nothing and reads
+                    // downstream as a facility that answered with no tier. An
+                    // absent key says the same thing once, and lets the whole
+                    // channel be absent when every facility is in this state.
+                    continue;
                 }
 
+                var live = proto.facilityRefs[0];
                 result[facilityName] = new Dictionary<string, object?>
                 {
                     // The map stays keyed by NAME: rekeying it to a number would
@@ -3667,13 +3685,13 @@ namespace Gonogo.KSP
                     // walk. The ordinal rides inside the entry so a client can
                     // identify the facility without trusting the key.
                     ["facilityOrdinal"] = (int)facility,
-                    ["currentTier"] = currentTier,
-                    ["maxTier"] = maxTier,
-                    ["upgradeCost"] = upgradeCost,
+                    ["currentTier"] = live.FacilityLevel,
+                    ["maxTier"] = live.MaxLevel,
+                    ["upgradeCost"] = live.GetUpgradeCost(),
                 };
             }
 
-            return result;
+            return result.Count > 0 ? result : null;
         }
 
         /// <summary>Bound on the recently-completed contracts list: the last N

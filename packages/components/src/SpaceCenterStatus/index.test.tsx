@@ -39,6 +39,7 @@ import {
  */
 const CARRIED = [
   "career.status",
+  "career.facilities",
   "spaceCenter.scene",
   "spaceCenter.launchSites",
 ];
@@ -103,12 +104,14 @@ describe("SpaceCenterStatusComponent", () => {
       // GetFacilityLevelCount is "upgrades available", not total tiers), so a
       // 3-tier building arrives as {currentTier: 0..2, maxTier: 2}. Widget
       // renders 1-indexed: `(tier+1) / (max+1)`.
-      stream.emit("career.status", {
-        economy: { funds: null, reputation: null, science: null },
+      stream.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2 },
           VehicleAssemblyBuilding: { currentTier: 2, maxTier: 2 },
         },
+      });
+      stream.emit("career.status", {
+        economy: { funds: null, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,
@@ -154,8 +157,7 @@ describe("SpaceCenterStatusComponent", () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      stream.emit("career.status", {
-        economy: { funds: 200_000, reputation: null, science: null },
+      stream.emit("career.facilities", {
         facilities: {
           VehicleAssemblyBuilding: {
             currentTier: 0,
@@ -163,6 +165,9 @@ describe("SpaceCenterStatusComponent", () => {
             upgradeCost: 75_000,
           },
         },
+      });
+      stream.emit("career.status", {
+        economy: { funds: 200_000, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,
@@ -197,8 +202,7 @@ describe("SpaceCenterStatusComponent", () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.scene", { scene: "Flight" });
-      stream.emit("career.status", {
-        economy: { funds: 200_000, reputation: null, science: null },
+      stream.emit("career.facilities", {
         facilities: {
           VehicleAssemblyBuilding: {
             currentTier: 0,
@@ -206,6 +210,9 @@ describe("SpaceCenterStatusComponent", () => {
             upgradeCost: 75_000,
           },
         },
+      });
+      stream.emit("career.status", {
+        economy: { funds: 200_000, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,
@@ -222,8 +229,7 @@ describe("SpaceCenterStatusComponent", () => {
     renderWidget();
     act(() => {
       stream.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      stream.emit("career.status", {
-        economy: { funds: 1_000, reputation: null, science: null },
+      stream.emit("career.facilities", {
         facilities: {
           VehicleAssemblyBuilding: {
             currentTier: 0,
@@ -231,6 +237,9 @@ describe("SpaceCenterStatusComponent", () => {
             upgradeCost: 75_000,
           },
         },
+      });
+      stream.emit("career.status", {
+        economy: { funds: 1_000, reputation: null, science: null },
         contracts: null,
         strategies: null,
         tech: null,

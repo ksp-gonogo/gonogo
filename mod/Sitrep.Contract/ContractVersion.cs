@@ -378,8 +378,33 @@ namespace Sitrep.Contract
         /// the mod is still pre-release with NO external Uplinks, and the app and
         /// mod ship together, so no artifact exists that was built against the old
         /// shape.</para>
+        ///
+        /// <para><b>Bumped 14 -&gt; 15: the facility ladder gets its own channel.</b>
+        /// <c>CareerStatus.Facilities</c> LEFT that payload for the new
+        /// <see cref="CareerFacilities"/> type behind <c>career.facilities</c>. One
+        /// <c>member-removed</c>, and the entry type <see cref="CareerFacility"/>
+        /// is untouched: same fields, same names, same units, one level further
+        /// out.</para>
+        ///
+        /// <para>It moved for a reason a field cannot satisfy where it was. KSP can
+        /// only report a facility's tier COUNT from the live building objects it
+        /// instantiates at the space centre, in the editor and in flight near the
+        /// KSC, so the reading is unavailable through most of a session, and the
+        /// persisted level is normalised, so nothing can reconstruct it. Holding
+        /// the last reading and dating it is the honest answer, and that is a
+        /// property of a CHANNEL: a field takes its channel's staleness, and
+        /// <c>career.status</c> keeps arriving everywhere because the economy on it
+        /// does. So the tiers presented as a CURRENT answer of null, and the KSC
+        /// grid blanked nine cells of a space centre that was still standing. On
+        /// its own channel the silence is the client's to read, and the widget
+        /// keeps the tiers with the UT it last saw them.</para>
+        ///
+        /// <para>Sanctioned on the same standing grounds as every Major above: the
+        /// mod is still pre-release with NO external Uplinks, and the app and mod
+        /// ship together, so no artifact exists that was built against the old
+        /// shape.</para>
         /// </remarks>
-        public const int Major = 14;
+        public const int Major = 15;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),
@@ -1445,6 +1470,6 @@ namespace Sitrep.Contract
         /// that prices command dispatch, and threw them away after writing them
         /// into engine state no client can read.</para>
         /// </remarks>
-        public const int Minor = 8;
+        public const int Minor = 0;
     }
 }

@@ -29,7 +29,11 @@ async function renderWithFacilities(
   settledLabel: string,
 ) {
   const fixture = setupStreamFixture({
-    carriedChannels: ["career.status", "spaceCenter.scene"],
+    carriedChannels: [
+      "career.status",
+      "career.facilities",
+      "spaceCenter.scene",
+    ],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -48,9 +52,9 @@ async function renderWithFacilities(
   renderedTrees.push(unmount);
   act(() => {
     fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+    fixture.emit("career.facilities", { facilities });
     fixture.emit("career.status", {
       economy: { funds: 100000, reputation: 0, science: 0 },
-      facilities,
       contracts: null,
       strategies: null,
       tech: null,
@@ -156,7 +160,11 @@ describe("SpaceCenterStatus tier descriptions", () => {
 
   it("drops the tier lists where a cell is too narrow to hold them", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: [
+        "career.status",
+        "career.facilities",
+        "spaceCenter.scene",
+      ],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -175,8 +183,7 @@ describe("SpaceCenterStatus tier descriptions", () => {
     renderedTrees.push(unmount);
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      fixture.emit("career.status", {
-        economy: { funds: 100000, reputation: 0, science: 0 },
+      fixture.emit("career.facilities", {
         facilities: {
           launchPad: {
             level: 1,
@@ -186,6 +193,9 @@ describe("SpaceCenterStatus tier descriptions", () => {
             nextLevelText: "* Max Size: Unlimited",
           },
         },
+      });
+      fixture.emit("career.status", {
+        economy: { funds: 100000, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,

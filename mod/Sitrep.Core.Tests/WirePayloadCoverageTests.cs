@@ -119,12 +119,14 @@ namespace Sitrep.Core.Tests
             // JsonWriter only ever sees the flattened dictionary; the POCO exists for
             // the generated TS shape only.
             "ScienceCreditEvent", "ReputationLossEvent",
-            // career.status / career.mode: CareerViewProvider builds every one of
-            // these as a Dictionary<string, object?> by hand (BuildEconomy/
-            // BuildFacilities/BuildContracts/BuildStrategies/BuildTech, and
-            // BuildCareerMode's local ToWire); the Sitrep.Contract POCOs exist only
-            // for the generated TS shape and are never handed to AppendValue raw.
-            "CareerMode", "CareerStatus", "CareerEconomy", "CareerUpkeep", "CareerFacility",
+            // career.status / career.mode / career.facilities: CareerViewProvider
+            // builds every one of these as a Dictionary<string, object?> by hand
+            // (BuildEconomy/BuildFacilities/BuildContracts/BuildStrategies/
+            // BuildTech, and BuildCareerMode's local ToWire); the Sitrep.Contract
+            // POCOs exist only for the generated TS shape and are never handed to
+            // AppendValue raw.
+            "CareerMode", "CareerStatus", "CareerEconomy", "CareerUpkeep",
+            "CareerFacilities", "CareerFacility",
             "CareerContracts", "CareerContract", "CareerContractParameter",
             "CareerStrategies", "CareerStrategy", "CareerTech", "CareerTechNode",
             // game.dlc / ksp.revertAvailability / system.bodies / system.vessels,

@@ -15,7 +15,7 @@ import { KscConstruction } from "./KscConstruction";
  * `SpaceCenterStatus`, one above the other, beside the host's own grid.
  *
  * <para>Every tier on the wire is KSP's own zero-based facility level.
- * `career.status.facilities[x].currentTier` is `UpgradeableFacility.FacilityLevel`
+ * `career.facilities.facilities[x].currentTier` is `UpgradeableFacility.FacilityLevel`
  * and `rp1.constructions[].currentLevel` is
  * `RP0.FacilityUpgradeProject.currentLevel`, which `Abort()` feeds straight to
  * `UpgradeableObject.SetLevel`, so the two are the same index in the same
@@ -28,6 +28,7 @@ const TOPICS = [
   "rp1.constructions",
   "rp1.centres",
   "career.status",
+  "career.facilities",
 ];
 
 const CENTRES = [
@@ -49,6 +50,10 @@ const CENTRES = [
  */
 const CAREER = {
   economy: { funds: 41_250, reputation: 62, science: 340 },
+};
+
+/** The stock tier ladder, on the channel that goes quiet away from the KSC. */
+const STOCK_TIERS = {
   facilities: {
     LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 112_500 },
     VehicleAssemblyBuilding: {
@@ -90,6 +95,7 @@ function mount() {
   fixture.emit("rp1.available", true);
   fixture.emit("rp1.centres", CENTRES);
   fixture.emit("career.status", CAREER);
+  fixture.emit("career.facilities", STOCK_TIERS);
   fixture.emit("rp1.constructions", RD_UNDER_CONSTRUCTION);
   return { fixture, view };
 }

@@ -132,12 +132,14 @@ export interface CareerMode
 }
 /**
 * The `career.status` channel payload: the KSC and career-mode snapshot, in
-* five groups (economy, facilities, contracts, strategies, tech).
+* four groups (economy, contracts, strategies, tech). The space centre's
+* buildings are NOT here: they ride `CareerFacilities`, for the staleness
+* reason that type's own doc gives.
 *
 * **Three states, and they mean different things.** The whole payload is
 * `null` in SANDBOX, where there is no career at all. A non-null payload with
 * a sub-group `null` means career mode is running and that group is genuinely
-* unavailable this tick. All five top-level keys are ALWAYS present, each
+* unavailable this tick. All four top-level keys are ALWAYS present, each
 * nullable, never omitted, so a missing key is a protocol error rather than an
 * absent group.
 *
@@ -150,15 +152,37 @@ export interface CareerMode
 export interface CareerStatus
 {
 	economy?: CareerEconomy;
-	/**
-	* DYNAMIC-KEY MAP keyed by `SpaceCenterFacility` name (e.g. `"LaunchPad"`,
-	* `"VehicleAssemblyBuilding"`): not a fixed record, so enumerate the keys
-	* rather than reaching for one you expect to be there.
-	*/
-	facilities?: { [key:string]: CareerFacility };
 	contracts?: CareerContracts;
 	strategies?: CareerStrategies;
 	tech?: CareerTech;
+}
+/**
+* The `career.facilities` channel payload: the space centre's buildings, each
+* with the tier it stands at and the ladder it stands on.
+*
+* **It arrives only while the game can answer, and stops otherwise.** A
+* facility's tier count is readable from the live building objects, which KSP
+* instantiates at the space centre, in the editor and in flight near the KSC,
+* and nowhere else. From the tracking station or from orbit there is no
+* reading to take, so this channel goes SILENT rather than reporting a row of
+* nulls. The last reading stands, dated, through the client's ordinary
+* staleness machinery: a whole channel can be held and said to be held, where
+* a nullable field on a channel that keeps ticking cannot.
+*
+* A tier count does not change during a save, so a ladder held from an earlier
+* scene is still true. The tier standing on it can move, and does when the
+* player buys an upgrade, so both travel together and are dated together
+* rather than one being trusted further than the other.
+*/
+export interface CareerFacilities
+{
+	/**
+	* DYNAMIC-KEY MAP keyed by `SpaceCenterFacility` name (e.g. `"LaunchPad"`,
+	* `"VehicleAssemblyBuilding"`): not a fixed record, so enumerate the keys
+	* rather than reaching for one you expect to be there. Never empty on the
+	* wire: the channel is absent instead.
+	*/
+	facilities?: { [key:string]: CareerFacility };
 }
 /**
 * Economy sub-group of `CareerStatus`: funds/reputation/science, each null
@@ -259,8 +283,8 @@ export interface CareerUpkeep
 	integrationSalary?: Value<"f/day">;
 }
 /**
-* One facility entry in `CareerStatus.facilities`. All three fields share one
-* live-facility gate on the KSP side, so they are null together when the
+* One facility entry in `CareerFacilities.facilities`. All three fields share
+* one live-facility gate on the KSP side, so they are null together when the
 * facility isn't queryable in the current scene.
 */
 export interface CareerFacility

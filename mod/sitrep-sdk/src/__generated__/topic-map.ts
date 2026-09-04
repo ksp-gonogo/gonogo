@@ -30,6 +30,7 @@
 import type {
   ArchiveEntry,
   AstronautComplexInfo,
+  CareerFacilities,
   CareerMode,
   CareerStatus,
   CommandCentreEntry,
@@ -103,6 +104,7 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
+  "career.facilities": CareerFacilities;
   "career.mode": CareerMode;
   "career.status": CareerStatus;
   "commandCentre.roster": CommandCentreEntry[];
@@ -178,6 +180,7 @@ export interface GeneratedTopicPayloadMap {
 }
 
 export const GENERATED_TOPIC_IDS = [
+  "career.facilities",
   "career.mode",
   "career.status",
   "commandCentre.roster",

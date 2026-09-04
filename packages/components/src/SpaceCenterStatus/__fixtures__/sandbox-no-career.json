@@ -79,7 +79,8 @@
       "career.status",
       "spaceCenter.scene",
       "spaceCenter.partsAvailable",
-      "spaceCenter.launchSites"
+      "spaceCenter.launchSites",
+      "career.facilities"
     ],
     "emits": [
       {
@@ -113,6 +114,14 @@
             "reputation": null,
             "science": null
           },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "career.facilities",
+        "value": {
           "facilities": {
             "launchPad": {
               "level": 2,
@@ -177,10 +186,7 @@
               "currentLevelText": "",
               "nextLevelText": ""
             }
-          },
-          "contracts": null,
-          "strategies": null,
-          "tech": null
+          }
         }
       }
     ],

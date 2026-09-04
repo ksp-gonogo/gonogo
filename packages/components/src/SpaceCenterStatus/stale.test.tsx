@@ -30,6 +30,7 @@ import { SpaceCenterStatusComponent } from "./index";
 
 const CARRIED = [
   "career.status",
+  "career.facilities",
   "spaceCenter.scene",
   "spaceCenter.launchSites",
 ];
@@ -76,11 +77,13 @@ function emitCareer(fixture: ReturnType<typeof setupStreamFixture>): void {
     fixture.emit("spaceCenter.launchSites", [
       { name: "__pad_occupancy__", padOccupied: false, padVesselTitle: null },
     ]);
-    fixture.emit("career.status", {
-      economy: { funds: 500000, reputation: 0, science: 0 },
+    fixture.emit("career.facilities", {
       facilities: {
         LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
       },
+    });
+    fixture.emit("career.status", {
+      economy: { funds: 500000, reputation: 0, science: 0 },
       contracts: null,
       strategies: null,
       tech: null,

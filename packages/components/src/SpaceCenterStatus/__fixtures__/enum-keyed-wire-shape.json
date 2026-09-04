@@ -9,17 +9,23 @@
       "career.status",
       "spaceCenter.scene",
       "spaceCenter.partsAvailable",
-      "spaceCenter.launchSites"
+      "spaceCenter.launchSites",
+      "career.facilities"
     ],
     "pinnedUt": 10,
     "emits": [
       {
         "channel": "spaceCenter.scene",
-        "value": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
       },
       {
         "channel": "spaceCenter.partsAvailable",
-        "value": { "count": 178 }
+        "value": {
+          "count": 178
+        }
       },
       {
         "channel": "spaceCenter.launchSites",
@@ -34,7 +40,19 @@
       {
         "channel": "career.status",
         "value": {
-          "economy": { "funds": 148300, "reputation": 212.5, "science": 640 },
+          "economy": {
+            "funds": 148300,
+            "reputation": 212.5,
+            "science": 640
+          },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "career.facilities",
+        "value": {
           "facilities": {
             "LaunchPad": {
               "facilityOrdinal": 2,
@@ -90,10 +108,7 @@
               "maxTier": 2,
               "upgradeCost": 65000
             }
-          },
-          "contracts": null,
-          "strategies": null,
-          "tech": null
+          }
         }
       }
     ]

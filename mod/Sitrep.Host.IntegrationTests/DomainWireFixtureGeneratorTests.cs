@@ -139,7 +139,7 @@ namespace Sitrep.Host.IntegrationTests
             var recordingPath = Path.Combine(RecordingsDir(), recordingFileName);
 
             var session = RecordedSessionCodec.Parse(System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(recordingPath)));
-            var topics = new[] { CareerViewProvider.Topic };
+            var topics = new[] { CareerViewProvider.Topic, CareerViewProvider.FacilitiesTopic };
 
             var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestCareerUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
@@ -153,11 +153,19 @@ namespace Sitrep.Host.IntegrationTests
                 econDict.TryGetValue("funds", out var funds) &&
                 funds is double);
 
-            Assert.Contains(careerFrames, c =>
-                c.TryGetValue("facilities", out var fac) &&
-                fac is IDictionary<string, object?> facDict &&
-                facDict.Values.OfType<IDictionary<string, object?>>()
-                    .Any(f => f.TryGetValue("upgradeCost", out var cost) && cost is double));
+            // Whatever this recording has to say about facilities, it says on
+            // their own channel: a frame carries at least one real reading, or
+            // there is no frame. What cannot happen any more is a frame of
+            // nulls, which is what this recording used to produce and what read
+            // downstream as a space centre with no buildings.
+            foreach (var frame in ParsePayloads(capture.Frames, CareerViewProvider.FacilitiesTopic))
+            {
+                var facDict = Assert.IsAssignableFrom<IDictionary<string, object?>>(frame["facilities"]);
+                Assert.NotEmpty(facDict);
+                Assert.All(
+                    facDict.Values.OfType<IDictionary<string, object?>>(),
+                    f => Assert.NotNull(f["maxTier"]));
+            }
 
             Assert.Contains(careerFrames, c =>
                 c.TryGetValue("strategies", out var strat) &&
@@ -201,7 +209,7 @@ namespace Sitrep.Host.IntegrationTests
         {
             const string fixtureFileName = "reference-wire-fixture-career-synthetic.json";
             var session = BuildSyntheticCareerSession();
-            var topics = new[] { CareerViewProvider.Topic };
+            var topics = new[] { CareerViewProvider.Topic, CareerViewProvider.FacilitiesTopic };
 
             var capture = await ReplayAndCaptureAsync(session, new ISitrepUplink[] { new TestCareerUplink() }, topics);
             Assert.True(capture.Frames.Count > 0, "expected at least one captured wire frame");
@@ -216,10 +224,13 @@ namespace Sitrep.Host.IntegrationTests
                 funds is double fundsD && fundsD > 0);
 
             // Extended facilities: real integer currentTier/maxTier + a
-            // positive upgradeCost: the exact fields
-            // GeneratesCareerWireFixtureFromCareerRecording's real (pre-extend)
-            // recording carries as null for every facility.
-            Assert.Contains(careerFrames, c =>
+            // positive upgradeCost, on their own channel now. The real
+            // (pre-extend) recording GeneratesCareerWireFixtureFromCareerRecording
+            // replays carries null for every facility, which on this channel is
+            // no frame at all rather than a frame full of nulls.
+            var facilityFrames = ParsePayloads(capture.Frames, CareerViewProvider.FacilitiesTopic);
+            Assert.True(facilityFrames.Count > 0, "expected at least one career.facilities frame");
+            Assert.Contains(facilityFrames, c =>
                 c.TryGetValue("facilities", out var fac) &&
                 fac is IDictionary<string, object?> facDict &&
                 facDict.TryGetValue("LaunchPad", out var lpRaw) &&

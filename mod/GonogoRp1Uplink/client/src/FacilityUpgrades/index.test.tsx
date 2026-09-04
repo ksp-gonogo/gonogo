@@ -23,6 +23,7 @@ afterEach(() => {
 const CARRIED = [
   "rp1.available",
   "career.status",
+  "career.facilities",
   "rp1.constructions",
   "rp1.facilities",
 ];
@@ -54,7 +55,20 @@ function emit(
       stream.emit("rp1.facilities", facilities, { validAt: 1000 });
     }
     if (career !== undefined) {
-      stream.emit("career.status", career, { validAt: 1000 });
+      const { facilities: tiers, ...rest } = career;
+      stream.emit("career.status", rest, { validAt: 1000 });
+      // Core's tiers ride their own channel, and it only speaks when it has a
+      // reading: away from the space centre KSP instantiates no facility, so
+      // the channel goes SILENT rather than answering nulls. Splitting it here
+      // rather than in each scenario keeps AT_CENTRE and AWAY readable as the
+      // two places an operator can be standing.
+      if (tiers !== undefined) {
+        stream.emit(
+          "career.facilities",
+          { facilities: tiers },
+          { validAt: 1000 },
+        );
+      }
     }
   });
 }
@@ -74,18 +88,11 @@ const AT_CENTRE = {
 
 /**
  * The same career read from anywhere but the space centre. KSP has instantiated
- * no facility, so core's channel answers absent for every tier and every price.
+ * no facility, so core's tier channel has nothing to say and does not speak:
+ * carrying no `facilities` key here is what that silence looks like to `emit`.
  */
 const AWAY = {
   economy: { funds: 289848 },
-  facilities: {
-    LaunchPad: { currentTier: null, maxTier: null, upgradeCost: null },
-    VehicleAssemblyBuilding: {
-      currentTier: null,
-      maxTier: null,
-      upgradeCost: null,
-    },
-  },
 };
 
 /**
@@ -313,11 +320,27 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
 
     /* Drawn first, so the disappearance below is this branch and not a section
        that had not rendered yet. An assertion on an absence, made against a
-       pipeline that was never proved live, passes for the wrong reason. */
-    emit(stream, AT_CENTRE);
+       pipeline that was never proved live, passes for the wrong reason.
+
+       Both halves come off RP-1's channel now, because core's cannot produce a
+       named facility with no tier: its wire leaves an unanswered facility out
+       entirely, and its last real reading is HELD once it has spoken. So the
+       only way left to name a building and say nothing about it is RP-1 naming
+       it, which is what the second emit does. */
+    emit(stream, AWAY, [], RP1_TIERS);
     await screen.findByText("FACILITY UPGRADES");
 
-    emit(stream, AWAY);
+    emit(
+      stream,
+      AWAY,
+      [],
+      RP1_TIERS.map((row) => ({
+        ...row,
+        currentTier: null,
+        maxTier: null,
+        upgradeCost: null,
+      })),
+    );
 
     await waitFor(() =>
       expect(screen.queryByText("FACILITY UPGRADES")).not.toBeInTheDocument(),

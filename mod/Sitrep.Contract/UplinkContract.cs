@@ -91,6 +91,31 @@ namespace Sitrep.Contract
         public bool AbsenceIsData { get; set; } = false;
 
         /// <summary>
+        /// The opposite reading of the same null, for a channel whose subject
+        /// keeps existing while the game stops being able to REPORT it: a null
+        /// mapper result means "no reading available", never "confirmed
+        /// nothing", so the engine emits neither a value nor a tombstone and the
+        /// channel simply goes quiet.
+        ///
+        /// <para>Silence is what the client's staleness machinery is built to
+        /// read. Missed keyframes take the topic to the <c>stale</c> arm of
+        /// <c>Reading</c>, carrying the last real observation and the UT it was
+        /// made at, and a subscriber that connects during the silence is served
+        /// the same last sample out of the archive stamped
+        /// <see cref="Staleness.HeldStale"/>. A tombstone would instead assert
+        /// that the subject has no value, which for <c>career.facilities</c>
+        /// means telling an operator in orbit that the space centre they built
+        /// has no buildings.</para>
+        ///
+        /// <para>Contradicts <see cref="AbsenceIsData"/>, which says a null IS a
+        /// real absence worth announcing. Setting both is a contradiction about
+        /// what the mapper's null means; this one wins, because a channel that
+        /// cannot be read has nothing to announce. Defaults to <c>false</c>,
+        /// leaving every existing channel's tombstone behaviour untouched.</para>
+        /// </summary>
+        public bool NullIsUnreadable { get; set; } = false;
+
+        /// <summary>
         /// Opt-in predicate for a <see cref="Delivery.ReliableOrdered"/>
         /// channel whose samples are a CURSOR-RELATIVE DIFF STREAM (e.g. the
         /// kOS terminal's full-repaint-or-incremental-diff frames) rather

@@ -242,6 +242,8 @@ public static class RtConfig
                 typeof(CareerStatus),
                 typeof(CareerEconomy),
                 typeof(CareerUpkeep),
+                // career.facilities channel payload + its entry
+                typeof(CareerFacilities),
                 typeof(CareerFacility),
                 typeof(CareerContracts),
                 typeof(CareerContract),

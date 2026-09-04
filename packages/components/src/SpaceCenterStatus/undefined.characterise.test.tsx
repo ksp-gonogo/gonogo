@@ -38,6 +38,7 @@ afterEach(() => {
 
 const ALL_READS = [
   "career.status",
+  "career.facilities",
   "spaceCenter.scene",
   "spaceCenter.launchSites",
 ];
@@ -173,11 +174,13 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     mount(fixture, "scs-scene-gate", 6, 7);
 
     act(() => {
-      fixture.emit("career.status", {
-        economy: { funds: 500000, reputation: 0, science: 0 },
+      fixture.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
         },
+      });
+      fixture.emit("career.status", {
+        economy: { funds: 500000, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,
@@ -229,13 +232,15 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      // Partial payload: facilities present, `economy` null, so
+      // Partial session: the tiers arrived, `economy` is null, so
       // `careerStatus?.economy?.funds` is undefined and careerFunds is null.
-      fixture.emit("career.status", {
-        economy: null,
+      fixture.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
         },
+      });
+      fixture.emit("career.status", {
+        economy: null,
         contracts: null,
         strategies: null,
         tech: null,
@@ -255,11 +260,13 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     // Contrast: a real balance below the cost reads the same way, which is the
     // point. Absence and a short balance are both "cannot afford this".
     act(() => {
-      fixture.emit("career.status", {
-        economy: { funds: 100, reputation: 0, science: 0 },
+      fixture.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
         },
+      });
+      fixture.emit("career.status", {
+        economy: { funds: 100, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,

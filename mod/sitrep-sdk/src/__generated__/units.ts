@@ -1947,10 +1947,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
     upkeep: "CareerUpkeep",
     upkeepBeforeModifiers: "CareerUpkeep",
   },
+  "CareerFacilities": {
+    facilities: "*CareerFacility",
+  },
   "CareerStatus": {
     contracts: "CareerContracts",
     economy: "CareerEconomy",
-    facilities: "*CareerFacility",
     strategies: "CareerStrategies",
     tech: "CareerTech",
   },
@@ -2246,10 +2248,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "career.facilities": {
+    facilities: "*CareerFacility",
+  },
   "career.status": {
     contracts: "CareerContracts",
     economy: "CareerEconomy",
-    facilities: "*CareerFacility",
     strategies: "CareerStrategies",
     tech: "CareerTech",
   },

@@ -243,12 +243,23 @@ namespace Sitrep.Host.IntegrationTests
                     Delivery = Delivery.LossyLatest,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
+                new ChannelDeclaration
+                {
+                    Topic = CareerViewProvider.FacilitiesTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // The same declaration the real CareerUplink carries: the
+                    // tiers are unreadable away from the space centre, and that
+                    // has to reach the wire as silence, not as a tombstone.
+                    NullIsUnreadable = true,
+                },
             },
         };
 
         public void Register(IUplinkHost host)
         {
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
+            host.AddChannelSource(CareerViewProvider.FacilitiesTopic, CareerViewProvider.BuildFacilities);
         }
     }
 

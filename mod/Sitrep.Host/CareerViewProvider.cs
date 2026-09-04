@@ -70,6 +70,23 @@ namespace Sitrep.Host
         public const string ModeTopic = "career.mode";
 
         /// <summary>
+        /// The <c>career.facilities</c> topic: the space centre's buildings and
+        /// their tier ladders.
+        ///
+        /// <para>A SEPARATE channel from <see cref="Topic"/> for a staleness
+        /// reason rather than a shape one. KSP can only report a facility's tier
+        /// count while the live building objects exist, which is the space
+        /// centre, the editor and flight near the KSC, so the reading is
+        /// unavailable through most of a session. Riding <c>career.status</c> it
+        /// could not be HELD: a field takes its channel's staleness, and
+        /// <c>career.status</c> keeps arriving everywhere because the economy on
+        /// it does, so the tiers read as a current answer of null. On its own
+        /// channel the silence is the client's to date. See
+        /// <see cref="BuildFacilities"/>.</para>
+        /// </summary>
+        public const string FacilitiesTopic = "career.facilities";
+
+        /// <summary>
         /// Maps <paramref name="snapshot"/>'s raw <c>"career"</c> value to
         /// the <c>career.status</c> payload. Returns <c>null</c> (the
         /// SANDBOX / no-data-yet case) whenever the snapshot doesn't carry
@@ -92,7 +109,6 @@ namespace Sitrep.Host
             return new Dictionary<string, object?>
             {
                 ["economy"] = BuildEconomy(career),
-                ["facilities"] = BuildFacilities(career),
                 ["contracts"] = BuildContracts(career),
                 ["strategies"] = BuildStrategies(career),
                 ["tech"] = BuildTech(career),
@@ -225,14 +241,46 @@ namespace Sitrep.Host
             }
         }
 
-        private static Dictionary<string, object?>? BuildFacilities(IDictionary<string, object?> career)
+        /// <summary>
+        /// Maps <paramref name="snapshot"/>'s raw career facilities to the
+        /// <c>career.facilities</c> payload, or <c>null</c> when there is no
+        /// reading to be had.
+        ///
+        /// <para><c>null</c> here means UNREADABLE, not empty, and the channel is
+        /// declared <c>NullIsUnreadable</c> so the engine answers it with silence
+        /// rather than a tombstone. Three things reach it and all three make the
+        /// same statement: no save is loaded, the save is not a career, or the
+        /// player is somewhere KSP does not instantiate the space centre's
+        /// buildings, which is most of a session. The last reading then stands on
+        /// the client, dated.</para>
+        ///
+        /// <para>A facility that answered a tier is admitted; one that did not is
+        /// left out entirely rather than carried as a row of nulls, so no client
+        /// has to tell an unanswered facility from a facility at tier zero by
+        /// inspecting fields. An empty result is unreadable too: every facility
+        /// resolves through the one live-object registration, so none answering
+        /// is the off-scene case rather than a space centre with no buildings.
+        /// </para>
+        /// </summary>
+        public static object? BuildFacilities(KspSnapshot? snapshot)
         {
+            if (snapshot?.Values == null)
+            {
+                return null;
+            }
+
+            if (!snapshot.Values.TryGetValue("career", out var rawCareer)
+                || rawCareer is not IDictionary<string, object?> career)
+            {
+                return null;
+            }
+
             if (!TryGetDict(career, "facilities", out var raw))
             {
                 return null;
             }
 
-            var result = new Dictionary<string, object?>();
+            var facilities = new Dictionary<string, object?>();
             foreach (var pair in raw)
             {
                 if (pair.Value is not IDictionary<string, object?> facility)
@@ -240,16 +288,31 @@ namespace Sitrep.Host
                     continue;
                 }
 
-                result[pair.Key] = new Dictionary<string, object?>
+                var currentTier = GetInt(facility, "currentTier");
+                var maxTier = GetInt(facility, "maxTier");
+                if (currentTier == null || maxTier == null)
+                {
+                    continue;
+                }
+
+                facilities[pair.Key] = new Dictionary<string, object?>
                 {
                     ["facilityOrdinal"] = GetInt(facility, "facilityOrdinal"),
-                    ["currentTier"] = GetInt(facility, "currentTier"),
-                    ["maxTier"] = GetInt(facility, "maxTier"),
+                    ["currentTier"] = currentTier,
+                    ["maxTier"] = maxTier,
                     ["upgradeCost"] = GetDouble(facility, "upgradeCost"),
                 };
             }
 
-            return result;
+            if (facilities.Count == 0)
+            {
+                return null;
+            }
+
+            return new Dictionary<string, object?>
+            {
+                ["facilities"] = facilities,
+            };
         }
 
         private static Dictionary<string, object?>? BuildContracts(IDictionary<string, object?> career)

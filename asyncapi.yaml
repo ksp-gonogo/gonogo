@@ -3,7 +3,7 @@ info:
   title: Gonogo Sitrep contract
   version: 14.8.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 72 telemetry
+    The wire contract of the Gonogo mod's telemetry socket: 73 telemetry
     channels a client subscribes to, and 51 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
@@ -144,7 +144,7 @@ info:
     - name: session
       description: Frames belonging to the connection rather than a channel
     - name: career
-      description: 2 telemetry channels, 9 commands
+      description: 3 telemetry channels, 9 commands
     - name: commandCentre
       description: 2 telemetry channels, 0 commands
     - name: comms
@@ -306,6 +306,37 @@ channels:
         $ref: "#/components/messages/commandRequest.career.crew.hire"
       commandResponse:
         $ref: "#/components/messages/commandResponse.career.crew.hire"
+  career.facilities:
+    address: career.facilities
+    description: |-
+      Carries a `CareerFacilities`.
+
+      The `career.facilities` channel payload: the space centre's buildings, each
+      with the tier it stands at and the ladder it stands on.
+
+      **It arrives only while the game can answer, and stops otherwise.** A
+      facility's tier count is readable from the live building objects, which KSP
+      instantiates at the space centre, in the editor and in flight near the KSC,
+      and nowhere else. From the tracking station or from orbit there is no
+      reading to take, so this channel goes SILENT rather than reporting a row of
+      nulls. The last reading stands, dated, through the client's ordinary
+      staleness machinery: a whole channel can be held and said to be held, where
+      a nullable field on a channel that keeps ticking cannot.
+
+      A tier count does not change during a save, so a ladder held from an earlier
+      scene is still true. The tier standing on it can move, and does when the
+      player buys an upgrade, so both travel together and are dated together
+      rather than one being trusted further than the other.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: lossy-latest
+    x-sitrep-delay-role: true-now
+    x-sitrep-keyframe-interval-ut: 30
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.career.facilities"
+      event:
+        $ref: "#/components/messages/event"
   career.facility.upgrade:
     address: career.facility.upgrade
     description: |-
@@ -359,12 +390,14 @@ channels:
       Carries a `CareerStatus`.
 
       The `career.status` channel payload: the KSC and career-mode snapshot, in
-      five groups (economy, facilities, contracts, strategies, tech).
+      four groups (economy, contracts, strategies, tech). The space centre's
+      buildings are NOT here: they ride `CareerFacilities`, for the staleness
+      reason that type's own doc gives.
 
       **Three states, and they mean different things.** The whole payload is
       `null` in SANDBOX, where there is no career at all. A non-null payload with
       a sub-group `null` means career mode is running and that group is genuinely
-      unavailable this tick. All five top-level keys are ALWAYS present, each
+      unavailable this tick. All four top-level keys are ALWAYS present, each
       nullable, never omitted, so a missing key is a protocol error rather than an
       absent group.
 
@@ -4095,6 +4128,17 @@ operations:
         $ref: "#/channels/vessel.trajectory.forVantage"
       messages:
         - $ref: "#/channels/vessel.trajectory.forVantage/messages/commandResponse"
+  read:career.facilities:
+    action: receive
+    channel:
+      $ref: "#/channels/career.facilities"
+    title: Read career.facilities
+    description: Delivered only after `subscribe` names `career.facilities` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: career
+    messages:
+      - $ref: "#/channels/career.facilities/messages/streamData"
+      - $ref: "#/channels/career.facilities/messages/event"
   read:career.mode:
     action: receive
     channel:
@@ -6402,6 +6446,19 @@ components:
       title: Select this connection's command centre
       payload:
         $ref: "#/components/schemas/SetVantage"
+    streamData.career.facilities:
+      name: stream-data
+      title: A frame on career.facilities
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `career.facilities`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: career.facilities
+              payload:
+                $ref: "#/components/schemas/CareerFacilities"
     streamData.career.mode:
       name: stream-data
       title: A frame on career.mode
@@ -8213,11 +8270,42 @@ components:
             where this exists, part of a price is already paid. It is a BALANCE and not
             a per-purchase answer, so a surface that offers such a purchase shows this
             and the funds balance together rather than deriving the split itself.
+    CareerFacilities:
+      type: object
+      description: |-
+        The `career.facilities` channel payload: the space centre's buildings, each
+        with the tier it stands at and the ladder it stands on.
+
+        **It arrives only while the game can answer, and stops otherwise.** A
+        facility's tier count is readable from the live building objects, which KSP
+        instantiates at the space centre, in the editor and in flight near the KSC,
+        and nowhere else. From the tracking station or from orbit there is no
+        reading to take, so this channel goes SILENT rather than reporting a row of
+        nulls. The last reading stands, dated, through the client's ordinary
+        staleness machinery: a whole channel can be held and said to be held, where
+        a nullable field on a channel that keeps ticking cannot.
+
+        A tier count does not change during a save, so a ladder held from an earlier
+        scene is still true. The tier standing on it can move, and does when the
+        player buys an upgrade, so both travel together and are dated together
+        rather than one being trusted further than the other.
+      properties:
+        facilities:
+          type:
+            - object
+            - "null"
+          additionalProperties:
+            $ref: "#/components/schemas/CareerFacility"
+          description: |-
+            DYNAMIC-KEY MAP keyed by `SpaceCenterFacility` name (e.g. `"LaunchPad"`,
+            `"VehicleAssemblyBuilding"`): not a fixed record, so enumerate the keys
+            rather than reaching for one you expect to be there. Never empty on the
+            wire: the channel is absent instead.
     CareerFacility:
       type: object
       description: |-
-        One facility entry in `CareerStatus.facilities`. All three fields share one
-        live-facility gate on the KSP side, so they are null together when the
+        One facility entry in `CareerFacilities.facilities`. All three fields share
+        one live-facility gate on the KSP side, so they are null together when the
         facility isn't queryable in the current scene.
       properties:
         facilityOrdinal:
@@ -8278,12 +8366,14 @@ components:
       type: object
       description: |-
         The `career.status` channel payload: the KSC and career-mode snapshot, in
-        five groups (economy, facilities, contracts, strategies, tech).
+        four groups (economy, contracts, strategies, tech). The space centre's
+        buildings are NOT here: they ride `CareerFacilities`, for the staleness
+        reason that type's own doc gives.
 
         **Three states, and they mean different things.** The whole payload is
         `null` in SANDBOX, where there is no career at all. A non-null payload with
         a sub-group `null` means career mode is running and that group is genuinely
-        unavailable this tick. All five top-level keys are ALWAYS present, each
+        unavailable this tick. All four top-level keys are ALWAYS present, each
         nullable, never omitted, so a missing key is a protocol error rather than an
         absent group.
 
@@ -8297,16 +8387,6 @@ components:
           anyOf:
             - $ref: "#/components/schemas/CareerEconomy"
             - type: "null"
-        facilities:
-          type:
-            - object
-            - "null"
-          additionalProperties:
-            $ref: "#/components/schemas/CareerFacility"
-          description: |-
-            DYNAMIC-KEY MAP keyed by `SpaceCenterFacility` name (e.g. `"LaunchPad"`,
-            `"VehicleAssemblyBuilding"`): not a fixed record, so enumerate the keys
-            rather than reaching for one you expect to be there.
         contracts:
           anyOf:
             - $ref: "#/components/schemas/CareerContracts"

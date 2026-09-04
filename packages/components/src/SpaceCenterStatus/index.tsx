@@ -2,6 +2,7 @@ import type { ComponentProps } from "@ksp-gonogo/core";
 import {
   defineTopicManifest,
   formatCompactCurrency,
+  getContributionsForSlot,
   getSizeBucket,
   registerComponent,
   useGameContext,
@@ -9,10 +10,12 @@ import {
 } from "@ksp-gonogo/core";
 import {
   META_VANTAGE,
+  observedAt,
   type Reading,
   type SpaceCenterState,
   useCommand,
   useStream,
+  useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -23,8 +26,10 @@ import {
   commandLossSentence,
   EmptyState,
   FitLabelButton,
+  formatDuration,
   NULL_DISPLAY,
   Panel,
+  ReadoutCaption,
   Row,
   Section,
   Spinner,
@@ -50,15 +55,22 @@ import {
   facilityLevelsFrom,
   KEY_TO_ENUM_FACILITY,
 } from "./facilities";
-// Side-effect import: the widget's own reading of `career.status.facilities`,
-// contributed into its own grid at the band every other contributor outranks.
-import "./facilitiesContribution";
+// The widget's own reading of `career.facilities`, contributed into its own grid
+// at the band every other contributor outranks. Imported for the id as well as
+// for the registration side effect: the age caption below is only honest while
+// this is the contribution on screen.
+import { STOCK_FACILITY_CONTRIBUTION_ID } from "./facilitiesContribution";
 import { parseLevelText } from "./levelText";
 
 const topics = defineTopicManifest({
-  channels: ["career.status", "spaceCenter.scene", "spaceCenter.state"],
+  channels: [
+    "career.status",
+    "career.facilities",
+    "spaceCenter.scene",
+    "spaceCenter.state",
+  ],
   fields: [
-    "career.status.facilities",
+    "career.facilities.facilities",
     "career.status.economy.funds",
     "career.status.economy.subsidyPerDay",
     "career.status.economy.upkeepPerDay",
@@ -120,10 +132,9 @@ function SpaceCenterStatusComponent({
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
   // Canonical Topic reads (former kc.*/career.* keys resolved
   // through map-topic.ts):
-  //  - kc.facilityLevels -> career.status.facilities, read through the
+  //  - kc.facilityLevels -> career.facilities, read through the
   //    `space-center-status.facilities` contribution slot rather than here.
-  //  - career.funds -> career.status.economy.funds (both off the one
-  //    career.status Topic read).
+  //  - career.funds -> career.status.economy.funds.
   //  - kc.scene / kc.launchSite -> spaceCenter.scene.{scene,launchSite}
   //    (plain fields on the one SpaceCenterScene Topic).
   //  - kc.padOccupied / kc.padVesselTitle -> the DERIVED spaceCenter.state
@@ -140,14 +151,29 @@ function SpaceCenterStatusComponent({
    * is withheld, and `fundsNotCurrent` lets the widget say which of the two
    * reasons the balance is missing for.
    *
-   * The facility tiers on the same record ARE facts, and they are held rather
-   * than withheld: a tier changes only when the player pays for an upgrade and a
-   * tier's cost is a game-config constant, so neither can drift while the link
-   * is not delivering. That holding now happens in the contribution that reads
-   * them (`./facilitiesContribution.ts`), which samples the channel rather than
-   * judging it.
+   * The facility tiers are a different kind of thing and ride a different
+   * channel for it: see `facilitiesReading` below.
    */
   const careerReading = useTelemetry("career.status");
+  /**
+   * The tiers' own channel, read here for its CURRENCY only. The values reach
+   * the grid through the contribution slot below; this read exists so the grid
+   * can be dated.
+   *
+   * KSP can only answer a facility's tier count from the live building objects,
+   * which exist at the space centre, in the editor and in flight near the KSC.
+   * Everywhere else there is nothing to read, so the channel goes quiet rather
+   * than reporting nulls, and this read lands on the `stale` arm carrying the
+   * last real observation and the UT it was made at. A tier count does not
+   * change during a save, so that reading is still true; what it needs is a
+   * date.
+   *
+   * The contribution cannot supply that date itself. A contribution's `compute`
+   * is fed topic PAYLOADS, never the readings behind them, so what it samples
+   * off a quiet channel is the last real value with nothing to say it is old.
+   * The two halves meet here.
+   */
+  const facilitiesReading = useTelemetry("career.facilities");
   // Magnitude: compared against an upgrade cost and rendered through this
   // widget's own compact funds formatting, both of which want a number.
   const careerFunds = magnitudeOf(judgeable(careerReading)?.economy?.funds);
@@ -205,15 +231,42 @@ function SpaceCenterStatusComponent({
 
   /**
    * The grid's tiers, from whichever contribution won the slot rather than
-   * straight off `career.status`. The widget's own reading of that channel is
-   * one of the contributions (`./facilitiesContribution.ts`), registered at the
-   * band every other contributor outranks, so a career model that can read a
-   * tier where the stock channel cannot takes the grid over rather than
+   * straight off a channel. The widget's own reading is one of the contributions
+   * (`./facilitiesContribution.ts`), registered at the band every other
+   * contributor outranks, so a career model that reads a tier LIVE where the
+   * stock channel can only hold its last one takes the grid over rather than
    * repeating it below.
    */
   const facilities = facilityLevelsFrom(
     useContributions("space-center-status.facilities"),
   );
+  /**
+   * How old the tiers ON SCREEN are, and nothing when they are current.
+   *
+   * Gated on the stock contribution actually holding the winning band, which is
+   * the whole reason this is not simply the age of `career.facilities`. The grid
+   * belongs to whoever won the slot; captioning it with a channel that lost
+   * would date a live reading with someone else's staleness, which is the exact
+   * failure the staleness type exists to prevent. `getContributionsForSlot`
+   * already answers with the winning band only, and the `useContributions` above
+   * subscribes to the registry, so this read is on the same frame as the grid it
+   * describes.
+   *
+   * Clamped at zero: samples arrive out of order, so one can sit marginally
+   * ahead of the frame, and "-0.4 s ago" is never a thing to render.
+   */
+  const viewUt = useViewUt();
+  const stockHoldsTheGrid = getContributionsForSlot(
+    "space-center-status.facilities",
+  ).some((def) => def.id === STOCK_FACILITY_CONTRIBUTION_ID);
+  const tiersObservedUt = observedAt(facilitiesReading);
+  const tiersHeldForSec =
+    stockHoldsTheGrid &&
+    notCurrent(facilitiesReading) &&
+    viewUt &&
+    tiersObservedUt
+      ? Math.max(0, viewUt.minus(tiersObservedUt).magnitude)
+      : undefined;
 
   /**
    * Upgrades work in the Space Center scene only, KSP's upgrade pipeline isn't
@@ -430,6 +483,20 @@ function SpaceCenterStatusComponent({
              that never arrived are not a second thing missing, and the marker
              below already reports the one that is. */
               <AbsenceLine>No tier detail</AbsenceLine>
+            )}
+            {tiersHeldForSec !== undefined && answeredFacilities.length > 0 && (
+              /* The grid keeps its tiers when the channel stops arriving, and a
+                 reading that is being held has to say when it was taken or it
+                 reads as the state of the space centre now. A duration rather
+                 than a caveat: the count itself does not move at all, and what
+                 the operator judges is the tier they may have bought since.
+
+                 Not a live region, and the age is why: it grows every frame, so
+                 announcing it would read one fact out over and over. The pad
+                 line above is this widget's only live region. */
+              <ReadoutCaption>
+                {`Tiers read ${formatDuration(tiersHeldForSec)} ago`}
+              </ReadoutCaption>
             )}
             {/* ONE absence marker for the whole facilities area, and the area is
                 the grid plus whatever an Uplink appends below it.

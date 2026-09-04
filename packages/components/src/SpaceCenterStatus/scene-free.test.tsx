@@ -14,17 +14,23 @@ import { SpaceCenterStatusComponent } from "./index";
 /**
  * The facility grid away from the space centre.
  *
- * `career.status.facilities` is read off the live `UpgradeableFacility`
- * MonoBehaviours, which KSP instantiates in the SPACECENTER scene only, and
- * stock has no off-scene fallback to offer: `ProtoUpgradeable.GetLevel()` parses
- * the persisted `lvl` when the scene is empty, but its sibling `GetLevelCount()`
- * returns -1 there, so the normalised level cannot be turned back into a tier.
- * A career model that keeps its own tier table can answer anywhere, and
- * `space-center-status.facilities` is how it hands that answer to the grid.
+ * `career.facilities` is read off the live `UpgradeableFacility` MonoBehaviours,
+ * which KSP instantiates in the SPACECENTER and EDITOR scenes and in flight near
+ * the KSC, so no tier can be READ anywhere else: `ProtoUpgradeable.GetLevel()`
+ * parses the persisted `lvl` when the scene is empty, but its sibling
+ * `GetLevelCount()` returns -1 there, so the normalised level cannot be turned
+ * back into a tier.
+ *
+ * What stock does have is the last reading it took, held and dated (see
+ * `held-ladder.test.tsx`): a tier count does not change during a save. What it
+ * does not have is a CURRENT one. A career model keeping its own tier table
+ * does, and `space-center-status.facilities` is how it hands that answer to the
+ * grid.
  *
  * Priority is what stops the two answers being drawn twice: the widget
- * contributes its own `career.status` rows at 0, everything else defaults to 1,
- * and only the highest band present renders.
+ * contributes its own reading at 0, everything else defaults to 1, and only the
+ * highest band present renders. So a live answer displaces a held one, which is
+ * the right way round.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -41,7 +47,11 @@ afterEach(() => {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["career.status", "spaceCenter.scene"],
+    carriedChannels: [
+      "career.status",
+      "career.facilities",
+      "spaceCenter.scene",
+    ],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -61,7 +71,14 @@ function mount() {
   return { ...fixture, container };
 }
 
-/** All nine keys the way the producer writes them off-scene: nothing to say. */
+/**
+ * Nine keys with nothing to say.
+ *
+ * NOT what the producer sends any more: it leaves an unreadable facility out
+ * entirely and goes silent when none answered. Kept because it is still the
+ * shape a client must survive, from an older mod or a hand-written wire, and the
+ * parser's absent-is-not-zero rule is what these cases lean on.
+ */
 const NINE_SILENT = Object.fromEntries(
   [
     "LaunchPad",
@@ -88,11 +105,14 @@ function emit(
     fixture.emit("spaceCenter.scene", { scene });
     fixture.emit("career.status", {
       economy: { funds: 100_000, reputation: 0, science: 0 },
-      facilities,
       contracts: null,
       strategies: null,
       tech: null,
     });
+    // The tiers ride their own channel now, and it speaks only when it has a
+    // reading, so what a case passes here is the answer the space centre gave
+    // rather than a payload the producer has to fill in nine times.
+    fixture.emit("career.facilities", { facilities });
   });
 }
 

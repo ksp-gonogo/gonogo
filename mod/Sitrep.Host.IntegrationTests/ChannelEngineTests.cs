@@ -3169,6 +3169,71 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The <see cref="ChannelDeclaration.NullIsUnreadable"/> opt-in, and the
+        /// exact inverse of
+        /// <see cref="LateSubscriberJoiningWhileChannelIsCurrentlyAbsentGetsTheTombstoneAsItsCatchUp"/>
+        /// on the same null.
+        ///
+        /// <para>A facility's tier ladder is readable only where KSP puts the
+        /// space centre's buildings in the scene, so <c>career.facilities</c>
+        /// stops being answerable for most of a session. Tombstoning that would
+        /// tell an operator in orbit their space centre has no buildings. Going
+        /// quiet instead leaves the last real sample standing as the newest thing
+        /// on the topic, which is what the client's staleness machinery dates.
+        /// </para>
+        /// </summary>
+        [Fact]
+        public async Task ChannelDeclaringNullIsUnreadableGoesQuietInsteadOfTombstoningAndKeepsItsLastValue()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new UnreadableTestUplink());
+            engine.Start();
+            try
+            {
+                await using var early = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(early, UnreadableTestUplink.Topic, Timeout);
+
+                engine.TickAndWait(0.0, UnreadableTestUplink.Snapshot(7.0), Timeout);
+                var first = await ReceiveStreamDataAsync(early, Timeout);
+                Assert.Equal(7.0, Convert.ToDouble(first.Payload));
+
+                // The reading goes away. A born channel would tombstone here;
+                // this one emits nothing at all, so the counter does not move.
+                engine.TickAndWait(1.0, UnreadableTestUplink.Snapshot(null), Timeout);
+                engine.TickAndWait(2.0, UnreadableTestUplink.Snapshot(null), Timeout);
+                Assert.Equal(1, engine.ChannelCounters(UnreadableTestUplink.Topic).Emitted);
+
+                // What a subscriber arriving during the silence is served: the
+                // last real reading out of the archive, not a confirmed nothing.
+                // This is the half that a caught-up client dates rather than
+                // inferring from its own missed keyframes.
+                //
+                // Raw Subscribe rather than the SubscribeAsync helper, for the
+                // reason its sibling below spells out at length: the ack and the
+                // catch-up ride two independent outbox lanes, so their wire
+                // order is not fixed once a catch-up value exists at subscribe
+                // time, and SubscribeAsync's ack-only filter silently DISCARDS
+                // the catch-up when it arrives first. Written the helper way,
+                // this test failed about half the runs.
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await late.SendAsync(EnvelopeCodec.WriteSubscribe(
+                    new Subscribe { Topic = UnreadableTestUplink.Topic }));
+                var caughtUp = await ReceiveStreamDataAsync(late, Timeout);
+                Assert.Equal(7.0, Convert.ToDouble(caughtUp.Payload));
+                Assert.Equal(0.0, caughtUp.Meta.ValidAt);
+
+                // And the reading comes back when the game can answer again.
+                engine.TickAndWait(3.0, UnreadableTestUplink.Snapshot(9.0), Timeout);
+                var resumed = await ReceiveStreamDataAsync(early, Timeout);
+                Assert.Equal(9.0, Convert.ToDouble(resumed.Payload));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         [Fact]
         public async Task LateSubscriberJoiningWhileChannelIsCurrentlyAbsentGetsTheTombstoneAsItsCatchUp()
         {
@@ -3287,6 +3352,47 @@ namespace Sitrep.Host.IntegrationTests
                         Delivery = Delivery.LossyLatest,
                         Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                         AbsenceIsData = true,
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host)
+            {
+                host.AddChannelSource(Topic, s => s != null && s.Values.TryGetValue("t", out var v) ? v : null);
+            }
+
+            public static KspSnapshot Snapshot(double? t)
+            {
+                return new KspSnapshot { Values = new Dictionary<string, object?> { ["t"] = t } };
+            }
+        }
+
+        /// <summary>
+        /// A third nullable-valued channel, identical to
+        /// <see cref="TombstoneTestUplink"/> but declaring
+        /// <see cref="ChannelDeclaration.NullIsUnreadable"/>: the shape of
+        /// <c>career.facilities</c>, whose subject keeps existing while the game
+        /// stops being able to report it.
+        /// </summary>
+        private sealed class UnreadableTestUplink : ISitrepUplink
+        {
+            // Mandatory health floor (test double).
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public const string Topic = "chan.unreadable";
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "test-unreadable",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = Topic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                        NullIsUnreadable = true,
                     },
                 },
             };

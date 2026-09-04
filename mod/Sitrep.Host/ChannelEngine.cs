@@ -4799,8 +4799,23 @@ namespace Sitrep.Host
 
                 if (value == null)
                 {
-                    var absenceIsData = _channelDeclarations.TryGetValue(topic, out var declaration)
-                        && declaration.AbsenceIsData;
+                    var hasDeclaration = _channelDeclarations.TryGetValue(topic, out var declaration);
+                    var absenceIsData = hasDeclaration && declaration.AbsenceIsData;
+                    if (hasDeclaration && declaration.NullIsUnreadable)
+                    {
+                        // The mapper could not take a reading, which is not the
+                        // same claim as the subject having no value (see
+                        // ChannelDeclaration.NullIsUnreadable). Emit nothing at
+                        // all, born or not: the silence is what carries the
+                        // client to its `stale` arm, holding the last real
+                        // observation with the UT it was made at, and a
+                        // tombstone here would overwrite that with a confirmed
+                        // nothing. Checked before the birth gate because this
+                        // answer does not depend on whether the channel has
+                        // spoken before, and it outranks AbsenceIsData, which
+                        // makes the opposite claim about the same null.
+                        continue;
+                    }
                     if (!_born.Contains(topic) && !absenceIsData)
                     {
                         // No data yet for this topic this tick, AND it has

@@ -32,6 +32,7 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
     const streamFixture = setupStreamFixture({
       carriedChannels: [
         "career.status",
+        "career.facilities",
         "spaceCenter.scene",
         "spaceCenter.launchSites",
       ],
@@ -69,15 +70,10 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
           padVesselTitle: midCareer["kc.padVesselTitle"],
         },
       ]);
-      streamFixture.emit("career.status", {
-        economy: {
-          funds: midCareer["career.funds"],
-          reputation: null,
-          science: null,
-        },
-        // Enum-keyed shape the real wire sends (currentTier/maxTier/
-        // upgradeCost): parseFacilityLevels resolves the enum keys to the
-        // widget's short-code display names.
+      // Enum-keyed shape the real wire sends (currentTier/maxTier/
+      // upgradeCost): parseFacilityLevels resolves the enum keys to the
+      // widget's short-code display names.
+      streamFixture.emit("career.facilities", {
         facilities: {
           LaunchPad: {
             currentTier: facilities.launchPad.level,
@@ -89,6 +85,13 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
             maxTier: facilities.vab.max,
             upgradeCost: facilities.vab.upgradeFunds || null,
           },
+        },
+      });
+      streamFixture.emit("career.status", {
+        economy: {
+          funds: midCareer["career.funds"],
+          reputation: null,
+          science: null,
         },
         contracts: null,
         strategies: null,

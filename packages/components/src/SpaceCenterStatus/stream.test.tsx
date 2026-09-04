@@ -41,7 +41,11 @@ afterEach(() => {
 describe("SpaceCenterStatus: genuinely runs off the stream", () => {
   it("renders the funds readout off the stream", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: [
+        "career.status",
+        "career.facilities",
+        "spaceCenter.scene",
+      ],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -143,7 +147,11 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
 
   it("renders facility tiers/upgrade costs derived from career.status.facilities", async () => {
     const fixture = setupStreamFixture({
-      carriedChannels: ["career.status", "spaceCenter.scene"],
+      carriedChannels: [
+        "career.status",
+        "career.facilities",
+        "spaceCenter.scene",
+      ],
       pinnedUt: 10,
       suspendFrames: true,
     });
@@ -173,8 +181,7 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      fixture.emit("career.status", {
-        economy: { funds: 500000, reputation: 0, science: 0 },
+      fixture.emit("career.facilities", {
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150000 },
           VehicleAssemblyBuilding: {
@@ -183,6 +190,9 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
             upgradeCost: null,
           },
         },
+      });
+      fixture.emit("career.status", {
+        economy: { funds: 500000, reputation: 0, science: 0 },
         contracts: null,
         strategies: null,
         tech: null,

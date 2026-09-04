@@ -79,7 +79,8 @@
       "career.status",
       "spaceCenter.scene",
       "spaceCenter.partsAvailable",
-      "spaceCenter.launchSites"
+      "spaceCenter.launchSites",
+      "career.facilities"
     ],
     "emits": [
       {
@@ -119,6 +120,14 @@
             "subsidyMaxPerDay": 0,
             "upkeepPerDay": 0
           },
+          "contracts": null,
+          "strategies": null,
+          "tech": null
+        }
+      },
+      {
+        "channel": "career.facilities",
+        "value": {
           "facilities": {
             "launchPad": {
               "level": 1,
@@ -183,10 +192,7 @@
               "currentLevelText": "* Max crew: 12",
               "nextLevelText": "* Max crew: Unlimited"
             }
-          },
-          "contracts": null,
-          "strategies": null,
-          "tech": null
+          }
         }
       }
     ],

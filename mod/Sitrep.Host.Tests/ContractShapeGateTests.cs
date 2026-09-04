@@ -529,9 +529,19 @@ namespace Sitrep.Host.Tests
         /// it ONLY when bumping <see cref="ContractVersion.Major"/>, in the
         /// same commit:
         /// <code>
-        /// dotnet test mod/Sitrep.Host.Tests --filter FreezeCurrentMajor_ManualOnly \
-        ///   -e SITREP_FREEZE_MAJOR=1
+        /// # 1. temporarily drop the Skip on the [Fact] below
+        /// # 2. SITREP_FREEZE_MAJOR=1 dotnet test mod/Sitrep.Host.Tests \
+        /// #      --filter FreezeCurrentMajor_ManualOnly
+        /// # 3. put the Skip back
         /// </code>
+        ///
+        /// <para>Step 1 and 3 are not ceremony. xUnit 2's <c>Skip</c> is
+        /// UNCONDITIONAL: no <c>--filter</c> and no environment variable can
+        /// run a skipped fact, so the one-line invocation this comment used to
+        /// give reported <c>Skipped! 1</c> and wrote nothing, which reads
+        /// exactly like a freeze that had no work to do. The env var below is
+        /// still the guard that matters, and it is what makes dropping the
+        /// Skip safe.</para>
         ///
         /// <para>Three deliberate differences from the old
         /// <c>RegenerateBaseline_ManualOnly</c> it replaces:</para>

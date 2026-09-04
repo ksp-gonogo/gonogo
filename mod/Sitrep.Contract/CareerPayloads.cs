@@ -7,12 +7,14 @@ namespace Sitrep.Contract;
 
 /// <summary>
 /// The <c>career.status</c> channel payload: the KSC and career-mode snapshot,
-/// in five groups (economy, facilities, contracts, strategies, tech).
+/// in four groups (economy, contracts, strategies, tech). The space centre's
+/// buildings are NOT here: they ride <see cref="CareerFacilities"/>, for the
+/// staleness reason that type's own doc gives.
 ///
 /// <para><b>Three states, and they mean different things.</b> The whole payload
 /// is <c>null</c> in SANDBOX, where there is no career at all. A non-null
 /// payload with a sub-group <c>null</c> means career mode is running and that
-/// group is genuinely unavailable this tick. All five top-level keys are ALWAYS
+/// group is genuinely unavailable this tick. All four top-level keys are ALWAYS
 /// present, each nullable, never omitted, so a missing key is a protocol error
 /// rather than an absent group.</para>
 ///
@@ -47,10 +49,58 @@ public class CareerStatus
 {
     public CareerEconomy? Economy { get; set; }
 
+    public CareerContracts? Contracts { get; set; }
+
+    public CareerStrategies? Strategies { get; set; }
+
+    public CareerTech? Tech { get; set; }
+}
+
+/// <summary>
+/// The <c>career.facilities</c> channel payload: the space centre's buildings,
+/// each with the tier it stands at and the ladder it stands on.
+///
+/// <para><b>It arrives only while the game can answer, and stops otherwise.</b>
+/// A facility's tier count is readable from the live building objects, which KSP
+/// instantiates at the space centre, in the editor and in flight near the KSC,
+/// and nowhere else. From the tracking station or from orbit there is no reading
+/// to take, so this channel goes SILENT rather than reporting a row of nulls.
+/// The last reading stands, dated, through the client's ordinary staleness
+/// machinery: a whole channel can be held and said to be held, where a nullable
+/// field on a channel that keeps ticking cannot.</para>
+///
+/// <para>A tier count does not change during a save, so a ladder held from an
+/// earlier scene is still true. The tier standing on it can move, and does when
+/// the player buys an upgrade, so both travel together and are dated together
+/// rather than one being trusted further than the other.</para>
+///
+/// <internal>
+/// <para>Split out of <c>CareerStatus</c>, which it used to ride as a nullable
+/// <c>facilities</c> group. It could not be held there: a field subtopic takes
+/// its parent channel's staleness outright (see the client's
+/// <c>TimelineStore.sampleStatus</c>), and <c>career.status</c> keeps arriving
+/// everywhere because the economy on it does. So the facilities read as a
+/// CURRENT answer of null, which is the one thing they are not, and the grid
+/// dropped nine cells of a space centre that was still standing.</para>
+///
+/// <para>The producer half is <c>Sitrep.Host.CareerViewProvider.BuildFacilities</c>
+/// over <c>Gonogo.KSP.KspHost.BuildCareerFacilities</c>, which returns null when
+/// no facility resolved a live object. <c>ChannelDeclaration.NullIsUnreadable</c>
+/// is what turns that null into silence instead of a tombstone.</para>
+/// </internal>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("career.facilities")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public class CareerFacilities
+{
     /// <summary>
     /// DYNAMIC-KEY MAP keyed by <c>SpaceCenterFacility</c> name (e.g.
     /// <c>"LaunchPad"</c>, <c>"VehicleAssemblyBuilding"</c>): not a fixed record,
     /// so enumerate the keys rather than reaching for one you expect to be there.
+    /// Never empty on the wire: the channel is absent instead.
     /// <internal>
     /// Modelled as a <c>Dictionary&lt;string, CareerFacility&gt;</c> so codegen
     /// emits a TS index signature, matching how <c>VesselResources.Resources</c>
@@ -58,12 +108,6 @@ public class CareerStatus
     /// </internal>
     /// </summary>
     public Dictionary<string, CareerFacility>? Facilities { get; set; }
-
-    public CareerContracts? Contracts { get; set; }
-
-    public CareerStrategies? Strategies { get; set; }
-
-    public CareerTech? Tech { get; set; }
 }
 
 /// <summary>Economy sub-group of <see cref="CareerStatus"/>: funds/reputation/science, each null when absent.</summary>
@@ -206,7 +250,7 @@ public class CareerUpkeep
 }
 
 /// <summary>
-/// One facility entry in <see cref="CareerStatus.Facilities"/>. All three
+/// One facility entry in <see cref="CareerFacilities.Facilities"/>. All three
 /// fields share one live-facility gate on the KSP side, so they are null
 /// together when the facility isn't queryable in the current scene.
 /// </summary>

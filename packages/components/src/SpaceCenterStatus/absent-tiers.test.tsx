@@ -28,7 +28,11 @@ afterEach(() => {
 
 function mount() {
   const fixture = setupStreamFixture({
-    carriedChannels: ["career.status", "spaceCenter.scene"],
+    carriedChannels: [
+      "career.status",
+      "career.facilities",
+      "spaceCenter.scene",
+    ],
     pinnedUt: 10,
     suspendFrames: true,
   });
@@ -59,9 +63,9 @@ function emitFacilities(
 ) {
   act(() => {
     fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
+    fixture.emit("career.facilities", { facilities });
     fixture.emit("career.status", {
       economy: { funds: 100_000, reputation: 0, science: 0 },
-      facilities,
       contracts: null,
       strategies: null,
       tech: null,

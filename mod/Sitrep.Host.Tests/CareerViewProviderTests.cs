@@ -271,19 +271,26 @@ namespace Sitrep.Host.Tests
             Assert.Equal(42.0, economy["reputation"]);
             Assert.Equal(310.25, economy["science"]);
 
-            var facilities = Assert.IsType<Dictionary<string, object?>>(root["facilities"]);
+            // The facilities are their OWN channel now, so they are not on this
+            // payload at all. See CareerFacilities' doc for why a tier that
+            // cannot be read has to be able to go silent rather than ride a
+            // channel that keeps arriving.
+            Assert.False(root.ContainsKey("facilities"));
+
+            var facilitiesPayload = Assert.IsType<Dictionary<string, object?>>(
+                CareerViewProvider.BuildFacilities(snapshot));
+            var facilities = Assert.IsType<Dictionary<string, object?>>(facilitiesPayload["facilities"]);
             var launchPad = Assert.IsType<Dictionary<string, object?>>(facilities["LaunchPad"]);
             Assert.Equal(1, launchPad["currentTier"]);
             Assert.Equal(2, launchPad["maxTier"]);
             Assert.Equal(74_000.0, launchPad["upgradeCost"]);
-            var vab = Assert.IsType<Dictionary<string, object?>>(facilities["VehicleAssemblyBuilding"]);
-            Assert.Null(vab["currentTier"]); // scene-gated field, genuinely unavailable
-            Assert.Null(vab["maxTier"]);
-            Assert.Null(vab["upgradeCost"]);
+            // The VAB answered no tier, so it gets no entry rather than a row of
+            // nulls: an unanswered facility and a facility at tier zero are two
+            // different readings, and leaving it out is what keeps them apart.
+            Assert.False(facilities.ContainsKey("VehicleAssemblyBuilding"));
             // The facility's identity rides INSIDE the entry, so a client never
             // has to recognise the key it arrived under.
             Assert.Equal(2, launchPad["facilityOrdinal"]);
-            Assert.Equal(8, vab["facilityOrdinal"]);
 
             var contracts = Assert.IsType<Dictionary<string, object?>>(root["contracts"]);
             var active = Assert.IsType<List<object?>>(contracts["active"]);
@@ -441,10 +448,57 @@ namespace Sitrep.Host.Tests
 
             var root = Assert.IsType<Dictionary<string, object?>>(payload);
             Assert.NotNull(root["economy"]);
-            Assert.Null(root["facilities"]);
             Assert.Null(root["contracts"]);
             Assert.Null(root["strategies"]);
             Assert.Null(root["tech"]);
+            // The facilities' own channel says the same thing by not answering:
+            // its null is UNREADABLE rather than empty, so the engine emits
+            // nothing at all and the client's last reading stands.
+            Assert.Null(CareerViewProvider.BuildFacilities(snapshot));
+        }
+
+        /// <summary>
+        /// The off-scene capture: a career is running, the facilities group is
+        /// present, and not one facility could be read, because KSP only puts
+        /// the space centre's buildings in the scene at the space centre, in the
+        /// editor and in flight near the KSC.
+        ///
+        /// <para>An empty map would be a claim that the career has no
+        /// facilities. <c>null</c> is the honest answer, and paired with the
+        /// channel's <c>NullIsUnreadable</c> declaration it puts the topic to
+        /// silence, so what the operator keeps seeing is the last real reading
+        /// with the UT it was taken at.</para>
+        /// </summary>
+        [Fact]
+        public void FacilitiesThatNoneOfWhichCouldBeReadAnswerNullRatherThanAnEmptyMap()
+        {
+            var snapshot = new KspSnapshot
+            {
+                Values = new Dictionary<string, object?>
+                {
+                    ["career"] = new Dictionary<string, object?>
+                    {
+                        ["economy"] = new Dictionary<string, object?> { ["funds"] = 100.0 },
+                        ["facilities"] = new Dictionary<string, object?>
+                        {
+                            ["LaunchPad"] = new Dictionary<string, object?>
+                            {
+                                ["facilityOrdinal"] = 2,
+                                ["currentTier"] = null,
+                                ["maxTier"] = null,
+                                ["upgradeCost"] = null,
+                            },
+                        },
+                    },
+                },
+            };
+
+            Assert.Null(CareerViewProvider.BuildFacilities(snapshot));
+            // The economy on the sibling channel is unaffected: it is readable
+            // everywhere, which is exactly why the two cannot share a channel.
+            var root = Assert.IsType<Dictionary<string, object?>>(
+                CareerViewProvider.BuildCareer(snapshot));
+            Assert.NotNull(root["economy"]);
         }
 
         [Fact]

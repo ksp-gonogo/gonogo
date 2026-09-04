@@ -56,7 +56,7 @@ export const RP1_FACILITY_UPGRADE_COMMAND = "rp1.facility.upgrade";
  * so a short Space Center would show a commitment with no money on screen.</para>
  *
  * <para><b>The tiers come off `rp1.facilities`, not off
- * `career.status.facilities`, and that is what lets this section answer away
+ * `career.facilities`, and that is what lets this section answer away
  * from the space centre.</b> The stock channel reads the live
  * `UpgradeableFacility` objects, which KSP puts in the SPACECENTER scene only;
  * RP-1 reads the level KSP persists in the SAVE and denormalises it against its
@@ -86,6 +86,7 @@ export const RP1_FACILITY_UPGRADE_COMMAND = "rp1.facility.upgrade";
 export function FacilityUpgrades() {
   const available = current(useTelemetry("rp1.available"));
   const career = current(useTelemetry("career.status"));
+  const stockTiers = current(useTelemetry("career.facilities"));
   const constructions = current(useTelemetry("rp1.constructions"));
   const facilityTiers = current(useTelemetry("rp1.facilities"));
 
@@ -110,20 +111,20 @@ export function FacilityUpgrades() {
   );
 
   /* RP-1's own reading first, and everywhere it answers.
-     `career.status.facilities` comes off the live UpgradeableFacility objects,
-     which KSP instantiates in the SPACECENTER scene only, so away from the space
-     centre every tier and price on it is absent. RP-1 does not read a building
-     that way: it denormalises the level KSP persists in the SAVE against a tier
-     count out of its own config, and its MaintenanceHandler bills the career off
-     exactly that in the editor, in flight and at the tracking station. So
-     `rp1.facilities` answers wherever the operator is standing, which is the
-     whole reason this section prefers it.
+     `career.facilities` comes off the live UpgradeableFacility objects, which
+     KSP instantiates in the SPACECENTER scene only, so away from the space
+     centre it stops arriving and what is left is the last reading, held. RP-1
+     does not read a building that way: it denormalises the level KSP persists in
+     the SAVE against a tier count out of its own config, and its
+     MaintenanceHandler bills the career off exactly that in the editor, in
+     flight and at the tracking station. So `rp1.facilities` is CURRENT wherever
+     the operator is standing, which is the whole reason this section prefers it.
 
      Falls back rather than merges. The two agree at the space centre, and a
      merge would have to pick a winner per field with nothing to pick on; the
      stock channel is the fallback because it is what a career with RP-1's cost
      table not yet loaded still has. */
-  const stockFacilities = career?.facilities ?? {};
+  const stockFacilities = stockTiers?.facilities ?? {};
   const rp1Tiers = new Map(
     (facilityTiers ?? []).flatMap((row) =>
       row.facility === undefined || row.facility === null
@@ -223,7 +224,7 @@ interface NextTier {
  *
  * <para><b>The one place a facility tier is converted, and the convention every
  * surface around it follows.</b> Every tier on the wire is KSP's own zero-based
- * facility level: `career.status.facilities[x].currentTier` is
+ * facility level: `career.facilities.facilities[x].currentTier` is
  * `UpgradeableFacility.FacilityLevel`, `maxTier` is `MaxLevel` (the top tier's
  * own index, 2 for a three-tier building), `rp1.facilities` denormalises the same
  * level back out of `KCTUtilities.GetFacilityLevel`, and
@@ -338,10 +339,12 @@ registerAugment({
   component: FacilityUpgrades,
   channels: [
     "rp1.available",
-    /* The tiers, the prices and the balance all ride this one, and naming it
-       here is what makes the section independent of whatever the host happens
-       to subscribe. */
+    /* The balance rides this one, and naming it here is what makes the section
+       independent of whatever the host happens to subscribe. */
     "career.status",
+    /* The stock tiers and prices, which stop arriving away from the space
+       centre and are read as the fallback below. */
+    "career.facilities",
     /* What is already being built, so a facility with a project in flight is
        not offered a second one the command would refuse. */
     "rp1.constructions",

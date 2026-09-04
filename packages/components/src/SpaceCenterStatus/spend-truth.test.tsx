@@ -37,6 +37,7 @@ import { SpaceCenterStatusComponent } from "./index";
 
 const CARRIED = [
   "career.status",
+  "career.facilities",
   "spaceCenter.scene",
   "spaceCenter.launchSites",
   "system.uplink.gates",
@@ -96,9 +97,9 @@ function emitCareer(
     fixture.emit("spaceCenter.launchSites", [
       { name: "__pad_occupancy__", padOccupied: false, padVesselTitle: null },
     ]);
+    fixture.emit("career.facilities", { facilities });
     fixture.emit("career.status", {
       economy: { funds: 41250, reputation: 62, science: 340 },
-      facilities,
       contracts: null,
       strategies: null,
       tech: null,

@@ -88,6 +88,27 @@ namespace Gonogo.KSP
                     // TrueNow - same class as career.status/system.bodies.
                     Delay = DelayRole.TrueNow,
                 },
+                new ChannelDeclaration
+                {
+                    Topic = CareerViewProvider.FacilitiesTopic,
+                    Delivery = Delivery.LossyLatest,
+                    // A tier moves when the player buys an upgrade, so the same
+                    // low-churn 30s keyframe + change-gate cadence the rest of
+                    // the career uses. The interval is also what the client's
+                    // heartbeat measures the silence against, so it is what
+                    // dates a held ladder.
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    // Ground-side KSC bookkeeping, same class as career.status.
+                    Delay = DelayRole.TrueNow,
+                    // The mapper answers null through most of a session, because
+                    // KSP only instantiates the buildings at the space centre,
+                    // in the editor and in flight near the KSC. That is "cannot
+                    // read", not "there are no facilities", and the difference
+                    // is the whole point of the channel: silence lets the client
+                    // hold its last reading and date it, where a tombstone would
+                    // tell an operator in orbit their space centre is empty.
+                    NullIsUnreadable = true,
+                },
             },
             // Every career-write command is ground-side KSC bookkeeping, not a
             // signal to a craft, so all nine are delayed: false, they take
@@ -142,6 +163,7 @@ namespace Gonogo.KSP
         {
             host.AddChannelSource(CareerViewProvider.Topic, CareerViewProvider.BuildCareer);
             host.AddChannelSource(CareerViewProvider.ModeTopic, CareerViewProvider.BuildCareerMode);
+            host.AddChannelSource(CareerViewProvider.FacilitiesTopic, CareerViewProvider.BuildFacilities);
 
             host.AddCommandHandler<ActivateStrategyArgs, CommandResult>(CareerCommandProvider.ActivateStrategyCommand, args => CareerCommandProvider.HandleActivateStrategy(_actuator, args));
             host.AddCommandHandler<DeactivateStrategyArgs, CommandResult>(CareerCommandProvider.DeactivateStrategyCommand, args => CareerCommandProvider.HandleDeactivateStrategy(_actuator, args));
