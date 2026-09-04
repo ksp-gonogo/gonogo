@@ -466,7 +466,11 @@ namespace GonogoRp1Uplink.Tests
             // fraction. Asked at exactly the point RP-1's own training screen asks
             // it: against a course's AC-level requirement, before it is offered a
             // student.
-            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "GetFacilityLevel", 1, true, "Rp1TrainingCommands"),
+            // Also the whole of how a building's tier is read outside the space
+            // centre. It denormalises the level KSP PERSISTS in the save against
+            // RP-1's config tier count, touching no scene object, which is why
+            // RP-1's own upkeep pass can call it in flight and in the editor.
+            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "GetFacilityLevel", 1, true, "Rp1TrainingCommands, Rp1FacilitiesReflection"),
             // The five calls the two RP-1 training controls are made of. Neither
             // control is AbortCourse, whose only caller in RP-1 is the path that
             // withdraws a template when its tech goes away: RP-1's own Cancel runs
@@ -762,6 +766,7 @@ namespace GonogoRp1Uplink.Tests
             const string Staffing = "Rp1PersonnelCommands";
             const string StrategyWrites = "Rp1StrategyWrites";
             const string Facilities = "Rp1FacilityUpgradeCommands";
+            const string FacilityTiers = "Rp1FacilitiesReflection";
             const string Catalogue = "Rp1TrainingCatalogueReflection";
             const string TrainingWrites = "Rp1TrainingCommands";
             const string Lifecycle = "Rp1ComplexLifecycleCommands";
@@ -1002,6 +1007,14 @@ namespace GonogoRp1Uplink.Tests
 
             Add("RP0.Database", "SettingsSC", Rp1Reader.Presence, Sc + ", " + Economy, @static: true);
             Add("RP0.Database", "SettingsCrew", Rp1Reader.Presence, Crew, @static: true);
+            // The two config-loaded tables that let a building answer OUTSIDE the
+            // space centre, where KSP has instantiated no facility to ask. Both are
+            // filled once in Database.LoadFacilityData off the CustomBarnKit node
+            // and never written again, and RP-1's own MaintenanceHandler.UpdateUpkeep
+            // reads the first of them in all four scenes to bill the career for what
+            // it owns.
+            Add("RP0.Database", "FacilityLevelCosts", Rp1Reader.Presence, FacilityTiers, @static: true);
+            Add("RP0.Database", "LockedFacilities", Rp1Reader.Presence, FacilityTiers, @static: true);
             Add("RP0.SpaceCenterSettings", "RushRateMult", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterSettings", "RushSalaryMult", Rp1Reader.Numeric, Sc);
             // Ints on RP-1's side, which Numeric accepts: a full year per head.

@@ -54,22 +54,37 @@ export const RP1_FACILITY_UPGRADE_COMMAND = "rp1.facility.upgrade";
  * press, and the host draws its balance only once the widget is four rows tall,
  * so a short Space Center would show a commitment with no money on screen.</para>
  *
- * <para><b>Two of RP-1's refusals cannot be drawn before the press, because
- * neither fact is on the wire.</b> RP-1 declines to upgrade five of the nine
- * buildings as buildings at all (it drives their tier itself from the mean of
- * the ones it does upgrade), and it gates individual tiers behind tech nodes
- * from its own `KCTBUILDINGTECHS` config. Both answers live on a private Harmony
- * patch class that only the mod half can call, and `career.status.facilities`
- * carries neither, so a row for either is offered and RP-1 refuses it in its own
- * words naming the alternative. That is the pressable-until-refused rule the
- * build controls follow, and it is the honest shape while the wire is silent:
- * inferring "cosmetic" from a one-fund price would be a name list wearing a
- * price tag.</para>
+ * <para><b>The tiers come off `rp1.facilities`, not off
+ * `career.status.facilities`, and that is what lets this section answer away
+ * from the space centre.</b> The stock channel reads the live
+ * `UpgradeableFacility` objects, which KSP puts in the SPACECENTER scene only;
+ * RP-1 reads the level KSP persists in the SAVE and denormalises it against its
+ * own config tier count, which is what its upkeep pass does in all four scenes.
+ * The stock channel is still read as a fallback, for a career whose RP-1 cost
+ * table has not loaded.</para>
+ *
+ * <para><b>The tiers are readable off-scene; the PRESS is not.</b> Queueing an
+ * upgrade needs the live facility for `GetUpgradeCost()` and for the level table
+ * that sets the build's duration, so the command's own requirement holds the
+ * button dark away from the space centre and says why. Showing the tier and the
+ * price with the control refused beats showing nothing at all: the operator can
+ * see what the step would cost from wherever they are standing.</para>
+ *
+ * <para><b>One of RP-1's two refusals is now drawn before the press and the
+ * other still cannot be.</b> RP-1 declines to upgrade five of the nine buildings
+ * as buildings at all, and `rp1.facilities[].upgradedByRp1` carries that off
+ * `Database.LockedFacilities`, so those rows are no longer offered. It also
+ * gates individual tiers behind tech nodes from its own `KCTBUILDINGTECHS`
+ * config, and that answer lives on a private Harmony patch class nothing puts on
+ * the wire, so a row for a gated tier is offered and RP-1 refuses it in its own
+ * words naming the node. That is the pressable-until-refused rule the build
+ * controls follow, and it is the honest shape while the wire is silent.</para>
  */
 export function FacilityUpgrades() {
   const available = current(useTelemetry("rp1.available"));
   const career = current(useTelemetry("career.status"));
   const constructions = current(useTelemetry("rp1.constructions"));
+  const facilityTiers = current(useTelemetry("rp1.facilities"));
 
   // Unconditional and above the early returns: a hook after one would change
   // count on the first frame RP-1 answers.
@@ -81,7 +96,6 @@ export function FacilityUpgrades() {
     return null;
   }
 
-  const facilities = career?.facilities ?? {};
   const queued = new Set(
     (constructions ?? []).flatMap((row) =>
       row.kind === "FacilityUpgrade" &&
@@ -92,43 +106,70 @@ export function FacilityUpgrades() {
     ),
   );
 
-  const names = Object.keys(facilities).sort((a, b) =>
-    facilityLabel(a).localeCompare(facilityLabel(b)),
+  /* RP-1's own reading first, and everywhere it answers.
+     `career.status.facilities` comes off the live UpgradeableFacility objects,
+     which KSP instantiates in the SPACECENTER scene only, so away from the space
+     centre every tier and price on it is absent. RP-1 does not read a building
+     that way: it denormalises the level KSP persists in the SAVE against a tier
+     count out of its own config, and its MaintenanceHandler bills the career off
+     exactly that in the editor, in flight and at the tracking station. So
+     `rp1.facilities` answers wherever the operator is standing, which is the
+     whole reason this section prefers it.
+
+     Falls back rather than merges. The two agree at the space centre, and a
+     merge would have to pick a winner per field with nothing to pick on; the
+     stock channel is the fallback because it is what a career with RP-1's cost
+     table not yet loaded still has. */
+  const stockFacilities = career?.facilities ?? {};
+  const rp1Tiers = new Map(
+    (facilityTiers ?? []).flatMap((row) =>
+      row.facility === undefined || row.facility === null
+        ? []
+        : [[row.facility, row] as const],
+    ),
   );
+
+  const names = Array.from(
+    new Set([...rp1Tiers.keys(), ...Object.keys(stockFacilities)]),
+  ).sort((a, b) => facilityLabel(a).localeCompare(facilityLabel(b)));
   const rows = names.flatMap((name) => {
-    const step = nextTier(facilities[name]);
+    const rp1 = rp1Tiers.get(name);
+    /* The five RP-1 prices at a single fund under its own "cosmetic only"
+       comment. It drives their tier itself from the mean of the ones it does
+       upgrade, so a project queued against one would finish almost at once and
+       then be overwritten, and RP-1's own menu does not offer them either. This
+       used to be offered-until-refused, because the fact was not on the wire;
+       it is now. */
+    if (rp1?.upgradedByRp1 === false) {
+      return [];
+    }
+    const step =
+      rp1 === undefined
+        ? nextTier(stockFacilities[name])
+        : (nextTier(rp1) ?? nextTier(stockFacilities[name]));
     return step === null || queued.has(name) ? [] : [{ name, step }];
   });
 
-  /* Outside the space centre KSP has not INSTANTIATED the facilities, so every
-     tier on this channel is absent and the command's own gate refuses. That is
-     about reading them and not about building them: an upgrade already under
-     way progresses on universal time wherever the operator is standing, RP-1's
-     own MaintenanceHandler.FixedUpdate driving it in the editor, in flight and
-     in the tracking station as well as here. It is a state worth naming, since
-     an empty section here and a career with nothing left to upgrade look
-     identical and only one of them is a reason to go and stand in the space
-     centre.
+  /* Neither channel answered, which on an RP-1 install is a cold start rather
+     than a scene: RP-1's cost table loads once at game load and does not depend
+     on where the operator is. Worth naming either way, since an empty section
+     and a career with nothing left to upgrade look identical and only one of
+     them is a reason to wait.
 
      Asked of whether any facility ANSWERED its tiers, never of whether any has
      a step left. A career whose buildings are all at their ceiling has no step
-     left either, and telling that operator to go to the space centre they are
-     already standing in would be the confident falsehood this branch exists to
-     avoid. */
-  const answered = names.some((name) => {
-    const entry = facilities[name];
-    return (
-      magnitudeOf(entry?.currentTier) !== null &&
-      magnitudeOf(entry?.maxTier) !== null
-    );
-  });
+     left either, and telling that operator their tiers are unreadable would be
+     the confident falsehood this branch exists to avoid. */
+  const answered = names.some(
+    (name) =>
+      answersTiers(rp1Tiers.get(name)) || answersTiers(stockFacilities[name]),
+  );
   if (names.length > 0 && !answered) {
     return (
       <Section gap="sm">
         <SectionTitle>FACILITY UPGRADES</SectionTitle>
         <Text size="sm" tone="muted">
-          KSP puts the space centre's buildings in the scene only at the space
-          centre, so their tiers and prices cannot be read from here. Anything
+          No tiers have arrived for the space centre's buildings yet. Anything
           already under construction keeps building wherever you are.
         </Text>
       </Section>
@@ -188,23 +229,46 @@ interface NextTier {
 /**
  * The step this facility could take, or null when there is none to take.
  *
- * <para>Null covers three different silences and none of them is a row: a
- * facility already at its ceiling, one whose tiers this producer did not send,
- * and one read from outside the space centre, where KSP has not built the
- * facility and every field arrives absent. The caller distinguishes the last
- * from the first by asking whether ANY facility answered.</para>
+ * <para>Null covers two different silences and neither is a row: a facility
+ * already at its ceiling, and one whose tiers no channel sent. The caller tells
+ * them apart by asking whether ANY facility answered, because a career at its
+ * ceiling and a reading that never arrived are the same empty section
+ * otherwise.</para>
  *
  * <para>The tiers are counted the way the operator reads them, one higher than
  * the wire's zero-based index, matching the host widget's own "Lvl N of M" and
  * KSP's own R&amp;D dialog, which calls a fully-upgraded VAB level 3.</para>
  */
-function nextTier(entry: CareerFacility | undefined): NextTier | null {
+function nextTier(entry: TierBearing | undefined): NextTier | null {
   const tier = magnitudeOf(entry?.currentTier);
   const max = magnitudeOf(entry?.maxTier);
   if (tier === null || max === null || tier >= max) {
     return null;
   }
   return { current: tier + 1, total: max + 1, cost: entry?.upgradeCost };
+}
+
+/**
+ * The three fields a row is drawn from, which both channels carry under the same
+ * names and the same zero-based counting. Named rather than left as a union so
+ * the reader below does not have to know which channel a row came off.
+ */
+type TierBearing = Pick<
+  CareerFacility,
+  "currentTier" | "maxTier" | "upgradeCost"
+>;
+
+/**
+ * Whether this entry stated a tier AND a ceiling. Both, because a tier without a
+ * ceiling cannot say whether there is a step left, and the section's whole
+ * "nothing has arrived" branch turns on the difference between an absent reading
+ * and a building already at the top.
+ */
+function answersTiers(entry: TierBearing | undefined): boolean {
+  return (
+    magnitudeOf(entry?.currentTier) !== null &&
+    magnitudeOf(entry?.maxTier) !== null
+  );
 }
 
 /**
@@ -300,6 +364,9 @@ registerAugment({
     /* What is already being built, so a facility with a project in flight is
        not offered a second one the command would refuse. */
     "rp1.constructions",
+    /* The tiers and prices again, read through RP-1 rather than through the
+       scene. The only one of these that answers away from the space centre. */
+    "rp1.facilities",
   ],
   requires: "rp1",
   /** Immediately above the construction queue this feeds; see `KscConstruction`

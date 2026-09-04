@@ -38,6 +38,7 @@ import type {
   Rp1ConstructionEntry,
   Rp1CrewEntry,
   Rp1CrewProgram,
+  Rp1FacilityEntry,
   Rp1FundTarget,
   Rp1FundingCurveEntry,
   Rp1LcPricing,
@@ -65,6 +66,7 @@ export interface GeneratedTopicPayloadMap {
   "rp1.constructions": Rp1ConstructionEntry[];
   "rp1.crew": Rp1CrewEntry[];
   "rp1.crewProgram": Rp1CrewProgram;
+  "rp1.facilities": Rp1FacilityEntry[];
   "rp1.fundTarget": Rp1FundTarget;
   "rp1.lcPricing": Rp1LcPricing;
   "rp1.operations": Rp1OperationEntry[];
@@ -92,6 +94,7 @@ export const GENERATED_TOPIC_IDS = [
   "rp1.constructions",
   "rp1.crew",
   "rp1.crewProgram",
+  "rp1.facilities",
   "rp1.fundTarget",
   "rp1.lcPricing",
   "rp1.operations",

@@ -43,6 +43,7 @@ public static class Rp1RtConfig
             typeof(Rp1PadEntry),
             typeof(Rp1OperationEntry),
             typeof(Rp1ConstructionEntry),
+            typeof(Rp1FacilityEntry),
             typeof(Rp1ResearchEntry),
             typeof(Rp1Personnel),
             typeof(Rp1HireTarget),

@@ -78,6 +78,23 @@ namespace RP0
         public static readonly CrewSettings SettingsCrew = new CrewSettings();
 
         /// <summary>
+        /// What each of a building's tiers costs, in the shape RP-1 parses its
+        /// CustomBarnKit <c>upgrades</c> list into: entry [n] is tier n's price,
+        /// and the Count is how many tiers the building has. Nothing scene-bound
+        /// touches it, which is the whole reason the facility reading can answer
+        /// away from the space centre.
+        /// </summary>
+        public static readonly Dictionary<SpaceCenterFacility, List<int>> FacilityLevelCosts =
+            new Dictionary<SpaceCenterFacility, List<int>>();
+
+        /// <summary>
+        /// The buildings RP-1 does not upgrade as buildings: the ones its config
+        /// prices at a single fund, whose tier RP-1 drives itself from the mean of
+        /// the ones it does upgrade.
+        /// </summary>
+        public static readonly List<SpaceCenterFacility> LockedFacilities = new List<SpaceCenterFacility>();
+
+        /// <summary>
         /// The era table a node's research RATE comes out of. A
         /// <c>PersistentDictionaryNodeKeyed&lt;TechPeriod&gt;</c> on the real
         /// type, which is a <c>Dictionary&lt;string, TechPeriod&gt;</c>

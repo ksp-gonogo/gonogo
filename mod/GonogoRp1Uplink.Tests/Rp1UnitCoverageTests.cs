@@ -36,6 +36,7 @@ namespace GonogoRp1Uplink.Tests
                 nameof(Rp1PadEntry),
                 nameof(Rp1OperationEntry),
                 nameof(Rp1ConstructionEntry),
+                nameof(Rp1FacilityEntry),
                 nameof(Rp1ResearchEntry),
                 nameof(Rp1Personnel),
                 nameof(Rp1RushTerms),

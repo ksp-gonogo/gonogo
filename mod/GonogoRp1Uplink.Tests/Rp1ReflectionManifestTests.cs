@@ -34,6 +34,7 @@ namespace GonogoRp1Uplink.Tests
         {
             "Rp1Types.cs",
             "Rp1ScReflection.cs",
+            "Rp1FacilitiesReflection.cs",
             "Rp1CrewReflection.cs",
             "Rp1CrewStandingBackend.cs",
             "Rp1ProgramsReflection.cs",

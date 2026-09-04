@@ -244,6 +244,13 @@
       "retirementEnabled": "flag",
       "retirementExtensionCapSeconds": "s"
     },
+    "Rp1FacilityEntry": {
+      "currentTier": "count",
+      "facility": "enum",
+      "maxTier": "count",
+      "upgradeCost": "funds",
+      "upgradedByRp1": "flag"
+    },
     "Rp1FacilityUpgradeArgs": {
       "facility": "id"
     },
@@ -646,6 +653,13 @@
       "proficiencyTrainingRate": "1",
       "retirementEnabled": "flag",
       "retirementExtensionCapSeconds": "s"
+    },
+    "rp1.facilities": {
+      "currentTier": "count",
+      "facility": "enum",
+      "maxTier": "count",
+      "upgradeCost": "funds",
+      "upgradedByRp1": "flag"
     },
     "rp1.fundTarget": {
       "active": "flag",

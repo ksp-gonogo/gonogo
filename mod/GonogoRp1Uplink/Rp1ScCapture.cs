@@ -242,6 +242,29 @@ namespace GonogoRp1Uplink
         /// missing key, which is the same discipline the warehouse row follows for
         /// the progress fields it does not have.
         /// </summary>
+        /// <summary>
+        /// The buildings themselves, as opposed to the work being done to one.
+        /// Sibling of <see cref="BuildConstructions"/> and read on the same tick,
+        /// so a facility's tier and the upgrade in flight against it can never
+        /// disagree about which tick they came from.
+        /// </summary>
+        public static List<object?> BuildFacilities(Rp1ScRaw raw)
+        {
+            var list = new List<object?>();
+            foreach (var f in raw.Facilities)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["facility"] = f.Facility,
+                    ["currentTier"] = f.CurrentTier,
+                    ["maxTier"] = f.MaxTier,
+                    ["upgradeCost"] = f.UpgradeCost,
+                    ["upgradedByRp1"] = f.UpgradedByRp1,
+                });
+            }
+            return list;
+        }
+
         public static List<object?> BuildConstructions(Rp1ScRaw raw)
         {
             var list = new List<object?>();

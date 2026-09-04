@@ -278,6 +278,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     retirementEnabled: "flag",
     retirementExtensionCapSeconds: "s",
   },
+  "Rp1FacilityEntry": {
+    currentTier: "count",
+    facility: "enum",
+    maxTier: "count",
+    upgradeCost: "funds",
+    upgradedByRp1: "flag",
+  },
   "Rp1FacilityUpgradeArgs": {
     facility: "id",
   },
@@ -685,6 +692,13 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     proficiencyTrainingRate: "1",
     retirementEnabled: "flag",
     retirementExtensionCapSeconds: "s",
+  },
+  "rp1.facilities": {
+    currentTier: "count",
+    facility: "enum",
+    maxTier: "count",
+    upgradeCost: "funds",
+    upgradedByRp1: "flag",
   },
   "rp1.fundTarget": {
     active: "flag",

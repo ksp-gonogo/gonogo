@@ -27,6 +27,7 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1ScMath.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScCapture.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScReflection.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1FacilitiesReflection.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ProgramsRaw.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ProgramsMath.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ProgramsCapture.cs" />

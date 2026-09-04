@@ -18,7 +18,12 @@ afterEach(() => {
   renderedTrees.length = 0;
 });
 
-const CARRIED = ["rp1.available", "career.status", "rp1.constructions"];
+const CARRIED = [
+  "rp1.available",
+  "career.status",
+  "rp1.constructions",
+  "rp1.facilities",
+];
 
 function mount() {
   const stream = setupStreamFixture({
@@ -38,10 +43,14 @@ function emit(
   stream: ReturnType<typeof mount>,
   career: Record<string, unknown> | undefined,
   constructions: unknown[] = [],
+  facilities?: unknown[],
 ) {
   act(() => {
     stream.emit("rp1.available", true, { validAt: 1000 });
     stream.emit("rp1.constructions", constructions, { validAt: 1000 });
+    if (facilities !== undefined) {
+      stream.emit("rp1.facilities", facilities, { validAt: 1000 });
+    }
     if (career !== undefined) {
       stream.emit("career.status", career, { validAt: 1000 });
     }
@@ -61,7 +70,10 @@ const AT_CENTRE = {
   },
 };
 
-/** The same career read from anywhere but the space centre. */
+/**
+ * The same career read from anywhere but the space centre. KSP has instantiated
+ * no facility, so core's channel answers absent for every tier and every price.
+ */
 const AWAY = {
   economy: { funds: 289848 },
   facilities: {
@@ -73,6 +85,29 @@ const AWAY = {
     },
   },
 };
+
+/**
+ * What RP-1 answers for the same two buildings, from the same place: it
+ * denormalises the level KSP persists in the SAVE against its own config tier
+ * count, so this channel carries the identical figures whatever scene the
+ * operator is in.
+ */
+const RP1_TIERS = [
+  {
+    facility: "LaunchPad",
+    currentTier: 1,
+    maxTier: 2,
+    upgradeCost: 112500,
+    upgradedByRp1: true,
+  },
+  {
+    facility: "VehicleAssemblyBuilding",
+    currentTier: 0,
+    maxTier: 2,
+    upgradeCost: 40000,
+    upgradedByRp1: true,
+  },
+];
 
 describe("FacilityUpgrades: the tier a career can commit to next", () => {
   /**
@@ -179,30 +214,74 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
   });
 
   /**
-   * Outside the space centre KSP has not instantiated the facilities, so every tier and
-   * every price arrives absent and the command's own gate refuses. Said out
-   * loud, because a career with nothing left to upgrade renders the same
-   * silence and only one of the two is a reason to go and stand somewhere else.
+   * THE OFF-SCENE CASE, and the reason `rp1.facilities` exists.
+   *
+   * <para>Core's channel has gone silent because KSP instantiates the buildings
+   * in the SPACECENTER scene only. RP-1's has not: it reads the level KSP
+   * persists in the save and denormalises it against its own config tier count,
+   * which its own MaintenanceHandler does in all four scenes to bill the career.
+   * So the tier and the price are still on screen, and the section says nothing
+   * about not being able to read them.</para>
    */
-  it("says the tiers cannot be read from away rather than showing an empty list", async () => {
+  it("still names the tiers and their prices when only RP-1's channel answers", async () => {
+    const stream = mount();
+
+    emit(stream, AWAY, [], RP1_TIERS);
+    await screen.findByText("FACILITY UPGRADES");
+
+    const text = visibleText(stream.container);
+    expect(text).toContain("Launch Pad");
+    expect(text).toContain("now at tier 2 of 3");
+    expect(text).toContain("112,500");
+    expect(text).not.toContain("cannot be read");
+    expect(text).not.toContain("No tiers have arrived");
+  });
+
+  /**
+   * Neither channel answered. On an RP-1 install that is a cold start rather
+   * than a scene, because RP-1's cost table loads once at game load; either way
+   * it is said out loud, since a career with nothing left to upgrade renders the
+   * same silence and only one of the two is worth waiting through.
+   */
+  it("says no tiers have arrived rather than showing an empty list", async () => {
     const stream = mount();
 
     emit(stream, AWAY);
     await screen.findByText("FACILITY UPGRADES");
 
     const text = visibleText(stream.container);
-    expect(text).toContain("in the scene only at the space centre");
+    expect(text).toContain("No tiers have arrived");
     expect(text).not.toContain("No facility has a tier left to queue");
-    /* And it says what is NOT happening, which is the half the wording here
-       used to get wrong. It read "KSP builds the facilities only while the
-       space centre is on screen", which an operator reads as a build that
-       pauses when they walk away. RP-1 advances a construction on UNIVERSAL
-       TIME out of MaintenanceHandler.FixedUpdate, whose [KSPScenario] names
-       EDITOR, FLIGHT, SPACECENTER and TRACKSTATION, and neither
+    /* And it says what is NOT happening, which is the half this wording has
+       twice got wrong. RP-1 advances a construction on UNIVERSAL TIME out of
+       MaintenanceHandler.FixedUpdate, whose [KSPScenario] names EDITOR, FLIGHT,
+       SPACECENTER and TRACKSTATION, and neither
        ConstructionProject.IncrementProgress nor Formula.GetConstructionBuildRate
-       tests the scene at all. What the space centre is needed for is the
-       UpgradeableFacility objects the tiers are read off, nothing more. */
+       tests the scene at all. */
     expect(text).toContain("keeps building wherever you are");
+  });
+
+  /**
+   * The five buildings RP-1 prices at a single fund under its own "cosmetic
+   * only" comment. It drives their tier itself from the mean of the ones it does
+   * upgrade, so a project queued against one would finish almost at once and
+   * then be overwritten; RP-1's own menu disables the button. Offered until this
+   * fact reached the wire, and refused by the command; now not offered at all.
+   */
+  it("does not offer a building RP-1 declines to upgrade as a building", async () => {
+    const stream = mount();
+
+    emit(
+      stream,
+      AWAY,
+      [],
+      [{ ...RP1_TIERS[0], upgradedByRp1: false }, RP1_TIERS[1]],
+    );
+    await screen.findByText("FACILITY UPGRADES");
+
+    const text = visibleText(stream.container);
+    expect(text).not.toContain("Launch Pad");
+    expect(text).toContain("Vehicle Assembly");
   });
 
   /**
@@ -232,7 +311,7 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
 
     const text = visibleText(stream.container);
     expect(text).toContain("No facility has a tier left to queue");
-    expect(text).not.toContain("in the scene only at the space centre");
+    expect(text).not.toContain("No tiers have arrived");
   });
 
   /**

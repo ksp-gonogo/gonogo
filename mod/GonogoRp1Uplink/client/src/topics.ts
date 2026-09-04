@@ -29,6 +29,7 @@ import type {
   Rp1ConstructionEntry,
   Rp1CrewEntry,
   Rp1CrewProgram,
+  Rp1FacilityEntry,
   Rp1FundingCurveEntry,
   Rp1FundTarget,
   Rp1LcPricing,
@@ -95,6 +96,24 @@ export const RP1_OPERATIONS_TOPIC = "rp1.operations";
  * `kind`. The half of the schedule that moves in months.
  */
 export const RP1_CONSTRUCTIONS_TOPIC = "rp1.constructions";
+
+/**
+ * The space centre's buildings themselves: the tier each stands at, the tier it
+ * can reach, and what the next step costs.
+ *
+ * The one channel here that answers AWAY from the space centre.
+ * `career.status.facilities` reads the live `UpgradeableFacility` objects, which
+ * KSP only puts in the SPACECENTER scene, so every tier and price on it is absent
+ * in the editor, in flight and at the tracking station. RP-1 does not read them
+ * that way: it denormalises the level KSP persists in the save against a tier
+ * count it loads from config, and its own upkeep pass does exactly that in all
+ * four scenes.
+ *
+ * It carries no tier DESCRIPTIONS. Those come off the live facility and have no
+ * config mirror, so they stay on `career.status` where only the space centre can
+ * read them.
+ */
+export const RP1_FACILITIES_TOPIC = "rp1.facilities";
 
 /** The research queue, global across centres. */
 export const RP1_RESEARCH_TOPIC = "rp1.research";
@@ -252,6 +271,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.pads": Rp1PadEntry[];
     "rp1.operations": Rp1OperationEntry[];
     "rp1.constructions": Rp1ConstructionEntry[];
+    "rp1.facilities": Rp1FacilityEntry[];
     "rp1.research": Rp1ResearchEntry[];
     "rp1.personnel": Rp1Personnel;
     "rp1.rushTerms": Rp1RushTerms;
@@ -280,6 +300,7 @@ registerBarePrimitiveTopic(RP1_BUILDABLE_TOPIC);
 registerBarePrimitiveTopic(RP1_PADS_TOPIC);
 registerBarePrimitiveTopic(RP1_OPERATIONS_TOPIC);
 registerBarePrimitiveTopic(RP1_CONSTRUCTIONS_TOPIC);
+registerBarePrimitiveTopic(RP1_FACILITIES_TOPIC);
 registerBarePrimitiveTopic(RP1_RESEARCH_TOPIC);
 registerBarePrimitiveTopic(RP1_PERSONNEL_TOPIC);
 registerBarePrimitiveTopic(RP1_RUSH_TERMS_TOPIC);
@@ -346,6 +367,9 @@ export type _ResolvesRp1Operations = Expect<
 >;
 export type _ResolvesRp1Constructions = Expect<
   Equal<TopicPayload<"rp1.constructions">, Rp1ConstructionEntry[]>
+>;
+export type _ResolvesRp1Facilities = Expect<
+  Equal<TopicPayload<"rp1.facilities">, Rp1FacilityEntry[]>
 >;
 export type _ResolvesRp1Research = Expect<
   Equal<TopicPayload<"rp1.research">, Rp1ResearchEntry[]>

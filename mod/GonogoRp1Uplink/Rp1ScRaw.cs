@@ -36,6 +36,14 @@ namespace GonogoRp1Uplink
         public List<Rp1ResearchRaw> Research = new List<Rp1ResearchRaw>();
 
         /// <summary>
+        /// The centre's buildings, read through RP-1's own denormalisation rather
+        /// than through the scene, so they answer in the editor, in flight and in
+        /// the tracking station as well as at the space centre. Filled by
+        /// <see cref="Rp1FacilitiesReflection"/>, and empty on a stock install.
+        /// </summary>
+        public List<Rp1FacilityRaw> Facilities = new List<Rp1FacilityRaw>();
+
+        /// <summary>
         /// The save's craft files and what each complex would make of them. Empty
         /// when this install has no craft catalogue, which publishes an empty
         /// channel rather than nothing: an install whose core cannot open craft

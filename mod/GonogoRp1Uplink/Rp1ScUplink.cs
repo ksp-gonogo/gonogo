@@ -47,6 +47,13 @@ namespace GonogoRp1Uplink
         public const string OperationsTopic = "rp1.operations";
         public const string ConstructionsTopic = "rp1.constructions";
         public const string ResearchTopic = "rp1.research";
+
+        /// <summary>
+        /// The buildings themselves: tier, ceiling and next-tier price, read
+        /// through RP-1 so they answer outside the space centre, where core's
+        /// <c>career.status.facilities</c> cannot.
+        /// </summary>
+        public const string FacilitiesTopic = "rp1.facilities";
         public const string PersonnelTopic = "rp1.personnel";
         public const string RushTermsTopic = "rp1.rushTerms";
 
@@ -78,6 +85,7 @@ namespace GonogoRp1Uplink
             "Rp1ScUplink rows published", threshold: 5000, windowSec: 1.0, unit: "rows");
 
         private readonly Rp1ScReflection _rp1 = new Rp1ScReflection();
+        private readonly Rp1FacilitiesReflection _facilityTiers = new Rp1FacilitiesReflection();
 
         /// <summary>
         /// RP-1's Programs, on their own reader and their own sampled source.
@@ -342,6 +350,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _operations;
         private IChannelPublisher? _constructions;
         private IChannelPublisher? _research;
+        private IChannelPublisher? _facilityTiersPublisher;
         private IChannelPublisher? _personnel;
         private IChannelPublisher? _rushTerms;
         private IChannelPublisher? _lcPricing;
@@ -442,6 +451,10 @@ namespace GonogoRp1Uplink
                 Ground(OperationsTopic),
                 Ground(ConstructionsTopic),
                 Ground(ResearchTopic),
+                // An empty list is a real answer: a stock install has no RP-1
+                // cost table, and an operator whose facility section is silent
+                // needs to know which of the two silences they are looking at.
+                Ground(FacilitiesTopic),
                 // Both singletons are legitimately absent from the first tick:
                 // a stock install has no payroll and no Confidence module, and
                 // without this the client would wait for a value that is never
@@ -1119,6 +1132,7 @@ namespace GonogoRp1Uplink
             _operations = host.Publisher(OperationsTopic);
             _constructions = host.Publisher(ConstructionsTopic);
             _research = host.Publisher(ResearchTopic);
+            _facilityTiersPublisher = host.Publisher(FacilitiesTopic);
             _personnel = host.Publisher(PersonnelTopic);
             _rushTerms = host.Publisher(RushTermsTopic);
             _lcPricing = host.Publisher(LcPricingTopic);
@@ -1147,6 +1161,7 @@ namespace GonogoRp1Uplink
                 OperationsTopic,
                 ConstructionsTopic,
                 ResearchTopic,
+                FacilitiesTopic,
                 PersonnelTopic,
                 RushTermsTopic,
                 LcPricingTopic,
@@ -1247,6 +1262,10 @@ namespace GonogoRp1Uplink
             // says it must be asked: it walks the save's craft folders and reads
             // part prefabs.
             raw.Buildable = Rp1Buildable.Rows(CraftListing(), raw.Complexes);
+            // Its own reader, on the same tick: the buildings are read through
+            // RP-1's cost table and KSP's persisted level rather than through the
+            // space centre's roster, which is what lets them answer off-scene.
+            raw.Facilities = _facilityTiers.Read();
             return raw;
         }
 
@@ -1303,11 +1322,13 @@ namespace GonogoRp1Uplink
             var operations = Rp1ScCapture.BuildOperations(raw);
             var constructions = Rp1ScCapture.BuildConstructions(raw);
             var research = Rp1ScCapture.BuildResearch(raw);
+            var facilities = Rp1ScCapture.BuildFacilities(raw);
             var buildable = Rp1ScCapture.Buildable(raw);
 
             Rp1RowBudget.Record(
                 centres.Count + complexes.Count + buildQueue.Count + warehouse.Count
                 + pads.Count + operations.Count + constructions.Count + research.Count
+                + facilities.Count
                 + buildable.Count,
                 raw.Ut);
 
@@ -1319,6 +1340,7 @@ namespace GonogoRp1Uplink
             _operations?.Publish(operations, raw.Ut);
             _constructions?.Publish(constructions, raw.Ut);
             _research?.Publish(research, raw.Ut);
+            _facilityTiersPublisher?.Publish(facilities, raw.Ut);
             _buildable?.Publish(buildable, raw.Ut);
             _personnel?.Publish(Rp1ScCapture.BuildPersonnel(raw), raw.Ut);
             _rushTerms?.Publish(Rp1ScCapture.BuildRushTerms(raw), raw.Ut);

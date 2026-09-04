@@ -2926,6 +2926,61 @@ export interface Rp1CareerEvents
 	events?: Rp1CareerEventEntry[];
 }
 /**
+* One of the space centre's buildings, as RP-1 knows it: the tier it is at,
+* the tier it can reach, and what the next step costs.
+*
+* **This channel exists because it answers OUTSIDE the space centre and
+* `career.status.facilities` does not.** Core reads a tier off the live
+* `UpgradeableFacility` MonoBehaviours, which KSP only puts in the SPACECENTER
+* scene, so every tier and price on that payload is absent from the editor,
+* from flight and from the tracking station. RP-1 does not read them that way.
+* `KCTUtilities.GetFacilityLevel` denormalises the level KSP PERSISTS in the
+* save against a tier count RP-1 loads from config, and RP-1's own
+* `MaintenanceHandler.UpdateUpkeep` calls it for every facility in all four
+* scenes to bill the career for them. So on an RP-1 install these three facts
+* are readable wherever the operator is standing, and this channel carries
+* them there.
+*
+* Not a replacement for the stock payload: it carries no tier DESCRIPTIONS,
+* because those come off the live facility and are genuinely scene-bound. What
+* it carries is the tier, the ceiling and the price.
+*/
+export interface Rp1FacilityEntry
+{
+	/**
+	* The `SpaceCenterFacility` enum name, e.g. "VehicleAssemblyBuilding". The
+	* same key `career.status.facilities` is indexed by, so a client can read one
+	* where the other is silent.
+	*/
+	facility?: string;
+	/**
+	* The tier it is at now, zero-based, the same counting
+	* `career.status.facilities[].currentTier` uses.
+	*/
+	currentTier?: Value<"count">;
+	/** The highest tier it has, zero-based. A one-tier building answers 0. */
+	maxTier?: Value<"count">;
+	/**
+	* What raising it one tier costs, in funds, with the career's own funds-loss
+	* multiplier already applied. Absent at the ceiling, and absent rather than
+	* unmultiplied when that multiplier could not be read: an unmultiplied price
+	* is the right number on a normal career and the wrong one on every other,
+	* which is the shape of a figure nobody can check.
+	*
+	* **Nothing is charged when an upgrade is queued.** RP-1 bills a construction
+	* as it advances, so this is what the project will draw in total, not what
+	* leaves the balance at the press.
+	*/
+	upgradeCost?: Value<"funds">;
+	/**
+	* RP-1 upgrades this building as a building. False for the ones its config
+	* prices at a single fund under the comment "cosmetic only": RP-1 drives their
+	* tier itself from the mean of the ones it does upgrade, so a project queued
+	* against one would finish at once and then be overwritten.
+	*/
+	upgradedByRp1?: boolean;
+}
+/**
 * Which strategy to commit to, for `rp1.strategy.activate`.
 *
 * A leader AND a program, because RP-1 makes them one system: a "leader" is
