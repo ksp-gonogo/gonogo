@@ -21,5 +21,5 @@ export const READING_GATE_DEBT: readonly string[] = [
    * (`AugmentAvailabilityFeeder` already made it), and making it here changes
    * which augments the probe renders, which moves the visual baselines.
    */
-  "packages/components/scripts/probe/probe-entry.tsx:333",
+  "packages/components/scripts/probe/probe-entry.tsx:335",
 ];
