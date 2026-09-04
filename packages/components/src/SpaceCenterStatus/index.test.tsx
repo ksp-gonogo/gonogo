@@ -12,6 +12,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ContributionHost } from "../test/contributionHost";
 import {
   type MockDataSourceFixture,
   setupMockDataSource,
@@ -74,7 +75,12 @@ describe("SpaceCenterStatusComponent", () => {
           value={{ componentId: "space-center-status", contributionSlots: [] }}
         >
           <DashboardItemContext.Provider value={{ instanceId: id }}>
-            <SpaceCenterStatusComponent config={{}} id={id} />
+            <ContributionHost
+              componentId="space-center-status"
+              contributionSlots={["space-center-status.facilities"]}
+            >
+              <SpaceCenterStatusComponent config={{}} id={id} />
+            </ContributionHost>
           </DashboardItemContext.Provider>
         </WidgetMetaContext.Provider>
       </stream.Provider>,

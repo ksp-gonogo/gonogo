@@ -949,7 +949,7 @@ export function getGameHost(): string {
 // barrel would be a way to opt out of the namespacing that stops two Uplinks
 // colliding.
 
-/** Every contribution registered for a slot, in priority then registration order. */
+/** Every contribution that wins a slot: the highest priority band present, in registration order. */
 export function getContributionsForSlot(slot: string): AnyContribution[] {
   return getHost().getContributionsForSlot(slot);
 }

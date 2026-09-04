@@ -1,0 +1,94 @@
+{
+  "_scene": {
+    "contribution": "rp1:facility-tiers",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 16
+    },
+    "caption": "The space centre read from orbit. \"career.status\" comes off the live UpgradeableFacility objects, which KSP puts in the scene only at the space centre, so every tier on it is absent here and the grid used to be empty. RP-1 denormalises the level the save persists against its own tier count and bills the career off it in all four scenes, so this contribution answers wherever the operator is standing and takes the grid over rather than repeating it underneath. Mission Control is one of the five RP-1 prices at a single fund under a \"cosmetic only\" comment: its tier is a reading and is shown, its price is for a step nothing will take and is withheld. The Upgrade controls stay dark because the stock command needs the building in the scene",
+    "paints": ["Launch Pad", "VAB", "Mission Control", "Tracking", "MAX"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "comment": "The stock channel writes all nine keys and answers a tier for none of them, which is what it does in every scene but the space centre.",
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            },
+            "VehicleAssemblyBuilding": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            },
+            "MissionControl": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            },
+            "TrackingStation": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "Flight",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.facilities",
+        "payload": [
+          {
+            "facility": "LaunchPad",
+            "currentTier": 1,
+            "maxTier": 2,
+            "upgradeCost": 112500,
+            "upgradedByRp1": true
+          },
+          {
+            "facility": "VehicleAssemblyBuilding",
+            "currentTier": 0,
+            "maxTier": 4,
+            "upgradeCost": 40000,
+            "upgradedByRp1": true
+          },
+          {
+            "facility": "MissionControl",
+            "currentTier": 2,
+            "maxTier": 8,
+            "upgradeCost": 1,
+            "upgradedByRp1": false
+          },
+          {
+            "facility": "TrackingStation",
+            "currentTier": 2,
+            "maxTier": 2,
+            "upgradeCost": null,
+            "upgradedByRp1": true
+          }
+        ]
+      }
+    ]
+  }
+}

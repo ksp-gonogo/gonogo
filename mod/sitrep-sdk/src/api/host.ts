@@ -241,7 +241,7 @@ export interface GonogoHost {
   getAugmentsForSlot(slot: string): AugmentDefinition<string>[];
   /** Empty the augment registry. For tests; a running app never calls it. */
   clearAugments(): void;
-  /** Every contribution registered for a slot, in priority then registration order. */
+  /** Every contribution that wins a slot: the highest priority band present, in registration order. */
   getContributionsForSlot(slot: string): AnyContribution[];
   /** Subscribe to any change (register/unregister) in the contribution registry. */
   onContributionsChange(cb: () => void): () => void;

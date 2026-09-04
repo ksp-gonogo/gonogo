@@ -2,6 +2,7 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { ContributionHost } from "../test/contributionHost";
 import {
   setupMockDataSource,
   teardownMockDataSource,
@@ -57,7 +58,12 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-stream" }}>
-          <SpaceCenterStatusComponent id="scs-stream" w={6} h={7} />
+          <ContributionHost
+            componentId="space-center-status"
+            contributionSlots={["space-center-status.facilities"]}
+          >
+            <SpaceCenterStatusComponent id="scs-stream" w={6} h={7} />
+          </ContributionHost>
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -104,7 +110,12 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-tiny" }}>
-          <SpaceCenterStatusComponent id="scs-tiny" w={2} h={3} />
+          <ContributionHost
+            componentId="space-center-status"
+            contributionSlots={["space-center-status.facilities"]}
+          >
+            <SpaceCenterStatusComponent id="scs-tiny" w={2} h={3} />
+          </ContributionHost>
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -149,7 +160,12 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-facilities" }}>
-          <SpaceCenterStatusComponent id="scs-facilities" w={6} h={7} />
+          <ContributionHost
+            componentId="space-center-status"
+            contributionSlots={["space-center-status.facilities"]}
+          >
+            <SpaceCenterStatusComponent id="scs-facilities" w={6} h={7} />
+          </ContributionHost>
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );
@@ -211,7 +227,12 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-pad-vessel" }}>
-          <SpaceCenterStatusComponent id="scs-pad-vessel" w={6} h={7} />
+          <ContributionHost
+            componentId="space-center-status"
+            contributionSlots={["space-center-status.facilities"]}
+          >
+            <SpaceCenterStatusComponent id="scs-pad-vessel" w={6} h={7} />
+          </ContributionHost>
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

@@ -334,6 +334,44 @@ export interface ExperimentsInstrumentEntry {
   inoperable: boolean;
 }
 
+/**
+ * One building of the space centre, on `space-center-status.facilities`.
+ *
+ * <para>Every tier here is KSP's own zero-based facility level, the same index
+ * `career.status.facilities` carries: `maxTier` is the TOP tier's own index, so
+ * a three-tier building says 2. The host adds one for display, because operators
+ * count from one and so does KSP's own R&amp;D dialog, which calls a fully
+ * upgraded VAB "Level 3". A contributor passes the index straight through and
+ * converts nothing.</para>
+ *
+ * <para>Both tiers are REQUIRED, and that is the shape of the rule rather than
+ * an oversight: absent and zero are different readings, tier 0 is where every
+ * career starts, and a building whose tier could not be read is not a building
+ * at tier 0. A contributor that cannot read one omits the building.</para>
+ */
+export interface SpaceCenterFacilityEntry {
+  /** KSP's `SpaceCenterFacility` enum name, e.g. `"VehicleAssemblyBuilding"`. */
+  facility: string;
+  /** The tier it is at, zero-based. */
+  currentTier: number;
+  /** The top tier's own index, so a three-tier building says 2. */
+  maxTier: number;
+  /**
+   * What the next tier costs in funds. Absent at the ceiling, and absent when
+   * the price is not readable, which the host draws the same way: no price
+   * beside the control rather than a zero that would read as free.
+   */
+  upgradeCost?: number;
+  /**
+   * KSP's own description of the tier the building is at, as its upgrade dialog
+   * writes it: newline-separated `* Property: setting` lines. The host parses it
+   * into a list; anything it cannot read as a property stays a plain line.
+   */
+  currentTierText?: string;
+  /** The same, for the tier an upgrade would buy. */
+  nextTierText?: string;
+}
+
 declare module "./plots" {
   interface PlotSubjectRegistry {
     /** LandingStatus's velocity-height descent corridor: speed across, height
@@ -410,6 +448,28 @@ declare module "./types" {
     "astronaut-complex.readouts": {
       entry: StatEntry;
       topics: "spaceCenter.crewRoster";
+    };
+    /**
+     * The tiers SpaceCenterStatus draws in its facility grid.
+     *
+     * <para>The widget contributes its own reading of `career.status` here at
+     * priority 0, so an ordinary contributor DISPLACES the grid rather than
+     * adding a second copy of it below. That is what the slot is for: away from
+     * the space centre the stock reading has nothing to give, and a career model
+     * that keeps its own tier table does.</para>
+     *
+     * <para>KSP puts the space centre's buildings in the SPACECENTER scene only,
+     * and stock offers no way round it. `ProtoUpgradeable.GetLevel()` does parse
+     * the level persisted in the save when the scene is empty, but its sibling
+     * `GetLevelCount()` returns -1 there, and that level is NORMALISED: without
+     * a tier count it cannot be turned back into a tier. A career overhaul that
+     * carries its own tier counts (RP-1 parses the CustomBarnKit upgrade lists
+     * at load and bills the career off them in all four scenes) can answer
+     * wherever the operator is standing.</para>
+     */
+    "space-center-status.facilities": {
+      entry: SpaceCenterFacilityEntry;
+      topics: "career.status";
     };
   }
 }

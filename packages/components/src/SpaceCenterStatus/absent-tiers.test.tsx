@@ -1,8 +1,9 @@
 import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
-import { registerAugment, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
+import { registerAugment } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
@@ -34,18 +35,17 @@ function mount() {
   const { container, unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "scs-absent" }}>
-        {/* The identity the orchestrator mounts, so `space-center-status.sections`
-            resolves and an Uplink's section is reachable from here. Without it
-            the segment slot renders nothing and the fallback below could never
-            be proved to hide. */}
-        <WidgetMetaContext.Provider
-          value={{
-            componentId: "space-center-status",
-            contributionSlots: [],
-          }}
+        {/* The identity the orchestrator mounts, plus the contribution store the
+            grid now reads its tiers from. Without the identity
+            `space-center-status.sections` resolves to nothing, so the fallback
+            below could never be proved to hide; without the store the grid has
+            no tiers at all. */}
+        <ContributionHost
+          componentId="space-center-status"
+          contributionSlots={["space-center-status.facilities"]}
         >
           <SpaceCenterStatusComponent id="scs-absent" w={9} h={10} />
-        </WidgetMetaContext.Provider>
+        </ContributionHost>
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );

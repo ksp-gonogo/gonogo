@@ -104,15 +104,46 @@ export function registerContribution<S extends string>(
   notifyContributionChange();
 }
 
+/**
+ * The band a contribution registers at when it says nothing, and the reason it
+ * is 1 rather than 0: 0 is left free BELOW every ordinary contributor, for a
+ * host widget filling its own slot with the answer it can read itself. See
+ * {@link getContributionsForSlot}.
+ */
+export const DEFAULT_CONTRIBUTION_PRIORITY = 1;
+
+/**
+ * Every contribution that WINS the slot: the highest priority band present, in
+ * registration order.
+ *
+ * <p>Equal priority is not a tie to break. Everyone in the winning band renders,
+ * which is what lets two mutually-unaware mods both put their vessels on one
+ * diagram; only a STRICTLY higher band displaces. Nothing sets a priority unless
+ * it means to, so the ordinary case is one band holding every contributor,
+ * exactly as before.</p>
+ *
+ * <p>What the band buys is a host widget filling its OWN slot. It contributes
+ * what it can read at one below {@link DEFAULT_CONTRIBUTION_PRIORITY}, so a
+ * career overhaul that can answer where the host cannot displaces it instead of
+ * appearing beside it as a second copy of the same list. It is the contribution
+ * twin of `AugmentDefinition.suppressesVanillaBase`, and it is declared by the
+ * contributor rather than by the host for the same reason: the host cannot know
+ * which of its guests supersedes it.</p>
+ *
+ * <p>A contribution that means to render ALONGSIDE the host's own rows says so
+ * by taking the host's band explicitly.</p>
+ */
 export function getContributionsForSlot(slot: string): AnyContribution[] {
-  return Array.from(state().entries.values())
-    .filter((entry) => entry.def.contributes === slot)
-    .sort((a, b) => {
-      const pa = a.def.priority ?? 0;
-      const pb = b.def.priority ?? 0;
-      if (pa !== pb) return pa - pb;
-      return a.order - b.order;
-    })
+  const inSlot = Array.from(state().entries.values()).filter(
+    (entry) => entry.def.contributes === slot,
+  );
+  if (inSlot.length === 0) return [];
+  const priorityOf = (entry: (typeof inSlot)[number]): number =>
+    entry.def.priority ?? DEFAULT_CONTRIBUTION_PRIORITY;
+  const winning = Math.max(...inSlot.map(priorityOf));
+  return inSlot
+    .filter((entry) => priorityOf(entry) === winning)
+    .sort((a, b) => a.order - b.order)
     .map((entry) => entry.def);
 }
 

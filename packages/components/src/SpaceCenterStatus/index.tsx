@@ -14,7 +14,7 @@ import {
   useCommand,
   useStream,
 } from "@ksp-gonogo/sitrep-client";
-import { KspSpaceCenterFacility, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AutoEmptyState,
   CheckIcon,
@@ -33,6 +33,7 @@ import {
   Text,
   Unit,
   useCommandButton,
+  useContributions,
   usePanelDelay,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
@@ -42,11 +43,16 @@ import {
   netFundsPerDay,
   reportsFundsDrain,
 } from "../shared/FundsDrain";
+import { magnitudeOf } from "../shared/magnitude";
 import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+  FACILITIES,
+  type FacilityLevel,
+  facilityLevelsFrom,
+  KEY_TO_ENUM_FACILITY,
+} from "./facilities";
+// Side-effect import: the widget's own reading of `career.status.facilities`,
+// contributed into its own grid at the band every other contributor outranks.
+import "./facilitiesContribution";
 import { parseLevelText } from "./levelText";
 
 const topics = defineTopicManifest({
@@ -74,106 +80,6 @@ declare module "@ksp-gonogo/core" {
     "space-center-status.sections": Record<string, never>;
   }
 }
-
-const FACILITIES: Array<{ key: FacilityKey; label: string }> = [
-  { key: "launchPad", label: "Launch Pad" },
-  { key: "runway", label: "Runway" },
-  { key: "vab", label: "VAB" },
-  { key: "sph", label: "SPH" },
-  { key: "mission", label: "Mission Control" },
-  { key: "tracking", label: "Tracking" },
-  { key: "admin", label: "Admin" },
-  { key: "rd", label: "R&D" },
-  { key: "astronaut", label: "Astronaut" },
-];
-
-type FacilityKey =
-  | "launchPad"
-  | "runway"
-  | "vab"
-  | "sph"
-  | "mission"
-  | "tracking"
-  | "admin"
-  | "rd"
-  | "astronaut";
-
-/**
- * `career.status.facilities` (mod/Sitrep.Host/
- * CareerViewProvider.cs's `BuildFacilities`) is keyed by the full
- * `SpaceCenterFacility` enum name, not this widget's short codes, maps
- * each enum name onto its `FacilityKey`. Names match the real wire
- * (decompile-confirmed; also the exact 9
- * keys observed in a real `career.status` capture).
- */
-const ENUM_FACILITY_TO_KEY: Readonly<Record<string, FacilityKey>> = {
-  LaunchPad: "launchPad",
-  Runway: "runway",
-  VehicleAssemblyBuilding: "vab",
-  SpaceplaneHangar: "sph",
-  MissionControl: "mission",
-  TrackingStation: "tracking",
-  Administration: "admin",
-  ResearchAndDevelopment: "rd",
-  AstronautComplex: "astronaut",
-};
-
-/**
- * `SpaceCenterFacility` ORDINAL to this widget's short {@link FacilityKey}.
- *
- * The abbreviations are ours, so the pairing has to be written down somewhere:
- * nothing derives `vab` from `VehicleAssemblyBuilding`. What is NOT written down
- * is the enum side of it, which comes from {@link KspSpaceCenterFacility}, so a
- * renamed or added member shows up as a compile-time gap here rather than as a
- * facility that silently stops being displayed. `facilityOrdinalTableIsComplete`
- * in this widget's test is the check on that.
- */
-const ORDINAL_TO_FACILITY_KEY: ReadonlyMap<number, FacilityKey> = new Map([
-  [KspSpaceCenterFacility.LaunchPad, "launchPad"],
-  [KspSpaceCenterFacility.Runway, "runway"],
-  [KspSpaceCenterFacility.VehicleAssemblyBuilding, "vab"],
-  [KspSpaceCenterFacility.SpaceplaneHangar, "sph"],
-  [KspSpaceCenterFacility.MissionControl, "mission"],
-  [KspSpaceCenterFacility.TrackingStation, "tracking"],
-  [KspSpaceCenterFacility.Administration, "admin"],
-  [KspSpaceCenterFacility.ResearchAndDevelopment, "rd"],
-  [KspSpaceCenterFacility.AstronautComplex, "astronaut"],
-] as const);
-
-/** Exported for the completeness test; see {@link ORDINAL_TO_FACILITY_KEY}. */
-export const FACILITY_ORDINAL_KEYS = ORDINAL_TO_FACILITY_KEY;
-
-/**
- * Reverse of {@link ENUM_FACILITY_TO_KEY}: this widget's short `FacilityKey`
- * back to the full `SpaceCenterFacility` enum name the `career.facility.upgrade`
- * command's `facilityId` takes (the mod re-resolves the enum server-side).
- */
-const KEY_TO_ENUM_FACILITY = Object.fromEntries(
-  Object.entries(ENUM_FACILITY_TO_KEY).map(([enumName, key]) => [
-    key,
-    enumName,
-  ]),
-) as Readonly<Record<FacilityKey, string>>;
-
-interface FacilityLevel {
-  level: number;
-  max: number;
-  /** Funds cost for the next-tier upgrade. 0 = unknown / already at max. */
-  upgradeFunds: number;
-  /**
-   * Multi-line text matching what KSP's stock upgrade dialog shows for
-   * the current tier (e.g. "* Max Active Strategies: 1\n* Max Commitment: 25.0%").
-   * Empty string when the fork isn't emitting them yet, older DLLs
-   * before the 2026-05-13 update.
-   */
-  currentLevelText: string;
-  /** Same shape as `currentLevelText`, but for what the *next* upgrade
-   *  would unlock. Empty string when at max tier (no next) or when the
-   *  fork doesn't emit them. */
-  nextLevelText: string;
-}
-
-export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
  * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
@@ -208,87 +114,14 @@ function stillTrue<T, A>(
   return undefined;
 }
 
-/**
- * Defensive parser for facility-level payloads. Accepts BOTH the legacy
- * `kc.facilityLevels` shape (keyed by short code: launchPad/vab/sph/...:
- * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
- * `career.status.facilities` wire shape, keyed by the
- * full `SpaceCenterFacility` enum name: `{ currentTier, maxTier,
- * upgradeCost }`). The new wire's
- * `currentTier`/`maxTier` are the SAME 0-based tier-index convention this
- * widget already assumes for `level`/`max` (decompile-confirmed: a fully
- * upgraded facility reports `currentTier === maxTier`, both actual-tier-
- * minus-one: see the "Lvl N of M" comment in the render below), so they
- * map straight across with no reinterpretation. `upgradeCost` maps to
- * `upgradeFunds` 1:1; `null` (at max, or scene-gated) becomes `0`, the
- * existing "unknown or at max" sentinel. `currentLevelText`/`nextLevelText`
- * have no new-wire equivalent; always `""` for an enum-keyed entry,
- * degrading exactly like an older legacy DLL that never emitted them.
- * Drops anything that doesn't read as one of the two known shapes,
- * sandbox saves emit zeroed entries, which is fine.
- */
-export function parseFacilityLevels(raw: unknown): FacilityLevels {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
-  const out: FacilityLevels = {};
-  for (const [rawKey, v] of Object.entries(raw as Record<string, unknown>)) {
-    if (!v || typeof v !== "object") continue;
-    const entry = v as Record<string, unknown>;
-
-    // The ORDINAL first, when the entry carries one: it identifies the facility
-    // without trusting the key it arrived under. The key is then only a legacy
-    // route, for this widget's own short codes (the pre-mod wire shape) and for a
-    // producer that predates `facilityOrdinal`. Before the ordinal existed, a
-    // facility whose enum NAME missed the nine-entry table was skipped outright,
-    // so it vanished from the display with nothing said.
-    const ordinal = magnitudeOf(entry.facilityOrdinal as Quantityish);
-    const key: FacilityKey | undefined =
-      (ordinal !== null ? ORDINAL_TO_FACILITY_KEY.get(ordinal) : undefined) ??
-      (FACILITIES.some((f) => f.key === rawKey)
-        ? (rawKey as FacilityKey)
-        : ENUM_FACILITY_TO_KEY[rawKey]);
-    if (key === undefined) continue;
-
-    const level = magnitudeOf(entry.level as Quantityish);
-    const max = magnitudeOf(entry.max as Quantityish);
-    if (level !== null && max !== null) {
-      out[key] = {
-        level,
-        max,
-        upgradeFunds: magnitudeOr(entry.upgradeFunds as Quantityish, 0),
-        currentLevelText:
-          typeof entry.currentLevelText === "string"
-            ? entry.currentLevelText
-            : "",
-        nextLevelText:
-          typeof entry.nextLevelText === "string" ? entry.nextLevelText : "",
-      };
-      continue;
-    }
-
-    const currentTier = magnitudeOf(entry.currentTier as Quantityish);
-    const maxTier = magnitudeOf(entry.maxTier as Quantityish);
-    if (currentTier !== null && maxTier !== null) {
-      out[key] = {
-        level: currentTier,
-        max: maxTier,
-        upgradeFunds: magnitudeOr(entry.upgradeCost as Quantityish, 0),
-        currentLevelText: "",
-        nextLevelText: "",
-      };
-    }
-  }
-  return out;
-}
-
 function SpaceCenterStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
   // Canonical Topic reads (former kc.*/career.* keys resolved
   // through map-topic.ts):
-  //  - kc.facilityLevels -> career.status.facilities; parseFacilityLevels
-  //    accepts the enum-keyed currentTier/maxTier/upgradeCost shape
-  //    alongside the legacy short-code shape.
+  //  - kc.facilityLevels -> career.status.facilities, read through the
+  //    `space-center-status.facilities` contribution slot rather than here.
   //  - career.funds -> career.status.economy.funds (both off the one
   //    career.status Topic read).
   //  - kc.scene / kc.launchSite -> spaceCenter.scene.{scene,launchSite}
@@ -300,22 +133,21 @@ function SpaceCenterStatusComponent({
   // (KNOWN_COMMAND_GAPS) and falls back to legacy execute automatically,
   // reads migrate first, commands come later.
   /**
-   * One record, two kinds of field.
-   *
-   * The facility tiers and their upgrade costs are facts. A tier changes when the
-   * player pays for an upgrade, and a tier's cost is a game-config constant, so
-   * neither can drift while the link is not delivering. Withholding them would
-   * blank nine cells of a KSC that is demonstrably still standing.
-   *
-   * The balance on the same record is not a fact. It moves on its own (contract
-   * payouts, a recovery, a spend made elsewhere), and here it authorises spending:
+   * The balance is not a fact. It moves on its own (contract payouts, a
+   * recovery, a spend made elsewhere), and here it authorises spending:
    * `canAfford` below is a verdict that arms a button. A held number is exactly
    * the one that says yes to an upgrade the player can no longer pay for, so it
    * is withheld, and `fundsNotCurrent` lets the widget say which of the two
    * reasons the balance is missing for.
+   *
+   * The facility tiers on the same record ARE facts, and they are held rather
+   * than withheld: a tier changes only when the player pays for an upgrade and a
+   * tier's cost is a game-config constant, so neither can drift while the link
+   * is not delivering. That holding now happens in the contribution that reads
+   * them (`./facilitiesContribution.ts`), which samples the channel rather than
+   * judging it.
    */
   const careerReading = useTelemetry("career.status");
-  const facilitiesRaw = stillTrue(careerReading, undefined)?.facilities;
   // Magnitude: compared against an upgrade cost and rendered through this
   // widget's own compact funds formatting, both of which want a number.
   const careerFunds = magnitudeOf(judgeable(careerReading)?.economy?.funds);
@@ -371,7 +203,17 @@ function SpaceCenterStatusComponent({
    */
   const upgradeBlocked = upgradeCmd.gate?.blocked === true;
 
-  const facilities = parseFacilityLevels(facilitiesRaw);
+  /**
+   * The grid's tiers, from whichever contribution won the slot rather than
+   * straight off `career.status`. The widget's own reading of that channel is
+   * one of the contributions (`./facilitiesContribution.ts`), registered at the
+   * band every other contributor outranks, so a career model that can read a
+   * tier where the stock channel cannot takes the grid over rather than
+   * repeating it below.
+   */
+  const facilities = facilityLevelsFrom(
+    useContributions("space-center-status.facilities"),
+  );
 
   /**
    * Upgrades work in the Space Center scene only, KSP's upgrade pipeline isn't
@@ -1257,7 +1099,12 @@ registerComponent<SpaceCenterStatusConfig>({
   defaultConfig: {},
   actions: [],
   augmentSlots: ["space-center-status.sections"],
+  contributionSlots: ["space-center-status.facilities"],
   pushable: true,
 });
 
+// The facility vocabulary moved to `./facilities.ts` so the built-in
+// contribution can reach it without importing this component. Re-exported so
+// this widget's tests keep their one import site.
+export { FACILITY_ORDINAL_KEYS, parseFacilityLevels } from "./facilities";
 export { SpaceCenterStatusComponent };

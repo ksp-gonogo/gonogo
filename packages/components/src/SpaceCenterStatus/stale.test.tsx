@@ -3,6 +3,7 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
@@ -50,7 +51,12 @@ function mount(
   const { container, unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId }}>
-        <SpaceCenterStatusComponent id={instanceId} w={w} h={h} />
+        <ContributionHost
+          componentId="space-center-status"
+          contributionSlots={["space-center-status.facilities"]}
+        >
+          <SpaceCenterStatusComponent id={instanceId} w={w} h={h} />
+        </ContributionHost>
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );

@@ -486,7 +486,16 @@ export interface ContributionDefinition<S extends string = string> {
   ) => readonly ContributionEntry<S>[] | null | undefined;
   /** Domain presence gate, identical semantics to `AugmentDefinition.requires`. */
   requires?: string;
-  /** Ascending, ties in registration order. */
+  /**
+   * Which BAND this contribution belongs to. Default 1.
+   *
+   * <p>Only the highest band present in a slot renders, and all of it renders:
+   * an equal priority is not a tie to break, so two mutually-unaware mods at
+   * the default both draw and neither can silence the other. A host widget
+   * filling its own slot with the answer it can read itself sits at 0, which is
+   * what lets an ordinary contributor displace the stock list rather than
+   * appear beside it as a second copy. Within a band, registration order.</p>
+   */
   priority?: number;
   settings?: readonly AugmentSettingField[];
   /** Stamped by `defineUplinkClient(...).registerContribution`, never set by hand. */

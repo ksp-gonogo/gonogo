@@ -15,6 +15,7 @@ import "./CrewSchedule/courses";
 import "./CrewSchedule/enrolment";
 import "./ContractPayload";
 import "./FacilityUpgrades";
+import "./FacilityUpgrades/facilityTiers";
 import "./KscComplexes";
 import "./KscConstruction";
 import "./LaunchComplexStatus";

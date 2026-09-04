@@ -2,6 +2,7 @@ import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
+import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
@@ -35,7 +36,12 @@ async function renderWithFacilities(
   const { unmount } = render(
     <fixture.Provider>
       <DashboardItemContext.Provider value={{ instanceId: "scs-tiers" }}>
-        <SpaceCenterStatusComponent id="scs-tiers" w={9} h={10} />
+        <ContributionHost
+          componentId="space-center-status"
+          contributionSlots={["space-center-status.facilities"]}
+        >
+          <SpaceCenterStatusComponent id="scs-tiers" w={9} h={10} />
+        </ContributionHost>
       </DashboardItemContext.Provider>
     </fixture.Provider>,
   );
@@ -157,7 +163,12 @@ describe("SpaceCenterStatus tier descriptions", () => {
     const { unmount } = render(
       <fixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-narrow" }}>
-          <SpaceCenterStatusComponent id="scs-narrow" w={6} h={7} />
+          <ContributionHost
+            componentId="space-center-status"
+            contributionSlots={["space-center-status.facilities"]}
+          >
+            <SpaceCenterStatusComponent id="scs-narrow" w={6} h={7} />
+          </ContributionHost>
         </DashboardItemContext.Provider>
       </fixture.Provider>,
     );

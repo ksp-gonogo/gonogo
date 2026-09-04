@@ -12,17 +12,15 @@ import {
 beforeEach(() => clearContributions());
 
 describe("registerContribution / getContributionsForSlot", () => {
-  it("returns only contributions bound to the requested slot, ordered by ascending priority then registration order", () => {
+  it("returns only contributions bound to the requested slot", () => {
     registerContribution({
       id: "b",
       contributes: "test.slot",
-      priority: 5,
       compute: () => [{ id: "row-b" }],
     });
     registerContribution({
       id: "a",
       contributes: "test.slot",
-      priority: 1,
       compute: () => [{ id: "row-a" }],
     });
     registerContribution({
@@ -32,7 +30,60 @@ describe("registerContribution / getContributionsForSlot", () => {
     });
 
     const result = getContributionsForSlot("test.slot");
-    expect(result.map((d) => d.id)).toEqual(["a", "b"]);
+    expect(result.map((d) => d.id)).toEqual(["b", "a"]);
+  });
+
+  /**
+   * The whole point of the band. A host widget contributes its own stock answer
+   * at 0, so anything registered without a priority takes the slot over rather
+   * than appearing beside it as a second copy of the same list.
+   */
+  it("gives the slot to the highest band present and drops the rest", () => {
+    registerContribution({
+      id: "host",
+      contributes: "test.slot",
+      priority: 0,
+      compute: () => [{ id: "stock" }],
+    });
+    registerContribution({
+      id: "guest",
+      contributes: "test.slot",
+      compute: () => [{ id: "guest" }],
+    });
+
+    expect(getContributionsForSlot("test.slot").map((d) => d.id)).toEqual([
+      "guest",
+    ]);
+  });
+
+  /**
+   * An equal priority is not a tie to break. Two mutually-unaware mods at the
+   * default both draw, and neither can silence the other.
+   */
+  it("keeps every contribution sharing the winning band, in registration order", () => {
+    registerContribution({
+      id: "second",
+      contributes: "test.slot",
+      priority: 3,
+      compute: () => [{ id: "second" }],
+    });
+    registerContribution({
+      id: "first",
+      contributes: "test.slot",
+      priority: 3,
+      compute: () => [{ id: "first" }],
+    });
+    registerContribution({
+      id: "outranked",
+      contributes: "test.slot",
+      priority: 2,
+      compute: () => [{ id: "outranked" }],
+    });
+
+    expect(getContributionsForSlot("test.slot").map((d) => d.id)).toEqual([
+      "second",
+      "first",
+    ]);
   });
 
   it("throws on a genuine id collision (a different def re-using an id), but is a no-op for the exact same def re-registering", () => {

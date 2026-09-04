@@ -6,6 +6,7 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/ui-kit";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
@@ -72,7 +73,12 @@ function mount(
         value={{ componentId: "space-center-status", contributionSlots: [] }}
       >
         <DashboardItemContext.Provider value={{ instanceId }}>
-          <SpaceCenterStatusComponent id={instanceId} w={w} h={h} />
+          <ContributionHost
+            componentId="space-center-status"
+            contributionSlots={["space-center-status.facilities"]}
+          >
+            <SpaceCenterStatusComponent id={instanceId} w={w} h={h} />
+          </ContributionHost>
         </DashboardItemContext.Provider>
       </WidgetMetaContext.Provider>
     </fixture.Provider>,

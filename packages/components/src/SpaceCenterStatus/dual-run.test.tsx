@@ -2,6 +2,7 @@ import { DashboardItemContext } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
+import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import midCareer from "./__fixtures__/mid-career-mixed-no-tier-text.json";
 import { SpaceCenterStatusComponent } from "./index";
@@ -41,7 +42,12 @@ describe("SpaceCenterStatus: real mid-career fixture render off the stream (dela
     render(
       <streamFixture.Provider>
         <DashboardItemContext.Provider value={{ instanceId: "scs-stream" }}>
-          <SpaceCenterStatusComponent id="scs-stream" w={6} h={7} />
+          <ContributionHost
+            componentId="space-center-status"
+            contributionSlots={["space-center-status.facilities"]}
+          >
+            <SpaceCenterStatusComponent id="scs-stream" w={6} h={7} />
+          </ContributionHost>
         </DashboardItemContext.Provider>
       </streamFixture.Provider>,
     );
