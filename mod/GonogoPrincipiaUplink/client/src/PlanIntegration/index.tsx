@@ -1,5 +1,6 @@
 import { useCommand, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  Badge,
   Cluster,
   CommandButton,
   Countdown,
@@ -17,7 +18,15 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
-import type { PrincipiaPlan } from "../__generated__/contract";
+import type {
+  PrincipiaPlan,
+  PrincipiaPlanWriteReceipt,
+} from "../__generated__/contract";
+import {
+  nothingWasWritten,
+  planWriteReceipt,
+  planWriteRefusalLine,
+} from "../planWrite";
 
 /**
  * The step counts the producer's own control offers: eight values, each four
@@ -89,6 +98,14 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
   usePanelDelay(horizonCmd);
   const [draftSteps, setDraftSteps] = useState<number | null>(null);
   const [draftEndUt, setDraftEndUt] = useState<number | null>(null);
+  /*
+   * One receipt for both controls, because they are one block writing one plan
+   * and an operator reads the last thing they pressed. Two banners side by side
+   * would say the same sentence twice about the same plan.
+   */
+  const [lastWrite, setLastWrite] = useState<PrincipiaPlanWriteReceipt | null>(
+    null,
+  );
 
   if (plan == null) {
     return null;
@@ -199,6 +216,7 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
               disabled={frozen || endUt === desired || endsBeforeStart}
               aria-label="Move the flight plan's end instant"
               confirmAriaLabel="Confirm moving the flight plan's end instant"
+              onConfirmed={(result) => setLastWrite(planWriteReceipt(result))}
             />
           </Cluster>
           {strandedBurns > 0 && (
@@ -261,6 +279,7 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
             disabled={frozen || (maxSteps !== null && chosen === maxSteps)}
             aria-label="Set the flight plan's step limit"
             confirmAriaLabel="Confirm setting the flight plan's step limit"
+            onConfirmed={(result) => setLastWrite(planWriteReceipt(result))}
           />
         </Cluster>
       </Row>
@@ -269,6 +288,34 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
       <Text tone="faint" size="sm">
         Raise this when the plan stops short of its requested end.
       </Text>
+      {/* Neither control's success state can see this, and the receipt is the
+          only thing that says so: the mod answers a repeated request id with the
+          one it stored the first time without calling the plugin, and a receipt
+          can report an outcome that is not `Written` whatever the envelope
+          around it said. Both ids here are composed from the value being sent,
+          so stepping away from a number and back to it re-sends the id the first
+          press went under. Live-regioned because it is the outcome of something
+          the operator just pressed and it contradicts what the control beside it
+          is showing. */}
+      {nothingWasWritten(lastWrite) && (
+        <Stack gap="xs" role="status" aria-live="polite">
+          <Cluster justify="start">
+            <Badge severity="warning">NOTHING WAS WRITTEN</Badge>
+          </Cluster>
+          {lastWrite.replayed === true ? (
+            <Text tone="faint" size="sm">
+              This matched a request already sent, so the mod answered with the
+              earlier receipt instead of writing again. The plan still holds
+              whatever the last write that DID land put there.
+            </Text>
+          ) : (
+            <Text tone="faint" size="sm">
+              {planWriteRefusalLine(lastWrite)}
+            </Text>
+          )}
+        </Stack>
+      )}
+
       {/* Once, under both, because it is one gate and repeating it beside each
           control would say the same thing twice. */}
       {frozenReason !== null && (

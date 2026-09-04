@@ -621,6 +621,67 @@ describe("BurnEditor", () => {
     await act(async () => {});
   });
 
+  /**
+   * An arm answered from the mod's own store is not an arm.
+   *
+   * This one's request id is composed from the VESSEL alone, so it never
+   * varies: the second press an operator makes on the same craft sends the id
+   * the first went under, and `PlanCommands.Arm` answers it out of
+   * `_receipts` before it touches the plugin or the write surface. Both presses
+   * resolve, so the control shows the same confirmation for a re-arm that did
+   * nothing as for the arm that granted the permission.
+   */
+  it("says an arm answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "arm-vessel-1",
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Arm the flight-plan write surface" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm arming the flight-plan write surface",
+      }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /** The other arm of the same fact, on the arm control. */
+  it("says an arm receipt reporting no write changed nothing, and names the guard", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "arm-vessel-1",
+        outcome: PrincipiaWriteOutcome.Refused,
+        refusal: PrincipiaWriteRefusal.LayoutUnverified,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Arm the flight-plan write surface" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm arming the flight-plan write surface",
+      }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    expect(screen.getByText(/LayoutUnverified/)).toBeInTheDocument();
+    await act(async () => {});
+  });
+
   it("has no accessibility violations", async () => {
     const stream = mount();
     await emitPlan(stream);

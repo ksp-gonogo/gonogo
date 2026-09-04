@@ -226,6 +226,15 @@ export function BurnEditor() {
   const [lastWrite, setLastWrite] = useState<PrincipiaPlanWriteReceipt | null>(
     null,
   );
+  /*
+   * The arm's receipt is kept apart from the burn edits' because the two are
+   * read in different places: the burn banner lives inside the form, which is
+   * only on screen once a burn is selected, and an arm is the press an operator
+   * makes BEFORE there is one.
+   */
+  const [lastArm, setLastArm] = useState<PrincipiaPlanWriteReceipt | null>(
+    null,
+  );
 
   if (view.kind === "none") {
     return (
@@ -326,27 +335,57 @@ export function BurnEditor() {
 
         {/* Arming is a real write of Principia's own burn back into the plan, so
             it confirms rather than firing on the first press. */}
-        <Cluster gap="sm" wrap justify="start">
-          <CommandButton
-            size="sm"
-            tone="go"
-            handle={armCmd}
-            args={{ vesselId, requestId: `arm-${vesselId ?? "none"}` }}
-            commandLabel="Arm the flight-plan write surface"
-            label="ARM WRITES"
-            confirmLabel="CONFIRM ARM"
-            confirmTone="nogo"
-            pendingLabel="Arming..."
-            disabled={!available}
-            aria-label="Arm the flight-plan write surface"
-            confirmAriaLabel="Confirm arming the flight-plan write surface"
-          />
-          {surface?.reason && (
-            <Text tone="faint" size="sm">
-              {surface.reason}
-            </Text>
+        <Stack gap="xs">
+          <Cluster gap="sm" wrap justify="start">
+            <CommandButton
+              size="sm"
+              tone="go"
+              handle={armCmd}
+              args={{ vesselId, requestId: `arm-${vesselId ?? "none"}` }}
+              commandLabel="Arm the flight-plan write surface"
+              label="ARM WRITES"
+              confirmLabel="CONFIRM ARM"
+              confirmTone="nogo"
+              pendingLabel="Arming..."
+              disabled={!available}
+              aria-label="Arm the flight-plan write surface"
+              confirmAriaLabel="Confirm arming the flight-plan write surface"
+              onConfirmed={(result) => setLastArm(planWriteReceipt(result))}
+            />
+            {surface?.reason && (
+              <Text tone="faint" size="sm">
+                {surface.reason}
+              </Text>
+            )}
+          </Cluster>
+
+          {/* An arm that was answered from the mod's own store granted nothing,
+              and this is the only thing on screen that says so. The request id
+              is composed from the vessel alone, so it never varies: every press
+              after the first sends the id the first went under, and the mod
+              answers it out of its receipt cache without touching the write
+              surface. Both resolve, so the control shows the same confirmation
+              either way. Live-regioned because it is the outcome of something
+              the operator just pressed and it contradicts the badge above. */}
+          {nothingWasWritten(lastArm) && (
+            <Stack gap="xs" role="status" aria-live="polite">
+              <Cluster justify="start">
+                <Badge severity="warning">NOTHING WAS WRITTEN</Badge>
+              </Cluster>
+              {lastArm.replayed === true ? (
+                <Text tone="faint" size="sm">
+                  This arm matched one already sent, so the mod answered with
+                  the earlier receipt instead of arming again. The badge above
+                  is what the surface actually holds.
+                </Text>
+              ) : (
+                <Text tone="faint" size="sm">
+                  {planWriteRefusalLine(lastArm)}
+                </Text>
+              )}
+            </Stack>
           )}
-        </Cluster>
+        </Stack>
 
         <Stack gap="xs">
           <Text tone="faint" size="sm">

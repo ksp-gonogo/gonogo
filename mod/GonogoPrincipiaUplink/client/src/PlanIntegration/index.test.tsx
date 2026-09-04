@@ -1,10 +1,19 @@
-import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
+import {
+  act,
+  render,
+  screen,
+  setupStreamFixture,
+} from "@ksp-gonogo/sitrep-sdk/testing";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import type {
   PrincipiaPlan,
   PrincipiaPlannedBurn,
+} from "../__generated__/contract";
+import {
+  PrincipiaWriteOutcome,
+  PrincipiaWriteRefusal,
 } from "../__generated__/contract";
 import { axe } from "../test/axe";
 import { MAX_STEPS_OPTIONS, PlanIntegrationBlock } from "./index";
@@ -18,6 +27,20 @@ afterEach(() => {
 
 const VIEW_UT = 1_000_000;
 
+// `comms.delay` is carried because it is what `useCommand` reads its one-way
+// delay off, and both controls here freeze on a delay-aware handle. A fixture
+// that left it out would report every vantage as instant.
+const CARRIED = ["principia.plan", "comms.delay"];
+
+/**
+ * A plan write's answer as the mod actually sends it: a `CommandResult` whose
+ * `payload` is the receipt. See `JsonWriter.AppendCommandResult`, and
+ * `PlanCommands.Settle`/`Ok`, which is what puts the receipt there.
+ */
+function planWriteReply(receipt: Record<string, unknown>) {
+  return { success: true, errorCode: 0, payload: receipt };
+}
+
 /**
  * Rendered from a plain payload rather than through the stream.
  *
@@ -25,11 +48,20 @@ const VIEW_UT = 1_000_000;
  * fixture would be exercising that section's reading rather than this block's
  * decisions. What is under test here is which numbers appear and what the
  * control offers.</p>
+ *
+ * <p>The stream is here anyway, and only for the two CommandButtons: they
+ * dispatch through a real handle, so the receipt a write comes back with is
+ * reachable only from inside a provider.</p>
  */
 function mount(plan: PrincipiaPlan | null) {
-  const result = render(<PlanIntegrationBlock plan={plan} />);
+  const stream = setupStreamFixture({ carriedChannels: CARRIED });
+  const result = render(
+    <stream.Provider>
+      <PlanIntegrationBlock plan={plan} />
+    </stream.Provider>,
+  );
   renderedTrees.push(result.unmount);
-  return result;
+  return { ...stream, ...result };
 }
 
 /**
@@ -258,6 +290,77 @@ describe("PlanIntegrationBlock", () => {
     expect(await visibleText(container)).toContain(
       "Principia is optimising this plan",
     );
+  });
+
+  /**
+   * A step limit the mod answered from its own store is not a step limit.
+   *
+   * The request id is composed from the vessel and the CHOSEN count, so an
+   * operator who steps to 4096, sends it, steps away and steps back sends the id
+   * the first press went under, and `PlanCommands.SetIntegrator` answers it out
+   * of `_receipts` before it reaches the plugin. Both resolve, so the control
+   * cannot tell them apart; the receipt is the only place they differ.
+   */
+  it("says a step-limit write answered from an earlier receipt changed nothing", async () => {
+    const stream = mount(plan());
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "integrator-vessel-1-4096",
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Increase Max integration steps per segment",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Set the flight plan's step limit" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm setting the flight plan's step limit",
+      }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The same fact on the other remedy, and the other way a receipt can report
+   * it: an outcome that is not `Written`, whatever the envelope around it said.
+   */
+  it("says an end-instant receipt reporting no write changed nothing, and names the guard", async () => {
+    const stream = mount(plan());
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "horizon-vessel-1-1144000",
+        outcome: PrincipiaWriteOutcome.Refused,
+        refusal: PrincipiaWriteRefusal.SurfaceUnavailable,
+      }),
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Plan end later by 1h" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Move the flight plan's end instant",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm moving the flight plan's end instant",
+      }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    expect(screen.getByText(/SurfaceUnavailable/)).toBeInTheDocument();
+    await act(async () => {});
   });
 
   it("has no accessibility violations", async () => {
