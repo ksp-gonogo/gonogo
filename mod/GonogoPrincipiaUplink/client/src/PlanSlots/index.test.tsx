@@ -1,5 +1,10 @@
-import type { PlanDraftStore } from "@ksp-gonogo/sitrep-sdk";
-import { ManeuverFrame, usePlanDrafts, value } from "@ksp-gonogo/sitrep-sdk";
+import type { PlanDraft, PlanDraftStore } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  ManeuverFrame,
+  usePlanDrafts,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   clearPlanDrafts,
@@ -14,6 +19,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  PrincipiaBurnProfile,
   PrincipiaWriteOutcome,
   PrincipiaWriteRefusal,
 } from "../__generated__/contract";
@@ -163,7 +169,13 @@ function plan(overrides: Record<string, unknown> = {}) {
   };
 }
 
-/** A saved draft for the plan's own vessel, which is what INSTALL offers. */
+/**
+ * A saved draft for the plan's own vessel, which is what INSTALL offers.
+ *
+ * Returns the draft, because the id and the revision are what the install's
+ * request id is composed from and a test that hard-codes `draft-1@1` is
+ * asserting against the store's counter rather than against the rule.
+ */
 function saveDraft(
   store: PlanDraftStore,
   overrides: {
@@ -171,7 +183,8 @@ function saveDraft(
     ignitionUt?: number;
     vesselId?: string;
   } = {},
-) {
+): PlanDraft {
+  let created: PlanDraft | null = null;
   act(() => {
     const draft = store.create({
       name: "Plan 1",
@@ -188,8 +201,18 @@ function saveDraft(
         },
       ],
     });
-    store.update(draft.id, { saved: true });
+    created = store.update(draft.id, { saved: true }) ?? draft;
   });
+  if (created === null) throw new Error("the draft was never created");
+  return created;
+}
+
+/** The last `command-request` this screen put on the wire, verbatim. */
+function lastSent(stream: ReturnType<typeof mount>) {
+  const sent = stream.transport.sentCommands;
+  const last = sent[sent.length - 1];
+  if (last === undefined) throw new Error("no command was sent");
+  return last;
 }
 
 describe("PlanSlots", () => {
@@ -400,8 +423,15 @@ describe("PlanSlots", () => {
     await act(async () => {});
   });
 
-  /** The other arm of the same fact: see the sibling test in `BurnEditor`. */
-  it("says a receipt reporting no write changed nothing, and names the guard", async () => {
+  /**
+   * The RECEIPT READER, not the refusal path. See the sibling in `BurnEditor`
+   * for the whole reasoning; the short version is that
+   * `PlanCommands.Settle` answers every non-`Written` outcome with
+   * `Success = false`, so the pairing scripted here is one the producer never
+   * sends and the operator meets a refusal through the control instead. That is
+   * the test below this one.
+   */
+  it("reads a non-Written outcome off the receipt itself, whatever the envelope claimed", async () => {
     const stream = mount();
     stream.transport.setCommandHandler(() =>
       planWriteReply({
@@ -421,6 +451,59 @@ describe("PlanSlots", () => {
 
     expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
     expect(screen.getByText(/SurfaceUnavailable/)).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The refusal path a delete actually takes, and the mod's own sentence
+   * arriving at the operator on it.
+   *
+   * <p>`Settle` answers a refused delete with `Success = false`, the coarse
+   * `Code(...)` for the guard, and `result.Detail` as the sentence. The spine
+   * rejects on that, so `onConfirmed` never runs and there is no receipt banner
+   * at all: the control is the whole surface. `detail` is the only clause
+   * available here, because none of the ten ever sets a `LimitBreach`, so the
+   * general clause for `WrongState` is what an operator saw until ui-kit stopped
+   * dropping it.</p>
+   */
+  it("shows the mod's own sentence when a delete is refused", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: CommandErrorCode.WrongState,
+      detail: "The vessel has no flight plan. Create one first.",
+      payload: {
+        requestId: "delete-vessel-1",
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Refused,
+        refusal: PrincipiaWriteRefusal.NoFlightPlan,
+        refusalDetail: "The vessel has no flight plan. Create one first.",
+      },
+    }));
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Delete this flight plan" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Confirm deleting this flight plan" }),
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Delete this flight plan refused: The vessel has no flight plan. Create one first.",
+      }),
+    ).toBeInTheDocument();
+    // Not the general clause for the coarse code. That is what the operator got
+    // while the refusal was rebuilt field by field without its `detail`.
+    expect(
+      screen.queryByRole("button", {
+        name: /it is not in a state that allows it/,
+      }),
+    ).not.toBeInTheDocument();
+    // And no receipt banner: a rejection never resolves, so `onConfirmed` never
+    // ran and the widget was never handed a receipt to read.
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
     await act(async () => {});
   });
 
@@ -514,6 +597,155 @@ describe("PlanSlots", () => {
   });
 
   /**
+   * The whole create, end to end.
+   *
+   * <p>The end instant is the panel's seeded one: two one-way light times past
+   * the view instant, plus the default plan length. It is asserted as a NUMBER
+   * because `PrincipiaPlanSlotArgs.finalTimeUt` is a plain double on the
+   * receiving side, and it is in the request id because a create followed by a
+   * delete followed by a create asking for the same end is genuinely the same
+   * intent twice.</p>
+   */
+  it("creates a plan at the end instant on screen, and carries that instant in the id", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "create-vessel-1-13600",
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream, { planExists: false, planCount: 0, burns: [] });
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Create a flight plan for this vessel",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm creating a flight plan for this vessel",
+      }),
+    );
+
+    const sent = lastSent(stream);
+    expect(sent.command).toBe("principia.plan.create");
+    expect(sent.args).toEqual({
+      vesselId: "vessel-1",
+      requestId: "create-vessel-1-13600",
+      finalTimeUt: VIEW_UT + 3600,
+    });
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The replay arm on create. The id carries the vessel and the end instant and
+   * nothing else, so create, delete, and create again asking for the same end
+   * sends the id the first went under: the mod answers out of `_receipts` and
+   * the vessel is left with no plan at all, which is the opposite of what the
+   * control just confirmed.
+   */
+  it("says a create answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "create-vessel-1-13600",
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream, { planExists: false, planCount: 0, burns: [] });
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Create a flight plan for this vessel",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm creating a flight plan for this vessel",
+      }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The whole copy, end to end. Duplicate acts on whichever plan is selected, so
+   * the args are the vessel and the id and nothing more: the mod reads which
+   * slot to copy off its own selection rather than off anything sent.
+   */
+  it("copies the selected slot, keyed on the count it was copied at", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "duplicate-vessel-1-2",
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Copy this flight plan into a new slot",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm copying this flight plan into a new slot",
+      }),
+    );
+
+    const sent = lastSent(stream);
+    expect(sent.command).toBe("principia.plan.duplicate");
+    expect(sent.args).toEqual({
+      vesselId: "vessel-1",
+      requestId: "duplicate-vessel-1-2",
+    });
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The replay arm on copy, and the one where the key is weakest: the count is
+   * read off a reading that is a light time old, so a second copy pressed before
+   * the first one's new slot appears in a reading sends the same id, and the mod
+   * answers it out of `_receipts` without making the second copy.
+   */
+  it("says a copy answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "duplicate-vessel-1-2",
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Copy this flight plan into a new slot",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm copying this flight plan into a new slot",
+      }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
    * A composed plan reaches Principia's flight plan from here, and the composer
    * beside it writes stock manoeuvre nodes. An operator with nothing saved is
    * told which surface does which rather than shown an empty list.
@@ -541,6 +773,111 @@ describe("PlanSlots", () => {
     expect(
       await visibleText(screen.getByText("SAVED PLAN 1").ownerDocument.body),
     ).toContain("overwrites the burns the slot holds now");
+    await act(async () => {});
+  });
+
+  /**
+   * The whole install, end to end: the press, the args the mod binds, and the
+   * receipt read back off the reply.
+   *
+   * <p><b>The burns carry plain numbers, and that is the assertion.</b>
+   * `PrincipiaComposedBurn` is a payload carried INSIDE an args record rather
+   * than an args record itself, so codegen's "an Args type is a wire-WRITE"
+   * exemption does not reach it and its instants and components are generated as
+   * `Value`s. A draft holds them that way too, because a draft is read and
+   * rendered. But `ChannelEngine.BindCommandArgs` binds each to a plain
+   * <c>double</c> and rejects an object bag outright: "Cannot bind wire value of
+   * type Dictionary to numeric Double", thrown from INSIDE the handler, which
+   * loses the whole plan rather than one field. The sdk's own `planSendArgs`
+   * unwraps for exactly this reason and says so at length.</p>
+   */
+  it("sends the composed plan as the numbers the mod binds, not as unit values", async () => {
+    const stream = mount();
+    const draft = saveDraft(stream.store);
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: `send-${draft.id}@${draft.revision}-110000`,
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Install this plan as Principia's flight plan",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm installing this plan as Principia's flight plan",
+      }),
+    );
+
+    const sent = lastSent(stream);
+    expect(sent.command).toBe("principia.plan.send");
+    expect(sent.args).toEqual({
+      vesselId: "vessel-1",
+      // The draft's CONTENT at its revision, plus the end instant, which is
+      // stated by the panel rather than by the draft and so has to join the key.
+      requestId: `send-${draft.id}@${draft.revision}-110000`,
+      composedAtViewUt: VIEW_UT,
+      observedAtUt: VIEW_UT,
+      desiredFinalTimeUt: 110_000,
+      burns: [
+        {
+          ignitionUt: VIEW_UT + 7200,
+          // Slot for slot, in the basis's own order: the draft's first slot is
+          // the TANGENT under `TangentNormalBinormal`, whatever its field is
+          // called. Labelling by field name puts an along-track burn out of
+          // plane.
+          deltaVTangent: 120,
+          deltaVNormal: 0,
+          deltaVBinormal: 0,
+          inertiallyFixed: false,
+          profile: PrincipiaBurnProfile.Unchanged,
+        },
+      ],
+    });
+    // A `Written` receipt that was not replayed is a write, and the banner that
+    // contradicts the control must stay off for it.
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The replay arm on the newest of the ten. This id is the best-composed of the
+   * family (content plus revision plus the end instant), so a repeat is a
+   * genuine retransmission rather than an edit that lost its key: the mod
+   * answers it out of `_receipts` and the plan aboard is whatever the first one
+   * put there.
+   */
+  it("says an install answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    const draft = saveDraft(stream.store);
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: `send-${draft.id}@${draft.revision}-110000`,
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Install this plan as Principia's flight plan",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm installing this plan as Principia's flight plan",
+      }),
+    );
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
     await act(async () => {});
   });
 

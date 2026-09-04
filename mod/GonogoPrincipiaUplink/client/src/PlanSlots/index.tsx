@@ -761,16 +761,27 @@ function InstallRow({
  * value the sender could not see, and the profile is the one field of the burn
  * the composer does not offer, so the plan keeps whichever engine Principia
  * already has.</p>
+ *
+ * <p><b>MAGNITUDES, not `Value`s, and the cast is what that costs.</b>
+ * `PrincipiaComposedBurn` is carried INSIDE an args record rather than being
+ * one, so codegen's "an Args type is a wire-WRITE" exemption does not reach it
+ * and types its instant and its components as unit-bound values. That is right
+ * for everything that reads a burn, and it is what a draft holds. It is not what
+ * the receiving side binds: `ChannelEngine.BindCommandArgs` takes each to a
+ * plain double and rejects an object bag with "Cannot bind wire value of type
+ * Dictionary to numeric Double", thrown from inside the handler, so the whole
+ * plan is lost rather than one field. The sdk's `planSendArgs` unwraps at the
+ * same boundary for the same reason.</p>
  */
 function composedBurn(burn: ComposedBurn): PrincipiaComposedBurn {
   return {
-    ignitionUt: burn.ignitionUt,
-    deltaVTangent: burn.dvRadial,
-    deltaVNormal: burn.dvNormal,
-    deltaVBinormal: burn.dvPrograde,
+    ignitionUt: burn.ignitionUt.magnitude,
+    deltaVTangent: burn.dvRadial.magnitude,
+    deltaVNormal: burn.dvNormal.magnitude,
+    deltaVBinormal: burn.dvPrograde.magnitude,
     inertiallyFixed: burn.inertiallyFixed,
     profile: PrincipiaBurnProfile.Unchanged,
-  };
+  } as unknown as PrincipiaComposedBurn;
 }
 
 /**
