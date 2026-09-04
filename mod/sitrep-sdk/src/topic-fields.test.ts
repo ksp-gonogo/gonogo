@@ -60,7 +60,9 @@ describe("enumerateTopicFields", () => {
   });
 
   it("stops at a dictionary rather than guessing the key that follows", () => {
-    const facilities = enumerateTopicFields("career.status").filter((f) =>
+    // The dictionary moved to its own channel when the facility ladder gained a
+    // staleness of its own; the rule it demonstrates did not move with it.
+    const facilities = enumerateTopicFields("career.facilities").filter((f) =>
       f.path.startsWith("facilities"),
     );
     expect(facilities).toEqual([{ path: "facilities", kind: "collection" }]);
