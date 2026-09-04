@@ -38,7 +38,12 @@ namespace GonogoRp1Uplink.Tests
         /// <summary>A career with one leader on the roster and both singletons live.</summary>
         private static RP0.StrategyRP0 Leader(string name = "leaderKorolevAdmin")
         {
-            var leader = new RP0.StrategyRP0 { Name = name };
+            // Named through Config, because that is where the game keeps a
+            // strategy's id and where the command looks for it.
+            var leader = new RP0.StrategyRP0
+            {
+                Config = new Strategies.StrategyConfig { Name = name, Title = name },
+            };
             Seed(leader);
             return leader;
         }
@@ -46,7 +51,11 @@ namespace GonogoRp1Uplink.Tests
         /// <summary>The same, with a program whose template deadline is unassigned.</summary>
         private static ProgramStrategy ProgramFor(string name = "earlyOrbital", bool inAdmin = false)
         {
-            var strategy = new ProgramStrategy { Name = name, Program = new Program { name = name } };
+            var strategy = new ProgramStrategy
+            {
+                Config = new Strategies.StrategyConfig { Name = name, Title = name },
+                Program = new Program { name = name },
+            };
             Seed(strategy);
             ProgramHandler.Instance!.IsInAdmin = inAdmin;
             return strategy;
@@ -77,7 +86,7 @@ namespace GonogoRp1Uplink.Tests
         {
             var program = ProgramFor();
 
-            var result = Activate(program.Name);
+            var result = Activate(program.Config.Name);
 
             Assert.True(result.Success);
             Assert.Equal(new[] { "ActivateProgram", "PerformActivate" }, StrategyCallLog.Calls);
@@ -93,7 +102,7 @@ namespace GonogoRp1Uplink.Tests
         {
             var program = ProgramFor();
 
-            Activate(program.Name);
+            Activate(program.Config.Name);
 
             Assert.Equal(12345.0, StrategyCallLog.AlarmDeadline);
             Assert.NotEqual(0.0, StrategyCallLog.AlarmDeadline);
@@ -113,7 +122,7 @@ namespace GonogoRp1Uplink.Tests
         {
             var program = ProgramFor(inAdmin: true);
 
-            var result = Activate(program.Name);
+            var result = Activate(program.Config.Name);
 
             Assert.True(result.Success);
             Assert.Equal(new[] { "PerformActivate" }, StrategyCallLog.Calls);
@@ -126,7 +135,7 @@ namespace GonogoRp1Uplink.Tests
         {
             var leader = Leader();
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.True(result.Success);
             Assert.Equal(new[] { "PerformActivate" }, StrategyCallLog.Calls);
@@ -144,7 +153,7 @@ namespace GonogoRp1Uplink.Tests
             var leader = Leader();
             leader.RefuseWith = "Program slots are full.";
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.False(result.Success);
             Assert.Equal("Program slots are full.", result.Detail);
@@ -164,7 +173,7 @@ namespace GonogoRp1Uplink.Tests
             leader.Effects.Add(new Strategies.StrategyEffect());
             leader.Effects.Add(new Strategies.StrategyEffect { RefuseWith = "Requires an orbital rendezvous first." });
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.False(result.Success);
             Assert.Equal("Requires an orbital rendezvous first.", result.Detail);
@@ -179,7 +188,7 @@ namespace GonogoRp1Uplink.Tests
             leader.Effects.Add(new Strategies.StrategyEffect());
             leader.Effects.Add(new Strategies.StrategyEffect());
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.True(result.Success);
             Assert.Equal(new[] { "PerformActivate" }, StrategyCallLog.Calls);
@@ -192,7 +201,7 @@ namespace GonogoRp1Uplink.Tests
             var leader = Leader();
             Strategies.StrategySystem.Instance!.Conflicts = true;
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.False(result.Success);
             Assert.Empty(StrategyCallLog.Calls);
@@ -204,7 +213,7 @@ namespace GonogoRp1Uplink.Tests
             var leader = Leader();
             leader.IsActive = true;
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.False(result.Success);
             Assert.Empty(StrategyCallLog.Calls);
@@ -232,7 +241,7 @@ namespace GonogoRp1Uplink.Tests
             var leader = Leader();
             RP0.SpaceCenterManagement.Instance = null;
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.False(result.Success);
             Assert.Empty(StrategyCallLog.Calls);
@@ -244,7 +253,7 @@ namespace GonogoRp1Uplink.Tests
             var leader = Leader();
             ProgramHandler.Instance = null;
 
-            var result = Activate(leader.Name);
+            var result = Activate(leader.Config.Name);
 
             Assert.False(result.Success);
             Assert.Empty(StrategyCallLog.Calls);
@@ -265,7 +274,7 @@ namespace GonogoRp1Uplink.Tests
             leader.Factor = 0.05;
             leader.RefuseWith = "Not eligible.";
 
-            var result = Activate(leader.Name, factor: 0.75);
+            var result = Activate(leader.Config.Name, factor: 0.75);
 
             Assert.False(result.Success);
             Assert.Equal(0.05, leader.Factor);
@@ -277,7 +286,7 @@ namespace GonogoRp1Uplink.Tests
             var leader = Leader();
             leader.Factor = 0.05;
 
-            var result = Activate(leader.Name, factor: 0.5);
+            var result = Activate(leader.Config.Name, factor: 0.5);
 
             Assert.True(result.Success);
             Assert.Equal(0.5, leader.Factor);

@@ -17,10 +17,36 @@ using System.Collections.Generic;
 
 namespace Strategies
 {
+    /// <summary>
+    /// Stock's config, which is where a strategy's ID actually lives.
+    /// </summary>
+    /// <remarks>
+    /// It is here because the fixture used to give <c>Strategy</c> a
+    /// <c>Name</c> of its own, and the real type has none: it exposes
+    /// <c>Config</c>, <c>DepartmentName</c>, <c>Department</c>, <c>Title</c>,
+    /// <c>Description</c> and <c>GroupTags</c>, and the id every read side
+    /// publishes is <c>StrategyConfig.Name</c>. A stand-in carrying a member the
+    /// game does not have passed a lookup that could never match a real strategy,
+    /// which is the shipped defect 9737b91e5 fixed on the rig rather than here.
+    /// </remarks>
+    public class StrategyConfig
+    {
+        public string Name { get; set; } = "";
+
+        public string Title { get; set; } = "";
+    }
+
     /// <summary>Stock's strategy, carrying only what the command reads.</summary>
     public class Strategy
     {
-        public string Name { get; set; } = "";
+        public StrategyConfig Config { get; set; } = new StrategyConfig();
+
+        /// <summary>
+        /// The display string, which delegates to the config the way the real
+        /// property does. The command's fallback arm reads it for anyone holding a
+        /// title rather than an id.
+        /// </summary>
+        public string Title => Config.Title;
 
         public bool IsActive { get; set; }
 

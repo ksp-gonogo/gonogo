@@ -607,8 +607,9 @@ namespace GonogoRp1Uplink.Tests
             ["Effects"] = "stock Strategies.Strategy.Effects, arm 9's roster: each StrategyEffect is asked its own CanActivate, and any mod's effect can refuse",
             ["HasConflictingActiveStrategies"] = "stock Strategies.StrategySystem's arm 2, the only arm that reads the system rather than the strategy",
             ["Strategies"] = "stock StrategySystem.Strategies, the roster walked to resolve a strategy by name",
-            ["Name"] = "stock Strategies.Strategy.Name, the id a command names a strategy by",
-            ["Config"] = "stock Strategies.Strategy.Config, the fallback identity when Name is empty",
+            ["Name"] = "stock StrategyConfig.Name, the id a command names a strategy by, and the id career.status.strategies publishes",
+            ["Config"] = "stock Strategies.Strategy.Config, which is where that id lives: the Strategy itself has no Name of its own",
+            ["Title"] = "stock Strategies.Strategy.Title, the display string, matched as a fallback for a caller holding one instead of an id",
             // KSP's own facility and difficulty tables. GetStrategyCommitRange is
             // the method Administration.Start caches arm 3's ceiling from, and it
             // is VIRTUAL, so calling through GameVariables.Instance inherits a
