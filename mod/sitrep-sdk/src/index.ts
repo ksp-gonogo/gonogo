@@ -185,6 +185,7 @@ export type {
   MissionMeta,
   Sample,
   SeriesRange,
+  SeriesReckonedSpan,
   SeriesStatusSpan,
   SeriesTimeBasis,
   UnitHint,

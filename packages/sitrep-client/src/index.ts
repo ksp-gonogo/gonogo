@@ -407,6 +407,7 @@ export type {
   DerivedChannelDefinition,
   DerivedGet,
   FrameToken,
+  ReckonedSample,
   TimelineStoreOptions,
 } from "./timeline-store";
 export { lerpPayload, TimelineStore } from "./timeline-store";

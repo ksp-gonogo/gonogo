@@ -1,5 +1,7 @@
 import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
+import { PerfBudget } from "../perf/PerfBudget";
+import type { ModelledField, ReckoningBasis } from "../reading";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 import { isValue, value } from "../unit-system/value";
 import { type Reading, type ReckonerFor, readingFrom } from "./client-reading";
@@ -108,6 +110,121 @@ function derivedMeta(viewUt: number, epoch: number): Meta {
     timelineEpoch: epoch,
   };
 }
+
+/**
+ * One instant a model answered for, and what answered. NEVER an observation:
+ * see `TimelineStore.sampleReckonedTail`, which is the only thing that mints
+ * one and hands it straight to the boundary that draws it.
+ *
+ * Not a `TimelinePoint`, on purpose. A `TimelinePoint` is what the craft sent,
+ * it carries a `Meta` full of the wire's own claims about provenance and
+ * staleness, and there is no honest thing to put in those fields for an instant
+ * nothing arrived at. Substituting plausible ones is exactly how a projection
+ * becomes indistinguishable from a reading.
+ */
+export interface ReckonedSample<T> {
+  /** The UT the model answered FOR. */
+  atUt: number;
+  value: T;
+  basis: ReckoningBasis;
+}
+
+/**
+ * The most instants one reckoned tail may be sampled at.
+ *
+ * A RESOLUTION cap, never a horizon: exceeding it widens the stride so the tail
+ * still reaches the view time, because shortening it instead would silently
+ * draw a shorter horizon than the model actually claimed, which is the one
+ * thing this cap must not be able to do.
+ *
+ * 48 draws a conic smoothly at any chart width this app renders, and bounds the
+ * per-frame cost of replaying a channel's `derive` (a Kepler solve, for
+ * `vessel.state`) at a few thousand a second across a dashboard's worth of
+ * plotted series.
+ */
+const MAX_RECKONED_TAIL_SAMPLES = 48;
+
+/**
+ * How far apart to sample a reckoned tail: the cadence the observations
+ * themselves were arriving at, widened if that would overrun the resolution
+ * cap.
+ *
+ * Matching the observed cadence rather than picking a number is what keeps the
+ * modelled run drawn at the same fidelity as the measured run beside it, so the
+ * eye reads the change in STROKE rather than a change in how blocky the line
+ * is. With fewer than two observations in the window there is no cadence to
+ * match and the whole tail is one stride.
+ */
+function reckonedTailStep(
+  inWindowUts: readonly number[],
+  lastObservedUt: number,
+  toUt: number,
+): number {
+  const span = toUt - lastObservedUt;
+  const gaps: number[] = [];
+  for (let i = 1; i < inWindowUts.length; i++) {
+    gaps.push(inWindowUts[i] - inWindowUts[i - 1]);
+  }
+  gaps.sort((a, b) => a - b);
+  // Median, not mean: one long pause inside the window is exactly the thing a
+  // mean would let dominate the cadence of everything after it.
+  const cadence = gaps.length > 0 ? gaps[gaps.length >> 1] : span;
+  const floor = span / MAX_RECKONED_TAIL_SAMPLES;
+  return Math.max(cadence > 0 ? cadence : span, floor);
+}
+
+/**
+ * Replays of a derived channel's `derive` for a reckoned tail.
+ *
+ * Every one is provider-supplied compute on the frame path, the same as a
+ * derived channel's own per-frame derivation, and there are up to
+ * `MAX_RECKONED_TAIL_SAMPLES` of them per plotted series per frame. The cap
+ * bounds one tail; this catches the case the cap cannot see, which is a
+ * dashboard that has quietly acquired enough modelled traces to spend the frame
+ * budget on arithmetic nobody measured. The tail is memoised per frame, so a
+ * healthy dashboard of four modelled series sits near 6k/sec at 60fps.
+ */
+/**
+ * What a tail walk needs, whichever registry the model came out of: when the
+ * observations stop, the cadence they were arriving at, and one question the
+ * walk can ask per instant.
+ *
+ * The two model registries answer that question completely differently (a
+ * derived channel re-derives a record; a registered reckoner pulls a thunk),
+ * and neither difference survives past here. Sharing the WALK rather than
+ * duplicating it is what makes the horizon rule, the resolution cap and the
+ * continuity rule one implementation instead of two that agree today.
+ */
+/**
+ * A channel's reckoning claim as a path list, whichever way it was spelled.
+ *
+ * A bare basis is the record-wide claim and normalises to a single root entry,
+ * which is what it has always meant. `undefined` stays `undefined`: declining is
+ * a statement and must not become an empty list, which would read as "modelled,
+ * nothing moved".
+ */
+function normaliseReckoningClaim(
+  claim: ReckoningBasis | readonly ModelledField[] | undefined,
+): readonly ModelledField[] | undefined {
+  if (claim === undefined) return undefined;
+  return typeof claim === "string" ? [{ path: "", basis: claim }] : claim;
+}
+
+interface ReckonedWalk {
+  /** The newest instant an observation behind this topic exists for. */
+  lastObservedUt: number;
+  /** Every observed instant, unfiltered: the caller windows and sorts them. */
+  inWindowUts: number[];
+  /** The model's answer for one instant, or nothing where it declines. */
+  answerAt(at: number): { value: unknown; basis: ReckoningBasis } | undefined;
+}
+
+const RECKONED_TAIL_BUDGET = new PerfBudget({
+  name: "Reckoned tail derives/sec",
+  threshold: 20_000,
+  windowMs: 1000,
+  unit: "derives",
+});
 
 /**
  * Field names that carry a DEGREE-valued angle where wrapping is physically
@@ -869,6 +986,242 @@ export class TimelineStore {
   }
 
   /**
+   * The part of a series NOBODY MEASURED: what the topic's own forward model
+   * says the quantity did between the last observation and `toUt`.
+   *
+   * `sampleDerivedRange` above emits a point only where a declared INPUT
+   * changed, which is exactly right for history and is why a chart of a
+   * modelled quantity simply stopped at the last thing that arrived. During a
+   * blackout no input changes, so the trace ended and said nothing about
+   * whether the value was knowable. This is the other half: it asks the topic's
+   * model for instants that had no observation behind them, and stamps each one
+   * with the basis the model claimed for it.
+   *
+   * Both model registries are consulted, in the order `sampleReading` already
+   * walks them: a derived channel's `deriveReckoning`, then a reckoner an
+   * Uplink registered for a raw topic, then a field read borrowing its record's
+   * model. A series producer that knew about only the first would be a chart
+   * that draws core's models and silently drops an author's, which is the
+   * asymmetry an extension point is least able to report.
+   *
+   * ## Deliberately not a `TimelinePoint`, and deliberately not merged in
+   *
+   * A reckoned instant is a presentation-time projection, so it must never be
+   * reachable as an observation. Keeping it in its own return type and its own
+   * method is what makes that structural rather than a convention: nothing
+   * stores one, `MissionHistorySource.queryRange` does not call this, and a
+   * recording exported later cannot contain one. The one caller that wants both
+   * halves (`useDataSeries`) joins them where it draws them, and says which
+   * indices came from here.
+   *
+   * ## The horizon is the MODEL's, and it is asked at every instant
+   *
+   * There is no cutoff here and no window constant, for the same reason
+   * `Reading` carries no horizon field: a model withdraws by declining, and the
+   * absence of an answer IS the statement of trust. The difference a series
+   * makes is that the question gets asked once per instant instead of once per
+   * frame, so a horizon inside the window is expressible at all. The walk stops
+   * at the first instant `deriveReckoning` declines: a model gets worse with
+   * age and never better, so a decline is the end of the tail rather than a
+   * hole in it.
+   *
+   * `getStatus` answers for the CURRENT frame, and that is the honest answer
+   * for every instant here rather than an approximation: the whole tail is the
+   * one stretch of silence that follows the last observation, and a stretch of
+   * silence has one status.
+   *
+   * ## Only a continuous number gets a tail
+   *
+   * A model that moves a flag, a mode name or a vector may be perfectly honest
+   * at a point and still have nothing a LINE can say: joining two states of an
+   * enum draws a slope through values that do not exist. So a tail is emitted
+   * only for a finite `number`, which excludes booleans, strings, vectors and
+   * whole records by construction. A numeric enum would pass this test and is
+   * the one shape to keep out of a plotted key by hand.
+   *
+   * Returns an empty array for a topic with no derived channel, no
+   * `deriveReckoning`, or nothing yet observed, which are all the same answer
+   * to the caller: there is no tail to draw.
+   */
+  sampleReckonedTail<T>(
+    topic: string,
+    fromUt: number,
+    toUt: number,
+  ): ReckonedSample<T>[] {
+    const epoch = this.clock.getEpoch();
+    return this.memoize(
+      this.currentToken,
+      `\0reckontail\0${topic}\0${fromUt}\0epoch\0${epoch}`,
+      () => this.computeReckonedTail<T>(topic, fromUt, toUt),
+    );
+  }
+
+  private computeReckonedTail<T>(
+    topic: string,
+    fromUt: number,
+    toUt: number,
+  ): ReckonedSample<T>[] {
+    const walk =
+      this.derivedReckonedWalk(topic, toUt) ??
+      this.rawReckonedWalk(topic, fromUt, toUt);
+    // Nothing observed, or the newest observation IS the view time: either way
+    // there is no interval for a model to have carried anything across.
+    if (!walk || walk.lastObservedUt >= toUt) return [];
+
+    const inWindow = [...new Set(walk.inWindowUts)]
+      .filter((ut) => ut >= fromUt && ut <= toUt)
+      .sort((a, b) => a - b);
+    const step = reckonedTailStep(inWindow, walk.lastObservedUt, toUt);
+    const out: ReckonedSample<T>[] = [];
+    for (let ut = walk.lastObservedUt + step; ; ut += step) {
+      // The last stride lands on `toUt` exactly rather than short of it: the
+      // right-hand end of the tail is the frame's own view time, and stopping a
+      // fraction of a step early would leave a gap between the model and the
+      // moment the whole frame is drawn for.
+      const at = ut >= toUt - step * 0.5 ? toUt : ut;
+      RECKONED_TAIL_BUDGET.record();
+      const answer = walk.answerAt(at);
+      if (!answer) break; // the model's own horizon
+      const raw = answer.value;
+      if (typeof raw !== "number" || !Number.isFinite(raw)) break;
+      out.push({ atUt: at, value: raw as T, basis: answer.basis });
+      if (at >= toUt) break;
+    }
+    return out;
+  }
+
+  /**
+   * A derived channel's tail: `derive` replayed at an instant nothing arrived
+   * at, labelled by the same `deriveReckoning` the point layer asks.
+   *
+   * The hold-last `get` is `sampleDerivedRange`'s. The input ranges are read
+   * once for the whole walk rather than per instant, because every instant in a
+   * tail resolves to the same last input point by construction.
+   */
+  private derivedReckonedWalk(
+    topic: string,
+    toUt: number,
+  ): ReckonedWalk | undefined {
+    const resolved = this.resolveDerivedTopic(topic);
+    const deriveReckoning = resolved?.def.deriveReckoning;
+    if (!resolved || !deriveReckoning) return undefined;
+    const { def, field } = resolved;
+
+    const inputRanges = new Map<string, TimelinePoint<unknown>[]>();
+    const inWindowUts: number[] = [];
+    let lastObservedUt: number | undefined;
+    for (const inputTopic of def.inputs) {
+      const points =
+        this.sampleRange<unknown>(inputTopic, -Infinity, toUt) ?? [];
+      inputRanges.set(inputTopic, points);
+      for (const point of points) {
+        if (lastObservedUt === undefined || point.validAt > lastObservedUt) {
+          lastObservedUt = point.validAt;
+        }
+        inWindowUts.push(point.validAt);
+      }
+    }
+    if (lastObservedUt === undefined) return undefined;
+
+    const getAt =
+      (at: number): DerivedGet =>
+      <I>(inputTopic: string): TimelinePoint<I> | undefined => {
+        const points = inputRanges.get(inputTopic);
+        if (!points || points.length === 0) return undefined;
+        let last: TimelinePoint<unknown> | undefined;
+        for (const point of points) {
+          if (point.validAt <= at) last = point;
+          else break;
+        }
+        return last as TimelinePoint<I> | undefined;
+      };
+
+    return {
+      lastObservedUt,
+      inWindowUts,
+      answerAt: (at) => {
+        const get = getAt(at);
+        const claim = deriveReckoning(get, at, (inputTopic) =>
+          this.sampleStatus(inputTopic),
+        );
+        if (claim === undefined) return undefined;
+        /*
+         * A bare basis is the record-wide claim and every field borrows it,
+         * which is what it has always meant. A LIST has to name the path, and a
+         * root entry does not name it: `vessel.state` is the case in hand, its
+         * conic moves the position and carries `twr` verbatim off a propulsion
+         * sample nothing propagated, and a dashed TWR trace stamped
+         * `kepler-propagation` would attribute a number to a model that never
+         * touched it.
+         */
+        const basis =
+          typeof claim === "string"
+            ? claim
+            : claim.find((entry) => entry.path === (field ?? ""))?.basis;
+        if (!basis) return undefined;
+        const record = def.derive(get, at, get);
+        if (record == null) return undefined; // not whole, or confirmed absent
+        const value = field
+          ? (record as Record<string, unknown>)[field]
+          : (record as unknown);
+        return { value, basis };
+      },
+    };
+  }
+
+  /**
+   * A raw topic's tail, off the model an Uplink registered for it.
+   *
+   * The same ladder `sampleReading` walks, minus the derived rung the caller
+   * has already tried: a whole-topic reckoner, or a field read borrowing its
+   * record's model. Wired because a registration seam that reaches the point
+   * layer and stops there is a half-built extension point, and an author whose
+   * model draws a propagated marker on the map but leaves a plot of the same
+   * quantity ending mid-window has nothing to tell them that is by design.
+   *
+   * The model is re-asked at every instant rather than resolved once and pulled
+   * repeatedly, which is the only way its horizon is expressible at all:
+   * `TopicModel` has no failure return by design, so a model withdraws by not
+   * being OFFERED, and offering is what the reckoner call is.
+   *
+   * Root coverage is required for the same reason `readingFrom` requires it: a
+   * model that moves one field of forty-seven has not answered for the value
+   * this read asked about. For a field subtopic `fieldScopedReckoner` has
+   * already narrowed, and the root it claims is the narrowed value's.
+   */
+  private rawReckonedWalk(
+    topic: string,
+    fromUt: number,
+    toUt: number,
+  ): ReckonedWalk | undefined {
+    const token = this.currentToken;
+    const reckoner =
+      getReckoner<unknown>(topic) ??
+      this.fieldScopedReckoner<unknown>(topic, token);
+    if (!reckoner) return undefined;
+    const point = this.sample<unknown>(topic, token);
+    if (!point || point.payload === null) return undefined;
+    const status = this.sampleStatus(topic, token);
+    // The three statuses that are not a missed update. `readingFrom` withholds
+    // the model from all three as well, and for the same reason: there is no
+    // silence for a model to have carried a value across.
+    if (status === "live" || status === "resyncing" || status === "absent") {
+      return undefined;
+    }
+    const observed = this.sampleRange<unknown>(topic, fromUt, toUt) ?? [];
+    return {
+      lastObservedUt: point.validAt,
+      inWindowUts: observed.map((p) => p.validAt),
+      answerAt: (at) => {
+        const model = reckoner(point, status, at);
+        const root = model?.modelled.find((entry) => entry.path === "");
+        if (!model || !root) return undefined;
+        return { value: model.reckon(at), basis: root.basis };
+      },
+    };
+  }
+
+  /**
    * Imperative tier: read `topic` at a frame token's frozen `viewUt`
    * (defaults to `currentFrame()`: there is no per-read "now").
    *
@@ -1105,11 +1458,23 @@ export class TimelineStore {
       const modelledValue = point.payload;
       if (modelledValue === null) return undefined;
       const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);
-      const basis = deriveReckoning(get, viewUt, (inputTopic) =>
+      const claim = deriveReckoning(get, viewUt, (inputTopic) =>
         this.sampleStatus(inputTopic, token),
       );
-      if (!basis) return undefined;
-      return { modelled: [{ path: "", basis }], reckon: () => modelledValue };
+      // A channel naming paths still answers a whole-topic read through its
+      // root entry, and a field read still borrows the record's model exactly
+      // as it borrows a bare basis: `readingFrom` only asks whether the ROOT is
+      // covered, and from a field read's point of view the narrowed value IS
+      // the root. The per-path detail is for a caller that has to know which
+      // fields moved, which is the series producer and nothing else yet.
+      const modelled = normaliseReckoningClaim(claim);
+      if (!modelled) return undefined;
+      const root = modelled.find((entry) => entry.path === "");
+      if (!root) return undefined;
+      return {
+        modelled: [{ path: "", basis: root.basis }],
+        reckon: () => modelledValue,
+      };
     };
   }
 

@@ -1,6 +1,6 @@
 import type { Meta } from "./__generated__/contract";
 import type { StreamStatusValue } from "./api/types";
-import type { ReckoningBasis } from "./reading";
+import type { ModelledField, ReckoningBasis } from "./reading";
 
 /**
  * The derived-channel authoring contract.
@@ -145,10 +145,31 @@ export interface DerivedChannelDefinition<T> {
    * inside `derive`, and all that was ever missing was the statement that it
    * had. The horizon is real all the same: a conic holds until a burn or an
    * unmodelled SOI change, and declining is how a channel says so.
+   *
+   * ## A basis answers for the record; a LIST answers per field
+   *
+   * A bare `ReckoningBasis` is the record-wide claim, and it is what every
+   * channel written before this returned. It stays exactly as strong as it was:
+   * every field of the record borrows it.
+   *
+   * A `ModelledField[]` names the PATHS the model actually moves, in
+   * `Reckoning.modelled`'s own vocabulary, and it exists because a payload is
+   * not one reckoning class. `vessel.state` under a conic solves position,
+   * velocity and both apsis countdowns from the elements at `viewUt`, and
+   * carries `twr` verbatim off a `vessel.propulsion` sample nothing propagated.
+   * A whole-record claim covers both, which is right for a readout showing one
+   * number beside its age and wrong for a CHART: a line is a claim about every
+   * instant it passes through, so `sampleReckonedTail` asks for a path named
+   * explicitly and draws nothing for a field the model merely carried.
+   *
+   * Include a root entry (`path: ""`) where the record as a whole is
+   * forward-modelled: that is what a whole-topic read needs to reach the
+   * `reckonable` arm at all, and a field read still borrows it exactly as it
+   * borrows a bare basis.
    */
   deriveReckoning?: (
     get: DerivedGet,
     viewUt: number,
     getStatus: (topic: string) => StreamStatusValue,
-  ) => ReckoningBasis | undefined;
+  ) => ReckoningBasis | readonly ModelledField[] | undefined;
 }

@@ -14,7 +14,7 @@ import {
   type UnitsByField,
 } from "../units";
 import type { Value } from "../value";
-import type { ReckoningBasis } from "./client-reading";
+import type { ModelledField } from "./client-reading";
 import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
 import { solve, solveAnomalies } from "./kepler";
 import {
@@ -2045,23 +2045,84 @@ export function deriveVesselStateStatus(
  * after the last one. Once contact is lost there is nothing left to
  * interpolate, so the reading is honestly stale.
  *
- * No horizon is imposed here, and that is a gap rather than a decision.
- * `KeplerProvider`'s doc says the analytic solution has no horizon, so the
- * window is ignored, and there is no client-side `CanPropagate` to consult
- * yet. The conic stops being true at a burn or an unmodelled SOI change, and
- * neither is knowable from inside this function: a craft out of contact is
- * exactly one whose burns we cannot see. When the client gains the gated
- * solver, declining past its window belongs here.
+ * ## The horizon: the patch the elements describe, and nothing invented
+ *
+ * A conic does not decay. It is exactly as good after twenty minutes as after
+ * one, which is why there is no age cutoff here and why inventing one would
+ * replace a true model with a cliff. What a conic DOES have is an end: these
+ * elements describe ONE patch, and the craft leaves it at the SOI transition
+ * the wire already carries (`VesselOrbit.encounter.transitionUt`, the source of
+ * `vessel.state.encounterUt`). Past that instant the elements are a statement
+ * about an orbit around a body the craft is no longer near, so the model
+ * declines and the reading falls back to `stale`.
+ *
+ * That closes the gap this doc used to record as unclosed, with a UT off the
+ * wire rather than a constant. It is a real bound and a partial one: the other
+ * half of the horizon is a BURN, and a craft out of contact is exactly one
+ * whose burns we cannot see, so nothing inside this function can bound it. The
+ * `kepler-propagation` basis carries that caveat in its own words, which is
+ * what a basis is for.
+ *
+ * `transitionType` is deliberately not consulted. An escape and an encounter
+ * both end this patch, and the horizon is the instant, not the kind.
  */
 export function deriveVesselStateReckoning(
   get: DerivedGet,
-  _viewUt: number,
-): ReckoningBasis | undefined {
+  viewUt: number,
+): readonly ModelledField[] | undefined {
   const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
   if (orbitPoint?.payload == null) return undefined;
   if (orbitPoint.meta.quality !== Quality.OnRails) return undefined;
-  return "kepler-propagation";
+  const transitionUt = orbitPoint.payload.encounter?.transitionUt;
+  if (transitionUt != null) {
+    const at = mag(transitionUt);
+    if (Number.isFinite(at) && viewUt >= at) return undefined;
+  }
+  return KEPLER_MODELLED_FIELDS;
 }
+
+/**
+ * What the conic MOVES, path by path, beside the record-wide claim.
+ *
+ * The root entry is the record: `derive` ran for this frame's view time, so
+ * every field on it is that run's answer, which is what a whole-topic read and
+ * a scalar readout beside its own age are asking. The named entries are the
+ * narrower claim, and the difference bites wherever a caller draws a SHAPE
+ * rather than a number. `sampleReckonedTail` will only carry a path named here,
+ * so a chart of `twr` (carried verbatim off a `vessel.propulsion` sample
+ * nothing propagated) stops at the last observation instead of growing a dashed
+ * run attributed to a model that never touched it.
+ *
+ * The list is what `trySolve`/`trySolveAnomalies` and their dependents produce
+ * from `viewUt`, read off the OnRails branch of `deriveVesselState` directly.
+ *
+ * Three deliberate absences:
+ *
+ * - `period`, both apsis ALTITUDES and both apsis RADII are constants OF the
+ *   conic. They are true for the whole propagation and no part of them is a
+ *   function of the instant, so a chart of one draws a flat line whether it is
+ *   named here or not, and naming it would call a constant a propagation
+ * - `met` advances at exactly one second per second whether or not anybody is
+ *   listening. It is a clock, not a model, and stamping `kepler-propagation` on
+ *   elapsed time misdescribes what produced it
+ * - the TARGET's orbit (`deriveTargetOrbit`) is propagated the same way and is
+ *   deliberately absent, because the horizon above is the SELF craft's patch. A
+ *   target crossing its own SOI would go on being modelled off a bound that
+ *   says nothing about it, and a second horizon is a decision to take on its
+ *   own rather than a line to add here
+ */
+const KEPLER_MODELLED_FIELDS: readonly ModelledField[] = [
+  { path: "", basis: "kepler-propagation" },
+  { path: "position", basis: "kepler-propagation" },
+  { path: "velocity", basis: "kepler-propagation" },
+  { path: "orbitalSpeed", basis: "kepler-propagation" },
+  { path: "orbitalRadius", basis: "kepler-propagation" },
+  { path: "trueAnomaly", basis: "kepler-propagation" },
+  { path: "timeToAp", basis: "kepler-propagation" },
+  { path: "timeToPe", basis: "kepler-propagation" },
+  { path: "timeToNextApsis", basis: "kepler-propagation" },
+  { path: "nextApsisType", basis: "kepler-propagation" },
+];
 
 /**
  * Ready-to-register definition: `store.registerDerivedChannel(vesselStateChannel)`.

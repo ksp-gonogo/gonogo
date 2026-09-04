@@ -1,4 +1,5 @@
 import type { DataKey, StreamStatusValue } from "../api/types";
+import type { ReckoningBasis } from "../reading";
 import type { SitrepUnit } from "../units";
 
 // ---------------------------------------------------------------------------
@@ -109,6 +110,31 @@ export interface SeriesStatusSpan {
 }
 
 /**
+ * A contiguous run of points NOBODY MEASURED, as INCLUSIVE indices into
+ * `t`/`v`: a model answered for those instants, and `basis` is the model that
+ * did the answering, in the vocabulary `Reckoning` already uses.
+ *
+ * This is the ONLY provenance a trace has cause to mark. A replayed sample is a
+ * sample the craft measured and sent late, so it draws as live data draws (see
+ * {@link SeriesStatusSpan}); a reckoned one is a claim the CHART is making on
+ * its own behalf, and drawing arithmetic in the same stroke as a reading is a
+ * lie about where the line came from.
+ *
+ * It sits beside `SeriesStatusSpan` rather than inside it because the two are
+ * not the same kind of fact and must never collapse into one enum: a status
+ * span names where an OBSERVATION came from, and a reckoned run says there was
+ * no observation. Only the second one comes out of a model, and only the second
+ * one carries a basis.
+ */
+export interface SeriesReckonedSpan {
+  /** First point of the run. */
+  from: number;
+  /** Last point of the run, inclusive. */
+  to: number;
+  basis: ReckoningBasis;
+}
+
+/**
  * Columnar series slice. `t` and `v` have identical length. Used as the
  * return shape for `queryRange` + `getLatest` because the graph widget
  * consumes parallel arrays and it's cheaper to stream over PeerJS later.
@@ -150,6 +176,18 @@ export interface SeriesRange<V = unknown> {
    * the slice arrived live. See {@link SeriesStatusSpan}.
    */
   spans?: SeriesStatusSpan[];
+
+  /**
+   * Runs of points a MODEL produced rather than the craft, in ascending order
+   * and non-overlapping. Absent or empty means every point in the slice was
+   * measured. See {@link SeriesReckonedSpan}.
+   *
+   * A reckoned point is a presentation-time projection and it is minted at the
+   * boundary that draws it. Nothing puts one in a store, in a recording or in
+   * an export, so a `SeriesRange` that came out of `queryRange` never carries
+   * this and a later read can never mistake one for an observation.
+   */
+  reckoned?: SeriesReckonedSpan[];
 }
 
 /**
