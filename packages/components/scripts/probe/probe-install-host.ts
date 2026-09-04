@@ -1,6 +1,7 @@
 // Installs the injected gonogo host BEFORE the probe imports any facade-sealed
 // Uplink client. `probe-entry.tsx` / `screen-entry.tsx` do a side-effect
-// `import "@ksp-gonogo/gonogo-kos-uplink"` to self-register the kOS terminal widget, and that
+// `import "@ksp-gonogo/gonogo-kerbalism-uplink"` to self-register that Uplink's
+// widgets, and that
 // client calls the facade's `registerComponent` (and, at render, `useCommand` /
 // `useStream` / ...): all of which resolve through `getHost()` and throw "the
 // gonogo host has not been installed" without a host. ES imports are hoisted

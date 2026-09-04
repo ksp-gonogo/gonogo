@@ -13,10 +13,13 @@
  */
 export const READING_GATE_DEBT: readonly string[] = [
   /*
-   * Same site, thirty-six lines lower: the probe harness learned install
-   * profiles above it. Renumbered, not fixed: the fix is `state !== "pending"`
+   * Same site, thirty-three lines lower: the probe harness learned install
+   * profiles above it, and later gave up three lines again when one Uplink
+   * client's self-registration import left with the widget fixtures that were
+   * its only reason to be there.
+   * Renumbered, not fixed: the fix is `state !== "pending"`
    * (`AugmentAvailabilityFeeder` already made it), and making it here changes
    * which augments the probe renders, which moves the visual baselines.
    */
-  "packages/components/scripts/probe/probe-entry.tsx:338",
+  "packages/components/scripts/probe/probe-entry.tsx:333",
 ];

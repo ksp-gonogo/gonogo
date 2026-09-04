@@ -1713,49 +1713,15 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
     ],
   },
-  {
-    // kOS Terminal (mod/GonogoKosUplink/client/src/KosTerminal). A STREAM-DRIVEN
-    // widget: it reads `kos.processors` / `kos.terminal.<coreId>` straight
-    // off a mounted TelemetryProvider via `useStream`/`useStreamEvent`, never
-    // through the `"data"`/`"kos"` DataSource registry the rest of this file
-    // assumes. Its fixture therefore carries a top-level `_stream` block
-    // (carriedChannels + pinnedUt + emits) instead of plain data keys; see
-    // probe-entry.tsx's `_stream` fixture path. Fixture lives under
-    // `packages/components/src/KosTerminal/__fixtures__` purely because
-    // `fixturesPath` resolves against `packages/components/src/`, not
-    // because the widget's source lives there (it doesn't).
-    widgetId: "kos-terminal",
-    fixturesPath: "KosTerminal/__fixtures__",
-    outPath: "renders/kos-terminal-widget",
-    modes: [
-      // minSize 8×6: tightest placement the widget allows.
-      { name: "min-8x6", w: 8, h: 6 },
-      // defaultSize 18×15: the common operator view.
-      { name: "default-18x15", w: 18, h: 15 },
-      // wide: generous horizontal room; the terminal itself stays a fixed
-      // 80×24 grid (KOS_TERM_COLS/ROWS) regardless of container size.
-      { name: "wide-24x15", w: 24, h: 15 },
-      // Char-mode + comms.delay + no-path repro (`char-mode-badges` fixture
-      // only): exercises the DelayBadge/NoPathBadge chrome the happy-path
-      // `basic-session` fixture never triggers (no comms.* emits). Two sizes
-      // catch the "badge renders outside the widget box" bug at both the
-      // tightest placement and the common operator view.
-      {
-        name: "char-mode-8x6",
-        w: 8,
-        h: 6,
-        config: { lineMode: false },
-        forFixtures: ["char-mode-badges"],
-      },
-      {
-        name: "char-mode-18x15",
-        w: 18,
-        h: 15,
-        config: { lineMode: false },
-        forFixtures: ["char-mode-badges"],
-      },
-    ],
-  },
+  /*
+   * kos-terminal moved to
+   * @ksp-gonogo/gonogo-kos-uplink/scripts/widgets.ts, joining the widget
+   * itself, which has always lived there: its two probe fixtures went with
+   * it, into a `probe/` subfolder of the widget's own `__fixtures__/`, and
+   * its structural coverage is that package's own KosTerminal/
+   * snapshots.test.tsx. Same move as space-weather below, and as
+   * deployed-science and robotics-console before it.
+   */
   /*
    * space-weather moved to
    * @ksp-gonogo/gonogo-kerbalism-uplink/scripts/widgets.ts with the widget

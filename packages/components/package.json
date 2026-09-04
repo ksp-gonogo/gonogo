@@ -45,7 +45,6 @@
   "devDependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
     "@ksp-gonogo/gonogo-kerbalism-uplink": "workspace:*",
-    "@ksp-gonogo/gonogo-kos-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-realantennas-uplink": "workspace:*",
     "@ksp-gonogo/sitrep-sdk": "workspace:*",
     "@ksp-gonogo/test-utils": "workspace:*",

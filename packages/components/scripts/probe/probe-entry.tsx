@@ -34,9 +34,9 @@
  * fixture, no probe changes required.
  */
 // MUST be the first import: installs the injected gonogo host before the
-// `@ksp-gonogo/gonogo-kos-uplink` side-effect import below self-registers a facade-sealed
-// widget (which would otherwise throw "the gonogo host has not been installed"
-// at module load). ES imports are hoisted in source order.
+// `@ksp-gonogo/gonogo-kerbalism-uplink` side-effect import below self-registers a
+// facade-sealed widget (which would otherwise throw "the gonogo host has not
+// been installed" at module load). ES imports are hoisted in source order.
 import "./probe-install-host";
 import {
   ContributionsProvider,
@@ -54,9 +54,6 @@ import {
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
 import type { Meta, TopicId } from "@ksp-gonogo/sitrep-sdk";
-// Side-effect import: mod-client widgets (kOS terminal, processors, ...)
-// self-register on module load, same contract as the built-in library.
-import "@ksp-gonogo/gonogo-kos-uplink";
 // Side-effect import: the Kerbalism Uplink's own widgets (Ship Systems,
 // its Greenhouse augment, ...) self-register on module load, same contract.
 import "@ksp-gonogo/gonogo-kerbalism-uplink";

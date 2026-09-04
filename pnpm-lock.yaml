@@ -864,9 +864,6 @@ importers:
       '@ksp-gonogo/gonogo-kerbalism-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoKerbalismUplink/client
-      '@ksp-gonogo/gonogo-kos-uplink':
-        specifier: workspace:*
-        version: link:../../mod/GonogoKosUplink/client
       '@ksp-gonogo/gonogo-realantennas-uplink':
         specifier: workspace:*
         version: link:../../mod/GonogoRealAntennasUplink/client
