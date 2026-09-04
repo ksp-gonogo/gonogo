@@ -46,11 +46,24 @@ interface PadRow {
   lcId?: string | null;
 }
 
-/** A fixture's payload for one facility, in the fields the rules read. */
+/**
+ * A fixture's payload for one facility, in the fields the rules read. Both tier
+ * shapes, because the host's parser takes both and fixtures use both.
+ */
 interface FacilityRow {
   currentTier?: number | null;
   maxTier?: number | null;
   upgradeCost?: number | null;
+  level?: number | null;
+  max?: number | null;
+}
+
+/** A fixture's payload for one construction, in the fields the rules read. */
+interface ConstructionRow {
+  kind?: string | null;
+  facilityType?: string | null;
+  currentLevel?: number | null;
+  targetLevel?: number | null;
 }
 
 /**
@@ -151,7 +164,74 @@ function inconsistencies(emits: readonly Emit[], surface = ""): string[] {
     );
   }
 
+  // A facility under construction that the career says is at a different tier.
+  //
+  // Game-guaranteed, and the guarantee is in RP-1's own enqueue:
+  // `SpaceCenterBuildingPatch.ProcessUpgrade` builds the project as
+  // `new FacilityUpgradeProject(type, id, FacilityLevel + 1, FacilityLevel, ...)`,
+  // and nothing moves the building until `FacilityUpgradeProject.Apply()` runs
+  // at completion. So for the whole life of the project the facility is still at
+  // `currentLevel`, and the project is taking it to exactly one tier higher.
+  //
+  // Worth a rule because both numbers reach one screen. The host's grid draws
+  // the career's tier and this Uplink's SITE CONSTRUCTION card draws the
+  // project's, so a fixture that disagrees with itself photographs one building
+  // at two tiers, and one committed render had a VAB reading "2 / 3" over a card
+  // taking it to a fourth tier it does not have.
+  for (const problem of tierDisagreements(emits)) {
+    problems.push(problem);
+  }
+
   return problems;
+}
+
+/**
+ * Every FacilityUpgrade row whose tier contradicts the career's, or claims a
+ * step that is not the next one.
+ *
+ * <para>Silent about a row whose facility the career never described: a
+ * construction queue read from outside the space centre is a real scene, and
+ * every tier is absent there.</para>
+ */
+function tierDisagreements(emits: readonly Emit[]): string[] {
+  const rows = payloadRows<ConstructionRow>(emits, "rp1.constructions");
+  if (rows === undefined) return [];
+  const facilities = careerFacilities(emits);
+  const problems: string[] = [];
+  for (const row of rows) {
+    if (row.kind !== "FacilityUpgrade") continue;
+    const name = row.facilityType;
+    if (name === undefined || name === null) continue;
+    const from = row.currentLevel;
+    if (typeof from !== "number") continue;
+    const at = facilityTier(facilities[name]);
+    if (at !== undefined && at !== from) {
+      problems.push(
+        `${name} is being built from level ${from} while "career.status" says ` +
+          `it is at level ${at}, so the host's grid and this Uplink's card ` +
+          "state two different tiers for one building",
+      );
+    }
+    if (typeof row.targetLevel === "number" && row.targetLevel !== from + 1) {
+      problems.push(
+        `${name} is being built from level ${from} to level ${row.targetLevel}` +
+          ", and RP-1 only ever queues the next one",
+      );
+    }
+  }
+  return problems;
+}
+
+/**
+ * A facility's current tier, from whichever shape the fixture writes. The
+ * host's own parser takes both the wire's `currentTier`/`maxTier` and the
+ * legacy `level`/`max`, so a rule that read only one would silently pass every
+ * fixture written in the other.
+ */
+function facilityTier(facility: FacilityRow | undefined): number | undefined {
+  if (typeof facility?.currentTier === "number") return facility.currentTier;
+  if (typeof facility?.level === "number") return facility.level;
+  return undefined;
 }
 
 /** The stock purchase RP-1 re-models as a construction project. */
@@ -397,6 +477,79 @@ describe("RP-1 fixture consistency", () => {
 
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain("LC-2");
+  });
+
+  it("catches a construction whose facility says it is at another tier", () => {
+    /* The planted violation for the tier rule, and it is planted in the LEGACY
+       facility shape on purpose: three of the four fixtures carrying a
+       construction row write `level`/`max`, so a rule that only read
+       `currentTier` would report a clean sweep over exactly the fixtures that
+       were wrong. */
+    const problems = inconsistencies([
+      {
+        payload: {
+          facilities: { VehicleAssemblyBuilding: { level: 1, max: 2 } },
+        },
+        topic: "career.status",
+      },
+      {
+        payload: [
+          {
+            currentLevel: 2,
+            facilityType: "VehicleAssemblyBuilding",
+            kind: "FacilityUpgrade",
+            targetLevel: 3,
+          },
+        ],
+        topic: "rp1.constructions",
+      },
+    ]);
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("VehicleAssemblyBuilding");
+    expect(problems[0]).toContain("is at level 1");
+  });
+
+  it("catches a construction that skips a tier", () => {
+    // A different shape from the one above, and one the career cannot settle:
+    // the facility is absent, and RP-1 still only ever queues the next tier.
+    const problems = inconsistencies([
+      {
+        payload: [
+          {
+            currentLevel: 0,
+            facilityType: "Runway",
+            kind: "FacilityUpgrade",
+            targetLevel: 2,
+          },
+        ],
+        topic: "rp1.constructions",
+      },
+    ]);
+
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toContain("only ever queues the next one");
+  });
+
+  it("leaves alone a construction read from outside the space centre", () => {
+    // Every tier is absent there, and a queue that keeps building wherever the
+    // operator stands is a scene worth having.
+    expect(
+      inconsistencies([
+        { payload: { facilities: {} }, topic: "career.status" },
+        {
+          payload: [
+            {
+              currentLevel: 1,
+              facilityType: "VehicleAssemblyBuilding",
+              kind: "FacilityUpgrade",
+              targetLevel: 2,
+            },
+          ],
+          topic: "rp1.constructions",
+        },
+      ]),
+    ).toEqual([]);
   });
 
   it("leaves alone the states RP-1 really does produce", () => {
