@@ -1205,6 +1205,18 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Host/Comms/CommsElection.cs",
       "mod/Sitrep.Host/Comms/SignalDelay.cs",
       /*
+       * -- the no-comms-model rule (2026-09-04): it wraps whichever backend the
+       * election picked rather than checking inside the stock one, and the
+       * reason is that KSP's CommNet difficulty option kills a replacement
+       * network as surely as it kills stock's. Named, because left generic that
+       * reads as speculative future-proofing: this mod is the one shipped
+       * backend it is true of, and its own backend carries the same
+       * "no connection to a command source" line the wrapper exists to stop
+       * emitting. Prose only, no RA type or reference, same category as
+       * CommsElection.cs beside it.
+       */
+      "mod/Sitrep.Host/Comms/CommsModelPolicy.cs",
+      /*
        * The action-groups election is a deliberate copy of the comms precedent
        * above, and its doc-comment says so: it cites GonogoRealAntennasUplink as
        * the worked example of a provider elected over the stock backend that

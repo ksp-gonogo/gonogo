@@ -1360,8 +1360,29 @@ namespace Gonogo.KSP
             };
         }
 
+        /// <summary>
+        /// The <c>vessel.comms</c> snapshot: what the craft's own
+        /// <c>CommNetVessel</c> reports. Absent (null) when there is none to
+        /// read, which covers two cases and both mean the same thing to a
+        /// client: the craft has no connection object, or this save models no
+        /// comms network at all.
+        ///
+        /// <para>The second used to emit connected:false / signalStrength:0 /
+        /// controlState:None, read straight off the CommNetVessel KSP builds
+        /// but never updates once the difficulty option is off. That is a
+        /// fabricated blackout: the SignalLossIndicator's "Lost" verdict is
+        /// keyed on a signal strength at or below zero, so a save with no comms
+        /// model reported total signal loss on every craft. Absence is the
+        /// honest answer and the client already handles it (the verdict
+        /// requires a strength that is present).</para>
+        /// </summary>
         private static Dictionary<string, object?>? BuildComms(Vessel vessel)
         {
+            if (CommsModelPresence.Present == false)
+            {
+                return null;
+            }
+
             var connection = vessel.connection;
             if (connection == null)
             {

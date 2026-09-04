@@ -1113,6 +1113,12 @@ export interface CommsConnectivity
 * The `comms.signalStrength` payload: always-present, elected backend. 0..1.
 * CommNet gives a coarse range-fraction; RealAntennas gives a
 * link-budget-derived value.
+*
+* A save with the stock CommNet difficulty option off models no link budget at
+* all and reports 1 here: nothing attenuates a link that is not modelled. A
+* reader that needs to know this is not a grading has
+* `CommsDelaySource.NoCommsModel` on `comms.delay`, which is the one
+* discriminator for the whole family rather than a second one per field.
 */
 export interface CommsSignalStrength
 {
@@ -1245,7 +1251,21 @@ export enum CommsDelaySource {
 	* configured" and "delay is off because this is a rehearsal" call for
 	* different reactions. See `flight.simulation`.
 	*/
-	Simulation = 2
+	Simulation = 2,
+	/**
+	* Zero, because this save models no comms network AT ALL: the stock CommNet
+	* difficulty option is off, so there are no ground stations, no relay graph
+	* and no path to measure a light-time over. Control reaches a craft directly,
+	* from anywhere, instantly.
+	*
+	* A POSITIVE FACT, and the reason it is a member here rather than a null
+	* `CommsDelay.oneWaySeconds`: null means "there is a comms model and it can
+	* measure nothing right now", which is a permanent blackout and the exact
+	* opposite prognosis. This is what distinguishes the two ON THE WIRE, and
+	* `comms.delay` is true-now, so it says so even while a blackout would be
+	* freezing everything else.
+	*/
+	NoCommsModel = 3
 }
 /**
 * The `comms.delay` payload: the CORE SignalDelay capability's output, gated
@@ -1264,8 +1284,14 @@ export enum CommsDelaySource {
 * - a real number: `CommsDelay.source` is `CommsDelaySource.SignalDelay`;
 *   gonogo's own light-time math over the elected backend's hop geometry.
 *
-* TRUE-NOW sim-meta: this value drives the release of every other delayed
-* channel and is therefore never itself delay-gated.
+* Two of the zeroes name their own reason instead of sharing
+* `CommsDelaySource.None`: `CommsDelaySource.Simulation` and
+* `CommsDelaySource.NoCommsModel`. The second is what tells a client that a
+* board showing no path and no relay graph is a save with the CommNet
+* difficulty option off, not a craft in a permanent blackout: the blackout
+* reports `null` here and `connected:false` on `CommsLink`, and this reports
+* `0` and `connected:true`. TRUE-NOW sim-meta: this value drives the release
+* of every other delayed channel and is therefore never itself delay-gated.
 */
 export interface CommsDelay
 {

@@ -64,6 +64,20 @@ public class CommsConnectivity
 /// The <c>comms.signalStrength</c> payload: always-present, elected
 /// backend. 0..1. CommNet gives a coarse range-fraction; RealAntennas gives
 /// a link-budget-derived value.
+///
+/// <para>A save with the stock CommNet difficulty option off models no link
+/// budget at all and reports 1 here: nothing attenuates a link that is not
+/// modelled. A reader that needs to know this is not a grading has
+/// <see cref="CommsDelaySource.NoCommsModel"/> on <c>comms.delay</c>, which is
+/// the one discriminator for the whole family rather than a second one per
+/// field.</para>
+/// <internal>
+/// The honest value in that case is an ABSENCE, and this field cannot carry
+/// one: nullable would be a retype, which the contract shape gate refuses
+/// without a Major bump. Of the two things a non-nullable double can say, 1 is
+/// the one that does not lie, because 0 is what the app's own
+/// SignalLossIndicator keys its "Lost" verdict on.
+/// </internal>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -273,6 +287,21 @@ public enum CommsDelaySource
     /// for different reactions. See <c>flight.simulation</c>.</para>
     /// </summary>
     Simulation,
+
+    /// <summary>
+    /// Zero, because this save models no comms network AT ALL: the stock
+    /// CommNet difficulty option is off, so there are no ground stations, no
+    /// relay graph and no path to measure a light-time over. Control reaches a
+    /// craft directly, from anywhere, instantly.
+    ///
+    /// <para>A POSITIVE FACT, and the reason it is a member here rather than a
+    /// null <see cref="CommsDelay.OneWaySeconds"/>: null means "there is a
+    /// comms model and it can measure nothing right now", which is a permanent
+    /// blackout and the exact opposite prognosis. This is what distinguishes
+    /// the two ON THE WIRE, and <c>comms.delay</c> is true-now, so it says so
+    /// even while a blackout would be freezing everything else.</para>
+    /// </summary>
+    NoCommsModel,
 }
 
 /// <summary>
@@ -296,6 +325,15 @@ public enum CommsDelaySource
 /// <see cref="CommsDelaySource.SignalDelay"/>; gonogo's own light-time math
 /// over the elected backend's hop geometry.</description></item>
 /// </list>
+/// Two of the zeroes name their own reason instead of sharing
+/// <see cref="CommsDelaySource.None"/>:
+/// <see cref="CommsDelaySource.Simulation"/> and
+/// <see cref="CommsDelaySource.NoCommsModel"/>. The second is what tells a
+/// client that a board showing no path and no relay graph is a save with the
+/// CommNet difficulty option off, not a craft in a permanent blackout: the
+/// blackout reports <c>null</c> here and <c>connected:false</c> on
+/// <see cref="CommsLink"/>, and this reports <c>0</c> and
+/// <c>connected:true</c>.
 /// TRUE-NOW sim-meta: this value drives the release of every other delayed
 /// channel and is therefore never itself delay-gated.
 /// </summary>

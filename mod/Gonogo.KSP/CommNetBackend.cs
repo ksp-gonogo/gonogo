@@ -515,7 +515,7 @@ namespace Gonogo.KSP
             }
         }
 
-        private static PayloadMeta Meta()
+        internal static PayloadMeta Meta()
         {
             var vessel = ActiveVesselScope.Current;
             return new PayloadMeta

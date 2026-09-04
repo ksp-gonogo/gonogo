@@ -25,6 +25,12 @@ namespace Gonogo.KSP
         /// Routed one-way light-time (null = no measurable path) + connectivity
         /// for a single vessel. Fail-soft: any torn-down-state throw yields
         /// (null, false), the correct "no live link" meaning.
+        ///
+        /// <para>A save with no comms model answers (0, connected) for every
+        /// craft, without reading the CommNet graph at all: with the difficulty
+        /// option off KSP never builds one, so <c>IsConnected</c> would be false
+        /// for every vessel forever and each would freeze its own subject's
+        /// Delayed channels for the session.</para>
         /// </summary>
         internal static (double? OneWaySeconds, bool Connected) ReadVessel(Vessel vessel, SignalDelayConfig config)
         {
@@ -33,6 +39,18 @@ namespace Gonogo.KSP
                 if (vessel == null)
                 {
                     return (null, false);
+                }
+
+                // No comms model in this save (the CommNet difficulty option is
+                // off): every craft is reachable from anywhere, instantly. Read
+                // off the DERIVED config rather than the difficulty option
+                // again, so a vessel's connectivity and its light-time can only
+                // ever be cut by the same decision. A KNOWN zero, not a null:
+                // there is no path to measure because there is nothing that
+                // needs one. See Sitrep.Host.Comms.CommsModelPolicy.
+                if (config != null && config.CutForNoCommsModel)
+                {
+                    return (0.0, true);
                 }
 
                 var conn = vessel.connection;
@@ -100,7 +118,28 @@ namespace Gonogo.KSP
         {
             try
             {
-                if (backend == null || from == null || to == null || ReferenceEquals(from, to))
+                if (from == null || to == null || ReferenceEquals(from, to))
+                {
+                    return null;
+                }
+
+                // No comms model: two distinct places are reachable from each
+                // other with no light-time between them, and there is no relay
+                // graph to solve. Without this the solve fails (no network was
+                // ever built) and the centre-to-centre pass writes NO ROW,
+                // leaving each pair on the whole-network default. That default
+                // is 0 here, so the answer came out right by a route nobody
+                // chose; saying it outright is what keeps it right.
+                //
+                // It sits ABOVE the backend guard deliberately: with no comms
+                // model there may be no backend to elect, and "no backend" must
+                // not turn the answer back into the null this exists to stop.
+                if (config != null && config.CutForNoCommsModel)
+                {
+                    return 0.0;
+                }
+
+                if (backend == null)
                 {
                     return null;
                 }

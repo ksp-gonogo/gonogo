@@ -305,6 +305,13 @@
          DevCommsOverride. All CommNet/CommNode-level types, the same headless
          reference-DLL contract FleetCommsReader.cs above already relies on. -->
     <Compile Include="..\Gonogo.KSP\CommNetBackend.cs" />
+    <!-- CommsModelPresence.cs is the three live reads behind the no-comms-model
+         rule (the CommNet difficulty option, the craft's own control tier, the
+         payload meta). CommsCoreUplink.cs calls it, so it has to resolve here;
+         it also carries the only headlessly-reachable half of the whole area,
+         because HighLogic.CurrentGame is a plain static field over plain
+         classes, so a test can set a save's difficulty and read it back. -->
+    <Compile Include="..\Gonogo.KSP\CommsModelPresence.cs" />
     <Compile Include="..\Gonogo.KSP\DevCommsOverride.cs" />
     <Compile Include="..\Gonogo.KSP\CommsCoreUplink.cs" />
     <!-- GonogoConfigFile.cs is CommsCoreUplink's write side for the simulation

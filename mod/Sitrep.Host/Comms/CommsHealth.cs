@@ -34,11 +34,27 @@ namespace Sitrep.Host.Comms
         /// case.</para>
         /// </summary>
         /// <param name="backendElected">Whether <see cref="CommsElection.Elected"/> returned a non-null backend.</param>
-        public static UplinkHealth Evaluate(bool backendElected)
+        /// <param name="modelPresent">
+        /// Whether this save models a comms network at all (see
+        /// <see cref="CommsModelPolicy"/>). A definite <c>false</c> is not a
+        /// fault: nothing is broken, there is simply nothing to report a link
+        /// over, and every channel flows live. It is still worth SAYING,
+        /// because a bare "Healthy" beside a board that shows no path, no
+        /// relay graph and no light-time reads as an uplink that has quietly
+        /// stopped observing. <c>null</c> (no save loaded yet, or the read
+        /// threw) adds nothing.
+        /// </param>
+        public static UplinkHealth Evaluate(bool backendElected, bool? modelPresent = null)
         {
             if (!backendElected)
             {
                 return new UplinkHealth(UplinkHealthState.Degraded, "no comms backend elected");
+            }
+            if (modelPresent == false)
+            {
+                return new UplinkHealth(
+                    UplinkHealthState.Healthy,
+                    "CommNet off in this save's difficulty settings: no network is modelled, so there is no path, no relay graph and no delay");
             }
             return new UplinkHealth(UplinkHealthState.Healthy);
         }
