@@ -27,7 +27,14 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
     case "held-stale":
       return "STALE";
     case "last-before-blackout":
-      return "STALE";
+      // Its own word, not "STALE". The two grades mean "not current" and ask
+      // the operator for opposite moves: STALE is a producer whose updates
+      // stopped arriving, something to go and check, where this is the last
+      // reading that got out before the craft went behind something, and there
+      // is nothing to check and nothing to do but wait for acquisition. One
+      // caption for both said only "old" and threw the actionable half away.
+      // Same `warning` severity: still not current, still not a fault.
+      return "BLACKOUT";
     case "recorded":
       // Its own word, not "STALE". A recorded reading is EXACT for the instant
       // it names; calling it stale would claim uncertainty the value does not
@@ -50,11 +57,12 @@ export function formatStreamStatus(status: StreamStatusValue): string | null {
  * at the floor. Announces as a live region, since a stream degrading is exactly
  * the kind of state change an operator benefits from being told about.
  *
- * Most widgets should not render this by hand at all: `Panel` derives the
- * status from the widget's own registered `dataRequirements` and puts the
- * badge in its header through the status store. Reach for this directly only
- * for a status that is not the panel's own (a sub-region reading a different
- * topic).
+ * A widget does not render this by hand for a blackout: the dashboard host
+ * derives `recorded` / `last-before-blackout` across the widget's declared
+ * channels and puts the badge in the panel header through the status store.
+ * Reach for this directly for a status that is not the panel's own (a
+ * sub-region reading a different topic), or for one of the grades the host
+ * does not derive; `Panel`'s `panelStatus` says which and why.
  */
 export function StreamStatusBadge({ status }: StreamStatusBadgeProps) {
   const label = formatStreamStatus(status);

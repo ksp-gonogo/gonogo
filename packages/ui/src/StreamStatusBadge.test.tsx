@@ -7,7 +7,12 @@ import { formatStreamStatus, StreamStatusBadge } from "./StreamStatusBadge";
 const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
   live: null,
   "held-stale": "STALE",
-  "last-before-blackout": "STALE",
+  // Its own word too, and for the operator's sake rather than the value's:
+  // "STALE" is a reading whose updates stopped arriving, and this is the last
+  // one that got out before the craft went behind something. The first asks
+  // you to go and look at the producer; the second asks you to wait, and to
+  // stop reading the panel as the state of the craft now.
+  "last-before-blackout": "BLACKOUT",
   // Its own word: a replayed recording is exact for the instant it names, so
   // "STALE" would claim uncertainty the value does not have.
   recorded: "RECORDED",
@@ -17,6 +22,14 @@ const STATUS_TO_LABEL: Record<StreamStatusValue, string | null> = {
 };
 
 describe("formatStreamStatus", () => {
+  // The two blackout grades used to share one caption, so a panel could not
+  // say whether data was being WITHHELD or whether the craft had gone dark.
+  it("does not collapse the two blackout grades onto one caption", () => {
+    expect(formatStreamStatus("held-stale")).not.toBe(
+      formatStreamStatus("last-before-blackout"),
+    );
+  });
+
   for (const [status, label] of Object.entries(STATUS_TO_LABEL)) {
     it(`maps "${status}" -> ${label === null ? "null (no badge)" : `"${label}"`}`, () => {
       expect(formatStreamStatus(status as StreamStatusValue)).toBe(label);
