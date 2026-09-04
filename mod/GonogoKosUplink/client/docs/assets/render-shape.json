@@ -3,7 +3,7 @@
   "engine": "chromium",
   "assets": {
     "boot-then-run--default.gif": {
-      "hash": "c636e8288af474a7",
+      "hash": "ed0dd4c20fa9db2d",
       "elements": 55,
       "text": "2a5b7ff0"
     },
@@ -13,7 +13,7 @@
       "text": "54cb2e54"
     },
     "lander-cpu-attached--default.png": {
-      "hash": "b9532287cafb7483",
+      "hash": "493fba64e49d4cf7",
       "elements": 63,
       "text": "580d617e"
     },
