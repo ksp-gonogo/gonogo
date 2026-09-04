@@ -39,6 +39,23 @@ function Probe({ dataKey, windowSec }: { dataKey: string; windowSec: number }) {
   );
 }
 
+function WindowEndProbe({
+  dataKey,
+  windowSec,
+}: {
+  dataKey: string;
+  windowSec: number;
+}) {
+  const range = useDataSeries("data", dataKey, windowSec);
+  return (
+    <div data-testid="window-end">windowEnd:{range.windowEndAt ?? "none"}</div>
+  );
+}
+
+function readWindowEnd(): string {
+  return screen.getByTestId("window-end").textContent ?? "";
+}
+
 function readProbe(): string {
   return screen.getByTestId("range").textContent ?? "";
 }
@@ -249,5 +266,67 @@ describe("useDataSeries: the stretch nobody measured", () => {
       // past the transition. Two modelled points, not four.
       expect(readProbe()).toMatch(/^n:5\|reckoned:3-4:kepler-propagation$/);
     });
+  });
+});
+
+describe("useDataSeries: how far the window was asked for", () => {
+  it("states the view time alongside a tail, so a decline is measurable", async () => {
+    const fixture = buildStreamFixture({ pinnedUt: 600 });
+
+    render(
+      <fixture.Provider>
+        <WindowEndProbe dataKey="vessel.state.orbitalSpeed" windowSec={900} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      for (const ut of [0, 40, 80]) {
+        fixture.transport.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
+          validAt: ut,
+          deliveredAt: ut,
+          quality: Quality.OnRails,
+        });
+      }
+    });
+
+    /*
+     * Without this the axis is the extent of the data, so a model that
+     * withdrew at its horizon draws exactly like one that ran to the edge: the
+     * series shortens, the axis shrinks with it, and the blank that IS the
+     * statement is cropped away.
+     */
+    await waitFor(() => expect(readWindowEnd()).toBe("windowEnd:600"));
+  });
+
+  it("states nothing where no model answered, so a live chart's axis is untouched", async () => {
+    const fixture = buildStreamFixture({ pinnedUt: 600 });
+
+    render(
+      <fixture.Provider>
+        <WindowEndProbe dataKey="vessel.state.altitudeAsl" windowSec={900} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit(
+        "vessel.flight",
+        { altitudeAsl: 1000 },
+        {
+          validAt: 100,
+          deliveredAt: 100,
+          quality: Quality.Loaded,
+        },
+      );
+      fixture.transport.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
+        validAt: 100,
+        deliveredAt: 100,
+        quality: Quality.Loaded,
+      });
+    });
+
+    // A measured series has made no claim about the stretch after its last
+    // sample, and stating the view time there would put a moving number in
+    // every live chart's snapshot for an emptiness that means nothing.
+    await waitFor(() => expect(readWindowEnd()).toBe("windowEnd:none"));
   });
 });

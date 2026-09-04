@@ -188,6 +188,24 @@ export interface SeriesRange<V = unknown> {
    * this and a later read can never mistake one for an observation.
    */
   reckoned?: SeriesReckonedSpan[];
+
+  /**
+   * The instant the window was asked FOR, in `basis`, when the producer knows
+   * it. Absent from any producer that reads a stored range rather than a live
+   * frame, which is every one that predates this.
+   *
+   * It exists because a chart's axis is the extent of its data, and that makes
+   * a model's WITHDRAWAL invisible: a tail that declines at its horizon
+   * shortens the series, the axis shrinks with it, and the picture is
+   * indistinguishable from one where the model ran to the edge. The blank
+   * stretch between the last modelled point and the view time IS the
+   * statement, and without this number nothing downstream can tell that the
+   * stretch exists.
+   *
+   * Not a promise that anything was sampled at it: `t` may end well short, and
+   * on a declining tail that shortfall is the whole point.
+   */
+  windowEndAt?: number;
 }
 
 /**

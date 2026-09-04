@@ -114,10 +114,25 @@ function computeXDomain(
  * `windowSec` still bounds how much history is FETCHED (`useDataSeries` reads
  * `[viewUt - windowSec, viewUt]`); it is the span of the axis only when there
  * is nothing to measure one from, which is a chart with no marks on it.
+ *
+ * ## Except where a model stopped short, which the extent alone cannot show
+ *
+ * A reckoned tail ends where the model declines. On an extent-fitted axis that
+ * decline is invisible: the series shortens, the axis shrinks with it, and a
+ * conic that withdrew at the atmosphere is drawn identically to one that ran
+ * to the view time. The blank between the last modelled point and now IS the
+ * statement, and an axis that crops it deletes the statement while leaving the
+ * line that prompted it, which is the worse of the two failures.
+ *
+ * So a series carrying a reckoned run extends the right edge to the instant it
+ * was asked for (`SeriesRange.windowEndAt`). Only that case: a purely measured
+ * series has made no claim about the stretch after its last sample, and
+ * stretching ITS axis to now would draw an emptiness that means nothing.
  */
 function computeTimeDomain(
   series: readonly ChartSeries[],
   windowSec: number,
+  reckonedWindowEnd?: number,
 ): [number, number] {
   const all: number[] = [];
   for (const s of series) all.push(...s.data.x);
@@ -125,6 +140,7 @@ function computeTimeDomain(
     const now = Date.now();
     return [now - windowSec * 1000, now];
   }
+  if (reckonedWindowEnd !== undefined) all.push(reckonedWindowEnd);
   return computeValueDomain(all);
 }
 
@@ -519,10 +535,26 @@ export function GraphView({
 
   const chartSeries: ChartSeries[] = [...liveSeries, ...overlaySeries];
 
+  /*
+   * The furthest instant any MODELLED series was asked for. Only a series that
+   * carries a reckoned run contributes one, so an ordinary chart's axis is the
+   * extent of its data exactly as before; see `computeTimeDomain`.
+   */
+  const reckonedWindowEnd = series.reduce<number | undefined>(
+    (furthest, cfg) => {
+      const raw = seriesData.get(cfg.key);
+      const end =
+        raw && (raw.reckoned?.length ?? 0) > 0 ? raw.windowEndAt : undefined;
+      if (end === undefined) return furthest;
+      return furthest === undefined || end > furthest ? end : furthest;
+    },
+    undefined,
+  );
+
   const xDomain: [number, number] = xPinned
     ? (config?.xDomain as [number, number])
     : xIsTime
-      ? computeTimeDomain(liveSeries, windowSec)
+      ? computeTimeDomain(liveSeries, windowSec, reckonedWindowEnd)
       : computeXDomain(xData.v as number[], overlaySeries, layers);
 
   /*

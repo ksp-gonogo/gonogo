@@ -504,7 +504,119 @@ describe("Graph: genuinely runs off the stream", () => {
       expect(label).toMatch(/two-body motion/i);
     });
   });
+
+  /**
+   * Where a model STOPPED, which the trace alone cannot show.
+   *
+   * The same arc, around a body whose atmosphere the roster now names, so the
+   * conic withdraws at the entry interface partway through the window. On an
+   * axis fitted to the data that withdrawal is invisible: the series shortens,
+   * the axis shrinks with it, and the picture is identical to one where the
+   * model ran to the view time. The blank stretch IS the statement.
+   *
+   * Asserted on the axis rather than on a pixel: the last modelled point sits
+   * strictly inside the drawn width, which is the same claim a reader makes by
+   * eye and the only one that survives a font change.
+   */
+  it("leaves the stretch a declining model would not answer for on the axis", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
+        "vessel.propulsion",
+      ],
+      pinnedUt: 1000,
+      suspendFrames: true,
+    });
+
+    const config = {
+      series: [
+        {
+          id: "altitude",
+          key: "vessel.state.altitudeAsl",
+          axis: "auto" as const,
+        },
+      ],
+      windowSec: 1000,
+    };
+
+    const { container } = render(
+      <fixture.Provider>
+        <GraphComponent
+          config={config}
+          id="graph-stream-declines"
+          w={10}
+          h={8}
+        />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("system.bodies", {
+        bodies: [
+          {
+            name: "Kerbin",
+            index: 1,
+            parentIndex: 0,
+            radius: 600_000,
+            orbit: null,
+            atmosphere: { depth: 70_000 },
+          },
+        ],
+      });
+      for (const validAt of [0, 100, 200]) {
+        fixture.emit("vessel.orbit", ENTRY_ARC, {
+          validAt,
+          quality: Quality.OnRails,
+        });
+      }
+    });
+
+    await waitFor(() => {
+      const reckoned = container.querySelector<SVGPathElement>(
+        'path[data-reckoning-basis="kepler-propagation"]',
+      );
+      expect(reckoned).not.toBeNull();
+      const plot = container.querySelector<SVGRectElement>("svg");
+      expect(plot).not.toBeNull();
+      const rightmost = Math.max(
+        ...(reckoned?.getAttribute("d") ?? "")
+          .split(/[ML]/)
+          .filter(Boolean)
+          .map((pair) => Number(pair.trim().split(/[ ,]/)[0])),
+      );
+      const width = Number(plot?.getAttribute("width") ?? 0);
+      // Strictly short of the right edge: the model declined at the interface
+      // and the axis still runs to the instant it was asked for.
+      expect(width).toBeGreaterThan(0);
+      expect(rightmost).toBeLessThan(width * 0.95);
+    });
+  });
 });
+
+/**
+ * Apoapsis 800 km from Kerbin's centre, periapsis 630 km, so the arc crosses
+ * the 70 km entry interface on the way down and stays clear of the surface.
+ * `meanAnomalyAtEpoch: PI` starts it at apoapsis, so the descent is the part
+ * inside the window.
+ */
+const ENTRY_ARC = {
+  referenceBodyIndex: 1,
+  sma: 715_000,
+  ecc: 170_000 / 1_430_000,
+  inc: 0,
+  lan: 0,
+  argPe: 0,
+  meanAnomalyAtEpoch: Math.PI,
+  epoch: 0,
+  mu: 3_531_600_000_000,
+  horizon: { kind: 1, trajectoryKind: 1 },
+};
 
 /**
  * A closed conic around Kerbin, eccentric so the orbital speed actually MOVES

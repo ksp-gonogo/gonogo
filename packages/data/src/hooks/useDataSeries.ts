@@ -460,7 +460,12 @@ export function useDataSeries(
       prevBreaks.length === nextBreaks.length &&
       prevBreaks.every((b, i) => b === nextBreaks[i]) &&
       spansEqual(prev.spans ?? [], nextSpans) &&
-      reckonedEqual(prev.reckoned ?? [], nextReckoned);
+      reckonedEqual(prev.reckoned ?? [], nextReckoned) &&
+      // Only ever set alongside a tail (see below), and there it MUST be
+      // compared: a model that has already declined leaves `t` and every run
+      // fixed while the view time keeps advancing, and the growing blank
+      // between the two is the only thing that changes.
+      prev.windowEndAt === (nextReckoned.length > 0 ? toUt : undefined);
     if (unchanged) return prev;
 
     lastSnapshotRef.current = {
@@ -472,6 +477,16 @@ export function useDataSeries(
       breaks: nextBreaks,
       spans: nextSpans,
       reckoned: nextReckoned,
+      /*
+       * Only where a model actually answered for part of the window. Stating
+       * it always would put the frame's view time into the snapshot of every
+       * live chart, and a live chart's view time advances every frame, so a
+       * window with nothing new in it would stop returning `prev` and start
+       * re-rendering at frame rate for no change. A chart WITH a tail already
+       * re-renders per frame by construction, so confining it there costs
+       * nothing that was not already being spent.
+       */
+      windowEndAt: nextReckoned.length > 0 ? toUt : undefined,
     };
     return lastSnapshotRef.current;
   }, [store, topic, windowSec]);

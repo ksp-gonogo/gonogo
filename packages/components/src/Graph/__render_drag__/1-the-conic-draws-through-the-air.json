@@ -1,0 +1,150 @@
+{
+  "_meta": {
+    "scenario": "drag-horizon",
+    "synthetic": true,
+    "notes": "SYNTHETIC. One craft on rails on a descending arc around Kerbin: apoapsis 800 km from the centre (200 km altitude), periapsis 630 km (30 km altitude), so it passes through the 70 km entry interface on the way down and stays well clear of the surface throughout. vessel.orbit samples stop at UT 200 and the frame is drawn for UT 1000, so 800 seconds of the window had no observation in it. The elements are Quality.OnRails, a CAUSE valid until superseded, and carry the stock producer's own AnalyticHorizon, so deriveVesselStateReckoning is asked at every instant of the tail and TimelineStore.sampleReckonedTail draws whatever it answers. Nothing here feeds LineChart a prop. This body's entry carries NO atmosphere block, which on this wire means airless rather than unknown, so the floor is the surface and a 30 km periapsis is simply a low periapsis. The tail runs the whole window: this is the line a conic wants to draw, and around an airless body it is the honest one."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "pinnedUt": 1000,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 715000,
+          "ecc": 0.11888111888111888,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 3.141592653589793,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 715000,
+          "ecc": 0.11888111888111888,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 3.141592653589793,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "validAt": 50,
+          "deliveredAt": 50
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 715000,
+          "ecc": 0.11888111888111888,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 3.141592653589793,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "validAt": 100,
+          "deliveredAt": 100
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 715000,
+          "ecc": 0.11888111888111888,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 3.141592653589793,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "validAt": 150,
+          "deliveredAt": 150
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 715000,
+          "ecc": 0.11888111888111888,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 3.141592653589793,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        },
+        "meta": {
+          "validAt": 200,
+          "deliveredAt": 200
+        }
+      }
+    ]
+  }
+}
