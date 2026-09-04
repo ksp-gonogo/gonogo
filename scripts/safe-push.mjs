@@ -34,7 +34,19 @@ const skipE2e = process.env.SKIP_E2E === "1";
   const capture = (args) =>
     spawnSync("git", args, { encoding: "utf8" }).stdout?.trim() ?? "";
   const branch = capture(["rev-parse", "--abbrev-ref", "HEAD"]);
-  if (branch !== "HEAD") {
+  // A force flag is the caller stating that the remote deliberately differs,
+  // which is exactly what a rebased branch looks like. Checking "behind" here
+  // refused a legitimate `--force-with-lease` push and advised rebasing onto
+  // the branch's own pre-rebase remote, which would have replayed the commits
+  // back onto the base they had just been moved off and undone the rebase.
+  // A wrong remedy is worse than no check.
+  const forced = process.argv
+    .slice(2)
+    .some(
+      (a) =>
+        a === "-f" || a === "--force" || a.startsWith("--force-with-lease"),
+    );
+  if (branch !== "HEAD" && !forced) {
     const remote = capture(["ls-remote", "origin", branch]).split(/\s+/)[0];
     // An absent branch is a first push, which cannot be behind anything.
     if (remote && spawnSync("git", ["cat-file", "-e", remote]).status === 0) {
