@@ -1092,7 +1092,7 @@ namespace Sitrep.Contract
         /// <para>Not a taxonomy we invented. KSP has no single refusal enum, it
         /// has about a dozen domain-scoped authorities, and each member above
         /// names one: <c>HighLogic.CurrentGame.Mode</c>,
-        /// <c>HighLogic.LoadedScene</c>, <c>ClearToSaveStatus</c>'s seven arms,
+        /// <c>HighLogic.LoadedScene</c>, <c>ClearToSaveStatus</c>'s arms,
         /// <c>Contract.State</c> / <c>RDTech.State</c> /
         /// <c>ProtoCrewMember.RosterStatus</c>, <c>GameVariables.Unlocked*</c>,
         /// <c>PreFlightTests.LaunchSiteClear</c> and <c>FacilityOperational</c>,

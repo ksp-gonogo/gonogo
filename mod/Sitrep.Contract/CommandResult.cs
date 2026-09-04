@@ -169,16 +169,26 @@ public enum CommandErrorCode
     /// Right command, wrong moment: the flight is not in a state that permits it
     /// yet, and will be later.
     ///
-    /// <para>Authority: <c>FlightGlobals.ClearToSave()</c>, whose
-    /// <c>ClearToSaveStatus</c> has seven named arms (in atmosphere, under
-    /// acceleration, moving over the surface, about to crash, on a ladder,
-    /// throttled up, orbit event imminent), plus
+    /// <para>Authority: <c>FlightGlobals.ClearToSave()</c>, which returns one of
+    /// five refusals (in atmosphere, under acceleration, moving over the
+    /// surface, about to crash, on a ladder), plus
     /// <c>FlightDriver.CanRevertToPostInit</c>/<c>CanRevertToPrelaunch</c> and
-    /// <c>GameParameters.Flight.CanLeaveToSpaceCenter</c>. The arm rides on
+    /// the <c>GameParameters</c> flags for leaving to the space center and to
+    /// the tracking station. The arm rides on
     /// <see cref="CommandResult.Detail"/>.</para>
     ///
     /// <para>Distinct from <see cref="WrongState"/>, which is about the entity
-    /// and does not resolve by waiting.</para>
+    /// and does not resolve by waiting.
+    /// <internal>
+    /// Five, not the seven this said until 2026-09-04.
+    /// <c>ClearToSaveStatus</c> declares seven members and
+    /// <c>PauseMenu.drawExitWithoutSaveOptions</c> switches over six of them,
+    /// which is where the number came from, but <c>ClearToSave</c> itself
+    /// produces only five: nothing in <c>Assembly-CSharp</c> assigns
+    /// <c>NOT_WHILE_THROTTLED_UP</c> anywhere, and <c>ORBIT_EVENT_IMMINENT</c>
+    /// comes only from <c>TimeWarp.getMaxOnRailsRateIdx</c>, a different
+    /// authority. Counting the enum is not counting the answers.
+    /// </internal></para>
     /// </summary>
     NotClearToProceed = 15,
 

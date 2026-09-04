@@ -33,8 +33,12 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         /// being reported</item>
         /// <item>the clear-to-save gate only guards stock's own
         /// <c>FlightGlobals.ClearToSave()</c>, which judges KSP's active vessel</item>
-        /// <item>the launch refusal asks whether KSP has ANY vessel left in the
-        /// world, and runs in scenes that have no flight</item>
+        /// <item>TWO in the flight-ops actuator: the launch refusal asks whether
+        /// KSP has ANY vessel left in the world and runs in scenes that have no
+        /// flight, and the tracking-station exit guards the same
+        /// <c>FlightGlobals.ClearToSave()</c> the gate above does, for the same
+        /// reason (it judges KSP's active vessel, so asking about the reported
+        /// craft would make the refusal disagree with the thing it quotes)</item>
         /// <item>the visibility calibration wants ANY propagatable orbit and falls
         /// through to the whole roster</item>
         /// </list>
@@ -43,7 +47,7 @@ namespace Gonogo.KSP.Tests.ActiveVessel
         {
             ["CurrencyEventUplink.cs"] = 1,
             ["Gates/KspGateEvaluators.cs"] = 1,
-            ["KspFlightOpsActuator.cs"] = 1,
+            ["KspFlightOpsActuator.cs"] = 2,
             ["SilenceTracking/KspVisibilityGeometryFactory.cs"] = 1,
         };
 

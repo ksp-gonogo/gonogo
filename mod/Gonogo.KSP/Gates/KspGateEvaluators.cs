@@ -372,8 +372,8 @@ namespace Gonogo.KSP.Gates
     }
 
     /// <summary>
-    /// Authority: <c>FlightGlobals.ClearToSave()</c>, whose
-    /// <c>ClearToSaveStatus</c> has seven named arms. The arm rides on the
+    /// Authority: <c>FlightGlobals.ClearToSave()</c>, which returns one of five
+    /// named refusals. The arm rides on the
     /// verdict's detail, which is the part an operator acts on: "throttled up"
     /// and "about to crash" want opposite responses.
     /// </summary>

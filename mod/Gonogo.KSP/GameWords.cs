@@ -62,8 +62,8 @@ namespace Gonogo.KSP
         ///
         /// <para>Some of KSP's most useful refusal enums carry no
         /// <c>[Description]</c> at all. <c>ClearToSaveStatus</c> is the one that
-        /// matters here: its seven arms are the reason a recovery is refused, and
-        /// their sentences live only in the localisation table under opaque
+        /// matters here: its five reachable arms are the reason a recovery is
+        /// refused, and their sentences live only in the localisation table under opaque
         /// <c>#autoLOC_</c> numbers the enum does not reference. Formatting one of
         /// those numbers by hand would put a confidently wrong sentence in front
         /// of an operator the first time KSP renumbers them.</para>

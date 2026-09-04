@@ -85,14 +85,105 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Loads the tracking-station scene via
-        /// <c>HighLogic.LoadScene(GameScenes.TRACKSTATION)</c> (static, no
-        /// args): a game-level scene change with no vessel precondition.
+        /// Writes the save, then loads the tracking-station scene via
+        /// <c>HighLogic.LoadScene(GameScenes.TRACKSTATION)</c>; refuses without
+        /// loading anything when the write is forbidden, refused, or unproven.
+        /// <see cref="SceneExitRule"/> owns the ordering and holds the whole
+        /// account of why; this method holds the live reads it decides from.
+        ///
+        /// <para>It shipped as the bare <c>LoadScene</c> alone, which is not a
+        /// scene change but a REVERT: the destination re-reads
+        /// <c>persistent.sfs</c> and <c>Game.Load()</c> replaces the live world
+        /// with it, while <c>ScenarioRunner</c> has already destroyed every live
+        /// scenario module unharvested. Twice on the rig that cost 240,355
+        /// seconds of universal time, the funds earned since the last write, and
+        /// a construction queue.</para>
+        ///
+        /// <para>Three live reads. The two permission flags stock requires
+        /// before it will even DRAW its own Tracking Station button
+        /// (<c>Parameters.Flight.CanLeaveToTrackingStation</c> and
+        /// <c>Parameters.SpaceCenter.CanGoInTrackingStation</c>).
+        /// <c>FlightGlobals.ClearToSave()</c>, but only when there is a flight
+        /// to judge: its first line dereferences <c>ActiveVessel</c> with no
+        /// null check, and this command is legitimately issued from the space
+        /// centre, where the arm does not apply and the save still must happen.
+        /// And what <c>GamePersistence.SaveGame</c> RETURNED, which is an empty
+        /// string when <c>Parameters.Flight.CanAutoSave</c> is off; stock's own
+        /// <c>PauseMenu.saveAndExit</c> ignores that.</para>
+        ///
+        /// <para><c>SaveMode.BACKUP</c>, not the <c>OVERWRITE</c> stock's two
+        /// exit buttons use: it rotates a timestamped copy of the existing
+        /// <c>persistent.sfs</c> into <c>Backup/</c> first, as
+        /// <c>FlightAutoSave</c> does. Overwriting is how a bad save becomes the
+        /// only save, and this command's whole subject is losing save
+        /// state.</para>
         /// </summary>
         public CommandResult ToTrackingStation()
         {
-            HighLogic.LoadScene(GameScenes.TRACKSTATION);
-            return CommandResult.Ok();
+            var game = HighLogic.CurrentGame;
+            var saveFolder = HighLogic.SaveFolder;
+            if (game == null || string.IsNullOrEmpty(saveFolder))
+            {
+                // Without these two the save has nothing to write and nowhere to
+                // write it, and GamePersistence's three-arg overload FABRICATES
+                // a game rather than refusing. Refused here, so no scene is
+                // loaded and no file is touched.
+                return CommandResult.Fail(
+                    CommandErrorCode.WrongScene, $"the game is in the {GameWords.Phrase(HighLogic.LoadedScene)} scene");
+            }
+
+            var flight = game.Parameters?.Flight;
+            var spaceCentre = game.Parameters?.SpaceCenter;
+            var destinationRefusal =
+                (flight != null && !flight.CanLeaveToTrackingStation) ||
+                (spaceCentre != null && !spaceCentre.CanGoInTrackingStation)
+                    ? "this game does not permit going to the tracking station"
+                    : null;
+
+            string? notClearToSave;
+            try
+            {
+                notClearToSave = NotClearToLeaveFlight();
+            }
+            catch (Exception ex)
+            {
+                // Fail-closed, matching ClearToSaveGate's own catch: a gate that
+                // could not be asked is not a gate that passed, and the thing on
+                // the other side of it is the operator's career.
+                return CommandResult.Fail(
+                    CommandErrorCode.NotClearToProceed,
+                    "could not ask whether the flight is clear to save: " + ex.Message);
+            }
+
+            return SceneExitRule.SaveThenLeave(
+                destinationRefusal,
+                notClearToSave,
+                () => GamePersistence.SaveGame("persistent", saveFolder, SaveMode.BACKUP),
+                () => HighLogic.LoadScene(GameScenes.TRACKSTATION));
+        }
+
+        /// <summary>
+        /// Which <c>ClearToSaveStatus</c> arm refuses the write, in the game's
+        /// own words, or null when the flight is clear or when there is no
+        /// flight to judge.
+        ///
+        /// <para>Deliberately NOT <see cref="ActiveVesselScope"/>, for the same
+        /// reason <c>ClearToSaveGate</c> gives: this guards
+        /// <c>FlightGlobals.ClearToSave()</c>, which judges whatever KSP itself
+        /// has active. Asking about the craft while stock answers about the
+        /// kerbal would make the gate disagree with the thing it quotes, and a
+        /// kerbal on a ladder is one of the five arms.</para>
+        /// </summary>
+        private static string? NotClearToLeaveFlight()
+        {
+            if (!HighLogic.LoadedSceneIsFlight ||
+                FlightGlobals.fetch == null ||
+                FlightGlobals.ActiveVessel == null)
+            {
+                return null;
+            }
+            var clear = FlightGlobals.ClearToSave();
+            return clear == ClearToSaveStatus.CLEAR ? null : GameWords.Phrase(clear);
         }
 
         /// <summary>
@@ -107,7 +198,7 @@ namespace Gonogo.KSP
         /// <para><c>FlightGlobals.setActiveVessel</c> switches on
         /// <c>FlightGlobals.ClearToSave()</c> arm by arm, then adds one more
         /// refusal for a vessel that is not <c>DiscoveryLevels.Owned</c>. A
-        /// <c>false</c> return discards which of the eight it was, so the arm is
+        /// <c>false</c> return discards which of the six it was, so the arm is
         /// read back here to name it.</para>
         /// </summary>
         public CommandResult SwitchVessel(string vesselId)
@@ -176,7 +267,7 @@ namespace Gonogo.KSP
         /// refuse it: a failed gate returns
         /// <see cref="CommandErrorCode.NotClearToProceed"/> rather than firing a
         /// destructive recovery, carrying which of
-        /// <c>ClearToSaveStatus</c>'s seven arms it was.
+        /// <c>ClearToSaveStatus</c>'s five reachable arms it was.
         ///
         /// <para><b>Refused outright while a kerbal is outside the craft</b>, the
         /// one case where KSP honouring the target is the problem rather than the

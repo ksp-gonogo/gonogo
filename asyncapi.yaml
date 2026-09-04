@@ -8889,12 +8889,11 @@ components:
             Right command, wrong moment: the flight is not in a state that permits it
             yet, and will be later.
 
-            Authority: `FlightGlobals.ClearToSave()`, whose `ClearToSaveStatus` has
-            seven named arms (in atmosphere, under acceleration, moving over the
-            surface, about to crash, on a ladder, throttled up, orbit event imminent),
-            plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch` and
-            `GameParameters.Flight.CanLeaveToSpaceCenter`. The arm rides on
-            `CommandResult.detail`.
+            Authority: `FlightGlobals.ClearToSave()`, which returns one of five refusals
+            (in atmosphere, under acceleration, moving over the surface, about to crash,
+            on a ladder), plus `FlightDriver.CanRevertToPostInit`/`CanRevertToPrelaunch`
+            and the `GameParameters` flags for leaving to the space center and to the
+            tracking station. The arm rides on `CommandResult.detail`.
 
             Distinct from `CommandErrorCode.WrongState`, which is about the entity and
             does not resolve by waiting.

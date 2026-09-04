@@ -99,8 +99,8 @@ namespace Gonogo.KSP.Gates
 
             // Recovery is destructive and KSP will not do it while the craft is
             // throttled up, on a ladder, or about to hit something.
-            // ClearToSaveStatus names all seven arms and needs no arguments, so
-            // the control goes dark WITH the arm.
+            // ClearToSaveStatus names every arm it can refuse with and needs no
+            // arguments, so the control goes dark WITH the arm.
             table[FlightOpsCommandProvider.RecoverCommand] = new[]
             {
                 CareerGates.ClearToSave,

@@ -1284,9 +1284,9 @@ function InFlightPanel({
   switchCmd: CommandButtonHandle;
 }) {
   const [switchOpen, setSwitchOpen] = useState(false);
-  // The Tracking Station control keeps its own warning-worded chrome (leaving
-  // may cost the flight), so it takes the behaviour hook rather than the
-  // default rendering.
+  // The Tracking Station control keeps its own chrome (the mod saves first and
+  // refuses when KSP will not, so the refusal names the arm), which is why it
+  // takes the behaviour hook rather than the default rendering.
   const trackingStation = useCommandButton({
     handle: toTrackingCmd,
     commandLabel: "Go to Tracking Station",
@@ -1379,7 +1379,7 @@ function InFlightPanel({
               trackingStation.refusalText ??
               (trackingStation.isLost
                 ? trackingStationLoss
-                : "KSP may revert this flight to its last save if it can't save here (the in-game warning dialog has no equivalent on the wire).")
+                : "Saves the game, then leaves. Refused, naming KSP's own reason, when KSP will not save here.")
             }
             aria-label={
               trackingStation.refusalText ??
@@ -1390,13 +1390,13 @@ function InFlightPanel({
               ? "Refused"
               : trackingStation.isLost
                 ? "No reply"
-                : "Confirm: flight may revert"}
+                : "Confirm: save and leave"}
           </TrackingStationConfirm>
         ) : (
           <TrackingStationButton
             type="button"
             onClick={() => trackingStation.press(true)}
-            title="Tracking Station: KSP may revert this flight if it can't save here"
+            title="Tracking Station: saves the game first, and refuses if KSP will not save here"
           >
             Tracking Station
           </TrackingStationButton>

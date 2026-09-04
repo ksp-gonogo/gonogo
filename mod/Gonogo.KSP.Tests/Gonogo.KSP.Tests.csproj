@@ -85,6 +85,14 @@
     <Compile Include="..\Gonogo.KSP\WarpRateOutcome.cs" />
     <!-- What stock's own space bar checks before it stages. -->
     <Compile Include="..\Gonogo.KSP\StageRule.cs" />
+    <!-- Whether a scene change may happen at all, and what has to be written
+         first. Leaving flight is a RELOAD - the destination re-reads
+         persistent.sfs and Game.Load wins - so the decision is worth entering
+         headlessly. The live reads it decides from (which ClearToSave arm came
+         back, which permission flags the game set, what SaveGame returned) stay
+         in KspFlightOpsActuator, which needs a scene and is not compiled here.
+         Sitrep.Contract only, no KSP type. -->
+    <Compile Include="..\Gonogo.KSP\SceneExitRule.cs" />
     <Compile Include="..\Gonogo.KSP\StrategyEligibility.cs" />
     <!-- CommandCentreReach.cs is the "can CommNet route here at all" rule the
          crewed-vessel enumeration gates on. It names no KSP type on purpose (the

@@ -564,7 +564,7 @@ describe("LaunchDirectorComponent", () => {
       ),
     ).toHaveLength(0);
     // Confirm step is visible.
-    const confirm = screen.getByText(/Confirm: flight may revert/i);
+    const confirm = screen.getByText(/Confirm: save and leave/i);
     await user.click(confirm);
     await waitFor(() => {
       const sent = stream.transport.sentCommands.find(
