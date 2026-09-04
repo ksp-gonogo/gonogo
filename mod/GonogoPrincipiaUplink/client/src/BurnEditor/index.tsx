@@ -710,6 +710,14 @@ export function BurnEditor() {
                   deltaVTangent: draft.tangent,
                   deltaVNormal: draft.normal,
                   deltaVBinormal: draft.binormal,
+                  /*
+                   * The same two fields APPLY sends, because this control copies
+                   * the burn ON SCREEN and both are part of it. Insert leaves an
+                   * unstated field at the TEMPLATE's value and the template is
+                   * the SAVED burn, so omitting them added the draft back with
+                   * the attitude and the profile it had before the operator
+                   * touched either.
+                   */
                   inertiallyFixed: draft.inertiallyFixed,
                   profile: draft.instantImpulse
                     ? PrincipiaBurnProfile.InstantImpulse
