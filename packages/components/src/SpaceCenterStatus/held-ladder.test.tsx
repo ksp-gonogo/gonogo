@@ -46,9 +46,11 @@ const renderedTrees: Array<() => void> = [];
 afterEach(() => {
   for (const unmount of renderedTrees) unmount();
   renderedTrees.length = 0;
-  // Puts the widget's own band-0 reading back after a case that registered a
-  // rival: `clearContributions` takes the host's own contribution with
-  // everything else, and nothing re-runs a module import.
+  /**
+   * Puts the widget's own band-0 reading back after a case that registered a
+   * rival: `clearContributions` takes the host's own contribution with
+   * everything else, and nothing re-runs a module import.
+   */
   clearContributions();
   registerStockFacilityContribution();
 });
@@ -113,9 +115,11 @@ function emitLadder(fixture: ReturnType<typeof mount>, ut: number): void {
     fixture.emit(
       "career.facilities",
       {
-        // Keyed by enum name, with no ordinal: the key is a legitimate route on
-        // its own, and pinning ordinals here would restate a table the widget
-        // already owns.
+        /**
+         * Keyed by enum name, with no ordinal: the key is a legitimate route on
+         * its own, and pinning ordinals here would restate a table the widget
+         * already owns.
+         */
         facilities: {
           LaunchPad: { currentTier: 1, maxTier: 2, upgradeCost: 150_000 },
           VehicleAssemblyBuilding: {

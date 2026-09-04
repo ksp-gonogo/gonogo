@@ -1,8 +1,8 @@
 // @vitest-environment node
 //
 // Node realm: this reads three source files off disk and compares numbers.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CONTRACT_MAJOR, CONTRACT_MINOR } from "@ksp-gonogo/sitrep-sdk";
 import { UI_KIT_VERSION } from "@ksp-gonogo/ui-kit";
@@ -71,6 +71,37 @@ describe("published compat versions mirror their sources", () => {
       ),
     ) as { version: string };
     expect(UI_KIT_VERSION).toBe(pkg.version);
+  });
+
+  it("every bundled Uplink manifest claims the contract now on the wire", () => {
+    const manifests = readdirSync(join(REPO_ROOT, "mod"))
+      .map((dir) => join(REPO_ROOT, "mod", dir, "client", "gonogo-uplink.json"))
+      .filter((path) => existsSync(path));
+
+    expect(manifests.length).toBeGreaterThan(0);
+
+    const stale = manifests
+      .map((path) => ({
+        path: relative(REPO_ROOT, path),
+        ...(JSON.parse(readFileSync(path, "utf8")) as {
+          contractMajor: number;
+          contractMinor: number;
+        }),
+      }))
+      .filter(
+        (m) =>
+          m.contractMajor !== CONTRACT_MAJOR ||
+          m.contractMinor !== CONTRACT_MINOR,
+      )
+      .map((m) => `${m.path}: ${m.contractMajor}.${m.contractMinor}`);
+
+    expect(
+      stale,
+      `These manifests are pinned to a contract the host no longer speaks, so ` +
+        `the app REFUSES each of them at load with a message about a version ` +
+        `mismatch. Bumping ContractVersion.cs strands every bundled Uplink ` +
+        `until its manifest moves too. Expected ${CONTRACT_MAJOR}.${CONTRACT_MINOR}.`,
+    ).toEqual([]);
   });
 
   it("the app advertises the sdk's contract pair, not its own copy", () => {

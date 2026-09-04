@@ -109,9 +109,11 @@ function emit(
       strategies: null,
       tech: null,
     });
-    // The tiers ride their own channel now, and it speaks only when it has a
-    // reading, so what a case passes here is the answer the space centre gave
-    // rather than a payload the producer has to fill in nine times.
+    /**
+     * The tiers ride their own channel now, and it speaks only when it has a
+     * reading, so what a case passes here is the answer the space centre gave
+     * rather than a payload the producer has to fill in nine times.
+     */
     fixture.emit("career.facilities", { facilities });
   });
 }
