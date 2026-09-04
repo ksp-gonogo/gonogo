@@ -1,3 +1,4 @@
+import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,
@@ -388,10 +389,16 @@ describe("PlanIntegrationBlock", () => {
   });
 
   /**
-   * The same fact on the other remedy, and the other way a receipt can report
-   * it: an outcome that is not `Written`, whatever the envelope around it said.
+   * The RECEIPT READER on the other remedy, and not the refusal path.
+   *
+   * <p>The other way a receipt can report a write that did not happen: an
+   * outcome that is not `Written`, whatever the envelope around it said.
+   * `PlanCommands.Settle` answers every non-`Written` outcome with
+   * `Success = false`, so this pairing is one the producer never sends, and the
+   * banner asserted here can only fire on the REPLAY arm in production. What an
+   * operator meets on a real refusal is the test below.</p>
    */
-  it("says an end-instant receipt reporting no write changed nothing, and names the guard", async () => {
+  it("reads a non-Written end-instant outcome off the receipt itself, whatever the envelope claimed", async () => {
     const stream = mount(plan());
     stream.transport.setCommandHandler(() =>
       planWriteReply({
@@ -417,6 +424,63 @@ describe("PlanIntegrationBlock", () => {
 
     expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
     expect(screen.getByText(/SurfaceUnavailable/)).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The refusal path the end instant actually takes, with the mod's own
+   * sentence on it.
+   *
+   * <p>`Settle` answers a refused horizon write with `Success = false`, the
+   * coarse code for the guard and `result.Detail` as the sentence. The spine
+   * rejects, `onConfirmed` never runs, and the control is the whole surface: no
+   * receipt banner, and the button's accessible name is what the mod said.
+   * `FinalTimeInPast` maps onto `Range`, whose general clause is "an argument
+   * was outside its valid range", which is what the operator got while ui-kit
+   * was rebuilding the refusal without copying `detail`.</p>
+   */
+  it("shows the mod's own sentence when the end instant is refused", async () => {
+    const stream = mount(plan());
+    const said =
+      "The plan cannot be asked to end before the instant it starts from";
+    stream.transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: CommandErrorCode.Range,
+      detail: said,
+      payload: {
+        requestId: "horizon-vessel-1-1144000",
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Refused,
+        refusal: PrincipiaWriteRefusal.FinalTimeInPast,
+        refusalDetail: said,
+      },
+    }));
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Plan end later by 1h" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Move the flight plan's end instant",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm moving the flight plan's end instant",
+      }),
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: `Move the flight plan's end instant refused: ${said}.`,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: /an argument was outside its valid range/,
+      }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
     await act(async () => {});
   });
 

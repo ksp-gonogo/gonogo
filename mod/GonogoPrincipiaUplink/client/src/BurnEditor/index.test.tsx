@@ -1,4 +1,4 @@
-import { Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   render,
@@ -81,6 +81,40 @@ async function emitPlan(
  */
 function planWriteReply(receipt: Record<string, unknown>) {
   return { success: true, errorCode: 0, payload: receipt };
+}
+
+/** The last `command-request` this widget put on the wire, verbatim. */
+function lastSent(stream: ReturnType<typeof mount>) {
+  const sent = stream.transport.sentCommands;
+  const last = sent[sent.length - 1];
+  if (last === undefined) throw new Error("no command was sent");
+  return last;
+}
+
+/** Open burn 1, press ADD LIKE THIS, and confirm it. */
+async function addABurnLikeThisOne() {
+  await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+  await userEvent.click(
+    screen.getByRole("button", { name: "Add a burn copied from this one" }),
+  );
+  await userEvent.click(
+    screen.getByRole("button", {
+      name: "Confirm adding a burn copied from this one",
+    }),
+  );
+}
+
+/** Open burn 1, press REMOVE, and confirm it. */
+async function removeTheSelectedBurn() {
+  await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+  await userEvent.click(
+    screen.getByRole("button", { name: "Remove this burn from the plan" }),
+  );
+  await userEvent.click(
+    screen.getByRole("button", {
+      name: "Confirm removing this burn from the plan",
+    }),
+  );
 }
 
 /** Open burn 1, press APPLY, and confirm it. */
@@ -628,6 +662,126 @@ describe("BurnEditor", () => {
   });
 
   /**
+   * The whole insert, end to end: the press, the args the mod binds, and the
+   * receipt read back off the reply.
+   *
+   * <p>The args are asserted VERBATIM, and two absences in them are the point.
+   * `PrincipiaBurnEditArgs` is "every field optional, an omitted field means
+   * leave it", and the burn the plugin receives is the one at `burnIndex` READ
+   * BACK with the stated fields changed. So ADD LIKE THIS sends the instant and
+   * the Dv triple and sends neither `inertiallyFixed` nor `profile`: the new
+   * burn takes the TEMPLATE's attitude mode and propulsion, not the draft's,
+   * even though both toggles are live beside the button. APPLY sends both.</p>
+   *
+   * <p>The request id is `insert-${index}-${ignitionUt}` and the Dv triple is
+   * not in it, which makes it the weakest key of the ten: two different burns
+   * composed at the same index and the same instant go under one id, and the
+   * second is answered out of the mod's receipt cache.</p>
+   */
+  it("inserts a burn with the draft's instant and components, at the index it was copied from", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: `insert-0-${VIEW_UT + 3600}`,
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await addABurnLikeThisOne();
+
+    const sent = lastSent(stream);
+    expect(sent.command).toBe("principia.plan.burn.insert");
+    expect(sent.args).toEqual({
+      vesselId: "vessel-1",
+      requestId: `insert-0-${VIEW_UT + 3600}`,
+      burnIndex: 0,
+      ignitionUt: VIEW_UT + 3600,
+      deltaVTangent: 100,
+      deltaVNormal: 100,
+      deltaVBinormal: 0,
+    });
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /** The replay arm on insert: the same id twice is one burn, not two. */
+  it("says an insert answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: `insert-0-${VIEW_UT + 3600}`,
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await addABurnLikeThisOne();
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The whole remove, end to end. The index is the whole of the request:
+   * `PrincipiaBurnRemoveArgs` carries no ignition instant and no components, so
+   * the mod drops whichever burn holds that index WHEN THE WRITE LANDS.
+   *
+   * <p>Which is why the id is `remove-${index}` and why that is the second
+   * weakest of the ten: indices shift as burns are added and removed, so the
+   * same id names a different burn on either side of any other write, and a
+   * repeat is answered out of the receipt cache rather than dropping the burn
+   * now at that index.</p>
+   */
+  it("removes a burn by the index alone, which is all the command carries", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "remove-0",
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await removeTheSelectedBurn();
+
+    const sent = lastSent(stream);
+    expect(sent.command).toBe("principia.plan.burn.remove");
+    expect(sent.args).toEqual({
+      vesselId: "vessel-1",
+      requestId: "remove-0",
+      burnIndex: 0,
+    });
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /** The replay arm on remove. */
+  it("says a remove answered from an earlier receipt changed nothing", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "remove-0",
+        replayed: true,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await removeTheSelectedBurn();
+
+    expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
    * A write the mod answered from its own store is not a write.
    *
    * The request id is content-addressed from the draft, so tuning a burn to 105
@@ -656,15 +810,25 @@ describe("BurnEditor", () => {
   });
 
   /**
-   * A receipt is the authority on whether anything landed, and `replayed` is
-   * only one of the two ways it can say no.
+   * The RECEIPT READER, and not the refusal path.
    *
-   * The contract's own words: "Nothing here can render as a quiet success." A
-   * receipt reporting anything but `Written` is a write that did not happen,
-   * whatever the envelope around it said, and the widget has to read the
-   * receipt to know that.
+   * <p>A receipt is the authority on whether anything landed, and `replayed` is
+   * only one of the two ways it can say no. The contract's own words: "Nothing
+   * here can render as a quiet success." A receipt reporting anything but
+   * `Written` is a write that did not happen, whatever the envelope around it
+   * said, and the widget has to read the receipt to know that.</p>
+   *
+   * <p><b>The pairing scripted here is one the producer never sends, and this
+   * test is not coverage of a refusal.</b> `PlanCommands.Settle` answers every
+   * non-`Written` outcome with `Success = false`, so a refused write REJECTS in
+   * the spine, `onConfirmed` never runs, and the banner asserted below cannot
+   * fire on that path in production: only the replay arm reaches it. It is
+   * scripted anyway because the receipt is the authority and the envelope is
+   * not, and because that pairing is the producer's choice rather than a
+   * property of the wire. What an operator actually meets on a refusal is the
+   * test after next.</p>
    */
-  it("says a receipt reporting no write changed nothing, and names the guard", async () => {
+  it("reads a non-Written outcome off the receipt itself, whatever the envelope claimed", async () => {
     const stream = mount();
     stream.transport.setCommandHandler(() =>
       planWriteReply({
@@ -717,8 +881,8 @@ describe("BurnEditor", () => {
     await act(async () => {});
   });
 
-  /** The other arm of the same fact, on the arm control. */
-  it("says an arm receipt reporting no write changed nothing, and names the guard", async () => {
+  /** The same reader on the arm control. Not refusal coverage either. */
+  it("reads a non-Written arm outcome off the receipt itself, whatever the envelope claimed", async () => {
     const stream = mount();
     stream.transport.setCommandHandler(() =>
       planWriteReply({
@@ -740,6 +904,65 @@ describe("BurnEditor", () => {
 
     expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
     expect(screen.getByText(/LayoutUnverified/)).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The refusal path an arm actually takes, and the mod's own sentence reaching
+   * the operator on it.
+   *
+   * <p>`Settle` answers a refused arm with `Success = false`, `Code(...)` for
+   * the guard, and `result.Detail` as the sentence. The spine rejects on that
+   * and the control settles refused, so there is no receipt banner: the button
+   * is the whole surface, and its accessible name is the sentence.</p>
+   *
+   * <p><b>`detail` is the only clause a plan refusal has.</b> None of the ten
+   * ever sets a `LimitBreach`, and `LayoutUnverified` maps onto the coarse
+   * `ModeUnavailable`, whose general clause is "the game would not say why". So
+   * a control that rebuilt the refusal without copying `detail` said exactly
+   * that, against a mod whose sentence said exactly why. Both halves are
+   * asserted, because the sentence being present is only half the fact: the
+   * general clause has to be gone.</p>
+   */
+  it("shows the mod's own sentence when an arm is refused", async () => {
+    const stream = mount();
+    const said =
+      "Principia's burn struct has not survived a round trip in this session, " +
+      "so nothing will be written through it";
+    stream.transport.setCommandHandler(() => ({
+      success: false,
+      errorCode: CommandErrorCode.ModeUnavailable,
+      detail: said,
+      payload: {
+        requestId: "arm-vessel-1",
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Refused,
+        refusal: PrincipiaWriteRefusal.LayoutUnverified,
+        refusalDetail: said,
+      },
+    }));
+    await emitPlan(stream);
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Arm the flight-plan write surface" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Confirm arming the flight-plan write surface",
+      }),
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: `Arm the flight-plan write surface refused: ${said}.`,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /the game would not say why/ }),
+    ).not.toBeInTheDocument();
+    // A rejection never resolves, so `onConfirmed` never ran and the widget was
+    // handed no receipt to read.
+    expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
     await act(async () => {});
   });
 
