@@ -86,6 +86,7 @@
   "_stream": {
     "carriedChannels": [
       "career.status",
+      "career.facilities",
       "spaceCenter.savedShips",
       "spaceCenter.crewRoster",
       "spaceCenter.scene",
@@ -165,7 +166,6 @@
               "integrationSalary": 310
             }
           },
-          "facilities": null,
           "contracts": null,
           "strategies": null,
           "tech": null

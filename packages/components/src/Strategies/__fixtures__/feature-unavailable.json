@@ -8,7 +8,7 @@
   "career.reputation": null,
   "career.science": null,
   "_stream": {
-    "carriedChannels": ["career.status"],
+    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",
@@ -18,7 +18,6 @@
             "reputation": null,
             "science": null
           },
-          "facilities": null,
           "contracts": null,
           "strategies": null,
           "tech": null

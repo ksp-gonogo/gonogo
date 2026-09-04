@@ -38,15 +38,24 @@
             "funds": 4200,
             "reputation": 62,
             "science": 340
-          },
+          }
+        }
+      },
+      {
+        "topic": "career.facilities",
+        "payload": {
           "facilities": {
             "LaunchPad": {
-              "level": 1,
-              "max": 2
+              "facilityOrdinal": 2,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "VehicleAssemblyBuilding": {
-              "level": 1,
-              "max": 2
+              "facilityOrdinal": 8,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
             }
           }
         }

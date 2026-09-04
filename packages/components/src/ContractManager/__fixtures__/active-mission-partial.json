@@ -1,7 +1,7 @@
 {
   "_meta": {
     "scenario": "active-mission-partial",
-    "notes": "One active contract (Mun flag plant) with three parameters: first complete, two incomplete. One parameter is ReachAltitudeEnvelope with an in-progress altitude bar (vessel currently at 45,000m, band is 70,000–100,000m so still below). Deadline 5 stock days remaining. Also one offered contract visible in the offered section."
+    "notes": "One active contract (Mun flag plant) with three parameters: first complete, two incomplete. One parameter is ReachAltitudeEnvelope with an in-progress altitude bar (vessel currently at 45,000m, band is 70,000\u2013100,000m so still below). Deadline 5 stock days remaining. Also one offered contract visible in the offered section."
   },
   "contracts.active": [
     {
@@ -66,13 +66,12 @@
   "t.universalTime": 125340,
   "v.altitude": 45000,
   "_stream": {
-    "carriedChannels": ["career.status"],
+    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",
         "value": {
           "economy": null,
-          "facilities": null,
           "contracts": {
             "active": [
               {

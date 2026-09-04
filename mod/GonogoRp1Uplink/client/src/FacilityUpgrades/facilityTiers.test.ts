@@ -78,35 +78,28 @@ describe("facilityTiers", () => {
   });
 
   /**
-   * The aggregation types a dep the slot does not declare as `unknown`, so this
-   * reads every field through a check rather than an assertion. These are the
-   * shapes that check has to survive, and none of them may reach the grid: a
-   * payload that is not a list, a row that is not an object, a name that is not
-   * a name, and a tier that is not a quantity.
+   * Every field on `Rp1FacilityEntry` is optional, which is the uncertainty that
+   * survives the typing: the capture writes a row per building and fills what
+   * reflection could read. None of these may reach the grid, because a building
+   * whose tier could not be read is not a building at tier 0.
    */
-  it("drops anything it cannot read, rather than trusting the shape", () => {
-    expect(facilityTiers("not a list")).toEqual([]);
-    expect(facilityTiers({ facility: "LaunchPad" })).toEqual([]);
+  it("drops a row whose facility or tier did not read", () => {
     expect(
       facilityTiers([
-        null,
-        "Runway",
-        { facility: 7, currentTier: 1, maxTier: 2 },
-        { facility: "VehicleAssemblyBuilding", currentTier: "1", maxTier: 2 },
-        {
-          facility: "Administration",
-          currentTier: { magnitude: "0" },
-          maxTier: 8,
-        },
+        {},
+        { facility: "LaunchPad" },
+        { facility: "Runway", currentTier: value("count", 1) },
+        { facility: "Administration", maxTier: value("count", 2) },
+        { currentTier: value("count", 1), maxTier: value("count", 2) },
       ]),
     ).toEqual([]);
   });
 
-  /** A junk row alongside a sound one loses only itself. */
+  /** An unreadable row alongside a sound one loses only itself. */
   it("keeps the rows it can read when a sibling is unreadable", () => {
     expect(
       facilityTiers([
-        { facility: 7, currentTier: 1, maxTier: 2 },
+        { facility: "LaunchPad", maxTier: value("count", 2) },
         {
           facility: "Runway",
           currentTier: value("count", 1),

@@ -5,7 +5,10 @@
   "_scene": {
     "augment": "rp1-ksc-complexes",
     "host": "space-center-status",
-    "size": { "w": 12, "h": 12 },
+    "size": {
+      "w": 12,
+      "h": 12
+    },
     "caption": "RP-1 is present and has answered for nothing: every count reads as the null token and the missing centre is stated rather than left as a gap",
     "paints": [
       "SPACE CENTRES",
@@ -21,24 +24,53 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 289848, "reputation": 62, "science": 340 },
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          }
+        }
+      },
+      {
+        "topic": "career.facilities",
+        "payload": {
           "facilities": {
-            "LaunchPad": { "level": 1, "max": 2 },
-            "VehicleAssemblyBuilding": { "level": 1, "max": 2 }
+            "LaunchPad": {
+              "facilityOrdinal": 2,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
+            },
+            "VehicleAssemblyBuilding": {
+              "facilityOrdinal": 8,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
+            }
           }
         }
       },
       {
         "topic": "spaceCenter.scene",
-        "payload": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+        "payload": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
       },
       {
         "topic": "spaceCenter.launchSites",
         "payload": [
-          { "name": "LaunchPad", "padOccupied": false, "padVesselTitle": null }
+          {
+            "name": "LaunchPad",
+            "padOccupied": false,
+            "padVesselTitle": null
+          }
         ]
       },
-      { "topic": "rp1.available", "payload": true }
+      {
+        "topic": "rp1.available",
+        "payload": true
+      }
     ]
   }
 }

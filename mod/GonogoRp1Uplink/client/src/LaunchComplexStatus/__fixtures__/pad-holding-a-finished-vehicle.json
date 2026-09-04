@@ -5,14 +5,20 @@
   "_scene": {
     "augment": "rp1-launch-complex-status",
     "host": "launch-director",
-    "size": { "w": 8, "h": 14 },
+    "size": {
+      "w": 8,
+      "h": 14
+    },
     "caption": "Three pads across two RP-1 complexes: one holding a vehicle that has finished rolling out, one being reconditioned, and a stock runway RP-1 does not model",
     "paints": ["Cape Canaveral LC-1", "AT PAD", "RECONDITIONING"]
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "spaceCenter.scene",
         "payload": {
@@ -55,8 +61,11 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 289848, "reputation": null, "science": null },
-          "facilities": null,
+          "economy": {
+            "funds": 289848,
+            "reputation": null,
+            "science": null
+          },
           "contracts": null,
           "strategies": null,
           "tech": null
@@ -76,7 +85,10 @@
           }
         ]
       },
-      { "topic": "spaceCenter.crewRoster", "payload": [] },
+      {
+        "topic": "spaceCenter.crewRoster",
+        "payload": []
+      },
       {
         "topic": "rp1.complexes",
         "payload": [

@@ -26,7 +26,12 @@
             "funds": 289848,
             "reputation": 62,
             "science": 340
-          },
+          }
+        }
+      },
+      {
+        "topic": "career.facilities",
+        "payload": {
           "facilities": {
             "LaunchPad": {
               "currentTier": null,

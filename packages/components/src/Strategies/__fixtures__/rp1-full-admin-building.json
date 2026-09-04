@@ -4,7 +4,7 @@
     "notes": "RP-1 scale: 91 rows on career.status.strategies.all (31 Programs + 60 Leaders), the size the Administration Building actually reaches under RP-1, against the two to four every other Strategies fixture carries. Titles, descriptions and departments are the real ones out of RP-1's shipped Programs.cfg and Strategies/Leaders/*.cfg; the six leaderLocked* rows keep their real unlock text as activateBlockedReason. Costs, factors, activation dates and the active picks are synthesised, so the numbers on a cost chip are plausible rather than captured. Not a live capture."
   },
   "_stream": {
-    "carriedChannels": ["career.status"],
+    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",
@@ -16,7 +16,6 @@
             "subsidyPerDay": 3180.0,
             "upkeepPerDay": 2940.0
           },
-          "facilities": null,
           "contracts": null,
           "strategies": {
             "active": [

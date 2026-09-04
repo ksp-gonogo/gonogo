@@ -1,4 +1,5 @@
-import { magnitudeOf, type Quantityish } from "@ksp-gonogo/sitrep-sdk";
+import { magnitudeOf } from "@ksp-gonogo/sitrep-sdk";
+import type { Rp1FacilityEntry } from "../__generated__/contract";
 import { RP1 } from "../uplink";
 
 /**
@@ -20,12 +21,12 @@ import { RP1 } from "../uplink";
  * second copy of the same nine buildings underneath. Where RP-1 is not running
  * the contribution is not registered at all and the grid is the host's own.</para>
  *
- * <para><b>It takes `unknown`, and checks.</b> The aggregation hands a
- * contribution whatever arrived on its deps, typed as `unknown` because the
- * SLOT declares which topics it guarantees and `rp1.facilities` is not one of
- * them. The contract says what the rows should look like; that is a description
- * of a producer, not a promise about a payload, so every field is read through a
- * check and a row that fails one is dropped rather than defaulted.</para>
+ * <para><b>It is typed from its own deps.</b> A contribution is handed the
+ * payloads of the topics it declares in `deps`, so these rows arrive as
+ * `Rp1FacilityEntry[]`, the shape `Rp1ScCapture.BuildFacilities` writes. Every
+ * field on it is optional, which is the real uncertainty and the one worth
+ * checking: a row is carried only once its facility and both its tiers read,
+ * and dropped rather than defaulted otherwise.</para>
  *
  * <para><b>A building RP-1 does not upgrade still gets its tier and never gets a
  * price.</b> `upgradedByRp1` is false for the five its config prices at a single
@@ -34,14 +35,12 @@ import { RP1 } from "../uplink";
  * price would be for a step nothing will take, so it is withheld and the grid
  * draws no control beside it.</para>
  */
-export function facilityTiers(rows: unknown) {
+export function facilityTiers(rows: readonly Rp1FacilityEntry[] | undefined) {
   if (!Array.isArray(rows)) return [];
-  const list: readonly unknown[] = rows;
-  return list.flatMap((row) => {
-    if (typeof row !== "object" || row === null) return [];
-    const facility = fieldAt(row, "facility");
-    const currentTier = magnitudeAt(row, "currentTier");
-    const maxTier = magnitudeAt(row, "maxTier");
+  return rows.flatMap((row) => {
+    const facility = row.facility;
+    const currentTier = magnitudeOf(row.currentTier);
+    const maxTier = magnitudeOf(row.maxTier);
     // Both ends or nothing: a building whose tier could not be read is not a
     // building at tier 0, and the grid's whole subject is telling those apart.
     if (
@@ -52,9 +51,7 @@ export function facilityTiers(rows: unknown) {
       return [];
     }
     const upgradeCost =
-      fieldAt(row, "upgradedByRp1") === false
-        ? null
-        : magnitudeAt(row, "upgradeCost");
+      row.upgradedByRp1 === false ? null : magnitudeOf(row.upgradeCost);
     return [
       {
         facility,
@@ -64,25 +61,6 @@ export function facilityTiers(rows: unknown) {
       },
     ];
   });
-}
-
-/** One field of a wire object, without asserting anything about the whole. */
-function fieldAt(row: object, key: string): unknown {
-  return key in row ? Reflect.get(row, key) : undefined;
-}
-
-/** Whether a field is something a magnitude can be read from. */
-function isQuantityish(v: unknown): v is Quantityish {
-  if (v === null || v === undefined || typeof v === "number") return true;
-  return (
-    typeof v === "object" && "magnitude" in v && typeof v.magnitude === "number"
-  );
-}
-
-/** One field as a magnitude, or null when it is absent or is not a quantity. */
-function magnitudeAt(row: object, key: string): number | null {
-  const raw = fieldAt(row, key);
-  return isQuantityish(raw) ? magnitudeOf(raw) : null;
 }
 
 RP1.registerContribution({

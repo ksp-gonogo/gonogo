@@ -3,76 +3,6 @@
     "notes": "Fully upgraded late-game save. All buildings at tier 3 (level 2 of max 2). No upgrade buttons visible. MAX badges shown. Generous funds.",
     "scenario": "fully-upgraded-t3"
   },
-  "kc.facilityLevels": {
-    "launchPad": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-      "nextLevelText": ""
-    },
-    "runway": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-      "nextLevelText": ""
-    },
-    "vab": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-      "nextLevelText": ""
-    },
-    "sph": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-      "nextLevelText": ""
-    },
-    "mission": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Active contracts: Unlimited",
-      "nextLevelText": ""
-    },
-    "tracking": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Patched conics (full)",
-      "nextLevelText": ""
-    },
-    "admin": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Max Active Strategies: Unlimited\n* Max Commitment: 100.0%",
-      "nextLevelText": ""
-    },
-    "rd": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Science archive: Unlimited",
-      "nextLevelText": ""
-    },
-    "astronaut": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Max crew: Unlimited",
-      "nextLevelText": ""
-    }
-  },
-  "kc.partsAvailable": 489,
-  "kc.launchSite": "LaunchPad",
-  "kc.padOccupied": false,
-  "kc.padVesselTitle": null,
-  "kc.scene": "SpaceCenter",
   "career.funds": 1289848,
   "_stream": {
     "carriedChannels": [
@@ -123,68 +53,59 @@
         "channel": "career.facilities",
         "value": {
           "facilities": {
-            "launchPad": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-              "nextLevelText": ""
+            "LaunchPad": {
+              "facilityOrdinal": 2,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "runway": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-              "nextLevelText": ""
+            "Runway": {
+              "facilityOrdinal": 5,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "vab": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-              "nextLevelText": ""
+            "VehicleAssemblyBuilding": {
+              "facilityOrdinal": 8,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "sph": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-              "nextLevelText": ""
+            "SpaceplaneHangar": {
+              "facilityOrdinal": 7,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "mission": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Active contracts: Unlimited",
-              "nextLevelText": ""
+            "MissionControl": {
+              "facilityOrdinal": 3,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "tracking": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Patched conics (full)",
-              "nextLevelText": ""
+            "TrackingStation": {
+              "facilityOrdinal": 6,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "admin": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Max Active Strategies: Unlimited\n* Max Commitment: 100.0%",
-              "nextLevelText": ""
+            "Administration": {
+              "facilityOrdinal": 0,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "rd": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Science archive: Unlimited",
-              "nextLevelText": ""
+            "ResearchAndDevelopment": {
+              "facilityOrdinal": 4,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "astronaut": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Max crew: Unlimited",
-              "nextLevelText": ""
+            "AstronautComplex": {
+              "facilityOrdinal": 1,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             }
           }
         }

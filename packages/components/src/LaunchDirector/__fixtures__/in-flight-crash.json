@@ -7,6 +7,7 @@
   "_stream": {
     "carriedChannels": [
       "career.status",
+      "career.facilities",
       "spaceCenter.savedShips",
       "spaceCenter.crewRoster",
       "spaceCenter.scene",
@@ -50,7 +51,6 @@
             "reputation": null,
             "science": null
           },
-          "facilities": null,
           "contracts": null,
           "strategies": null,
           "tech": null

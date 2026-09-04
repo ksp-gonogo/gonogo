@@ -86,6 +86,7 @@
   "_stream": {
     "carriedChannels": [
       "career.status",
+      "career.facilities",
       "spaceCenter.savedShips",
       "spaceCenter.crewRoster",
       "spaceCenter.scene",
@@ -159,7 +160,6 @@
             "subsidyMaxPerDay": 0,
             "upkeepPerDay": 0
           },
-          "facilities": null,
           "contracts": null,
           "strategies": null,
           "tech": null

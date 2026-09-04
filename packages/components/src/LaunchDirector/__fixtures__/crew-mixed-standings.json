@@ -6,6 +6,7 @@
   "_stream": {
     "carriedChannels": [
       "career.status",
+      "career.facilities",
       "spaceCenter.savedShips",
       "spaceCenter.crewRoster",
       "spaceCenter.scene",
@@ -15,7 +16,10 @@
     "emits": [
       {
         "channel": "spaceCenter.scene",
-        "value": { "scene": "SpaceCenter", "launchSite": "LaunchPad" }
+        "value": {
+          "scene": "SpaceCenter",
+          "launchSite": "LaunchPad"
+        }
       },
       {
         "channel": "spaceCenter.launchSites",
@@ -34,8 +38,11 @@
       {
         "channel": "career.status",
         "value": {
-          "economy": { "funds": 42500, "reputation": null, "science": null },
-          "facilities": null,
+          "economy": {
+            "funds": 42500,
+            "reputation": null,
+            "science": null
+          },
           "contracts": null,
           "strategies": null,
           "tech": null

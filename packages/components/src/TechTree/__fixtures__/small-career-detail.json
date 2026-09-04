@@ -48,7 +48,11 @@
   "kc.scene": "SpaceCenter",
   "career.science": 4854,
   "_stream": {
-    "carriedChannels": ["career.status", "spaceCenter.scene"],
+    "carriedChannels": [
+      "career.status",
+      "career.facilities",
+      "spaceCenter.scene"
+    ],
     "emits": [
       {
         "channel": "spaceCenter.scene",
@@ -64,7 +68,6 @@
             "reputation": 0,
             "science": 4854
           },
-          "facilities": null,
           "contracts": null,
           "strategies": null,
           "tech": {

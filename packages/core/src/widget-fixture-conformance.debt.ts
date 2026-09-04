@@ -28,25 +28,6 @@
  */
 export const FIXTURE_CONTRACT_DRIFT: readonly string[] = [
   /*
-   * The legacy short-code facility shape, on the enum-keyed
-   * `career.status.facilities` record. `CareerFacility` declares
-   * `currentTier` / `maxTier` / `upgradeCost`; every one of these fixtures
-   * sends `level` / `max` / `upgradeFunds` and two text lines that were never
-   * on the wire at all. This is the third of the five defects that prompted
-   * the gate and it is still in three widgets' fixtures, 421 occurrences of
-   * it, which is why the enum-keyed record the mod really sends has never
-   * rendered anywhere.
-   */
-  "mod/GonogoRp1Uplink/client/src/KscComplexes#career.status.level",
-  "mod/GonogoRp1Uplink/client/src/KscComplexes#career.status.max",
-  "mod/GonogoRp1Uplink/client/src/KscConstruction#career.status.level",
-  "mod/GonogoRp1Uplink/client/src/KscConstruction#career.status.max",
-  "packages/components/src/SpaceCenterStatus#career.status.currentLevelText",
-  "packages/components/src/SpaceCenterStatus#career.status.level",
-  "packages/components/src/SpaceCenterStatus#career.status.max",
-  "packages/components/src/SpaceCenterStatus#career.status.nextLevelText",
-  "packages/components/src/SpaceCenterStatus#career.status.upgradeFunds",
-  /*
    * A real field on the wrong type. `rolloutRefusals` is declared on
    * `Rp1WarehouseItemEntry`, which is what `rp1.warehouse` carries, and NOT on
    * the `Rp1BuildItemEntry` rows of `rp1.buildQueue` these fixtures attach it

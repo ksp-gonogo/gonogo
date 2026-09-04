@@ -3,76 +3,6 @@
     "notes": "Sandbox mode. No career funds. Facility upgrades have upgradeFunds 0, no upgrade buttons shown. partsAvailable may be 0 (the fork emits zeroed entries for sandbox). scene is SpaceCenter.",
     "scenario": "sandbox-no-career"
   },
-  "kc.facilityLevels": {
-    "launchPad": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "runway": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "vab": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "sph": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "mission": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "tracking": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "admin": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "rd": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    },
-    "astronaut": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "",
-      "nextLevelText": ""
-    }
-  },
-  "kc.partsAvailable": 0,
-  "kc.launchSite": null,
-  "kc.padOccupied": false,
-  "kc.padVesselTitle": null,
-  "kc.scene": "SpaceCenter",
   "career.funds": null,
   "_stream": {
     "carriedChannels": [
@@ -123,68 +53,59 @@
         "channel": "career.facilities",
         "value": {
           "facilities": {
-            "launchPad": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "LaunchPad": {
+              "facilityOrdinal": 2,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "runway": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "Runway": {
+              "facilityOrdinal": 5,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "vab": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "VehicleAssemblyBuilding": {
+              "facilityOrdinal": 8,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "sph": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "SpaceplaneHangar": {
+              "facilityOrdinal": 7,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "mission": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "MissionControl": {
+              "facilityOrdinal": 3,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "tracking": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "TrackingStation": {
+              "facilityOrdinal": 6,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "admin": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "Administration": {
+              "facilityOrdinal": 0,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "rd": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "ResearchAndDevelopment": {
+              "facilityOrdinal": 4,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "astronaut": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "",
-              "nextLevelText": ""
+            "AstronautComplex": {
+              "facilityOrdinal": 1,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             }
           }
         }

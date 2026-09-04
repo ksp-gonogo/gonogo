@@ -3,76 +3,6 @@
     "notes": "A career overhaul supplying a standing per-day cost the subsidy does not cover. Same balance as the stock pair; the difference is what the balance is doing.",
     "scenario": "overhaul-standing-drain"
   },
-  "kc.facilityLevels": {
-    "launchPad": {
-      "level": 1,
-      "max": 2,
-      "upgradeFunds": 150000,
-      "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
-      "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
-    },
-    "runway": {
-      "level": 0,
-      "max": 2,
-      "upgradeFunds": 30000,
-      "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
-      "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
-    },
-    "vab": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-      "nextLevelText": ""
-    },
-    "sph": {
-      "level": 1,
-      "max": 2,
-      "upgradeFunds": 175000,
-      "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
-      "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
-    },
-    "mission": {
-      "level": 2,
-      "max": 2,
-      "upgradeFunds": 0,
-      "currentLevelText": "* Active contracts: Unlimited",
-      "nextLevelText": ""
-    },
-    "tracking": {
-      "level": 1,
-      "max": 2,
-      "upgradeFunds": 115000,
-      "currentLevelText": "* Maneuver nodes enabled",
-      "nextLevelText": "* Patched conics (full)"
-    },
-    "admin": {
-      "level": 0,
-      "max": 2,
-      "upgradeFunds": 55000,
-      "currentLevelText": "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
-      "nextLevelText": "* Max Active Strategies: 3\n* Max Commitment: 60.0%"
-    },
-    "rd": {
-      "level": 1,
-      "max": 2,
-      "upgradeFunds": 225000,
-      "currentLevelText": "* Science archive: 2500 pts",
-      "nextLevelText": "* Science archive: Unlimited"
-    },
-    "astronaut": {
-      "level": 1,
-      "max": 2,
-      "upgradeFunds": 65000,
-      "currentLevelText": "* Max crew: 12",
-      "nextLevelText": "* Max crew: Unlimited"
-    }
-  },
-  "kc.partsAvailable": 183,
-  "kc.launchSite": "LaunchPad",
-  "kc.padOccupied": true,
-  "kc.padVesselTitle": "Mun Shot III",
-  "kc.scene": "SpaceCenter",
   "career.funds": 78400,
   "_stream": {
     "carriedChannels": [
@@ -135,68 +65,59 @@
         "channel": "career.facilities",
         "value": {
           "facilities": {
-            "launchPad": {
-              "level": 1,
-              "max": 2,
-              "upgradeFunds": 150000,
-              "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
-              "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+            "LaunchPad": {
+              "facilityOrdinal": 2,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 150000
             },
-            "runway": {
-              "level": 0,
-              "max": 2,
-              "upgradeFunds": 30000,
-              "currentLevelText": "* Max Size: 18t\n* Max Parts: 30",
-              "nextLevelText": "* Max Size: 140t\n* Max Parts: 255"
+            "Runway": {
+              "facilityOrdinal": 5,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 30000
             },
-            "vab": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited",
-              "nextLevelText": ""
+            "VehicleAssemblyBuilding": {
+              "facilityOrdinal": 8,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "sph": {
-              "level": 1,
-              "max": 2,
-              "upgradeFunds": 175000,
-              "currentLevelText": "* Max Size: 140t\n* Max Parts: 255",
-              "nextLevelText": "* Max Size: Unlimited\n* Max Parts: Unlimited"
+            "SpaceplaneHangar": {
+              "facilityOrdinal": 7,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 175000
             },
-            "mission": {
-              "level": 2,
-              "max": 2,
-              "upgradeFunds": 0,
-              "currentLevelText": "* Active contracts: Unlimited",
-              "nextLevelText": ""
+            "MissionControl": {
+              "facilityOrdinal": 3,
+              "currentTier": 2,
+              "maxTier": 2,
+              "upgradeCost": null
             },
-            "tracking": {
-              "level": 1,
-              "max": 2,
-              "upgradeFunds": 115000,
-              "currentLevelText": "* Maneuver nodes enabled",
-              "nextLevelText": "* Patched conics (full)"
+            "TrackingStation": {
+              "facilityOrdinal": 6,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 115000
             },
-            "admin": {
-              "level": 0,
-              "max": 2,
-              "upgradeFunds": 55000,
-              "currentLevelText": "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
-              "nextLevelText": "* Max Active Strategies: 3\n* Max Commitment: 60.0%"
+            "Administration": {
+              "facilityOrdinal": 0,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": 55000
             },
-            "rd": {
-              "level": 1,
-              "max": 2,
-              "upgradeFunds": 225000,
-              "currentLevelText": "* Science archive: 2500 pts",
-              "nextLevelText": "* Science archive: Unlimited"
+            "ResearchAndDevelopment": {
+              "facilityOrdinal": 4,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 225000
             },
-            "astronaut": {
-              "level": 1,
-              "max": 2,
-              "upgradeFunds": 65000,
-              "currentLevelText": "* Max crew: 12",
-              "nextLevelText": "* Max crew: Unlimited"
+            "AstronautComplex": {
+              "facilityOrdinal": 1,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": 65000
             }
           }
         }

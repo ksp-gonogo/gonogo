@@ -5,19 +5,16 @@ import {
   WidgetMetaContext,
 } from "@ksp-gonogo/core";
 import {
+  type CareerFacility,
   KSP_SPACE_CENTER_FACILITY_NAMES,
   KspSpaceCenterFacility,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
-import {
-  type MockDataSourceFixture,
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
   FACILITY_ORDINAL_KEYS,
@@ -26,16 +23,13 @@ import {
 } from "./index";
 
 /**
- * Every value this widget reads is canonical now, `career.status`
- * (`?.economy?.funds` + `?.facilities`), `spaceCenter.scene`
- * (`?.scene`/`?.launchSite`) and the
- * derived `spaceCenter.state` channel (pad occupancy off
- * `spaceCenter.launchSites`): so every assertion drives real stream emits
- * through `setupStreamFixture`. The one thing still on the legacy path is the
- * `kc.upgradeFacility[...]` COMMAND (`mapCommand` has no home for it, so
- * `useExecuteAction("data")` takes the legacy branch), so a
- * `setupMockDataSource` command spy: registered under the default `"data"`
- * id `BufferedDataSource` uses, is kept purely for `onExecute`.
+ * Every value this widget reads is canonical: `career.status`
+ * (`?.economy?.funds`), `career.facilities`, `spaceCenter.scene`
+ * (`?.scene`/`?.launchSite`) and the derived `spaceCenter.state` channel (pad
+ * occupancy off `spaceCenter.launchSites`), so every assertion drives real
+ * stream emits through `setupStreamFixture`. The upgrade spend is canonical
+ * too: `career.facility.upgrade` is a mapped command and the arm-then-confirm
+ * case reads it off `transport.sentCommands`.
  */
 const CARRIED = [
   "career.status",
@@ -45,13 +39,9 @@ const CARRIED = [
 ];
 
 describe("SpaceCenterStatusComponent", () => {
-  let cmdFixture: MockDataSourceFixture;
-  let onExecute: ReturnType<typeof vi.fn<(action: string) => void>>;
   let stream: ReturnType<typeof setupStreamFixture>;
 
   beforeEach(async () => {
-    onExecute = vi.fn<(action: string) => void>();
-    cmdFixture = await setupMockDataSource({ keys: [], onExecute });
     stream = setupStreamFixture({
       carriedChannels: CARRIED,
       pinnedUt: 10,
@@ -60,9 +50,6 @@ describe("SpaceCenterStatusComponent", () => {
   });
 
   afterEach(() => {
-    // teardownMockDataSource unmounts (cleanup) BEFORE disconnecting, so no
-    // status-change state update fires outside act().
-    teardownMockDataSource(cmdFixture);
     clearAugments();
   });
 
@@ -152,7 +139,7 @@ describe("SpaceCenterStatusComponent", () => {
     ).toBeInTheDocument();
   });
 
-  it("fires kc.upgradeFacility on arm-then-confirm in the SC scene", async () => {
+  it("fires career.facility.upgrade on arm-then-confirm in the SC scene", async () => {
     const user = userEvent.setup();
     renderWidget();
     act(() => {
@@ -277,6 +264,19 @@ describe("SpaceCenterStatusComponent", () => {
 });
 
 describe("parseFacilityLevels", () => {
+  /** One wire entry, with its tiers minted as the `Value`s the contract declares. */
+  const tier = (
+    currentTier: number,
+    maxTier: number,
+    upgradeCost?: number,
+  ): CareerFacility => ({
+    currentTier: value("count", currentTier),
+    maxTier: value("count", maxTier),
+    ...(upgradeCost === undefined
+      ? {}
+      : { upgradeCost: value("funds", upgradeCost) }),
+  });
+
   /**
    * The short-code table has to cover KSP's whole `SpaceCenterFacility` enum.
    *
@@ -311,9 +311,8 @@ describe("parseFacilityLevels", () => {
     const parsed = parseFacilityLevels({
       // What a future KSP might rename VehicleAssemblyBuilding to.
       AssemblyBuilding: {
+        ...tier(1, 3),
         facilityOrdinal: KspSpaceCenterFacility.VehicleAssemblyBuilding,
-        currentTier: 1,
-        maxTier: 3,
       },
     });
     expect(parsed.vab?.level).toBe(1);
@@ -322,26 +321,32 @@ describe("parseFacilityLevels", () => {
 
   it("still reads the enum-name key when no ordinal arrived", () => {
     const parsed = parseFacilityLevels({
-      VehicleAssemblyBuilding: { currentTier: 2, maxTier: 3 },
+      VehicleAssemblyBuilding: tier(2, 3),
     });
     expect(parsed.vab?.level).toBe(2);
   });
 
   it("returns an empty object for non-object input", () => {
-    expect(parseFacilityLevels(null)).toEqual({});
+    /* The two ways "no facilities" actually arrives: the channel carries the
+       key with nothing under it, or `BuildFacilities` returned null for the
+       whole group because the capture had none. */
     expect(parseFacilityLevels(undefined)).toEqual({});
-    expect(parseFacilityLevels(42)).toEqual({});
-    expect(parseFacilityLevels([])).toEqual({});
+    expect(parseFacilityLevels(null)).toEqual({});
   });
 
   it("retains valid facility entries and drops malformed ones", () => {
     const parsed = parseFacilityLevels({
-      vab: { level: 1, max: 3, upgradeFunds: 75000 },
-      runway: { level: "broken", max: 3 },
-      unknownFacility: { level: 1, max: 3 },
-      launchPad: { level: 0, max: 3 },
+      VehicleAssemblyBuilding: tier(1, 3, 75000),
+      /* Half an answer is not an answer: both ends have to read or the
+         building is not carried, because a building that said nothing is not
+         a building at tier 0. */
+      MissionControl: { currentTier: value("count", 1) },
+      // Neither an ordinal nor a name this build knows.
+      Cafeteria: tier(1, 3),
+      LaunchPad: tier(0, 3),
     });
-    // currentLevelText / nextLevelText default to empty strings when the producer does not emit them.
+    // Tier text has no stock equivalent, so it is empty for every entry off
+    // this channel; a career model that has its own contributes it instead.
     expect(parsed).toEqual({
       vab: {
         level: 1,
@@ -360,35 +365,29 @@ describe("parseFacilityLevels", () => {
     });
   });
 
-  it("defaults upgradeFunds to 0 when missing", () => {
-    const parsed = parseFacilityLevels({
-      sph: { level: 0, max: 3 },
-    });
-    expect(parsed.sph?.upgradeFunds).toBe(0);
+  /**
+   * The shape the widget used to accept and nothing has ever sent.
+   * `CareerFacility` declares `facilityOrdinal`, `currentTier`, `maxTier` and
+   * `upgradeCost`, and `CareerViewProvider.BuildFacilities` emits those four and
+   * nothing else, so a `level`/`max`/`upgradeFunds` entry keyed by one of this
+   * widget's own short codes cannot arrive. It is not carried.
+   */
+  it("does not admit a shape the contract cannot express", () => {
+    expect(
+      parseFacilityLevels({
+        // @ts-expect-error is the assertion: `CareerFacility` has no `level`,
+        // `max` or `upgradeFunds`, so this shape cannot be built, let alone
+        // arrive. If the parameter ever widens back, this line stops erroring
+        // and the typecheck fails.
+        launchPad: { level: 1, max: 2, upgradeFunds: 150000 },
+      }),
+    ).toEqual({});
   });
 
-  it("preserves currentLevelText and nextLevelText when the fork emits them", () => {
+  it("defaults upgradeFunds to 0 when missing", () => {
     const parsed = parseFacilityLevels({
-      vab: {
-        level: 2,
-        max: 2,
-        upgradeFunds: 0,
-        currentLevelText: "* Max Parts: Unlimited",
-        nextLevelText: "",
-      },
-      admin: {
-        level: 0,
-        max: 2,
-        upgradeFunds: 150000,
-        currentLevelText: "* Max Active Strategies: 1\n* Max Commitment: 25.0%",
-        nextLevelText: "* Max Active Strategies: 3\n* Max Commitment: 60.0%",
-      },
+      SpaceplaneHangar: tier(0, 3),
     });
-    expect(parsed.vab?.currentLevelText).toBe("* Max Parts: Unlimited");
-    expect(parsed.vab?.nextLevelText).toBe("");
-    expect(parsed.admin?.currentLevelText).toContain(
-      "Max Active Strategies: 1",
-    );
-    expect(parsed.admin?.nextLevelText).toContain("Max Commitment: 60.0%");
+    expect(parsed.sph?.upgradeFunds).toBe(0);
   });
 });

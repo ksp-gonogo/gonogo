@@ -5,14 +5,20 @@
   "_scene": {
     "augment": "rp1-launch-complex-status",
     "host": "launch-director",
-    "size": { "w": 8, "h": 13 },
+    "size": {
+      "w": 8,
+      "h": 13
+    },
     "caption": "A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul",
     "paints": ["Cape Canaveral LC-1", "ROLLING OUT", "Atlas is on its way out"]
   },
   "_stream": {
     "pinnedUt": 1000000,
     "emits": [
-      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
       {
         "topic": "spaceCenter.scene",
         "payload": {
@@ -46,8 +52,11 @@
       {
         "topic": "career.status",
         "payload": {
-          "economy": { "funds": 148200, "reputation": null, "science": null },
-          "facilities": null,
+          "economy": {
+            "funds": 148200,
+            "reputation": null,
+            "science": null
+          },
           "contracts": null,
           "strategies": null,
           "tech": null
@@ -67,7 +76,10 @@
           }
         ]
       },
-      { "topic": "spaceCenter.crewRoster", "payload": [] },
+      {
+        "topic": "spaceCenter.crewRoster",
+        "payload": []
+      },
       {
         "topic": "rp1.complexes",
         "payload": [

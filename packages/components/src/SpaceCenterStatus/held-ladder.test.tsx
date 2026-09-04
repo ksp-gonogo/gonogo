@@ -143,6 +143,16 @@ function leaveTheSpaceCentre(fixture: ReturnType<typeof mount>): void {
   }
 }
 
+/**
+ * The caption is `Tiers read <Unit/> ago`, so its text is split across elements
+ * and a plain text query cannot see it. Match on the composed textContent.
+ */
+function tiersCaption(): HTMLElement | null {
+  return (Array.from(document.querySelectorAll("*")).find((el) =>
+    /Tiers read .* ago/.test(el.textContent ?? ""),
+  ) ?? null) as HTMLElement | null;
+}
+
 describe("SpaceCenterStatus: a ladder read at the space centre", () => {
   it("keeps reporting the tiers after the channel stops arriving", async () => {
     const fixture = mount();
@@ -172,13 +182,11 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     await waitFor(() =>
       expect(screen.getByLabelText("Launch Pad tier 2 of 3")).toBeTruthy(),
     );
-    expect(screen.queryByText(/Tiers read .* ago/)).toBeNull();
+    expect(tiersCaption()).toBeNull();
 
     leaveTheSpaceCentre(fixture);
 
-    await waitFor(() =>
-      expect(screen.getByText(/Tiers read .* ago/)).toBeTruthy(),
-    );
+    await waitFor(() => expect(tiersCaption()).toBeTruthy());
   });
 
   /**
@@ -213,7 +221,7 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
       expect(screen.getByLabelText("Launch Pad tier 3 of 3")).toBeTruthy(),
     );
     expect(screen.queryByLabelText("Launch Pad tier 2 of 3")).toBeNull();
-    expect(screen.queryByText(/Tiers read .* ago/)).toBeNull();
+    expect(tiersCaption()).toBeNull();
   });
 
   /**
@@ -238,6 +246,6 @@ describe("SpaceCenterStatus: a ladder read at the space centre", () => {
     await waitFor(() =>
       expect(visibleText(fixture.container)).toContain("No facility tiers"),
     );
-    expect(screen.queryByText(/Tiers read .* ago/)).toBeNull();
+    expect(tiersCaption()).toBeNull();
   });
 });

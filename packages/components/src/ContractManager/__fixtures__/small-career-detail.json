@@ -69,13 +69,12 @@
   "t.universalTime": 1500500,
   "v.altitude": 85000,
   "_stream": {
-    "carriedChannels": ["career.status"],
+    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",
         "value": {
           "economy": null,
-          "facilities": null,
           "contracts": {
             "active": [
               {

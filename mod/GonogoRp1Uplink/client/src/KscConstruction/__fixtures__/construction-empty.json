@@ -20,43 +20,66 @@
             "funds": 289848,
             "reputation": 62,
             "science": 340
-          },
+          }
+        }
+      },
+      {
+        "topic": "career.facilities",
+        "payload": {
           "facilities": {
             "LaunchPad": {
-              "level": 1,
-              "max": 2
+              "facilityOrdinal": 2,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "Runway": {
-              "level": 0,
-              "max": 2
+              "facilityOrdinal": 5,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "VehicleAssemblyBuilding": {
-              "level": 1,
-              "max": 2
+              "facilityOrdinal": 8,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "SpaceplaneHangar": {
-              "level": 0,
-              "max": 2
+              "facilityOrdinal": 7,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "MissionControl": {
-              "level": 1,
-              "max": 2
+              "facilityOrdinal": 3,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "TrackingStation": {
-              "level": 1,
-              "max": 2
+              "facilityOrdinal": 6,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "Administration": {
-              "level": 0,
-              "max": 2
+              "facilityOrdinal": 0,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "ResearchAndDevelopment": {
-              "level": 1,
-              "max": 2
+              "facilityOrdinal": 4,
+              "currentTier": 1,
+              "maxTier": 2,
+              "upgradeCost": null
             },
             "AstronautComplex": {
-              "level": 0,
-              "max": 2
+              "facilityOrdinal": 1,
+              "currentTier": 0,
+              "maxTier": 2,
+              "upgradeCost": null
             }
           }
         }

@@ -5,7 +5,7 @@
     "notes": "SYNTHETIC. one-active-room-for-more.json re-spelled as the wire the mod actually sends. career.status.strategies entries name the department `department`, which is what CareerStrategy declares, and carry no effectiveCostReputation at all, which the contract has never declared; every other fixture here sends `departmentName` plus an effectiveCostReputation, so parseStrategies' canonical branch and its initialCostReputation fallback had both gone unrendered while the legacy branch carried every picture. The department line reads the same as its twin, which is the point: the two spellings must agree. The reputation costs do NOT, and should not: 14.5 here against the 27.65 the legacy shape pre-scaled, because the new wire leaves the commitment scaling to the client."
   },
   "_stream": {
-    "carriedChannels": ["career.status"],
+    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",
@@ -15,7 +15,6 @@
             "reputation": 420,
             "science": 145
           },
-          "facilities": null,
           "contracts": null,
           "strategies": {
             "active": [

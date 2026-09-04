@@ -26,7 +26,6 @@ import {
   commandLossSentence,
   EmptyState,
   FitLabelButton,
-  formatDuration,
   NULL_DISPLAY,
   Panel,
   ReadoutCaption,
@@ -130,19 +129,15 @@ function SpaceCenterStatusComponent({
   w,
   h,
 }: Readonly<ComponentProps<SpaceCenterStatusConfig>>) {
-  // Canonical Topic reads (former kc.*/career.* keys resolved
-  // through map-topic.ts):
-  //  - kc.facilityLevels -> career.facilities, read through the
-  //    `space-center-status.facilities` contribution slot rather than here.
-  //  - career.funds -> career.status.economy.funds.
-  //  - kc.scene / kc.launchSite -> spaceCenter.scene.{scene,launchSite}
-  //    (plain fields on the one SpaceCenterScene Topic).
-  //  - kc.padOccupied / kc.padVesselTitle -> the DERIVED spaceCenter.state
-  //    channel (space-center-state.ts, off spaceCenter.launchSites): read
-  //    via useStream, not a canonical one-arg Topic read.
-  // kc.upgradeFacility[...] (the spend command) still has no command home
-  // (KNOWN_COMMAND_GAPS) and falls back to legacy execute automatically,
-  // reads migrate first, commands come later.
+  // What this widget reads, all of it canonical:
+  //  - career.status, for the funds balance (economy.funds).
+  //  - career.facilities carries the tiers, and reaches the grid through the
+  //    `space-center-status.facilities` contribution slot, not from here.
+  //  - spaceCenter.scene, for the scene and the last launch site.
+  //  - spaceCenter.state, the DERIVED pad-occupancy channel
+  //    (space-center-state.ts, off spaceCenter.launchSites), read via
+  //    useStream rather than as a one-arg Topic read.
+  // The upgrade button spends through the `career.facility.upgrade` command.
   /**
    * The balance is not a fact. It moves on its own (contract payouts, a
    * recovery, a spend made elsewhere), and here it authorises spending:
@@ -260,12 +255,12 @@ function SpaceCenterStatusComponent({
     "space-center-status.facilities",
   ).some((def) => def.id === STOCK_FACILITY_CONTRIBUTION_ID);
   const tiersObservedUt = observedAt(facilitiesReading);
-  const tiersHeldForSec =
+  const tiersHeldFor =
     stockHoldsTheGrid &&
     notCurrent(facilitiesReading) &&
     viewUt &&
     tiersObservedUt
-      ? Math.max(0, viewUt.minus(tiersObservedUt).magnitude)
+      ? viewUt.minus(tiersObservedUt)
       : undefined;
 
   /**
@@ -484,7 +479,7 @@ function SpaceCenterStatusComponent({
              below already reports the one that is. */
               <AbsenceLine>No tier detail</AbsenceLine>
             )}
-            {tiersHeldForSec !== undefined && answeredFacilities.length > 0 && (
+            {tiersHeldFor !== undefined && answeredFacilities.length > 0 && (
               /* The grid keeps its tiers when the channel stops arriving, and a
                  reading that is being held has to say when it was taken or it
                  reads as the state of the space centre now. A duration rather
@@ -495,7 +490,7 @@ function SpaceCenterStatusComponent({
                  announcing it would read one fact out over and over. The pad
                  line above is this widget's only live region. */
               <ReadoutCaption>
-                {`Tiers read ${formatDuration(tiersHeldForSec)} ago`}
+                Tiers read <Unit value={tiersHeldFor} /> ago
               </ReadoutCaption>
             )}
             {/* ONE absence marker for the whole facilities area, and the area is

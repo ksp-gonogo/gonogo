@@ -3,28 +3,24 @@ import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
-import {
-  setupMockDataSource,
-  teardownMockDataSource,
-} from "../test/setupMockDataSource";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { SpaceCenterStatusComponent } from "./index";
 
 /**
  * SpaceCenterStatus's stream test-adapter proof: genuinely running off the
  * real `TelemetryProvider`/`TelemetryClient`/`TimelineStore` pipeline via
- * `StubTransport`. `career.funds` (-> `career.status.economy.funds`) is a
- * funds spender per CLAUDE.md's "always show the balance" rule, so it must
- * stream. `kc.facilityLevels` (-> `career.status.facilities`) and `kc.scene`
- * (-> `spaceCenter.scene.scene`) stream too, and now `kc.partsAvailable`
- * (-> `spaceCenter.partsAvailable.count`) as well. `kc.launchSite`
- * (-> `spaceCenter.scene.launchSite`), `kc.padOccupied`/`kc.padVesselTitle`
- * (-> the `spaceCenter.state` derived channel) are mapped too but their input
- * channel (`spaceCenter.launchSites`) isn't carried in most of these
- * fixtures, so those reads stay on the legacy fallback, carried by a small
- * `setupMockDataSource` AUX. The last test below is the exception: it carries
- * `spaceCenter.launchSites` and proves `kc.padVesselTitle` reads the streamed
- * pad-occupancy entry rather than the legacy AUX.
+ * `StubTransport`. `career.status` carries the funds readout (a funds spender
+ * per CLAUDE.md's "always show the balance" rule, so it must stream) and the
+ * facility tiers; `spaceCenter.scene` carries the scene and launch site, and
+ * pad occupancy comes off the derived `spaceCenter.state` channel, which is
+ * built from `spaceCenter.launchSites`.
+ *
+ * Every one of those reads is stream-only: the widget makes two one-arg
+ * `useTelemetry` calls and one `useStream`, and no read of any other kind. An
+ * earlier version of this file stood up a `setupMockDataSource` AUX beside each
+ * case, on the belief that the pad and launch-site reads fell back to it. They
+ * do not, and could not, so the AUX fed nothing and its "not the legacy
+ * fallback" decoy could never have won. It is gone.
  */
 // Unmount each rendered tree BEFORE clearing the action-handler registry,
 // clearActionHandlers() firing on a still-mounted widget is a state update
@@ -49,15 +45,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [
-        { key: "kc.launchSite" },
-        { key: "kc.padOccupied" },
-        { key: "kc.padVesselTitle" },
-      ],
-      connectSource: true,
-    });
 
     const { unmount } = render(
       <fixture.Provider>
@@ -77,8 +64,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
 
     act(() => {
       fixture.emit("spaceCenter.scene", { scene: "SpaceCenter" });
-      legacyAux.source.emit("kc.padOccupied", false);
-      legacyAux.source.emit("kc.launchSite", "KSC");
       fixture.emit("career.status", {
         economy: { funds: 78400.5, reputation: 200, science: 100 },
         facilities: null,
@@ -91,8 +76,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     // The whole readout is now <Unit>, so the number, its glyph and the
     // spoken word are three elements and no single node holds "· 78,401f".
     await waitFor(() => expect(visibleText()).toContain("· 78,401f"));
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("renders the tiny-bucket funds readout from the same stream key", async () => {
@@ -100,15 +83,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       carriedChannels: ["career.status"],
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [
-        { key: "kc.launchSite" },
-        { key: "kc.padOccupied" },
-        { key: "kc.padVesselTitle" },
-      ],
-      connectSource: true,
     });
 
     const { unmount } = render(
@@ -126,7 +100,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     renderedTrees.push(unmount);
 
     act(() => {
-      legacyAux.source.emit("kc.padOccupied", false);
       fixture.emit("career.status", {
         economy: { funds: 78400.5, reputation: 200, science: 100 },
         facilities: null,
@@ -141,11 +114,9 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     // separator too, because grouping lives in `formatQuantity` and all three
     // ways of showing a quantity read from it.
     await waitFor(() => expect(screen.getByTitle("78,401 funds")).toBeTruthy());
-
-    teardownMockDataSource(legacyAux);
   });
 
-  it("renders facility tiers/upgrade costs derived from career.status.facilities", async () => {
+  it("renders facility tiers/upgrade costs derived from career.facilities", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [
         "career.status",
@@ -154,15 +125,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       ],
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [
-        { key: "kc.launchSite" },
-        { key: "kc.padOccupied" },
-        { key: "kc.padVesselTitle" },
-      ],
-      connectSource: true,
     });
 
     const { unmount } = render(
@@ -207,8 +169,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     expect(visibleText()).toContain("150.0k");
     expect(screen.getByLabelText("VAB tier 3 of 3")).toBeTruthy();
     expect(screen.getByText("MAX")).toBeTruthy();
-
-    teardownMockDataSource(legacyAux);
   });
 
   it("renders the pad-vessel title from the streamed spaceCenter.launchSites array, not the legacy fallback", async () => {
@@ -220,18 +180,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       ],
       pinnedUt: 10,
       suspendFrames: true,
-    });
-    // The legacy AUX carries a DIFFERENT vessel name than the streamed
-    // fixture: if the widget were still reading the legacy fallback instead
-    // of `spaceCenter.state.padVesselTitle`, this is what would render.
-    const legacyAux = await setupMockDataSource({
-      id: "data",
-      keys: [
-        { key: "kc.launchSite" },
-        { key: "kc.padOccupied" },
-        { key: "kc.padVesselTitle" },
-      ],
-      connectSource: true,
     });
 
     const { unmount } = render(
@@ -257,8 +205,6 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
       fixture.emit("spaceCenter.launchSites", [
         { padOccupied: true, padVesselTitle: "Kerbal X" },
       ]);
-      legacyAux.source.emit("kc.padOccupied", true);
-      legacyAux.source.emit("kc.padVesselTitle", "Legacy Ghost Ship");
       fixture.emit("career.status", {
         economy: { funds: 100000, reputation: 200, science: 100 },
         facilities: null,
@@ -271,8 +217,5 @@ describe("SpaceCenterStatus: genuinely runs off the stream", () => {
     await waitFor(() =>
       expect(screen.getByText("On pad: Kerbal X")).toBeTruthy(),
     );
-    expect(screen.queryByText(/Legacy Ghost Ship/)).toBeNull();
-
-    teardownMockDataSource(legacyAux);
   });
 });

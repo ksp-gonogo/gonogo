@@ -34,7 +34,6 @@
             "subsidyPerDay": 3180.0,
             "upkeepPerDay": 2940.0
           },
-          "facilities": null,
           "contracts": null,
           "strategies": {
             "active": [

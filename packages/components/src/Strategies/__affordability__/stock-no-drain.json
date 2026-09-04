@@ -75,7 +75,7 @@
   "career.reputation": 420,
   "career.science": 145,
   "_stream": {
-    "carriedChannels": ["career.status"],
+    "carriedChannels": ["career.status", "career.facilities"],
     "emits": [
       {
         "channel": "career.status",
@@ -91,7 +91,6 @@
             "subsidyMaxPerDay": 0,
             "upkeepPerDay": 0
           },
-          "facilities": null,
           "contracts": null,
           "strategies": {
             "active": [
