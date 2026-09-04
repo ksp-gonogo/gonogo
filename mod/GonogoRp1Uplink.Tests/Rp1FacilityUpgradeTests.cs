@@ -26,11 +26,18 @@ namespace GonogoRp1Uplink.Tests
     /// <item><see cref="Refuses_when_another_centre_already_has_the_facility_queued"/>.
     /// RP-1's guard searches every centre, and it must: a per-centre check lets a
     /// second project appear and two projects then race to set one level.</item>
-    /// <item><see cref="Refuses_a_facility_id_that_no_live_facility_answers_to"/>
-    /// and <see cref="Refuses_when_the_facility_has_no_live_reference"/>. The
-    /// SPACECENTER-only case, and the one RP-1's own
-    /// <c>GetFacilityReferencesById</c> answers by THROWING rather than
-    /// refusing.</item>
+    /// <item><see cref="Prices_a_tier_identically_from_either_source"/>. The
+    /// claim the off-scene arm rests on, and the only place it is checkable: the
+    /// live building and RP-1's config table have to hand <c>SetBP</c> the same
+    /// two numbers, or an upgrade queued in flight builds for a different length
+    /// of time than the same upgrade queued at the space centre.</item>
+    /// <item><see cref="Queues_from_the_cost_table_for_an_id_no_live_facility_answers_to"/>.
+    /// The key RP-1's own <c>GetFacilityReferencesById</c> answers by THROWING
+    /// rather than refusing.</item>
+    /// <item><see cref="Refuses_a_building_RP1_does_not_upgrade_off_scene"/>.
+    /// RP-1's <c>IsUpgradeable</c> takes a live building and so cannot be called
+    /// off-scene; the substring rule inside it is reproduced instead, and an
+    /// equality would offer a locked building RP-1's own menu does not.</item>
     /// <item><see cref="Refuses_a_tier_behind_an_unresearched_tech_and_names_it"/>.
     /// The rule RP-1 adds and core does not have, read from RP-1's own private
     /// lookup rather than reproduced.</item>
@@ -64,6 +71,9 @@ namespace GonogoRp1Uplink.Tests
             HighLogic.Reset();
             global::RP0.Harmony.PatchKSCFacilityContextMenu.Reset();
             SCMEvents.OnFacilityUpgradeQueued.Fired.Clear();
+            Database.FacilityLevelCosts.Clear();
+            Database.LockedFacilities.Clear();
+            KCTUtilities.FacilityLevels.Clear();
         }
 
         /// <summary>
@@ -100,6 +110,33 @@ namespace GonogoRp1Uplink.Tests
         /// <summary>Registers an id with the dictionary entry but no live facility, which is every scene but SPACECENTER.</summary>
         private static void RegisterWithoutLiveFacility(string id) =>
             ScenarioUpgradeableFacilities.protoUpgradeables[id] = new ScenarioUpgradeableFacilities.ProtoUpgradeable();
+
+        /// <summary>
+        /// Puts a building in RP-1's own config table instead of in the scene: the
+        /// per-tier prices RP-1 parses out of CustomBarnKit, and the tier its own
+        /// denormaliser answers with. Together these are what a career has to price
+        /// an upgrade from in the editor, in flight and at the tracking station.
+        /// </summary>
+        private static void RegisterInConfigOnly(
+            SpaceCenterFacility facility, int tier, params int[] tierCosts)
+        {
+            var costs = tierCosts.Length > 0 ? tierCosts : new[] { 100, 400, 900 };
+            Database.FacilityLevelCosts[facility] = costs.ToList();
+            KCTUtilities.FacilityLevels[facility] = tier;
+        }
+
+        /// <summary>
+        /// A career with a launch pad RP-1 prices and KSP has NOT built: the state
+        /// of every scene but the space centre.
+        /// </summary>
+        private static LCSpaceCenter OffSceneCareer(int tier = 0, params int[] tierCosts)
+        {
+            var centre = Career();
+            ScenarioUpgradeableFacilities.Reset();
+            RegisterWithoutLiveFacility(PadId);
+            RegisterInConfigOnly(SpaceCenterFacility.LaunchPad, tier, tierCosts);
+            return centre;
+        }
 
         private static FacilityUpgradeProject Queued(LCSpaceCenter centre) =>
             Assert.Single(centre.FacilityUpgrades);
@@ -363,11 +400,147 @@ namespace GonogoRp1Uplink.Tests
         }
 
         /// <summary>
-        /// The SPACECENTER-only case: the dictionary answers and the live list
-        /// inside it is empty, which is the ordinary state in every other scene.
+        /// The case this command used to refuse: the dictionary answers and the
+        /// live list inside it is empty, which is the ordinary state in every
+        /// scene but the space centre. RP-1's own cost table prices it instead.
         /// </summary>
         [Fact]
-        public void Refuses_when_the_facility_has_no_live_reference()
+        public void Queues_from_RP1s_own_cost_table_when_the_building_is_not_in_the_scene()
+        {
+            var centre = OffSceneCareer();
+
+            var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
+
+            Assert.True(result.Success);
+            var project = Queued(centre);
+            Assert.Equal(PadId, project.id);
+            Assert.Equal(0, project.currentLevel);
+            Assert.Equal(1, project.upgradeLevel);
+            Assert.Equal(SpaceCenterFacility.LaunchPad, project.FacilityType);
+        }
+
+        /// <summary>
+        /// The same, for a key that is not in the dictionary at all, which is what
+        /// RP-1's own <c>GetFacilityReferencesById</c> answers by throwing
+        /// <c>KeyNotFoundException</c>. The registry is not consulted for a price
+        /// on this arm, so an absent entry is no different from an empty one.
+        /// </summary>
+        [Fact]
+        public void Queues_from_the_cost_table_for_an_id_no_live_facility_answers_to()
+        {
+            var centre = Career();
+            ScenarioUpgradeableFacilities.Reset();
+            RegisterInConfigOnly(SpaceCenterFacility.LaunchPad, tier: 0);
+
+            var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
+
+            Assert.True(result.Success);
+            Assert.Equal(PadId, Queued(centre).id);
+        }
+
+        /// <summary>
+        /// The two price sources produce the SAME two arguments to <c>SetBP</c>,
+        /// which is the whole claim this change rests on.
+        /// </summary>
+        /// <remarks>
+        /// Both halves matter and only one of them is visible anywhere else. The
+        /// cost is what an operator reads back; the cumulative term is what decides
+        /// how LONG the build takes, and a wrong one produces a project that
+        /// finishes at the wrong time with nothing on any surface saying so. The
+        /// same tier, the same ladder and the same multiplier are fed to each arm
+        /// and the outputs are compared, rather than either being compared to a
+        /// constant that could be wrong twice.
+        /// </remarks>
+        [Fact]
+        public void Prices_a_tier_identically_from_either_source()
+        {
+            var scene = Career(tier: 1);
+            HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier = 2f;
+            Assert.True(_commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" }).Success);
+            var live = Queued(scene);
+
+            Reset();
+            var centre = OffSceneCareer(tier: 1);
+            HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier = 2f;
+            Assert.True(_commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" }).Success);
+            var config = Queued(centre);
+
+            Assert.Equal(live.BpCostArgument, config.BpCostArgument);
+            Assert.Equal(live.BpOldCostArgument, config.BpOldCostArgument);
+            Assert.Equal(live.cost, config.cost);
+            Assert.Equal(live.currentLevel, config.currentLevel);
+            Assert.Equal(live.upgradeLevel, config.upgradeLevel);
+        }
+
+        /// <summary>
+        /// The live building WINS where both answer, which is what keeps the space
+        /// centre at literal parity with RP-1's own button.
+        /// </summary>
+        /// <remarks>
+        /// The two are fed deliberately different ladders, because agreeing
+        /// sources cannot show which one was read. In a running game they hold the
+        /// same numbers, CustomBarnKit writing <c>upgradeLevels[i].levelCost</c>
+        /// from the same <c>upgrades</c> list RP-1 parses its table out of.
+        /// </remarks>
+        [Fact]
+        public void Prefers_the_live_building_where_both_sources_answer()
+        {
+            var centre = Career();
+            RegisterInConfigOnly(SpaceCenterFacility.LaunchPad, tier: 0, 7, 7, 7);
+
+            var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
+
+            Assert.True(result.Success);
+            // The live ladder's second tier, not the config ladder's 7.
+            Assert.Equal(400.0, Queued(centre).cost);
+        }
+
+        /// <summary>
+        /// A tier past the top of the config ladder is refused off-scene the same
+        /// way it is refused at the space centre: the ladder's Count - 1 is the top
+        /// tier's own index, which is what <c>UpgradeableObject.MaxLevel</c> is.
+        /// </summary>
+        [Fact]
+        public void Refuses_a_facility_at_its_top_tier_off_scene()
+        {
+            var centre = OffSceneCareer(tier: 2);
+
+            var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
+
+            Refused(result, CommandErrorCode.AlreadyAtMaximum);
+            Assert.Empty(centre.FacilityUpgrades);
+        }
+
+        /// <summary>
+        /// RP-1's locked buildings are refused off-scene too, matched the way
+        /// <c>IsUpgradeable</c> matches them: a case-insensitive SUBSTRING of the
+        /// facility id, not an equality against its last segment.
+        /// </summary>
+        /// <remarks>
+        /// The substring is the half a reproduction gets wrong. The id here is
+        /// "SpaceCenter/LaunchPad" and the locked name is "LaunchPad", so an
+        /// equality test against the whole id would offer a building RP-1's own
+        /// menu does not.
+        /// </remarks>
+        [Fact]
+        public void Refuses_a_building_RP1_does_not_upgrade_off_scene()
+        {
+            var centre = OffSceneCareer();
+            Database.LockedFacilities.Add(SpaceCenterFacility.LaunchPad);
+
+            var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
+
+            Refused(result, CommandErrorCode.ModeUnavailable);
+            Assert.Empty(centre.FacilityUpgrades);
+        }
+
+        /// <summary>
+        /// Neither source answers, which is the one state left that refuses. It is
+        /// a cold or broken install rather than a place: RP-1 loads its cost table
+        /// once with the game database.
+        /// </summary>
+        [Fact]
+        public void Refuses_when_no_source_can_price_the_building()
         {
             var centre = Career();
             ScenarioUpgradeableFacilities.Reset();
@@ -375,24 +548,8 @@ namespace GonogoRp1Uplink.Tests
 
             var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
 
-            Refused(result, CommandErrorCode.WrongScene);
+            Refused(result, CommandErrorCode.ModeUnavailable);
             Assert.Empty(centre.FacilityUpgrades);
-        }
-
-        /// <summary>
-        /// The same refusal for a key that is not in the dictionary at all, which
-        /// is what RP-1's own <c>GetFacilityReferencesById</c> answers by throwing
-        /// <c>KeyNotFoundException</c>.
-        /// </summary>
-        [Fact]
-        public void Refuses_a_facility_id_that_no_live_facility_answers_to()
-        {
-            Career();
-            ScenarioUpgradeableFacilities.Reset();
-
-            var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
-
-            Refused(result, CommandErrorCode.WrongScene);
         }
 
         [Fact]
@@ -573,7 +730,7 @@ namespace GonogoRp1Uplink.Tests
         /// a control can be dark BEFORE anyone presses it.
         /// </summary>
         [Fact]
-        public void Scene_requirement_is_answerable_with_no_arguments()
+        public void Pricing_requirement_is_answerable_with_no_arguments()
         {
             var requirement = Rp1FacilityUpgradeCommands.FacilitiesRequirement();
 
@@ -583,19 +740,51 @@ namespace GonogoRp1Uplink.Tests
 
         /// <summary>
         /// The gate passes exactly where the command works, because it reads the
-        /// live facility list the command prices from rather than a scene name
-        /// standing in for it.
+        /// two things the command prices from rather than a scene name standing in
+        /// for either.
         /// </summary>
         [Fact]
-        public void Gate_passes_where_the_facilities_are_loaded()
+        public void Gate_passes_where_the_buildings_are_in_the_scene()
         {
             Career();
 
             Assert.Equal(GateOutcome.Pass, Gate().Outcome);
         }
 
+        /// <summary>
+        /// And passes with nothing in the scene at all, as long as RP-1's cost
+        /// table answers. This is the case the gate used to fail, and failing it
+        /// is what held the control dark in flight.
+        /// </summary>
         [Fact]
-        public void Gate_refuses_where_the_facilities_are_not_loaded()
+        public void Gate_passes_off_scene_where_RP1s_cost_table_answers()
+        {
+            OffSceneCareer();
+
+            Assert.Equal(GateOutcome.Pass, Gate().Outcome);
+        }
+
+        /// <summary>
+        /// A cost table that EXISTS and prices nothing is a cold start, not an
+        /// answer. It is created at type load and filled by a coroutine, so a
+        /// non-null empty table is the state during loading.
+        /// </summary>
+        [Fact]
+        public void Gate_refuses_a_cost_table_that_prices_nothing()
+        {
+            Career();
+            ScenarioUpgradeableFacilities.Reset();
+            RegisterWithoutLiveFacility(PadId);
+            Database.FacilityLevelCosts[SpaceCenterFacility.LaunchPad] = new List<int>();
+
+            var verdict = Gate();
+
+            Assert.Equal(GateOutcome.Fail, verdict.Outcome);
+            Assert.Equal(CommandErrorCode.ModeUnavailable, verdict.ErrorCode);
+        }
+
+        [Fact]
+        public void Gate_refuses_where_neither_source_answers()
         {
             Career();
             ScenarioUpgradeableFacilities.Reset();
@@ -604,17 +793,41 @@ namespace GonogoRp1Uplink.Tests
             var verdict = Gate();
 
             Assert.Equal(GateOutcome.Fail, verdict.Outcome);
-            Assert.Equal(CommandErrorCode.WrongScene, verdict.ErrorCode);
+            Assert.Equal(CommandErrorCode.ModeUnavailable, verdict.ErrorCode);
+        }
+
+        /// <summary>
+        /// The refusal names the condition and never a place, which is the whole
+        /// correction: an operator standing in flight is not being told they are in
+        /// the wrong scene, because they are not.
+        /// </summary>
+        [Fact]
+        public void Gate_refusal_names_the_cost_table_and_not_the_space_centre()
+        {
+            Career();
+            ScenarioUpgradeableFacilities.Reset();
+            RegisterWithoutLiveFacility(PadId);
+
+            var detail = Gate().Detail ?? "";
+
+            Assert.Contains("cost table", detail);
+            Assert.DoesNotContain("only at the space centre", detail);
         }
 
         /// <summary>
         /// The gate and the handler give the SAME answer for the same state,
-        /// which is what stops a live control refusing every press.
+        /// which is what stops a live control refusing every press, and equally
+        /// what stops a dark control hiding a press that would have worked.
         /// </summary>
         [Fact]
-        public void Gate_and_handler_agree_about_whether_the_facilities_are_loaded()
+        public void Gate_and_handler_agree_about_whether_a_tier_can_be_priced()
         {
             Career();
+            Assert.Equal(GateOutcome.Pass, Gate().Outcome);
+            Assert.True(_commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" }).Success);
+
+            Reset();
+            OffSceneCareer();
             Assert.Equal(GateOutcome.Pass, Gate().Outcome);
             Assert.True(_commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" }).Success);
 
@@ -625,7 +838,7 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(GateOutcome.Fail, Gate().Outcome);
             Refused(
                 _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" }),
-                CommandErrorCode.WrongScene);
+                CommandErrorCode.ModeUnavailable);
         }
 
         private GateVerdict Gate() =>

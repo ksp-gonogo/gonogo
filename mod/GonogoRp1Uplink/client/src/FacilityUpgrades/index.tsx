@@ -63,12 +63,14 @@ export const RP1_FACILITY_UPGRADE_COMMAND = "rp1.facility.upgrade";
  * The stock channel is still read as a fallback, for a career whose RP-1 cost
  * table has not loaded.</para>
  *
- * <para><b>The tiers are readable off-scene; the PRESS is not.</b> Queueing an
- * upgrade needs the live facility for `GetUpgradeCost()` and for the level table
- * that sets the build's duration, so the command's own requirement holds the
- * button dark away from the space centre and says why. Showing the tier and the
- * price with the control refused beats showing nothing at all: the operator can
- * see what the step would cost from wherever they are standing.</para>
+ * <para><b>The press is readable off-scene too, and used to be refused there on
+ * a claim that did not hold.</b> Queueing was thought to need the live facility
+ * for `GetUpgradeCost()` and for the level table that sets the build's duration.
+ * Both come out of `Database.FacilityLevelCosts` instead, which is where these
+ * rows already get their price, so `rp1.facility.upgrade` now queues from
+ * wherever the operator is standing and its requirement asks whether ANY source
+ * can price a tier. See `Rp1FacilityUpgradeCommands`' header for the
+ * member-by-member equivalence.</para>
  *
  * <para><b>One of RP-1's two refusals is now drawn before the press and the
  * other still cannot be.</b> RP-1 declines to upgrade five of the nine buildings

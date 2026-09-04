@@ -470,7 +470,9 @@ namespace GonogoRp1Uplink.Tests
             // centre. It denormalises the level KSP PERSISTS in the save against
             // RP-1's config tier count, touching no scene object, which is why
             // RP-1's own upkeep pass can call it in flight and in the editor.
-            new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "GetFacilityLevel", 1, true, "Rp1TrainingCommands, Rp1FacilitiesReflection"),
+            new Rp1MethodTarget(
+                Rp0, "RP0.KCTUtilities", "GetFacilityLevel", 1, true,
+                "Rp1TrainingCommands, Rp1FacilitiesReflection, Rp1FacilityUpgradeCommands"),
             // The five calls the two RP-1 training controls are made of. Neither
             // control is AbortCourse, whose only caller in RP-1 is the path that
             // withdraws a template when its tech goes away: RP-1's own Cancel runs
@@ -551,7 +553,8 @@ namespace GonogoRp1Uplink.Tests
             // against one is overwritten as soon as it lands. Its answer comes out
             // of Database.LockedFacilities and it matches by case-insensitive
             // SUBSTRING of the id, both of which are RP-1's to change, so it is
-            // called rather than reproduced. Private, like its neighbour.
+            // called rather than reproduced wherever the space centre has built a
+            // facility to hand it. Private, like its neighbour.
             new Rp1MethodTarget(
                 Rp0, "RP0.Harmony.PatchKSCFacilityContextMenu", "IsUpgradeable", 1, true,
                 "Rp1FacilityUpgradeCommands", Public: false),
@@ -1013,8 +1016,16 @@ namespace GonogoRp1Uplink.Tests
             // and never written again, and RP-1's own MaintenanceHandler.UpdateUpkeep
             // reads the first of them in all four scenes to bill the career for what
             // it owns.
-            Add("RP0.Database", "FacilityLevelCosts", Rp1Reader.Presence, FacilityTiers, @static: true);
-            Add("RP0.Database", "LockedFacilities", Rp1Reader.Presence, FacilityTiers, @static: true);
+            // Both are also what QUEUES an upgrade with no building in the scene:
+            // the first is GetUpgradeCost's own body and ProcessUpgrade's
+            // cumulative term, the second is the table IsUpgradeable answers out
+            // of, matched off the id when there is no facility to hand it.
+            Add(
+                "RP0.Database", "FacilityLevelCosts", Rp1Reader.Presence,
+                FacilityTiers + ", " + Facilities, @static: true);
+            Add(
+                "RP0.Database", "LockedFacilities", Rp1Reader.Presence,
+                FacilityTiers + ", " + Facilities, @static: true);
             Add("RP0.SpaceCenterSettings", "RushRateMult", Rp1Reader.Numeric, Sc);
             Add("RP0.SpaceCenterSettings", "RushSalaryMult", Rp1Reader.Numeric, Sc);
             // Ints on RP-1's side, which Numeric accepts: a full year per head.

@@ -377,8 +377,9 @@ namespace GonogoRp1Uplink.Tests
                 // of the eight. Starting a build from a craft file declares a
                 // second, because it also needs an install that can OPEN a craft
                 // file, and that is core's rather than RP-1's. Upgrading a
-                // facility declares a second for a different reason: the tiers
-                // and prices it works from exist at the space centre only.
+                // facility declares a second for a different reason: something has
+                // to be able to price a tier, which is the live building or
+                // RP-1's own cost table.
                 Assert.Contains(
                     Rp1BuildCommands.GateKind,
                     declaration.Requires.Select(r => r.Kind).ToArray());

@@ -48,27 +48,75 @@
 // so the confirmation an operator reads names what was committed and what is
 // left, without a second round trip.
 //
-// THE SCENE CONSTRAINT IS REAL AND WAS CONFIRMED LIVE, not inferred.
-// FacilityUpgradeProject.GetFacilityReferencesById reaches
-// ScenarioUpgradeableFacilities.protoUpgradeables[id].facilityRefs, and that
-// list is filled by RegisterUpgradeable, called from the UpgradeableFacility
-// MonoBehaviours, which exist in the SPACECENTER scene only. protoUpgradeables
-// ITSELF is four-scene (it is rebuilt from the save in OnLoad), so the dictionary
-// answers everywhere and the refs list inside it does not. The live facility is
-// also the only source of GetUpgradeCost() and of upgradeLevels[i].levelCost,
-// which are the price and the build points.
+// THE SCENE CONSTRAINT WAS NOT REAL, and the claim that it was is retracted here.
+// What is true is narrower: the live UpgradeableFacility MonoBehaviours exist in
+// the SPACECENTER scene only, so protoUpgradeables[id].facilityRefs is empty
+// everywhere else (protoUpgradeables ITSELF is four-scene, rebuilt from the save
+// in OnLoad, which is why the dictionary answers and the list inside it does not).
+// That was measured, on the running Deck install on 2026-08-30: with
+// spaceCenter.scene = "Flight", every entry of career.status.facilities reported
+// currentTier, maxTier and upgradeCost as null.
 //
-//   Confirmed on the running Deck install on 2026-08-30: with
-//   spaceCenter.scene = "Flight", every entry of career.status.facilities
-//   reported currentTier, maxTier and upgradeCost as null, which is core's
-//   guarded read of exactly this refs list coming back empty.
+// The step that did not follow is that ENQUEUEING needs one. It does not. Every
+// figure ProcessUpgrade takes off the live building has a config- or save-backed
+// twin that RP-1 itself reads, and reads OFF-SCENE, on its own hot paths:
 //
-// So the command declares a requirement for it, and the control is dark with its
-// reason before anyone presses it rather than discovering an empty list at
-// dispatch. The requirement asks whether the refs list is populated rather than
-// whether the scene is SPACECENTER, which is the same answer today and the more
-// honest question: see GateKind for why this Uplink declares a kind of its own
-// instead of borrowing core's scene gate.
+//   FacilityLevel        -> KCTUtilities.GetFacilityLevel(SpaceCenterFacility),
+//                           which denormalises ProtoUpgradeable.GetLevel()'s
+//                           configNode "lvl" fallback against Database's tier
+//                           count. FacilityUpgradeProject.Apply() uses THIS, not
+//                           the live level, to verify its own completion
+//   MaxLevel             -> Database.GetFacilityLevelCount(f) - 1, which is the
+//                           same expression KCTUtilities.SetFacilityLevel uses in
+//                           its own no-live-facility fallback arm
+//   GetUpgradeCost()     -> Database.FacilityLevelCosts[f][level + 1], times the
+//                           career's FundsLossMultiplier under the identical
+//                           LoadedSceneIsGame condition. GetUpgradeCost's whole
+//                           body is upgradeLevels[facilityLevel + 1].levelCost
+//                           scaled by that multiplier
+//   sum of levelCost[0..level]
+//                        -> MathUtils.SumThrough(Database.FacilityLevelCosts[f],
+//                           level), which is ProcessUpgrade's descending loop
+//                           term for term. MaintenanceHandler.UpdateUpkeep bills
+//                           the career off exactly this expression in EDITOR,
+//                           FLIGHT, SPACECENTER and TRACKSTATION
+//   IsUpgradeable(facility)
+//                        -> its body is a case-insensitive IndexOf of each
+//                           Database.LockedFacilities name in facility.id. The id
+//                           is the only thing it reads off the MonoBehaviour, and
+//                           this command starts from the id
+//
+// And RP-1 does the substitution itself, in its own code, with no live facility
+// in reach: v3_0_KCTAdminUpgrade.OnUpgrade builds a FacilityUpgradeProject's cost
+// and oldCost out of Database.FacilityLevelCosts and MathUtils.SumThrough during
+// SAVE MIGRATION, before any scene has been loaded at all.
+//
+// NOTHING ELSE ON THE PATH IS SCENE-BOUND either, checked call by call against
+// the shipped RP-1 v4.6.0.0 RP0.dll:
+//
+//   Formula.GetConstructionBP(cost, oldCost, type) is sqrt(cost + oldCost) -
+//     sqrt(oldCost), floored at 3. It does not read its own facilityType argument
+//   ConstructionProject.SetBP is one line, that formula and nothing else
+//   FacilityUpgradeProject's five-argument constructor assigns five fields
+//   AlreadyInProgressByID walks SpaceCenterManagement.Instance.KSCs
+//   GetTechGate reads a dictionary built from GameDatabase's KCTBUILDINGTECHS
+//   LCSpaceCenter.RecalculateBuildRates walks the centre's own lists
+//   SpaceCenterManagement carries [KSPScenario(..., EDITOR, FLIGHT, SPACECENTER,
+//     TRACKSTATION)], read out of the IL blob (04 00 00 00 | 06 07 05 08) because
+//     ilspycmd renders that attribute's arguments as "could not decode"
+//
+// The project COMPLETES off-scene too, which is the fact that settles it:
+// ProcessComplete guards on ScenarioUpgradeableFacilities.Instance, itself a
+// four-scene KSPScenario, and Apply() goes through KCTUtilities.SetFacilityLevel,
+// whose second arm writes configNode "lvl" directly when facilityRefs is empty.
+// RP-1 finishes a facility upgrade in flight by design. Refusing to START one
+// there was our rule, not the game's.
+//
+// SO THE COMMAND PRICES FROM WHICHEVER SOURCE IT HAS. The live facility first,
+// wherever it exists, because that is literal parity with the button RP-1 draws
+// at the space centre and it is the path already confirmed on the rig; RP-1's own
+// config table otherwise. The gate asks whether EITHER answers, and the refusal
+// names that condition rather than a scene.
 //
 // LOCKED FACILITIES: FIVE OF THE NINE ARE NOT UPGRADED BY RP-1 AT ALL, and this
 // was the refusal the design arrived without. It was found on the rig rather
@@ -102,7 +150,7 @@
 // IsUpgradeable(facility) and disables the button. This command asks the SAME
 // private predicate, and refuses.
 //
-// THREE TRAPS ON THIS PATH, all of which bite before any scene question:
+// THREE TRAPS ON THIS PATH, none of which is about where the operator is standing:
 //
 //   1. GetFacilityType(SpaceCenterBuilding) is also private static, and
 //      reflecting it does not help: it takes the clickable scene MonoBehaviour
@@ -182,6 +230,17 @@
 //   SCMEvents.OnFacilityUpgradeQueued
 //                                    public static EventData, fired inside a
 //                                    try/catch because RP-1 fires its own that way
+//   Database.FacilityLevelCosts      the off-scene price table, entry [n] being
+//                                    tier n's cost and the Count being the tier
+//                                    count. Already read by Rp1FacilitiesReflection,
+//                                    which is what puts these tiers on rp1.facilities
+//   Database.LockedFacilities        the off-scene twin of IsUpgradeable's own
+//                                    source, matched the way IsUpgradeable matches:
+//                                    case-insensitive IndexOf against the facility id
+//   KCTUtilities.GetFacilityLevel(SpaceCenterFacility)
+//                                    the off-scene tier, invoked rather than
+//                                    reproduced so the 0.01 epsilon in
+//                                    GetIndexFromNorm stays RP-1's
 //
 // And KSP's, none of which is RP-1's to guard:
 //
@@ -204,9 +263,13 @@
 //
 // PROVENANCE. Every member here was read out of an ilspycmd disassembly of the
 // INSTALLED RP-1 v4.6.0.0 RP0.dll and the installed Assembly-CSharp. The
-// disassembly verifies SHAPE and never VALUE, so every hop is null-safe. The one
-// claim confirmed against a RUNNING game is the scene constraint above.
+// disassembly verifies SHAPE and never VALUE, so every hop is null-safe. What has
+// been confirmed against a RUNNING game is that the STOCK channel goes silent off
+// the space centre, and that RP-1's config-backed reading does not: the tiers and
+// prices on rp1.facilities come off the same two Database tables this file now
+// prices from.
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
@@ -233,6 +296,16 @@ namespace GonogoRp1Uplink
         private const string EventsTypeName = "RP0.SCMEvents";
 
         /// <summary>
+        /// RP-1's config-loaded tables, which is where a tier and a price come from
+        /// when KSP has instantiated no building to ask. The same two
+        /// <see cref="Rp1FacilitiesReflection"/> puts on <c>rp1.facilities</c>.
+        /// </summary>
+        private const string DatabaseTypeName = "RP0.Database";
+
+        /// <summary>The denormaliser that turns the saved level into RP-1's tier index.</summary>
+        private const string KctUtilitiesTypeName = "RP0.KCTUtilities";
+
+        /// <summary>
         /// The Harmony patch class that owns the tech gate. Named rather than
         /// derived, and pinned in the compatibility manifest, because a patch
         /// class is RP-1 implementation detail and is likelier to be renamed than
@@ -254,33 +327,45 @@ namespace GonogoRp1Uplink
         /// </summary>
         /// <remarks>
         /// <para><b>Its own kind rather than core's <c>scene</c>.</b> Core does
-        /// ship a scene gate, and <c>Quantity = "SPACECENTER"</c> would very
-        /// nearly say this. Two things are wrong with borrowing it. First, an
-        /// Uplink cannot verify it: the kind's constant lives in
+        /// ship a scene gate, and this once declared what very nearly amounted to
+        /// <c>Quantity = "SPACECENTER"</c>. Two things were wrong with borrowing
+        /// it. First, an Uplink cannot verify it: the kind's constant lives in
         /// <c>Gonogo.KSP</c>, which an Uplink may not reference, and a declared
         /// kind with no evaluator is a startup failure for the WHOLE mod, so
         /// naming somebody else's string is betting every other Uplink on a
-        /// spelling nothing here can check. Second, and the better reason, the
-        /// scene is a PROXY. What the command actually needs is a live
-        /// <c>UpgradeableFacility</c> to price a tier from, and that is a thing
-        /// this Uplink can read directly. Asking the real question means the
-        /// control is dark exactly when the command would refuse, rather than
-        /// whenever a scene name happens to differ.</para>
+        /// spelling nothing here can check. Second, and the reason that turned out
+        /// to matter far more than the first: the scene was a PROXY, and asking
+        /// the real question is what showed the proxy to be wrong. The condition
+        /// is that SOMETHING can price a tier, and once that is asked plainly it
+        /// has two answers rather than one, only one of which needs the space
+        /// centre. See this file's header.</para>
         /// </remarks>
         public const string GateKind = "rp1.facilities";
 
-        /// <summary>The quantity this kind answers: the space centre's facilities are loaded.</summary>
-        public const string LiveFacilities = "liveFacilities";
+        /// <summary>
+        /// The quantity this kind answers: a tier of a space-centre building can
+        /// be priced, from the live building or from RP-1's own config table.
+        /// </summary>
+        public const string PricedFacilities = "pricedFacilities";
 
         /// <summary>
-        /// What an operator reads wherever the facilities are not loaded, used by
-        /// the gate AND by the handler, so the reason a control is dark and the
-        /// reason a press was refused are the same sentence.
+        /// What an operator reads when neither price source answers, used by the
+        /// gate AND by the handler, so the reason a control is dark and the reason
+        /// a press was refused are the same sentence.
         /// </summary>
-        private const string NotLoadedDetail =
-            "KSP puts the space centre's buildings in the scene only at the space centre, "
-            + "so their tiers and prices cannot be read from anywhere else. "
-            + "Anything already under construction keeps building wherever you are";
+        /// <remarks>
+        /// It names the CONDITION and not a place, because this is no longer a
+        /// fact about where the operator is standing: RP-1's cost table loads once
+        /// with the game database and is then readable from every scene, so an
+        /// install that reaches this has something wrong with it rather than an
+        /// operator who has walked away from the buildings.
+        /// </remarks>
+        private const string NotPricedDetail =
+            "neither the space centre's live buildings nor RP-1's own facility cost table "
+            + "answered, so no tier can be priced. RP-1 loads that table once with the game "
+            + "database, so this is an install that has not finished loading it rather than "
+            + "somewhere you cannot upgrade from. Anything already under construction keeps "
+            + "building wherever you are";
 
         private readonly Type? _scm;
         private readonly Type? _project;
@@ -290,6 +375,15 @@ namespace GonogoRp1Uplink
         private readonly Type? _facilityEnum;
         private readonly Type? _research;
         private readonly Type? _highLogic;
+        private readonly Type? _database;
+        private readonly Type? _kctUtilities;
+
+        /// <summary>
+        /// Resolved once rather than per press: the type carries enough statics
+        /// that a by-name-and-arity lookup is not free, and this sits on the
+        /// off-scene arm of a command an operator may hold down.
+        /// </summary>
+        private readonly MethodInfo? _configLevel;
 
         public Rp1FacilityUpgradeCommands()
         {
@@ -301,6 +395,11 @@ namespace GonogoRp1Uplink
             _facilityEnum = Rp1Types.Find(FacilityEnumTypeName);
             _research = Rp1Types.Find(ResearchTypeName);
             _highLogic = Rp1Types.Find(HighLogicTypeName);
+            _database = Rp1Types.Find(DatabaseTypeName);
+            _kctUtilities = Rp1Types.Find(KctUtilitiesTypeName);
+            _configLevel = _kctUtilities == null
+                ? null
+                : Rp1Types.StaticMethod(_kctUtilities, "GetFacilityLevel", 1);
         }
 
         /// <summary>
@@ -326,31 +425,31 @@ namespace GonogoRp1Uplink
             && _scenario != null && _facilityEnum != null && _research != null && _highLogic != null;
 
         /// <summary>
-        /// The requirement to declare on the command, so the control is drawn dark
-        /// with its reason outside the space centre rather than only answering the
-        /// press.
+        /// The requirement to declare on the command, so a control that could not
+        /// be honoured is drawn dark with its reason rather than only answering
+        /// the press.
         /// </summary>
         /// <remarks>
         /// No <see cref="CommandRequirement.Needs"/>: the engine decides it with
-        /// an empty argument bag, because whether the facilities are loaded at all
-        /// does not depend on which one was named.
+        /// an empty argument bag, because whether anything can price a tier at all
+        /// does not depend on which building was named.
         /// </remarks>
         public static CommandRequirement FacilitiesRequirement() =>
-            new CommandRequirement { Kind = GateKind, Quantity = LiveFacilities };
+            new CommandRequirement { Kind = GateKind, Quantity = PricedFacilities };
 
         public string Kind => GateKind;
 
         /// <summary>
-        /// Whether the space centre's facilities are loaded, which is the one
-        /// condition this command turns on that can be answered before an
-        /// operator names a building.
+        /// Whether a tier can be priced from either source, which is the one
+        /// condition this command turns on that can be answered before an operator
+        /// names a building.
         /// </summary>
         /// <remarks>
-        /// <para>Reads the registry rather than the scene, for the reason
-        /// <see cref="GateKind"/> gives: the scene is a proxy and the refs list is
-        /// the thing. It follows that this passes wherever the command would work,
-        /// including any future scene KSP decided to build the facilities in,
-        /// without this file being told about it.</para>
+        /// <para>Two sources, either of which is enough, and neither of which is a
+        /// scene name: a live <c>UpgradeableFacility</c> in the registry, or an
+        /// entry in RP-1's own <c>Database.FacilityLevelCosts</c>. It follows that
+        /// this passes wherever the command would work, without this file being
+        /// told which scenes those are.</para>
         ///
         /// <para>Unknown on anything unreadable, which refuses, in keeping with
         /// the rest of this Uplink.</para>
@@ -358,22 +457,32 @@ namespace GonogoRp1Uplink
         public GateVerdict Evaluate(CommandRequirement requirement, IGateArguments arguments)
         {
             var quantity = requirement?.Quantity ?? "";
-            if (quantity != LiveFacilities)
+            if (quantity != PricedFacilities)
             {
                 return GateVerdict.Unknown($"RP-1 imposes no facility condition called \"{quantity}\"");
             }
 
-            if (_scenario == null)
+            if (_scenario == null && _database == null)
             {
-                return GateVerdict.Unknown("KSP's facility registry could not be resolved");
+                return GateVerdict.Unknown("neither KSP's facility registry nor RP-1's cost table could be resolved");
             }
 
-            var protos = Rp1Types.StaticValue(_scenario, "protoUpgradeables");
+            if (AnyLiveFacility() || AnyPricedFacility())
+            {
+                return GateVerdict.Pass();
+            }
+
+            return GateVerdict.Fail(CommandErrorCode.ModeUnavailable, NotPricedDetail);
+        }
+
+        /// <summary>Whether KSP has instantiated any space-centre building at all.</summary>
+        private bool AnyLiveFacility()
+        {
+            var protos = _scenario == null ? null : Rp1Types.StaticValue(_scenario, "protoUpgradeables");
             if (protos == null)
             {
-                return GateVerdict.Unknown("KSP's facility registry is not loaded");
+                return false;
             }
-
             foreach (var entry in Rp1Types.Enumerate(protos))
             {
                 foreach (var reference in Rp1Types.Enumerate(
@@ -381,11 +490,42 @@ namespace GonogoRp1Uplink
                 {
                     if (reference != null)
                     {
-                        return GateVerdict.Pass();
+                        return true;
                     }
                 }
             }
-            return GateVerdict.Fail(CommandErrorCode.WrongScene, NotLoadedDetail);
+            return false;
+        }
+
+        /// <summary>
+        /// Whether RP-1's cost table holds a priced building, which is what lets a
+        /// tier be priced with no building in the scene.
+        /// </summary>
+        /// <remarks>
+        /// Asked of whether any entry has a COST in it, not of whether the
+        /// dictionary exists: the table is created empty at type load and filled by
+        /// a coroutine, so a non-null empty dictionary is the cold-start state and
+        /// prices nothing.
+        /// </remarks>
+        private bool AnyPricedFacility()
+        {
+            if (_database == null)
+            {
+                return false;
+            }
+            if (!(Rp1Types.StaticValue(_database, "FacilityLevelCosts") is IDictionary costs))
+            {
+                return false;
+            }
+            foreach (DictionaryEntry entry in costs)
+            {
+                var tiers = Rp1FacilitiesReflection.TierCosts(entry.Value);
+                if (tiers != null && tiers.Count > 0)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         /// <summary>
@@ -433,6 +573,20 @@ namespace GonogoRp1Uplink
                 {
                     // Reported and never fatal: see IsAvailable.
                     missing.Add("SCMEvents.OnFacilityUpgradeQueued (the queue will still be written, unannounced)");
+                }
+                // The off-scene arm only, and so reported as costing that arm
+                // rather than the command: with a live building in the scene the
+                // press works without either of these, and saying otherwise would
+                // send someone hunting a rename that had cost them nothing where
+                // they were standing.
+                if (_database == null || Rp1Types.StaticValue(_database, "FacilityLevelCosts") == null)
+                {
+                    missing.Add("RP0.Database.FacilityLevelCosts (upgrades can still be queued at the space centre)");
+                }
+                if (_configLevel == null)
+                {
+                    missing.Add("KCTUtilities.GetFacilityLevel(SpaceCenterFacility) "
+                        + "(upgrades can still be queued at the space centre)");
                 }
                 return missing.Count == 0
                     ? "every invoked member resolved"
@@ -567,12 +721,24 @@ namespace GonogoRp1Uplink
                     + Rp1Types.ExceptionReason(ex));
             }
 
-            if (!TryLiveFacility(id, out var facility))
+            // WHICHEVER SOURCE ANSWERS, live first. The live building is literal
+            // parity with the button RP-1 draws at the space centre and is the
+            // path already confirmed on the rig, so preferring it means this
+            // change adds an arm rather than moving the one that worked. RP-1's
+            // config table is the other arm, and it answers in every scene: see
+            // this file's header for the member-by-member equivalence, and
+            // KCTUtilities.SetFacilityLevel for RP-1 making the identical choice
+            // in the identical shape when it APPLIES one of these.
+            var facility = TryLiveFacility(id, out var live) ? live : null;
+            var tiers = facility == null ? ConfigTiers(facilityType) : null;
+            if (facility == null && tiers == null)
             {
-                return Fail(CommandErrorCode.WrongScene, NotLoadedDetail);
+                return Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "nothing can price " + leaf + "'s next tier: " + NotPricedDetail);
             }
 
-            var upgradeable = IsUpgradeable(facility);
+            var upgradeable = facility != null ? IsUpgradeable(facility) : UpgradedByRp1(id);
             if (upgradeable == null)
             {
                 return Fail(
@@ -597,13 +763,20 @@ namespace GonogoRp1Uplink
                     + "(rp1.complexes) or the research queue rather than a tier here");
             }
 
-            var currentLevel = ReadLevel(facility, "FacilityLevel");
-            var maxLevel = ReadLevel(facility, "MaxLevel");
+            // MaxLevel is the TOP TIER'S OWN INDEX and not a count, on both arms:
+            // UpgradeableObject.MaxLevel is upgradeLevels.Length - 1, and the
+            // config twin is Count - 1, which is the same expression
+            // KCTUtilities.SetFacilityLevel normalises against in its own
+            // no-live-facility arm.
+            var currentLevel = facility != null
+                ? ReadLevel(facility, "FacilityLevel")
+                : ConfigLevel(facilityType);
+            var maxLevel = facility != null ? ReadLevel(facility, "MaxLevel") : tiers!.Count - 1;
             if (currentLevel == null || maxLevel == null)
             {
                 return Fail(
                     CommandErrorCode.ModeUnavailable,
-                    "KSP would not say what tier " + leaf + " is at or how many tiers it has");
+                    "neither KSP nor RP-1 would say what tier " + leaf + " is at or how many tiers it has");
             }
 
             var targetLevel = currentLevel.Value + 1;
@@ -687,15 +860,19 @@ namespace GonogoRp1Uplink
                     leaf + " is already in a construction queue, at this space centre or another");
             }
 
-            var cost = UpgradeCost(facility);
+            var cost = facility != null
+                ? UpgradeCost(facility)
+                : ConfigUpgradeCost(tiers!, currentLevel.Value);
             if (cost == null)
             {
                 return Fail(
                     CommandErrorCode.ModeUnavailable,
-                    "KSP would not price " + leaf + "'s next tier, so nothing was queued");
+                    "nothing would price " + leaf + "'s next tier, so nothing was queued");
             }
 
-            var oldCost = CumulativeLevelCost(facility, currentLevel.Value);
+            var oldCost = facility != null
+                ? CumulativeLevelCost(facility, currentLevel.Value)
+                : ConfigCumulativeCost(tiers!, currentLevel.Value);
             if (oldCost == null)
             {
                 // Refused rather than defaulted to zero. This figure is the second
@@ -704,7 +881,7 @@ namespace GonogoRp1Uplink
                 // time with nothing on any surface saying so.
                 return Fail(
                     CommandErrorCode.ModeUnavailable,
-                    "KSP would not say what " + leaf + " has cost so far, which is what sets how long the "
+                    "nothing would say what " + leaf + " has cost so far, which is what sets how long the "
                     + "upgrade takes, so nothing was queued");
             }
 
@@ -831,9 +1008,12 @@ namespace GonogoRp1Uplink
         /// facility id rather than by the enum. Both halves of that are RP-1's to
         /// change.</para>
         ///
-        /// <para>It takes an <c>UpgradeableFacility</c>, which this command has in
-        /// hand by the time it asks, so unlike <c>GetFacilityType</c> beside it
-        /// this one IS callable on our inputs.</para>
+        /// <para>It takes an <c>UpgradeableFacility</c>, so unlike
+        /// <c>GetFacilityType</c> beside it this one IS callable whenever the
+        /// space centre has built one. Where it has not,
+        /// <see cref="UpgradedByRp1"/> asks the same question of the same table
+        /// off the id, which is the only thing this predicate reads off the
+        /// object it is handed.</para>
         ///
         /// <para>Null when the answer could not be read, which the caller refuses
         /// on.</para>
@@ -909,8 +1089,9 @@ namespace GonogoRp1Uplink
         /// header.</para>
         ///
         /// <para>An EMPTY refs list is the ordinary answer outside the space
-        /// centre and is not an error: see the scene note in the header. The
-        /// caller turns it into the scene refusal.</para>
+        /// centre and is not an error, nor any longer a refusal: the caller falls
+        /// back to RP-1's own cost table, which answers in every scene. See this
+        /// file's header.</para>
         /// </remarks>
         private bool TryLiveFacility(string id, out object facility)
         {
@@ -1015,6 +1196,27 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
+            return Scaled(total);
+        }
+
+        /// <summary>
+        /// A figure with the career's <c>FundsLossMultiplier</c> applied, under
+        /// the <c>LoadedSceneIsGame</c> condition KSP and RP-1 both put on it.
+        /// </summary>
+        /// <remarks>
+        /// <para>Shared by both price arms so they cannot disagree about the
+        /// scaling, which is the one piece of arithmetic the config arm has to
+        /// reproduce rather than call: <c>GetUpgradeCost</c> applies the
+        /// multiplier INSIDE itself, and <c>ProcessUpgrade</c> applies the same
+        /// one to the cumulative term beside it. The slider genuinely moves, KSP's
+        /// own easy and hard presets setting it to 0.5 and 1.5, so a figure that
+        /// is right on a default career and quietly wrong on every other one is
+        /// worse than no figure.</para>
+        ///
+        /// <para>Null on anything unreadable, which every caller refuses on.</para>
+        /// </remarks>
+        private double? Scaled(double total)
+        {
             var inGame = Rp1Types.StaticValue(_highLogic!, "LoadedSceneIsGame") as bool?;
             if (inGame == null)
             {
@@ -1032,6 +1234,163 @@ namespace GonogoRp1Uplink
                         "Career"),
                     "FundsLossMultiplier"));
             return multiplier == null ? (double?)null : total * multiplier.Value;
+        }
+
+        /// <summary>
+        /// This building's per-tier prices out of RP-1's own config table, or null
+        /// when RP-1 does not price it.
+        /// </summary>
+        /// <remarks>
+        /// <para>Entry [n] is tier n's cost and the Count is how many tiers the
+        /// building has, which is the shape <c>Database.LoadFacilityData</c>
+        /// parses the CustomBarnKit <c>upgrades</c> list into. It is the same
+        /// table CustomBarnKit itself writes <c>upgradeLevels[i].levelCost</c>
+        /// from, which is what makes the two arms the same numbers.</para>
+        ///
+        /// <para>An EMPTY list is null here, not an empty answer: the table is
+        /// created at type load and filled by a coroutine, so an empty entry is a
+        /// cold start and prices nothing.</para>
+        /// </remarks>
+        private IList<double>? ConfigTiers(object facilityType)
+        {
+            if (_database == null)
+            {
+                return null;
+            }
+            if (!(Rp1Types.StaticValue(_database, "FacilityLevelCosts") is IDictionary costs))
+            {
+                return null;
+            }
+
+            // Enumerated rather than indexed, for the reason trap 2 in this file's
+            // header gives about the other dictionary on this path: a boxed enum
+            // key through the non-generic indexer is one type check away from a
+            // throw, and every read here answers null instead.
+            foreach (DictionaryEntry entry in costs)
+            {
+                if (!Equals(entry.Key, facilityType))
+                {
+                    continue;
+                }
+                var tiers = Rp1FacilitiesReflection.TierCosts(entry.Value);
+                return tiers == null || tiers.Count == 0 ? null : tiers;
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// The tier RP-1 says this building stands at, denormalised from the level
+        /// KSP persists in the SAVE.
+        /// </summary>
+        /// <remarks>
+        /// <para>Invoked rather than reproduced. Its body is
+        /// <c>MathUtils.GetIndexFromNorm(ScenarioUpgradeableFacilities.GetFacilityLevel(f),
+        /// Database.GetFacilityLevelCount(f))</c>, and a copy of that would carry a
+        /// copy of the 0.01 epsilon inside <c>GetIndexFromNorm</c>, which would
+        /// agree with itself forever.</para>
+        ///
+        /// <para>This is the same call <c>FacilityUpgradeProject.Apply()</c> makes
+        /// to check that an upgrade it just applied took effect, and the same one
+        /// <c>MaintenanceHandler.UpdateUpkeep</c> bills the career off in all four
+        /// scenes.</para>
+        /// </remarks>
+        private int? ConfigLevel(object facilityType)
+        {
+            try
+            {
+                return _configLevel?.Invoke(null, new[] { facilityType }) as int?;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// What the next tier costs, off the config table: <c>GetUpgradeCost</c>'s
+        /// own body, which is <c>upgradeLevels[level + 1].levelCost</c> scaled by
+        /// the career's multiplier.
+        /// </summary>
+        /// <remarks>
+        /// Null past the top tier rather than <c>GetUpgradeCost</c>'s zero. The
+        /// caller has already refused a facility at its ceiling by this point, so
+        /// reaching here past the end means the two arms disagreed about how many
+        /// tiers there are, and zero would queue a free upgrade on the strength of
+        /// that disagreement.
+        /// </remarks>
+        private double? ConfigUpgradeCost(IList<double> tiers, int currentLevel)
+        {
+            var next = currentLevel + 1;
+            return next < 0 || next >= tiers.Count ? (double?)null : Scaled(tiers[next]);
+        }
+
+        /// <summary>
+        /// What this building has cost to reach its current tier, off the config
+        /// table: the sum of every tier price up to and including the one it stands
+        /// at, scaled by the career's multiplier.
+        /// </summary>
+        /// <remarks>
+        /// <c>MathUtils.SumThrough(list, idx)</c> is inclusive of <c>idx</c>, and
+        /// so is <c>ProcessUpgrade</c>'s descending loop. RP-1 pairs exactly these
+        /// two expressions itself, in <c>v3_0_KCTAdminUpgrade.OnUpgrade</c>, to
+        /// build a <c>FacilityUpgradeProject</c> during save migration.
+        /// </remarks>
+        private double? ConfigCumulativeCost(IList<double> tiers, int currentLevel)
+        {
+            if (currentLevel < 0 || currentLevel >= tiers.Count)
+            {
+                return null;
+            }
+            var total = 0.0;
+            for (var i = 0; i <= currentLevel; i++)
+            {
+                total += tiers[i];
+            }
+            return Scaled(total);
+        }
+
+        /// <summary>
+        /// Whether RP-1 upgrades this building as a building, decided from the id
+        /// when there is no live facility to hand RP-1's own predicate.
+        /// </summary>
+        /// <remarks>
+        /// <para>Reproduced rather than called, and reproduced EXACTLY:
+        /// <c>IsUpgradeable</c> walks <c>Database.LockedFacilities</c> and answers
+        /// false on the first whose enum name appears anywhere in
+        /// <c>facility.id</c>, case-insensitively. The id is the only thing it
+        /// reads off the <c>UpgradeableFacility</c> it is handed, and this command
+        /// starts from the id, so the substitution is the argument and not the
+        /// rule.</para>
+        ///
+        /// <para>A SUBSTRING and not an equality, which matters: an id like
+        /// "SpaceCenter/LaunchPad" contains "LaunchPad", and a KSCSwitcher site's
+        /// id contains the building name somewhere other than the last segment.
+        /// Matching by equality here would offer a locked building RP-1's own menu
+        /// does not.</para>
+        ///
+        /// <para>Null when the list could not be read, which the caller refuses on
+        /// rather than assuming the building is upgradeable.</para>
+        /// </remarks>
+        private bool? UpgradedByRp1(string id)
+        {
+            if (_database == null)
+            {
+                return null;
+            }
+            if (!(Rp1Types.StaticValue(_database, "LockedFacilities") is IEnumerable locked))
+            {
+                return null;
+            }
+            foreach (var facility in locked)
+            {
+                var name = facility?.ToString();
+                if (!string.IsNullOrEmpty(name)
+                    && id.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>

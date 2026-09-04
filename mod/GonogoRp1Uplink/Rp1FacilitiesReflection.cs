@@ -231,7 +231,12 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>The per-tier costs, widened once so the arithmetic above is type-free.</summary>
-        private static IList<double>? TierCosts(object? value)
+        /// <remarks>
+        /// Internal rather than private because <see cref="Rp1FacilityUpgradeCommands"/>
+        /// prices a queued upgrade off the same table, and two widenings of one
+        /// dictionary is two places for "what counts as a readable cost" to drift.
+        /// </remarks>
+        internal static IList<double>? TierCosts(object? value)
         {
             if (!(value is IEnumerable list))
             {

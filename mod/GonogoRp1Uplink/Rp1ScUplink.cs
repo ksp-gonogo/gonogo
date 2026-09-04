@@ -613,13 +613,13 @@ namespace GonogoRp1Uplink
             }
             if (facilityModelResolved)
             {
-                // TWO requirements, and the second is the only condition in this
-                // Uplink that is about the SCENE: the live UpgradeableFacility
-                // objects carrying a tier and a price exist at the space centre
-                // only, which was confirmed against the running game rather than
-                // inferred (see Rp1FacilityUpgradeCommands' header). Declaring it
-                // means the control is dark with that reason from anywhere else,
-                // instead of answering a press with an empty list.
+                // TWO requirements, and the second used to be the only condition
+                // in this Uplink that was about the SCENE. It is not one any more:
+                // a tier is priced from the live UpgradeableFacility where the
+                // space centre has built one and from RP-1's own config table
+                // where it has not, so the requirement asks whether EITHER source
+                // answers. See Rp1FacilityUpgradeCommands' header for the
+                // member-by-member equivalence that retired the scene claim.
                 commands.Add(new CommandDeclaration
                 {
                     Command = Rp1FacilityUpgradeCommands.UpgradeCommand,
@@ -1532,7 +1532,7 @@ namespace GonogoRp1Uplink
                     "facility upgrade command",
                     !_facilities.IsAvailable
                         ? "not registered: RP-1 facility-construction types not found"
-                        : "rp1.facility.upgrade registered, space centre only ("
+                        : "rp1.facility.upgrade registered ("
                           + _facilities.MethodDiagnosis() + ")"),
                 // Its own fact, and the one on this list an operator is most
                 // likely to come looking for: career.tech.unlock is REFUSED under
