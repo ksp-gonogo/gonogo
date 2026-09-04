@@ -310,6 +310,54 @@ describe("CommandButton: the refused phase", () => {
     expect(button.getAttribute("title")).toMatch(/Upgrade Launch Pad refused/);
   });
 
+  /**
+   * The game's own sentence, on the refusal path as well as the gate path.
+   *
+   * A refusal carries `detail` all the way here: the mod writes it,
+   * `AppendCommandResult` puts it on the wire, the client puts it on the thrown
+   * `CommandError`, and `classifyCommandRejection` reads it back.
+   * `commandRefusalSentence` prefers it over every sentence written in this
+   * package. This component then rebuilt the refusal field by field and left
+   * that one out, so the sentence fell through to the general clause for the
+   * coarse code and an operator read "the game would not say why" about a
+   * refusal that said exactly why.
+   *
+   * Nothing caught it because the only `detail` in this file was on the BLOCKED
+   * path, where the whole gate object is spread rather than copied. It bites
+   * hardest on a refusal that carries no `LimitBreach`, which is most of them:
+   * `detail` is then the only clause there is.
+   */
+  it("quotes the game's own reason when the refusal carried one", async () => {
+    const user = userEvent.setup();
+    const d = deferred();
+    render(
+      <CommandButton
+        handle={makeHandle(() => d.promise)}
+        commandLabel="Arm the write surface"
+        label="ARM WRITES"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "ARM WRITES" }));
+    await act(async () => {
+      // ModeUnavailable, whose general clause is "the game would not say why".
+      d.reject(
+        refusalError(3, {
+          command: "plan.arm",
+          label: "Arm the write surface",
+          detail:
+            "the plugin is not running right now (main menu, or mid-reset)",
+        }),
+      );
+    });
+
+    const button = await screen.findByRole("button", { name: /refused/i });
+    expect(button.getAttribute("title")).toBe(
+      "Arm the write surface refused: the plugin is not running right now " +
+        "(main menu, or mid-reset).",
+    );
+  });
+
   it("returns to rest after the refusal window, since the situation can change", async () => {
     const user = useArmClock();
     const d = deferred();

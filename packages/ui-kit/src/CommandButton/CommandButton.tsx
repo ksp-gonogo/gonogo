@@ -311,6 +311,14 @@ export function useCommandButton<TResult = unknown>({
           args: rejection.args,
           label: rejection.label ?? commandLabel,
           breach: rejection.breach,
+          // The game's own words for this refusal, and the clause
+          // `commandRefusalSentence` prefers over anything ui-kit writes.
+          // Copying the rejection field by field dropped it, so a refusal that
+          // said exactly why came out as the general clause for its coarse code
+          // ("the game would not say why" for ModeUnavailable). The blocked path
+          // spreads the whole gate and so never lost it, which is why the only
+          // `detail` coverage in this component's tests was over there.
+          detail: rejection.detail,
         });
       },
     );
