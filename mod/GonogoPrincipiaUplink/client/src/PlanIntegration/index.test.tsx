@@ -77,7 +77,17 @@ function plan(overrides: Partial<PrincipiaPlan> = {}): PrincipiaPlan {
     initialTimeUt: VIEW_UT,
     desiredFinalTimeUt: VIEW_UT + 144_000,
     actualFinalTimeUt: VIEW_UT + 144_000,
-    writeSurface: { available: true, armed: true },
+    // Both verdicts STATED. `armed` and `integratorLayoutVerified` are
+    // independent on the wire, and the step-limit write is the one the second
+    // gates: `PlanCommands.SetIntegrator` refuses `LayoutUnverified` on it
+    // whatever the arm says. A fixture omitting the field leaves it
+    // `undefined`, which is neither verdict.
+    writeSurface: {
+      available: true,
+      armed: true,
+      burnLayoutVerified: true,
+      integratorLayoutVerified: true,
+    },
     integrator: {
       maxSteps: 1024,
       lengthToleranceMetres: 1,
@@ -168,6 +178,53 @@ describe("PlanIntegrationBlock", () => {
     expect(
       screen.getByRole("button", { name: "Set the flight plan's step limit" }),
     ).toBeEnabled();
+  });
+
+  /**
+   * An arm is not a step-parameter verdict, and the step-limit write needs the
+   * verdict.
+   *
+   * `PlanCommands.SetIntegrator` refuses `LayoutUnverified` whenever
+   * `IntegratorLayoutVerified` is false, whatever the arm says, and that state
+   * is reachable beside `armed: true`: `PrincipiaLayoutProbe.Run` records both
+   * verdicts and returns null whatever they were, and `Arm` refuses only when
+   * NEITHER struct survived. The end instant is NOT gated with it, because
+   * `SetHorizon` writes no step parameters and takes no verdict.
+   */
+  it("freezes the step limit when the step parameters were never verified", async () => {
+    mount(
+      plan({
+        writeSurface: {
+          available: true,
+          armed: true,
+          burnLayoutVerified: true,
+          integratorLayoutVerified: false,
+        },
+      }),
+    );
+
+    // Both remedies moved off the value the plan holds, since neither control
+    // dispatches an unchanged one. What separates them here is the verdict.
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Increase Max integration steps per segment",
+      }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Plan end later by 1h" }),
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Set the flight plan's step limit" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", {
+        name: "Move the flight plan's end instant",
+      }),
+    ).toBeEnabled();
+    expect(
+      screen.getByText(/step parameters have not survived a round trip/),
+    ).toBeInTheDocument();
   });
 
   /**

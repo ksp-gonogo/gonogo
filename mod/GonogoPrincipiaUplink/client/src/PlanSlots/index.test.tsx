@@ -148,6 +148,12 @@ function plan(overrides: Record<string, unknown> = {}) {
     writeSurface: {
       available: true,
       armed: true,
+      // STATED, not left off. `armed` and `burnLayoutVerified` are independent
+      // on the wire, and INSTALL is refused `LayoutUnverified` whenever the
+      // slot already holds burns and the second is false. A fixture omitting
+      // the field leaves it `undefined`, which is neither verdict.
+      burnLayoutVerified: true,
+      integratorLayoutVerified: true,
       reason: null,
       analysedVersion: "analysed",
       detectedVersion: "analysed",
@@ -535,6 +541,66 @@ describe("PlanSlots", () => {
     expect(
       await visibleText(screen.getByText("SAVED PLAN 1").ownerDocument.body),
     ).toContain("overwrites the burns the slot holds now");
+    await act(async () => {});
+  });
+
+  /**
+   * An arm is not a burn verdict, and INSTALL needs the verdict WHEN THE SLOT
+   * ALREADY HOLDS BURNS.
+   *
+   * `PlanCommands.SendPlan` gates on `gate.ManoeuvreCount() > 0 &&
+   * !BurnLayoutVerified` and says why it does not gate on it otherwise: a plan
+   * sent to a craft holding none builds its head burn, and that build is its own
+   * demonstration of the struct. So the same unverified surface blocks an
+   * install onto a slot with burns and permits one onto a slot without.
+   */
+  it("freezes an install onto a slot holding burns when the burn struct was never verified", async () => {
+    const stream = mount();
+    saveDraft(stream.store);
+    await emitPlan(stream, {
+      writeSurface: {
+        available: true,
+        armed: true,
+        burnLayoutVerified: false,
+        integratorLayoutVerified: true,
+        reason: null,
+        analysedVersion: "analysed",
+        detectedVersion: "analysed",
+      },
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: "Install this plan as Principia's flight plan",
+      }),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/this slot already holds burns to copy from/),
+    ).toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  it("offers an install onto a slot with no burns even when the burn struct was never verified", async () => {
+    const stream = mount();
+    saveDraft(stream.store);
+    await emitPlan(stream, {
+      burns: [],
+      writeSurface: {
+        available: true,
+        armed: true,
+        burnLayoutVerified: false,
+        integratorLayoutVerified: true,
+        reason: null,
+        analysedVersion: "analysed",
+        detectedVersion: "analysed",
+      },
+    });
+
+    expect(
+      screen.getByRole("button", {
+        name: "Install this plan as Principia's flight plan",
+      }),
+    ).toBeEnabled();
     await act(async () => {});
   });
 

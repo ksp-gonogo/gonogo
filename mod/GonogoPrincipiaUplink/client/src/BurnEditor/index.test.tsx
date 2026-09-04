@@ -135,6 +135,15 @@ function plan(overrides: Record<string, unknown> = {}) {
     writeSurface: {
       available: true,
       armed: true,
+      // STATED, not left off. `armed` and `burnLayoutVerified` are independent
+      // on the wire and the contract says so: arming is allowed on a partial
+      // verification, so an armed surface whose burn struct never survived a
+      // round trip is a real state and the one every burn write is refused in.
+      // A fixture omitting the field leaves it `undefined`, which is neither
+      // verdict, and every test in this file would have been asserting against
+      // a surface the mod never publishes.
+      burnLayoutVerified: true,
+      integratorLayoutVerified: true,
       reason: null,
       analysedVersion: "analysed",
       detectedVersion: "analysed",
@@ -563,6 +572,58 @@ describe("BurnEditor", () => {
 
     expect(screen.queryByText(/EDIT WINDOW/)).not.toBeInTheDocument();
     expect(screen.queryByText("TOO LATE TO EDIT")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * An arm is not a burn verdict, and the two burn writes need the verdict.
+   *
+   * `PlanCommands.EditBurn` refuses both with `LayoutUnverified` whenever the
+   * plan holds burns and `BurnLayoutVerified` is false, and that state is
+   * REACHABLE beside `armed: true`: `PrincipiaLayoutProbe.Run` records the
+   * verdicts and returns null "whatever the verdicts were", and `Arm` refuses
+   * only when NEITHER struct survived. So a burn probe that failed while the
+   * integrator's passed arms the surface and leaves every burn edit refused.
+   *
+   * The mod publishes `burnLayoutVerified` for exactly this, in its own words:
+   * "an operator had no way to know that the check covering the edit they were
+   * about to make had never run". Nothing in this Uplink read the field.
+   *
+   * REMOVE is deliberately not frozen with them: dropping a burn writes no burn
+   * struct, and `PlanCommands.RemoveBurn` takes no verdict.
+   */
+  it("freezes the two burn writes when the burn struct was never verified", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      writeSurface: {
+        available: true,
+        armed: true,
+        burnLayoutVerified: false,
+        integratorLayoutVerified: true,
+        reason:
+          "Principia's burn came back changed from a round trip through the plugin.",
+        analysedVersion: "analysed",
+        detectedVersion: "analysed",
+      },
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Add a burn copied from this one" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Remove this burn from the plan" }),
+    ).toBeEnabled();
+    // Beside the controls it darkened, not only beside the ARM button at the
+    // top of the section. The consequence rather than a second copy of the
+    // surface's own sentence, which is already up there.
+    expect(
+      screen.getByText(/APPLY and ADD write one and are refused/),
+    ).toBeInTheDocument();
     await act(async () => {});
   });
 

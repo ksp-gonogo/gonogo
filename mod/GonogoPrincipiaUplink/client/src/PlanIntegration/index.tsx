@@ -131,6 +131,16 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
   const frozenReason = frozenBecause(plan);
   const frozen = frozenReason !== null;
   /*
+   * An arm is not a step-parameter verdict. `PrincipiaLayoutProbe.Run` records
+   * both round-trip verdicts and returns null whatever they were, and `Arm`
+   * refuses only when NEITHER struct survived, so `armed` true beside this
+   * false is a state the mod reaches and publishes deliberately.
+   * `SetIntegrator` refuses `LayoutUnverified` in it; `SetHorizon` writes no
+   * step parameters and is not held to it, so only the step limit freezes.
+   */
+  const stepParametersUnverified =
+    plan.writeSurface?.integratorLayoutVerified !== true;
+  /*
    * Seeded from the plan's own end, so an operator who nudges it is moving the
    * instant the plan actually holds rather than one this block invented. Null
    * only while the end has not been read, which is also when there is nothing to
@@ -276,7 +286,11 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
             label="SET"
             confirmLabel="CONFIRM"
             pendingLabel="Setting..."
-            disabled={frozen || (maxSteps !== null && chosen === maxSteps)}
+            disabled={
+              frozen ||
+              stepParametersUnverified ||
+              (maxSteps !== null && chosen === maxSteps)
+            }
             aria-label="Set the flight plan's step limit"
             confirmAriaLabel="Confirm setting the flight plan's step limit"
             onConfirmed={(result) => setLastWrite(planWriteReceipt(result))}
@@ -288,6 +302,16 @@ export function PlanIntegrationBlock({ plan }: { plan: PrincipiaPlan | null }) {
       <Text tone="faint" size="sm">
         Raise this when the plan stops short of its requested end.
       </Text>
+      {/* Why the control above is dark while the end instant beside it is live
+          and the surface reads armed. The consequence rather than the mod's own
+          sentence for the failed round trip, which travels on the surface's
+          `reason` and is shown wherever that is. */}
+      {plan.writeSurface?.armed === true && stepParametersUnverified && (
+        <Text tone="warn" size="sm">
+          Principia's step parameters have not survived a round trip in this
+          session, so the step limit cannot be written. The plan's end can.
+        </Text>
+      )}
       {/* Neither control's success state can see this, and the receipt is the
           only thing that says so: the mod answers a repeated request id with the
           one it stored the first time without calling the plugin, and a receipt

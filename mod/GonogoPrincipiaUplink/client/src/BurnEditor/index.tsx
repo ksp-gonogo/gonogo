@@ -289,6 +289,15 @@ export function BurnEditor() {
     componentsUnreadable ||
     outOfContact !== null;
   /*
+   * An arm is not a burn verdict. `PrincipiaLayoutProbe.Run` records both
+   * round-trip verdicts and returns null whatever they were, and `Arm` refuses
+   * only when NEITHER struct survived, so `armed` true beside this false is a
+   * state the mod reaches and publishes deliberately. Every burn write is
+   * refused `LayoutUnverified` in it, which is why the two that write a burn
+   * struct freeze here and REMOVE, which writes none, does not.
+   */
+  const burnStructUnverified = surface?.burnLayoutVerified !== true;
+  /*
    * The ignition field stays live inside a shut window: pushing the burn further
    * out is how the operator REOPENS one, and freezing the field would leave the
    * deadline as a dead end rather than something to act on.
@@ -663,7 +672,7 @@ export function BurnEditor() {
                 confirmTone="nogo"
                 pendingLabel="Applying..."
                 onConfirmed={(result) => setLastWrite(planWriteReceipt(result))}
-                disabled={frozen || tooLate}
+                disabled={frozen || tooLate || burnStructUnverified}
                 aria-label="Apply the edited burn"
                 confirmAriaLabel="Confirm applying the edited burn"
               />
@@ -690,7 +699,7 @@ export function BurnEditor() {
                  * ignition too, so one composed for an instant the write cannot
                  * beat is a burn added to the plan already in the past.
                  */
-                disabled={frozen || tooLate}
+                disabled={frozen || tooLate || burnStructUnverified}
                 aria-label="Add a burn copied from this one"
                 confirmAriaLabel="Confirm adding a burn copied from this one"
               />
@@ -719,6 +728,20 @@ export function BurnEditor() {
                 confirmAriaLabel="Confirm removing this burn from the plan"
               />
             </Cluster>
+
+            {/* Why the two above are dark while REMOVE beside them is live, and
+                while the badge at the top of the section reads ARMED. The
+                surface's own sentence for WHY the round trip failed is already
+                up beside the ARM control and is not repeated here; what is here
+                is the consequence, which is the half that names these controls
+                and which nothing else on screen says. */}
+            {armed && burnStructUnverified && (
+              <Text tone="warn" size="sm">
+                Principia's burn struct has not survived a round trip in this
+                session. APPLY and ADD write one and are refused; REMOVE writes
+                none.
+              </Text>
+            )}
 
             {/* A confirmed dispatch is not always a write, and the RECEIPT is
                 what says so: the mod answers a repeated request id with the one

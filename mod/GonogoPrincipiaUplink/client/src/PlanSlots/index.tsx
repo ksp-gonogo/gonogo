@@ -638,9 +638,19 @@ function InstallRow({
     planEndUt !== null &&
     lastIgnitionUt !== null &&
     planEndUt <= lastIgnitionUt;
+  /*
+   * An arm is not a burn verdict, and `SendPlan` gates on the verdict only when
+   * the slot ALREADY HOLDS BURNS: a plan sent to a craft holding none builds its
+   * head burn, which is its own demonstration of the struct. `armed` true beside
+   * an unverified burn struct is a state the mod reaches and publishes, so the
+   * two halves of that gate are both read here rather than one of them.
+   */
+  const burnStructUnusable =
+    burnCount > 0 && plan.writeSurface?.burnLayoutVerified !== true;
   const blocked =
     frozen ||
     wrongBasis ||
+    burnStructUnusable ||
     planEndUt === null ||
     endsBeforeLastBurn ||
     window?.shut === true ||
@@ -702,6 +712,15 @@ function InstallRow({
           Principia's burns are the Frenet trihedron, so the same three numbers
           are a different manoeuvre and this plan cannot be installed as it
           stands.
+        </Text>
+      )}
+
+      {burnStructUnusable && (
+        <Text tone="warn" size="sm">
+          Principia's burn struct has not survived a round trip in this session,
+          and this slot already holds burns to copy from, so the mod refuses the
+          install. A slot holding none builds its head burn instead and is not
+          held to the verdict.
         </Text>
       )}
 

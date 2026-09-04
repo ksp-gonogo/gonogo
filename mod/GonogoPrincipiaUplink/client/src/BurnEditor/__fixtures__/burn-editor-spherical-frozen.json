@@ -49,6 +49,8 @@
           "writeSurface": {
             "available": true,
             "armed": true,
+            "burnLayoutVerified": true,
+            "integratorLayoutVerified": true,
             "analysedVersion": "principia Grassmann",
             "detectedVersion": "principia Grassmann"
           },
