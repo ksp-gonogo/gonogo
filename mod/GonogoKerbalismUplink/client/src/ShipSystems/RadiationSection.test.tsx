@@ -16,6 +16,7 @@ import {
   RADIATION_WINDOW_SEC,
   type RadiationSample,
   RadiationSection,
+  toRadPerHourSeries,
 } from "./RadiationSection";
 
 // ---------------------------------------------------------------------------
@@ -25,6 +26,57 @@ import {
 function sample(ut: number, ambient = 0, shielded = 0): RadiationSample {
   return { ut, ambientRadPerSec: ambient, shieldedRadPerSec: shielded };
 }
+
+/**
+ * The unmeasured-arm hole. `toRadPerHourSeries` drops a sample the picked arm
+ * did not measure, and its own comment claimed "a gap in the trace reads as a
+ * gap": it did not, because nothing set `LineGraph.breaks` and the stroke
+ * joined straight across the drop. A line an operator cannot tell from data is
+ * the one thing this graph must not draw, which is why the field exists.
+ */
+describe("toRadPerHourSeries", () => {
+  const at = (ut: number, ambient: number | null): RadiationSample => ({
+    ut,
+    ambientRadPerSec: ambient,
+    shieldedRadPerSec: 0,
+  });
+
+  it("opens a break at the point that resumes after a dropped sample", () => {
+    const { points, breaks } = toRadPerHourSeries(
+      [at(0, 1), at(1, null), at(2, 1)],
+      (s) => s.ambientRadPerSec,
+    );
+    expect(points.map((p) => p.x)).toEqual([0, 2]);
+    expect(breaks).toEqual([1]);
+  });
+
+  it("names one break for a run of dropped samples", () => {
+    const { breaks } = toRadPerHourSeries(
+      [at(0, 1), at(1, null), at(2, null), at(3, 1)],
+      (s) => s.ambientRadPerSec,
+    );
+    expect(breaks).toEqual([1]);
+  });
+
+  it("does not open a break before the first surviving point", () => {
+    // The hole is real and it is off the left edge of the window, where the
+    // graph already draws nothing.
+    const { points, breaks } = toRadPerHourSeries(
+      [at(0, null), at(1, 1), at(2, 1)],
+      (s) => s.ambientRadPerSec,
+    );
+    expect(points).toHaveLength(2);
+    expect(breaks).toEqual([]);
+  });
+
+  it("reports no breaks for a fully measured arm", () => {
+    const { breaks } = toRadPerHourSeries(
+      [at(0, 1), at(1, 2)],
+      (s) => s.ambientRadPerSec,
+    );
+    expect(breaks).toEqual([]);
+  });
+});
 
 describe("pushRadiationSample", () => {
   it("appends the first sample to an empty buffer", () => {

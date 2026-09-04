@@ -160,19 +160,41 @@ function useRadiationHistory(
 
 const RAD_PER_SEC_TO_RAD_PER_HOUR = 3600;
 
-/** Samples the picked arm actually measured; an unmeasured one plots no point
- *  rather than a point at zero, so a gap in the trace reads as a gap. */
-function toRadPerHourSeries(
+/**
+ * Samples the picked arm actually measured, plus the holes where it did not.
+ *
+ * An unmeasured sample plots no point rather than a point at zero. That much
+ * was always here, and on its own it does not make a gap read as a gap: with
+ * the point simply absent the stroke joins its neighbours and draws a straight
+ * line through a span the arm measured nothing in, which the operator cannot
+ * tell from data. `breaks` names the point that RESUMES after each drop, which
+ * is what cuts the stroke and the area fill under it.
+ *
+ * Exported for direct unit testing.
+ */
+export function toRadPerHourSeries(
   history: readonly RadiationSample[],
   pick: (s: RadiationSample) => number | null,
-): LineGraphSeries["points"] {
+): { points: LineGraphSeries["points"]; breaks: number[] } {
   const points: { x: number; y: number }[] = [];
+  const breaks: number[] = [];
+  let dropped = false;
   for (const s of history) {
     const radPerSec = pick(s);
-    if (radPerSec === null) continue;
+    if (radPerSec === null) {
+      dropped = true;
+      continue;
+    }
+    /*
+     * Nothing joins into the first point, so a hole before it has no segment
+     * to cut: it is off the left edge of the window, where the graph already
+     * draws nothing.
+     */
+    if (dropped && points.length > 0) breaks.push(points.length);
+    dropped = false;
     points.push({ x: s.ut, y: radPerSec * RAD_PER_SEC_TO_RAD_PER_HOUR });
   }
-  return points;
+  return { points, breaks };
 }
 
 /**
@@ -274,11 +296,10 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
     shieldedRadPerHour !== null &&
     shieldedRadPerHour > HIGH_RADIATION_RAD_PER_HOUR;
 
-  const ambientPoints = toRadPerHourSeries(history, (s) => s.ambientRadPerSec);
-  const shieldedPoints = toRadPerHourSeries(
-    history,
-    (s) => s.shieldedRadPerSec,
-  );
+  const ambient = toRadPerHourSeries(history, (s) => s.ambientRadPerSec);
+  const shielded = toRadPerHourSeries(history, (s) => s.shieldedRadPerSec);
+  const ambientPoints = ambient.points;
+  const shieldedPoints = shielded.points;
   const series: LineGraphSeries[] = [
     {
       id: "ambient",
@@ -287,6 +308,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
         ? "var(--color-status-warning-bg)"
         : "var(--color-text-muted)",
       points: ambientPoints,
+      breaks: ambient.breaks,
     },
     {
       id: "shielded",
@@ -295,6 +317,7 @@ export function RadiationSection({ weather, utNow }: RadiationSectionProps) {
         ? "var(--color-status-nogo-bg)"
         : "var(--color-status-info-fg)",
       points: shieldedPoints,
+      breaks: shielded.breaks,
     },
   ];
 
