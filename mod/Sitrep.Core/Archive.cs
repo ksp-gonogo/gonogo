@@ -135,6 +135,60 @@ namespace Sitrep.Core
         }
 
         /// <summary>
+        /// Read <paramref name="topic"/> as of a scene instant the caller
+        /// already knows exactly, WITHOUT reading
+        /// <paramref name="vantage"/>'s cursor. Returns the latest sample with
+        /// ValidAt &lt;= <paramref name="sceneUt"/>, or null if nothing had been
+        /// recorded by then. The cursor is still moved forward to the scene, as
+        /// the retention watermark <see cref="PruneToVantageCursors"/> reads,
+        /// but it no longer clamps the answer.
+        ///
+        /// <para>This is the read a delivery carrying its own RECORD-TIME delay
+        /// stamp wants (see <see cref="Courier"/>'s scheduled lanes): the stamp
+        /// makes the scene exactly the sample's own ValidAt, so there is nothing
+        /// for the freeze-on-recession clamp in
+        /// <see cref="ReadAtVantage(string, string, double, double)"/> to
+        /// protect. Going through the cursor anyway is actively wrong once the
+        /// route changes mid-flight: post-change samples ride a different delay
+        /// and can overtake the tail still crossing the old path, so the cursor
+        /// ratchets to the newer scene and every older delivery behind it
+        /// re-resolves to that same newer sample, putting duplicate frames on
+        /// the wire and losing the tail. The clamp still governs
+        /// <see cref="ReadAtVantage(string, string, double, double)"/>, which is
+        /// what a subscribe-time catch-up and
+        /// <see cref="DelayedStateReader"/> ask, because those genuinely do
+        /// resolve "now minus whatever the delay currently is".</para>
+        /// </summary>
+        public ArchiveSample? ReadAtInstant(string topic, string vantage, double sceneUt)
+        {
+            if (!_cursors.TryGetValue(topic, out var byVantage))
+            {
+                byVantage = new Dictionary<string, double>();
+                _cursors[topic] = byVantage;
+            }
+            byVantage[vantage] = byVantage.TryGetValue(vantage, out var lastScene)
+                ? Math.Max(sceneUt, lastScene)
+                : sceneUt;
+
+            if (!_samplesByTopic.TryGetValue(topic, out var list) || list.Count == 0)
+            {
+                return null;
+            }
+
+            Sample? found = null;
+            foreach (var sample in list)
+            {
+                if (sample.ValidAt > sceneUt)
+                {
+                    break;
+                }
+                found = sample;
+            }
+
+            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch);
+        }
+
+        /// <summary>
         /// Read <paramref name="topic"/> through <paramref name="vantage"/>'s
         /// cursor. sceneUt = nowUt - delaySeconds, clamped to be monotonic
         /// non-decreasing per (topic, vantage) so the scene never rewinds even
@@ -295,8 +349,18 @@ namespace Sitrep.Core
         /// <para>A topic no vantage has read is left alone. No cursor is no evidence
         /// about what is reachable, and a topic nobody has subscribed to yet is
         /// exactly the one whose history a first subscriber will ask for.</para>
+        ///
+        /// <para><paramref name="owedFloorByTopic"/> gives, per topic, the oldest
+        /// scene the caller still owes a scheduled delivery, and that topic's cutoff
+        /// never rises above it. A cursor stopped being the whole story once a
+        /// delivery began carrying its own record-time delay (see
+        /// <see cref="ReadAtInstant"/>): a route that SHORTENS mid-flight lets
+        /// post-change samples overtake the tail still crossing the old path, so the
+        /// newest scene read runs ahead of the oldest scene still owed, and pruning
+        /// to the cursor alone would drop a sample a delivery is about to ask for.
+        /// A missing entry (or <c>null</c>) means nothing is owed there.</para>
         /// </summary>
-        public void PruneToVantageCursors()
+        public void PruneToVantageCursors(IDictionary<string, double>? owedFloorByTopic = null)
         {
             foreach (var entry in _samplesByTopic)
             {
@@ -305,7 +369,9 @@ namespace Sitrep.Core
                     continue;
                 }
 
-                var oldest = double.MaxValue;
+                var oldest = owedFloorByTopic != null && owedFloorByTopic.TryGetValue(entry.Key, out var owed)
+                    ? owed
+                    : double.MaxValue;
                 foreach (var scene in byVantage.Values)
                 {
                     if (scene < oldest)

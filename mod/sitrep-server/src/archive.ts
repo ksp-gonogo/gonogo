@@ -56,6 +56,61 @@ export class Archive {
   }
 
   /**
+   * Read `topic` as of a scene instant the caller already knows exactly,
+   * WITHOUT reading `vantage`'s cursor. Returns the latest sample with
+   * validAt <= `sceneUt`, or undefined if nothing had been recorded by then.
+   * The cursor is still moved forward to the scene, as the retention watermark
+   * the C# port prunes to, but it no longer clamps the answer.
+   *
+   * This is the read a delivery carrying its own RECORD-TIME delay stamp wants
+   * (see Courier's scheduled lanes): the stamp makes the scene exactly the
+   * sample's own validAt, so there is nothing for `readAtVantage`'s
+   * freeze-on-recession clamp to protect. Going through the cursor anyway is
+   * actively wrong once the route changes mid-flight: post-change samples ride
+   * a different delay and can overtake the tail still crossing the old path,
+   * so the cursor ratchets to the newer scene and every older delivery behind
+   * it re-resolves to that same newer sample, putting duplicate frames on the
+   * wire and losing the tail. The clamp still governs `readAtVantage`, which
+   * is what a subscribe-time catch-up asks, because that genuinely does
+   * resolve "now minus whatever the delay currently is".
+   */
+  readAtInstant(
+    topic: string,
+    vantage: string,
+    sceneUt: number,
+  ): { value: unknown; validAt: number } | undefined {
+    let byVantage = this.cursors.get(topic);
+    if (!byVantage) {
+      byVantage = new Map<string, number>();
+      this.cursors.set(topic, byVantage);
+    }
+    const lastScene = byVantage.get(vantage);
+    byVantage.set(
+      vantage,
+      lastScene === undefined ? sceneUt : Math.max(sceneUt, lastScene),
+    );
+
+    const list = this.samplesByTopic.get(topic);
+    if (!list || list.length === 0) {
+      return undefined;
+    }
+
+    let found: Sample | undefined;
+    for (const sample of list) {
+      if (sample.validAt > sceneUt) {
+        break;
+      }
+      found = sample;
+    }
+
+    if (!found) {
+      return undefined;
+    }
+
+    return { value: found.value, validAt: found.validAt };
+  }
+
+  /**
    * Read `topic` through `vantage`'s cursor. sceneUt = nowUt - delaySeconds,
    * clamped to be monotonic non-decreasing per (topic, vantage) so the scene
    * never rewinds even if delaySeconds grows faster than nowUt advances

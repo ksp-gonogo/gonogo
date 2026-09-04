@@ -126,6 +126,9 @@ export class Courier {
     // Snapshot the current subscriber set: later subscribes/unsubscribes
     // must not affect delivery of this already-recorded sample.
     for (const subscriber of [...subs]) {
+      // The delay this sample is SENT under. Captured once here and carried
+      // into the delivery closure: it is a property of this sample's journey,
+      // not a question to re-ask the ledger when it lands (see deliver()).
       const delay = this.network.delayTo(subscriber.vantage, node);
       // Capture this delivery's own fire-UT now: under a single large
       // advanceTo() jump, several deliveries can drain in the same batch,
@@ -137,7 +140,7 @@ export class Courier {
           // Unsubscribed before the delivery fired.
           return;
         }
-        this.deliver(node, topic, subscriber, fireUt);
+        this.deliver(node, topic, subscriber, fireUt, delay);
       });
     }
   }
@@ -172,7 +175,9 @@ export class Courier {
     const delay = this.network.delayTo(vantage, node);
     const now = this.clock.now();
 
-    // Catch-up: deliver whatever has already "arrived" at this vantage.
+    // Catch-up: deliver whatever has already "arrived" at this vantage. No
+    // journey to stamp, so no stamp: this asks the CURRENT delay (see
+    // deliver()).
     this.deliver(node, topic, subscriber, now);
 
     // Also schedule delivery for every sample recorded before this
@@ -192,7 +197,7 @@ export class Courier {
         if (!subs.has(subscriber)) {
           return;
         }
-        this.deliver(node, topic, subscriber, fireUt);
+        this.deliver(node, topic, subscriber, fireUt, delay);
       });
     }
 
@@ -210,25 +215,47 @@ export class Courier {
    * within one advanceTo() call would otherwise all read the same `now()`
    * and compute the same scene, delivering the latest sample repeatedly
    * and silently dropping earlier ones.
+   *
+   * `stampedDelaySeconds` is the delay this delivery was SCHEDULED under,
+   * captured at record()/subscribeStream() time and carried here in the
+   * closure. A scheduled delivery MUST pass it. The archive then resolves at
+   * `fireUt - stamp`, which is exactly the sample's own validAt, so what lands
+   * is what was sent, whatever the route has done since.
+   *
+   * `undefined` means "there is no journey to stamp": the subscribe-time
+   * catch-up, which is not a sample in transit but the question "what has
+   * already reached this vantage by now". That one genuinely wants the current
+   * delay and the vantage cursor.
+   *
+   * Until this stamp existed the delay was re-read from the ledger here, which
+   * assumed it was unchanged between scheduling and firing. A relay going
+   * offline while the craft reroutes breaks that assumption without ever
+   * disconnecting the craft: the tail already in flight was re-resolved
+   * against the new route's light-time and came out skipped (shorter route) or
+   * replayed as duplicate frames with the tail lost (longer route). See
+   * `Archive.readAtInstant`.
    */
   private deliver(
     node: string,
     topic: string,
     subscriber: Subscriber,
     fireUt: number,
+    stampedDelaySeconds?: number,
   ): void {
-    // Recomputed here rather than reusing the delay captured at record()/
-    // subscribe() time: this assumes the delay is unchanged between when
-    // the delivery was scheduled and when it fires (true for M3's static
-    // point-to-point model). A dynamic/mid-flight delay change is M3b,
-    // where the archive's freeze clamp (see readAtVantage) would engage.
-    const delay = this.network.delayTo(subscriber.vantage, node);
-    const sample = this.archiveFor(node).readAtVantage(
-      topic,
-      subscriber.vantage,
-      delay,
-      fireUt,
-    );
+    const archive = this.archiveFor(node);
+    const sample =
+      stampedDelaySeconds === undefined
+        ? archive.readAtVantage(
+            topic,
+            subscriber.vantage,
+            this.network.delayTo(subscriber.vantage, node),
+            fireUt,
+          )
+        : archive.readAtInstant(
+            topic,
+            subscriber.vantage,
+            fireUt - stampedDelaySeconds,
+          );
     if (!sample) {
       return;
     }

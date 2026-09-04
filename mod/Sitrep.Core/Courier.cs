@@ -315,6 +315,11 @@ namespace Sitrep.Core
             // returns must already see it too.
             _epoch++;
             _pendingCommands.Clear();
+            // The clock drops every scheduled callback below, so nothing that was
+            // owed on the abandoned timeline will ever be asked for. Left in place
+            // it would hold retention at a scene no longer reachable, for the rest
+            // of the run.
+            _owedScenes.Clear();
             // UT has moved backwards, so a schedule set on the abandoned timeline
             // would sit in the future and suppress pruning for the rest of the run.
             _nextPruneUt = double.NegativeInfinity;
@@ -511,9 +516,11 @@ namespace Sitrep.Core
         /// <see cref="Delivery.LossyLatest"/> (the default, and every existing
         /// call site incl. the golden-fixture conformance tests) keeps the
         /// exact historical behaviour: each scheduled delivery RE-READS the
-        /// archive at fire time via <see cref="Deliver"/>/<see cref="Archive.ReadAtVantage"/>,
+        /// archive at fire time via <see cref="Deliver"/>/<see cref="Archive.ReadAtInstant"/>,
         /// resolving to the latest sample with <c>ValidAt &lt;= scene</c>,
-        /// correct coalescing for a state topic. <see cref="Delivery.ReliableOrdered"/>
+        /// correct coalescing for a state topic (the scene is this sample's own
+        /// ValidAt, from the delay stamped into the closure here, so several
+        /// samples sharing a ValidAt still collapse to the latest). <see cref="Delivery.ReliableOrdered"/>
         /// instead FORWARDS the exact sample captured at schedule time,
         /// exactly once, in record order: the right semantics for a
         /// cursor-relative ORDERED DIFF stream (the kOS terminal), where two
@@ -578,6 +585,10 @@ namespace Sitrep.Core
             // must not affect delivery of this already-recorded sample.
             foreach (var subscriber in new List<Subscriber>(subs))
             {
+                // The delay this sample is SENT under. Captured once here and
+                // carried into the delivery closure: it is a property of this
+                // sample's journey, not a question to re-ask the ledger when it
+                // lands (see Deliver()).
                 var delay = _network.DelayTo(subscriber.Vantage, node);
                 // Capture this delivery's own fire-UT now: under a single large
                 // AdvanceTo() jump, several deliveries can drain in the same
@@ -607,14 +618,16 @@ namespace Sitrep.Core
                 }
                 else
                 {
+                    NoteOwedScene(node, topic, validAtUt);
                     _clock.Schedule(fireUt, () =>
                     {
+                        ClearOwedScene(node, topic, validAtUt);
                         if (!subs.Contains(subscriber))
                         {
                             // Unsubscribed before the delivery fired.
                             return;
                         }
-                        Deliver(node, topic, subscriber, fireUt);
+                        Deliver(node, topic, subscriber, fireUt, delay);
                     });
                 }
             }
@@ -671,7 +684,7 @@ namespace Sitrep.Core
             }
             else
             {
-                Deliver(node, topic, subscriber, now, isCatchUp: true);
+                Deliver(node, topic, subscriber, now, stampedDelaySeconds: null, isCatchUp: true);
             }
 
             // Also schedule delivery for every sample recorded before this
@@ -689,13 +702,16 @@ namespace Sitrep.Core
                 {
                     continue;
                 }
+                var owedScene = sample.ValidAt;
+                NoteOwedScene(node, topic, owedScene);
                 _clock.Schedule(fireUt, () =>
                 {
+                    ClearOwedScene(node, topic, owedScene);
                     if (!subs.Contains(subscriber))
                     {
                         return;
                     }
-                    Deliver(node, topic, subscriber, fireUt);
+                    Deliver(node, topic, subscriber, fireUt, delay);
                 });
             }
 
@@ -713,15 +729,42 @@ namespace Sitrep.Core
         /// otherwise all read the same <c>Now()</c> and compute the same
         /// scene, delivering the latest sample repeatedly and silently
         /// dropping earlier ones.
+        ///
+        /// <para><paramref name="stampedDelaySeconds"/> is the delay this
+        /// delivery was SCHEDULED under, captured at
+        /// <see cref="Record"/>/<see cref="SubscribeStream"/> time and carried
+        /// here in the closure. A scheduled delivery MUST pass it. The archive
+        /// then resolves at <c>fireUt - stamp</c>, which is exactly the
+        /// sample's own ValidAt, so what lands is what was sent, whatever the
+        /// route has done since.</para>
+        ///
+        /// <para><c>null</c> means "there is no journey to stamp": the
+        /// subscribe-time catch-up, which is not a sample in transit but the
+        /// question "what has already reached this vantage by now". That one
+        /// genuinely wants the CURRENT delay and the vantage cursor.</para>
+        ///
+        /// <para>Until this stamp existed the delay was re-read from the ledger
+        /// here, which assumed it was unchanged between scheduling and firing.
+        /// A relay going offline while the craft reroutes breaks that
+        /// assumption without ever disconnecting the craft, so the reveal gate
+        /// never sees it: the tail already in flight was re-resolved against
+        /// the new route's light-time and came out skipped (shorter route) or
+        /// replayed as duplicate frames with the tail lost (longer route). See
+        /// <see cref="Archive.ReadAtInstant"/>.</para>
         /// </summary>
-        private void Deliver(string node, string topic, Subscriber subscriber, double fireUt, bool isCatchUp = false)
+        private void Deliver(
+            string node,
+            string topic,
+            Subscriber subscriber,
+            double fireUt,
+            double? stampedDelaySeconds,
+            bool isCatchUp = false)
         {
-            // Recomputed here rather than reusing the delay captured at
-            // Record()/SubscribeStream() time: this assumes the delay is
-            // unchanged between when the delivery was scheduled and when it
-            // fires (true for M3's static point-to-point model).
-            var delay = _network.DelayTo(subscriber.Vantage, node);
-            var sample = ArchiveFor(node).ReadAtVantage(topic, subscriber.Vantage, delay, fireUt);
+            var archive = ArchiveFor(node);
+            var sample = stampedDelaySeconds != null
+                ? archive.ReadAtInstant(topic, subscriber.Vantage, fireUt - stampedDelaySeconds.Value)
+                : archive.ReadAtVantage(
+                    topic, subscriber.Vantage, _network.DelayTo(subscriber.Vantage, node), fireUt);
             if (sample == null)
             {
                 return;
@@ -918,6 +961,92 @@ namespace Sitrep.Core
         private double _nextPruneUt = double.NegativeInfinity;
 
         /// <summary>
+        /// Per (node, topic), the scene instant of every scheduled-but-unfired
+        /// stamped delivery, as a multiset. The smallest key is the oldest sample
+        /// this Courier still owes somebody on that topic, and retention is held at
+        /// or below it (see <see cref="Archive.PruneToVantageCursors"/>).
+        ///
+        /// <para>A vantage cursor stopped bounding this on its own once a delivery
+        /// began carrying its own record-time delay: a route that shortens mid-flight
+        /// lets post-change samples overtake the tail still crossing the old path, so
+        /// the cursor ratchets past a scene that is still owed. Pruning to it alone
+        /// would then drop the sample the tail delivery is about to ask for, and the
+        /// read would fall back to the retained birth sample: a very stale frame
+        /// rather than the one that was sent.</para>
+        ///
+        /// <para>Keyed per topic rather than as one floor for the whole Courier,
+        /// because retention already is: one distant fleet subject owing a
+        /// twenty-minute-old sample would otherwise hold every other topic's history
+        /// back with it.</para>
+        /// </summary>
+        private readonly Dictionary<string, Dictionary<string, SortedDictionary<double, int>>> _owedScenes =
+            new Dictionary<string, Dictionary<string, SortedDictionary<double, int>>>();
+
+        private void NoteOwedScene(string node, string topic, double sceneUt)
+        {
+            if (!_owedScenes.TryGetValue(node, out var byTopic))
+            {
+                byTopic = new Dictionary<string, SortedDictionary<double, int>>();
+                _owedScenes[node] = byTopic;
+            }
+            if (!byTopic.TryGetValue(topic, out var scenes))
+            {
+                scenes = new SortedDictionary<double, int>();
+                byTopic[topic] = scenes;
+            }
+            scenes[sceneUt] = scenes.TryGetValue(sceneUt, out var held) ? held + 1 : 1;
+        }
+
+        private void ClearOwedScene(string node, string topic, double sceneUt)
+        {
+            if (!_owedScenes.TryGetValue(node, out var byTopic)
+                || !byTopic.TryGetValue(topic, out var scenes)
+                || !scenes.TryGetValue(sceneUt, out var held))
+            {
+                return;
+            }
+            if (held <= 1)
+            {
+                scenes.Remove(sceneUt);
+                if (scenes.Count == 0)
+                {
+                    byTopic.Remove(topic);
+                    if (byTopic.Count == 0)
+                    {
+                        _owedScenes.Remove(node);
+                    }
+                }
+            }
+            else
+            {
+                scenes[sceneUt] = held - 1;
+            }
+        }
+
+        /// <summary>
+        /// The oldest scene still owed on each of <paramref name="node"/>'s topics,
+        /// or null when nothing is owed on that node at all.
+        /// </summary>
+        private Dictionary<string, double>? OwedFloorsFor(string node)
+        {
+            if (!_owedScenes.TryGetValue(node, out var byTopic) || byTopic.Count == 0)
+            {
+                return null;
+            }
+
+            var floors = new Dictionary<string, double>();
+            foreach (var entry in byTopic)
+            {
+                foreach (var scene in entry.Value.Keys)
+                {
+                    floors[entry.Key] = scene;
+                    break;
+                }
+            }
+            return floors;
+        }
+
+        /// <summary>
         /// Bound every archive to what its vantages can still read. Safe to call at
         /// any time: it only ever drops samples that no current vantage can reach,
         /// and a read that would have wanted one answers null rather than falling
@@ -925,9 +1054,9 @@ namespace Sitrep.Core
         /// </summary>
         private void PruneArchives()
         {
-            foreach (var archive in _archives.Values)
+            foreach (var entry in _archives)
             {
-                archive.PruneToVantageCursors();
+                entry.Value.PruneToVantageCursors(OwedFloorsFor(entry.Key));
             }
         }
 
