@@ -183,17 +183,18 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
   });
 
   /**
-   * The whole point of the wording, and the one thing an operator does not
-   * already know about this spend.
+   * The fact that has to survive, stated as readings rather than as advice.
    *
    * <para>RP-1 charges nothing at the press: `ConstructionProject.AddProgress`
    * draws the funds down as the work advances and throttles itself to whatever
    * the career can meet, so a short career gets a slower upgrade and never a
    * refused one. A verdict here would tell the operator a falsehood about their
    * own save, and "spend" on the confirm would tell them their balance is about
-   * to move.</para>
+   * to move. What carries it now is "over the build" beside each price and
+   * "Commit" on the confirm: the section states what it costs and when, and
+   * never counsels the operator about their own career.</para>
    */
-  it("never draws an affordability verdict, and says the bill is progressive", async () => {
+  it("never draws an affordability verdict, and prices the spend over the build", async () => {
     const stream = mount();
 
     emit(stream, {
@@ -207,7 +208,11 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
     expect(text).not.toContain("cannot afford");
     expect(text).not.toContain("Cannot afford");
     expect(text).not.toContain("Insufficient");
-    expect(text).toContain("slows the work rather than stopping it");
+    expect(text).toContain("over the build");
+    // The advice this used to give in its own sentence. Instrumentation reports
+    // readings; it does not counsel.
+    expect(text).not.toContain("slows the work");
+    expect(text).not.toContain("short career");
     expect(
       screen.getByRole("button", { name: /queue launch pad tier 3/i }),
     ).toBeEnabled();

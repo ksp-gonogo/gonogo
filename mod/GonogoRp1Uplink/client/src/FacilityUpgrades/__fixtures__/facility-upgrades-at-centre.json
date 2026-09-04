@@ -6,14 +6,13 @@
       "w": 12,
       "h": 16
     },
-    "caption": "A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all",
+    "caption": "A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. That is carried by \"over the build\" and by \"Commit\" on the confirm rather than by a sentence about it. The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all",
     "paints": [
       "FACILITY UPGRADES",
       "Launch Pad",
       "now at tier 2 of 3",
       "over the build",
       "Queue upgrade",
-      "slows the work rather than stopping it",
       "Blocked"
     ]
   },

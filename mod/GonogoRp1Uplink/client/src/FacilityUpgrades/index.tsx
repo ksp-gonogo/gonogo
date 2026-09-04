@@ -180,19 +180,14 @@ export function FacilityUpgrades() {
     <Section gap="sm">
       <SectionTitle>FACILITY UPGRADES</SectionTitle>
 
-      {/* The balance and the billing rule together, above the rows. The rule is
-          the half an operator does not know: every other spend surface in this
-          career takes the money at the press, and this one does not. */}
-      <Cluster gap="md" justify="start" wrap>
-        <Readout>
-          <ReadoutCaption>Funds</ReadoutCaption>
-          <Unit value={career?.economy?.funds} />
-        </Readout>
-        <Text size="xs" tone="muted">
-          RP-1 bills a construction as it builds, so a short career slows the
-          work rather than stopping it.
-        </Text>
-      </Cluster>
+      {/* The balance, above the rows. What the money does here is carried by
+          the figures themselves: each price reads "over the build" and the
+          confirm reads "Commit", so the progressive bill is in the readouts an
+          operator is already looking at rather than in a sentence about it. */}
+      <Readout>
+        <ReadoutCaption>Funds</ReadoutCaption>
+        <Unit value={career?.economy?.funds} />
+      </Readout>
 
       {rows.length === 0 ? (
         /* A real answer and worth stating: a career whose buildings are all at
