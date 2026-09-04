@@ -278,8 +278,9 @@ namespace GonogoRp1Uplink
         /// reason a press was refused are the same sentence.
         /// </summary>
         private const string NotLoadedDetail =
-            "KSP only builds the space centre's facilities while the space centre is on screen, "
-            + "so their tiers and prices cannot be read from anywhere else";
+            "KSP puts the space centre's buildings in the scene only at the space centre, "
+            + "so their tiers and prices cannot be read from anywhere else. "
+            + "Anything already under construction keeps building wherever you are";
 
         private readonly Type? _scm;
         private readonly Type? _project;

@@ -179,7 +179,7 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
   });
 
   /**
-   * Outside the space centre KSP has not built the facilities, so every tier and
+   * Outside the space centre KSP has not instantiated the facilities, so every tier and
    * every price arrives absent and the command's own gate refuses. Said out
    * loud, because a career with nothing left to upgrade renders the same
    * silence and only one of the two is a reason to go and stand somewhere else.
@@ -191,8 +191,18 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
     await screen.findByText("FACILITY UPGRADES");
 
     const text = visibleText(stream.container);
-    expect(text).toContain("only while the space centre is on screen");
+    expect(text).toContain("in the scene only at the space centre");
     expect(text).not.toContain("No facility has a tier left to queue");
+    /* And it says what is NOT happening, which is the half the wording here
+       used to get wrong. It read "KSP builds the facilities only while the
+       space centre is on screen", which an operator reads as a build that
+       pauses when they walk away. RP-1 advances a construction on UNIVERSAL
+       TIME out of MaintenanceHandler.FixedUpdate, whose [KSPScenario] names
+       EDITOR, FLIGHT, SPACECENTER and TRACKSTATION, and neither
+       ConstructionProject.IncrementProgress nor Formula.GetConstructionBuildRate
+       tests the scene at all. What the space centre is needed for is the
+       UpgradeableFacility objects the tiers are read off, nothing more. */
+    expect(text).toContain("keeps building wherever you are");
   });
 
   /**
@@ -222,7 +232,7 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
 
     const text = visibleText(stream.container);
     expect(text).toContain("No facility has a tier left to queue");
-    expect(text).not.toContain("only while the space centre is on screen");
+    expect(text).not.toContain("in the scene only at the space centre");
   });
 
   /**

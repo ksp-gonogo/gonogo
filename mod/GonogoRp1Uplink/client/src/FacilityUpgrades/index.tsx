@@ -100,11 +100,15 @@ export function FacilityUpgrades() {
     return step === null || queued.has(name) ? [] : [{ name, step }];
   });
 
-  /* Outside the space centre KSP has not built the facilities, so every tier on
-     this channel is absent and the command's own gate refuses. That is a state
-     worth naming: an empty section here and a career with nothing left to
-     upgrade look identical, and only one of them is a reason to go and stand in
-     the space centre.
+  /* Outside the space centre KSP has not INSTANTIATED the facilities, so every
+     tier on this channel is absent and the command's own gate refuses. That is
+     about reading them and not about building them: an upgrade already under
+     way progresses on universal time wherever the operator is standing, RP-1's
+     own MaintenanceHandler.FixedUpdate driving it in the editor, in flight and
+     in the tracking station as well as here. It is a state worth naming, since
+     an empty section here and a career with nothing left to upgrade look
+     identical and only one of them is a reason to go and stand in the space
+     centre.
 
      Asked of whether any facility ANSWERED its tiers, never of whether any has
      a step left. A career whose buildings are all at their ceiling has no step
@@ -123,8 +127,9 @@ export function FacilityUpgrades() {
       <Section gap="sm">
         <SectionTitle>FACILITY UPGRADES</SectionTitle>
         <Text size="sm" tone="muted">
-          KSP builds the space centre's facilities only while the space centre
-          is on screen, so their tiers and prices cannot be read from here.
+          KSP puts the space centre's buildings in the scene only at the space
+          centre, so their tiers and prices cannot be read from here. Anything
+          already under construction keeps building wherever you are.
         </Text>
       </Section>
     );
