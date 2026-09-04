@@ -936,21 +936,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
-       * -- RATCHET INVENTORY (2026-09-04): `UplinkActiveVesselScopeTests` is the
-       * shrink-only debt list for Uplinks reading `FlightGlobals.ActiveVessel`
-       * directly, so it necessarily names every Uplink that ever did. Three
-       * kinds of mention, none of them code coupling: doc-comment prose
-       * recording what each read was getting wrong, one debt-inventory line,
-       * and two assertions pinning the walk against files it must find.
-       *
-       * That last kind is why this cannot be written without the names. A scan
-       * whose pattern stops matching reports a clean repo, which reads as
-       * success; the floor assertions are what make it fail as BLIND instead.
-       * Dropping them to satisfy this boundary check would trade a real gate
-       * for a quiet one. There is no assembly reference and no `using`.
-       */
-      "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
-      /*
        * -- CITED EVIDENCE (2026-09-03): the command-centre reachability rule
        * asks two questions, the node's stock antenna budget and whether any
        * part carries an `ICommAntenna`, and the second only earns its place
@@ -1338,21 +1323,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     domainDebt: [],
     permanent: [
       /*
-       * -- RATCHET INVENTORY (2026-09-04): `UplinkActiveVesselScopeTests` is the
-       * shrink-only debt list for Uplinks reading `FlightGlobals.ActiveVessel`
-       * directly, so it necessarily names every Uplink that ever did. Three
-       * kinds of mention, none of them code coupling: doc-comment prose
-       * recording what each read was getting wrong, one debt-inventory line,
-       * and two assertions pinning the walk against files it must find.
-       *
-       * That last kind is why this cannot be written without the names. A scan
-       * whose pattern stops matching reports a clean repo, which reads as
-       * success; the floor assertions are what make it fail as BLIND instead.
-       * Dropping them to satisfy this boundary check would trade a real gate
-       * for a quiet one. There is no assembly reference and no `using`.
-       */
-      "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
-      /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
        * describes what an ELECTED backend puts in it. Here, a centre-of-mass
@@ -1431,6 +1401,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * WirePayloadCoverageTests.cs entry a few lines below.
        */
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+
+      /*
+       * -- ACTIVE-VESSEL scan inventory (2026-09-04): core reports the craft an
+       * EVA kerbal stepped out of, and this scan holds every Uplink to resolving
+       * that through the activeVessel capability rather than off FlightGlobals.
+       * Its shrink-only debt has one entry and a debt list has to name its
+       * subject. Everything else in the file is discovery-driven: the walk is
+       * checked against the Uplinks UplinkProjects finds rather than against
+       * filenames, precisely so this stays the only mention. The entry goes when
+       * those three writes are routed, which needs a live flight rather than a
+       * code change, and the reasoning for the hold lives in that Uplink's own
+       * doc comment rather than here.
+       */
+      "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
 
       /*
        * -- Widget-name mentions in doc comments, zero code coupling --
@@ -2421,48 +2405,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
  * package or reads a mod topic in code. Shrink-only, like the debt list.</p>
  */
 export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
-  // The EVA scope ratchet's debt list. What survives the strip is the mod name
-  // as DATA: one inventory key per file that read `FlightGlobals.ActiveVessel`
-  // directly, and two `path.EndsWith(...)` floors asserting the walk actually
-  // reached those files. The floors are the point: a scan whose pattern stops
-  // matching reports a clean repo, so without them the ratchet would go quiet
-  // instead of red. No import, no topic read, no assembly reference.
-  mechjeb: [
-    "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
-    "packages/core/src/uplink-isolation.allowlist.ts",
-  ],
-  realantennas: [
-    "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
-    // The reachability ratchet's debt list: wire ids as DATA, one line per
-    // declared Topic/command with no consumer. Survives the strip because the
-    // ids are the inventory, not prose about it. Shrinks to zero as consumers
-    // are written.
-    "packages/core/src/declaration-reachability.allowlist.ts",
-    "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
-    "mod/GonogoDevTools/GonogoDevAntenna.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
-    "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-    "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
-    "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
-    "mod/sitrep-kernel/src/registry.test.ts",
-    "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/components/src/FleetReliability/install-profiles.test.tsx",
-    "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/styleguide-magnitude-budget.test.ts",
-    "packages/core/src/truenow-allowlist.test.ts",
-    "packages/core/src/uplink-isolation.allowlist.ts",
-  ],
   agx: ["mod/Sitrep.Core.Tests/UplinkIsolationTests.cs"],
   avionics: [
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
@@ -2565,6 +2507,19 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/uplink-health.test.ts",
     "packages/sitrep-client/src/use-route-commands.test.tsx",
   ],
+  mechjeb: [
+    // The active-vessel scan's one debt key, which is a PATH in a dictionary
+    // literal, so it survives the strip by construction. Nothing in the file
+    // imports or reads anything of this Uplink's; the walk it judges is
+    // discovery-driven.
+    "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
+    "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
+    "packages/core/src/uplink-isolation.allowlist.ts",
+  ],
   principia: [
     /*
      * `declaration-reachability.allowlist.ts` was here, and it is gone because
@@ -2580,6 +2535,32 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
+  ],
+  realantennas: [
+    // The reachability ratchet's debt list: wire ids as DATA, one line per
+    // declared Topic/command with no consumer. Survives the strip because the
+    // ids are the inventory, not prose about it. Shrinks to zero as consumers
+    // are written.
+    "packages/core/src/declaration-reachability.allowlist.ts",
+    "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
+    "mod/GonogoDevTools/GonogoDevAntenna.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
+    "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+    "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
+    "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
+    "mod/sitrep-kernel/src/registry.test.ts",
+    "packages/app/src/__tests__/topic-cs-sync.test.ts",
+    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
+    "packages/components/src/FleetReliability/install-profiles.test.tsx",
+    "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/styleguide-magnitude-budget.test.ts",
+    "packages/core/src/truenow-allowlist.test.ts",
+    "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   scansat: [
     "mod/GonogoDevTools/GonogoDevStampScan.cs",

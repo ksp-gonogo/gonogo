@@ -71,6 +71,49 @@ namespace Gonogo.MechJebUplink
     /// class doc comment): this file compiles against the linked MechJeb2
     /// assembly but the <c>Users.Add</c> handshake and the settings write have
     /// not been exercised in a real flight scene.</para>
+    ///
+    /// <para><b>These three still ask KSP which vessel, and every other Uplink
+    /// has stopped.</b> Core reports the craft an EVA kerbal stepped out of, and
+    /// twenty reads across nine Uplinks moved onto that answer through the
+    /// <c>activeVessel</c> capability. These did not. The hold is deliberate
+    /// rather than an oversight, so core's cross-Uplink scan carries them as its
+    /// only debt entry and points here.</para>
+    ///
+    /// <para><b>The code says routing would work.</b> Read against the shipped
+    /// 2.15.3.0: <see cref="MechJebCore"/> is a <c>PartModule</c> on the SHIP, so
+    /// an EVA never changes the vessel it is attached to and its
+    /// <c>OnFlyByWire</c> hook stays there; its <c>FixedUpdate</c> returns early
+    /// only when it is not that vessel's master core, and the
+    /// <c>isActiveVessel</c> test beside it clears a settings-reload flag rather
+    /// than the drive; <c>OnFlyByWire</c> to <c>Drive</c> is gated on the master
+    /// check and nothing else; and none of
+    /// <see cref="MechJebModuleNodeExecutor"/>,
+    /// <see cref="MechJebModuleAscentBaseAutopilot"/>,
+    /// <see cref="MechJebModuleLandingAutopilot"/> or the attitude controller
+    /// beneath them names <c>isActiveVessel</c> or
+    /// <c>FlightGlobals.ActiveVessel</c> at all.</para>
+    ///
+    /// <para><b>What holds them is that the risk is one-way.</b> An EVA kerbal
+    /// carries no MechJeb core, so <c>GetMasterMechJeb()</c> is null and all
+    /// three refuse with <see cref="CommandErrorCode.NoVessel"/>. Nothing is
+    /// lying today, so routing cannot remove a lie, only introduce one. And what
+    /// the assembly cannot settle is whether the autopilot's OUTPUT lands:
+    /// <c>Drive</c> writes a <c>FlightCtrlState</c>, and
+    /// <c>Vessel.FeedInputFeed</c> hands that to the parts only when
+    /// <c>loaded &amp;&amp; !packed &amp;&amp; !physicsHoldLock &amp;&amp;
+    /// isControllable</c>. The commonest EVA is the last crew member stepping
+    /// out, which is exactly how a craft becomes uncontrollable. Separately
+    /// <c>StageManager.ActivateStage</c> is active-vessel-only, so a routed
+    /// ascent would hold attitude and never stage.</para>
+    ///
+    /// <para><b>What a rig has to show</b>, one flight and three observations.
+    /// (1) Kerbal outside with a probe core still aboard: route the node executor
+    /// at the reported craft and watch whether it turns and lights its engines.
+    /// (2) Repeat with no probe core and confirm it does nothing, which makes
+    /// core's uncontrollable-craft refusal part of any routed command here.
+    /// (3) Engage the ascent autopilot and watch whether it STAGES; if it does
+    /// not, that command needs a documented partial rather than a plain success.
+    /// (1) and (3) answered make routing honest.</para>
     /// </summary>
     internal sealed class MechJebController
     {

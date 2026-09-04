@@ -15,9 +15,9 @@ namespace Sitrep.Core.Tests
     /// with no antenna, no resources and no life-support rules is not what
     /// mission control is watching. Core's own reads moved onto that seam and an
     /// Uplink's could not, because the seam lives in an assembly an Uplink may
-    /// not reference. So every Uplink went on answering with the kerbal, and
-    /// RealAntennas reported the kerbal's comms while the comms schedule beside
-    /// it described the ship.</para>
+    /// not reference. So every Uplink went on answering with the kerbal: one of
+    /// them reported an EVA suit's comms link while the comms schedule beside it,
+    /// which core scopes, drew the ship's route hop by hop.</para>
     ///
     /// <para>The route is <c>Sitrep.Contract</c>'s <c>activeVessel</c>
     /// capability, resolved per call through <c>host.Kernel</c> (see
@@ -56,38 +56,15 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, int> Debt = new(StringComparer.Ordinal)
         {
             /*
-             * Three WRITES, held back on purpose, and the reason is not that
-             * routing looks wrong. Read against the shipped MechJeb2 2.15.3.0,
-             * it looks RIGHT: MechJebCore is a PartModule on the ship, so an EVA
-             * never changes the vessel it is attached to; its FixedUpdate returns
-             * early only when it is not that vessel's master core (the
-             * isActiveVessel test beside it clears a settings-reload flag, not
-             * the drive); OnFlyByWire -> Drive is gated on the master check and
-             * nothing else; and none of MechJebModuleNodeExecutor,
-             * MechJebModuleAscentBaseAutopilot, MechJebModuleLandingAutopilot or
-             * MechJebModuleAttitudeController names isActiveVessel or
-             * FlightGlobals.ActiveVessel at all.
+             * Three WRITES, held back on purpose and pending a live flight. The
+             * reasoning is long and belongs to that Uplink rather than to core,
+             * so it lives in the file's own doc comment: what the decompile
+             * established, why the risk of routing is one-way, and the three
+             * things a rig has to show before it can be routed.
              *
-             * What holds them is the RISK BEING ONE-WAY. Today an EVA kerbal
-             * carries no MechJeb core, so GetMasterMechJeb() is null and all
-             * three refuse with NoVessel. Nothing is lying, so routing cannot
-             * remove a lie, it can only introduce one. And the thing the
-             * assembly cannot settle is whether the autopilot's OUTPUT lands:
-             * Drive writes a FlightCtrlState, and Vessel.FeedInputFeed hands
-             * that to the parts only when
-             * loaded && !packed && !physicsHoldLock && isControllable. The
-             * commonest EVA is the last crew member stepping out, which is
-             * exactly how a craft becomes uncontrollable. Separately,
-             * StageManager.ActivateStage is active-vessel-only, so a routed
-             * ascent would hold attitude and never stage.
-             *
-             * The rig settles it in one flight: route the node executor at the
-             * reported craft with a kerbal outside and a probe core still
-             * aboard, and watch whether the craft turns and lights its engines;
-             * repeat with no probe core, and confirm it does nothing, which
-             * makes ControlInputAuthority's gate part of any routed command;
-             * then engage the ascent autopilot and watch whether it stages. Only
-             * (1) and (3) answered make routing honest.
+             * The short of it: those commands refuse today rather than lying,
+             * and what nothing static can settle is whether the autopilot's
+             * output would reach a craft KSP is not flying.
              */
             ["GonogoMechJebUplink/MechJebController.cs"] = 3,
         };
@@ -133,18 +110,31 @@ namespace Sitrep.Core.Tests
 
         /// <summary>
         /// A walk that finds nothing reports a clean repo. So the walk is pinned
-        /// against the file the debt names and against a floor on how much source
-        /// it read, either of which fails before the counting tests can pass on
-        /// an empty set.
+        /// two ways: it must have read source from EVERY Uplink the discovery
+        /// found, and a floor on how much of it, either of which fails before
+        /// the counting tests above can pass on an empty set.
+        ///
+        /// <para>Checked against the discovery rather than against a couple of
+        /// filenames, so this names no mod. <c>UplinkIsolationTests</c> already
+        /// pins the discovery itself against <c>Gonogo.sln</c>, which is the
+        /// half a floor cannot do.</para>
         /// </summary>
         [Fact]
-        public void TheWalkFoundTheUplinkSourceItIsJudging()
+        public void TheWalkFoundSourceForEveryUplinkItIsJudging()
         {
-            var files = UplinkSourceFiles().ToList();
+            var read = UplinkSourceFilesByKey()
+                .Select(entry => entry.Key.Split('/')[0])
+                .ToHashSet(StringComparer.Ordinal);
 
-            Assert.True(files.Count > 100, "only " + files.Count + " Uplink .cs files found");
-            Assert.Contains(files, path => path.EndsWith("MechJebController.cs", StringComparison.Ordinal));
-            Assert.Contains(files, path => path.EndsWith("RealAntennasUplink.cs", StringComparison.Ordinal));
+            var silent = UplinkProjects.Discover().Keys
+                .Where(uplink => !read.Contains(uplink))
+                .OrderBy(name => name, StringComparer.Ordinal)
+                .ToList();
+
+            Assert.True(silent.Count == 0, "no .cs read for: " + string.Join(", ", silent));
+            Assert.True(
+                UplinkSourceFilesByKey().Count() > 100,
+                "only " + UplinkSourceFilesByKey().Count() + " Uplink .cs files found");
         }
 
         /// <summary>
