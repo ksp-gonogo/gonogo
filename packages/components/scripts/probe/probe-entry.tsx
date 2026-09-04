@@ -49,6 +49,7 @@ import {
   unregisterDataSource,
   useTelemetry,
   WidgetMetaContext,
+  WidgetStreamStatusBridge,
 } from "@ksp-gonogo/core";
 import { BufferedDataSource, MemoryStore } from "@ksp-gonogo/data";
 import { clearProcessorRuntime } from "@ksp-gonogo/sitrep-client";
@@ -67,6 +68,7 @@ import {
   DomainAvailabilityProvider,
   type DomainAvailabilityStore,
   defaultDarkTheme,
+  PanelStatusStoreProvider,
   useDomainAvailabilityStore,
 } from "@ksp-gonogo/ui-kit";
 import { createElement, Fragment, useEffect, useState } from "react";
@@ -554,24 +556,36 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
       WidgetMetaContext.Provider,
       { value: meta },
       createElement(
-        ContributionsProvider,
+        // The per-item status store plus the blackout bridge, the same pair the
+        // dashboard mounts (GridItemContent). Without them a widget whose
+        // fixture stamps `Staleness.Recorded` renders with no pill, so the
+        // harness would picture the state and omit the one mark that names it.
+        // No effect on any other fixture: the bridge contributes nothing while
+        // every declared channel is live, which is every other fixture in the
+        // tree.
+        PanelStatusStoreProvider,
         null,
+        createElement(WidgetStreamStatusBridge, { def }),
         createElement(
-          AlarmsLauncherProvider,
-          {
-            launcher: () => {},
-            creator: () => {},
-            manager: { find: () => null, remove: () => {} },
-          },
+          ContributionsProvider,
+          null,
           createElement(
-            DashboardItemContext.Provider,
-            { value: { instanceId } },
-            createElement(WidgetComponent, {
-              config: payload.config ?? def.defaultConfig ?? {},
-              id: instanceId,
-              w: payload.w,
-              h: payload.h,
-            }),
+            AlarmsLauncherProvider,
+            {
+              launcher: () => {},
+              creator: () => {},
+              manager: { find: () => null, remove: () => {} },
+            },
+            createElement(
+              DashboardItemContext.Provider,
+              { value: { instanceId } },
+              createElement(WidgetComponent, {
+                config: payload.config ?? def.defaultConfig ?? {},
+                id: instanceId,
+                w: payload.w,
+                h: payload.h,
+              }),
+            ),
           ),
         ),
       ),

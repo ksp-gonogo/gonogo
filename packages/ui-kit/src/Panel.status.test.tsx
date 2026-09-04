@@ -5,12 +5,18 @@ import { Panel } from "./Panel";
 /**
  * The panel's stream badge is the WIDGET'S to supply, through `panelStatus`.
  *
- * A host-derived version of this used to exist: the dashboard took every topic
- * a widget declared, reduced them to one worst-of value and handed it down. It
- * was withdrawn because one pill cannot say WHICH of five topics is degraded,
- * and because "absent" means opposite things per topic (an empty
- * `vessel.maneuvers` is a normal state, an absent `vessel.orbit` is not), so
- * the aggregate read as a fault where there was none.
+ * A host-derived version of this used to exist over EVERY grade: the dashboard
+ * took every topic a widget declared, reduced them to one worst-of value and
+ * handed it down. It was withdrawn because one pill cannot say WHICH of five
+ * topics is degraded, and because "absent" means opposite things per topic (an
+ * empty `vessel.maneuvers` is a normal state, an absent `vessel.orbit` is not),
+ * so the aggregate read as a fault where there was none. That withdrawal
+ * stands.
+ *
+ * The two BLACKOUT grades came back on their own terms, through the status
+ * store rather than this prop (`useWidgetStreamStatus`): they are stamped per
+ * SUBJECT, so the objection above has nothing to bite on. Everything else is
+ * still the widget's to supply.
  *
  * What these pin is the rendering contract that survived it, which a widget
  * naming one topic of its own still relies on.

@@ -11,8 +11,8 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
-import { StreamStatusBadge, type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
-import { Inline, Panel, Section, Text } from "@ksp-gonogo/ui-kit";
+import { type TabDescriptor, Tabs } from "@ksp-gonogo/ui";
+import { Panel, Section, Text } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 import { AboardTab } from "./AboardTab";
@@ -209,15 +209,19 @@ function ScienceDataComponent({
   return (
     <Panel
       panelTitle="SCIENCE DATA"
+      /* Through the prop rather than a hand-rolled badge in the aside. The host
+         now contributes the two blackout grades on its own, so a badge drawn
+         here as well put the same word in the header twice; a `panelStatus`
+         merges with it into one summary instead. What this still adds is the
+         grades the host does not derive (`held-stale`, `absent`) for the ONE
+         topic this widget's readings actually hang on. */
+      panelStatus={breakdownStreamStatus}
       panelAside={
-        <Inline gap="sm">
-          {isCareerLike && careerScience !== null && (
-            <Text size="sm" title="Science banked">
-              {fixed(careerScience, 0)} SCI
-            </Text>
-          )}
-          <StreamStatusBadge status={breakdownStreamStatus} />
-        </Inline>
+        isCareerLike && careerScience !== null ? (
+          <Text size="sm" title="Science banked">
+            {fixed(careerScience, 0)} SCI
+          </Text>
+        ) : undefined
       }
       /* ONE section: the body is a tab strip, and a tab strip beside anything
          reads as two widgets rather than as one panel. */

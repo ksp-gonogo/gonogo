@@ -7,6 +7,7 @@ import {
   getComponent,
   useWidgetBadges,
   WidgetMetaContext,
+  WidgetStreamStatusBridge,
 } from "@ksp-gonogo/core";
 import type { InputMappings } from "@ksp-gonogo/serial";
 import { TelemetrySubscriberLabel } from "@ksp-gonogo/sitrep-sdk/spine";
@@ -128,6 +129,11 @@ export const GridItemContent = memo(function GridItemContent({
           store, so a firing alarm lights the widget's summary with its own name.
           Renders nothing; no-op where no alarm host is mounted. */}
         <AlarmStatusBridge declaredTopics={widgetDrawnFields(def)} />
+        {/* Folds the widget's own blackout grade into the same store, so a
+          panel says RECORDED or BLACKOUT with the widget wiring nothing. Only
+          the two SUBJECT-wide grades: see `useWidgetStreamStatus` for why the
+          rest stay opt-in through `panelStatus`. */}
+        <WidgetStreamStatusBridge def={def} />
         {/* Folds the trajectory's own propagation horizon into the same store,
           so a widget drawing orbital numbers says whether they can answer for
           the instant on screen. Mounts a subscribing child only for widgets that

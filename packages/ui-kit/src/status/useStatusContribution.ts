@@ -7,7 +7,7 @@ import {
 /**
  * Publish a contribution into the nearest `PanelStatusStore` for the life of
  * the calling component. Called by `Badge` (when `report` is set) and by the
- * stream / alarm bridges.
+ * blackout / alarm / trajectory bridges.
  *
  * - registers on mount / on the first non-null `c`, `update`s on change,
  *   deregisters on unmount, all against the store from context

@@ -19,9 +19,9 @@ export interface WidgetTopicDeclaration {
  * The two are unioned rather than one preferred over the other. A widget
  * part-way through the migration declares its wire topics as `channels` and
  * keeps the remainder in `dataRequirements`, so preferring either list alone
- * would silently drop half of what that widget mounts on, and the stream-status
- * badge derived from this would go quiet: the silent-miss failure the
- * declaration mechanism exists to prevent.
+ * would silently drop half of what that widget mounts on, and the blackout
+ * badge the dashboard host derives from this would go quiet: the silent-miss
+ * failure the declaration mechanism exists to prevent.
  *
  * Optional channels are included because the widget renders them when present,
  * so a stale one is worth badging. An absent one resolves to nothing and is

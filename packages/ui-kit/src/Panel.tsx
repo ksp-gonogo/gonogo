@@ -1590,13 +1590,20 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    */
   panelBadges?: readonly BadgeEntry[];
   /**
-   * Override the host-derived stream status.
+   * This panel's own stream status, for the grades the host does not derive.
    *
-   * Leave it unset: the panel reads the status the host derived from this
-   * widget's own `dataRequirements`, which is both less wiring and more
-   * accurate than a hand-picked representative key. Set it only for a panel
-   * whose staleness genuinely is not its widget's (a sub-panel reading one
-   * specific topic), or to `"none"` to suppress the badge entirely.
+   * Leave it unset for a blackout: the dashboard host contributes `recorded`
+   * and `last-before-blackout` across the widget's declared channels on its
+   * own, because both are stamped per SUBJECT rather than per topic, so a
+   * widget-wide reading of them loses nothing. Every other
+   * grade stays opt-in and always will: `absent` means opposite things per
+   * topic and `held-stale` belongs to one producer, so a worst-of summary of
+   * those reads as a fault where there is none.
+   *
+   * So set this for a panel whose staleness genuinely is not its widget's (a
+   * sub-panel reading one specific topic), or to `"none"` to suppress the badge
+   * entirely. A value here does not replace the host's contribution; the two
+   * merge worst-first through the status store.
    */
   panelStatus?: StreamStatusValue | "none";
   /**
@@ -1887,14 +1894,21 @@ function PanelRoot({
   // active alarm and any `report` badge merge into ONE summary rather than
   // each splicing a single value into the aside.
   //
-  // The stream half is the WIDGET'S own to supply, via `panelStatus`. The host
-  // deliberately does NOT derive one across every topic a widget declares: one
-  // worst-of pill for five topics cannot say which of them is degraded, and
-  // "absent" means opposite things per topic (an empty `vessel.maneuvers` is a
-  // normal state, an absent `vessel.orbit` is not). Stale and reckoned Values
-  // ride the wire per Value, so currency is already carried at a finer
-  // granularity than a panel-wide summary could express, and a lossy summary
-  // that can read as a fault when there is none is worse than none.
+  // Most of the stream half is the WIDGET'S own to supply, via `panelStatus`.
+  // The host deliberately does NOT derive one across every topic a widget
+  // declares: one worst-of pill for five topics cannot say which of them is
+  // degraded, and "absent" means opposite things per topic (an empty
+  // `vessel.maneuvers` is a normal state, an absent `vessel.orbit` is not).
+  // Stale and reckoned Values ride the wire per Value, so currency is already
+  // carried at a finer granularity than a panel-wide summary could express, and
+  // a lossy summary that can read as a fault when there is none is worse than
+  // none.
+  //
+  // The two BLACKOUT grades are the exception, and arrive through the store
+  // rather than through this prop (`WidgetStreamStatusBridge`). They are
+  // stamped per subject, not per topic, so "one of this widget's channels is
+  // recorded" and "this craft was out of contact" are one fact, and none of the
+  // reasoning above applies to them.
   const status = panelStatus ?? null;
   // Live/none/absent-of-status contribute nothing (the floor), so a healthy
   // stream keeps today's "no green pill" rule. A degraded status folds in as
