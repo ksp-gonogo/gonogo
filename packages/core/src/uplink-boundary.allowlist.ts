@@ -2756,7 +2756,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/uplink-bundle-targets.ts",
     "packages/components/scripts/probe/probe-entry.tsx",
     "packages/components/scripts/render-systemview-traffic-video.ts",
-    "packages/components/scripts/widgets.ts",
     /*
      * `declaration-reachability.allowlist.ts` was here, and it is gone because
      * the three `kos.exec`/`kos.dispatchNow`/`kos.reEnable` commands it listed
