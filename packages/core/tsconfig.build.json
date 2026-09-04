@@ -9,6 +9,8 @@
     "src/**/*.test.ts",
     "src/**/*.test.tsx",
     "src/**/*.test-d.ts",
-    "src/ratchetBaseRef.ts"
+    "src/ratchetBaseRef.ts",
+    "src/unknown-cast.scan.ts",
+    "src/unknown-cast.debt.ts"
   ]
 }
