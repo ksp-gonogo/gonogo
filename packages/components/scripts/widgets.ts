@@ -1445,10 +1445,10 @@ const WIDGETS: WidgetRenderConfig[] = [
     label: "graph/blackout",
     fixturesPath: "Graph/__render_blackout__",
     outPath: "renders/blackout/chart-hole",
-    // Every mode carries the same config, the auto-appended breakpoint sweep
-    // included: a Graph left on its default config has no series at all, so
-    // an un-overridden `mobile-`/`portrait-`/`landscape-` mode renders
-    // "Configure series to begin graphing" and reports it as a scene.
+    /* Every mode carries the same config, the auto-appended breakpoint sweep
+       included: a Graph left on its default config has no series at all, so an
+       un-overridden `mobile-`/`portrait-`/`landscape-` mode renders "Configure
+       series to begin graphing" and reports it as a scene. */
     modes: (() => {
       const descent = {
         windowSec: 1200,

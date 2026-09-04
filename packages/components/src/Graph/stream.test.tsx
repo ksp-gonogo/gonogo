@@ -159,9 +159,7 @@ describe("Graph: genuinely runs off the stream", () => {
         expect(x).toBeGreaterThanOrEqual(0);
         expect(x).toBeLessThanOrEqual(400);
       }
-      // And they are spread across the axis rather than piled on one edge,
-      // which is what a domain wider than the data by a factor of a thousand
-      // would produce.
+      // And spread across the axis rather than piled on one edge, which is what a domain wider than the data by a factor of a thousand would produce.
       expect(xs[2] - xs[0]).toBeGreaterThan(50);
     });
   });
