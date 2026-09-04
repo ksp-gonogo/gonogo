@@ -142,6 +142,28 @@ const SANCTIONED_KINDS: ReadonlyArray<{ pattern: RegExp; why: string }> = [
     pattern: /^scripts\/uplink-/,
     why: "the Uplink tooling, whose whole subject is the set of Uplinks",
   },
+  {
+    // Added 2026-09-04, when the boundary walk widened past `src` and reached
+    // these for the first time. Same kind as the line above, one directory
+    // over: the app's Uplink bundle registry (id, repo, clientDir per Uplink)
+    // and the size gate over the bundles it produces. Enumerating every Uplink
+    // is the subject of both, and neither has code to move.
+    pattern: /^packages\/app\/(uplink-bundle|scripts\/minsize-)/,
+    why: "the app's Uplink bundling and the size gate over its output, whose subject is the set of Uplink bundles",
+  },
+  {
+    // Also 2026-09-04. What these name is a fixture DIRECTORY or a topic id in
+    // a replayed scene, never an import: an import from here is real coupling
+    // and lands in `domainDebt`, because the comment-strip check forces that
+    // classification before anything can reach this bucket. `uplink-isolation`
+    // already treats `/scripts/` as test-only code for exactly this reason.
+    pattern: /^packages\/[^/]+\/scripts\//,
+    why: "the visual-gate probe and render harness: fixture paths and replayed topic ids, which is how a scene says what it is a picture of",
+  },
+  {
+    pattern: /^packages\/[^/]+\/vitest\.config\.ts$/,
+    why: "a test-runner alias map, naming which Uplink client resolves from source so a suite sees its registrations",
+  },
   { pattern: /^docs\//, why: "prose" },
   { pattern: /\.md$/, why: "prose" },
   { pattern: /^CLAUDE\.md$/, why: "prose" },

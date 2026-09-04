@@ -229,4 +229,52 @@ describe("design-system: every token reference resolves", () => {
     expect(declared.has("--space-8")).toBe(true);
     expect(declared.has("--color-token-that-does-not-exist")).toBe(false);
   });
+
+  /**
+   * The other half of the same guard, and the half that was missing. The check
+   * above proves the DECLARATION scan works; nothing proved the REFERENCE scan
+   * does, and `dangling` is empty both when every reference resolves and when
+   * `BARE_REFERENCE_RE` has stopped matching. Those read identically, and the
+   * failure this file exists to catch is silent in the browser too: an
+   * unresolvable `var()` invalidates the declaration and the property falls back
+   * to something that still looks deliberate. Two blind steps in a row is how
+   * five of these shipped.
+   *
+   * The fallback case is graded here as well, because it is the one deliberate
+   * exemption in the matcher and the easiest thing to break while widening it.
+   */
+  it("recognises a bare var() reference, and skips the ones it should", () => {
+    const found = (source: string) => matches(source, BARE_REFERENCE_RE);
+    expect(found("color: var(--color-surface-panel);"), "bare").toEqual([
+      "--color-surface-panel",
+    ]);
+    expect(found("color: var( --space-8 );"), "padded").toEqual(["--space-8"]);
+    expect(
+      found("gap: var(--space-8, 8px);"),
+      "a fallback is what makes a reference safe, and must NOT be flagged",
+    ).toEqual([]);
+    expect(
+      found("border: 1px solid var(--color-border) var(--color-accent);"),
+      "two on one line",
+    ).toEqual(["--color-border", "--color-accent"]);
+    expect(
+      found("width: var(--x);"),
+      "a one-character name, which the {2,} in the pattern excludes on purpose so a minified `var(--a)` in vendor CSS is not read as a token",
+    ).toEqual([]);
+  });
+
+  /**
+   * And that the two halves meet: a dangling reference in a real scanned file
+   * is what the gate reports, not just what the matcher can see in a string.
+   * `collectDangling` walks the tree and filters against the declared set, and
+   * a mistake in either half produces the same empty list.
+   */
+  it("would report a dangling reference from a scanned file", () => {
+    const declared = new Set(["--declared-one"]);
+    const dangling = collectDangling(declared);
+    expect(
+      dangling.length,
+      "with a declared set of one token, every other reference in the tree is dangling; an empty result here means the reference walk found nothing at all",
+    ).toBeGreaterThan(50);
+  });
 });

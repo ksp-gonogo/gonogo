@@ -19,6 +19,7 @@ import {
   ALLOWLIST,
   type ModAllowlist,
   type ModToken,
+  PACKAGE_SCAN_SCOPE,
   SURVIVES_COMMENT_STRIP,
 } from "./uplink-boundary.allowlist";
 
@@ -35,7 +36,7 @@ import {
  * permanent vs shrink-only domainDebt.
  *
  * How the ratchet works:
- *   1. Scan `packages/*\/src` and `mod/*` (.ts/.tsx/.cs) for each mod
+ *   1. Scan every `packages/*` and `mod/*` (.ts/.tsx/.cs) for each mod
  *      token, excluding that mod's own owning directory.
  *   2. Every file found is checked against
  *      `[...ALLOWLIST[token].permanent, ...ALLOWLIST[token].domainDebt]`.
@@ -482,13 +483,33 @@ function* walk(dir: string): Generator<string> {
   }
 }
 
+/**
+ * The whole of each package, and the whole of `mod/`.
+ *
+ * It was `packages/<pkg>/src` for the packages half, and `src` is not where
+ * the coupling was. `packages/components/scripts/` holds the visual-gate
+ * probe harnesses, which side-effect-import Uplink client packages so the
+ * probe can photograph the augments those Uplinks contribute into built-in
+ * widgets; `packages/app/scripts/minsize-gate.ts` names nine Uplink bundles.
+ * 54 files, 8 of them naming an Uplink, and not one line for any of them
+ * could ever have appeared in the allowlist, because no walk reached them.
+ *
+ * Demonstrated 2026-09-04: `export const PLANTED = "scansat";` appended to
+ * `packages/components/scripts/widgets.ts` left this suite at 39/39. The same
+ * line in `packages/components/src/index.ts` failed it and named the file.
+ *
+ * The mod half was always the whole directory, so this makes the two halves
+ * agree rather than inventing a rule. `SKIP_DIRS` already drops build output
+ * and `SCAN_EXTENSIONS` is `.ts`/`.tsx`/`.cs`, so widening costs a manifest
+ * scan nothing and picks up a package's tests and root-level config too.
+ */
 function scanRoots(root: string): string[] {
   const roots: string[] = [];
   const packagesDir = join(root, "packages");
   if (existsSync(packagesDir)) {
     for (const pkg of readdirSync(packagesDir)) {
-      const src = join(packagesDir, pkg, "src");
-      if (existsSync(src) && statSync(src).isDirectory()) roots.push(src);
+      const dir = join(packagesDir, pkg);
+      if (statSync(dir).isDirectory()) roots.push(dir);
     }
   }
   const modDir = join(root, "mod");
@@ -611,7 +632,7 @@ describe("uplink boundary: mod references stay inside their owning Uplink", () =
 
       expect(newViolations).toEqual([]);
       expect(staleEntries).toEqual([]);
-      // Walks packages/*/src + mod/ once per token; under concurrent
+      // Walks packages/ + mod/ once per token; under concurrent
       // core-suite load a single walk can exceed vitest's 5s default.
     }, 30_000);
 
@@ -815,12 +836,16 @@ describe("the code-only scan can still see", () => {
 async function loadAllowlistAt(
   base: RatchetBase,
   relPath: string,
-): Promise<Partial<Record<ModToken, ModAllowlist | string[]>> | null> {
+): Promise<{
+  allowlist: Partial<Record<ModToken, ModAllowlist | string[]>>;
+  /** `undefined` on a base that predates the constant, i.e. the `"src"` era. */
+  scope: string | undefined;
+} | null> {
   const source = sourceAtRatchetBase(base, relPath);
   if (source === null) return null; // file didn't exist at the base, bootstrap case
   const { code } = transformSync(source, { loader: "ts", format: "esm" });
   const mod = await import(`data:text/javascript,${encodeURIComponent(code)}`);
-  return mod.ALLOWLIST;
+  return { allowlist: mod.ALLOWLIST, scope: mod.PACKAGE_SCAN_SCOPE };
 }
 
 /**
@@ -836,9 +861,37 @@ async function loadAllowlistAt(
  * in: conservative, avoids false-failing the commit that introduces the
  * split itself.
  */
+/**
+ * Could the scan at the BASE ref have reached this path at all?
+ *
+ * An entry for a file no walk visited is not a violation someone introduced, it
+ * is one the gate could never have reported. Grading it as growth is what makes
+ * a shrink-only list impossible to widen the scan of, so the two checks below
+ * exclude it exactly once: on the commit that changes `PACKAGE_SCAN_SCOPE`.
+ * After that the base carries the new value, `baseScope` and the current scope
+ * agree, and every path is graded again.
+ *
+ * `mod/` was always walked whole and is unaffected. Only the `packages/` half
+ * ever narrowed to `src`.
+ */
+function reachableAtBaseScope(
+  baseScope: string | undefined,
+  path: string,
+): boolean {
+  // Absent at the base means an allowlist that predates the constant, which is
+  // the `"src"` era. Anything else is a scope this file does not know about, and
+  // the safe reading of an unknown scope is that it reached everything, so
+  // nothing is excused.
+  const scope = baseScope ?? "src";
+  if (scope !== "src") return true;
+  if (!path.startsWith("packages/")) return true;
+  return /^packages\/[^/]+\/src\//.test(path);
+}
+
 function findDomainDebtGrowth(
   previous: Partial<Record<ModToken, ModAllowlist | string[]>>,
   current: Partial<Record<ModToken, ModAllowlist>>,
+  baseScope?: string,
 ): Array<{ token: ModToken; added: string[] }> {
   const growth: Array<{ token: ModToken; added: string[] }> = [];
   for (const [token, entry] of Object.entries(current) as Array<
@@ -848,11 +901,90 @@ function findDomainDebtGrowth(
     const oldDomainDebt = new Set(
       Array.isArray(prevEntry) ? prevEntry : (prevEntry?.domainDebt ?? []),
     );
-    const added = entry.domainDebt.filter((f) => !oldDomainDebt.has(f));
+    const added = entry.domainDebt
+      .filter((f) => !oldDomainDebt.has(f))
+      .filter((f) => reachableAtBaseScope(baseScope, f));
     if (added.length > 0) growth.push({ token, added });
   }
   return growth;
 }
+
+describe("the reseed seam is exactly as wide as the scan change", () => {
+  /**
+   * A seam that excuses growth is the most dangerous thing in this file, so it
+   * is graded from both sides: what it must let through, and what it must not.
+   * The `packages/<pkg>/src` case is the one that matters, because that is
+   * every path the old walk COULD see, and excusing one of those would turn
+   * the shrink gates off for the whole of `src` in a single edit.
+   */
+  it("excuses only a path the base's walk could not reach", () => {
+    // Reachable at the `"src"` base: graded as growth, exactly as before.
+    expect(reachableAtBaseScope("src", "packages/app/src/main.tsx")).toBe(true);
+    expect(reachableAtBaseScope("src", "mod/GonogoKosUplink/client/x.ts")).toBe(
+      true,
+    );
+    // Unreachable at the `"src"` base: the reseed this widening admits.
+    expect(
+      reachableAtBaseScope("src", "packages/components/scripts/widgets.ts"),
+    ).toBe(false);
+    expect(reachableAtBaseScope("src", "packages/app/uplink-bundle.ts")).toBe(
+      false,
+    );
+    // `src` has to be a whole path SEGMENT, or a directory called `srcery`
+    // would ride in on a substring match.
+    expect(reachableAtBaseScope("src", "packages/app/srcery/x.ts")).toBe(false);
+  });
+
+  it("is inert once the base carries the current scope", () => {
+    // The commit after this one: base and current agree, so nothing is excused
+    // and the gates are strict again. This is what stops the seam becoming a
+    // standing permission for everything outside `src`.
+    expect(
+      reachableAtBaseScope(
+        PACKAGE_SCAN_SCOPE,
+        "packages/components/scripts/widgets.ts",
+      ),
+    ).toBe(true);
+  });
+
+  it("excuses nothing for a scope it does not recognise", () => {
+    // An unknown value is a scan whose reach this file cannot reason about,
+    // and the safe reading of "I do not know what it saw" is that it saw
+    // everything. Excusing on an unrecognised marker would make a typo in the
+    // constant a silent amnesty.
+    expect(
+      reachableAtBaseScope(
+        "whatever",
+        "packages/components/scripts/widgets.ts",
+      ),
+    ).toBe(true);
+  });
+
+  /**
+   * The marker records what the walk does, and nothing made the two agree. A
+   * `PACKAGE_SCAN_SCOPE` left at `"src"` after the walk widened would excuse
+   * every path outside `src` forever; one changed without the walk would
+   * excuse them once for nothing. So the walk is asked directly.
+   */
+  it("matches what scanRoots actually walks", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const packageRoots = scanRoots(root)
+      .map((r) => relative(root, r))
+      .filter((r) => r.startsWith("packages/"));
+    expect(packageRoots.length).toBeGreaterThan(5);
+    if (PACKAGE_SCAN_SCOPE === "package") {
+      expect(
+        packageRoots.filter((r) => r.endsWith("/src")),
+        "PACKAGE_SCAN_SCOPE says the whole package is walked, but scanRoots still narrows to src. While the two disagree the reseed seam excuses paths for a reason that is not true.",
+      ).toEqual([]);
+    } else {
+      expect(
+        packageRoots.filter((r) => !r.endsWith("/src")),
+        "PACKAGE_SCAN_SCOPE says only src is walked, but scanRoots reaches further.",
+      ).toEqual([]);
+    }
+  });
+});
 
 describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures)", () => {
   // Pure-logic unit tests: no git, no esbuild, no filesystem. Proves the
@@ -952,7 +1084,11 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
       return;
     }
 
-    const growth = findDomainDebtGrowth(previous, ALLOWLIST);
+    const growth = findDomainDebtGrowth(
+      previous.allowlist,
+      ALLOWLIST,
+      previous.scope,
+    );
     if (growth.length > 0) {
       throw new Error(
         growth
@@ -1029,9 +1165,13 @@ function guardedSurface(
 function findGuardedSurfaceGrowth(
   previous: Partial<Record<ModToken, ModAllowlist | string[]>>,
   current: Partial<Record<ModToken, ModAllowlist>>,
+  baseScope?: string,
 ): string[] {
   const before = guardedSurface(previous);
-  return [...guardedSurface(current)].filter((f) => !before.has(f)).sort();
+  return [...guardedSurface(current)]
+    .filter((f) => !before.has(f))
+    .filter((f) => reachableAtBaseScope(baseScope, f))
+    .sort();
 }
 
 describe("findGuardedSurfaceGrowth: app-side surface logic (synthetic fixtures)", () => {
@@ -1107,7 +1247,11 @@ describe("uplink boundary: the app-side surface only ever shrinks", () => {
     const previous = await loadAllowlistAt(base, relPath);
     if (!previous) return; // graded by ratchet-base-ref.test.ts, in one place
 
-    const added = findGuardedSurfaceGrowth(previous, ALLOWLIST);
+    const added = findGuardedSurfaceGrowth(
+      previous.allowlist,
+      ALLOWLIST,
+      previous.scope,
+    );
     if (added.length > 0) {
       throw new Error(
         `These app-side files started naming a mod vs ${base.ref}:\n` +

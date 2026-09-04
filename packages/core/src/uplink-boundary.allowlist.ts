@@ -64,6 +64,29 @@ export type ModToken =
   | "ferram"
   | "realsolarsystem";
 
+/**
+ * How much of a `packages/<pkg>` directory the scan walks. Recorded HERE, in
+ * the data module, so the shrink-only checks can read it at their base ref.
+ *
+ * `"src"` is what it was until 2026-09-04, and `src` turned out not to be where
+ * the coupling lived: `packages/components/scripts/` holds the visual-gate probe
+ * harnesses, which side-effect-import three Uplink clients so the probe can
+ * photograph the augments those Uplinks contribute into built-in widgets, and
+ * `packages/app/scripts/minsize-gate.ts` names nine Uplink bundles. Twenty files
+ * were invisible, and no line for any of them could ever have appeared below,
+ * because no walk reached them.
+ *
+ * Widening a scan is the one change every shrink-only gate reads as a flood of
+ * new debt. Grading it that way makes the rule impossible to widen without
+ * disabling its own ratchet, which is why `uplink-isolation.test.ts` learned the
+ * same trick for `FORBIDDEN_PACKAGES` first: an entry for a path the BASE could
+ * not reach is a reseed, not growth, and it is graded strictly from the next
+ * commit onwards, when the base carries this same value. The seam is inert the
+ * moment this lands, and cannot excuse a second widening without this constant
+ * changing again in a reviewed edit.
+ */
+export const PACKAGE_SCAN_SCOPE = "package";
+
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
    *  files, sanctioned self-registration imports, and text-only doc/
@@ -131,6 +154,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
     ],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // prose: an alias comment listing which Uplink clients resolve from source.
+      "packages/app/vitest.config.ts",
+      // prose: a timeout note quoting this very gate's failure message.
+      "packages/core/vitest.config.ts",
+      // prose: kerbcast is the facecam this probe STANDS IN FOR with a fake augment, named to say what the fake is imitating. No import, and deliberately so.
+      "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
       /*
        * -- PERMANENT-BUCKET gate (2026-08-30): the test that freezes the
        * code-carrying subset of this file's own `permanent` lists. A gate over
@@ -298,6 +332,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // -- HARD violations (audit §2) --
     ],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // prose: the same alias comment.
+      "packages/app/vitest.config.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -538,6 +579,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   // === kos: owning dir mod/GonogoKosUplink/
   kos: {
     domainDebt: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // The render harness imports this Uplink to photograph its widgets. Unlike
+      // the two below, this one IS removable and is being removed: KosTerminal is
+      // a whole widget whose pictures core has no business owning, so it and its
+      // fixtures move to the Uplink and this import goes with them. Expect this
+      // line to go STALE and be deleted, which is the ratchet working.
+      "packages/components/scripts/probe/probe-entry.tsx",
       /*
        * -- kos migration (2026-07-18), Task 4: CpuRegistryService/
        * CpuRegistryProvider moved from @ksp-gonogo/data into the kos Uplink.
@@ -560,6 +612,27 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/app/src/__tests__/dashboard-tabbed-config.test.tsx",
     ],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // data: the bundle names the size gate measures. Naming every Uplink bundle IS its subject.
+      "packages/app/scripts/minsize-gate.ts",
+      // data: the app's Uplink bundle registry, one id/repo/clientDir per Uplink. Same class as the gate above.
+      "packages/app/uplink-bundle-targets.ts",
+      // prose: a note about kOS's xterm.css being the stylesheet case that forced style folding.
+      "packages/app/uplink-bundle.ts",
+      // prose: a header sentence naming the clients this probe used to import.
+      "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
+      // prose: it quotes the probe's import line to explain what the host bridge is for.
+      "packages/components/scripts/probe/probe-install-host.ts",
+      // data: `command: "kos.run"`, a wire command id in a recorded scene.
+      "packages/components/scripts/render-systemview-traffic-video.ts",
+      // prose: two notes using the kOS terminal as the worked example of a blank render and of a stylesheet that must reach the page.
+      "packages/components/scripts/widgetRenderHarness.ts",
+      // data: the render-set config for the kOS terminal, keyed by its fixtures path.
+      "packages/components/scripts/widgets.ts",
       // The declaration-reachability ratchet's debt list: an inventory of
       // declared Topics/commands with no client consumer, so it names the wire
       // ids of every Uplink that has one. Inventory, not coupling: nothing here
@@ -941,8 +1014,32 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * domainDebt entries.
    */
   realantennas: {
-    domainDebt: [],
+    domainDebt: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // The render harness imports this Uplink to photograph its AUGMENTS. That
+      // is a different shape from a widget move and does not clear the same way:
+      // RealAntennas registers no widget of its own, it fills the
+      // `comm-signal.sections` slot of a built-in widget, and the only way to
+      // photograph the augmented widget is to have both halves loaded. Moving
+      // `src/CommSignal/__fixtures__/realantennas-link.json` to the Uplink moves
+      // the picture, it does not remove the need for the client. A record, not an
+      // excuse: deleting the import would buy a clean gate with a lost picture.
+      "packages/components/scripts/probe/probe-entry.tsx",
+    ],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // data: a bundle name in the size gate's list.
+      "packages/app/scripts/minsize-gate.ts",
+      // data: an entry in the bundle registry.
+      "packages/app/uplink-bundle-targets.ts",
       /*
        * -- CITED EVIDENCE (2026-09-03): the command-centre reachability rule
        * asks two questions, the node's stock antenna budget and whether any
@@ -1330,6 +1427,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   mechjeb: {
     domainDebt: [],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // data: a bundle name in the size gate's list.
+      "packages/app/scripts/minsize-gate.ts",
+      // data: an entry in the bundle registry.
+      "packages/app/uplink-bundle-targets.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -1506,6 +1612,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   avionics: {
     domainDebt: [],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // prose: the debt list's header names which Uplink owns the two worst bundles.
+      "packages/app/scripts/minsize-debt.ts",
+      // data: a bundle name in the size gate's list.
+      "packages/app/scripts/minsize-gate.ts",
+      // data: an entry in the bundle registry.
+      "packages/app/uplink-bundle-targets.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -1701,8 +1818,52 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    *       one the other five carried.
    */
   kerbalism: {
-    domainDebt: [],
+    domainDebt: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // Same shape: a recorded scene that must contain this Uplink's
+      // contributions, so the client has to be loaded when the scene is captured.
+      "packages/components/scripts/probe/capture-entry-kerbalism.tsx",
+      // Same shape: the crew-survival augment supplies the per-row content this
+      // probe exists to photograph, so there is nothing to photograph without it.
+      "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
+      // Same shape, and the clearest case of it: the badge under test IS a
+      // contribution this Uplink drops into a built-in widget. No client, no badge.
+      "packages/components/scripts/crew-badge-probe/crew-badge-probe-entry.tsx",
+      // The render harness imports this Uplink to photograph its augments (the
+      // Greenhouse section, the crew meters). Moving Ship Systems' and
+      // CrewSurvival's fixtures to the Uplink moves those pictures and leaves this
+      // import standing, because an augment renders only inside the widget it
+      // augments and that widget is core's.
+      "packages/components/scripts/probe/probe-entry.tsx",
+    ],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // data: a bundle name in the size gate's list.
+      "packages/app/scripts/minsize-gate.ts",
+      // data: an entry in the bundle registry.
+      "packages/app/uplink-bundle-targets.ts",
+      // data: a vitest alias resolving this client from source, so the app's suite sees its topic registrations.
+      "packages/app/vitest.config.ts",
+      // prose: a note on which registrations the probe's host bridge has to stand up.
+      "packages/components/scripts/probe/probe-install-host.ts",
+      // data: an inline FAKE Uplink client id, `defineUplinkClient({ id: "kerbalism" })`, standing in for a real one to exercise the contribution registry. Imports nothing.
+      "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
+      // data: fixture paths under `__render_kerbalism_survival__`, and the render-set name that must match widgets.ts.
+      "packages/components/scripts/render-crew-status-avatar.ts",
+      // data: the same fixture paths, plus prose naming the badge the Uplink contributes.
+      "packages/components/scripts/render-crew-status-panel-badge.ts",
+      // data: `kerbalism.available` and the topic values the recorded scene emits.
+      "packages/components/scripts/render-systemview-cme-video.ts",
+      // data: the render-set config for the crew-survival augment, keyed by its fixtures path.
+      "packages/components/scripts/widgets.ts",
       // The declaration-reachability ratchet's debt list: an inventory of
       // declared Topics/commands with no client consumer, so it names the wire
       // ids of every Uplink that has one. Inventory, not coupling: nothing here
@@ -2215,8 +2376,31 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * PrincipiaProviderId without ever being flagged.
    */
   principia: {
-    domainDebt: [],
+    domainDebt: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // The settings probe imports this Uplink to photograph the settings panel it
+      // contributes, same shape as the components probes. Worth noting the
+      // spelling: a DYNAMIC `import("@ksp-gonogo/gonogo-principia-uplink")`, which
+      // is one of the three forms `uplink-isolation`'s package regex could not see
+      // until the same day this was found.
+      "packages/app/scripts/probe/settings-probe-entry.tsx",
+    ],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // data: a bundle name in the size gate's list.
+      "packages/app/scripts/minsize-gate.ts",
+      // data: the `principia.settings` topic id and the fixture payload a recorded settings render emits.
+      "packages/app/scripts/render-settings.ts",
+      // data: an entry in the bundle registry.
+      "packages/app/uplink-bundle-targets.ts",
       // The declaration-reachability ratchet's debt list: an inventory of
       // declared Topics/commands with no client consumer, so it names the wire
       // ids of every Uplink that has one. Inventory, not coupling: nothing here
@@ -2338,6 +2522,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   ferram: {
     domainDebt: [],
     permanent: [
+      // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
+      // `packages/<pkg>/src` and nothing else, so twenty files under a
+      // package's `scripts` directory and at its root were never visited, and
+      // no line for them could ever have appeared here. These are what the
+      // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
+      // data: a bundle name in the size gate's list.
+      "packages/app/scripts/minsize-gate.ts",
+      // data: an entry in the bundle registry.
+      "packages/app/uplink-bundle-targets.ts",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -2413,8 +2606,68 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
  * package or reads a mod topic in code. Shrink-only, like the debt list.</p>
  */
 export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
+  // The EVA scope ratchet's debt list. What survives the strip is the mod name
+  // as DATA: one inventory key per file that read `FlightGlobals.ActiveVessel`
+  // directly, and two `path.EndsWith(...)` floors asserting the walk actually
+  // reached those files. The floors are the point: a scan whose pattern stops
+  // matching reports a clean repo, so without them the ratchet would go quiet
+  // instead of red. No import, no topic read, no assembly reference.
+  mechjeb: [
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
+    // a vitest alias) or, where noted in the entry's own line above, a real
+    // import that is recorded in domainDebt and shrinks from there.
+    "packages/app/scripts/minsize-gate.ts",
+    "packages/app/uplink-bundle-targets.ts",
+    "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
+    "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
+    "packages/core/src/uplink-isolation.allowlist.ts",
+  ],
+  realantennas: [
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
+    // a vitest alias) or, where noted in the entry's own line above, a real
+    // import that is recorded in domainDebt and shrinks from there.
+    "packages/app/scripts/minsize-gate.ts",
+    "packages/app/uplink-bundle-targets.ts",
+    "packages/components/scripts/probe/probe-entry.tsx",
+    // The reachability ratchet's debt list: wire ids as DATA, one line per
+    // declared Topic/command with no consumer. Survives the strip because the
+    // ids are the inventory, not prose about it. Shrinks to zero as consumers
+    // are written.
+    "packages/core/src/declaration-reachability.allowlist.ts",
+    "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
+    "mod/GonogoDevTools/GonogoDevAntenna.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
+    "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
+    "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
+    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
+    "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
+    "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
+    "mod/sitrep-kernel/src/registry.test.ts",
+    "packages/app/src/__tests__/topic-cs-sync.test.ts",
+    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
+    "packages/components/src/FleetReliability/install-profiles.test.tsx",
+    "packages/core/src/comment-stacks.allowlist.ts",
+    "packages/core/src/styleguide-magnitude-budget.test.ts",
+    "packages/core/src/truenow-allowlist.test.ts",
+    "packages/core/src/uplink-isolation.allowlist.ts",
+  ],
   agx: ["mod/Sitrep.Core.Tests/UplinkIsolationTests.cs"],
   avionics: [
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
+    // a vitest alias) or, where noted in the entry's own line above, a real
+    // import that is recorded in domainDebt and shrinks from there.
+    "packages/app/scripts/minsize-gate.ts",
+    "packages/app/uplink-bundle-targets.ts",
     "mod/GonogoDevTools/GonogoDevKerbalismDump.cs",
     "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
@@ -2425,6 +2678,12 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   ferram: [
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
+    // a vitest alias) or, where noted in the entry's own line above, a real
+    // import that is recorded in domainDebt and shrinks from there.
+    "packages/app/scripts/minsize-gate.ts",
+    "packages/app/uplink-bundle-targets.ts",
     "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
@@ -2433,6 +2692,22 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/truenow-allowlist.test.ts",
   ],
   kerbalism: [
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
+    // a vitest alias) or, where noted in the entry's own line above, a real
+    // import that is recorded in domainDebt and shrinks from there.
+    "packages/app/scripts/minsize-gate.ts",
+    "packages/app/uplink-bundle-targets.ts",
+    "packages/app/vitest.config.ts",
+    "packages/components/scripts/crew-avatar-probe/crew-avatar-probe-entry.tsx",
+    "packages/components/scripts/crew-badge-probe/crew-badge-probe-entry.tsx",
+    "packages/components/scripts/probe/capture-entry-kerbalism.tsx",
+    "packages/components/scripts/probe/probe-entry.tsx",
+    "packages/components/scripts/provenance-card-probe/provenance-card-probe-entry.tsx",
+    "packages/components/scripts/render-crew-status-avatar.ts",
+    "packages/components/scripts/render-crew-status-panel-badge.ts",
+    "packages/components/scripts/render-systemview-cme-video.ts",
+    "packages/components/scripts/widgets.ts",
     // The reachability ratchet's debt list: wire ids as DATA, one line per
     // declared Topic/command with no consumer. Survives the strip because the
     // ids are the inventory, not prose about it. Shrinks to zero as consumers
@@ -2473,6 +2748,15 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/map-topic.test.ts",
   ],
   kos: [
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
+    // a vitest alias) or, where noted in the entry's own line above, a real
+    // import that is recorded in domainDebt and shrinks from there.
+    "packages/app/scripts/minsize-gate.ts",
+    "packages/app/uplink-bundle-targets.ts",
+    "packages/components/scripts/probe/probe-entry.tsx",
+    "packages/components/scripts/render-systemview-traffic-video.ts",
+    "packages/components/scripts/widgets.ts",
     /*
      * `declaration-reachability.allowlist.ts` was here, and it is gone because
      * the three `kos.exec`/`kos.dispatchNow`/`kos.reEnable` commands it listed
@@ -2521,20 +2805,15 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/sitrep-client/src/uplink-health.test.ts",
     "packages/sitrep-client/src/use-route-commands.test.tsx",
   ],
-  mechjeb: [
-    // The active-vessel scan's one debt key, which is a PATH in a dictionary
-    // literal, so it survives the strip by construction. Nothing in the file
-    // imports or reads anything of this Uplink's; the walk it judges is
-    // discovery-driven.
-    "mod/Sitrep.Core.Tests/UplinkActiveVesselScopeTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/styleguide-fire-and-forget-commands.test.ts",
-    "packages/core/src/uplink-isolation.allowlist.ts",
-  ],
   principia: [
+    // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
+    // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
+    // a vitest alias) or, where noted in the entry's own line above, a real
+    // import that is recorded in domainDebt and shrinks from there.
+    "packages/app/scripts/minsize-gate.ts",
+    "packages/app/scripts/probe/settings-probe-entry.tsx",
+    "packages/app/scripts/render-settings.ts",
+    "packages/app/uplink-bundle-targets.ts",
     /*
      * `declaration-reachability.allowlist.ts` was here, and it is gone because
      * the five `principia.plan.*` write commands it listed as unreached now have
@@ -2549,32 +2828,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
-  ],
-  realantennas: [
-    // The reachability ratchet's debt list: wire ids as DATA, one line per
-    // declared Topic/command with no consumer. Survives the strip because the
-    // ids are the inventory, not prose about it. Shrinks to zero as consumers
-    // are written.
-    "packages/core/src/declaration-reachability.allowlist.ts",
-    "mod/Gonogo.KSP.Tests/DevTools/AntennaProbeVerdictsTests.cs",
-    "mod/GonogoDevTools/GonogoDevAntenna.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/CommandLineTests.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/RealCaptureTests.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/SyntheticCapture.cs",
-    "mod/Sitrep.CaptureAnalysis.Tests/VerdictTests.cs",
-    "mod/Sitrep.Core.Tests/KernelFactoryFailureTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-    "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
-    "mod/Sitrep.Host.Tests/CommsElectionTests.cs",
-    "mod/Sitrep.Host.Tests/CommsOcclusionTests.cs",
-    "mod/sitrep-kernel/src/registry.test.ts",
-    "packages/app/src/__tests__/topic-cs-sync.test.ts",
-    "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
-    "packages/components/src/FleetReliability/install-profiles.test.tsx",
-    "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/styleguide-magnitude-budget.test.ts",
-    "packages/core/src/truenow-allowlist.test.ts",
-    "packages/core/src/uplink-isolation.allowlist.ts",
   ],
   scansat: [
     "mod/GonogoDevTools/GonogoDevStampScan.cs",
