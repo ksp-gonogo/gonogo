@@ -1,4 +1,4 @@
-import { Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -412,4 +412,114 @@ describe("Graph: genuinely runs off the stream", () => {
       expect(container.textContent ?? "").toMatch(/680/);
     });
   });
+
+  /**
+   * The one provenance a trace has cause to mark, now that something produces
+   * it: the stretch after the last observation, where the craft said nothing
+   * and `vessel.state`'s own Kepler model answered instead.
+   *
+   * Nothing here hands the chart a `reckoned` prop. The orbit samples stop at
+   * UT 200 and the view time is pinned at 600, which is the whole of the
+   * scenario: the tail exists because `TimelineStore.sampleReckonedTail`
+   * replays the channel across the silence and `useDataSeries` joins it on.
+   *
+   * `Quality.OnRails` is what makes the elements a CAUSE rather than an
+   * osculating snapshot, and it is the only quality
+   * `deriveVesselStateReckoning` offers a basis for; the Loaded branch reads
+   * measurements off `vessel.flight` and honestly has nothing to say about the
+   * gap.
+   */
+  it("carries a modelled trace across the silence, muted and dashed", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [
+        "vessel.orbit",
+        "vessel.flight",
+        "vessel.identity",
+        "system.bodies",
+        "vessel.control",
+        "vessel.target",
+        "vessel.comms",
+        "vessel.propulsion",
+      ],
+      pinnedUt: 600,
+      suspendFrames: true,
+    });
+
+    const config = {
+      series: [
+        {
+          id: "speed",
+          key: "vessel.state.orbitalSpeed",
+          axis: "auto" as const,
+        },
+      ],
+      windowSec: 900,
+    };
+
+    const { container } = render(
+      <fixture.Provider>
+        <GraphComponent
+          config={config}
+          id="graph-stream-reckoned"
+          w={10}
+          h={8}
+        />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      for (const validAt of [0, 100, 200]) {
+        fixture.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
+          validAt,
+          quality: Quality.OnRails,
+        });
+      }
+    });
+
+    await waitFor(() => {
+      const paths = Array.from(
+        container.querySelectorAll<SVGPathElement>(
+          'svg[aria-label^="Telemetry line chart"] path[d][fill="none"]',
+        ),
+      );
+      const reckoned = paths.filter(
+        (p) => p.getAttribute("data-reckoning-basis") === "kepler-propagation",
+      );
+      const measured = paths.filter(
+        (p) => p.getAttribute("data-reckoning-basis") === null,
+      );
+      // Both halves are drawn, and they are told apart by stroke rather than by
+      // a caption sitting beside a line that looks like every other line.
+      expect(reckoned.length).toBe(1);
+      expect(measured.length).toBe(1);
+      expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
+      expect(measured[0].getAttribute("stroke-dasharray")).toBeNull();
+      expect(measured[0].getAttribute("stroke-opacity")).toBeNull();
+      // And said in words, because a dash is not a channel a screen reader has.
+      const label =
+        container
+          .querySelector("svg[aria-label]")
+          ?.getAttribute("aria-label") ?? "";
+      expect(label).toMatch(/reckoned/i);
+      expect(label).toMatch(/two-body motion/i);
+    });
+  });
 });
+
+/**
+ * A closed conic around Kerbin, eccentric so the orbital speed actually MOVES
+ * across the propagated stretch: a circular orbit would carry forward to a flat
+ * line, which is a true answer that proves nothing about whether the model ran.
+ * `mu` is Kerbin's, so the solve is a real one rather than a scaled toy.
+ */
+const ECCENTRIC_KERBIN_ORBIT = {
+  referenceBodyIndex: 1,
+  sma: 900_000,
+  ecc: 0.4,
+  inc: 0,
+  lan: 0,
+  argPe: 0,
+  meanAnomalyAtEpoch: 0,
+  epoch: 0,
+  mu: 3_531_600_000_000,
+};

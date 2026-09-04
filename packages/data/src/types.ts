@@ -14,6 +14,7 @@ export type {
   FlightRecoveryOutcome,
   Sample,
   SeriesRange,
+  SeriesReckonedSpan,
   SeriesStatusSpan,
   SeriesTimeBasis,
   UnitHint,

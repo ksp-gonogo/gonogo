@@ -1,0 +1,206 @@
+{
+  "_meta": {
+    "scenario": "reckoned-tail",
+    "synthetic": true,
+    "notes": "SYNTHETIC. The SAME samples as 1-model-carries-the-silence, with one field added: VesselOrbit.encounter, an SOI transition at UT 600. These elements describe ONE patch and stop being about the craft once it leaves, so deriveVesselStateReckoning withdraws there and the modelled run stops with it. The horizon is off the wire rather than a constant somebody chose, and the difference between the two renders is the whole of what stating it buys."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "pinnedUt": 900,
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 40,
+          "deliveredAt": 40
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 80,
+          "deliveredAt": 80
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 120,
+          "deliveredAt": 120
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 160,
+          "deliveredAt": 160
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 200,
+          "deliveredAt": 200
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 240,
+          "deliveredAt": 240
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000,
+          "encounter": {
+            "transitionType": 1,
+            "transitionUt": 600,
+            "bodyIndex": 2
+          }
+        },
+        "meta": {
+          "validAt": 280,
+          "deliveredAt": 280
+        }
+      }
+    ]
+  }
+}

@@ -1,26 +1,19 @@
 /** Pure math helpers for LineChart. No React, no side-effects. */
 
-import type { ReckoningBasis, SeriesStatusSpan } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ReckoningBasis,
+  SeriesReckonedSpan,
+  SeriesStatusSpan,
+} from "@ksp-gonogo/sitrep-sdk";
 
 /**
- * A run of samples nobody measured: a model carried the last observation
- * forward across it. `basis` is the model that did the carrying, in the
- * vocabulary `Reckoning` already uses, because an operator calibrates their
- * trust in a modelled figure against what produced it.
- *
- * This is the ONLY provenance a trace marks. A replayed sample is a sample the
- * craft measured and sent late, so it draws as live data draws; a reckoned one
- * is a claim the chart is making on its own behalf, and a chart that draws its
- * own arithmetic in the same stroke as a reading is lying about where the line
- * came from.
+ * Declared beside `SeriesStatusSpan` in the sdk, which is where the producer
+ * now mints it: it moved out of this file the moment a `SeriesRange` could
+ * carry one, so the shape a chart draws and the shape a series hands over are
+ * the same declaration rather than two that agree today. Re-exported here so
+ * every existing import site reads the same.
  */
-export interface SeriesReckonedSpan {
-  /** First sample of the run. */
-  from: number;
-  /** Last sample of the run, inclusive. */
-  to: number;
-  basis: ReckoningBasis;
-}
+export type { SeriesReckonedSpan };
 
 /** Linear scale: maps input domain to output pixel range. */
 export function makeScale(

@@ -1,0 +1,166 @@
+{
+  "_meta": {
+    "scenario": "reckoned-tail",
+    "synthetic": true,
+    "notes": "SYNTHETIC. A craft coasting an eccentric Kerbin orbit (sma 900 km, ecc 0.4) whose vessel.orbit samples stop at UT 280. The frame is drawn for UT 900, so 620 seconds of the window had no observation in it at all. vessel.state is OnRails, so its elements are a CAUSE valid until superseded and deriveVesselStateReckoning offers kepler-propagation: TimelineStore.sampleReckonedTail replays the channel across the silence and useDataSeries hands the chart a reckoned run. Nothing here feeds LineChart a prop; the dashed tail is produced."
+  },
+  "_stream": {
+    "carriedChannels": [
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "pinnedUt": 900,
+    "emits": [
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 0,
+          "deliveredAt": 0
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 40,
+          "deliveredAt": 40
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 80,
+          "deliveredAt": 80
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 120,
+          "deliveredAt": 120
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 160,
+          "deliveredAt": 160
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 200,
+          "deliveredAt": 200
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 240,
+          "deliveredAt": 240
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 900000,
+          "ecc": 0.4,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000
+        },
+        "meta": {
+          "validAt": 280,
+          "deliveredAt": 280
+        }
+      }
+    ]
+  }
+}

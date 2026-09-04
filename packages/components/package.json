@@ -32,7 +32,8 @@
     "render-systemview-cme-video": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-systemview-cme-video.ts",
     "visual-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/visual-gate.ts",
     "render-contact-timeline": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-contact-timeline.ts",
-    "render-chart-provenance": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-chart-provenance.ts"
+    "render-chart-provenance": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-chart-provenance.ts",
+    "render-reckoned-tail": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-reckoned-tail.ts"
   },
   "dependencies": {
     "@ksp-gonogo/core": "workspace:*",

@@ -440,13 +440,22 @@ export function GraphView({
     // carry straight over; alignXY reindexes its own (see its doc).
     /*
      * On a time X axis the series indices ARE the plot's, so the status spans
-     * carry over with the break indices; alignXY drops them, because a
-     * parametric plot has no run of consecutive samples to shade (its X can
-     * double back) and a span reindexed onto a re-paired axis would name the
-     * wrong part of the curve.
+     * and the reckoned runs carry over with the break indices; alignXY drops
+     * them, because a parametric plot has no run of consecutive samples to
+     * shade (its X can double back) and a run reindexed onto a re-paired axis
+     * would name the wrong part of the curve. The reckoned run is dropped there
+     * for a sharper reason than the status one: it CHANGES how the curve is
+     * stroked, so landing on the wrong part of it would mark measured samples
+     * as never observed.
      */
     const baseData = xIsTime
-      ? { x: raw.t, y: raw.v as number[], breaks: raw.breaks, spans: raw.spans }
+      ? {
+          x: raw.t,
+          y: raw.v as number[],
+          breaks: raw.breaks,
+          spans: raw.spans,
+          reckoned: raw.reckoned,
+        }
       : alignXY(raw as SeriesRange<number>, xData);
 
     // Band series pair `key` (lower bound) with `keyHigh` (upper bound).
@@ -468,9 +477,11 @@ export function GraphView({
         y2: highData.y,
         breaks: baseData.breaks,
       };
-      /* No `spans`: a band's polygon has no stroke to dash, and shading half an
-         envelope differently would read as a different quantity rather than a
-         different provenance. */
+      /* Neither `spans` nor `reckoned`: a band's polygon has no stroke to dash,
+         and shading half an envelope differently would read as a different
+         quantity rather than a different provenance. A projection with a band
+         states its own decay through the band's width, which is the more
+         honest render of the two and the one it already has. */
     }
 
     return {

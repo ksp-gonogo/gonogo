@@ -1,6 +1,10 @@
-import type { SeriesRange, SeriesStatusSpan } from "@ksp-gonogo/data";
+import type {
+  SeriesRange,
+  SeriesReckonedSpan,
+  SeriesStatusSpan,
+} from "@ksp-gonogo/data";
 import { useDataSeries } from "@ksp-gonogo/data";
-import type { StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
+import type { ReckoningBasis, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 
 interface Props {
@@ -24,6 +28,7 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
       basis: raw.basis,
       breaks: [],
       spans: [],
+      reckoned: [],
     };
     // `breaks` is REINDEXED, not copied: this filter drops non-numeric samples,
     // so an input index naming a hole names a different sample on the way out.
@@ -41,7 +46,18 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
     for (const span of raw.spans ?? []) {
       for (let i = span.from; i <= span.to; i++) statusAt.set(i, span.status);
     }
+    /*
+     * `reckoned` is reindexed the same way, and the numeric filter is exactly
+     * why it has to be: a model can answer for a field a chart cannot draw, and
+     * a run that loses every point it named must disappear rather than land on
+     * a measured one and mark it as never observed.
+     */
+    const basisAt = new Map<number, ReckoningBasis>();
+    for (const run of raw.reckoned ?? []) {
+      for (let i = run.from; i <= run.to; i++) basisAt.set(i, run.basis);
+    }
     let open: SeriesStatusSpan | null = null;
+    let openReckoned: SeriesReckonedSpan | null = null;
     let pendingBreak = false;
     for (let i = 0; i < raw.t.length; i++) {
       if (inBreaks.has(i)) pendingBreak = true;
@@ -60,6 +76,15 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
       } else {
         open = { from: out, to: out, status };
         numeric.spans?.push(open);
+      }
+      const basis = basisAt.get(i);
+      if (basis === undefined) {
+        openReckoned = null;
+      } else if (openReckoned !== null && openReckoned.basis === basis) {
+        openReckoned.to = out;
+      } else {
+        openReckoned = { from: out, to: out, basis };
+        numeric.reckoned?.push(openReckoned);
       }
     }
     onData(dataKey, numeric);

@@ -17,7 +17,11 @@ import type {
 } from "@ksp-gonogo/sitrep-sdk";
 import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
-import type { SeriesRange, SeriesStatusSpan } from "../types";
+import type {
+  SeriesRange,
+  SeriesReckonedSpan,
+  SeriesStatusSpan,
+} from "../types";
 
 /**
  * Shared by both branches, and deliberately carries no `basis`: an empty
@@ -95,6 +99,21 @@ function spansEqual(
         span.from === b[i].from &&
         span.to === b[i].to &&
         span.status === b[i].status,
+    )
+  );
+}
+
+function reckonedEqual(
+  a: readonly SeriesReckonedSpan[],
+  b: readonly SeriesReckonedSpan[],
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (run, i) =>
+        run.from === b[i].from &&
+        run.to === b[i].to &&
+        run.basis === b[i].basis,
     )
   );
 }
@@ -342,9 +361,25 @@ export function useDataSeries(
     const points = store.isDerivedTopic(topic)
       ? store.sampleDerivedRange<unknown>(topic, fromUt, toUt)
       : store.sampleRange<unknown>(topic, fromUt, toUt);
-    if (!points || points.length === 0) return EMPTY;
+    /*
+     * The part of the window nobody measured, off the topic's own forward
+     * model. Both halves are read here, at the boundary that draws them, and
+     * joined below: a reckoned instant is a presentation-time projection, so it
+     * exists nowhere a later read could take it for an observation. See
+     * `TimelineStore.sampleReckonedTail`, which is the only thing that mints
+     * one and which nothing else in the tree calls.
+     */
+    const tail = store.sampleReckonedTail<number>(topic, fromUt, toUt);
+    const observed = points ?? [];
+    /*
+     * A tail with no observed run in front of it is a real window and worth
+     * drawing: the last observation can sit off the left edge while the model
+     * still answers for everything since. Only a window with neither half is
+     * empty.
+     */
+    if (observed.length === 0 && tail.length === 0) return EMPTY;
 
-    const nextT = points.map((p) => p.validAt);
+    const nextT = observed.map((p) => p.validAt);
     // Known holes, carried out of the store instead of discarded at this
     // boundary. `meta.gapSinceUt` is the server saying "there is no data
     // between that UT and this sample's own", and until this line it reached
@@ -352,11 +387,11 @@ export function useDataSeries(
     // tree joined across an outage it had no readings for. Index rather than UT
     // because a chart splits its path by position, not by time.
     const nextBreaks: number[] = [];
-    for (let i = 0; i < points.length; i++) {
+    for (let i = 0; i < observed.length; i++) {
       // The FIRST point cannot open a break in the drawn series: there is no
       // segment before it to break. The hole is real, and it is off the left
       // edge of the window, where a chart already draws nothing.
-      if (i > 0 && points[i].meta.gapSinceUt != null) nextBreaks.push(i);
+      if (i > 0 && observed[i].meta.gapSinceUt != null) nextBreaks.push(i);
     }
     /*
      * Which runs of the window came off the craft's own recorder rather than
@@ -365,11 +400,31 @@ export function useDataSeries(
      * store looking identical, which is the one distinction the blackout model
      * exists to make.
      */
-    const nextSpans = buildSpans(points);
+    const nextSpans = buildSpans(observed);
     // Magnitudes: a series feeds a sparkline and a graph axis, which plot
     // numbers. A declared quantity arrives wrapped from the decode, so
     // without this every stream-backed chart drew nothing.
-    const nextV = points.map((p) => plotValue(p.payload));
+    const nextV = observed.map((p) => plotValue(p.payload));
+    /*
+     * The tail lands AFTER every observation and never among them: it starts at
+     * the newest one and runs to the frame's view time, so appending is what
+     * keeps `t` ascending. Its runs are named by index, the same currency
+     * `breaks` and `spans` use, so a chart splits its path once for all three.
+     */
+    const nextReckoned: SeriesReckonedSpan[] = [];
+    for (const sample of tail) {
+      const i = nextT.length;
+      nextT.push(sample.atUt);
+      nextV.push(sample.value);
+      const open = nextReckoned[nextReckoned.length - 1];
+      if (
+        open !== undefined &&
+        open.basis === sample.basis &&
+        open.to === i - 1
+      )
+        open.to = i;
+      else nextReckoned.push({ from: i, to: i, basis: sample.basis });
+    }
 
     // `sampleRange` builds a fresh filtered array (and, for a raw
     // field-subtopic, fresh wrapper `TimelinePoint`s: see its own doc
@@ -390,6 +445,12 @@ export function useDataSeries(
     // would leave a chart drawing across a hole it had already been told about.
     // `spans` joins it for the same reason again: a reacquisition can restamp a
     // run without moving a single t or v.
+    //
+    // `reckoned` is in it for a reason the other three do not have: the tail is
+    // recomputed against a view time that moves every frame, so it is the one
+    // annotation that can change while nothing has arrived at all. Its runs
+    // move with `t`, so the length check catches most of it, but a model
+    // withdrawing at its horizon shortens the runs without shortening `t`.
     const prev = lastSnapshotRef.current;
     const prevBreaks = prev.breaks ?? [];
     const unchanged =
@@ -398,7 +459,8 @@ export function useDataSeries(
       prev.v.every((v, i) => Object.is(v, nextV[i])) &&
       prevBreaks.length === nextBreaks.length &&
       prevBreaks.every((b, i) => b === nextBreaks[i]) &&
-      spansEqual(prev.spans ?? [], nextSpans);
+      spansEqual(prev.spans ?? [], nextSpans) &&
+      reckonedEqual(prev.reckoned ?? [], nextReckoned);
     if (unchanged) return prev;
 
     lastSnapshotRef.current = {
@@ -409,6 +471,7 @@ export function useDataSeries(
       basis: "ut-seconds",
       breaks: nextBreaks,
       spans: nextSpans,
+      reckoned: nextReckoned,
     };
     return lastSnapshotRef.current;
   }, [store, topic, windowSec]);
