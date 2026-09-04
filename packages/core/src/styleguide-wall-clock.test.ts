@@ -5,7 +5,14 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Wall-clock allowlist: keep `Date.now()` out of any currency computation in
- * `packages/components/`.
+ * a widget, wherever the widget lives.
+ *
+ * It read `packages/components/src` alone until 2026-09-04, which was the whole
+ * of the widget library when it was written and is no longer: a widget lives in
+ * its Uplink now, and 143 client source files across twelve Uplinks sat outside
+ * the walk. Every reason below applies to them identically, and an Uplink widget
+ * is the likelier offender, being newer code with no in-package neighbour
+ * already doing it the right way.
  *
  * A widget rendering how old a reading is has exactly one legitimate "now": the
  * FRAME's view time (`useViewUt`), which every read in a frame shares. Wall
@@ -43,7 +50,15 @@ const WALL_CLOCK = /(?<![.\w])(?:Date\.now|performance\.now)\s*\(\s*\)/g;
 const BARE_NEW_DATE = /new Date\s*\(\s*\)/g;
 
 const SCAN_EXTENSION = /\.tsx?$/;
-const SKIP_DIRS = new Set(["node_modules", "dist", "__fixtures__", "test"]);
+// `__generated__` holds codegen output (an Uplink's `contract.ts`), which no
+// human writes and no reviewer would fix here.
+const SKIP_DIRS = new Set([
+  "node_modules",
+  "dist",
+  "__fixtures__",
+  "test",
+  "__generated__",
+]);
 // Tests, snapshots and probe harnesses pin or fake time on purpose.
 const SKIP_FILE = /\.(test|test-d)\.tsx?$/;
 
@@ -87,6 +102,15 @@ const ALLOWED_WALL_CLOCK: Record<string, number> = {
   // current a value is. The throttle itself takes the instant as an argument
   // and reads no clock, so this is the only read. 1 read.
   "packages/components/src/SystemView/index.tsx": 1,
+
+  // The only entry the Uplink roots brought with them when the walk widened
+  // to cover them. A local ledger of which kOS CPUs this BROWSER has seen:
+  // `createdAt` when the operator first names one, and two default arguments
+  // supplying "now" to `markSeen` / `reportOnline`, whose callers pass their
+  // own instant. The "last seen N min ago" it backs is the age of a discovery
+  // this session made, not of any telemetry sample, and it is stamped and read
+  // in the same clock throughout. 3 reads.
+  "mod/GonogoKosUplink/client/src/shared/CpuRegistryService.ts": 3,
 };
 
 function findRepoRoot(start: string): string {
@@ -124,25 +148,52 @@ function stripComments(source: string): string {
     .replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 
-/** repo-relative path -> wall-clock read count, for every scanned file scoring > 0. */
-function scanWallClock(root: string): Record<string, number> {
-  const counts: Record<string, number> = {};
-  const srcDir = join(root, "packages", "components", "src");
-  if (!existsSync(srcDir)) return counts;
-  for (const file of walk(srcDir)) {
-    const content = stripComments(readFileSync(file, "utf8"));
-    const total =
-      [...content.matchAll(WALL_CLOCK)].length +
-      [...content.matchAll(BARE_NEW_DATE)].length;
-    if (total > 0) counts[relative(root, file)] = total;
+/**
+ * Every root that holds widget code: the built-in library, and each Uplink's
+ * client. Discovered rather than listed, so the thirteenth Uplink is covered
+ * the day it lands instead of the day someone remembers this file.
+ */
+function widgetRoots(root: string): string[] {
+  const roots: string[] = [];
+  const builtIn = join(root, "packages", "components", "src");
+  if (existsSync(builtIn)) roots.push(builtIn);
+  const modDir = join(root, "mod");
+  if (existsSync(modDir)) {
+    for (const entry of readdirSync(modDir)) {
+      if (!/^Gonogo.*Uplink$/.test(entry)) continue;
+      const client = join(modDir, entry, "client", "src");
+      if (existsSync(client)) roots.push(client);
+    }
   }
-  return counts;
+  return roots;
+}
+
+/** repo-relative path -> wall-clock read count, for every scanned file scoring > 0. */
+function scanWallClock(root: string): {
+  counts: Record<string, number>;
+  scanned: number;
+  roots: number;
+} {
+  const counts: Record<string, number> = {};
+  let scanned = 0;
+  const roots = widgetRoots(root);
+  for (const srcDir of roots) {
+    for (const file of walk(srcDir)) {
+      scanned++;
+      const content = stripComments(readFileSync(file, "utf8"));
+      const total =
+        [...content.matchAll(WALL_CLOCK)].length +
+        [...content.matchAll(BARE_NEW_DATE)].length;
+      if (total > 0) counts[relative(root, file)] = total;
+    }
+  }
+  return { counts, scanned, roots: roots.length };
 }
 
 describe("wall-clock allowlist: currency is measured against the frame, never Date.now()", () => {
   it("matches the seeded allowlist exactly", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-    const found = scanWallClock(root);
+    const { counts: found } = scanWallClock(root);
 
     const newOrChanged = Object.keys(found).filter(
       (file) => found[file] !== ALLOWED_WALL_CLOCK[file],
@@ -189,5 +240,36 @@ describe("wall-clock allowlist: currency is measured against the frame, never Da
 
     expect(newOrChanged).toEqual([]);
     expect(stale).toEqual([]);
+  });
+
+  /**
+   * The instrument, asked separately from the result. The stale half above
+   * catches a walk that reads NOTHING, because five allowlisted files would
+   * then all report zero, but it says nothing about a walk that reads one root
+   * and misses eleven: that is exactly the state this file was in until the
+   * Uplink roots were added, and every count in it was green throughout.
+   */
+  it("walked every widget root, not just the first one", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const { scanned, roots } = scanWallClock(root);
+    expect(roots, "widget roots discovered").toBeGreaterThanOrEqual(9);
+    expect(scanned, "widget source files walked").toBeGreaterThan(200);
+  });
+
+  /**
+   * And whether the walk can RECOGNISE a read once it has one, which neither
+   * check above asks: both grade an offender LIST, and a pattern that stopped
+   * matching produces the same empty list as a clean tree.
+   */
+  it("recognises a wall-clock read, and not a comment about one", () => {
+    const reads = (source: string) =>
+      [...stripComments(source).matchAll(WALL_CLOCK)].length +
+      [...stripComments(source).matchAll(BARE_NEW_DATE)].length;
+    expect(reads("const t = Date.now();"), "Date.now()").toBe(1);
+    expect(reads("const t = performance.now();"), "performance.now()").toBe(1);
+    expect(reads("const t = new Date();"), "new Date()").toBe(1);
+    expect(reads("// never call Date.now() here"), "line comment").toBe(0);
+    expect(reads("/** not Date.now() */"), "block comment").toBe(0);
+    expect(reads("const t = clock.Date.now();"), "member access").toBe(0);
   });
 });

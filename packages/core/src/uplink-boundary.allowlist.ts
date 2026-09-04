@@ -566,6 +566,14 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // imports or renders anything of the Uplink's, and the list shrinks to
       // zero as each consumer is written.
       "packages/core/src/declaration-reachability.allowlist.ts",
+      // The wall-clock ratchet's allowlist, same class as the line above. Its
+      // walk widened on 2026-09-04 to cover Uplink clients, where widgets now
+      // live, and one file out of the 143 that brought in reads a wall clock:
+      // kOS's local CPU ledger, which is honestly about wall time and says so.
+      // A repo-relative path in an inventory of counts. Nothing here imports,
+      // renders or types against anything of the Uplink's, and the line leaves
+      // the day that file stops reading a clock.
+      "packages/core/src/styleguide-wall-clock.test.ts",
       /*
        * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
        * carries the C# doc comments it is generated from, and a wire type
@@ -2501,6 +2509,12 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // delay so the kit's presentation switch can take a plain number. A path,
     // not code, the same as the four Uplinks already listed for this file.
     "packages/core/src/styleguide-magnitude-budget.test.ts",
+    // An allowlist-map KEY, the same shape and the same reason as the line
+    // above: the repo-relative path of the one file in 143 Uplink client
+    // sources that reads a wall clock, with its count and its justification.
+    // A path in an inventory, not code: nothing imports, renders or types
+    // against anything of the Uplink's, and the key leaves when the reads do.
+    "packages/core/src/styleguide-wall-clock.test.ts",
     "packages/data/src/hooks/useDataSchema.test.tsx",
     "packages/data/src/schema/topicFieldCatalog.test.ts",
     "packages/sitrep-client/src/map-topic.test.ts",
