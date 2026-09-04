@@ -2,8 +2,8 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 649 of them
- * across 269 files.
+ * Assertions that escape `unknown`, per file. The tree carries 665 of them
+ * across 283 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
  * `JSON.parse`, a DOM event, a value crossing a peer connection. It forces the
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 393 of the 649 are
+ * **A test fixture minted through an assertion.** 393 of the 665 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -363,7 +363,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/use-stream.ts": 1,
   "mod/sitrep-sdk/src/testing/install-dom-stubs.ts": 1,
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": 1,
-  "mod/sitrep-sdk/src/testing/stub-transport.ts": 2,
+  "mod/sitrep-sdk/src/testing/stub-transport.ts": 1,
   "mod/sitrep-sdk/src/unit-system/value.ts": 1,
   "mod/sitrep-sdk/src/uplink-manifest.ts": 2,
   "mod/sitrep-sdk/src/version.gate.test.ts": 1,

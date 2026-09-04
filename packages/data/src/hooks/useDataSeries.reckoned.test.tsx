@@ -324,9 +324,11 @@ describe("useDataSeries: how far the window was asked for", () => {
       });
     });
 
-    // A measured series has made no claim about the stretch after its last
-    // sample, and stating the view time there would put a moving number in
-    // every live chart's snapshot for an emptiness that means nothing.
+    /*
+     * A measured series has made no claim about the stretch after its last
+     * sample, and stating the view time there would put a moving number in
+     * every live chart's snapshot for an emptiness that means nothing.
+     */
     await waitFor(() => expect(readWindowEnd()).toBe("windowEnd:none"));
   });
 });

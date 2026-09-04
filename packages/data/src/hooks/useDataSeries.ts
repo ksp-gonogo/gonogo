@@ -461,10 +461,12 @@ export function useDataSeries(
       prevBreaks.every((b, i) => b === nextBreaks[i]) &&
       spansEqual(prev.spans ?? [], nextSpans) &&
       reckonedEqual(prev.reckoned ?? [], nextReckoned) &&
-      // Only ever set alongside a tail (see below), and there it MUST be
-      // compared: a model that has already declined leaves `t` and every run
-      // fixed while the view time keeps advancing, and the growing blank
-      // between the two is the only thing that changes.
+      /*
+       * Only ever set alongside a tail (see below), and there it MUST be
+       * compared: a model that has already declined leaves `t` and every run
+       * fixed while the view time keeps advancing, and the growing blank
+       * between the two is the only thing that changes.
+       */
       prev.windowEndAt === (nextReckoned.length > 0 ? toUt : undefined);
     if (unchanged) return prev;
 

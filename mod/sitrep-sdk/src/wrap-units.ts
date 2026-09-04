@@ -59,8 +59,34 @@ import {
  * map. See `registerProviderExtensionShape` (units.ts) for why that routing needs
  * a registry of its own.
  */
-export function wrapTopicPayload<T>(topic: TopicId, payload: T): T {
-  return wrap(topic, unitsForTopic(topic), shapesForTopic(topic), payload);
+/**
+ * A payload type restated as the mod SENDS it: every `Value<U>` back down to
+ * the plain number that actually crosses the wire, recursively, structure
+ * otherwise untouched.
+ *
+ * It lives here rather than beside the test helper it was written for, because
+ * it is the input type of the two functions below and a production module
+ * cannot import from `testing/`. `testing/stub-transport` re-exports it, so
+ * every existing import site is unchanged.
+ *
+ * `Value` is matched by its `magnitude`/`unit` pair rather than by name, so a
+ * `Vec3Of<U>`'s three leaves collapse the same way its parent does.
+ */
+export type WireOf<T> = T extends {
+  readonly magnitude: number;
+  readonly unit: string;
+}
+  ? number
+  : T extends readonly (infer E)[]
+    ? WireOf<E>[]
+    : T extends (...args: never[]) => unknown
+      ? T
+      : T extends object
+        ? { [K in keyof T]: WireOf<T[K]> }
+        : T;
+
+export function wrapTopicPayload<P>(topic: TopicId, payload: WireOf<P>): P {
+  return wrap(topic, unitsForTopic(topic), shapesForTopic(topic), payload) as P;
 }
 
 /**
@@ -68,13 +94,13 @@ export function wrapTopicPayload<T>(topic: TopicId, payload: T): T {
  * Topic. Nested shapes (`ThermalHottestPart`) are reachable this way and no
  * Topic names them.
  */
-export function wrapTypePayload<T>(typeName: string, payload: T): T {
+export function wrapTypePayload<P>(typeName: string, payload: WireOf<P>): P {
   return wrap(
     typeName,
     unitsForType(typeName),
     shapesForType(typeName),
     payload,
-  );
+  ) as P;
 }
 
 function wrap<T>(

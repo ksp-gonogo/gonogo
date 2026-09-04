@@ -1,5 +1,5 @@
+import type { DerivedChannelDefinition } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import type { DerivedChannelDefinition } from "@ksp-gonogo/sitrep-sdk/spine";
 import type { StreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { makeMeta, setupStreamFixture } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";

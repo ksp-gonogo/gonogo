@@ -108,13 +108,12 @@ export interface VesselOrbitPayload {
    * How far these elements answer for, as the producer states it
    * (`PropagationHorizon`, required on the wire).
    *
-   * This mirror omitted it, which is why the one place in the tree whose whole
-   * job is to decide whether it may extrapolate, `deriveVesselStateReckoning`,
-   * was also the one place that never asked: `SystemView`, `usePhaseAngles` and
-   * `TrajectoryCurrencyBridge` all gate on `canPropagate` and could, because
-   * they read the generated shape. Optional here on the same "additive field an
-   * older recording may not carry" grounds as `encounter`, and `canPropagate`
-   * REFUSES on an absent one rather than reading silence as permission.
+   * Read it with `canPropagate` before extrapolating from these elements, which
+   * is what every other drawing of them does. This mirror omitted the field
+   * until now, so `deriveVesselStateReckoning` was propagating without ever
+   * asking; it asks now. Optional here on the same "additive field an older
+   * recording may not carry" grounds as `encounter`, and `canPropagate` REFUSES
+   * on an absent one rather than reading silence as permission.
    */
   horizon?: PropagationHorizonLike;
 }
@@ -1124,9 +1123,11 @@ function entryInterfaceRadius(
   if (!bodiesPoint || bodiesPoint.payload === null) return undefined;
   const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
   if (!body) return undefined;
-  // `mag` rather than the raw field: `system.bodies` arrives unwrapped today
-  // and wrapped the moment its type shape is registered, and a floor that
-  // silently becomes NaN would stop declining without saying so.
+  /*
+   * `mag` rather than the raw field: `system.bodies` arrives unwrapped today
+   * and wrapped the moment its type shape is registered, and a floor that
+   * silently becomes NaN would stop declining without saying so.
+   */
   const radius = magnitudeOr(body.radius, Number.NaN);
   if (!Number.isFinite(radius)) return undefined;
   const depth = magnitudeOr(body.atmosphere?.depth, 0);
@@ -2160,8 +2161,9 @@ export function deriveVesselStateStatus(
  * **Declining takes positive evidence.** With no body roster there is no
  * interface to have crossed, and refusing on an absent fact would blank every
  * propagated reading for the frames before a once-a-second channel lands. Same
- * posture `classifyRetained` takes in declaring a command lost, and the same
- * posture the SOI horizon above already takes on an absent `encounter`.
+ * posture the SOI horizon above already takes on an absent `encounter`, and the
+ * same one the delay model takes in declaring a command lost: a withdrawal is
+ * asserted on evidence, never on the lack of it.
  *
  * ## What is still unbounded, and cannot be bounded here
  *

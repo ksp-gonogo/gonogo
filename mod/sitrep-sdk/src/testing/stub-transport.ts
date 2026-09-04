@@ -21,49 +21,30 @@ export function makeMeta(overrides: Partial<Meta> = {}): Meta {
 }
 
 /**
- * A payload type restated as the mod sends it: every `Value<U>` back down to
- * the plain number that actually crosses the wire, recursively, structure
- * otherwise untouched.
- *
- * This is the type of the second argument to {@link StubTransport.emit}, which
- * takes a pre-wrap frame and runs `wrapTopicPayload` over it. That parameter is
- * `unknown`, so annotating a fixture is the only structural check a test gets,
- * and annotating it with the MODELLED payload type checks it against the shape
- * emit produces rather than the one it consumes. A fixture written the honest
- * way then fails to compile on every quantity-bearing field, which is what
- * `WireOf` exists to stop: it keeps the field names and the nesting under the
- * compiler's eye while letting the magnitudes stay bare.
- *
- * `Value` is matched by its `magnitude`/`unit` pair rather than by name, so a
- * `Vec3Of<U>`'s three leaves collapse the same way its parent does.
+ * Re-exported from `../wrap-units`, where it moved when it became the declared
+ * input type of the wrap functions themselves. Kept here because every fixture
+ * in the tree imports it from this module.
  */
-export type WireOf<T> = T extends {
-  readonly magnitude: number;
-  readonly unit: string;
-}
-  ? number
-  : T extends readonly (infer E)[]
-    ? WireOf<E>[]
-    : T extends (...args: never[]) => unknown
-      ? T
-      : T extends object
-        ? { [K in keyof T]: WireOf<T[K]> }
-        : T;
+export type { WireOf } from "../wrap-units";
+
+// Re-exporting does not bind the name locally, and `wrapWire` below uses it.
+import type { WireOf } from "../wrap-units";
 
 /**
- * `wrapTypePayload` at the signature a test fixture actually wants: it takes a
- * pre-wrap frame and hands back the modelled payload.
+ * `wrapTypePayload` under the name the fixtures already call it by.
  *
- * The runtime function is declared `<T>(name: string, payload: T): T` because
- * production calls it on a decoded frame that is already the payload's shape.
- * A fixture is on the other side of that: it writes the wire, so `T` infers as
- * `WireOf<P>` and the cast to `P` is a comparison between a bare `number` and a
- * `Value<U>`, which the compiler refuses outright. Every fixture that reached
- * for a double cast to get past it also gave up the field-name and nesting
- * check that was the reason to annotate at all.
+ * It used to bridge a real gap: the runtime function was declared
+ * `<T>(name: string, payload: T): T`, which claimed to hand back what it was
+ * given while actually wrapping bare numbers into `Value`s, so every fixture
+ * writing the wire had to double-cast across the lie and lost the field-name
+ * and nesting check that was the reason to annotate at all. The signature now
+ * states the conversion it performs, so this is a plain alias.
+ *
+ * Kept rather than deleted because ten fixture files call it, and a rename
+ * would churn them to say the same thing.
  */
 export function wrapWire<P>(typeName: string, wire: WireOf<P>): P {
-  return wrapTypePayload(typeName, wire) as unknown as P;
+  return wrapTypePayload<P>(typeName, wire);
 }
 
 /**

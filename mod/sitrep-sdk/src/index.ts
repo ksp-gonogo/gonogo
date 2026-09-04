@@ -396,6 +396,10 @@ export {
   computeConfirmedEdgeUt,
   computeUtNowEstimate,
 } from "./view-clock-formula";
+// The input type of the two wrap functions above, so a caller holding a
+// pre-wrap frame can say so. Reachable from the root barrel because a caller
+// outside a test needs it: `fleet-position` reads an unwrapped dynamic topic.
+export type { WireOf } from "./wrap-units";
 export {
   hydratePayload,
   wrapTopicPayload,

@@ -1,4 +1,4 @@
-import { wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import { type WireOf, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
 import { useMemo } from "react";
 import { useViewUt } from "./context";
 import type { StateVector } from "./kepler";
@@ -19,20 +19,28 @@ export { propagateVesselOrbit };
  * a future fleet spatial view, FleetRoster itself renders no position.
  */
 export function useFleetVesselPosition(guid: string): StateVector | null {
-  const raw = useStream<VesselOrbitPayload>(`fleet.${guid}.orbit`);
+  /*
+   * `WireOf`, because that is what arrives. Dynamic `fleet.<guid>.*` topics are
+   * NOT unit-wrapped by the decode path: `wrapTopicPayload` keys on the exact
+   * topic string, and a per-guid topic matches no entry in the generated or
+   * hand-declared unit maps, so every quantity is still a bare number here.
+   *
+   * This read was annotated `VesselOrbitPayload` while the comment below said
+   * the opposite, so the type promised `Value`s that do not exist at runtime and
+   * anything reaching for `.magnitude` on one would have compiled and then read
+   * `undefined`. Nothing did; the annotation was still a trap for the next
+   * caller, and `wrapTypePayload` stating its own conversion is what surfaced it.
+   */
+  const raw = useStream<WireOf<VesselOrbitPayload>>(`fleet.${guid}.orbit`);
   const viewUt = useViewUt();
   return useMemo(() => {
     if (!raw || viewUt == null) return null;
-    // Dynamic `fleet.<guid>.*` topics are NOT unit-wrapped by the decode path:
-    // `wrapTopicPayload` keys on the exact topic string, and a per-guid topic
-    // matches no entry in the generated/hand-declared unit maps, so the payload
-    // arrives as bare wire numbers. The consumer knows the type, so wrap it here
-    // (VesselOrbit) before propagating, on a clone so the store's retained raw
-    // copy is never mutated (wrapTypePayload mutates in place).
-    const orbit = wrapTypePayload(
+    // Cloned because the wrap mutates in place and the store's retained raw
+    // copy must not be touched.
+    const orbit = wrapTypePayload<VesselOrbitPayload>(
       "VesselOrbit",
       structuredClone(raw),
-    ) as VesselOrbitPayload;
+    );
     // `.magnitude` at the boundary of the solver: propagation is arithmetic on a
     // bare UT, and threading `Value` through the Kepler code would buy nothing.
     return propagateVesselOrbit(orbit, viewUt.magnitude);

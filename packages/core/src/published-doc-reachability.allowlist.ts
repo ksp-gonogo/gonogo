@@ -283,7 +283,6 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
   "mod/sitrep-sdk/src/testing/memory-storage.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/testing/mock-data-source.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/units.ts": { T1a: 2 },
-  "mod/sitrep-sdk/src/wrap-units.ts": { T1a: 1 },
   /** Both T1b entries are the word `key` colliding with an unrelated export. */
   "packages/ui-kit/src/ActionMenu.tsx": { T1b: 1 },
   "packages/ui-kit/src/CommandDelay/InFlightList.tsx": { T1a: 1 },

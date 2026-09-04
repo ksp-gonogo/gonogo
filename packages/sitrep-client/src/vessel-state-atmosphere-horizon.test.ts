@@ -1,6 +1,6 @@
-import { Quality, wrapTypePayload } from "@ksp-gonogo/sitrep-sdk";
+import { Quality } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { makeMeta, type WireOf } from "./stub-transport";
+import { makeMeta, type WireOf, wrapWire } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import type { DerivedGet } from "./timeline-store";
 import {
@@ -74,9 +74,7 @@ function orbitPoint(
 ): TimelinePoint<VesselOrbitPayload> {
   return {
     validAt,
-    payload: wrapTypePayload("VesselOrbit", {
-      ...wire,
-    }) as unknown as VesselOrbitPayload,
+    payload: wrapWire<VesselOrbitPayload>("VesselOrbit", { ...wire }),
     meta: makeMeta({
       validAt,
       quality: Quality.OnRails,
@@ -175,10 +173,12 @@ describe("deriveVesselStateReckoning: the atmospheric interface", () => {
   it("propagates unchanged when the body table has not arrived", () => {
     const get = getWith({ orbit: orbitPoint(ENTRY_ARC) });
 
-    // Declining takes positive evidence, the same posture `classifyRetained`
-    // takes to declare a command lost. With no roster there is no interface
-    // to have crossed, and refusing on an absent fact would blank every
-    // propagated reading for the frames before the once-a-second roster lands.
+    /*
+     * Declining takes positive evidence, the same posture the delay model
+     * takes to declare a command lost. With no roster there is no interface to
+     * have crossed, and refusing on an absent fact would blank every
+     * propagated reading for the frames before the once-a-second roster lands.
+     */
     expect(deriveVesselStateReckoning(get, PERIAPSIS_UT)).toBeDefined();
   });
 
@@ -218,9 +218,11 @@ describe("vessel.state.altitudeAsl on the propagated basis", () => {
   it("stays null when no body radius resolves", () => {
     const get = getWith({ orbit: orbitPoint(ENTRY_ARC) });
 
-    // The existing promise: never a body-less approximation. `verticalSpeed`
-    // and `surfaceSpeed` stay null on this basis either way, being
-    // surface-frame quantities the conic says nothing about.
+    /*
+     * The existing promise: never a body-less approximation. `verticalSpeed`
+     * and `surfaceSpeed` stay null on this basis either way, being
+     * surface-frame quantities the conic says nothing about.
+     */
     const state = deriveVesselState(get, 0);
     expect(state?.altitudeAsl).toBeNull();
     expect(state?.verticalSpeed).toBeNull();
@@ -233,9 +235,11 @@ describe("vessel.state.altitudeAsl on the propagated basis", () => {
       bodies: bodies({ atmosphere: true }),
     });
 
-    // A plotted key needs its path named: `sampleReckonedTail` carries only
-    // what the model claims, so an unnamed altitude would draw a chart that
-    // stops dead at the last observation with nothing to say why.
+    /*
+     * A plotted key needs its path named: the tail carries only what the model
+     * claims, so an unnamed altitude would draw a chart that stops dead at the
+     * last observation with nothing to say why.
+     */
     const modelled = deriveVesselStateReckoning(get, 0);
     expect(modelled?.map((m) => m.path)).toContain("altitudeAsl");
   });
@@ -268,9 +272,11 @@ describe("deriveVesselStateReckoning: the producer's own stated reach", () => {
       bodies: bodies({ atmosphere: true }),
     });
 
-    // The case the seam was built for and nothing was consulting it in: an
-    // n-body backend states a reach, and a conic drawn past it is faithful at
-    // the sample instant and wrong as a path.
+    /*
+     * The case the seam was built for and nothing was consulting it in: an
+     * n-body backend states a reach, and a conic drawn past it is faithful at
+     * the sample instant and wrong as a path.
+     */
     expect(deriveVesselStateReckoning(get, 400)).toBeDefined();
     expect(deriveVesselStateReckoning(get, 600)).toBeUndefined();
   });
