@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Sitrep.Contract;
 
@@ -5,17 +6,61 @@ namespace Gonogo.KerbalismUplink
 {
     /// <summary>
     /// Kerbalism's <see cref="IReliabilityBackend"/>: the LOW-specificity
-    /// (Priority 1) provider of the "reliability" capability. Reads the active
-    /// vessel internally (FlightGlobals) like <see cref="ICommsBackend"/>
-    /// implementations, so the interface stays KSP-free; the reflection + POCO
-    /// mapping are done by <see cref="KerbalismReflection"/> +
-    /// <see cref="KerbalismReliabilityMap"/>.
+    /// (Priority 1) provider of the "reliability" capability. Resolves the
+    /// vessel internally, like <see cref="ICommsBackend"/> implementations, so
+    /// the interface stays KSP-free; the reflection + POCO mapping are done by
+    /// <see cref="KerbalismReflection"/> + <see cref="KerbalismReliabilityMap"/>.
+    ///
+    /// <para><b>The vessel comes from core's <c>activeVessel</c> capability
+    /// rather than from KSP directly.</b> Those stopped being the same answer
+    /// when core began reporting the craft an EVA kerbal stepped out of. The
+    /// parts listing an operator picks a part id off is the CRAFT's; KSP's own
+    /// answer is the kerbal, which has one part, so every id resolved against
+    /// the wrong vehicle and came back <c>no-such-part</c>. Going outside to fix
+    /// a failed part is exactly when a repair is wanted, so the path was dead in
+    /// the one situation it exists for.</para>
     /// </summary>
     public sealed class KerbalismReliabilityBackend : IReliabilityBackend
     {
         private readonly KerbalismReflection _k;
+        private readonly Kernel? _kernel;
 
-        public KerbalismReliabilityBackend(KerbalismReflection k) => _k = k;
+        /// <param name="kernel">
+        /// Core's capability registry, for the <c>activeVessel</c> resolution
+        /// described above. Optional, and null means no vessel is resolved: the
+        /// reads then report a craft they could not see, which is the honest
+        /// degradation, rather than the wrong craft.
+        /// </param>
+        public KerbalismReliabilityBackend(KerbalismReflection k, Kernel? kernel = null)
+        {
+            _k = k;
+            _kernel = kernel;
+        }
+
+        /// <summary>
+        /// The vessel every read here and the repair below are scoped to, or
+        /// null when there is no flight and when core does not publish the
+        /// capability (an older core, or one whose declaration failed).
+        ///
+        /// <para>Queried per call rather than held, as
+        /// <see cref="IActiveVessel"/> requires: the answer changes on a vessel
+        /// switch, a dock, an undock, and on both ends of an EVA.</para>
+        /// </summary>
+        private Vessel? ScopedVessel()
+        {
+            if (_kernel == null)
+            {
+                return null;
+            }
+            try
+            {
+                return _kernel.Query<IActiveVessel>(ActiveVesselCapability.Id).Reported as Vessel;
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
 
         public string ProviderId => "kerbalism";
 
@@ -69,7 +114,7 @@ namespace Gonogo.KerbalismUplink
             // property reflects, and the core uplink reads Summary and Parts back
             // to back on the same tick.
             var coverage = Coverage;
-            var v = FlightGlobals.ActiveVessel;
+            var v = ScopedVessel();
             var raw = v != null ? _k.Reliability(v) : new ReliabilityRaw();
             return KerbalismReliabilityMap.Summary(raw, _k.ReliabilityPreferences(), coverage);
         }
@@ -91,7 +136,7 @@ namespace Gonogo.KerbalismUplink
                 return new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NotModelled };
             }
 
-            var v = FlightGlobals.ActiveVessel;
+            var v = ScopedVessel();
             if (v == null)
             {
                 return new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NoSuchPart };
@@ -110,7 +155,7 @@ namespace Gonogo.KerbalismUplink
         public IReadOnlyList<ReliabilityPartEntry> Parts()
         {
             var coverage = Coverage;
-            var v = FlightGlobals.ActiveVessel;
+            var v = ScopedVessel();
             var raw = v != null ? _k.Reliability(v) : new ReliabilityRaw();
             // The kit requirement is an install PREFERENCE, not a per-part fact,
             // so it is read here beside Coverage rather than carried on every

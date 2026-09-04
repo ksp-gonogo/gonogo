@@ -204,7 +204,11 @@ namespace Gonogo.KerbalismUplink
                          * check here would pin whatever happened to be true then.
                          */
                         CanServe = () => KerbalismReliabilityBackend.CanServe(_k),
-                        Factory = _ => new KerbalismReliabilityBackend(_k),
+                        // The kernel travels with the backend so it can resolve
+                        // the activeVessel capability on every call: an EVA moves
+                        // what "the vessel" means, and a repair addressed against
+                        // the other one misses every part on the listing.
+                        Factory = _ => new KerbalismReliabilityBackend(_k, host.Kernel),
                     });
                 }
                 catch (Exception ex)

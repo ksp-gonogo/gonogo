@@ -304,6 +304,25 @@ namespace Gonogo.KSP
             // hand in the map view.
             ManeuverPlanElection.RegisterCapability(
                 kernel, _ => new StockManeuverPlanBackend(GonogoAddon.SharedManeuverNodeIdRegistry));
+
+            // Which vessel every active-vessel-scoped channel is about, offered to
+            // any Uplink. Core is the only provider and there is no election to
+            // hold: the scope is a decision core makes and publishes, not a model
+            // a mod could differ about. It is a capability because that is the
+            // only route an Uplink has into core, and the seam it publishes lives
+            // in this assembly, which no Uplink may reference.
+            //
+            // Declared beside the others in the pre-Register pass for the same
+            // two-pass reason, and NOT SpineCritical: an Uplink that cannot reach
+            // it falls back to KSP's own active vessel, which is what every
+            // Uplink did before this existed.
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = ActiveVesselCapability.Id,
+                Exclusive = true,
+                SpineCritical = false,
+                Vanilla = _ => new KspActiveVessel(),
+            });
         }
 
         /// <summary>Mandatory health self-report (see <see cref="ISitrepUplink.Health"/>): a plain
