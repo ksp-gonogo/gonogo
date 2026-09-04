@@ -4,6 +4,7 @@ import {
   screen,
   setupStreamFixture,
   waitFor,
+  within,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   expectNoA11yViolations,
@@ -156,27 +157,46 @@ describe("ProgramDetail", () => {
      * is the one worth opening on, and RP-1's catalogue order would put a locked
      * 1980s Program first.
      *
-     * Read off the title row, which is where the Program on screen is named:
-     * that heading and the picker's own selected row are the two places the
-     * choice shows, and the heading is the one visible without opening anything.
+     * Read off the catalogue's own pressed row rather than off the page text.
+     * Every Program's NAME is on screen now that the list stands open, so an
+     * absence assertion on the name would only be re-asserting that the list is
+     * hidden; what says which one is open is the selection and the detail.
      */
     const { fixture } = mount();
     await feed(fixture, [
-      program({ name: "Aeronautics", title: "Aeronautics", state: "locked" }),
+      program({
+        name: "Aeronautics",
+        title: "Aeronautics",
+        state: "locked",
+        objectivesText: "Break the sound barrier.",
+      }),
       program(),
     ]);
 
-    expect(await screen.findByText("X-Plane Research")).toBeInTheDocument();
-    expect(visibleText()).not.toContain("Aeronautics");
+    expect(
+      await screen.findByRole("button", { name: /X-Plane Research ACTIVE/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: /Aeronautics LOCKED/ }),
+    ).toHaveAttribute("aria-pressed", "false");
+    expect(screen.getByText("Fly the X-Planes.")).toBeInTheDocument();
+    expect(screen.queryByText("Break the sound barrier.")).toBeNull();
   });
 
   /*
    * Not a dropdown, which is the operator's own ruling: a select shows one
    * entry and hides the state of every other, so the catalogue could not be
-   * scanned. Behind an expander because RP-1's catalogue is long and the detail
-   * already opens on the Program worth reading.
+   * scanned.
+   *
+   * And not behind an expander either, which is what replaced the dropdown and
+   * is what the operator could not find: "I also don't see the way that you'd
+   * choose and browse, or select a program". A small button labelled "Choose
+   * program" above a standing detail is a browse affordance you have to already
+   * know is there. The list is what says a choice exists, so the list stands
+   * open beside the detail, which is also what the game's own Administration
+   * screen does.
    */
-  it("keeps the catalogue behind one press rather than standing open", async () => {
+  it("stands the catalogue open beside the detail rather than hiding it", async () => {
     const { fixture } = mount();
     await feed(fixture, [
       program({ name: "Aeronautics", title: "Aeronautics", state: "locked" }),
@@ -185,16 +205,23 @@ describe("ProgramDetail", () => {
 
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(
-      screen.queryByRole("button", { name: "Aeronautics" }),
-    ).not.toBeInTheDocument();
+      screen.queryByRole("button", { name: /Choose a Program/ }),
+    ).toBeNull();
+    // Every Program, each carrying its own state, without pressing anything.
+    const catalogue = screen.getByRole("group", { name: "Program catalogue" });
     expect(
-      screen.getByRole("button", { name: "Choose a Program" }),
+      within(catalogue).getByRole("button", { name: /Aeronautics LOCKED/ }),
+    ).toBeInTheDocument();
+    expect(
+      within(catalogue).getByRole("button", {
+        name: /X-Plane Research ACTIVE/,
+      }),
     ).toBeInTheDocument();
   });
 
-  it("draws no picker at all when RP-1 has sent no catalogue", async () => {
+  it("draws no catalogue at all when RP-1 has sent none", async () => {
     // A picker whose only entry is the null token is a control that cannot be
-    // used.
+    // used, so the empty state stands alone rather than beside an empty list.
     const { fixture } = mount();
     fixture.emit("rp1.available", true);
     fixture.emit("rp1.programs", []);
@@ -203,8 +230,11 @@ describe("ProgramDetail", () => {
       expect(screen.getByText(/PROGRAM DETAIL/)).toBeInTheDocument();
     });
     expect(
-      screen.queryByRole("button", { name: "Choose a Program" }),
+      screen.queryByRole("group", { name: "Program catalogue" }),
     ).toBeNull();
+    expect(
+      screen.getByText("RP-1 has not sent a Program catalogue"),
+    ).toBeInTheDocument();
     await act(async () => {});
   });
 
@@ -236,19 +266,17 @@ describe("ProgramDetail", () => {
       program(),
     ]);
 
-    await userEvent.click(
-      await screen.findByRole("button", { name: "Choose a Program" }),
-    );
     // Each row carries the Program's state, which is the whole reason the
     // dropdown went: the catalogue is scannable without opening every entry.
-    const row = screen.getByRole("button", { name: /Aeronautics LOCKED/ });
+    const row = await screen.findByRole("button", {
+      name: /Aeronautics LOCKED/,
+    });
     await userEvent.click(row);
 
     expect(row).toHaveAttribute("aria-pressed", "true");
-    // The title row follows the pick, so the Program every reading below is
-    // about is named without reading the list again. Two matches while the
-    // picker is open, its own row being the other, so the count is the
-    // assertion: the name is on the heading AND on the row that was pressed.
+    // The detail pane names its own subject, so the Program every reading below
+    // it is about is named without reading the list again. Two matches: the
+    // row that was pressed, and the pane's own heading.
     expect(screen.getAllByText("Aeronautics")).toHaveLength(2);
     /* The detail follows the heading: the picked Program's own objectives are in
        the body and the running one's are gone, so the pick moved the whole

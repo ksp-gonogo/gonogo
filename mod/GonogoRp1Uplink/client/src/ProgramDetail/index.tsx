@@ -10,9 +10,9 @@ import {
   Cluster,
   CommandButton,
   DataTable,
-  Disclosure,
   EmptyState,
   GraphNotice,
+  Grid,
   LineGraph,
   MissionDate,
   magnitudeOf,
@@ -30,6 +30,7 @@ import {
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
 import type {
   Rp1FundingCurveEntry,
@@ -112,83 +113,118 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
   }
 
   return (
-    <Section>
-      {/*
-        The Program on screen sits BESIDE the section's own heading rather than
-        under it as a second one, which is the operator's "a 'Program' header
-        directly under it... it should actually use the aside UI". It is the
-        aside's shape and deliberately not `Panel`'s own `aside` prop: this
-        augment draws into the Administration building's scrolling body and owns
-        no panel to hang one on, and a panel narrow enough to collapse its aside
-        would fold away the name of the thing every row below is about. The
-        collapse is why VehicleAssembly keeps its funds line in the body.
-      */}
-      <Cluster gap="sm" wrap>
-        <SectionTitle>PROGRAM DETAIL</SectionTitle>
-        {chosen !== undefined && (
-          /* Wrapping in its own right, not just as one item of the row above.
-             The badge and a Program's title are two items and RP-1's titles run
-             long ("Sounding Rocket Development"): as a single unbreakable item
-             the pair overflowed the panel's own width at the sizes this screen
-             draws at, which the readability probe reads as text an operator
-             cannot see. `justify="start"` because it is a subject, not a row to
-             be spread. */
-          <Cluster gap="xs" justify="start" wrap>
-            <Badge severity={severityOf(chosen.state)}>
-              {(chosen.state ?? NULL_DISPLAY).toUpperCase()}
-            </Badge>
-            <Text weight="semibold">{label(chosen)}</Text>
-          </Cluster>
-        )}
+    <Section gap="md">
+      <SectionTitle>PROGRAM DETAIL</SectionTitle>
+
+      {/* Wrapping, because three balances do not fit across a narrow panel and
+          a Cluster that cannot wrap pushes the third one past the panel's edge
+          with no scroller to recover it.
+
+          In the BODY rather than in a `Panel` aside: an aside collapses at
+          narrow widths and would take the Confidence balance with it, and
+          Confidence is what the Accept control below actually spends. */}
+      <Cluster align="start" gap="md" justify="start" wrap>
+        <Balance caption="Funds">
+          <Unit value={career?.economy?.funds} />
+        </Balance>
+        <Balance caption="Confidence">
+          <Unit value={confidence?.confidence} />
+        </Balance>
+        <Balance caption="Slots">
+          <Unit value={slots?.usedSlots} /> of <Unit value={slots?.maxSlots} />
+        </Balance>
       </Cluster>
-      <Stack gap="md">
-        <ProgramPicker chosen={chosen} onPick={setPicked} programs={rows} />
 
-        {/* Wrapping, because three readouts do not fit across a narrow
-            panel and a Cluster that cannot wrap pushes the third one past
-            the panel's edge with no scroller to recover it. */}
-        <Cluster gap="md" wrap>
-          <Readout>
-            <ReadoutCaption>Funds</ReadoutCaption>
-            <Unit value={career?.economy?.funds} />
-          </Readout>
-          <Readout>
-            <ReadoutCaption>Confidence</ReadoutCaption>
-            <Unit value={confidence?.confidence} />
-          </Readout>
-          <Readout>
-            <ReadoutCaption>Slots</ReadoutCaption>
-            <Text>
-              <Unit value={slots?.usedSlots} /> of{" "}
-              <Unit value={slots?.maxSlots} />
-            </Text>
-          </Readout>
-        </Cluster>
-
-        {chosen === undefined ? (
-          /*
-           * Two states reach here and neither is "this Program has no detail":
-           * RP-1 is present (checked above) and the catalogue has either not
-           * arrived yet or arrived empty. Both leave nothing to describe, which
-           * is the one case worth a line: the surface is unreadable rather than
-           * empty.
-           */
-          <EmptyState>RP-1 has not sent a Program catalogue</EmptyState>
-        ) : (
+      {chosen === undefined ? (
+        /*
+         * Two states reach here and neither is "this Program has no detail":
+         * RP-1 is present (checked above) and the catalogue has either not
+         * arrived yet or arrived empty. Both leave nothing to describe, which
+         * is the one case worth a line: the surface is unreadable rather than
+         * empty.
+         */
+        <EmptyState>RP-1 has not sent a Program catalogue</EmptyState>
+      ) : (
+        /*
+         * ONE interface: the catalogue, and the detail of whatever is picked out
+         * of it. Side by side while there is width for two panes, stacked when
+         * there is not, on the same `auto-fit` + `minmax` mechanism `Panel`'s
+         * own section grid uses; `min(...,100%)` clamps the track to the pane so
+         * a narrow tile stacks rather than scrolling sideways.
+         *
+         * It was a catalogue hidden behind a "Choose program" button above a
+         * standing detail, which is the browse half the operator could not find.
+         * That also inverted the game's own Administration screen, where the
+         * strategy list stands open beside the selected strategy's description
+         * and its one accept control (`KSP.UI.Screens.Administration`:
+         * `scrollListStrategies` + `SetSelectedStrategy` + `btnAcceptCancel`).
+         */
+        <Grid cols={MASTER_DETAIL_COLUMNS} gap="md" align="start">
+          <ProgramCatalogue
+            chosen={chosen}
+            onPick={setPicked}
+            programs={rows}
+          />
           <ChosenProgram
             accept={accept}
             program={chosen}
             curves={curves}
             confidenceHeld={magnitudeOf(confidence?.confidence)}
           />
-        )}
-      </Stack>
+        </Grid>
+      )}
     </Section>
   );
 }
 
 /**
- * The catalogue, as a list of rows the operator picks from.
+ * One career balance: the caption OVER the figure rather than beside it.
+ *
+ * <para>The pair sat on one baseline, which needs the width of both at the
+ * readout's 22px display size. At the Administration Building's own five-column
+ * tile there is not that much room and the figure ran off the panel: a funds
+ * balance clipped to "289,848" with the unit gone, on the surface whose whole
+ * job is to price a commitment. Stacked, the row needs the width of the figure
+ * alone and the caption line wraps if even that is tight.</para>
+ */
+function Balance({
+  caption,
+  children,
+}: Readonly<{ caption: string; children: ReactNode }>) {
+  return (
+    <Stack gap="xs">
+      <ReadoutCaption>{caption}</ReadoutCaption>
+      <Readout>{children}</Readout>
+    </Stack>
+  );
+}
+
+/**
+ * The two panes, and the shape that lets them sit side by side.
+ *
+ * <para>15rem is the floor for a Program's title beside its state badge; under
+ * that the pair wraps and the catalogue reads as a ragged block. The detail
+ * pane's own sections columnise separately at `Panel`'s own 13rem floor, so a
+ * landscape tile ends up with the catalogue down one side and the readings
+ * across the rest rather than as one endless column.</para>
+ */
+const MASTER_DETAIL_COLUMNS = "repeat(auto-fit, minmax(min(15rem, 100%), 1fr))";
+const DETAIL_COLUMNS = "repeat(auto-fit, minmax(min(13rem, 100%), 1fr))";
+
+/**
+ * How tall the catalogue grows before it scrolls on its own.
+ *
+ * <para>An RP-1 career carries tens of Programs, and in the stacked layout the
+ * catalogue sits above the detail: uncapped, it would push every reading the
+ * operator opened this for off the bottom of the panel. The figure is the kit's
+ * own inline-disclosure cap, which is what held this list while it was
+ * hidden.</para>
+ */
+const CATALOGUE_SCROLL = { maxHeight: "16rem", overflowY: "auto" } as const;
+
+/**
+ * The catalogue: every Program RP-1 knows about, as rows the operator picks
+ * from, standing open beside the detail of whichever one is picked.
  *
  * <para>Not a dropdown, on the operator's ruling that "the active program should
  * not be a dropdown". A <c>select</c> shows one entry at a time and hides the
@@ -197,16 +233,19 @@ export function ProgramDetail({ screenId }: { screenId: string }) {
  * without opening it and reading forty entries one at a time. Each row carries
  * its state, so the catalogue is scannable.</para>
  *
- * <para>Behind an expander because it is reference: the detail opens on the
- * running Program, which is the one worth reading, and RP-1's catalogue is long
- * enough that a standing list would push every reading below it off the screen.
- * The panel caps its own height and scrolls, which is what the kit's inline
- * disclosure does.</para>
+ * <para>And not behind an expander either, which is what it was: with the detail
+ * standing open above a small "Choose program" button, the browse half of the
+ * screen was something an operator had to already know was there. The list is
+ * the half that says a choice exists at all, so it is the half that cannot be
+ * hidden. It caps its own height and scrolls instead, which is what the
+ * expander's panel was doing for it.</para>
  *
- * <para>Absent entirely with no catalogue to pick from: a picker offering the
- * null token is a control that cannot be used.</para>
+ * <para>The rows are buttons in a named group rather than an ARIA listbox: the
+ * kit's pick-one row (`SelectableRow`, `aria-pressed`) is what every other
+ * picker in the app is built from, and a roving-tabindex listbox is a primitive
+ * the design system would have to own before an Uplink could use one.</para>
  */
-function ProgramPicker({
+function ProgramCatalogue({
   chosen,
   onPick,
   programs,
@@ -215,20 +254,15 @@ function ProgramPicker({
   onPick: (name: string) => void;
   programs: readonly Rp1ProgramEntry[];
 }>) {
-  if (programs.length === 0) {
-    return null;
-  }
   return (
-    <Disclosure
-      ariaLabel="Choose a Program"
-      asButton
-      buttonSize="sm"
-      chevron={false}
-      label={(open: boolean) => (open ? "Hide programs" : "Choose program")}
-      panelHeight="cap"
-      variant="inline"
-    >
-      <Stack gap="xs">
+    <Section gap="xs">
+      <SectionTitle>CATALOGUE</SectionTitle>
+      <Stack
+        aria-label="Program catalogue"
+        gap="xs"
+        role="group"
+        style={CATALOGUE_SCROLL}
+      >
         {ordered(programs).map((program) => (
           <SelectableRow
             key={program.name ?? ""}
@@ -244,7 +278,7 @@ function ProgramPicker({
           </SelectableRow>
         ))}
       </Stack>
-    </Disclosure>
+    </Section>
   );
 }
 
@@ -263,125 +297,146 @@ function ChosenProgram({
   const closes = program.programsToDisableOnAccept ?? [];
   return (
     <Stack gap="md">
-      {/* No heading of its own: the section's title row names this Program and
-          carries its state badge, and repeating either here is the stacked
-          heading the operator objected to. */}
-      <Section>
-        <Stack as="ul" gap="xs" style={LIST_STYLE}>
-          <Row>
-            <RowName>Speed</RowName>
-            <Text>{program.speed ?? NULL_DISPLAY}</Text>
-          </Row>
-          <Row>
-            <RowName>Slots taken</RowName>
-            <Text>
-              <Unit value={program.slots} />
-            </Text>
-          </Row>
-          <Row>
-            <RowName>Duration</RowName>
-            <Text>
-              <Unit value={program.durationSeconds} />
-            </Text>
-          </Row>
-        </Stack>
-      </Section>
+      {/* The pane's subject, named where the pane is. It sat beside the section
+          heading while the catalogue was hidden and there was only ever one
+          Program on screen; with the list standing open next to it, the name
+          has to be on the detail or nothing says which row the readings belong
+          to. `justify="start"` because it is a subject, not a row to be spread,
+          and it wraps in its own right: RP-1's titles run long ("Sounding Rocket
+          Development") and the badge-plus-title pair overflowed the panel as one
+          unbreakable item. */}
+      <Cluster gap="xs" justify="start" wrap>
+        <Badge severity={severityOf(program.state)}>
+          {(program.state ?? NULL_DISPLAY).toUpperCase()}
+        </Badge>
+        <Text weight="semibold">{label(program)}</Text>
+      </Cluster>
 
+      {/* Above the grid rather than in it: it is the one thing on this pane that
+          SPENDS, so it keeps the full width of the pane and a fixed place
+          directly under the Program it would accept, whatever the readings
+          below it do at this width. */}
       <AcceptControl
         confidenceHeld={confidenceHeld}
         handle={accept}
         program={program}
       />
 
-      {present(program.objectivesText) !== undefined && (
+      {/* The readings, left to right when the pane is wide enough for two
+          columns of them and stacked when it is not. */}
+      <Grid cols={DETAIL_COLUMNS} gap="md" align="start">
         <Section>
-          <SectionTitle>OBJECTIVES</SectionTitle>
-          <Text>{program.objectivesText}</Text>
-        </Section>
-      )}
-
-      {present(program.requirementsText) !== undefined && (
-        <Section>
-          {/* RP-1 shows the requirements only on a Program not yet accepted,
-              because on a running one they are history. The row follows: the
-              Uplink leaves the field absent once a Program is accepted. */}
-          <SectionTitle>REQUIREMENTS</SectionTitle>
-          <Text>{program.requirementsText}</Text>
-        </Section>
-      )}
-
-      <Section>
-        <SectionTitle>FUNDING</SectionTitle>
-        <Stack as="ul" gap="xs" style={LIST_STYLE}>
-          <Row>
-            <RowName>Total</RowName>
-            <Text>
-              <Unit value={program.totalFunding} />
-            </Text>
-          </Row>
-          <Row>
-            <RowName>Paid out</RowName>
-            <Text>
-              <Unit value={program.fundsPaidOut} />
-            </Text>
-          </Row>
-          <Row>
-            <RowName>Remaining</RowName>
-            <Text>
-              <Unit value={program.fundsRemaining} />
-            </Text>
-          </Row>
-          <Row>
-            <RowName>Curve</RowName>
-            <Text>{curveName(program, curves)}</Text>
-          </Row>
-          <Row>
-            <RowName>
-              {present(program.completedUt) === undefined
-                ? "Deadline"
-                : "Completed"}
-            </RowName>
-            <Text>
-              <MissionDateOrAbsent
-                ut={program.completedUt ?? program.deadlineUt}
-              />
-            </Text>
-          </Row>
-          <Row>
-            <RowName>Accepted</RowName>
-            <Text>
-              <MissionDateOrAbsent ut={program.acceptedUt} />
-            </Text>
-          </Row>
-        </Stack>
-      </Section>
-
-      <FundingCurveChart program={program} curves={curves} />
-
-      <PaymentSchedule payments={program.fundingPayments} />
-
-      <SpeedLadder
-        options={program.speedOptions}
-        chosen={program.speed}
-        confidenceHeld={confidenceHeld}
-      />
-
-      {closes.length > 0 && (
-        <Section>
-          {/* The cost in neither currency. A rival Program taken off the table
-              is funding the career can never draw, and nothing else on any
-              screen says so before the decision is made. */}
-          <SectionTitle>CLOSES OFF ON ACCEPT</SectionTitle>
+          <SectionTitle>TERMS</SectionTitle>
           <Stack as="ul" gap="xs" style={LIST_STYLE}>
-            {closes.map((name) => (
-              <Row key={name}>
-                <RowName>{name}</RowName>
-                <Text />
-              </Row>
-            ))}
+            <Row wrap>
+              <RowName>Speed</RowName>
+              <Text>{program.speed ?? NULL_DISPLAY}</Text>
+            </Row>
+            <Row wrap>
+              <RowName>Slots taken</RowName>
+              <Text>
+                <Unit value={program.slots} />
+              </Text>
+            </Row>
+            <Row wrap>
+              <RowName>Duration</RowName>
+              <Text>
+                <Unit value={program.durationSeconds} />
+              </Text>
+            </Row>
           </Stack>
         </Section>
-      )}
+
+        {present(program.objectivesText) !== undefined && (
+          <Section>
+            <SectionTitle>OBJECTIVES</SectionTitle>
+            <Text>{program.objectivesText}</Text>
+          </Section>
+        )}
+
+        {present(program.requirementsText) !== undefined && (
+          <Section>
+            {/* RP-1 shows the requirements only on a Program not yet accepted,
+              because on a running one they are history. The row follows: the
+              Uplink leaves the field absent once a Program is accepted. */}
+            <SectionTitle>REQUIREMENTS</SectionTitle>
+            <Text>{program.requirementsText}</Text>
+          </Section>
+        )}
+
+        <Section>
+          <SectionTitle>FUNDING</SectionTitle>
+          <Stack as="ul" gap="xs" style={LIST_STYLE}>
+            <Row wrap>
+              <RowName>Total</RowName>
+              <Text>
+                <Unit value={program.totalFunding} />
+              </Text>
+            </Row>
+            <Row wrap>
+              <RowName>Paid out</RowName>
+              <Text>
+                <Unit value={program.fundsPaidOut} />
+              </Text>
+            </Row>
+            <Row wrap>
+              <RowName>Remaining</RowName>
+              <Text>
+                <Unit value={program.fundsRemaining} />
+              </Text>
+            </Row>
+            <Row wrap>
+              <RowName>Curve</RowName>
+              <Text>{curveName(program, curves)}</Text>
+            </Row>
+            <Row wrap>
+              <RowName>
+                {present(program.completedUt) === undefined
+                  ? "Deadline"
+                  : "Completed"}
+              </RowName>
+              <Text>
+                <MissionDateOrAbsent
+                  ut={program.completedUt ?? program.deadlineUt}
+                />
+              </Text>
+            </Row>
+            <Row wrap>
+              <RowName>Accepted</RowName>
+              <Text>
+                <MissionDateOrAbsent ut={program.acceptedUt} />
+              </Text>
+            </Row>
+          </Stack>
+        </Section>
+
+        <FundingCurveChart program={program} curves={curves} />
+
+        <PaymentSchedule payments={program.fundingPayments} />
+
+        <SpeedLadder
+          options={program.speedOptions}
+          chosen={program.speed}
+          confidenceHeld={confidenceHeld}
+        />
+
+        {closes.length > 0 && (
+          <Section>
+            {/* The cost in neither currency. A rival Program taken off the table
+              is funding the career can never draw, and nothing else on any
+              screen says so before the decision is made. */}
+            <SectionTitle>CLOSES OFF ON ACCEPT</SectionTitle>
+            <Stack as="ul" gap="xs" style={LIST_STYLE}>
+              {closes.map((name) => (
+                <Row key={name}>
+                  <RowName>{name}</RowName>
+                  <Text />
+                </Row>
+              ))}
+            </Stack>
+          </Section>
+        )}
+      </Grid>
     </Stack>
   );
 }
@@ -643,10 +698,16 @@ function PaymentSchedule({
         rowKey={(row) => String(magnitudeOf(row.year) ?? "")}
         columns={[
           {
+            /* "Year", not "Nominal year". The caption above already says which
+               calendar these are counted on, and the longer header was the
+               widest thing in the table: it held all three columns 6ch wider
+               than the readings need and pushed "Cumulative" into the table's
+               own horizontal scroller at the Administration Building's narrower
+               tiles. */
             key: "year",
-            header: "Nominal year",
+            header: "Year",
             render: (row) => <Unit value={row.year} />,
-            minWidth: "12ch",
+            minWidth: "6ch",
           },
           {
             key: "funds",
@@ -707,7 +768,10 @@ function SpeedLadder({
                 )}
               </Text>
             ),
-            minWidth: "14ch",
+            /* The speeds are one short word each ("Slow", "Normal", "Fast");
+               the floor only has to hold the widest of them beside its SELECTED
+               badge, which wraps under it. */
+            minWidth: "9ch",
           },
           {
             key: "confidence",
@@ -724,14 +788,19 @@ function SpeedLadder({
                 )}
               </Text>
             ),
-            minWidth: "12ch",
+            /* The header is the widest thing in this column: the prices are
+               three digits and the SHORT badge wraps under them. */
+            minWidth: "10ch",
           },
           {
             key: "duration",
             header: "Term",
             align: "end",
             render: (row) => <Unit value={row.durationSeconds} />,
-            minWidth: "10ch",
+            /* "9y 183d" is the widest term RP-1 offers and the header is
+               shorter than that, so 8ch is the column and 10ch was 2ch of slack
+               the narrow tiles could not spare. */
+            minWidth: "8ch",
           },
         ]}
       />

@@ -15,17 +15,19 @@ import {
   AugmentSlot,
   CommandButton,
   type CommandButtonHandle,
+  Divider,
+  Grid,
   NULL_DISPLAY,
   Panel,
   ScrollArea,
   Section,
-  Stack,
   speakQuantity,
   type TabDescriptor,
   Tabs,
   Unit,
   useContributions,
   usePanelDelay,
+  useSlotBound,
 } from "@ksp-gonogo/ui-kit";
 import type { Dispatch, SetStateAction } from "react";
 import { useMemo, useState } from "react";
@@ -575,114 +577,148 @@ function ScreenSections({
   setExpandedId,
 }: Readonly<ScreenSectionsProps>) {
   const { active, available, softBlocked, ineligible } = partition(strategies);
+  /* Whether anything is bound to the body slot at all, so the rule that
+     separates the widget's lists from an Uplink's body is not drawn across a
+     stock career where there is nothing on the other side of it. */
+  const bodyBound = useSlotBound("strategies.screen-body");
   return (
     <ScrollArea>
-      <DividedSection aria-label="Active">
-        <SectionLabel>Active</SectionLabel>
-        {active.length === 0 ? (
-          <Empty>No active strategies.</Empty>
-        ) : (
-          active.map((s) => (
-            <StrategyCard key={s.id} $active>
-              <CardHeader>
-                <CardTitle>{s.title}</CardTitle>
-                {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-              </CardHeader>
-              {s.description && <Description>{s.description}</Description>}
-              <EffectList>
-                {parseEffectLines(s.effect).map((line, i) => (
-                  // Effect lines are static, non-reorderable text; index keeps
-                  // otherwise-identical lines from colliding.
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
-                  <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
-                ))}
-              </EffectList>
-              <CardFooter>
-                <FactorTag>
-                  factor{" "}
-                  <Unit value={value("%", s.factor * 100)} decimals={0} />
-                </FactorTag>
-                <CommandButton
-                  handle={deactivateCmd}
-                  args={{ strategyId: s.id }}
-                  commandLabel={`Deactivate ${s.title}`}
-                  label="Deactivate"
-                  confirmLabel="Confirm deactivate"
-                  pendingLabel="Deactivating..."
-                  active
-                  tone="go"
-                  disabled={!s.canDeactivate}
-                  title={
-                    s.canDeactivate
-                      ? "Deactivate this strategy"
-                      : s.deactivateBlockedReason || "Cannot deactivate"
-                  }
-                />
-              </CardFooter>
-            </StrategyCard>
-          ))
-        )}
-      </DividedSection>
+      {/* ONE box owns the screen's inset, and everything on the screen is in
+          it, the augment included. The augment slot used to be a bare sibling
+          of three self-padding sections, so an Uplink's body sat 12px further
+          left than the lists above it and the two halves of one screen read as
+          two widgets. Nothing here carries a padding of its own now: the inset
+          is this box's and only this box's. */}
+      <ScreenInset data-strategies-screen-inset="">
+        {/* Left to right when there is width for it, top to bottom when there
+            is not. The same `auto-fit` + `minmax` mechanism Panel's own
+            sections grid uses, at Panel's own 13rem column floor, because this
+            screen cannot reach that grid: the tab strip means the whole body is
+            one `Section full` as far as Panel is concerned, and a full section
+            never columnises. `min(...,100%)` clamps the track to the panel so a
+            narrow tile stacks rather than scrolling sideways. */}
+        <Grid cols={SCREEN_COLUMNS} gap="md" align="start">
+          <Section as="section" aria-label="Active" title="Active" gap="md">
+            {active.length === 0 ? (
+              <Empty>No active strategies.</Empty>
+            ) : (
+              active.map((s) => (
+                <StrategyCard key={s.id} $active>
+                  <CardHeader>
+                    <CardTitle>{s.title}</CardTitle>
+                    {showDepartment && <CardDept>{s.departmentName}</CardDept>}
+                  </CardHeader>
+                  {s.description && <Description>{s.description}</Description>}
+                  <EffectList>
+                    {parseEffectLines(s.effect).map((line, i) => (
+                      // Effect lines are static, non-reorderable text; index keeps
+                      // otherwise-identical lines from colliding.
+                      // biome-ignore lint/suspicious/noArrayIndexKey: static effect text, never reordered
+                      <EffectLine key={`${i}:${line}`}>{line}</EffectLine>
+                    ))}
+                  </EffectList>
+                  <CardFooter>
+                    <FactorTag>
+                      factor{" "}
+                      <Unit value={value("%", s.factor * 100)} decimals={0} />
+                    </FactorTag>
+                    <CommandButton
+                      handle={deactivateCmd}
+                      args={{ strategyId: s.id }}
+                      commandLabel={`Deactivate ${s.title}`}
+                      label="Deactivate"
+                      confirmLabel="Confirm deactivate"
+                      pendingLabel="Deactivating..."
+                      active
+                      tone="go"
+                      disabled={!s.canDeactivate}
+                      title={
+                        s.canDeactivate
+                          ? "Deactivate this strategy"
+                          : s.deactivateBlockedReason || "Cannot deactivate"
+                      }
+                    />
+                  </CardFooter>
+                </StrategyCard>
+              ))
+            )}
+          </Section>
 
-      <DividedSection aria-label="Available">
-        <SectionLabel>Available</SectionLabel>
-        {available.length === 0 && softBlocked.length === 0 ? (
-          <Empty>No strategies available right now.</Empty>
-        ) : (
+          <Section
+            as="section"
+            aria-label="Available"
+            title="Available"
+            gap="md"
+          >
+            {available.length === 0 && softBlocked.length === 0 ? (
+              <Empty>No strategies available right now.</Empty>
+            ) : (
+              <>
+                {available.map((s) => (
+                  <AvailableRow
+                    key={s.id}
+                    strategy={s}
+                    showDepartment={showDepartment}
+                    funds={magnitudeOf(funds)}
+                    reputation={magnitudeOf(reputation)}
+                    science={magnitudeOf(science)}
+                    balancesNotCurrent={balancesNotCurrent}
+                    factor={factorById[s.id] ?? s.factorSliderDefault}
+                    onFactorChange={(v) =>
+                      setFactorById((prev) => ({ ...prev, [s.id]: v }))
+                    }
+                    activateCmd={activateCmd}
+                    expanded={expandedId === s.id}
+                    onToggleExpanded={() =>
+                      setExpandedId(expandedId === s.id ? null : s.id)
+                    }
+                  />
+                ))}
+                {softBlocked.map((s) => (
+                  <StrategyCard key={s.id}>
+                    <CardHeader>
+                      <CardTitle>{s.title}</CardTitle>
+                      {showDepartment && (
+                        <CardDept>{s.departmentName}</CardDept>
+                      )}
+                    </CardHeader>
+                    <BlockedNote>
+                      Deactivate the running strategy first to enable this one.
+                    </BlockedNote>
+                  </StrategyCard>
+                ))}
+              </>
+            )}
+          </Section>
+
+          {ineligible.length > 0 && (
+            <Section as="section" aria-label="Locked" title="Locked" gap="md">
+              {ineligible.map((s) => (
+                <StrategyCard key={s.id}>
+                  <CardHeader>
+                    <CardTitle>{s.title}</CardTitle>
+                    {showDepartment && <CardDept>{s.departmentName}</CardDept>}
+                  </CardHeader>
+                  <BlockedNote>{s.activateBlockedReason}</BlockedNote>
+                </StrategyCard>
+              ))}
+            </Section>
+          )}
+        </Grid>
+
+        {/* Outside the grid rather than a fourth cell in it: an augment brings
+            its own sections and columnises them itself against the width it is
+            given, and a cell would hand it a third of one. The rule says where
+            the widget's own lists end and the Uplink's body begins, which the
+            per-section dashed borders used to say before the grid made a
+            border-per-cell read as an underline. */}
+        {screenId !== undefined && (
           <>
-            {available.map((s) => (
-              <AvailableRow
-                key={s.id}
-                strategy={s}
-                showDepartment={showDepartment}
-                funds={magnitudeOf(funds)}
-                reputation={magnitudeOf(reputation)}
-                science={magnitudeOf(science)}
-                balancesNotCurrent={balancesNotCurrent}
-                factor={factorById[s.id] ?? s.factorSliderDefault}
-                onFactorChange={(v) =>
-                  setFactorById((prev) => ({ ...prev, [s.id]: v }))
-                }
-                activateCmd={activateCmd}
-                expanded={expandedId === s.id}
-                onToggleExpanded={() =>
-                  setExpandedId(expandedId === s.id ? null : s.id)
-                }
-              />
-            ))}
-            {softBlocked.map((s) => (
-              <StrategyCard key={s.id}>
-                <CardHeader>
-                  <CardTitle>{s.title}</CardTitle>
-                  {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-                </CardHeader>
-                <BlockedNote>
-                  Deactivate the running strategy first to enable this one.
-                </BlockedNote>
-              </StrategyCard>
-            ))}
+            {bodyBound && <Divider />}
+            <AugmentSlot name="strategies.screen-body" props={{ screenId }} />
           </>
         )}
-      </DividedSection>
-
-      {ineligible.length > 0 && (
-        <DividedSection aria-label="Locked">
-          <SectionLabel>Locked</SectionLabel>
-          {ineligible.map((s) => (
-            <StrategyCard key={s.id}>
-              <CardHeader>
-                <CardTitle>{s.title}</CardTitle>
-                {showDepartment && <CardDept>{s.departmentName}</CardDept>}
-              </CardHeader>
-              <BlockedNote>{s.activateBlockedReason}</BlockedNote>
-            </StrategyCard>
-          ))}
-        </DividedSection>
-      )}
-
-      {screenId !== undefined && (
-        <AugmentSlot name="strategies.screen-body" props={{ screenId }} />
-      )}
+      </ScreenInset>
     </ScrollArea>
   );
 }
@@ -924,28 +960,26 @@ const TinyDrainRow = styled.div`
   text-overflow: ellipsis;
 `;
 
-// Gap moves 6px to 8px: the space scale is 2/4/8/12/16 and has no 6, so it
-// snaps to md. The padding and the dashed divider are this list's own.
-const DividedSection = styled(Stack).attrs({
-  // forwardedAs: `as` would be consumed by styled-components and render a bare
-  // <section>, dropping Stack's flex column. See ManeuverPlanner's note.
-  forwardedAs: "section" as const,
-  gap: "md" as const,
-})`
+/**
+ * The screen's one inset, and its one vertical rhythm. Every group on a screen
+ * is a child of this box and none of them pads itself, which is what makes the
+ * widget's own lists and an Uplink's augment body line up: the inset is a
+ * property of the screen, not of whoever happened to draw the section.
+ */
+const ScreenInset = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
   padding: var(--space-8) var(--space-12);
-  border-bottom: 1px dashed var(--color-border-subtle);
-  &:last-child {
-    border-bottom: none;
-  }
 `;
 
-const SectionLabel = styled.h4`
-  margin: 0;
-  font-size: var(--font-size-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--color-text-dim);
-`;
+/**
+ * The section grid's column template, in the same shape and at the same 13rem
+ * floor as `Panel`'s own. See `Grid`'s `cols` passthrough: `auto-fit` collapses
+ * the tracks nothing lands in, which `Grid`'s `minColWidth` shorthand (auto-FILL)
+ * would leave standing and empty on a wide tile.
+ */
+const SCREEN_COLUMNS = "repeat(auto-fit, minmax(min(13rem, 100%), 1fr))";
 
 const Empty = styled.p`
   margin: 0;

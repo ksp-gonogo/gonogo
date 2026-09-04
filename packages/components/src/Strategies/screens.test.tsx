@@ -378,6 +378,47 @@ describe("Strategies: the screen contribution slot", () => {
   });
 
   /*
+   * The margin complaint, as a structure: "the programs section seems to use the
+   * correct margin but the active/program detail sections have a tighter
+   * margin".
+   *
+   * The augment slot used to be a bare sibling of three sections that each padded
+   * THEMSELVES, so the widget's own lists sat 12px in from the panel body while
+   * an Uplink's body sat flush against it, and the two halves of one screen read
+   * as two widgets. jsdom lays nothing out, so the assertion is on what the fix
+   * actually is: ONE box carries the screen's inset and everything on the screen
+   * is inside it, so nothing below can pad itself back out of agreement.
+   */
+  it("puts an augment's body inside the same inset box as the widget's own sections", async () => {
+    registerContribution({
+      id: "test-programs-screen",
+      contributes: "strategies.screens",
+      compute: () => [
+        { id: "programs", label: "Programs", departments: ["Programs"] },
+      ],
+    });
+    registerAugment({
+      id: "test-programs-body",
+      augments: "strategies.screen-body",
+      component: () => <div data-testid="screen-body">body</div>,
+    });
+    const { container, stream } = renderWidget();
+    act(() => {
+      emitCareer(stream, RP1_CAREER);
+    });
+    await screen.findByTestId("screen-body");
+
+    const inset = container.querySelector<HTMLElement>(
+      "[data-strategies-screen-inset]",
+    );
+    expect(inset).not.toBeNull();
+    if (inset === null) return;
+    expect(within(inset).getByLabelText("Active")).toBeInTheDocument();
+    expect(within(inset).getByLabelText("Available")).toBeInTheDocument();
+    expect(within(inset).getByTestId("screen-body")).toBeInTheDocument();
+  });
+
+  /*
    * Caught by looking at the render rather than by a test: inside the Programs
    * tab every card carried a "PROGRAMS" chip, which is the tab's own name written
    * out once per row.
