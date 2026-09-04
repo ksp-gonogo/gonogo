@@ -6,11 +6,12 @@
       "w": 12,
       "h": 16
     },
-    "caption": "The same career read from the flight scene: KSP has not put the buildings in the scene, so every tier and every price is absent and the command's own gate refuses. Said out loud, because a career with nothing left to upgrade renders the same silence, and said with the half an operator would otherwise fear, that an upgrade already under way is still building",
+    "caption": "The same career with neither tier channel answering. \"career.status\" reads the live buildings, which KSP puts in the scene only at the space centre, and RP-1's own cost table has not loaded, so this is a cold start rather than a place. Said out loud, because a career with nothing left to upgrade renders the same silence, and said with the half an operator would otherwise fear, that an upgrade already under way is still building. The host's grid says the same thing once rather than nine times",
     "paints": [
       "FACILITY UPGRADES",
-      "in the scene only at the space centre",
-      "keeps building wherever you are"
+      "No tiers have arrived",
+      "keeps building wherever you are",
+      "No facility tiers on this telemetry"
     ]
   },
   "_stream": {
