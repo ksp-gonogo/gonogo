@@ -33,6 +33,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
@@ -56,6 +60,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
@@ -79,6 +87,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
@@ -102,6 +114,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
@@ -125,6 +141,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
@@ -148,6 +168,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
@@ -171,6 +195,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
@@ -194,6 +222,10 @@
             "transitionType": 1,
             "transitionUt": 600,
             "bodyIndex": 2
+          },
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
           }
         },
         "meta": {
