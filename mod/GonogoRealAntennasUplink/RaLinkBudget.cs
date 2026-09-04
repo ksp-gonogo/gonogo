@@ -98,6 +98,59 @@ namespace Gonogo.RealAntennasUplink
         public static bool ClosesLink(double marginDb) => marginDb >= 0.0;
 
         /// <summary>
+        /// The separation, metres, at which this budget's margin reaches exactly
+        /// 0 dB: the greatest distance the link closes over, and RA's answer to
+        /// the reach question the comms seam asks
+        /// (<c>Sitrep.Contract.ICommsReachModel</c>).
+        ///
+        /// <para><see cref="LinkMarginDb"/> solved for distance, not a search.
+        /// Distance enters the budget only through
+        /// <see cref="PathLossDb"/>'s <c>20*log10(d*f)</c>, so setting the
+        /// margin to zero and rearranging gives
+        /// <c>d = 10^(B/20) / f</c> where <c>B</c> is everything else in the
+        /// budget: <c>txPower + txGain + rxGain - noiseFloor - requiredEbN0 -
+        /// pathLossConstant</c>. Exact, and cheap enough to do per pair per
+        /// capture.</para>
+        ///
+        /// <para>Null rather than a number when the budget cannot be closed at
+        /// any distance, or when an input makes the question meaningless: a
+        /// non-positive frequency or symbol rate, or a non-finite result. Absent
+        /// is the honest answer there and it is NOT zero, which would assert
+        /// that this pair reaches nowhere on the strength of a failed
+        /// read.</para>
+        ///
+        /// <para>ONE DIRECTION. RA requires a positive data rate BOTH ways
+        /// before it will carry a link, so a pair's reach is the SHORTER of its
+        /// two directional maxima; this returns one of them and the caller takes
+        /// the minimum (see <c>RaReach</c>).</para>
+        /// </summary>
+        public static double? MaxRangeMeters(
+            double txPowerDbm,
+            double txGainDbi,
+            double rxGainDbi,
+            double frequencyHz,
+            double noiseTempKelvin,
+            double symbolRateHz,
+            double requiredEbN0Db)
+        {
+            if (frequencyHz <= 0 || symbolRateHz <= 0)
+            {
+                return null;
+            }
+
+            double noiseFloor = NoiseSpectralDensityDbm(noiseTempKelvin) + 10.0 * Math.Log10(symbolRateHz);
+            double budgetDb = txPowerDbm + txGainDbi + rxGainDbi - noiseFloor - requiredEbN0Db - PathLossConstantDb;
+            double distance = Math.Pow(10.0, budgetDb / 20.0) / frequencyHz;
+
+            // net48 has no double.IsFinite, hence the explicit pair of tests.
+            if (double.IsNaN(distance) || double.IsInfinity(distance) || distance < 0.0)
+            {
+                return null;
+            }
+            return distance;
+        }
+
+        /// <summary>
         /// Normalise a link margin (dB) to a 0..1 quality for
         /// <c>comms.linkQuality</c>. Maps a <paramref name="fullScaleDb"/>-wide
         /// window ending at 0 dB (link-close) onto [0,1]: at/below

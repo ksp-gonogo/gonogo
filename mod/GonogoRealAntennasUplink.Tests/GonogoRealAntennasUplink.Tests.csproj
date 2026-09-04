@@ -30,6 +30,14 @@
     <!-- RaLinkDirection is the pure, KSP-free up/down resolver for the RA link's
          forward/reverse rates; RaLinkDirectionTests exercises both orientations. -->
     <Compile Include="..\GonogoRealAntennasUplink\RaLinkDirection.cs" />
+    <!-- RaReach is RA's answer to the comms seam's reach question. Its live half
+         needs RaReflection and so a running RA, but the branch worth pinning
+         headlessly is the fail-soft one: an unreadable surface must degrade to
+         ABSENT and not to "nothing reaches", because the second darkens every
+         contact prediction on the strength of a failed read. RaReflection comes
+         with it and is itself KSP-free (it reaches RA only by reflection). -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaReach.cs" />
+    <Compile Include="..\GonogoRealAntennasUplink\RaReflection.cs" />
   </ItemGroup>
 
   <!-- RaRouting.cs is the RA route between two nodes, carved out of

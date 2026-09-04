@@ -708,6 +708,8 @@ namespace Sitrep.Host.IntegrationTests
             // opinion declares. Nothing in this fixture's delay/reveal-gate
             // subject matter reads it; it is here because the shared shape
             // requires every backend to name its geometry.
+            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
         }
     }

@@ -52,6 +52,10 @@
          under the KspManaged gate below, calls into it, so it has to be here
          unconditionally rather than beside it. -->
     <Compile Include="..\Gonogo.KSP\CommNetOcclusion.cs" />
+    <!-- CommNetReach.cs is the same carve-out for stock's REACH rule: the three
+         antenna-power pairings, KSP-free, with the live reads (the two nodes'
+         powers, the game's own range model) left in CommNetBackend.cs. -->
+    <Compile Include="..\Gonogo.KSP\CommNetReach.cs" />
     <!-- The maneuver WRITE-path ownership RULE, carved out of KspVesselActuator
          so it carries no KSP dependency - same discipline as CommNetOcclusion
          above, and for a sharper reason: the actuator's command bodies reference

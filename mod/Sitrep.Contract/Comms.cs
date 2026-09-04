@@ -520,6 +520,39 @@ public interface ICommsBackend : ISitrepProvider
     IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
 
     /// <summary>
+    /// The reach rule this backend applies between two nodes: how far apart
+    /// they can be and still carry a link (see <see cref="ICommsReachModel"/>
+    /// for the whole rule, and <c>CommsReach.cs</c>'s header for why core
+    /// cannot answer it for anybody).
+    ///
+    /// <para>It is on the interface for the same reason
+    /// <see cref="OcclusionModel"/> and <see cref="RouteBetween"/> are, and the
+    /// consequence of its absence was the worst of the three: nothing declared
+    /// reach, so <c>Sitrep.Propagation.Visibility</c> modelled the geometry and
+    /// nothing else, and every contact prediction promised reacquisition on
+    /// line of sight alone. That is a PREDICTION an operator plans against
+    /// rather than a readout they can check against the game, which is what
+    /// makes it worse than a wrong number on screen.</para>
+    ///
+    /// <para><paramref name="from"/> and <paramref name="to"/> are OPAQUE node
+    /// handles on exactly the terms <see cref="RouteBetween"/> established: both
+    /// shipped backends read them as a KSP <c>CommNet.CommNode</c>, and a
+    /// backend handed something it does not recognise declares nothing rather
+    /// than guessing.</para>
+    ///
+    /// <para>NEVER null: a backend that cannot rate the pair returns
+    /// <see cref="CommsReachModels.Unknown"/>, whose maximum is ABSENT. Absent
+    /// asserts no limit and leaves the consumer predicting what it can, which is
+    /// the only honest fallback here (<see cref="CommsReachModels.Unknown"/>
+    /// carries the argument for why there is no conservative guess to make).
+    /// Live read to BUILD the rule, so main thread only, on the same
+    /// capture-on-main seam as every accessor above; the model it returns is
+    /// thereafter pure arithmetic and safe anywhere, including a sweep
+    /// evaluating it at thousands of future instants off-thread.</para>
+    /// </summary>
+    ICommsReachModel ReachModel(object? from, object? to);
+
+    /// <summary>
     /// The occlusion geometry this backend applies: which radius of a body
     /// actually blocks a radio path through it (see
     /// <see cref="ICommsOcclusionModel"/>). Stock CommNet shrinks the body by

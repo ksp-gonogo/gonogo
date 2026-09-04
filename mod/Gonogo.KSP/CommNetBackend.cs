@@ -278,6 +278,73 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Stock's reach rule for a pair of nodes, from the LIVE range model and
+        /// the two nodes' own antenna powers (see <see cref="CommNetReach"/> for
+        /// the rule and where it was read from).
+        ///
+        /// <para><c>CommNetScenario.RangeModel</c> is asked rather than
+        /// re-derived: stock ships more than one and a career can be running
+        /// either, so this reports the rule in force instead of a guess at
+        /// it.</para>
+        ///
+        /// <para>Fail-soft to <see cref="CommsReachModels.Unknown"/>, whose
+        /// maximum is ABSENT, for a handle that is not a stock node, a range
+        /// model the scenario has not stood up yet (main menu), or a read that
+        /// threw on torn-down state. Absent, not zero: a zero would assert that
+        /// nothing reaches and darken every prediction on the strength of a
+        /// failed read, where absent leaves the consumer predicting exactly what
+        /// it could before.</para>
+        /// </summary>
+        public ICommsReachModel ReachModel(object? from, object? to)
+        {
+            try
+            {
+                if (from is not CommNode start || to is not CommNode end)
+                {
+                    return CommsReachModels.Unknown;
+                }
+
+                var rangeModel = CommNetScenario.RangeModel;
+                if (rangeModel == null)
+                {
+                    return CommsReachModels.Unknown;
+                }
+
+                return CommNetReach.Model(
+                    start.antennaRelay?.power ?? 0.0,
+                    start.antennaTransmit?.power ?? 0.0,
+                    end.antennaRelay?.power ?? 0.0,
+                    end.antennaTransmit?.power ?? 0.0,
+                    start.distanceOffset + end.distanceOffset,
+                    rangeModel.GetMaximumRange);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] CommNetBackend.ReachModel failed (declaring no reach rule): " + ex.Message);
+                return CommsReachModels.Unknown;
+            }
+        }
+
+        /// <summary>
+        /// The node stock's own <c>ControlPath</c> terminates at, as an opaque
+        /// handle for core to resolve (see
+        /// <see cref="ICommsBackend.ControlPathTerminus"/> for why the split
+        /// falls here rather than at a named centre).
+        /// </summary>
+        public object? ControlPathTerminus()
+        {
+            try
+            {
+                return TerminalNode(Connection()?.ControlPath?.Last);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] CommNetBackend.ControlPathTerminus failed (treating as no terminus): " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Stock's occlusion geometry, built from the LIVE difficulty settings
         /// (see <see cref="CommNetOcclusion"/> for the rule itself). The two
         /// multipliers are per-save and player-settable, so they are read here

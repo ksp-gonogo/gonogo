@@ -71,6 +71,8 @@ namespace Gonogo.KSP.Tests.Comms
             public CommsControlState ControlState() => throw new NotSupportedException();
             public CommsPath Path() => throw new NotSupportedException();
             public CommsNetwork Network() => throw new NotSupportedException();
+            public ICommsReachModel ReachModel(object? from, object? to) => throw new NotSupportedException();
+
             public ICommsOcclusionModel OcclusionModel() => throw new NotSupportedException();
         }
 

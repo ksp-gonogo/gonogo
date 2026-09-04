@@ -173,14 +173,31 @@ namespace Gonogo.KSP.SilenceTracking
             // geometry's own first station. Any other order compares two
             // different points on the planet and reports their separation - up
             // to a body diameter - as frame error.
+            // Reach rides alongside each station rather than being taken once,
+            // because it is a fact about a PAIR: RSS/RealAntennas fly a dozen
+            // stations that do not share an antenna, so one limit for all of
+            // them would either shorten the good ones or flatter the weak.
             var stations = new List<RotatingGroundStation>();
+            var reachLimits = new List<double?>();
+            var vesselNode = VesselNode(sample.VesselId);
+            var reachModelId = CommsReachModels.UnknownModelId;
             var chosenStation = StationOn(stationBody, comm, longitudeOffset);
-            if (chosenStation != null) stations.Add(chosenStation.Value);
+            if (chosenStation != null)
+            {
+                stations.Add(chosenStation.Value);
+                var reach = ReachTo(vesselNode, comm);
+                reachModelId = reach.ModelId;
+                reachLimits.Add(reach.MaxRangeMeters);
+            }
             foreach (var node in stationNodes)
             {
                 if (ReferenceEquals(node, comm)) continue;
                 var on = StationOn(stationBody, node, longitudeOffset);
-                if (on != null) stations.Add(on.Value);
+                if (on != null)
+                {
+                    stations.Add(on.Value);
+                    reachLimits.Add(ReachTo(vesselNode, node).MaxRangeMeters);
+                }
             }
             if (stations.Count == 0)
             {
@@ -188,6 +205,7 @@ namespace Gonogo.KSP.SilenceTracking
                 return null;
             }
             SilenceTrace.StationNetwork(stationBody.bodyName, stations.Count);
+            SilenceTrace.Reach(reachModelId, reachLimits);
 
             var geometry = new OrbitToRemoteStationGeometry(
                 vessel,
@@ -195,7 +213,8 @@ namespace Gonogo.KSP.SilenceTracking
                 occluders,
                 stations,
                 OccludingRadiusOf(occlusion, stationBody),
-                _propagator);
+                _propagator,
+                reachLimits);
 
             return ReconcilesWithTheLiveScene(geometry, sample, comm, ut) ? geometry : null;
         }
@@ -719,6 +738,42 @@ namespace Gonogo.KSP.SilenceTracking
                 }
             }
             return null;
+        }
+
+        /// <summary>
+        /// The vessel's own CommNet node, the transmitting end of every pair the
+        /// reach question is asked about. Null for a vessel with no live
+        /// connection, which is the ordinary unloaded case and simply means no
+        /// backend can rate the pair: the prediction then falls back to geometry
+        /// alone, exactly as it did before reach was modelled.
+        /// </summary>
+        private static CommNode VesselNode(string vesselId)
+        {
+            var vessel = FindVessel(vesselId);
+            return vessel == null || vessel.connection == null ? null : vessel.connection.Comm;
+        }
+
+        /// <summary>
+        /// How far the ELECTED comms backend will carry the link between the
+        /// craft and one station. Its maximum being null asserts no limit and
+        /// applies no term, which is what an unelected backend, an unrateable
+        /// pair, and a vessel with no node all come back as; the model's id says
+        /// which of those it was, so a prediction that modelled geometry ONLY is
+        /// declared rather than assumed.
+        ///
+        /// <para>Asked of the seam rather than derived here for the reason
+        /// <c>CommsReach.cs</c> sets out at length: the missing half is a
+        /// different half per backend, and stock's rule applied on a
+        /// RealAntennas install reports zero reach for every craft in the game
+        /// because RA zeroes the power fields it reads.</para>
+        /// </summary>
+        private ICommsReachModel ReachTo(CommNode vesselNode, CommNode station)
+        {
+            if (vesselNode == null || station == null)
+            {
+                return CommsReachModels.Unknown;
+            }
+            return CommsElection.ReachModel(_kernel(), vesselNode, station);
         }
 
         private static double OccludingRadiusOf(ICommsOcclusionModel model, CelestialBody body)

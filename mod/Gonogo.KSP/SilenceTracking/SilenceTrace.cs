@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Gonogo.KSP.SilenceTracking
@@ -173,6 +174,36 @@ namespace Gonogo.KSP.SilenceTracking
             var line = "station network: " + stationCount + " station(s) on " + bodyName;
             if (line == _lastNetwork) return;
             _lastNetwork = line;
+            Debug.Log(Prefix + line);
+        }
+
+        private static string? _lastReach;
+
+        /// <summary>
+        /// Which reach rule the sweep is applying, and how far it says each
+        /// station carries. Worth its own line because a prediction that
+        /// modelled geometry ONLY and one that modelled a real range limit are
+        /// different claims, and until reach reached the comms seam every
+        /// prediction was silently the first. A model id of <c>"unknown"</c>
+        /// says so out loud: no backend rated the pair, so the sweep is back to
+        /// promising reacquisition on line of sight alone.
+        /// </summary>
+        public static void Reach(string modelId, IReadOnlyList<double?> limitsMeters)
+        {
+            var rated = 0;
+            var nearest = double.PositiveInfinity;
+            foreach (var limit in limitsMeters)
+            {
+                if (limit == null) continue;
+                rated++;
+                if (limit.Value < nearest) nearest = limit.Value;
+            }
+
+            var line = "reach: model=" + modelId + ", " + rated + "/" + limitsMeters.Count
+                + " station(s) rated"
+                + (rated > 0 ? ", nearest limit " + nearest.ToString("G4") + "m" : ", geometry only");
+            if (line == _lastReach) return;
+            _lastReach = line;
             Debug.Log(Prefix + line);
         }
 

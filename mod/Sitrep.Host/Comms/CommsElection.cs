@@ -119,5 +119,44 @@ namespace Sitrep.Host.Comms
                 return CommsOcclusionModels.Unknown;
             }
         }
+
+        /// <summary>
+        /// The elected backend's declared reach rule for a pair of nodes: the
+        /// other half of the same wall <see cref="OcclusionModel"/> covers, and
+        /// the read a consumer needs to answer "can these two hear each other at
+        /// all" without knowing which backend won.
+        ///
+        /// <para>Never null and never throws, on the same terms as
+        /// <see cref="OcclusionModel"/>. A missing kernel, an unresolved
+        /// capability, or a backend whose declaration throws all yield
+        /// <see cref="CommsReachModels.Unknown"/>, whose maximum is ABSENT: a
+        /// consumer then applies no reach term and predicts exactly what it
+        /// could before, rather than being handed a guess. That is where this
+        /// differs from the occlusion fallback, which CAN be conservative and
+        /// still useful; <see cref="CommsReachModels.Unknown"/> carries the
+        /// argument. A consumer that cares whether it got a real answer compares
+        /// <see cref="ICommsReachModel.ModelId"/> against
+        /// <see cref="CommsReachModels.UnknownModelId"/>.</para>
+        ///
+        /// <para>Calls into the live backend, so it belongs on the same
+        /// capture-on-main seam every other <see cref="ICommsBackend"/> read
+        /// does; the model it returns is pure and safe to carry anywhere,
+        /// including onto a sweep thread.</para>
+        /// </summary>
+        public static ICommsReachModel ReachModel(Kernel? kernel, object? from, object? to)
+        {
+            if (kernel == null)
+            {
+                return CommsReachModels.Unknown;
+            }
+            try
+            {
+                return Elected(kernel)?.ReachModel(from, to) ?? CommsReachModels.Unknown;
+            }
+            catch (Exception)
+            {
+                return CommsReachModels.Unknown;
+            }
+        }
     }
 }

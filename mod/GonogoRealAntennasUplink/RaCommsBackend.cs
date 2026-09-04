@@ -159,6 +159,14 @@ namespace Gonogo.RealAntennasUplink
             => RaRouting.Between(from, to);
 
         /// <summary>
+        /// RA's own reach rule between two nodes (see <see cref="RaReach"/> for
+        /// why stock's rule silently reports zero reach for every craft on an RA
+        /// install, which is what asking the seam instead of core fixes).
+        /// </summary>
+        public ICommsReachModel ReachModel(object? from, object? to)
+            => RaReach.Between(_ra, from, to);
+
+        /// <summary>
         /// RA's occlusion geometry: the bare body radius, no multiplier (see
         /// <see cref="RaOcclusion"/>). Nothing live to read, unlike the stock
         /// backend whose multipliers are a per-save difficulty setting, so this

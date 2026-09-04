@@ -146,6 +146,45 @@ namespace Gonogo.RealAntennasUplink
         /// </summary>
         public double? PowerDrawLinear(object antenna) => ReadDoubleMember(antenna, "PowerDrawLinear");
 
+        // ── The NODE's own antennas, for a pair that is not currently linked ─────
+        //
+        // Every accessor above reaches an antenna through a LINK, which answers
+        // "what is this hop doing" and cannot answer "how far could these two
+        // reach". A reach rule is asked about pairs that are NOT connected (that
+        // is the whole point of a prediction), so the antennas have to come off
+        // the nodes instead.
+
+        /// <summary>
+        /// A node's antennas: <c>RACommNode.RAAntennaList</c>, a public
+        /// <c>List&lt;RealAntenna&gt;</c>. Empty rather than null when the handle
+        /// is not an RA node, the property has moved, or the list is unset, so a
+        /// caller loops over nothing rather than branching on null.
+        /// </summary>
+        public IReadOnlyList<object> NodeAntennas(object? node)
+        {
+            var read = ReadMember(node, "RAAntennaList");
+            if (read is not System.Collections.IEnumerable list)
+            {
+                return new object[0];
+            }
+            var antennas = new List<object>();
+            try
+            {
+                foreach (var antenna in list)
+                {
+                    if (antenna != null)
+                    {
+                        antennas.Add(antenna);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                return new object[0];
+            }
+            return antennas;
+        }
+
         private static object? ReadObject(PropertyInfo? property, object? target)
         {
             if (property == null || target == null)
