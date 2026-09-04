@@ -261,8 +261,8 @@ const DEFAULT_BAND_OPACITY = 0.2;
  * not a severity.
  *
  * 0.6 keeps the series colours the app actually uses above the 3:1 that WCAG
- * 1.4.11 asks of non-text UI against the dark surface they sit on (`#00ff88`
- * over `--color-surface-app` lands near 5.5:1 at this alpha), so the mute
+ * 1.4.11 asks of non-text UI against the dark surface they sit on: the accent
+ * green lands near 5.5:1 over `--color-surface-app` at this alpha. So the mute
  * reads as lower confidence without becoming an accessibility problem of its
  * own. The dash is the channel that survives greyscale and a colour-vision
  * deficiency, and it is why the mute is allowed to be subtle.

@@ -71,9 +71,11 @@ async function main(): Promise<void> {
 
   const htmlTemplate = await readFile(PROBE_HTML_TEMPLATE, "utf8");
   const theme = themeCss(await readFile(THEME_TOKENS_CSS, "utf8"));
-  // Same `$&` / `</script>` escaping as the widget harness: bundled React code
-  // contains a literal `$&`, which string-form .replace reads as a
-  // backreference.
+  /*
+   * Same `$&` / `</script>` escaping as the widget harness: bundled React code
+   * contains a literal `$&`, which string-form .replace reads as a
+   * backreference.
+   */
   const escapedBundle = bundleJs.replace(/<\/script/gi, "<\\/script");
   const htmlWithBundle = htmlTemplate
     .replace(

@@ -200,9 +200,11 @@ export function buildSegmentedPath(
   if (spans.length === 0 && reckoned.length === 0) {
     return [{ d: builder(ts, vs, scaleX, scaleY, breaks) }];
   }
-  // Both annotations are inclusive index runs that may name indices this slice
-  // does not have (a window trimmed since the run was built), so both are
-  // clamped rather than trusted.
+  /*
+   * Both annotations are inclusive index runs that may name indices this slice
+   * does not have, a window having been trimmed since the run was built, so
+   * both are clamped rather than trusted.
+   */
   function paint<R extends { from: number; to: number }, T>(
     runs: readonly R[],
     pick: (run: R) => T,
