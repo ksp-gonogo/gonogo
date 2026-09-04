@@ -313,7 +313,13 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul](docs/assets/pad-rolling-out--default.png)
 
-![The Program catalogue open as a list of rows rather than a dropdown: each carries its own state, the running one sorts first, and the Program every reading below belongs to is named beside the section heading rather than under it](docs/assets/catalogue-picker--default.png)
+![The Program catalogue standing open beside the detail of the Program picked out of it: each row carries its own state, the running one sorts first, and the pair lays out left to right whenever the tile is wide enough for two panes](docs/assets/catalogue-picker--default.png)
+
+![The same widget at 9 × 8](docs/assets/catalogue-picker--mobile-9x8.png)
+
+![The same widget at 5 × 18](docs/assets/catalogue-picker--portrait-5x18.png)
+
+![The same widget at 18 × 5](docs/assets/catalogue-picker--landscape-18x5.png)
 
 ![A Program that has closed: the deadline row becomes the completion date, the funding is paid out in full, and nothing remains to plan against](docs/assets/completed-program--default.png)
 
