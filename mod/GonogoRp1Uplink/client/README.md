@@ -315,7 +315,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A rollout in progress: the pad row names the vehicle by joining the operation's vessel id against the warehouse, and counts down what is left of the haul](docs/assets/pad-rolling-out--default.png)
 
-![The Program catalogue standing open beside the detail of the Program picked out of it: each row carries its own state, the running one sorts first, and the pair lays out left to right whenever the tile is wide enough for two panes](docs/assets/catalogue-picker--default.png)
+![The Program catalogue standing open beside the detail of the Program picked out of it: each row names its Program first and carries its state at the end of the line, the running one sorts first, a filter box under the list narrows a career's worth of Programs by name or state, and the pair lays out left to right whenever the tile is wide enough for two panes](docs/assets/catalogue-picker--default.png)
 
 ![The same widget at 9 × 8](docs/assets/catalogue-picker--mobile-9x8.png)
 
