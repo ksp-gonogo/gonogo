@@ -207,14 +207,11 @@ namespace Gonogo.KSP.SilenceTracking
         /// and changes hop by hop, while an occultation prediction only needs a
         /// representative endpoint on the right body.
         ///
-        /// <para>Reads the LIVE CommNet graph rather than
-        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c>. With a network-replacing backend
-        /// that scene search returns nothing at all, which is exactly how this
-        /// silently produced no prediction for every vessel, while the network
-        /// it actually routes over is full of home nodes; <c>comms.path</c> was
-        /// reporting hops to "Crater Rim Station" the whole time. Home nodes
-        /// carry their own <c>precisePosition</c>, so the CommNetHome
-        /// MonoBehaviour was never needed for this.</para>
+        /// <para>Reads the LIVE CommNet graph FIRST, and the
+        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> scene objects second (see
+        /// <see cref="HomeNodes"/>). The graph is the read that always works:
+        /// home nodes carry their own <c>precisePosition</c>, so the CommNetHome
+        /// MonoBehaviour is never needed for the geometry.</para>
         /// </summary>
         private CommNode NearestHomeNode(
             CelestialBody parentBody,
@@ -321,14 +318,24 @@ namespace Gonogo.KSP.SilenceTracking
         /// Home nodes, from the LIVE routed control path first and the
         /// <see cref="CommNetHome"/> scene objects second.
         ///
-        /// <para>The scene search alone was the bug: with a network-replacing backend elected
-        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> returns nothing, so
-        /// every vessel silently got no prediction, while <c>comms.path</c>
-        /// was reporting hops to "Crater Rim Station" the whole time. The
-        /// control path is the read the comms backend already makes
-        /// successfully on this install, and its links carry home
-        /// <see cref="CommNode"/>s with their own <c>precisePosition</c>, which
-        /// is all the geometry needs.</para>
+        /// <para>Searching only the ACTIVE vessel's path was the bug, not the
+        /// scene search: it produced no prediction for every vessel while
+        /// <c>comms.path</c> was reporting hops to "Crater Rim Station" the whole
+        /// time. Both halves work under a network-replacing backend.
+        /// <c>FindObjectsOfType&lt;CommNetHome&gt;()</c> returns plenty under
+        /// RealAntennas, whose <c>RACommNetHome</c> derives from
+        /// <see cref="CommNetHome"/> and sets the two protected fields
+        /// <c>CommNetHomeAccess</c> reflects for; on one RSS/RA save the two
+        /// reads together find 13 stations, 3-4 off live control paths and 9-10
+        /// off the scene objects, deduplicated by position. (An earlier comment
+        /// here asserted the scene search returned nothing under RA. It was
+        /// inferred from the absence of a result and retracted in 68443eed7;
+        /// nothing in the assemblies supports it.)</para>
+        ///
+        /// <para>The control path goes first all the same, because it is the read
+        /// the elected comms backend is already making successfully, and its
+        /// links carry home <see cref="CommNode"/>s with their own
+        /// <c>precisePosition</c>, which is all the geometry needs.</para>
         ///
         /// <para>The path yields the stations the ACTIVE vessel routes
         /// through, not every station in the game. For an occultation
