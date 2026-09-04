@@ -4,10 +4,10 @@
   },
   "_scene": {
     "widget": "kos-terminal",
-    "caption": "Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter, or the Send button beside it, commits it as one command",
+    "caption": "Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter, or the send arrow beside it, commits it as one command",
     "config": { "cpuName": "lander", "lineMode": true },
     "modes": ["default"],
-    "paints": ["Send", "one-way"]
+    "paints": ["one-way"]
   },
   "_stream": {
     "pinnedUt": 1000000,

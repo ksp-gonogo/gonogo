@@ -112,11 +112,55 @@ describe("ComposerBar", () => {
 
   it("takes the caller's verb", () => {
     render(
-      <ComposerBar onSend={() => {}} sendLabel="Run">
+      <ComposerBar onSend={() => {}} sendLabel="Run" sendVariant="text">
         <input aria-label="Message" />
       </ComposerBar>,
     );
     expect(screen.getByRole("button", { name: "Run" })).toBeInTheDocument();
+  });
+
+  it("sends on a glyph rather than on the word, and still names itself", () => {
+    /*
+     * The word is the widest thing on the row and it repeats what the outlined
+     * box beside it already says. What a screen reader gets is unchanged: the
+     * verb moves from the button's text to its accessible name, so every query
+     * for it still resolves and the control is still announced as "Send".
+     */
+    render(
+      <ComposerBar onSend={() => {}}>
+        <input aria-label="Message" />
+      </ComposerBar>,
+    );
+    const send = screen.getByRole("button", { name: "Send" });
+    expect(send.textContent).toBe("");
+    expect(send.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("draws the word for a composer whose verb has no glyph", () => {
+    /*
+     * The recipient picker's verb is "Open", and a send arrow on it would say
+     * the row transmits something. A console gets the glyph by DEFAULT, so the
+     * two that exist cannot drift apart again; text is the stated exception.
+     */
+    render(
+      <ComposerBar onSend={() => {}} sendLabel="Open" sendVariant="text">
+        <input aria-label="Message" />
+      </ComposerBar>,
+    );
+    const send = screen.getByRole("button", { name: "Open" });
+    expect(send.textContent).toBe("Open");
+    expect(send.querySelector("svg")).toBeNull();
+  });
+
+  it("has no a11y violations with an icon-only send", async () => {
+    // An icon-only control with no accessible name is what this guards.
+    const { container } = render(
+      <ComposerBar onSend={() => {}}>
+        <label htmlFor="msg-icon">Message</label>
+        <input id="msg-icon" />
+      </ComposerBar>,
+    );
+    await expectNoA11yViolations(container);
   });
 
   it("pushes the button to the far end without a spacer from the caller", () => {

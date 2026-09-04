@@ -348,6 +348,7 @@ export {
   PushUpIcon,
   RecallIcon,
   SatelliteIcon,
+  SendIcon,
   SettingsIcon,
   StarIcon,
   StopIcon,

@@ -1,6 +1,7 @@
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { Button } from "./Button";
+import { SendIcon } from "./Icons";
 
 /**
  * The input at the foot of a console: a bordered, non-growing row whose OWN
@@ -81,8 +82,9 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * operator moving between them had to remember which. It is also the one
    * child whose SIZE the row has an opinion about, hence not just a `children`
    * convention: a control that grows with the reading beside it reflows the
-   * composer, so the label stays the caller's verb and the figure stays in the
-   * flag or in a badge.
+   * composer, so it carries the caller's verb and nothing else, and the figure
+   * stays in the flag or in a badge. A console draws that verb as a glyph, see
+   * `sendVariant`, which is the same argument taken one step further.
    */
   onSend?: () => void;
   /**
@@ -91,8 +93,26 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    * input and still has nothing to send.
    */
   sendDisabled?: boolean;
-  /** The verb. Defaults to "Send"; a console with a different one says so. */
+  /**
+   * The verb. Defaults to "Send"; a console with a different one says so.
+   *
+   * It is the button's ACCESSIBLE NAME whichever way the button is drawn, so
+   * moving a composer to the glyph never changes what a screen reader hears or
+   * what a query for the control matches.
+   */
   sendLabel?: string;
+  /**
+   * How to draw the verb. The glyph by default, because that is what a console
+   * gets: the word is the widest thing on the row and it repeats what the
+   * outlined box beside it already says.
+   *
+   * `"text"` is for a composer whose verb has no glyph, and it is the caller's
+   * to justify. The recipient picker's verb is "Open", and a send arrow on it
+   * would say the row transmits something. Defaulting the other way is what
+   * keeps the consoles from growing two answers again: neither of them passes
+   * this, so neither of them can drift.
+   */
+  sendVariant?: "icon" | "text";
   children?: ReactNode;
 }
 
@@ -103,6 +123,7 @@ export function ComposerBar({
   onSend,
   sendDisabled = false,
   sendLabel = "Send",
+  sendVariant = "icon",
   children,
   ...rest
 }: ComposerBarProps) {
@@ -117,8 +138,10 @@ export function ComposerBar({
           type="button"
           disabled={sendDisabled}
           onClick={onSend}
+          $icon={sendVariant === "icon"}
+          {...(sendVariant === "icon" ? { "aria-label": sendLabel } : {})}
         >
-          {sendLabel}
+          {sendVariant === "icon" ? <SendIcon size={16} /> : sendLabel}
         </ComposerBar__Send>
       )}
       {flag !== undefined && (
@@ -171,10 +194,29 @@ const ComposerBar__Prompt = styled.span`
  * see the doc above), and a button drawn at the terminal's cell size is a
  * control sized by a device coincidence.
  */
-const ComposerBar__Send = styled(Button)`
+const ComposerBar__Send = styled(Button)<{ $icon: boolean }>`
   flex: 0 0 auto;
   margin-left: auto;
   font-size: var(--font-size-xs);
+
+  ${({ $icon }) =>
+    $icon &&
+    css`
+      /* The glyph is centred in the box rather than sitting on the text
+         baseline it no longer has, and the inset is squared off the vertical
+         one so the button is a square and not a word-shaped gap. */
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-6) var(--space-6);
+      /* The tone the row is outlined in, so the one control on the bar reads as
+         belonging to it rather than as chrome dropped on top. */
+      color: var(--console-tone-fg, var(--color-accent-fg));
+
+      @media (pointer: coarse) {
+        padding: var(--space-8);
+      }
+    `}
 `;
 
 const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`

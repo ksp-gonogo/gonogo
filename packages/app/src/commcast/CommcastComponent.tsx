@@ -382,6 +382,10 @@ function ComposeView({
             onSend={() => onOpen(picked)}
             sendDisabled={picked.length !== 1}
             sendLabel="Open"
+            /* The word, where both consoles take the glyph. This row opens a
+               thread rather than transmitting anything, and a send arrow on it
+               would say it does. */
+            sendVariant="text"
           >
             <Text size="xs" tone={group ? "nogo" : "faint"}>
               {group

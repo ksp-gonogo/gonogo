@@ -73,5 +73,5 @@ Interactive or read-only terminal for a kOS CPU, streamed in-process over the Up
 
 ![Three CPUs and no pinned tagname: the picker names an untagged processor by its part, and tells two copies of the same part apart](docs/assets/cpu-picker-untagged--default.png)
 
-![Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter, or the Send button beside it, commits it as one command](docs/assets/lander-cpu-attached--default.png)
+![Attached to the 'lander' CPU with line-mode composition on: what the operator types is held in the bar under the screen until Enter, or the send arrow beside it, commits it as one command](docs/assets/lander-cpu-attached--default.png)
 

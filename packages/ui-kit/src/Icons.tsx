@@ -30,6 +30,7 @@ import {
   RectangleVertical,
   Rows2,
   Satellite,
+  SendHorizontal,
   Settings,
   Square,
   Star,
@@ -103,3 +104,12 @@ export const HalfWidthIcon = makeIcon(Columns2);
 export const FullWidthIcon = makeIcon(RectangleHorizontal);
 export const HalfHeightIcon = makeIcon(Rows2);
 export const FullHeightIcon = makeIcon(RectangleVertical);
+/**
+ * Commit what is composed, on a console's composer.
+ *
+ * The horizontal plane rather than the tilted one: it points the way the row
+ * runs, so at the far end of a composer it reads as "out of here" with no label
+ * under it. `ComposerBar` is the only thing that draws it, so the glyph means
+ * one thing wherever an operator meets it.
+ */
+export const SendIcon = makeIcon(SendHorizontal);
