@@ -144,9 +144,7 @@ describe("SpaceCenterStatus tier descriptions", () => {
       "Launch Pad tier 2 of 3",
     );
 
-    expect(
-      screen.getByText("No tier descriptions on this telemetry"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No tier detail")).toBeInTheDocument();
     expect(screen.queryByText("Now")).not.toBeInTheDocument();
   });
 

@@ -16,10 +16,12 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { KspSpaceCenterFacility, value } from "@ksp-gonogo/sitrep-sdk";
 import {
+  AutoEmptyState,
   CheckIcon,
   ChevronUpIcon,
   type CommandButtonHandle,
   commandLossSentence,
+  EmptyState,
   FitLabelButton,
   NULL_DISPLAY,
   Panel,
@@ -583,142 +585,162 @@ function SpaceCenterStatusComponent({
              would report the same silence nine times and bury the tiers.
 
              Not said at all when no facility answered: descriptions of tiers
-             that never arrived are not a second thing missing, and the line
+             that never arrived are not a second thing missing, and the marker
              below already reports the one that is. */
-              <AbsenceLine>No tier descriptions on this telemetry</AbsenceLine>
+              <AbsenceLine>No tier detail</AbsenceLine>
             )}
-            {answeredFacilities.length === 0 ? (
-              /* The grid cannot simply vanish. A widget with no facilities in it
-                 and a widget that failed to draw look the same, and this is the
-                 state an operator standing outside the space centre is in for
-                 most of a session. Stated as a reading, because that is all this
-                 is: nothing has said what tier anything is at. */
-              <AbsenceLine>No facility tiers on this telemetry</AbsenceLine>
-            ) : (
-              <FacilityGrid $compact={compactGrid}>
-                {answeredFacilities.map(({ key, label }) => {
-                  const f = facilities[key];
-                  // Live curl 2026-05-13 confirmed: the fork's `max` field is the
-                  // upgrade-count (KSP's `GetFacilityLevelCount`), not the
-                  // tier-count. VAB returns `{level:2, max:2}` at full tier 3,
-                  // launchPad returns `{level:1, max:2}` at tier 2. So the total
-                  // number of tiers is `max + 1` and the operator-facing "Lvl N
-                  // of M" should read `{level+1}/{max+1}`, matches KSP's stock
-                  // R&D dialog which calls VAB tier 3 "Level 3".
-                  const atMax = !!f && f.max > 0 && f.level >= f.max;
-                  const displayLevel = f ? f.level + 1 : 0;
-                  const displayMax = f && f.max > 0 ? f.max + 1 : 0;
-                  // An absent balance must NOT satisfy this check. It guards a button
-                  // that spends career funds, and not knowing the balance is not the
-                  // same as knowing the upgrade is affordable.
-                  const canAfford =
-                    !!f &&
-                    f.upgradeFunds > 0 &&
-                    careerFunds !== null &&
-                    careerFunds >= f.upgradeFunds;
-                  const canUpgrade =
-                    upgradesEnabled &&
-                    !!f &&
-                    !atMax &&
-                    f.upgradeFunds > 0 &&
-                    canAfford;
-                  /* Whether money is what decides this control at all. A blocked
+            {/* ONE absence marker for the whole facilities area, and the area is
+                the grid plus whatever an Uplink appends below it.
+
+                The grid cannot simply vanish: a widget with no facilities in it
+                and a widget that failed to draw look the same, and an operator
+                away from the space centre is in that state for most of a
+                session. But the marker used to be keyed on THIS widget's own
+                channel, which reads the live `UpgradeableFacility` objects KSP
+                instantiates at the space centre only. RP-1 reads the same tiers
+                out of its own config in every scene, so an operator flying an
+                RP-1 career was shown "no facility tiers" directly above a list
+                of their facility tiers. Keyed on whether the area drew anything
+                at all, a section that answered takes the marker off screen and
+                the widget stops contradicting its own augment. */}
+            <AutoEmptyState
+              gap="md"
+              fallback={<EmptyState>No facility tiers</EmptyState>}
+            >
+              {answeredFacilities.length > 0 && (
+                <FacilityGrid $compact={compactGrid}>
+                  {answeredFacilities.map(({ key, label }) => {
+                    const f = facilities[key];
+                    // Live curl 2026-05-13 confirmed: the fork's `max` field is the
+                    // upgrade-count (KSP's `GetFacilityLevelCount`), not the
+                    // tier-count. VAB returns `{level:2, max:2}` at full tier 3,
+                    // launchPad returns `{level:1, max:2}` at tier 2. So the total
+                    // number of tiers is `max + 1` and the operator-facing "Lvl N
+                    // of M" should read `{level+1}/{max+1}`, matches KSP's stock
+                    // R&D dialog which calls VAB tier 3 "Level 3".
+                    const atMax = !!f && f.max > 0 && f.level >= f.max;
+                    const displayLevel = f ? f.level + 1 : 0;
+                    const displayMax = f && f.max > 0 ? f.max + 1 : 0;
+                    // An absent balance must NOT satisfy this check. It guards a button
+                    // that spends career funds, and not knowing the balance is not the
+                    // same as knowing the upgrade is affordable.
+                    const canAfford =
+                      !!f &&
+                      f.upgradeFunds > 0 &&
+                      careerFunds !== null &&
+                      careerFunds >= f.upgradeFunds;
+                    const canUpgrade =
+                      upgradesEnabled &&
+                      !!f &&
+                      !atMax &&
+                      f.upgradeFunds > 0 &&
+                      canAfford;
+                    /* Whether money is what decides this control at all. A blocked
                    command is refused for a reason the balance has no part in,
                    so there is no affordability verdict to draw and the price
                    goes back to being a plain figure: what it costs, which the
                    operator still needs beside the control. */
-                  const moneyDecides = !upgradeBlocked;
-                  // Build a hover-tooltip body summarising the current tier's
-                  // bullet-list and (if available) the next-tier preview. The
-                  // newlines from the fork stay as \n, the browser's `title`
-                  // attribute renders them with native multi-line wrapping in
-                  // the OS-level tooltip on every major platform.
-                  const tooltip = buildFacilityTooltip(label, f);
-                  // Gated on the whole grid rather than this one facility: a cell
-                  // whose own description is empty still has to say so, and it can
-                  // only say so inside a section that is on screen.
-                  const showTierSpecs = tierSpecsFit && anyTierText && !!f;
-                  // A tier the operator has already bought past is not missing, so
-                  // only a facility with somewhere left to go owes a NEXT block. An
-                  // unknown ceiling (`max === 0`) is not a claim that one exists.
-                  const hasNextTier = !!f && f.max > 0 && !atMax;
-                  return (
-                    <FacilityCell key={key} title={tooltip || undefined}>
-                      <FacilityLabel>{label}</FacilityLabel>
-                      <FacilityValue
-                        // role="img" + aria-label so AT announces a coherent
-                        // "Launch Pad tier 2 of 3" instead of the "2 / 3" spans
-                        // read as fragments (and makes aria-label valid on the
-                        // otherwise-roleless value container).
-                        role="img"
-                        aria-label={
-                          f && f.max > 0
-                            ? `${label} tier ${displayLevel} of ${displayMax}`
-                            : `${label} tier unknown`
-                        }
-                      >
-                        {f && f.max > 0 ? (
-                          <>
-                            <Tier>{displayLevel}</Tier>
-                            <Slash>/</Slash>
-                            <TierMax>{displayMax}</TierMax>
-                          </>
-                        ) : (
-                          <Muted>{NULL_DISPLAY}</Muted>
-                        )}
-                      </FacilityValue>
-                      {f && f.upgradeFunds > 0 && !atMax && (
-                        <UpgradeRow>
-                          <UpgradeCost
-                            $afford={moneyDecides ? canAfford : true}
-                            /* The verdict, reported so it can be seen from
+                    const moneyDecides = !upgradeBlocked;
+                    // Build a hover-tooltip body summarising the current tier's
+                    // bullet-list and (if available) the next-tier preview. The
+                    // newlines from the fork stay as \n, the browser's `title`
+                    // attribute renders them with native multi-line wrapping in
+                    // the OS-level tooltip on every major platform.
+                    const tooltip = buildFacilityTooltip(label, f);
+                    // Gated on the whole grid rather than this one facility: a cell
+                    // whose own description is empty still has to say so, and it can
+                    // only say so inside a section that is on screen.
+                    const showTierSpecs = tierSpecsFit && anyTierText && !!f;
+                    // A tier the operator has already bought past is not missing, so
+                    // only a facility with somewhere left to go owes a NEXT block. An
+                    // unknown ceiling (`max === 0`) is not a claim that one exists.
+                    const hasNextTier = !!f && f.max > 0 && !atMax;
+                    return (
+                      <FacilityCell key={key} title={tooltip || undefined}>
+                        <FacilityLabel>{label}</FacilityLabel>
+                        <FacilityValue
+                          // role="img" + aria-label so AT announces a coherent
+                          // "Launch Pad tier 2 of 3" instead of the "2 / 3" spans
+                          // read as fragments (and makes aria-label valid on the
+                          // otherwise-roleless value container).
+                          role="img"
+                          aria-label={
+                            f && f.max > 0
+                              ? `${label} tier ${displayLevel} of ${displayMax}`
+                              : `${label} tier unknown`
+                          }
+                        >
+                          {f && f.max > 0 ? (
+                            <>
+                              <Tier>{displayLevel}</Tier>
+                              <Slash>/</Slash>
+                              <TierMax>{displayMax}</TierMax>
+                            </>
+                          ) : (
+                            <Muted>{NULL_DISPLAY}</Muted>
+                          )}
+                        </FacilityValue>
+                        {f && f.upgradeFunds > 0 && !atMax && (
+                          <UpgradeRow>
+                            <UpgradeCost
+                              $afford={moneyDecides ? canAfford : true}
+                              /* The verdict, reported so it can be seen from
                              outside: it is otherwise a colour, and a colour is
                              a claim nothing can assert against. Absent when
                              money decides nothing, which is the whole of the
                              difference this attribute exists to hold. */
-                            data-afford={
-                              moneyDecides
-                                ? canAfford
-                                  ? "yes"
-                                  : "no"
-                                : undefined
-                            }
-                          >
-                            {formatCompactCurrency(f.upgradeFunds)}
-                          </UpgradeCost>
-                          <UpgradeButton
-                            enabled={canUpgrade}
-                            upgradeCmd={upgradeCmd}
-                            facilityId={KEY_TO_ENUM_FACILITY[key]}
-                            facilityLabel={label}
-                            titleOverride={
-                              f.nextLevelText
-                                ? `Upgrade to tier ${displayLevel + 1}:\n${plainTierSpecs(f.nextLevelText)}`
-                                : undefined
-                            }
-                          />
-                        </UpgradeRow>
-                      )}
-                      {atMax && <MaxBadge>MAX</MaxBadge>}
-                      {showTierSpecs && f && (
-                        <TierSpecs>
-                          <TierBlock heading="Now" text={f.currentLevelText} />
-                          {hasNextTier && (
-                            <TierBlock heading="Next" text={f.nextLevelText} />
-                          )}
-                        </TierSpecs>
-                      )}
-                    </FacilityCell>
-                  );
-                })}
-              </FacilityGrid>
-            )}
+                              data-afford={
+                                moneyDecides
+                                  ? canAfford
+                                    ? "yes"
+                                    : "no"
+                                  : undefined
+                              }
+                            >
+                              {formatCompactCurrency(f.upgradeFunds)}
+                            </UpgradeCost>
+                            <UpgradeButton
+                              enabled={canUpgrade}
+                              upgradeCmd={upgradeCmd}
+                              facilityId={KEY_TO_ENUM_FACILITY[key]}
+                              facilityLabel={label}
+                              titleOverride={
+                                f.nextLevelText
+                                  ? `Upgrade to tier ${displayLevel + 1}:\n${plainTierSpecs(f.nextLevelText)}`
+                                  : undefined
+                              }
+                            />
+                          </UpgradeRow>
+                        )}
+                        {atMax && <MaxBadge>MAX</MaxBadge>}
+                        {showTierSpecs && f && (
+                          <TierSpecs>
+                            <TierBlock
+                              heading="Now"
+                              text={f.currentLevelText}
+                            />
+                            {hasNextTier && (
+                              <TierBlock
+                                heading="Next"
+                                text={f.nextLevelText}
+                              />
+                            )}
+                          </TierSpecs>
+                        )}
+                      </FacilityCell>
+                    );
+                  })}
+                </FacilityGrid>
+              )}
 
-            {/* Appended to the facility-level list: a KSC-expansion Uplink can
-            render extra facility rows here. Placed rather than left to
-            `Panel`'s end-of-body default so the sections sit under the
-            facilities they extend rather than under the body's own padding. */}
-            <WidgetSections />
+              {/* Appended to the facility-level list: a KSC-expansion Uplink can
+              render extra facility rows here. Placed rather than left to
+              `Panel`'s end-of-body default so the sections sit under the
+              facilities they extend rather than under the body's own padding,
+              and INSIDE the marker's content area so a section that draws tiers
+              answers the absence above. */}
+              <WidgetSections />
+            </AutoEmptyState>
           </Body>
         </Section>
       }

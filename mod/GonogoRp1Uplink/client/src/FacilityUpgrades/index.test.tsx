@@ -3,11 +3,13 @@ import {
   render,
   screen,
   setupStreamFixture,
+  waitFor,
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   expectNoA11yViolations,
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import { FacilityUpgrades } from "./index";
 
@@ -130,8 +132,61 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
     expect(await screen.findByText("FACILITY UPGRADES")).toBeInTheDocument();
     expect(screen.getByText("Launch Pad")).toBeInTheDocument();
     expect(screen.getByText("Vehicle Assembly Building")).toBeInTheDocument();
-    // Operator-counted: the wire's tier 1 of max 2 is "tier 2 of 3".
-    expect(visibleText(stream.container)).toContain("now at tier 2 of 3");
+    // Operator-counted: the wire's tier 1 is the operator's tier 2.
+    expect(screen.getByText("TIER 2")).toBeInTheDocument();
+  });
+
+  /**
+   * ONE number about a building's tier, and it is the tier the building is AT.
+   *
+   * <para>Every tier on the wire is KSP's own zero-based facility level, and
+   * this card used to render `level + 2`, the tier the press buys, as a badge
+   * directly beneath the host grid's `level + 1`, the tier the building is at.
+   * Both were correct and an operator read them as two opinions about one
+   * Launch Pad. The state is a reading and belongs on the card; the step is an
+   * act and belongs to the control, which says so in a verb and names the
+   * destination only once the press is armed.</para>
+   */
+  it("states the tier it is at, and nowhere states the tier the press would buy", async () => {
+    const stream = mount();
+
+    emit(stream, AT_CENTRE);
+    await screen.findByText("FACILITY UPGRADES");
+
+    const text = visibleText(stream.container);
+    // The tier the Launch Pad is at, agreeing with the host grid's "2 / 3".
+    expect(text).toContain("TIER 2");
+    // The destination, which used to compete with it from a badge.
+    expect(text).not.toContain("TIER 3");
+    expect(text).not.toContain("TO TIER");
+    expect(text).not.toContain("now at tier");
+    // The verb is on the control, and carries no number of its own.
+    expect(
+      screen.getByRole("button", { name: /queue launch pad upgrade/i }),
+    ).toBeEnabled();
+  });
+
+  /**
+   * Where the destination tier does belong: on the armed control, which is the
+   * one moment the operator is asking about the step rather than the state.
+   */
+  it("names the tier the press buys once the press is armed", async () => {
+    const user = userEvent.setup();
+    const stream = mount();
+
+    emit(stream, AT_CENTRE);
+    await screen.findByText("FACILITY UPGRADES");
+
+    await user.click(
+      screen.getByRole("button", { name: /queue launch pad upgrade/i }),
+    );
+
+    expect(
+      await screen.findByRole("button", {
+        name: /confirm queueing launch pad tier 3/i,
+      }),
+    ).toBeInTheDocument();
+    expect(visibleText(stream.container)).toContain("Commit tier 3");
   });
 
   /**
@@ -214,7 +269,7 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
     expect(text).not.toContain("slows the work");
     expect(text).not.toContain("short career");
     expect(
-      screen.getByRole("button", { name: /queue launch pad tier 3/i }),
+      screen.getByRole("button", { name: /queue launch pad upgrade/i }),
     ).toBeEnabled();
   });
 
@@ -236,34 +291,40 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
 
     const text = visibleText(stream.container);
     expect(text).toContain("Launch Pad");
-    expect(text).toContain("now at tier 2 of 3");
+    expect(text).toContain("TIER 2");
     expect(text).toContain("112,500");
     expect(text).not.toContain("cannot be read");
     expect(text).not.toContain("No tiers have arrived");
   });
 
   /**
-   * Neither channel answered. On an RP-1 install that is a cold start rather
-   * than a scene, because RP-1's cost table loads once at game load; either way
-   * it is said out loud, since a career with nothing left to upgrade renders the
-   * same silence and only one of the two is worth waiting through.
+   * Neither channel answered, so this section has nothing to say and says
+   * nothing.
+   *
+   * <para>It used to answer with two sentences: that no tier had arrived, and
+   * that a construction already under way keeps building wherever the operator
+   * is. Both were true and neither was a reading. The host widget carries ONE
+   * absence marker for the whole facilities area, this section is part of that
+   * area, and a paragraph underneath the marker explaining the mod's internals
+   * is the second opinion the marker exists to prevent.</para>
    */
-  it("says no tiers have arrived rather than showing an empty list", async () => {
+  it("draws nothing at all when neither tier channel answered", async () => {
     const stream = mount();
 
-    emit(stream, AWAY);
+    /* Drawn first, so the disappearance below is this branch and not a section
+       that had not rendered yet. An assertion on an absence, made against a
+       pipeline that was never proved live, passes for the wrong reason. */
+    emit(stream, AT_CENTRE);
     await screen.findByText("FACILITY UPGRADES");
 
+    emit(stream, AWAY);
+
+    await waitFor(() =>
+      expect(screen.queryByText("FACILITY UPGRADES")).not.toBeInTheDocument(),
+    );
     const text = visibleText(stream.container);
-    expect(text).toContain("No tiers have arrived");
-    expect(text).not.toContain("No facility has a tier left to queue");
-    /* And it says what is NOT happening, which is the half this wording has
-       twice got wrong. RP-1 advances a construction on UNIVERSAL TIME out of
-       MaintenanceHandler.FixedUpdate, whose [KSPScenario] names EDITOR, FLIGHT,
-       SPACECENTER and TRACKSTATION, and neither
-       ConstructionProject.IncrementProgress nor Formula.GetConstructionBuildRate
-       tests the scene at all. */
-    expect(text).toContain("keeps building wherever you are");
+    expect(text).not.toContain("No tiers have arrived");
+    expect(text).not.toContain("keeps building wherever you are");
   });
 
   /**
@@ -315,7 +376,7 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
     await screen.findByText("FACILITY UPGRADES");
 
     const text = visibleText(stream.container);
-    expect(text).toContain("No facility has a tier left to queue");
+    expect(text).toContain("Nothing left to queue");
     expect(text).not.toContain("No tiers have arrived");
   });
 
@@ -335,9 +396,9 @@ describe("FacilityUpgrades: the tier a career can commit to next", () => {
     });
     await screen.findByText("FACILITY UPGRADES");
 
-    expect(visibleText(stream.container)).toContain("has not priced this tier");
+    expect(visibleText(stream.container)).toContain("not priced");
     expect(
-      screen.getByRole("button", { name: /queue launch pad tier 3/i }),
+      screen.getByRole("button", { name: /queue launch pad upgrade/i }),
     ).toBeEnabled();
   });
 

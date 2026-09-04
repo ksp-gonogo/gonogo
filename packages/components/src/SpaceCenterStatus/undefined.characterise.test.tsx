@@ -72,9 +72,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     // non-answer written out nine times.
     await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
 
-    expect(
-      screen.getByText("No facility tiers on this telemetry"),
-    ).toBeTruthy();
+    expect(screen.getByText("No facility tiers")).toBeTruthy();
     for (const label of [
       "Launch Pad",
       "Runway",
@@ -291,9 +289,7 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     // undefined either way, `parseFacilityLevels` returns {} either way, and
     // there is nothing on screen that would change if one became the other.
     await waitFor(() =>
-      expect(
-        screen.getByText("No facility tiers on this telemetry"),
-      ).toBeTruthy(),
+      expect(screen.getByText("No facility tiers")).toBeTruthy(),
     );
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(screen.queryAllByRole("button", { name: "Upgrade" })).toHaveLength(

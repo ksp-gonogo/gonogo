@@ -6,12 +6,11 @@
       "w": 12,
       "h": 16
     },
-    "caption": "A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. That is carried by \"over the build\" and by \"Commit\" on the confirm rather than by a sentence about it. Each badge names the tier the press BUYS, over the tier the building is at, so it cannot be read against the host's grid as a second opinion. The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all",
+    "caption": "A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. That is carried by \"over the build\" beside each price and by \"Commit\" on the confirm rather than by a sentence about it. Each badge is the tier the building is AT, the same number the host's grid reads for it, so the two cannot be read as a second opinion; the step is the control's, and it says \"Queue upgrade\". The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all",
     "paints": [
       "FACILITY UPGRADES",
       "Launch Pad",
-      "now at tier 2 of 3",
-      "TO TIER 3",
+      "TIER 2",
       "over the build",
       "Queue upgrade",
       "Blocked"

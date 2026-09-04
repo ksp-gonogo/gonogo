@@ -1,0 +1,81 @@
+{
+  "_scene": {
+    "augment": "rp1-facility-upgrades",
+    "host": "space-center-status",
+    "size": {
+      "w": 12,
+      "h": 16
+    },
+    "caption": "The same career, in flight, with RP-1's own tier channel answering. \"career.status\" reads the live buildings KSP instantiates at the space centre only, so the host's grid has nothing; RP-1 denormalises the level KSP persists in the save against its own config in every scene, so the tiers and the prices are here. The absence marker is keyed on whether the facilities area drew ANYTHING, not on this widget's own channel, so it is off screen: an operator flying an RP-1 career used to be told there were no facility tiers directly above a list of their facility tiers",
+    "paints": [
+      "FACILITY UPGRADES",
+      "Launch Pad",
+      "TIER 2",
+      "over the build",
+      "Queue upgrade"
+    ]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "comment": "The stock channel from a flight scene: KSP has instantiated no facility, so every tier and every price is absent. The host's grid draws no cell from this.",
+        "topic": "career.status",
+        "payload": {
+          "economy": {
+            "funds": 289848,
+            "reputation": 62,
+            "science": 340
+          },
+          "facilities": {
+            "LaunchPad": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            },
+            "VehicleAssemblyBuilding": {
+              "currentTier": null,
+              "maxTier": null,
+              "upgradeCost": null
+            }
+          }
+        }
+      },
+      {
+        "topic": "spaceCenter.scene",
+        "payload": {
+          "scene": "Flight",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "topic": "rp1.available",
+        "payload": true
+      },
+      {
+        "topic": "rp1.constructions",
+        "payload": []
+      },
+      {
+        "comment": "RP-1's own reading of the same two buildings, from the same place.",
+        "topic": "rp1.facilities",
+        "payload": [
+          {
+            "facility": "LaunchPad",
+            "currentTier": 1,
+            "maxTier": 2,
+            "upgradeCost": 112500,
+            "upgradedByRp1": true
+          },
+          {
+            "facility": "VehicleAssemblyBuilding",
+            "currentTier": 0,
+            "maxTier": 2,
+            "upgradeCost": 40000,
+            "upgradedByRp1": true
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -9,6 +9,7 @@ import {
   Badge,
   Cluster,
   CommandButton,
+  EmptyState,
   NULL_DISPLAY,
   Readout,
   ReadoutCaption,
@@ -152,30 +153,22 @@ export function FacilityUpgrades() {
     return step === null || queued.has(name) ? [] : [{ name, step }];
   });
 
-  /* Neither channel answered, which on an RP-1 install is a cold start rather
-     than a scene: RP-1's cost table loads once at game load and does not depend
-     on where the operator is. Worth naming either way, since an empty section
-     and a career with nothing left to upgrade look identical and only one of
-     them is a reason to wait.
+  /* Neither channel answered, so there is nothing to draw and the section draws
+     nothing. The host widget carries ONE absence marker for the whole
+     facilities area and this section is part of that area, so a second line
+     here would report one silence twice: it said so in two sentences, and the
+     operator's word for the result was prose.
 
      Asked of whether any facility ANSWERED its tiers, never of whether any has
      a step left. A career whose buildings are all at their ceiling has no step
-     left either, and telling that operator their tiers are unreadable would be
-     the confident falsehood this branch exists to avoid. */
+     left either, and it gets the "nothing left to queue" reading below rather
+     than this branch's silence. */
   const answered = names.some(
     (name) =>
       answersTiers(rp1Tiers.get(name)) || answersTiers(stockFacilities[name]),
   );
   if (names.length > 0 && !answered) {
-    return (
-      <Section gap="sm">
-        <SectionTitle>FACILITY UPGRADES</SectionTitle>
-        <Text size="sm" tone="muted">
-          No tiers have arrived for the space centre's buildings yet. Anything
-          already under construction keeps building wherever you are.
-        </Text>
-      </Section>
-    );
+    return null;
   }
 
   return (
@@ -195,9 +188,7 @@ export function FacilityUpgrades() {
         /* A real answer and worth stating: a career whose buildings are all at
            their ceiling, or all already queued, reads the same as a section
            that failed to draw if this is left out. */
-        <Text size="sm" tone="muted">
-          No facility has a tier left to queue.
-        </Text>
+        <EmptyState>Nothing left to queue</EmptyState>
       ) : (
         <ProjectCardList>
           {rows.map(({ name, step }) => (
@@ -218,8 +209,6 @@ export function FacilityUpgrades() {
 interface NextTier {
   /** The tier it is at now, as an operator counts them. */
   current: number;
-  /** The number of tiers it has, as an operator counts them. */
-  total: number;
   cost: CareerFacility["upgradeCost"];
 }
 
@@ -244,8 +233,8 @@ interface NextTier {
  * channels fall back to each other with no conversion between them.
  * Operators count from one and so does KSP's own R&amp;D dialog,
  * which calls a fully-upgraded VAB "Level 3", so every number this Uplink and
- * the host widget put on screen is `index + 1`. `current` and `total` here are
- * already converted; the raw index does not leave this function.</para>
+ * the host widget put on screen is `index + 1`. `current` here is already
+ * converted; the raw index does not leave this function.</para>
  */
 function nextTier(entry: TierBearing | undefined): NextTier | null {
   const tier = magnitudeOf(entry?.currentTier);
@@ -253,7 +242,7 @@ function nextTier(entry: TierBearing | undefined): NextTier | null {
   if (tier === null || max === null || tier >= max) {
     return null;
   }
-  return { current: tier + 1, total: max + 1, cost: entry?.upgradeCost };
+  return { current: tier + 1, cost: entry?.upgradeCost };
 }
 
 /**
@@ -305,24 +294,20 @@ function UpgradeCard({
   const label = facilityLabel(facility);
   return (
     <ProjectCard
-      /* TO, because this is the tier the press BUYS and not the tier the
-         building is at. Bare "TIER 3" sat 300px under a host grid reading
-         "2 / 3" for the same Launch Pad, and an operator read the two numbers
-         as a contradiction rather than as a step. The detail line under it
-         carries the other end. */
-      badge={<Badge severity="info">TO TIER {step.current + 1}</Badge>}
-      detail={
-        <>
-          now at tier {step.current} of {step.total}
-        </>
-      }
+      /* The tier the building is AT, which is the same number the host's grid
+         reads for it. This badge used to name the tier the press BUYS, sitting
+         300px under a grid cell reading "2 / 3" for the same Launch Pad: both
+         were right and an operator read them as two opinions. One number about
+         a facility's tier, on the card; the step is the CONTROL's, and the
+         confirm below names the destination once the press is armed. */
+      badge={<Badge severity="info">TIER {step.current}</Badge>}
       name={label}
       tone="go"
     >
       <Cluster gap="sm" justify="start" wrap>
         <Text size="xs" tone="muted">
           {step.cost == null ? (
-            <>{NULL_DISPLAY} RP-1 has not priced this tier</>
+            <>{NULL_DISPLAY} not priced</>
           ) : (
             <>
               <Unit decimals={0} value={step.cost} /> over the build
@@ -331,36 +316,19 @@ function UpgradeCard({
         </Text>
         <CommandButton
           args={{ facility }}
-          aria-label={`Queue ${label} tier ${step.current + 1}`}
-          commandLabel={`Queue ${label} tier ${step.current + 1}`}
+          aria-label={`Queue ${label} upgrade`}
+          commandLabel={`Queue ${label} upgrade`}
           confirmAriaLabel={`Confirm queueing ${label} tier ${step.current + 1}`}
-          confirmLabel={<CommitWording cost={step.cost} />}
+          /* COMMIT rather than spend, because nothing leaves the treasury at
+             the press: RP-1 draws the funds down over the build, which the
+             price beside this says in its own three words. */
+          confirmLabel={`Commit tier ${step.current + 1}`}
           handle={handle}
           label="Queue upgrade"
           size="sm"
         />
       </Cluster>
     </ProjectCard>
-  );
-}
-
-/**
- * What the confirm press commits to.
- *
- * <para>COMMIT rather than spend, because nothing leaves the treasury at the
- * press: the figure is what the project will draw down over its build, and
- * "spend 112,500f" would tell the operator their balance is about to move.</para>
- */
-function CommitWording({
-  cost,
-}: Readonly<{ cost: CareerFacility["upgradeCost"] }>) {
-  if (cost == null) {
-    return <>Commit {NULL_DISPLAY}</>;
-  }
-  return (
-    <>
-      Commit <Unit decimals={0} value={cost} />
-    </>
   );
 }
 

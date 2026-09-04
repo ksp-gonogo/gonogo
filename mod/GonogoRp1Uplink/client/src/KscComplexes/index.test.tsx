@@ -637,9 +637,7 @@ describe("KscComplexes", () => {
     await waitFor(() => {
       expect(screen.getByText("Engineers")).toBeInTheDocument();
     });
-    expect(
-      screen.getByText("RP-1 has not reported a space centre."),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No space centre reported")).toBeInTheDocument();
     await expectNoA11yViolations(view.container);
   });
 

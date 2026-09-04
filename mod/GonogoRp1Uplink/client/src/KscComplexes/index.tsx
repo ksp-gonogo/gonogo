@@ -4,6 +4,7 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
+  EmptyState,
   magnitudeOf,
   Row,
   RowName,
@@ -171,9 +172,7 @@ export function KscComplexes() {
         // A real answer rather than an empty stack: RP-1 present and answering
         // with no centre at all is a state, and a blank space is not a way to
         // report it.
-        <Text size="sm" tone="muted">
-          RP-1 has not reported a space centre.
-        </Text>
+        <EmptyState>No space centre reported</EmptyState>
       ) : (
         <Stack as="ul" gap="xl" style={LIST_STYLE}>
           {centreRows.map((centre) => (

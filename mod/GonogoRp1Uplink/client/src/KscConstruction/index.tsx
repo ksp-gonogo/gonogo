@@ -2,10 +2,9 @@ import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
   Countdown,
+  EmptyState,
   magnitudeOf,
   NULL_DISPLAY,
-  Row,
-  RowName,
   Section,
   SectionTitle,
   Text,
@@ -78,11 +77,9 @@ export function KscConstruction() {
       {rows.length === 0 ? (
         // A real answer, and one worth stating: an empty construction queue and
         // an Uplink that is not reporting look identical if this is left out.
-        // A sentence rather than a "nothing" hanging off a label, because the
-        // label was the same word as the heading above it.
-        <Text size="sm" tone="muted">
-          No facility, complex or pad is being built.
-        </Text>
+        // The kit's absence chrome rather than a sentence, so it reads as the
+        // same kind of thing as every other empty state in this panel.
+        <EmptyState>Nothing being built</EmptyState>
       ) : (
         <ProjectCardList>
           {rows.map((row) => (

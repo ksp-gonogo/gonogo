@@ -6,13 +6,8 @@
       "w": 12,
       "h": 16
     },
-    "caption": "The same career with neither tier channel answering. \"career.status\" reads the live buildings, which KSP puts in the scene only at the space centre, and RP-1's own cost table has not loaded, so this is a cold start rather than a place. Said out loud, because a career with nothing left to upgrade renders the same silence, and said with the half an operator would otherwise fear, that an upgrade already under way is still building. The host's grid says the same thing once rather than nine times",
-    "paints": [
-      "FACILITY UPGRADES",
-      "No tiers have arrived",
-      "keeps building wherever you are",
-      "No facility tiers on this telemetry"
-    ]
+    "caption": "The same career with neither tier channel answering. \"career.status\" reads the live buildings, which KSP puts in the scene only at the space centre, and RP-1's own cost table has not loaded. This section draws nothing at all rather than a paragraph about why: the host carries ONE absence marker for the whole facilities area, and it is keyed on whether that area drew anything, so the construction queue standing in it answers for it here. What an operator gets is the work that is real and no sentence about the reading that is not",
+    "paints": ["SITE CONSTRUCTION", "Nothing being built"]
   },
   "_stream": {
     "pinnedUt": 1000000,

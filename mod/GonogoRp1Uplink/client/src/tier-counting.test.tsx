@@ -112,21 +112,32 @@ describe("RP-1 facility tiers are counted one way across the whole screen", () =
   });
 
   /**
-   * The badge is the tier the press would BUY, and the detail line under it is
-   * the tier the building is at now. Both are right and unlabelled they read as
-   * a contradiction: the reviewed render had "TIER 3" over "now at tier 2 of 3"
-   * beside a grid reading "2 / 3".
+   * ONE number about a building's tier, and it is the tier the building is at.
+   *
+   * <para>The badge named the tier the press would BUY and the line under it
+   * named the tier the building was at, so the reviewed render carried "TO TIER
+   * 3" over "now at tier 2 of 3" beside a grid cell reading "2 / 3": three
+   * numbers, all correct, for one Launch Pad. Naming the step more clearly did
+   * not fix that, because the step is not a reading at all. The card states
+   * where the building IS; the control carries the verb, and names the
+   * destination only on a confirm the operator has already armed.</para>
    */
-  it("says a queued upgrade's badge is the tier it goes to, not the tier it is at", async () => {
+  it("gives a building one tier number, the one it is at", async () => {
     const { view } = mount();
 
     await waitFor(() => {
       expect(screen.getByText("FACILITY UPGRADES")).toBeInTheDocument();
     });
     const text = visibleText(view.container);
-    expect(text).toContain("TO TIER 3");
-    expect(text).toContain("now at tier 2 of 3");
-    // The bare form is what an operator read as the current tier.
-    expect(text).not.toMatch(/(?<!TO )TIER 3/);
+    // The Launch Pad, at wire tier 1, which the host's grid draws "2 / 3".
+    expect(text).toContain("TIER 2");
+    expect(text).not.toContain("TO TIER");
+    expect(text).not.toContain("now at tier");
+    // The destination, which is the control's business and not the card's. The
+    // construction card's "tier 2 to 3" is a different claim: work under way.
+    expect(text).not.toMatch(/TIER 3\b/);
+    expect(
+      screen.getByRole("button", { name: /queue launch pad upgrade/i }),
+    ).toBeInTheDocument();
   });
 });

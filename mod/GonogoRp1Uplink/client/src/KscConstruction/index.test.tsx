@@ -121,9 +121,7 @@ describe("KscConstruction", () => {
     fixture.emit("rp1.constructions", []);
 
     await waitFor(() => {
-      expect(
-        screen.getByText("No facility, complex or pad is being built."),
-      ).toBeInTheDocument();
+      expect(screen.getByText("Nothing being built")).toBeInTheDocument();
     });
     /*
      * Named for the three things this section builds, none of which is a
