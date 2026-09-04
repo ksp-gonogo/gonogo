@@ -39,10 +39,10 @@ describe("isKnownFieldPath", () => {
     // `facilities` is a dynamic-key map, so what follows it is a facility name
     // the contract never lists. The collection itself is a real field; a path
     // through it cannot be judged, and guessing is worse than declining.
-    expect(isKnownFieldPath("career.status.facilities")).toBe(true);
-    expect(isKnownFieldPath("career.status.facilities.LaunchPad.maxTier")).toBe(
-      false,
-    );
+    expect(isKnownFieldPath("career.facilities.facilities")).toBe(true);
+    expect(
+      isKnownFieldPath("career.facilities.facilities.LaunchPad.maxTier"),
+    ).toBe(false);
   });
 });
 
