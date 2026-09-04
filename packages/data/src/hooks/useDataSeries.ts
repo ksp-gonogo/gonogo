@@ -55,9 +55,13 @@ function stalenessToStreamStatus(
  *
  * `Staleness.HeldStale` is deliberately not among them: it is a claim about
  * the newest reading's currency, not about the provenance of a span of
- * history, so painting a run of the trace with it would state something the
- * wire never did. `recorded` and `last-before-blackout` are per-sample facts
- * about where the sample came from, which is exactly what a trace can show.
+ * history, so a run named with it would state something the wire never did.
+ * `recorded` and `last-before-blackout` are per-sample facts about where the
+ * sample came from.
+ *
+ * A consumer NAMES these runs, it does not grade them: every sample here is
+ * one the craft measured, so `LineChart` draws them exactly as it draws live
+ * ones. See `SeriesStatusSpan`, which carries the reasoning.
  */
 function buildSpans(
   points: readonly { meta: { staleness?: Staleness } }[],

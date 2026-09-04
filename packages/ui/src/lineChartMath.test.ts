@@ -250,4 +250,58 @@ describe("buildSegmentedPath", () => {
     );
     expect(segments).toEqual([{ d: "M0.00,0.00 L1.00,10.00" }]);
   });
+
+  it("cuts a reckoned run and carries the basis that moved it", () => {
+    const segments = buildSegmentedPath(
+      [0, 1, 2, 3],
+      [0, 10, 20, 30],
+      id,
+      id,
+      buildPath,
+      [],
+      [],
+      [{ from: 2, to: 3, basis: "kepler-propagation" }],
+    );
+    expect(segments.map((s) => s.basis)).toEqual([
+      undefined,
+      "kepler-propagation",
+    ]);
+    // Same reach-back as a status run: the joining segment lands in the run it
+    // enters, so the line does not lose a segment at the handover.
+    expect(segments[0].d).toBe("M0.00,0.00 L1.00,10.00");
+    expect(segments[1].d).toBe("M1.00,10.00 L2.00,20.00 L3.00,30.00");
+  });
+
+  it("cuts on a reckoning change even where the stream status is unchanged", () => {
+    // A run that is recorded throughout and reckoned onward from its midpoint
+    // is two DRAWABLE runs, because only the second is muted and dashed.
+    const segments = buildSegmentedPath(
+      [0, 1, 2, 3],
+      [0, 10, 20, 30],
+      id,
+      id,
+      buildPath,
+      [],
+      [{ from: 0, to: 3, status: "recorded" }],
+      [{ from: 2, to: 3, basis: "linear-dead-reckoning" }],
+    );
+    expect(segments.map((s) => [s.status, s.basis])).toEqual([
+      ["recorded", undefined],
+      ["recorded", "linear-dead-reckoning"],
+    ]);
+  });
+
+  it("ignores a reckoned run that names indices the series does not have", () => {
+    const segments = buildSegmentedPath(
+      [0, 1],
+      [0, 10],
+      id,
+      id,
+      buildPath,
+      [],
+      [],
+      [{ from: 5, to: 9, basis: "rate-integration" }],
+    );
+    expect(segments).toEqual([{ d: "M0.00,0.00 L1.00,10.00" }]);
+  });
 });

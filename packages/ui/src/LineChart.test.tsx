@@ -155,3 +155,135 @@ describe("LineChart", () => {
     expect(axisLabels.length).toBeGreaterThan(0);
   });
 });
+
+// ── Provenance: observed vs reckoned ─────────────────────────────────────────
+//
+// Three states, and only two of them change the stroke. A replayed sample is a
+// sample the craft MEASURED, so it draws as live data draws; a hole draws as a
+// hole; a reckoned run is the only one nobody measured, so it is the only one
+// the chart mutes and dashes.
+
+const chartName = (container: HTMLElement): string =>
+  container.querySelector("svg[role='img']")?.getAttribute("aria-label") ?? "";
+
+const strokedPaths = (
+  container: HTMLElement,
+  color: string,
+): SVGPathElement[] =>
+  Array.from(
+    container.querySelectorAll<SVGPathElement>(`path[stroke='${color}']`),
+  );
+
+describe("LineChart provenance", () => {
+  const observed: ChartSeries[] = [
+    {
+      id: "alt",
+      label: "Altitude",
+      axis: "primary",
+      color: "#00ff88",
+      data: {
+        x: [0, 1000, 2000, 3000, 4000],
+        y: [0, 100, 200, 300, 400],
+        spans: [{ from: 2, to: 3, status: "recorded" }],
+      },
+    },
+  ];
+
+  it("draws a recorded run exactly as the live trace", () => {
+    const { container } = render(
+      <LineChart
+        series={observed}
+        xDomain={[0, 4000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const paths = strokedPaths(container, "#00ff88");
+    expect(paths.length).toBeGreaterThan(0);
+    for (const p of paths) {
+      expect(p.getAttribute("stroke-dasharray")).toBeNull();
+      expect(p.getAttribute("stroke-opacity")).toBeNull();
+    }
+  });
+
+  it("says nothing about a recorded run in the accessible name", () => {
+    const { container } = render(
+      <LineChart
+        series={observed}
+        xDomain={[0, 4000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(chartName(container)).not.toMatch(/recorded/i);
+  });
+
+  it("mutes and dashes a reckoned run, and only that run", () => {
+    const series: ChartSeries[] = [
+      {
+        id: "alt",
+        label: "Altitude",
+        axis: "primary",
+        color: "#00ff88",
+        data: {
+          x: [0, 1000, 2000, 3000, 4000],
+          y: [0, 100, 200, 300, 400],
+          reckoned: [{ from: 3, to: 4, basis: "kepler-propagation" }],
+        },
+      },
+    ];
+    const { container } = render(
+      <LineChart
+        series={series}
+        xDomain={[0, 4000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const paths = strokedPaths(container, "#00ff88");
+    const reckoned = paths.filter(
+      (p) => p.getAttribute("data-reckoning-basis") === "kepler-propagation",
+    );
+    const measured = paths.filter(
+      (p) => p.getAttribute("data-reckoning-basis") === null,
+    );
+    expect(reckoned).toHaveLength(1);
+    expect(measured).toHaveLength(1);
+    // Both channels, deliberately: a dash survives greyscale, a mute is
+    // harder to miss on a dark ground, and neither invents a hue.
+    expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
+    expect(Number(reckoned[0].getAttribute("stroke-opacity"))).toBeLessThan(1);
+    expect(reckoned[0].getAttribute("stroke")).toBe("#00ff88");
+    expect(measured[0].getAttribute("stroke-dasharray")).toBeNull();
+    expect(measured[0].getAttribute("stroke-opacity")).toBeNull();
+  });
+
+  it("names the reckoned run, and what moved it, in the accessible name", () => {
+    const series: ChartSeries[] = [
+      {
+        id: "alt",
+        label: "Altitude",
+        axis: "primary",
+        color: "#00ff88",
+        data: {
+          x: [0, 1000, 2000],
+          y: [0, 100, 200],
+          reckoned: [{ from: 1, to: 2, basis: "rate-integration" }],
+        },
+      },
+    ];
+    const { container } = render(
+      <LineChart
+        series={series}
+        xDomain={[0, 2000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const name = chartName(container);
+    expect(name).toMatch(/Altitude/);
+    expect(name).toMatch(/reckoned/i);
+    expect(name).toMatch(/not measured/i);
+    expect(name).toMatch(/last observed rate/i);
+  });
+});

@@ -1,4 +1,8 @@
-import type { PlotLayer, SeriesStatusSpan } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  PlotLayer,
+  ReckoningBasis,
+  SeriesStatusSpan,
+} from "@ksp-gonogo/sitrep-sdk";
 import React, { useId, useMemo } from "react";
 import {
   buildBandPath,
@@ -10,6 +14,7 @@ import {
   makeScale,
   niceLogTicks,
   niceTicks,
+  type SeriesReckonedSpan,
 } from "./lineChartMath";
 import {
   type PlotLayerFrame,
@@ -33,10 +38,22 @@ import {
  * `band` (whose polygon would need its own split; no band series carries a
  * hole today, and shading across one would be a worse lie than a line).
  *
- * `spans` names runs of samples that did not arrive live: see
- * `SeriesStatusSpan`. `breaks` is what the trace has no readings for; this is
- * what it has EXACT readings for that describe an earlier instant, and it is
- * drawn dashed rather than absent. Same three-way applicability as `breaks`.
+ * The chart draws three states, and only two of them touch the stroke:
+ *
+ * - OBSERVED, live or replayed: solid, full colour. `spans` names the runs
+ *   that did not arrive live (see `SeriesStatusSpan`), and it does NOT change
+ *   how they are drawn. A replayed sample is a sample the craft measured; it
+ *   arrived late, which is a fact about the link and not about the reading.
+ *   Marking it would say "trust this less" about a value that is exact. The
+ *   run is still cut, and the status still reaches the DOM, so a hover readout
+ *   or a caption can name the provenance without the trace asserting it
+ * - GONE: `breaks`, a real hole in the line. Data existed and cannot be had
+ * - RECKONED: `reckoned`, muted AND dashed. Nobody measured it; a model
+ *   carried the last observation forward. Both channels deliberately: a dash
+ *   survives greyscale but reads as merely "special", a mute alone is easy to
+ *   miss on a dark ground, and together they say lower confidence without
+ *   inventing a hue that would collide with the semantic good/warning/critical
+ *   set. Same three-way applicability as `breaks`
  */
 export interface ChartSeriesData {
   x: number[];
@@ -44,6 +61,7 @@ export interface ChartSeriesData {
   y2?: number[];
   breaks?: number[];
   spans?: readonly SeriesStatusSpan[];
+  reckoned?: readonly SeriesReckonedSpan[];
 }
 
 /**
@@ -237,6 +255,33 @@ const PX_PER_X_TICK = 70;
 const PX_PER_Y_TICK = 35;
 const SCATTER_RADIUS = 2;
 const DEFAULT_BAND_OPACITY = 0.2;
+/**
+ * The mute and the dash a reckoned run is drawn with. Not a colour: a third
+ * hue would collide with the semantic good/warning/critical set, and this is
+ * not a severity.
+ *
+ * 0.6 keeps the series colours the app actually uses above the 3:1 that WCAG
+ * 1.4.11 asks of non-text UI against the dark surface they sit on (`#00ff88`
+ * over `--color-surface-app` lands near 5.5:1 at this alpha), so the mute
+ * reads as lower confidence without becoming an accessibility problem of its
+ * own. The dash is the channel that survives greyscale and a colour-vision
+ * deficiency, and it is why the mute is allowed to be subtle.
+ */
+const RECKONED_STROKE_OPACITY = 0.6;
+const RECKONED_DASHARRAY = "5 3";
+
+/**
+ * What each model did, in words, for the chart's accessible name. An operator
+ * calibrates their trust in a modelled figure against what produced it, which
+ * is why `ReckoningBasis` is a closed union rather than a string, and a reader
+ * who cannot see the dash needs the same handle on it. A new basis over there
+ * fails to compile here until it says what it did.
+ */
+const RECKONING_BASIS_PHRASE: Record<ReckoningBasis, string> = {
+  "kepler-propagation": "propagated forward on two-body motion",
+  "linear-dead-reckoning": "carried forward at the last observed velocity",
+  "rate-integration": "integrated forward at the last observed rate",
+};
 
 /** Pull every plottable Y value out of a series, including band upper bounds. */
 function seriesYValues(s: ChartSeries): number[] {
@@ -531,6 +576,7 @@ export function LineChart({
             builder,
             s.data.breaks,
             s.data.spans,
+            s.data.reckoned,
           ),
         };
       });
@@ -554,25 +600,27 @@ export function LineChart({
   // reader has (WCAG 1.4.1), so every layer's own clause joins the chart's
   // accessible name. A layer with nothing to say adds nothing, which is what
   // stops an absent reading from being spoken as a zero.
-  // A dashed run is a claim about where those readings came from, and a dash
-  // is not a channel a screen reader has (WCAG 1.4.1), the same reason each
-  // layer contributes its own clause below. Named per series, because "some of
-  // this chart was recorded" is not answerable if two traces are drawn.
-  const provenanceClauses = series.flatMap((s) => {
-    const spans = s.data.spans;
-    if (!spans || spans.length === 0) return [];
-    const kinds = new Set(spans.map((span) => span.status));
-    return [...kinds].map((status) =>
-      status === "recorded"
-        ? `${s.label}: part of this trace was recorded aboard during a loss of signal, not received live`
-        : `${s.label}: part of this trace is the last that got out before a blackout`,
+  //
+  // A reckoned run is muted and dashed, and neither is a channel a screen
+  // reader has, so it says the same thing in words. `spans` contributes
+  // nothing here on purpose: the trace draws a replayed run exactly as a live
+  // one, and a clause naming it would hand one reader a caveat the chart does
+  // not put in front of the other. Named per series, because "some of this
+  // chart is reckoned" is not answerable if two traces are drawn.
+  const reckonedClauses = series.flatMap((s) => {
+    const runs = s.data.reckoned;
+    if (!runs || runs.length === 0) return [];
+    const bases = new Set(runs.map((run) => run.basis));
+    return [...bases].map(
+      (basis) =>
+        `${s.label}: part of this trace is reckoned, ${RECKONING_BASIS_PHRASE[basis]}, not measured`,
     );
   });
 
   const chartLabel = [
     ariaLabel ?? "Telemetry line chart",
     ...plotLayerDescriptions(layers ?? []),
-    ...provenanceClauses,
+    ...reckonedClauses,
   ].join("; ");
 
   const layerFrame: PlotLayerFrame = {
@@ -800,11 +848,11 @@ export function LineChart({
         ))}
 
       {/* Stroked series (line + step), one path per run of shared provenance.
-          A series with nothing but live samples is one path, exactly as it was.
-          A run that did not arrive live keeps the series colour (it is not a
-          degradation: the reading is exact) and is dashed, so the operator can
-          see which part of the trace came off the craft rather than off the
-          link. */}
+          A series with nothing but observed samples is one path, exactly as it
+          was, and a replayed run is drawn identically to a live one: it is a
+          reading the craft measured and sent late, so the trace has nothing to
+          say about it beyond the `data-stream-status` record. The one run that
+          is set apart is the one nobody measured, muted and dashed. */}
       {drawables
         .filter(
           (d): d is Extract<typeof d, { kind: "stroked" }> =>
@@ -817,13 +865,21 @@ export function LineChart({
               key={`${d.id}-${i}`}
               d={seg.d}
               data-stream-status={seg.status}
+              data-reckoning-basis={seg.basis}
               stroke={d.color}
               strokeWidth={1.5}
               fill="none"
               strokeLinejoin="round"
               strokeLinecap="round"
+              strokeOpacity={
+                seg.basis !== undefined ? RECKONED_STROKE_OPACITY : undefined
+              }
               strokeDasharray={
-                seg.status !== undefined ? "5 3" : d.dashed ? "4 3" : undefined
+                seg.basis !== undefined
+                  ? RECKONED_DASHARRAY
+                  : d.dashed
+                    ? "4 3"
+                    : undefined
               }
             />
           )),

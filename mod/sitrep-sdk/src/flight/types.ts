@@ -78,10 +78,17 @@ export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
  *
  * What the wire knows and a plain `{t, v}` throws away: which part of a trace
  * came off the craft's own recorder during a blackout, and which part arrived
- * live. Both are exact, and drawing them identically tells the operator the
- * craft was in contact throughout when it was not. `breaks` already carries
- * what is GONE; this carries what is merely LATE, which is the other half of
- * the same claim.
+ * live. `breaks` carries what is GONE; this carries what is merely LATE.
+ *
+ * **It is a record, not a warning, and a trace does not mark it.** Every sample
+ * named here is one the craft MEASURED; the only thing that differs is that the
+ * operator did not have it while the blackout was on, and once it is filled in
+ * that is history rather than a property of the sample. Drawing it apart says
+ * "trust this less" about a reading that is exact, which is why `LineChart`
+ * draws a run named here exactly as it draws a live one. Use this to NAME the
+ * provenance (a readout, a caption, a DOM attribute), never to grade it. What
+ * a trace does mark is a value nobody measured at all: see `LineChart`'s own
+ * `reckoned`.
  *
  * A RANGE rather than a per-sample status array, for the two reasons `breaks`
  * chose indices: a chart draws a SEGMENT, so a per-sample encoding only makes

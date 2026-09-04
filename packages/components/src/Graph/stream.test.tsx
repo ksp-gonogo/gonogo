@@ -222,16 +222,17 @@ describe("Graph: genuinely runs off the stream", () => {
   });
 
   /**
-   * The other half of the blackout claim. `breaks` already draws what is GONE;
-   * a replayed span is what is merely LATE, and a chart that draws it in the
-   * same unbroken stroke as a live span tells the operator the craft was in
-   * contact throughout.
+   * A replayed sample is a sample the craft MEASURED, and it arrived late. The
+   * chart therefore draws it exactly as it draws a live one: setting it apart
+   * would say "trust this less" about a reading that is exact. `breaks` still
+   * draws what is GONE, which is the honest distinction the wire actually
+   * carries about this window.
    *
    * The emissions are the shape `Courier.ReplayRecorded` produces, checked
    * against that method rather than against the widget: every sample of a dump
    * is stamped `Staleness.Recorded` and only the FIRST carries `gapSinceUt`.
    */
-  it("sets a recorded run apart from the live trace", async () => {
+  it("draws a recorded run exactly as the live trace", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ["vessel.orbit"],
       pinnedUt: 0,
@@ -284,24 +285,26 @@ describe("Graph: genuinely runs off the stream", () => {
           'svg[aria-label^="Telemetry line chart"] path[d][fill="none"]',
         ),
       );
-      // One trace, drawn as two runs: the live one and the replayed one.
+      // The provenance still cuts the path in two, and is still recorded in
+      // the DOM, so a later readout can name it. What it must not do is put a
+      // mark on the trace.
       expect(paths.length).toBe(2);
       const recorded = paths.filter(
         (p) => p.getAttribute("data-stream-status") === "recorded",
       );
       expect(recorded.length).toBe(1);
-      // Told apart by stroke, not by colour: a recorded reading is exact, so
-      // it must not be drawn as a degradation.
-      expect(recorded[0].getAttribute("stroke-dasharray")).not.toBeNull();
-      expect(recorded[0].getAttribute("stroke")).toBe(
-        paths[0].getAttribute("stroke"),
-      );
-      // And a dash is not a channel a screen reader has.
+      for (const p of paths) {
+        expect(p.getAttribute("stroke-dasharray")).toBeNull();
+        expect(p.getAttribute("stroke-opacity")).toBeNull();
+        expect(p.getAttribute("stroke")).toBe(paths[0].getAttribute("stroke"));
+      }
+      // Nor say anything about it to a screen reader, which would hand one
+      // reader a caveat the chart does not put in front of the other.
       const label =
         container
           .querySelector("svg[aria-label]")
           ?.getAttribute("aria-label") ?? "";
-      expect(label).toMatch(/recorded aboard during a loss of signal/);
+      expect(label).not.toMatch(/recorded/i);
     });
   });
 

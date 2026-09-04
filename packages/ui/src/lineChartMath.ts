@@ -1,6 +1,26 @@
 /** Pure math helpers for LineChart. No React, no side-effects. */
 
-import type { SeriesStatusSpan } from "@ksp-gonogo/sitrep-sdk";
+import type { ReckoningBasis, SeriesStatusSpan } from "@ksp-gonogo/sitrep-sdk";
+
+/**
+ * A run of samples nobody measured: a model carried the last observation
+ * forward across it. `basis` is the model that did the carrying, in the
+ * vocabulary `Reckoning` already uses, because an operator calibrates their
+ * trust in a modelled figure against what produced it.
+ *
+ * This is the ONLY provenance a trace marks. A replayed sample is a sample the
+ * craft measured and sent late, so it draws as live data draws; a reckoned one
+ * is a claim the chart is making on its own behalf, and a chart that draws its
+ * own arithmetic in the same stroke as a reading is lying about where the line
+ * came from.
+ */
+export interface SeriesReckonedSpan {
+  /** First sample of the run. */
+  from: number;
+  /** Last sample of the run, inclusive. */
+  to: number;
+  basis: ReckoningBasis;
+}
 
 /** Linear scale: maps input domain to output pixel range. */
 export function makeScale(
@@ -123,21 +143,36 @@ export function buildStepPath(
   return parts.join(" ");
 }
 
-/** One drawable run of a series: its path, and the status every sample in it
- *  carried. `status` absent means the run arrived live. */
+/**
+ * One drawable run of a series: its path, the stream status every sample in it
+ * carried, and the model that moved it if nobody measured it.
+ *
+ * `status` absent means the run arrived live. It is a RECORD, not a mark: a
+ * replayed reading is exact, so nothing about it changes the stroke, and it
+ * exists here so a caller can name the provenance in the DOM or in a readout
+ * without the trace itself making a claim about it.
+ *
+ * `basis` absent means the run is observed. It is the one that DOES change the
+ * stroke.
+ */
 export interface PathSegment {
   status?: SeriesStatusSpan["status"];
+  basis?: ReckoningBasis;
   d: string;
 }
 
 /**
- * Cut a series into runs that share a stream status, one path per run.
+ * Cut a series into runs that share a provenance, one path per run.
  *
- * The trace has to be able to say which of its own samples came off the
- * craft's recorder during a blackout and which arrived live. Both are exact,
- * so this is not a break: the line stays continuous across the join and only
- * its stroke changes, which is the difference between "we have no readings for
- * this" (`breaks`) and "these readings describe an earlier instant".
+ * Two independent annotations cut it, and they cut it for different reasons.
+ * `spans` says where a sample came off the link and where it came off the
+ * craft's recorder: both were measured, so the runs are drawn identically and
+ * the split only carries the record. `reckoned` says a model produced the
+ * value, which is the split that has something to draw.
+ *
+ * Neither is a break: the line stays continuous across the join, which is the
+ * difference between "we have no readings for this" (`breaks`) and "this run
+ * is not a reading".
  *
  * A run is extended one sample BACKWARDS so the segment joining it to the
  * previous run is drawn once, in the new run's style: a segment's right-hand
@@ -159,23 +194,28 @@ export function buildSegmentedPath(
   ) => string,
   breaks: readonly number[] = [],
   spans: readonly SeriesStatusSpan[] = [],
+  reckoned: readonly SeriesReckonedSpan[] = [],
 ): PathSegment[] {
   if (ts.length === 0) return [];
-  if (spans.length === 0) {
+  if (spans.length === 0 && reckoned.length === 0) {
     return [{ d: builder(ts, vs, scaleX, scaleY, breaks) }];
   }
-  const statusAt: (SeriesStatusSpan["status"] | undefined)[] = new Array(
-    ts.length,
-  );
-  for (const span of spans) {
-    for (
-      let i = Math.max(0, span.from);
-      i <= Math.min(ts.length - 1, span.to);
-      i++
-    ) {
-      statusAt[i] = span.status;
+  // Both annotations are inclusive index runs that may name indices this slice
+  // does not have (a window trimmed since the run was built), so both are
+  // clamped rather than trusted.
+  function paint<T>(
+    runs: readonly (SeriesStatusSpan | SeriesReckonedSpan)[],
+    pick: (run: SeriesStatusSpan | SeriesReckonedSpan) => T,
+  ): (T | undefined)[] {
+    const at: (T | undefined)[] = new Array(ts.length);
+    for (const run of runs) {
+      const last = Math.min(ts.length - 1, run.to);
+      for (let i = Math.max(0, run.from); i <= last; i++) at[i] = pick(run);
     }
+    return at;
   }
+  const statusAt = paint(spans, (s) => (s as SeriesStatusSpan).status);
+  const basisAt = paint(reckoned, (r) => (r as SeriesReckonedSpan).basis);
   const breakSet = new Set(breaks);
   const out: PathSegment[] = [];
   let runStart = 0;
@@ -189,10 +229,16 @@ export function buildSegmentedPath(
       if (b > from && b <= end) localBreaks.push(b - from);
     }
     const d = builder(slice(ts), slice(vs), scaleX, scaleY, localBreaks);
-    if (d !== "") out.push({ status: statusAt[start], d });
+    if (d !== "") {
+      out.push({ status: statusAt[start], basis: basisAt[start], d });
+    }
   };
   for (let i = 1; i <= ts.length; i++) {
-    if (i === ts.length || statusAt[i] !== statusAt[runStart]) {
+    if (
+      i === ts.length ||
+      statusAt[i] !== statusAt[runStart] ||
+      basisAt[i] !== basisAt[runStart]
+    ) {
       flush(runStart, i - 1);
       runStart = i;
     }
