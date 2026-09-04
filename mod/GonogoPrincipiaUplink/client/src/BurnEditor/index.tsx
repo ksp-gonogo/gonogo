@@ -676,20 +676,47 @@ export function BurnEditor() {
                 aria-label="Apply the edited burn"
                 confirmAriaLabel="Confirm applying the edited burn"
               />
+              {/*
+                A burn composed in THIS form, not a copy of the one it was
+                opened from. The mod does build it by copying: `EditBurn` takes
+                the burn at `burnIndex` out of the plugin and applies the stated
+                fields to it, because a composed struct is a bet on a layout that
+                moved between Principia releases and a copied one is not. But
+                that is how the write is made safe, not a choice the operator
+                made, and every field this form offers is a stated field. So the
+                verb is the burn, and the args are the whole draft: the same
+                seven APPLY sends, through the same `PrincipiaBurnRules.Apply`,
+                which branches on neither insert nor replace.
+
+                It used to send five of the seven and say "ADD LIKE THIS", which
+                left the two attitude toggles live beside a command that dropped
+                them: flip one, press this, and the new burn quietly took the
+                template's mode instead.
+              */}
               <CommandButton
                 size="sm"
                 handle={insertCmd}
                 args={{
                   vesselId,
-                  requestId: `insert-${draft.burnIndex}-${draft.ignitionUt}`,
+                  /*
+                   * The whole draft, as APPLY's is. A repeated id is answered
+                   * out of the mod's receipt cache without a write, so an id
+                   * keyed on the index and the instant alone made every press
+                   * after the first at one index and instant a silent no-op.
+                   */
+                  requestId: `insert-${draft.burnIndex}-${draft.ignitionUt}-${draft.tangent}-${draft.normal}-${draft.binormal}-${draft.inertiallyFixed}-${draft.instantImpulse}`,
                   burnIndex: draft.burnIndex,
                   ignitionUt: draft.ignitionUt,
                   deltaVTangent: draft.tangent,
                   deltaVNormal: draft.normal,
                   deltaVBinormal: draft.binormal,
+                  inertiallyFixed: draft.inertiallyFixed,
+                  profile: draft.instantImpulse
+                    ? PrincipiaBurnProfile.InstantImpulse
+                    : PrincipiaBurnProfile.Unchanged,
                 }}
-                commandLabel="Add a burn like this one"
-                label="ADD LIKE THIS"
+                commandLabel="Add a burn"
+                label="ADD BURN"
                 confirmLabel="CONFIRM ADD"
                 confirmTone="nogo"
                 pendingLabel="Adding..."
@@ -700,8 +727,8 @@ export function BurnEditor() {
                  * beat is a burn added to the plan already in the past.
                  */
                 disabled={frozen || tooLate || burnStructUnverified}
-                aria-label="Add a burn copied from this one"
-                confirmAriaLabel="Confirm adding a burn copied from this one"
+                aria-label="Add a burn from these values"
+                confirmAriaLabel="Confirm adding a burn from these values"
               />
               <CommandButton
                 size="sm"

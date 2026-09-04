@@ -9,6 +9,7 @@ import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  PrincipiaBurnProfile,
   PrincipiaWriteOutcome,
   PrincipiaWriteRefusal,
 } from "../__generated__/contract";
@@ -91,17 +92,29 @@ function lastSent(stream: ReturnType<typeof mount>) {
   return last;
 }
 
-/** Open burn 1, press ADD LIKE THIS, and confirm it. */
-async function addABurnLikeThisOne() {
-  await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+/**
+ * The id the widget composes for an untouched draft of the fixture's one burn:
+ * the whole of it, the way APPLY's is, so a second composition at the same index
+ * and instant is not answered out of the mod's receipt cache.
+ */
+const DEFAULT_ADD_REQUEST_ID = `insert-0-${VIEW_UT + 3600}-100-100-0-false-false`;
+
+/** Press ADD BURN on the open form and confirm it. */
+async function pressAddBurn() {
   await userEvent.click(
-    screen.getByRole("button", { name: "Add a burn copied from this one" }),
+    screen.getByRole("button", { name: "Add a burn from these values" }),
   );
   await userEvent.click(
     screen.getByRole("button", {
-      name: "Confirm adding a burn copied from this one",
+      name: "Confirm adding a burn from these values",
     }),
   );
+}
+
+/** Open burn 1, press ADD BURN, and confirm it. */
+async function addABurn() {
+  await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+  await pressAddBurn();
 }
 
 /** Open burn 1, press REMOVE, and confirm it. */
@@ -547,7 +560,7 @@ describe("BurnEditor", () => {
     ).toBeDisabled();
     expect(
       screen.getByRole("button", {
-        name: "Add a burn copied from this one",
+        name: "Add a burn from these values",
       }),
     ).toBeDisabled();
     await act(async () => {});
@@ -647,7 +660,7 @@ describe("BurnEditor", () => {
       screen.getByRole("button", { name: "Apply the edited burn" }),
     ).toBeDisabled();
     expect(
-      screen.getByRole("button", { name: "Add a burn copied from this one" }),
+      screen.getByRole("button", { name: "Add a burn from these values" }),
     ).toBeDisabled();
     expect(
       screen.getByRole("button", { name: "Remove this burn from the plan" }),
@@ -665,24 +678,26 @@ describe("BurnEditor", () => {
    * The whole insert, end to end: the press, the args the mod binds, and the
    * receipt read back off the reply.
    *
-   * <p>The args are asserted VERBATIM, and two absences in them are the point.
-   * `PrincipiaBurnEditArgs` is "every field optional, an omitted field means
-   * leave it", and the burn the plugin receives is the one at `burnIndex` READ
-   * BACK with the stated fields changed. So ADD LIKE THIS sends the instant and
-   * the Dv triple and sends neither `inertiallyFixed` nor `profile`: the new
-   * burn takes the TEMPLATE's attitude mode and propulsion, not the draft's,
-   * even though both toggles are live beside the button. APPLY sends both.</p>
+   * <p>The args are asserted VERBATIM, and the two that used to be missing are
+   * the point. `PrincipiaBurnEditArgs` is "every field optional, an omitted
+   * field means leave it", and the burn the plugin receives is the one at
+   * `burnIndex` READ BACK with the stated fields changed. ADD BURN sends the
+   * whole draft, `inertiallyFixed` and `profile` included, exactly as APPLY
+   * does: `PlanCommands.EditBurn` hands an insert and a replace to the same
+   * `PrincipiaBurnRules.Apply`, which branches on neither, so the two fields
+   * cost an insert nothing and their absence was silently discarding two live
+   * toggles.</p>
    *
-   * <p>The request id is `insert-${index}-${ignitionUt}` and the Dv triple is
-   * not in it, which makes it the weakest key of the ten: two different burns
-   * composed at the same index and the same instant go under one id, and the
-   * second is answered out of the mod's receipt cache.</p>
+   * <p>The request id covers the whole draft for the same reason APPLY's does:
+   * a repeated id is answered out of the mod's receipt cache without a write,
+   * so an id that omitted the Dv triple and the toggles made every press after
+   * the first at one index and instant a no-op.</p>
    */
-  it("inserts a burn with the draft's instant and components, at the index it was copied from", async () => {
+  it("adds a burn carrying the whole draft, at the index it was composed from", async () => {
     const stream = mount();
     stream.transport.setCommandHandler(() =>
       planWriteReply({
-        requestId: `insert-0-${VIEW_UT + 3600}`,
+        requestId: DEFAULT_ADD_REQUEST_ID,
         replayed: false,
         outcome: PrincipiaWriteOutcome.Written,
         refusal: PrincipiaWriteRefusal.NotRefused,
@@ -690,20 +705,90 @@ describe("BurnEditor", () => {
     );
     await emitPlan(stream);
 
-    await addABurnLikeThisOne();
+    await addABurn();
 
     const sent = lastSent(stream);
     expect(sent.command).toBe("principia.plan.burn.insert");
     expect(sent.args).toEqual({
       vesselId: "vessel-1",
-      requestId: `insert-0-${VIEW_UT + 3600}`,
+      requestId: DEFAULT_ADD_REQUEST_ID,
       burnIndex: 0,
       ignitionUt: VIEW_UT + 3600,
       deltaVTangent: 100,
       deltaVNormal: 100,
       deltaVBinormal: 0,
+      inertiallyFixed: false,
+      profile: PrincipiaBurnProfile.Unchanged,
     });
     expect(screen.queryByText("NOTHING WAS WRITTEN")).not.toBeInTheDocument();
+    await act(async () => {});
+  });
+
+  /**
+   * The label and the args, pinned together, because they are one question.
+   *
+   * <p>"ADD LIKE THIS" said the template won and the command half-agreed: it
+   * sent the draft's instant and Dv triple while dropping the draft's attitude
+   * mode and propulsion, so an operator who flipped either toggle and pressed it
+   * got the template's silently. Both toggles are still LIVE here, which is the
+   * assertion that makes this a coupling and not two: a control an operator can
+   * work must reach the command beside it.</p>
+   */
+  it("sends the attitude mode and the profile the operator set, not the template's", async () => {
+    const stream = mount();
+    stream.transport.setCommandHandler(() =>
+      planWriteReply({
+        requestId: "any",
+        replayed: false,
+        outcome: PrincipiaWriteOutcome.Written,
+        refusal: PrincipiaWriteRefusal.NotRefused,
+      }),
+    );
+    await emitPlan(stream);
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+    // Live beside ADD BURN, which is the whole reason they have to be sent.
+    expect(
+      screen.getByRole("button", { name: "FRAME-RELATIVE" }),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "INSTANT IMPULSE" }),
+    ).toBeEnabled();
+    await userEvent.click(
+      screen.getByRole("button", { name: "FRAME-RELATIVE" }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "INSTANT IMPULSE" }),
+    );
+    await pressAddBurn();
+
+    const sent = lastSent(stream);
+    expect(sent.args).toMatchObject({
+      inertiallyFixed: true,
+      profile: PrincipiaBurnProfile.InstantImpulse,
+    });
+    // And the id moved with them, or the mod would answer the second
+    // composition out of the receipt it stored for the first.
+    expect((sent.args as { requestId: string }).requestId).not.toBe(
+      DEFAULT_ADD_REQUEST_ID,
+    );
+    await act(async () => {});
+  });
+
+  /**
+   * The verb an operator reads. "ADD LIKE THIS" described the mod's copy
+   * mechanism, which is a version-fragility implementation detail (a composed
+   * burn bets on a struct layout, a copied one does not) and not something the
+   * operator chose or can see. What they compose is a burn, so that is the word.
+   */
+  it("names the verb after the burn it adds, not after the mod's copy mechanism", async () => {
+    const stream = mount();
+    await emitPlan(stream);
+
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.getByText("ADD BURN")).toBeInTheDocument();
+    expect(screen.queryByText("ADD LIKE THIS")).not.toBeInTheDocument();
     await act(async () => {});
   });
 
@@ -712,7 +797,7 @@ describe("BurnEditor", () => {
     const stream = mount();
     stream.transport.setCommandHandler(() =>
       planWriteReply({
-        requestId: `insert-0-${VIEW_UT + 3600}`,
+        requestId: DEFAULT_ADD_REQUEST_ID,
         replayed: true,
         outcome: PrincipiaWriteOutcome.Written,
         refusal: PrincipiaWriteRefusal.NotRefused,
@@ -720,7 +805,7 @@ describe("BurnEditor", () => {
     );
     await emitPlan(stream);
 
-    await addABurnLikeThisOne();
+    await addABurn();
 
     expect(await screen.findByText("NOTHING WAS WRITTEN")).toBeInTheDocument();
     await act(async () => {});

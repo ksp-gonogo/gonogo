@@ -1,6 +1,6 @@
 {
   "_meta": {
-    "notes": "The tuning loop actually open, which is the only state that proves the surface works: writes armed, a burn picked off the list, and a vantage ten light-minutes out so the edit window is a real deadline rather than the countdown already on the row. The list carries the three warnings an operator has to read BEFORE picking: the burn that is firing, the one whose deadline has already gone, and the one whose frame Principia will not let us write back. The picked burn is the middle one, the only one all three of APPLY, ADD LIKE THIS and REMOVE are live for. The five profile numbers on each burn are a real rocket equation rather than plausible-looking figures: thrust and Isp fix the mass flow, the delta-v and Isp fix the mass ratio, and the two masses and the duration follow. A picture that puts all five in one column is one a reader can check"
+    "notes": "The tuning loop actually open, which is the only state that proves the surface works: writes armed, a burn picked off the list, and a vantage ten light-minutes out so the edit window is a real deadline rather than the countdown already on the row. The list carries the three warnings an operator has to read BEFORE picking: the burn that is firing, the one whose deadline has already gone, and the one whose frame Principia will not let us write back. The picked burn is the middle one, the only one all three of APPLY, ADD BURN and REMOVE are live for. The five profile numbers on each burn are a real rocket equation rather than plausible-looking figures: thrust and Isp fix the mass flow, the delta-v and Isp fix the mass ratio, and the two masses and the duration follow. A picture that puts all five in one column is one a reader can check"
   },
   "_scene": {
     "augment": "principia-burn-editor",
@@ -34,7 +34,7 @@
       "BINORMAL",
       "MAGNITUDE",
       "APPLY",
-      "ADD LIKE THIS",
+      "ADD BURN",
       "REMOVE",
       "Editing the plan as read at"
     ]
