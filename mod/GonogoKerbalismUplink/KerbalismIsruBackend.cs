@@ -11,9 +11,9 @@ namespace Gonogo.KerbalismUplink
     /// on a Kerbalism install the stock reader walks a vessel and reports nothing at
     /// all.
     ///
-    /// <para>Reads the active vessel internally (FlightGlobals) like every other
-    /// backend in this Uplink, so the interface stays KSP-free; the reflection lives
-    /// in <see cref="KerbalismReflection"/> and the mapping in
+    /// <para>Resolves the vessel internally like every other backend in this
+    /// Uplink, so the interface stays KSP-free; the reflection lives in
+    /// <see cref="KerbalismReflection"/> and the mapping in
     /// <see cref="KerbalismIsruMap"/>.</para>
     ///
     /// <para><b>No capture bundle, unlike the science backend.</b> A science channel
@@ -28,15 +28,38 @@ namespace Gonogo.KerbalismUplink
     public sealed class KerbalismIsruBackend : IIsruBackend
     {
         private readonly KerbalismReflection _k;
+        private readonly Kernel? _kernel;
         private ProfileRaw? _profile;
 
-        public KerbalismIsruBackend(KerbalismReflection k) => _k = k;
+        /// <param name="kernel">
+        /// Core's capability registry, for the <c>activeVessel</c> resolution
+        /// described on <see cref="ScopedVessel"/>. Optional, and null resolves
+        /// no vessel: the two listings then come back empty, which says "no craft
+        /// to answer about" rather than describing the wrong one.
+        /// </param>
+        public KerbalismIsruBackend(KerbalismReflection k, Kernel? kernel = null)
+        {
+            _k = k;
+            _kernel = kernel;
+        }
 
         public string ProviderId => KerbalismIsruMap.ProviderId;
 
+        /// <summary>
+        /// The craft whose drills and converters these listings are about, from
+        /// core's <c>activeVessel</c> capability rather than from KSP.
+        ///
+        /// <para>A kerbal carries neither, so KSP's answer during an EVA empties
+        /// both listings: an operator watching a running converter would see it
+        /// stop existing the moment someone steps outside, and stepping outside
+        /// to service a mining rig is exactly when it is being watched. Queried
+        /// per call, as <see cref="IActiveVessel"/> requires.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
+
         public IReadOnlyList<IsruDrillEntry> Drills()
         {
-            var v = FlightGlobals.ActiveVessel;
+            var v = ScopedVessel();
             if (v == null)
             {
                 return new List<IsruDrillEntry>();
@@ -49,7 +72,7 @@ namespace Gonogo.KerbalismUplink
 
         public IReadOnlyList<IsruConverterEntry> Converters()
         {
-            var v = FlightGlobals.ActiveVessel;
+            var v = ScopedVessel();
             if (v == null)
             {
                 return new List<IsruConverterEntry>();

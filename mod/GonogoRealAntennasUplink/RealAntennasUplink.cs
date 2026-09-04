@@ -66,6 +66,13 @@ namespace Gonogo.RealAntennasUplink
 
         private RaReflection? _ra;
 
+        /// <summary>
+        /// Core's capability registry, held from <see cref="Register"/> so
+        /// <see cref="CaptureOnMain"/> can ask which craft these channels are
+        /// about. See <see cref="ScopedVessel"/> for why it is not KSP's answer.
+        /// </summary>
+        private Kernel? _kernel;
+
         private IChannelPublisher? _linkQuality;
         private IChannelPublisher? _dataRate;
         private IChannelPublisher? _linkMargin;
@@ -103,6 +110,7 @@ namespace Gonogo.RealAntennasUplink
 
         public void Register(IUplinkHost host)
         {
+            _kernel = host.Kernel;
             _ra = RaReflection.Probe();
             if (_ra == null || !_ra.IsAvailable)
             {
@@ -131,7 +139,7 @@ namespace Gonogo.RealAntennasUplink
                     Capability = "comms",
                     Id = "realantennas",
                     Priority = 100.0,
-                    Factory = _ => new RaCommsBackend(_ra),
+                    Factory = _ => new RaCommsBackend(_ra, host.Kernel),
                 });
             }
             catch (Exception ex)
@@ -152,7 +160,27 @@ namespace Gonogo.RealAntennasUplink
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, LinkQualityTopic, DataRateTopic, LinkMarginTopic, HopRatesTopic);
         }
 
-        /// <summary>MAIN-THREAD capture: reads the RA link off the live control path.</summary>
+        /// <summary>
+        /// The craft these channels are about, from core's <c>activeVessel</c>
+        /// capability rather than from KSP.
+        ///
+        /// <para>While a kerbal is outside, KSP's answer is the kerbal: one part,
+        /// no antenna, and a <c>connection</c> whose control path is the EVA
+        /// suit's. Every RA channel would then describe the suit while
+        /// <c>comms.path</c> beside it, which core scopes, describes the ship.
+        /// Null when core does not publish the capability, so the channels report
+        /// a link they could not see rather than the wrong craft's.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
+
+        /// <summary>
+        /// MAIN-THREAD capture: reads the RA link off the live control path.
+        ///
+        /// <para>The vessel is resolved ONCE here and threaded through every
+        /// helper below. Five separate resolutions on one tick could disagree
+        /// with each other across a vessel switch, and would give the hop rates a
+        /// different subject from the margin computed beside them.</para>
+        /// </summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
             if (_ra == null)
@@ -160,7 +188,8 @@ namespace Gonogo.RealAntennasUplink
                 return null;
             }
 
-            var capture = new RaCapture { Ut = snapshot?.Ut ?? 0.0, Source = Source() };
+            var vessel = ScopedVessel();
+            var capture = new RaCapture { Ut = snapshot?.Ut ?? 0.0, Source = Source(vessel) };
 
             // Per-hop forward rates for realantennas.hopRates: built from the FULL
             // ControlPath (not just the primary link), keyed by the same node ids
@@ -168,7 +197,7 @@ namespace Gonogo.RealAntennasUplink
             // core schedule renders. Independent of the link-budget block below, so
             // it is computed unconditionally: an empty list on a down link clears
             // any stale rates rather than leaving the last-good ones on the wire.
-            capture.HopRates = BuildHopRates();
+            capture.HopRates = BuildHopRates(vessel);
 
             // Authoritative link state comes from CommNet connectivity, NOT from
             // the geometry-only budget below. A geometric margin ignores occlusion
@@ -180,8 +209,8 @@ namespace Gonogo.RealAntennasUplink
             // on the wire, which is exactly the observed failure. So when the link
             // is not actually connected we PUBLISH a definitive link-down state
             // (closesLink:false, zero throughput) rather than emit nothing.
-            var link = PrimaryControlLink();
-            if (!IsConnected() || link == null)
+            var link = PrimaryControlLink(vessel);
+            if (!IsConnected(vessel) || link == null)
             {
                 capture.LinkMargin = RaLinkDown.LinkMargin(capture.Source);
                 capture.LinkQuality = RaLinkDown.LinkQuality(capture.Source);
@@ -214,7 +243,7 @@ namespace Gonogo.RealAntennasUplink
             // the cases nothing can resolve.
             if (fwd != null && rev != null)
             {
-                var (up, down) = RaLinkDirection.Resolve(ForwardIsDownlink(link), fwd.Value, rev.Value);
+                var (up, down) = RaLinkDirection.Resolve(ForwardIsDownlink(vessel, link), fwd.Value, rev.Value);
                 capture.DataRate = new CommsDataRate
                 {
                     UpBitsPerSec = up,
@@ -308,15 +337,15 @@ namespace Gonogo.RealAntennasUplink
         }
 
         /// <summary>
-        /// MAIN-THREAD: the active vessel's per-hop forward rates, one entry per hop
+        /// MAIN-THREAD: the reported vessel's per-hop forward rates, one entry per hop
         /// whose <c>ForwardDataRate</c> reads (typed absence otherwise, never a 0
         /// entry), keyed by <see cref="RaCommsBackend.NodeId"/> so the ids match
         /// <c>comms.path</c> hop for hop. Empty when there is no control path.
         /// </summary>
-        private List<RealAntennasHopRate> BuildHopRates()
+        private List<RealAntennasHopRate> BuildHopRates(Vessel? vessel)
         {
             var rates = new List<RealAntennasHopRate>();
-            var path = FlightGlobals.ActiveVessel?.connection?.ControlPath;
+            var path = vessel?.connection?.ControlPath;
             if (_ra == null || path == null)
             {
                 return rates;
@@ -342,17 +371,17 @@ namespace Gonogo.RealAntennasUplink
             return rates;
         }
 
-        /// <summary>Whether the active vessel currently has a working comms link (CommNet authority).</summary>
-        private static bool IsConnected()
+        /// <summary>Whether the reported vessel currently has a working comms link (CommNet authority).</summary>
+        private static bool IsConnected(Vessel? vessel)
         {
-            var conn = FlightGlobals.ActiveVessel?.connection;
+            var conn = vessel?.connection;
             return conn != null && conn.IsConnected;
         }
 
-        /// <summary>The first hop of the active vessel's control path (the vessel's own link), or null.</summary>
-        private static CommLink? PrimaryControlLink()
+        /// <summary>The first hop of the reported vessel's control path (the vessel's own link), or null.</summary>
+        private static CommLink? PrimaryControlLink(Vessel? vessel)
         {
-            var path = FlightGlobals.ActiveVessel?.connection?.ControlPath;
+            var path = vessel?.connection?.ControlPath;
             if (path == null)
             {
                 return null;
@@ -367,22 +396,19 @@ namespace Gonogo.RealAntennasUplink
         /// <summary>
         /// Whether a link's FORWARD direction (its stored <c>a -&gt; b</c>) is the
         /// operator's DOWNLINK (vessel -&gt; home). True when <c>link.a</c> is the
-        /// active vessel's own comm node, so <c>a -&gt; b</c> runs away from the
+        /// reported vessel's own comm node, so <c>a -&gt; b</c> runs away from the
         /// vessel toward home. Falls back to true, the plain Down=Fwd mapping,
         /// when the vessel node cannot be identified: a coin-flip for that link
         /// rather than a confident swap.
         /// </summary>
-        private static bool ForwardIsDownlink(CommLink link)
+        private static bool ForwardIsDownlink(Vessel? vessel, CommLink link)
         {
-            var vesselNode = FlightGlobals.ActiveVessel?.connection?.Comm;
+            var vesselNode = vessel?.connection?.Comm;
             return vesselNode == null || ReferenceEquals(link.a, vesselNode);
         }
 
-        private static string Source()
-        {
-            var vessel = FlightGlobals.ActiveVessel;
-            return vessel != null ? "vessel:" + vessel.id : "game";
-        }
+        private static string Source(Vessel? vessel) =>
+            vessel != null ? "vessel:" + vessel.id : "game";
 
         private sealed class RaCapture
         {

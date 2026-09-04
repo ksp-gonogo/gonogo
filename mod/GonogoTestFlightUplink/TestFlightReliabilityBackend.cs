@@ -1,7 +1,7 @@
 // mod/GonogoTestFlightUplink/TestFlightReliabilityBackend.cs
 // TestFlight's implementation of the shared reliability Kernel capability
-// (IReliabilityBackend, declared in Sitrep.Contract/Reliability.cs). Parameterless
-// + reads the active vessel internally, like the other capability backends.
+// (IReliabilityBackend, declared in Sitrep.Contract/Reliability.cs). Resolves the
+// vessel internally, like the other capability backends.
 // Registered at Priority 10 so it WINS the election over the Priority-1 Kerbalism
 // provider under RO/RP-1.
 using System.Collections.Generic;
@@ -12,10 +12,38 @@ namespace GonogoTestFlightUplink
     public sealed class TestFlightReliabilityBackend : IReliabilityBackend
     {
         private readonly TestFlightReflection _tf;
+        private readonly Kernel? _kernel;
 
-        public TestFlightReliabilityBackend(TestFlightReflection tf) => _tf = tf;
+        /// <param name="kernel">
+        /// Core's capability registry, for the <c>activeVessel</c> resolution
+        /// described on <see cref="ScopedVessel"/>. Optional, and null resolves
+        /// no vessel: the listing comes back empty and the repair refuses, rather
+        /// than either answering for a craft this backend could not confirm.
+        /// </param>
+        public TestFlightReliabilityBackend(TestFlightReflection tf, Kernel? kernel = null)
+        {
+            _tf = tf;
+            _kernel = kernel;
+        }
 
         public string ProviderId => TestFlightReliabilityMap.ProviderId;
+
+        /// <summary>
+        /// The craft this backend answers for, from core's <c>activeVessel</c>
+        /// capability rather than from KSP.
+        ///
+        /// <para>The same regression <c>KerbalismReliabilityBackend</c> carried,
+        /// line for line, and it lands on the RO/RP-1 installs where this
+        /// provider outranks Kerbalism's. <c>vessel.parts</c> lists the CRAFT's
+        /// parts, so a part id the operator can see resolves against a kerbal who
+        /// has one and comes back unrepairable. Going outside to fix a failed
+        /// engine is the whole reason the verb exists.</para>
+        ///
+        /// <para>Queried per call, as <see cref="IActiveVessel"/> requires: the
+        /// answer changes on a vessel switch, a dock, an undock, and on both ends
+        /// of an EVA.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
 
         /// <summary>
         /// A partially-bound binder stays <c>Modeled</c>: if part conditions are
@@ -42,7 +70,7 @@ namespace GonogoTestFlightUplink
 
         public IReadOnlyList<ReliabilityPartEntry> Parts()
         {
-            var v = FlightGlobals.ActiveVessel;
+            var v = ScopedVessel();
             if (v == null) return new List<ReliabilityPartEntry>();
             return TestFlightReliabilityMap.Parts(_tf.Engines(v), _tf.Binding);
         }
@@ -61,7 +89,7 @@ namespace GonogoTestFlightUplink
         /// <see cref="TestFlightReflection.Repair"/>.</para>
         /// </summary>
         public RepairOutcome Repair(string partId, string crewName) =>
-            _tf.Repair(FlightGlobals.ActiveVessel, partId);
+            _tf.Repair(ScopedVessel(), partId);
 
     }
 }

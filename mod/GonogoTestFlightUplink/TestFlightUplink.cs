@@ -54,7 +54,7 @@ namespace GonogoTestFlightUplink
                         Capability = "reliability",
                         Id = "testflight",
                         Priority = 10.0,
-                        Factory = _ => new TestFlightReliabilityBackend(_tf),
+                        Factory = _ => new TestFlightReliabilityBackend(_tf, host.Kernel),
                     });
                 }
                 catch (Exception ex)

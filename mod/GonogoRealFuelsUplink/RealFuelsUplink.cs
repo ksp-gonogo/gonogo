@@ -40,6 +40,13 @@ namespace GonogoRealFuelsUplink
             "RealFuelsUplink engine rows published", threshold: 2000, windowSec: 1.0, unit: "rows");
 
         private readonly RealFuelsReflection _rf = new RealFuelsReflection();
+
+        /// <summary>
+        /// Core's capability registry, held from <see cref="Register"/>. See
+        /// <see cref="ScopedVessel"/>.
+        /// </summary>
+        private Kernel? _kernel;
+
         private IChannelPublisher? _engines;
         private IChannelPublisher? _boiloff;
 
@@ -75,6 +82,8 @@ namespace GonogoRealFuelsUplink
 
         public void Register(IUplinkHost host)
         {
+            _kernel = host.Kernel;
+
             // The presence primitive carries the real availability whether or not
             // RealFuels is loaded, so a client can gate on it definitively rather
             // than infer absence from a silent channel.
@@ -99,11 +108,24 @@ namespace GonogoRealFuelsUplink
             host.AddSampledSource(CaptureBoiloffOnMain, HandleBoiloffOnCourier, BoiloffTopic);
         }
 
+        /// <summary>
+        /// The craft these two channels are about, from core's
+        /// <c>activeVessel</c> capability rather than from KSP.
+        ///
+        /// <para>A kerbal has no engines and no tanks, so KSP's answer during an
+        /// EVA empties both channels. Ignition budget and ullage state are what
+        /// the operator is holding a coast open to read, and boiloff is what
+        /// bounds that coast, so a hold that is being watched over an EVA is
+        /// exactly when they must not go blank. Queried per call, as
+        /// <see cref="IActiveVessel"/> requires.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
+
         /// <summary>MAIN-THREAD capture: reads every engine's ignition and ullage
-        /// state off the live modules. Null when there is no active vessel.</summary>
+        /// state off the live modules. Null when there is no reported vessel.</summary>
         internal object? CaptureEnginesOnMain(KspSnapshot? snapshot)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             if (vessel == null)
             {
                 return null;
@@ -130,7 +152,7 @@ namespace GonogoRealFuelsUplink
         /// mass and the physics interval it accumulated over.</summary>
         internal object? CaptureBoiloffOnMain(KspSnapshot? snapshot)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             if (vessel == null)
             {
                 return null;

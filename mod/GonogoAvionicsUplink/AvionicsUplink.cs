@@ -14,8 +14,9 @@ namespace GonogoAvionicsUplink
     /// <para>Accessors mirror the established uplink patterns: <c>AddChannelSource</c>
     /// for the bare available boolean, and the capture-on-main / handle-on-Courier
     /// <c>AddSampledSource</c> seam for the status (live KSP reads stay on the main
-    /// thread). The active vessel comes from <c>FlightGlobals.ActiveVessel</c>; the
-    /// sampled UT is carried on the capture and used at publish time.</para>
+    /// thread). The vessel comes from core's <c>activeVessel</c> capability, not
+    /// from KSP (see <see cref="ScopedVessel"/>); the sampled UT is carried on
+    /// the capture and used at publish time.</para>
     /// </summary>
     [SitrepUplink("avionics")]
     public sealed class AvionicsUplink : ISitrepUplink
@@ -24,6 +25,13 @@ namespace GonogoAvionicsUplink
         public const string StatusTopic = "avionics.status";
 
         private readonly AvionicsReflection _a = new AvionicsReflection();
+
+        /// <summary>
+        /// Core's capability registry, held from <see cref="Register"/>. See
+        /// <see cref="ScopedVessel"/>.
+        /// </summary>
+        private Kernel? _kernel;
+
         private IChannelPublisher? _status;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -51,6 +59,8 @@ namespace GonogoAvionicsUplink
 
         public void Register(IUplinkHost host)
         {
+            _kernel = host.Kernel;
+
             // Bare presence primitive is always sourced with the real availability,
             // even when RP-1 is absent (so the client can gate on it definitively).
             host.AddChannelSource(AvailableTopic, _ => _a.IsAvailable);
@@ -65,12 +75,24 @@ namespace GonogoAvionicsUplink
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, StatusTopic);
         }
 
+        /// <summary>
+        /// The craft this channel is about, from core's <c>activeVessel</c>
+        /// capability rather than from KSP.
+        ///
+        /// <para>An EVA kerbal carries no avionics part, so KSP's answer would
+        /// silence the channel while the ship it describes is still under
+        /// control, and would report the KERBAL's mass against the limit if RP-1
+        /// answered at all. Queried per call, as <see cref="IActiveVessel"/>
+        /// requires.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
+
         /// <summary>MAIN-THREAD capture: reads the avionics limit + vessel mass off
-        /// the live control path. Null when there is no active vessel or RP-1 is
+        /// the live control path. Null when there is no reported vessel or RP-1 is
         /// absent.</summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             if (vessel == null || !_a.IsAvailable)
             {
                 return null;

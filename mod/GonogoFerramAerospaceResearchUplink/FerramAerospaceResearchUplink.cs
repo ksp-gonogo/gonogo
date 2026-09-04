@@ -65,6 +65,13 @@ namespace GonogoFerramAerospaceResearchUplink
             "FerramAerospaceResearchUplink fields published", threshold: 75, windowSec: 1.0, unit: "fields");
 
         private readonly AeroReflection _far = new AeroReflection();
+
+        /// <summary>
+        /// Core's capability registry, held from <see cref="Register"/>. See
+        /// <see cref="ScopedVessel"/>.
+        /// </summary>
+        private Kernel? _kernel;
+
         private IChannelPublisher? _state;
 
         public UplinkManifest Manifest { get; } = new UplinkManifest
@@ -97,6 +104,8 @@ namespace GonogoFerramAerospaceResearchUplink
 
         public void Register(IUplinkHost host)
         {
+            _kernel = host.Kernel;
+
             // Sourced with the real answer even when FAR is absent, so a client
             // can gate on it definitively.
             host.AddChannelSource(AvailableTopic, _ => _far.IsAvailable);
@@ -117,14 +126,27 @@ namespace GonogoFerramAerospaceResearchUplink
         }
 
         /// <summary>
+        /// The craft this channel is about, from core's <c>activeVessel</c>
+        /// capability rather than from KSP.
+        ///
+        /// <para>KSP's answer during an EVA is the kerbal, and FAR does have a
+        /// reading for one: a kerbal in atmosphere has drag and dynamic pressure
+        /// of their own. So this is not a channel that would merely go quiet, it
+        /// would publish plausible aerodynamics for the wrong body while the
+        /// craft it names is the one descending. Queried per call, as
+        /// <see cref="IActiveVessel"/> requires.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
+
+        /// <summary>
         /// MAIN-THREAD capture: the reflection walk, returning plain data with no
-        /// live FAR or Unity object in it. Null when there is no active vessel at
+        /// live FAR or Unity object in it. Null when there is no reported vessel at
         /// all, which is a different thing from a vessel FAR has no reading for:
         /// the first publishes nothing, the second publishes an explicit absence.
         /// </summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             if (vessel == null)
             {
                 return null;

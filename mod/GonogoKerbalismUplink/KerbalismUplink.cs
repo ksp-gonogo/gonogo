@@ -38,8 +38,21 @@ namespace Gonogo.KerbalismUplink
         /// </summary>
         private readonly KerbalismScienceBackend _science = new();
 
-        /// <summary>The live-Drive actuation seam for the File Manager commands (see <see cref="RegisterFileManagerCommands"/>).</summary>
-        private readonly IKerbalismFileActuator _fileActuator;
+        /// <summary>
+        /// The live-Drive actuation seam for the File Manager commands (see
+        /// <see cref="RegisterFileManagerCommands"/>). Built in
+        /// <see cref="Register"/> rather than the constructor because it needs
+        /// the host's Kernel to resolve which craft it is acting on, and the
+        /// Kernel does not exist until then.
+        /// </summary>
+        private IKerbalismFileActuator? _fileActuator;
+
+        /// <summary>
+        /// Core's capability registry, held from <see cref="Register"/> so the
+        /// main-thread captures can ask which craft they are about. See
+        /// <see cref="ScopedVessel"/>.
+        /// </summary>
+        private Kernel? _kernel;
 
         /// <summary>
         /// The currency-delay science hook: a presence-gated Harmony postfix on Kerbalism's own
@@ -62,7 +75,6 @@ namespace Gonogo.KerbalismUplink
 
         public KerbalismUplink()
         {
-            _fileActuator = new KerbalismFileActuator(_k);
             _fleet = new KerbalismFleetChannels(_k, CaptureVessel);
 
             Manifest = new UplinkManifest
@@ -147,6 +159,9 @@ namespace Gonogo.KerbalismUplink
 
         public void Register(IUplinkHost host)
         {
+            _kernel = host.Kernel;
+            _fileActuator = new KerbalismFileActuator(_k, host.Kernel);
+
             // Ground-side facts (presence + feature flags): pull-style, Courier-thread,
             // no live-KSP read beyond the cheap reflection cache.
             host.AddChannelSource(AvailableTopic, _ => _k.IsAvailable);
@@ -225,7 +240,7 @@ namespace Gonogo.KerbalismUplink
 
                 RegisterScience(host);
                 RegisterIsru(host);
-                RegisterFileManagerCommands(host);
+                RegisterFileManagerCommands(host, _fileActuator);
 
                 // Attach the currency-delay science hook. Kerbalism credits science through a
                 // pooled, vessel-less buffer the stock currency interceptor can't see, so this
@@ -268,7 +283,7 @@ namespace Gonogo.KerbalismUplink
                     // stock harvester and converter modules, so losing this election
                     // would mean an empty ISRU dashboard, not a degraded one.
                     Priority = 1.0,
-                    Factory = _ => new KerbalismIsruBackend(_k),
+                    Factory = _ => new KerbalismIsruBackend(_k, host.Kernel),
                 });
             }
             catch (Exception ex)
@@ -293,23 +308,23 @@ namespace Gonogo.KerbalismUplink
         /// empty and every verb refusing with ModeUnavailable, which asserts
         /// Kerbalism is not modelling science about an install that is.</para>
         /// </summary>
-        private void RegisterFileManagerCommands(IUplinkHost host)
+        private void RegisterFileManagerCommands(IUplinkHost host, IKerbalismFileActuator actuator)
         {
             host.AddCommandHandler<KerbalismSubjectFlagArgs, CommandResult>(
                 KerbalismFileCommandProvider.SendCommand,
-                args => KerbalismFileCommandProvider.HandleSend(_fileActuator, _science.Latest, args));
+                args => KerbalismFileCommandProvider.HandleSend(actuator, _science.Latest, args));
             host.AddCommandHandler<KerbalismSubjectActionArgs, CommandResult>(
                 KerbalismFileCommandProvider.DeleteCommand,
-                args => KerbalismFileCommandProvider.HandleDelete(_fileActuator, _science.Latest, args));
+                args => KerbalismFileCommandProvider.HandleDelete(actuator, _science.Latest, args));
             host.AddCommandHandler<KerbalismSubjectFlagArgs, CommandResult>(
                 KerbalismFileCommandProvider.AnalyzeCommand,
-                args => KerbalismFileCommandProvider.HandleAnalyze(_fileActuator, _science.Latest, args));
+                args => KerbalismFileCommandProvider.HandleAnalyze(actuator, _science.Latest, args));
             host.AddCommandHandler<KerbalismSubjectActionArgs, CommandResult>(
                 KerbalismFileCommandProvider.DumpCommand,
-                args => KerbalismFileCommandProvider.HandleDump(_fileActuator, _science.Latest, args));
+                args => KerbalismFileCommandProvider.HandleDump(actuator, _science.Latest, args));
             host.AddCommandHandler<KerbalismSubjectActionArgs, CommandResult>(
                 KerbalismFileCommandProvider.MoveToLabCommand,
-                args => KerbalismFileCommandProvider.HandleMoveToLab(_fileActuator, _science.Latest, args));
+                args => KerbalismFileCommandProvider.HandleMoveToLab(actuator, _science.Latest, args));
         }
 
         /// <summary>
@@ -373,10 +388,28 @@ namespace Gonogo.KerbalismUplink
             host.AddSampledSource(CaptureScienceOnMain, HandleScienceOnCourier);
         }
 
+        /// <summary>
+        /// The craft these channels are about, from core's <c>activeVessel</c>
+        /// capability rather than from KSP.
+        ///
+        /// <para>Life support is the reason this one matters most. KSP's answer
+        /// during an EVA is the kerbal, whose suit carries minutes of oxygen, so
+        /// <c>kerbalism.lifesupport</c> and <c>kerbalism.crew</c> would swap the
+        /// ship's days of margin for a suit's countdown and the operator would
+        /// read it as the ship's. Null when core does not publish the capability,
+        /// which stops the channels emitting rather than emitting the suit's
+        /// numbers.</para>
+        ///
+        /// <para>Queried per call, as <see cref="IActiveVessel"/> requires: the
+        /// answer changes on a vessel switch, a dock, an undock, and on both ends
+        /// of an EVA.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
+
         /// <summary>MAIN-THREAD capture: read live Kerbalism science into a plain bundle (no KSP handles cross threads).</summary>
         private object? CaptureScienceOnMain(KspSnapshot? snapshot)
         {
-            var v = FlightGlobals.ActiveVessel;
+            var v = ScopedVessel();
             if (v == null || !_k.IsAvailable) return null;
             return _k.Science(v);
         }
@@ -389,7 +422,7 @@ namespace Gonogo.KerbalismUplink
 
         /// <summary>MAIN-THREAD capture: read live Kerbalism into a plain bundle (no KSP handles cross threads).</summary>
         private object? CaptureOnMain(KspSnapshot? snapshot) =>
-            CaptureVessel(FlightGlobals.ActiveVessel, snapshot?.Ut ?? 0.0);
+            CaptureVessel(ScopedVessel(), snapshot?.Ut ?? 0.0);
 
         /// <summary>
         /// MAIN-THREAD capture of ONE craft, active or not. Every read here

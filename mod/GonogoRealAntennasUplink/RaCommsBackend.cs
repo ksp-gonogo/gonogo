@@ -27,12 +27,36 @@ namespace Gonogo.RealAntennasUplink
         public const string Id = "realantennas";
 
         private readonly RaReflection _ra;
+        private readonly Kernel? _kernel;
 
-        public RaCommsBackend(RaReflection ra) => _ra = ra;
+        /// <param name="kernel">
+        /// Core's capability registry, for the <c>activeVessel</c> resolution
+        /// described on <see cref="ScopedVessel"/>. Optional, and null resolves
+        /// no vessel at all: this backend then reports a link it could not see,
+        /// which is the honest degradation, rather than the wrong craft's.
+        /// </param>
+        public RaCommsBackend(RaReflection ra, Kernel? kernel = null)
+        {
+            _ra = ra;
+            _kernel = kernel;
+        }
 
         public string ProviderId => Id;
 
-        private static CommNetVessel? Connection() => FlightGlobals.ActiveVessel?.connection;
+        /// <summary>
+        /// The craft this backend answers for, from core's <c>activeVessel</c>
+        /// capability rather than from KSP.
+        ///
+        /// <para>KSP's answer during an EVA is the kerbal, whose
+        /// <c>connection</c> is the suit's: no antenna, a control path that is
+        /// not the ship's, and a signal strength that has nothing to do with the
+        /// craft the operator is watching. Queried per call, as
+        /// <see cref="IActiveVessel"/> requires: the answer changes on a vessel
+        /// switch, a dock, an undock, and on both ends of an EVA.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
+
+        private CommNetVessel? Connection() => ScopedVessel()?.connection;
 
         public CommsConnectivity Connectivity()
         {
@@ -216,9 +240,9 @@ namespace Gonogo.RealAntennasUplink
             _ => CommsControlStateKind.None,
         };
 
-        private static PayloadMeta Meta()
+        private PayloadMeta Meta()
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             return new PayloadMeta
             {
                 Source = vessel != null ? "vessel:" + vessel.id : "game",

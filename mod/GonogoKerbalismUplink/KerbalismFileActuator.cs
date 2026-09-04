@@ -22,8 +22,36 @@ namespace Gonogo.KerbalismUplink
     public sealed class KerbalismFileActuator : IKerbalismFileActuator
     {
         private readonly KerbalismReflection _k;
+        private readonly Kernel? _kernel;
 
-        public KerbalismFileActuator(KerbalismReflection k) => _k = k;
+        /// <param name="kernel">
+        /// Core's capability registry, for the <c>activeVessel</c> resolution
+        /// described on <see cref="ScopedVessel"/>. Optional, and null resolves
+        /// no vessel, so every verb refuses with <c>NoVessel</c> rather than
+        /// acting on a craft this Uplink could not confirm is the subject.
+        /// </param>
+        public KerbalismFileActuator(KerbalismReflection k, Kernel? kernel = null)
+        {
+            _k = k;
+            _kernel = kernel;
+        }
+
+        /// <summary>
+        /// The craft whose drives these verbs act on, from core's
+        /// <c>activeVessel</c> capability rather than from KSP.
+        ///
+        /// <para>The substitution bites twice here. The science listing an
+        /// operator picks a subject id off is the CRAFT's, so during an EVA a
+        /// subject resolved against KSP's answer, the kerbal, finds no drive
+        /// holding it and every verb refuses <c>NotFound</c> for every file on
+        /// screen. And transmitting or dumping science is a normal thing to do
+        /// while a kerbal is outside gathering more of it.</para>
+        ///
+        /// <para>Queried per call rather than held, as
+        /// <see cref="IActiveVessel"/> requires: the answer changes on a vessel
+        /// switch, a dock, an undock, and on both ends of an EVA.</para>
+        /// </summary>
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
 
         public CommandResult SetSendFlagged(string subjectId, bool flag)
         {
@@ -96,7 +124,7 @@ namespace Gonogo.KerbalismUplink
         /// </summary>
         public CommandResult MoveToLab(string subjectId)
         {
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
@@ -175,7 +203,7 @@ namespace Gonogo.KerbalismUplink
             drive = null!;
             subject = null!;
 
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             if (vessel == null)
             {
                 error = CommandErrorCode.NoVessel;
@@ -208,7 +236,7 @@ namespace Gonogo.KerbalismUplink
             drive = null!;
             subject = null!;
 
-            var vessel = FlightGlobals.ActiveVessel;
+            var vessel = ScopedVessel();
             if (vessel == null)
             {
                 error = CommandErrorCode.NoVessel;
