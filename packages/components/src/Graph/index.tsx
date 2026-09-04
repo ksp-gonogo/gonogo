@@ -93,6 +93,36 @@ function computeXDomain(
   return computeValueDomain(all);
 }
 
+/**
+ * X domain for a TIME graph: the span the plotted samples actually cover.
+ *
+ * Read off the data rather than off the wall clock, because the widget cannot
+ * know which clock its samples are stamped against. `useDataSeries` hands the
+ * STREAMED half back in UT seconds and the legacy buffered half in wall-clock
+ * milliseconds, and this used to be `[Date.now() - windowSec * 1000,
+ * Date.now()]`, which is only in the same basis as the second of the two.
+ * Nothing registers the legacy `"data"` source in production, so every
+ * time-axis graph on a running dashboard scaled its trace against wall time
+ * and drew it hundreds of millions of units off the left edge, under a
+ * complete set of axes, ticks and legend for the series it was not showing.
+ *
+ * `windowSec` still bounds how much history is FETCHED (`useDataSeries` reads
+ * `[viewUt - windowSec, viewUt]`); it is the span of the axis only when there
+ * is nothing to measure one from, which is a chart with no marks on it.
+ */
+function computeTimeDomain(
+  series: readonly ChartSeries[],
+  windowSec: number,
+): [number, number] {
+  const all: number[] = [];
+  for (const s of series) all.push(...s.data.x);
+  if (all.length === 0) {
+    const now = Date.now();
+    return [now - windowSec * 1000, now];
+  }
+  return computeValueDomain(all);
+}
+
 function formatReadoutValue(value: number): string {
   if (!Number.isFinite(value)) return NULL_DISPLAY;
   const abs = Math.abs(value);
@@ -466,10 +496,7 @@ export function GraphView({
   const xDomain: [number, number] = xPinned
     ? (config?.xDomain as [number, number])
     : xIsTime
-      ? (() => {
-          const now = Date.now();
-          return [now - windowSec * 1000, now];
-        })()
+      ? computeTimeDomain(liveSeries, windowSec)
       : computeXDomain(xData.v as number[], overlaySeries, layers);
 
   const xTickFormat = xIsTime

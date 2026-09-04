@@ -105,6 +105,67 @@ describe("Graph: genuinely runs off the stream", () => {
     });
   });
 
+  /**
+   * Every assertion above this one reads the Y half of the path and none of
+   * them reads the X half, which is how a trace drawn several hundred million
+   * units to the left of the plot box passed as a working chart.
+   *
+   * `useDataSeries` hands the streamed half back in UT SECONDS and the legacy
+   * half in wall-clock MILLISECONDS, and the time domain was
+   * `[Date.now() - windowSec * 1000, Date.now()]`: the second basis only.
+   * Nothing registers the legacy `"data"` source in production, so every
+   * time-axis graph on a running dashboard scaled its samples against wall
+   * time and put them off the canvas, while still drawing the axes, the ticks,
+   * the legend and the header for them.
+   */
+  it("draws the trace inside the plot box, not off the left edge", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 10,
+      suspendFrames: true,
+    });
+
+    const config = {
+      series: [{ id: "sma", key: "vessel.orbit.sma", axis: "auto" as const }],
+      windowSec: 300,
+    };
+
+    const { container } = render(
+      <fixture.Provider>
+        <GraphComponent config={config} id="graph-stream-x" w={10} h={8} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.emit("vessel.orbit", { sma: 679_400 }, { validAt: -200 });
+      fixture.emit("vessel.orbit", { sma: 679_800 }, { validAt: -100 });
+      fixture.emit("vessel.orbit", { sma: 680_000 }, { validAt: 10 });
+    });
+
+    await waitFor(() => {
+      const path = container.querySelector(
+        'svg[aria-label="Telemetry line chart"] path[d][fill="none"]',
+      );
+      expect(path).not.toBeNull();
+      const xs = (path?.getAttribute("d") ?? "")
+        .split(/[ML]\s*/)
+        .filter(Boolean)
+        .map((pt) => Number(pt.split(",")[0]));
+      expect(xs.length).toBe(3);
+      // The stubbed ResizeObserver reports a 400x300 box, so anything outside
+      // it is off screen. A generous ceiling rather than the exact plot inset:
+      // the failure this catches is eight orders of magnitude out.
+      for (const x of xs) {
+        expect(x).toBeGreaterThanOrEqual(0);
+        expect(x).toBeLessThanOrEqual(400);
+      }
+      // And they are spread across the axis rather than piled on one edge,
+      // which is what a domain wider than the data by a factor of a thousand
+      // would produce.
+      expect(xs[2] - xs[0]).toBeGreaterThan(50);
+    });
+  });
+
   it("splits two series with different units onto separate axes", async () => {
     // On the stream, where the units are. This assertion cannot be made
     // against the legacy `"data"` keys at all: `useDataSchema` answers from the
