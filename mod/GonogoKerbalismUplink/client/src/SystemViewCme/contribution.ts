@@ -233,8 +233,5 @@ KERBALISM.registerContribution({
   contributes: "system-view.entities",
   deps: ["kerbalism.spaceweather"],
   requires: "kerbalism",
-  compute: (topics) =>
-    computeCmeEntities(
-      topics["kerbalism.spaceweather"] as KerbalismSpaceWeather | undefined,
-    ),
+  compute: (topics) => computeCmeEntities(topics["kerbalism.spaceweather"]),
 });

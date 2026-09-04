@@ -85,6 +85,5 @@ KERBALISM.registerContribution({
   contributes: "crew-status.meters",
   deps: [CREW_SURVIVAL],
   requires: "kerbalism",
-  compute: (topics) =>
-    survivalMeters(topics[CREW_SURVIVAL.id] as CrewSurvival | undefined),
+  compute: (topics) => survivalMeters(topics[CREW_SURVIVAL.id]),
 });

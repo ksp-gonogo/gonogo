@@ -101,8 +101,5 @@ RP1.registerContribution({
    */
   requires: "rp1",
   compute: (topics) =>
-    crewCoreStats(
-      topics["rp1.crewProgram"] as Rp1CrewProgram | undefined,
-      topics["rp1.crew"] as readonly Rp1CrewEntry[] | undefined,
-    ),
+    crewCoreStats(topics["rp1.crewProgram"], topics["rp1.crew"]),
 });

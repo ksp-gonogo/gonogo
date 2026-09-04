@@ -6,7 +6,7 @@ import {
   type RootProviderDefinition,
   registerRootProvider,
 } from "../api/root-providers";
-import type { ContributionDefinition } from "../api/types";
+import type { ContributionDefinition, ContributionDep } from "../api/types";
 import type { ReckonerFor } from "../reading";
 import type { DerivedChannelDefinition } from "../timeline";
 import { contributeDerivedChannel } from "./contributed-channels";
@@ -107,20 +107,25 @@ export interface UplinkClientHandle {
    */
   registerRevealedEventSource(def: RevealedEventSourceDefinition): void;
 
-  registerContribution<S extends string>(
-    def: Omit<ContributionDefinition<S>, "owner">,
-  ): void;
+  registerContribution<
+    S extends string,
+    const D extends readonly ContributionDep[],
+  >(def: Omit<ContributionDefinition<S, D>, "owner">): void;
   /**
    * Register a Processor auto-namespaced to this client (mirrors
    * registerContribution's owner-stamping). `defineProcessor` takes a plain
    * string owner rather than a handle, so this method is the bridge that lets a
    * client call it by handle instead of by hand-typed id.
    */
-  registerProcessor<const Deps extends readonly Dep[], R>(def: {
-    id: string;
+  registerProcessor<
+    const Deps extends readonly Dep[],
+    R,
+    const Id extends string,
+  >(def: {
+    id: Id;
     deps: Deps;
     compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-  }): ProcessorHandle<R>;
+  }): ProcessorHandle<R, `${string}:${Id}`>;
   /**
    * Register this client's forward model for a Topic (same bridge shape as
    * registerProcessor: the owner is passed to the registry as a plain id).
@@ -196,20 +201,25 @@ export function defineUplinkClient(cfg: {
     registerRevealedEventSource(def: RevealedEventSourceDefinition): void {
       registerRevealedEventSource({ ...def, id: `${cfg.id}:${def.id}` });
     },
-    registerContribution<S extends string>(
-      def: Omit<ContributionDefinition<S>, "owner">,
-    ): void {
+    registerContribution<
+      S extends string,
+      const D extends readonly ContributionDep[],
+    >(def: Omit<ContributionDefinition<S, D>, "owner">): void {
       registerContribution({
         ...def,
         id: `${cfg.id}:${def.id}`,
         owner: handle,
       });
     },
-    registerProcessor<const Deps extends readonly Dep[], R>(def: {
-      id: string;
+    registerProcessor<
+      const Deps extends readonly Dep[],
+      R,
+      const Id extends string,
+    >(def: {
+      id: Id;
       deps: Deps;
       compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-    }): ProcessorHandle<R> {
+    }): ProcessorHandle<R, `${string}:${Id}`> {
       return defineProcessor({ ...def, owner: cfg.id });
     },
     registerReckoner<T>(topic: string, reckoner: ReckonerFor<T>): void {

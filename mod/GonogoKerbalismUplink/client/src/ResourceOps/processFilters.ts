@@ -57,8 +57,5 @@ KERBALISM.registerContribution({
   contributes: "resource-ops.filters",
   deps: ["isru.converters"],
   requires: "kerbalism",
-  compute: (topics) =>
-    computeKerbalismProcessTerms(
-      topics["isru.converters"] as IsruConverterEntry[] | undefined,
-    ),
+  compute: (topics) => computeKerbalismProcessTerms(topics["isru.converters"]),
 });

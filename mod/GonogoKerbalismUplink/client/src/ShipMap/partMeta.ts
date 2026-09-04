@@ -60,7 +60,5 @@ KERBALISM.registerContribution({
   deps: ["kerbalism.lifesupport"],
   requires: "kerbalism",
   compute: (topics) =>
-    computeKerbalismPartMeta(
-      topics["kerbalism.lifesupport"] as KerbalismLifeSupport | undefined,
-    ),
+    computeKerbalismPartMeta(topics["kerbalism.lifesupport"]),
 });

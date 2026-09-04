@@ -153,6 +153,7 @@ export type {
   DataSourceStatus,
   DelayClockLike,
   DelayMode,
+  DepTopics,
   HostIceServers,
   InFlightCommand,
   LateTelemetrySubscribe,

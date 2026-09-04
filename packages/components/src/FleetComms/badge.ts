@@ -73,6 +73,5 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "fleet-comms-badge",
   contributes: "system-view.badges",
   deps: [COMMS_LINK],
-  compute: (topics) =>
-    commsLinkBadge(topics[COMMS_LINK.id] as CommsLinkState | undefined),
+  compute: (topics) => commsLinkBadge(topics[COMMS_LINK.id]),
 });

@@ -27,7 +27,7 @@
 
 import type { BodyDefinition, PressureProfile } from "@ksp-gonogo/core";
 import { getBody } from "@ksp-gonogo/core";
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
+import type { DepTopics, Value } from "@ksp-gonogo/sitrep-sdk";
 import { magnitudeOf, type Quantityish } from "@ksp-gonogo/ui-kit";
 
 /**
@@ -238,13 +238,15 @@ export function bodyNamed(
  * <p>A contribution gets Topic values and nothing else, so it does the
  * index-to-body join itself; `vessel.state.parentBodyRadius` is a derived
  * channel and not a Topic it may depend on.</p>
+ *
+ * <p>The parameter names the two topics it reads rather than taking an open
+ * record, so a caller that did not declare them as `deps` fails here instead of
+ * handing this `undefined` twice and getting no body with nothing said.</p>
  */
 export function parentBodyFromTopics(
-  topics: Readonly<Record<string, unknown>>,
+  topics: DepTopics<readonly ["vessel.identity", "system.bodies"]>,
 ): StreamBody | undefined {
-  const identity = topics["vessel.identity"] as
-    | { parentBodyIndex?: number | null }
-    | undefined;
-  const bodies = topics["system.bodies"] as StreamBodies | undefined;
+  const identity = topics["vessel.identity"];
+  const bodies = topics["system.bodies"];
   return bodyAtIndex(bodies, identity?.parentBodyIndex);
 }

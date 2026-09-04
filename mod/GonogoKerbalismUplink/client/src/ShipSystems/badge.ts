@@ -48,6 +48,5 @@ KERBALISM.registerContribution({
   contributes: "ship-systems.badges",
   deps: [SHIP_SYSTEMS],
   requires: "flight",
-  compute: (topics) =>
-    statusBadges(topics[SHIP_SYSTEMS.id] as ShipSystems | undefined),
+  compute: (topics) => statusBadges(topics[SHIP_SYSTEMS.id]),
 });

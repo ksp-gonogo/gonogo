@@ -2,6 +2,7 @@ import { getHost, hasHost } from "../api/host";
 import type {
   AnyContribution,
   ContributionDefinition,
+  ContributionDep,
   NamespacedAugmentSettings,
 } from "../api/types";
 
@@ -67,9 +68,10 @@ export function onContributionsChange(cb: () => void): () => void {
  * synchronously AT this call site (no accumulate-then-flush frame), unless
  * the exact same def is re-registering (a benign idempotent re-import).
  */
-export function registerContribution<S extends string>(
-  def: ContributionDefinition<S>,
-): void {
+export function registerContribution<
+  S extends string,
+  const D extends readonly ContributionDep[],
+>(def: ContributionDefinition<S, D>): void {
   const s = state();
   const existing = s.entries.get(def.id);
   if (existing !== undefined) {

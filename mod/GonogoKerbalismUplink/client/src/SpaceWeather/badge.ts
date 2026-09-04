@@ -43,10 +43,7 @@ KERBALISM.registerContribution({
   contributes: "space-weather.badges",
   deps: ["kerbalism.spaceweather"],
   requires: "kerbalism",
-  compute: (topics) =>
-    spaceWeatherBadges(
-      topics["kerbalism.spaceweather"] as KerbalismSpaceWeather | undefined,
-    ),
+  compute: (topics) => spaceWeatherBadges(topics["kerbalism.spaceweather"]),
 });
 
 export { spaceWeatherBadges };

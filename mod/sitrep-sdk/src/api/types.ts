@@ -423,16 +423,29 @@ type DeclaredTopicUnion<S extends string> = S extends keyof ContributionRegistry
   : never;
 
 /**
- * The typed argument a slot's contributions receive: current values of every
- * declared topic, keyed by topic id. The `& Record<string, unknown>` tail keeps
- * a Processor dep readable by its stamped id (`topics[processor.id]`, typed
- * `unknown`) while the mapped head preserves each declared Topic's precise
- * payload type (intersection: a declared topic key keeps `TopicPayload<K>`,
- * since `X & unknown = X`).
+ * The typed argument a contribution's `compute` receives: the topics its SLOT
+ * guarantees, plus everything the contribution itself declared in `deps`.
+ *
+ * <para><b>The deps half is what makes this precise, and it is the half that
+ * belongs to the contributor.</b> A slot declares the core topics every
+ * contributor can rely on and deliberately never names a mod's topics
+ * (`./contribution-slots.ts` says why, and a refactor removed the ones that
+ * were there). So a slot alone can never type an Uplink reading its OWN
+ * channel, and for a while the gap was covered by an `& Record<string,
+ * unknown>` tail: every key readable, every read `unknown`, every consumer
+ * paying an assertion to get back to the type it already knew.</para>
+ *
+ * <para>The contribution already declares exactly what it reads. Typing from
+ * `deps` means an Uplink gets its own topics precisely without a single
+ * mod-owned id entering the published slot declaration, and a topic nobody
+ * declared stops being readable at all, which is what the tail was hiding.</para>
  */
-export type ContributionTopics<S extends string> = {
+export type ContributionTopics<
+  S extends string,
+  D extends readonly ContributionDep[] = readonly [],
+> = {
   readonly [K in DeclaredTopicUnion<S> & TopicId]: TopicPayload<K> | undefined;
-} & Record<string, unknown>;
+} & DepTopics<D>;
 
 /**
  * The identity an aggregated entry is stamped with, for keys and for blame.
@@ -464,6 +477,55 @@ export type ContributionDep =
   | { readonly id: string; readonly __resultType?: unknown };
 
 /**
+ * The KEY the aggregation writes one dep's value under: a Topic id under
+ * itself, a reading dep under the topic it names, a Processor under its
+ * owner-stamped id.
+ */
+type DepKey<E> = E extends string
+  ? E
+  : E extends { readonly reading: infer T extends string }
+    ? T
+    : E extends { readonly id: infer I extends string }
+      ? // A processor whose id is still the unnarrowed `string` contributes NO
+        // key. It would otherwise contribute a string index signature, which
+        // reopens every key on the record and puts back exactly the hole this
+        // type exists to close: one loosely-typed dep would make an undeclared
+        // topic readable again for that whole contribution. A handle from
+        // `defineProcessor`/`registerProcessor` always carries its stamped id;
+        // one from `defineProcessorContract` only does when the caller names it.
+        string extends I
+        ? never
+        : I
+      : never;
+
+/**
+ * The VALUE that arrives under that key.
+ *
+ * <para>A reading dep resolves to the topic's PAYLOAD here, not to its
+ * `Reading`, and that is a statement about the aggregation rather than about
+ * the dep: `SlotAggregator` stores `point.payload` for a bare id and a reading
+ * dep alike. The processor pipeline does hand a reading dep a `Reading`
+ * (`ResolvedDep` in `spine/processors.ts`), so the two pipelines genuinely
+ * differ; this types what a contribution is actually given. No contribution in
+ * the tree uses a reading dep today, so nothing is relying on either reading of
+ * it.</para>
+ */
+type DepValue<E> = E extends string
+  ? TopicPayload<E & TopicId> | undefined
+  : E extends { readonly reading: infer T }
+    ? T extends TopicId
+      ? TopicPayload<T> | undefined
+      : never
+    : E extends { readonly id: string; readonly __resultType?: infer R }
+      ? R | undefined
+      : never;
+
+/** Every dep a contribution declared, keyed and typed the way it arrives. */
+export type DepTopics<D extends readonly ContributionDep[]> = {
+  readonly [E in D[number] as DepKey<E>]: DepValue<E>;
+};
+
+/**
  * Registration descriptor for a contribution: the data a client feeds into
  * another widget's slot. Not a mirror of anything: `spine/contributions.ts` is
  * the registry, and this is the type it registers.
@@ -474,15 +536,24 @@ export type ContributionDep =
  * hands in. Neither is `any`: resolving `deps` to their values needs
  * `ContributionTopics`, which is declared above so this leaf can name it.
  */
-export interface ContributionDefinition<S extends string = string> {
+export interface ContributionDefinition<
+  S extends string = string,
+  D extends readonly ContributionDep[] = readonly ContributionDep[],
+> {
   /** Stable id, unique globally. Auto-namespaced when registered via the handle. */
   id: string;
   /** The slot this contribution feeds. */
   contributes: S;
-  deps?: readonly ContributionDep[];
+  /**
+   * What this contribution reads. It is what feeds `compute` at runtime, and
+   * since it is inferred as a literal tuple it is also what TYPES it: declare a
+   * topic here and it is readable and precise, leave one out and it is not
+   * readable at all.
+   */
+  deps?: D;
   /** Pure, and referentially stable when its inputs are unchanged. */
   compute: (
-    topics: ContributionTopics<S>,
+    topics: ContributionTopics<S, D>,
   ) => readonly ContributionEntry<S>[] | null | undefined;
   /** Domain presence gate, identical semantics to `AugmentDefinition.requires`. */
   requires?: string;
@@ -502,8 +573,26 @@ export interface ContributionDefinition<S extends string = string> {
   owner?: UplinkClientHandle;
 }
 
-/** Any contribution, whatever slot it feeds. */
-export type AnyContribution = ContributionDefinition<string>;
+/**
+ * Any contribution, whatever slot it feeds: what the REGISTRY stores once the
+ * slot and the dep tuple have been erased.
+ *
+ * <para>Its `compute` takes an open record, and that is the honest signature for
+ * this type rather than a hole in the authoring one. A caller holding an
+ * `AnyContribution` has fished it out of a registry keyed by string and knows
+ * nothing about what it declared; the aggregation itself builds the record
+ * dynamically. The precision lives on `ContributionDefinition`, which is what an
+ * author writes and what `registerContribution` infers, and nothing can reach
+ * this erased form to read a topic it never declared.</para>
+ */
+export type AnyContribution = Omit<
+  ContributionDefinition<string, readonly ContributionDep[]>,
+  "compute"
+> & {
+  compute: (
+    topics: Record<string, unknown>,
+  ) => readonly Record<string, unknown>[] | null | undefined;
+};
 
 export interface AugmentSettingField {
   key: string;

@@ -663,10 +663,12 @@ describe("CrewStatusComponent, row tone contribution", () => {
   });
 
   it("colours only the kerbal a bound contribution names critical", async () => {
-    registerContribution<"crew-status.row-tone">({
+    registerContribution({
       id: "test-crew-row-tone",
       contributes: "crew-status.row-tone",
-      compute: () => [{ crewName: "Bill Kerman", severity: "critical" }],
+      compute: () => [
+        { crewName: "Bill Kerman", severity: "critical" as const },
+      ],
     });
 
     const fixture = newFixture();

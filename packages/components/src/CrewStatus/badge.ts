@@ -43,6 +43,5 @@ CORE_UPLINK_CLIENT.registerContribution({
   id: "crew-status-aboard-badge",
   contributes: "crew-status.badges",
   deps: ["vessel.crew"],
-  compute: (topics) =>
-    crewAboardBadge(topics["vessel.crew"] as VesselCrew | undefined),
+  compute: (topics) => crewAboardBadge(topics["vessel.crew"]),
 });

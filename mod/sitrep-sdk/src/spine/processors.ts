@@ -18,8 +18,18 @@ import type { Reading } from "./client-reading";
  * Opaque, branded handle returned by defineProcessor. Never constructed by
  * hand: carries the result type R through inference for downstream consumers.
  */
-export interface ProcessorHandle<R> {
-  readonly id: string;
+export interface ProcessorHandle<R, Id extends string = string> {
+  /**
+   * The owner-stamped id this processor registered under.
+   *
+   * <p>Carried as a type parameter, not as a bare `string`, so a CONTRIBUTION
+   * that deps on this handle can be handed its result under this exact key:
+   * `topics[HANDLE.id]` is only typeable when `HANDLE.id` is more specific than
+   * `string`. The client id is not known statically, so what survives is
+   * `` `${string}:${Id}` ``, which is enough to key the record and still narrow
+   * enough that a Topic id cannot be read through it.</p>
+   */
+  readonly id: Id;
   /** Type-only brand: never present at runtime, carries R through inference. */
   readonly __resultType?: R;
 }
@@ -126,13 +136,20 @@ const processors = new Map<string, AnyProcessorDefinition>();
  * exact same definition (same compute reference) is a no-op so a module can be
  * imported twice; a DIFFERENT definition under an already-used id throws.
  */
-export function defineProcessor<const Deps extends readonly Dep[], R>(def: {
-  id: string;
+export function defineProcessor<
+  const Deps extends readonly Dep[],
+  R,
+  const Id extends string,
+>(def: {
+  id: Id;
   owner: string;
   deps: Deps;
   compute: (values: ResolvedDeps<Deps>, frame: ProcessorFrame) => R;
-}): ProcessorHandle<R> {
-  const stampedId = `${def.owner}:${def.id}`;
+}): ProcessorHandle<R, `${string}:${Id}`> {
+  /* Typed rather than inferred: a template expression widens to `string`, and
+     the stamped id is what a contribution keys this processor's result by, so
+     the shape has to survive as far as the handle. */
+  const stampedId: `${string}:${Id}` = `${def.owner}:${def.id}`;
   const existing = processors.get(stampedId);
   const stamped: AnyProcessorDefinition = {
     id: stampedId,
@@ -210,7 +227,9 @@ export function defineProcessor<const Deps extends readonly Dep[], R>(def: {
  * `compute` with it. Declaring the type twice, once each side, is the failure
  * this exists to prevent, so do not.
  */
-export function defineProcessorContract<R>(id: string): ProcessorHandle<R> {
+export function defineProcessorContract<R, const Id extends string = string>(
+  id: Id,
+): ProcessorHandle<R, Id> {
   // A contract names an id `registerProcessor` will STAMP, so it has to be
   // written owner-first. Checked here because the alternative is a handle that
   // silently answers `undefined` forever, which is indistinguishable from the

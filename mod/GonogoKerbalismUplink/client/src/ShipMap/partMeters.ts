@@ -119,7 +119,7 @@ KERBALISM.registerContribution({
   requires: "kerbalism",
   compute: (topics) =>
     computeKerbalismPartMeters(
-      topics["vessel.parts"] as VesselParts | undefined,
-      topics["kerbalism.profile"] as KerbalismProfile | undefined,
+      topics["vessel.parts"],
+      topics["kerbalism.profile"],
     ),
 });

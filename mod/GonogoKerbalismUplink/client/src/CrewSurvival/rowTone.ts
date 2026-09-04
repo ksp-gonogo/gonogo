@@ -39,8 +39,7 @@ KERBALISM.registerContribution({
   contributes: "crew-status.row-tone",
   deps: [CREW_SURVIVAL],
   requires: "kerbalism",
-  compute: (topics) =>
-    rowTones(topics[CREW_SURVIVAL.id] as CrewSurvival | undefined),
+  compute: (topics) => rowTones(topics[CREW_SURVIVAL.id]),
 });
 
 export { rowTones };

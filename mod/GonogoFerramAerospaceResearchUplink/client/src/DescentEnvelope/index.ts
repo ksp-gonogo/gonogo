@@ -439,6 +439,5 @@ AERO.registerContribution({
   contributes: "landing-status.badges",
   requires: "aero",
   deps: ["aero.state"],
-  compute: (topics) =>
-    aeroBadges(topics["aero.state"] as TopicPayload<"aero.state"> | undefined),
+  compute: (topics) => aeroBadges(topics["aero.state"]),
 });

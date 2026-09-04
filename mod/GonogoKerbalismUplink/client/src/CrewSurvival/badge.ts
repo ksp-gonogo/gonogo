@@ -39,8 +39,7 @@ KERBALISM.registerContribution({
   contributes: "crew-status.badges",
   deps: [CREW_SURVIVAL],
   requires: "kerbalism",
-  compute: (topics) =>
-    survivalBadges(topics[CREW_SURVIVAL.id] as CrewSurvival | undefined),
+  compute: (topics) => survivalBadges(topics[CREW_SURVIVAL.id]),
 });
 
 export { survivalBadges };
