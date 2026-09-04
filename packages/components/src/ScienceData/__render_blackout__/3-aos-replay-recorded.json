@@ -1,0 +1,191 @@
+{
+  "_meta": {
+    "capturedAt": "2026-08-13",
+    "body": "Kerbin",
+    "notes": "The replay, at acquisition of signal. Both science topics are stamped Meta.Staleness.Recorded: taken aboard while the craft was dark and dumped when the link came back, so each value is exact for its own instant and simply is not now. The badge reads RECORDED at info severity rather than STALE at warning, because nothing about the value is uncertain. Beside it sits the career science figure, which was live throughout, so one aside carries both and the severity distinction has somewhere to show."
+  },
+  "kc.scene": "Flight",
+  "v.name": "tester",
+  "v.body": "Kerbin",
+  "v.situationString": "Flying",
+  "v.landedAt": "",
+  "v.biome": "Grasslands",
+  "career.mode": "CAREER",
+  "career.funds": 189240.5,
+  "career.reputation": 62,
+  "career.science": 1234.5,
+  "sci.experiments": [
+    {
+      "subjectId": "crewReport@KerbinFlyingLowGrasslands",
+      "partName": "Mk1 Command Pod",
+      "title": "Crew Report while flying low over Kerbin's grasslands",
+      "dataAmount": 5.5,
+      "scienceValueBase": 1,
+      "transmitBoost": 0
+    },
+    {
+      "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
+      "partName": "Mystery Goo Container",
+      "title": "Mystery Goo Observation while flying low over Kerbin's grasslands",
+      "dataAmount": 2,
+      "scienceValueBase": 0.5,
+      "transmitBoost": 0
+    }
+  ],
+  "sci.experimentBreakdown": [
+    {
+      "subjectId": "crewReport@KerbinFlyingLowGrasslands",
+      "biome": "Grasslands",
+      "situation": "FlyingLow",
+      "expTitle": "Crew Report while flying low over Kerbin's grasslands",
+      "dataMits": 5.5,
+      "remainingPotential": 3.2
+    },
+    {
+      "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
+      "biome": "Grasslands",
+      "situation": "FlyingLow",
+      "expTitle": "Mystery Goo Observation while flying low over Kerbin's grasslands",
+      "dataMits": 2,
+      "remainingPotential": 6.8
+    }
+  ],
+  "_stream": {
+    "carriedChannels": [
+      "system.bodies",
+      "career.mode",
+      "spaceCenter.scene",
+      "vessel.orbit",
+      "vessel.identity",
+      "vessel.surface",
+      "career.status",
+      "science.experiments",
+      "science.experimentBreakdown",
+      "vessel.flight",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "pinnedUt": 10,
+    "emits": [
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "sma": 680000,
+          "ecc": 0,
+          "inc": 0,
+          "argPe": 0,
+          "mu": 3531600000000.0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 10,
+          "referenceBodyIndex": 1,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "parentBodyIndex": 1,
+          "situation": 5,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "vessel.surface",
+        "value": {
+          "biome": "Grasslands",
+          "landedAt": ""
+        }
+      },
+      {
+        "channel": "career.mode",
+        "value": {
+          "mode": 1
+        }
+      },
+      {
+        "channel": "spaceCenter.scene",
+        "value": {
+          "scene": "Flight",
+          "launchSite": "LaunchPad"
+        }
+      },
+      {
+        "channel": "career.status",
+        "value": {
+          "economy": {
+            "science": 1234.5,
+            "funds": 189240.5,
+            "reputation": 62
+          }
+        }
+      },
+      {
+        "channel": "science.experiments",
+        "value": [
+          {
+            "subjectId": "crewReport@KerbinFlyingLowGrasslands",
+            "partName": "Mk1 Command Pod",
+            "title": "Crew Report while flying low over Kerbin's grasslands",
+            "dataAmount": 5.5,
+            "scienceValueBase": 1,
+            "transmitBoost": 0
+          },
+          {
+            "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
+            "partName": "Mystery Goo Container",
+            "title": "Mystery Goo Observation while flying low over Kerbin's grasslands",
+            "dataAmount": 2,
+            "scienceValueBase": 0.5,
+            "transmitBoost": 0
+          }
+        ],
+        "meta": {
+          "staleness": 3
+        }
+      },
+      {
+        "channel": "science.experimentBreakdown",
+        "value": [
+          {
+            "subjectId": "crewReport@KerbinFlyingLowGrasslands",
+            "biome": "Grasslands",
+            "situation": "FlyingLow",
+            "expTitle": "Crew Report while flying low over Kerbin's grasslands",
+            "dataMits": 5.5,
+            "remainingPotential": 3.2
+          },
+          {
+            "subjectId": "mysteryGoo@KerbinFlyingLowGrasslands",
+            "biome": "Grasslands",
+            "situation": "FlyingLow",
+            "expTitle": "Mystery Goo Observation while flying low over Kerbin's grasslands",
+            "dataMits": 2,
+            "remainingPotential": 6.8
+          }
+        ],
+        "meta": {
+          "staleness": 3
+        }
+      }
+    ]
+  }
+}

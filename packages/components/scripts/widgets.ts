@@ -1417,6 +1417,62 @@ const WIDGETS: WidgetRenderConfig[] = [
     })(),
   },
   {
+    // BLACKOUT showcase: what a chart does with a span it has no readings
+    // for. Same widget, a dedicated fixtures dir, and the only surface in
+    // the tree that turns `Meta.GapSinceUt` into something an operator can
+    // see (`useDataSeries` -> `SeriesRange.breaks` -> `LineChart`).
+    //
+    // The three scenes differ by ONE field between them, deliberately: the
+    // first states the hole and the second does not, off byte-identical
+    // samples, so the pair is a controlled comparison rather than two
+    // drawings of two datasets. The third is the outage with nothing
+    // recorded behind it.
+    //
+    // Plots a RAW field-subtopic (`vessel.flight.altitudeTerrain`) rather
+    // than the `vessel.state.*` the other Graph scenes use: a derived topic
+    // has no stored range, so its series is replayed through
+    // `sampleDerivedRange` and the per-sample `meta` that carries the gap
+    // does not survive the replay.
+    //
+    // The X TICK LABELS in these renders are wrong and are not the scene's
+    // doing: `LineChart`'s default time formatter reads its domain as unix
+    // milliseconds, and the streamed half of `useDataSeries` hands back UT
+    // seconds, so a twenty-minute descent is labelled "0:01". The domain
+    // itself is fixed (`computeTimeDomain`); the labels need the basis
+    // DECLARED rather than guessed, which is a `useDataSeries` change and not
+    // one to make from a render config.
+    widgetId: "graph",
+    label: "graph/blackout",
+    fixturesPath: "Graph/__render_blackout__",
+    outPath: "renders/blackout/chart-hole",
+    // Every mode carries the same config, the auto-appended breakpoint sweep
+    // included: a Graph left on its default config has no series at all, so
+    // an un-overridden `mobile-`/`portrait-`/`landscape-` mode renders
+    // "Configure series to begin graphing" and reports it as a scene.
+    modes: (() => {
+      const descent = {
+        windowSec: 1200,
+        variant: "chart",
+        yUnit: "m",
+        series: [
+          {
+            id: "alt",
+            key: "vessel.flight.altitudeTerrain",
+            label: "Terrain altitude",
+            type: "line",
+            axis: "primary",
+          },
+        ],
+      };
+      return [
+        { name: "descent-12x9", w: 12, h: 9, config: descent },
+        { name: "landscape-18x5", w: 18, h: 5, config: descent },
+        { name: "mobile-9x8", w: 9, h: 8, config: descent },
+        { name: "portrait-5x18", w: 5, h: 18, config: descent },
+      ];
+    })(),
+  },
+  {
     widgetId: "orbital-ascent",
     fixturesPath: "OrbitalAscent/__fixtures__",
     outPath: "renders/orbital-ascent-widget",
@@ -1591,6 +1647,25 @@ const WIDGETS: WidgetRenderConfig[] = [
       // readout readable without scrolling.
       { name: "wide-12x12", w: 12, h: 12 },
     ],
+  },
+  {
+    // BLACKOUT showcase: the three states a topic's currency can be in
+    // across a loss of signal, on the one widget in the tree that renders a
+    // `StreamStatusBadge` (its header aside, off
+    // `science.experimentBreakdown`). Link up, then the last sample that got
+    // out before the outage, then the recorded replay.
+    //
+    // The career science figure shares that aside and is space-centre-
+    // sourced, so it stays live through all three: the RECORDED pill sits
+    // beside a value that genuinely IS current, which is the only way to see
+    // that `recorded` is info and not a degradation.
+    widgetId: "science-data",
+    label: "science-data/blackout",
+    fixturesPath: "ScienceData/__render_blackout__",
+    outPath: "renders/blackout/status-badge",
+    // Wider than the base set's 8x10 so the aside has room for the badge and
+    // the science figure side by side, which is the whole comparison.
+    modes: [{ name: "aboard-10x10", w: 10, h: 10 }],
   },
   {
     // Target Picker. Fixtures are SYNTHETIC (no live capture). Reads only the
