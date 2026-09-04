@@ -175,17 +175,41 @@ function ConstructionRow({
  */
 function Detail({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
   if (row.kind === "FacilityUpgrade") {
-    return (
-      <>
-        level <Unit value={row.currentLevel} /> to{" "}
-        <Unit value={row.targetLevel} />
-      </>
-    );
+    return <TierStep row={row} />;
   }
   if (row.kind === "LaunchComplex") {
     return row.isModify === true ? <>modification</> : <>new complex</>;
   }
   return <>new pad</>;
+}
+
+/**
+ * The two tiers a facility upgrade runs between, counted the way the rest of
+ * the screen counts them.
+ *
+ * <para><b>Both numbers are KSP's own zero-based facility level on the wire.</b>
+ * `RP0.FacilityUpgradeProject.currentLevel` is what its own `Abort()` hands to
+ * `UpgradeableObject.SetLevel`, so it is the same index
+ * `career.status.facilities[x].currentTier` carries, and every surface that
+ * shows a tier to an operator adds one: the host widget's grid, this Uplink's
+ * FACILITY UPGRADES cards, and KSP's own R&amp;D dialog, which calls a fully
+ * upgraded VAB "Level 3". Drawn raw, an R&amp;D upgrade read "level 1 to 2"
+ * under a grid cell reading "2 / 3" for the same building.</para>
+ *
+ * <para>Not <c>Unit</c>, because the shifted value is no longer the count that
+ * arrived: it is an ordinal in the operator's numbering, the same bare figure
+ * the grid and the upgrade cards draw. Either end can be absent on its own and
+ * says so on its own.</para>
+ */
+function TierStep({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
+  const from = magnitudeOf(row.currentLevel);
+  const to = magnitudeOf(row.targetLevel);
+  return (
+    <>
+      tier {from === null ? NULL_DISPLAY : from + 1} to{" "}
+      {to === null ? NULL_DISPLAY : to + 1}
+    </>
+  );
 }
 
 /**

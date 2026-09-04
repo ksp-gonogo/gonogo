@@ -230,9 +230,17 @@ interface NextTier {
  * ceiling and a reading that never arrived are the same empty section
  * otherwise.</para>
  *
- * <para>The tiers are counted the way the operator reads them, one higher than
- * the wire's zero-based index, matching the host widget's own "Lvl N of M" and
- * KSP's own R&amp;D dialog, which calls a fully-upgraded VAB level 3.</para>
+ * <para><b>The one place a facility tier is converted, and the convention every
+ * surface around it follows.</b> Every tier on the wire is KSP's own zero-based
+ * facility level: `career.status.facilities[x].currentTier` is
+ * `UpgradeableFacility.FacilityLevel`, `maxTier` is `MaxLevel` (the top tier's
+ * own index, 2 for a three-tier building), and `rp1.constructions[].currentLevel`
+ * is `RP0.FacilityUpgradeProject.currentLevel`, which its own `Abort()` hands
+ * straight to `UpgradeableObject.SetLevel`. All three are the same index in the
+ * same domain. Operators count from one and so does KSP's own R&amp;D dialog,
+ * which calls a fully-upgraded VAB "Level 3", so every number this Uplink and
+ * the host widget put on screen is `index + 1`. `current` and `total` here are
+ * already converted; the raw index does not leave this function.</para>
  */
 function nextTier(entry: TierBearing | undefined): NextTier | null {
   const tier = magnitudeOf(entry?.currentTier);
@@ -292,7 +300,12 @@ function UpgradeCard({
   const label = facilityLabel(facility);
   return (
     <ProjectCard
-      badge={<Badge severity="info">TIER {step.current + 1}</Badge>}
+      /* TO, because this is the tier the press BUYS and not the tier the
+         building is at. Bare "TIER 3" sat 300px under a host grid reading
+         "2 / 3" for the same Launch Pad, and an operator read the two numbers
+         as a contradiction rather than as a step. The detail line under it
+         carries the other end. */
+      badge={<Badge severity="info">TO TIER {step.current + 1}</Badge>}
       detail={
         <>
           now at tier {step.current} of {step.total}
