@@ -337,6 +337,46 @@ describe("Commcast, rendered", () => {
     await act(async () => {});
   });
 
+  it("hangs the delay reading in the console's corner, not in the composer", async () => {
+    /*
+     * The operator's ruling, and the defect it was about: this console put the
+     * reading INSIDE the composer, beside Send, while the terminal widget it
+     * was converged with pinned it in the console's top-right corner. Two
+     * consoles built from the same parts answered the same question in two
+     * places, which is what made the shared frame look like it was doing less
+     * than it was: "I like it in the top right corner, please can we just
+     * align to that".
+     *
+     * Structural rather than positional: a role query cannot tell the two
+     * apart, because both drew a perfectly good badge.
+     */
+    const log = makeLog();
+    log.setVantage("ksc");
+    const { container } = renderOnStream(
+      log,
+      [{ id: "ground:woomera", displayName: "Woomera Range", active: true }],
+      [{ from: "ksc", to: "ground:woomera", oneWaySeconds: 0.4 }],
+    );
+    await userEvent.click(screen.getByRole("button", { name: /New message/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Woomera Range/ }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Open" }));
+
+    const badge = screen.getByLabelText("Signal delay");
+    const corner = container.querySelector("[data-console-corner]");
+    expect(corner).not.toBeNull();
+    expect(corner?.contains(badge)).toBe(true);
+    // And out of the row the operator types into: a reading beside Send is a
+    // reading that moves with the control it is meant to be a cost of.
+    expect(
+      screen
+        .getByRole("button", { name: "Send" })
+        .parentElement?.contains(badge),
+    ).toBe(false);
+    await act(async () => {});
+  });
+
   it("says over the composer when there is no path to send over", async () => {
     /*
      * No delay has arrived on a stub transport, so the bar's own outline turns

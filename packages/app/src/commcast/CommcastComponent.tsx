@@ -474,6 +474,12 @@ function ThreadView({
       separationSeconds === null ? null : value("s", separationSeconds),
     canQueue: true,
   });
+  /*
+   * The standing reading, or nothing: the other arm of the model above hands
+   * the separation to the strip instead. Narrowed here rather than inline in
+   * the JSX so the frame's slot takes a node or is absent, never an empty box.
+   */
+  const badgeSeconds = delayPresentation === "badge" ? separationSeconds : null;
   const noPath = separation.kind === "no-path";
   return (
     <>
@@ -487,9 +493,22 @@ function ThreadView({
           same as the terminal widget: the frame holds the log, the outbound
           queue and the line being typed, in that order. The blue outline the
           operator sees is the input's own; the frame around it stays
-          subtle. */}
+          subtle.
+
+          `corner` is the terminal widget's corner, for the terminal widget's
+          reading. This console used to draw it inside the composer, beside
+          Send, on the reasoning that a chip over a column of prose sits on a
+          sentence somebody has to read. Both placements were defensible and
+          the PAIR was not: one console answered "how far away is the other
+          end" over the scrollback and this one answered it next to the
+          control, so an operator moving between them looked in two places for
+          one reading. Settled by the operator in favour of the corner, and it
+          belongs to `ConsoleFrame` now, so neither console can drift again. */}
       <ConsoleFrame
         tone={COMMCAST_TONE}
+        {...(badgeSeconds === null
+          ? {}
+          : { corner: <SignalDelayBadge oneWaySeconds={badgeSeconds} /> })}
         footer={
           <>
             {/* The terminal widget's uplink queue, in the terminal widget's
@@ -527,9 +546,6 @@ function ThreadView({
               target={target}
               noPath={noPath}
               separationSeconds={separationSeconds}
-              badgeSeconds={
-                delayPresentation === "badge" ? separationSeconds : null
-              }
             />
           </>
         }
@@ -839,7 +855,6 @@ function Composer({
   target,
   noPath,
   separationSeconds,
-  badgeSeconds,
 }: {
   log: CommcastLog;
   me: Vantage;
@@ -854,13 +869,6 @@ function Composer({
    */
   noPath: boolean;
   separationSeconds: number | null;
-  /**
-   * The one-way separation to show beside the control, or `null` when this is
-   * not the view's delay reading. The CHOICE is the thread view's (it also owns
-   * the strip, the other half of the same either-or); this component only draws
-   * what it is handed.
-   */
-  badgeSeconds: number | null;
 }) {
   const [draft, setDraft] = useState("");
   const ready =
@@ -903,10 +911,9 @@ function Composer({
 
        The flag now says ONLY that. It used to carry the round trip too, which
        made one pinned slot answer two unrelated questions and put a figure
-       there that the strip above was already drawing. The delay reading moved
-       into the bar itself, as the terminal widget's badge, and the flag went
-       back to being about refusal. The two never contend: no path means no
-       separation to quote. */
+       there that the strip above was already drawing. The delay reading is the
+       console's own corner now, and the flag went back to being about refusal.
+       The two never contend: no path means no separation to quote. */
     <ComposerBar
       blocked={noPath}
       prompt="❯"
@@ -938,14 +945,6 @@ function Composer({
           }
         }}
       />
-      {/* Between the input and the send button, so the reading sits on the path
-          the eye takes to the control whose cost it is. It only ever shows a
-          delay under a second (past that the strip above is the reading), so
-          the string is short by construction and the composer cannot reflow on
-          it, which is what the pinned chip was protecting against. */}
-      {badgeSeconds !== null && (
-        <SignalDelayBadge oneWaySeconds={badgeSeconds} />
-      )}
     </ComposerBar>
   );
 }

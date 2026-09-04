@@ -365,6 +365,41 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
   });
 
+  it("char-mode: hangs the delay reading in the console's own corner slot", async () => {
+    /*
+     * The same slot Commcast's badge hangs in, so the two consoles put the
+     * reading in one place: "I like it in the top right corner, please can we
+     * just align to that". The corner used to be this widget's alone, pinned
+     * with its own absolute rule, which is why the other console could put its
+     * copy somewhere else and nothing noticed.
+     *
+     * A structural query, because position is invisible to a role query: both
+     * consoles rendered a perfectly good badge while it hung in two different
+     * places.
+     */
+    const fixture = terminalFixture();
+    const { container } = render(
+      <fixture.Provider>
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: false }} />
+      </fixture.Provider>,
+    );
+    act(() => fixture.emit("kos.processors", ONE_CPU));
+    await waitFor(() =>
+      expect(fixture.transport.isSubscribed("kos.terminal.7")).toBe(true),
+    );
+    act(() =>
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 0.4,
+        source: "SignalDelay",
+      }),
+    );
+
+    const badge = await screen.findByLabelText("Signal delay");
+    const corner = container.querySelector("[data-console-corner]");
+    expect(corner).not.toBeNull();
+    expect(corner?.contains(badge)).toBe(true);
+  });
+
   it("char-mode: no measurable path (null oneWaySeconds) hides the badge instead of crashing", async () => {
     // comms-delay-nullable-when-no-path fix: `oneWaySeconds` is null when
     // there is no measurable ControlPath (as opposed to 0 for the

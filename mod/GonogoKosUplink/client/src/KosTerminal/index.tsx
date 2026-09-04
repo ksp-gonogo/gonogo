@@ -1257,9 +1257,14 @@ function KosTerminalScreen({
           stacked as flex siblings of it: each one, as a sibling, added its own
           row height on top of everything else in `TerminalShell` and could
           push the composition bar past the widget's visible bounds on a short
-          widget. The corners themselves stay here, because a character grid
-          whose top corners are usually empty cells is the only surface in the
-          app that wants an overlay there.
+          widget.
+
+          The delay reading is the frame's `corner` now rather than this
+          widget's own pin, because the app's other console wanted the same
+          corner for the same reading and was putting it beside Send instead.
+          The remaining two stay here: a character grid is the only surface in
+          the app with a spare top-LEFT and bottom-right, so a slot per corner
+          would be an API guessed at from one caller.
 
           `tone` is the widget's whole colour decision, and the frame paints
           nothing with it: it declares the accent that the composition bar's
@@ -1270,6 +1275,9 @@ function KosTerminalScreen({
           near-black that said it to nobody. */}
       <ConsoleFrame
         tone={readOnly ? "info" : "accent"}
+        {...(badgeSeconds !== null
+          ? { corner: <SignalDelayBadge oneWaySeconds={badgeSeconds} /> }
+          : {})}
         footer={
           <>
             {delayPresentation === "strip" && (
@@ -1388,7 +1396,6 @@ function KosTerminalScreen({
         }
       >
         <Container ref={containerRef} />
-        {badgeSeconds !== null && <DelayBadge oneWaySeconds={badgeSeconds} />}
         {!readOnly && noPath && (
           <NoPathBadge role="status">
             No path: commands are not being sent
@@ -1612,15 +1619,15 @@ const CpuPicker__Button = styled(GhostButton)`
 // comment). Error/danger tone (the same `--color-status-nogo-*` pair
 // `CommSignal` uses for its "lost" state) so it reads unambiguously as a
 // blocking condition, not an informational badge like `DelayBadge` below it.
-// Pinned inside `ConsoleFrame`'s scrollback surface, in the corner opposite
-// `DelayBadge` so the
-// two never overlap on the (rare) render where both are showing: a stale delay
-// reading can still be latched (see `delay-authority.ts`) through a
-// connectivity drop, so both badges legitimately co-render. "Opposite corner"
-// alone isn't enough at narrow widths (e.g. the widget's own registered
-// minSize, 8x6): this badge's text is the longer of the two, and with no width
-// cap it grows straight across the frame into `DelayBadge`'s corner instead of
-// stopping short. Capped + truncated so it always leaves `DelayBadge` clear.
+// Pinned inside `ConsoleFrame`'s scrollback surface, in the corner opposite the
+// frame's own `corner` slot so the two never overlap on the (rare) render where
+// both are showing: a stale delay reading can still be latched (see
+// `delay-authority.ts`) through a connectivity drop, so both badges legitimately
+// co-render. "Opposite corner" alone isn't enough at narrow widths (e.g. the
+// widget's own registered minSize, 8x6): this badge's text is the longer of the
+// two, and with no width cap it grows straight across the frame into the delay
+// reading's corner instead of stopping short. Capped + truncated so it always
+// leaves that corner clear.
 const NoPathBadge = styled.div`
   position: absolute;
   top: var(--space-8);
@@ -1640,22 +1647,6 @@ const NoPathBadge = styled.div`
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-`;
-
-// The kit's delay readout, PINNED. Which of the two readings shows at all is
-// `signalDelayPresentation`'s call and the chip itself is the kit's; what stays
-// here is the corner, because a character grid whose top corners are usually
-// empty cells is the only surface in the app with one to spare. Pinned as a
-// sibling of `Container` inside the frame's scrollback surface, not a
-// descendant: `Container`'s own `overflow: hidden` is reserved for xterm's
-// content.
-const DelayBadge = styled(SignalDelayBadge)`
-  position: absolute;
-  top: var(--space-8);
-  right: var(--space-8);
-  /* Local ordering inside the frame only, over xterm's own layers. Not
-     app-global chrome, so no named z rung. */
-  z-index: 1;
 `;
 
 /*

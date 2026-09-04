@@ -49,14 +49,26 @@ import styled, { css } from "styled-components";
  * `ScrollArea`, a canvas, or a terminal emulator that scrolls itself. Owning
  * the scroll here would fight all three.
  *
- * It offers no corner SLOTS. That was tried and taken back out: the two
- * widgets that share this frame turned out to want opposite things in a
- * corner, and only one of them wanted a corner at all. An overlay works on a
- * character grid whose top corner is usually empty cells; over a column of
- * prose it sits on top of a sentence the operator has to read, and the reading
- * it carried there belonged on the control it was the cost of. So the pinning
- * stays with the widget that has something to pin, and a corner API waits for
- * a second real use rather than being guessed at from one.
+ * ## The corner
+ *
+ * `corner` is the top-right slot, and it exists because the second real use
+ * turned up. It was declined once, on the reasoning that only one of the two
+ * consoles wanted a corner and an overlay over a column of prose sits on a
+ * sentence the operator has to read, so the other put its standing delay
+ * reading inside its composer instead. Both were defensible and the pair was
+ * not: one console answered "how far away is the other end" over the
+ * scrollback and the other answered it beside Send, and an operator moving
+ * between them had to find the reading twice. The operator's call settled it,
+ * and it is the frame's now rather than each widget's: "I like it in the top
+ * right corner, please can we just align to that".
+ *
+ * What it costs on a prose console is the top-right of the topmost VISIBLE
+ * line, which in a log that grows upward from the composer is the oldest thing
+ * still on screen rather than the newest. That is the trade the ruling accepts.
+ *
+ * The other corners are still each widget's own. A character grid is the only
+ * surface in the app with three spare, and a slot per corner guessed at from
+ * one caller is the API this one was right to decline the first time.
  */
 export type ConsoleTone = "accent" | "info";
 
@@ -86,12 +98,25 @@ export interface ConsoleFrameProps extends ComponentPropsWithoutRef<"div"> {
    * composer onto the outside of the console.
    */
   footer?: ReactNode;
+  /**
+   * A standing reading, pinned in the top-right of the scrollback: what is true
+   * of the link right now rather than of any one thing said over it.
+   *
+   * Out of flow, so it costs the body no height. That is what makes it usable
+   * on a widget at its declared `minSize`, where the same chip as a flex
+   * sibling pushes the composer past the tile's visible bounds.
+   *
+   * Over the scrollback and never over the foot: an overlay belongs on what has
+   * already been said, not on the line being typed.
+   */
+  corner?: ReactNode;
   children?: ReactNode;
 }
 
 export function ConsoleFrame({
   tone = "accent",
   footer,
+  corner,
   children,
   ...rest
 }: ConsoleFrameProps) {
@@ -103,7 +128,18 @@ export function ConsoleFrame({
        role and both widgets rendered perfectly good composers while they hung
        underneath. */
     <ConsoleFrame__Box data-console-frame="" $tone={tone} {...rest}>
-      <ConsoleFrame__Surface>{children}</ConsoleFrame__Surface>
+      <ConsoleFrame__Surface>
+        {children}
+        {corner !== undefined && (
+          /* `data-console-corner`, the sibling of `data-console-frame` above
+             and there for the same reason: WHERE a badge hangs is invisible to
+             a role query, and both consoles rendered a perfectly good one
+             while they hung it in two different places. */
+          <ConsoleFrame__Corner data-console-corner="">
+            {corner}
+          </ConsoleFrame__Corner>
+        )}
+      </ConsoleFrame__Surface>
       {footer !== undefined && (
         <ConsoleFrame__Foot>{footer}</ConsoleFrame__Foot>
       )}
@@ -157,6 +193,25 @@ const ConsoleFrame__Surface = styled.div`
  * console rather than as its bottom section: an inset bordered box has a widget
  * around it, one flush to three edges is a region of the widget.
  */
+/*
+ * A row rather than a single box, so a console with a second standing reading
+ * gets them side by side in reading order instead of one on top of the other.
+ *
+ * `z-index: 1` is local sibling ordering inside this frame's own stacking
+ * context: it lifts the chip over whatever the scrollback mounts, which for a
+ * terminal emulator is a stack of its own layers. Not app-global chrome, so no
+ * named z rung.
+ */
+const ConsoleFrame__Corner = styled.div`
+  position: absolute;
+  top: var(--space-8);
+  right: var(--space-8);
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+`;
+
 const ConsoleFrame__Foot = styled.div`
   position: relative;
   flex: 0 0 auto;

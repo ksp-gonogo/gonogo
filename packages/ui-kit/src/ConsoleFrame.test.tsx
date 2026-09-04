@@ -56,6 +56,65 @@ describe("ConsoleFrame", () => {
     ).toHaveLength(1);
   });
 
+  it("pins the corner over the scrollback, not over the composer", () => {
+    /*
+     * The corner is the console's standing-reading slot, and the operator's
+     * ruling on where it goes: "I like it in the top right corner, please can
+     * we just align to that". A reading pinned there is over what has already
+     * been said; the same reading in the composer row sits on the line being
+     * typed, which is what the two consoles had drifted to doing differently.
+     */
+    const { container } = render(
+      <ConsoleFrame
+        corner={<span>one-way ~0.4 s</span>}
+        footer={<button type="button">Send</button>}
+      >
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    const corner = container.querySelector("[data-console-corner]");
+    expect(corner).not.toBeNull();
+    expect(corner?.contains(screen.getByText("one-way ~0.4 s"))).toBe(true);
+    // Over the scrollback: the corner's parent is the surface that holds it,
+    // never the foot that holds the input.
+    expect(
+      corner?.parentElement?.contains(screen.getByText("scrollback")),
+    ).toBe(true);
+    expect(
+      corner?.parentElement?.contains(
+        screen.getByRole("button", { name: "Send" }),
+      ),
+    ).toBe(false);
+  });
+
+  it("costs the body no height for what it pins in the corner", () => {
+    /*
+     * The reason the slot is here rather than in each console: a badge as a
+     * flex sibling adds its own row, and at a widget's declared minSize that
+     * row pushes the composer out of the tile. Absolute, so it is out of flow.
+     */
+    const { container } = render(
+      <ConsoleFrame corner={<span>chip</span>}>
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    const corner = container.querySelector(
+      "[data-console-corner]",
+    ) as HTMLElement;
+    expect(getComputedStyle(corner).position).toBe("absolute");
+  });
+
+  it("draws no corner at all when there is no standing reading", () => {
+    // An empty pinned box in the corner of every console is a slot showing
+    // through, which is what a conditional slot is for.
+    const { container } = render(
+      <ConsoleFrame>
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    expect(container.querySelector("[data-console-corner]")).toBeNull();
+  });
+
   it("declares the tone for what is inside it, and wears none of it", () => {
     /*
      * The one difference between the app's two consoles, and a prop rather than

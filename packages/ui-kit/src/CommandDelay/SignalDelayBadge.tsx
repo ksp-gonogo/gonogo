@@ -23,13 +23,14 @@ import { Unit } from "../Unit";
  * legs, for a message that is actually crossing. That is where a two-leg figure
  * belongs, because there it names a specific message and an instant it lands.
  *
- * ## Placement is the caller's
+ * ## Placement is the CONSOLE's, not this chip's and not each caller's
  *
- * An inline chip with no position of its own. A character grid whose top corner
- * is usually empty cells pins it there with `styled()`; a console over a column
- * of prose has no free corner and puts it in the composer row instead, next to
- * the control whose cost it is. Owning the position here would force one of
- * those two on the other.
+ * An inline chip with no position of its own, which is not the same as leaving
+ * the position to whoever renders it. That was the arrangement, and the two
+ * consoles that draw one used it to reach opposite answers: a character grid
+ * pinned it in its own top corner, a column of prose put it in the composer row
+ * beside Send. `ConsoleFrame`'s `corner` slot owns the placement for both now,
+ * so this stays free of `position` and neither console gets to pick.
  */
 export interface SignalDelayBadgeProps {
   /** One-way separation in seconds. Rendered as-is; the caller decides IF. */
@@ -67,8 +68,8 @@ export function SignalDelayBadge({
 }
 
 const SignalDelayBadge__Chip = styled.div`
-  /* Non-growing: in a composer row it must not take width from the input it
-     sits beside, and the text is short by construction (the badge only ever
+  /* Non-growing: it shares the console's corner row with whatever else is
+     standing there, and the text is short by construction (the badge only ever
      shows a delay the strip has declined to draw). */
   flex: 0 0 auto;
   padding: var(--space-2) var(--space-8);
