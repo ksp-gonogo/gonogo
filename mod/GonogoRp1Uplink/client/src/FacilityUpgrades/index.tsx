@@ -234,10 +234,13 @@ interface NextTier {
  * surface around it follows.</b> Every tier on the wire is KSP's own zero-based
  * facility level: `career.status.facilities[x].currentTier` is
  * `UpgradeableFacility.FacilityLevel`, `maxTier` is `MaxLevel` (the top tier's
- * own index, 2 for a three-tier building), and `rp1.constructions[].currentLevel`
- * is `RP0.FacilityUpgradeProject.currentLevel`, which its own `Abort()` hands
- * straight to `UpgradeableObject.SetLevel`. All three are the same index in the
- * same domain. Operators count from one and so does KSP's own R&amp;D dialog,
+ * own index, 2 for a three-tier building), `rp1.facilities` denormalises the same
+ * level back out of `KCTUtilities.GetFacilityLevel`, and
+ * `rp1.constructions[].currentLevel` is `RP0.FacilityUpgradeProject.currentLevel`,
+ * which its own `Abort()` hands straight to `UpgradeableObject.SetLevel`. All
+ * four are the same index in the same domain, which is what lets the two tier
+ * channels fall back to each other with no conversion between them.
+ * Operators count from one and so does KSP's own R&amp;D dialog,
  * which calls a fully-upgraded VAB "Level 3", so every number this Uplink and
  * the host widget put on screen is `index + 1`. `current` and `total` here are
  * already converted; the raw index does not leave this function.</para>
