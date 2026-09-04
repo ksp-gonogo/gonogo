@@ -15,8 +15,14 @@ import {
 } from "../units";
 import type { Value } from "../value";
 import type { ModelledField } from "./client-reading";
-import type { Anomalies, OrbitElements, StateVector, Vector3 } from "./kepler";
-import { solve, solveAnomalies } from "./kepler";
+import type {
+  Anomalies,
+  OrbitElements,
+  PropagationHorizonLike,
+  StateVector,
+  Vector3,
+} from "./kepler";
+import { canPropagate, solve, solveAnomalies } from "./kepler";
 import {
   findImpactPoint,
   type LegacyOrbitPatch,
@@ -98,6 +104,19 @@ export interface VesselOrbitPayload {
    * `deriveLanding`'s impact-point walk.
    */
   patches?: OrbitPatchWirePayload[];
+  /**
+   * How far these elements answer for, as the producer states it
+   * (`PropagationHorizon`, required on the wire).
+   *
+   * This mirror omitted it, which is why the one place in the tree whose whole
+   * job is to decide whether it may extrapolate, `deriveVesselStateReckoning`,
+   * was also the one place that never asked: `SystemView`, `usePhaseAngles` and
+   * `TrajectoryCurrencyBridge` all gate on `canPropagate` and could, because
+   * they read the generated shape. Optional here on the same "additive field an
+   * older recording may not carry" grounds as `encounter`, and `canPropagate`
+   * REFUSES on an absent one rather than reading silence as permission.
+   */
+  horizon?: PropagationHorizonLike;
 }
 
 /**
@@ -263,6 +282,13 @@ export interface SystemBodyPayload {
    */
   rotationPeriod?: number | null;
   orbit: SystemBodyOrbitPayload | null;
+  /**
+   * The body's atmosphere, present only when it HAS one (`BodyEntry.atmosphere`,
+   * "the airless vs. no-data distinction"). Absence is therefore a fact about
+   * the body and not a gap, which is what lets `entryInterfaceRadius` treat an
+   * airless body's floor as its surface rather than declining to have a floor.
+   */
+  atmosphere?: { depth?: Quantityish | null } | null;
 }
 
 /** The `system.bodies` channel payload (mirrors `SystemViewProvider.BuildSystemBodies`'s `{ "bodies": [...] }` shape), the source of `VesselState.apoapsisAlt`/`periapsisAlt`'s reference-body radius. */
@@ -1070,6 +1096,44 @@ function resolveBodyRadius(
 }
 
 /**
+ * The radius below which a vacuum two-body coast stops describing what happens:
+ * the top of the atmosphere, or the surface on a body that has none.
+ *
+ * `kepler-propagation` states its own limits, and the third of them is "a
+ * perturbation the propagator does not model". Drag is that perturbation, and
+ * it is not a gentle one: a capsule crossing the interface at orbital speed
+ * loses most of it inside a couple of minutes, so a conic carried past this
+ * radius is not a degraded answer but a different trajectory. Below the surface
+ * it is not a trajectory at all.
+ *
+ * One number covers both because the model is asking one question, and the
+ * separate cases would only differ in a sentence nothing reads. `atmosphere`
+ * absent means airless on this wire rather than unknown, which is what makes
+ * the surface a sound floor rather than a guess.
+ *
+ * `undefined` when nothing here resolves, and the caller treats that as "no
+ * evidence" rather than as a reason to decline: see
+ * {@link deriveVesselStateReckoning}.
+ */
+function entryInterfaceRadius(
+  get: DerivedGet,
+  index: number | null | undefined,
+): number | undefined {
+  if (index == null) return undefined;
+  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
+  if (!bodiesPoint || bodiesPoint.payload === null) return undefined;
+  const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
+  if (!body) return undefined;
+  // `mag` rather than the raw field: `system.bodies` arrives unwrapped today
+  // and wrapped the moment its type shape is registered, and a floor that
+  // silently becomes NaN would stop declining without saying so.
+  const radius = magnitudeOr(body.radius, Number.NaN);
+  if (!Number.isFinite(radius)) return undefined;
+  const depth = magnitudeOr(body.atmosphere?.depth, 0);
+  return radius + (Number.isFinite(depth) && depth > 0 ? depth : 0);
+}
+
+/**
  * Resolve a body INDEX to its sidereal rotation period (seconds) via
  * `system.bodies`. Same discipline as `resolveBodyRadius`.
  *
@@ -1861,10 +1925,31 @@ export function deriveVesselState(
       orbit.referenceBodyIndex,
     );
 
+    const orbitalRadius =
+      position == null ? null : finiteOrNull(magnitude(position));
+
     return {
       position,
       velocity,
-      altitudeAsl: null,
+      /*
+       * The solved radius less the reference body's, which is what an altitude
+       * ASL is. This field's own doc called it "deferred, needs system.bodies",
+       * and that stopped being true when `system.bodies` became an input for
+       * the apsis ALTITUDES: `deriveApsides` subtracts the same radius from the
+       * same elements, so leaving the instantaneous one null was a note that
+       * had outlived its reason. `verticalSpeed`/`surfaceSpeed` below stay null
+       * on this basis and are a different case: they are surface-frame rates
+       * that need the body's rotation, not a subtraction.
+       */
+      altitudeAsl:
+        orbitalRadius == null
+          ? null
+          : (() => {
+              const radius = resolveBodyRadius(get, orbit.referenceBodyIndex);
+              return radius == null
+                ? null
+                : finiteOrNull(orbitalRadius - magnitudeOr(radius, Number.NaN));
+            })(),
       verticalSpeed: null,
       surfaceSpeed: null,
       orbitalSpeed: velocity == null ? null : magnitude(velocity),
@@ -1890,8 +1975,7 @@ export function deriveVesselState(
         ? null
         : finiteOrNull(mag(orbit.sma) * (1 + mag(orbit.ecc))),
       periapsisRadius: finiteOrNull(mag(orbit.sma) * (1 - mag(orbit.ecc))),
-      orbitalRadius:
-        position == null ? null : finiteOrNull(magnitude(position)),
+      orbitalRadius,
       ...deriveNextApsis(timeToAp, timeToPe),
       // Surface-frame horizontal speed is a MEASURED quantity, null in the
       // propagated basis, exactly like surfaceSpeed/verticalSpeed above.
@@ -2057,14 +2141,33 @@ export function deriveVesselStateStatus(
  * declines and the reading falls back to `stale`.
  *
  * That closes the gap this doc used to record as unclosed, with a UT off the
- * wire rather than a constant. It is a real bound and a partial one: the other
- * half of the horizon is a BURN, and a craft out of contact is exactly one
- * whose burns we cannot see, so nothing inside this function can bound it. The
- * `kepler-propagation` basis carries that caveat in its own words, which is
- * what a basis is for.
+ * wire rather than a constant.
  *
  * `transitionType` is deliberately not consulted. An escape and an encounter
  * both end this patch, and the horizon is the instant, not the kind.
+ *
+ * ## The second horizon: the air
+ *
+ * A patch also ends where the vacuum does. `kepler-propagation` names three
+ * things it cannot survive and drag is the third, so an arc carried below the
+ * entry interface is not a conic getting worse with age: it is a conic
+ * describing a trajectory that is not happening. The failure is worst exactly
+ * where an operator leans on it hardest, a re-entry, and it is invisible,
+ * because a conic through air draws the same confident dashes a conic through
+ * vacuum draws. `entryInterfaceRadius` supplies the floor and the check is the
+ * solved radius against it, asked per instant, so the tail simply stops there.
+ *
+ * **Declining takes positive evidence.** With no body roster there is no
+ * interface to have crossed, and refusing on an absent fact would blank every
+ * propagated reading for the frames before a once-a-second channel lands. Same
+ * posture `classifyRetained` takes in declaring a command lost, and the same
+ * posture the SOI horizon above already takes on an absent `encounter`.
+ *
+ * ## What is still unbounded, and cannot be bounded here
+ *
+ * A BURN. A craft out of contact is exactly one whose burns we cannot see, so
+ * nothing inside this function can bound it, and the `kepler-propagation`
+ * basis carries that caveat in its own words. That is what a basis is for.
  */
 export function deriveVesselStateReckoning(
   get: DerivedGet,
@@ -2073,10 +2176,27 @@ export function deriveVesselStateReckoning(
   const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
   if (orbitPoint?.payload == null) return undefined;
   if (orbitPoint.meta.quality !== Quality.OnRails) return undefined;
-  const transitionUt = orbitPoint.payload.encounter?.transitionUt;
+  const orbit = orbitPoint.payload;
+  const transitionUt = orbit.encounter?.transitionUt;
   if (transitionUt != null) {
     const at = mag(transitionUt);
     if (Number.isFinite(at) && viewUt >= at) return undefined;
+  }
+  /*
+   * The producer's own stated reach, which this function is the last place in
+   * the tree to start asking. Only bites on a recording old enough to carry no
+   * horizon at all: the stock provider is analytic and answers `Unbounded`, and
+   * an integrating one answering `Until` is exactly the case the seam was built
+   * for and nothing was consulting it in.
+   */
+  if (!canPropagate(orbit.horizon, viewUt, viewUt).propagatable) {
+    return undefined;
+  }
+  const floor = entryInterfaceRadius(get, orbit.referenceBodyIndex);
+  if (floor !== undefined) {
+    const solved = trySolve(buildElements(orbit), viewUt);
+    const radius = solved == null ? Number.NaN : magnitude(solved.position);
+    if (Number.isFinite(radius) && radius <= floor) return undefined;
   }
   return KEPLER_MODELLED_FIELDS;
 }
@@ -2117,6 +2237,7 @@ const KEPLER_MODELLED_FIELDS: readonly ModelledField[] = [
   { path: "velocity", basis: "kepler-propagation" },
   { path: "orbitalSpeed", basis: "kepler-propagation" },
   { path: "orbitalRadius", basis: "kepler-propagation" },
+  { path: "altitudeAsl", basis: "kepler-propagation" },
   { path: "trueAnomaly", basis: "kepler-propagation" },
   { path: "timeToAp", basis: "kepler-propagation" },
   { path: "timeToPe", basis: "kepler-propagation" },

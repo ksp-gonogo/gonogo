@@ -63,6 +63,14 @@ const CIRCULAR_ORBIT: WireOf<VesselOrbitPayload> = {
   meanAnomalyAtEpoch: 0,
   epoch: 0,
   mu: 3.5316e12, // Kerbin's GM
+  /*
+   * What the stock producer always fills (`AnalyticHorizon()`), reach AND
+   * shape. Required on the wire, so a fixture without it records a producer
+   * that dropped a required field rather than a neutral scene, and
+   * `deriveVesselStateReckoning` now refuses to propagate one: an absent
+   * horizon is nobody's permission, which is `canPropagate`'s whole argument.
+   */
+  horizon: { kind: 1, trajectoryKind: 1 },
 };
 
 function orbitPoint(validAt: number): TimelinePoint<VesselOrbitPayload> {
