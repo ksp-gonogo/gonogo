@@ -54,13 +54,35 @@ const ALLOWLIST_PATH = "packages/core/src/uplink-isolation.allowlist.ts";
  * only sees the bare specifier would have gone on reporting clean the first time
  * one did.
  *
- * `from` is required. Without it the possessive in a comment ("`@ksp-gonogo/
- * components`'s MapView") reads as a terminated specifier, which is how a summary
- * of this audit once reported four imports that were four sentences.
+ * A bare specifier is never enough on its own. Without a preceding keyword the
+ * possessive in a comment ("`@ksp-gonogo/components`'s MapView") reads as a
+ * terminated specifier, which is how a summary of this audit once reported four
+ * imports that were four sentences. Three such possessives are in Uplink client
+ * headers today.
+ */
+const SPECIFIER_PREFIX =
+  "(?:from\\s*|import\\s*\\(\\s*|require\\s*\\(\\s*|(?:^|[;{}])[ \\t]*import\\s+)";
+
+/**
+ * Every spelling that actually REACHES a module, not just the one everybody
+ * writes.
+ *
+ * It was `from` alone for the whole life of this gate, and `from` is three of
+ * four. Planting `import "@ksp-gonogo/core";`, `import("@ksp-gonogo/components")`
+ * and `require("@ksp-gonogo/logger")` together in a production Uplink file on
+ * 2026-09-04 left this suite at 14/14 and the entire `core:scans` project at
+ * 337/337, while the same file's canonical `from` spelling failed it
+ * immediately. The gate could see one quarter of its own subject.
+ *
+ * The side-effect form is the one that matters most and was the most likely to
+ * arrive: an Uplink client entry point registers its widgets by being imported,
+ * so `import "<package>"` for its side effects is the idiom this codebase
+ * already uses, and it carries every byte of the package into the bundle while
+ * naming no symbol for a reviewer to notice.
  */
 const IMPORT_RE = new RegExp(
-  `from\\s*["']@ksp-gonogo/(${FORBIDDEN_PACKAGES.join("|")})(?:["']|/)`,
-  "g",
+  `${SPECIFIER_PREFIX}["']@ksp-gonogo/(${FORBIDDEN_PACKAGES.join("|")})(?:["']|/)`,
+  "gm",
 );
 
 /**
@@ -159,6 +181,61 @@ describe("uplink isolation", () => {
     expect(
       new Set(files.map((f) => f.split("/mod/")[1]?.split("/")[0])).size,
     ).toBeGreaterThanOrEqual(8);
+  });
+
+  /**
+   * Walking the right files proves only that the scan had something to read.
+   * Whether it can RECOGNISE a violation in what it read is a separate
+   * question, and the check above cannot ask it: both regexes below returned
+   * nothing for three of the four ways to reach a module, and every count in
+   * this file stayed exactly as green as it is when the tree is clean.
+   *
+   * So each spelling is planted here, in a string, and graded. A pattern that
+   * stops matching one of them fails as BLIND rather than reporting a tree with
+   * no violations in it. The false-positive half is graded in the same test
+   * because widening a specifier regex is precisely when prose starts matching,
+   * and three Uplink client headers carry the possessive form today.
+   */
+  it("recognises every spelling that reaches a module, and no prose", () => {
+    const forbidden = FORBIDDEN_PACKAGES[0];
+    const seen = (source: string) =>
+      [...source.matchAll(IMPORT_RE)].map((m) => m[1]);
+
+    const reaches: Record<string, string> = {
+      "static named": `import { a } from "@ksp-gonogo/${forbidden}";`,
+      "static side-effect": `import "@ksp-gonogo/${forbidden}";`,
+      "side-effect, indented": `  import "@ksp-gonogo/${forbidden}";`,
+      "re-export": `export * from "@ksp-gonogo/${forbidden}";`,
+      dynamic: `const m = await import("@ksp-gonogo/${forbidden}");`,
+      require: `const m = require("@ksp-gonogo/${forbidden}");`,
+      subpath: `import { a } from "@ksp-gonogo/${forbidden}/test";`,
+    };
+    const missed = Object.entries(reaches)
+      .filter(([, source]) => !seen(source).includes(forbidden))
+      .map(([spelling]) => spelling);
+    expect(
+      missed,
+      [
+        "IMPORT_RE cannot see a spelling that reaches the module anyway.",
+        "",
+        "Every check in this file reports an empty offender list when the",
+        "pattern misses, which is the same thing it reports when the tree is",
+        "clean. Widen the pattern; do not narrow this list.",
+      ].join("\n"),
+    ).toEqual([]);
+
+    const prose: Record<string, string> = {
+      possessive: `// see @ksp-gonogo/${forbidden}'s registry`,
+      "bare mention": `// this used to live in @ksp-gonogo/${forbidden}`,
+      "permitted sibling": `import { a } from "@ksp-gonogo/ui-kit";`,
+    };
+    const falsePositives = Object.entries(prose)
+      .filter(([, source]) => seen(source).length > 0)
+      .map(([kind]) => kind);
+    expect(
+      falsePositives,
+      "IMPORT_RE matched something that is not an import. A false positive here sends remediation after clean files, which is how one pass at this audit grew from 15 violations to 72.",
+    ).toEqual([]);
   });
 
   /**
@@ -603,19 +680,48 @@ describe("uplink subpath isolation", () => {
   }
 
   /**
-   * `from` covers static imports and re-exports; `import(` covers the dynamic
-   * form, which the package-level `IMPORT_RE` above does not see. A widget that
-   * lazily imports the spine reaches it just as completely, and a check that
-   * misses the one spelling nobody has used yet reports clean the first time
-   * someone does.
+   * The same four spellings the package-level scan reads, from the same
+   * fragment, so the two cannot drift apart again: this one grew `import(`
+   * when it was written and the package-level one did not, and the header
+   * there said so for nine days without anything closing the gap.
    *
-   * A vitest alias is neither. It is `"<specifier>": path.resolve(...)`, with no
-   * `from` and no call, and one Uplink config aliases both non-author subpaths
-   * today because `sdk-subpath-alias.test.ts` requires every published subpath to
-   * be aliased wherever the sdk is.
+   * A vitest alias is none of them. It is `"<specifier>": path.resolve(...)`,
+   * with no keyword and no call, and one Uplink config aliases both non-author
+   * subpaths today because `sdk-subpath-alias.test.ts` requires every published
+   * subpath to be aliased wherever the sdk is.
    */
-  const SUBPATH_IMPORT_RE =
-    /(?:from\s*|import\(\s*)["']@ksp-gonogo\/(sitrep-sdk|ui-kit)\/([^"']+)["']/g;
+  const SUBPATH_IMPORT_RE = new RegExp(
+    `${SPECIFIER_PREFIX}["']@ksp-gonogo/(sitrep-sdk|ui-kit)/([^"']+)["']`,
+    "gm",
+  );
+
+  /**
+   * The subpath scan's own blindness floor, for the reason the package-level
+   * one has it: `offenders` is empty both when no Uplink imports `/spine` and
+   * when the pattern has stopped being able to say so.
+   */
+  it("recognises every spelling that reaches a subpath", () => {
+    const seen = (source: string) =>
+      [...source.matchAll(SUBPATH_IMPORT_RE)].map((m) => `${m[1]}/${m[2]}`);
+    const reaches: Record<string, string> = {
+      "static named": `import { a } from "@ksp-gonogo/sitrep-sdk/spine";`,
+      "static side-effect": `import "@ksp-gonogo/sitrep-sdk/spine";`,
+      "re-export": `export * from "@ksp-gonogo/sitrep-sdk/spine";`,
+      dynamic: `const m = await import("@ksp-gonogo/sitrep-sdk/spine");`,
+      require: `const m = require("@ksp-gonogo/sitrep-sdk/spine");`,
+    };
+    const missed = Object.entries(reaches)
+      .filter(([, source]) => !seen(source).includes("sitrep-sdk/spine"))
+      .map(([spelling]) => spelling);
+    expect(
+      missed,
+      "SUBPATH_IMPORT_RE cannot see a spelling that reaches the subpath anyway. Widen SPECIFIER_PREFIX rather than narrowing this list.",
+    ).toEqual([]);
+    expect(
+      seen(`// the arithmetic lives in @ksp-gonogo/sitrep-sdk/frames`),
+      "SUBPATH_IMPORT_RE matched prose.",
+    ).toEqual([]);
+  });
 
   it("classifies every published subpath, so a new one cannot default", () => {
     const unclassified: string[] = [];
