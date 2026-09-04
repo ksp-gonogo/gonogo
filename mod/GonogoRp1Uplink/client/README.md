@@ -272,7 +272,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A career with two tiers it could commit to and one building already in the queue, priced against a balance that cannot meet either: RP-1 bills a construction as it builds, so this is a slower upgrade rather than a refused one](docs/assets/facility-upgrades-at-centre--default.png)
 
-![The same career read from the flight scene: KSP has not built the facilities, so every tier and every price is absent and the command's own gate refuses. Said out loud, because a career with nothing left to upgrade renders the same silence](docs/assets/facility-upgrades-away--default.png)
+![The same career read from the flight scene: KSP has not put the buildings in the scene, so every tier and every price is absent and the command's own gate refuses. Said out loud, because a career with nothing left to upgrade renders the same silence, and said with the half an operator would otherwise fear, that an upgrade already under way is still building](docs/assets/facility-upgrades-away--default.png)
 
 ![LC-1's detail open on a career with 400f against a 14,118f pad: the quote, the reading that it is more than the balance, and a press that is still live because RP-1 slows the build rather than refusing it](docs/assets/complexes-add-pad--default.png)
 
