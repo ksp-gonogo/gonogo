@@ -270,7 +270,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 
-![A career with two tiers it could commit to and one building already in the queue, priced against a balance that cannot meet either: RP-1 bills a construction as it builds, so this is a slower upgrade rather than a refused one](docs/assets/facility-upgrades-at-centre--default.png)
+![A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all](docs/assets/facility-upgrades-at-centre--default.png)
 
 ![The same career read from the flight scene: KSP has not put the buildings in the scene, so every tier and every price is absent and the command's own gate refuses. Said out loud, because a career with nothing left to upgrade renders the same silence, and said with the half an operator would otherwise fear, that an upgrade already under way is still building](docs/assets/facility-upgrades-away--default.png)
 

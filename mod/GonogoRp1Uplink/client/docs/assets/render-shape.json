@@ -213,14 +213,14 @@
       "text": "b6c63acd"
     },
     "catalogue-picker--default.png": {
-      "hash": "59b3787f81a45fa8",
+      "hash": "5b94213b95f44ace",
       "elements": 263,
-      "text": "176067ac"
+      "text": "ec5ba75d"
     },
     "completed-program--default.png": {
-      "hash": "1d6f145a71f7b175",
+      "hash": "7fd3a0a737eb977c",
       "elements": 262,
-      "text": "2284a518"
+      "text": "955f5ed5"
     },
     "complexes-add-pad--default.png": {
       "hash": "27fcfd63d7508a1b",
@@ -238,12 +238,12 @@
       "text": "7d733bf3"
     },
     "complexes-new--default.png": {
-      "hash": "03833da978c80110",
+      "hash": "ca18d925a1cdcb57",
       "elements": 252,
       "text": "2712e6f9"
     },
     "complexes-rename--default.png": {
-      "hash": "164b84850934cea1",
+      "hash": "d1eb7ea249bb7f66",
       "elements": 268,
       "text": "5d1794ae"
     },
@@ -293,12 +293,12 @@
       "text": "8348fe0e"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "b3a3ed3371201e0a",
+      "hash": "00dfa3ea22fafe7c",
       "elements": 32,
       "text": "206699b0"
     },
     "crew-enrolment-ready--default.png": {
-      "hash": "e2f1f8b48f24dfdf",
+      "hash": "67e6f8e38b19d14a",
       "elements": 31,
       "text": "a8239cff"
     },
@@ -333,9 +333,9 @@
       "text": "01130a85"
     },
     "facility-upgrades-at-centre--default.png": {
-      "hash": "c05bfa3beb36a096",
+      "hash": "5e4783e1029b7cb7",
       "elements": 180,
-      "text": "7cab0a79"
+      "text": "18f0895b"
     },
     "facility-upgrades-away--default.png": {
       "hash": "5368c52db1bab8d7",
@@ -358,9 +358,9 @@
       "text": "dd037571"
     },
     "offer-frontloaded--default.png": {
-      "hash": "384f42f6cb0ecf07",
+      "hash": "c06569d32dab68b3",
       "elements": 253,
-      "text": "ef9f36da"
+      "text": "f01d5600"
     },
     "pad-holding-a-finished-vehicle--default.png": {
       "hash": "8522834b86882901",
@@ -388,9 +388,9 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "681498703e43e50a",
+      "hash": "f0bd2a672778389e",
       "elements": 130,
-      "text": "abb9d1ce"
+      "text": "db87d0f8"
     },
     "research-queue-throttled-and-stalled--default.png": {
       "hash": "a670445053e7157c",
@@ -413,9 +413,9 @@
       "text": "bad0110d"
     },
     "tooling-nothing-outstanding--default.png": {
-      "hash": "d1af3ac61aee1607",
+      "hash": "a1239705c4908064",
       "elements": 30,
-      "text": "e768ba2a"
+      "text": "9178446d"
     },
     "tooling-one-purchase-two-parts--default.png": {
       "hash": "44e2466b97d5e4df",
