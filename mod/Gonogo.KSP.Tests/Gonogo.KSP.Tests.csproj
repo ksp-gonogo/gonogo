@@ -70,6 +70,12 @@
          above and by four command bodies that are not compiled here at all, so
          it has to be here. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\EvaCommandRule.cs" />
+    <!-- Whether KSP will propagate control input to this craft at all. The same
+         carve-out as the rule above and for the same reason, but a different
+         question: that one asks which craft we are reporting, this one asks
+         whether the craft can take a stick. Named by three command bodies that
+         are not compiled here. Sitrep.Contract only, no KSP type. -->
+    <Compile Include="..\Gonogo.KSP\ControlInputAuthority.cs" />
     <!-- The three refusals ModuleScienceExperiment.DeployExperiment makes, and
          the order it makes them in. The module is a PartModule and needs a live
          part; the rule takes the three facts and needs nothing. -->

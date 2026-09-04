@@ -230,6 +230,35 @@ namespace Gonogo.KSP
             return CommandResult.Ok();
         });
 
+        /// <summary>
+        /// Puts the reported craft's autopilot into a hold, through
+        /// <c>VesselAutopilot.SetMode</c>, which answers false when
+        /// <c>CanSetMode</c> says this craft cannot hold it.
+        ///
+        /// <para><b>Two of CanSetMode's arms judge KSP's active vessel rather
+        /// than this one, and that is left alone deliberately.</b> Three arms are
+        /// correctly scoped: <c>AvailableAtLevel(vessel)</c> for the pilot's skill
+        /// or the probe's SAS tier, <c>TargetLockInvalid(v) =&gt;
+        /// v.targetObject == null</c>, and
+        /// <c>ManeuverLockInvalid(vessel.patchedConicSolver)</c>. The other two
+        /// are not. <c>VectorLockInvalid(Vessel v, float)</c> ignores its vessel
+        /// argument entirely and returns
+        /// <c>FlightGlobals.GetDisplayVelocity().sqrMagnitude &lt; threshold</c>,
+        /// which reads whatever KSP is flying; and the Normal / Antinormal /
+        /// RadialIn / RadialOut arm tests <c>FlightGlobals.speedDisplayMode</c>,
+        /// a single global with no per-vessel form at all. Six of the ten modes
+        /// are decided in part by those.</para>
+        ///
+        /// <para>It is a small divergence and a wrong-refusal-shaped one. An EVA
+        /// kerbal is created co-moving with and co-located to the craft, so both
+        /// globals answer for a body whose velocity and altitude match it to
+        /// within the push-off impulse and the two verdicts agree. They part only
+        /// when the craft is moving relative to the ground and its kerbal is not,
+        /// or the reverse, and the operator clears that by boarding. Refusing the
+        /// command outright to cover it would take SAS away from every ordinary
+        /// EVA; answering it ourselves would mean reimplementing a stock gate
+        /// whose other arms we do not model.</para>
+        /// </summary>
         public CommandResult SetSasMode(SasMode mode)
         {
             var vessel = ActiveVesselScope.Current;
@@ -250,14 +279,9 @@ namespace Gonogo.KSP
                     CommandErrorCode.Range, "no such autopilot mode");
             }
 
-            // VesselAutopilot.SetMode returns false when the requested mode
-            // isn't currently available (e.g. Maneuver with no node queued,
-            // Target with nothing targeted) -- see the decompile-confirmed
-            // signature `bool SetMode(AutopilotMode mode)` /
-            // `bool CanSetMode(AutopilotMode mode)`. Its arms are the pilot's
-            // skill or the probe's SAS tier, a speed display mode that does not
-            // suit the axis, and a missing target or node: all facts about what
-            // this craft can hold, none of which a retry changes.
+            // The write is on this craft's own autopilot and lands correctly
+            // during an EVA; two of CanSetMode's arms judge KSP's active vessel
+            // instead, which this method's doc comment sets out.
             return vessel.Autopilot.SetMode((VesselAutopilot.AutopilotMode)(int)mode)
                 ? CommandResult.Ok()
                 : CommandResult.Fail(
@@ -320,12 +344,21 @@ namespace Gonogo.KSP
         /// </summary>
         public CommandResult SetThrottle(double value)
         {
-            if (ActiveVesselScope.Current == null)
+            var vessel = ActiveVesselScope.Current;
+            if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
             }
             var refusal = EvaCommandRule.RefusalFor(
                 ActiveVesselScope.SubstitutedForEva, EvaCommandRule.Throttle);
+            if (refusal != null)
+            {
+                return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
+            }
+            // A throttle reaches the engines through the same
+            // propagateControlUpdate the axes do, so an uncontrollable craft
+            // takes this value and lights nothing: see ControlInputAuthority.
+            refusal = ControlInputAuthority.RefusalFor(vessel.IsControllable);
             if (refusal != null)
             {
                 return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
@@ -342,6 +375,13 @@ namespace Gonogo.KSP
         /// Disarming clears the flag, detaches the callback, and neutralizes the
         /// stored axes AND trims so control is fully handed back to the player/SAS
         /// with no residual override: a later re-arm starts from a clean stick.
+        ///
+        /// <para><b>Arming is gated on the craft accepting control input at all</b>
+        /// (<see cref="ControlInputAuthority"/>), because an armed override on a
+        /// craft KSP will not propagate to is a stick that moves nothing and
+        /// reports success. DISARMING is deliberately not gated: it neutralises
+        /// the held axes and detaches the callback, which is the one useful thing
+        /// left to do on such a craft.</para>
         /// </summary>
         public CommandResult SetFlyByWire(bool enabled)
         {
@@ -353,6 +393,12 @@ namespace Gonogo.KSP
 
             if (enabled)
             {
+                var refusal = ControlInputAuthority.RefusalFor(vessel.IsControllable);
+                if (refusal != null)
+                {
+                    return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
+                }
+
                 AttachFlyByWire(vessel);
                 _fbw.Enabled = true;
             }
@@ -375,6 +421,11 @@ namespace Gonogo.KSP
         /// the active vessel changed since the callback was attached, re-attach
         /// it lazily here so a mid-flight vessel switch keeps the override live
         /// on whichever vessel the next axis command targets.
+        ///
+        /// <para>Refuses on a craft KSP will not pass control input to
+        /// (<see cref="ControlInputAuthority"/>). The override does still RUN
+        /// there - <c>OnFlyByWire</c> fires before the propagation gate - so
+        /// every axis was written, dropped, and reported as a success.</para>
         /// </summary>
         public CommandResult SetControlAxes(SetControlAxesArgs axes)
         {
@@ -382,6 +433,12 @@ namespace Gonogo.KSP
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            var refusal = ControlInputAuthority.RefusalFor(vessel.IsControllable);
+            if (refusal != null)
+            {
+                return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
 
             if (_fbw.Enabled && !ReferenceEquals(_attachedVessel, vessel))
