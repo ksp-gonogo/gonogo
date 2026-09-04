@@ -46,21 +46,7 @@ namespace Gonogo.KerbalismUplink
         /// <see cref="IActiveVessel"/> requires: the answer changes on a vessel
         /// switch, a dock, an undock, and on both ends of an EVA.</para>
         /// </summary>
-        private Vessel? ScopedVessel()
-        {
-            if (_kernel == null)
-            {
-                return null;
-            }
-            try
-            {
-                return _kernel.Query<IActiveVessel>(ActiveVesselCapability.Id).Reported as Vessel;
-            }
-            catch (Exception)
-            {
-                return null;
-            }
-        }
+        private Vessel? ScopedVessel() => _kernel.ReportedVessel() as Vessel;
 
         public string ProviderId => "kerbalism";
 

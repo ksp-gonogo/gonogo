@@ -33,7 +33,12 @@ namespace Gonogo.KerbalismUplink.Tests
         {
             var source = Read("KerbalismReliabilityBackend.cs");
 
-            Assert.Contains("ActiveVesselCapability.Id", source);
+            // Kernel.ReportedVessel() is the capability query with its fallback
+            // attached: absent resolves to NO VESSEL, never to KSP's answer. That
+            // rule moved into Sitrep.Contract once nine more Uplinks needed it,
+            // because nine copies of it are nine chances for one to grow a
+            // `?? FlightGlobals.ActiveVessel`.
+            Assert.Contains("ReportedVessel()", source);
         }
 
         /// <summary>

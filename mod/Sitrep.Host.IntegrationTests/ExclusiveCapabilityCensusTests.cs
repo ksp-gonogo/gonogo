@@ -153,6 +153,22 @@ namespace Sitrep.Host.IntegrationTests
                     + "provider reads stock CommNet. The provider is constructed fresh "
                     + "per election and reads live, and the delay and connectivity "
                     + "sources installed beside it are deliberately UNGATED."),
+            new Entry(
+                "activeVessel",
+                "Gonogo.KSP/VesselUplink.cs",
+                FedByGatedCapture: false,
+                WhyNoBehaviouralCase: "No Uplink registers a provider, and none can: "
+                    + "which craft the stream is scoped to is a decision core makes "
+                    + "and publishes, not a model a mod could hold a rival opinion "
+                    + "about. It is a capability only because that is the one route "
+                    + "an Uplink has into core, the same shape and the same reason as "
+                    + "craftCatalogue above. No capture feeds it either: the provider "
+                    + "holds no state and answers by reading the seam at the moment it "
+                    + "is asked, so there is no gated path that could starve it. Its "
+                    + "consumers treat an absent capability as data and are required "
+                    + "to answer NO VESSEL rather than fall back to KSP's own active "
+                    + "one, which Sitrep.Core.Tests/UplinkActiveVesselScopeTests holds "
+                    + "across every Uplink."),
         };
 
         /// <summary>
