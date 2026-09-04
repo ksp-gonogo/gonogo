@@ -143,10 +143,14 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 1 explicit declaration.
   "mod/Gonogo.KSP/FlightUplink.cs": 1,
 
-  // Active-strategies roster, funds/science/rep totals, contract board:
-  // career/admin bookkeeping the centre always knows, independent of any
-  // vessel's comms link. 2 explicit declarations.
-  "mod/Gonogo.KSP/CareerUplink.cs": 2,
+  // Active-strategies roster, funds/science/rep totals, contract board, and the
+  // facility tier ladder: career/admin bookkeeping the centre always knows,
+  // independent of any vessel's comms link. The third is `career.facilities`,
+  // which split out of `career.status` when the ladder gained a staleness of
+  // its own; it was already delay-free inside that channel, so the split
+  // changed where the tiers live and not whether they wait on a signal. What
+  // the KSC knows about its own buildings does not travel. 3 declarations.
+  "mod/Gonogo.KSP/CareerUplink.cs": 3,
 
   // KSP version/build id and similar mod-host facts, not vessel state, plus
   // system.frame: what frame the player's own navigation view is in. That is a
