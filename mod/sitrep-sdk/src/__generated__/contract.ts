@@ -974,13 +974,13 @@ export enum CommandErrorCode {
 	NotReady = 21,
 	/**
 	* The command consumes a countable ITEM and there are not enough of them
-	* aboard: Kerbalism's `evaRepairKit`, one for a malfunction and two for a
-	* critical failure.
+	* aboard: an EVA repair kit for a repair, on a provider that charges one.
 	*
 	* Authority: the provider's own charge, read back from the same function that
 	* STATES the cost on `ReliabilityPartEntry.repairCost`. The two come from one
 	* place precisely so a console cannot show one number while the repair takes
-	* another.
+	* another, and the ITEM is always the provider's to name: this code never
+	* asserts which one, only that there were too few.
 	*
 	* `CommandErrorCode.InsufficientFunds`'s and
 	* `CommandErrorCode.InsufficientScience`'s third sibling, and separate for the
