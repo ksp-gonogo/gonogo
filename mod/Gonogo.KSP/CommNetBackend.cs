@@ -207,6 +207,77 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Stock's own route between two nodes: <c>CommNetwork.FindPath</c>,
+        /// which is where bare CommNet's router actually lives. It runs
+        /// stock's Dijkstra (<c>CreateShortestPathTree</c>, maximising a product
+        /// of per-link signal strength) from <paramref name="from"/> over the
+        /// whole node list and walks back from <paramref name="to"/>, so it is
+        /// not vessel-rooted and needs no special casing for a ground-station
+        /// start.
+        ///
+        /// <para>Correct HERE and nowhere else. Under this backend stock's rules
+        /// ARE the rules, so calling stock's router is not an assumption; under
+        /// a network-replacing backend it is a different answer from the one the
+        /// game is using, which is why routing is asked of the elected backend
+        /// rather than solved by core (see <see cref="ICommsBackend.RouteBetween"/>).</para>
+        ///
+        /// <para>Stock's <c>FindPath</c> opens with <c>if (isDirty) Rebuild()</c>,
+        /// so a telemetry read can drive a network rebuild. Accepted here, where
+        /// it rebuilds stock's own graph; it is one more reason a
+        /// network-replacing backend should not be routed through this method,
+        /// since there the same line re-enters that mod's update chain mid-frame.</para>
+        ///
+        /// <para>Fail-soft: a torn-down node mid-solve yields null, the correct
+        /// "no route" meaning, rather than an exception that would take comms
+        /// down for the session.</para>
+        /// </summary>
+        public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+        {
+            try
+            {
+                if (from is not CommNode start || to is not CommNode end || ReferenceEquals(start, end))
+                {
+                    return null;
+                }
+
+                var net = start.Net;
+                if (net == null)
+                {
+                    return null;
+                }
+
+                var path = new CommPath();
+                return net.FindPath(start, path, end) ? RouteHops(path) : null;
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("[Gonogo] CommNetBackend.RouteBetween failed (treating as no route): " + ex.Message);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// A solved path's links as measured hops. Links with a torn-down
+        /// endpoint are skipped rather than contributing a zero-length hop,
+        /// which would shorten the route rather than fail it.
+        /// </summary>
+        private static List<CommsRouteHop> RouteHops(CommPath path)
+        {
+            var hops = new List<CommsRouteHop>();
+            foreach (var link in path)
+            {
+                if (link?.a == null || link.b == null)
+                {
+                    continue;
+                }
+                hops.Add(new CommsRouteHop(
+                    (link.a.precisePosition - link.b.precisePosition).magnitude,
+                    link.b.isHome || link.a.isHome));
+            }
+            return hops;
+        }
+
+        /// <summary>
         /// Stock's occlusion geometry, built from the LIVE difficulty settings
         /// (see <see cref="CommNetOcclusion"/> for the rule itself). The two
         /// multipliers are per-save and player-settable, so they are read here

@@ -5,26 +5,6 @@ using Sitrep.Host.Comms;
 namespace Gonogo.KSP
 {
     /// <summary>
-    /// One resolved hop of a routed comms path: the distance between its two
-    /// endpoints and whether either end is a home node. Deliberately carries no
-    /// CommNet type, so the light-time arithmetic below compiles and is
-    /// unit-tested with no KSP reference DLLs at all; the KSP half
-    /// (<see cref="FleetCommsReader"/>) measures the endpoints and hands these
-    /// in.
-    /// </summary>
-    internal readonly struct RoutedHop
-    {
-        internal RoutedHop(double distanceMeters, bool isHome)
-        {
-            DistanceMeters = distanceMeters;
-            IsHome = isHome;
-        }
-
-        internal double DistanceMeters { get; }
-        internal bool IsHome { get; }
-    }
-
-    /// <summary>
     /// One-way light-time over an already-walked comms path, the shared
     /// primitive behind every routed delay the KSP layer reports: a vessel's
     /// own path home and an arbitrary node-to-node path both come through here,
@@ -47,7 +27,7 @@ namespace Gonogo.KSP
         /// honest if the meta is ever surfaced.
         /// </param>
         internal static double? OneWaySeconds(
-            IReadOnlyList<RoutedHop>? hops,
+            IReadOnlyList<CommsRouteHop>? hops,
             SignalDelayConfig? config,
             Quality quality)
         {
@@ -63,7 +43,7 @@ namespace Gonogo.KSP
                 {
                     From = string.Empty,
                     To = string.Empty,
-                    Kind = hop.IsHome ? CommsHopKind.Home : CommsHopKind.Relay,
+                    Kind = hop.TouchesHome ? CommsHopKind.Home : CommsHopKind.Relay,
                     DistanceMeters = hop.DistanceMeters,
                 });
             }

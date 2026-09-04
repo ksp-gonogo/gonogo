@@ -699,6 +699,11 @@ namespace Sitrep.Host.IntegrationTests
                 Meta = new PayloadMeta { Source = "game", Quality = Quality.Loaded },
             };
 
+            // Routes nowhere, for the same reason as the occlusion model below:
+            // this fixture's subject matter is the delay/reveal gate, and the
+            // node-to-node route feeds the command-centre matrix instead.
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+
             // Occludes at the bare radius, matching what a backend that has no
             // opinion declares. Nothing in this fixture's delay/reveal-gate
             // subject matter reads it; it is here because the shared shape

@@ -11,8 +11,8 @@ namespace Gonogo.KSP
     /// Routed comms reads over the live CommNet graph. Two entry points, one
     /// primitive: <see cref="ReadVessel"/> reads a vessel's own solved path home
     /// (the graph KSP already maintains for every vessel, loaded or not), and
-    /// <see cref="ReadNodePath"/> solves a path between ANY two nodes. Both map
-    /// the resulting links through <see cref="ToHops"/> and hand them to
+    /// <see cref="ReadNodePath"/> measures a route between ANY two nodes, asked
+    /// of the ELECTED BACKEND rather than solved here. Both hand their hops to
     /// <see cref="RoutedPathDelay"/>, so a vessel's light-time and a
     /// centre-to-centre light-time are computed by the same arithmetic.
     ///
@@ -58,49 +58,56 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// Routed one-way light-time between two arbitrary CommNet nodes, or
-        /// null when they are not routable to each other. Unlike
+        /// Routed one-way light-time between two arbitrary comms nodes, or null
+        /// when the ELECTED BACKEND does not route between them. Unlike
         /// <see cref="ReadVessel"/>, which can only ever answer "how far is this
-        /// vessel from home", this solves the graph between a named start and a
-        /// named end, which is what a command centre addressing another centre
-        /// (or a subject that is not its own home) needs.
+        /// vessel from home", this is a route between a named start and a named
+        /// end, which is what a command centre addressing another centre (or a
+        /// subject that is not its own home) needs.
         ///
-        /// <para>Stock's <c>CommNetwork.FindPath</c> runs Dijkstra from
-        /// <paramref name="from"/> over the network's whole node list and walks
-        /// back from <paramref name="to"/>, so it is not vessel-rooted and needs
-        /// no special casing for a ground-station start. RealAntennas overrides
-        /// only link CONSTRUCTION, never the pathfinder, so this reads RA's link
-        /// set through stock's solver unmodified.</para>
+        /// <para><b>The route is the BACKEND's, never stock's.</b> This used to
+        /// call <c>CommNetwork.FindPath</c> itself, on the stated premise that
+        /// "RealAntennas overrides only link CONSTRUCTION, never the pathfinder".
+        /// That premise was false and it hid a live wrong number for as long as
+        /// it stood. RA overrides <c>FindClosestWhere</c>, not <c>FindPath</c>.
+        /// <c>FindHome</c> and <c>FindClosestControlSource</c> both call through
+        /// <c>FindClosestWhere</c>, which is why a vessel's <c>ControlPath</c>
+        /// (and therefore <c>comms.delay</c>) is RA-correct with nobody doing
+        /// anything, and why the two look interchangeable. They are not:
+        /// <c>FindPath</c> has its own <c>CreateShortestPathTree</c> walk that RA
+        /// never touches, so it solved RA's link set by STOCK's rules, which know
+        /// nothing of RA's minimum relay tech level (2 on an RSS/RO career) and
+        /// nothing of its directional forward/reverse link costs. The delay that
+        /// came back was a real light-time over real links, and it was measured
+        /// along a route the game itself refuses to carry.</para>
+        ///
+        /// <para>So the question goes to <see cref="ICommsBackend.RouteBetween"/>,
+        /// the same way occlusion geometry goes to
+        /// <see cref="ICommsBackend.OcclusionModel"/>: each backend routes in its
+        /// own terms, and core measures whatever comes back.</para>
         ///
         /// <para>Null covers every not-a-number case and never collapses to
-        /// zero: a missing node, the same node at both ends (a path to yourself
-        /// is not a route), and an unreachable end. A caller that wants "no
-        /// delay because it is the same place" has to say so itself.</para>
+        /// zero: no elected backend, a missing node, the same node at both ends
+        /// (a path to yourself is not a route), and an unreachable end. A caller
+        /// that wants "no delay because it is the same place" has to say so
+        /// itself.</para>
         /// </summary>
-        internal static double? ReadNodePath(CommNode? from, CommNode? to, SignalDelayConfig? config)
+        internal static double? ReadNodePath(
+            ICommsBackend? backend,
+            CommNode? from,
+            CommNode? to,
+            SignalDelayConfig? config)
         {
             try
             {
-                if (from == null || to == null || ReferenceEquals(from, to))
-                {
-                    return null;
-                }
-
-                var net = from.Net;
-                if (net == null)
-                {
-                    return null;
-                }
-
-                var path = new CommPath();
-                if (!net.FindPath(from, path, to))
+                if (backend == null || from == null || to == null || ReferenceEquals(from, to))
                 {
                     return null;
                 }
 
                 // Quality is meta-only and discarded here (see RoutedPathDelay):
                 // a node-to-node path has no on-rails/loaded state of its own.
-                return RoutedPathDelay.OneWaySeconds(ToHops(path), config, Quality.Loaded);
+                return RoutedPathDelay.OneWaySeconds(backend.RouteBetween(from, to), config, Quality.Loaded);
             }
             catch (Exception ex)
             {
@@ -115,9 +122,9 @@ namespace Gonogo.KSP
         /// means unroutable. Links with a torn-down endpoint are skipped rather
         /// than contributing a zero-length hop.
         /// </summary>
-        private static List<RoutedHop> ToHops(IEnumerable<CommLink>? path)
+        private static List<CommsRouteHop> ToHops(IEnumerable<CommLink>? path)
         {
-            var hops = new List<RoutedHop>();
+            var hops = new List<CommsRouteHop>();
             if (path == null)
             {
                 return hops;
@@ -129,7 +136,7 @@ namespace Gonogo.KSP
                 {
                     continue;
                 }
-                hops.Add(new RoutedHop(
+                hops.Add(new CommsRouteHop(
                     (link.a.precisePosition - link.b.precisePosition).magnitude,
                     link.b.isHome || link.a.isHome));
             }

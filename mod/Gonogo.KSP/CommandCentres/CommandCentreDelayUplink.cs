@@ -42,9 +42,9 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>
         /// Soft cap on graph SOLVES per pass. Every non-KSC row and every
-        /// centre-to-centre row runs a Dijkstra over the whole CommNet node list
-        /// (stock <c>CommNetwork.FindPath</c>), unlike the KSC rows, which only
-        /// read a path the game has already solved. The count is centres x
+        /// centre-to-centre row runs a Dijkstra over the whole node list, in the
+        /// elected backend's own router, unlike the KSC rows, which only read a
+        /// path the game has already solved. The count is centres x
         /// (vessels + centres), so it grows with the fleet as well as with the
         /// number of authorities: this is the number worth watching if the
         /// capture ever starts costing frame time.
@@ -142,6 +142,11 @@ namespace Gonogo.KSP.CommandCentres
 
             var centres = _registry.EnumerateActive();
             var config = CommsCoreUplink.SignalDelayConfig;
+            // Resolved ONCE per pass, not per row: the election does not change
+            // mid-capture, and every routed row below is solved by this backend's
+            // own router rather than by stock's (see FleetCommsReader.ReadNodePath).
+            var kernel = _host?.Kernel;
+            var backend = kernel != null ? CommsElection.Elected(kernel) : null;
 
             var rows = new List<AuthorityRow>();
             var solves = new SolveCounter();
@@ -152,11 +157,11 @@ namespace Gonogo.KSP.CommandCentres
             pass.Populate(
                 centres,
                 vessels.Where(v => v != null).Select(v => v.id.ToString()).ToList(),
-                (centre, guid) => RouteDelay(centre, guid, config, vessels, solves),
+                (centre, guid) => RouteDelay(backend, centre, guid, config, vessels, solves),
                 Row);
             pass.PopulateCentrePairs(
                 centres,
-                (from, to) => RouteCentreDelay(from, to, config, solves),
+                (from, to) => RouteCentreDelay(backend, from, to, config, solves),
                 Row);
 
             PathSolveBudget.Record(solves.Count, snapshot != null ? snapshot.Ut : 0.0);
@@ -272,6 +277,7 @@ namespace Gonogo.KSP.CommandCentres
         /// row for this pair".</para>
         /// </summary>
         private static double? RouteDelay(
+            ICommsBackend? backend,
             ICommandCentre centre,
             string guid,
             SignalDelayConfig? config,
@@ -298,16 +304,17 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             solves.Count++;
-            return FleetCommsReader.ReadNodePath(from, to, config);
+            return FleetCommsReader.ReadNodePath(backend, from, to, config);
         }
 
         /// <summary>
-        /// One-way seconds between two command centres, walking the relay graph
-        /// between their CommNet nodes. A centre with no node cannot be routed to
-        /// or from at all, which is the same "unroutable" the roster already
-        /// publishes for it.
+        /// One-way seconds between two command centres, over the route the
+        /// ELECTED BACKEND finds between their nodes. A centre with no node
+        /// cannot be routed to or from at all, which is the same "unroutable" the
+        /// roster already publishes for it.
         /// </summary>
         private static double? RouteCentreDelay(
+            ICommsBackend? backend,
             ICommandCentre from,
             ICommandCentre to,
             SignalDelayConfig? config,
@@ -321,7 +328,7 @@ namespace Gonogo.KSP.CommandCentres
             }
 
             solves.Count++;
-            return FleetCommsReader.ReadNodePath(fromNode, toNode, config);
+            return FleetCommsReader.ReadNodePath(backend, fromNode, toNode, config);
         }
 
         private static CommandCentreEntry ToRosterEntry(ICommandCentre centre)

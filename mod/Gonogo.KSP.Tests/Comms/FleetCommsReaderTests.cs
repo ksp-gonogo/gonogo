@@ -10,12 +10,16 @@ namespace Gonogo.KSP.Tests.Comms
     /// <summary>
     /// <see cref="FleetCommsReader.ReadNodePath"/> against the REAL CommNet
     /// types (CommNode / CommLink / CommPath are plain classes, no scene
-    /// needed), with only the solver itself faked: the network subclass below
-    /// overrides <c>FindPath</c> so a test can say "these two are unroutable" or
-    /// "the route is this chain of nodes" without standing up antennas,
-    /// occlusion, or a range model. What is under test is the reader's own
-    /// decisions -- which absences stay absent, and whether the whole walked
-    /// route is measured -- not stock's Dijkstra.
+    /// needed) and the REAL stock backend, with only the solver itself faked:
+    /// the network subclass below overrides <c>FindPath</c>, which is the entry
+    /// point <see cref="CommNetBackend.RouteBetween"/> routes through, so a test
+    /// can say "these two are unroutable" or "the route is this chain of nodes"
+    /// without standing up antennas, occlusion, or a range model. What is under
+    /// test is the reader's own decisions -- which absences stay absent, and
+    /// whether the whole walked route is measured -- not stock's Dijkstra.
+    ///
+    /// <para>Which ROUTER answers at all is a separate question, and it is
+    /// <see cref="RouteBackendDispatchTests"/>'s.</para>
     /// </summary>
     public class FleetCommsReaderTests
     {
@@ -23,6 +27,9 @@ namespace Gonogo.KSP.Tests.Comms
 
         private static SignalDelayConfig Enabled() =>
             new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
+
+        /// <summary>The real vanilla backend, whose router IS stock's <c>FindPath</c>.</summary>
+        private static CommNetBackend Stock() => new CommNetBackend();
 
         /// <summary>A CommNetwork whose pathfinding is scripted: null route = unroutable.</summary>
         private sealed class ScriptedNetwork : CommNetwork
@@ -69,7 +76,7 @@ namespace Gonogo.KSP.Tests.Comms
             var from = NodeAt(net, 0);
             var to = NodeAt(net, C);
 
-            Assert.Null(FleetCommsReader.ReadNodePath(from, to, Enabled()));
+            Assert.Null(FleetCommsReader.ReadNodePath(Stock(), from, to, Enabled()));
         }
 
         [Fact]
@@ -78,7 +85,7 @@ namespace Gonogo.KSP.Tests.Comms
             var net = new ScriptedNetwork((_, __) => throw new InvalidOperationException("must not solve"));
             var node = NodeAt(net, 0);
 
-            Assert.Null(FleetCommsReader.ReadNodePath(node, node, Enabled()));
+            Assert.Null(FleetCommsReader.ReadNodePath(Stock(), node, node, Enabled()));
             Assert.Empty(net.Requests);
         }
 
@@ -88,8 +95,8 @@ namespace Gonogo.KSP.Tests.Comms
             var net = new ScriptedNetwork((_, __) => throw new InvalidOperationException("must not solve"));
             var node = NodeAt(net, 0);
 
-            Assert.Null(FleetCommsReader.ReadNodePath(null, node, Enabled()));
-            Assert.Null(FleetCommsReader.ReadNodePath(node, null, Enabled()));
+            Assert.Null(FleetCommsReader.ReadNodePath(Stock(), null, node, Enabled()));
+            Assert.Null(FleetCommsReader.ReadNodePath(Stock(), node, null, Enabled()));
             Assert.Empty(net.Requests);
         }
 
@@ -103,7 +110,7 @@ namespace Gonogo.KSP.Tests.Comms
             from = NodeAt(net, 0);
             to = NodeAt(net, C);
 
-            var seconds = FleetCommsReader.ReadNodePath(from, to, Enabled());
+            var seconds = FleetCommsReader.ReadNodePath(Stock(), from, to, Enabled());
 
             Assert.NotNull(seconds);
             Assert.Equal(1.0, seconds!.Value, 9);
@@ -125,7 +132,7 @@ namespace Gonogo.KSP.Tests.Comms
             relay.SetNet(net);
             b = NodeAt(net, C, isHome: true);
 
-            var seconds = FleetCommsReader.ReadNodePath(a, b, Enabled());
+            var seconds = FleetCommsReader.ReadNodePath(Stock(), a, b, Enabled());
 
             var legs = (relay.precisePosition - a.precisePosition).magnitude
                 + (b.precisePosition - relay.precisePosition).magnitude;
@@ -144,11 +151,22 @@ namespace Gonogo.KSP.Tests.Comms
             from = NodeAt(net, 0);
             to = NodeAt(net, C);
 
-            FleetCommsReader.ReadNodePath(from, to, Enabled());
+            FleetCommsReader.ReadNodePath(Stock(), from, to, Enabled());
 
             var request = Assert.Single(net.Requests);
             Assert.Same(from, request.Start);
             Assert.Same(to, request.End);
+        }
+
+        [Fact]
+        public void NoElectedBackend_IsNull_AndNeverSolvesItself()
+        {
+            var net = new ScriptedNetwork((_, __) => throw new InvalidOperationException("must not solve"));
+            var from = NodeAt(net, 0);
+            var to = NodeAt(net, C);
+
+            Assert.Null(FleetCommsReader.ReadNodePath(null, from, to, Enabled()));
+            Assert.Empty(net.Requests);
         }
 
         [Fact]
@@ -161,7 +179,7 @@ namespace Gonogo.KSP.Tests.Comms
             from = NodeAt(net, 0);
             to = NodeAt(net, C);
 
-            Assert.Equal(0.0, FleetCommsReader.ReadNodePath(from, to, SignalDelayConfig.Off()));
+            Assert.Equal(0.0, FleetCommsReader.ReadNodePath(Stock(), from, to, SignalDelayConfig.Off()));
         }
     }
 }

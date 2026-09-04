@@ -401,6 +401,35 @@ public class CommsCommandCentre
  */
 
 /// <summary>
+/// One hop of a route a backend has solved, geometry only: the distance
+/// between its two endpoints and whether either end is a ground station.
+///
+/// <para>Deliberately NOT a <see cref="CommsHop"/>. That shape is a wire
+/// payload and carries node ids, and resolving one costs a walk over every
+/// vessel in the game per node, which the centre-to-centre matrix (centres
+/// squared, every tick) cannot pay for an answer nobody reads. What a routed
+/// light-time consumes is the geometry and nothing else, so that is all this
+/// carries.</para>
+///
+/// <para>Carries no KSP type, so the light-time arithmetic built on it
+/// compiles and is exercised with no KSP reference assemblies at all.</para>
+/// </summary>
+public readonly struct CommsRouteHop
+{
+    public CommsRouteHop(double distanceMeters, bool touchesHome)
+    {
+        DistanceMeters = distanceMeters;
+        TouchesHome = touchesHome;
+    }
+
+    /// <summary>Straight-line distance between the hop's two endpoints.</summary>
+    public double DistanceMeters { get; }
+
+    /// <summary>True when EITHER endpoint is a ground station.</summary>
+    public bool TouchesHome { get; }
+}
+
+/// <summary>
 /// The pure, KSP-free object the exclusive <c>"comms"</c> capability resolves
 /// to. Exactly the readouts BOTH backends can
 /// honestly supply: the minimal shape the parallel CommNet+RA build forces
@@ -423,6 +452,34 @@ public interface ICommsBackend : ISitrepProvider
     CommsPath Path();
 
     CommsNetwork Network();
+
+    /// <summary>
+    /// The route THIS backend's own router finds between two nodes, as ordered
+    /// hop geometry, or null when it will not route between them.
+    ///
+    /// <para>It is on the interface for the same reason
+    /// <see cref="OcclusionModel"/> is: routing is a rule the elected backend
+    /// owns, not a stock method core can call on its behalf. Core used to call
+    /// <c>CommNetwork.FindPath</c> directly for the command-centre delay matrix
+    /// and quoted light-times over routes RealAntennas refuses to carry, because
+    /// RA overrides <c>FindClosestWhere</c> and leaves <c>FindPath</c> alone
+    /// (see <c>FleetCommsReader.ReadNodePath</c> for the whole trap).</para>
+    ///
+    /// <para><paramref name="from"/> and <paramref name="to"/> are OPAQUE node
+    /// handles on the same terms as <see cref="IActiveVessel.Reported"/>: both
+    /// shipped backends read them as a KSP <c>CommNet.CommNode</c>, and a
+    /// backend handed something it does not recognise answers null rather than
+    /// guessing. Null is also the answer for a missing handle, the same node at
+    /// both ends (a path to yourself is not a route), and an unreachable end: a
+    /// caller that wants "no delay because it is the same place" says so itself,
+    /// because a route that does not exist has no light-time and a zero would
+    /// claim one.</para>
+    ///
+    /// <para>An EMPTY list is a different answer again: routed, with nothing to
+    /// measure. Live read, so main thread only, on the same capture-on-main seam
+    /// as every accessor above.</para>
+    /// </summary>
+    IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
 
     /// <summary>
     /// The occlusion geometry this backend applies: which radius of a body

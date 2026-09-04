@@ -151,6 +151,14 @@ namespace Gonogo.RealAntennasUplink
         }
 
         /// <summary>
+        /// RA's own route between two nodes (see <see cref="RaRouting"/> for why
+        /// that is a different question from stock's, and what it costs to get
+        /// wrong).
+        /// </summary>
+        public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+            => RaRouting.Between(from, to);
+
+        /// <summary>
         /// RA's occlusion geometry: the bare body radius, no multiplier (see
         /// <see cref="RaOcclusion"/>). Nothing live to read, unlike the stock
         /// backend whose multipliers are a per-save difficulty setting, so this

@@ -166,6 +166,8 @@ namespace Sitrep.Host.Tests
             public CommsControlState ControlState() => new CommsControlState();
             public CommsPath Path() => new CommsPath();
             public CommsNetwork Network() => new CommsNetwork();
+            /// <summary>Nothing here routes: this stub exists for the occlusion read.</summary>
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
             public ICommsOcclusionModel OcclusionModel() => _occlusion();
         }
 

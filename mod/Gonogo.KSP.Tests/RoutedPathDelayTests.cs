@@ -16,12 +16,12 @@ namespace Gonogo.KSP.Tests
         private static SignalDelayConfig Enabled(double scale = 1.0) =>
             new SignalDelayConfig { Enabled = true, LightSpeedScale = scale };
 
-        private static IReadOnlyList<RoutedHop> Hops(params double[] distances)
+        private static IReadOnlyList<CommsRouteHop> Hops(params double[] distances)
         {
-            var hops = new List<RoutedHop>();
+            var hops = new List<CommsRouteHop>();
             foreach (var d in distances)
             {
-                hops.Add(new RoutedHop(d, isHome: false));
+                hops.Add(new CommsRouteHop(d, touchesHome: false));
             }
             return hops;
         }
@@ -94,10 +94,10 @@ namespace Gonogo.KSP.Tests
         [Fact]
         public void HomeHop_IsCarriedAsAHomeHop_AndStillCounted()
         {
-            var hops = new List<RoutedHop>
+            var hops = new List<CommsRouteHop>
             {
-                new RoutedHop(SignalDelay.SpeedOfLightMetersPerSecond, isHome: false),
-                new RoutedHop(SignalDelay.SpeedOfLightMetersPerSecond, isHome: true),
+                new CommsRouteHop(SignalDelay.SpeedOfLightMetersPerSecond, touchesHome: false),
+                new CommsRouteHop(SignalDelay.SpeedOfLightMetersPerSecond, touchesHome: true),
             };
 
             var seconds = RoutedPathDelay.OneWaySeconds(hops, Enabled(), Quality.Loaded);

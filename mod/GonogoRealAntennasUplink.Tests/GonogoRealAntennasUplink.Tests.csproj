@@ -32,6 +32,37 @@
     <Compile Include="..\GonogoRealAntennasUplink\RaLinkDirection.cs" />
   </ItemGroup>
 
+  <!-- RaRouting.cs is the RA route between two nodes, carved out of
+       RaCommsBackend so a headless test can enter it: the backend itself needs
+       RaReflection and a live vessel, while the route names only CommNet's
+       CommNode / CommNetwork / CommPath / CommLink, which are plain classes
+       with no scene dependency (the same reference-DLL contract
+       Gonogo.KSP.Tests already relies on for FleetCommsReader). Soft-degrades
+       when the reference set is absent, like every other KspManaged suite. -->
+  <PropertyGroup>
+    <AssemblyCSharpDll>$(KspManaged)\Assembly-CSharp.dll</AssemblyCSharpDll>
+    <KspManagedAvailable Condition="Exists('$(AssemblyCSharpDll)')">true</KspManagedAvailable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Routing\**\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(KspManagedAvailable)' == 'true'">
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(AssemblyCSharpDll)</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <Compile Include="..\GonogoRealAntennasUplink\RaRouting.cs" />
+    <Compile Include="Routing\**\*.cs" />
+  </ItemGroup>
+
+  <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
+    <Warning Text="Assembly-CSharp.dll not found under KspManaged=$(KspManaged): RaRoutingTests SKIPPED (soft-degrade), so nothing is checking that this Uplink routes through RealAntennas' own FindClosestWhere rather than stock's FindPath. Pass /p:KspManaged=&lt;dir containing Assembly-CSharp.dll&gt; to compile and run them." />
+  </Target>
+
   <!-- The C#-to-TS golden fixture for the CommsHop provider-extension bag:
        CommsHopExtensionWireTests proves this file is exactly what the real codec
        produces, and the client's hopExt.test.ts reads it back through the real
