@@ -96,17 +96,6 @@ const BLOCKED_PHASE_DEBT: Record<string, string> = {
   // and is a UX decision about warning-worded chrome, not a mechanical edit.
   "packages/components/src/LaunchDirector/index.tsx":
     "Scene switch and pad verbs, no price beside the control. Wants the phase anyway; the chrome question is unanswered.",
-  // THE DEFECT ABOVE, at this branch's base. It is already fixed on
-  // `origin/fleet/spendtruth` (`cae745688`), which is not yet in `staging`: that
-  // commit destructures `isBlocked`, suppresses the funds verdict where the gate
-  // blocks, and gives `UpgradeButton` the phase it was missing.
-  //
-  // Expect this line to go STALE the moment that lands and to be deleted in the
-  // same commit, which is the ratchet working rather than a chore. It is here
-  // only because a debt list must describe the tree it grades, and on this base
-  // the widget is still discarding the verdict.
-  "packages/components/src/SpaceCenterStatus/index.tsx":
-    "The facility-upgrade defect. Fixed on origin/fleet/spendtruth (cae745688); delete this entry when that lands.",
 };
 
 /**
