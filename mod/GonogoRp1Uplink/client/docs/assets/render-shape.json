@@ -213,7 +213,7 @@
       "text": "b6c63acd"
     },
     "catalogue-picker--default.png": {
-      "hash": "5b94213b95f44ace",
+      "hash": "1f4921ed3bef0768",
       "elements": 263,
       "text": "ec5ba75d"
     },
@@ -223,39 +223,39 @@
       "text": "955f5ed5"
     },
     "complexes-add-pad--default.png": {
-      "hash": "27fcfd63d7508a1b",
-      "elements": 267,
-      "text": "c93ccae3"
+      "hash": "064d767904ff9787",
+      "elements": 239,
+      "text": "5f7bf3ff"
     },
     "complexes-dismantle-warnings--default.png": {
-      "hash": "3dd6da181588011e",
-      "elements": 211,
-      "text": "39f677a1"
+      "hash": "7414a67301ed7bfa",
+      "elements": 183,
+      "text": "997d539c"
     },
     "complexes-last-pad--default.png": {
-      "hash": "0cb5c1ef8dbc28a7",
-      "elements": 250,
-      "text": "7d733bf3"
+      "hash": "012086ab61783023",
+      "elements": 222,
+      "text": "5fb5f461"
     },
     "complexes-new--default.png": {
-      "hash": "ca18d925a1cdcb57",
-      "elements": 252,
-      "text": "2712e6f9"
+      "hash": "0d62ee6c78a5d2c8",
+      "elements": 224,
+      "text": "5aeed248"
     },
     "complexes-rename--default.png": {
-      "hash": "164b84850934cea1",
-      "elements": 268,
-      "text": "5d1794ae"
+      "hash": "904c4c6fbdeb0ffc",
+      "elements": 240,
+      "text": "837afcea"
     },
     "complexes-renovate--default.png": {
-      "hash": "9e12f03b8f54234c",
-      "elements": 246,
-      "text": "ccd4cb29"
+      "hash": "ad1501c948424cc7",
+      "elements": 218,
+      "text": "9466a3c4"
     },
     "complexes-rushing--default.png": {
-      "hash": "b391a2f26f485edb",
-      "elements": 277,
-      "text": "ef5535c7"
+      "hash": "317011e3e312e61a",
+      "elements": 249,
+      "text": "ef045603"
     },
     "construction-complex-modify--default.png": {
       "hash": "7d43ac0b5e39cfad",
@@ -268,19 +268,19 @@
       "text": "b8fbd9b2"
     },
     "construction-full-queue--default.png": {
-      "hash": "5bc4c4803d8719c6",
-      "elements": 191,
-      "text": "4c588aae"
+      "hash": "9866dacbae0ebc84",
+      "elements": 189,
+      "text": "b11d1b53"
     },
     "construction-not-costed--default.png": {
-      "hash": "6e3bd76d544895ba",
-      "elements": 140,
-      "text": "5a060bd8"
+      "hash": "0137df5314ee7b04",
+      "elements": 138,
+      "text": "633eda89"
     },
     "construction-rushing-and-stalled--default.png": {
-      "hash": "0bfdf87d03df4cf2",
-      "elements": 158,
-      "text": "d6cc6bd4"
+      "hash": "8c91aeafaf41a22e",
+      "elements": 156,
+      "text": "8b77a085"
     },
     "contract-payload--default.png": {
       "hash": "fcb446edec4c4798",
@@ -293,12 +293,12 @@
       "text": "8348fe0e"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "b3a3ed3371201e0a",
+      "hash": "74d8bec7a450d718",
       "elements": 32,
       "text": "206699b0"
     },
     "crew-enrolment-ready--default.png": {
-      "hash": "9c367fe9c2aa0aea",
+      "hash": "f207ec6b50757c95",
       "elements": 31,
       "text": "a8239cff"
     },
@@ -333,24 +333,24 @@
       "text": "01130a85"
     },
     "facility-upgrades-at-centre--default.png": {
-      "hash": "5e4783e1029b7cb7",
-      "elements": 180,
-      "text": "18f0895b"
+      "hash": "65456dbb76912ab9",
+      "elements": 156,
+      "text": "1ea97fe6"
     },
     "facility-upgrades-away--default.png": {
-      "hash": "5368c52db1bab8d7",
-      "elements": 84,
-      "text": "80b8e2d8"
+      "hash": "9ac6fa4702ebf960",
+      "elements": 47,
+      "text": "87c1b57c"
     },
     "hire-target-standing--default.png": {
-      "hash": "a50cb03704a27ce8",
-      "elements": 163,
-      "text": "aa670f4e"
+      "hash": "13f1e5951ce8ffd8",
+      "elements": 135,
+      "text": "551e1d84"
     },
     "hire-target-standing-order--default.png": {
-      "hash": "ac5c1454d0a3af96",
-      "elements": 192,
-      "text": "919b2d0b"
+      "hash": "aaa646f86665ba08",
+      "elements": 164,
+      "text": "eefdf6a6"
     },
     "no-curve-table--default.png": {
       "hash": "896d5d1b5fa512b3",
@@ -373,14 +373,14 @@
       "text": "141b257d"
     },
     "personnel-staffed--default.png": {
-      "hash": "182a8fcfef211ab2",
-      "elements": 194,
-      "text": "c78835c0"
+      "hash": "ed95bff734b2da02",
+      "elements": 166,
+      "text": "ebf53813"
     },
     "personnel-unanswered--default.png": {
-      "hash": "907f620dfe31247b",
-      "elements": 88,
-      "text": "76d3ea2e"
+      "hash": "7306478c2645b1e6",
+      "elements": 60,
+      "text": "de833073"
     },
     "programs-overrun-and-unaffordable--default.png": {
       "hash": "3c6188fa0488a454",
@@ -388,7 +388,7 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "f0bd2a672778389e",
+      "hash": "38388e490fbc865a",
       "elements": 130,
       "text": "db87d0f8"
     },
@@ -438,34 +438,34 @@
       "text": "a779cc0f"
     },
     "tooling-refit-instead--default.png": {
-      "hash": "efbfa0ffa13be54d",
+      "hash": "bc7892c9c5181c1e",
       "elements": 88,
       "text": "e91f2657"
     },
     "tooling-refit-instead--landscape-18x5.png": {
-      "hash": "9b9d7dd029dcf62e",
+      "hash": "73f90aad075dd15f",
       "elements": 88,
       "text": "e91f2657"
     },
     "tooling-refit-instead--min.png": {
-      "hash": "7c217c6bbf473a5f",
+      "hash": "29d3aa2bdbadae92",
       "elements": 88,
       "text": "17f84f3f"
     },
     "tooling-refit-instead--mobile-9x8.png": {
-      "hash": "4f51e2864aa3997b",
+      "hash": "052fb573df035cda",
       "elements": 88,
       "text": "e91f2657"
     },
     "tooling-refit-instead--portrait-5x18.png": {
-      "hash": "2b70766bf7640ce4",
+      "hash": "fef3bb752e4f539d",
       "elements": 88,
       "text": "e91f2657"
     },
     "two-centres-unstaffed--default.png": {
-      "hash": "49b4879c56c8f586",
-      "elements": 218,
-      "text": "861fa5b8"
+      "hash": "5ee425c4bd09a735",
+      "elements": 190,
+      "text": "9cfac36d"
     },
     "warehouse-three-places--default.png": {
       "hash": "eda981c364c2349d",
