@@ -170,11 +170,19 @@ export async function flushProviderFrame(): Promise<void> {
  * Strip styled-components hashes, testing-library auto-ids, and any `sc-*`
  * class or id attribute that changes per build. Without this the snapshot
  * churns on every styled-components release and file edit.
+ *
+ * Also strips xterm's PLATFORM class. `xterm-scrollable-element` picks up a
+ * trailing `mac` / `windows` / `linux` token from the host it renders on, so a
+ * snapshot taken here recorded `mac` and CI, on Linux, produced the same DOM
+ * without it: fourteen renders red on a difference that is not about this
+ * widget at all. A snapshot that can only pass on the OS that wrote it is worse
+ * than none, because it fails for everyone else and says nothing about the code.
  */
 export function stripVolatile(html: string): string {
   return html
     .replace(/\sclass="[^"]*\bsc-[^"]*"/g, "")
     .replace(/\sid="[^"]*\bsc-[^"]*"/g, "")
     .replace(/\sdata-testid="[^"]+"/g, "")
-    .replace(/\sdata-sc[a-z-]*="[^"]*"/g, "");
+    .replace(/\sdata-sc[a-z-]*="[^"]*"/g, "")
+    .replace(/(class="[^"]*xterm-scrollable-element)[^"]*"/g, '$1"');
 }

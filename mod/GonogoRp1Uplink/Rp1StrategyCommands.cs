@@ -416,7 +416,16 @@ namespace GonogoRp1Uplink
         {
             foreach (var candidate in Rp1Types.Enumerate(Rp1Types.Member(system, "Strategies")))
             {
-                var name = Rp1Types.ReadString(candidate, "Name") ?? Rp1Types.ReadString(candidate, "Config");
+                // Strategy carries no Name of its own: KSP's type exposes Config,
+                // DepartmentName, Department, Title, Description and GroupTags,
+                // and the id every read side publishes is StrategyConfig.Name.
+                // Reading "Name" off the Strategy therefore missed, and the old
+                // fallback read Config - a StrategyConfig, not a string - through
+                // a safe cast that always answered null, so the comparison was
+                // null against the id for every candidate and the lookup could
+                // never match any strategy at all.
+                var name = Rp1Types.ReadString(Rp1Types.Member(candidate, "Config"), "Name")
+                    ?? Rp1Types.ReadString(candidate, "Title");
                 if (string.Equals(name, id, StringComparison.OrdinalIgnoreCase))
                 {
                     strategy = candidate;
