@@ -98,8 +98,31 @@ export function useContributionsBySlotId(slot: string): readonly unknown[] {
   return snapshot.find((e) => e.id === slot)?.entries ?? EMPTY_ENTRIES;
 }
 
-// Full slot id (host-specific / widget-led): unchanged, typed against the
-// slot's declared entry via `ContributionRegistry`.
+/**
+ * Every contribution that won `slot`, typed against the slot's declared entry
+ * via `ContributionRegistry`.
+ *
+ * <p><b>This returns nothing at all without a `WidgetMetaContext` AND a
+ * `ContributionsProvider` above it</b>, and it does so silently: with no store
+ * mounted there is nothing to read, and with no meta the provider does not know
+ * which slots to aggregate. The dashboard supplies both round every widget
+ * (`GridItemContent.tsx`), and so does the render harness (`renderWidget.tsx`),
+ * so the app and the probe never notice.</p>
+ *
+ * <p>A TEST that renders a widget bare does notice, and the failure has no error
+ * in it: the widget draws its chrome with empty content. That is survivable
+ * while a slot only carries guests, because a widget with no guests is a normal
+ * widget. It stops being survivable the moment a widget reads its OWN data
+ * through a slot, since then the bare render has lost the widget's whole
+ * subject. Eight of `SpaceCenterStatus`'s test files rendered it bare and went
+ * blank the day its facility grid moved onto
+ * `space-center-status.facilities`; they now mount
+ * `packages/components/src/test/contributionHost.tsx`, which is the two
+ * providers and nothing else.</p>
+ *
+ * <p>The companion trap is on `clearContributions`, which removes a host's own
+ * contribution along with everyone else's.</p>
+ */
 export function useContributions<S extends ContributionSlotId>(
   slot: S,
 ): readonly Contributed<ContributionEntry<S>>[];

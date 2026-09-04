@@ -1,9 +1,5 @@
 import { KspSpaceCenterFacility } from "@ksp-gonogo/sitrep-sdk";
-import {
-  magnitudeOf,
-  magnitudeOr,
-  type Quantityish,
-} from "../shared/magnitude";
+import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 
 // The facility vocabulary and the two conversions either side of the
 // `space-center-status.facilities` contribution slot. Separate from the widget
@@ -138,6 +134,34 @@ export interface FacilityLevel {
 export type FacilityLevels = Partial<Record<FacilityKey, FacilityLevel>>;
 
 /**
+ * Whether a field off the wire is something a magnitude can be read from: a
+ * bare number, an object carrying one, or nothing at all.
+ *
+ * <p>A predicate rather than an assertion at each read, and the difference is
+ * not cosmetic. `magnitudeOf` is already total over junk (it answers null for
+ * anything non-finite), so the seven `as Quantityish` this replaces were never
+ * covering a real risk; they were telling the compiler to stop asking about a
+ * boundary. The boundary is real: this parser is handed whatever the producer
+ * sent, and the honest way to cross it is to check.</p>
+ */
+function isQuantityish(v: unknown): v is Quantityish {
+  if (v === null || v === undefined || typeof v === "number") return true;
+  return (
+    typeof v === "object" && "magnitude" in v && typeof v.magnitude === "number"
+  );
+}
+
+/** One field of a wire entry as a magnitude, or null when it is absent or is
+ *  not a quantity at all. */
+function magnitudeAt(
+  entry: Record<string, unknown>,
+  key: string,
+): number | null {
+  const raw = entry[key];
+  return isQuantityish(raw) ? magnitudeOf(raw) : null;
+}
+
+/**
  * Defensive parser for facility-level payloads. Accepts BOTH the legacy
  * `kc.facilityLevels` shape (keyed by short code: launchPad/vab/sph/...:
  * `{ level, max, upgradeFunds, currentLevelText, nextLevelText }`) and the
@@ -169,7 +193,7 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
     // producer that predates `facilityOrdinal`. Before the ordinal existed, a
     // facility whose enum NAME missed the nine-entry table was skipped outright,
     // so it vanished from the display with nothing said.
-    const ordinal = magnitudeOf(entry.facilityOrdinal as Quantityish);
+    const ordinal = magnitudeAt(entry, "facilityOrdinal");
     const key: FacilityKey | undefined =
       (ordinal !== null ? ORDINAL_TO_FACILITY_KEY.get(ordinal) : undefined) ??
       (FACILITIES.some((f) => f.key === rawKey)
@@ -177,13 +201,13 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
         : ENUM_FACILITY_TO_KEY[rawKey]);
     if (key === undefined) continue;
 
-    const level = magnitudeOf(entry.level as Quantityish);
-    const max = magnitudeOf(entry.max as Quantityish);
+    const level = magnitudeAt(entry, "level");
+    const max = magnitudeAt(entry, "max");
     if (level !== null && max !== null) {
       out[key] = {
         level,
         max,
-        upgradeFunds: magnitudeOr(entry.upgradeFunds as Quantityish, 0),
+        upgradeFunds: magnitudeAt(entry, "upgradeFunds") ?? 0,
         currentLevelText:
           typeof entry.currentLevelText === "string"
             ? entry.currentLevelText
@@ -194,13 +218,13 @@ export function parseFacilityLevels(raw: unknown): FacilityLevels {
       continue;
     }
 
-    const currentTier = magnitudeOf(entry.currentTier as Quantityish);
-    const maxTier = magnitudeOf(entry.maxTier as Quantityish);
+    const currentTier = magnitudeAt(entry, "currentTier");
+    const maxTier = magnitudeAt(entry, "maxTier");
     if (currentTier !== null && maxTier !== null) {
       out[key] = {
         level: currentTier,
         max: maxTier,
-        upgradeFunds: magnitudeOr(entry.upgradeCost as Quantityish, 0),
+        upgradeFunds: magnitudeAt(entry, "upgradeCost") ?? 0,
         currentLevelText: "",
         nextLevelText: "",
       };

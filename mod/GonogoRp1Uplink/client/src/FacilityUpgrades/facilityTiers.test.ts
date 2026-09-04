@@ -76,4 +76,43 @@ describe("facilityTiers", () => {
   it("contributes nothing when the channel is silent", () => {
     expect(facilityTiers(undefined)).toEqual([]);
   });
+
+  /**
+   * The aggregation types a dep the slot does not declare as `unknown`, so this
+   * reads every field through a check rather than an assertion. These are the
+   * shapes that check has to survive, and none of them may reach the grid: a
+   * payload that is not a list, a row that is not an object, a name that is not
+   * a name, and a tier that is not a quantity.
+   */
+  it("drops anything it cannot read, rather than trusting the shape", () => {
+    expect(facilityTiers("not a list")).toEqual([]);
+    expect(facilityTiers({ facility: "LaunchPad" })).toEqual([]);
+    expect(
+      facilityTiers([
+        null,
+        "Runway",
+        { facility: 7, currentTier: 1, maxTier: 2 },
+        { facility: "VehicleAssemblyBuilding", currentTier: "1", maxTier: 2 },
+        {
+          facility: "Administration",
+          currentTier: { magnitude: "0" },
+          maxTier: 8,
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  /** A junk row alongside a sound one loses only itself. */
+  it("keeps the rows it can read when a sibling is unreadable", () => {
+    expect(
+      facilityTiers([
+        { facility: 7, currentTier: 1, maxTier: 2 },
+        {
+          facility: "Runway",
+          currentTier: value("count", 1),
+          maxTier: value("count", 3),
+        },
+      ]),
+    ).toEqual([{ facility: "Runway", currentTier: 1, maxTier: 3 }]);
+  });
 });

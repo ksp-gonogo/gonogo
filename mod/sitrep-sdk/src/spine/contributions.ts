@@ -132,6 +132,13 @@ export const DEFAULT_CONTRIBUTION_PRIORITY = 1;
  *
  * <p>A contribution that means to render ALONGSIDE the host's own rows says so
  * by taking the host's band explicitly.</p>
+ *
+ * <p>Self-contributing has a cost, and it is worth knowing before choosing it: a
+ * widget that reads its own data this way no longer renders anything without a
+ * `WidgetMetaContext` and a `ContributionsProvider` above it, and it fails by
+ * drawing an empty widget rather than by raising. See `useContributions`
+ * (`@ksp-gonogo/ui-kit`) for what that costs a test, and `clearContributions`
+ * below for the other half of it.</p>
  */
 export function getContributionsForSlot(slot: string): AnyContribution[] {
   const inSlot = Array.from(state().entries.values()).filter(
@@ -178,7 +185,22 @@ export function getContributionSettings(
     }));
 }
 
-/** For use in tests only, resets the contribution registry to empty. */
+/**
+ * For use in tests only, resets the contribution registry to empty.
+ *
+ * <p><b>It empties the registry, which includes the contributions a HOST widget
+ * makes to its own slot.</b> Those register as a module side effect, at import,
+ * and nothing re-runs an import. So a test file that clears between cases leaves
+ * every case after the first rendering a host with none of its own data, which
+ * surfaces as a widget that draws its chrome and no content, and reads as a
+ * telemetry fault rather than as a registry that was emptied on purpose.</p>
+ *
+ * <p>A self-contributing widget therefore exports a function that performs its
+ * registration, for a test to call after clearing;
+ * `SpaceCenterStatus/facilitiesContribution.ts`'s
+ * `registerStockFacilityContribution` is the worked example. Re-registering the
+ * identical def is a no-op, so calling it when nothing was cleared is safe.</p>
+ */
 export function clearContributions(): void {
   const s = state();
   s.entries.clear();

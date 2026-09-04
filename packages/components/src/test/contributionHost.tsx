@@ -1,8 +1,5 @@
 import { ContributionsProvider } from "@ksp-gonogo/core";
-import {
-  WidgetMetaContext,
-  type WidgetMetaContextValue,
-} from "@ksp-gonogo/ui-kit";
+import { type ContributionSlotId, WidgetMetaContext } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 
 /**
@@ -22,14 +19,14 @@ export function ContributionHost({
 }: {
   children: ReactNode;
   componentId: string;
-  contributionSlots: readonly string[];
+  /* The slot ids the widget declares, in the registry's own vocabulary rather
+     than as bare strings: typed this way the value IS a `WidgetMetaContextValue`
+     and needs no assertion to become one, and a slot id that does not exist
+     fails here rather than at the empty render it would otherwise cause. */
+  contributionSlots: readonly ContributionSlotId[];
 }) {
-  const meta = {
-    componentId,
-    contributionSlots,
-  } as unknown as WidgetMetaContextValue;
   return (
-    <WidgetMetaContext.Provider value={meta}>
+    <WidgetMetaContext.Provider value={{ componentId, contributionSlots }}>
       <ContributionsProvider>{children}</ContributionsProvider>
     </WidgetMetaContext.Provider>
   );
