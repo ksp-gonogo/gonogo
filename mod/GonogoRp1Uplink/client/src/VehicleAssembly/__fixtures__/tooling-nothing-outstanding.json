@@ -21,6 +21,11 @@
         "payload": true
       },
       {
+        "comment": "The craft listing, empty. Naming an augment mounts the whole rp1-vehicle-assembly.sections slot, so the START A BUILD section draws in this scene too and without this it photographed \"Waiting for the craft listing\" under two fully described toolings. An empty list is the honest answer for a career with nothing saved, and it is a different sentence from a listing that has not arrived.",
+        "topic": "rp1.buildable",
+        "payload": []
+      },
+      {
         "topic": "rp1.tooling",
         "payload": {
           "toolAllCost": 0,

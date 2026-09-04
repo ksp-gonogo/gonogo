@@ -349,6 +349,25 @@ function SpaceCenterStatusComponent({
     vantage: META_VANTAGE,
   });
   usePanelDelay(upgradeCmd);
+  /**
+   * The game has already said it will refuse this command, and that outranks
+   * everything this widget works out about the balance.
+   *
+   * A career overhaul is where it bites, and RP-1 is the shipped case:
+   * `Rp1CareerProjectGate` blocks `career.facility.upgrade` outright, because
+   * under RP-1 a tier is not for sale. It is queued as a construction project,
+   * and `ConstructionProject.AddProgress` bills that AS IT BUILDS, spending
+   * whatever fraction of a tick the career can meet
+   * (`CurrencyUtils.GetAffordableFundsFraction`, read off the shipped RP-1
+   * v4.6.0.0 RP0.dll). A short career gets a SLOWER upgrade, never a refused
+   * one, so a shortfall drawn over that price tells the operator they cannot
+   * afford a tier RP-1 would have built for them.
+   *
+   * `undetermined` is deliberately not this. An authority that could not be
+   * asked is not the game's judgement, and silencing the verdict on it would
+   * take the honest one away from the stock career too.
+   */
+  const upgradeBlocked = upgradeCmd.gate?.blocked === true;
 
   const facilities = parseFacilityLevels(facilitiesRaw);
 
@@ -573,6 +592,12 @@ function SpaceCenterStatusComponent({
                   !atMax &&
                   f.upgradeFunds > 0 &&
                   canAfford;
+                /* Whether money is what decides this control at all. A blocked
+                   command is refused for a reason the balance has no part in,
+                   so there is no affordability verdict to draw and the price
+                   goes back to being a plain figure: what it costs, which the
+                   operator still needs beside the control. */
+                const moneyDecides = !upgradeBlocked;
                 // Build a hover-tooltip body summarising the current tier's
                 // bullet-list and (if available) the next-tier preview. The
                 // newlines from the fork stay as \n, the browser's `title`
@@ -614,7 +639,21 @@ function SpaceCenterStatusComponent({
                     </FacilityValue>
                     {f && f.upgradeFunds > 0 && !atMax && (
                       <UpgradeRow>
-                        <UpgradeCost $afford={canAfford}>
+                        <UpgradeCost
+                          $afford={moneyDecides ? canAfford : true}
+                          /* The verdict, reported so it can be seen from
+                             outside: it is otherwise a colour, and a colour is
+                             a claim nothing can assert against. Absent when
+                             money decides nothing, which is the whole of the
+                             difference this attribute exists to hold. */
+                          data-afford={
+                            moneyDecides
+                              ? canAfford
+                                ? "yes"
+                                : "no"
+                              : undefined
+                          }
+                        >
                           {formatCompactCurrency(f.upgradeFunds)}
                         </UpgradeCost>
                         <UpgradeButton
@@ -719,6 +758,7 @@ function UpgradeButton({
   const commandLabel = `Upgrade ${facilityLabel}`;
   const {
     isArmed,
+    isBlocked,
     isPending,
     isRefused,
     isLost,
@@ -763,6 +803,31 @@ function UpgradeButton({
         title={sentence}
         aria-label={sentence}
         label="No reply"
+        icon={<ChevronUpIcon size={12} />}
+      />
+    );
+  }
+  if (isBlocked) {
+    /* The mod said no before anyone pressed, so the control says why. A dark
+       button with nothing on it reads the same as a fully-upgraded facility
+       and the same as a short balance, and only one of the three is what
+       happened here.
+
+       `aria-disabled` and NOT `disabled`, the ruling CommandButton's own
+       blocked phase sets out: a disabled button is dropped from some screen
+       readers' walk entirely, and a gate verdict is advice rather than
+       permission, since it is sampled and the dispatch re-evaluates anyway.
+       The sentence travels in `title` and in the accessible name rather than in
+       the button's body, because a facility cell is about two grid columns wide
+       and `FitLabelButton` collapses a word that does not fit to an icon. */
+    return (
+      <UpgradeButtonStyled
+        aria-disabled="true"
+        aria-label={refusalText ?? undefined}
+        data-gate="blocked"
+        onClick={() => press(true)}
+        title={refusalText ?? titleOverride}
+        label="Blocked"
         icon={<ChevronUpIcon size={12} />}
       />
     );
@@ -1012,12 +1077,16 @@ const UpgradeButtonStyled = styled(FitLabelButton)`
      shrink for that measurement to mean anything. */
   min-width: 0;
 
-  &:hover:not(:disabled) {
+  &:hover:not(:disabled):not([aria-disabled="true"]) {
     color: var(--color-accent-fg);
     border-color: var(--color-accent-fg);
   }
 
-  &:disabled {
+  /* A blocked control looks the same as a dead one and behaves differently:
+     it keeps its focus ring and answers a press with its reason, which is why
+     it carries aria-disabled rather than disabled. */
+  &:disabled,
+  &[aria-disabled="true"] {
     opacity: 0.4;
     cursor: not-allowed;
   }

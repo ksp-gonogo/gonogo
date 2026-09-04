@@ -6,14 +6,15 @@
       "w": 12,
       "h": 16
     },
-    "caption": "A career with two tiers it could commit to and one building already in the queue, priced against a balance that cannot meet either: RP-1 bills a construction as it builds, so this is a slower upgrade rather than a refused one",
+    "caption": "A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all",
     "paints": [
       "FACILITY UPGRADES",
       "Launch Pad",
       "now at tier 2 of 3",
       "over the build",
       "Queue upgrade",
-      "slows the work rather than stopping it"
+      "slows the work rather than stopping it",
+      "Blocked"
     ]
   },
   "_stream": {
@@ -71,6 +72,22 @@
       {
         "topic": "rp1.available",
         "payload": true
+      },
+      {
+        "comment": "Rp1CareerProjectGate's standing verdict. Without it the picture shows a managed RP-1 career whose stock Upgrade buttons are live, which is a space centre RP-1 could never produce: the gate refuses career.facility.upgrade on every save RP-1 manages, and the section below is the act it names instead.",
+        "topic": "system.uplink.gates",
+        "payload": {
+          "gates": [
+            {
+              "command": "career.facility.upgrade",
+              "verdict": {
+                "outcome": 1,
+                "errorCode": 3,
+                "detail": "RP-1 builds a facility upgrade as a construction project with its own cost and duration, so it has to be queued rather than bought outright. Use rp1.facility.upgrade"
+              }
+            }
+          ]
+        }
       },
       {
         "topic": "rp1.centres",

@@ -800,7 +800,26 @@ function AvailableRow({
         )}
         {s.initialCostFunds === 0 &&
           s.initialCostScience === 0 &&
-          s.initialCostReputation === 0 && <CostChip>No setup cost</CostChip>}
+          s.initialCostReputation === 0 && (
+            /* What was READ, not what it means. This record carries three setup
+               currencies and no others, so three zeros are a statement about
+               those three and about nothing else.
+
+               It read "No setup cost", which is the whole price of a STOCK
+               strategy and is a falsehood the moment a career overhaul prices
+               one in a currency this record has no field for. RP-1 is the
+               shipped case: a Program is a strategy on this same list and
+               `Program.Accept()` charges `confidenceCosts[speed]` in
+               Confidence, so a 300-Confidence commitment announced itself as
+               free directly above an RP-1 section reading "300 at Normal speed,
+               SHORT" for the same Program on the same screen.
+
+               Deliberately not taught about Confidence, and deliberately not a
+               department name list: the currency is not on this channel, so the
+               honest move is to stop claiming more than arrived rather than to
+               guess which overhaul is running. */
+            <CostChip>No funds, science or rep cost on this record</CostChip>
+          )}
       </CostRow>
       {s.hasFactorSlider && (
         <FactorRow>

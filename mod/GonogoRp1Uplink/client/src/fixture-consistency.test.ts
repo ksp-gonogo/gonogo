@@ -46,6 +46,13 @@ interface PadRow {
   lcId?: string | null;
 }
 
+/** A fixture's payload for one facility, in the fields the rules read. */
+interface FacilityRow {
+  currentTier?: number | null;
+  maxTier?: number | null;
+  upgradeCost?: number | null;
+}
+
 /**
  * Every operational pad complex a VEHICLE fixture declares has at least one
  * pad.
@@ -66,29 +73,33 @@ interface PadRow {
  * complex rolls its craft to a runway.
  */
 function inconsistencies(emits: readonly Emit[], surface = ""): string[] {
-  const complexes = payloadRows<ComplexRow>(emits, "rp1.complexes");
-  if (complexes === undefined || !aboutVehicles(emits)) {
-    return [];
-  }
-  const pads = payloadRows<PadRow>(emits, "rp1.pads");
   const problems: string[] = [];
-  for (const complex of complexes) {
-    if (complex.isOperational !== true || complex.lcType !== "Pad") {
-      continue;
-    }
-    const named = complex.name ?? complex.lcId ?? "an unnamed complex";
-    if (pads === undefined) {
-      problems.push(
-        `${named} is an operational Pad complex and the fixture emits no ` +
-          '"rp1.pads" at all, so the widget says it has no pads',
-      );
-      continue;
-    }
-    if (!pads.some((pad) => pad.lcId === complex.lcId)) {
-      problems.push(
-        `${named} is an operational Pad complex and no pad in "rp1.pads" ` +
-          `carries its lcId (${complex.lcId ?? "absent"})`,
-      );
+  const complexes = payloadRows<ComplexRow>(emits, "rp1.complexes");
+
+  /* Each rule carries its OWN scope. This used to be an early return over the
+     complex list, which reads as scoping for the pad rule and silently governed
+     every rule written after it: a facility fixture emits no "rp1.complexes",
+     so a rule about facilities never ran and reported a clean fixture. */
+  if (complexes !== undefined && aboutVehicles(emits)) {
+    const pads = payloadRows<PadRow>(emits, "rp1.pads");
+    for (const complex of complexes) {
+      if (complex.isOperational !== true || complex.lcType !== "Pad") {
+        continue;
+      }
+      const named = complex.name ?? complex.lcId ?? "an unnamed complex";
+      if (pads === undefined) {
+        problems.push(
+          `${named} is an operational Pad complex and the fixture emits no ` +
+            '"rp1.pads" at all, so the widget says it has no pads',
+        );
+        continue;
+      }
+      if (!pads.some((pad) => pad.lcId === complex.lcId)) {
+        problems.push(
+          `${named} is an operational Pad complex and no pad in "rp1.pads" ` +
+            `carries its lcId (${complex.lcId ?? "absent"})`,
+        );
+      }
     }
   }
 
@@ -114,7 +125,96 @@ function inconsistencies(emits: readonly Emit[], surface = ""): string[] {
     );
   }
 
+  // A managed career whose HOST is still offering to buy a tier outright.
+  //
+  // `rp1.available` is not "RP-1 is installed": its channel source is
+  // `IsAvailable && IsEnabledForSave()`, so `true` says RP-1 is MANAGING this
+  // save. On such a save `Rp1CareerProjectGate.Evaluate` returns Fail for
+  // `career.facility.upgrade` every time, because RP-1 does not sell a tier at
+  // all. So a fixture that puts a stock Upgrade control on screen without the
+  // gate is photographing a space centre RP-1 could never produce, and the
+  // picture says two contradictory things at once: the host's grid offers a
+  // purchase and colours the ones the balance cannot meet as unaffordable,
+  // while the section below it says the same tier is queued and billed as it
+  // builds and never refused for money.
+  //
+  // Scoped to whether the CONTROL is on screen rather than to the host, unlike
+  // the craft-listing rule above. Every `space-center-status` scene mounts the
+  // facility grid and most emit no facilities at all, so a cell with no tier
+  // left draws no control and has nothing to contradict.
+  if (offersAStockTierPurchase(emits) && !blocks(emits, FACILITY_COMMAND)) {
+    problems.push(
+      "the fixture reports RP-1 managing the save and emits no blocked " +
+        `"${FACILITY_COMMAND}" verdict on "system.uplink.gates", so the host ` +
+        "draws live stock Upgrade controls, and a red price over the ones the " +
+        "balance cannot meet, for a purchase RP-1 refuses",
+    );
+  }
+
   return problems;
+}
+
+/** The stock purchase RP-1 re-models as a construction project. */
+const FACILITY_COMMAND = "career.facility.upgrade";
+
+/** GateOutcome.Fail, the only outcome that darkens a control in advance. */
+const GATE_FAIL = 1;
+
+/**
+ * The fixture describes a save RP-1 manages AND leaves a facility with a tier
+ * left to buy, which is what puts the host's own Upgrade control on screen.
+ *
+ * <para>A PRICED tier, because that is what the host gates its own control on:
+ * a facility whose `upgradeCost` did not arrive draws no Upgrade button and has
+ * nothing to contradict.</para>
+ */
+function offersAStockTierPurchase(emits: readonly Emit[]): boolean {
+  if (!emits.some((e) => e.topic === "rp1.available" && e.payload === true)) {
+    return false;
+  }
+  const facilities = careerFacilities(emits);
+  return Object.values(facilities).some(
+    (f) =>
+      typeof f?.currentTier === "number" &&
+      typeof f?.maxTier === "number" &&
+      f.currentTier < f.maxTier &&
+      typeof f?.upgradeCost === "number" &&
+      f.upgradeCost > 0,
+  );
+}
+
+/** The facilities map off the last `career.status` the fixture emits. */
+function careerFacilities(
+  emits: readonly Emit[],
+): Record<string, FacilityRow | undefined> {
+  let found: Record<string, FacilityRow | undefined> = {};
+  for (const emit of emits) {
+    if (emit.topic !== "career.status") continue;
+    const payload = emit.payload as
+      | { facilities?: Record<string, FacilityRow> | null }
+      | undefined;
+    found = payload?.facilities ?? {};
+  }
+  return found;
+}
+
+/** Whether the fixture publishes a standing FAIL verdict for this command. */
+function blocks(emits: readonly Emit[], command: string): boolean {
+  for (const emit of emits) {
+    if (emit.topic !== "system.uplink.gates") continue;
+    const payload = emit.payload as
+      | { gates?: Array<{ command?: string; verdict?: { outcome?: number } }> }
+      | undefined;
+    if (
+      (payload?.gates ?? []).some(
+        (gate) =>
+          gate.command === command && gate.verdict?.outcome === GATE_FAIL,
+      )
+    ) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** The one widget that reads the craft listing, and offers to start a build. */
