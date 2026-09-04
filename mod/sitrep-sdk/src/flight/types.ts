@@ -1,4 +1,4 @@
-import type { DataKey } from "../api/types";
+import type { DataKey, StreamStatusValue } from "../api/types";
 import type { SitrepUnit } from "../units";
 
 // ---------------------------------------------------------------------------
@@ -56,6 +56,52 @@ export interface Sample<V = unknown> {
 }
 
 /**
+ * Which clock a `SeriesRange`'s `t` is stamped against.
+ *
+ * The two producers of a series use different ones and always did:
+ * `TimelineStore.sampleRange` hands back the game's UT SECONDS, and the legacy
+ * `BufferedDataSource` buffers wall-clock MILLISECONDS. Nothing said so, so
+ * every consumer had to guess, and the chart guessed wall-clock: it scaled UT
+ * samples against a `Date.now()` domain (fixed by `computeTimeDomain`) and then
+ * went on labelling a twenty-minute window `0:00 ... 0:01`, a factor of a
+ * thousand out, under a trace that was by then drawn correctly.
+ *
+ * A basis cannot be inferred from the numbers: both are large monotonic
+ * counts, and the wrong reading of either is plausible. So the producer states
+ * it, and a consumer that does arithmetic on `t` reads the declaration.
+ */
+export type SeriesTimeBasis = "ut-seconds" | "wall-ms";
+
+/**
+ * A contiguous run of samples that share a stream status other than `"live"`,
+ * as INCLUSIVE indices into `t`/`v`.
+ *
+ * What the wire knows and a plain `{t, v}` throws away: which part of a trace
+ * came off the craft's own recorder during a blackout, and which part arrived
+ * live. Both are exact, and drawing them identically tells the operator the
+ * craft was in contact throughout when it was not. `breaks` already carries
+ * what is GONE; this carries what is merely LATE, which is the other half of
+ * the same claim.
+ *
+ * A RANGE rather than a per-sample status array, for the two reasons `breaks`
+ * chose indices: a chart draws a SEGMENT, so a per-sample encoding only makes
+ * every consumer re-derive these runs before it can draw anything, and the
+ * all-live case (very nearly all of them) costs one empty array rather than one
+ * string per sample.
+ *
+ * Only server-stamped grades appear here. `held-stale` and `disconnected` are
+ * inferred about the topic NOW, not recorded about a sample, so they have no
+ * honest per-sample extent to name.
+ */
+export interface SeriesStatusSpan {
+  /** First sample of the run. */
+  from: number;
+  /** Last sample of the run, inclusive. */
+  to: number;
+  status: StreamStatusValue;
+}
+
+/**
  * Columnar series slice. `t` and `v` have identical length. Used as the
  * return shape for `queryRange` + `getLatest` because the graph widget
  * consumes parallel arrays and it's cheaper to stream over PeerJS later.
@@ -63,6 +109,13 @@ export interface Sample<V = unknown> {
 export interface SeriesRange<V = unknown> {
   t: number[];
   v: V[];
+
+  /**
+   * The clock `t` is stamped against. Absent means `"wall-ms"`: that is what
+   * every producer predating the field emitted, and reading an unstated series
+   * as wall-clock keeps those callers exactly where they were.
+   */
+  basis?: SeriesTimeBasis;
 
   /**
    * Indices at which a KNOWN break precedes the point: `breaks: [7]` means
@@ -83,6 +136,13 @@ export interface SeriesRange<V = unknown> {
    * sample, and so a consumer that ignores the field behaves exactly as it did.
    */
   breaks?: number[];
+
+  /**
+   * Runs of samples carrying a server-stamped status other than `"live"`, in
+   * ascending order and non-overlapping. Absent or empty means every sample in
+   * the slice arrived live. See {@link SeriesStatusSpan}.
+   */
+  spans?: SeriesStatusSpan[];
 }
 
 /**

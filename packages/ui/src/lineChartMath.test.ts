@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildBandPath,
   buildPath,
+  buildSegmentedPath,
   buildStepPath,
   makeLogScale,
   makeScale,
@@ -154,5 +155,99 @@ describe("niceLogTicks", () => {
     const ticks = niceLogTicks(1, 1e10, 4);
     // 11 decades, count=4 → stride 3 → exponents 0, 3, 6, 9
     expect(ticks).toEqual([1, 1000, 1_000_000, 1_000_000_000]);
+  });
+});
+
+/**
+ * `breaks` says what the trace has NO readings for; a span says which of its
+ * readings did not arrive live. They answer different questions and a chart
+ * needs both: a run drawn identically to the live one claims the craft was in
+ * contact throughout, which is the falsehood the blackout model exists to
+ * stop.
+ */
+describe("buildSegmentedPath", () => {
+  it("returns one whole-series run when nothing is spanned", () => {
+    expect(
+      buildSegmentedPath([0, 1, 2], [0, 10, 20], id, id, buildPath),
+    ).toEqual([{ d: "M0.00,0.00 L1.00,10.00 L2.00,20.00" }]);
+  });
+
+  it("cuts the series at a status change and names each run", () => {
+    const segments = buildSegmentedPath(
+      [0, 1, 2, 3],
+      [0, 10, 20, 30],
+      id,
+      id,
+      buildPath,
+      [],
+      [{ from: 2, to: 3, status: "recorded" }],
+    );
+    expect(segments.map((s) => s.status)).toEqual([undefined, "recorded"]);
+    // The joining segment belongs to the RUN IT ENTERS, drawn once: the newer
+    // endpoint is the newer provenance. Without the reach-back the line would
+    // have a one-segment hole between the two runs that means nothing.
+    expect(segments[0].d).toBe("M0.00,0.00 L1.00,10.00");
+    expect(segments[1].d).toBe("M1.00,10.00 L2.00,20.00 L3.00,30.00");
+  });
+
+  it("does not reach back across a break", () => {
+    // The recorder overran: the trace has a hole AND resumes on recorded data,
+    // which is the real reacquisition shape. Nothing joins into index 2, so the
+    // recorded run must not borrow the sample before it.
+    const segments = buildSegmentedPath(
+      [0, 1, 2, 3],
+      [0, 10, 20, 30],
+      id,
+      id,
+      buildPath,
+      [2],
+      [{ from: 2, to: 3, status: "recorded" }],
+    );
+    expect(segments[1].d).toBe("M2.00,20.00 L3.00,30.00");
+  });
+
+  it("keeps a break inside a run", () => {
+    const segments = buildSegmentedPath(
+      [0, 1, 2, 3],
+      [0, 10, 20, 30],
+      id,
+      id,
+      buildPath,
+      [2],
+      [],
+    );
+    expect(segments).toEqual([
+      { d: "M0.00,0.00 L1.00,10.00 M2.00,20.00 L3.00,30.00" },
+    ]);
+  });
+
+  it("splits a step path the same way", () => {
+    const segments = buildSegmentedPath(
+      [0, 1, 2],
+      [0, 10, 20],
+      id,
+      id,
+      buildStepPath,
+      [],
+      [{ from: 1, to: 2, status: "last-before-blackout" }],
+    );
+    expect(segments.map((s) => s.status)).toEqual([
+      undefined,
+      "last-before-blackout",
+    ]);
+    expect(segments[1].d).toBe("M0.00,0.00 H1.00 V10.00 H2.00 V20.00");
+  });
+
+  it("ignores a span that names indices the series does not have", () => {
+    const segments = buildSegmentedPath(
+      [0, 1],
+      [0, 10],
+      id,
+      id,
+      buildPath,
+      [],
+      [{ from: 5, to: 9, status: "recorded" }],
+    );
+    expect(segments).toEqual([{ d: "M0.00,0.00 L1.00,10.00" }]);
   });
 });

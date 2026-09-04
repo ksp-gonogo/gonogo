@@ -1,5 +1,7 @@
 /** Pure math helpers for LineChart. No React, no side-effects. */
 
+import type { SeriesStatusSpan } from "@ksp-gonogo/sitrep-sdk";
+
 /** Linear scale: maps input domain to output pixel range. */
 export function makeScale(
   domainMin: number,
@@ -119,6 +121,83 @@ export function buildStepPath(
     prevY = y;
   }
   return parts.join(" ");
+}
+
+/** One drawable run of a series: its path, and the status every sample in it
+ *  carried. `status` absent means the run arrived live. */
+export interface PathSegment {
+  status?: SeriesStatusSpan["status"];
+  d: string;
+}
+
+/**
+ * Cut a series into runs that share a stream status, one path per run.
+ *
+ * The trace has to be able to say which of its own samples came off the
+ * craft's recorder during a blackout and which arrived live. Both are exact,
+ * so this is not a break: the line stays continuous across the join and only
+ * its stroke changes, which is the difference between "we have no readings for
+ * this" (`breaks`) and "these readings describe an earlier instant".
+ *
+ * A run is extended one sample BACKWARDS so the segment joining it to the
+ * previous run is drawn once, in the new run's style: a segment's right-hand
+ * endpoint is the newer sample, so the newer provenance is the honest label for
+ * it. Not extended across a `breaks` index, where there is no joining segment
+ * to claim.
+ */
+export function buildSegmentedPath(
+  ts: number[],
+  vs: number[],
+  scaleX: (v: number) => number,
+  scaleY: (v: number) => number,
+  builder: (
+    ts: number[],
+    vs: number[],
+    scaleX: (v: number) => number,
+    scaleY: (v: number) => number,
+    breaks?: readonly number[],
+  ) => string,
+  breaks: readonly number[] = [],
+  spans: readonly SeriesStatusSpan[] = [],
+): PathSegment[] {
+  if (ts.length === 0) return [];
+  if (spans.length === 0) {
+    return [{ d: builder(ts, vs, scaleX, scaleY, breaks) }];
+  }
+  const statusAt: (SeriesStatusSpan["status"] | undefined)[] = new Array(
+    ts.length,
+  );
+  for (const span of spans) {
+    for (
+      let i = Math.max(0, span.from);
+      i <= Math.min(ts.length - 1, span.to);
+      i++
+    ) {
+      statusAt[i] = span.status;
+    }
+  }
+  const breakSet = new Set(breaks);
+  const out: PathSegment[] = [];
+  let runStart = 0;
+  const flush = (start: number, end: number) => {
+    // Reach back one sample for the joining segment, unless a hole sits at the
+    // run's own first index, where nothing joins into it.
+    const from = start > 0 && !breakSet.has(start) ? start - 1 : start;
+    const slice = (arr: number[]) => arr.slice(from, end + 1);
+    const localBreaks: number[] = [];
+    for (const b of breaks) {
+      if (b > from && b <= end) localBreaks.push(b - from);
+    }
+    const d = builder(slice(ts), slice(vs), scaleX, scaleY, localBreaks);
+    if (d !== "") out.push({ status: statusAt[start], d });
+  };
+  for (let i = 1; i <= ts.length; i++) {
+    if (i === ts.length || statusAt[i] !== statusAt[runStart]) {
+      flush(runStart, i - 1);
+      runStart = i;
+    }
+  }
+  return out;
 }
 
 /**

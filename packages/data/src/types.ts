@@ -14,6 +14,8 @@ export type {
   FlightRecoveryOutcome,
   Sample,
   SeriesRange,
+  SeriesStatusSpan,
+  SeriesTimeBasis,
   UnitHint,
   UnitHint as Unit,
 } from "@ksp-gonogo/sitrep-sdk";

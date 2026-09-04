@@ -1,8 +1,9 @@
-import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
+import type { PlotLayer, SeriesStatusSpan } from "@ksp-gonogo/sitrep-sdk";
 import React, { useId, useMemo } from "react";
 import {
   buildBandPath,
   buildPath,
+  buildSegmentedPath,
   buildStepPath,
   formatTimeLabel,
   makeLogScale,
@@ -31,12 +32,18 @@ import {
  * shows the gap. Ignored by `scatter` (which joins nothing anyway) and by
  * `band` (whose polygon would need its own split; no band series carries a
  * hole today, and shading across one would be a worse lie than a line).
+ *
+ * `spans` names runs of samples that did not arrive live: see
+ * `SeriesStatusSpan`. `breaks` is what the trace has no readings for; this is
+ * what it has EXACT readings for that describe an earlier instant, and it is
+ * drawn dashed rather than absent. Same three-way applicability as `breaks`.
  */
 export interface ChartSeriesData {
   x: number[];
   y: number[];
   y2?: number[];
   breaks?: number[];
+  spans?: readonly SeriesStatusSpan[];
 }
 
 /**
@@ -86,6 +93,22 @@ export const timeXTickFormat = (
   value: number,
   domain: readonly [number, number],
 ): string => formatTimeLabel(value - domain[0], domain[1] - domain[0]);
+
+/**
+ * Tick formatter for an x-axis in UT SECONDS, the basis the telemetry stream
+ * stamps its samples in (`SeriesRange.basis`). Same elapsed-since-the-left-edge
+ * ladder as `timeXTickFormat`, read off the other clock.
+ *
+ * Both exist because neither can be inferred: the default's arithmetic on a
+ * seconds domain divides by a thousand, so a twenty-minute window of UT reads
+ * `0:00 ... 0:01` and the ladder under an outage cannot say when it was. A
+ * caller picks by what its producer declared, never by the size of the numbers.
+ */
+export const utXTickFormat = (
+  value: number,
+  domain: readonly [number, number],
+): string =>
+  formatTimeLabel((value - domain[0]) * 1000, (domain[1] - domain[0]) * 1000);
 
 export interface LineChartProps {
   series: ChartSeries[];
@@ -500,7 +523,15 @@ export function LineChart({
           kind: "stroked" as const,
           color: s.color,
           dashed: s.dashed ?? false,
-          d: builder(s.data.x, s.data.y, scaleX, scaleY, s.data.breaks),
+          segments: buildSegmentedPath(
+            s.data.x,
+            s.data.y,
+            scaleX,
+            scaleY,
+            builder,
+            s.data.breaks,
+            s.data.spans,
+          ),
         };
       });
   }, [series, scaleX, scaleYPrimary, scaleYSecondary]);
@@ -523,9 +554,25 @@ export function LineChart({
   // reader has (WCAG 1.4.1), so every layer's own clause joins the chart's
   // accessible name. A layer with nothing to say adds nothing, which is what
   // stops an absent reading from being spoken as a zero.
+  // A dashed run is a claim about where those readings came from, and a dash
+  // is not a channel a screen reader has (WCAG 1.4.1), the same reason each
+  // layer contributes its own clause below. Named per series, because "some of
+  // this chart was recorded" is not answerable if two traces are drawn.
+  const provenanceClauses = series.flatMap((s) => {
+    const spans = s.data.spans;
+    if (!spans || spans.length === 0) return [];
+    const kinds = new Set(spans.map((span) => span.status));
+    return [...kinds].map((status) =>
+      status === "recorded"
+        ? `${s.label}: part of this trace was recorded aboard during a loss of signal, not received live`
+        : `${s.label}: part of this trace is the last that got out before a blackout`,
+    );
+  });
+
   const chartLabel = [
     ariaLabel ?? "Telemetry line chart",
     ...plotLayerDescriptions(layers ?? []),
+    ...provenanceClauses,
   ].join("; ");
 
   const layerFrame: PlotLayerFrame = {
@@ -752,24 +799,35 @@ export function LineChart({
           />
         ))}
 
-      {/* Stroked series (line + step). */}
+      {/* Stroked series (line + step), one path per run of shared provenance.
+          A series with nothing but live samples is one path, exactly as it was.
+          A run that did not arrive live keeps the series colour (it is not a
+          degradation: the reading is exact) and is dashed, so the operator can
+          see which part of the trace came off the craft rather than off the
+          link. */}
       {drawables
         .filter(
           (d): d is Extract<typeof d, { kind: "stroked" }> =>
             d.kind === "stroked",
         )
-        .map((d) => (
-          <path
-            key={d.id}
-            d={d.d}
-            stroke={d.color}
-            strokeWidth={1.5}
-            fill="none"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            strokeDasharray={d.dashed ? "4 3" : undefined}
-          />
-        ))}
+        .flatMap((d) =>
+          d.segments.map((seg, i) => (
+            <path
+              // biome-ignore lint/suspicious/noArrayIndexKey: a run has no identity beyond its position in the series
+              key={`${d.id}-${i}`}
+              d={seg.d}
+              data-stream-status={seg.status}
+              stroke={d.color}
+              strokeWidth={1.5}
+              fill="none"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              strokeDasharray={
+                seg.status !== undefined ? "5 3" : d.dashed ? "4 3" : undefined
+              }
+            />
+          )),
+        )}
 
       {/* Scatter dots. */}
       {drawables

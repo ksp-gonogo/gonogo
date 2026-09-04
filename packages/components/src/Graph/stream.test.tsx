@@ -1,3 +1,4 @@
+import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -161,6 +162,146 @@ describe("Graph: genuinely runs off the stream", () => {
       }
       // And spread across the axis rather than piled on one edge, which is what a domain wider than the data by a factor of a thousand would produce.
       expect(xs[2] - xs[0]).toBeGreaterThan(50);
+    });
+  });
+
+  /**
+   * The domain fix put the trace on the canvas; the LABELS under it stayed in
+   * the other basis. `LineChart`'s default X formatter reads its domain as unix
+   * MILLISECONDS, so a twenty-minute window of UT seconds is a span of 1200 and
+   * the ladder under a whole outage reads `0:00 ... 0:01`.
+   *
+   * A chart whose question is WHEN cannot answer it off a ladder that is wrong
+   * by a factor of a thousand, which is why the widget can no longer guess:
+   * `SeriesRange.basis` is `useDataSeries` stating which clock it stamped `t`
+   * in, and the formatter follows the declaration.
+   */
+  it("labels the time axis in the basis the samples are stamped in", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+
+    const config = {
+      series: [{ id: "sma", key: "vessel.orbit.sma", axis: "auto" as const }],
+      // Twenty minutes, the span the blackout scenes are drawn over.
+      windowSec: 1200,
+    };
+
+    const { container } = render(
+      <fixture.Provider>
+        <GraphComponent config={config} id="graph-stream-ticks" w={10} h={8} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      for (let i = 0; i <= 20; i++) {
+        fixture.emit(
+          "vessel.orbit",
+          { sma: 679_000 + i * 50 },
+          { validAt: -1200 + i * 60 },
+        );
+      }
+    });
+
+    await waitFor(() => {
+      const labels = Array.from(
+        container.querySelectorAll(
+          'svg[aria-label="Telemetry line chart"] text',
+        ),
+      ).map((t) => t.textContent ?? "");
+      // The span is twenty minutes and the right-hand end of the ladder says
+      // so. Read as milliseconds the same domain labels the whole window
+      // "0:00 / 0:00 / 0:01", which is the defect.
+      expect(labels).toContain("20:00");
+      // And the rungs between climb through it rather than repeating a value.
+      expect(labels).toContain("3:20");
+      expect(labels).toContain("11:40");
+    });
+  });
+
+  /**
+   * The other half of the blackout claim. `breaks` already draws what is GONE;
+   * a replayed span is what is merely LATE, and a chart that draws it in the
+   * same unbroken stroke as a live span tells the operator the craft was in
+   * contact throughout.
+   *
+   * The emissions are the shape `Courier.ReplayRecorded` produces, checked
+   * against that method rather than against the widget: every sample of a dump
+   * is stamped `Staleness.Recorded` and only the FIRST carries `gapSinceUt`.
+   */
+  it("sets a recorded run apart from the live trace", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 0,
+      suspendFrames: true,
+    });
+
+    const config = {
+      series: [{ id: "sma", key: "vessel.orbit.sma", axis: "auto" as const }],
+      windowSec: 1200,
+    };
+
+    const { container } = render(
+      <fixture.Provider>
+        <GraphComponent
+          config={config}
+          id="graph-stream-recorded"
+          w={10}
+          h={8}
+        />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      // Live, up to loss of signal at UT -600.
+      for (let i = 0; i < 5; i++) {
+        fixture.emit(
+          "vessel.orbit",
+          { sma: 679_000 + i * 100 },
+          { validAt: -1200 + i * 150 },
+        );
+      }
+      // The dump the craft sends on reacquisition. Its oldest span overran the
+      // recorder, so the first replayed sample also states the hole.
+      for (let i = 0; i < 5; i++) {
+        fixture.emit(
+          "vessel.orbit",
+          { sma: 679_600 + i * 100 },
+          {
+            validAt: -400 + i * 100,
+            staleness: Staleness.Recorded,
+            ...(i === 0 ? { gapSinceUt: -600 } : {}),
+          },
+        );
+      }
+    });
+
+    await waitFor(() => {
+      const paths = Array.from(
+        container.querySelectorAll<SVGPathElement>(
+          'svg[aria-label^="Telemetry line chart"] path[d][fill="none"]',
+        ),
+      );
+      // One trace, drawn as two runs: the live one and the replayed one.
+      expect(paths.length).toBe(2);
+      const recorded = paths.filter(
+        (p) => p.getAttribute("data-stream-status") === "recorded",
+      );
+      expect(recorded.length).toBe(1);
+      // Told apart by stroke, not by colour: a recorded reading is exact, so
+      // it must not be drawn as a degradation.
+      expect(recorded[0].getAttribute("stroke-dasharray")).not.toBeNull();
+      expect(recorded[0].getAttribute("stroke")).toBe(
+        paths[0].getAttribute("stroke"),
+      );
+      // And a dash is not a channel a screen reader has.
+      const label =
+        container
+          .querySelector("svg[aria-label]")
+          ?.getAttribute("aria-label") ?? "";
+      expect(label).toMatch(/recorded aboard during a loss of signal/);
     });
   });
 

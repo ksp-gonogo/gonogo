@@ -184,6 +184,8 @@ export type {
   MissionMeta,
   Sample,
   SeriesRange,
+  SeriesStatusSpan,
+  SeriesTimeBasis,
   UnitHint,
 } from "./flight/types";
 export * from "./ksp-enum-names";

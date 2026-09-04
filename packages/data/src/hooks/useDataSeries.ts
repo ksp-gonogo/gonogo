@@ -11,11 +11,89 @@ import {
   useTelemetryStoreOptional,
   warnGatedRead,
 } from "@ksp-gonogo/sitrep-client";
-import type { BufferedDataSource } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  BufferedDataSource,
+  StreamStatusValue,
+} from "@ksp-gonogo/sitrep-sdk";
+import { Staleness } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
-import type { SeriesRange } from "../types";
+import type { SeriesRange, SeriesStatusSpan } from "../types";
 
+/**
+ * Shared by both branches, and deliberately carries no `basis`: an empty
+ * series has no `t` to be stamped in either clock, and the chart's own
+ * no-samples fallback domain is a wall-clock window. Declaring UT here would
+ * mislabel that fallback in the one case where there is nothing plotted to
+ * check the ladder against.
+ */
 const EMPTY: SeriesRange = { t: [], v: [] };
+
+/**
+ * A sample's own STAMPED grade, or `null` when it carries none.
+ *
+ * Deliberately not `TimelineStore.sampleStatus`: that answers for a topic at
+ * the view frame, folding in transport state and the heartbeat tracker, which
+ * is the right read for "how current is this widget" and the wrong one to ask
+ * once per sample. A series needs what the server said about THIS point. The
+ * precedence between the stamped grades is `sampleRawStatus`'s own.
+ */
+function stalenessToStreamStatus(
+  staleness: Staleness | undefined,
+): StreamStatusValue | null {
+  switch (staleness) {
+    case Staleness.LastBeforeBlackout:
+      return "last-before-blackout";
+    case Staleness.Recorded:
+      return "recorded";
+    default:
+      return null;
+  }
+}
+
+/**
+ * Contiguous runs of stamped, non-live samples, as inclusive index ranges.
+ *
+ * `Staleness.HeldStale` is deliberately not among them: it is a claim about
+ * the newest reading's currency, not about the provenance of a span of
+ * history, so painting a run of the trace with it would state something the
+ * wire never did. `recorded` and `last-before-blackout` are per-sample facts
+ * about where the sample came from, which is exactly what a trace can show.
+ */
+function buildSpans(
+  points: readonly { meta: { staleness?: Staleness } }[],
+): SeriesStatusSpan[] {
+  const spans: SeriesStatusSpan[] = [];
+  let open: SeriesStatusSpan | null = null;
+  for (let i = 0; i < points.length; i++) {
+    const status = stalenessToStreamStatus(points[i].meta.staleness);
+    if (status === null) {
+      open = null;
+      continue;
+    }
+    if (open !== null && open.status === status) {
+      open.to = i;
+      continue;
+    }
+    open = { from: i, to: i, status };
+    spans.push(open);
+  }
+  return spans;
+}
+
+function spansEqual(
+  a: readonly SeriesStatusSpan[],
+  b: readonly SeriesStatusSpan[],
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every(
+      (span, i) =>
+        span.from === b[i].from &&
+        span.to === b[i].to &&
+        span.status === b[i].status,
+    )
+  );
+}
 
 /** A sample as a plottable value: a quantity's magnitude, anything else as-is. */
 function plotValue(payload: unknown): unknown {
@@ -144,6 +222,7 @@ export function useDataSeries(
           snapshotRef.current = {
             t: dataRef.current.t,
             v: dataRef.current.v,
+            basis: "wall-ms",
           };
           notify();
         })
@@ -164,7 +243,7 @@ export function useDataSeries(
         }
         // Fresh wrapper per update: useSyncExternalStore's identity check
         // sees the new reference and triggers a render.
-        snapshotRef.current = { t: buf.t, v: buf.v };
+        snapshotRef.current = { t: buf.t, v: buf.v, basis: "wall-ms" };
         notify();
       });
 
@@ -275,6 +354,14 @@ export function useDataSeries(
       // edge of the window, where a chart already draws nothing.
       if (i > 0 && points[i].meta.gapSinceUt != null) nextBreaks.push(i);
     }
+    /*
+     * Which runs of the window came off the craft's own recorder rather than
+     * off a live link. `breaks` above says what is GONE; this says what is
+     * merely LATE, and without it a replayed span and a live span leave the
+     * store looking identical, which is the one distinction the blackout model
+     * exists to make.
+     */
+    const nextSpans = buildSpans(points);
     // Magnitudes: a series feeds a sparkline and a graph axis, which plot
     // numbers. A declared quantity arrives wrapped from the decode, so
     // without this every stream-backed chart drew nothing.
@@ -297,6 +384,8 @@ export function useDataSeries(
     // it: a window can slide so that a hole's opening sample changes index
     // while every t and v stays put, and returning the memoised range there
     // would leave a chart drawing across a hole it had already been told about.
+    // `spans` joins it for the same reason again: a reacquisition can restamp a
+    // run without moving a single t or v.
     const prev = lastSnapshotRef.current;
     const prevBreaks = prev.breaks ?? [];
     const unchanged =
@@ -304,10 +393,19 @@ export function useDataSeries(
       prev.t.every((t, i) => t === nextT[i]) &&
       prev.v.every((v, i) => Object.is(v, nextV[i])) &&
       prevBreaks.length === nextBreaks.length &&
-      prevBreaks.every((b, i) => b === nextBreaks[i]);
+      prevBreaks.every((b, i) => b === nextBreaks[i]) &&
+      spansEqual(prev.spans ?? [], nextSpans);
     if (unchanged) return prev;
 
-    lastSnapshotRef.current = { t: nextT, v: nextV, breaks: nextBreaks };
+    lastSnapshotRef.current = {
+      t: nextT,
+      v: nextV,
+      // UT seconds, which is what `sampleRange` stamps `validAt` in. Stated
+      // rather than left for the consumer to guess: see `SeriesTimeBasis`.
+      basis: "ut-seconds",
+      breaks: nextBreaks,
+      spans: nextSpans,
+    };
     return lastSnapshotRef.current;
   }, [store, topic, windowSec]);
 

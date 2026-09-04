@@ -4,7 +4,11 @@ import {
   registerComponent,
   safeRandomUuid,
 } from "@ksp-gonogo/core";
-import type { DataKeyMeta, SeriesRange } from "@ksp-gonogo/data";
+import type {
+  DataKeyMeta,
+  SeriesRange,
+  SeriesTimeBasis,
+} from "@ksp-gonogo/data";
 import { isThresholdSubject, useDataSchema } from "@ksp-gonogo/data";
 import type { PlotLayer } from "@ksp-gonogo/sitrep-sdk";
 import { value } from "@ksp-gonogo/sitrep-sdk";
@@ -27,6 +31,7 @@ import {
   Select,
   Sparkline,
   useModalSaveBar,
+  utXTickFormat,
 } from "@ksp-gonogo/ui";
 import {
   FramedDisplay,
@@ -433,8 +438,15 @@ export function GraphView({
     const raw = seriesData.get(cfg.key) ?? { t: [], v: [] };
     // On a time X axis the series indices ARE the plot's, so the break indices
     // carry straight over; alignXY reindexes its own (see its doc).
+    /*
+     * On a time X axis the series indices ARE the plot's, so the status spans
+     * carry over with the break indices; alignXY drops them, because a
+     * parametric plot has no run of consecutive samples to shade (its X can
+     * double back) and a span reindexed onto a re-paired axis would name the
+     * wrong part of the curve.
+     */
     const baseData = xIsTime
-      ? { x: raw.t, y: raw.v as number[], breaks: raw.breaks }
+      ? { x: raw.t, y: raw.v as number[], breaks: raw.breaks, spans: raw.spans }
       : alignXY(raw as SeriesRange<number>, xData);
 
     // Band series pair `key` (lower bound) with `keyHigh` (upper bound).
@@ -456,6 +468,9 @@ export function GraphView({
         y2: highData.y,
         breaks: baseData.breaks,
       };
+      /* No `spans`: a band's polygon has no stroke to dash, and shading half an
+         envelope differently would read as a different quantity rather than a
+         different provenance. */
     }
 
     return {
@@ -499,8 +514,34 @@ export function GraphView({
       ? computeTimeDomain(liveSeries, windowSec)
       : computeXDomain(xData.v as number[], overlaySeries, layers);
 
+  /*
+   * Which clock the plotted samples are stamped against, as the FETCHER
+   * declared it (`SeriesRange.basis`) rather than as the widget guesses.
+   *
+   * `computeTimeDomain` above fixed where the trace is drawn and left the
+   * ladder under it reading a UT-seconds domain as unix milliseconds, so a
+   * twenty-minute window was labelled `0:00 ... 0:01`: a chart whose whole
+   * question is WHEN, unable to answer it. Guessing from the magnitudes is not
+   * available (both bases are large monotonic counts), and switching the
+   * formatter wholesale would put the legacy buffered path out by the same
+   * factor the other way, so the producer states it and this reads it.
+   *
+   * The first series that actually HAS samples decides. Every series in one
+   * graph goes through the same hook, so a mixed basis would be two clocks on
+   * one axis, which is a broken chart rather than a formatting choice; and a
+   * graph with nothing plotted falls back to `computeTimeDomain`'s wall-clock
+   * window, which is what an undeclared basis already means.
+   */
+  const timeBasis: SeriesTimeBasis =
+    series
+      .map((cfg) => seriesData.get(cfg.key))
+      .find((range) => range !== undefined && range.t.length > 0)?.basis ??
+    "wall-ms";
+
   const xTickFormat = xIsTime
-    ? undefined
+    ? timeBasis === "ut-seconds"
+      ? utXTickFormat
+      : undefined
     : xPinned && config?.xUnit
       ? (v: number) => unitTick(config.xUnit as string, v)
       : (v: number) => formatNumericTick(v, xMeta?.unit);
