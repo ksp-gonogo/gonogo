@@ -171,5 +171,11 @@ describe("sitrep delayed comms end-to-end (M3)", () => {
     });
 
     expect(screen.getByText("phase:lost")).toBeTruthy();
+
+    /* Losing the command REJECTS the promise the panel's click handler is
+       holding, and its `.catch` runs a microtask later, after the act scope
+       above has closed. The re-render that rides on it therefore lands outside
+       act; this holds the scope open across that microtask. */
+    await act(async () => {});
   });
 });

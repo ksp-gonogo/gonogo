@@ -7,12 +7,12 @@ import {
   Badge,
   Card,
   DataLine,
-  Inline,
   MissionDate,
   magnitudeOf,
   Section,
   SectionTitle,
   Stack,
+  SubjectHeading,
   Text,
   Unit,
   usePanelDelay,
@@ -133,15 +133,25 @@ function Course({
             finish date, which is the treatment the roster rows were taken out
             of: uppercase and muted by construction, so the name, the progress
             and the date were all drawn as one another's equals and none of them
-            could be found at a glance. */}
-        <Inline gap="xs" wrap>
-          <Badge severity={started ? "nominal" : "caution"} size="sm">
-            {started ? "TRAINING" : "NOT STARTED"}
-          </Badge>
+            could be found at a glance.
+
+            Name first, TRAINING / NOT STARTED after it and at the end of the
+            line. The badge led the line, which reads as the state arriving
+            before its subject; `SubjectHeading` holds that order so the card
+            does not decide it again. `align="start"` keeps the badge level with
+            the first line of a name long enough to wrap. */}
+        <SubjectHeading
+          align="start"
+          status={
+            <Badge severity={started ? "nominal" : "caution"} size="sm">
+              {started ? "TRAINING" : "NOT STARTED"}
+            </Badge>
+          }
+        >
           <Text size="base" tone="default" weight="semibold">
             {titleOf(course)}
           </Text>
-        </Inline>
+        </SubjectHeading>
         {/* Four labelled readings in one aligned column, the same treatment the
             roster row's dates got and for the same reason. A course states two
             dates that are easy to confuse, so each of them says which it is

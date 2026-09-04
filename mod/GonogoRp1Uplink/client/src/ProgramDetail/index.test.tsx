@@ -526,6 +526,149 @@ describe("ProgramDetail", () => {
     expect(screen.getByRole("button", { name: /^accept$/i })).toBeDisabled();
   });
 
+  /*
+   * The house rule on status badges, ruled on by the operator off a render of
+   * this very pane: "status badges ideally should always be above, or aligned
+   * to the right. Badge then title doesn't read well because the state comes
+   * before the subject."
+   *
+   * Asserted as DOM ORDER rather than as a class or a style, because order is
+   * exactly what "reads before" means to a screen reader walking the heading
+   * and to an eye scanning it, and it is the only half of the arrangement that
+   * survives every breakpoint the pane reflows through.
+   */
+  it("names the Program before its state badge", async () => {
+    const { fixture } = mount();
+    await feed(fixture);
+
+    const catalogue = screen.getByRole("group", { name: "Program catalogue" });
+    const heading = screen
+      .getAllByText("X-Plane Research")
+      .find((node) => !catalogue.contains(node));
+    expect(heading).toBeDefined();
+
+    // The whole heading line, both halves of it, in the order they are read.
+    expect(heading?.parentElement?.textContent).toBe("X-Plane ResearchACTIVE");
+  });
+
+  /**
+   * The filter is the case this surface actually serves. Stock KSP's
+   * Administration screen carries no search because it offers a handful of
+   * strategies; RP-1 publishes tens of Programs into the same list, and it is
+   * RP-1 this was built for.
+   */
+  describe("catalogue filter", () => {
+    async function feedThree(fixture: ReturnType<typeof mount>["fixture"]) {
+      await feed(fixture, [
+        program({
+          name: "Aeronautics",
+          title: "Aeronautics",
+          state: "locked",
+          objectivesText: "Break the sound barrier.",
+        }),
+        program({
+          name: "CrewedOrbital",
+          title: "Crewed Orbital Program",
+          state: "offerable",
+        }),
+        program(),
+      ]);
+    }
+
+    function filterBox() {
+      return screen.getByRole("searchbox", { name: /Filter Programs/i });
+    }
+
+    function catalogue() {
+      return screen.getByRole("group", { name: "Program catalogue" });
+    }
+
+    it("narrows the catalogue to the Programs whose name matches", async () => {
+      const { fixture } = mount();
+      await feedThree(fixture);
+
+      await userEvent.type(filterBox(), "aero");
+
+      expect(
+        within(catalogue()).getByRole("button", { name: /Aeronautics/ }),
+      ).toBeInTheDocument();
+      expect(
+        within(catalogue()).queryByRole("button", { name: /X-Plane Research/ }),
+      ).toBeNull();
+    });
+
+    /*
+     * The operator asked for a "filter search", so the box takes text. State
+     * rides in the same needle rather than arriving as a second control: each
+     * row's searchable text carries the word its own badge shows, so "locked"
+     * narrows to the locked Programs without a row of chrome above a list that
+     * is already capped at 16rem.
+     */
+    it("matches on the state a row shows as well as on its name", async () => {
+      const { fixture } = mount();
+      await feedThree(fixture);
+
+      await userEvent.type(filterBox(), "offerable");
+
+      expect(
+        within(catalogue()).getByRole("button", {
+          name: /Crewed Orbital Program/,
+        }),
+      ).toBeInTheDocument();
+      expect(
+        within(catalogue()).queryByRole("button", { name: /Aeronautics/ }),
+      ).toBeNull();
+    });
+
+    /*
+     * Filtering narrows what is on OFFER, never what is being read. A filter
+     * that silently moved the detail pane would answer a question about one
+     * Program with the readings of another, which is worse than showing
+     * nothing.
+     */
+    it("keeps the detail on the picked Program when the filter hides its row", async () => {
+      const { fixture } = mount();
+      await feedThree(fixture);
+
+      await userEvent.click(
+        await screen.findByRole("button", { name: /Aeronautics LOCKED/ }),
+      );
+      expect(screen.getByText("Break the sound barrier.")).toBeInTheDocument();
+
+      await userEvent.type(filterBox(), "x-plane");
+
+      expect(
+        within(catalogue()).queryByRole("button", { name: /Aeronautics/ }),
+      ).toBeNull();
+      // Still the pane's subject, and still its readings.
+      expect(screen.getByText("Break the sound barrier.")).toBeInTheDocument();
+    });
+
+    /* An absence marker, not a paragraph: that the filter matched nothing is a
+       reading, and the operator can already see what they typed. */
+    it("marks an empty result rather than drawing an empty list", async () => {
+      const { fixture } = mount();
+      await feedThree(fixture);
+
+      await userEvent.type(filterBox(), "zzz");
+
+      expect(
+        screen.getByText("No Program matches the filter"),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("group", { name: "Program catalogue" }),
+      ).toBeNull();
+    });
+
+    it("has no accessibility violations with the filter narrowing the list", async () => {
+      const { fixture, view } = mount();
+      await feedThree(fixture);
+
+      await userEvent.type(filterBox(), "aero");
+      await expectNoA11yViolations(view.container);
+    });
+  });
+
   it("says so plainly before any catalogue has arrived", async () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);

@@ -172,6 +172,27 @@ describe("TrainingCourses", () => {
     expect(screen.queryByText("TRAINING")).not.toBeInTheDocument();
   });
 
+  /*
+   * The house rule on status badges: a state chip never reads before the thing
+   * it is a state OF. Asserted as DOM order, which is what "reads before"
+   * means to a screen reader walking the card's heading as well as to an eye
+   * scanning it.
+   */
+  it("names the course before its state badge", async () => {
+    const { fixture } = mount();
+    present(fixture, [course()]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Proficiency: Mercury-Redstone"),
+      ).toBeInTheDocument();
+    });
+    const name = screen.getByText("Proficiency: Mercury-Redstone");
+    expect(name.parentElement?.textContent).toBe(
+      "Proficiency: Mercury-RedstoneTRAINING",
+    );
+  });
+
   /** Cancelling takes every one of them off, so every one of them is named. */
   it("names the students on the course", async () => {
     const { fixture } = mount();

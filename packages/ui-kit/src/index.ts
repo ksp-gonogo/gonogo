@@ -497,6 +497,10 @@ export {
   StreamStatusBadge,
   type StreamStatusBadgeProps,
 } from "./StreamStatusBadge";
+export {
+  SubjectHeading,
+  type SubjectHeadingProps,
+} from "./SubjectHeading";
 export { Switch } from "./Switch";
 export { STAT_TONE_COLOR, type StatTone } from "./statTone";
 export {

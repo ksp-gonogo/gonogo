@@ -131,7 +131,7 @@ describe("useCommand", () => {
     expect(screen.getByText("eta:4")).toBeTruthy();
   });
 
-  it("surfaces lost after silence past etaConfirm + LOSS_MARGIN", () => {
+  it("surfaces lost after silence past etaConfirm + LOSS_MARGIN", async () => {
     const clock = new FakeClock(0);
     const transport = new EtaTransport(4);
     const client = new TelemetryClient(transport, clock);
@@ -151,6 +151,12 @@ describe("useCommand", () => {
     });
 
     expect(screen.getByText("phase:lost")).toBeTruthy();
+
+    /* Losing the command REJECTS the promise `Deploy`'s click handler is
+       holding, and its `.catch` runs a microtask later, after the act scope
+       above has closed. The re-render that rides on it therefore lands outside
+       act; this holds the scope open across that microtask. */
+    await act(async () => {});
   });
 });
 

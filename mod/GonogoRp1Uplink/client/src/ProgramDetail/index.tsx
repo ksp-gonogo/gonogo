@@ -26,9 +26,11 @@ import {
   SelectableRow,
   type Severity,
   Stack,
+  SubjectHeading,
   Text,
   Unit,
   usePanelDelay,
+  useRowFilter,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import { useMemo, useState } from "react";
@@ -240,6 +242,15 @@ const CATALOGUE_SCROLL = { maxHeight: "16rem", overflowY: "auto" } as const;
  * hidden. It caps its own height and scrolls instead, which is what the
  * expander's panel was doing for it.</para>
  *
+ * <para>It FILTERS, and that is the case the surface actually serves. Stock
+ * KSP's Administration screen carries no search because it offers a handful of
+ * strategies and a list that short is scanned faster than it is typed at; RP-1
+ * publishes tens of Programs into the same list, and RP-1 is what this was
+ * built for. The box narrows what is on OFFER and never what is being read:
+ * the detail pane keeps whatever was picked even when the filter hides its
+ * row, because a filter that silently moved the detail would answer a question
+ * about one Program with the readings of another.</para>
+ *
  * <para>The rows are buttons in a named group rather than an ARIA listbox: the
  * kit's pick-one row (`SelectableRow`, `aria-pressed`) is what every other
  * picker in the app is built from, and a roving-tabindex listbox is a primitive
@@ -254,30 +265,57 @@ function ProgramCatalogue({
   onPick: (name: string) => void;
   programs: readonly Rp1ProgramEntry[];
 }>) {
+  const filter = useRowFilter({
+    label: "Filter Programs",
+    /* What the box MATCHES, rather than the label above it said twice: that
+       "locked" narrows to the locked Programs is not something a search box
+       announces by being one. */
+    placeholder: "Name or state...",
+  });
+  /* Name AND state in the needle, which is what makes a text box answer the
+     state question too: the word an operator would type ("locked", "offerable")
+     is the word its own badge shows, so it narrows without a second control
+     above a list already capped at 16rem. */
+  const shown = ordered(programs).filter((program) =>
+    filter.matches(`${label(program)} ${program.state ?? ""}`),
+  );
+
   return (
     <Section gap="xs">
       <SectionTitle>CATALOGUE</SectionTitle>
-      <Stack
-        aria-label="Program catalogue"
-        gap="xs"
-        role="group"
-        style={CATALOGUE_SCROLL}
-      >
-        {ordered(programs).map((program) => (
-          <SelectableRow
-            key={program.name ?? ""}
-            onClick={() => onPick(program.name ?? "")}
-            selected={program.name === chosen?.name}
-          >
-            <Cluster gap="xs" wrap>
-              <Text size="xs">{label(program)}</Text>
-              <Badge severity={severityOf(program.state)}>
-                {(program.state ?? NULL_DISPLAY).toUpperCase()}
-              </Badge>
-            </Cluster>
-          </SelectableRow>
-        ))}
-      </Stack>
+      {shown.length === 0 ? (
+        // A marker, not a paragraph: the operator can see what they typed, so
+        // the only fact left to state is that nothing answers to it.
+        <EmptyState>No Program matches the filter</EmptyState>
+      ) : (
+        <Stack
+          aria-label="Program catalogue"
+          gap="xs"
+          role="group"
+          style={CATALOGUE_SCROLL}
+        >
+          {shown.map((program) => (
+            <SelectableRow
+              key={program.name ?? ""}
+              onClick={() => onPick(program.name ?? "")}
+              selected={program.name === chosen?.name}
+            >
+              <SubjectHeading
+                status={
+                  <Badge severity={severityOf(program.state)}>
+                    {(program.state ?? NULL_DISPLAY).toUpperCase()}
+                  </Badge>
+                }
+              >
+                <Text size="xs">{label(program)}</Text>
+              </SubjectHeading>
+            </SelectableRow>
+          ))}
+        </Stack>
+      )}
+      {/* Under the list, where every other filter in the app sits: the list is
+          what the operator came to read and the box is what narrows it. */}
+      {filter.control}
     </Section>
   );
 }
@@ -301,16 +339,24 @@ function ChosenProgram({
           heading while the catalogue was hidden and there was only ever one
           Program on screen; with the list standing open next to it, the name
           has to be on the detail or nothing says which row the readings belong
-          to. `justify="start"` because it is a subject, not a row to be spread,
-          and it wraps in its own right: RP-1's titles run long ("Sounding Rocket
-          Development") and the badge-plus-title pair overflowed the panel as one
-          unbreakable item. */}
-      <Cluster gap="xs" justify="start" wrap>
-        <Badge severity={severityOf(program.state)}>
-          {(program.state ?? NULL_DISPLAY).toUpperCase()}
-        </Badge>
+          to.
+
+          Name first, state after it and aligned to the end of the line: the
+          state badge led the line until an operator read it back as the state
+          arriving before its subject. `SubjectHeading` is where that order now
+          lives, so it is not a decision this pane makes again. It wraps for a
+          reason of its own: RP-1's titles run long ("Sounding Rocket
+          Development") and the pair overflowed the panel as one unbreakable
+          item. */}
+      <SubjectHeading
+        status={
+          <Badge severity={severityOf(program.state)}>
+            {(program.state ?? NULL_DISPLAY).toUpperCase()}
+          </Badge>
+        }
+      >
         <Text weight="semibold">{label(program)}</Text>
-      </Cluster>
+      </SubjectHeading>
 
       {/* Above the grid rather than in it: it is the one thing on this pane that
           SPENDS, so it keeps the full width of the pane and a fixed place

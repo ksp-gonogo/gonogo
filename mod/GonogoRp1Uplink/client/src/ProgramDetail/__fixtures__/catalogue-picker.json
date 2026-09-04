@@ -1,11 +1,11 @@
 {
   "_meta": {
-    "notes": "The catalogue and the detail, as one interface. Five Programs in RP-1's own catalogue order, which puts a locked eighties Program above the one paying the career, so the sort is what makes the list readable: running first, then what could be accepted, then the rest. Each row carries its state, which is the whole reason this is not a dropdown, and nothing has to be pressed for the list to be there. This is the scene that carries no size of its own, so it renders at every tile the Administration Building does: the two panes sit side by side on the landscape tile and stack on the portrait one."
+    "notes": "The catalogue and the detail, as one interface. Five Programs in RP-1's own catalogue order, which puts a locked eighties Program above the one paying the career, so the sort is what makes the list readable: running first, then what could be accepted, then the rest. Each row carries its state, which is the whole reason this is not a dropdown, and nothing has to be pressed for the list to be there. The filter under the list is the half stock KSP never needed: its Administration screen offers a handful of strategies, RP-1 publishes tens of them, and this is the surface built for RP-1. Every row reads its name first and its state after it. This is the scene that carries no size of its own, so it renders at every tile the Administration Building does: the two panes sit side by side on the landscape tile and stack on the portrait one."
   },
   "_scene": {
     "augment": "rp1-program-detail",
     "host": "strategies",
-    "caption": "The Program catalogue standing open beside the detail of the Program picked out of it: each row carries its own state, the running one sorts first, and the pair lays out left to right whenever the tile is wide enough for two panes",
+    "caption": "The Program catalogue standing open beside the detail of the Program picked out of it: each row names its Program first and carries its state at the end of the line, the running one sorts first, a filter box under the list narrows a career's worth of Programs by name or state, and the pair lays out left to right whenever the tile is wide enough for two panes",
     "modes": ["default", "mobile-9x8", "portrait-5x18", "landscape-18x5"],
     "paints": [
       "PROGRAM DETAIL",
@@ -15,7 +15,8 @@
       "Crewed Orbital Program",
       "OFFERABLE",
       "Munar Program",
-      "LOCKED"
+      "LOCKED",
+      "Filter Programs"
     ]
   },
   "_stream": {
