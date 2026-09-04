@@ -1139,5 +1139,90 @@ namespace Sitrep.Host.IntegrationTests
                 engine.Stop();
             }
         }
+
+        /// <summary>
+        /// A cut stops what has not yet crossed the link; it cannot recall what
+        /// already has. Telemetry that left the craft BEFORE the link dropped is
+        /// still in transit and must keep arriving, one sample at a time, for a
+        /// further one-way delay after the cut. Only then does the stream go
+        /// quiet.
+        ///
+        /// <para>Concretely, with a 4 s one-way delay and a cut at UT 6: the
+        /// samples stamped UT 2, 3, 4, 5 are in flight at the moment of the cut
+        /// and must land at UT 6, 7, 8, 9 respectively, each at its own instant
+        /// and in order. What the operator must NOT see is the whole tail
+        /// collapsing into the cut instant, which is the shape a client gets if
+        /// the delivery re-reads the delay at fire time after a disconnect has
+        /// collapsed it to 0 (no path to measure ⇒ SignalDelay None ⇒ 0): the
+        /// vantage's archive cursor jumps a full delay forward and hands over
+        /// the last pre-cut sample immediately, skipping the four seconds of
+        /// telemetry that were genuinely still on their way.</para>
+        /// </summary>
+        [Fact]
+        public async Task InFlightTailKeepsArrivingSampleBySampleAfterTheLinkCuts()
+        {
+            // ConnectivityHorizonTestUplink, not FreezeGateTestUplink: this test
+            // asserts reveal TIMING across a tick on which the delay changes, so
+            // it needs the single-registration comms.delay fixture (see that
+            // class's doc comment).
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new ConnectivityHorizonTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ConnectivityHorizonTestUplink.DelayedTopic, Timeout);
+
+                // CONNECTED, one-way delay 4. UT 0 establishes the delay
+                // authority; UT 1..5 each emit one sample, so five samples are
+                // stamped UT 1, 2, 3, 4, 5.
+                engine.TickAndWait(0.0, ConnectivityHorizonTestUplink.Snapshot(0.0, connected: true, delay: 4.0), Timeout);
+                foreach (var ut in new[] { 1.0, 2.0, 3.0, 4.0, 5.0 })
+                {
+                    engine.TickAndWait(ut, ConnectivityHorizonTestUplink.Snapshot(ut, connected: true, delay: 4.0, delayed: 10.0 + ut), Timeout);
+                }
+
+                // By UT 5 exactly one sample has arrived: the UT 1 one, at its
+                // horizon of 1 + 4 = 5. The other four are still in flight.
+                var throughUt5 = await DrainAllStreamDataAsync(client, Quiet);
+                var arrivedByUt5 = throughUt5
+                    .Where(f => f.Topic == ConnectivityHorizonTestUplink.DelayedTopic)
+                    .Select(f => f.Meta.ValidAt)
+                    .ToList();
+                Assert.Equal(new[] { 1.0 }, arrivedByUt5);
+
+                // THE CUT, at UT 6. connected:false and the live delay collapses
+                // to 0, exactly as a real loss of path does. Everything the
+                // craft records from here is lost (it never crosses), and the
+                // fixture keeps emitting 999 to prove it never arrives.
+                var tail = new List<double>();
+                foreach (var ut in new[] { 6.0, 7.0, 8.0, 9.0 })
+                {
+                    engine.TickAndWait(ut, ConnectivityHorizonTestUplink.Snapshot(ut, connected: false, delay: 0.0, delayed: 999.0), Timeout);
+                    var atUt = await DrainAllStreamDataAsync(client, Quiet);
+                    var delayed = atUt.Where(f => f.Topic == ConnectivityHorizonTestUplink.DelayedTopic).ToList();
+                    // Exactly one sample lands per tick, in order: the tail plays
+                    // out at the rate it was recorded, not all at once.
+                    var frame = Assert.Single(delayed);
+                    Assert.Equal(ut - 4.0, frame.Meta.ValidAt);
+                    Assert.Equal(10.0 + (ut - 4.0), Convert.ToDouble(frame.Payload));
+                    tail.Add(frame.Meta.ValidAt);
+                }
+                Assert.Equal(new[] { 2.0, 3.0, 4.0, 5.0 }, tail);
+
+                // Past the last in-flight sample's horizon the stream is silent:
+                // nothing recorded after the cut ever crossed.
+                foreach (var ut in new[] { 10.0, 11.0, 12.0 })
+                {
+                    engine.TickAndWait(ut, ConnectivityHorizonTestUplink.Snapshot(ut, connected: false, delay: 0.0, delayed: 999.0), Timeout);
+                }
+                var afterTail = await DrainAllStreamDataAsync(client, Quiet);
+                Assert.DoesNotContain(afterTail, f => f.Topic == ConnectivityHorizonTestUplink.DelayedTopic);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
     }
 }

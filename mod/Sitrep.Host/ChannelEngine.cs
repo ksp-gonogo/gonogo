@@ -370,15 +370,57 @@ namespace Sitrep.Host
         private readonly SubscriptionRegistry _subscriptions = new SubscriptionRegistry();
         private readonly ChannelEmitter _emitter;
 
-        // ---- Server-side reveal gate (spec-streaming-delay-model §4 / §7.3
-        // Steps 1–3): the choke point that makes DelayRole LIVE on the host.
-        // A Delayed channel's change-gated (UT,value) decisions are held here
-        // and only Record()ed to the Courier: i.e. put on the wire for EVERY
-        // client (SDK, curl, third-party, station relay): once the per-channel
-        // reveal horizon (now − delay) reaches them. TrueNow channels (and
-        // comms.delay itself, which DEFINES the delay) bypass entirely and are
-        // recorded live. Courier-thread-only, same discipline as _emitter/_born.
-        //
+        /*
+         * How delay and signal loss actually work, end to end.
+         *
+         * Two gates sit between a channel value and the wire, and they answer
+         * two different questions.
+         *
+         *   1. The REVEAL GATE, below (Emit / RevealDelayFor / FlushReveal).
+         *      It asks MAY THIS CROSS AT ALL. While the subject is in contact
+         *      an ordinary Delayed channel passes straight through it
+         *      (RevealDelayFor returns 0); while the subject is dark it returns
+         *      +Inf and the sample is held in the blackout recorder instead,
+         *      to be replayed on reacquisition. The gate carries a real horizon
+         *      for exactly two shapes: comms.delay (0, it defines the delay)
+         *      and the freeze-exempt link/contact MetaTopics, which must be
+         *      able to report the outage from inside it.
+         *
+         *   2. The LEDGER, in the Courier/Archive (INetwork.DelayTo). It asks
+         *      WHEN DOES IT ARRIVE. Every recorded sample is scheduled at
+         *      validAt + DelayTo(vantage, node), and the delivery reads the
+         *      vantage's archive cursor at fireUt − DelayTo. For ordinary
+         *      telemetry this is the gate that decides, not the reveal buffer.
+         *
+         * So a cut at UT T behaves the way a broadcast does. Everything the
+         * craft recorded in the window (T − delay, T] had already left before
+         * the link died; those samples are scheduled and keep arriving, one at
+         * a time, in order, until T + delay. Only then does the stream go
+         * quiet. Nothing recorded after T ever crosses: it is held by the
+         * reveal gate and surfaces only if the link comes back
+         * (ReplayInBlackoutBacklog), stamped as a recording rather than as
+         * live telemetry. LATE and GONE stay distinguishable.
+         *
+         * Holding the tail is not automatic, and this is the subtle part: a
+         * lost path has no geometry to measure, so the live comms.delay
+         * collapses to 0 on the cut tick. Left alone, that collapse drags every
+         * in-flight delivery's archive read a full light-time forward and the
+         * operator is handed the last pre-cut sample immediately, skipping the
+         * seconds of telemetry that were genuinely still on their way.
+         * RefreshLedgerDelays holds a dark subject's ledger row at its
+         * last-connected light-time to stop that. The SDK's DelayAuthority
+         * holds the same number client-side, for the same reason.
+         *
+         * ---- Server-side reveal gate (spec-streaming-delay-model §4 / §7.3
+         * Steps 1–3): the choke point that makes DelayRole LIVE on the host.
+         * A Delayed channel's change-gated (UT,value) decisions are routed
+         * through Emit and reach the Courier: i.e. the wire, for EVERY client
+         * (SDK, curl, third-party, station relay): only once their reveal
+         * horizon allows. TrueNow channels (and comms.delay itself, which
+         * DEFINES the delay) bypass entirely and are recorded live.
+         * Courier-thread-only, same discipline as _emitter/_born.
+         */
+
         // The literal MUST match Gonogo.KSP.CommsCoreUplink.DelayTopic, that
         // uplink is KSP-facing (this project builds without the KSP DLLs), so
         // the topic is duplicated here rather than referenced.
@@ -4124,6 +4166,52 @@ namespace Sitrep.Host
             !_subjectConnected.TryGetValue(node, out var c) || c;
 
         /// <summary>
+        /// Rewrite the delay ledger for this tick, AFTER
+        /// <see cref="RefreshConnectivityFromCapability"/> has settled the
+        /// tick's connectivity and BEFORE the clock advance fires any delivery.
+        /// A subject that is out of contact keeps the light-time it had while it
+        /// was last heard from, instead of the live 0 a lost path reports.
+        ///
+        /// <para>The freeze gate stops NEW telemetry crossing a dead link. It
+        /// does nothing about telemetry that had ALREADY crossed and is still on
+        /// its way, which is the Courier's business: each in-flight sample is a
+        /// scheduled delivery that reads the archive at
+        /// <c>fireUt - DelayTo(vantage, node)</c>. Let that delay collapse to 0
+        /// at the cut and every one of those reads jumps a full light-time
+        /// forward, handing the operator the last pre-cut sample immediately and
+        /// skipping the seconds of telemetry that were genuinely still in
+        /// transit. Holding the delay is what makes the tail play out at the
+        /// rate it was recorded and then fall silent, which is what a real
+        /// broadcast does.</para>
+        ///
+        /// <para>Freeze-exempt topics are unaffected: they ride
+        /// <see cref="MetaVantage"/>, whose explicit (vantage, node) rows are
+        /// pinned to 0 and outrank both the node-default and the whole-network
+        /// default written here.</para>
+        ///
+        /// <para>Writes ONLY where it has something better to say: a connected
+        /// subject, or one that has never been heard from, is left exactly as
+        /// <see cref="CaptureSignalDelay"/> / <see cref="SetVesselDelay"/> wrote
+        /// it. That is what keeps the constructor's seed (see
+        /// <c>networkDelaySeconds</c>) alive for a caller that registers no
+        /// delay authority at all.</para>
+        /// </summary>
+        private void RefreshLedgerDelays()
+        {
+            if (!SubjectConnected(NodeId) && _subjectLastConnectedDelay.TryGetValue(NodeId, out var systemHeld))
+            {
+                _network.SetDefaultDelay(systemHeld);
+            }
+            foreach (var node in _vesselNodeDelay.Keys)
+            {
+                if (!SubjectConnected(node) && _subjectLastConnectedDelay.TryGetValue(node, out var vesselHeld))
+                {
+                    _network.SetNodeDelay(node, vesselHeld);
+                }
+            }
+        }
+
+        /// <summary>
         /// Remove a FLEET subject's per-node freeze-map entries once its last
         /// topic is unsubscribed / its session disconnects (Plan 2b required
         /// addition 2): otherwise the maps accumulate one stale entry per vessel
@@ -4659,6 +4747,12 @@ namespace Sitrep.Host
             // hands the held recording to the Courier in time for this tick's
             // clock advance to schedule it). See RefreshConnectivityFromCapability.
             RefreshConnectivityFromCapability(tick);
+
+            // The delay ledger is written LAST of the three, because holding a
+            // dark subject's light-time needs this tick's connectivity, and both
+            // the sampled-source handles (SetVesselDelay) and the delay refresh
+            // above run before it is known. See RefreshLedgerDelays.
+            RefreshLedgerDelays();
 
             // Prune the pending-uplink roster BEFORE the channel loop below so
             // the UplinkPendingTopic mapper (run inside that loop) always
