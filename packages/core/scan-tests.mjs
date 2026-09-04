@@ -14,16 +14,40 @@
 // declares itself by what it does, so a new scan is picked up the day it lands.
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const CORE = dirname(fileURLToPath(import.meta.url));
 
-/** Reaching outside this package: shelling out to git, or resolving up past it. */
+/**
+ * Reaching outside this package: shelling out to git, or resolving up past it.
+ *
+ * Derived beats hand-listed, but only for the spellings it knows. Nineteen
+ * cross-package ratchets were in the wrong bucket on 2026-09-04 because they
+ * find the repo root two ways this list did not name: `join(HERE, "..", "..",
+ * "..")`, the segmented form of a path the string pattern below only matched
+ * with a trailing slash, and a walk up to `pnpm-workspace.yaml`. Among them
+ * were `styleguide-duplicate-primitives` (the guard that exists because two
+ * copies of `Panel` drifted across 29 widgets), `styleguide-token-refs`,
+ * `styleguide-wall-clock`, `truenow-allowlist` and `ci-mandatory-steps`.
+ *
+ * Measured, not inferred: with an added `Date.now()` in
+ * `packages/components/src/Graph/index.tsx`, `@ksp-gonogo/core#test` hashed to
+ * `2775c5c0d6d7e120` both before and after, while `#test:scans` moved
+ * `18cd6e00` -> `4aca15e0`. A warm cache replays the pass, which is the
+ * failure this whole split was built to prevent and had already produced three
+ * times.
+ *
+ * `scan-project-membership.test.ts` grades this list from a second direction
+ * and fails on any pattern that has stopped matching anything.
+ */
 const REACHES_OUT = [
   /execFileSync|execSync|spawnSync/, // git grep / git ls-files
   /SCAN_ROOTS/, // the shared scan-root convention
-  /\.\.\/\.\.\/\.\.\//, // resolved up out of packages/core/src
+  /styleguideScanRoots/, // and its lower-camel export, which the above misses
+  /\.\.\/\.\.\/\.\./, // resolved up out of packages/core/src
+  /join\([^)]*"\.\.",\s*"\.\.",\s*"\.\."/, // the same, spelled in segments
+  /pnpm-workspace\.yaml/, // walked up to the workspace root
   /TURBO_ROOT/,
   // Graded against a base revision, so it shells out to git through a helper
   // rather than in its own source. `uplink-isolation` and `typecheck-coverage`
@@ -33,6 +57,26 @@ const REACHES_OUT = [
   // under test and refused.
   /ratchetBaseRef/,
 ];
+
+/** The patterns themselves, so a guard can ask whether each still matches. */
+export const reachesOutPatterns = () => [...REACHES_OUT];
+
+/**
+ * Patterns kept despite having no subject in the tree, each with the reason.
+ *
+ * `scan-project-membership.test.ts` fails on a pattern that matches nothing,
+ * because a pattern that stopped matching moves every test that used it into
+ * the wrong project silently. That grading needs somewhere to put a pattern
+ * that never had a subject, and the alternative was to delete it, which is a
+ * loosening bought to quieten a guard.
+ *
+ * ONE entry. It is not a place to send a pattern that has gone quiet: that is
+ * the failure the check exists to report.
+ */
+export const SPECULATIVE_PATTERNS = {
+  TURBO_ROOT:
+    "turbo.json's own `$TURBO_ROOT$` interpolation, which no test file has ever contained (checked with `git log -S` over the whole history of packages/core/src). Kept because a test that did read it would be reaching out by definition, and the cost of keeping it is nil.",
+};
 
 export function scanTestFiles() {
   // List everything tracked under src and filter in JS: git pathspec globbing
