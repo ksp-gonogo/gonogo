@@ -58,7 +58,7 @@ function mount(
 }
 
 describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
-  it("renders the full facility grid with every tier unknown when nothing has arrived", async () => {
+  it("draws no facility grid at all when nothing has arrived, and says so", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: ALL_READS,
       pinnedUt: 10,
@@ -67,13 +67,14 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     mount(fixture, "scs-cold", 6, 7);
 
     // Nothing is emitted. The widget does not render a loading state: it
-    // renders its whole chrome with the data holes filled by placeholders, so
-    // the un-fed render is indistinguishable from a career with nine
-    // never-upgraded facilities apart from the em dashes.
+    // renders its whole chrome with the data holes filled by placeholders. The
+    // grid is the exception, because nine cells of em dash was the same
+    // non-answer written out nine times.
     await waitFor(() => expect(screen.getByText("SPACE CENTER")).toBeTruthy());
 
-    // `f` is undefined for every key, so the tier value collapses to
-    // NULL_DISPLAY and the accessible name says "unknown" rather than a tier.
+    expect(
+      screen.getByText("No facility tiers on this telemetry"),
+    ).toBeTruthy();
     for (const label of [
       "Launch Pad",
       "Runway",
@@ -85,7 +86,8 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
       "R&D",
       "Astronaut",
     ]) {
-      expect(screen.getByLabelText(`${label} tier unknown`)).toBeTruthy();
+      expect(screen.queryByLabelText(`${label} tier unknown`)).toBeNull();
+      expect(screen.queryByText(label)).toBeNull();
     }
 
     // No upgrade affordance at all: the row is gated on `f && f.upgradeFunds >
@@ -289,7 +291,9 @@ describe("SpaceCenterStatus: what undefined telemetry renders today", () => {
     // undefined either way, `parseFacilityLevels` returns {} either way, and
     // there is nothing on screen that would change if one became the other.
     await waitFor(() =>
-      expect(screen.getByLabelText("Launch Pad tier unknown")).toBeTruthy(),
+      expect(
+        screen.getByText("No facility tiers on this telemetry"),
+      ).toBeTruthy(),
     );
     expect(screen.queryByTitle("Available funds")).toBeNull();
     expect(screen.queryAllByRole("button", { name: "Upgrade" })).toHaveLength(

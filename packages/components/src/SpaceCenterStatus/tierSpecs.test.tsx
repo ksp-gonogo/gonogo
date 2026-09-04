@@ -110,9 +110,11 @@ describe("SpaceCenterStatus tier descriptions", () => {
 
     expect(screen.getByText("Now")).toBeInTheDocument();
     expect(screen.getByText("Next")).toBeInTheDocument();
-    // The eight facilities the payload never mentions show a dash for their
-    // TIER; the launch pad's own empty NOW adds the ninth, in its own block.
-    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(9);
+    // One dash, and it is the launch pad's own empty NOW block. The eight
+    // facilities the payload never mentions get no cell at all: an absent
+    // facility has no description to be missing, and eight dashes for them
+    // buried the one that genuinely is.
+    expect(screen.getAllByText(NULL_DISPLAY)).toHaveLength(1);
   });
 
   it("offers no next tier once the facility is at its ceiling", async () => {
