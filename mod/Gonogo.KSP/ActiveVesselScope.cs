@@ -146,9 +146,9 @@ namespace Gonogo.KSP
                 return;
             }
 
-            GameEvents.onCrewOnEva.Add(OnCrewOnEva);
-            GameEvents.onCrewBoardVessel.Add(OnCrewBoardVessel);
-            GameEvents.onVesselDestroy.Add(OnVesselDestroy);
+            GameEvents.onCrewOnEva.Add(Subscriber.OnCrewOnEva);
+            GameEvents.onCrewBoardVessel.Add(Subscriber.OnCrewBoardVessel);
+            GameEvents.onVesselDestroy.Add(Subscriber.OnVesselDestroy);
             _hooked = true;
         }
 
@@ -160,11 +160,47 @@ namespace Gonogo.KSP
                 return;
             }
 
-            GameEvents.onCrewOnEva.Remove(OnCrewOnEva);
-            GameEvents.onCrewBoardVessel.Remove(OnCrewBoardVessel);
-            GameEvents.onVesselDestroy.Remove(OnVesselDestroy);
+            GameEvents.onCrewOnEva.Remove(Subscriber.OnCrewOnEva);
+            GameEvents.onCrewBoardVessel.Remove(Subscriber.OnCrewBoardVessel);
+            GameEvents.onVesselDestroy.Remove(Subscriber.OnVesselDestroy);
             _hooked = false;
         }
+
+        /// <summary>
+        /// The object every GameEvents subscription is made against.
+        ///
+        /// <para>KSP's <c>EventData&lt;T&gt;.Add</c> wraps the handler in an
+        /// <c>EvtDelegate</c> whose constructor reads
+        /// <c>evt.Target.GetType().Name</c> with no null check. A delegate over a
+        /// STATIC method has a null <c>Target</c>, so subscribing one throws a
+        /// NullReferenceException out of <c>Add</c> itself. Hook runs from
+        /// <see cref="KspHost"/>'s constructor inside <c>GonogoAddon.Awake</c>,
+        /// so that throw took the whole mod's startup with it: no host, no
+        /// transport, no telemetry, in every scene and every save.</para>
+        ///
+        /// <para>Every other subscriber in Gonogo.KSP (CrashUplink,
+        /// CurrencyEventUplink, RecoveryUplink, FlightUplink) hooks an instance
+        /// method and so never met this. This class is a static seam by design,
+        /// so it keeps one instance whose only job is to be a non-null delegate
+        /// target, and forwards to the static handlers unchanged.</para>
+        /// </summary>
+        private sealed class EventSubscriber
+        {
+            public void OnCrewOnEva(GameEvents.FromToAction<Part, Part> action) =>
+                ActiveVesselScope.OnCrewOnEva(action);
+
+            public void OnCrewBoardVessel(GameEvents.FromToAction<Part, Part> action) =>
+                ActiveVesselScope.OnCrewBoardVessel(action);
+
+            public void OnVesselDestroy(Vessel vessel) => ActiveVesselScope.OnVesselDestroy(vessel);
+        }
+
+        /// <summary>
+        /// One per process, and never replaced: Remove matches on the delegate's
+        /// target as well as its method, so a second instance would leave the
+        /// first subscription hooked forever.
+        /// </summary>
+        private static readonly EventSubscriber Subscriber = new EventSubscriber();
 
         /// <summary>
         /// Drops every recorded relation. Called when a different save is loaded:
