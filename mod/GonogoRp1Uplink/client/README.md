@@ -25,6 +25,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | `rp1.constructions` | `Rp1ConstructionEntry[]` | lossy-latest | true-now |
 | `rp1.crew` | `Rp1CrewEntry[]` | lossy-latest | true-now |
 | `rp1.crewProgram` | `Rp1CrewProgram` | lossy-latest | true-now |
+| `rp1.facilities` | `Rp1FacilityEntry[]` | lossy-latest | true-now |
 | `rp1.fundTarget` | `Rp1FundTarget` | lossy-latest | true-now |
 | `rp1.lcPricing` | `Rp1LcPricing` | lossy-latest | true-now |
 | `rp1.operations` | `Rp1OperationEntry[]` | lossy-latest | true-now |
@@ -237,7 +238,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-training-courses` | `astronaut-complex.training` | `rp1.available`, `rp1.training`, `rp1.crew` |  | 2 |  |
 | `rp1-training-enrolment` | `astronaut-complex.training` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.crewProgram`, `rp1.training`, `spaceCenter.crewRoster`, `career.status` |  | 3 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
-| `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `rp1.constructions` | only while `rp1` | 2 |  |
+| `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `rp1.constructions`, `rp1.facilities` | only while `rp1` | 2 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 12 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
@@ -272,7 +273,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. That is carried by "over the build" and by "Commit" on the confirm rather than by a sentence about it. Each badge names the tier the press BUYS, over the tier the building is at, so it cannot be read against the host's grid as a second opinion. The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all](docs/assets/facility-upgrades-at-centre--default.png)
 
-![The same career read from the flight scene: KSP has not put the buildings in the scene, so every tier and every price is absent and the command's own gate refuses. Said out loud, because a career with nothing left to upgrade renders the same silence, and said with the half an operator would otherwise fear, that an upgrade already under way is still building](docs/assets/facility-upgrades-away--default.png)
+![The same career with neither tier channel answering. "career.status" reads the live buildings, which KSP puts in the scene only at the space centre, and RP-1's own cost table has not loaded, so this is a cold start rather than a place. Said out loud, because a career with nothing left to upgrade renders the same silence, and said with the half an operator would otherwise fear, that an upgrade already under way is still building. The host's grid says the same thing once rather than nine times](docs/assets/facility-upgrades-away--default.png)
 
 ![LC-1's detail open on a career with 400f against a 14,118f pad: the quote, the reading that it is more than the balance, and a press that is still live because RP-1 slows the build rather than refusing it](docs/assets/complexes-add-pad--default.png)
 
