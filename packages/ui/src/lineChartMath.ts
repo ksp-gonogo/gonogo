@@ -203,9 +203,9 @@ export function buildSegmentedPath(
   // Both annotations are inclusive index runs that may name indices this slice
   // does not have (a window trimmed since the run was built), so both are
   // clamped rather than trusted.
-  function paint<T>(
-    runs: readonly (SeriesStatusSpan | SeriesReckonedSpan)[],
-    pick: (run: SeriesStatusSpan | SeriesReckonedSpan) => T,
+  function paint<R extends { from: number; to: number }, T>(
+    runs: readonly R[],
+    pick: (run: R) => T,
   ): (T | undefined)[] {
     const at: (T | undefined)[] = new Array(ts.length);
     for (const run of runs) {
@@ -214,8 +214,8 @@ export function buildSegmentedPath(
     }
     return at;
   }
-  const statusAt = paint(spans, (s) => (s as SeriesStatusSpan).status);
-  const basisAt = paint(reckoned, (r) => (r as SeriesReckonedSpan).basis);
+  const statusAt = paint(spans, (s) => s.status);
+  const basisAt = paint(reckoned, (r) => r.basis);
   const breakSet = new Set(breaks);
   const out: PathSegment[] = [];
   let runStart = 0;

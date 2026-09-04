@@ -1,0 +1,46 @@
+{
+  "_meta": {
+    "title": "The control: only what the craft measured",
+    "note": "The same samples with the reckoned run dropped. The replayed run (840-1140 s) sits between two live runs and cannot be picked out of them, which is the point."
+  },
+  "props": {
+    "xDomain": [0, 1800000],
+    "yDomainPrimary": [0, 140000],
+    "ariaLabel": "Altitude on the coast to apoapsis",
+    "legend": "overlay",
+    "width": 900,
+    "height": 380,
+    "series": [
+      {
+        "id": "alt",
+        "label": "Altitude",
+        "axis": "primary",
+        "color": "#00ff88",
+        "data": {
+          "x": [
+            0, 30000, 60000, 90000, 120000, 150000, 180000, 210000, 240000,
+            270000, 300000, 330000, 360000, 390000, 420000, 450000, 480000,
+            510000, 540000, 570000, 600000, 840000, 870000, 900000, 930000,
+            960000, 990000, 1020000, 1050000, 1080000, 1110000, 1140000,
+            1170000, 1200000, 1230000, 1260000, 1290000, 1320000, 1350000
+          ],
+          "y": [
+            32800, 36013, 39172, 42277, 45328, 48325, 51268, 54157, 56992,
+            59773, 62500, 65173, 67792, 70357, 72868, 75325, 77728, 80077,
+            82372, 84613, 86800, 102352, 104053, 105700, 107293, 108832, 110317,
+            111748, 113125, 114448, 115717, 116932, 118093, 119200, 120253,
+            121252, 122197, 123088, 123925
+          ],
+          "breaks": [21],
+          "spans": [
+            {
+              "from": 21,
+              "to": 31,
+              "status": "recorded"
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
