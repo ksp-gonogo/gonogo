@@ -79,9 +79,62 @@ if (!skipE2e)
 console.log("push: gate green, opening the connection...");
 // GONOGO_GATE_DONE tells the hook the work is already done, so it does not repeat it
 // and hold the socket open for the length of a second full run.
-const pushStatus = run("git", ["push", ...process.argv.slice(2)], {
+const capture0 = (args) =>
+  spawnSync("git", args, { encoding: "utf8" }).stdout?.trim() ?? "";
+
+/**
+ * True when everything the remote has gained is the docs bot regenerating
+ * Uplink pages, and nothing else.
+ *
+ * `uplink-docs.yml` pushes "chore: regenerate Uplink pages" on its own
+ * schedule, so it lands mid-gate and rejects a push that took fifteen minutes
+ * to earn. Four rejections on 2026-09-04. Rebasing over it is safe in a way
+ * that rebasing over a person is not: the commits are authored by
+ * github-actions[bot] and touch only generated doc assets under
+ * mod/<Uplink>/client/, never source, so nothing the gate just tested changes
+ * underneath it. Anything else, including one human commit mixed in, falls
+ * through to the normal rejection.
+ */
+const incomingIsOnlyDocsBot = (branch) => {
+  const range = `HEAD..origin/${branch}`;
+  const authors = capture0(["log", "--format=%an", range]).split("\n");
+  if (authors.length === 0 || authors.some((a) => a !== "github-actions[bot]"))
+    return false;
+  const files = capture0(["diff", "--name-only", range]).split("\n");
+  return (
+    files.length > 0 &&
+    files.every((f) =>
+      /^mod\/[^/]+\/client\/(docs\/|README\.md|gonogo-uplink\.json)/.test(f),
+    )
+  );
+};
+
+let pushStatus = run("git", ["push", ...process.argv.slice(2)], {
   GONOGO_GATE_DONE: "1",
 });
+
+if (pushStatus !== 0) {
+  const branch = capture0(["rev-parse", "--abbrev-ref", "HEAD"]);
+  spawnSync("git", ["fetch", "origin", "--quiet"]);
+  if (branch !== "HEAD" && incomingIsOnlyDocsBot(branch)) {
+    console.log(
+      "push: rejected by the docs bot's regenerated pages; rebasing over them and retrying once.",
+    );
+    if (
+      spawnSync("git", ["rebase", `origin/${branch}`], { stdio: "inherit" })
+        .status === 0
+    ) {
+      pushStatus = run("git", ["push", ...process.argv.slice(2)], {
+        GONOGO_GATE_DONE: "1",
+      });
+    } else {
+      console.error(
+        "push: rebase over the docs bot hit a conflict; resolve it by hand.",
+      );
+      spawnSync("git", ["rebase", "--abort"]);
+    }
+  }
+}
 if (pushStatus !== 0) process.exit(pushStatus);
 
 /**
