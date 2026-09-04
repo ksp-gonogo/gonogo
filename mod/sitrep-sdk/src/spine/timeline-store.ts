@@ -1009,10 +1009,10 @@ export class TimelineStore {
    * A reckoned instant is a presentation-time projection, so it must never be
    * reachable as an observation. Keeping it in its own return type and its own
    * method is what makes that structural rather than a convention: nothing
-   * stores one, `MissionHistorySource.queryRange` does not call this, and a
-   * recording exported later cannot contain one. The one caller that wants both
-   * halves (`useDataSeries`) joins them where it draws them, and says which
-   * indices came from here.
+   * stores one, the mission-history replay reaches for `sampleDerivedRange` and
+   * never this, and a recording exported later cannot contain one. The one
+   * caller that wants both halves joins them at the boundary that draws them,
+   * and says which indices came from here.
    *
    * ## The horizon is the MODEL's, and it is asked at every instant
    *
@@ -1074,10 +1074,12 @@ export class TimelineStore {
     const step = reckonedTailStep(inWindow, walk.lastObservedUt, toUt);
     const out: ReckonedSample<T>[] = [];
     for (let ut = walk.lastObservedUt + step; ; ut += step) {
-      // The last stride lands on `toUt` exactly rather than short of it: the
-      // right-hand end of the tail is the frame's own view time, and stopping a
-      // fraction of a step early would leave a gap between the model and the
-      // moment the whole frame is drawn for.
+      /*
+       * The last stride lands on `toUt` exactly rather than short of it: the
+       * right-hand end of the tail is the frame's own view time, and stopping a
+       * fraction of a step early would leave a gap between the model and the
+       * moment the whole frame is drawn for.
+       */
       const at = ut >= toUt - step * 0.5 ? toUt : ut;
       RECKONED_TAIL_BUDGET.record();
       const answer = walk.answerAt(at);
@@ -1202,9 +1204,11 @@ export class TimelineStore {
     const point = this.sample<unknown>(topic, token);
     if (!point || point.payload === null) return undefined;
     const status = this.sampleStatus(topic, token);
-    // The three statuses that are not a missed update. `readingFrom` withholds
-    // the model from all three as well, and for the same reason: there is no
-    // silence for a model to have carried a value across.
+    /*
+     * The three statuses that are not a missed update. `readingFrom` withholds
+     * the model from all three as well, and for the same reason: there is no
+     * silence for a model to have carried a value across.
+     */
     if (status === "live" || status === "resyncing" || status === "absent") {
       return undefined;
     }

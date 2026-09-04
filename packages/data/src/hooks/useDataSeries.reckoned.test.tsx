@@ -136,10 +136,13 @@ describe("useDataSeries: the stretch nobody measured", () => {
     );
 
     act(() => {
-      // `Quality.Loaded` is the measured basis: altitude comes off
-      // `vessel.flight` by interpolation between real samples, and once contact
-      // stops there is nothing left to interpolate. `deriveVesselStateReckoning`
-      // declines, so the trace honestly stops where the data does.
+      /*
+       * `Quality.Loaded` is the measured basis: altitude comes off
+       * `vessel.flight` by interpolation between real samples, and once contact
+       * stops there is nothing left to interpolate.
+       * `deriveVesselStateReckoning` declines, so the trace honestly stops
+       * where the data does.
+       */
       fixture.transport.emit(
         "vessel.orbit",
         { referenceBodyIndex: 1 },
@@ -163,9 +166,11 @@ describe("useDataSeries: the stretch nobody measured", () => {
     });
 
     await waitFor(() => {
-      // Two points, not three: the orbit sample at UT 0 changes an input, but
-      // the record is not whole until a flight sample exists, so `derive`
-      // declines there exactly as it does live.
+      /*
+       * Two points, not three: the orbit sample at UT 0 changes an input, but
+       * the record is not whole until a flight sample exists, so `derive`
+       * declines there exactly as it does live.
+       */
       expect(readProbe()).toBe("n:2|reckoned:");
     });
   });
@@ -194,10 +199,12 @@ describe("useDataSeries: the stretch nobody measured", () => {
     });
 
     await waitFor(() => {
-      // The record is forward-modelled and TWR is not part of what the conic
-      // moves: it comes off the newest `vessel.propulsion` sample and would
-      // carry forward as a flat line stamped `kepler-propagation`, which
-      // attributes a number to a model that never touched it.
+      /*
+       * The record is forward-modelled and TWR is not part of what the conic
+       * moves: it comes off the newest `vessel.propulsion` sample and would
+       * carry forward as a flat line stamped `kepler-propagation`, which
+       * attributes a number to a model that never touched it.
+       */
       expect(readProbe()).toBe("n:3|reckoned:");
     });
   });

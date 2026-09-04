@@ -38,10 +38,18 @@ const SANCTIONED = new Set([
 
 const IS_TEST = /\.(test|test-d)\.tsx?$/;
 
-function filesMentioning(symbol: string): string[] {
+/**
+ * Files that CALL or DECLARE it, not files that mention it.
+ *
+ * A bare name match counted three doc comments that name the method to explain
+ * why they are not it, which is exactly the prose the rule wants written. A
+ * call and a declaration both put a `(` or a type argument straight after the
+ * name; a sentence about it does not.
+ */
+function filesCalling(symbol: string): string[] {
   const out = execFileSync(
     "git",
-    ["grep", "-l", "--fixed-strings", symbol, "--", "*.ts", "*.tsx"],
+    ["grep", "-lE", `${symbol}[<(]`, "--", "*.ts", "*.tsx"],
     { cwd: REPO_ROOT, encoding: "utf8" },
   );
   return out.split("\n").filter((line) => line.length > 0);
@@ -53,10 +61,12 @@ function unsanctioned(files: readonly string[]): string[] {
 
 describe("a reckoned point reaches the chart and nothing else", () => {
   it("is produced in one place and consumed in one place", () => {
-    const files = filesMentioning("sampleReckonedTail");
-    // The scan can see its subject at all: a `git grep` that silently matches
-    // nothing reports a clean tree, which is the failure mode every ratchet in
-    // this package is written against.
+    const files = filesCalling("sampleReckonedTail");
+    /*
+     * The scan can see its subject at all: a `git grep` that silently matches
+     * nothing reports a clean tree, which is the failure mode every ratchet in
+     * this package is written against.
+     */
     expect(files.length).toBeGreaterThan(0);
     expect(unsanctioned(files)).toEqual([]);
   });
