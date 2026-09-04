@@ -157,6 +157,7 @@ namespace Gonogo.KSP
 
             return ManeuverWriteAuthority.RefusalFor(
                 hasVessel: vessel != null,
+                reportingTheCraftAKerbalLeft: ActiveVesselScope.SubstitutedForEva,
                 solverAttached: vessel?.patchedConicSolver != null,
                 flightPlanningUnlocked: flightPlanningUnlocked,
                 nodeEditingUnlocked: InputLockManager.IsUnlocked(
@@ -305,12 +306,29 @@ namespace Gonogo.KSP
         /// clamps -- see <c>KspHost.BuildControl</c>'s doc comment on why
         /// <c>vessel.ctrlState.mainThrottle</c> itself is read-only ground
         /// truth downstream of this, not the write target).
+        ///
+        /// <para><b>ACTIVE means KSP's, and that is why the EVA arm is here.</b>
+        /// <c>FlightInputHandler.Update</c> ends in a walk of
+        /// <c>FlightGlobals.VesselsLoaded</c> that calls
+        /// <c>vessel.SetControlState(state)</c> for the one vessel that is
+        /// <c>== FlightGlobals.ActiveVessel</c> and, for every other, zeroes the
+        /// stick axes while leaving <c>mainThrottle</c> exactly where it was. So
+        /// during an EVA this global lands on the kerbal and the craft's engines
+        /// hold whatever they were last commanded. See
+        /// <see cref="EvaCommandRule"/>; <see cref="ApplyFlyByWireOverride"/> is
+        /// not a way round it, it writes every axis except this one.</para>
         /// </summary>
         public CommandResult SetThrottle(double value)
         {
             if (ActiveVesselScope.Current == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+            var refusal = EvaCommandRule.RefusalFor(
+                ActiveVesselScope.SubstitutedForEva, EvaCommandRule.Throttle);
+            if (refusal != null)
+            {
+                return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
             FlightInputHandler.state.mainThrottle = (float)value;
             return CommandResult.Ok();
@@ -473,13 +491,25 @@ namespace Gonogo.KSP
         /// player assigned to Stage did not run on a console-issued stage: a
         /// silent behavioural difference from the key, not a missing
         /// refusal.</para>
+        ///
+        /// <para><b>And why an EVA refuses outright.</b>
+        /// <c>StageManager.ActivateStage</c> reads
+        /// <c>FlightGlobals.ActiveVessel</c> and the stage stack the UI built
+        /// for it, so with a kerbal outside nothing separates. The
+        /// <c>ToggleGroup</c> below is on the craft, though, so without this arm
+        /// a stage command fired whatever the player had bound to Stage, staged
+        /// nothing, and returned the craft's unchanged stage number as a
+        /// success. The refusal has to come before the toggle for that reason:
+        /// the side effect is the only part that was working.</para>
         /// </summary>
         public CommandResult<int> Stage()
         {
             var vessel = ActiveVesselScope.Current;
             var refusal = StageRule.RefusalFor(
                 hasVessel: vessel != null,
-                stagingUnlocked: InputLockManager.IsUnlocked(ControlTypes.STAGING));
+                stagingUnlocked: InputLockManager.IsUnlocked(ControlTypes.STAGING))
+                ?? EvaCommandRule.RefusalFor(
+                    ActiveVesselScope.SubstitutedForEva, EvaCommandRule.Stage);
             if (refusal != null)
             {
                 return CommandResult<int>.Fail(refusal.Value.Code, refusal.Value.Detail);
@@ -648,6 +678,14 @@ namespace Gonogo.KSP
         /// <c>ModuleDockingNode</c>): nothing novel is being asked of the
         /// KSP API here. See <see cref="_poiTarget"/>'s own doc comment for
         /// why the instance is cached rather than reconstructed per call.</para>
+        ///
+        /// <para><b>The EVA arm.</b> <c>FlightGlobals.SetVesselTarget</c> ends in
+        /// <c>ActiveVessel.targetObject = tgt</c>, which is never rerouted, so a
+        /// target set while a kerbal is outside is the kerbal's and leaves with
+        /// them. The read side compounds it: <c>KspHost.SolveClosestApproach</c>
+        /// pairs the global <c>fetch.VesselTarget</c> with the REPORTED craft's
+        /// orbit, so accepting the write would have the console showing an
+        /// approach between two different craft.</para>
         /// </summary>
         public CommandResult SetTarget(TargetKind kind, string? vesselId, int? bodyIndex, double? lat, double? lon, uint? partId)
         {
@@ -655,6 +693,13 @@ namespace Gonogo.KSP
             if (fetch == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            var evaRefusal = EvaCommandRule.RefusalFor(
+                ActiveVesselScope.SubstitutedForEva, EvaCommandRule.Target);
+            if (evaRefusal != null)
+            {
+                return CommandResult.Fail(evaRefusal.Value.Code, evaRefusal.Value.Detail);
             }
 
             if (kind == TargetKind.Vessel)
@@ -753,12 +798,23 @@ namespace Gonogo.KSP
             return CommandResult.Fail(CommandErrorCode.NotFound);
         }
 
+        /// <summary>
+        /// Same call and so the same EVA arm as <see cref="SetTarget"/>: a clear
+        /// issued while a kerbal is outside clears the KERBAL's target, and the
+        /// craft's is untouched behind it.
+        /// </summary>
         public CommandResult ClearTarget()
         {
             var fetch = FlightGlobals.fetch;
             if (fetch == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+            var refusal = EvaCommandRule.RefusalFor(
+                ActiveVesselScope.SubstitutedForEva, EvaCommandRule.Target);
+            if (refusal != null)
+            {
+                return CommandResult.Fail(refusal.Value.Code, refusal.Value.Detail);
             }
             fetch.SetVesselTarget(null);
             return CommandResult.Ok();

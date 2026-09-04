@@ -63,6 +63,13 @@
     <!-- Which FACILITY authorises a maneuver write, carved out beside it and for
          the same reason. Sitrep.Contract only, no KSP type. -->
     <Compile Include="..\Gonogo.KSP\ManeuverWriteAuthority.cs" />
+    <!-- What a command answers when the craft gonogo reports is not the one KSP
+         is flying. The write-side half of the active-vessel seam, which the seam
+         itself cannot cover: the stock calls underneath take no vessel and
+         resolve KSP's own active one themselves. Named by ManeuverWriteAuthority
+         above and by four command bodies that are not compiled here at all, so
+         it has to be here. Sitrep.Contract only, no KSP type. -->
+    <Compile Include="..\Gonogo.KSP\EvaCommandRule.cs" />
     <!-- The three refusals ModuleScienceExperiment.DeployExperiment makes, and
          the order it makes them in. The module is a PartModule and needs a live
          part; the rule takes the three facts and needs nothing. -->

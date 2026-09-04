@@ -42,6 +42,12 @@ namespace Gonogo.KSP
         /// The refusal for a maneuver write, or null when every authority
         /// allows it.
         ///
+        /// <para><paramref name="reportingTheCraftAKerbalLeft"/> is
+        /// <c>ActiveVesselScope.SubstitutedForEva</c>, and it is asked SECOND
+        /// rather than folded into the solver arm: with a kerbal outside there
+        /// is a vessel, it can hold a plan, and the reason it is not holding a
+        /// live one is the EVA rather than a facility tier.</para>
+        ///
         /// <para><paramref name="flightPlanningUnlocked"/> is Mission Control's
         /// switch and is only asked of a write that PLANS. Removing a node is
         /// the undo, never a capability a player buys, and refusing one because
@@ -60,6 +66,7 @@ namespace Gonogo.KSP
         /// </summary>
         public static Refusal? RefusalFor(
             bool hasVessel,
+            bool reportingTheCraftAKerbalLeft,
             bool solverAttached,
             bool flightPlanningUnlocked,
             bool nodeEditingUnlocked,
@@ -70,6 +77,18 @@ namespace Gonogo.KSP
             if (!hasVessel)
             {
                 return new Refusal(CommandErrorCode.NoVessel, "");
+            }
+
+            // BEFORE the solver arm, because it is the CAUSE of it. A kerbal
+            // stepping out runs Vessel.MakeInactive on the craft they left, which
+            // calls DetachPatchedConicsSolver and destroys the solver; the arm
+            // below would then blame the Tracking Station for a tier the save
+            // bought long ago and send an operator to the wrong building.
+            var eva = EvaCommandRule.RefusalFor(
+                reportingTheCraftAKerbalLeft, EvaCommandRule.Maneuver);
+            if (eva != null)
+            {
+                return eva;
             }
 
             if (!solverAttached)

@@ -116,6 +116,7 @@ namespace Gonogo.KSP.Tests.Maneuver
         {
             var refusal = ManeuverWriteAuthority.RefusalFor(
                 hasVessel: true,
+                reportingTheCraftAKerbalLeft: false,
                 solverAttached: true,
                 flightPlanningUnlocked: false,
                 nodeEditingUnlocked: true,
@@ -124,6 +125,52 @@ namespace Gonogo.KSP.Tests.Maneuver
                 missionControlName: "");
 
             Assert.Contains("Mission Control", refusal!.Value.Detail);
+        }
+
+        /// <summary>
+        /// The second refusal that lied about its reason. A kerbal stepping out
+        /// runs <c>Vessel.MakeInactive</c> on the craft they left, which calls
+        /// <c>DetachPatchedConicsSolver</c> and destroys the solver, so all three
+        /// write commands refused with <c>NotUnlocked</c> and a sentence about
+        /// the Tracking Station: a building the save had usually bought long
+        /// before, and one no amount of upgrading would have helped with.
+        /// </summary>
+        [Fact]
+        public void AnEvaIsNotTheTrackingStationsFault()
+        {
+            var refusal = Write(
+                plans: true, reportingTheCraftAKerbalLeft: true, solverAttached: false);
+
+            Assert.Equal(CommandErrorCode.WrongState, refusal!.Value.Code);
+            Assert.DoesNotContain("Tracking Station", refusal.Value.Detail);
+        }
+
+        /// <summary>
+        /// Removing a node is refused too. It is the one write that needs no
+        /// purchase, but there is no live node to remove: the solver holding
+        /// them is gone, and the plan is sitting in a ConfigNode until the kerbal
+        /// boards.
+        /// </summary>
+        [Fact]
+        public void AnEvaRefusesADeleteAsWellAsAPlan()
+        {
+            var refusal = Write(
+                plans: false, reportingTheCraftAKerbalLeft: true, solverAttached: false);
+
+            Assert.Equal(CommandErrorCode.WrongState, refusal!.Value.Code);
+        }
+
+        /// <summary>
+        /// And it is asked AFTER the vessel arm. With no flight at all there is
+        /// nothing to be outside of, so "no vessel" stays the answer.
+        /// </summary>
+        [Fact]
+        public void NoVesselOutranksTheEvaArm()
+        {
+            var refusal = Write(
+                plans: true, hasVessel: false, reportingTheCraftAKerbalLeft: true);
+
+            Assert.Equal(CommandErrorCode.NoVessel, refusal!.Value.Code);
         }
 
         [Theory]
@@ -148,11 +195,13 @@ namespace Gonogo.KSP.Tests.Maneuver
         private static Refusal? Write(
             bool plans,
             bool hasVessel = true,
+            bool reportingTheCraftAKerbalLeft = false,
             bool solverAttached = true,
             bool flightPlanningUnlocked = true,
             bool nodeEditingUnlocked = true) =>
             ManeuverWriteAuthority.RefusalFor(
                 hasVessel,
+                reportingTheCraftAKerbalLeft,
                 solverAttached,
                 flightPlanningUnlocked,
                 nodeEditingUnlocked,

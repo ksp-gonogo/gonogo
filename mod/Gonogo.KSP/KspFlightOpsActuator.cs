@@ -178,12 +178,21 @@ namespace Gonogo.KSP
         /// destructive recovery, carrying which of
         /// <c>ClearToSaveStatus</c>'s seven arms it was.
         ///
-        /// <para>The vessel comes from <see cref="ActiveVesselScope"/>, so during an
-        /// EVA this recovers the SHIP rather than the kerbal - the same thing every
-        /// read channel is reporting, which is the point of the seam. The
-        /// <c>ClearToSave</c> gate below still judges whatever KSP itself has
-        /// active, because that is the question stock's own button asks and the
-        /// answer covers the whole scene.</para>
+        /// <para><b>Refused outright while a kerbal is outside the craft</b>, the
+        /// one case where KSP honouring the target is the problem rather than the
+        /// reassurance. Two things are wrong at once. The recovery GOES THROUGH
+        /// and strands the kerbal: <c>FlightEVA</c> called
+        /// <c>Part.RemoveCrewmember</c> on the way out, so the craft's crew
+        /// recovery never sees them and they are left as a one-part EVA vessel,
+        /// still rostered as Assigned, with nothing to board. And the permission
+        /// gate cannot see it: <c>FlightGlobals.ClearToSave()</c> reads KSP's own
+        /// active vessel in every arm, so it judges the KERBAL, and a kerbal
+        /// drifting beside an accelerating craft reads CLEAR. See
+        /// <see cref="EvaCommandRule"/>.</para>
+        ///
+        /// <para>The <c>ClearToSave</c> gate below is unchanged for every other
+        /// case: it is the question stock's own button asks, and outside an EVA
+        /// the vessel it judges IS the one being recovered.</para>
         /// </summary>
         public CommandResult Recover()
         {
@@ -191,6 +200,13 @@ namespace Gonogo.KSP
             if (vessel == null)
             {
                 return CommandResult.Fail(CommandErrorCode.NoVessel);
+            }
+
+            var evaRefusal = EvaCommandRule.RefusalFor(
+                ActiveVesselScope.SubstitutedForEva, EvaCommandRule.Recover);
+            if (evaRefusal != null)
+            {
+                return CommandResult.Fail(evaRefusal.Value.Code, evaRefusal.Value.Detail);
             }
 
             var clear = FlightGlobals.ClearToSave();

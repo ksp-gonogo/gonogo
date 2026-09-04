@@ -55,47 +55,82 @@ namespace Gonogo.KSP
         /// <c>ActiveVessel</c> dereferences it unguarded, and this is called from
         /// scenes where it may not be there.</para>
         /// </summary>
-        public static Vessel? Current
+        public static Vessel? Current => Resolve(out _);
+
+        /// <summary>
+        /// True while <see cref="Current"/> is NOT the vessel KSP is flying: a
+        /// kerbal is outside and this is the craft they left.
+        ///
+        /// <para>The seam exists so a reader never has to ask. A WRITER does,
+        /// and cannot be spared it: the stock calls behind the flight commands
+        /// take no vessel and resolve <c>FlightGlobals.ActiveVessel</c>
+        /// themselves, so a command issued in this state acts on the kerbal, or
+        /// on nothing at all, while reporting success. See
+        /// <see cref="EvaCommandRule"/> for which commands those are and what
+        /// each of them cannot reach.</para>
+        ///
+        /// <para>False when there is no flight. The question is whether the
+        /// substitution is in effect, and with no vessel at all there is nothing
+        /// to substitute; a command that needs one has its own
+        /// <c>NoVessel</c> arm and asks first.</para>
+        /// </summary>
+        public static bool SubstitutedForEva
         {
             get
             {
-                var fetch = FlightGlobals.fetch;
-                if (ReferenceEquals(fetch, null))
-                {
-                    return null;
-                }
-
-                var active = fetch.activeVessel;
-                if (ReferenceEquals(active, null))
-                {
-                    return null;
-                }
-
-                Vessel? parent = null;
-                Guid? reported;
-                lock (Gate)
-                {
-                    reported = Parentage.Reported(
-                        active.id,
-                        active.isEVA,
-                        id =>
-                        {
-                            parent = FindLiving(id);
-                            return !ReferenceEquals(parent, null);
-                        });
-                }
-
-                if (reported == null || reported.Value == active.id)
-                {
-                    return active;
-                }
-
-                // Only reachable when the probe above found the craft, so parent is
-                // the vessel the rule named. Falling back to the kerbal rather than
-                // returning null keeps the seam total: a caller never has to handle
-                // "gonogo lost the vessel" on top of "there is no flight".
-                return parent ?? active;
+                var reported = Resolve(out var kspActive);
+                return !ReferenceEquals(reported, null) && !ReferenceEquals(reported, kspActive);
             }
+        }
+
+        /// <summary>
+        /// Both answers off one walk of the book, so
+        /// <see cref="SubstitutedForEva"/> cannot come to disagree with
+        /// <see cref="Current"/> about which craft is being reported.
+        /// </summary>
+        /// <param name="kspActive">What KSP itself has active; null on the same terms as the return.</param>
+        private static Vessel? Resolve(out Vessel? kspActive)
+        {
+            kspActive = null;
+
+            var fetch = FlightGlobals.fetch;
+            if (ReferenceEquals(fetch, null))
+            {
+                return null;
+            }
+
+            var active = fetch.activeVessel;
+            if (ReferenceEquals(active, null))
+            {
+                return null;
+            }
+
+            kspActive = active;
+
+            Vessel? parent = null;
+            Guid? reported;
+            lock (Gate)
+            {
+                reported = Parentage.Reported(
+                    active.id,
+                    active.isEVA,
+                    id =>
+                    {
+                        parent = FindLiving(id);
+                        return !ReferenceEquals(parent, null);
+                    });
+            }
+
+            if (reported == null || reported.Value == active.id)
+            {
+                return active;
+            }
+
+            // Only reachable when the probe above found the craft, so parent is
+            // the vessel the rule named. Falling back to the kerbal rather than
+            // returning null keeps the seam total: a caller never has to handle
+            // "gonogo lost the vessel" on top of "there is no flight".
+            return parent ?? active;
         }
 
         /// <summary>
