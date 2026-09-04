@@ -20,6 +20,39 @@ const run = (cmd, args, env) =>
 
 const skipE2e = process.env.SKIP_E2E === "1";
 
+/**
+ * Refuse to spend the gate on a branch the remote has already moved past.
+ *
+ * `uplink-docs.yml` heals the generated Uplink pages by pushing a
+ * "chore: regenerate Uplink pages" commit, and it lands whenever it likes,
+ * including in the middle of the fifteen minutes this gate takes. Three pushes
+ * on 2026-09-04 passed 46/46 and were then rejected non-fast-forward, each
+ * costing a full suite run. Checking first turns a quarter-hour into a second
+ * and says exactly what to do about it.
+ */
+{
+  const capture = (args) =>
+    spawnSync("git", args, { encoding: "utf8" }).stdout?.trim() ?? "";
+  const branch = capture(["rev-parse", "--abbrev-ref", "HEAD"]);
+  if (branch !== "HEAD") {
+    const remote = capture(["ls-remote", "origin", branch]).split(/\s+/)[0];
+    // An absent branch is a first push, which cannot be behind anything.
+    if (remote && spawnSync("git", ["cat-file", "-e", remote]).status === 0) {
+      const behind =
+        spawnSync("git", ["merge-base", "--is-ancestor", remote, "HEAD"])
+          .status !== 0;
+      if (behind) {
+        console.error(
+          `push: ${branch} is behind the remote (${remote.slice(0, 9)}); ` +
+            "the gate would pass and the push would be rejected.\n" +
+            `  Rebase first:  git fetch origin && git rebase origin/${branch}`,
+        );
+        process.exit(1);
+      }
+    }
+  }
+}
+
 console.log("push: lint...");
 if (run("pnpm", ["exec", "biome", "check", "."]) !== 0) {
   console.error("push: lint failed, nothing pushed.");
@@ -46,6 +79,47 @@ if (!skipE2e)
 console.log("push: gate green, opening the connection...");
 // GONOGO_GATE_DONE tells the hook the work is already done, so it does not repeat it
 // and hold the socket open for the length of a second full run.
-process.exit(
-  run("git", ["push", ...process.argv.slice(2)], { GONOGO_GATE_DONE: "1" }),
-);
+const pushStatus = run("git", ["push", ...process.argv.slice(2)], {
+  GONOGO_GATE_DONE: "1",
+});
+if (pushStatus !== 0) process.exit(pushStatus);
+
+/**
+ * Ask the REMOTE whether the push landed, rather than believing git's exit code.
+ *
+ * Exit 0 is not evidence the branch reached GitHub. A dropped connection prints
+ * "all checks passed" and exits 0; piping the command through `tail` reports
+ * tail's status instead of the gate's. Between them those two cost four false
+ * "pushed" reports on 2026-09-04 alone, to three agents and to the orchestrator,
+ * and every one was caught by this comparison and by nothing else. The check
+ * belongs here rather than in a habit, because the habit demonstrably does not
+ * hold under a long session.
+ */
+const capture = (args) =>
+  spawnSync("git", args, { encoding: "utf8" }).stdout?.trim() ?? "";
+
+const branch = capture(["rev-parse", "--abbrev-ref", "HEAD"]);
+const explicitRefspec = process.argv
+  .slice(2)
+  .some((a) => !a.startsWith("-") && a !== "origin" && a !== branch);
+
+if (branch === "HEAD" || explicitRefspec) {
+  // A detached HEAD or a hand-written refspec means local HEAD is not what was
+  // pushed, so the comparison below would be meaningless rather than reassuring.
+  console.log("push: done (landing not verified: non-default refspec).");
+  process.exit(0);
+}
+
+const local = capture(["rev-parse", "HEAD"]);
+const remote = capture(["ls-remote", "origin", branch]).split(/\s+/)[0] ?? "";
+
+if (local !== remote) {
+  console.error(
+    `push: git exited 0 but ${branch} did NOT land.\n` +
+      `  local:  ${local}\n  remote: ${remote || "(absent)"}\n` +
+      "Nothing reached the remote. Re-run the push; do not report this as pushed.",
+  );
+  process.exit(1);
+}
+
+console.log(`push: landed, ${branch} at ${local.slice(0, 9)} on the remote.`);
