@@ -34,6 +34,20 @@ export interface CommandOutcomeListProps {
   /** Clear one outcome. Omitted when no handle can dismiss, and the boxes then
    *  carry no clear control rather than an inert one. */
   onDismiss?: (id: string) => void;
+  /**
+   * `warning` (the default) for an outcome that did not happen: a refusal, a
+   * loss. `notice` for one that DID, which is only `found` today. The colour is
+   * the fastest thing an operator reads off this list, so an outcome that
+   * reverses a warning must not wear the warning's own colour.
+   */
+  tone?: "warning" | "notice";
+  /**
+   * Announce arrivals politely, for a list whose entries appear on their own
+   * rather than in answer to a press. `role="status"` (implicitly
+   * `aria-live="polite"`) instead of the plain `role="list"`; never assertive,
+   * which is reserved for ABORT.
+   */
+  live?: boolean;
 }
 
 /**
@@ -51,18 +65,30 @@ export function CommandOutcomeList({
   items,
   ariaLabel,
   onDismiss,
+  tone = "warning",
+  live = false,
 }: Readonly<CommandOutcomeListProps>) {
   if (items.length === 0) return null;
   return (
-    <CommandOutcomeList__Root role="list" aria-label={ariaLabel}>
+    <CommandOutcomeList__Root
+      /* `status` is a live region AND a landmark-ish container: it carries its
+         own children fine, but it is not a list, so the rows drop `listitem`
+         with it rather than being orphaned items inside a non-list. */
+      role={live ? "status" : "list"}
+      aria-label={ariaLabel}
+    >
       {items.map((item) => (
-        <CommandOutcomeList__Box key={item.id} role="listitem">
+        <CommandOutcomeList__Box
+          key={item.id}
+          role={live ? undefined : "listitem"}
+          $tone={tone}
+        >
           {item.shape === "stream" ? (
-            <CommandOutcomeList__Label>
+            <CommandOutcomeList__Label $tone={tone}>
               {item.subject}
             </CommandOutcomeList__Label>
           ) : (
-            <CommandOutcomeList__Glyph aria-hidden="true">
+            <CommandOutcomeList__Glyph aria-hidden="true" $tone={tone}>
               {deriveGlyph(item.subject)}
             </CommandOutcomeList__Glyph>
           )}
@@ -100,25 +126,38 @@ const CommandOutcomeList__Root = styled.div`
   margin: var(--space-4, 4px) var(--space-16, 16px);
 `;
 
-const CommandOutcomeList__Box = styled.div`
+/**
+ * The two colour roles this family draws in. `warning` for an outcome that did
+ * NOT happen (a refusal, a loss), `notice` for one that did after we said it had
+ * not (a found).
+ */
+type OutcomeTone = "warning" | "notice";
+
+const toneBg = (tone: OutcomeTone) =>
+  tone === "notice"
+    ? "var(--color-status-info-bg)"
+    : "var(--color-status-warning-bg)";
+const toneFg = (tone: OutcomeTone) =>
+  tone === "notice"
+    ? "var(--color-status-info-fg)"
+    : "var(--color-status-warning-fg)";
+
+const CommandOutcomeList__Box = styled.div<{ $tone: OutcomeTone }>`
   display: flex;
   align-items: flex-start;
   gap: var(--space-8, 8px);
   padding: var(--space-6, 6px) var(--space-8, 8px);
-  border: 1px solid var(--color-status-warning-bg);
+  border: 1px solid ${({ $tone }) => toneBg($tone)};
   border-radius: var(--radius-md, 4px);
-  background: color-mix(
-    in srgb,
-    var(--color-status-warning-bg) 18%,
-    var(--color-surface-raised)
-  );
+  background: ${({ $tone }) =>
+    `color-mix(in srgb, ${toneBg($tone)} 18%, var(--color-surface-raised))`};
   color: var(--color-text-primary);
   text-align: left;
 `;
 
 /** The command's own terse identity, the same glyph its tile carries in the
  *  in-flight queue, so a dead command is recognisable as the thing that was sent. */
-const CommandOutcomeList__Glyph = styled.span`
+const CommandOutcomeList__Glyph = styled.span<{ $tone: OutcomeTone }>`
   flex: 0 0 auto;
   display: grid;
   place-items: center;
@@ -127,24 +166,21 @@ const CommandOutcomeList__Glyph = styled.span`
   align-self: stretch;
   font-size: var(--font-size-xs);
   font-weight: 700;
-  color: var(--color-status-warning-fg);
-  border: 1px solid var(--color-status-warning-bg);
+  color: ${({ $tone }) => toneFg($tone)};
+  border: 1px solid ${({ $tone }) => toneBg($tone)};
   border-radius: var(--radius-sm, 3px);
-  background: color-mix(
-    in srgb,
-    var(--color-status-warning-bg) 14%,
-    var(--color-surface-raised)
-  );
+  background: ${({ $tone }) =>
+    `color-mix(in srgb, ${toneBg($tone)} 14%, var(--color-surface-raised))`};
 `;
 
 /** A stream command's name in words. It has no queue tile to echo, so a glyph
  *  here would be an abbreviation of nothing the operator has seen. */
-const CommandOutcomeList__Label = styled.span`
+const CommandOutcomeList__Label = styled.span<{ $tone: OutcomeTone }>`
   flex: 0 0 auto;
   align-self: center;
   font-size: var(--font-size-xs);
   font-weight: 700;
-  color: var(--color-status-warning-fg);
+  color: ${({ $tone }) => toneFg($tone)};
 `;
 
 const CommandOutcomeList__Text = styled.span`

@@ -24,6 +24,7 @@ import {
 export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 
 import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
+import type { CommandFoundEntry } from "./CommandFoundList";
 import type { CommandLossEntry } from "./CommandLossList";
 import type { CommandRefusalEntry } from "./commandRefusalSentence";
 
@@ -84,6 +85,17 @@ export interface CommandDelayHandle {
    * satisfies this structurally; a handle from another source omits it.
    */
   losses?: CommandLossEntry[];
+  /**
+   * Dispatches from this command that were called LOST and then answered after
+   * all, until dismissed. Rendered by the Panel rail beside the losses, in a
+   * different tone: a loss is a warning about something that did not happen and
+   * this is news about something that did.
+   *
+   * An entry here has left `losses`; the two are the same dispatch at different
+   * moments, never two boxes to draw at once. `useCommand().founds` satisfies
+   * this structurally; a handle from another source omits it.
+   */
+  founds?: CommandFoundEntry[];
   /**
    * Clear a dead command (`overdue`/`lost`) from this handle's shared delay
    * queue. Supplied by `useCommand` (acting on the shared per-grid-item

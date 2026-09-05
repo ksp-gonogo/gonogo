@@ -75,6 +75,48 @@ export interface CommandLoss {
 }
 
 /**
+ * One dispatch that was called lost and then answered after all, as a widget
+ * surface renders it.
+ *
+ * A {@link CommandLoss} that came back. It carries everything the loss did, so
+ * a surface that was drawing the loss can draw this in its place without going
+ * looking for the command's identity again, plus the one thing the loss never
+ * had: what the answer actually said.
+ *
+ * `lost` means WE DO NOT KNOW, never IT DID NOT HAPPEN, and this is the case
+ * that proves it. Nothing here prevents or undoes the execution; the command ran
+ * (or was refused, or broke) exactly as it would have done had the reply arrived
+ * on time, and the only thing that was ever wrong was our silence about it.
+ */
+export type CommandFound = CommandLoss & CommandFoundOutcome;
+
+/**
+ * What a late reply turned out to say, and why the three are kept apart.
+ *
+ * They send the operator in opposite directions, which is the whole reason
+ * `found` is not one flat phase:
+ *
+ * - `ran`: the command executed. An operator who re-sent it after being told it
+ *   was lost has now executed it twice, and this is the only place that fact
+ *   exists
+ * - `refused`: the command arrived and the game said no. A re-send is refused
+ *   again for the same reason until the world changes, so the reason is the
+ *   actionable half and it is carried here in full
+ * - `errored`: the command arrived and the machinery broke on the far side. It
+ *   reached the game, which is the found part, and a retry may genuinely work,
+ *   which is what separates it from a refusal
+ *
+ * Folding these together would repeat the mistake `CommandStatus` already
+ * refused to make when it kept `refused` out of `failed`.
+ */
+export type CommandFoundOutcome =
+  | { outcome: "ran"; result: unknown }
+  | ({ outcome: "refused"; errorCode: CommandErrorCode } & Partial<
+      Omit<CommandRefusalDetail, "command" | "args" | "label">
+    >)
+  | { outcome: "errored"; error: { code: string; message: string } };
+
+/**
  * Lifecycle state for a single dispatched command, keyed by `requestId`.
  *
  * With zero delay a command moves `idle -> in-flight -> confirmed|failed`
@@ -109,6 +151,15 @@ export interface CommandLoss {
  * a refusal into `failed` would discard a distinction the mod deliberately
  * maintains, and would force the client to invent the free-text message that
  * `CommandResult` exists to avoid.
+ *
+ * `lost` is the one terminal phase that is not the end. It says WE DO NOT KNOW,
+ * never IT DID NOT HAPPEN, and a reply can still turn up long after it: the
+ * correlation entry is retained, and the transport re-sends what it queued while
+ * the socket was down. A late reply moves the command to `found`, which is the
+ * only backwards transition in this type and is deliberate. Nothing about it
+ * prevents the execution, because preventing it would trade an honest
+ * uncertainty for a false certainty and lose the property that makes `lost`
+ * worth having.
  */
 export type CommandStatus =
   | { phase: "idle" }
@@ -124,7 +175,8 @@ export type CommandStatus =
       requestId: string;
       errorCode: CommandErrorCode;
     } & Partial<CommandRefusalDetail>)
-  | { phase: "lost"; requestId: string; reason: string };
+  | { phase: "lost"; requestId: string; reason: string }
+  | ({ phase: "found"; requestId: string } & CommandFoundOutcome);
 
 /**
  * The rejection value for every dispatch that does not succeed.

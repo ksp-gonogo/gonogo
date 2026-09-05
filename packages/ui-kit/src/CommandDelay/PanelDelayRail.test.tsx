@@ -584,6 +584,150 @@ describe("PanelDelayRail", () => {
     });
   });
 
+  describe("a lost command that answered after all", () => {
+    /**
+     * The other side of the comms-loss drop. `lost` says WE DO NOT KNOW, never
+     * IT DID NOT HAPPEN: the correlation entry is retained and the transport
+     * re-sends what it queued, so a command the operator was told to give up on
+     * really can turn up executed.
+     */
+    function foundHandle(
+      id: string,
+      outcome: "ran" | "refused" | "errored",
+      dismiss?: (id: string) => void,
+    ): CommandHandle {
+      return {
+        id,
+        inFlight: [],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+        founds: [
+          {
+            id: `${id}-f0`,
+            command: "vessel.control.setSas",
+            args: { enabled: true },
+            label: "",
+            outcome,
+            ...(outcome === "refused"
+              ? { errorCode: CommandErrorCode.WrongState }
+              : {}),
+            ...(outcome === "errored"
+              ? { error: { code: "E_HANDLER", message: "the handler threw" } }
+              : {}),
+          },
+        ],
+        dismiss,
+      };
+    }
+
+    it("mounts the rail for a handle carrying only founds", () => {
+      const store = createDelayRailStore();
+      store.register(foundHandle("cmd", "ran"));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      expect(container.querySelector("[data-panel-rail]")).not.toBeNull();
+    });
+
+    it("counts a found APART from the failures, in its own words", () => {
+      // The count it must not join. A found is the one outcome that reverses a
+      // failure, so folding it into "N commands failed" would file the good
+      // news under the bad.
+      const store = createDelayRailStore();
+      store.register(foundHandle("found", "ran"));
+      store.register({
+        id: "dropped",
+        inFlight: [],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+        losses: [
+          {
+            id: "dropped-l0",
+            command: "vessel.control.setRcs",
+            args: { enabled: true },
+            label: "",
+          },
+        ],
+      });
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.getByText("1 command failed")).toBeTruthy();
+      expect(screen.getByText("1 lost command found")).toBeTruthy();
+    });
+
+    it("announces the collapsed count politely, never assertively", () => {
+      const store = createDelayRailStore();
+      store.register(foundHandle("cmd", "ran"));
+      inPanel(<PanelDelayRail />, store);
+      const summary = screen.getByText("1 lost command found");
+      expect(summary.getAttribute("role")).toBe("status");
+      // Assertive is ABORT's, and this is news rather than an interruption.
+      expect(summary.getAttribute("aria-live")).toBeNull();
+    });
+
+    it("says it was called lost and that it RAN, and never says confirmed", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(foundHandle("cmd", "ran"));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      const list = screen.getByRole("status", { name: /answered/i });
+      expect(list.textContent).toMatch(/found after being called lost/i);
+      expect(list.textContent).toMatch(/it ran/i);
+      // Confirmed means it worked as expected. Being told a command was lost
+      // and then that it ran is the opposite of expected, and an operator who
+      // re-sent it needs those to read differently.
+      expect(list.textContent).not.toMatch(/confirmed/i);
+    });
+
+    it("keeps a late REFUSAL apart from a late success", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(foundHandle("cmd", "refused"));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      const list = screen.getByRole("status", { name: /answered/i });
+      expect(list.textContent).toMatch(/found after being called lost/i);
+      expect(list.textContent).toMatch(/the game refused it/i);
+      expect(list.textContent).not.toMatch(/it ran/i);
+    });
+
+    it("says a late error reached the game, which a loss never could", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(foundHandle("cmd", "errored"));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      const list = screen.getByRole("status", { name: /answered/i });
+      expect(list.textContent).toMatch(/reached the game and errored/i);
+      expect(list.textContent).toMatch(/the handler threw/i);
+    });
+
+    it("clears a found through the handle that owns it", async () => {
+      const user = userEvent.setup();
+      const dismissed: string[] = [];
+      const store = createDelayRailStore();
+      store.register(foundHandle("cmd", "ran", (id) => dismissed.push(id)));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await user.click(
+        screen.getByRole("button", { name: /Dismiss Set Sas/i }),
+      );
+      expect(dismissed).toEqual(["cmd-f0"]);
+    });
+
+    it("has no axe violations collapsed or expanded", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(foundHandle("cmd", "refused", () => {}));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      await expectNoA11yViolations(container);
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await expectNoA11yViolations(container);
+    });
+  });
+
   it("drops --panel-rail-height back to the 0px fallback when the last command completes", () => {
     const store = createDelayRailStore();
     const deregister = store.register(handle("cmd"));

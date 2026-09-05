@@ -731,3 +731,139 @@ describe("classifyCommandRejection against the spine that actually throws", () =
     });
   });
 });
+
+/**
+ * A command declared lost can still be executed, and the app can still be told
+ * so. `handleLoss` retains the correlation entry and `WebSocketTransport` flushes
+ * everything it queued while the socket was down, so the reply for a command the
+ * operator was told to give up on genuinely does arrive.
+ */
+describe("TelemetryClient found: a lost command that answers after all", () => {
+  /** Dispatch, let the loss deadline pass, swallow the rejection. */
+  async function loseOne(command = "deploy") {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+    const { requestId, result } = client.dispatch(command);
+    clock.advanceTo(4 + LOSS_MARGIN);
+    await expect(result).rejects.toMatchObject({ code: "E_LOST" });
+    return { client, transport, requestId, result };
+  }
+
+  it("re-opens a lost command as found when its reply finally arrives", async () => {
+    const { client, transport, requestId } = await loseOne();
+
+    transport.deliver({
+      type: "command-response",
+      requestId,
+      result: { success: true, payload: { staged: 3 } },
+      meta: makeMeta(),
+    });
+
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "found",
+      requestId,
+      outcome: "ran",
+      result: { success: true, payload: { staged: 3 } },
+    });
+  });
+
+  it("notifies the store, so the rail redraws without the promise moving", async () => {
+    const { client, transport, requestId, result } = await loseOne();
+    const notified = vi.fn();
+    client.subscribeStore(notified);
+
+    transport.deliver({
+      type: "command-response",
+      requestId,
+      result: { success: true },
+      meta: makeMeta(),
+    });
+
+    expect(notified).toHaveBeenCalledTimes(1);
+    // The promise settled as lost and stays settled as lost: it is a one-shot
+    // await and the caller genuinely did stop waiting.
+    await expect(result).rejects.toMatchObject({ code: "E_LOST" });
+  });
+
+  it("keeps a late REFUSAL apart from a late success", async () => {
+    const { client, transport, requestId } = await loseOne("career.crew.hire");
+
+    transport.deliver({
+      type: "command-response",
+      requestId,
+      result: {
+        success: false,
+        errorCode: CommandErrorCode.LimitReached,
+        breach: { quantity: "activeCrew", limit: 16, actual: 16, unit: "" },
+        detail: "The Astronaut Complex is full",
+      },
+      meta: makeMeta(),
+    });
+
+    expect(client.getCommand(requestId)).toMatchObject({
+      phase: "found",
+      requestId,
+      outcome: "refused",
+      errorCode: CommandErrorCode.LimitReached,
+      detail: "The Astronaut Complex is full",
+    });
+  });
+
+  it("calls a late error frame found and errored: it proves the mod heard us", async () => {
+    const { client, transport, requestId } = await loseOne();
+
+    transport.deliver({
+      type: "error",
+      requestId,
+      code: "E_HANDLER",
+      message: "the handler threw",
+    });
+
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "found",
+      requestId,
+      outcome: "errored",
+      error: { code: "E_HANDLER", message: "the handler threw" },
+    });
+  });
+
+  it("ignores a DUPLICATE late reply: found is terminal the way lost never was", async () => {
+    const { client, transport, requestId } = await loseOne();
+
+    transport.deliver({
+      type: "command-response",
+      requestId,
+      result: { success: true, payload: "first" },
+      meta: makeMeta(),
+    });
+    transport.deliver({
+      type: "command-response",
+      requestId,
+      result: { success: true, payload: "second" },
+      meta: makeMeta(),
+    });
+
+    expect(client.getCommand(requestId)).toMatchObject({
+      outcome: "ran",
+      result: { success: true, payload: "first" },
+    });
+  });
+
+  it("never re-opens a command that settled normally", async () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+    const { requestId, result } = client.dispatch("deploy");
+    await result;
+    expect(client.getCommand(requestId).phase).toBe("confirmed");
+
+    transport.emitRaw({
+      type: "command-response",
+      requestId,
+      result: { success: false, errorCode: CommandErrorCode.WrongState },
+      meta: makeMeta(),
+    });
+
+    expect(client.getCommand(requestId).phase).toBe("confirmed");
+  });
+});

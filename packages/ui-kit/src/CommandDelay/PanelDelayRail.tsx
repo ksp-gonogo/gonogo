@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import styled, { css } from "styled-components";
 import { CommandDelay } from "./CommandDelay";
+import { CommandFoundList, type RailFound } from "./CommandFoundList";
 import { CommandLossList, type RailLoss } from "./CommandLossList";
 import { CommandRefusalList, type RailRefusal } from "./CommandRefusalList";
 import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
@@ -60,10 +61,10 @@ function handleHasContent(handle: CommandHandle): boolean {
  * Renders `null` when no active handle has anything to draw, so a widget whose
  * commands are all instant or idle gets no rail element at all and the panel
  * reads the `var(--panel-rail-height, 0px)` fallback. "Anything to draw" is
- * three things, not one: something in flight, something the game refused, and
- * something nothing ever answered. The last two are terminal and so have
- * nothing in flight by definition, which is precisely why they are asked for
- * separately.
+ * four things, not one: something in flight, something the game refused,
+ * something nothing ever answered, and something that answered after it was
+ * called lost. The last three are terminal and so have nothing in flight by
+ * definition, which is precisely why they are asked for separately.
  */
 export function PanelDelayRail() {
   const handles = useActiveHandles();
@@ -83,8 +84,17 @@ export function PanelDelayRail() {
   const losses: RailLoss[] = handles.flatMap((h) =>
     (h.losses ?? []).map((l) => ({ ...l, shape: h.shape })),
   );
+  /*
+   * Same rule again, and counted apart from the two above rather than with
+   * them. A found is not a dead dispatch: it is a dispatch that turned out to be
+   * alive, so folding it into "N commands failed" would put the one outcome that
+   * reverses a failure inside the failure count.
+   */
+  const founds: RailFound[] = handles.flatMap((h) =>
+    (h.founds ?? []).map((f) => ({ ...f, shape: h.shape })),
+  );
   const deadCount = refusals.length + losses.length;
-  const hasContent = visible.length > 0 || deadCount > 0;
+  const hasContent = visible.length > 0 || deadCount > 0 || founds.length > 0;
   const railRef = useRef<HTMLDivElement>(null);
   const targetRef = usePanelRailTarget();
   const [pinned, setPinned] = useState(false);
@@ -158,6 +168,13 @@ export function PanelDelayRail() {
     ? (id: string) =>
         handles.find((h) => h.losses?.some((l) => l.id === id))?.dismiss?.(id)
     : undefined;
+  const canDismissFound = handles.some(
+    (h) => h.dismiss && (h.founds?.length ?? 0) > 0,
+  );
+  const dismissFound = canDismissFound
+    ? (id: string) =>
+        handles.find((h) => h.founds?.some((f) => f.id === id))?.dismiss?.(id)
+    : undefined;
 
   return (
     <PanelDelayRail__Frame data-panel-rail-frame="" ref={railRef}>
@@ -201,12 +218,27 @@ export function PanelDelayRail() {
             ariaLabel={pinned ? "Delay detail" : undefined}
           />
         ))}
-        {deadCount > 0 && !pinned && (
-          <PanelDelayRail__FailureSummary role="status">
-            {deadCount === 1
-              ? "1 command failed"
-              : `${deadCount} commands failed`}
-          </PanelDelayRail__FailureSummary>
+        {!pinned && (deadCount > 0 || founds.length > 0) && (
+          /* One end-aligned run holding both counts. They are separate
+             sentences in separate colours, but they share the band's single
+             grid cell, so laying them out apart would stack one over the
+             other. */
+          <PanelDelayRail__Summaries>
+            {deadCount > 0 && (
+              <PanelDelayRail__FailureSummary role="status">
+                {deadCount === 1
+                  ? "1 command failed"
+                  : `${deadCount} commands failed`}
+              </PanelDelayRail__FailureSummary>
+            )}
+            {founds.length > 0 && (
+              <PanelDelayRail__FoundSummary role="status">
+                {founds.length === 1
+                  ? "1 lost command found"
+                  : `${founds.length} lost commands found`}
+              </PanelDelayRail__FoundSummary>
+            )}
+          </PanelDelayRail__Summaries>
         )}
       </PanelDelayRail__Rail>
       {/* Underneath BOTH queues, and outside the toggle button rather than
@@ -218,6 +250,12 @@ export function PanelDelayRail() {
       )}
       {pinned && losses.length > 0 && (
         <CommandLossList losses={losses} onDismiss={dismissLoss} />
+      )}
+      {/* Last, under the losses, because it is the resolution of one: an
+          operator reading down the rail meets the silence and then the answer
+          to it. */}
+      {pinned && founds.length > 0 && (
+        <CommandFoundList founds={founds} onDismiss={dismissFound} />
       )}
     </PanelDelayRail__Frame>
   );
@@ -355,15 +393,35 @@ const PanelDelayRail__Rail = styled.button`
  * telemetry.
  */
 const PanelDelayRail__FailureSummary = styled.span`
+  color: var(--color-status-warning-fg);
+`;
+
+/** The end-aligned run both collapsed-strip counts sit in. */
+const PanelDelayRail__Summaries = styled.span`
   align-self: center;
   justify-self: end;
+  display: flex;
+  gap: var(--space-8, 8px);
   padding: 0 var(--space-16, 16px);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.04em;
-  color: var(--color-status-warning-fg);
   white-space: nowrap;
   pointer-events: none;
+`;
+
+/**
+ * The whole of a found in the COLLAPSED strip: how many commands the operator
+ * was told were lost and which have since answered, in the notice colour rather
+ * than the warning one beside it. Counted and coloured apart from the failure
+ * summary because it says the opposite thing, and opening the rail is what gets
+ * the operator each command's actual outcome.
+ *
+ * `role="status"`, so a command turning up executed reaches an operator looking
+ * elsewhere. Polite by implication, never assertive: assertive is ABORT's.
+ */
+const PanelDelayRail__FoundSummary = styled.span`
+  color: var(--color-status-info-fg);
 `;
 
 const PanelDelayRail__CollapseHint = styled.span`

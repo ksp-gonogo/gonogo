@@ -30,6 +30,14 @@ function chip(): string | undefined {
       return status.error.message;
     case "lost":
       return status.reason;
+    case "found":
+      // Lost, then answered. The outcome is what an author branches on, and it
+      // is typed per arm the same way `refused` is above.
+      return status.outcome === "refused"
+        ? `found: refused (${status.errorCode})`
+        : status.outcome === "errored"
+          ? `found: ${status.error.message}`
+          : "found: it ran";
     case "in-flight":
       return `awaiting ${status.etaConfirm}`;
     case "idle":

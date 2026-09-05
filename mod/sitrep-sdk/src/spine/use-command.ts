@@ -12,6 +12,7 @@ import {
   classifyCommandRejection,
 } from "../api/command-rejection";
 import type {
+  CommandFound,
   CommandLoss,
   CommandRefusal,
   CommandStatus,
@@ -74,6 +75,10 @@ const NO_REFUSALS: CommandRefusal[] = [];
 
 /** Same reason as `NO_REFUSALS`. */
 const NO_LOSSES: CommandLoss[] = [];
+
+/** Same reason as `NO_REFUSALS`, and this one is empty for nearly every hook
+ *  that ever runs: a found needs a loss to have happened first. */
+const NO_FOUNDS: CommandFound[] = [];
 
 /**
  * How long (real UT seconds) a dispatched id may go without EVER appearing
@@ -187,6 +192,24 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    * deliberately kept `lost` out and why this exists instead of widening it.
    */
   losses: CommandLoss[];
+  /**
+   * Every dispatch from this hook that was reported LOST and then answered
+   * after all, newest last, until the operator clears it with the same
+   * `dismiss`. An entry here has left `losses`: the two are the same dispatch at
+   * different moments, never two things to render side by side.
+   *
+   * It exists because `lost` says we do not know, and this is the case that
+   * proves it. The engine drops some commands before they ever leave, but a
+   * reply can also simply be slow, and the transport re-sends what it queued
+   * while the socket was down, so a command the operator was given permission to
+   * stop waiting for really can turn up executed. Nothing prevents that
+   * execution, and preventing it would trade an honest uncertainty for a false
+   * certainty.
+   *
+   * Not folded into `refusals` or a confirmation, because what an operator does
+   * next differs by outcome: see `CommandFoundOutcome`.
+   */
+  founds: CommandFound[];
   /**
    * What the mod says about this command BEFORE anyone presses anything: the
    * standing verdict of its declared gates, off `system.uplink.gates`.
@@ -372,6 +395,11 @@ export function useCommand(
   // LATEST requestId, and a loss is terminal so there is nothing to re-derive
   // it from later.
   const [losses, setLosses] = useState<CommandLoss[]>(NO_LOSSES);
+  // Losses this hook has since seen answered. Promoted out of `losses` by the
+  // sweep effect below rather than accumulated on the promise, because the
+  // promise settled as lost and never settles again: the client's own status
+  // store is the only channel a late reply moves.
+  const [founds, setFounds] = useState<CommandFound[]>(NO_FOUNDS);
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
@@ -579,6 +607,54 @@ export function useCommand(
      */
   }, [queue, pathConnectedDuring, acknowledged, ackPhases]);
 
+  /*
+   * Promote a loss the client has since heard back about.
+   *
+   * Driven off `client.subscribeStore` and not off the dispatch promise, and
+   * that is the crux of the whole feature. The promise is a one-shot await that
+   * already rejected as `E_LOST`, honestly, and it never settles twice; the
+   * client's per-request status is the living state, and a late reply moves it
+   * from `lost` to `found` and notifies. So this listens where the news
+   * actually arrives.
+   *
+   * Scoped to `losses` rather than to every dispatched id on purpose: a found
+   * exists only where a loss did, `losses` is retained until the operator
+   * dismisses it, and `dispatchedIds` is pruned long before a late reply is
+   * likely to land.
+   */
+  useEffect(() => {
+    if (!client || losses.length === 0) return;
+    const sweep = () => {
+      const promoted: CommandFound[] = [];
+      for (const loss of losses) {
+        const status = client.getCommand(loss.id);
+        if (status.phase !== "found") continue;
+        promoted.push(
+          status.outcome === "refused"
+            ? {
+                ...loss,
+                outcome: "refused",
+                errorCode: status.errorCode,
+                breach: status.breach,
+                detail: status.detail,
+              }
+            : status.outcome === "errored"
+              ? { ...loss, outcome: "errored", error: status.error }
+              : { ...loss, outcome: "ran", result: status.result },
+        );
+      }
+      if (promoted.length === 0) return;
+      setLosses((prev) =>
+        prev.filter((l) => !promoted.some((f) => f.id === l.id)),
+      );
+      setFounds((prev) => [...prev, ...promoted]);
+    };
+    // Once up front: a reply can land between the render that read `losses` and
+    // the effect that subscribes, and a store notify for it would then be gone.
+    sweep();
+    return client.subscribeStore(sweep);
+  }, [client, losses]);
+
   const dismiss = useCallback((id: string) => {
     setDismissedIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
     // A refusal is dropped outright rather than hidden behind `dismissedIds`.
@@ -593,6 +669,15 @@ export function useCommand(
     // a dismissed one that came back would read as a second silence.
     setLosses((prev) => {
       const keep = prev.filter((l) => l.id !== id);
+      return keep.length === prev.length ? prev : keep;
+    });
+    /*
+     * Dropped outright for the third time, same reason again: a found is
+     * terminal, and one that came back would read as the command answering
+     * twice.
+     */
+    setFounds((prev) => {
+      const keep = prev.filter((f) => f.id !== id);
       return keep.length === prev.length ? prev : keep;
     });
   }, []);
@@ -714,6 +799,7 @@ export function useCommand(
     inFlight,
     refusals,
     losses,
+    founds,
     shape,
     effectiveDelaySeconds,
     dismiss,

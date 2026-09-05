@@ -51,7 +51,7 @@ interface Subscription {
 /**
  * Bookkeeping for one dispatched command, in-flight or settled.
  *
- * `resolve`/`reject` are nulled once the command settles (confirmed/failed),
+ * `resolve`/`reject` are nulled once the command settles (confirmed/failed/lost),
  * the Promise they close over has already been settled by then, so
  * holding onto them serves no purpose beyond leaking closures and inviting a
  * duplicate late `command-response`/`error` to re-settle (and silently
@@ -62,6 +62,16 @@ interface Subscription {
  * `{ phase: "idle" }`), which reverts `useCommand`'s `getSnapshot` to a
  * fresh object identity on every call and infinite-loops
  * `useSyncExternalStore`.
+ *
+ * That retention is what makes `found` possible, and the two channels this
+ * record carries are why it costs no promise gymnastics. The PROMISE is a
+ * one-shot await, "did my call settle", and settling it as `lost` is honest and
+ * final: the caller genuinely did stop waiting, and nothing here ever settles it
+ * twice. The `status`, read through `getCommand` and republished by
+ * `notifyStore`, is the LIVING state the delay rail renders, and it is free to
+ * move again. So a reply arriving after the loss writes a further status and
+ * notifies, while the nulled `resolve`/`reject` keep the promise exactly as it
+ * was.
  */
 interface PendingCommand {
   /**
@@ -770,10 +780,16 @@ export class TelemetryClient {
 
   private handleCommandResponse(requestId: string, result: unknown): void {
     const pending = this.commands.get(requestId);
-    // No entry (unknown requestId) or already settled (a duplicate/late
-    // response): either way there's no live resolve() to call, and a
-    // duplicate must not clobber the terminal status already recorded.
-    if (!pending?.resolve) return;
+    if (!pending) return;
+    // No live resolve(): the command already settled, so a duplicate must not
+    // clobber the terminal status already recorded. With ONE exception, which is
+    // the whole of `found`: a command settled as `lost` was never decided, and a
+    // reply proving it arrived after all is news rather than a duplicate.
+    if (!pending.resolve) {
+      if (pending.status.phase === "lost")
+        this.handleFound(requestId, pending, result);
+      return;
+    }
     pending.cancelLossTimer?.();
     pending.cancelLossTimer = null;
     const resolve = pending.resolve;
@@ -833,7 +849,23 @@ export class TelemetryClient {
   ): void {
     if (!requestId) return;
     const pending = this.commands.get(requestId);
-    if (!pending?.reject) return;
+    if (!pending) return;
+    // Same exception as `handleCommandResponse`, and it is not a lesser case: an
+    // `error` frame correlated to this requestId is proof the mod RECEIVED the
+    // command, so the silence was ours. What it went on to say is that the
+    // machinery broke over there, which is news of its own.
+    if (!pending.reject) {
+      if (pending.status.phase === "lost") {
+        pending.status = {
+          phase: "found",
+          requestId,
+          outcome: "errored",
+          error: { code, message },
+        };
+        this.notifyStore();
+      }
+      return;
+    }
     pending.cancelLossTimer?.();
     pending.cancelLossTimer = null;
     const reject = pending.reject;
@@ -845,11 +877,54 @@ export class TelemetryClient {
   }
 
   /**
+   * A command that was called lost, answered after all.
+   *
+   * Reached only from the two reply handlers, and only for an entry whose status
+   * is still `lost`: a second late reply finds the entry at `found` and is
+   * ignored by the same phase check, so this can no more run twice than the
+   * settle path it mirrors.
+   *
+   * The promise is deliberately left alone. It rejected as `E_LOST` when the
+   * deadline passed and that was true at the time, so re-settling it is both
+   * impossible and unwanted; `resolve`/`reject` are already `null` by the time
+   * anything gets here.
+   *
+   * The refusal split is the same one `handleCommandResponse` makes below,
+   * because a refusal that arrives late is still the game's verdict and still
+   * carries the only actionable half of the news.
+   */
+  private handleFound(
+    requestId: string,
+    pending: PendingCommand,
+    result: unknown,
+  ): void {
+    const refusal = refusalOf(result);
+    pending.status =
+      refusal === null
+        ? { phase: "found", requestId, outcome: "ran", result }
+        : {
+            phase: "found",
+            requestId,
+            outcome: "refused",
+            errorCode: refusal.errorCode,
+            breach: refusal.breach,
+            detail: refusal.detail,
+          };
+    this.notifyStore();
+  }
+
+  /**
    * Fires when a command's loss-inference timer reaches `etaConfirm +
    * LOSS_MARGIN` with no response yet. A no-op if the command has already
    * settled (or is unknown), the timer is always cancelled on settle, but
    * this guard covers the case where cancellation and firing raced within
    * the same clock-driven callback batch.
+   *
+   * Terminal for the PROMISE and not for the entry. The correlation record stays
+   * in `commands`, so a reply arriving after this (the transport re-sends what it
+   * queued while the socket was down, and a reply can simply be slow) still finds
+   * its way home and moves the status to `found`. Nothing here tries to stop the
+   * command executing: `lost` is our ignorance, not the game's answer.
    */
   private handleLoss(requestId: string): void {
     const pending = this.commands.get(requestId);

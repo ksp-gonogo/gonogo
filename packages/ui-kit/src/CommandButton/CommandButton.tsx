@@ -3,6 +3,10 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import styled, { css, keyframes } from "styled-components";
 import type { CommandDelayHandle } from "../CommandDelay/CommandDelay";
+import {
+  type CommandFoundLike,
+  commandFoundSentence,
+} from "../CommandDelay/CommandFoundList";
 import { commandLossSentence } from "../CommandDelay/CommandLossList";
 import {
   type CommandRefusalLike,
@@ -145,6 +149,12 @@ export interface CommandButtonHandle<
  *   command the engine threw away for a downed link looked exactly like one
  *   that ran. It is also not `refused`, because the game decided nothing and
  *   the command may well have executed; the wording says only what was heard
+ * - `found`: this control lost a command, and that command has since answered.
+ *   The one phase that reverses another, and deliberately not `idle` and not a
+ *   confirmation: confirmed means it worked as expected, and being told a
+ *   command was lost and then that it ran is the opposite of expected. The
+ *   operator may already have re-sent it on the strength of the loss, which is
+ *   exactly who this is for
  * - `blocked`: the game will refuse this, and said so before anyone pressed.
  *   The control is dark and NOT `disabled`, for two reasons. A `disabled`
  *   button is skipped by some screen readers, so a dimmed dead control tells a
@@ -160,6 +170,7 @@ export type CommandButtonPhase =
   | "pending"
   | "refused"
   | "lost"
+  | "found"
   | "blocked";
 
 export type CommandButtonTone = "neutral" | "go" | "nogo" | "warn";
@@ -187,6 +198,8 @@ export interface CommandButtonState {
   isRefused: boolean;
   /** Nothing came back. Not a verdict, and not the same as at rest. */
   isLost: boolean;
+  /** A command this control lost has since answered. `foundText` says what it said. */
+  isFound: boolean;
   /**
    * The game will refuse this if it is pressed, and said so in advance.
    * `refusalText` carries the reason here too, so a caller renders one string
@@ -205,11 +218,19 @@ export interface CommandButtonState {
    * once one has happened, else the standing gate reason.
    */
   refusalText: string | null;
+  /**
+   * What the recovered command turned out to have done, composed, or `null`
+   * outside the `found` phase. Kept apart from `refusalText` even though a found
+   * refusal is one of its three outcomes: the two are true at different moments
+   * and a control that layered them would say "refused" about a command that
+   * ran.
+   */
+  foundText: string | null;
   /** This handle has a dead (overdue/lost) dispatch, for the `data-failed` tint. */
   hasFailure: boolean;
   /**
    * The control was pressed. Advances the machine: arm, then dispatch; a press
-   * while pending is ignored; a press while refused or lost clears that
+   * while pending is ignored; a press while refused, lost or found clears that
    * outcome; a press while BLOCKED dispatches nothing and shows the reason
    * instead.
    *
@@ -239,6 +260,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
 }: UseCommandButtonOptions<TResult, TArgs>): CommandButtonState {
   const [phase, setPhase] = useState<CommandButtonPhase>("idle");
   const [refusal, setRefusal] = useState<CommandRefusalLike | null>(null);
+  const [found, setFound] = useState<CommandFoundLike | null>(null);
   // A press on a blocked control shows its reason. Local, and cleared on the
   // same window a refusal gets, because it is the same act of reading.
   const [reasonShown, setReasonShown] = useState(false);
@@ -260,6 +282,36 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     [],
   );
 
+  /*
+   * A command THIS control lost, turning up answered.
+   *
+   * Gated on `awaitingFoundRef`, set the moment this control's own dispatch
+   * settled lost and cleared the moment a found is read. One `useCommand` handle
+   * commonly serves a whole list of rows, so a found landing on the handle
+   * cannot be attributed to a row that never lost anything: the shared
+   * `hasFailure` tint accepts that imprecision because it is only a tint, and a
+   * PHASE, which takes over the control's own words, cannot.
+   *
+   * Watched off the handle rather than the dispatch promise, and it has to be:
+   * that promise rejected as lost, honestly and once, and it never settles
+   * again. `useCommand` moves the entry from `losses` to `founds` off the
+   * client's status store, which is the living channel.
+   */
+  const founds = handle.founds;
+  const awaitingFoundRef = useRef(false);
+  const foundsSeenRef = useRef(founds?.length ?? 0);
+  useEffect(() => {
+    const count = founds?.length ?? 0;
+    const grew = count > foundsSeenRef.current;
+    foundsSeenRef.current = count;
+    const latest = founds?.[count - 1];
+    if (!grew || !latest || !awaitingFoundRef.current) return;
+    awaitingFoundRef.current = false;
+    setFound(latest);
+    setRefusal(null);
+    setPhase("found");
+  }, [founds]);
+
   // Auto-disarm, so a forgotten arm does not sit live indefinitely.
   useEffect(() => {
     if (phase !== "armed") return;
@@ -271,10 +323,15 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   // same window for the same reason: the operator is READING it, and the
   // situation behind it can change. See REFUSAL_TIMEOUT_MS.
   useEffect(() => {
-    if (phase !== "refused" && phase !== "lost") return;
+    if (phase !== "refused" && phase !== "lost" && phase !== "found") return;
     const id = setTimeout(() => {
       setPhase("idle");
       setRefusal(null);
+      // A found is the durable one and the rail is where it is durable: it sits
+      // there until the operator dismisses it. This is the echo on the control
+      // that issued it, so it gets the same read window as the other two rather
+      // than parking the button on a sentence for ever.
+      setFound(null);
     }, REFUSAL_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [phase]);
@@ -322,6 +379,8 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
       (err: unknown) => {
         const rejection = classifyCommandRejection(err);
         if (rejection.kind === "lost") {
+          // From here on, a found landing on the handle is this control's.
+          awaitingFoundRef.current = true;
           // Nothing came back, which is neither the game saying no nor a
           // success. It used to settle at `idle` with a null reason, which is
           // the confirmed path exactly, so a dropped command was
@@ -378,8 +437,9 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
       // starts the handshake over rather than dispatching straight back into
       // the same no. A silent one clears the same way, and there the retry is
       // the whole point: nobody knows whether the first attempt landed.
-      if (phase === "refused" || phase === "lost") {
+      if (phase === "refused" || phase === "lost" || phase === "found") {
         setRefusal(null);
+        setFound(null);
         setPhase("idle");
         return;
       }
@@ -397,7 +457,10 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   // because a command already travelling has not been stopped by a gate that
   // shut behind it.
   const effectivePhase: CommandButtonPhase =
-    phase === "pending" || phase === "refused" || phase === "lost"
+    phase === "pending" ||
+    phase === "refused" ||
+    phase === "lost" ||
+    phase === "found"
       ? phase
       : gateBlocks
         ? "blocked"
@@ -409,6 +472,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     isArmed: effectivePhase === "armed",
     isRefused: effectivePhase === "refused",
     isLost: effectivePhase === "lost",
+    isFound: effectivePhase === "found",
     isBlocked: effectivePhase === "blocked",
     isShowingReason: effectivePhase === "blocked" && reasonShown,
     refusalText: refusal
@@ -424,6 +488,7 @@ export function useCommandButton<TResult = CommandReplyLike, TArgs = unknown>({
             args: gate.args ?? args,
           })
         : null,
+    foundText: found ? commandFoundSentence(found) : null,
     hasFailure,
     press,
   };
@@ -478,6 +543,15 @@ export interface CommandButtonProps<TResult = CommandReplyLike, TArgs = unknown>
    * and not "refused", which claims the game said no.
    */
   lostLabel?: ReactNode;
+  /**
+   * The label for a command this control lost that has since answered. Defaults
+   * to "Found", the operator's own word for it, with the whole sentence carried
+   * on the accessible name and the title the way the lost phase carries its own.
+   *
+   * Not "Confirmed": confirmed means it worked as expected, and this is a
+   * command the operator was told to give up on.
+   */
+  foundLabel?: ReactNode;
   /**
    * The blocked phase's accessible name, for a control whose gate reason is
    * already spelled out beside it (a row that renders the same sentence itself).
@@ -576,6 +650,7 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   pendingLabel = "Working...",
   refusedLabel = "Refused",
   lostLabel = "No reply",
+  foundLabel = "Found",
   confirmAriaLabel,
   pendingAriaLabel,
   blockedAriaLabel,
@@ -595,9 +670,11 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     isArmed,
     isRefused,
     isLost,
+    isFound,
     isBlocked,
     isShowingReason,
     refusalText,
+    foundText,
     hasFailure,
     press,
   } = useCommandButton({ handle, args, commandLabel, onConfirmed });
@@ -613,6 +690,8 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
     body = refusedLabel;
   } else if (isLost) {
     body = lostLabel;
+  } else if (isFound) {
+    body = foundLabel;
   } else if (isShowingReason) {
     // The reason IN the control, not only in its title and its accessible name.
     // A gate sentence runs to about a hundred characters and the numbers are at
@@ -626,7 +705,18 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
   return (
     <CommandButton__Body
       type="button"
-      $tone={isRefused || isLost ? "warn" : isArmed ? confirmTone : tone}
+      /* `found` is deliberately NOT `warn`: it is the one outcome that reverses
+         a warning, and wearing the warning's colour would file it beside the
+         loss it replaced. */
+      $tone={
+        isRefused || isLost
+          ? "warn"
+          : isFound
+            ? "neutral"
+            : isArmed
+              ? confirmTone
+              : tone
+      }
       $size={size}
       $filled={active === true || isArmed || isRefused}
       $armed={isArmed}
@@ -672,17 +762,22 @@ export function CommandButton<TResult = CommandReplyLike, TArgs = unknown>({
               // command id, so `commandLabel` is what names this one, the same
               // half a refusal is named after.
               commandLossSentence({ args, label: commandLabel })
-            : isBlocked
-              ? // Same rule as a refusal: the sentence names the command and the
-                // numbers behind the no, and the resting name says none of that.
-                (blockedAriaLabel ?? refusalText ?? ariaLabel)
-              : isPending
-                ? pendingAriaLabel
-                : isArmed
-                  ? confirmAriaLabel
-                  : ariaLabel
+            : isFound
+              ? // Same rule again, and the gap is widest here: "Found" is one
+                // word and the fact it stands for is a reversal plus a verdict.
+                (foundText ?? ariaLabel)
+              : isBlocked
+                ? // Same rule as a refusal: the sentence names the command and
+                  // the numbers behind the no, and the resting name says none
+                  // of that.
+                  (blockedAriaLabel ?? refusalText ?? ariaLabel)
+                : isPending
+                  ? pendingAriaLabel
+                  : isArmed
+                    ? confirmAriaLabel
+                    : ariaLabel
       }
-      title={refusalText ?? title}
+      title={foundText ?? refusalText ?? title}
       onClick={() => press(confirmLabel !== undefined)}
       {...rest}
     >

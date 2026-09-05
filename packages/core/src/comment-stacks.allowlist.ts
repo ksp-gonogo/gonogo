@@ -121,7 +121,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/sitrep-sdk/src/media/worker/worker-delay-clock.test.ts": 1,
   "mod/sitrep-sdk/src/perf/PerfBudget.ts": 1,
   "mod/sitrep-sdk/src/spine/client-timeline.ts": 1,
-  "mod/sitrep-sdk/src/spine/client.ts": 2,
+  "mod/sitrep-sdk/src/spine/client.ts": 1,
   "mod/sitrep-sdk/src/spine/context.tsx": 2,
   "mod/sitrep-sdk/src/spine/delta-v-budget.ts": 1,
   "mod/sitrep-sdk/src/spine/lagrange.test.ts": 2,

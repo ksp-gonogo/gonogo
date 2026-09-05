@@ -1058,6 +1058,7 @@ export interface PerfBudgetHandle {
 // not, so the two disagreed about what a refusal carries.
 import type { CommandGateStatus } from "../spine/command-gate";
 import type {
+  CommandFound,
   CommandLoss,
   CommandRefusal,
   CommandStatus,
@@ -1065,6 +1066,8 @@ import type {
 
 export type { CommandGateStatus } from "../spine/command-gate";
 export type {
+  CommandFound,
+  CommandFoundOutcome,
   CommandLoss,
   CommandRefusal,
   CommandRefusalDetail,
@@ -1159,6 +1162,10 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
   /** Dispatches from this hook that got NO ANSWER, until dismissed. See the
    *  spine's `UseCommandResult.losses`. */
   losses: CommandLoss[];
+  /** Dispatches from this hook that were called lost and then ANSWERED after
+   *  all, until dismissed. An entry here has left `losses`. See the spine's
+   *  `UseCommandResult.founds`. */
+  founds: CommandFound[];
   /** What the mod says about this command in ADVANCE, off `system.uplink.gates`;
    *  `undefined` when nothing is known. See the spine's `CommandGateStatus`. */
   gate?: CommandGateStatus;

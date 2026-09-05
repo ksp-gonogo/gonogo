@@ -1,3 +1,4 @@
+import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -925,5 +926,130 @@ describe("CommandButton: accessibility", () => {
 
   it("has no axe violations", async () => {
     await expectNoA11yViolations(container);
+  });
+});
+
+/**
+ * The reversal. `lost` gives the operator permission to stop waiting and
+ * guarantees nothing about execution, so the command can turn up executed, and
+ * the control that issued it is where an operator about to re-send is looking.
+ *
+ * The handle is the channel, not the dispatch promise: that promise rejected as
+ * `E_LOST`, honestly and once, and never settles again. `useCommand` moves the
+ * entry from `losses` to `founds` off the client's status store, and this
+ * control watches the handle for it.
+ */
+describe("CommandButton: a lost command that answered after all", () => {
+  const RAN: NonNullable<CommandButtonHandle["founds"]> = [
+    {
+      id: "c0",
+      command: "vessel.control.setSas",
+      args: { enabled: true },
+      label: "",
+      outcome: "ran",
+    },
+  ];
+
+  async function loseThenFind(
+    founds: NonNullable<CommandButtonHandle["founds"]> = RAN,
+  ) {
+    const user = userEvent.setup();
+    const d = deferred();
+    const send = vi.fn(() => d.promise);
+    const { rerender } = render(
+      <CommandButton handle={makeHandle(send)} label="SAS" />,
+    );
+    await user.click(screen.getByRole("button", { name: "SAS" }));
+    await act(async () => {
+      d.reject(Object.assign(new Error("lost"), { code: "E_LOST" }));
+    });
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "lost",
+    );
+    // The late reply lands: `useCommand` promotes the loss and the handle the
+    // control holds now carries a found.
+    await act(async () => {
+      rerender(
+        <CommandButton handle={makeHandle(send, { founds })} label="SAS" />,
+      );
+    });
+    return { user, send };
+  }
+
+  it("says found, and never confirmed, when the lost command answers", async () => {
+    await loseThenFind();
+    const button = screen.getByRole("button");
+    expect(button).toHaveAttribute("data-command-phase", "found");
+    expect(button).toHaveTextContent(/found/i);
+    // Confirmed means it worked as expected. This is a command the operator was
+    // told to give up on, which is the opposite, and the two must not read
+    // alike to someone deciding whether to send it again.
+    expect(button).not.toHaveTextContent(/confirmed/i);
+  });
+
+  it("carries the whole sentence on the accessible name, as the lost phase does", async () => {
+    await loseThenFind();
+    const button = screen.getByRole("button");
+    const name = button.getAttribute("aria-label") ?? "";
+    expect(name).toMatch(/found after being called lost/i);
+    expect(name).toMatch(/it ran/i);
+  });
+
+  it("says a late refusal was refused, not that it ran", async () => {
+    await loseThenFind([
+      {
+        id: "c0",
+        command: "career.crew.hire",
+        args: undefined,
+        label: "Hire Valentina Kerman",
+        outcome: "refused",
+        errorCode: CommandErrorCode.LimitReached,
+      },
+    ]);
+    const name = screen.getByRole("button").getAttribute("aria-label") ?? "";
+    expect(name).toMatch(/found after being called lost/i);
+    expect(name).toMatch(/the game refused it/i);
+    expect(name).not.toMatch(/it ran/i);
+  });
+
+  it("does NOT claim a found for a control that never lost anything", async () => {
+    // One handle commonly serves a whole list of rows. A found landing on the
+    // handle belongs to the row that lost the command, and a phase takes over
+    // the control's own words, so it cannot be shown on a row that has nothing
+    // outstanding.
+    const send = vi.fn(async () => OK);
+    const { rerender } = render(
+      <CommandButton handle={makeHandle(send)} label="SAS" />,
+    );
+    await act(async () => {
+      rerender(
+        <CommandButton
+          handle={makeHandle(send, { founds: RAN })}
+          label="SAS"
+        />,
+      );
+    });
+    expect(screen.getByRole("button")).toHaveAttribute(
+      "data-command-phase",
+      "idle",
+    );
+  });
+
+  it("clears on a press, so the operator can send again from rest", async () => {
+    const { user, send } = await loseThenFind();
+    await user.click(screen.getByRole("button", { name: /found/i }));
+    expect(screen.getByRole("button", { name: "SAS" })).toHaveAttribute(
+      "data-command-phase",
+      "idle",
+    );
+    // The press CLEARS rather than dispatching straight back out, same as a
+    // refusal and a loss: the rail holds the found until it is dismissed.
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it("has no axe violations while found", async () => {
+    await loseThenFind();
+    await expectNoA11yViolations(document.body);
   });
 });

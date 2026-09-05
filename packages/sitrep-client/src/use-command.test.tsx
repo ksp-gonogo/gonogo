@@ -1,4 +1,5 @@
 import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
 import {
   act,
   fireEvent,
@@ -12,7 +13,7 @@ import { LOSS_MARGIN, TelemetryClient } from "./client";
 import type { Clock } from "./clock";
 import { TelemetryProvider } from "./context";
 import { createFakeWallClock } from "./fake-wall-clock";
-import { StubTransport } from "./stub-transport";
+import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
 import type { Transport, TransportStatus } from "./transport";
 import { useCommand } from "./use-command";
@@ -88,7 +89,7 @@ class EtaTransport implements Transport {
   }
 
   send(): void {
-    // Test drives responses manually (none needed for these loss tests).
+    // Test drives responses manually, through `deliver`.
   }
 
   onMessage(listener: (message: ServerMessage) => void): () => void {
@@ -98,6 +99,12 @@ class EtaTransport implements Transport {
 
   onStatusChange(): () => void {
     return () => {};
+  }
+
+  /** The late reply: what a real transport does when the socket comes back and
+   *  it flushes what it queued while the link was down. */
+  deliver(message: ServerMessage): void {
+    for (const listener of this.messageListeners) listener(message);
   }
 }
 
@@ -551,6 +558,130 @@ describe("useCommand losses", () => {
 
     fireEvent.click(screen.getByText("clear"));
     expect(screen.getByText("losses:0")).toBeTruthy();
+  });
+});
+
+// ── founds: a dispatch that was called lost and then answered ────────────
+
+/**
+ * The other half of the comms-loss story, and the one the app could not tell.
+ *
+ * `lost` gives the operator permission to stop waiting; it guarantees nothing
+ * about execution. A queued command really is re-sent when the socket comes
+ * back (`WebSocketTransport` flushes `pendingSends` with no expiry check), and a
+ * reply really can just be slow, so the command can execute after we called it
+ * lost. `EtaTransport` reproduces exactly that: the loss timer fires with
+ * nothing back, and then a reply arrives.
+ */
+function DeployWithFounds() {
+  const cmd = useCommand("deploy");
+  return (
+    <div>
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
+        go
+      </button>
+      <span>losses:{cmd.losses.length}</span>
+      <span>founds:{cmd.founds.length}</span>
+      <span>outcomes:{cmd.founds.map((f) => f.outcome).join(",")}</span>
+      <span>foundCommands:{cmd.founds.map((f) => f.command).join(",")}</span>
+      <button
+        type="button"
+        onClick={() => cmd.dismiss(cmd.founds[0]?.id ?? "")}
+      >
+        clear
+      </button>
+      <CommandDelay handle={cmd} />
+    </div>
+  );
+}
+
+describe("useCommand founds", () => {
+  async function renderLost() {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+    render(
+      <TelemetryProvider client={client}>
+        <DeployWithFounds />
+      </TelemetryProvider>,
+    );
+    fireEvent.click(screen.getByText("go"));
+    await act(async () => {
+      clock.advanceTo(4 + LOSS_MARGIN);
+    });
+    expect(screen.getByText("losses:1")).toBeTruthy();
+    expect(screen.getByText("founds:0")).toBeTruthy();
+    return { transport, client };
+  }
+
+  /** The requestId the one dispatch got. Monotonic `c${n}` from a fresh client,
+   *  counting from zero. */
+  const ONLY_REQUEST = "c0";
+
+  it("promotes a loss to a found when the reply finally lands", async () => {
+    const { transport } = await renderLost();
+
+    await act(async () => {
+      transport.deliver({
+        type: "command-response",
+        requestId: ONLY_REQUEST,
+        result: { success: true },
+        meta: makeMeta(),
+      });
+    });
+
+    // Moved, not duplicated: the two are the same dispatch at different
+    // moments, so a surface never draws both.
+    expect(screen.getByText("losses:0")).toBeTruthy();
+    expect(screen.getByText("founds:1")).toBeTruthy();
+    expect(screen.getByText("outcomes:ran")).toBeTruthy();
+    expect(screen.getByText("foundCommands:deploy")).toBeTruthy();
+  });
+
+  it("keeps a late refusal apart from a late success", async () => {
+    const { transport } = await renderLost();
+
+    await act(async () => {
+      transport.deliver({
+        type: "command-response",
+        requestId: ONLY_REQUEST,
+        result: { success: false, errorCode: CommandErrorCode.WrongState },
+        meta: makeMeta(),
+      });
+    });
+
+    expect(screen.getByText("outcomes:refused")).toBeTruthy();
+  });
+
+  it("calls a late error frame errored: the mod heard us and then broke", async () => {
+    const { transport } = await renderLost();
+
+    await act(async () => {
+      transport.deliver({
+        type: "error",
+        requestId: ONLY_REQUEST,
+        code: "E_HANDLER",
+        message: "threw",
+      });
+    });
+
+    expect(screen.getByText("outcomes:errored")).toBeTruthy();
+  });
+
+  it("clears one through the same dismiss the losses and refusals use", async () => {
+    const { transport } = await renderLost();
+    await act(async () => {
+      transport.deliver({
+        type: "command-response",
+        requestId: ONLY_REQUEST,
+        result: { success: true },
+        meta: makeMeta(),
+      });
+    });
+    expect(screen.getByText("founds:1")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("clear"));
+    expect(screen.getByText("founds:0")).toBeTruthy();
   });
 });
 

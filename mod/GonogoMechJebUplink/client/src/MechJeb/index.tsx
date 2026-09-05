@@ -105,6 +105,13 @@ function commandChip(
       return { severity: "critical", text: "refused" };
     case "lost":
       return { severity: "critical", text: "no reply" };
+    case "found":
+      // The command reported above as "no reply" turned out to have arrived.
+      // `info`, not `nominal`: it is the most interesting thing on an otherwise
+      // quiet row, and the operator may have re-sent it in the meantime. Only
+      // the phase reaches here, so the chip says the reversal and the rail says
+      // what the reply actually was.
+      return { severity: "info", text: "found" };
     case "idle":
       return undefined; // nothing dispatched yet, so nothing to report
   }
