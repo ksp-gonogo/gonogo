@@ -1,6 +1,6 @@
 import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
-import { registerAugment, useProcessor } from "@ksp-gonogo/sitrep-sdk";
-import { Badge, formatDuration, type Severity } from "@ksp-gonogo/ui-kit";
+import { registerAugment, useProcessor, value } from "@ksp-gonogo/sitrep-sdk";
+import { Badge, type Severity, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { KERBALISM } from "../uplink";
 // Side-effect: registers the per-kerbal survival METERS, which were the
 // `crew-status.survival` augment in this file until they became data. See that
@@ -45,14 +45,21 @@ function warningFor(
 ): { label: string; severity: Severity } | null {
   if (kerbal.tone !== "nogo") return null;
   if (kerbal.deathClockSec !== null) {
-    // A death clock is a DURATION, not a scalar quantity: it must render
-    // through `formatDuration`, the same composite ladder the delay/countdown
-    // strips use, never `speakQuantity(value("s", ...))`. Routing a duration
-    // through the scalar `time` unit-kind renders "~4M TO FATAL", an ambiguous
-    // "M" indistinguishable from metres once the Badge's
-    // `text-transform: uppercase` gets hold of it.
+    /**
+     * A death clock is a DURATION, so it renders on the composite time ladder
+     * ("2h 15m"), never as a scalar with a symbol beside it: "~4M TO FATAL"
+     * would be an "M" indistinguishable from metres once the Badge's
+     * `text-transform: uppercase` gets hold of it.
+     *
+     * `writeQuantity` rather than `<Unit>` because a Badge label is a STRING
+     * here, and the `time` kind is exactly where the two agree: the ladder
+     * interleaves its own parts with the number, so the symbol comes back
+     * empty and nothing is appended. The unit is game seconds (`s`, a
+     * six-hour KSP day), not `irl:s`: `deathClockSec` is a span of UT the mod
+     * derived from `deathClockUt`, not desk time.
+     */
     return {
-      label: `~${formatDuration(Math.max(0, kerbal.deathClockSec))} to fatal`,
+      label: `~${writeQuantity(value("s", Math.max(0, kerbal.deathClockSec)))} to fatal`,
       severity: "critical",
     };
   }

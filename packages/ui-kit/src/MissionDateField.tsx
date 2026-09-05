@@ -1,11 +1,12 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { useId, useState } from "react";
 import { ActionButton } from "./ActionButton";
 import { Cluster } from "./Cluster";
 import { FieldLabel, Input } from "./Form";
-import { formatDuration } from "./formatDuration";
 import { kspCalendar } from "./kspTime";
 import { Stack } from "./Stack";
 import { Text } from "./Text";
+import { writeQuantity } from "./units";
 
 /**
  * A universal time ENTERED as a calendar instant: year, day, hour, minute,
@@ -130,9 +131,13 @@ export function utOfParts(parts: MissionDateParts): number {
  * kit already owns how a duration is written, including which tiers exist on the
  * calendar the game reported; spelling "1d" here would be a second answer to
  * that question, wrong for anyone not on stock Kerbin time.
+ *
+ * A button's label is a string, so this takes `writeQuantity` rather than
+ * `<Unit>`: same ladder either way, since the `time` kind is what
+ * `formatQuantity` hands to the duration formatter.
  */
 function stepLabel(seconds: number): string {
-  return formatDuration(seconds);
+  return writeQuantity(value("s", seconds));
 }
 
 export function MissionDateField({

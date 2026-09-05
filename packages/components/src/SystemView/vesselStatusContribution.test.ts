@@ -29,7 +29,18 @@ describe("computeVesselStatus", () => {
       severity: "info",
       emphasis: "reckoned",
     });
-    expect(entry.label).toMatch(/reacquire expected/i);
+    expect(entry.label).toBe("Reacquire expected in ~8min 20s");
+  });
+
+  it("counts a reacquisition down on the GAME ladder, where a day is six hours", () => {
+    // 43,200 seconds is two 6h KSP days and half a wall-clock one. Rendering
+    // it as "12h" would mean the label had been put on the irl:s ladder.
+    const [entry] = computeVesselStatus(
+      "v1",
+      silent({ deadlineUt: 100_000, predictedReacquisitionUt: 44_200 }),
+      1_000,
+    );
+    expect(entry.label).toBe("Reacquire expected in ~2d");
   });
 
   it("contributes an info entry with no countdown when silent with no prediction", () => {
@@ -52,7 +63,7 @@ describe("computeVesselStatus", () => {
       severity: "warning",
       emphasis: "reckoned",
     });
-    expect(entry.label).toMatch(/overdue by/i);
+    expect(entry.label).toBe("Overdue by 8min 20s");
   });
 
   it("contributes a critical entry once officially lost", () => {

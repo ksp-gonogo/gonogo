@@ -1,12 +1,14 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
-  formatDuration,
   MissionDate,
   NULL_DISPLAY,
   Row,
   Stack,
   Text,
   Truncate,
+  Unit,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import {
@@ -99,10 +101,20 @@ function trackPosition(fraction: number): string {
   return `calc(${MARK_HALF_EXTENT} + ${fraction} * (100% - 2 * ${MARK_HALF_EXTENT}))`;
 }
 
+/**
+ * Both instants are GAME universal time, so the gap between them is game
+ * seconds and goes on the "s" ladder, where a KSP day is 6 hours. Reading it as
+ * desk time would be off by four on every value above a day and still look
+ * plausible.
+ *
+ * A string rather than a node because the two words that frame it ("ago", "in")
+ * are what distinguish a past instant from a future one, and they have to stay
+ * attached to the number they qualify.
+ */
 function relativeToNow(atUt: number, nowUt: number): string {
   const delta = atUt - nowUt;
-  if (delta < 0) return `${formatDuration(-delta)} ago`;
-  return `in ${formatDuration(delta)}`;
+  if (delta < 0) return `${writeQuantity(value("s", -delta))} ago`;
+  return `in ${writeQuantity(value("s", delta))}`;
 }
 
 /** The kind's hue, repeated from the axis mark so a row and its mark read as one thing. */
@@ -274,10 +286,19 @@ export function BurnWindowRows({
           says "Burn windows", and restating it on the first row said nothing
           the heading hadn't. The duration is the one fact this line adds. */}
       <Cluster justify="end" align="baseline" style={{ gap: "var(--space-6)" }}>
+        {/* The null case keeps its own branch rather than leaning on Unit's
+            null token: a bare "lasts" beside that token claims there is a burn
+            length and declines to say it, where a bare dash says there is no
+            burn-time model at all, which is the truth the three rows below are
+            already telling. */}
         <span style={CAPTION}>
-          {duration == null
-            ? NULL_DISPLAY
-            : `lasts ${formatDuration(duration)}`}
+          {duration == null ? (
+            NULL_DISPLAY
+          ) : (
+            <>
+              lasts <Unit value={value("s", duration)} />
+            </>
+          )}
         </span>
       </Cluster>
       <Stack

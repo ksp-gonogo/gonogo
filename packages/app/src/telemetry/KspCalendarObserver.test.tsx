@@ -1,10 +1,11 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import {
-  formatDuration,
   kspCalendar,
   MissionDate,
   setKspCalendar,
   setRealDatesPreferred,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
@@ -41,7 +42,7 @@ describe("KspCalendarObserver", () => {
     // An older mod build serves no such channel. That must behave exactly as
     // the app did before it existed, not render blanks.
     expect(kspCalendar().day).toBe(21_600);
-    expect(formatDuration(86_400)).toBe("4d");
+    expect(writeQuantity(value("s", 86_400))).toBe("4d");
   });
 
   it("adopts an Earth calendar off the stream, and every readout follows", async () => {
@@ -71,7 +72,7 @@ describe("KspCalendarObserver", () => {
     });
 
     await waitFor(() => expect(kspCalendar().day).toBe(86_400));
-    expect(formatDuration(86_400)).toBe("1d");
+    expect(writeQuantity(value("s", 86_400))).toBe("1d");
 
     // `setKspCalendar` writes module state, so a component that already
     // rendered keeps whatever it formatted with: this rerender is standing in
@@ -171,6 +172,6 @@ describe("KspCalendarObserver", () => {
     // because the payload had not arrived yet: the sibling test above proves
     // an arriving calendar DOES land through the same path.
     await waitFor(() => expect(kspCalendar().day).toBe(21_600));
-    expect(formatDuration(86_400)).toBe("4d");
+    expect(writeQuantity(value("s", 86_400))).toBe("4d");
   });
 });

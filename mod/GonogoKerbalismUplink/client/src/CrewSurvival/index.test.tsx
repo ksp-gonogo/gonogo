@@ -361,7 +361,13 @@ describe("CrewSurvivalBadgeAugment", () => {
     const fixture = newFixture();
     renderBadgeAugment(fixture, "Jebediah Kerman", 0);
     emit(fixture, CREW, [{ name: "Jebediah Kerman", deathClockUt: 130 }]);
-    expect(await screen.findByText(/to fatal/i)).toBeInTheDocument();
+    // The whole caption, not just "to fatal": the badge's job is to say HOW
+    // LONG, and an assertion on the trailing words alone passes just as
+    // happily with the duration missing. 130 UT against the fixture's pinned
+    // view time of 10 is 120 seconds, which the composite time ladder reads
+    // as "2min" (no unit symbol beside it: the ladder interleaves its own).
+    const badge = await screen.findByText(/to fatal/i);
+    expect(badge.textContent).toBe("~2min to fatal");
   });
 
   it("has no axe violations when flagging a critical kerbal", async () => {

@@ -17,9 +17,9 @@ import { NULL_DISPLAY } from "./NullValue";
  *   because most countdowns want neither.
  * - `<MissionDate>` for an instant. A UT is not a length of time at all.
  *
- * Reaching for `formatDuration` directly is what these replace: the formatter
- * stays inside this package, so a widget picks a presentation rather than
- * assembling one out of a string and a hand-written suffix.
+ * These three are the whole of it. The string ladders behind them stay inside
+ * this package and are not exported, so a call site picks a presentation
+ * rather than assembling one out of a number and a hand-written suffix.
  */
 export interface CountdownProps {
   /**

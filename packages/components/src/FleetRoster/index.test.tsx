@@ -462,14 +462,21 @@ describe("FleetRosterComponent", () => {
   it("counts down to a predicted reacquisition", async () => {
     await renderWithContact(SILENT);
 
-    // pinned UT 2000, predicted 2600 => 10 minutes out
-    expect(await screen.findByText(/reacquire in/i)).toBeInTheDocument();
+    // pinned UT 2000, predicted 2600 => 10 minutes out. The interval renders
+    // through `Unit`, which splits the number from its symbol into separate
+    // nodes, so the duration is asserted on the badge's textContent rather
+    // than by a text match that would only ever see the literal prefix.
+    const badge = await screen.findByText(/reacquire in/i);
+    expect(badge.textContent).toContain("10min");
   });
 
   it("announces an overdue vessel politely, and does not call it lost", async () => {
     await renderWithContact({ ...SILENT, predictedReacquisitionUt: 1_800 });
 
     const overdue = await screen.findByText(/overdue by/i);
+    // pinned UT 2000, predicted 1800 => 200s late (see the note above on why
+    // the duration is read off textContent).
+    expect(overdue.textContent).toContain("3min 20s");
     expect(overdue.closest("[role='status']")).not.toBeNull();
     expect(screen.queryByText(/lost/i)).toBeNull();
   });

@@ -16,9 +16,9 @@ import { Text } from "./Text";
  *  - `NULL_DISPLAY`, a plain string, for anywhere a string is the only
  *    option: a formatter's return value, a `??`/ternary fallback baked
  *    into a template literal, a `title`/`aria-label` attribute value.
- *    This covers most call sites in this codebase (`formatNumber`,
- *    `formatDuration`, `formatKspDate`, and every widget readout that
- *    formats its own value).
+ *    This covers most call sites in this codebase: the kit's own
+ *    internal string formatters, and every widget readout that writes a
+ *    value into text of its own.
  *  - `NullValue`, a component, for a bare JSX node with no styled
  *    wrapper of its own already carrying a placeholder look. Most call
  *    sites already have one (a `Chip`, a bespoke `Dash`/`Muted` span,

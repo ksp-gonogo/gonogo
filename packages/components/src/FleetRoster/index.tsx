@@ -26,7 +26,6 @@ import {
   Cluster,
   Disclosure,
   EmptyState,
-  formatDuration,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -421,7 +420,12 @@ function FleetContactCell({
     const late = overdueSeconds(silence, nowUt.magnitude);
     return (
       <Badge severity="warning" live>
-        overdue by {late == null ? "?" : formatDuration(late)}
+        {/* Game-time seconds (both terms are UT), so "s" rather than "irl:s".
+            `late` cannot actually be null in this branch - `contactPhase`
+            only says "overdue" when a predicted reacquisition exists - and
+            Unit answers an absent value with the null token anyway, so the
+            unreachable arm no longer needs a hand-written placeholder. */}
+        overdue by <Unit value={late == null ? null : value("s", late)} />
       </Badge>
     );
   }
@@ -435,7 +439,7 @@ function FleetContactCell({
         : value("ut", silence.predictedReacquisitionUt).minus(nowUt).magnitude;
     return (
       <Badge severity="info">
-        reacquire in ~{formatDuration(Math.max(0, due))}
+        reacquire in ~<Unit value={value("s", Math.max(0, due))} />
       </Badge>
     );
   }

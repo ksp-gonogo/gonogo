@@ -24,9 +24,7 @@ import {
 } from "@ksp-gonogo/ui";
 import {
   Card,
-  formatDuration,
   MissionDate,
-  NULL_DISPLAY,
   type ReadoutTone,
   SectionTitle,
   Stack,
@@ -677,7 +675,8 @@ function RecommendedPresets({
               <PresetButtonLabel>{preset.label}</PresetButtonLabel>
               {utNow !== null && (
                 <PresetButtonHint>
-                  <MissionDate value={ut} /> · T−{formatSeconds(ut - utNow)}
+                  <MissionDate value={ut} /> · T−
+                  <Unit value={value("s", ut - utNow)} />
                 </PresetButtonHint>
               )}
             </PresetButton>
@@ -705,7 +704,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
           <>
             {" · "}
             {delta >= 0 ? "T−" : "T+"}
-            {formatSeconds(Math.abs(delta))}
+            <Unit value={value("s", Math.abs(delta))} />
           </>
         )}
         {" · lead "}
@@ -717,7 +716,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
     const t = a.trigger;
     const matchInfo =
       a.matchSinceUT != null && utNow != null
-        ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${writeQuantity(value("s", t.sustainSeconds))})`
+        ? ` · matched ${writeQuantity(value("s", utNow - a.matchSinceUT))} (need ${writeQuantity(value("s", t.sustainSeconds))})`
         : t.sustainSeconds > 0
           ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
           : "";
@@ -741,7 +740,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
   const t = a.trigger;
   const matchInfo =
     a.matchSinceUT != null && utNow != null
-      ? ` · matched ${formatSeconds(utNow - a.matchSinceUT)} (need ${writeQuantity(value("s", t.sustainSeconds))})`
+      ? ` · matched ${writeQuantity(value("s", utNow - a.matchSinceUT))} (need ${writeQuantity(value("s", t.sustainSeconds))})`
       : t.sustainSeconds > 0
         ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
         : "";
@@ -758,11 +757,6 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
 // with the stock KERBIN_TIME setting off), and printed a literal "Y1" for
 // every date, so a game in its third year still read as year one. All three
 // call sites render it as a node, so the component drops straight in.
-
-// The kit's ladder, not a fourth copy of it. `formatDuration` is the
-// sanctioned string form of `<Countdown>`, for the template literals below
-// where a node cannot go.
-const formatSeconds = (s: number): string => formatDuration(s);
 
 interface OnFireEditorProps {
   value: AlarmFireAction[];

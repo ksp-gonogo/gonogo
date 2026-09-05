@@ -30,7 +30,6 @@ import {
   Field,
   FieldHint,
   FieldLabel,
-  formatDuration,
   MARKER_ICONS,
   NULL_DISPLAY,
   Panel,
@@ -84,9 +83,9 @@ const topics = defineTopicManifest({
  * back), so 1s one-way ≈ 2s round-trip, the point past which closed-loop
  * stick flying stops working. Below that FBW is sloppy but usable; holding
  * the warning here avoids nuisance flashes on sub-second LAN jitter. `1.0`
- * mirrors the shared `formatDuration` helper's ms-below-1s breakpoint, an
- * already-meaningful threshold in this codebase, tunable here if a live
- * session says otherwise.
+ * mirrors the ms-below-1s breakpoint the shared duration ladder behind `Unit`
+ * uses, an already-meaningful threshold in this codebase, tunable here if a
+ * live session says otherwise.
  */
 const FBW_DELAY_WARN_SECONDS = 1.0;
 
@@ -308,7 +307,11 @@ function StaleCaption({
   return (
     <ReadoutCaption role="status">
       {label}
-      {ageSec !== undefined && `, ${formatDuration(ageSec)} ago`}
+      {ageSec !== undefined && (
+        <>
+          , <Unit value={value("s", ageSec)} /> ago
+        </>
+      )}
     </ReadoutCaption>
   );
 }

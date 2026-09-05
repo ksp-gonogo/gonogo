@@ -19,14 +19,10 @@ import {
   type ControlFrame,
   controlFrameLabel,
   lengthsAreLengths,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { EmptyState, Panel, Sparkline } from "@ksp-gonogo/ui";
-import {
-  formatDuration,
-  ReadoutCaption,
-  Section,
-  Unit,
-} from "@ksp-gonogo/ui-kit";
+import { ReadoutCaption, Section, Unit } from "@ksp-gonogo/ui-kit";
 import { useCallback, useRef, useState } from "react";
 import styled from "styled-components";
 
@@ -205,7 +201,15 @@ function SemiMajorAxisComponent({
           {smaHeld && (
             <ReadoutCaption role="status">
               at last contact
-              {smaAgeSec !== undefined && `, ${formatDuration(smaAgeSec)} ago`}
+              {/* Game-time seconds: the age is one UT minus another, so it
+                  belongs on the "s" ladder and not the real-time one. */}
+              {smaAgeSec !== undefined && (
+                <>
+                  {", "}
+                  <Unit value={value("s", smaAgeSec)} />
+                  {" ago"}
+                </>
+              )}
             </ReadoutCaption>
           )}
           {/* The frame's name. A pulsating frame's length unit is its pair's own

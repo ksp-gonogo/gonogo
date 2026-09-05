@@ -10,7 +10,7 @@ import {
   type Reading,
   useCommand,
 } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   CommandButton,
@@ -28,6 +28,7 @@ import {
   useContributions,
   usePanelDelay,
   useSlotBound,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { Dispatch, SetStateAction } from "react";
 import { useMemo, useState } from "react";
@@ -491,8 +492,7 @@ function StrategiesComponent({
           ) : (
             <>
               <Tally>
-                {formatNumber(funds?.magnitude)}
-                <Unit>funds</Unit>
+                <Balance balance={funds} unit="funds" />
               </Tally>
               {reportsFundsDrain(netFunds) && (
                 <>
@@ -504,13 +504,11 @@ function StrategiesComponent({
                 <>
                   <Sep>·</Sep>
                   <Tally>
-                    {formatNumber(reputation?.magnitude)}
-                    <Unit>rep</Unit>
+                    <Balance balance={reputation} unit="rep" />
                   </Tally>
                   <Sep>·</Sep>
                   <Tally>
-                    {formatNumber(science?.magnitude)}
-                    <Unit>science</Unit>
+                    <Balance balance={science} unit="science" />
                   </Tally>
                 </>
               )}
@@ -815,23 +813,20 @@ function AvailableRow({
       <CostRow>
         {s.initialCostFunds > 0 && (
           <CostChip $insufficient={overBudget(scaledFunds, funds)}>
-            {formatNumber(scaledFunds)}
-            <Unit>funds</Unit>
+            <Unit value={value("funds", scaledFunds)} />
           </CostChip>
         )}
         {s.initialCostScience > 0 && (
           <CostChip $insufficient={overBudget(scaledScience, science)}>
-            {formatNumber(scaledScience)}
-            <Unit>science</Unit>
+            <Unit value={value("science", scaledScience)} />
           </CostChip>
         )}
         {s.initialCostReputation > 0 && (
           <CostChip
             $insufficient={overBudget(scaledRep, reputation)}
-            title={`Nominal ${formatNumber(s.initialCostReputation * factorScale)}; the rep curve bumps the real charge to ${formatNumber(scaledRep)}.`}
+            title={`Nominal ${writeQuantity(value("rep", s.initialCostReputation * factorScale))}; the rep curve bumps the real charge to ${writeQuantity(value("rep", scaledRep))}.`}
           >
-            {formatNumber(scaledRep)}
-            <Unit>rep</Unit>
+            <Unit value={value("rep", scaledRep)} />
           </CostChip>
         )}
         {s.initialCostFunds === 0 &&
@@ -904,11 +899,33 @@ function AvailableRow({
   );
 }
 
-function formatNumber(v: number | null | undefined): string {
-  if (v === null || v === undefined || !Number.isFinite(v)) return NULL_DISPLAY;
-  if (Math.abs(v) >= 1000)
-    return v.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  return v.toLocaleString(undefined, { maximumFractionDigits: 2 });
+/**
+ * One career balance on the header rail: the figure, or the null token beside
+ * the currency's own symbol when no economy has arrived.
+ *
+ * `Unit` renders an absent value as a bare null token and no unit, which is
+ * right for a lone readout and wrong for three of them in a row. Funds,
+ * reputation and science are told apart on this rail by their symbol alone (an
+ * `f`, a star, a microscope), so three anonymous dashes would say that
+ * something is missing without saying what. Hence the token passed alongside:
+ * an absent value carries no unit to read one off.
+ */
+function Balance<U extends string>({
+  balance,
+  unit,
+}: {
+  balance: Value<U> | null | undefined;
+  unit: U;
+}) {
+  if (balance === null || balance === undefined) {
+    return (
+      <>
+        {NULL_DISPLAY}
+        <Unit>{unit}</Unit>
+      </>
+    );
+  }
+  return <Unit value={balance} />;
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────

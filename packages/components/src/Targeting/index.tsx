@@ -15,12 +15,6 @@ import {
   Field,
   FieldHint,
   FieldLabel,
-  // The game-time ladder, which is right here because the age is UT
-  // (`viewUt - atUt`), not desk time. `formatIrlDuration`'s doc names "how long
-  // ago a reading was seen" as a wall-clock case, and that holds only for an age
-  // measured off a wall clock; the wall-clock ratchet requires this one be
-  // measured off the frame, so it is game seconds and takes the game ladder.
-  formatDuration,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -346,10 +340,18 @@ function TargetingComponent({
   // target that stopped being a docking port. The approach view names it.
   const alignmentWithheld =
     notCurrent(dockReading) && dockPairing?.relativePosition !== undefined;
-  // The age, spelled out: an instant minus an instant is a duration, and the
-  // affine rules make that the type. The clamp is there because samples arrive
-  // out of order (`ClientTimeline` insert-sorts for it) so one can sit
-  // marginally ahead of the frame, and "-0.4 s ago" is never a thing to render.
+  /*
+   * The age, spelled out: an instant minus an instant is a duration, and the
+   * affine rules make that the type. The clamp is there because samples arrive
+   * out of order (`ClientTimeline` insert-sorts for it) so one can sit
+   * marginally ahead of the frame, and "-0.4 s ago" is never a thing to render.
+   *
+   * Every age on this widget renders as `value("s", ...)`, the GAME-time kind,
+   * because it is measured off the frame's view-UT and not a wall clock:
+   * `viewUt - atUt`. The `irl:s` kind would be a factor-of-four lie here (a KSP
+   * day is six hours), and it is the right kind only for an age taken from
+   * `Date.now()`, which this widget deliberately never does.
+   */
   const dockObservedUt = observedAt(dockReading);
   const dockAgeSec =
     universalTime !== undefined && dockObservedUt
@@ -456,7 +458,7 @@ function TargetingComponent({
             <span>No target set in KSP</span>
             {ageSec !== undefined && (
               <ReadoutCaption>
-                {confirmedWord} {formatDuration(ageSec)} ago
+                {confirmedWord} <Unit value={value("s", ageSec)} /> ago
               </ReadoutCaption>
             )}
           </Stack>
@@ -564,7 +566,11 @@ function TargetingComponent({
         {outOfContact && (
           <ReadoutCaption role="status">
             at last contact
-            {ageSec !== undefined && `, ${formatDuration(ageSec)} ago`}
+            {ageSec !== undefined && (
+              <>
+                , <Unit value={value("s", ageSec)} /> ago
+              </>
+            )}
           </ReadoutCaption>
         )}
         {reckoned !== undefined && reckonedDistance !== undefined && (
@@ -696,7 +702,11 @@ function AlignmentWithheldNotice({ ageSec }: { ageSec: number | undefined }) {
   return (
     <ReadoutCaption role="status">
       Docking alignment no longer current
-      {ageSec !== undefined && `, last seen ${formatDuration(ageSec)} ago`}
+      {ageSec !== undefined && (
+        <>
+          , last seen <Unit value={value("s", ageSec)} /> ago
+        </>
+      )}
     </ReadoutCaption>
   );
 }

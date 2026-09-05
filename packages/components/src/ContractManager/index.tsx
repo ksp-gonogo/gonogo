@@ -18,11 +18,11 @@ import { KspParameterState, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
   CommandButton,
-  formatDuration,
   Panel,
   Section,
   Unit,
   usePanelDelay,
+  writeQuantity,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
 import styled from "styled-components";
@@ -275,7 +275,15 @@ export function contractIdToSafeNumber(id: string): number | null {
   return n;
 }
 
-/** Format a UT-second deadline relative to the current universal time. */
+/**
+ * Format a UT-second deadline relative to the current universal time.
+ *
+ * The remaining time is GAME seconds, so it is a `"s"` quantity and rides the
+ * kit's time ladder, which sizes a day by the calendar the game reported (6h
+ * under stock, 426d years) rather than by a real one. Written as a string
+ * rather than rendered as a node because the phrase is a whole caption, "5d 2h
+ * left", and both call sites want the sentence rather than its pieces.
+ */
 export function formatDeadline(
   deadlineUt: number,
   universalTime: number,
@@ -283,9 +291,9 @@ export function formatDeadline(
   if (!deadlineUt || deadlineUt <= 0) return "no deadline";
   const remaining = deadlineUt - universalTime;
   if (remaining <= 0) return "expired";
-  // Stock KSP uses 6h days, 426d years. Round to whole days/hours for
-  // legibility; sub-hour resolution adds noise the operator doesn't need.
-  return `${formatDuration(Math.max(60, remaining))} left`;
+  // Floored at a minute: the ladder's finest rung the operator needs here, and
+  // sub-minute resolution would add noise to a card that is scanned, not read.
+  return `${writeQuantity(value("s", Math.max(60, remaining)))} left`;
 }
 
 function ContractManagerComponent({

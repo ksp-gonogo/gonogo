@@ -1,10 +1,7 @@
 import { useTelemetry } from "@ksp-gonogo/core";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/test-utils";
-import {
-  formatDuration,
-  kspCalendar,
-  setKspCalendar,
-} from "@ksp-gonogo/ui-kit";
+import { kspCalendar, setKspCalendar, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { afterEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import { KspCalendarObserver } from "./KspCalendarObserver";
@@ -169,7 +166,7 @@ describe("KspCalendarObserver: what undefined means for time.calendar today", ()
       kerbinTime: false,
     });
     expect(kspCalendar().day).toBe(86_400);
-    expect(formatDuration(86_400)).toBe("1d");
+    expect(writeQuantity(value("s", 86_400))).toBe("1d");
 
     // The topic goes to a confirmed tombstone: the game is no longer reporting
     // a calendar. The gate returns early, so the Earth calendar stays in force
@@ -178,7 +175,7 @@ describe("KspCalendarObserver: what undefined means for time.calendar today", ()
     fixture.emitCalendar(null);
     expect(screen.getByText("calendar:absent")).toBeInTheDocument();
     expect(kspCalendar().day).toBe(86_400);
-    expect(formatDuration(86_400)).toBe("1d");
+    expect(writeQuantity(value("s", 86_400))).toBe("1d");
 
     fixture.unmount();
   });

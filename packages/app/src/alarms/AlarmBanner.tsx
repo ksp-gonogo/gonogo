@@ -1,5 +1,6 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { ArrowRightIcon, PlayIcon, StopIcon } from "@ksp-gonogo/ui";
-import { Cluster, formatDuration, NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
+import { Cluster, NULL_DISPLAY, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useAlarmHost, useAlarmSnapshot } from "./AlarmHostContext";
@@ -399,20 +400,26 @@ function formatRate(rate: number): string {
   return `${rate.toFixed(2)}×`;
 }
 
+/**
+ * Game seconds either side of the alarm's UT, as "T−2h 15m" / "T+45s".
+ *
+ * The `s` token, not `irl:s`: `trigger.ut` and `snap.ut` are both KSP
+ * universal time, so the gap between them is measured in six-hour days.
+ *
+ * `writeQuantity` rather than `<Unit>` because the sign prefix and the
+ * duration are one caption that has to stay a string: the countdown is
+ * built here and returned as text through `formatNextLine`. The prefix is
+ * concatenated locally, the quantity formatter has no sign option.
+ */
 function formatTMinus(utTarget: number, utNow: number | null): string {
   if (utNow === null) return "T−?";
   const delta = utTarget - utNow;
   if (delta <= 0) {
     if (delta > -3) return "T = 0";
-    return `T+${formatSeconds(-delta)}`;
+    return `T+${writeQuantity(value("s", -delta))}`;
   }
-  return `T−${formatSeconds(delta)}`;
+  return `T−${writeQuantity(value("s", delta))}`;
 }
-
-// The kit's ladder, not a fourth copy of it. `formatDuration` is the
-// sanctioned string form of `<Countdown>`, for the template literals below
-// where a node cannot go.
-const formatSeconds = (s: number): string => formatDuration(s);
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 

@@ -115,8 +115,12 @@ describe("Strategies: what a card claims activating it costs", () => {
 
     await screen.findByText("Fundraising Campaign");
     const text = container.textContent ?? "";
-    expect(text).toContain("13.97");
-    expect(text).toContain("rep");
+    // 13.97 rendered at reputation's own precision, which is one decimal: the
+    // chip goes through `Unit` now, so the figure is rounded by the unit model
+    // rather than by a formatter this widget carried. The currency comes back
+    // as the spoken word beside the star glyph.
+    expect(text).toContain("14.0");
+    expect(text).toContain("reputation");
   });
 
   /**

@@ -233,7 +233,7 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/shared/usePastTrack.ts": 1,
   "packages/components/src/shared/dockAngles.ts": 1,
   "packages/components/src/shared/OrbitalEventChips.tsx": 1,
-  "packages/components/src/Strategies/index.tsx": 4,
+  "packages/components/src/Strategies/index.tsx": 1,
   "packages/components/src/SystemView/index.tsx": 23,
   "packages/components/src/SystemView/usePhaseAngles.ts": 7,
   "packages/components/src/Targeting/index.tsx": 5,

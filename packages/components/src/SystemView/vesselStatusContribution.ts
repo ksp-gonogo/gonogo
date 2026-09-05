@@ -7,7 +7,8 @@ import {
   getViewUt,
   overdueSeconds,
 } from "@ksp-gonogo/sitrep-client";
-import { formatDuration } from "@ksp-gonogo/ui-kit";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { writeQuantity } from "@ksp-gonogo/ui-kit";
 
 // ---------------------------------------------------------------------------
 // SystemView's `system-view.vessel-status` self-contribution: the comms-
@@ -28,6 +29,12 @@ import { formatDuration } from "@ksp-gonogo/ui-kit";
 // `getViewUt()` already uses for the view clock. The aggregator re-runs
 // `compute` every telemetry frame regardless of which declared dep actually
 // changed, so this stays live.
+//
+// A `label` is a plain string the host draws wherever it likes, so the
+// durations below go through `writeQuantity`, the sanctioned string escape,
+// rather than `<Unit>`. Both intervals are differences between universal
+// times, so they are GAME seconds ("s") and ride the six-hour-day ladder, not
+// the wall-clock one.
 // ---------------------------------------------------------------------------
 
 export interface SystemViewVesselStatusEntry {
@@ -88,7 +95,7 @@ export function computeVesselStatus(
         target: vesselId,
         severity,
         emphasis: "reckoned",
-        label: `Overdue by ${late == null ? "?" : formatDuration(late)}`,
+        label: `Overdue by ${late == null ? "?" : writeQuantity(value("s", late))}`,
         tooltip,
       },
     ];
@@ -101,7 +108,7 @@ export function computeVesselStatus(
         target: vesselId,
         severity,
         emphasis: "reckoned",
-        label: `Reacquire expected in ~${formatDuration(due)}`,
+        label: `Reacquire expected in ~${writeQuantity(value("s", due))}`,
         tooltip,
       },
     ];

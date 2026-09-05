@@ -213,8 +213,12 @@ describe("Strategies: an absent balance beside a present strategy list", () => {
     await waitFor(() =>
       expect(screen.getByText("Expensive Gamble")).toBeInTheDocument(),
     );
-    // `formatNumber(funds?.magnitude)` returns NULL_DISPLAY for all three, so
-    // the header rail reads as dashes rather than dropping the balances.
+    /*
+     * `Balance` renders the null token beside each currency's own symbol, so
+     * the header rail reads as three labelled dashes rather than dropping the
+     * balances (or, as a bare `<Unit value>` would, dropping the symbol that
+     * says which dash is which).
+     */
     const dashes = screen.getAllByText(NULL_DISPLAY);
     expect(dashes).toHaveLength(3);
     expect(dashes[0]?.parentElement?.textContent).toBe(

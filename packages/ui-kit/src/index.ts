@@ -289,13 +289,14 @@ export {
   type FramedDisplayProps,
 } from "./FramedDisplay";
 export { fitBox } from "./fitBox";
-// The third, and the last: a CLOCK as a string. `<Countdown>` is the node
-// form and is what a call site should reach for; this exists because four
-// separate files had each hand-rolled the same s/m/h ladder to build a
-// string for a `title`, an `aria-label`, or a template literal, and four
-// copies of a ladder is precisely what this package exists to prevent. It is
-// NOT a general escape from `<Countdown>`: if a node fits, use one.
-export { type FormatDurationOptions, formatDuration } from "./formatDuration";
+// `formatDuration` is NOT here, and that is the point. It was exported as a
+// narrow escape for a `title` or an `aria-label`, and eleven files took it as
+// a general one: `<Unit>` was documented as the only unit renderer while a
+// raw string ladder sat one import away. The escapes that remain are
+// `writeQuantity` and `speakQuantity` below, which take a Value and so cannot
+// be handed a bare number under the wrong ladder. The formatter itself now
+// leaves this package only through `<Unit>`, `<Countdown>` and
+// `<MissionDate>`, and `styleguide-unit-exclusive.test.ts` is the guard.
 // The date NOTATION lever. `formatKspDate` itself stays internal: a caller
 // reads `<MissionDate>`, and the choice between the two notations is the
 // operator's, primed once per screen from the persisted setting.

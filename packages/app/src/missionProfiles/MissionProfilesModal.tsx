@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Button,
   FilterChip,
@@ -6,7 +7,7 @@ import {
   PrimaryButton,
   Switch,
 } from "@ksp-gonogo/ui";
-import { formatDuration, SectionTitle, Stack } from "@ksp-gonogo/ui-kit";
+import { SectionTitle, Stack, Unit } from "@ksp-gonogo/ui-kit";
 import { useState } from "react";
 import type { Layouts } from "react-grid-layout";
 import styled from "styled-components";
@@ -279,7 +280,7 @@ export function MissionProfilesModal({
                   )}
                   <ProfileMeta>
                     {p.items.length} widget{p.items.length === 1 ? "" : "s"} ·{" "}
-                    {formatRelative(p.updatedAt)}
+                    <Unit value={value("irl:s", ageSeconds(p.updatedAt))} /> ago
                   </ProfileMeta>
                 </ProfileHeader>
                 <ProfileActions>{renderRowActions(p)}</ProfileActions>
@@ -323,10 +324,16 @@ export function MissionProfilesModal({
   );
 }
 
-function formatRelative(ts: number): string {
-  const diffMs = Date.now() - ts;
-  const sec = Math.max(0, Math.round(diffMs / 1000));
-  return `${formatDuration(sec)} ago`;
+/**
+ * How long ago a profile was written, in wall-clock seconds.
+ *
+ * The caller renders this as `irl:s` rather than `s`, because `updatedAt` is a
+ * `Date.now()` stamp and so counts the operator's afternoon rather than
+ * Kerbin's rotation. Laddered as game time it ran on a six-hour day, and a
+ * profile saved yesterday read as "4d".
+ */
+function ageSeconds(ts: number): number {
+  return Math.max(0, Math.round((Date.now() - ts) / 1000));
 }
 
 // ── Styles ────────────────────────────────────────────────────────────────────

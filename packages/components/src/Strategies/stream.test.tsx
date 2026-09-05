@@ -54,14 +54,18 @@ describe("Strategies: genuinely runs off the stream (M3/M3b career batch)", () =
     });
 
     // `getByText` concatenates only an element's direct text nodes, so it
-    // finds the bare number; `CurrencyUnit` puts its glyph and the word that
-    // replaces it in a nested span. The full `textContent` is what a screen
-    // reader announces, so assert that: the glyphs are aria-hidden, and
-    // without the hidden word these tallies would read as three bare numbers.
+    // finds the bare number; `Unit` puts its glyph and the word that replaces
+    // it in a nested span. The full `textContent` is what a screen reader
+    // announces, so assert that: the glyphs are aria-hidden, and without the
+    // hidden word these tallies would read as three bare numbers.
+    //
+    // The decimals are the unit model's, not this widget's: funds are whole
+    // and reputation and science carry one, which is why 420 reads back as
+    // "420.0". See DECIMALS in ui-kit's units.ts.
     const funds = await screen.findByText("289,848");
     expect(funds.textContent).toBe("289,848f funds");
-    expect(screen.getByText("420").textContent).toBe("420 reputation");
-    expect(screen.getByText("145").textContent).toBe("145 science");
+    expect(screen.getByText("420.0").textContent).toBe("420.0 reputation");
+    expect(screen.getByText("145.0").textContent).toBe("145.0 science");
   });
 
   it("renders a strategy card derived from career.status.strategies.all", async () => {

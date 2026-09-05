@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CSSProperties,
   type RefObject,
@@ -7,7 +8,8 @@ import {
   useState,
 } from "react";
 import styled, { css } from "styled-components";
-import { formatCountdown } from "../formatDuration";
+import { Countdown } from "../Countdown";
+import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
 import { deriveGlyph } from "./toInFlightListItems";
 
@@ -121,6 +123,20 @@ const FULL_MIN_WIDTH = 180;
 const COMPACT_MIN_WIDTH = 96;
 
 /** Phase ranking for the badge's summary: the nearest real arrival wins. */
+
+/**
+ * The countdown a strip SPEAKS, for the two places a node cannot go: this
+ * list's own accessible name and a row's `title`.
+ *
+ * Clamped at zero deliberately, which is the whole of what the retired
+ * `formatCountdown` added over the raw ladder: a strip shows time REMAINING,
+ * and an overdue item counting past the event reads as a negative duration
+ * rather than as arrival.
+ */
+function clampedCountdown(seconds: number): string {
+  return writeQuantity(value("s", Math.max(0, seconds)));
+}
+
 function nearestEta(items: InFlightListItem[]): number | null {
   let best: number | null = null;
   for (const item of items) {
@@ -373,7 +389,7 @@ const InFlightBadge = function InFlightBadge({
   const summary =
     countdown === null
       ? `${items.length} in flight`
-      : `${items.length} in flight, next in ${formatCountdown(countdown)}`;
+      : `${items.length} in flight, next in ${clampedCountdown(countdown)}`;
   return (
     <InFlightList__Root
       ref={ref}
@@ -389,7 +405,12 @@ const InFlightBadge = function InFlightBadge({
         </InFlightList__Arrow>
         <InFlightList__Phase>
           {items.length}
-          {countdown !== null && ` · ${formatCountdown(countdown)}`}
+          {countdown !== null && (
+            <>
+              {" · "}
+              <Countdown value={Math.max(0, countdown)} />
+            </>
+          )}
         </InFlightList__Phase>
       </InFlightList__Row>
     </InFlightList__Root>
@@ -408,7 +429,7 @@ function InFlightRow({
   const spoken =
     countdown === null
       ? `${item.label}, ${item.phase}`
-      : `${item.label}, ${formatCountdown(countdown)}`;
+      : `${item.label}, ${clampedCountdown(countdown)}`;
   return (
     // Compact drops the visible label, so the row carries it as its own
     // accessible name instead: a screen reader hears the same thing at every
@@ -426,7 +447,11 @@ function InFlightRow({
       </InFlightList__Arrow>
       {!$compact && <InFlightList__Label>{item.label}</InFlightList__Label>}
       <InFlightList__Phase>
-        {countdown === null ? item.phase : formatCountdown(countdown)}
+        {countdown === null ? (
+          item.phase
+        ) : (
+          <Countdown value={Math.max(0, countdown)} />
+        )}
       </InFlightList__Phase>
     </InFlightList__Row>
   );
