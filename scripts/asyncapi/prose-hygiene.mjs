@@ -78,7 +78,7 @@ export const FAMILIES = {
   /** The generation pipeline: an artifact of how the SDK is built, not of the contract. */
   codegen: {
     pattern:
-      /\b(?:RtConfig(?:\.\w+)?|codegen|contract\.ts|units\.json|JsonWriter|TsInterface|SitrepCommandAttribute|SitrepTopicAttribute)\b/g,
+      /\b(?:RtConfig(?:\.\w+)?|codegen|contract\.ts|units\.json|reckonability\.ts|JsonWriter|TsInterface|SitrepCommandAttribute|SitrepTopicAttribute|SitrepReckonableAttribute)\b/g,
     plant: "same camelCase wire keys via RtConfig.CamelCaseForProperties",
   },
   /** Internal defect and milestone ids, which resolve nowhere outside this repo. */

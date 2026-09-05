@@ -31,6 +31,9 @@ public class VesselFlight
 
     /// <summary>Altitude above sea level, metres (KSP's <c>Vessel.altitude</c>).</summary>
     [SitrepUnit(Units.Metres)]
+    // The conic gives the orbital radius; system.bodies is what turns that into an altitude,
+    // because the reference body's radius is the only place sea level is published.
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit", "@system.bodies")]
     public double AltitudeAsl { get; set; }
 
     /// <summary>Height above terrain (AGL, radar altitude), metres, NOT derivable from orbital elements, hence streamed raw.</summary>
@@ -47,6 +50,9 @@ public class VesselFlight
 
     /// <summary>Speed relative to the parent body's inertial frame, metres per second (KSP's <c>Vessel.obt_speed</c>).</summary>
     [SitrepUnit(Units.MetresPerSecond)]
+    // The vis-viva speed falls out of the elements and mu alone. No body radius, so system.bodies
+    // is NOT declared: an input a model does not use is a false promise the gate cannot catch.
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit")]
     public double OrbitalSpeed { get; set; }
 
     /// <summary>Multiples of standard gravity (KSP's <c>Vessel.geeForce</c>).</summary>

@@ -33,6 +33,8 @@ public class DockAlignment
 {
     /// <summary>Metres, own-port-relative (target port minus own port).</summary>
     [SitrepUnit(Units.Metres)]
+    // Same one-payload dead reckoning as vessel.target: the closing velocity is right here.
+    [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativeVelocity")]
     public Vec3 RelativePosition { get; set; } = new();
 
     /// <summary>m/s, own-port-relative.</summary>
@@ -41,6 +43,9 @@ public class DockAlignment
 
     /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided directly so a widget doesn't have to re-derive it every frame.</summary>
     [SitrepUnit(Units.Metres)]
+    // The magnitude of a dead-reckoned separation: it needs the vector it is the magnitude of,
+    // as well as the velocity, so both are declared rather than leaning on the implicit anchor.
+    [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativePosition", "relativeVelocity")]
     public double Distance { get; set; }
 
     /// <summary>Dot product of the own port's and target port's forward vectors; see the class doc comment. Null only if either port's transform was unavailable this tick.</summary>

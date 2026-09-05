@@ -29,9 +29,15 @@ namespace Sitrep.Contract;
 public class VesselOrbitTruth
 {
     [SitrepUnit(Units.Metres)]
+    // A state vector plus mu is a conic, so the pair advances together. frameRotating is declared
+    // because the model is INAPPLICABLE when it is true: an input a reckoner uses to DECLINE is
+    // still an input, and declaring it is what lets the decline name what ruled the model out.
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "velocity", "frameRotating", "@vessel.orbit#mu")]
     public Vec3 Position { get; set; } = new();
 
     [SitrepUnit(Units.MetresPerSecond)]
+    // The same conic seen from the other half of the state vector; see Position.
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "position", "frameRotating", "@vessel.orbit#mu")]
     public Vec3 Velocity { get; set; } = new();
 
     [SitrepUnit(Units.Flag)]
