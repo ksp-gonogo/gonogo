@@ -670,8 +670,8 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("status", { name: /answered/i });
-      expect(list.textContent).toMatch(/found after being called lost/i);
-      expect(list.textContent).toMatch(/it ran/i);
+      expect(list.textContent).toMatch(/found .* after being lost/i);
+      expect(list.textContent).toMatch(/found executed/i);
       // Confirmed means it worked as expected. Being told a command was lost
       // and then that it ran is the opposite of expected, and an operator who
       // re-sent it needs those to read differently.
@@ -686,9 +686,9 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("status", { name: /answered/i });
-      expect(list.textContent).toMatch(/found after being called lost/i);
-      expect(list.textContent).toMatch(/the game refused it/i);
-      expect(list.textContent).not.toMatch(/it ran/i);
+      expect(list.textContent).toMatch(/found .* after being lost/i);
+      expect(list.textContent).toMatch(/found refused/i);
+      expect(list.textContent).not.toMatch(/found executed/i);
     });
 
     it("says a late error reached the game, which a loss never could", async () => {
@@ -699,7 +699,7 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("status", { name: /answered/i });
-      expect(list.textContent).toMatch(/reached the game and errored/i);
+      expect(list.textContent).toMatch(/found errored/i);
       expect(list.textContent).toMatch(/the handler threw/i);
     });
 

@@ -84,7 +84,14 @@ export interface RailFound extends CommandFoundEntry {
 export function commandFoundSentence(found: CommandFoundLike): string {
   const subject = commandRefusalSubject(found);
   const what = subject || found.command || "The command";
-  const opening = `${what}: found after being called lost.`;
+  /*
+   * The outcome sits INSIDE the opening rather than trailing it, so the word
+   * that decides what the operator does next lands where the eye already is.
+   * "being called" came out as redundant: lost is the state the rail showed,
+   * not an accusation anyone made.
+   */
+  const opening = (state: string) =>
+    `${what}: found ${state} after being lost.`;
   if (found.outcome === "refused") {
     /*
      * The refusal composer, not a second table of reasons. A late refusal is
@@ -93,8 +100,8 @@ export function commandFoundSentence(found: CommandFoundLike): string {
      */
     const clause =
       found.errorCode === undefined
-        ? "The game refused it."
-        : `The game refused it: ${stripSubject(
+        ? ""
+        : `The game gave its reason: ${stripSubject(
             commandRefusalSentence({
               errorCode: found.errorCode,
               command: found.command,
@@ -104,15 +111,15 @@ export function commandFoundSentence(found: CommandFoundLike): string {
               detail: found.detail,
             }),
           )}`;
-    return `${opening} ${clause}`;
+    return clause ? `${opening("refused")} ${clause}` : opening("refused");
   }
   if (found.outcome === "errored") {
     const said = found.error?.message?.trim().replace(/\.$/, "");
     return said
-      ? `${opening} It reached the game and errored: ${said}.`
-      : `${opening} It reached the game and errored.`;
+      ? `${opening("errored")} It reached the game: ${said}.`
+      : `${opening("errored")} It reached the game.`;
   }
-  return `${opening} It ran.`;
+  return `${opening("executed")}`;
 }
 
 /**
