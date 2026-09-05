@@ -60,7 +60,7 @@ describe("commandFoundSentence", () => {
         },
       }),
     ).toBe(
-      "Hire Valentina Kerman: found refused after being lost. The game gave its reason: the Astronaut Complex holds 16 of 16 active crew.",
+      "Hire Valentina Kerman: found refused after being lost. the Astronaut Complex holds 16 of 16 active crew.",
     );
   });
 
@@ -84,7 +84,7 @@ describe("commandFoundSentence", () => {
         errorCode: CommandErrorCode.NotClearToProceed,
         detail: "Craft is over the mass limit",
       }),
-    ).toMatch(/gave its reason: Craft is over the mass limit\./);
+    ).toMatch(/refused after being lost\. Craft is over the mass limit\./);
   });
 
   it("says a late error REACHED the game, which is the found half of it", () => {
@@ -94,9 +94,7 @@ describe("commandFoundSentence", () => {
         command: "vessel.stage.next",
         error: { code: "E_HANDLER", message: "the handler threw." },
       }),
-    ).toBe(
-      "Next: found errored after being lost. It reached the game: the handler threw.",
-    );
+    ).toBe("Next: found errored after being lost. the handler threw.");
   });
 
   it("still says something true when a refusal arrives with no reason at all", () => {

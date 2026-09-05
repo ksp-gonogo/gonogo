@@ -101,7 +101,7 @@ export function commandFoundSentence(found: CommandFoundLike): string {
     const clause =
       found.errorCode === undefined
         ? ""
-        : `The game gave its reason: ${stripSubject(
+        : `${stripSubject(
             commandRefusalSentence({
               errorCode: found.errorCode,
               command: found.command,
@@ -115,9 +115,7 @@ export function commandFoundSentence(found: CommandFoundLike): string {
   }
   if (found.outcome === "errored") {
     const said = found.error?.message?.trim().replace(/\.$/, "");
-    return said
-      ? `${opening("errored")} It reached the game: ${said}.`
-      : `${opening("errored")} It reached the game.`;
+    return said ? `${opening("errored")} ${said}.` : opening("errored");
   }
   return `${opening("executed")}`;
 }
