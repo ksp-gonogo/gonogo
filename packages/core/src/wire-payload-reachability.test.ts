@@ -30,9 +30,16 @@ import { beforeAll, describe, expect, it } from "vitest";
  * corroborating itself.
  *
  * So this reads a different inventory and derives its verdicts instead of
- * accepting them. The inventory is the generated channel map, walked
- * transitively through the contract's field types; the verdicts come off the
- * mod sources. There is no allowlist here to put a claim in.
+ * accepting them. The inventory is the generated channel map of EVERY generated
+ * slice, the core contract and each Uplink's own, walked transitively through
+ * the contract's field types; the verdicts come off the mod sources. There is no
+ * allowlist here to put a claim in.
+ *
+ * The Uplink half is what makes the third instance nameable. That one was an
+ * Uplink publishing one of its OWN enums, and an Uplink's types generate into
+ * its own `client/src/__generated__`, so a sweep over the core slice alone can
+ * pin the mechanism (`case System.Enum`) without ever reaching the type that
+ * broke.
  *
  * ## Living in core's scan suite
  *
@@ -44,6 +51,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(HERE, "..", "..", "..");
 
 interface Verdict {
+  slice: string;
   name: string;
   via: string;
   root: boolean;
@@ -51,11 +59,22 @@ interface Verdict {
   detail: string;
 }
 
+interface Slice {
+  id: string;
+  core: boolean;
+  roots: number;
+  reached: number;
+}
+
 interface Report {
   roots: number;
   reached: number;
   writable: number;
   files: number;
+  slices: Slice[];
+  uplinkSlices: number;
+  uplinkRoots: number;
+  uplinkReached: number;
   verdicts: Verdict[];
   uncovered: Verdict[];
   selfCheckProblems: string[];
@@ -78,9 +97,16 @@ interface Gate {
       constructed: Map<string, string>;
       flattened: Map<string, string>;
       root: boolean;
+      sliceOwned?: boolean;
     },
   ) => { verdict: string; detail: string };
   productionSources: (root?: string) => { path: string; text: string }[];
+  contractSlices: (root?: string) => {
+    id: string;
+    core: boolean;
+    contract: string;
+    maps: [string, string][];
+  }[];
 }
 
 /**
@@ -129,6 +155,66 @@ describe("wire payload reachability", () => {
     expect(report.files).toBeGreaterThan(400);
   });
 
+  it("reaches every Uplink's own contract slice", () => {
+    // An Uplink owns its wire types, and a walk that reads only the core slice
+    // cannot see them: that is how the third instance of this bug class, an
+    // Uplink publishing one of its OWN enums, sat outside the sweep. A
+    // discovery that matches nothing hashes nothing and reports a clean tree,
+    // so the count is floored rather than trusted. Nine slices, 94 roots and 93
+    // types at the time of writing.
+    expect(report.uplinkSlices).toBeGreaterThan(6);
+    expect(report.uplinkRoots).toBeGreaterThan(60);
+    expect(report.uplinkReached).toBeGreaterThan(60);
+    // Every discovered slice actually contributed, rather than the total being
+    // carried by one large Uplink while the rest silently walked nothing.
+    for (const slice of report.slices) expect(slice.roots).toBeGreaterThan(0);
+  });
+
+  it("discovers the Uplink slices rather than listing them", () => {
+    // A hand-written roster here would be the twelfth in this repo with no gate
+    // on its own completeness, so the slices come off `uplink-matrix.mjs`. This
+    // pins that they do: every discovered slice's contract path sits under the
+    // Uplink directory the matrix named, and none is spelled out in this file.
+    const slices = gate.contractSlices(REPO_ROOT);
+    const ids = execFileSync("node", ["scripts/uplink-matrix.mjs", "--ids"], {
+      cwd: REPO_ROOT,
+      encoding: "utf8",
+    })
+      .split("\n")
+      .filter(Boolean);
+    for (const slice of slices.filter((entry) => !entry.core)) {
+      expect(ids).toContain(slice.id);
+      expect(slice.contract).toBe(
+        `mod/${slice.id}/client/src/__generated__/contract.ts`,
+      );
+    }
+  });
+
+  it("does not let a core case cover an Uplink's own type of the same name", () => {
+    // `JsonWriter` is in `Sitrep.Core` and a core serializer may not reference
+    // an Uplink assembly, so every case it has names `Sitrep.Contract.*` and
+    // none can meet an Uplink-owned type however it is spelled. Without this
+    // distinction an Uplink declaring a `RepairOutcome` of its own would be
+    // waved through by the core `RepairOutcome` case, which is the false green
+    // this whole gate exists to refuse.
+    const writable = gate.writableTypes(
+      "case Sitrep.Contract.Shared shared:\n",
+    );
+    const scanned = gate.scanCSharp([
+      { path: "planted.cs", text: "var x = new Shared();" },
+    ]);
+    const input = {
+      writable,
+      constructed: scanned.constructed,
+      flattened: scanned.flattened,
+      root: true,
+    };
+    expect(gate.classify("Shared", input).verdict).toBe("written");
+    expect(
+      gate.classify("Shared", { ...input, sliceOwned: true }).verdict,
+    ).toBe("uncovered");
+  });
+
   it("counts a producer file that is not committed yet", () => {
     // The scan lists sources through git, and `git ls-files` alone reads the
     // INDEX: a producer added in the working tree and never staged is invisible
@@ -174,7 +260,7 @@ describe("wire payload reachability", () => {
   it("has no payload type a producer builds that nothing can write", () => {
     const named = report.uncovered.map(
       (entry) =>
-        `${entry.name} (published on ${entry.via}, built in ${entry.detail})`,
+        `${entry.name} (${entry.slice}, published on ${entry.via}, built in ${entry.detail})`,
     );
     expect(
       named,
@@ -182,7 +268,10 @@ describe("wire payload reachability", () => {
         "populated payload carrying one is dropped at the wire boundary and the " +
         "client sees nothing. Add a case plus an Append<Type> helper (mirror " +
         "AppendCommsDelay), or flatten the value in its producer through a NAMED " +
-        "method that takes the type and returns Dictionary<string, object?>.",
+        "method that takes the type and returns Dictionary<string, object?>. An " +
+        "UPLINK-owned type has only the second option: a core serializer may not " +
+        "reference an Uplink assembly, so flatten it in the Uplink before Publish, " +
+        "the way every Uplink-owned payload on the wire today already does.",
     ).toEqual([]);
   });
 });

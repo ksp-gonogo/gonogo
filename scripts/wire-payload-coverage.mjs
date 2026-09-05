@@ -28,6 +28,34 @@
 //   * the VERDICTS are derived from the mod sources, not declared. There is no
 //     allowlist here to put a claim in.
 //
+// ## Every generated slice, not just the core one
+//
+// An Uplink owns its wire types: they live in its own `<Uplink>.Contract` project
+// and generate their own `contract.ts` and channel maps under
+// `mod/<Uplink>/client/src/__generated__`. The third instance of this bug class
+// was an Uplink publishing one of its OWN enums, so a walk that reads only the
+// core slice cannot see the shape its own history is about. Every slice is
+// walked, and the Uplink list is DISCOVERED through `uplink-matrix.mjs` rather
+// than written down here: `contractSlices` has the reasoning, and a floor.
+//
+// An Uplink-owned type can never be `written`. `JsonWriter` is in `Sitrep.Core`
+// and a core serializer may not reference an Uplink assembly, so every case it
+// has names `Sitrep.Contract.*`. Flattening in the producer before `Publish` is
+// the only route open to one, which is exactly what `RaWire` and
+// `KosProcessorInfoBuilder` do.
+//
+// ## The limit that remains: a DYNAMIC channel's payload
+//
+// The inventory is the STATIC map, and `topic-map.ts`'s own header says at
+// length that it is not a list of every topic on the wire. A namespace
+// registered through `IUplinkHost.RegisterDynamicNamespace` materialises its
+// topics per subject, carries no `[SitrepTopic]` tag for reflection to find, and
+// so appears in no generated map. 46 declared contract types are published on no
+// static channel and are no command's args, 16 of them Uplink-owned, and
+// `kos.run.<coreId>` / `kos.terminal.<coreId>` are the live examples: real
+// published payloads this walk does not grade. They are flattened today, and
+// nothing here would notice if they stopped being.
+//
 // Command ARGS are deliberately not roots: they travel client-to-server and are
 // only ever deserialised. Replies are, because they are written.
 //
@@ -54,7 +82,7 @@
 // this repo keeps meeting.
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readContract, readMapInterface } from "./asyncapi/contract-model.mjs";
@@ -207,22 +235,97 @@ export function scanCSharp(files) {
     )) {
       build(match[1], path);
     }
-    // A flattener returns the untyped dictionary `AppendObject` walks. It
-    // either takes the POCO (`ToWire(VesselOrbit orbit)`) or is named for it
-    // (`BuildControlFrame(Kernel? kernel)`, which reads the elected source
-    // rather than being handed the value).
-    for (const match of text.matchAll(
-      /I?Dictionary<string,\s*object\??>\??\s+([A-Za-z0-9_]+)\(\s*(?:this\s+)?([A-Za-z][A-Za-z0-9_]*)?/g,
-    )) {
-      const [, method, parameter] = match;
-      if (parameter && !flattened.has(parameter))
-        flattened.set(parameter, path);
-      for (const candidate of methodNameSubjects(method)) {
-        if (!flattened.has(candidate)) flattened.set(candidate, path);
+    const owners = [
+      ...text.matchAll(/\b(?:class|struct|record)\s+([A-Za-z0-9_]+)/g),
+    ].map((match) => ({ at: match.index, name: match[1] }));
+    /*
+     * A flattener returns the untyped dictionary `AppendObject` walks, or a
+     * collection of them when the channel is an array. It says which type it is
+     * for in one of three ways, and the mod uses all three:
+     *
+     *   the PARAMETER, `ToWire(VesselOrbit orbit)`;
+     *   the METHOD NAME, `BuildControlFrame(Kernel? kernel)`, which reads the
+     *     elected source rather than being handed the value;
+     *   the ENCLOSING CLASS, `KosProcessorInfoBuilder.Build(int coreId, ...)`,
+     *     whose parameters are all primitives and whose method is just `Build`.
+     */
+    for (const match of text.matchAll(FLATTENER)) {
+      const [, method, firstParameter] = match;
+      const owner = owners.filter((entry) => entry.at < match.index).pop();
+      const subjects = [
+        ...parameterSubjects(firstParameter),
+        ...methodNameSubjects(method),
+        ...(owner ? ownerNameSubjects(owner.name) : []),
+      ];
+      for (const candidate of subjects) {
+        if (candidate && !flattened.has(candidate))
+          flattened.set(candidate, path);
       }
     }
   }
   return { constructed, flattened };
+}
+
+/**
+ * A method returning the wire dictionary, or one collection layer of them.
+ *
+ * The wrapped form is not a nicety: an array channel's producer returns
+ * `List<Dictionary<string, object?>>`, and reading only the bare form left
+ * `realantennas.hopRates` looking uncovered while `RaWire.HopRates` was
+ * flattening it all along.
+ *
+ * The wrapper and the bare form are ALTERNATIVES rather than an optional prefix
+ * and an optional `>`, which is not a stylistic choice. Written the loose way,
+ * the bare arm matches the inner `Dictionary<string, object?>` of
+ * `CommandResult<Dictionary<string, object?>> NewComplex(...)` and the stray `>`
+ * is swallowed by the optional one, so nine Rp1 command handlers were read as
+ * flatteners for `CommandResult` and deleting its `JsonWriter` case stopped
+ * failing. Measured against the pre-existing plant table, not reasoned about.
+ *
+ * The first parameter is captured up to the first `,` or `)`, so a parameter
+ * whose own type carries a comma (`Dictionary<string, X> map`) contributes only
+ * its head. No flattener in the tree takes one, and the method name and the
+ * enclosing class still speak for it if one ever does.
+ */
+const FLATTENER = new RegExp(
+  "(?:" +
+    "(?:List|IList|IReadOnlyList|ICollection|IReadOnlyCollection|IEnumerable)" +
+    "\\s*<\\s*I?Dictionary<string,\\s*object\\??>\\s*>" +
+    "|I?Dictionary<string,\\s*object\\??>" +
+    ")\\??\\s+([A-Za-z0-9_]+)\\s*\\(\\s*(?:this\\s+)?([^,)]*)",
+  "g",
+);
+
+/**
+ * The types a flattener's first parameter mentions, generic arguments included.
+ *
+ * The parameter NAME is dropped first, so `ToWire(VesselOrbit orbit)` claims
+ * `VesselOrbit` and not whatever `orbit` might collide with, and only
+ * capitalised identifiers survive, so `int coreId` claims nothing.
+ */
+function parameterSubjects(parameter) {
+  if (!parameter) return [];
+  const type = parameter.trim().replace(/\s+[A-Za-z_]\w*$/, "");
+  return [...type.matchAll(/[A-Z][A-Za-z0-9_]*/g)].map((match) => match[0]);
+}
+
+/**
+ * The type a flattener's enclosing class claims as its subject:
+ * `KosProcessorInfoBuilder` -> `KosProcessorInfo`.
+ *
+ * The BARE class name is deliberately not a subject. A class named exactly
+ * after a contract type is the POCO or its provider, not a flattener for it,
+ * and counting it would let any dictionary-returning member of such a class
+ * vouch for the type it is named after.
+ */
+function ownerNameSubjects(name) {
+  const subjects = [];
+  for (const suffix of ["Builder", "Wire", "Writer", "Flattener"]) {
+    if (name.endsWith(suffix) && name.length > suffix.length) {
+      subjects.push(name.slice(0, -suffix.length));
+    }
+  }
+  return subjects;
 }
 
 /**
@@ -248,10 +351,24 @@ function methodNameSubjects(method) {
  *
  * `root` says the type is a channel's payload (or an element of one), so it is
  * handed to `AppendValue` directly and only a `case` will do.
+ *
+ * `sliceOwned` says the type is declared by an Uplink's own contract slice.
+ * `JsonWriter` lives in `Sitrep.Core` and a core serializer may not reference an
+ * Uplink's assembly, so every case it has names `Sitrep.Contract.*` and none of
+ * them can ever meet an Uplink-owned type, whatever it happens to be called.
+ * Flattening in the producer before `Publish` is the only route open to one, and
+ * it is the route every Uplink-owned payload already takes.
  */
-export function classify(name, { writable, constructed, flattened, root }) {
+export function classify(
+  name,
+  { writable, constructed, flattened, root, sliceOwned },
+) {
   const csharp = GENERATED_NAME_TO_CSHARP[name] ?? name;
-  const written = root ? writable.switched : writable.helpers;
+  const written = sliceOwned
+    ? new Set()
+    : root
+      ? writable.switched
+      : writable.helpers;
   if (written.has(csharp)) return { verdict: "written", detail: JSON_WRITER };
   if (!constructed.has(csharp)) return { verdict: "never-built", detail: "" };
   if (flattened.has(csharp)) {
@@ -332,25 +449,49 @@ export function selfCheck() {
         "    null;",
         "public static PlantedNested Nested() => new PlantedNested();",
         "public PlantedTargetTyped Value = new();",
+        "public static PlantedListFlattened Listed() => new PlantedListFlattened();",
+        "internal static List<Dictionary<string, object?>> Rates(",
+        "    IReadOnlyList<PlantedListFlattened> rows) => null;",
+        "public static PlantedOwnerFlattened Owned() => new PlantedOwnerFlattened();",
+        "public static PlantedSliceOwned Slice() => new PlantedSliceOwned();",
+        "public static PlantedGenericArgument Generic() => new PlantedGenericArgument();",
+        "public PlantedGenericArgument<Dictionary<string, object?>> Handle(int id) => null;",
+      ].join("\n"),
+    },
+    {
+      /*
+       * Its own file, because the subject is the ENCLOSING CLASS and the scan
+       * resolves that by position: a second declaration in the producer above
+       * would make this arm pass for the wrong reason.
+       */
+      path: "planted/PlantedOwnerFlattenedBuilder.cs",
+      text: [
+        "public static class PlantedOwnerFlattenedBuilder",
+        "{",
+        "    public static Dictionary<string, object?> Build(int id) =>",
+        "        new Dictionary<string, object?>();",
+        "}",
       ].join("\n"),
     },
   ]);
   const writable = writableTypes(
     "case Sitrep.Contract.PlantedWritten written:\n" +
+      "case Sitrep.Contract.PlantedSliceOwned slice:\n" +
       "private static void AppendPlantedNested(StringBuilder sb, Sitrep.Contract.PlantedNested n)\n",
   );
   const problems = [];
-  const expect = (name, root, wanted) => {
+  const expect = (name, root, wanted, sliceOwned = false) => {
     const actual = classify(name, {
       writable,
       constructed: planted.constructed,
       flattened: planted.flattened,
       root,
+      sliceOwned,
     }).verdict;
     if (actual !== wanted) {
       problems.push(
-        `planted ${name} (${root ? "root" : "nested"}): expected ${wanted}, ` +
-          `the scan said ${actual}`,
+        `planted ${name} (${root ? "root" : "nested"}${sliceOwned ? ", slice-owned" : ""}): ` +
+          `expected ${wanted}, the scan said ${actual}`,
       );
     }
   };
@@ -367,23 +508,143 @@ export function selfCheck() {
   // the only way the scan can see it at all.
   expect("PlantedTargetTyped", true, "uncovered");
   expect("PlantedAbsent", true, "never-built");
+  // An ARRAY channel's producer returns a collection of dictionaries rather
+  // than one, and it names its element type only in a generic argument. Reading
+  // the bare return type alone left `realantennas.hopRates` reading uncovered
+  // with `RaWire.HopRates` flattening it in plain sight.
+  expect("PlantedListFlattened", true, "producer-flattened");
+  /*
+   * The subject carried by the enclosing CLASS, which is how the scripting
+   * Uplink flattens its processor listing: every parameter of
+   * `KosProcessorInfoBuilder.Build` is a primitive and the method is named
+   * `Build`, so neither of the other two arms can see it.
+   */
+  expect("PlantedOwnerFlattened", true, "producer-flattened");
+  // A `case Sitrep.Contract.X` cannot write an Uplink's own `X`: the runtime
+  // types differ and a core serializer may not reference the Uplink assembly.
+  // Planted with the case PRESENT, so the arm fails if slice ownership stops
+  // being honoured rather than if the case disappears.
+  expect("PlantedSliceOwned", true, "written");
+  expect("PlantedSliceOwned", true, "uncovered", true);
+  // The wire dictionary as somebody else's GENERIC ARGUMENT is not a flattener
+  // for anything. `CommandResult<Dictionary<string, object?>>` is nine Rp1
+  // command handlers' return type, and reading the wrapper loosely enough to
+  // accept `List<...>` also accepted this and made `CommandResult` itself look
+  // flattened, which silently un-planted an entry of the original table.
+  expect("PlantedGenericArgument", true, "uncovered");
   return problems;
 }
 
-/** Every reachable payload type, with its verdict. */
-export function checkWirePayloadCoverage(repoRoot = REPO_ROOT) {
-  const contract = readContract(join(repoRoot, SOURCES.contract));
-  const roots = [
-    ...readMapInterface(
-      join(repoRoot, SOURCES.topicMap),
-      "GeneratedTopicPayloadMap",
-    ),
-    ...readMapInterface(
-      join(repoRoot, SOURCES.commandMap),
-      "GeneratedCommandReplyMap",
-    ),
+/**
+ * A floor on the Uplink slices the walk finds, not an equality.
+ *
+ * A discovery that matches nothing hashes nothing and reports a clean tree, and
+ * that reads as success. Set below the nine slices on disk today so removing an
+ * Uplink does not trip it, and far enough above zero that a broken walk does.
+ * Same reasoning, and the same shape, as `uplink-matrix.mjs`'s own FLOOR.
+ */
+const UPLINK_SLICE_FLOOR = 7;
+
+/**
+ * The generated slices to walk: the core contract, plus every Uplink that owns
+ * one.
+ *
+ * The Uplink list is DISCOVERED, through `uplink-matrix.mjs`, the same way the
+ * CI matrix and five other gates get it. A list written here would be a
+ * twelfth hand-maintained roster with no gate on its own completeness, which is
+ * the failure that script exists to end; it also already refuses to emit a short
+ * matrix, so a broken walk fails there before it reaches this.
+ *
+ * The Uplinks are ragged: three own no contract slice at all, and of the nine
+ * that do, one is command-only and has no topic map. Absent maps are skipped and
+ * a present one is REQUIRED to parse, so a slice that stops being readable fails
+ * rather than quietly contributing nothing.
+ */
+export function contractSlices(repoRoot = REPO_ROOT) {
+  const slices = [
+    {
+      id: "Sitrep.Contract",
+      core: true,
+      contract: SOURCES.contract,
+      maps: [
+        [SOURCES.topicMap, "GeneratedTopicPayloadMap"],
+        [SOURCES.commandMap, "GeneratedCommandReplyMap"],
+      ],
+    },
   ];
-  const reached = reachableFromChannels({ contract, roots });
+  const legs = JSON.parse(
+    execFileSync("node", [join(repoRoot, "scripts/uplink-matrix.mjs")], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }),
+  );
+  for (const leg of legs.filter((entry) => entry.generated)) {
+    const generated = `mod/${leg.id}/client/src/__generated__`;
+    slices.push({
+      id: leg.id,
+      core: false,
+      contract: `${generated}/contract.ts`,
+      maps: [
+        [`${generated}/topic-map.ts`, "GeneratedTopicPayloadMap"],
+        [`${generated}/command-map.ts`, "GeneratedCommandReplyMap"],
+      ].filter(([path]) => existsSync(join(repoRoot, path))),
+    });
+  }
+  const uplinks = slices.length - 1;
+  if (uplinks < UPLINK_SLICE_FLOOR) {
+    throw new Error(
+      `wire-payload-coverage: found only ${uplinks} Uplink contract slice(s), ` +
+        `fewer than this repo has ever had (${UPLINK_SLICE_FLOOR}). An Uplink's own ` +
+        "payload types would go unwalked and the gate would report a clean tree " +
+        "over them.",
+    );
+  }
+  return slices;
+}
+
+/**
+ * One slice's payload types, with a verdict each.
+ *
+ * An Uplink slice's `contract.ts` declares only the types that Uplink owns and
+ * IMPORTS the rest from the SDK (`Value`, `PayloadMeta`, `CommandResult`), so
+ * the walk reads against the core contract underneath its own. Which half a type
+ * came from is the `sliceOwned` flag, and it decides whether `JsonWriter` can
+ * possibly write it.
+ */
+function coverSlice({ slice, core, own, writable, constructed, flattened }) {
+  const interfaces = new Map([...core.interfaces, ...own.interfaces]);
+  const enums = new Map([...core.enums, ...own.enums]);
+  const roots = slice.maps.flatMap(([path, name]) =>
+    readMapInterface(join(REPO_ROOT, path), name),
+  );
+  const reached = reachableFromChannels({ contract: { interfaces }, roots });
+  const verdicts = [];
+  for (const [name, { via, root }] of reached) {
+    if (enums.has(name)) {
+      verdicts.push({ slice: slice.id, name, via, root, verdict: "enum" });
+      continue;
+    }
+    if (NOT_A_POCO.has(name)) continue;
+    verdicts.push({
+      slice: slice.id,
+      name,
+      via,
+      root,
+      ...classify(name, {
+        writable,
+        constructed,
+        flattened,
+        root,
+        sliceOwned: own.interfaces.has(name),
+      }),
+    });
+  }
+  return { roots: roots.length, reached: reached.size, verdicts };
+}
+
+/** Every reachable payload type, in every generated slice, with its verdict. */
+export function checkWirePayloadCoverage(repoRoot = REPO_ROOT) {
+  const core = readContract(join(repoRoot, SOURCES.contract));
   const writerSource = readFileSync(join(repoRoot, JSON_WRITER), "utf8");
   const writable = writableTypes(writerSource);
   const files = productionSources(repoRoot);
@@ -392,37 +653,70 @@ export function checkWirePayloadCoverage(repoRoot = REPO_ROOT) {
   // An enum reaches the writer BOXED, so its runtime type is the enum type and
   // it matches no numeric case: it needs `case System.Enum`, which is one case
   // covering every enum there will ever be. The third instance of this bug class
-  // was exactly that, an uplink publishing one of its own enums. Asserted rather
-  // than assumed, because an enum root would otherwise be skipped in silence.
+  // was exactly that, an Uplink publishing one of its OWN enums, which is why the
+  // walk has to reach an Uplink's contract slice before it can name the type
+  // that broke. Asserted rather than assumed, because an enum root would
+  // otherwise be skipped in silence.
   const boxedEnums = /case\s+System\.Enum\s+\w+\s*:/.test(writerSource);
 
+  const slices = [];
   const verdicts = [];
-  for (const [name, { via, root }] of reached) {
-    if (contract.enums.has(name)) {
-      if (!boxedEnums) {
-        verdicts.push({
-          name,
-          via,
-          root,
-          verdict: "uncovered",
-          detail: `no \`case System.Enum\` in ${JSON_WRITER}`,
-        });
+  for (const slice of contractSlices(repoRoot)) {
+    const own = slice.core
+      ? { interfaces: new Map(), enums: new Map() }
+      : readContract(join(repoRoot, slice.contract));
+    const walked = coverSlice({
+      slice,
+      core,
+      own,
+      writable,
+      constructed,
+      flattened,
+    });
+    for (const entry of walked.verdicts) {
+      if (entry.verdict !== "enum") {
+        verdicts.push(entry);
+        continue;
       }
-      continue;
+      if (boxedEnums) continue;
+      verdicts.push({
+        ...entry,
+        verdict: "uncovered",
+        detail: `no \`case System.Enum\` in ${JSON_WRITER}`,
+      });
     }
-    if (NOT_A_POCO.has(name)) continue;
-    verdicts.push({
-      name,
-      via,
-      root,
-      ...classify(name, { writable, constructed, flattened, root }),
+    slices.push({
+      id: slice.id,
+      core: slice.core,
+      roots: walked.roots,
+      reached: walked.reached,
     });
   }
+
+  const uplinkReached = slices
+    .filter((slice) => !slice.core)
+    .reduce((total, slice) => total + slice.reached, 0);
+  if (uplinkReached === 0) {
+    throw new Error(
+      "wire-payload-coverage: the Uplink slices reached no payload types at " +
+        "all. Nine slices publish between one and fifty-four channel roots, so " +
+        "a zero here is a broken walk rather than a small tree, and it would " +
+        "report clean over every Uplink-owned payload.",
+    );
+  }
+
+  const of = (id) => slices.find((slice) => slice.id === id);
   return {
-    roots: roots.length,
-    reached: reached.size,
+    roots: of("Sitrep.Contract").roots,
+    reached: of("Sitrep.Contract").reached,
     writable: writable.switched.size,
     files: files.length,
+    slices,
+    uplinkSlices: slices.length - 1,
+    uplinkRoots: slices
+      .filter((slice) => !slice.core)
+      .reduce((total, slice) => total + slice.roots, 0),
+    uplinkReached,
     verdicts,
     uncovered: verdicts.filter((v) => v.verdict === "uncovered"),
     selfCheckProblems: selfCheck(),
@@ -431,19 +725,32 @@ export function checkWirePayloadCoverage(repoRoot = REPO_ROOT) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const report = checkWirePayloadCoverage();
-  const counts = {};
-  for (const { verdict } of report.verdicts) {
-    counts[verdict] = (counts[verdict] ?? 0) + 1;
-  }
+  const tally = (entries) => {
+    const counts = {};
+    for (const { verdict } of entries)
+      counts[verdict] = (counts[verdict] ?? 0) + 1;
+    return JSON.stringify(counts);
+  };
   console.log(
-    `wire-payload-coverage: ${report.roots} channel roots, ${report.reached} types reached, ` +
+    `wire-payload-coverage: core ${report.roots} channel roots, ${report.reached} types reached, ` +
       `${report.writable} JsonWriter types, ${report.files} production sources`,
   );
-  console.log(`  ${JSON.stringify(counts)}`);
+  console.log(
+    `  core ${tally(report.verdicts.filter((v) => v.slice === "Sitrep.Contract"))}`,
+  );
+  console.log(
+    `  ${report.uplinkSlices} Uplink slices, ${report.uplinkRoots} channel roots, ` +
+      `${report.uplinkReached} types reached`,
+  );
+  console.log(
+    `  uplink ${tally(report.verdicts.filter((v) => v.slice !== "Sitrep.Contract"))}`,
+  );
   for (const problem of report.selfCheckProblems)
     console.log(`  BLIND: ${problem}`);
-  for (const { name, via, detail } of report.uncovered) {
-    console.log(`  UNCOVERED ${name} (reached via ${via}, built in ${detail})`);
+  for (const { slice, name, via, detail } of report.uncovered) {
+    console.log(
+      `  UNCOVERED ${name} (${slice}, reached via ${via}, built in ${detail})`,
+    );
   }
   const failed =
     report.uncovered.length > 0 || report.selfCheckProblems.length > 0;
