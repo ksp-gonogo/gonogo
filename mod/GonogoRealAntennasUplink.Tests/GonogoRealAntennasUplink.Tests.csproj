@@ -59,6 +59,12 @@
 
   <ItemGroup>
     <Compile Remove="Routing\**\*.cs" />
+    <!-- Asserts the SHAPE of RaCommsBackend, so it only compiles where that type
+         does. It lives at the project root rather than under Routing\, which is
+         why it needs naming here: without this line it compiled unconditionally,
+         referenced a type that is gated, and broke the build on any machine
+         without the KSP assemblies while passing on every machine with them. -->
+    <Compile Remove="RaCommsBackendSharedShapeTests.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(KspManagedAvailable)' == 'true'">
@@ -78,6 +84,7 @@
     <Compile Include="..\GonogoRealAntennasUplink\RaHopExtensions.cs" />
     <Compile Include="..\GonogoRealAntennasUplink\RaOcclusion.cs" />
     <Compile Include="Routing\**\*.cs" />
+    <Compile Include="RaCommsBackendSharedShapeTests.cs" />
   </ItemGroup>
 
   <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
