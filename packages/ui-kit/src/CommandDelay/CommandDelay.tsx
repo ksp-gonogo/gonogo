@@ -28,6 +28,7 @@ export type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandOutputToken } from "@ksp-gonogo/sitrep-sdk";
 import type { CommandFoundEntry } from "./CommandFoundList";
 import type { CommandLossEntry } from "./CommandLossList";
+import type { CommandUndeliveredEntry } from "./CommandUndeliveredList";
 import type { CommandRefusalEntry } from "./commandRefusalSentence";
 
 /**
@@ -110,6 +111,16 @@ export interface CommandDelayHandle {
    * this structurally; a handle from another source omits it.
    */
   founds?: CommandFoundEntry[];
+  /**
+   * Dispatches from this command that NEVER LEFT this machine, until dismissed.
+   * Rendered by the Panel rail beside the losses, in the losses' own tone: the
+   * command did not run, and this says so where a loss could only wonder.
+   *
+   * An entry here has left `losses` too, the same promotion `founds` uses, so
+   * again the two are never two boxes at once. `useCommand().undelivered`
+   * satisfies this structurally; a handle from another source omits it.
+   */
+  undelivered?: CommandUndeliveredEntry[];
   /**
    * Clear a dead command (`overdue`/`lost`) from this handle's shared delay
    * queue. Supplied by `useCommand` (acting on the shared per-grid-item

@@ -51,6 +51,21 @@ describe("useCommandFailures", () => {
     expect(hasFailure).toBe(false);
   });
 
+  it("keeps the failed tint when a loss is promoted to undelivered", () => {
+    // The promotion MOVES the entry out of `losses`. A flag that counted only
+    // those would go quiet at the moment the news got worse: the command did
+    // not merely go unanswered, it never left this machine.
+    const promoted: CommandDelayHandle = {
+      ...handle([]),
+      losses: [],
+      undelivered: [{ id: "u0", command: "vessel.control.setSas", label: "" }],
+    };
+    expect(useCommandFailures(promoted).hasFailure).toBe(true);
+    // Still no in-flight ROW: an undelivered dispatch has none, the same way a
+    // loss has none.
+    expect(useCommandFailures(promoted).failed).toHaveLength(0);
+  });
+
   it("passes the handle's dismiss straight through", () => {
     const dismiss = vi.fn();
     const result = useCommandFailures(handle([cmd("b", "lost")], dismiss));

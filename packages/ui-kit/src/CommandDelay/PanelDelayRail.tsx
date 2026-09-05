@@ -5,6 +5,10 @@ import { CommandFoundList, type RailFound } from "./CommandFoundList";
 import { CommandLossList, type RailLoss } from "./CommandLossList";
 import { CommandRefusalList, type RailRefusal } from "./CommandRefusalList";
 import {
+  CommandUndeliveredList,
+  type RailUndelivered,
+} from "./CommandUndeliveredList";
+import {
   type CommandHandle,
   useActiveCrossings,
   useActiveHandles,
@@ -66,10 +70,11 @@ function handleHasContent(handle: CommandHandle): boolean {
  * Renders `null` when no active handle has anything to draw, so a widget whose
  * commands are all instant or idle gets no rail element at all and the panel
  * reads the `var(--panel-rail-height, 0px)` fallback. "Anything to draw" is
- * four things, not one: something in flight, something the game refused,
- * something nothing ever answered, and something that answered after it was
- * called lost. The last three are terminal and so have nothing in flight by
- * definition, which is precisely why they are asked for separately.
+ * five things, not one: something in flight, something the game refused,
+ * something nothing ever answered, something that answered after it was called
+ * lost, and something that never left this machine. The last four are terminal
+ * and so have nothing in flight by definition, which is precisely why they are
+ * asked for separately.
  */
 export function PanelDelayRail() {
   const handles = useActiveHandles();
@@ -99,7 +104,17 @@ export function PanelDelayRail() {
   const founds: RailFound[] = handles.flatMap((h) =>
     (h.founds ?? []).map((f) => ({ ...f, shape: h.shape })),
   );
-  const deadCount = refusals.length + losses.length;
+  /*
+   * Counted WITH the failures rather than apart from them, which is the
+   * opposite call from the founds above and the same reasoning. An undelivered
+   * command is a loss whose doubt resolved the bad way: it did not run, and it
+   * now provably never will, so leaving it out would drop the collapsed count
+   * at the moment the news got worse.
+   */
+  const undelivered: RailUndelivered[] = handles.flatMap((h) =>
+    (h.undelivered ?? []).map((u) => ({ ...u, shape: h.shape })),
+  );
+  const deadCount = refusals.length + losses.length + undelivered.length;
   const hasContent =
     visible.length > 0 ||
     deadCount > 0 ||
@@ -177,6 +192,15 @@ export function PanelDelayRail() {
   const dismissLoss = canDismissLoss
     ? (id: string) =>
         handles.find((h) => h.losses?.some((l) => l.id === id))?.dismiss?.(id)
+    : undefined;
+  const canDismissUndelivered = handles.some(
+    (h) => h.dismiss && (h.undelivered?.length ?? 0) > 0,
+  );
+  const dismissUndelivered = canDismissUndelivered
+    ? (id: string) =>
+        handles
+          .find((h) => h.undelivered?.some((u) => u.id === id))
+          ?.dismiss?.(id)
     : undefined;
   const canDismissFound = handles.some(
     (h) => h.dismiss && (h.founds?.length ?? 0) > 0,
@@ -274,6 +298,14 @@ export function PanelDelayRail() {
       )}
       {pinned && losses.length > 0 && (
         <CommandLossList losses={losses} onDismiss={dismissLoss} />
+      )}
+      {/* Under the losses, because it is one of the two ways a loss ends, and
+          the one that keeps its warning colour. */}
+      {pinned && undelivered.length > 0 && (
+        <CommandUndeliveredList
+          undelivered={undelivered}
+          onDismiss={dismissUndelivered}
+        />
       )}
       {/* Last, under the losses, because it is the resolution of one: an
           operator reading down the rail meets the silence and then the answer

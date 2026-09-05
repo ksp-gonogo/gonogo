@@ -728,6 +728,90 @@ describe("PanelDelayRail", () => {
     });
   });
 
+  describe("a command that never left this machine", () => {
+    /**
+     * The other way a loss ends. The transport held the command for a link that
+     * never came back and has stopped retrying, so nothing over there ever saw
+     * it: the rail can say it did not run, which a loss can never say.
+     */
+    function unsentHandle(
+      id: string,
+      count: number,
+      dismiss?: (id: string) => void,
+    ): CommandHandle {
+      return {
+        id,
+        inFlight: [],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+        undelivered: Array.from({ length: count }, (_, i) => ({
+          id: `${id}-u${i}`,
+          command: "vessel.control.setSas",
+          args: { enabled: true },
+          label: "",
+        })),
+        dismiss,
+      };
+    }
+
+    it("mounts the rail for a handle carrying only undelivered commands", () => {
+      const store = createDelayRailStore();
+      store.register(unsentHandle("cmd", 1));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      expect(container.querySelector("[data-panel-rail]")).not.toBeNull();
+    });
+
+    it("counts WITH the failures, so promoting a loss does not drop the count", () => {
+      // The opposite call from a found, and for the opposite reason: this one
+      // confirms the failure rather than reversing it.
+      const store = createDelayRailStore();
+      store.register(unsentHandle("unsent", 1));
+      store.register(refusedHandle("refused", 1));
+      inPanel(<PanelDelayRail />, store);
+      expect(screen.getByText("2 commands failed")).toBeTruthy();
+      expect(screen.queryByText(/found/)).toBeNull();
+    });
+
+    it("says it never left and that a re-send is safe, once expanded", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(unsentHandle("cmd", 1));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      const list = screen.getByRole("status", { name: /never sent/i });
+      expect(list.textContent).toMatch(/never left this machine/i);
+      expect(list.textContent).toMatch(/cannot double it/i);
+      // The one thing it must not repeat is the loss's doubt: this command
+      // provably did not run.
+      expect(list.textContent).not.toMatch(/unknown/i);
+    });
+
+    it("clears an undelivered command through the handle that owns it", async () => {
+      const user = userEvent.setup();
+      const dismissed: string[] = [];
+      const store = createDelayRailStore();
+      store.register(unsentHandle("cmd", 1, (id) => dismissed.push(id)));
+      inPanel(<PanelDelayRail />, store);
+
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await user.click(
+        screen.getByRole("button", { name: /Dismiss Set Sas/i }),
+      );
+      expect(dismissed).toEqual(["cmd-u0"]);
+    });
+
+    it("has no axe violations collapsed or expanded", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(unsentHandle("cmd", 2, () => {}));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      await expectNoA11yViolations(container);
+      await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
+      await expectNoA11yViolations(container);
+    });
+  });
+
   it("drops --panel-rail-height back to the 0px fallback when the last command completes", () => {
     const store = createDelayRailStore();
     const deregister = store.register(handle("cmd"));

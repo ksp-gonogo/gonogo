@@ -178,6 +178,14 @@ export {
   type RailRefusal,
 } from "./CommandDelay/CommandRefusalList";
 export {
+  type CommandUndeliveredEntry,
+  type CommandUndeliveredLike,
+  CommandUndeliveredList,
+  type CommandUndeliveredListProps,
+  commandUndeliveredSentence,
+  type RailUndelivered,
+} from "./CommandDelay/CommandUndeliveredList";
+export {
   ControlDelayStream,
   type ControlDelayStreamProps,
   type ControlStreamDatum,

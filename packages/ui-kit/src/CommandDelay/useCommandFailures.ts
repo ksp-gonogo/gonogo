@@ -36,7 +36,15 @@ export function useCommandFailures(
   // a queue entry. That is exactly why the tint was invisible for the case it
   // was written for, so the flag asks the wider question and the rail renders
   // the loss itself (`CommandLossList`).
-  const hasFailure = failed.length > 0 || (handle.losses?.length ?? 0) > 0;
+  //
+  // And the undelivered ones, which are losses that LEFT that list. Learning a
+  // command never went out is learning something worse, so a control that
+  // dropped its failed tint at that moment would go quiet on the strongest
+  // news it has.
+  const hasFailure =
+    failed.length > 0 ||
+    (handle.losses?.length ?? 0) > 0 ||
+    (handle.undelivered?.length ?? 0) > 0;
   return {
     failed,
     hasFailure,
