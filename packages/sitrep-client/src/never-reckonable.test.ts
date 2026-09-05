@@ -1,4 +1,4 @@
-import { TOPIC_IDS } from "@ksp-gonogo/sitrep-sdk";
+import { reckonableValuesOf, TOPIC_IDS } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";
 import { getReckoner } from "./reckoners";
@@ -37,6 +37,20 @@ describe("the never-reckonable declaration", () => {
 
   it("has no duplicates, so a removal cannot be half-done", () => {
     expect([...new Set(NEVER_RECKONABLE)].length).toBe(NEVER_RECKONABLE.length);
+  });
+
+  it("claims nothing the contract declares reckonable", () => {
+    // The same contradiction as the registered-model one above, caught a layer
+    // earlier: a mark is a promise the WIRE carries a model's inputs, so a
+    // marked topic listed here would suppress the very members the contract just
+    // said were reachable. This is the one half of the reckonability gate that
+    // pure C# structurally cannot see, because the list is TypeScript; it reads
+    // two generated TS artifacts and no C# source, so it is not a cross-language
+    // ratchet.
+    const contradictory = NEVER_RECKONABLE.filter(
+      (t) => reckonableValuesOf(t).length > 0,
+    );
+    expect(contradictory).toEqual([]);
   });
 
   it("agrees with its own runtime predicate", () => {

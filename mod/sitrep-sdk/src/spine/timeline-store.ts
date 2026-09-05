@@ -1,7 +1,12 @@
 import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import { PerfBudget } from "../perf/PerfBudget";
-import type { ModelledField, ReckoningBasis } from "../reading";
+import type {
+  ModelledField,
+  ReckoningBasis,
+  ReckoningDecline,
+} from "../reading";
+import { reckonableInputSpelling, reckonableValuesOf } from "../reckonability";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 import { isValue, value } from "../unit-system/value";
 import { type Reading, type ReckonerFor, readingFrom } from "./client-reading";
@@ -18,7 +23,7 @@ import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
-import { getReckoner } from "./reckoners";
+import { getReckoner, getReckonerConflicts } from "./reckoners";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { Certainty, ViewClock } from "./view-clock";
@@ -459,6 +464,11 @@ export class TimelineStore {
       viewUt: number;
       /** Whether the topic was known unowned. Flips the arm with no other input changing. */
       unowned: boolean;
+      /**
+       * The decline that was on the reading, flattened to a comparable string.
+       * Its own input, because it is a function of OTHER topics' data.
+       */
+      declineKey: string | undefined;
       reading: Reading<unknown>;
     }
   >();
@@ -1491,6 +1501,79 @@ export class TimelineStore {
   }
 
   /**
+   * One step of a declared input's dotted path, or `undefined` when the payload
+   * does not carry it. `null` counts as carried-and-absent, `false` and `0` do
+   * not: `frameRotating` is a declared input whose whole job is to be `false`
+   * most of the time.
+   */
+  private static walkPath(payload: unknown, path: string): unknown {
+    let current = payload;
+    for (const segment of path.split(".")) {
+      if (current === null || typeof current !== "object") return undefined;
+      current = (current as Record<string, unknown>)[segment];
+    }
+    return current;
+  }
+
+  /**
+   * Why the declared model did not answer for `topic` this frame, or `undefined`
+   * when the contract declares nothing about it.
+   *
+   * Only asked when no model was on offer, which for a DECLARED topic is a
+   * specific refusal rather than the honest default it is elsewhere: the mark is
+   * a promise that the wire carries the model's inputs, so if nothing answered,
+   * either an input did not arrive, two owners are contesting the topic, or no
+   * model is registered to run at all. Naming which beats a silent absence, and
+   * the name is the contract's own spelling of the input so the string a widget
+   * renders is the string the contract carries.
+   */
+  private declineFor(
+    topic: string,
+    token: FrameToken,
+  ): ReckoningDecline | undefined {
+    const declared = reckonableValuesOf(topic);
+    if (declared.length === 0) return undefined;
+
+    if (getReckonerConflicts().some((conflict) => conflict.topic === topic)) {
+      return {
+        reason: "contested",
+        note: "two owners registered a model for this topic, so neither is served",
+      };
+    }
+
+    const own = this.sample<unknown>(topic, token);
+    for (const declaredValue of declared) {
+      for (const input of declaredValue.inputs) {
+        const payload =
+          input.topic === ""
+            ? own?.payload
+            : this.sample<unknown>(input.topic, token)?.payload;
+        const reached =
+          payload === undefined || payload === null
+            ? undefined
+            : input.path === ""
+              ? payload
+              : TimelineStore.walkPath(payload, input.path);
+        if (reached === undefined || reached === null) {
+          return {
+            reason: "input-absent",
+            input: reckonableInputSpelling(input),
+          };
+        }
+      }
+    }
+
+    // Every declared input is here and nothing ran. That is the state phase four
+    // of the reckoning work removes, by registering core's own conic through the
+    // same seam an Uplink would use; until then it is the honest answer and it
+    // says so rather than presenting as a missing input.
+    return {
+      reason: "model-inapplicable",
+      note: "no model is registered for this topic",
+    };
+  }
+
+  /**
    * The topic's value AND its currency as one `Reading<T>`, at a frame token's
    * frozen `viewUt`: `sample()` and `sampleStatus()` folded into the union a
    * widget cannot read incuriously. See `Reading`'s own doc for the mechanism.
@@ -1535,6 +1618,15 @@ export class TimelineStore {
           this.derivedReckoner<T>(topic, effectiveToken) ??
           this.fieldScopedReckoner<T>(topic, effectiveToken);
         const unowned = this.unownedTopics.has(topic);
+        // Only computed where the CONTRACT declared something: an undeclared
+        // topic has nothing to explain, and building a reason for one would put
+        // a `declined` on a reading whose type has no room for it.
+        const declined = reckoner
+          ? undefined
+          : this.declineFor(topic, effectiveToken);
+        const declineKey = declined
+          ? `${declined.reason}\0${declined.input ?? ""}`
+          : undefined;
         const previous = this.readings.get(topic);
         if (
           previous !== undefined &&
@@ -1542,6 +1634,11 @@ export class TimelineStore {
           previous.status === status &&
           previous.epoch === epoch &&
           previous.unowned === unowned &&
+          // A decline names a published input that did not arrive, so it moves
+          // when a DIFFERENT topic's data does. Folding it into the identity
+          // check is what stops a reading freezing on "no orbit yet" through the
+          // frame the orbit lands on.
+          previous.declineKey === declineKey &&
           // A reading depends on the frame's view time ONLY through a
           // reckoning, so a topic nobody models keeps its identity across a
           // frame exactly as before. Where a model exists, an advancing view
@@ -1553,16 +1650,19 @@ export class TimelineStore {
         ) {
           return previous.reading as Reading<T>;
         }
-        const reading = readingFrom(point, status, viewUt, reckoner, unowned);
+        const reading = declined
+          ? readingFrom(point, status, viewUt, reckoner, unowned, declined)
+          : readingFrom(point, status, viewUt, reckoner, unowned);
         this.readings.set(topic, {
           point,
           status,
           epoch,
           viewUt,
           unowned,
+          declineKey,
           reading: reading as Reading<unknown>,
         });
-        return reading;
+        return reading as Reading<T>;
       },
     );
   }

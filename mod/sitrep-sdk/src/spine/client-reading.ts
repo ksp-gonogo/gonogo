@@ -1,4 +1,10 @@
-import type { ModelledField, Reading, ReckonerFor } from "../reading";
+import type {
+  ModelledField,
+  Reading,
+  ReckonableReading,
+  ReckonerFor,
+  ReckoningDecline,
+} from "../reading";
 import { value } from "../unit-system/value";
 
 /**
@@ -68,14 +74,39 @@ function rootCoverage(model: {
  * subscribed, and an ack settles ownership for the life of the connection, so a
  * mid-resync topic can never be carrying an `unowned` verdict. Earning the
  * verdict positively is `TopicOwnershipTracker`'s job; this function trusts it.
+ *
+ * `declined` is the caller's answer for a topic whose CONTRACT declares a value
+ * reckonable, and it turns the value-bearing `"none"` arms into
+ * `ReckonableReading`'s. It is the caller's rather than this function's because
+ * the reason is a fact about the TOPIC (which published inputs the mark named,
+ * which of them failed to arrive) and this function has never been told which
+ * topic it is building for. Omit it and the reading is exactly what it always
+ * was: an undeclared topic has nothing to explain, because nothing promised it a
+ * model.
  */
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
   status: StreamStatusValue,
   viewUt: number,
   reckoner?: ReckonerFor<T>,
+  unowned?: boolean,
+): Reading<T>;
+export function readingFrom<T>(
+  point: TimelinePoint<T> | undefined,
+  status: StreamStatusValue,
+  viewUt: number,
+  reckoner: ReckonerFor<T> | undefined,
+  unowned: boolean,
+  declined: ReckoningDecline,
+): ReckonableReading<T, keyof T>;
+export function readingFrom<T>(
+  point: TimelinePoint<T> | undefined,
+  status: StreamStatusValue,
+  viewUt: number,
+  reckoner?: ReckonerFor<T>,
   unowned = false,
-): Reading<T> {
+  declined?: ReckoningDecline,
+): Reading<T> | ReckonableReading<T, keyof T> {
   if (!point || status === "resyncing") {
     return unowned
       ? { state: "unowned", reckoning: "none" }
@@ -112,12 +143,13 @@ export function readingFrom<T>(
   const root = model && rootCoverage(model);
   if (live) {
     if (!model || !root) {
-      return {
-        state: "observed",
-        reckoning: "none",
+      const observed = {
+        state: "observed" as const,
+        reckoning: "none" as const,
         value: point.payload,
         atUt: value("ut", point.validAt),
       };
+      return declined ? { ...observed, declined } : observed;
     }
     return {
       state: "observed",
@@ -147,11 +179,12 @@ export function readingFrom<T>(
       },
     };
   }
-  return {
-    state: "stale",
-    reckoning: "none",
+  const stale = {
+    state: "stale" as const,
+    reckoning: "none" as const,
     value: point.payload,
     asOfUt: value("ut", point.validAt),
     grade: status,
   };
+  return declined ? { ...stale, declined } : stale;
 }

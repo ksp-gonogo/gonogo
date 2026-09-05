@@ -225,6 +225,21 @@ export { PerfBudget } from "./perf/PerfBudget";
 // The read contract: `useTelemetry` answers with a `Reading`, so the union and
 // its accessors ship on the author surface rather than app-side.
 export * from "./reading";
+// Which VALUES the contract says a model can carry forward, and from which
+// published inputs. On the author surface because the promise is made to an API
+// consumer holding nothing but the stream: an Uplink writing its own reckoner
+// reads the same declaration core does, rather than re-deriving from a doc.
+export {
+  type GeneratedReckonableInput,
+  type GeneratedReckonableValue,
+  type GeneratedReckoningBasis,
+  isReckonableTopic,
+  type ReckonableFields,
+  type ReckonableTopic,
+  reckonableInputSpelling,
+  reckonableInputsOf,
+  reckonableValuesOf,
+} from "./reckonability";
 // Which Topics a client package has registered at runtime, and a subscription
 // to that answer changing. Read by the app's field catalogue and by
 // `TelemetryProvider`'s carried-channels allowlist; an Uplink author registers

@@ -3,6 +3,8 @@ import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
   DELTA_V_BUDGET,
   type Reading,
+  type ReadingState,
+  type ReckonableReading,
   useProcessor,
   useStream,
   type VesselState,
@@ -408,11 +410,30 @@ function LandingStatusComponent({
         ? r.value
         : undefined;
 
+  /**
+   * The same policy for a topic the CONTRACT declares reckonable, where the
+   * model moves only the named fields.
+   *
+   * The spread is the whole difference: a conic advances `vessel.flight`'s
+   * altitude and orbital speed and says nothing about its vertical speed, its
+   * terrain height or the air it is in, so overlaying is the only honest read.
+   * Taking `reckoned.value` alone would hand this board a payload missing every
+   * number it descends on.
+   */
+  const describeReckonable = <T, K extends keyof T>(
+    r: ReckonableReading<T, K>,
+  ): T | undefined =>
+    r.reckoning === "available"
+      ? { ...r.value, ...r.reckoned.value }
+      : r.state === "observed" || r.state === "stale"
+        ? r.value
+        : undefined;
+
   // Which situation the vessel is in does not decay the way a velocity does: a
   // craft that was on the pad when the last frame arrived has not since taken
   // off down a link that stopped delivering, so `describe` is the right read.
   const identity = describe(identityReading);
-  const flight = describe(flightReading);
+  const flight = describeReckonable(flightReading);
   const surface = describe(surfaceReading);
   const propulsion = describe(propulsionReading);
   const orbit = describe(orbitReading);
@@ -440,7 +461,9 @@ function LandingStatusComponent({
    * there. Drives a caption, never a blank: the numbers below are still the best
    * picture available and stay on screen.
    */
-  const isDated = (r: Reading<unknown>): boolean => r.state === "stale";
+  // The state alone, so a declared-reckonable topic answers it identically: how
+  // current an observation is has nothing to do with what a model moves.
+  const isDated = (r: { state: ReadingState }): boolean => r.state === "stale";
   const datedInputs = [
     isDated(flightReading) ? "flight" : null,
     isDated(surfaceReading) ? "surface" : null,

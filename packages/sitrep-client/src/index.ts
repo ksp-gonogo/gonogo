@@ -360,9 +360,12 @@ export {
 } from "./propagation";
 export type {
   Reading,
+  ReadingState,
+  ReckonableReading,
   ReckonerFor,
   Reckoning,
   ReckoningBasis,
+  ReckoningDecline,
   StaleGrade,
   UnmodelledReading,
 } from "./reading";

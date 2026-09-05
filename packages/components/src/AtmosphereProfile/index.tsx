@@ -7,6 +7,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   type Reading,
+  type ReadingState,
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
@@ -46,8 +47,12 @@ function judgeable<T>(reading: Reading<T>): T | undefined {
   return undefined;
 }
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
+/**
+ * Whether a reading went stale, as opposed to never having arrived. Takes the
+ * state alone, so a declared-reckonable topic's reading answers it too: how
+ * current an observation is has nothing to do with what a model moves.
+ */
+function notCurrent(reading: { state: ReadingState }): boolean {
   return reading.state === "stale";
 }
 
@@ -139,7 +144,20 @@ function AtmosphereProfileComponent({
    * craft that has since left the air.
    */
   const flightReading = topics.useTelemetry("vessel.flight");
-  const flight = judgeable(flightReading);
+  /*
+   * `judgeable`'s body, inlined, because `vessel.flight` is a topic the contract
+   * declares reckonable: `reckoned` carries only the altitude and orbital speed
+   * a conic moves, and the three atmospheric numbers this chip draws are not
+   * among them. The spread overlays the modelled fields on the observation, and
+   * it is written here rather than hidden in a helper because choosing to draw a
+   * modelled altitude beside an observed density IS the judgement.
+   */
+  const flight =
+    flightReading.reckoning === "available"
+      ? { ...flightReading.value, ...flightReading.reckoned.value }
+      : flightReading.state === "observed"
+        ? flightReading.value
+        : undefined;
   const flightNotCurrent = notCurrent(flightReading);
   const bodyName = vesselState?.parentBodyName ?? undefined;
   /* Resolved against the same `system.bodies` roster the name came from, not

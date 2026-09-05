@@ -586,6 +586,20 @@ public static class RtConfig
         {
             EmitCommandMap(commandMapOut!);
         }
+
+        // --- Reckonable-value map (see SitrepReckonableAttribute) ---
+        // Same shape of problem, and same answer, as the four maps above:
+        // rtcli emits TYPES, and a reckonability declaration is a runtime
+        // record (which model, which published inputs) the SDK looks up to
+        // build the projection type and to name an input that never arrived.
+        // codegen.sh sets SITREP_RECKONABILITY_OUT and we reflect over the
+        // [SitrepReckonable]-tagged properties to write reckonability.ts
+        // alongside. No-op when the env var is unset.
+        var reckonabilityOut = Environment.GetEnvironmentVariable("SITREP_RECKONABILITY_OUT");
+        if (!string.IsNullOrEmpty(reckonabilityOut))
+        {
+            EmitReckonability(reckonabilityOut!);
+        }
     }
 
     /// <summary>
@@ -1256,6 +1270,199 @@ public static class RtConfig
 
         File.WriteAllText(outPath, sb.ToString());
         Console.WriteLine("codegen (control-channel-map) -> " + outPath);
+    }
+
+    /// <summary>
+    /// Writes the generated reckonable-value map
+    /// (<c>GENERATED_RECKONABLE_VALUES</c> + <c>GENERATED_RECKONABLE_FIELDS</c> +
+    /// the <c>GeneratedReckoningBasis</c> vocabulary) consumed by
+    /// <c>mod/sitrep-sdk/src/reckonability.ts</c>. Every property carrying
+    /// <see cref="SitrepReckonableAttribute"/> contributes one row: the owning
+    /// type's <c>[SitrepTopic]</c> is the topic, the camelCased property name is
+    /// the field, and the declared inputs are split into their topic and path
+    /// halves so a consumer never re-parses the <c>@topic#path</c> spelling.
+    ///
+    /// <para>The FIELDS view is the one the SDK's type layer needs, because
+    /// <c>ReckonableReading&lt;T, K&gt;</c> takes a key union and rtcli cannot
+    /// emit a type alias at all. The VALUES view is what the store needs at
+    /// runtime: a reckoner that never fires should say which published input was
+    /// missing, and the only place that input's declared spelling exists is
+    /// here.</para>
+    ///
+    /// <para>Throws when a mark sits on a type with no <c>[SitrepTopic]</c>, or
+    /// on one whose Topic is <c>IsArray</c>. Both are the same cross-check
+    /// <see cref="EmitChannelMap"/> makes and for the same reason: the generated
+    /// artifact keys on a Topic id, so a mark with no Topic has nowhere to go,
+    /// and an element projection of an array Topic loses the identity fields that
+    /// would join it back to its element.</para>
+    /// </summary>
+    private static void EmitReckonability(string outPath)
+    {
+        var bases = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (var field in typeof(ReckoningBases).GetFields(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (field.IsLiteral && field.FieldType == typeof(string))
+            {
+                bases.Add((string)field.GetRawConstantValue());
+            }
+        }
+
+        var rows = new List<(string Topic, string Field, string Basis, List<(string Topic, string Path)> Inputs)>();
+        foreach (var type in typeof(RtConfig).Assembly.GetTypes())
+        {
+            var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
+            foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
+            {
+                var attr = prop.GetCustomAttribute<SitrepReckonableAttribute>();
+                if (attr == null)
+                {
+                    continue;
+                }
+
+                if (topic == null)
+                {
+                    throw new InvalidOperationException(
+                        "[SitrepReckonable] on " + type.Name + "." + prop.Name +
+                        " requires its owning type to carry [SitrepTopic]: the generated map keys on a Topic id.");
+                }
+
+                if (topic.IsArray)
+                {
+                    throw new InvalidOperationException(
+                        "[SitrepReckonable] on " + type.Name + "." + prop.Name +
+                        " sits on the element type of the array Topic \"" + topic.TopicId +
+                        "\". A projection of an array element carries no identity fields, so nothing could join it back to its element.");
+                }
+
+                var inputs = new List<(string Topic, string Path)>();
+                foreach (var input in attr.Inputs)
+                {
+                    inputs.Add(SplitReckonableInput(input));
+                }
+
+                rows.Add((topic.TopicId, UnitDescriptor.CamelCase(prop.Name), attr.Basis, inputs));
+            }
+        }
+
+        rows.Sort((a, b) =>
+        {
+            var byTopic = string.CompareOrdinal(a.Topic, b.Topic);
+            return byTopic != 0 ? byTopic : string.CompareOrdinal(a.Field, b.Field);
+        });
+
+        var sb = new StringBuilder();
+        sb.Append("//     This code was generated by the Sitrep contract reckonability codegen\n");
+        sb.Append("//     (Sitrep.Contract.RtConfig.EmitReckonability, invoked from mod/codegen.sh).\n");
+        sb.Append("//     Changes to this file may cause incorrect behavior and will be lost if\n");
+        sb.Append("//     the code is regenerated.\n");
+        sb.Append("//\n");
+        sb.Append("// Derived by reflecting over every [SitrepReckonable]-tagged property in\n");
+        sb.Append("// Sitrep.Contract: the property's owning [SitrepTopic] is the topic, the\n");
+        sb.Append("// camelCased property name is the field, and each declared input is split\n");
+        sb.Append("// into the topic it names (empty for a path on the value's own payload) and\n");
+        sb.Append("// the path inside it (empty for a whole payload). A field ABSENT here is a\n");
+        sb.Append("// value no published model carries forward, which is the default and is a\n");
+        sb.Append("// statement rather than an omission. See ../reckonability.ts.\n\n");
+
+        sb.Append("/** The closed vocabulary of forward models (Sitrep.Contract.ReckoningBases). */\n");
+        sb.Append("export type GeneratedReckoningBasis =\n");
+        foreach (var token in bases)
+        {
+            sb.Append("  | \"").Append(token).Append("\"\n");
+        }
+        sb.Append(";\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * One published input a declared model needs.\n");
+        sb.Append(" *\n");
+        sb.Append(" * `topic` is \"\" when the input is a path on the value's own payload, and\n");
+        sb.Append(" * `path` is \"\" when the input is another Topic's whole payload. Both halves\n");
+        sb.Append(" * are carried separately so a consumer resolves the dep without parsing, and\n");
+        sb.Append(" * the contract's own spelling is recoverable for a message an operator reads.\n");
+        sb.Append(" */\n");
+        sb.Append("export interface GeneratedReckonableInput {\n");
+        sb.Append("  readonly topic: string;\n");
+        sb.Append("  readonly path: string;\n");
+        sb.Append("}\n\n");
+
+        sb.Append("/** One value the contract declares a model can carry forward. */\n");
+        sb.Append("export interface GeneratedReckonableValue {\n");
+        sb.Append("  readonly topic: string;\n");
+        sb.Append("  readonly field: string;\n");
+        sb.Append("  readonly basis: GeneratedReckoningBasis;\n");
+        sb.Append("  readonly inputs: readonly GeneratedReckonableInput[];\n");
+        sb.Append("}\n\n");
+
+        sb.Append("export const GENERATED_RECKONABLE_VALUES = [\n");
+        foreach (var r in rows)
+        {
+            sb.Append("  { topic: \"").Append(r.Topic)
+                .Append("\", field: \"").Append(r.Field)
+                .Append("\", basis: \"").Append(r.Basis)
+                .Append("\", inputs: [");
+            for (var i = 0; i < r.Inputs.Count; i++)
+            {
+                sb.Append(i == 0 ? " " : ", ")
+                    .Append("{ topic: \"").Append(r.Inputs[i].Topic)
+                    .Append("\", path: \"").Append(r.Inputs[i].Path)
+                    .Append("\" }");
+            }
+            sb.Append(r.Inputs.Count == 0 ? "] },\n" : " ] },\n");
+        }
+        sb.Append("] as const satisfies readonly GeneratedReckonableValue[];\n\n");
+
+        sb.Append("/**\n");
+        sb.Append(" * The same rows keyed by Topic, as the field-name tuple the SDK turns into a\n");
+        sb.Append(" * key union. A Topic ABSENT here has no declared model for any of its values.\n");
+        sb.Append(" */\n");
+        sb.Append("export const GENERATED_RECKONABLE_FIELDS = {\n");
+        string currentTopic = null;
+        var fieldsByTopic = new List<(string Topic, List<string> Fields)>();
+        foreach (var r in rows)
+        {
+            if (currentTopic != r.Topic)
+            {
+                currentTopic = r.Topic;
+                fieldsByTopic.Add((r.Topic, new List<string>()));
+            }
+            fieldsByTopic[fieldsByTopic.Count - 1].Fields.Add(r.Field);
+        }
+        foreach (var entry in fieldsByTopic)
+        {
+            sb.Append("  \"").Append(entry.Topic).Append("\": [");
+            for (var i = 0; i < entry.Fields.Count; i++)
+            {
+                sb.Append(i == 0 ? "" : ", ").Append("\"").Append(entry.Fields[i]).Append("\"");
+            }
+            sb.Append("],\n");
+        }
+        sb.Append("} as const satisfies Record<string, readonly string[]>;\n");
+
+        File.WriteAllText(outPath, sb.ToString());
+        Console.WriteLine("codegen (reckonability) -> " + outPath);
+    }
+
+    /// <summary>
+    /// One declared input split into the Topic it names and the path inside it.
+    ///
+    /// <para>A bare path is a field on the value's own payload, so it has no
+    /// topic; <c>@topic</c> is another Topic's whole payload, so it has no path;
+    /// <c>@topic#path</c> has both. Splitting on the FIRST <c>#</c> is what makes
+    /// the two-Topic ambiguity the attribute's doc names (<c>vessel.orbit</c>
+    /// against <c>vessel.orbit.truth</c>) a non-question here.</para>
+    /// </summary>
+    private static (string Topic, string Path) SplitReckonableInput(string input)
+    {
+        if (string.IsNullOrEmpty(input) || input[0] != '@')
+        {
+            return ("", input ?? "");
+        }
+
+        var body = input.Substring(1);
+        var hash = body.IndexOf('#');
+        return hash < 0
+            ? (body, "")
+            : (body.Substring(0, hash), body.Substring(hash + 1));
     }
 
     /// <summary>

@@ -136,7 +136,18 @@ function useSpaceWeather(): SpaceWeatherRead {
   // Positional, so also a judgement: this only places the "you are here" dot on
   // the belt diagram, and a dot drawn from an altitude taken some seconds ago
   // states the craft is in a band it may have left.
-  const flight = judgeable(useTelemetry("vessel.flight"));
+  const flightReading = useTelemetry("vessel.flight");
+  // `judgeable`'s body, inlined, because `vessel.flight` is a topic the contract
+  // declares reckonable: `reckoned` carries the altitude a conic advances and
+  // nothing else, so the modelled field is overlaid on the observation rather
+  // than replacing it. The dot below is placed from the altitude, which is
+  // exactly the field the model moves, so this is the read the mark exists for.
+  const flight =
+    flightReading.reckoning === "available"
+      ? { ...flightReading.value, ...flightReading.reckoned.value }
+      : flightReading.state === "observed"
+        ? flightReading.value
+        : undefined;
   const t = judgeable(weatherReading);
 
   if (t === undefined) {

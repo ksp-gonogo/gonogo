@@ -11,11 +11,20 @@
  *
  * ## Why declaring this is sound when declaring the positive is not
  *
- * A static "this IS propagatable" is a lie waiting to happen: an orbit is
- * propagatable except during a burn or past an unmodelled SOI change, so the
- * class is a fact about the current MOMENT and an attribute cannot express it.
- * That is why there is no `[SitrepReckoning]` in the contract and why a
- * reading's `reckoning` is decided per frame by whether a model is on offer.
+ * A static "this IS propagatable" is a lie waiting to happen at TOPIC level: an
+ * orbit is propagatable except during a burn or past an unmodelled SOI change,
+ * so whether a model can answer is a fact about the current MOMENT and no
+ * attribute can express it. A reading's `reckoning` is therefore still decided
+ * per frame, by whether a model is on offer.
+ *
+ * What the contract CAN declare, and now does, is the other half of that
+ * sentence: `[SitrepReckonable]` marks one VALUE with the model that carries it
+ * and the published inputs that model needs, which is a statement about the WIRE
+ * rather than about any frame. The two answer different questions and neither
+ * replaces the other: the mark says a consumer holding only the stream could
+ * advance this value, and the per-frame `reckoning` says whether anything
+ * actually did. A marked value that cannot be answered this frame says so, and
+ * names the input that stopped it (`ReckoningDecline`).
  *
  * The negative is the other way round. "This can never be reckoned" is a
  * permanent fact about the QUANTITY: an attitude has no model and never will, an
@@ -54,6 +63,13 @@
  * absence of a registered reckoner already reads `reckoning: "none"`, which is
  * the honest default, and putting it here would forbid the model someone is
  * about to write.
+ *
+ * The list still earns its place beside the positive declaration, because the
+ * two do not partition anything between them: most Topics are in NEITHER, which
+ * is the honest default of "no model has been written yet". What the list adds
+ * is the permanent negative, and it is the only one of the three states the
+ * compiler can act on by DROPPING members. A topic in both is a contradiction,
+ * and `never-reckonable.test.ts` fails on it.
  */
 export const NEVER_RECKONABLE = [
   // ── Unmodellable: no model can exist, permanently ──────────────────────────

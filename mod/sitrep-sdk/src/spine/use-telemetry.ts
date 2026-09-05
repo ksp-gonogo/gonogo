@@ -2,7 +2,8 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { getDataSource } from "../api/registry";
 import type { DataSource } from "../api/types";
 import { isTopicCarried } from "../carried-channels";
-import type { Reading, UnmodelledReading } from "../reading";
+import type { Reading, ReckonableReading, UnmodelledReading } from "../reading";
+import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import {
   useCarriedChannelsOptional,
@@ -150,6 +151,24 @@ const CANONICAL_PENDING: Reading<never> = {
  * discriminant rather than an arm of `state`, so nothing is dropped from
  * `state` itself: `stale` remains, and remains the judgement.
  *
+ * ## The three-way narrowing, and why the marked arm is not simply `Reading`
+ *
+ * A topic the CONTRACT declares reckonable answers with `ReckonableReading`,
+ * whose `reckoned` is `Pick<payload, the declared fields>` rather than the whole
+ * payload. That is the point of declaring per value: `vessel.flight` carries an
+ * altitude a conic advances beside a `situation` the game switches, and reading
+ * the second off a modelled value is a mistake the projection makes impossible
+ * rather than merely documented.
+ *
+ * It is deliberately NOT assignable to `Reading<payload>`, so a call site that
+ * hands one to a helper typed for the whole payload stops compiling. The overlay
+ * is `{ ...reading.value, ...reading.reckoned.value }`, written where it happens
+ * because that spread IS the judgement.
+ *
+ * The three arms are exclusive by construction: a marked topic in
+ * `NEVER_RECKONABLE` is a contradiction, and `never-reckonable.test.ts` fails on
+ * it, so the order the conditional tests them in cannot be load-bearing.
+ *
  * ## The compile break does NOT always happen, and this is the trap
  *
  * Passing this hook's result straight into something that wants the PAYLOAD is
@@ -165,9 +184,14 @@ const CANONICAL_PENDING: Reading<never> = {
  */
 export function useTelemetry<T extends TopicId>(
   topic: T,
-): T extends NeverReckonable
-  ? UnmodelledReading<TopicPayload<T>>
-  : Reading<TopicPayload<T>>;
+): T extends ReckonableTopic
+  ? ReckonableReading<
+      TopicPayload<T>,
+      ReckonableFields<T> & keyof TopicPayload<T>
+    >
+  : T extends NeverReckonable
+    ? UnmodelledReading<TopicPayload<T>>
+    : Reading<TopicPayload<T>>;
 
 // Implementation (not part of the public API surface)
 export function useTelemetry(dataSourceId: string, key?: string): unknown {

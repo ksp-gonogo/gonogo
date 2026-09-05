@@ -76,9 +76,14 @@ async function decoded<T>(
   payload: unknown,
 ): Promise<T> {
   const fixture = setupStreamFixture({ carriedChannels: [topic] });
-  const { result } = renderHook(() => judgeable(useTelemetry(topic)), {
-    wrapper: fixture.Provider,
-  });
+  // `topic` is the WHOLE TopicId union here, so the read distributes over every
+  // payload and, for the ones the contract declares reckonable, over their
+  // projections too. Nothing at this call site knows which topic it holds; the
+  // cast says only what this function's own signature already says.
+  const { result } = renderHook(
+    () => judgeable(useTelemetry(topic) as Reading<T>),
+    { wrapper: fixture.Provider },
+  );
 
   fixture.emit(topic, payload);
 

@@ -4,7 +4,12 @@ import {
   defineTopicManifest,
   registerComponent,
 } from "@ksp-gonogo/core";
-import { observedAt, type Reading, useViewUt } from "@ksp-gonogo/sitrep-client";
+import {
+  observedAt,
+  type Reading,
+  useViewUt,
+  withoutReckoning,
+} from "@ksp-gonogo/sitrep-client";
 import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
@@ -245,9 +250,25 @@ function TargetingComponent({
   // that does not open.
   const targetReading = topics.useTelemetry("vessel.target");
   const dockReading = topics.useTelemetry("vessel.dock");
-  const dock = judgeable(dockReading);
-  const dockPairing = stillTrue(dockReading, undefined);
-  const target = observedPayload(targetReading);
+  /*
+   * `judgeable`'s body, inlined, because `vessel.dock` is a topic the contract
+   * declares reckonable: `reckoned` carries the separation vector and its
+   * magnitude, which a closing velocity does move, and NOT the relative velocity
+   * itself or `forwardDot`, which nothing on that payload advances. The spread
+   * overlays the two on the observation, and it is written here rather than
+   * hidden in a helper because that overlay IS the judgement.
+   */
+  const dock =
+    dockReading.reckoning === "available"
+      ? { ...dockReading.value, ...dockReading.reckoned.value }
+      : dockReading.state === "observed"
+        ? dockReading.value
+        : undefined;
+  // Both of these ask about the OBSERVATION and never look at a model, so the
+  // model is dropped on the way in rather than each helper learning a second
+  // reading shape.
+  const dockPairing = stillTrue(withoutReckoning(dockReading), undefined);
+  const target = observedPayload(withoutReckoning(targetReading));
 
   const tarName = target?.name;
   const tarKind = target?.kind;
@@ -344,7 +365,7 @@ function TargetingComponent({
    * an instrument the operator is looking straight at.
    */
   const alignmentWithheld =
-    notCurrent(dockReading) &&
+    notCurrent(withoutReckoning(dockReading)) &&
     dockReading.reckoning === "none" &&
     dockPairing?.relativePosition !== undefined;
   /*

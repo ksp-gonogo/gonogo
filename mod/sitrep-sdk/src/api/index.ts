@@ -41,7 +41,8 @@ import {
   whyNotSendable,
 } from "../plan-composition";
 import { type PlanDraft, PlanDraftStore } from "../plan-drafts";
-import type { Reading } from "../reading";
+import type { Reading, ReckonableReading } from "../reading";
+import type { ReckonableFields, ReckonableTopic } from "../reckonability";
 import type { TopicId, TopicPayload } from "../topics";
 import type { Value } from "../value";
 import { getHost } from "./host";
@@ -469,10 +470,23 @@ export {
  *
  * An Uplink drawing a radiation dose has to confront currency for the same reasons a
  * built-in widget does, so the honest signature is the one that makes it.
+ *
+ * A topic the CONTRACT declares reckonable answers with `ReckonableReading`
+ * instead, whose `reckoned` is only the fields a declared model moves. Both
+ * declarations of this hook carry that arm, and they have to: an Uplink reading
+ * `vessel.flight` through this facade and a built-in widget reading it through
+ * the spine are reading the same store, and a facade that flattened the
+ * projection back to the whole payload would hand an author a `situation` off a
+ * modelled value.
  */
 export function useTelemetry<T extends TopicId>(
   topic: T,
-): Reading<TopicPayload<T>>;
+): T extends ReckonableTopic
+  ? ReckonableReading<
+      TopicPayload<T>,
+      ReckonableFields<T> & keyof TopicPayload<T>
+    >
+  : Reading<TopicPayload<T>>;
 /**
  * Legacy two-arg overload, reading ONE field rather than a Topic's payload:
  * `dataSourceId` names a registered non-Sitrep source (`"kos"`, `"camera"`) or

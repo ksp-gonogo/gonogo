@@ -611,10 +611,16 @@ export type ReadingReckoning = Reading<unknown>["reckoning"];
  * and leaving the field on would let one back into a branch it has already
  * opted out of.
  */
-export function withoutReckoning<T>(reading: Reading<T>): UnmodelledReading<T>;
+// The ReckonableReading overload comes FIRST, and the order is load-bearing.
+// `Reading<Pick<T, K>>` accepts a `ReckonableReading<T, K>` by inference (the
+// observation is a `T`, and a `T` is assignable to its own projection), so the
+// wider declaration first would silently narrow the answer to the projection.
+// The reverse cannot happen: a plain `Reading` has no `declined` on its
+// value-bearing `"none"` arms, which this type requires.
 export function withoutReckoning<T, K extends keyof T>(
   reading: ReckonableReading<T, K>,
 ): UnmodelledReading<T>;
+export function withoutReckoning<T>(reading: Reading<T>): UnmodelledReading<T>;
 export function withoutReckoning<T>(
   reading: Reading<T> | ReckonableReading<T, keyof T>,
 ): UnmodelledReading<T> {

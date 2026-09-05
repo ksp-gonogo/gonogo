@@ -428,9 +428,16 @@ function MapViewComponent({
   // So the position comes from a CURRENT reading, or from a model if one is on
   // offer, and otherwise from nothing at all: the `NoSignal` overlay below says
   // which, so the suppression is visible rather than an empty map.
+  //
+  // The spread is what the contract's per-value declaration forces, and it is
+  // worth reading carefully: the conic moves `vessel.flight`'s altitude and its
+  // orbital speed, and NOT its latitude or longitude, because the body-fixed
+  // frame mapping is not on the wire. So the dot below still draws from the last
+  // observed pair even while a model is on offer, and the projection is what
+  // stops that being invisible.
   const positioned =
     flightReading.reckoning === "available"
-      ? flightReading.reckoned.value
+      ? { ...flightReading.value, ...flightReading.reckoned.value }
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;

@@ -11,6 +11,7 @@ import {
   DELTA_V_BUDGET,
   type OrbitTrajectory,
   type Reading,
+  type ReckonableReading,
   useCommand,
   useOrbitTrajectory,
   useProcessor,
@@ -105,6 +106,33 @@ function dateable<T>(reading: Reading<T>): {
 }
 
 /**
+ * The same, for a topic the CONTRACT declares reckonable, where the model moves
+ * only the named fields.
+ *
+ * `vessel.target` publishes a relative position a velocity carries forward and,
+ * beside it, the target's NAME and its conic elements, which no model moves.
+ * Taking `reckoned.value` alone would hand the planner a target with no name and
+ * no orbit, so the modelled fields are overlaid on the observation instead.
+ */
+function dateableReckonable<T, K extends keyof T>(
+  reading: ReckonableReading<T, K>,
+): {
+  value: T | undefined;
+  needsDating: boolean;
+} {
+  if (reading.reckoning === "available")
+    return {
+      value: { ...reading.value, ...reading.reckoned.value },
+      needsDating: false,
+    };
+  if (reading.state === "observed")
+    return { value: reading.value, needsDating: false };
+  if (reading.state === "stale")
+    return { value: reading.value, needsDating: true };
+  return { value: undefined, needsDating: false };
+}
+
+/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -177,7 +205,7 @@ function ManeuverPlannerComponent({
   const { value: orbit, needsDating: orbitNeedsDating } =
     dateable(orbitReading);
   const { value: target, needsDating: targetNeedsDating } =
-    dateable(targetReading);
+    dateableReckonable(targetReading);
   const elementsNeedDating = orbitNeedsDating || targetNeedsDating;
   /**
    * The thrust latch, for conformance. Undefined until the propulsion channel

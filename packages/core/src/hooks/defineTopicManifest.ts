@@ -1,5 +1,8 @@
 import type { Reading } from "@ksp-gonogo/sitrep-client";
 import type {
+  ReckonableFields,
+  ReckonableReading,
+  ReckonableTopic,
   TopicId,
   TopicPayload,
   WidgetChannelId,
@@ -84,11 +87,23 @@ import { useTelemetry } from "./useTelemetry";
  *
  * `Required` stays in the signature because it still constrains which Topics may be
  * read at all, which is the mechanism's real value.
+ *
+ * What it IS conditional on is the contract's reckonability declaration, and it
+ * has to be: this resolves to the same store read the base hook makes, so a
+ * marked Topic read through a manifest and the same Topic read through the base
+ * hook must be the same type. Flattening `ReckonableReading`'s projection back
+ * to the whole payload here would let a widget read a field off `reckoned` that
+ * no declared model moves, in the one call shape most built-in widgets use.
  */
 export type WidgetTopicValue<
   T extends TopicId,
   Required extends readonly TopicId[],
-> = Reading<TopicPayload<T>>;
+> = T extends ReckonableTopic
+  ? ReckonableReading<
+      TopicPayload<T>,
+      ReckonableFields<T> & keyof TopicPayload<T>
+    >
+  : Reading<TopicPayload<T>>;
 
 /**
  * A telemetry read hook bound to one widget's declared channels. The single call

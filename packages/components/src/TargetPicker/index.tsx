@@ -14,6 +14,7 @@ import {
   useCommand,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
+  withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
 import {
   TargetKind,
@@ -262,7 +263,13 @@ function TargetPickerComponent({
    * wait.
    */
   const available = stillTrue(availableReading, EMPTY_ROSTER);
-  const target = stillTrue(topics.useTelemetry("vessel.target"), undefined);
+  // The model is dropped on the way in: this reads the target's identity and the
+  // range it was last OBSERVED at, and a picker offering a modelled range beside
+  // a name is the confident-wrong picture the reading type exists to prevent.
+  const target = stillTrue(
+    withoutReckoning(topics.useTelemetry("vessel.target")),
+    undefined,
+  );
   const tarName = target?.name;
   const tarType = targetKindLabel(target?.kind);
   const tarRelPos = target?.relativePosition && bare(target.relativePosition);
