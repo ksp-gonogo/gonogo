@@ -220,7 +220,7 @@ const RailCrossing__Svg = styled.svg<{
   /* The dot slides between progress values rather than jumping the gap. The
      ribbon has no transition: its motion IS the data arriving. */
   [data-role="dot"] {
-    transition: cx var(--duration-slow, 200ms) linear;
+    transition: cx var(--duration-slow, 200ms) var(--ease-linear);
   }
 
   @media (prefers-reduced-motion: reduce) {
