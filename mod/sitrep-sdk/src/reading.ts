@@ -93,13 +93,71 @@ export interface ModelledField {
  * answers for before deciding which arm to build, and running the model to
  * find out would defeat the pull. A model that does not cover the payload root
  * cannot answer for a whole-topic read, so that read stays `stale`.
+ *
+ * `R` is what the pull ANSWERS WITH, and it defaults to the whole payload
+ * because that is what a whole-topic model produces. A model declared per VALUE
+ * answers with the projection of the fields it moves instead, so `R` is
+ * `Pick<T, K>` there. Two parameters rather than one because the coverage claim
+ * is still about paths on `T` whichever shape the answer takes.
  */
-export interface TopicModel<T> {
+export interface TopicModel<T, R = T> {
   /** Paths this model moves. Empty claims nothing and is never offered. */
   readonly modelled: readonly ModelledField[];
   /** Run the model for `viewUt`. Pure: same inputs, same answer. */
-  reckon(viewUt: number): T;
+  reckon(viewUt: number): R;
 }
+
+/**
+ * Why a model could not answer for this frame, on a topic whose contract
+ * DECLARES a value reckonable.
+ *
+ * On a plain {@link Reading}, `reckoning: "none"` is the honest majority answer
+ * and needs no explanation: most topics have no model and never will. On a
+ * declared value it is a specific refusal, because the declaration is a promise
+ * that the wire carries the model's inputs, so the only ways to reach `"none"`
+ * are that an input did not arrive, that the model was asked past where it holds,
+ * or that the model does not apply to this frame at all. A refusal a widget can
+ * render ("no conic past the SOI transition") beats a silent absence, which is
+ * why it is REQUIRED on the value-bearing `"none"` arms rather than optional.
+ *
+ * It sits on the arm and NOT inside `reckoned`, which is the rule
+ * {@link Reading}'s own doc states under "No horizon field": a caller holding a
+ * reckoning must never discover at call time that the capability has gone bad.
+ * A model still withdraws by not being offered on the next frame. All that has
+ * changed is that a declared value says WHY it withdrew.
+ *
+ * `input` names the declared input that was missing or that ruled the model out,
+ * spelled exactly as the contract declares it (`relativeVelocity`,
+ * `@vessel.orbit`, `@vessel.orbit#mu`), so the string a widget shows and the
+ * string the contract carries are the same string.
+ */
+export interface ReckoningDecline {
+  readonly reason:
+    | "input-absent"
+    | "beyond-horizon"
+    | "model-inapplicable"
+    | "contested";
+  /** The declared input responsible, where the reason has one. */
+  readonly input?: string;
+  /** One sentence for an operator. Never a stack, never a code. */
+  readonly note?: string;
+}
+
+/**
+ * What a reckoner answers: a model, or a refusal that says which input failed
+ * it.
+ *
+ * `undefined` used to be the whole of "no", and it could not distinguish an
+ * input that never arrived from a horizon that had been passed. A caller cannot
+ * tell those apart from the outside, and they are the two things an operator
+ * most wants said.
+ *
+ * `R` is the projection the model produces, which for a declared value is
+ * `Pick<T, K>` rather than the whole payload. See {@link ReckonableReading}.
+ */
+export type ReckonerAnswer<T, R = T> =
+  | TopicModel<T, R>
+  | { readonly declined: ReckoningDecline };
 
 /**
  * One topic's value AND its currency, as a single thing the compiler will not
@@ -359,6 +417,111 @@ export type Reading<T> =
     };
 
 /**
+ * One RECKONABLE topic's value AND its currency, where `T` is the payload and
+ * `K` the fields the contract declares a model can carry forward.
+ *
+ * It is {@link Reading}'s arms with two differences and only two: `reckoned` is
+ * the PROJECTION rather than the payload, and the value-bearing `"none"` arms
+ * carry a required {@link ReckoningDecline}. Everything `Reading`'s doc says
+ * about the states, about the two axes being orthogonal, and about reaching a
+ * value costing a written branch is true here unchanged, and is not restated.
+ *
+ * ## `reckoned` is the projection, because a payload is not one reckoning class
+ *
+ * Reckonability is declared PER VALUE. `vessel.flight` carries an altitude a
+ * conic advances beside a `situation` the game switches, and a model that
+ * propagates the first and copies the second would otherwise hand a caller a
+ * whole payload labelled "modelled". {@link Reckoning.modelled} says which paths
+ * moved, and it says so at runtime, in a field nothing forces a caller to read.
+ * `Reckoning<Pick<T, K>>` says the same thing to the COMPILER: reading a field
+ * no model moves off `reckoned` does not typecheck, so the mistake cannot be
+ * made rather than merely being documented.
+ *
+ * ## Why a value-bearing arm always says something about the model
+ *
+ * A declared value always has a model on offer: core ships the vanilla, an
+ * Uplink may elect a better one, and the declaration is a promise that the wire
+ * carries that model's inputs. So on the arms that carry a value there is no
+ * such thing as nothing-to-say. Either `reckoned` is there, or `declined` is
+ * there naming what stopped it. That pairing is what "unconditional" buys: not
+ * that `reckoned` appears on every arm regardless (it cannot, because a model
+ * genuinely does withdraw at an SOI transition, at the atmosphere interface and
+ * past its stated horizon), but that a caller who has narrowed to a value can
+ * never fall through to a branch where the type declines to comment.
+ *
+ * The discriminant therefore survives on this type, which is the part worth
+ * stating because it looks at first like a regression. What actually goes away
+ * is the discriminant on every UNMARKED topic, where it was carrying no
+ * information at all.
+ *
+ * ## A decline is a value-level absence inside a type-level presence
+ *
+ * The declaration is a statement about the CONTRACT: these inputs are published,
+ * so this value can be carried forward. It is static, and it is a property of
+ * the wire rather than of any one frame. Whether a model can answer for THIS
+ * frame is a different question, answered by the data: the input may not have
+ * arrived, the view time may be past where the conic holds, the model may not
+ * apply to a vessel on rails at all.
+ *
+ * So the type says the capability exists and the value says whether it fired,
+ * and neither can stand in for the other. Folding the decline into the type (an
+ * optional `reckoned`) would lose the reason and re-admit the silent drop that
+ * {@link Reading} exists to prevent; folding the capability into the value (a
+ * runtime "is this topic reckonable" flag) is pass one, and it is what this
+ * type replaces.
+ *
+ * ## Deliberately NOT assignable to `Reading<T>`
+ *
+ * `Reckoning<Pick<T, K>>` is not a `Reckoning<T>`, so handing one of these to
+ * something typed `Reading<T>` fails to compile. That is the point: the callee
+ * would be entitled to read the whole payload off the model. The observed
+ * payload overlaid by the modelled fields is
+ * `{ ...reading.value, ...reading.reckoned.value }`, written at the call site
+ * rather than hidden in a helper, because that spread IS the judgement and it
+ * should be visible in review.
+ */
+export type ReckonableReading<T, K extends keyof T> =
+  | { state: "pending"; reckoning: "none" }
+  | { state: "unowned"; reckoning: "none" }
+  | { state: "absent"; reckoning: "none"; atUt: Value<"ut"> }
+  | {
+      state: "observed";
+      reckoning: "none";
+      value: T;
+      atUt: Value<"ut">;
+      /** Why the declared model did not answer for this frame. */
+      declined: ReckoningDecline;
+    }
+  | {
+      state: "observed";
+      reckoning: "available";
+      /** The observation itself. Never a modelled value; see `reckoned`. */
+      value: T;
+      atUt: Value<"ut">;
+      /** The declared fields, carried forward to this frame's view time. */
+      reckoned: Reckoning<Pick<T, K>>;
+    }
+  | {
+      state: "stale";
+      reckoning: "none";
+      /** The last REAL observation. Never a modelled value. */
+      value: T;
+      /** The UT that observation was made at. */
+      asOfUt: Value<"ut">;
+      grade: StaleGrade;
+      declined: ReckoningDecline;
+    }
+  | {
+      state: "stale";
+      reckoning: "available";
+      /** The last REAL observation, exactly as on the unmodelled member. */
+      value: T;
+      asOfUt: Value<"ut">;
+      grade: StaleGrade;
+      reckoned: Reckoning<Pick<T, K>>;
+    };
+
+/**
  * Which kind of missed-update a stale reading is. A FIELD rather than more arms:
  * see `Reading`'s own doc for the rule.
  *
@@ -441,9 +604,21 @@ export type ReadingReckoning = Reading<unknown>["reckoning"];
  * or a reticle placed from a last-known value asserts something about now that
  * it cannot know, and that is the sharpest form of the failure this type
  * exists to prevent. Such a widget should either propagate or stop drawing.
+ *
+ * It takes a {@link ReckonableReading} too, and strips the {@link
+ * ReckoningDecline} along with the model. A widget that has declined to
+ * propagate has no use for the reason the model it is not drawing did not fire,
+ * and leaving the field on would let one back into a branch it has already
+ * opted out of.
  */
-export function withoutReckoning<T>(reading: Reading<T>): UnmodelledReading<T> {
-  if (reading.reckoning === "none") return reading;
+export function withoutReckoning<T>(reading: Reading<T>): UnmodelledReading<T>;
+export function withoutReckoning<T, K extends keyof T>(
+  reading: ReckonableReading<T, K>,
+): UnmodelledReading<T>;
+export function withoutReckoning<T>(
+  reading: Reading<T> | ReckonableReading<T, keyof T>,
+): UnmodelledReading<T> {
+  if (reading.reckoning === "none" && !("declined" in reading)) return reading;
   if (reading.state === "observed") {
     return {
       state: "observed",
@@ -540,8 +715,15 @@ export function hasAnswered(reading: {
  * Callers still clamp at zero. Samples arrive out of order (`ClientTimeline`
  * insert-sorts for it), so one can sit marginally ahead of the frame's view time, and
  * "-0.4 s old" is never a thing to render.
+ *
+ * Takes either union, because the question is about the OBSERVATION and the body
+ * switches on `state` alone. A declared value's reading answers it identically:
+ * how far a modelled figure has been carried is the same number whether or not
+ * the model that carried it was declared in the contract.
  */
-export function observedAt<T>(reading: Reading<T>): Value<"ut"> | undefined {
+export function observedAt<T, K extends keyof T = keyof T>(
+  reading: Reading<T> | ReckonableReading<T, K>,
+): Value<"ut"> | undefined {
   switch (reading.state) {
     case "pending":
     case "unowned":
