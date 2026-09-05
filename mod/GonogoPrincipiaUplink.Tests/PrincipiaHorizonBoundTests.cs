@@ -31,7 +31,7 @@ namespace GonogoPrincipiaUplink.Tests
         private const double SunMu = 1.172332795e18;
         private const double MinmusMu = 1.765800026e09;
 
-        // === The 2600 km Kerbin relay, at the worst of its eight phases ===========
+        // The 2600 km Kerbin relay, at the worst of its eight phases.
         private const double HighRelayCycle = 14012.112025446;
         private const double HighRelayCrossing = 913.946063;
         private static readonly StateVector HighRelay = new StateVector(
@@ -44,7 +44,7 @@ namespace GonogoPrincipiaUplink.Tests
         private static readonly Vector3d HighRelayMinmus =
             new Vector3d(31770974.885652, -35709451.575688, 2865804.133975);
 
-        // === The 250 km Kerbin relay, the same design five times lower ============
+        // The 250 km Kerbin relay, the same design five times lower.
         private const double LowRelayCycle = 2620.124957479;
         private const double LowRelayCrossing = 1927.020809;
         private static readonly StateVector LowRelay = new StateVector(
@@ -57,7 +57,7 @@ namespace GonogoPrincipiaUplink.Tests
         private static readonly Vector3d LowRelayMinmus =
             new Vector3d(29102807.208485, -37690822.593587, 3146349.570547);
 
-        // === The Mun orbiter, and the Jool-system craft ===========================
+        // The Mun orbiter, and the Jool-system craft.
         private const double MunOrbiterCycle = 2715.311383234;
         private const double MunOrbiterCrossing = 456.728295;
         private static readonly StateVector MunOrbiter = new StateVector(
