@@ -207,7 +207,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
   it("defaults facts to an empty array for a mod build that reports none (wire field absent)", () => {
     // Empty rather than absent, so a caller enumerates unconditionally instead
     // of testing for the key first.
-    const raw = {
+    const raw: RawSystemUplinksPayload = {
       uplinks: [
         {
           id: "legacy",
@@ -217,7 +217,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           health: { state: 0, detail: null },
         },
       ],
-    } as unknown as RawSystemUplinksPayload;
+    };
     expect(
       deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))?.uplinks[0]?.health
         .facts,
@@ -225,7 +225,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
   });
 
   it("defaults ownedPrefixes to an empty array for a pre-Phase-1 mod build (wire field absent)", () => {
-    const raw = {
+    const raw: RawSystemUplinksPayload = {
       uplinks: [
         {
           id: "legacy",
@@ -235,7 +235,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           health: { state: 0, detail: null },
         },
       ],
-    } as unknown as RawSystemUplinksPayload;
+    };
     expect(
       deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))?.uplinks[0]
         ?.ownedPrefixes,
@@ -251,7 +251,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       coreContractMinor: 0,
       uplinks: [
         {
-          id: "kerbalism",
+          id: "stale-uplink",
           version: "",
           available: false,
           reason: "contract v14.5 vs core v15.0: major mismatch",
@@ -271,7 +271,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
   });
 
   it("reads a contract version as null unless BOTH halves are present: half a version is not a version", () => {
-    const raw = {
+    const raw: RawSystemUplinksPayload = {
       coreContractMajor: 15,
       uplinks: [
         {
@@ -283,7 +283,7 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
           health: { state: 0, detail: null },
         },
       ],
-    } as unknown as RawSystemUplinksPayload;
+    };
     const decoded = deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)));
     expect(decoded?.coreContract).toBeNull();
     expect(decoded?.uplinks[0]?.contract).toBeNull();
