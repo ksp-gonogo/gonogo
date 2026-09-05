@@ -31,13 +31,37 @@ namespace Sitrep.Propagation
         /// <summary>
         /// Bisection steps used to recover the instant from the predicate.
         ///
-        /// <para>Sixteen halvings resolve the answer to a sixty-five-thousandth of a
-        /// characteristic cycle, which is well under a second on any orbit anyone
-        /// flies and far finer than the bound itself is knowable. More would spend
-        /// provider calls to sharpen a number whose own accuracy is a factor of
-        /// two.</para>
+        /// <para>Eighteen halvings of a window <see cref="SearchCycles"/> cycles wide
+        /// resolve the answer to a sixty-five-thousandth of ONE characteristic cycle,
+        /// which is well under a second on any orbit anyone flies and far finer than
+        /// the bound itself is knowable. It was sixteen while the window was a single
+        /// cycle: widening the window without widening this would have coarsened every
+        /// answer by four, which is the sort of thing that goes unnoticed because it
+        /// looks like the same number.</para>
         /// </summary>
-        public const int RefinementSteps = 16;
+        public const int RefinementSteps = 18;
+
+        /// <summary>
+        /// How many of the craft's own revolutions the search reaches over.
+        ///
+        /// <para><b>This was one, and one was the same defect as the fraction above
+        /// it.</b> The argument for it was that a provider answers from the geometry
+        /// it can see at the sample instant, so a window long enough for the craft to
+        /// have been everywhere in its orbit is one that sample no longer describes.
+        /// That is a claim about how a bound is COMPUTED, and the only integrating
+        /// provider in this repo stopped computing it that way: it carries the craft's
+        /// own conic and every perturber forward and integrates the departure at each
+        /// instant, so the geometry it describes is the geometry throughout. Capping
+        /// its answer at a revolution threw away between two and six times the arc it
+        /// was willing to vouch for, measured on a live save.</para>
+        ///
+        /// <para>Four rather than none, because the search still has to terminate and
+        /// a provider that vouches for everything must be taken at its word only as
+        /// far as somebody has measured. It is the same number the provider that
+        /// prompted it integrates over, and a provider wanting more should say so on
+        /// the interface rather than have this quietly grow.</para>
+        /// </summary>
+        public const double SearchCycles = 4.0;
 
         /// <summary>
         /// The last UT the provider will vouch for <paramref name="target"/> from
@@ -49,12 +73,9 @@ namespace Sitrep.Propagation
         /// other way; inventing a bound is the failure this whole seam exists to
         /// prevent.</para>
         ///
-        /// <para>The search is bounded above by ONE characteristic cycle, and that
-        /// ceiling is a statement rather than a shortcut: a provider answers from the
-        /// geometry it can see at <paramref name="sampleUt"/>, and a cycle later the
-        /// craft has been everywhere in its orbit, so a window longer than that is
-        /// one the sample it was computed from no longer describes. A provider that
-        /// vouches for the whole cycle is taken at its word exactly that far.</para>
+        /// <para>The search is bounded above by <see cref="SearchCycles"/>
+        /// characteristic cycles, and a provider that vouches for the whole of that
+        /// window is taken at its word exactly that far and no further.</para>
         /// </summary>
         public static double? UntilUt(
             IPropagationProvider provider, PropagationTarget target, double sampleUt)
@@ -84,7 +105,7 @@ namespace Sitrep.Propagation
                 return null;
             }
 
-            var high = cycle.Value;
+            var high = cycle.Value * SearchCycles;
             if (provider.CanPropagate(target, frame, sampleUt, sampleUt + high))
             {
                 return sampleUt + high;

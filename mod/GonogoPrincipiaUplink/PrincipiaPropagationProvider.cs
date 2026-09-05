@@ -218,13 +218,18 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
 
-            // The whole state, not just its magnitude: which way the neighbourhood
-            // pulls RELATIVE TO THE CRAFT'S MOTION is what separates a tug along the
-            // track, which changes the period and runs the craft ahead of its own
-            // conic, from one straight up, which largely does not. A radius alone
-            // cannot tell the two apart and the bound used to be blind to both.
-            var craft = _conics.Solve(target, parentFrame, fromUt);
-            var forcing = new TidalForcing(craft);
+            // Where everything is at any instant, not where it is at this one. The
+            // bound integrates the difference between the published conic and the
+            // path, and both halves of that difference move: the craft round its own
+            // conic, and every perturber round the primary. Handing the bound a
+            // SAMPLER rather than a position is what lets it carry both without this
+            // Uplink holding a second copy of two-body motion, which is the
+            // duplication the propagation seam exists to prevent.
+            var departure = new ConicDeparture(
+                elements.Mu,
+                fromUt,
+                ut => _conics.Solve(target, parentFrame, ut).Position);
+
             var neighbourhood = _perturbers(target.ParentBodyIndex);
             if (neighbourhood != null)
             {
@@ -237,14 +242,14 @@ namespace GonogoPrincipiaUplink
                     var bodyTarget = PropagationTarget.Body(body.BodyIndex);
                     if (!_conics.CanPropagate(bodyTarget, parentFrame, fromUt, fromUt)) continue;
 
-                    forcing.Add(
-                        _conics.Solve(bodyTarget, parentFrame, fromUt).Position,
-                        entry.GravitationalParameter);
+                    departure.Add(
+                        entry.GravitationalParameter,
+                        ut => _conics.Solve(bodyTarget, parentFrame, ut).Position);
                 }
             }
 
             return PrincipiaHorizonBound.SpanSeconds(
-                forcing, elements.Ecc, _conics.CharacteristicCycleSeconds(target));
+                departure, _conics.CharacteristicCycleSeconds(target));
         }
 
         public ClosestApproach? SolveClosestApproach(

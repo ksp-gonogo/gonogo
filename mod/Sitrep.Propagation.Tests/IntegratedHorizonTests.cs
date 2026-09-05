@@ -26,9 +26,9 @@ namespace Sitrep.Propagation.Tests
 
             var until = IntegratedHorizon.UntilUt(provider, Craft(), 1000.0);
 
-            // Sixteen halvings of a 4000 second cycle resolve to about six
-            // hundredths of a second, so the answer is the provider's number and not
-            // a neighbourhood of it.
+            // Eighteen halvings of a window four 4000 second cycles wide resolve to
+            // about six hundredths of a second, so the answer is the provider's
+            // number and not a neighbourhood of it.
             Assert.Equal(1617.5, until!.Value, 1);
         }
 
@@ -48,14 +48,29 @@ namespace Sitrep.Propagation.Tests
         }
 
         [Fact]
-        public void AProviderThatVouchesForAWholeCycleIsTakenAtItsWordExactlyThatFar()
+        public void AProviderThatVouchesForTheWholeSearchIsTakenAtItsWordExactlyThatFar()
         {
-            // Not further. The provider answered from the geometry it could see at
-            // the sample instant, and a cycle later the craft has been everywhere in
-            // its orbit, so a longer window is one that sample no longer describes.
+            // Not further. Somebody has to have measured the window a provider is
+            // believed over, and four revolutions is what has been.
             var provider = new BoundedProvider(cycle: 4000.0, span: double.MaxValue);
 
-            Assert.Equal(4000.0, IntegratedHorizon.UntilUt(provider, Craft(), 0.0)!.Value, 6);
+            Assert.Equal(16000.0, IntegratedHorizon.UntilUt(provider, Craft(), 0.0)!.Value, 6);
+        }
+
+        /// <summary>
+        /// The revert test for the cap that used to sit here: a provider willing to
+        /// vouch for two revolutions gets two, where a one-cycle search would have
+        /// handed it back its own cycle and called that the answer.
+        /// </summary>
+        [Fact]
+        public void AProviderIsNotCutOffAtOneRevolutionOfItsOwn()
+        {
+            var provider = new BoundedProvider(cycle: 4000.0, span: 8123.0);
+
+            var until = IntegratedHorizon.UntilUt(provider, Craft(), 0.0);
+
+            Assert.Equal(8123.0, until!.Value, 1);
+            Assert.True(until.Value > 4000.0);
         }
 
         [Fact]
