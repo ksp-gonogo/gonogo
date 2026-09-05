@@ -394,6 +394,28 @@ jobs:
         with:
           dotnet-version: '10.0.x'
 
+      # Node and the workspace, because `codegen-check.sh` regenerates
+      # `asyncapi.yaml` as well as the C#-derived artifacts, and
+      # `scripts/asyncapi-doc.mjs` imports `@asyncapi/parser` from
+      # node_modules. Without this the job dies on ERR_MODULE_NOT_FOUND
+      # before it checks anything, which it did for ten runs while
+      # `deploy.yml`, `publish-images.yml` and `publish-mods.yml` all gate on
+      # this workflow concluding success. A dotnet-only job could not run a
+      # node script that has a dependency, and the sibling line above it
+      # (`gen-unit-kinds.mjs`) has none, which is why it went unnoticed.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
+      - uses: pnpm/action-setup@v6
+        with:
+          run_install: false
+
+      - name: pnpm install
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm install --frozen-lockfile
+
       # Every generated artifact in the tree is committed, so any of them can
       # silently disagree with the source it was generated from. Two things
       # this used to be are worth remembering, because both were real drifts:
