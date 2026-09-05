@@ -39,7 +39,14 @@ snapshot() {
   while IFS= read -r dir; do dirs+=("$dir"); done < <(generated_dirs)
   # Sorted so the digest is stable, and missing paths are tolerated so a first
   # run on a clean checkout still works.
-  find "${dirs[@]}" -type f 2>/dev/null | sort | xargs -r sha256sum
+  # asyncapi.yaml is generated too, but it lives at the repo ROOT rather than in
+  # a __generated__ directory, so the discovery above cannot see it. Named here
+  # explicitly: one contract doc-comment edit lands in BOTH contract.ts and this
+  # file, and while they were checked separately (this script vs a vitest scan
+  # in core:scans) it was possible to regenerate one, watch this check pass, and
+  # push the other stale. That happened twice on 2026-09-05, both times found
+  # only minutes later at push.
+  find "${dirs[@]}" asyncapi.yaml -type f 2>/dev/null | sort | xargs -r sha256sum
 }
 
 # A discovery that matches nothing hashes nothing, compares equal to itself and
@@ -57,6 +64,7 @@ fi
 BEFORE="$(snapshot)"
 bash mod/codegen.sh
 node scripts/gen-unit-kinds.mjs
+node scripts/asyncapi-doc.mjs
 AFTER="$(snapshot)"
 
 if [ "$BEFORE" != "$AFTER" ]; then

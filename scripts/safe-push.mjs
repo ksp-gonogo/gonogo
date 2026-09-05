@@ -20,6 +20,36 @@ const run = (cmd, args, env) =>
 
 const skipE2e = process.env.SKIP_E2E === "1";
 
+const capture0 = (args) =>
+  spawnSync("git", args, { encoding: "utf8" }).stdout?.trim() ?? "";
+
+/**
+ * True when everything the remote has gained is the docs bot regenerating
+ * Uplink pages, and nothing else.
+ *
+ * `uplink-docs.yml` pushes "chore: regenerate Uplink pages" on its own
+ * schedule, so it lands mid-gate and rejects a push that took fifteen minutes
+ * to earn. Four rejections on 2026-09-04. Rebasing over it is safe in a way
+ * that rebasing over a person is not: the commits are authored by
+ * github-actions[bot] and touch only generated doc assets under
+ * mod/<Uplink>/client/, never source, so nothing the gate just tested changes
+ * underneath it. Anything else, including one human commit mixed in, falls
+ * through to the normal rejection.
+ */
+const incomingIsOnlyDocsBot = (branch) => {
+  const range = `HEAD..origin/${branch}`;
+  const authors = capture0(["log", "--format=%an", range]).split("\n");
+  if (authors.length === 0 || authors.some((a) => a !== "github-actions[bot]"))
+    return false;
+  const files = capture0(["diff", "--name-only", range]).split("\n");
+  return (
+    files.length > 0 &&
+    files.every((f) =>
+      /^mod\/[^/]+\/client\/(docs\/|README\.md|gonogo-uplink\.json)/.test(f),
+    )
+  );
+};
+
 /**
  * Refuse to spend the gate on a branch the remote has already moved past.
  *
@@ -54,12 +84,31 @@ const skipE2e = process.env.SKIP_E2E === "1";
         spawnSync("git", ["merge-base", "--is-ancestor", remote, "HEAD"])
           .status !== 0;
       if (behind) {
-        console.error(
-          `push: ${branch} is behind the remote (${remote.slice(0, 9)}); ` +
-            "the gate would pass and the push would be rejected.\n" +
-            `  Rebase first:  git fetch origin && git rebase origin/${branch}`,
-        );
-        process.exit(1);
+        // Behind by ONLY the docs bot is the common case and it is not a
+        // reason to make someone re-run a quarter-hour gate by hand: the
+        // commits are generated doc assets, so rebasing over them changes
+        // nothing the gate is about to test. Do it here and carry on. Five
+        // rejections on 2026-09-05 each cost a full gate run, because this
+        // check aborted BEFORE the gate while the identical rebase already
+        // existed for the AFTER case further down.
+        spawnSync("git", ["fetch", "origin", "--quiet"]);
+        if (
+          incomingIsOnlyDocsBot(branch) &&
+          spawnSync("git", ["rebase", `origin/${branch}`], {
+            stdio: "inherit",
+          }).status === 0
+        ) {
+          console.log(
+            `push: ${branch} was behind only the docs bot's regenerated pages; rebased over them, continuing.`,
+          );
+        } else {
+          console.error(
+            `push: ${branch} is behind the remote (${remote.slice(0, 9)}); ` +
+              "the gate would pass and the push would be rejected.\n" +
+              `  Rebase first:  git fetch origin && git rebase origin/${branch}`,
+          );
+          process.exit(1);
+        }
       }
     }
   }
@@ -91,36 +140,6 @@ if (!skipE2e)
 console.log("push: gate green, opening the connection...");
 // GONOGO_GATE_DONE tells the hook the work is already done, so it does not repeat it
 // and hold the socket open for the length of a second full run.
-const capture0 = (args) =>
-  spawnSync("git", args, { encoding: "utf8" }).stdout?.trim() ?? "";
-
-/**
- * True when everything the remote has gained is the docs bot regenerating
- * Uplink pages, and nothing else.
- *
- * `uplink-docs.yml` pushes "chore: regenerate Uplink pages" on its own
- * schedule, so it lands mid-gate and rejects a push that took fifteen minutes
- * to earn. Four rejections on 2026-09-04. Rebasing over it is safe in a way
- * that rebasing over a person is not: the commits are authored by
- * github-actions[bot] and touch only generated doc assets under
- * mod/<Uplink>/client/, never source, so nothing the gate just tested changes
- * underneath it. Anything else, including one human commit mixed in, falls
- * through to the normal rejection.
- */
-const incomingIsOnlyDocsBot = (branch) => {
-  const range = `HEAD..origin/${branch}`;
-  const authors = capture0(["log", "--format=%an", range]).split("\n");
-  if (authors.length === 0 || authors.some((a) => a !== "github-actions[bot]"))
-    return false;
-  const files = capture0(["diff", "--name-only", range]).split("\n");
-  return (
-    files.length > 0 &&
-    files.every((f) =>
-      /^mod\/[^/]+\/client\/(docs\/|README\.md|gonogo-uplink\.json)/.test(f),
-    )
-  );
-};
-
 let pushStatus = run("git", ["push", ...process.argv.slice(2)], {
   GONOGO_GATE_DONE: "1",
 });
