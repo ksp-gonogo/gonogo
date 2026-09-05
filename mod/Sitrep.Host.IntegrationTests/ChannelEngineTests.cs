@@ -4243,6 +4243,110 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// A contract-MAJOR refusal has to reach the operator, and until this test
+        /// existed it reached nobody: <c>PassesContractMajorCheck</c> wrote the
+        /// reason into <c>_availability</c> and never registered the uplink, and
+        /// <c>BuildSystemUplinksPayload</c> walks only REGISTERED uplinks, so nine
+        /// stale Uplinks on the Deck were absent from the roster rather than
+        /// present-and-refused. The roster now carries the refused uplink with
+        /// <c>available: false</c>, the reason, and BOTH version numbers: the one it
+        /// declared (<c>contractMajor</c>/<c>contractMinor</c>) and the one this core
+        /// speaks (<c>coreContractMajor</c>/<c>coreContractMinor</c> on the payload
+        /// root). Everything in the refused entry comes from the
+        /// <see cref="SitrepUplinkAttribute"/> the scan already read, never from the
+        /// refused uplink's own manifest, which is the shape this core has just said
+        /// it cannot trust.
+        /// </summary>
+        [Fact]
+        public async Task SystemUplinksCarriesAContractRefusedUplinkWithBothVersions()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0");
+            engine.RegisterDiscoveredUplinks(new List<UplinkDiscovery.DiscoveredUplink>
+            {
+                // Refused: a major behind, exactly the Deck's 14.5-against-15.0 case.
+                new UplinkDiscovery.DiscoveredUplink(
+                    new StaleContractTestUplink(),
+                    ContractVersion.Major - 1,
+                    5,
+                    StaleContractTestUplink.UplinkId),
+                // Accepted, so the same run proves the roster still reports a
+                // matching uplink normally rather than flagging everything.
+                new UplinkDiscovery.DiscoveredUplink(
+                    new PlainNoHealthTestUplink(),
+                    ContractVersion.Major,
+                    ContractVersion.Minor,
+                    PlainNoHealthTestUplink.UplinkId),
+            });
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, ChannelEngine.UplinksTopic, Timeout);
+
+                engine.TickAndWait(1.0, new KspSnapshot { Ut = 1.0 }, Timeout);
+
+                var delivered = await ReceiveStreamDataAsync(client, Timeout);
+                var payload = Assert.IsType<Dictionary<string, object?>>(delivered.Payload);
+
+                // The version the host speaks, stated once on the payload rather than
+                // repeated per entry: it is a fact about this core, not about any uplink.
+                Assert.Equal((double)ContractVersion.Major, payload["coreContractMajor"]);
+                Assert.Equal((double)ContractVersion.Minor, payload["coreContractMinor"]);
+
+                var uplinks = Assert.IsType<List<object?>>(payload["uplinks"]);
+                var byId = new Dictionary<string, Dictionary<string, object?>>();
+                foreach (var raw in uplinks)
+                {
+                    var entry = Assert.IsType<Dictionary<string, object?>>(raw);
+                    byId[(string)entry["id"]!] = entry;
+                }
+
+                Assert.Contains(StaleContractTestUplink.UplinkId, byId.Keys);
+                var refused = byId[StaleContractTestUplink.UplinkId];
+                Assert.Equal(false, refused["available"]);
+                Assert.Contains("major mismatch", (string)refused["reason"]!);
+                Assert.Equal((double)(ContractVersion.Major - 1), refused["contractMajor"]);
+                Assert.Equal(5.0, refused["contractMinor"]);
+                var refusedHealth = Assert.IsType<Dictionary<string, object?>>(refused["health"]);
+                Assert.Equal((double)(int)UplinkHealthState.Unavailable, refusedHealth["state"]);
+                Assert.Equal(refused["reason"], refusedHealth["detail"]);
+                // Its Register never ran, so it owns nothing: present and empty, so a
+                // client enumerates the same way it does for every other entry.
+                Assert.Empty(Assert.IsType<List<object?>>(refused["ownedPrefixes"]));
+
+                Assert.Contains(PlainNoHealthTestUplink.UplinkId, byId.Keys);
+                var accepted = byId[PlainNoHealthTestUplink.UplinkId];
+                Assert.Equal(true, accepted["available"]);
+                Assert.Equal((double)ContractVersion.Major, accepted["contractMajor"]);
+                Assert.Equal((double)ContractVersion.Minor, accepted["contractMinor"]);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
+        /// A stale-binary stand-in for the refusal path: its manifest deliberately
+        /// THROWS, standing for the real hazard that the refusal exists to avoid,
+        /// an uplink compiled against another Major whose contract shapes this core
+        /// cannot safely touch. A roster entry that can only be built by reading it
+        /// would not survive the very mismatch it reports.
+        /// </summary>
+        private sealed class StaleContractTestUplink : ISitrepUplink
+        {
+            public const string UplinkId = "test-stale-contract";
+
+            public UplinkHealth Health() => throw new InvalidOperationException("stale contract");
+
+            public UplinkManifest Manifest =>
+                throw new MissingMethodException("manifest shape belongs to another contract major");
+
+            public void Register(IUplinkHost host) =>
+                throw new InvalidOperationException("Register must never run for a refused uplink");
+        }
+
         private sealed class StaticChannelOwnerTestUplink : ISitrepUplink
         {
             // Mandatory health floor (test double).

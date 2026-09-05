@@ -14,13 +14,16 @@ import { computeUplinkReadiness } from "./useUplinkReadiness";
 
 function roster(
   entries: Array<Partial<UplinkHealthEntry> & { id: string }>,
+  coreContract: SystemUplinkHealth["coreContract"] = null,
 ): SystemUplinkHealth {
   return {
+    coreContract,
     uplinks: entries.map((e) => ({
       id: e.id,
       version: e.version ?? "1.0.0",
       available: e.available ?? true,
       reason: e.reason ?? null,
+      contract: e.contract ?? null,
       ownedPrefixes: e.ownedPrefixes ?? [],
       health: e.health ?? { state: "healthy", detail: null, facts: [] },
     })),
@@ -96,6 +99,65 @@ describe("computeUplinkReadiness: the resolved states", () => {
       state: "unavailable",
       modReason: null,
     });
+  });
+
+  it("contract-mismatch: a refused Uplink is a row, carrying both version numbers", () => {
+    const entries = computeUplinkReadiness(
+      roster(
+        [
+          {
+            id: "widget-a",
+            available: false,
+            reason: "contract v14.5 vs core v15.0: major mismatch",
+            contract: { major: 14, minor: 5 },
+          },
+        ],
+        { major: 15, minor: 0 },
+      ),
+      [],
+    );
+    expect(entries[0]).toMatchObject({
+      state: "contract-mismatch",
+      modReason: "contract v14.5 vs core v15.0: major mismatch",
+      declaredContract: { major: 14, minor: 5 },
+      coreContract: { major: 15, minor: 0 },
+    });
+  });
+
+  it("contract-mismatch outranks a client that loaded: the mod half never registered", () => {
+    const entries = computeUplinkReadiness(
+      roster(
+        [
+          {
+            id: "widget-a",
+            available: false,
+            contract: { major: 14, minor: 5 },
+          },
+        ],
+        { major: 15, minor: 0 },
+      ),
+      [{ id: "widget-a", name: "Widget A", status: "loaded" }],
+    );
+    expect(entries[0]?.state).toBe("contract-mismatch");
+  });
+
+  it("a MINOR difference is not a mismatch: minor bumps are additive and still talk", () => {
+    const entries = computeUplinkReadiness(
+      roster([{ id: "widget-a", contract: { major: 15, minor: 2 } }], {
+        major: 15,
+        minor: 7,
+      }),
+      [{ id: "widget-a", name: "Widget A", status: "loaded" }],
+    );
+    expect(entries[0]?.state).toBe("loaded");
+  });
+
+  it("an older mod reporting no versions reads as a plain unavailability, not a mismatch", () => {
+    const entries = computeUplinkReadiness(
+      roster([{ id: "widget-a", available: false, reason: "no antenna" }]),
+      [],
+    );
+    expect(entries[0]?.state).toBe("unavailable");
   });
 
   it("loading: an in-flight attempt is its own state, not a missing client", () => {

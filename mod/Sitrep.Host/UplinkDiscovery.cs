@@ -54,11 +54,23 @@ namespace Sitrep.Host
             public int ContractMajor { get; }
             public int ContractMinor { get; }
 
-            public DiscoveredUplink(ISitrepUplink uplink, int contractMajor, int contractMinor)
+            /// <summary>
+            /// The id off the <see cref="SitrepUplinkAttribute"/>, which is the only
+            /// name for a MAJOR-mismatched Uplink this core can safely read: the
+            /// attribute is resolved by THIS core's <c>Sitrep.Contract</c> during the
+            /// scan, where <see cref="ISitrepUplink.Manifest"/> is a shape belonging to
+            /// whichever contract the Uplink was built against. Null when the caller
+            /// had no attribute to read from, in which case the manifest is the only
+            /// source left.
+            /// </summary>
+            public string? Id { get; }
+
+            public DiscoveredUplink(ISitrepUplink uplink, int contractMajor, int contractMinor, string? id = null)
             {
                 Uplink = uplink;
                 ContractMajor = contractMajor;
                 ContractMinor = contractMinor;
+                Id = id;
             }
         }
 
@@ -142,7 +154,7 @@ namespace Sitrep.Host
                         }
 
                         var instance = (ISitrepUplink)ctor.Invoke(null);
-                        found.Add(new DiscoveredUplink(instance, attr.ContractMajor, attr.ContractMinor));
+                        found.Add(new DiscoveredUplink(instance, attr.ContractMajor, attr.ContractMinor, attr.Id));
                     }
                     catch (Exception ex)
                     {

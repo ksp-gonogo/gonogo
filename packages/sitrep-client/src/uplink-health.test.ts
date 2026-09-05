@@ -18,10 +18,14 @@ interface RawUplinkEntry {
   reason: string | null;
   health: RawUplinkHealth;
   ownedPrefixes?: string[];
+  contractMajor?: number | null;
+  contractMinor?: number | null;
 }
 
 interface RawSystemUplinksPayload {
   uplinks: RawUplinkEntry[];
+  coreContractMajor?: number | null;
+  coreContractMinor?: number | null;
 }
 
 function uplinksPoint(
@@ -58,12 +62,14 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       ],
     };
     expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+      coreContract: null,
       uplinks: [
         {
           id: "kos",
           version: "1.0.0",
           available: true,
           reason: null,
+          contract: null,
           ownedPrefixes: [],
           health: {
             state: "degraded",
@@ -88,12 +94,14 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       ],
     };
     expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+      coreContract: null,
       uplinks: [
         {
           id: "broken",
           version: "1.0.0",
           available: false,
           reason: "registration threw: boom",
+          contract: null,
           ownedPrefixes: [],
           health: {
             state: "unavailable",
@@ -118,12 +126,14 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       ],
     };
     expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+      coreContract: null,
       uplinks: [
         {
           id: "system",
           version: "1.0.0",
           available: true,
           reason: null,
+          contract: null,
           ownedPrefixes: [],
           health: { state: "healthy", detail: null, facts: [] },
         },
@@ -145,12 +155,14 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
       ],
     };
     expect(deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)))).toEqual({
+      coreContract: null,
       uplinks: [
         {
           id: "kos",
           version: "1.0.0",
           available: true,
           reason: null,
+          contract: null,
           ownedPrefixes: ["kos.terminal.", "kos.processors"],
           health: { state: "healthy", detail: null, facts: [] },
         },
@@ -230,6 +242,53 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
     ).toEqual([]);
   });
 
+  it("decodes a contract-refused entry: both version numbers, so the refusal can be named", () => {
+    // The Deck's case: an Uplink built against 14.5 while the core speaks 15.0.
+    // It rides the roster present-and-refused rather than being omitted, and
+    // both halves of the comparison arrive with it.
+    const raw: RawSystemUplinksPayload = {
+      coreContractMajor: 15,
+      coreContractMinor: 0,
+      uplinks: [
+        {
+          id: "kerbalism",
+          version: "",
+          available: false,
+          reason: "contract v14.5 vs core v15.0: major mismatch",
+          contractMajor: 14,
+          contractMinor: 5,
+          health: {
+            state: 2,
+            detail: "contract v14.5 vs core v15.0: major mismatch",
+          },
+        },
+      ],
+    };
+    const decoded = deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)));
+    expect(decoded?.coreContract).toEqual({ major: 15, minor: 0 });
+    expect(decoded?.uplinks[0]?.contract).toEqual({ major: 14, minor: 5 });
+    expect(decoded?.uplinks[0]?.available).toBe(false);
+  });
+
+  it("reads a contract version as null unless BOTH halves are present: half a version is not a version", () => {
+    const raw = {
+      coreContractMajor: 15,
+      uplinks: [
+        {
+          id: "half",
+          version: "1.0.0",
+          available: true,
+          reason: null,
+          contractMinor: 3,
+          health: { state: 0, detail: null },
+        },
+      ],
+    } as unknown as RawSystemUplinksPayload;
+    const decoded = deriveSystemUplinkHealth(fakeGet(uplinksPoint(raw)));
+    expect(decoded?.coreContract).toBeNull();
+    expect(decoded?.uplinks[0]?.contract).toBeNull();
+  });
+
   it("falls back to unavailable for an out-of-range health.state ordinal; never throws", () => {
     const raw: RawSystemUplinksPayload = {
       uplinks: [
@@ -259,6 +318,6 @@ describe("deriveSystemUplinkHealth: mod-side Uplink health self-report", () => {
   it("empty array reads as defined, not resyncing", () => {
     expect(
       deriveSystemUplinkHealth(fakeGet(uplinksPoint({ uplinks: [] }))),
-    ).toEqual({ uplinks: [] });
+    ).toEqual({ uplinks: [], coreContract: null });
   });
 });

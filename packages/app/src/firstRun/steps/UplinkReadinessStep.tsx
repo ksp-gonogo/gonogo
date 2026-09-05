@@ -14,12 +14,24 @@ import {
   useUplinkReadiness,
 } from "../useUplinkReadiness";
 
-/** The count line, the one thing here worth announcing when it changes. */
+/**
+ * The count line, the one thing here worth announcing when it changes. A
+ * contract refusal gets its own clause rather than only a row, because it used
+ * to be the state with no surface at all: nine Uplinks refused for a stale
+ * contract were absent from the roster entirely, and an operator read that as
+ * nine capabilities that simply did not exist.
+ */
 function summarise(entries: readonly UplinkReadinessEntry[]): string {
   const installed = entries.filter((entry) => entry.installed);
   const loaded = installed.filter((entry) => entry.state === "loaded");
+  const refused = installed.filter(
+    (entry) => entry.state === "contract-mismatch",
+  );
   const noun = installed.length === 1 ? "Uplink has" : "Uplinks have";
-  return `${loaded.length} of ${installed.length} installed ${noun} a loaded client`;
+  const line = `${loaded.length} of ${installed.length} installed ${noun} a loaded client`;
+  return refused.length === 0
+    ? line
+    : `${line}; ${refused.length} refused for a contract mismatch`;
 }
 
 /**
@@ -73,6 +85,28 @@ function reasonFor(entry: UplinkReadinessEntry): string | null {
   return null;
 }
 
+/**
+ * The refusal, said in full: which contract this Uplink was built for and which
+ * one the mod running now speaks. Two version numbers rather than a verdict,
+ * because the operator's next move follows from the gap: a build of the Uplink
+ * against the core they have. Nothing here is an instruction, the app has no
+ * way to fetch that build.
+ */
+function ContractMismatchDetail({
+  entry,
+}: Readonly<{ entry: UplinkReadinessEntry }>) {
+  const { declaredContract, coreContract } = entry;
+  if (!declaredContract || !coreContract) return null;
+
+  return (
+    <Text tone="muted" size="sm">
+      Built for contract {declaredContract.major}.{declaredContract.minor}; this
+      mod speaks {coreContract.major}.{coreContract.minor}. The mod refused it,
+      so none of its channels or commands are running.
+    </Text>
+  );
+}
+
 function UplinkReadinessRow({
   entry,
 }: Readonly<{ entry: UplinkReadinessEntry }>) {
@@ -97,6 +131,9 @@ function UplinkReadinessRow({
         <ReadinessReading state={entry.state} />
       </ConnectionRow>
       {identity && <UplinkIdentityBlock identity={identity} />}
+      {entry.state === "contract-mismatch" && (
+        <ContractMismatchDetail entry={entry} />
+      )}
       {reason && (
         <Text tone="muted" size="sm">
           {reason}
@@ -123,6 +160,12 @@ function ReadinessReading({
       );
     case "quarantined":
       return <StatusIndicator tone="nogo">Client quarantined</StatusIndicator>;
+    case "contract-mismatch":
+      return (
+        <StatusIndicator tone="nogo">
+          Refused: contract mismatch
+        </StatusIndicator>
+      );
     case "unavailable":
       return (
         <StatusIndicator tone="nogo">Mod reports unavailable</StatusIndicator>

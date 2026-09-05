@@ -296,6 +296,7 @@ export {
 // read with `useStream("system.uplinkHealth")` like any other channel, and
 // deriving it is the spine's job rather than an author's.
 export type {
+  ContractVersionReading,
   SystemUplinkHealth,
   UplinkHealthEntry,
   UplinkHealthFact,

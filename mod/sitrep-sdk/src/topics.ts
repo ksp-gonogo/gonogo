@@ -98,6 +98,17 @@ export interface SystemUplinksTopicPayloadMap {
       author: string | null;
       repo: string | null;
       /**
+       * The contract version this Uplink declared it was built against, read off
+       * its `[SitrepUplink]` attribute. An Uplink REFUSED for a contract-major
+       * mismatch rides the roster too, as a present-and-refused entry with
+       * `available: false` and the refusal as its `reason`; these two fields are
+       * what let a client say which version it wanted against `coreContractMajor`
+       * below. `null` for an Uplink registered outside discovery, absent on a mod
+       * build predating the fields.
+       */
+      contractMajor?: number | null;
+      contractMinor?: number | null;
+      /**
        * `state` is the integer ordinal of `UplinkHealthState`; `detail` the
        * Uplink's own sentence about it. `facts` is the identity of whatever the
        * Uplink depends on, labelled by the Uplink and read by nothing: a client
@@ -112,6 +123,13 @@ export interface SystemUplinksTopicPayloadMap {
         facts: Array<{ label: string; value: string | null }>;
       };
     }>;
+    /**
+     * The contract version the running mod speaks. Stated once rather than per
+     * entry, because it is a fact about the core. Absent on a mod build
+     * predating the fields.
+     */
+    coreContractMajor?: number | null;
+    coreContractMinor?: number | null;
   };
 }
 

@@ -14,7 +14,10 @@
  * to arrive except the roster itself.
  */
 
-import type { SystemUplinkHealth } from "@ksp-gonogo/sitrep-client";
+import type {
+  ContractVersionReading,
+  SystemUplinkHealth,
+} from "@ksp-gonogo/sitrep-client";
 import { useStream } from "@ksp-gonogo/sitrep-client";
 import { useSyncExternalStore } from "react";
 import {
@@ -35,6 +38,7 @@ export type UplinkReadinessState =
   | "loaded"
   | "loading"
   | "quarantined"
+  | "contract-mismatch"
   | "no-client"
   | "unavailable";
 
@@ -51,16 +55,48 @@ export interface UplinkReadinessEntry {
   modAvailable: boolean;
   /** The mod's own reason, carried verbatim and never reworded. */
   modReason: string | null;
+  /** The contract version this Uplink was built against, as the mod reports it. */
+  declaredContract: ContractVersionReading | null;
+  /** The contract version the running mod speaks, repeated per row so a row renders alone. */
+  coreContract: ContractVersionReading | null;
   /** The recorded load outcome, or null when nothing was attempted for this id. */
   outcome: UplinkLoadOutcome | null;
   state: UplinkReadinessState;
 }
 
+/**
+ * A contract-major refusal, recognised by applying the mod's OWN rule to the
+ * mod's OWN two numbers rather than by re-adjudicating anything: the host
+ * refused it (`available: false`) and the majors differ. Both versions have to
+ * have arrived, so an older mod that reports neither reads as a plain
+ * unavailability, which is what it was before the numbers existed.
+ */
+function isContractRefusal(
+  modAvailable: boolean,
+  declared: ContractVersionReading | null,
+  core: ContractVersionReading | null,
+): boolean {
+  return (
+    !modAvailable &&
+    declared !== null &&
+    core !== null &&
+    declared.major !== core.major
+  );
+}
+
+/**
+ * A contract refusal outranks every load outcome, `loaded` included. The mod
+ * never ran that Uplink's `Register`, so nothing it declares is being served
+ * whatever the browser managed to do with its client, and a row reading "client
+ * loaded" over a dead mod half is the same silence in a friendlier font.
+ */
 function stateOf(
   outcome: UplinkLoadOutcome | null,
   installed: boolean,
   modAvailable: boolean,
+  contractRefused: boolean,
 ): UplinkReadinessState {
+  if (installed && contractRefused) return "contract-mismatch";
   if (outcome?.status === "loaded") return "loaded";
   if (outcome?.status === "loading") return "loading";
   if (outcome?.status === "quarantined") return "quarantined";
@@ -88,11 +124,14 @@ export function computeUplinkReadiness(
   const outcomeById = new Map(outcomes.map((outcome) => [outcome.id, outcome]));
   const ids = new Set<string>([...rosterById.keys(), ...outcomeById.keys()]);
 
+  const coreContract = roster?.coreContract ?? null;
+
   return [...ids].map((id) => {
     const rosterEntry = rosterById.get(id);
     const outcome = outcomeById.get(id) ?? null;
     const installed = rosterEntry !== undefined;
     const modAvailable = rosterEntry?.available ?? false;
+    const declaredContract = rosterEntry?.contract ?? null;
     return {
       id,
       name: outcome?.name ?? id,
@@ -100,8 +139,15 @@ export function computeUplinkReadiness(
       installed,
       modAvailable,
       modReason: rosterEntry?.reason ?? null,
+      declaredContract,
+      coreContract,
       outcome,
-      state: stateOf(outcome, installed, modAvailable),
+      state: stateOf(
+        outcome,
+        installed,
+        modAvailable,
+        isContractRefusal(modAvailable, declaredContract, coreContract),
+      ),
     };
   });
 }

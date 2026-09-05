@@ -1,5 +1,5 @@
 import { clearRegistry } from "@ksp-gonogo/core";
-import { renderHook, waitFor } from "@ksp-gonogo/test-utils";
+import { render, renderHook, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
@@ -17,6 +17,7 @@ import {
   __resetUplinkOutcomes,
   setUplinkOutcome,
 } from "../uplinks/loaderState";
+import { UplinkReadinessStep } from "./steps/UplinkReadinessStep";
 import { useUplinkReadiness } from "./useUplinkReadiness";
 
 /**
@@ -105,6 +106,49 @@ describe("useUplinkReadiness: hook wiring", () => {
     expect(result.current.entries).toEqual([
       expect.objectContaining({ id: "widget-a", state: "no-client" }),
     ]);
+  });
+
+  it("shows an operator a contract-refused Uplink, naming both versions", async () => {
+    // The Deck's defect, end to end: the mod reports the refused Uplink as
+    // present-and-refused, and the wizard step says which contract it wanted
+    // and which one is running. Before this, the frame omitted it and the
+    // operator saw the capability simply not exist.
+    const clients = listenForClient();
+    render(<UplinkReadinessStep />, { wrapper });
+
+    await waitFor(() => expect(clients).toHaveLength(1));
+    clients[0].send(
+      streamFrame("system.uplinks", {
+        coreContractMajor: 15,
+        coreContractMinor: 0,
+        uplinks: [
+          {
+            id: "widget-a",
+            version: "",
+            available: false,
+            reason: "contract v14.5 vs core v15.0: major mismatch",
+            contractMajor: 14,
+            contractMinor: 5,
+            health: {
+              state: 2,
+              detail: "contract v14.5 vs core v15.0: major mismatch",
+            },
+          },
+        ],
+      }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByText("Refused: contract mismatch"),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByText(/Built for contract 14\.5; this mod speaks 15\.0\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/1 refused for a contract mismatch/),
+    ).toBeInTheDocument();
   });
 
   it("reflects an id already recorded loaded through the real outcome subscription", async () => {

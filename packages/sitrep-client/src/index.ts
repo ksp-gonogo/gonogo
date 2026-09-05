@@ -411,6 +411,7 @@ export type {
 export { lerpPayload, TimelineStore } from "./timeline-store";
 export type { Transport, TransportStatus } from "./transport";
 export type {
+  ContractVersionReading,
   SystemUplinkHealth,
   UplinkHealthEntry,
   UplinkHealthFact,

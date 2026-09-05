@@ -65,6 +65,14 @@ discovers it by that attribute, reads its `UplinkManifest`, and calls `Register`
 attribute is the identity that ties the two halves together: it MUST match your client's
 `defineUplinkClient` id and your `gonogo-uplink.json` id.
 
+The attribute also carries the contract version you were built against, defaulted at COMPILE time, so
+a binary that was never rebuilt keeps reporting the version it actually shipped against. The host
+refuses an Uplink whose contract MAJOR differs from its own and never calls its `Register`, because
+your payload types are a shape it cannot type-check against. A refusal is not silent: the Uplink rides
+`system.uplinks` as a present-and-refused entry carrying both version numbers, and the app's setup
+wizard shows a row saying which contract you were built for and which one the running mod speaks. A
+MINOR difference either way is fine, Minor bumps are additive.
+
 ```csharp
 using System.Collections.Generic;
 using Sitrep.Contract;

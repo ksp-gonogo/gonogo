@@ -887,6 +887,25 @@ namespace Sitrep.Host
         // enumerate without locking.
         private readonly Dictionary<string, ISitrepUplink> _registeredUplinks = new Dictionary<string, ISitrepUplink>();
 
+        /// <summary>
+        /// The contract version each discovered uplink declared it was built against,
+        /// keyed by id, recorded for the refused and the accepted alike so
+        /// <see cref="BuildSystemUplinksPayload"/> can state it on every roster entry.
+        /// Empty for an uplink registered through <see cref="RegisterUplink"/> directly
+        /// (no discovery, so nothing declared a version), whose entry reports null.
+        /// </summary>
+        private readonly Dictionary<string, ContractDeclaration> _declaredContract = new Dictionary<string, ContractDeclaration>();
+
+        /// <summary>
+        /// Every uplink <see cref="PassesContractMajorCheck"/> refused, keyed by id.
+        /// Refusal skips <see cref="RegisterUplink"/> entirely, so these ids are absent
+        /// from <see cref="_registeredUplinks"/> and used to be absent from
+        /// <see cref="UplinksTopic"/> with them: an operator saw the capability simply
+        /// not exist, with nothing anywhere saying why. They ride the roster as
+        /// present-and-refused instead.
+        /// </summary>
+        private readonly Dictionary<string, ContractRefusal> _contractRefusals = new Dictionary<string, ContractRefusal>();
+
         // Thread-safe MIRROR of "which topics currently have >=1 subscriber",
         // maintained on the Courier thread (the only writer, Process
         // Subscribe/Unsubscribe/Disconnect + the C2-3 subscribe rollback, in
@@ -1437,6 +1456,9 @@ namespace Sitrep.Host
                 var uplink = kvp.Value;
                 var availability = AvailabilityOf(id);
                 var clientSource = uplink.Manifest.ClientSource;
+                var declared = _declaredContract.TryGetValue(id, out var contract)
+                    ? (ContractDeclaration?)contract
+                    : null;
                 entries.Add(new Dictionary<string, object?>
                 {
                     ["id"] = id,
@@ -1459,14 +1481,79 @@ namespace Sitrep.Host
                         },
                     ["available"] = availability.IsAvailable,
                     ["reason"] = availability.Reason,
+                    // What this uplink declared it was built against, so a client can
+                    // read a version against the core's own without inferring it from
+                    // prose. Null for an uplink registered outside discovery, which
+                    // declared nothing.
+                    ["contractMajor"] = declared.HasValue ? (int?)declared.Value.Major : null,
+                    ["contractMinor"] = declared.HasValue ? (int?)declared.Value.Minor : null,
                     ["health"] = BuildUplinkHealthPayload(uplink, availability),
                     ["ownedPrefixes"] = ComputeOwnedPrefixes(id),
                 });
             }
 
+            foreach (var kvp in _contractRefusals)
+            {
+                // An id that ALSO registered (two DLLs claiming one id, one stale and
+                // one current) is already spoken for by the loop above, and the
+                // registered one is the copy actually serving channels.
+                if (_registeredUplinks.ContainsKey(kvp.Key))
+                {
+                    continue;
+                }
+
+                entries.Add(BuildContractRefusalEntry(kvp.Value));
+            }
+
             return new Dictionary<string, object?>
             {
                 ["uplinks"] = entries,
+                // Stated once, because it is a fact about this core rather than about
+                // any one uplink: the version the host speaks, which is the other half
+                // of every refusal reason on the roster.
+                ["coreContractMajor"] = Sitrep.Contract.ContractVersion.Major,
+                ["coreContractMinor"] = Sitrep.Contract.ContractVersion.Minor,
+            };
+        }
+
+        /// <summary>
+        /// One refused uplink's roster entry. Built entirely from the
+        /// <see cref="ContractRefusal"/> record, never by calling back into the refused
+        /// uplink: its <see cref="ISitrepUplink.Manifest"/>, its
+        /// <see cref="ISitrepUplink.Health"/> and everything they carry belong to
+        /// another contract major, which is the whole reason it was refused. So the
+        /// provenance fields an operator would otherwise get (name, author, repo, the
+        /// client bundle) are null here, and the entry says the one thing that IS
+        /// known and actionable: which version it was built for, and that this core
+        /// speaks a different one.
+        /// </summary>
+        private static Dictionary<string, object?> BuildContractRefusalEntry(ContractRefusal refusal)
+        {
+            return new Dictionary<string, object?>
+            {
+                ["id"] = refusal.Id,
+                // Its manifest is the unreadable half, so there is no version string to
+                // report. Empty rather than null, keeping the field's type: the version
+                // that matters for a refusal is the contract one below.
+                ["version"] = "",
+                ["name"] = null,
+                ["author"] = null,
+                ["repo"] = null,
+                ["expectedClientHash"] = null,
+                ["clientSource"] = null,
+                ["available"] = false,
+                ["reason"] = refusal.Reason,
+                ["contractMajor"] = refusal.DeclaredMajor,
+                ["contractMinor"] = refusal.DeclaredMinor,
+                ["health"] = new Dictionary<string, object?>
+                {
+                    ["state"] = (int)UplinkHealthState.Unavailable,
+                    ["detail"] = refusal.Reason,
+                    ["facts"] = new List<object?>(),
+                },
+                // Register never ran, so it owns nothing. Present and empty, so a
+                // client enumerates this entry exactly like every other one.
+                ["ownedPrefixes"] = new List<string>(),
             };
         }
 
@@ -1601,7 +1688,7 @@ namespace Sitrep.Host
         /// </summary>
         public void RegisterDiscoveredUplink(ISitrepUplink uplink, int contractMajor, int contractMinor)
         {
-            if (!PassesContractMajorCheck(uplink, contractMajor, contractMinor))
+            if (!PassesContractMajorCheck(uplink, declaredId: null, contractMajor, contractMinor))
             {
                 return;
             }
@@ -1643,7 +1730,7 @@ namespace Sitrep.Host
             var accepted = new List<ISitrepUplink>();
             foreach (var d in discovered)
             {
-                if (PassesContractMajorCheck(d.Uplink, d.ContractMajor, d.ContractMinor))
+                if (PassesContractMajorCheck(d.Uplink, d.Id, d.ContractMajor, d.ContractMinor))
                 {
                     accepted.Add(d.Uplink);
                 }
@@ -1696,23 +1783,76 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>One discovered uplink's declared contract version, as it rides <see cref="UplinksTopic"/>.</summary>
+        private readonly struct ContractDeclaration
+        {
+            public int Major { get; }
+            public int Minor { get; }
+
+            public ContractDeclaration(int major, int minor)
+            {
+                Major = major;
+                Minor = minor;
+            }
+        }
+
+        /// <summary>
+        /// One contract-major refusal, holding everything <see cref="UplinksTopic"/>
+        /// needs to name it. All of it comes from the
+        /// <see cref="Sitrep.Contract.SitrepUplinkAttribute"/> the scan resolved
+        /// against THIS core's contract, never from the refused uplink itself: a
+        /// refusal that could only be voiced by reading the refused uplink's own
+        /// manifest would not survive the mismatch it exists to report.
+        /// </summary>
+        private readonly struct ContractRefusal
+        {
+            public string Id { get; }
+            public int DeclaredMajor { get; }
+            public int DeclaredMinor { get; }
+            public string Reason { get; }
+
+            public ContractRefusal(string id, int declaredMajor, int declaredMinor, string reason)
+            {
+                Id = id;
+                DeclaredMajor = declaredMajor;
+                DeclaredMinor = declaredMinor;
+                Reason = reason;
+            }
+        }
+
         /// <summary>
         /// Shared MAJOR-version gate for both the single
         /// (<see cref="RegisterDiscoveredUplink"/>) and batch
         /// (<see cref="RegisterDiscoveredUplinks"/>) discovery paths. A MAJOR
         /// mismatch fail-softs the uplink to Unavailable WITHOUT registering it,
         /// see <see cref="RegisterDiscoveredUplink"/>'s original doc comment for
-        /// the full handshake rationale. Returns true iff the uplink may proceed.
+        /// the full handshake rationale, and records the refusal so
+        /// <see cref="BuildSystemUplinksPayload"/> can carry it. Returns true iff the
+        /// uplink may proceed.
+        ///
+        /// <para><paramref name="declaredId"/> is the id off the discovery attribute,
+        /// and the refusal path uses ONLY that: a major-mismatched uplink's
+        /// <see cref="ISitrepUplink.Manifest"/> is a shape belonging to a contract
+        /// this core has just declared it cannot type-check against, so reaching for
+        /// it can throw and take the whole registration pass with it. The
+        /// manifest is still the fallback when the caller had no attribute to read,
+        /// where it is the only name available and the uplink is one this core built
+        /// its own discovery record for.</para>
         /// </summary>
-        private bool PassesContractMajorCheck(ISitrepUplink uplink, int contractMajor, int contractMinor)
+        private bool PassesContractMajorCheck(ISitrepUplink uplink, string? declaredId, int contractMajor, int contractMinor)
         {
             if (contractMajor != Sitrep.Contract.ContractVersion.Major)
             {
-                var id = uplink.Manifest.Id;
-                _availability[id] = Availability.Unavailable(
-                    $"contract v{contractMajor}.{contractMinor} vs core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor}: major mismatch");
+                var refusedId = string.IsNullOrEmpty(declaredId) ? uplink.Manifest.Id : declaredId!;
+                var reason =
+                    $"contract v{contractMajor}.{contractMinor} vs core v{Sitrep.Contract.ContractVersion.Major}.{Sitrep.Contract.ContractVersion.Minor}: major mismatch";
+                _availability[refusedId] = Availability.Unavailable(reason);
+                _contractRefusals[refusedId] = new ContractRefusal(refusedId, contractMajor, contractMinor, reason);
                 return false;
             }
+
+            var acceptedId = string.IsNullOrEmpty(declaredId) ? uplink.Manifest.Id : declaredId!;
+            _declaredContract[acceptedId] = new ContractDeclaration(contractMajor, contractMinor);
             return true;
         }
 

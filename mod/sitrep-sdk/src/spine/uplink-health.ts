@@ -51,11 +51,21 @@ interface RawUplinkEntry {
    * absent) decodes safely instead of throwing.
    */
   ownedPrefixes?: string[];
+  /**
+   * The contract version this Uplink declared it was built against, off its
+   * `[SitrepUplink]` attribute. Absent for an uplink registered outside
+   * discovery, and for a mod build predating the fields.
+   */
+  contractMajor?: number | null;
+  contractMinor?: number | null;
 }
 
 /** The raw `system.uplinks` wire payload (`ChannelEngine.BuildSystemUplinksPayload`'s shape). */
 interface RawSystemUplinksPayload {
   uplinks: RawUplinkEntry[];
+  /** The contract version the running mod speaks. Absent on a mod build predating the field. */
+  coreContractMajor?: number | null;
+  coreContractMinor?: number | null;
 }
 
 /**
@@ -91,12 +101,28 @@ export interface UplinkHealthFact {
   value: string | null;
 }
 
+/** A `Sitrep.Contract.ContractVersion` pair, as a Major/Minor the two sides can be compared on. */
+export interface ContractVersionReading {
+  major: number;
+  minor: number;
+}
+
 /** Decoded, widget-facing form of one Uplink's health self-report. */
 export interface UplinkHealthEntry {
   id: string;
   version: string;
   available: boolean;
   reason: string | null;
+  /**
+   * The contract version this Uplink was built against, which the mod reads off
+   * its `[SitrepUplink]` attribute rather than out of its payloads: an Uplink
+   * REFUSED for a major mismatch still says which version it expected, because
+   * the attribute is the one thing about it a differing core can safely read.
+   * Compare it against {@link SystemUplinkHealth.coreContract} to tell a refusal
+   * from any other kind of unavailability. `null` for an Uplink that declared
+   * nothing, and for a mod build predating the field.
+   */
+  contract: ContractVersionReading | null;
   /**
    * Every topic/prefix this uplink owns, mod-side source of truth
    * (`ChannelEngine._channelOwner` / `_dynamicNamespaceOwner`): the client
@@ -120,6 +146,25 @@ export interface UplinkHealthEntry {
 /** The `system.uplinkHealth` derived-channel payload. */
 export interface SystemUplinkHealth {
   uplinks: UplinkHealthEntry[];
+  /**
+   * The contract version the running mod speaks: the other half of every
+   * contract refusal on the roster, stated once because it is a fact about the
+   * core rather than about any one Uplink. `null` on a mod build predating it.
+   */
+  coreContract: ContractVersionReading | null;
+}
+
+/**
+ * A Major/Minor pair from two nullable wire ints. Both have to be present to
+ * mean anything: half a version number is not a version.
+ */
+function readContractVersion(
+  major: number | null | undefined,
+  minor: number | null | undefined,
+): ContractVersionReading | null {
+  return typeof major === "number" && typeof minor === "number"
+    ? { major, minor }
+    : null;
 }
 
 /**
@@ -138,11 +183,16 @@ export function deriveSystemUplinkHealth(
   if (point.payload === null) return null;
 
   return {
+    coreContract: readContractVersion(
+      point.payload.coreContractMajor,
+      point.payload.coreContractMinor,
+    ),
     uplinks: point.payload.uplinks.map((entry) => ({
       id: entry.id,
       version: entry.version,
       available: entry.available,
       reason: entry.reason ?? null,
+      contract: readContractVersion(entry.contractMajor, entry.contractMinor),
       ownedPrefixes: entry.ownedPrefixes ?? [],
       health: {
         state: HEALTH_STATE_NAMES[entry.health.state] ?? "unavailable",
