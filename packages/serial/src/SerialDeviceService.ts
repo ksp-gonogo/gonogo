@@ -178,7 +178,17 @@ export class SerialDeviceService {
       this.register(instance, KEYBOARD_TYPE);
       this.saveDevices();
     }
-    void this.connect(instance.id);
+    /**
+     * Fire-and-forget from a constructor, so a rejection has nowhere to go and
+     * surfaces as an unhandled rejection that takes the whole page (or the
+     * whole test run) with it. A transport reports its own failure through the
+     * status listener, which is where a caller already looks.
+     */
+    void this.connect(instance.id).catch((err) => {
+      logger.warn("[SerialDeviceService] keyboard connect failed", {
+        err: String(err),
+      });
+    });
   }
 
   /**
