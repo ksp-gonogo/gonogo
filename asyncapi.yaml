@@ -605,9 +605,10 @@ channels:
       right now, on one fixed scale, as the comms backend in force grades it.
 
       `CommsDegrade.level` runs from 0, nothing wrong, to 1, nothing usable
-      getting through, and is ABSENT when nothing graded the link. Absent is not
-      zero: see ICommsDegradeModel.Level, which states all three answers and is
-      the definition this field carries.
+      getting through. It is ABSENT when nothing graded the link, and absent is a
+      third answer rather than a low one: "nobody rated this" and "this link is
+      perfect" are opposite instructions to anything choosing a quality, so a
+      consumer must branch on the absence rather than default it to a number.
 
       **Read this rather than deriving a quality from `comms.signalStrength`.**
       That field is 0..1 too, and it is a different quantity on a stock install
@@ -9477,9 +9478,10 @@ components:
         right now, on one fixed scale, as the comms backend in force grades it.
 
         `CommsDegrade.level` runs from 0, nothing wrong, to 1, nothing usable
-        getting through, and is ABSENT when nothing graded the link. Absent is not
-        zero: see ICommsDegradeModel.Level, which states all three answers and is
-        the definition this field carries.
+        getting through. It is ABSENT when nothing graded the link, and absent is a
+        third answer rather than a low one: "nobody rated this" and "this link is
+        perfect" are opposite instructions to anything choosing a quality, so a
+        consumer must branch on the absence rather than default it to a number.
 
         **Read this rather than deriving a quality from `comms.signalStrength`.**
         That field is 0..1 too, and it is a different quantity on a stock install
