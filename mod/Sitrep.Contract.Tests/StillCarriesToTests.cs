@@ -15,9 +15,10 @@ namespace Sitrep.Contract.Tests
     /// say a destruction is a reroute and the model goes on delivering samples
     /// that could not have arrived.</para>
     ///
-    /// <para>Shared, so it is tested here rather than against either backend:
-    /// <c>RaCommsBackend</c> overrides neither this nor <c>Path</c>, so stock
-    /// CommNet and RealAntennas answer it with the same code.</para>
+    /// <para>Tested here rather than against either shipped backend because
+    /// neither overrides it or <see cref="ICommsBackend.Path"/>: both answer the
+    /// question with this same code, so a test against one of them would be a
+    /// test of <see cref="CommsBackendBase"/> wearing a costume.</para>
     /// </summary>
     public class StillCarriesToTests
     {
