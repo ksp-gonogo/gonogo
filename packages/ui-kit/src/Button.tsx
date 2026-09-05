@@ -11,8 +11,24 @@ import styled from "styled-components";
  *
  * The label text is the caller's: this changes how a button is drawn, never what
  * it says, so a caller that wants a word capitalised writes it that way.
+ *
+ * ## Why it is a flex row rather than a run of inline text
+ *
+ * A caller that puts an icon beside the word (`<Button><PlusIcon />New
+ * message</Button>`) gets an inline `<svg>`, which sits on the TEXT BASELINE
+ * and therefore hangs a couple of pixels below the middle of the word next to
+ * it, with no space between the two. Every caller that noticed re-declared
+ * `display: inline-flex; align-items: center; gap` on its own extension of this
+ * button, and every caller that did not shipped the misalignment; Commcast had
+ * one of each, side by side in the same bar. Centring here is what makes the
+ * two agree, and it changes nothing for a text-only button.
  */
 export const Button = styled.button`
+  /* Centres an icon against the word beside it; see the note above. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6, 6px);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm, 3px);
