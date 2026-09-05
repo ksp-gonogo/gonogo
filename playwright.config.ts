@@ -27,6 +27,19 @@ const SITREP_REPLAY_PORT = 18090;
 // added to the shared SITREP_REPLAY_PORT server. Used only by
 // power-systems.spec.ts/fuel-status.spec.ts via bootstrapPair's `sitrepPort`.
 const SITREP_REPLAY_TOPOLOGY_PORT = 18091;
+/**
+ * One stream per SCREEN for the two-screen radio scene, because a light-time
+ * is a property of a pair: the vantage a screen observes comes off its own
+ * session's frames, so two screens sharing a server are co-located and the
+ * whole delay model collapses. Three ports, three vantages, one mission
+ * control and two craft at different distances. See
+ * `commcast-radio-server.mjs` and `commcast-radio.spec.ts`.
+ */
+const RADIO_STREAM_PORTS = {
+  ksc: 18095,
+  near: 18096,
+  far: 18097,
+} as const;
 // The relay (/ice-config + coturn + the host-discovery registry).
 //
 // Port deliberately offset from the production default (3002) so the
@@ -67,7 +80,12 @@ export default defineConfig({
     {
       name: "firefox",
       use: { ...devices["Desktop Firefox"] },
-      // Web Serial / real-camera specs can't run where the API is absent.
+      /*
+       * Web Serial / real-camera specs can't run where the API is absent, and
+       * the three-context radio scene loses its peer link on the other engines
+       * often enough that its timing measurement is not worth making there
+       * (`commcast-radio.spec.ts` records what was measured).
+       */
       grepInvert: /@chromium-only/,
     },
     {
@@ -107,6 +125,24 @@ export default defineConfig({
         SITREP_REPLAY_TOPOLOGY_PORT: String(SITREP_REPLAY_TOPOLOGY_PORT),
       },
     },
+    ...(
+      [
+        ["ksc", "ksc"],
+        ["near", "vessel:near"],
+        ["far", "vessel:far"],
+      ] as const
+    ).map(([key, vantage]) => ({
+      command: "node ./tests/playwright/commcast-radio-server.mjs",
+      url: `http://localhost:${RADIO_STREAM_PORTS[key]}/health`,
+      reuseExistingServer: !process.env.CI,
+      stdout: "pipe" as const,
+      stderr: "pipe" as const,
+      timeout: 15_000,
+      env: {
+        RADIO_STREAM_PORT: String(RADIO_STREAM_PORTS[key]),
+        RADIO_STREAM_VANTAGE: vantage,
+      },
+    })),
     {
       command: "pnpm --filter @ksp-gonogo/relay exec tsx src/index.ts",
       url: `http://localhost:${RELAY_PORT}/health`,
@@ -183,4 +219,5 @@ export const PORTS = {
   sitrepReplayTopology: SITREP_REPLAY_TOPOLOGY_PORT,
   relay: RELAY_PORT,
   preview: PREVIEW_PORT,
+  radioStream: RADIO_STREAM_PORTS,
 } as const;
