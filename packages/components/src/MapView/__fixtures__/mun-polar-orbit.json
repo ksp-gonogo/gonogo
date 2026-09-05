@@ -110,7 +110,9 @@
               "index": 1,
               "parentIndex": 0,
               "radius": 200000,
-              "orbit": null
+              "orbit": null,
+              "surfaceGravity": 0.166056700098353,
+              "rotationPeriod": 138984.376574476
             }
           ]
         }

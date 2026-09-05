@@ -31,6 +31,18 @@
  * propagated date line while the canvas draws through the body's texture
  * offset. Every fixture before it was equatorial, where that line lies exactly
  * on the track that drew it. See `MapView/groundTrackWrap.ts`.</p>
+ *
+ * <p>2026-09-05 settled the last two misclassified entries,
+ * `LandingStatus#surfaceGravity` and `MapView#rotationPeriod`, which sat in
+ * COINCIDENTAL only because RENDER_GAP refuses growth. Both `__fixtures__`
+ * dirs now carry the two facts the way the wire does, at the values a real
+ * capture reports, so the reported-first branch `07587a9c8` introduced draws
+ * for the first time. Every render came out byte-identical to the one the
+ * static table produced, which is the answer worth having: the two authorities
+ * agree on a stock body. That the branch is live rather than dead was proved
+ * separately by planting a wrong figure, a tenth-gee Kerbin bent the descent
+ * projection and a tenfold-fast rotation cut the equatorial track to two
+ * stubs.</p>
  */
 
 /**
@@ -48,31 +60,6 @@ export const COINCIDENTAL: readonly string[] = [
   // plot coordinates in crossSectionPlot.ts (`slice.points[0].x`)
   "packages/components/src/LandingStatus#x",
   "packages/components/src/LandingStatus#y",
-  /*
-   * MISCLASSIFIED, and here only because RENDER_GAP cannot be added to.
-   *
-   * The comment these two carried said both names were the sdk's static body
-   * table rather than the `system.bodies` payload. That was true the day it was
-   * written and false the next: `07587a9c8` took both figures off the wire and
-   * demoted the table to a fallback. `streamBody.bodyFromStream` merges
-   * `reported(facts.rotationPeriod) ?? table?.rotationPeriod`, and
-   * `descentLayers` reads `body?.surfaceGravity` before deriving anything from
-   * gm and radius. So each is a real read of a declared `BodyEntry` field, and
-   * no fixture of either widget carries one: every `system.bodies` entry in
-   * both `__fixtures__` dirs leaves the two null and the table answers instead.
-   *
-   * By the rule at the top of this file they belong in RENDER_GAP, and putting
-   * them there is growth on a shrink-only list that the gate refuses. Settling
-   * them means feeding both fields in one fixture per widget and looking at
-   * what changes; until someone does, this paragraph is the record that they
-   * are owed.
-   *
-   * AtmosphereProfile's `atmosphere` sat here under the older, genuine reading
-   * of the same comment and no longer does: its pressure curve is drawn from
-   * the reported profile now, and `earth-rss-reentry` carries one.
-   */
-  "packages/components/src/LandingStatus#surfaceGravity",
-  "packages/components/src/MapView#rotationPeriod",
   // `ctx.arc(...)`, the canvas API
   "packages/components/src/MapView#arc",
   // `const { x, y } = project(poi.lat, poi.lon)`, screen coordinates
