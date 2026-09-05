@@ -41,6 +41,15 @@ export interface RadioControl {
   transmitting: boolean;
   /** Keyed, and the microphone is still opening. */
   opening: boolean;
+  /**
+   * Loudness per captured chunk, newest last, for the rail to draw this
+   * screen's own voice crossing the gap.
+   *
+   * Local to the transmitter and never on the wire: only the operator's OWN
+   * transmission is drawn, so nobody else needs the number. Empty while not
+   * keyed.
+   */
+  amplitudes: readonly number[];
   /** What is playing here, and how far behind playback is running. */
   reception: RadioReception;
   /**
@@ -251,6 +260,7 @@ export function useRadio({
   return {
     transmitting: transmit.live,
     opening: transmit.opening,
+    amplitudes: transmit.amplitudes ?? [],
     reception,
     unavailable,
     fault: transmit.fault,

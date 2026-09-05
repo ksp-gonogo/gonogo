@@ -2,7 +2,9 @@ import {
   BroadcastIcon,
   Text,
   ToggleButton,
+  usePanelCrossing,
   VisuallyHidden,
+  VOICE_RAIL_TAGS,
 } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 import styled from "styled-components";
@@ -24,7 +26,39 @@ import type { RadioControl } from "./useRadio";
  * deliberately is not: a meter updating at frame rate through `aria-live` floods
  * a screen reader with a reading nobody asked to hear continuously.
  */
-export function RadioPtt({ radio }: { radio: RadioControl }) {
+/** One captured chunk is 20 ms, so a light-time converts to that many samples. */
+const CHUNK_SECONDS = 0.02;
+
+export function RadioPtt({
+  radio,
+  targetName,
+  separationSeconds,
+}: {
+  radio: RadioControl;
+  /** Who the key is aimed at, for the crossing's accessible name. */
+  targetName?: string;
+  /** One-way light-time to them, or null when there is none to draw. */
+  separationSeconds?: number | null;
+}) {
+  /*
+   * The operator's own voice, handed to the rail to draw crossing the gap.
+   * Registered only while keyed: an idle transmitter publishes nothing, so the
+   * rail has no ribbon rather than an empty one.
+   */
+  usePanelCrossing(
+    radio.transmitting
+      ? {
+          tags: VOICE_RAIL_TAGS,
+          label: `Your transmission crossing to ${targetName ?? "the far end"}`,
+          amplitudes: radio.amplitudes,
+          spanSamples: Math.max(
+            1,
+            Math.round((separationSeconds ?? 0) / CHUNK_SECONDS),
+          ),
+        }
+      : null,
+  );
+
   const reasonId = useId();
   const blocked = radio.unavailable ?? radio.fault;
   const label = radio.opening

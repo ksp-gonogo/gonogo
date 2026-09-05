@@ -1004,7 +1004,11 @@ function Composer({
           A latching key rather than hold-to-talk: press-and-hold on a real
           button has no keyboard equivalent, and this widget is operable from
           the keyboard throughout. */}
-      <RadioPtt radio={radio} />
+      <RadioPtt
+        radio={radio}
+        targetName={threadName}
+        separationSeconds={separationSeconds}
+      />
       {/* Beside talk, because they are the two halves of one question about
           this conversation: whether the operator is speaking on it and whether
           they are hearing it. It is a decision about the LOOP rather than about

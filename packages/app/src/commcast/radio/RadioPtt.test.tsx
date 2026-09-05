@@ -7,6 +7,7 @@
  * nothing about a cut is announced to a listener.
  */
 import { render, screen } from "@ksp-gonogo/test-utils";
+import { createDelayRailStore, DelayRailContext } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
@@ -17,6 +18,7 @@ function control(over: Partial<RadioControl> = {}): RadioControl {
   return {
     transmitting: false,
     opening: false,
+    amplitudes: [],
     reception: {
       playing: null,
       live: [],
@@ -124,5 +126,50 @@ describe("the push-to-talk key", () => {
   it("has no accessibility violations", async () => {
     const { container } = render(<RadioPtt radio={control()} />);
     await expectNoA11yViolations(container);
+  });
+});
+
+describe("the voice crossing it publishes", () => {
+  /**
+   * The rail draws the operator's own voice from what this widget registers, so
+   * a keyed transmitter that publishes nothing leaves the ribbon with no
+   * producer and the rail silently empty.
+   */
+  it("registers a crossing while transmitting, carrying the captured loudness", () => {
+    const store = createDelayRailStore();
+
+    render(
+      <DelayRailContext.Provider value={store}>
+        <RadioPtt
+          radio={control({ transmitting: true, amplitudes: [0.2, 0.6, 0.4] })}
+          targetName="Odyssey"
+          separationSeconds={1}
+        />
+      </DelayRailContext.Provider>,
+    );
+
+    const crossing = store.getActiveCrossings()[0];
+    expect(crossing).toBeDefined();
+    expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);
+    expect(crossing?.label).toContain("Odyssey");
+    // Telemetry, continuous, fire-and-forget: a ribbon with no return leg.
+    expect(crossing?.tags.delivery).toBe("fire-and-forget");
+    expect(crossing?.tags.continuity).toBe("continuous");
+  });
+
+  it("registers nothing while idle, so the rail draws no ribbon", () => {
+    const store = createDelayRailStore();
+
+    render(
+      <DelayRailContext.Provider value={store}>
+        <RadioPtt
+          radio={control({ transmitting: false, amplitudes: [] })}
+          targetName="Odyssey"
+          separationSeconds={1}
+        />
+      </DelayRailContext.Provider>,
+    );
+
+    expect(store.getActiveCrossings()).toHaveLength(0);
   });
 });
