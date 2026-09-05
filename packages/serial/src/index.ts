@@ -29,6 +29,7 @@ export { buildGamepadInputs, gamepadTypeId } from "./gamepadShape";
 export * from "./InputDispatcher";
 export { InputMappingTab } from "./InputMappingTab";
 export { InputTesterComponent } from "./InputTester";
+export { isKeyboardInputCode, KEYBOARD_INPUTS } from "./keyboardKeys";
 export { MockGamepadAPI, type MockGamepadSpec } from "./mocks/mockGamepad";
 export { MockSerialPort, MockWebSerial } from "./mocks/mockWebSerial";
 export * from "./parsers/jsonState";
@@ -64,6 +65,7 @@ export {
   GamepadTransport,
   type GamepadTransportOptions,
 } from "./transports/GamepadTransport";
+export { KeyboardTransport } from "./transports/KeyboardTransport";
 export { VirtualTransport } from "./transports/VirtualTransport";
 export { WebSerialTransport } from "./transports/WebSerialTransport";
 export * from "./types";

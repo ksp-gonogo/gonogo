@@ -209,6 +209,12 @@ function DeviceRow({
     !!type &&
     type.inputs.some((i) => !i.role);
 
+  // The keyboard is not a device the operator registered, so it offers
+  // neither Edit nor Remove: its type is code-defined and it is re-created on
+  // the next load, which would make both controls lie. Connect/Disconnect
+  // stay, they are the honest way to silence it for a screen.
+  const isKeyboard = device.transport === "keyboard";
+
   const openLearnWizard = () => {
     if (!type) return;
     const modalId = open(
@@ -260,7 +266,8 @@ function DeviceRow({
       )}
       <RowActions>
         {(device.transport === "web-serial" ||
-          device.transport === "gamepad") &&
+          device.transport === "gamepad" ||
+          isKeyboard) &&
           status !== "connected" && (
             <Button
               type="button"
@@ -305,14 +312,18 @@ function DeviceRow({
             Reset connection
           </GhostButton>
         )}
-        <GhostButton onClick={onEdit}>Edit</GhostButton>
-        <GhostButton
-          onClick={() => {
-            void svc.removeDevice(device.id);
-          }}
-        >
-          Remove
-        </GhostButton>
+        {!isKeyboard && (
+          <>
+            <GhostButton onClick={onEdit}>Edit</GhostButton>
+            <GhostButton
+              onClick={() => {
+                void svc.removeDevice(device.id);
+              }}
+            >
+              Remove
+            </GhostButton>
+          </>
+        )}
       </RowActions>
     </DeviceCard>
   );

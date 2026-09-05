@@ -93,7 +93,11 @@ export interface DeviceType {
   authoredBy?: DeviceTypeAuthor;
 }
 
-export type DeviceTransportKind = "web-serial" | "virtual" | "gamepad";
+export type DeviceTransportKind =
+  | "web-serial"
+  | "virtual"
+  | "gamepad"
+  | "keyboard";
 
 /**
  * A user-registered physical or virtual device on a given screen. `transport`

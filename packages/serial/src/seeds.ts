@@ -1,3 +1,4 @@
+import { KEYBOARD_INPUTS } from "./keyboardKeys";
 import type { DeviceInstance, DeviceType } from "./types";
 
 /**
@@ -53,3 +54,36 @@ export const GAMEPAD_PLACEHOLDER_TYPE: DeviceType = {
   inputs: [],
   authoredBy: "device",
 };
+
+/**
+ * The keyboard's DeviceType. Code-defined and refreshed from this constant on
+ * every service construction rather than merged with whatever localStorage
+ * held, so a saved copy can never shadow the key table (see
+ * `SerialDeviceService.ensureKeyboardDevice`). `authoredBy: "device"` keeps it
+ * out of the Device Types tab: the keyboard is not something an operator
+ * declares.
+ */
+export const KEYBOARD_TYPE: DeviceType = {
+  id: "keyboard",
+  name: "Keyboard",
+  // Nominal, as for the gamepad placeholder: KeyboardTransport reads DOM key
+  // events and never runs a parser. "json-state" is what every other
+  // device-authored type carries.
+  parser: "json-state",
+  inputs: [...KEYBOARD_INPUTS],
+  authoredBy: "device",
+};
+
+/**
+ * The keyboard device every screen gets. Ensured on every service
+ * construction, not seeded only on a fresh install: the operator is never
+ * asked to create one, which is the entire point.
+ */
+export function defaultKeyboardDevice(): DeviceInstance {
+  return {
+    id: "keyboard",
+    name: "Keyboard",
+    typeId: KEYBOARD_TYPE.id,
+    transport: "keyboard",
+  };
+}

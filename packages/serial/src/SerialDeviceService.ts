@@ -8,8 +8,10 @@ const trace = logger.tag("serial:transport");
 // Do not remove without first moving registration elsewhere.
 import "./renderStyles/textBuffer";
 import {
+  defaultKeyboardDevice,
   defaultVirtualDevice,
   GAMEPAD_PLACEHOLDER_TYPE,
+  KEYBOARD_TYPE,
   VIRTUAL_CONTROLLER_TYPE,
 } from "./seeds";
 import type {
@@ -19,6 +21,7 @@ import type {
   TransportStatus,
 } from "./transports/DeviceTransport";
 import { GamepadTransport } from "./transports/GamepadTransport";
+import { KeyboardTransport } from "./transports/KeyboardTransport";
 import { VirtualTransport } from "./transports/VirtualTransport";
 import { WebSerialTransport } from "./transports/WebSerialTransport";
 import { TypedListeners } from "./typedListeners";
@@ -36,6 +39,8 @@ const defaultTransportFactory: TransportFactory = (instance, deviceType) => {
   switch (instance.transport) {
     case "virtual":
       return new VirtualTransport(instance.id);
+    case "keyboard":
+      return new KeyboardTransport(instance.id);
     case "gamepad":
       return new GamepadTransport({
         id: instance.id,
@@ -142,7 +147,38 @@ export class SerialDeviceService {
     this.loadDevices();
     this.seedDefaultsIfEmpty();
     this.ensureGamepadPlaceholderType();
+    this.ensureKeyboardDevice();
     this.attachNavigatorListeners();
+  }
+
+  /**
+   * Make sure this screen has its keyboard device, and connect it.
+   *
+   * Unlike every other transport there is nothing to pair, authorise or
+   * declare, so an operator is never asked to create one: a widget's action
+   * can be bound to a key on a screen that has never opened the Devices menu.
+   *
+   * The TYPE is overwritten from the constant rather than left alone if
+   * present, because it is code-defined: a copy persisted by an older build
+   * would otherwise shadow the key table forever. The INSTANCE is only
+   * created when absent, so a rename survives.
+   *
+   * Connecting here (rather than waiting for `autoReconnect`) is what makes a
+   * freshly-constructed service live. `destroy()` disconnects it again, and
+   * `autoReconnect` brings it back for the StrictMode cleanup→setup cycle.
+   */
+  private ensureKeyboardDevice(): void {
+    this.deviceTypes.set(KEYBOARD_TYPE.id, KEYBOARD_TYPE);
+    this.saveDeviceTypes();
+    const instance = defaultKeyboardDevice();
+    const existing = this.managed.get(instance.id);
+    if (existing) {
+      existing.deviceType = KEYBOARD_TYPE;
+    } else {
+      this.register(instance, KEYBOARD_TYPE);
+      this.saveDevices();
+    }
+    void this.connect(instance.id);
   }
 
   /**
@@ -531,6 +567,17 @@ export class SerialDeviceService {
    * `navigator.serial.getPorts`.
    */
   async autoReconnect(): Promise<void> {
+    // The keyboard first, and unconditionally: it needs no permission and no
+    // browser support check, and `destroy()` (which the screen runs on every
+    // unmount, including StrictMode's simulated one) has disconnected it.
+    // Without this the keyboard would be dead for the rest of the page life
+    // on a dev remount, with nothing on screen saying so.
+    for (const managed of this.managed.values()) {
+      if (managed.instance.transport !== "keyboard") continue;
+      if (managed.transport.status === "connected") continue;
+      await managed.transport.connect();
+    }
+
     const serial = (
       globalThis as {
         navigator?: {
