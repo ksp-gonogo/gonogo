@@ -34,3 +34,83 @@ MSG
     exit 1
     ;;
 esac
+
+# ── Refuse a body that is not a changelog line ────────────────────────────────
+#
+# THE STYLE, IN FULL. Duplicated here on purpose rather than linked: a hook that
+# points at a document is a hook whose rule nobody reads at the moment it fires.
+#
+# INTENT: staging's history becomes release notes, generated per release. Every
+# commit on it therefore has to stand alone as ONE CHANGELOG LINE, read by
+# someone who was not here, has no memory of the session that produced it, and
+# wants to know what changed. That single purpose is what every rule below comes
+# from.
+#
+#   1. The SUBJECT carries the change. Imperative, specific, and about what
+#      changed rather than what was done to the repository. `feat(x):`/`fix(x):`
+#      prefixes are fine and are what the release tooling reads.
+#   2. DEFAULT TO NO BODY. On a changelog commit a body is usually superfluous.
+#      If the subject cannot carry it, the subject is wrong. Where something
+#      genuinely must be said, say it flatly in ONE line.
+#   3. NO HISTORY-TELLING. Why the repo was in an odd state, what was tried
+#      first, which agent did what, how long it took, what the measurement was:
+#      all noise in a changelog. Cut it.
+#   4. NO THIRD-PERSON NARRATION. Commits are authored as the repo author.
+#      Never "the user", "the operator", "as requested", "user-flagged".
+#   5. NO AI ATTRIBUTION of any kind, including a Co-Authored-By trailer.
+#   6. A FOLD DESCRIBES THE FEATURE, never the fold. `git merge --squash`, then
+#      one commit that reads like the changelog entry for what landed.
+#
+# Long, verbose, working-scaffolding commits are fine on a FEATURE BRANCH; they
+# are discarded at the squash-fold. This hook guards what reaches staging.
+#
+# Footers are exempt (BREAKING CHANGE:, Refs:, Fixes:) because the release
+# tooling reads them. A git-generated revert body is exempt for the same reason
+# it exists.
+
+# A co-author trailer is refused whoever it names. It arrives as a well-formed
+# trailer, so the body rule below counts it as an exempt footer and lets it
+# through; that was found by testing the hook rather than by reading it.
+#
+# Not an anti-assistant rule, though an assistant trailer is banned outright and
+# must never be written: attribution of any kind is not a changelog line. Who
+# wrote a change belongs in the commit's author field, which git already has.
+if sed -e '/^#/d' "$1" | grep -qiE '^(co-authored-by|generated-with|assisted-by):'; then
+  cat >&2 <<'MSG'
+commit-msg: refusing an attribution trailer.
+
+Attribution is not a changelog line, and git already records who authored the
+commit. End the message at the subject.
+MSG
+  exit 1
+fi
+
+body=$(sed -e '/^#/d' "$1" | tail -n +2)
+prose=$(printf '%s\n' "$body" | grep -vE '^[[:space:]]*$' | grep -vE '^([A-Za-z][A-Za-z-]*|BREAKING CHANGE): ' || true)
+prose_lines=$(printf '%s' "$prose" | grep -c . || true)
+
+case "$subject" in
+  "Revert "*) prose_lines=0 ;;
+esac
+
+if [ "${prose_lines:-0}" -gt 1 ]; then
+  cat >&2 <<MSG
+commit-msg: refusing a commit body of $prose_lines lines.
+
+staging history becomes release notes, so this commit has to stand alone as ONE
+CHANGELOG LINE for someone who was not here. A body is usually superfluous: if
+the subject cannot carry the change, the subject is wrong.
+
+  $subject
+
+Cut the body, or reduce it to a single flat line. In particular cut:
+  - history-telling (what was tried first, why the repo was odd, measurements)
+  - third-person narration ("the user", "the operator", "as requested")
+  - any AI attribution, including a Co-Authored-By trailer
+
+Verbose working commits belong on a feature branch and are discarded at the
+squash-fold. Footers (BREAKING CHANGE:, Refs:, Fixes:) are exempt and do not
+count toward this.
+MSG
+  exit 1
+fi
