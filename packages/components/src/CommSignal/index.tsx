@@ -68,17 +68,6 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -161,8 +150,18 @@ function CommSignalComponent({
    */
   const linkReading = useTelemetry("comms.link");
   const commsReading = useTelemetry("vessel.comms");
-  const connected = judgeable(linkReading)?.connected;
-  const strength = judgeable(commsReading)?.signalStrength;
+  /*
+   * Every reading below is a VERDICT, so each is taken from the observation
+   * alone: the operator reads a bar or a pill as the situation NOW, and a
+   * judgement cannot be dated. None of these topics declares a reckonable
+   * value, so there is no forward model to fall back on either.
+   */
+  const connected =
+    linkReading.state === "observed" ? linkReading.value.connected : undefined;
+  const strength =
+    commsReading.state === "observed"
+      ? commsReading.value.signalStrength
+      : undefined;
   const linkNotCurrent = notCurrent(linkReading) || notCurrent(commsReading);
   const vesselState = useStream<VesselState>("vessel.state");
   // Collapse the derived channel's `null` (comms unknown this tick) to
@@ -170,7 +169,11 @@ function CommSignalComponent({
   // old single-value legacy read exactly.
   const controlState = vesselState?.commsControlStateOrdinal ?? undefined;
   const controlStateName = vesselState?.commsControlStateName ?? undefined;
-  const delay = judgeable(useTelemetry("comms.delay"))?.oneWaySeconds;
+  const delayReading = useTelemetry("comms.delay");
+  const delay =
+    delayReading.state === "observed"
+      ? delayReading.value.oneWaySeconds
+      : undefined;
 
   /**
    * The centre's NAME falls back to "KSC" when the channel is absent or empty,
@@ -179,15 +182,20 @@ function CommSignalComponent({
    * control-source threshold. Every fixture recorded before the channel existed
    * therefore keeps reading exactly as it did.
    */
-  const commandCentreName = judgeable(
-    useTelemetry("comms.commandCentre"),
-  )?.displayName;
+  const centreReading = useTelemetry("comms.commandCentre");
+  const commandCentreName =
+    centreReading.state === "observed"
+      ? centreReading.value.displayName
+      : undefined;
   const centreLabel =
     commandCentreName && commandCentreName.length > 0
       ? commandCentreName
       : "KSC";
 
-  const hops = judgeable(useTelemetry("comms.path"))?.hops ?? [];
+  const pathReading = useTelemetry("comms.path");
+  const hops =
+    (pathReading.state === "observed" ? pathReading.value.hops : undefined) ??
+    [];
   const relayCount = commsRouteRelayCount(hops);
 
   /**
@@ -196,7 +204,11 @@ function CommSignalComponent({
    * back to a generic label on the rare tick `vessel.identity` has not resolved
    * yet (scene load), same shape as the `centreLabel` fallback above.
    */
-  const vesselName = judgeable(useTelemetry("vessel.identity"))?.name;
+  const identityReading = useTelemetry("vessel.identity");
+  const vesselName =
+    identityReading.state === "observed"
+      ? identityReading.value.name
+      : undefined;
   const vesselLabel =
     vesselName && vesselName.length > 0 ? vesselName : "Vessel";
 

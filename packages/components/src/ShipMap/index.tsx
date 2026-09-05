@@ -123,17 +123,6 @@ interface ShipMapConfig {
   _reserved?: never;
 }
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -154,16 +143,17 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
    * disappearing on its own would read as a craft that cooled down.
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
-  const hottestPartName = judgeable(thermalReading)?.hottestPart?.name;
+  const hottestPartName =
+    thermalReading.state === "observed"
+      ? thermalReading.value.hottestPart?.name
+      : undefined;
   /*
-   * The reckoning arm is excluded deliberately, and the tag below is why: it
-   * claims the ring was withheld, which is only true when nothing was drawn.
-   * A modelled hottest part IS rung by `judgeable` above, so a bare
-   * `state === "stale"` would print "hot: no longer current" beside the very
-   * ring it says is missing. Only a held reading with no model withholds.
+   * The tag below claims the ring was withheld, which is only true when nothing
+   * was drawn. `vessel.thermal` declares no reckonable value, so the observation
+   * is the only thing that ever puts a ring on the diagram and a held reading is
+   * exactly the case where none was drawn.
    */
-  const hottestNotCurrent =
-    notCurrent(thermalReading) && thermalReading.reckoning === "none";
+  const hottestNotCurrent = notCurrent(thermalReading);
   // Ambient skin temperature: drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top. Read straight off `vessel.flight` (the same channel
@@ -435,9 +425,10 @@ function renderBody(
         {parts.length} part{parts.length === 1 ? "" : "s"}
         <span style={META_TAG}>· seq {topology.topologySeq}</span>
         {highlight && <span style={META_TAG}>· hot: {highlight}</span>}
-        {/* Only ever one of the two: `judgeable` has already blanked the name
-            on the stale arm. Keeps the tag's slot occupied so the missing ring
-            reads as withheld rather than as a craft that cooled off. */}
+        {/* Only ever one of the two: the observed-only read above has already
+            blanked the name on the stale arm. Keeps the tag's slot occupied so
+            the missing ring reads as withheld rather than as a craft that
+            cooled off. */}
         {hottestNotCurrent && (
           <span style={META_TAG}>· hot: no longer current</span>
         )}

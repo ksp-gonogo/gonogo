@@ -261,8 +261,8 @@ function ContractsObjectiveSource({ Section }: ObjectiveSourceContext) {
   //
   // Each parameter's Complete/Failed state travels the same way, for the same
   // reason: it is an event on a record, not a quantity that decays between
-  // frames. Nothing on this record is the second kind, so nothing here goes
-  // through `judgeable`.
+  // frames. Nothing on this record is the second kind, so nothing here is
+  // withheld once it stops being current.
   const contractsRaw = stillTrue(
     topics.useTelemetry("career.status"),
     undefined,

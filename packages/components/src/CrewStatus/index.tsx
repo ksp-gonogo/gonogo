@@ -107,17 +107,6 @@ const AVATAR_CELL_WIDTH_FRACTION = 0.2;
  *  rather than pinned to the floor). */
 const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -438,7 +427,7 @@ function CrewStatusComponent({
   /**
    * The roster is a fact, not a measurement: nobody leaves the capsule because the
    * link dropped, so a held roster is still the crew. The suit resources further
-   * down the same record are the opposite and go through `judgeable`.
+   * down are the opposite and are read off the observation alone.
    */
   const crewReading = topics.useTelemetry("vessel.crew");
   const crew = stillTrue(crewReading, undefined);
@@ -463,17 +452,15 @@ function CrewStatusComponent({
    * whether a kerbal outside the craft has time to get back in.
    */
   const resourcesReading = topics.useTelemetry("vessel.resources");
-  const resources = judgeable(resourcesReading);
+  const resources =
+    resourcesReading.state === "observed" ? resourcesReading.value : undefined;
   /*
    * `EvaSuitReadout` returns early on this flag and drops both meters, so it
-   * has to mean "there is nothing to meter". A suit draw is exactly the shape a
-   * model propagates, and `resources` above already takes the modelled value,
-   * so leaving the reckoning arm in would throw away O2 and charge figures the
-   * widget is holding, on the one readout that decides whether a kerbal outside
-   * the craft has time to get back in.
+   * has to mean "there is nothing to meter". `vessel.resources` declares no
+   * reckonable value, so the observation is the only thing that ever fills the
+   * meters and a held reading is exactly the case where nothing was drawn.
    */
-  const suitReadingsNotCurrent =
-    notCurrent(resourcesReading) && resourcesReading.reckoning === "none";
+  const suitReadingsNotCurrent = notCurrent(resourcesReading);
   const suitOxygen = isEVA
     ? toSuitResourceReadout(resources?.resources?.Oxygen)
     : undefined;

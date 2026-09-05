@@ -48,17 +48,6 @@ const topics = defineTopicManifest({
 
 type ScienceDataConfig = Record<string, never>;
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -106,7 +95,8 @@ function ScienceDataComponent({
    * reading also shows, and the two must not read alike.
    */
   const surfaceReading = useTelemetry("vessel.surface");
-  const surface = judgeable(surfaceReading);
+  const surface =
+    surfaceReading.state === "observed" ? surfaceReading.value : undefined;
   const surfaceNotCurrent = notCurrent(surfaceReading);
   const landedAt = surface?.landedAt;
   // Live biome from `ScienceUtil.GetExperimentBiome`, works in flight +
@@ -157,7 +147,7 @@ function ScienceDataComponent({
   // Banked science is a balance, not a measurement: it moves when science is
   // transmitted, recovered or spent, and it cannot drift between those. This
   // widget only reports it, it arms nothing that spends it (TechTree does, and
-  // reads the same field through `judgeable` for that reason), so the last
+  // reads the same field off the observation alone for that reason), so the last
   // balance received is still the balance and the panel's stream badge beside
   // it already tells the operator how fresh the panel is.
   const careerScience = magnitudeOf(

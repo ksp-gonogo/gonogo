@@ -30,18 +30,6 @@ const topics = defineTopicManifest({
 
 type CareerEconomyConfig = Record<string, never>;
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. Every number this widget shows is a rate or a balance that moves on
- * its own, so a stale one is not an answer to "what is my programme costing
- * now".
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -80,7 +68,14 @@ const UPKEEP_SOURCES = [
  */
 function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
   const careerReading = useTelemetry("career.status");
-  const economy = judgeable(careerReading)?.economy;
+  /* Every number below is a rate or a balance that moves on its own, so a
+     stale one is not an answer to "what is my programme costing now" and the
+     observation is the only thing worth drawing a verdict from. `career.status`
+     declares no reckonable value, so there is no model to fall back to. */
+  const economy =
+    careerReading.state === "observed"
+      ? careerReading.value.economy
+      : undefined;
   const stale = notCurrent(careerReading);
 
   const funds = magnitudeOf(economy?.funds);

@@ -92,17 +92,6 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -168,9 +157,19 @@ function SpaceCenterStatusComponent({
    * The two halves meet here.
    */
   const facilitiesReading = useTelemetry("career.facilities");
+  /*
+   * A verdict may only be drawn from an observation, because the operator reads
+   * a band or a pill as the situation NOW and a judgement cannot be dated.
+   * `career.status` declares no reckonable value, so an observation is the whole
+   * of what a verdict here can rest on.
+   */
+  const careerEconomy =
+    careerReading.state === "observed"
+      ? careerReading.value.economy
+      : undefined;
   // Magnitude: compared against an upgrade cost and rendered through this
   // widget's own compact funds formatting, both of which want a number.
-  const careerFunds = magnitudeOf(judgeable(careerReading)?.economy?.funds);
+  const careerFunds = magnitudeOf(careerEconomy?.funds);
   const fundsNotCurrent = notCurrent(careerReading);
   /**
    * A balance is only half of what "can I afford this" asks. Under a career
@@ -180,25 +179,23 @@ function SpaceCenterStatusComponent({
    * won the `economy` capability rather than from arithmetic invented here, so
    * a stock career reports no such mechanism and this shows nothing at all.
    */
-  const netFunds = netFundsPerDay(judgeable(careerReading)?.economy);
+  const netFunds = netFundsPerDay(careerEconomy);
   /*
    * Only claim a balance is being held when one actually arrived and is being
    * refused. A career that never reported an `economy` block has nothing held,
-   * and neither has one whose balance was modelled forward: `careerFunds` above
-   * comes off `judgeable`, so a reckoned reading puts a figure on screen and
-   * leaves the upgrades enabled. Saying "held" over a balance the operator can
-   * read would name the wrong reason for a row of buttons that are working.
+   * and saying "held" over a balance the operator can read would name the wrong
+   * reason for a row of buttons that are working.
    */
   const heldFunds =
     fundsNotCurrent &&
-    careerReading.reckoning === "none" &&
     magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
   const { chargesFunds } = useGameContext();
   const sceneReading = useTelemetry("spaceCenter.scene");
   // "Last site" is a claim about the past by construction: the site changes when
   // a vessel launches from it, so the last one reported is still the answer.
   const launchSite = stillTrue(sceneReading, undefined)?.launchSite;
-  const scene = judgeable(sceneReading)?.scene;
+  const scene =
+    sceneReading.state === "observed" ? sceneReading.value.scene : undefined;
   const lastScene = stillTrue(sceneReading, undefined)?.scene;
   const spaceCenterState = useStream<SpaceCenterState>("spaceCenter.state");
   const padOccupied = spaceCenterState?.padOccupied;
@@ -279,8 +276,9 @@ function SpaceCenterStatusComponent({
    * same on a dropped frame mid-session as on first paint. No scene means no
    * permission.
    *
-   * Which is why the scene reads through `judgeable` while the launch site beside
-   * it on the same record does not. The site is something this widget reports; the
+   * Which is why the scene is taken from the observation alone while the launch
+   * site beside it on the same record is not. The site is something this widget
+   * reports; the
    * scene is nothing but a permission to spend, and a held scene is precisely "we
    * do not know where the player is now". They may have walked out of the Space
    * Center since. So a scene that is no longer current means no permission either,
@@ -290,15 +288,10 @@ function SpaceCenterStatusComponent({
   const upgradesEnabled = scene === "SpaceCenter";
   /*
    * Cite the scene only when withholding it actually cost the operator the
-   * affordance. A held "Flight" disables nothing that was ever enabled, and a
-   * modelled scene was never withheld at all: `upgradesEnabled` reads it
-   * through `judgeable`, so a reckoned reading keeps the buttons live and this
-   * line would be captioning an affordance the operator still has.
+   * affordance. A held "Flight" disables nothing that was ever enabled, so
+   * captioning it would name a reason for buttons that were never live.
    */
-  const heldScene =
-    notCurrent(sceneReading) &&
-    sceneReading.reckoning === "none" &&
-    lastScene === "SpaceCenter";
+  const heldScene = notCurrent(sceneReading) && lastScene === "SpaceCenter";
   const heldUpgradeInputs = [
     heldScene ? "scene" : undefined,
     heldFunds ? "funds balance" : undefined,

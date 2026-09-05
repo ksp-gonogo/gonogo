@@ -83,17 +83,6 @@ export interface Strategy {
   effect: string;
 }
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -299,7 +288,12 @@ function StrategiesComponent({
   // a stale balance is withheld and the refusal says why.
   const careerReading = topics.useTelemetry("career.status");
   const stratsRaw = stillTrue(careerReading, undefined)?.strategies?.all;
-  const economy = judgeable(careerReading)?.economy;
+  /* A verdict may only rest on an observation, and `career.status` declares no
+     reckonable value, so there is no model that could stand in for one. */
+  const economy =
+    careerReading.state === "observed"
+      ? careerReading.value.economy
+      : undefined;
   const funds = economy?.funds;
   const reputation = economy?.reputation;
   const science = economy?.science;
@@ -307,14 +301,8 @@ function StrategiesComponent({
    * Distinguishes "the balances went stale" from "no economy has ever arrived".
    * Both blank the figures and both refuse Activate, but only one of them is a
    * statement about the link, and the operator acts differently on each.
-   *
-   * A reckoned reading is neither, which is why the arm is excluded: `economy`
-   * above is `judgeable`, so a model puts real figures in `funds`, `science`
-   * and `reputation`. Left in, this flag would print "balances not current"
-   * INSTEAD of the numbers it is holding and refuse an Activate it can price.
    */
-  const balancesNotCurrent =
-    notCurrent(careerReading) && careerReading.reckoning === "none";
+  const balancesNotCurrent = notCurrent(careerReading);
   /**
    * A strategy commits funds against a programme that may already be running a
    * standing cost, so the balance beside the Activate control is only half of

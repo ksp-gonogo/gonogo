@@ -6,7 +6,6 @@ import {
   registerComponent,
 } from "@ksp-gonogo/core";
 import {
-  type Reading,
   type ReadingState,
   useStream,
   type VesselState,
@@ -35,17 +34,6 @@ const topics = defineTopicManifest({
 });
 
 const REFERENCE_SAMPLES = 80;
-
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 /**
  * Whether a reading went stale, as opposed to never having arrived. Takes the
@@ -145,8 +133,9 @@ function AtmosphereProfileComponent({
    */
   const flightReading = topics.useTelemetry("vessel.flight");
   /*
-   * `judgeable`'s body, inlined, because `vessel.flight` is a topic the contract
-   * declares reckonable: `reckoned` carries only the altitude and orbital speed
+   * `vessel.flight` is a topic the contract declares reckonable, so the read
+   * branches on both discriminants: `reckoned` carries only the altitude and
+   * orbital speed
    * a conic moves, and the three atmospheric numbers this chip draws are not
    * among them. The spread overlays the modelled fields on the observation, and
    * it is written here rather than hidden in a helper because choosing to draw a
@@ -267,10 +256,10 @@ function AtmosphereProfileComponent({
      confirmed vacuum, a stale record) and only the third is worth explaining,
      so the notice fires on staleness alone. Gated on `chipFits` because a
      widget too small to have drawn the chip has withheld nothing. */
-  /* And off entirely when the record was modelled forward: `flight` comes from
-     `judgeable`, so the chip above is drawn from the model, and a notice saying
-     the readings are gone beside the density they produced is the one reading
-     of this the operator cannot make sense of. */
+  /* And off entirely when the record was modelled forward: the overlay above
+     puts the model into `flight`, so the chip is still drawn, and a notice
+     saying the readings are gone beside the density they produced is the one
+     reading of this the operator cannot make sense of. */
   const showNotCurrentNotice =
     chipFits && flightNotCurrent && flightReading.reckoning === "none";
 

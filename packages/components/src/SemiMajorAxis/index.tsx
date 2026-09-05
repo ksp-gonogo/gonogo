@@ -65,10 +65,10 @@ function SemiMajorAxisComponent({
   //    `TopicId`, so it reads through `useStream`.
   /**
    * SMA is a scalar readout beside a label, so it DATES rather than blanks.
-   * `judgeable` is for the widgets that turn a value into a verdict; a number an
-   * operator reads as "2.87 Mm, at last contact 14s ago" is still a useful,
-   * honest thing to draw, and blanking it would lose the one figure this tile
-   * exists to show.
+   * Withholding a stale value is for the widgets that turn one into a verdict;
+   * a number an operator reads as "2.87 Mm, at last contact 14s ago" is still a
+   * useful, honest thing to draw, and blanking it would lose the one figure
+   * this tile exists to show.
    *
    * `withoutReckoning` first, deliberately: it puts `reckoned` out of reach so
    * no later edit can quietly draw a modelled figure here. A propagated orbit

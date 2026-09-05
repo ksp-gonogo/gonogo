@@ -65,17 +65,6 @@ const isSentinelK = (k: number | undefined): boolean =>
  */
 type Band = "unknown" | "nominal" | "warm" | "hot" | "critical";
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -188,16 +177,15 @@ function ThermalStatusComponent({
    * reasons it is unknown for.
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
-  const thermal = judgeable(thermalReading);
+  const thermal =
+    thermalReading.state === "observed" ? thermalReading.value : undefined;
   /*
    * This flag replaces the entire readout with a sentence, so it has to mean
-   * the bands could not be computed at all. `thermal` above is `judgeable` and
-   * takes a modelled record where one is offered, so the reckoning arm comes
-   * out: left in, the widget would hide a full set of bands it had just worked
-   * out behind a notice saying it has none.
+   * the bands could not be computed at all. `vessel.thermal` declares no
+   * reckonable value, so the observation is the only record the bands are ever
+   * worked out from and a held reading leaves nothing to hide behind a notice.
    */
-  const thermalNotCurrent =
-    notCurrent(thermalReading) && thermalReading.reckoning === "none";
+  const thermalNotCurrent = notCurrent(thermalReading);
   const rawHottestName = thermal?.hottestPart?.name;
   const rawHottestTempK = thermal?.hottestPart?.skinTemp;
   const rawHottestMaxK = thermal?.hottestPart?.skinMaxTemp;

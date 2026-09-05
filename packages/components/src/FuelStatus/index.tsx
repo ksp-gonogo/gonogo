@@ -121,17 +121,6 @@ const RESOURCES: readonly ResourceDef[] = [
 // ── Hooks ─────────────────────────────────────────────────────────────────────
 
 /**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -160,7 +149,10 @@ function useResourceReading(def: ResourceDef): { value: number; max: number } {
    * fuel, which is the direction that strands a craft.
    */
   const resourcesReading = useTelemetry("vessel.resources");
-  const vesselResources = judgeable(resourcesReading)?.resources;
+  const vesselResources =
+    resourcesReading.state === "observed"
+      ? resourcesReading.value.resources
+      : undefined;
   const stageCurrent = useStream<ResourceAmountMap>("dv.currentStageResource");
   const stageMaxMap = useStream<ResourceAmountMap>(
     "dv.currentStageResourceMax",

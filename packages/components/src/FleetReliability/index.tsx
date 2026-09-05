@@ -89,8 +89,8 @@ import {
  *   not put one back
  * - `reliability.parts` is a judgement. Its conditions and numbers are exactly
  *   what drifts while nobody is looking, and this augment turns them into a
- *   severity badge the operator reads as the state of the craft NOW. Read with
- *   `judgeable`, and the withholding is captioned rather than silent
+ *   severity badge the operator reads as the state of the craft NOW. Read off
+ *   the observation alone, and the withholding is captioned rather than silent
  *
  * The staleness caption sits ABOVE every content row for the same reason: both
  * topics publish from one capture at one UT and go stale together, so a count
@@ -98,17 +98,6 @@ import {
  * (occlusion, a burn, a link outage) where reliability is being read at all.
  */
 type UpdatesProps = SlotProps<"fleet-roster.updates">;
-
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
@@ -654,9 +643,18 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
   const partsReading = useTelemetry("reliability.parts");
   const crewReading = useTelemetry("vessel.crew");
   const inventoryReading = useTelemetry("vessel.inventory");
-  const parts = judgeable(partsReading);
-  const crew = judgeable(crewReading)?.crew ?? [];
-  const stores = judgeable(inventoryReading)?.stores ?? [];
+  /* All three are verdicts and none of these topics declares a reckonable
+     value, so each is taken from the observation alone: a judgement cannot be
+     dated, and the operator reads a badge as the state of the craft NOW. */
+  const parts =
+    partsReading.state === "observed" ? partsReading.value : undefined;
+  const crew =
+    (crewReading.state === "observed" ? crewReading.value.crew : undefined) ??
+    [];
+  const stores =
+    (inventoryReading.state === "observed"
+      ? inventoryReading.value.stores
+      : undefined) ?? [];
   /*
    * The reserve a fetch could reach, per item id, and the display title the
    * install gives each one. Part-hosted only: an item in ANOTHER kerbal's
@@ -698,14 +696,12 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
     }));
   /*
    * Either channel being old is enough to replace the whole row with a notice,
-   * so neither arm may fire while a current set can still be drawn. A reading
-   * carrying a model is exactly that case: `parts` above is `judgeable` and
-   * takes the modelled list, so leaving the reckoning arm in would hide a
-   * propagated failure set behind a sentence saying there is none to show.
+   * so neither arm may fire while a current set can still be drawn. Neither
+   * topic declares a reckonable value, so a held reading is exactly the case
+   * where nothing was drawn and the notice has something to explain.
    */
   const notCurrent =
-    (partsReading.state === "stale" && partsReading.reckoning === "none") ||
-    (summaryReading.state === "stale" && summaryReading.reckoning === "none");
+    partsReading.state === "stale" || summaryReading.state === "stale";
 
   // S0. Active-vessel gate: reliability.* is active-vessel-only (see module doc).
   if (!identity || identity.vesselId !== vesselId) return null;

@@ -10,7 +10,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/core";
 import { useDataSeries, usePartsLive, useTopology } from "@ksp-gonogo/data";
-import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Sparkline, VisuallyHidden } from "@ksp-gonogo/ui";
 import {
@@ -132,17 +131,6 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 function PowerSystemsComponent({
   config,
   w,
@@ -179,7 +167,9 @@ function PowerSystemsComponent({
    * and report it as an instrument fault. Withheld once it stops being current,
    * which is the same thing this cell already does when it never arrives.
    */
-  const streamPower = judgeable(useTelemetry("parts.power"));
+  const powerReading = useTelemetry("parts.power");
+  const streamPower =
+    powerReading.state === "observed" ? powerReading.value : undefined;
 
   const defaultResource = config?.defaultResource ?? "ElectricCharge";
   const [resource, setResource] = useState(defaultResource);

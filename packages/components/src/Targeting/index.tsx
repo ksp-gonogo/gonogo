@@ -173,17 +173,6 @@ type ViewMode = "tracking" | "approach" | "docking-hud";
  * `reckon()` in the branch that renders it, so a propagated number can never
  * arrive at a readout by accident.
  */
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -237,7 +226,8 @@ function TargetingComponent({
   // has a free one, and no link outage can change that while nobody is looking.
   // The GEOMETRY carried on the same record is the opposite kind of thing: a
   // reticle, an alignment angle and a port-to-port closing rate are all read as
-  // "fly this, now", so they go through `judgeable` and stop being drawn the
+  // "fly this, now", so they are read off the observation (overlaid with the
+  // model where the contract declares one, below) and stop being drawn the
   // moment they stop being current. A reticle placed from a last-known relative
   // position asserts an attitude it cannot know, which is the sharpest form of
   // the failure the union exists to prevent.
@@ -251,12 +241,12 @@ function TargetingComponent({
   const targetReading = topics.useTelemetry("vessel.target");
   const dockReading = topics.useTelemetry("vessel.dock");
   /*
-   * `judgeable`'s body, inlined, because `vessel.dock` is a topic the contract
-   * declares reckonable: `reckoned` carries the separation vector and its
-   * magnitude, which a closing velocity does move, and NOT the relative velocity
-   * itself or `forwardDot`, which nothing on that payload advances. The spread
-   * overlays the two on the observation, and it is written here rather than
-   * hidden in a helper because that overlay IS the judgement.
+   * `vessel.dock` is a topic the contract declares reckonable: `reckoned`
+   * carries the separation vector and its magnitude, which a closing velocity
+   * does move, and NOT the relative velocity itself or `forwardDot`, which
+   * nothing on that payload advances. The spread overlays the two on the
+   * observation, and it is written here rather than hidden in a helper because
+   * that overlay IS the judgement.
    */
   const dock =
     dockReading.reckoning === "available"

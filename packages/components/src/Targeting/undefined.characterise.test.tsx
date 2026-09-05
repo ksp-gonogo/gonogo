@@ -31,11 +31,11 @@ import { TargetingComponent } from "./index";
  * fixes them.
  *
  * `vessel.dock` has since migrated too, and every assertion below still holds: its
- * geometry now reaches the widget through `judgeable`, which answers `undefined`
- * for a never-arrived record and for a tombstone exactly as the old bare read did.
- * What it also answers `undefined` for is a record that stopped being current, and
- * that case is NOT characterised here because it was unreachable before the
- * migration: `stale.test.tsx` covers it.
+ * geometry now reaches the widget through an observed-or-reckoned branch, which
+ * answers `undefined` for a never-arrived record and for a tombstone exactly as the
+ * old bare read did. What it also answers `undefined` for is a record that stopped
+ * being current with no model on offer, and that case is NOT characterised here
+ * because it was unreachable before the migration: `stale.test.tsx` covers it.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -135,7 +135,7 @@ describe("Targeting: the vessel.dock absence gate", () => {
     // null vs undefined: the store means `null` = the subject confirms there is
     // no dock scenario, `undefined` = nothing has arrived. This widget implements
     // NEITHER distinction, deliberately and still: the two reach it as `absent`
-    // and `pending`, both answer `undefined` through `judgeable`, and the only
+    // and `pending`, both of which leave `dock` undefined, and the only
     // visible consequence either way is a HUD that does not open, so the
     // tombstone below produces the identical render to the never-arrived case
     // above.

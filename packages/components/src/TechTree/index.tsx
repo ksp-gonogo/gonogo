@@ -60,17 +60,6 @@ export interface TechNode {
   parts: TechPart[];
 }
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -370,7 +359,8 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
    */
   const career = topics.useTelemetry("career.status");
   const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
-  const careerScience = judgeable(career)?.economy?.science;
+  const careerScience =
+    career.state === "observed" ? career.value.economy?.science : undefined;
   const careerNotCurrent = notCurrent(career);
   // The game scene is a fact as well: it changes when the player walks through
   // a door, which is an event and not a drift.

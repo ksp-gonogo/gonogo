@@ -291,17 +291,6 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
   "Unknown",
 ];
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -507,7 +496,13 @@ function LaunchDirectorComponent({
    * already treats an unknown balance as no balance.
    */
   const careerReading = useTelemetry("career.status");
-  const careerFunds = magnitudeOf(judgeable(careerReading)?.economy?.funds);
+  /* The observation is the whole of what the verdict may rest on: a judgement
+     cannot be dated, and `career.status` declares no reckonable value. */
+  const careerEconomy =
+    careerReading.state === "observed"
+      ? careerReading.value.economy
+      : undefined;
+  const careerFunds = magnitudeOf(careerEconomy?.funds);
   /**
    * Which of the reasons for a missing balance applies. A never-arrived balance
    * and a balance that has stopped being current blank the same readout and block
@@ -522,7 +517,7 @@ function LaunchDirectorComponent({
    * sits beside the balance rather than being folded into the gate. A stock
    * career reports no such rate and this renders nothing.
    */
-  const netFunds = netFundsPerDay(judgeable(careerReading)?.economy);
+  const netFunds = netFundsPerDay(careerEconomy);
   const { chargesFunds } = useGameContext();
   // career.funds -> career.status.economy.funds is the one
   // MAPPED read in this widget (a funds spender per CLAUDE.md's "always show

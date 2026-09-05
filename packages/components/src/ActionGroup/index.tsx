@@ -116,17 +116,6 @@ declare module "@ksp-gonogo/core" {
 // Value resolution
 // ---------------------------------------------------------------------------
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -212,18 +201,19 @@ function ActionGroupComponent(
    */
   /*
    * "Not current" here means "the pill has nothing in it", which the view
-   * spends on a reason line and on disabling the toggle. `judgeable` draws a
-   * modelled value where one exists, so the reckoning arm has to come out of
-   * this test: left in, the widget would show a state, disable the toggle that
-   * could invert it, and caption a full pill as empty.
+   * spends on a reason line and on disabling the toggle. `vessel.control`
+   * declares no reckonable value, so the observation is the only thing that
+   * ever fills the pill and a held reading is exactly the empty case.
    */
-  const valueNotCurrent =
-    notCurrent(controlReading) && controlReading.reckoning === "none";
+  const valueNotCurrent = notCurrent(controlReading);
   return (
     <ActionGroupView
       {...props}
       group={group}
-      value={resolveGroupValue(group, judgeable(controlReading))}
+      value={resolveGroupValue(
+        group,
+        controlReading.state === "observed" ? controlReading.value : undefined,
+      )}
       valueNotCurrent={valueNotCurrent}
     />
   );
@@ -282,15 +272,20 @@ function ActionGroupView({
   //  - `comm.connected` -> `comms.link.connected`
   /**
    * Both are inputs to one computed verdict, "would this fire if you pressed it
-   * now", so both go through `judgeable`. Neither may be answered from a held
-   * value: telling the operator the game is paused, or that there is no signal,
-   * on the strength of a reading we can no longer vouch for puts a confident
-   * reason on the screen for a state that may well have ended. A withheld one
-   * lands on the same "nothing to warn about" the never-arrived case already
-   * produced, which is the honest silence, the widget claims nothing either way.
+   * now", so both are taken from the observation alone. Neither may be answered
+   * from a held value: telling the operator the game is paused, or that there is
+   * no signal, on the strength of a reading we can no longer vouch for puts a
+   * confident reason on the screen for a state that may well have ended. A
+   * withheld one lands on the same "nothing to warn about" the never-arrived
+   * case already produced, which is the honest silence, the widget claims
+   * nothing either way.
    */
-  const isPaused = judgeable(useTelemetry("time.warp"))?.paused;
-  const commConnected = judgeable(useTelemetry("comms.link"))?.connected;
+  const warpReading = useTelemetry("time.warp");
+  const isPaused =
+    warpReading.state === "observed" ? warpReading.value.paused : undefined;
+  const linkReading = useTelemetry("comms.link");
+  const commConnected =
+    linkReading.state === "observed" ? linkReading.value.connected : undefined;
   const openAlarms = useAlarmsLauncher();
 
   // The toggle command name depends on which group this instance is

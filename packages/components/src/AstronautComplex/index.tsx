@@ -242,17 +242,6 @@ interface Applicant {
  *  books, so they take their safe zero and those badges never render. Rank
  *  is retained on the model (astronauts keep experience when dismissed and
  *  rehired) but withheld from display via `showRank={false}`. */
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -336,22 +325,24 @@ function AstronautComplexComponent(
    * reasons the figure is missing for.
    */
   const fundsReading = topics.useTelemetry("career.status");
-  const careerFunds = magnitudeOf(judgeable(fundsReading)?.economy?.funds);
+  /* A judgement cannot be dated, so the verdict rests on the observation alone,
+     and `career.status` declares no reckonable value to stand in for one. */
+  const careerEconomy =
+    fundsReading.state === "observed" ? fundsReading.value.economy : undefined;
+  const careerFunds = magnitudeOf(careerEconomy?.funds);
   /*
    * The note this drives explains a MISSING figure, so it has to be off
-   * whenever a figure is on screen. `judgeable` above hands back a modelled
-   * balance, and hanging "Funds no longer current" under a number the operator
-   * can read would deny the very figure the hire is being priced against.
+   * whenever a figure is on screen. A held reading is exactly the case where
+   * the figure above was withheld, so the two can never disagree.
    */
-  const fundsNotCurrent =
-    notCurrent(fundsReading) && fundsReading.reckoning === "none";
+  const fundsNotCurrent = notCurrent(fundsReading);
   /**
    * Crew are a standing cost, not a one-off: a hire this balance covers today
    * adds to a payroll the same balance keeps paying. The rate comes from
    * whichever money model won the `economy` capability, so a stock career, which
    * charges nothing to keep a kerbal on the books, reports nothing here.
    */
-  const netFunds = netFundsPerDay(judgeable(fundsReading)?.economy);
+  const netFunds = netFundsPerDay(careerEconomy);
   /**
    * The hired-crew roster is the textbook fact: a kerbal is on the books until
    * an event takes them off, so the last roster received is still the roster.
