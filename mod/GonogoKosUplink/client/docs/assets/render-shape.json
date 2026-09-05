@@ -3,27 +3,27 @@
   "engine": "chromium",
   "assets": {
     "boot-then-run--default.gif": {
-      "hash": "0b85360effa0c474",
+      "hash": "cd3a130fec0eb11e",
       "elements": 58,
       "text": "a0774835"
     },
     "cpu-picker-untagged--default.png": {
-      "hash": "b9f7110a0bbacd34",
+      "hash": "7951db8adf8e68db",
       "elements": 29,
       "text": "54cb2e54"
     },
     "lander-cpu-attached--default.png": {
-      "hash": "fe087e5be2b4249f",
+      "hash": "a4a108a4b767cfb5",
       "elements": 67,
       "text": "12f1d671"
     },
     "two-cpus-idle--default.png": {
-      "hash": "5d7b821c8cbff080",
+      "hash": "d7043049cffe5d4e",
       "elements": 31,
       "text": "db7edf95"
     },
     "two-cpus-idle--min.png": {
-      "hash": "5d7b821c8cbff080",
+      "hash": "d7043049cffe5d4e",
       "elements": 31,
       "text": "db7edf95"
     }
