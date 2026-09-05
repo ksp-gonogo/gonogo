@@ -80,20 +80,33 @@ describe("published compat versions mirror their sources", () => {
 
     expect(manifests.length).toBeGreaterThan(0);
 
-    const stale = manifests
-      .map((path) => ({
-        path: relative(REPO_ROOT, path),
-        ...(JSON.parse(readFileSync(path, "utf8")) as {
-          contractMajor: number;
-          contractMinor: number;
-        }),
-      }))
-      .filter(
-        (m) =>
-          m.contractMajor !== CONTRACT_MAJOR ||
-          m.contractMinor !== CONTRACT_MINOR,
+    /**
+     * Read as `unknown` and checked, rather than asserted into shape. A
+     * manifest that does not carry the pair AT ALL is not a manifest this test
+     * has no opinion about: it is one the compat gate cannot read either, so
+     * it is reported here as its own kind of stale rather than defaulted to a
+     * number that would compare equal.
+     */
+    const pairOf = (path: string): string => {
+      const parsed: unknown = JSON.parse(readFileSync(path, "utf8"));
+      if (typeof parsed !== "object" || parsed === null) return "not an object";
+      if (!("contractMajor" in parsed) || !("contractMinor" in parsed))
+        return "carries no contract pair";
+      const { contractMajor, contractMinor } = parsed;
+      if (
+        typeof contractMajor !== "number" ||
+        typeof contractMinor !== "number"
       )
-      .map((m) => `${m.path}: ${m.contractMajor}.${m.contractMinor}`);
+        return "carries no contract pair";
+      if (contractMajor === CONTRACT_MAJOR && contractMinor === CONTRACT_MINOR)
+        return "";
+      return `${contractMajor}.${contractMinor}`;
+    };
+
+    const stale = manifests
+      .map((path) => ({ path: relative(REPO_ROOT, path), pair: pairOf(path) }))
+      .filter((m) => m.pair !== "")
+      .map((m) => `${m.path}: ${m.pair}`);
 
     expect(
       stale,
