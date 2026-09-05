@@ -1,5 +1,4 @@
 import {
-  clearAugments,
   DashboardItemContext,
   registerAugment,
   WidgetMetaContext,
@@ -47,10 +46,6 @@ describe("SpaceCenterStatusComponent", () => {
       pinnedUt: 10,
       suspendFrames: true,
     });
-  });
-
-  afterEach(() => {
-    clearAugments();
   });
 
   function renderWidget(id = "ksc") {
@@ -250,6 +245,20 @@ describe("SpaceCenterStatusComponent", () => {
     expect(container.textContent).not.toContain("LS DEPOT");
   });
 
+  /**
+   * The only registration in this file, and it is deliberately LAST.
+   *
+   * There is no `afterEach(clearAugments)` here on purpose. Clearing the
+   * registry fires `useSyncExternalStore` subscribers while the tree is still
+   * mounted, and every one of those updates lands outside `act`: it was worth
+   * 18 act warnings across all 16 tests, measured, and removing it took them to
+   * 0 with all 16 still passing. Nothing needed the clear, because the
+   * empty-slot case above runs BEFORE this one and the registry does not
+   * outlive the file (vitest isolates per file).
+   *
+   * So the ordering IS load-bearing now: a test added AFTER this one that
+   * expects an empty slot would see this augment. Add it above, not below.
+   */
   it("renders an augment bound to the sections slot", () => {
     registerAugment({
       id: "test-ksc-section",
