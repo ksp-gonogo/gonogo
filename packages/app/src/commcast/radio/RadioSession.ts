@@ -76,13 +76,18 @@ export interface RadioReception {
    * Seconds of audio the delay clock has released and playback has not yet
    * reached.
    *
-   * This is the warp caveat made visible. `PresentationPacer` treats a UT-second
-   * delta as a wall-second delay, which its own docstring flags as a v1
-   * simplification that does not scale by warp rate, so above 1x the release
-   * edge outruns natural playback and this number climbs. Radio is a warp-1
-   * medium: two people cannot hold a conversation at 100,000x, and the design
-   * plays at natural rate and reports the backlog rather than pretending
-   * otherwise.
+   * This is the warp caveat made visible. The pacer measures the rate chunks
+   * are arriving at and follows it, but only inside a band that a separation
+   * rate lives in and a time warp does not, so above 1x the release edge
+   * outruns natural playback and this number climbs. Radio is a warp-1 medium:
+   * two people cannot hold a conversation at 100,000x, and the design plays at
+   * natural rate and reports the backlog rather than pretending otherwise.
+   *
+   * Under a CHANGING separation it stays near zero, which is the whole point of
+   * the pacer's rate term: a listener closing on the transmitter is handed
+   * chunks faster than the 20 ms grid they were spoken on, and a feed that
+   * ignored that would climb here for the length of the transmission and never
+   * come back down.
    */
   backlogSeconds: number;
   /** Chunks discarded without being played: the buffer cap, or the pacer
@@ -113,18 +118,27 @@ interface HeardTransmission {
    * moved between chunks would move their release instants independently across
    * the 20 ms grid, jittering the playout and, on a shrinking separation,
    * reordering syllables inside a word.
+   *
+   * A separation that is CHANGING is still answered for, and not here. That is
+   * a RATE, a different quantity from this offset, and it is measured downstream
+   * by the pacer from the cadence chunks actually arrive at. Unfreezing this
+   * would buy the same honesty back at the price the freeze was paid to avoid.
    */
   transitSeconds: number;
   /**
    * This keying's own release pacer.
    *
-   * ONE PER TRANSMISSION, not one for the channel, and the reason is the
-   * pacer's documented v1 simplification: it spaces frames by their UT deltas
-   * read as WALL deltas. Within one keying that is exactly right, the deltas
-   * being the 20 ms grid. ACROSS two keyings it is not: a gap of a minute
-   * between two things somebody said would make the second wait a minute of
-   * wall time before its first word, which is silence nobody asked for. A
-   * keying is one continuous stream and pacing belongs to it.
+   * ONE PER TRANSMISSION, not one for the channel, and the reason is how the
+   * pacer spaces: by the UT deltas between the frames it holds. Within one
+   * keying that is exactly right, the deltas being the 20 ms grid. ACROSS two
+   * keyings it is not: a gap of a minute between two things somebody said would
+   * make the second wait a minute of wall time before its first word, which is
+   * silence nobody asked for. A keying is one continuous stream and pacing
+   * belongs to it.
+   *
+   * It is also the scope the playout RATE is measured over, and the same
+   * boundary is right for that: the rate is a property of one crossing, and a
+   * conversational gap carries no information about it at all.
    */
   pacer: PresentationPacer<HeldChunk>;
   /** Chunks accepted here and not yet played, dropped or skipped. */
@@ -185,6 +199,17 @@ export class RadioSession {
   /** Chunks the clock has released and playback has not reached: the BACKLOG. */
   private paced = 0;
   private droppedChunks = 0;
+  /**
+   * The wall instant the most recent release pass ran at, which is the instant
+   * everything it releases arrived at.
+   *
+   * `DelayedPlayoutBuffer` releases from its own frame subscription and from
+   * `push()` as well as from `pump()`, so the wall clock cannot be read off
+   * `pump()`'s argument at the release site. `null` until the first pump, where
+   * falling back to `nowWall()` beats stamping an arrival with a wall instant
+   * this session has never been driven at.
+   */
+  private releaseWall: number | null = null;
   private playingId: string | null = null;
   private decodingId: string | null = null;
   private published: RadioReception = EMPTY_RECEPTION;
@@ -214,7 +239,10 @@ export class RadioSession {
           return;
         }
         this.paced += 1;
-        held.pacer.submit({ ut: frame.ut, data: chunk });
+        held.pacer.submit(
+          { ut: frame.ut, data: chunk },
+          this.releaseWall ?? this.nowWall(),
+        );
       },
       onDrop: (frame) => {
         this.crossing = Math.max(0, this.crossing - 1);
@@ -285,6 +313,7 @@ export class RadioSession {
   /** Release whatever the clock has let through, then play whatever is due. */
   pump(nowWall = this.nowWall()): void {
     if (this.disposed) return;
+    this.releaseWall = nowWall;
     this.buffer.pump();
     // A copy, because presenting the last chunk of a finished keying retires
     // its entry and mutates the map underneath the walk.

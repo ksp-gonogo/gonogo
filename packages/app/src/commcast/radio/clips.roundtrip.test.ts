@@ -22,6 +22,7 @@ import {
   clipMic,
   clipPcm,
   clipSamples,
+  DRIFT_CLIP,
   LONG_CLIP,
   type RadioClip,
   REPLY_CLIP,
@@ -36,6 +37,17 @@ const ARES = "vessel:ares";
 const KSC = "ksc";
 const LIGHT_TIME = 240;
 const START_UT = 1000;
+
+/**
+ * How often the listener's clock steps, in UT seconds.
+ *
+ * The release edge is sample-clamped to telemetry cadence rather than to audio
+ * cadence, so it does not creep, it jumps, and each jump releases every chunk
+ * that fell inside it in one pass, five or so. That is the regime the pacer exists
+ * for and the only one a delivery rate can honestly be measured across, so the
+ * drift scenes step the clock this way instead of smoothly.
+ */
+const SAMPLE_SECONDS = 0.1;
 
 const GROUND: Vantage = { seat: "mission-control", vantageId: KSC };
 
@@ -123,6 +135,29 @@ function crossing(
       for (let i = 0; i < chunks; i++) {
         session.pump(wall);
         wall += CLIP_CHUNK_SECONDS;
+      }
+      return wall;
+    },
+    /**
+     * Pump on the 20 ms wall grid while the listener's own clock advances
+     * `rate` UT seconds per wall second, and say where it got to.
+     *
+     * That ratio is what a CHANGING separation does to a stream at the listener,
+     * and it is the only thing it does: words spoken on a 20 ms grid cross a gap
+     * that is shrinking and become audible closer together than they were
+     * spoken, or further apart if it is growing. Above 1 is closing, below 1 is
+     * opening. The frozen transit is untouched by any of it, which is the point:
+     * the offset each word crosses is settled once, and how fast they land is a
+     * separate quantity that lands here.
+     */
+    listen(fromWall: number, wallSeconds: number, rate: number): number {
+      const steps = Math.round(wallSeconds / CLIP_CHUNK_SECONDS);
+      const perSample = Math.round(SAMPLE_SECONDS / CLIP_CHUNK_SECONDS);
+      let wall = fromWall;
+      for (let i = 0; i < steps; i++) {
+        session.pump(wall);
+        wall += CLIP_CHUNK_SECONDS;
+        if ((i + 1) % perSample === 0) ut += SAMPLE_SECONDS * rate;
       }
       return wall;
     },
@@ -217,6 +252,77 @@ describe("a keying, spoken and heard", () => {
       from: ARES,
       authorName: "Jeb",
     });
+  });
+});
+
+describe("a keying across a separation that is changing", () => {
+  /*
+   * The rates here are absurd as orbital mechanics and deliberate as arithmetic:
+   * a real closing rate is parts per hundred thousand and would take an hour of
+   * transmission to show what these show in two seconds. The code path is the
+   * same one either way, and the thing being asserted is that the feed follows
+   * the delivery rather than the grid the words were spoken on.
+   */
+  const CLOSING = 1.13;
+  const OPENING = 0.87;
+
+  it("keeps the feed with the words when the separation is closing", async () => {
+    /*
+     * Closing, chunks land closer together than the 20 ms they were spoken on.
+     * A feed pinned to that grid takes longer to play them than they took to
+     * arrive, so audio piles up behind it for the whole transmission and the
+     * listener finishes hearing a quarter second after they could have. Nothing
+     * is dropped and nothing is distorted, which is exactly why it goes unseen.
+     */
+    const scene = crossing([DRIFT_CLIP]);
+    await scene.say(0);
+
+    // Up to the first chunk's release instant and no further, so the whole
+    // utterance arrives through the closing crossing rather than in one pass.
+    scene.advance(LIGHT_TIME - DRIFT_CLIP.seconds);
+
+    /*
+     * Read twice, at the same point in the release cycle, because the reading
+     * is a TREND and not a level: a burst lands, the feed drains it, and what
+     * is queued at any instant depends on where in that cycle the instant fell.
+     * Both halves are 45 pumps, nine release bursts, so the two samples are
+     * phase-aligned and the only thing between them is growth.
+     */
+    const half = scene.listen(0, 0.9, CLOSING);
+    const midBacklog = scene.session.snapshot().backlogSeconds;
+    const arrivalsEnd = scene.listen(half, 0.9, CLOSING);
+    const endBacklog = scene.session.snapshot().backlogSeconds;
+
+    // Paced on the 20 ms grid the words were spoken on this reads 0.12 then
+    // 0.24, an exact doubling that goes on for as long as somebody keeps
+    // talking. Following the arrival rate it reads 0.06 at both samples.
+    expect(endBacklog).toBeLessThanOrEqual(midBacklog + CLIP_CHUNK_SECONDS);
+    expect(endBacklog).toBeLessThanOrEqual(6 * CLIP_CHUNK_SECONDS);
+    expect(scene.session.snapshot().droppedChunks).toBe(0);
+
+    scene.listen(arrivalsEnd, 0.4, CLOSING);
+    expect([...scene.sink.pcm()]).toEqual([...clipPcm(DRIFT_CLIP)]);
+  });
+
+  it("hears every word when the separation is opening, instead of snapping past some", async () => {
+    /*
+     * Opening, chunks land further apart than they were spoken. A feed pinned to
+     * the 20 ms grid is ready before each one exists, so its idea of when the
+     * next is due falls further behind real time with every chunk until the
+     * backlog guard reads a quarter second of lag that was never audio, snaps to
+     * the newest chunk it holds, and takes the rest of that release burst with
+     * it. Words are lost to bookkeeping, on a crossing that delivered all of
+     * them.
+     */
+    const scene = crossing([DRIFT_CLIP]);
+    await scene.say(0);
+
+    scene.advance(LIGHT_TIME - DRIFT_CLIP.seconds);
+    scene.listen(0, DRIFT_CLIP.seconds / OPENING + 0.2, OPENING);
+
+    expect(scene.session.snapshot().droppedChunks).toBe(0);
+    expect(scene.sink.played).toHaveLength(DRIFT_CLIP.chunks.length);
+    expect([...scene.sink.pcm()]).toEqual([...clipPcm(DRIFT_CLIP)]);
   });
 });
 

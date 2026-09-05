@@ -108,6 +108,19 @@ export const REPLY_CLIP = makeClip("copy, starting the sequence", 25, 600);
 /** A second of it, for the cases that need a release edge to outrun playback. */
 export const LONG_CLIP = makeClip("say again your status", 50);
 
+/**
+ * Two seconds, for the cases where the reading only exists once it has accrued.
+ *
+ * A mismatch between the rate audio arrives at and the rate it is fed to the
+ * speakers is invisible chunk by chunk and shows only as a total, so a clip
+ * short enough to be comfortable everywhere else cannot express it at all.
+ *
+ * A hundred chunks is the ceiling rather than a round number: a scene records
+ * every chunk against `RADIO_CHUNK_BUDGET` twice, once leaving the transmitter
+ * and once reaching the session, and the cap is 250 a second.
+ */
+export const DRIFT_CLIP = makeClip("standing by for your mark", 100, 320);
+
 /** One chunk of `clip`, as it would come off the encoder. */
 export function clipBytes(clip: RadioClip, index: number): Uint8Array {
   const chunk = clip.chunks[index];
