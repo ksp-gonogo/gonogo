@@ -95,17 +95,6 @@ type SpaceWeatherRead =
   | { readable: true; data: SpaceWeatherData }
   | { readable: false; absence: WeatherAbsence };
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 /** Whether a reading went stale, as opposed to never having arrived. */
 function notCurrent<T>(reading: Reading<T>): boolean {
   return reading.state === "stale";
@@ -121,10 +110,10 @@ function notCurrent<T>(reading: Reading<T>): boolean {
  * sits in a magnetic field and a storm timeline, and every one of them can drift
  * while nobody is looking.
  *
- * `shieldingCapacity` is the one plausible fact (fitted hardware), and it still
- * goes through `judgeable`, because it is only ever drawn as the denominator of a
- * ratio whose numerator is withheld. "0.0 / 3.3" with a red bar is a verdict
- * about a habitat, assembled from one number we have and one we do not.
+ * `shieldingCapacity` is the one plausible fact (fitted hardware), and it is
+ * still withheld with the rest, because it is only ever drawn as the denominator
+ * of a ratio whose numerator is withheld. "0.0 / 3.3" with a red bar is a
+ * verdict about a habitat, assembled from one number we have and one we do not.
  *
  * Withholding the record therefore withholds the whole board, which is the
  * honest outcome: the alternative is the pre-migration behaviour, where an
@@ -137,18 +126,22 @@ function useSpaceWeather(): SpaceWeatherRead {
   // the belt diagram, and a dot drawn from an altitude taken some seconds ago
   // states the craft is in a band it may have left.
   const flightReading = useTelemetry("vessel.flight");
-  // `judgeable`'s body, inlined, because `vessel.flight` is a topic the contract
-  // declares reckonable: `reckoned` carries the altitude a conic advances and
-  // nothing else, so the modelled field is overlaid on the observation rather
-  // than replacing it. The dot below is placed from the altitude, which is
-  // exactly the field the model moves, so this is the read the mark exists for.
+  // `vessel.flight` is a topic the contract declares reckonable: `reckoned`
+  // carries the altitude a conic advances and nothing else, so the modelled
+  // field is overlaid on the observation rather than replacing it. The dot below
+  // is placed from the altitude, which is exactly the field the model moves, so
+  // this is the read the mark exists for.
   const flight =
     flightReading.reckoning === "available"
       ? { ...flightReading.value, ...flightReading.reckoned.value }
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;
-  const t = judgeable(weatherReading);
+  // A verdict may only be drawn from a CURRENT observation. A stale reading gives
+  // nothing, because `kerbalism.spaceweather` declares no model and a judgement
+  // cannot be dated: the operator reads a band or a pill as the situation NOW.
+  const t =
+    weatherReading.state === "observed" ? weatherReading.value : undefined;
 
   if (t === undefined) {
     return {

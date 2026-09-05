@@ -1,4 +1,4 @@
-import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -41,17 +41,6 @@ interface RadiationSummary {
   severity: Severity;
 }
 
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 function radiationSummaryFor(
   weather: KerbalismSpaceWeather | undefined,
 ): RadiationSummary | null {
@@ -85,8 +74,11 @@ function radiationSummaryFor(
  */
 function CrewRadiationSummaryAugment(_props: SlotProps<"crew-status.summary">) {
   // Same judgement as ShipSystems': a survival summary must not report a dose rate
-  // it cannot vouch for.
-  const weather = judgeable(useTelemetry("kerbalism.spaceweather"));
+  // it cannot vouch for. Only a current observation is one to report from,
+  // because `kerbalism.spaceweather` declares no model to carry it forward.
+  const weatherReading = useTelemetry("kerbalism.spaceweather");
+  const weather =
+    weatherReading.state === "observed" ? weatherReading.value : undefined;
   const summary = radiationSummaryFor(weather);
   if (!summary) return null;
   const doseValue =

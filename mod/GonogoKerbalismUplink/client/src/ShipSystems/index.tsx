@@ -1,4 +1,4 @@
-import type { ComponentProps, Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import {
   AugmentSlot,
   registerComponent,
@@ -84,17 +84,6 @@ type Tone = "neutral" | "go" | "info" | "warn" | "nogo";
 const SOON_EMPTY_SEC = 600;
 
 /** Whole numbers drop decimals; smaller values keep enough precision to read. */
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 export function fmtAmt(n: number): string {
   if (!Number.isFinite(n)) return "0";
   const rounded = Math.round(n);
@@ -256,8 +245,11 @@ function ShipSystemsComponent(
   // returns below, to keep hook order stable.
   // Radiation and storm state are judgements: the operator reads them as the
   // situation now, so a held figure would understate an exposure that has since
-  // risen.
-  const weather = judgeable(useTelemetry("kerbalism.spaceweather"));
+  // risen. `kerbalism.spaceweather` declares no model, so a reading that is not
+  // a current observation gives nothing.
+  const weatherReading = useTelemetry("kerbalism.spaceweather");
+  const weather =
+    weatherReading.state === "observed" ? weatherReading.value : undefined;
   const utNow = useUtNow();
 
   if (!ship) {

@@ -103,17 +103,6 @@ export interface ServoInfo {
 }
 
 /**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -225,7 +214,11 @@ function RoboticsConsoleComponent({
 }: Readonly<ComponentProps<RoboticsConsoleConfig>>) {
   // Servo angles move continuously and this console commands against them, so a
   // held position would aim a command at a hinge that has since travelled.
-  const roboticsRaw = judgeable(useTelemetry("robotics.servos"));
+  // Nothing can carry one forward either: `robotics.servos` is never reckonable,
+  // so a reading that is not a current observation draws no joints at all.
+  const roboticsReading = useTelemetry("robotics.servos");
+  const roboticsRaw =
+    roboticsReading.state === "observed" ? roboticsReading.value : undefined;
   const available = stillTrue(
     useTelemetry("robotics.available"),
     undefined,

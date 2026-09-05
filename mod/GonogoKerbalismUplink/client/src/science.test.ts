@@ -39,17 +39,6 @@ const MOD_ROOT = join(
 const FIXTURE = join(MOD_ROOT, "golden-fixtures", "science-extensions.json");
 
 /**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
-/**
  * A frame the SERVER actually produced, read off disk.
  *
  * `ScienceExtensionWireTests` (this Uplink's own dotnet tests) asserts that the real
@@ -81,15 +70,18 @@ async function decoded<T>(
   // projections too. Nothing at this call site knows which topic it holds; the
   // cast says only what this function's own signature already says.
   const { result } = renderHook(
-    () => judgeable(useTelemetry(topic) as Reading<T>),
+    () => {
+      const reading = useTelemetry(topic) as Reading<T>;
+      return reading.state === "observed" ? reading.value : undefined;
+    },
     { wrapper: fixture.Provider },
   );
 
   fixture.emit(topic, payload);
 
-  // The hook read above is wrapped in `judgeable`, so `result.current` is the
-  // PAYLOAD, as it was before `useTelemetry` began answering with a `Reading`.
-  // Without that wrap this wait passes on the first tick, because a `Reading` is
+  // The hook read above unwraps the reading, so `result.current` is the PAYLOAD,
+  // as it was before `useTelemetry` began answering with a `Reading`. Without
+  // that unwrap this wait passes on the first tick, because a `Reading` is
   // always defined, and every hydration assertion reads `undefined` off the wrapper.
   await waitFor(() => {
     expect(result.current).toBeDefined();

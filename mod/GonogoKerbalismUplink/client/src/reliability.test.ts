@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Reading, ReliabilitySummary } from "@ksp-gonogo/sitrep-sdk";
+import type { ReliabilitySummary } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   renderHook,
@@ -27,17 +27,6 @@ const FIXTURE = join(
   "golden-fixtures",
   "reliability-extensions.json",
 );
-
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 /**
  * The frame the SERVER actually produced, read off disk.
@@ -125,7 +114,10 @@ describe("kerbalism's namespace of reliability.summary's provider extension bag"
       carriedChannels: [RELIABILITY_SUMMARY_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RELIABILITY_SUMMARY_TOPIC)),
+      () => {
+        const reading = useTelemetry(RELIABILITY_SUMMARY_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -164,7 +156,10 @@ describe("kerbalism's namespace of reliability.summary's provider extension bag"
       carriedChannels: [RELIABILITY_SUMMARY_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RELIABILITY_SUMMARY_TOPIC)),
+      () => {
+        const reading = useTelemetry(RELIABILITY_SUMMARY_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 

@@ -1,4 +1,4 @@
-import type { ComponentProps, Reading, Value } from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, Value } from "@ksp-gonogo/sitrep-sdk";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   BigReadout,
@@ -11,7 +11,6 @@ import {
   StatusPill,
   Unit,
 } from "@ksp-gonogo/ui-kit";
-import type { AvionicsStatus } from "../__generated__/contract";
 // Side-effect import: registers avionics.status's unit map into the SDK's
 // runtime hydration registry (registerTopicUnits) and augments
 // TopicPayloadMap for the type. This widget is the one actual consumer of
@@ -28,17 +27,6 @@ type AvionicsConfig = Record<string, never>;
  * A mass readout, the way an Uplink is meant to write one: the value carries
  * its own unit off the Topic, so this names neither the unit nor the format.
  */
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 function Tons({ t }: { t?: Value<"t"> }) {
   return t == null ? NULL_DISPLAY : <Unit value={t} decimals={2} />;
 }
@@ -55,17 +43,19 @@ export function AvionicsGoNoGoComponent(
   _props: ComponentProps<AvionicsConfig>,
 ) {
   /**
-   * Deliberately NO `as AvionicsStatus | undefined` cast. `useTelemetry`
-   * answers with a `Reading`, and an assertion here silences that: `avionicsActive`
-   * then reads permanently undefined and the widget says "NO AVIONICS" forever.
-   * A cast is a stronger blind spot than `unknown`, because someone chose it.
+   * Deliberately NO `as AvionicsStatus | undefined` cast on the reading.
+   * `useTelemetry` answers with a `Reading`, and an assertion over it silences
+   * that: `avionicsActive` then reads permanently undefined and the widget says
+   * "NO AVIONICS" forever. A cast is a stronger blind spot than `unknown`,
+   * because someone chose it.
    *
-   * A GO/NO-GO is the definition of a judgement, so it is withheld rather than held:
-   * a stale GO is the single worst thing this widget could draw.
+   * A GO/NO-GO is the definition of a judgement, so it is withheld rather than
+   * held: a stale GO is the single worst thing this widget could draw.
+   * `avionics.status` declares no model, so `observed` is the only arm that
+   * yields a verdict.
    */
-  const s = judgeable(useTelemetry("avionics.status")) as
-    | AvionicsStatus
-    | undefined;
+  const status = useTelemetry("avionics.status");
+  const s = status.state === "observed" ? status.value : undefined;
   const noAvionics = !(s?.avionicsActive ?? false);
   const controllable = s?.controllable ?? false;
   const label = noAvionics ? "NO AVIONICS" : controllable ? "GO" : "NO-GO";

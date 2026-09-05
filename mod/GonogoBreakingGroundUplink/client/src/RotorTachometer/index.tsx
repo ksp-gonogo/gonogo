@@ -64,17 +64,6 @@ export interface RotorInfo {
 }
 
 /**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -175,8 +164,12 @@ export type RotorTachometerActions = typeof rotorActions;
 function RotorTachometerComponent({
   h,
 }: Readonly<ComponentProps<RotorTachometerConfig>>) {
-  // An RPM gauge is read as the situation now, so it is withheld rather than held.
-  const roboticsRaw = judgeable(useTelemetry("robotics.servos"));
+  // An RPM gauge is read as the situation now, so it is withheld rather than
+  // held. Nothing could carry a stale figure forward anyway: `robotics.servos`
+  // is never reckonable.
+  const roboticsReading = useTelemetry("robotics.servos");
+  const roboticsRaw =
+    roboticsReading.state === "observed" ? roboticsReading.value : undefined;
   const available = stillTrue(
     useTelemetry("robotics.available"),
     undefined,
