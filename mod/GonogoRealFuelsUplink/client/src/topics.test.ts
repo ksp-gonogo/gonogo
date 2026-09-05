@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   isTopicId,
@@ -24,12 +23,6 @@ import {
 
 // src -> client -> GonogoRealFuelsUplink
 const UPLINK_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
-
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 /** The value of a `const string <name>` in RealFuelsUplink.cs, as the C# declares it. */
 function csTopic(constName: string): string {
@@ -76,8 +69,17 @@ describe("unit hydration at decode time", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [REALFUELS_BOILOFF_TOPIC],
     });
+    /**
+     * The hook returns the PAYLOAD rather than the reading: a `Reading` is
+     * always defined, so a `waitFor` on the reading itself passes on the first
+     * tick and every hydration assertion below would then read `undefined` off
+     * the wrapper.
+     */
     const { result } = renderHook(
-      () => judgeable(useTelemetry(REALFUELS_BOILOFF_TOPIC)),
+      () => {
+        const reading = useTelemetry(REALFUELS_BOILOFF_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -108,7 +110,10 @@ describe("unit hydration at decode time", () => {
       carriedChannels: [REALFUELS_ENGINES_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(REALFUELS_ENGINES_TOPIC)),
+      () => {
+        const reading = useTelemetry(REALFUELS_ENGINES_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 

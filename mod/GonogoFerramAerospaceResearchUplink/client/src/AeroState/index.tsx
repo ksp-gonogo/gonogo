@@ -18,7 +18,6 @@ import {
 // the consumer of that decode-time wrap, so it pulls the registration itself
 // rather than relying on the package entry point's import order.
 import "../topics";
-import { judgeable } from "../judgeable";
 import { AERO } from "../uplink";
 
 type AeroConfig = Record<string, never>;
@@ -97,7 +96,10 @@ function stallBand(fraction: Value<"ratio">): {
  * model catches up.</p>
  */
 export function AeroStateComponent(_props: ComponentProps<AeroConfig>) {
-  const s = judgeable(useTelemetry("aero.state"));
+  // Only a current observation is drawn: an attitude to the airflow cannot be
+  // dated, and an operator reads a stall band as the situation NOW.
+  const reading = useTelemetry("aero.state");
+  const s = reading.state === "observed" ? reading.value : undefined;
   const stall = s?.stallFraction;
   const band = stall == null ? null : stallBand(stall);
   const modelValid = s?.aeroModelValid ?? false;

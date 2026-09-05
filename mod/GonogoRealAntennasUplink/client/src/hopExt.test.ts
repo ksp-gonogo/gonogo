@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { CommsPath, Reading } from "@ksp-gonogo/sitrep-sdk";
+import type { CommsPath } from "@ksp-gonogo/sitrep-sdk";
 import { useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   renderHook,
@@ -10,18 +10,6 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { REALANTENNAS_PROVIDER_ID, readRealAntennasHopExt } from "./hopExt";
-
-/**
- * The payload a reading carries, or `undefined`. `useTelemetry` answers with a
- * `Reading`, which is ALWAYS defined, so a `waitFor` on the reading itself
- * passes on the first tick and every hydration assertion below then reads
- * `undefined` off the wrapper.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 // src -> client -> GonogoRealAntennasUplink -> mod
 const MOD_ROOT = join(
@@ -91,8 +79,17 @@ describe("realantennas' namespace of CommsHop's provider extension bag", () => {
   it("hydrates the namespace's quantities at decode time, off the real frame", async () => {
     const frame = serverFrame();
     const fixture = setupStreamFixture({ carriedChannels: [COMMS_PATH_TOPIC] });
+    /**
+     * The hook returns the PAYLOAD rather than the reading: a `Reading` is
+     * always defined, so a `waitFor` on the reading itself passes on the first
+     * tick and every hydration assertion below would then read `undefined` off
+     * the wrapper.
+     */
     const { result } = renderHook(
-      () => judgeable(useTelemetry(COMMS_PATH_TOPIC)),
+      () => {
+        const reading = useTelemetry(COMMS_PATH_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -120,7 +117,10 @@ describe("realantennas' namespace of CommsHop's provider extension bag", () => {
     const frame = serverFrame();
     const fixture = setupStreamFixture({ carriedChannels: [COMMS_PATH_TOPIC] });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(COMMS_PATH_TOPIC)),
+      () => {
+        const reading = useTelemetry(COMMS_PATH_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 

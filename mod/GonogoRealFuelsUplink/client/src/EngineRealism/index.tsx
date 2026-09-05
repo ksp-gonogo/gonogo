@@ -11,7 +11,6 @@
 // data-gated besides: with no engine reading the section draws nothing at all
 // and FuelStatus composes exactly as it does on a stock install.
 
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -26,25 +25,12 @@ import {
 import type {
   RealFuelsBoiloff,
   RealFuelsEngineEntry,
-  RealFuelsEngines,
 } from "../__generated__/contract";
 import { REALFUELS } from "../uplink";
 // Side-effect import: the Topic registrations and the unit/shape hydration this
 // section's readings depend on. Pulled here rather than left to the package
 // entry point's import order, since this is their one consumer.
 import "../topics";
-
-/**
- * The value a judgement may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing. An ignition budget held
- * from before a gap is the worst kind of number to draw, because the burn it
- * describes may already have spent it.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 /**
  * RealFuels' own settling bands, from its ullage simulator's state strings.
@@ -225,12 +211,15 @@ function BoiloffRow({ boiloff }: { boiloff: RealFuelsBoiloff }) {
  * engines, which is not what an absent reading says.
  */
 export function EngineRealismSection() {
-  const engines = judgeable(useTelemetry("realfuels.engines")) as
-    | RealFuelsEngines
-    | undefined;
-  const boiloff = judgeable(useTelemetry("realfuels.boiloff")) as
-    | RealFuelsBoiloff
-    | undefined;
+  // Only a current observation is drawn. An ignition budget held from before a
+  // gap is the worst kind of number to draw, because the burn it describes may
+  // already have spent it.
+  const engineReading = useTelemetry("realfuels.engines");
+  const boiloffReading = useTelemetry("realfuels.boiloff");
+  const engines =
+    engineReading.state === "observed" ? engineReading.value : undefined;
+  const boiloff =
+    boiloffReading.state === "observed" ? boiloffReading.value : undefined;
 
   const rows = engines?.engines;
   if (rows == null || rows.length === 0) return null;

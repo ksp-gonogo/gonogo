@@ -2,7 +2,6 @@ import type {
   ActionDefinition,
   CommandStatus,
   ComponentProps,
-  Reading,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
@@ -76,17 +75,6 @@ export type MechJebActions = typeof mechjebActions;
 // CommandStatus.phase → operator-facing chip, in the delayed-command
 // vocabulary. `in-flight` is the dispatched-but-unconfirmed window: from the
 // operator's seat the command is in transit / awaiting reply across the delay.
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 function commandChip(
   phase: CommandStatus["phase"],
 ): { severity: Severity; text: string } | undefined {
@@ -172,7 +160,9 @@ function MechJebComponent({ config }: Readonly<ComponentProps<MechJebConfig>>) {
   // a bare number and re-wrapping it in `value("s", ...)` built a value whose
   // magnitude was an object, which every formatter renders as the null dash, so
   // a Duna-distance link read as no delay model at all.
-  const oneWay = judgeable(useTelemetry("comms.delay"))?.oneWaySeconds;
+  const delay = useTelemetry("comms.delay");
+  const oneWay =
+    delay.state === "observed" ? delay.value.oneWaySeconds : undefined;
 
   const [altitudeKm, setAltitudeKm] = useState<number>(
     config?.defaultAscentAltitudeKm ?? DEFAULT_ASCENT_ALTITUDE_KM,

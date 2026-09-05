@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   isTopicId,
@@ -46,17 +45,6 @@ function csTopic(constName: string): string {
     throw new Error(`${constName} constant not found in Rp1ScUplink.cs`);
   }
   return m[1];
-}
-
-/**
- * A value where one is current, or where a model carries it forward to the
- * frame. The halves of the payload this Uplink is careful about are absences,
- * and an unmodelled stale reading is a third thing again.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
 }
 
 describe("the rp1.* Topic registrations", () => {
@@ -113,8 +101,17 @@ describe("decode-time unit hydration", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [RP1_BUILD_QUEUE_TOPIC],
     });
+    /**
+     * The hook returns the PAYLOAD rather than the reading: a `Reading` is
+     * always defined, so a `waitFor` on the reading itself passes on the first
+     * tick and every hydration assertion below would then read `undefined` off
+     * the wrapper.
+     */
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_BUILD_QUEUE_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_BUILD_QUEUE_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -161,7 +158,10 @@ describe("decode-time unit hydration", () => {
       carriedChannels: [RP1_CONFIDENCE_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_CONFIDENCE_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_CONFIDENCE_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -188,7 +188,10 @@ describe("decode-time unit hydration", () => {
       carriedChannels: [RP1_BUILD_QUEUE_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_BUILD_QUEUE_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_BUILD_QUEUE_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -233,7 +236,10 @@ describe("the constructions channel", () => {
       carriedChannels: [RP1_CONSTRUCTIONS_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_CONSTRUCTIONS_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_CONSTRUCTIONS_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -290,7 +296,10 @@ describe("the programs channel", () => {
       carriedChannels: [RP1_PROGRAMS_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_PROGRAMS_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_PROGRAMS_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -373,7 +382,10 @@ describe("the programs channel", () => {
       carriedChannels: [RP1_PROGRAMS_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_PROGRAMS_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_PROGRAMS_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -436,7 +448,10 @@ describe("the programs channel", () => {
       carriedChannels: [RP1_PROGRAM_SLOTS_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_PROGRAM_SLOTS_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_PROGRAM_SLOTS_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -481,7 +496,10 @@ describe("the programs channel", () => {
       carriedChannels: [RP1_PROGRAM_FUNDING_CURVES_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(RP1_PROGRAM_FUNDING_CURVES_TOPIC)),
+      () => {
+        const reading = useTelemetry(RP1_PROGRAM_FUNDING_CURVES_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 

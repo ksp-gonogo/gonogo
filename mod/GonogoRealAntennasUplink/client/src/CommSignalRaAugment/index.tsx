@@ -18,7 +18,6 @@
 
 import {
   type CommsHop,
-  type Reading,
   registerAugment,
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -28,18 +27,6 @@ import { REALANTENNAS } from "../uplink";
 // Side-effect import so the RA Topic registrations + the hop-bag hydration
 // registration are alive wherever this augment is bundled.
 import "../hopExt";
-
-/**
- * The value a link-budget readout may be drawn from: current, or modelled
- * forward to the frame. A stale reading with no model gives nothing, matching
- * CommSignal's own rule: a margin held from before a gap asserts a link that
- * may be gone.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 /** The vessel's own first hop, whose antenna carries the link's band/tech facts. */
 function primaryHop(
@@ -59,10 +46,16 @@ const LABEL_STYLE = {
  * Renders nothing until RA reports a rate, so it never shows an empty chip.
  */
 function CommSignalRaBadges() {
-  const dataRate = judgeable(useTelemetry("comms.dataRate"));
-  const path = judgeable(useTelemetry("comms.path"));
-  const ext = readRealAntennasHopExt(primaryHop(path?.hops));
-  const down = dataRate?.downBitsPerSec;
+  // Only a current observation is drawn, matching CommSignal's own rule: a rate
+  // held from before a gap asserts a link that may be gone. No published model
+  // carries these values forward, so a stale read has nothing to offer here.
+  const dataRate = useTelemetry("comms.dataRate");
+  const path = useTelemetry("comms.path");
+  const ext = readRealAntennasHopExt(
+    primaryHop(path.state === "observed" ? path.value.hops : undefined),
+  );
+  const down =
+    dataRate.state === "observed" ? dataRate.value.downBitsPerSec : undefined;
 
   if (down === undefined && !ext?.band) return null;
 
@@ -87,9 +80,14 @@ function CommSignalRaBadges() {
  * drops when its own field is absent, so a thin read never leaves a labelled blank.
  */
 function CommSignalRaSection() {
-  const margin = judgeable(useTelemetry("comms.linkMargin"));
-  const path = judgeable(useTelemetry("comms.path"));
-  const ext = readRealAntennasHopExt(primaryHop(path?.hops));
+  // Current observations only, for the reason given on the badges above.
+  const marginReading = useTelemetry("comms.linkMargin");
+  const path = useTelemetry("comms.path");
+  const margin =
+    marginReading.state === "observed" ? marginReading.value : undefined;
+  const ext = readRealAntennasHopExt(
+    primaryHop(path.state === "observed" ? path.value.hops : undefined),
+  );
 
   const hasMargin = margin?.decibelMargin !== undefined;
   const hasExt =

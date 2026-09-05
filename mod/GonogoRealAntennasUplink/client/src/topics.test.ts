@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   isTopicId,
@@ -29,17 +28,6 @@ import {
 const UPLINK_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 /** The value of a `const string <name>` in RealAntennasUplink.cs, as the C# declares it. */
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading with no model gives nothing, because a judgement cannot
- * be dated: the operator reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 function csTopic(constName: string): string {
   const src = readFileSync(join(UPLINK_ROOT, "RealAntennasUplink.cs"), "utf8");
   const m = src.match(
@@ -106,8 +94,17 @@ describe("registerTopicUnits: hydration at decode time", () => {
     const fixture = setupStreamFixture({
       carriedChannels: [COMMS_LINK_MARGIN_TOPIC],
     });
+    /**
+     * The hook returns the PAYLOAD rather than the reading: a `Reading` is
+     * always defined, so a `waitFor` on the reading itself passes on the first
+     * tick and every hydration assertion below would then read `undefined` off
+     * the wrapper.
+     */
     const { result } = renderHook(
-      () => judgeable(useTelemetry(COMMS_LINK_MARGIN_TOPIC)),
+      () => {
+        const reading = useTelemetry(COMMS_LINK_MARGIN_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       {
         wrapper: fixture.Provider,
       },
@@ -139,7 +136,10 @@ describe("registerTopicUnits: hydration at decode time", () => {
       carriedChannels: [COMMS_DATA_RATE_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(COMMS_DATA_RATE_TOPIC)),
+      () => {
+        const reading = useTelemetry(COMMS_DATA_RATE_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       {
         wrapper: fixture.Provider,
       },
@@ -170,7 +170,10 @@ describe("registerTopicUnits: hydration at decode time", () => {
       carriedChannels: [COMMS_LINK_QUALITY_TOPIC],
     });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(COMMS_LINK_QUALITY_TOPIC)),
+      () => {
+        const reading = useTelemetry(COMMS_LINK_QUALITY_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 

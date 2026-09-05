@@ -1,7 +1,6 @@
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import {
   getAllKnownTopicIds,
   isTopicId,
@@ -38,17 +37,6 @@ function csTopic(constName: string): string {
   return m[1];
 }
 
-/**
- * A value only where one is current, or where a model carries it forward to the
- * frame. What this Uplink is careful about is absence, and an unmodelled stale
- * reading is a third thing again.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 describe("the aero.* Topic registrations", () => {
   it("register the same strings the C# Uplink declares", () => {
     // The two halves ship together and are versioned together, so a topic
@@ -68,8 +56,17 @@ describe("the aero.* Topic registrations", () => {
 describe("decode-time unit hydration", () => {
   it("hydrates every declared quantity, this Uplink's own two tokens included", async () => {
     const fixture = setupStreamFixture({ carriedChannels: [AERO_STATE_TOPIC] });
+    /**
+     * The hook returns the PAYLOAD rather than the reading: a `Reading` is
+     * always defined, so a `waitFor` on the reading itself passes on the first
+     * tick and every hydration assertion below would then read `undefined` off
+     * the wrapper.
+     */
     const { result } = renderHook(
-      () => judgeable(useTelemetry(AERO_STATE_TOPIC)),
+      () => {
+        const reading = useTelemetry(AERO_STATE_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
@@ -122,7 +119,10 @@ describe("decode-time unit hydration", () => {
   it("carries the mod's absences through as absent rather than as zeros", async () => {
     const fixture = setupStreamFixture({ carriedChannels: [AERO_STATE_TOPIC] });
     const { result } = renderHook(
-      () => judgeable(useTelemetry(AERO_STATE_TOPIC)),
+      () => {
+        const reading = useTelemetry(AERO_STATE_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
       { wrapper: fixture.Provider },
     );
 
