@@ -736,6 +736,20 @@ jobs:
   # as an artifact.
   visual:
     runs-on: ubuntu-latest
+    # TEMPORARILY DISABLED, 2026-09-05, at the operator's instruction.
+    #
+    # RESTORE THIS BEFORE THE MAIN MERGE. That is the condition, not a date: the
+    # baselines are still the only thing checking cross-engine rasterisation, and
+    # merging to main without them means shipping a whole-suite drift nobody
+    # looked at. Delete this `if` and the block below it goes back to amber.
+    #
+    # Why it went, given `continue-on-error` already stopped it deciding the run:
+    # the noise was still costing attention. It ran red on every push pending a
+    # whole-suite re-baseline, and a permanently red job trains everyone to skim
+    # the job list, which is how the reader ends up assuming a red run is the
+    # known red. That happened here: `test` and `mod` were genuinely broken for
+    # eighteen hours behind a badge people had stopped reading closely.
+    if: false
     # AMBER, not silenced. The gate is deliberately red pending a whole-suite
     # re-baseline, and while that red counted towards the run conclusion it made
     # every other job's red invisible: an earth-day ratchet failure and then a

@@ -78,6 +78,20 @@ concurrency:
 jobs:
   staleness:
     runs-on: ubuntu-latest
+    # TEMPORARILY DISABLED, 2026-09-05, at the operator's instruction, alongside
+    # the `visual` job in ci.yml and for the same reason.
+    #
+    # RESTORE THIS BEFORE THE MAIN MERGE. The pages are derived and the only
+    # sanctioned regeneration is `uplink-docs.yml`, so this check goes red
+    # whenever a contract edit lands ahead of the nightly, heals itself, and goes
+    # red again. It never blocked anything. What it cost was attention: a job
+    # that is red most of the time is a job people stop reading, and the habit
+    # generalises to the whole run.
+    #
+    # Nothing is lost while it is off that the nightly does not already fix. What
+    # IS lost is the signal on a pull request, which is the reason it exists, so
+    # this comes back on before anything merges to main.
+    if: false
     steps:
       - uses: actions/checkout@v5
 
