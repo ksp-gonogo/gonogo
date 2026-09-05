@@ -228,13 +228,19 @@ describe("Commcast, rendered", () => {
     expect(screen.queryByLabelText("Message")).toBeNull();
   });
 
-  it("puts the transmit key on the composer, ahead of the input", async () => {
+  it("puts the transmit key in the bar's top-right corner, ahead of the input", async () => {
     /*
-     * The whole radio integration, from the widget's side: a latching key in
-     * the composer bar, before the text input, so the operator's eye finds
-     * "talk" before "type". It reports a stated reason rather than doing
-     * nothing where the pipeline cannot run, which in jsdom (and on the LAN dev
-     * server over plain http) is every time.
+     * The whole radio integration, from the widget's side: a latching key at
+     * the END of the view's own bar, opposite the conversation's name, and
+     * still before the text input in reading and tab order, so the operator's
+     * eye finds "talk" before "type". It reports a stated reason rather than
+     * doing nothing where the pipeline cannot run, which in jsdom (and on the
+     * LAN dev server over plain http) is every time.
+     *
+     * It sits in the BAR rather than on the composer because the operator asked
+     * for it there: a red transmit latch a few pixels from the send key is a
+     * mispress waiting to happen, and the corner is somewhere the eye can find
+     * it without reading the row it is in.
      */
     const log = makeLog();
     log.replaceForTesting({
@@ -253,12 +259,39 @@ describe("Commcast, rendered", () => {
     });
     const { container } = renderWidget(log);
     await openConversation(/Go ahead/);
-    const key = screen.getByRole("button", { name: "Transmit" });
+    const key = screen.getByRole("button", { name: "Talk" });
     expect(key).toHaveAttribute("aria-pressed", "false");
     const input = screen.getByLabelText("Message");
     expect(
       key.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
+    /*
+     * OUTSIDE the console frame, which is what says it moved rather than merely
+     * that it is still ahead of the input: the composer lives inside that
+     * border (asserted in its own test below) and the bar sits above it.
+     */
+    const frame = container.querySelector("[data-console-frame]");
+    expect(frame).not.toBeNull();
+    expect(frame?.contains(key)).toBe(false);
+    expect(frame?.contains(input)).toBe(true);
+    // The mute went with it, rather than being stranded on the composer alone.
+    const mute = screen.getByRole("button", { name: /^Mute / });
+    expect(frame?.contains(mute)).toBe(false);
+    /*
+     * And the row still fits on one line. Two controls landing in a bar that
+     * already held a back button and an arbitrarily long conversation name is
+     * how it wrapped, which takes the tile to a different height inside a
+     * conversation than outside one: the name gives way, the controls do not.
+     */
+    const group = key.parentElement?.parentElement as Element;
+    expect(getComputedStyle(group).flexShrink).toBe("0");
+    // The bar's own title, reached from the group so the query cannot wander
+    // into the log, where the same correspondent's name appears on every line.
+    const bar = group.parentElement as Element;
+    const title = bar.querySelector(":scope > span");
+    // It names the conversation, which is what the mute is named after too.
+    expect(mute.getAttribute("aria-label")).toBe(`Mute ${title?.textContent}`);
+    expect(getComputedStyle(title as Element).whiteSpace).toBe("nowrap");
     // A reason, not a dead control: this page is not a secure origin and has no
     // WebCodecs, and those are different sentences to an operator.
     expect(key).toBeDisabled();

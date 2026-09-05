@@ -159,8 +159,14 @@ export interface Scene {
    *
    * A list rather than one string because a scene can be about two things at
    * once: the no-path radio shot is only itself if the bar says NO PATH AND the
-   * key still says On air, and a shot that lost either of them would go to a
+   * key is still down, and a shot that lost either of them would go to a
    * reviewer reading as a design decision.
+   *
+   * A keyed radio is waited on through the announcement it makes rather than
+   * through the key's own word, because the key's word is FIXED: it reads
+   * "Talk" latched or not, on purpose, so it cannot be what tells the two
+   * states apart. `RadioPtt`'s polite region carries "Transmitting", and
+   * `textContent` reaches a visually hidden node.
    */
   settleOn?: string | readonly string[];
   /** What this scene is a picture of, drawn above the panes. Harness furniture,

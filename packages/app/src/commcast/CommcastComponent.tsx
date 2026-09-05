@@ -542,13 +542,41 @@ function ThreadView({
   const threadName = thread.with.map(nameFor).join(", ");
   return (
     <>
+      {/* The radio's controls sit at the far END of this row, opposite the
+          conversation's name: talk in the widget's top-right corner, where the
+          operator asked for it and where it is nowhere near the thing they type
+          into. It used to head the composer bar, which put a red latch a few
+          pixels from the send key and moved with every reflow of the row.
+
+          Order along the row is a reading, then two controls. The lamp is
+          leftmost because it is the only one of the three that GROWS (a name
+          per live loop): with it inside the pinned group, a second transmission
+          opening would shove talk and mute leftwards under the pointer, which is
+          the same defect as a label that changes width. */}
       <Commcast__Bar>
         <BackButton onClick={onBack} />
-        <Text size="sm" tone="default">
-          {threadName}
-        </Text>
+        <Commcast__BarTitle>{threadName}</Commcast__BarTitle>
         <Commcast__BarGap />
         {indicator}
+        <Commcast__BarRadio>
+          {/* Beside talk, because they are the two halves of one question about
+              this conversation: whether the operator is speaking on it and
+              whether they are hearing it. It is a decision about the LOOP rather
+              than about this view, so it persists and it holds wherever they
+              navigate to next. */}
+          <RadioMute
+            muted={radio.isMuted(thread.key)}
+            threadName={threadName}
+            onToggle={() =>
+              radio.setMuted(thread.key, !radio.isMuted(thread.key))
+            }
+          />
+          <RadioPtt
+            radio={radio}
+            targetName={threadName}
+            separationSeconds={separationSeconds}
+          />
+        </Commcast__BarRadio>
       </Commcast__Bar>
       {/* The composer lives IN the console rather than strapped under it, the
           same as the terminal widget: the frame holds the log, the outbound
@@ -606,9 +634,6 @@ function ThreadView({
               utNow={utNow}
               target={target}
               noPath={noPath}
-              radio={radio}
-              threadKey={thread.key}
-              threadName={threadName}
               separationSeconds={separationSeconds}
             />
           </>
@@ -918,9 +943,6 @@ function Composer({
   utNow,
   target,
   noPath,
-  radio,
-  threadKey,
-  threadName,
   separationSeconds,
 }: {
   log: CommcastLog;
@@ -935,18 +957,6 @@ function Composer({
    * it separately is two chances to disagree about it.
    */
   noPath: boolean;
-  /**
-   * The widget's radio, handed in rather than mounted here.
-   *
-   * It used to be built in this component, which made the listening half live
-   * and die with the open conversation: leaving for the inbox tore it down
-   * mid-sentence. The key and the mute are still drawn here, because this is
-   * where the operator talks; what they act on is one radio that outlives the
-   * view.
-   */
-  radio: RadioControl;
-  threadKey: string;
-  threadName: string;
   separationSeconds: number | null;
 }) {
   const [draft, setDraft] = useState("");
@@ -1000,25 +1010,11 @@ function Composer({
       onSend={submit}
       sendDisabled={!ready}
     >
-      {/* Before the input, so the operator's eye finds "talk" before "type".
-          A latching key rather than hold-to-talk: press-and-hold on a real
-          button has no keyboard equivalent, and this widget is operable from
-          the keyboard throughout. */}
-      <RadioPtt
-        radio={radio}
-        targetName={threadName}
-        separationSeconds={separationSeconds}
-      />
-      {/* Beside talk, because they are the two halves of one question about
-          this conversation: whether the operator is speaking on it and whether
-          they are hearing it. It is a decision about the LOOP rather than about
-          this view, so it persists and it holds wherever they navigate to
-          next. */}
-      <RadioMute
-        muted={radio.isMuted(threadKey)}
-        threadName={threadName}
-        onToggle={() => radio.setMuted(threadKey, !radio.isMuted(threadKey))}
-      />
+      {/* Nothing but the line, now. The key and the mute moved to the widget's
+          top-right corner: this row is where the operator types, and a
+          transmit latch a few pixels from the send key is a mispress waiting to
+          happen. They are still ABOVE the input in the reading order, so the
+          eye and the tab order both find "talk" before "type". */}
       <label htmlFor="commcast-draft">
         <VisuallyHidden>Message</VisuallyHidden>
       </label>
@@ -1114,6 +1110,40 @@ const Commcast__Bar = styled.div`
 /** Pushes what follows to the far end of a bar. */
 const Commcast__BarGap = styled.div`
   flex: 1 1 auto;
+`;
+
+/*
+ * The conversation's name, on ONE line whatever it is called.
+ *
+ * The only thing on this row that can be arbitrarily long, and therefore the
+ * only thing allowed to give way. Left to wrap it takes the bar to two lines
+ * and the tile changes height on the way into a conversation, which is exactly
+ * what the shared geometry above exists to prevent; the radio's controls sit at
+ * the far end of the same row and were what finally made it wrap.
+ */
+const Commcast__BarTitle = styled.span`
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+`;
+
+/*
+ * The key and the mute, pinned in the bar's corner.
+ *
+ * They keep their size while everything else on the row gives way, which is the
+ * whole point of putting them here: an operator reaching for the corner must
+ * find the same control in the same place whatever the conversation is called
+ * and however many loops are live.
+ */
+const Commcast__BarRadio = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex: 0 0 auto;
 `;
 
 const Commcast__Back = styled(GhostButton)`

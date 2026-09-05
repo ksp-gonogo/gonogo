@@ -542,7 +542,7 @@ const SCENES: Scene[] = [
     separation: PAIRS,
     roster: ROSTER,
     oneWaySeconds: LIGHT_TIME,
-    settleOn: ["On air", "Starting the sequence"],
+    settleOn: ["Transmitting", "Starting the sequence"],
     pxW: 520,
     pxH: 480,
   },
@@ -577,7 +577,7 @@ const SCENES: Scene[] = [
     // fall back on the separation resolves to no-path rather than to a zero.
     separation: [],
     roster: ROSTER,
-    settleOn: ["On air", "NO PATH", "Starting the sequence"],
+    settleOn: ["Transmitting", "NO PATH", "Starting the sequence"],
     pxW: 520,
     pxH: 480,
   },

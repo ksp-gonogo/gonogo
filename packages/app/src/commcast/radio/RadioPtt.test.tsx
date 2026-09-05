@@ -37,13 +37,41 @@ function control(over: Partial<RadioControl> = {}): RadioControl {
 describe("the push-to-talk key", () => {
   it("is a real button carrying its own pressed state", () => {
     const { rerender } = render(<RadioPtt radio={control()} />);
-    const key = screen.getByRole("button", { name: "Transmit" });
+    const key = screen.getByRole("button", { name: "Talk" });
     expect(key).toHaveAttribute("aria-pressed", "false");
 
     rerender(<RadioPtt radio={control({ transmitting: true })} />);
-    expect(
-      screen.getByRole("button", { name: "Stop transmitting" }),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Talk" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("keeps one name, and one width, through every state it has", () => {
+    /*
+     * The label used to read "Talk" and then "On air", which is two words of
+     * different width on a control an operator presses twice in a row: the
+     * second press lands where the first one was and the button has moved out
+     * from under the pointer. It is also a rename in the accessibility tree at
+     * the exact instant the state changes, which is what `aria-pressed` is for.
+     *
+     * Asserted over every state the key has rather than the two obvious ones,
+     * because the opening state is the one that got a third name.
+     */
+    const states: Partial<RadioControl>[] = [
+      {},
+      { transmitting: true },
+      { opening: true },
+      { fault: "MIC DENIED" },
+      { unavailable: "Not a secure origin" },
+    ];
+    for (const state of states) {
+      const { unmount } = render(<RadioPtt radio={control(state)} />);
+      const named = screen.getAllByRole("button", { name: "Talk" });
+      expect(named, JSON.stringify(state)).toHaveLength(1);
+      expect(named[0]).toHaveTextContent(/^Talk$/);
+      unmount();
+    }
   });
 
   it("latches from the keyboard alone", async () => {
@@ -56,7 +84,7 @@ describe("the push-to-talk key", () => {
     const user = userEvent.setup();
     render(<RadioPtt radio={control({ toggle })} />);
     await user.tab();
-    expect(screen.getByRole("button", { name: "Transmit" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Talk" })).toHaveFocus();
     await user.keyboard("[Space]");
     await user.keyboard("[Enter]");
     expect(toggle).toHaveBeenCalledTimes(2);
@@ -105,7 +133,7 @@ describe("the push-to-talk key", () => {
     render(
       <RadioPtt radio={control({ unavailable: "Not a secure origin" })} />,
     );
-    const key = screen.getByRole("button", { name: "Transmit" });
+    const key = screen.getByRole("button", { name: "Talk" });
     expect(key).toBeDisabled();
     // The slice-0 split, on screen: an insecure origin is something the
     // operator can act on, a missing codec is not, and they must not read the
@@ -119,7 +147,7 @@ describe("the push-to-talk key", () => {
     const { container } = render(
       <RadioPtt radio={control({ fault: "MIC DENIED" })} />,
     );
-    expect(screen.getByRole("button", { name: "Transmit" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Talk" })).toBeEnabled();
     expect(container).toHaveTextContent("MIC DENIED");
   });
 
