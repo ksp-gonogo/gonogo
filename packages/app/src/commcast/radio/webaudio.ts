@@ -152,9 +152,11 @@ export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
         chunk.copyTo(bytes);
         onChunk(bytes);
       },
-      // A failed encode ends the transmission rather than being swallowed: an
-      // operator talking into a dead encoder is the one state this must not
-      // present as normal.
+      /*
+       * A failed encode ends the transmission rather than being swallowed: an
+       * operator talking into a dead encoder is the one state this must not
+       * present as normal.
+       */
       error: () => stop(),
     });
     encoder.configure(RADIO_ENCODER_CONFIG);
@@ -257,9 +259,11 @@ export class WebCodecsRadioDecoder implements RadioDecoderLike {
     if (decoder.state !== "configured") return;
     decoder.decode(
       new EncodedAudioChunk({
-        // Every encoded Opus chunk is a key frame: there is no GOP and no
-        // inter-frame dependency, which is also why the buffer above evicts
-        // one chunk at a time rather than a whole run.
+        /*
+         * Every encoded Opus chunk is a key frame: there is no GOP and no
+         * inter-frame dependency, which is also why the buffer above evicts
+         * one chunk at a time rather than a whole run.
+         */
         type: "key",
         timestamp: timestampMicros,
         data: bytes,

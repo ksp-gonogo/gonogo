@@ -276,7 +276,6 @@ export const DOC_DEBT: Record<string, Partial<Record<Tier, number>>> = {
   "mod/sitrep-sdk/src/api/index.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/api/logger.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/flight/fixtureIO.ts": { T1a: 1 },
-  "mod/sitrep-sdk/src/media/frame-delay.ts": { T1a: 1 },
   "mod/sitrep-sdk/src/media/shared-delayed-streams.ts": { T1a: 2 },
   "mod/sitrep-sdk/src/spine/context.tsx": { T1a: 1 },
   "mod/sitrep-sdk/src/testing/install-real-test-host.ts": { T1a: 1 },

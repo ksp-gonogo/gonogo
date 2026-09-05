@@ -171,9 +171,11 @@ describe("radio playout, held by the light-time", () => {
   });
 
   it("freezes the separation for the whole transmission", () => {
-    // A published pair arriving mid-word must not move the chunks still to
-    // come: re-resolving per chunk jitters the playout across the 20 ms grid
-    // and, on a shrinking separation, reorders syllables inside a word.
+    /*
+     * A published pair arriving mid-word must not move the chunks still to
+     * come: re-resolving per chunk jitters the playout across the 20 ms grid
+     * and, on a shrinking separation, reorders syllables inside a word.
+     */
     const { clock, sink, session } = scene();
     const t = transmission();
     session.receive(start(t));

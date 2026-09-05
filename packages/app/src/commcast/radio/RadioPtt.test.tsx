@@ -38,9 +38,11 @@ describe("the push-to-talk key", () => {
   });
 
   it("latches from the keyboard alone", async () => {
-    // The reason it is a latch rather than hold-to-talk: press-and-hold has no
-    // keyboard equivalent, `keydown` autorepeats and a Space or Enter `keyup`
-    // is not guaranteed to pair with the press that started it.
+    /*
+     * The reason it is a latch rather than hold-to-talk: press-and-hold has no
+     * keyboard equivalent, `keydown` autorepeats and a Space or Enter `keyup`
+     * is not guaranteed to pair with the press that started it.
+     */
     const toggle = vi.fn();
     const user = userEvent.setup();
     render(<RadioPtt radio={control({ toggle })} />);

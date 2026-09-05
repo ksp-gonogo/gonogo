@@ -42,9 +42,9 @@ const incomingIsOnlyDocsBot = (branch) => {
   if (authors.length === 0 || authors.some((a) => a !== "github-actions[bot]"))
     return false;
   // THREE dots. `diff A..B` compares the two TREES, so once this branch has any
-  // commit of its own — which is the only situation in which we are pushing —
-  // it lists our files alongside the remote's and the every-file test below
-  // fails on our own work. `A...B` is the changes on the REMOTE side since the
+  // commit of its own (which is the only situation in which we are pushing) it
+  // lists our files alongside the remote's and the every-file test below fails
+  // on our own work. `A...B` is the changes on the REMOTE side since the
   // merge base, which is what "everything the remote has gained" means. The
   // two-dot form made this helper report false in every real push: measured at
   // 28 files against 3 on the run that found it, which is why five rejections

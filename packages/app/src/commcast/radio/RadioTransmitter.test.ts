@@ -101,10 +101,12 @@ describe("radio transmit, one keying", () => {
     expect(kinds).toEqual(["start", "chunk", "chunk", "end"]);
     const chunks = sent.filter((f) => f.kind === "chunk");
     expect(chunks.map((c) => c.seq)).toEqual([0, 1]);
-    // Each chunk carries the transmitter's OWN present at capture, not the
-    // frozen start plus an offset: a warp or a revert moves the clock, and a
-    // stream timed off a stale anchor would land at instants the far end has
-    // already passed.
+    /*
+     * Each chunk carries the transmitter's OWN present at capture, not the
+     * frozen start plus an offset: a warp or a revert moves the clock, and a
+     * stream timed off a stale anchor would land at instants the far end has
+     * already passed.
+     */
     expect(chunks.map((c) => c.ut)).toEqual([1000.02, 1000.04]);
     // Every frame carries the station key, because that is what the relay drops
     // its own echo on. A host and a station at one centre share a vantage and

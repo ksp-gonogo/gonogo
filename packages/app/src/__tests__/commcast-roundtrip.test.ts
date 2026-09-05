@@ -491,9 +491,11 @@ describe("Commcast radio, live across the mesh", () => {
 
     expect(heard.get("ksc")).toHaveLength(2);
     expect(heard.get("woomera")).toHaveLength(2);
-    // The transmitter never hears themselves, and the drop is on the STATION
-    // key: a host and a station at one centre share a vantage and must still
-    // hear each other.
+    /*
+     * The transmitter never hears themselves, and the drop is on the STATION
+     * key: a host and a station at one centre share a vantage and must still
+     * hear each other.
+     */
     expect(heard.get("ares")).toBeUndefined();
   });
 
