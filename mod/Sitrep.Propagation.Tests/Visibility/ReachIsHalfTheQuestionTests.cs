@@ -153,9 +153,10 @@ namespace Sitrep.Propagation.Tests.Visibility
 
         /// <summary>
         /// Reach is asked PER PAIR, so two stations on one body need not share
-        /// a limit: RSS/RealAntennas fly a dozen that do not share an antenna.
-        /// A craft one station cannot hear but another can is in contact, which
-        /// is the same "best station wins" the horizon term already applies.
+        /// a limit: a modded ground network runs a dozen that do not share an
+        /// antenna. A craft one station cannot hear but another can is in
+        /// contact, which is the same "best station wins" the horizon term
+        /// already applies.
         /// </summary>
         [Fact]
         public void EachStationCarriesItsOwnReachLimit()

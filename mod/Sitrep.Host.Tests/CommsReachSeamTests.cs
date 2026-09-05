@@ -28,8 +28,15 @@ namespace Sitrep.Host.Tests
     /// </summary>
     public class CommsReachSeamTests
     {
-        private const string CommNetBackendId = "commnet";
-        private const string RaBackendId = "realantennas";
+        private const string VanillaBackendId = "commnet";
+
+        /// <summary>
+        /// The higher-priority provider, deliberately named for its ROLE rather
+        /// than for any shipped mod: what this file tests is that election
+        /// precedence decides whose reach rule a consumer reads, and binding a
+        /// core test to one mod's provider id would make it about that mod.
+        /// </summary>
+        private const string HigherPriorityBackendId = "test-higher-priority";
 
         private sealed class StubBackend : ICommsBackend
         {
@@ -59,15 +66,15 @@ namespace Sitrep.Host.Tests
             Func<object?, object?, ICommsReachModel>? higherPriority = null)
         {
             var kernel = new Kernel();
-            CommsElection.RegisterCapability(kernel, _ => new StubBackend(CommNetBackendId, vanilla));
+            CommsElection.RegisterCapability(kernel, _ => new StubBackend(VanillaBackendId, vanilla));
             if (higherPriority != null)
             {
                 kernel.RegisterProvider(new ProviderRegistration
                 {
                     Capability = CommsElection.CapabilityId,
-                    Id = RaBackendId,
+                    Id = HigherPriorityBackendId,
                     Priority = 100.0,
-                    Factory = _ => new StubBackend(RaBackendId, higherPriority),
+                    Factory = _ => new StubBackend(HigherPriorityBackendId, higherPriority),
                 });
             }
             kernel.Resolve(new ResolveOptions { KernelVersion = "2.2.0" });
@@ -90,17 +97,20 @@ namespace Sitrep.Host.Tests
             Assert.Equal("commnet-range-curve", stockOnly.ModelId);
             Assert.Equal(1e9, stockOnly.MaxRangeMeters);
 
-            // The RA case, and the whole reason this is a seam question: stock's
-            // rule would answer ZERO here, because RA zeroes the power fields it
-            // reads. The elected backend's own answer replaces it entirely.
-            var raElected = CommsElection.ReachModel(
+            // The case that makes this a seam question at all: a
+            // network-replacing backend whose own rule says 40 Gm, over a
+            // vanilla rule that would answer ZERO for the same pair because the
+            // replacing mod zeroes the antenna power fields vanilla reads. The
+            // elected backend's answer replaces it entirely rather than being
+            // reconciled with it.
+            var replacementElected = CommsElection.ReachModel(
                 ResolvedKernel(
                     (_, _) => Fixed("commnet-range-curve", 0.0),
-                    (_, _) => Fixed("realantennas-link-budget", 4e10)),
+                    (_, _) => Fixed("budget-closes-in-db", 4e10)),
                 new object(),
                 new object());
-            Assert.Equal("realantennas-link-budget", raElected.ModelId);
-            Assert.Equal(4e10, raElected.MaxRangeMeters);
+            Assert.Equal("budget-closes-in-db", replacementElected.ModelId);
+            Assert.Equal(4e10, replacementElected.MaxRangeMeters);
         }
 
         /// <summary>
@@ -154,10 +164,6 @@ namespace Sitrep.Host.Tests
             Assert.Equal(1e6, CommsElection.ReachModel(kernel, new object(), near).MaxRangeMeters);
             Assert.Equal(1e12, CommsElection.ReachModel(kernel, new object(), far).MaxRangeMeters);
         }
-
-        // ---------------------------------------------------------------
-        // Absent / zero / held: the three that must stay distinguishable.
-        // ---------------------------------------------------------------
 
         [Fact]
         public void AbsentAndZeroAreDifferentAnswers()

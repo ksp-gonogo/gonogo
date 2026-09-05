@@ -1352,6 +1352,46 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/Sitrep.Contract/Comms.cs",
 
       /*
+       * -- THE SEAM'S OWN PROSE (2026-09-05), eight files, all text-only --
+       * Two comms questions came off core and onto ICommsBackend: REACH (how
+       * far a link carries) and the CONTROL-PATH TERMINUS behind
+       * comms.commandCentre. In both cases the reason the question cannot be
+       * answered by core is a fact about ONE shipped assembly, and naming it is
+       * what makes the claim checkable rather than a matter of taste. That is
+       * the same argument CommandCentreReach.cs above already carries, and it
+       * is load-bearing in exactly the same way: left generic, "core must not
+       * apply stock's range rule here" reads as caution and invites deletion,
+       * when in fact this mod zeroes both antenna power fields on every vessel
+       * (RACommNetVessel.UpdateComm) so stock's rule reports zero reach for the
+       * whole fleet on an install that has it.
+       *
+       * The contract files sit beside Comms.cs and CommsOcclusion.cs for the
+       * reason Comms.cs's own entry gives at length: comms is a two-provider
+       * channel set, so a contract file legitimately explains which backend
+       * sources what and names one to do it. CommsBackendBase.cs additionally
+       * records WHY it exists, which is that the two backends' duplicated
+       * copies had drifted into two different error contracts; that history is
+       * unstatable without naming both.
+       *
+       * The three test files are the RouteBackendDispatchTests.cs case, already
+       * above: a test that models a two-backend divergence and cannot name the
+       * backends is describing nothing.
+       *
+       * Text only, every one of them: no import, no type, no topic, and the
+       * Propagation layer was deliberately left mod-agnostic rather than
+       * added here (its two mentions were rewritten generic, since "a modded
+       * ground network runs many stations" is the fact it actually needed).
+       */
+      "mod/Sitrep.Contract/CommsReach.cs",
+      "mod/Sitrep.Contract/CommsBackendBase.cs",
+      "mod/Sitrep.Contract/CommsBackendViews.cs",
+      "mod/Gonogo.KSP/CommNetReach.cs",
+      "mod/Gonogo.KSP/CommandCentres/CommandCentreResolution.cs",
+      "mod/Gonogo.KSP.Tests/Comms/CommNetBackendSharedShapeTests.cs",
+      "mod/Gonogo.KSP.Tests/Comms/CommandCentreOffTheSeamTests.cs",
+      "mod/Sitrep.Host.Tests/CommsReachSeamTests.cs",
+
+      /*
        * sitrep-sdk contribution-slots.ts: the SDK-layer mirror of the
        * `comm-signal.hop-rates` slot names its Topic (`realantennas.hopRates`)
        * and the built-in RA contributor in prose. Contract/SDK layer, no

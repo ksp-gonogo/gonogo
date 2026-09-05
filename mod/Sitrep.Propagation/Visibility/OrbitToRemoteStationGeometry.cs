@@ -77,9 +77,9 @@ namespace Sitrep.Propagation.Visibility
         /// The greatest separation at which the elected comms backend carries
         /// the link to EACH station, from its own <see cref="ICommsReachModel"/>,
         /// index-aligned with <paramref name="stations"/>. Reach is per pair
-        /// rather than per install: RSS/RealAntennas fly a dozen ground stations
-        /// that do not share an antenna, so one number for all of them would
-        /// either shorten the good stations or flatter the weak ones.
+        /// rather than per install: a heavily-modded ground network runs a dozen
+        /// stations that do not share an antenna, so one number for all of them
+        /// would either shorten the good stations or flatter the weak ones.
         ///
         /// <para>A null ENTRY applies no reach term to that station, and so does
         /// omitting the argument entirely: the prediction is then geometry
