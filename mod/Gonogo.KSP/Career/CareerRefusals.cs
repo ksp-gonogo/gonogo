@@ -181,6 +181,43 @@ namespace Gonogo.KSP.Career
         }
 
         /// <summary>
+        /// Which refusal an unresolved facility earns, or null to proceed.
+        ///
+        /// <para>Two different facts were reaching an operator as one bare
+        /// <see cref="CommandErrorCode.NotFound"/>. A facility id the game does
+        /// not know IS not-found. A facility the game knows perfectly well but
+        /// has not instantiated is a SCENE fact: tiers exist at the space centre
+        /// only, so away from it every id resolves to a proto with no live ref,
+        /// and "not found" is a claim about the facility that is simply
+        /// untrue.</para>
+        ///
+        /// <para>The second case is transient and the operator can act on it, so
+        /// it earns <see cref="CommandErrorCode.WrongScene"/> and a detail naming
+        /// the scene they are in. Every other refusal on this path already
+        /// carries its reason; this one did not.</para>
+        /// </summary>
+        public static CommandResult? FacilityResolutionRefusal(
+            bool facilityKnown,
+            bool hasLiveInstance,
+            string facilityName,
+            string? sceneName)
+        {
+            if (!facilityKnown)
+            {
+                return CommandResult.Fail(CommandErrorCode.NotFound);
+            }
+            if (hasLiveInstance)
+            {
+                return null;
+            }
+            return CommandResult.Fail(
+                CommandErrorCode.WrongScene,
+                string.IsNullOrEmpty(sceneName)
+                    ? facilityName + " can only be upgraded at the space centre."
+                    : facilityName + " can only be upgraded at the space centre, and the game is in " + sceneName + ".");
+        }
+
+        /// <summary>
         /// A price against the balance that has to cover it.
         ///
         /// <para><see cref="LimitBreach.Limit"/> is the balance and

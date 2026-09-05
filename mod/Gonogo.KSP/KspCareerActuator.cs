@@ -416,10 +416,17 @@ namespace Gonogo.KSP
             }
 
             var sanitizedId = ScenarioUpgradeableFacilities.SlashSanitize(facilityId);
-            if (!ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto) ||
-                proto?.facilityRefs == null || proto.facilityRefs.Count == 0 || proto.facilityRefs[0] == null)
+            var known = ScenarioUpgradeableFacilities.protoUpgradeables.TryGetValue(sanitizedId, out var proto)
+                && proto != null;
+            var hasLiveInstance = known
+                && proto.facilityRefs != null
+                && proto.facilityRefs.Count > 0
+                && proto.facilityRefs[0] != null;
+            var unresolved = CareerRefusals.FacilityResolutionRefusal(
+                known, hasLiveInstance, FacilityDisplayName(facilityId), HighLogic.LoadedScene.ToString());
+            if (unresolved != null)
             {
-                return CommandResult.Fail(CommandErrorCode.NotFound);
+                return unresolved;
             }
 
             var live = proto.facilityRefs[0];

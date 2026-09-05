@@ -86,5 +86,60 @@ namespace Gonogo.KSP.Tests.Career
             Assert.Equal(189412, breach.Limit);
             Assert.Equal(Units.Funds, breach.Unit);
         }
-    }
+    
+        /// <summary>
+        /// An id the game does not know is genuinely not found, and says so
+        /// with no scene talk attached.
+        /// </summary>
+        [Fact]
+        public void AnUnknownFacilityIsNotFound()
+        {
+            var refusal = CareerRefusals.FacilityResolutionRefusal(
+                facilityKnown: false, hasLiveInstance: false, facilityName: "Nonesuch", sceneName: "FLIGHT");
+
+            Assert.NotNull(refusal);
+            Assert.Equal(CommandErrorCode.NotFound, refusal!.ErrorCode);
+            Assert.Null(refusal.Detail);
+        }
+
+        /// <summary>
+        /// A facility the game KNOWS but has not instantiated is a scene fact,
+        /// never a missing facility. This is what an operator hit in flight: the
+        /// launch pad plainly exists and the refusal said it could not be found.
+        /// </summary>
+        [Fact]
+        public void AKnownFacilityWithNoLiveInstanceIsAWrongSceneRefusalThatNamesTheScene()
+        {
+            var refusal = CareerRefusals.FacilityResolutionRefusal(
+                facilityKnown: true, hasLiveInstance: false, facilityName: "Launch Pad", sceneName: "FLIGHT");
+
+            Assert.NotNull(refusal);
+            Assert.Equal(CommandErrorCode.WrongScene, refusal!.ErrorCode);
+            Assert.Contains("Launch Pad", refusal.Detail);
+            Assert.Contains("space centre", refusal.Detail);
+            Assert.Contains("FLIGHT", refusal.Detail);
+        }
+
+        /// <summary>
+        /// An unnamed scene still earns the actionable half of the sentence. The
+        /// scene is the decoration; where the operator has to go is the point.
+        /// </summary>
+        [Fact]
+        public void AWrongSceneRefusalStillSaysWhereToGoWhenTheSceneIsUnnamed()
+        {
+            var refusal = CareerRefusals.FacilityResolutionRefusal(
+                facilityKnown: true, hasLiveInstance: false, facilityName: "Launch Pad", sceneName: null);
+
+            Assert.Equal(CommandErrorCode.WrongScene, refusal!.ErrorCode);
+            Assert.Contains("space centre", refusal.Detail);
+        }
+
+        /// <summary>A resolved facility is not refused at all.</summary>
+        [Fact]
+        public void AResolvedFacilityProceeds()
+        {
+            Assert.Null(CareerRefusals.FacilityResolutionRefusal(
+                facilityKnown: true, hasLiveInstance: true, facilityName: "Launch Pad", sceneName: "SPACECENTER"));
+        }
+}
 }
