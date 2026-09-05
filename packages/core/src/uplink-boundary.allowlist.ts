@@ -1225,6 +1225,22 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/GonogoDevTools/GonogoDevAntenna.cs",
       /*
+       * GonogoDevAntennaTarget.cs is the same shape and is here for the same
+       * reason. It points one antenna at a named place and then reads the
+       * BURST-JOB MIRROR the link solver actually consumes, because RealAntennas
+       * refreshes an antenna's pointing direction on every rebuild but its
+       * `isTracking` flag only when the precompute is re-initialised: a dish
+       * with no target counts as perfectly aimed, so a target that does not
+       * reach the mirror leaves the property, the part menu and the map cone all
+       * saying "aimed" while the solver goes on charging no pointing loss.
+       * Measured live on 2026-09-06, that window stays open indefinitely without
+       * an explicit invalidate. Nothing but a running game can show it, and
+       * nothing inside the Uplink could read the mirror without shipping the
+       * reflection in a released assembly. DEV-ONLY, never shipped, reflection
+       * only, no compile-time reference.
+       */
+      "mod/GonogoDevTools/GonogoDevAntennaTarget.cs",
+      /*
        * AntennaProbeVerdictsTests.cs covers that same dev tool's report of
        * whether its boost is still standing: the boost is a set of KSPField
        * writes on a live module, so a vessel reload silently reverts it, and a
