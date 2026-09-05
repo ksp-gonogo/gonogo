@@ -32,9 +32,16 @@ export interface RadioCapture {
  * Rejects rather than resolving on a refused microphone or an absent codec: the
  * transmitter turns that into a stated reason on the bar, which is the whole
  * value of the slice-0 probe's `insecure-context` / `no-codec` split.
+ *
+ * `amplitude` is how loud that chunk was, 0..1, measured off the PCM the
+ * encoder was already handed (`chunkAmplitude`). It rides alongside the bytes
+ * rather than on the wire, and is LOCAL ONLY: it is the operator's own voice,
+ * drawn on their own rail. Publishing it so a listener could draw somebody
+ * else's transmission crossing the gap would be a contract change, and is
+ * deliberately not made.
  */
 export type StartRadioCapture = (
-  onChunk: (bytes: Uint8Array) => void,
+  onChunk: (bytes: Uint8Array, amplitude: number) => void,
 ) => Promise<RadioCapture>;
 
 /** What the operator is transmitting, and to whom, decided once at key-down. */
@@ -61,16 +68,42 @@ export interface RadioTransmitState {
   /** Chunks sent in the current or most recent transmission. */
   chunks: number;
   /**
+   * How loud each of the last {@link AMPLITUDE_HISTORY} chunks was, 0..1,
+   * NEWEST LAST. What the delay rail draws as the waveform ribbon of this
+   * transmission crossing the gap.
+   *
+   * Cleared at key-down, so it never carries the previous transmission's tail
+   * into the next one, and bounded, because only what is still in flight can
+   * be drawn: at 20 ms a chunk the ring covers a couple of seconds of
+   * separation, and beyond that the oldest samples have arrived and left the
+   * picture anyway.
+   *
+   * Optional, so a state built by something other than the transmitter (a
+   * hook's idle constant, a test fixture) is not obliged to invent a waveform
+   * it never measured. The transmitter itself always carries one.
+   */
+  amplitudes?: readonly number[];
+  /**
    * Why the last attempt to key failed, in the operator's terms, or `null`.
    * A stated fact beats a control that silently does nothing.
    */
   fault: string | null;
 }
 
+/**
+ * How many chunk amplitudes the ribbon keeps. 128 chunks at 20 ms is 2.56
+ * seconds, comfortably past the separation any near-Kerbin link imposes, and a
+ * flat cap on what an operator leaning on the key can accumulate.
+ */
+export const AMPLITUDE_HISTORY = 128;
+
+const NO_AMPLITUDES: readonly number[] = [];
+
 const IDLE: RadioTransmitState = {
   live: false,
   opening: false,
   chunks: 0,
+  amplitudes: NO_AMPLITUDES,
   fault: null,
 };
 
@@ -87,6 +120,8 @@ export class RadioTransmitter {
   private capture: RadioCapture | null = null;
   private current: RadioTransmission | null = null;
   private seq = 0;
+  /** This transmission's per-chunk loudness, newest last, capped at `AMPLITUDE_HISTORY`. */
+  private amplitudes: number[] = [];
   /** Bumped on every key-down and key-up, so a capture that finishes opening
    *  after the operator let go is stopped instead of going live behind them. */
   private generation = 0;
@@ -113,7 +148,14 @@ export class RadioTransmitter {
       return;
     }
     const generation = ++this.generation;
-    this.set({ live: false, opening: true, chunks: 0, fault: null });
+    this.amplitudes = [];
+    this.set({
+      live: false,
+      opening: true,
+      chunks: 0,
+      amplitudes: NO_AMPLITUDES,
+      fault: null,
+    });
 
     const transmission: RadioTransmission = {
       id: safeRandomUuid(),
@@ -128,8 +170,8 @@ export class RadioTransmitter {
 
     let capture: RadioCapture;
     try {
-      capture = await this.opts.startCapture((bytes) =>
-        this.emitChunk(generation, bytes),
+      capture = await this.opts.startCapture((bytes, amplitude) =>
+        this.emitChunk(generation, bytes, amplitude),
       );
     } catch (err) {
       if (generation !== this.generation) return;
@@ -151,7 +193,13 @@ export class RadioTransmitter {
       authorStationKey: transmission.authorStationKey,
       transmission,
     });
-    this.set({ live: true, opening: false, chunks: 0, fault: null });
+    this.set({
+      live: true,
+      opening: false,
+      chunks: 0,
+      amplitudes: NO_AMPLITUDES,
+      fault: null,
+    });
   }
 
   /** Unkey. Safe at any point, including while the microphone is still opening. */
@@ -177,7 +225,11 @@ export class RadioTransmitter {
     this.listeners.clear();
   }
 
-  private emitChunk(generation: number, bytes: Uint8Array): void {
+  private emitChunk(
+    generation: number,
+    bytes: Uint8Array,
+    amplitude: number,
+  ): void {
     if (generation !== this.generation) return;
     const transmission = this.current;
     if (!transmission) return;
@@ -195,7 +247,19 @@ export class RadioTransmitter {
       seq: this.seq++,
       bytes,
     });
-    this.set({ ...this.state, chunks: this.seq });
+    /*
+     * A fresh array per chunk rather than a mutated one: the state is read
+     * through `useSyncExternalStore`, which compares snapshots by identity, so
+     * a ring mutated in place would never re-render the ribbon drawing it.
+     */
+    this.amplitudes = [...this.amplitudes, clampAmplitude(amplitude)].slice(
+      -AMPLITUDE_HISTORY,
+    );
+    this.set({
+      ...this.state,
+      chunks: this.seq,
+      amplitudes: this.amplitudes,
+    });
   }
 
   private send(frame: RadioFrame): void {
@@ -207,6 +271,16 @@ export class RadioTransmitter {
     this.state = next;
     for (const listener of this.listeners) listener(next);
   }
+}
+
+/**
+ * A capture reporting nonsense gets a flat zero rather than a ribbon of NaN
+ * geometry. The transmitter cannot fix a broken capture and does not try; it
+ * refuses to pass the breakage on to whatever is drawing.
+ */
+function clampAmplitude(a: number): number {
+  if (!Number.isFinite(a)) return 0;
+  return a < 0 ? 0 : a > 1 ? 1 : a;
 }
 
 /**

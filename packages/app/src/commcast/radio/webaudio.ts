@@ -4,6 +4,7 @@ import {
   RADIO_ENCODER_CONFIG,
   radioSupportStatus,
 } from "@ksp-gonogo/sitrep-sdk/media";
+import { chunkAmplitude } from "./amplitude";
 import type { RadioAudioSink, RadioDecoderLike } from "./RadioSession";
 import type { RadioCapture, StartRadioCapture } from "./RadioTransmitter";
 
@@ -144,13 +145,30 @@ export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
     void ctx.close();
   };
 
+  /*
+   * One amplitude per chunk in, read off the SAME buffer the encoder is handed
+   * and drained as its output comes back. Opus at a fixed frame size is one
+   * encoded chunk per input frame, in order, so the queue pairs a chunk with
+   * its own loudness rather than a neighbour's.
+   *
+   * Capped, because an encoder that stops emitting (the `error` path below
+   * ends the transmission, but not before some frames are in it) must not grow
+   * this without bound; and drained with a fallback, so a chunk arriving with
+   * nothing queued repeats the last reading rather than reporting silence that
+   * was never measured.
+   */
+  const pendingAmplitudes: number[] = [];
+  const MAX_PENDING = 50;
+  let lastAmplitude = 0;
+
   try {
     await addWorklet(ctx, CAPTURE_WORKLET);
     const encoder = new AudioEncoder({
       output: (chunk) => {
         const bytes = new Uint8Array(chunk.byteLength);
         chunk.copyTo(bytes);
-        onChunk(bytes);
+        lastAmplitude = pendingAmplitudes.shift() ?? lastAmplitude;
+        onChunk(bytes, lastAmplitude);
       },
       /*
        * A failed encode ends the transmission rather than being swallowed: an
@@ -170,6 +188,10 @@ export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
     let timestamp = 0;
     node.port.onmessage = (event: MessageEvent<Float32Array<ArrayBuffer>>) => {
       if (stopped || encoder.state !== "configured") return;
+      // Before the encode, because `AudioData` takes the buffer from here on
+      // and this is the one moment the raw PCM is ours to read.
+      if (pendingAmplitudes.length >= MAX_PENDING) pendingAmplitudes.shift();
+      pendingAmplitudes.push(chunkAmplitude(event.data));
       const data = new AudioData({
         format: "f32-planar",
         sampleRate: RADIO_ENCODER_CONFIG.sampleRate,

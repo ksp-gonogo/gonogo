@@ -9,7 +9,7 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RadioCapture, StartRadioCapture } from "./RadioTransmitter";
-import { RadioTransmitter } from "./RadioTransmitter";
+import { AMPLITUDE_HISTORY, RadioTransmitter } from "./RadioTransmitter";
 import type { RadioFrame } from "./wire";
 
 const ARES = "vessel:ares";
@@ -31,7 +31,7 @@ afterEach(() => {
 /** A microphone under the test's control: it opens when told and speaks when
  *  told, so nothing here depends on a device or a timer. */
 function fakeMic() {
-  let emit: ((bytes: Uint8Array) => void) | null = null;
+  let emit: ((bytes: Uint8Array, amplitude: number) => void) | null = null;
   let stops = 0;
   let openings = 0;
   let resolve: ((capture: RadioCapture) => void) | null = null;
@@ -54,7 +54,8 @@ function fakeMic() {
     start,
     open: () => resolve?.(capture),
     fail: (err: unknown) => reject?.(err),
-    speak: (bytes = new Uint8Array([1, 2, 3])) => emit?.(bytes),
+    speak: (bytes = new Uint8Array([1, 2, 3]), amplitude = 0.5) =>
+      emit?.(bytes, amplitude),
     get stops() {
       return stops;
     },
@@ -192,6 +193,77 @@ describe("radio transmit, when it cannot", () => {
     await keying;
     await transmitter.keyDown(JEB);
     expect(mic.openings).toBe(1);
+  });
+});
+
+/**
+ * The waveform the delay rail draws. It rides alongside the bytes and never
+ * touches the wire: it is the operator's own voice, on the operator's own rail.
+ */
+describe("radio transmit, the waveform it keeps for its own rail", () => {
+  it("keeps one reading per chunk, newest last", async () => {
+    const { mic, transmitter } = scene();
+    const keying = transmitter.keyDown(JEB);
+    mic.open();
+    await keying;
+    mic.speak(new Uint8Array([1]), 0.2);
+    mic.speak(new Uint8Array([2]), 0.9);
+    expect(transmitter.snapshot().amplitudes).toEqual([0.2, 0.9]);
+  });
+
+  it("publishes a fresh array, so a snapshot reader can see it move", async () => {
+    const { mic, transmitter } = scene();
+    const keying = transmitter.keyDown(JEB);
+    mic.open();
+    await keying;
+    mic.speak(new Uint8Array([1]), 0.2);
+    const first = transmitter.snapshot().amplitudes;
+    mic.speak(new Uint8Array([2]), 0.4);
+    expect(transmitter.snapshot().amplitudes).not.toBe(first);
+  });
+
+  it("puts nothing on the wire", async () => {
+    const { sent, mic, transmitter } = scene();
+    const keying = transmitter.keyDown(JEB);
+    mic.open();
+    await keying;
+    mic.speak(new Uint8Array([1]), 0.7);
+    expect(JSON.stringify(sent)).not.toContain("amplitude");
+  });
+
+  it("starts the next transmission empty rather than carrying the last one's tail", async () => {
+    const { mic, transmitter } = scene();
+    const first = transmitter.keyDown(JEB);
+    mic.open();
+    await first;
+    mic.speak(new Uint8Array([1]), 0.8);
+    transmitter.keyUp();
+
+    const second = transmitter.keyDown(JEB);
+    mic.open();
+    await second;
+    expect(transmitter.snapshot().amplitudes).toEqual([]);
+  });
+
+  it("stays bounded however long the operator leans on the key", async () => {
+    const { mic, transmitter } = scene();
+    const keying = transmitter.keyDown(JEB);
+    mic.open();
+    await keying;
+    for (let i = 0; i < AMPLITUDE_HISTORY * 2; i++) {
+      mic.speak(new Uint8Array([1]), 0.5);
+    }
+    expect(transmitter.snapshot().amplitudes).toHaveLength(AMPLITUDE_HISTORY);
+  });
+
+  it("refuses to pass on a broken reading as geometry", async () => {
+    const { mic, transmitter } = scene();
+    const keying = transmitter.keyDown(JEB);
+    mic.open();
+    await keying;
+    mic.speak(new Uint8Array([1]), Number.NaN);
+    mic.speak(new Uint8Array([2]), 4);
+    expect(transmitter.snapshot().amplitudes).toEqual([0, 1]);
   });
 });
 

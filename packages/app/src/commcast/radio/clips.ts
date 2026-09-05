@@ -28,6 +28,7 @@ import {
   RADIO_CHUNK_FRAMES,
   RADIO_ENCODER_CONFIG,
 } from "@ksp-gonogo/sitrep-sdk/media";
+import { chunkAmplitude } from "./amplitude";
 import type { RadioBackend } from "./backend";
 import type { RadioAudioSink, RadioDecoderLike } from "./RadioSession";
 import type { RadioCapture, StartRadioCapture } from "./RadioTransmitter";
@@ -213,7 +214,7 @@ export interface ClipMic {
  * waits on a timer, which is what keeps both of them deterministic.
  */
 export function clipMic(clip: RadioClip): ClipMic {
-  let emit: ((bytes: Uint8Array) => void) | null = null;
+  let emit: ((bytes: Uint8Array, amplitude: number) => void) | null = null;
   let spoken = 0;
   let openings = 0;
   let stops = 0;
@@ -231,7 +232,17 @@ export function clipMic(clip: RadioClip): ClipMic {
     },
     speak() {
       if (emit === null || spoken >= clip.chunks.length) return false;
-      emit(clipBytes(clip, spoken));
+      /*
+       * Measured off the clip's own PCM, the same loop the real capture runs
+       * over the buffer on its way to the encoder. A constant here would make
+       * every clip a flat ribbon and hide exactly the thing a waveform is
+       * for: the clip's raised-cosine envelope is what gives it a beginning,
+       * a middle and an end.
+       */
+      emit(
+        clipBytes(clip, spoken),
+        chunkAmplitude(clipSamples({ ...clip.chunks[spoken], index: spoken })),
+      );
       spoken += 1;
       return true;
     },
