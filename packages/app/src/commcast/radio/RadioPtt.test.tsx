@@ -17,10 +17,17 @@ function control(over: Partial<RadioControl> = {}): RadioControl {
   return {
     transmitting: false,
     opening: false,
-    reception: { playing: null, backlogSeconds: 0, droppedChunks: 0 },
+    reception: {
+      playing: null,
+      live: [],
+      backlogSeconds: 0,
+      droppedChunks: 0,
+    },
     unavailable: null,
     fault: null,
     toggle: () => {},
+    isMuted: () => false,
+    setMuted: () => {},
     ...over,
   };
 }
@@ -58,7 +65,14 @@ describe("the push-to-talk key", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Transmitting");
   });
 
-  it("announces who is being played, at the instant they are heard", () => {
+  it("leaves reception to the transmission light, and announces none of it", () => {
+    /*
+     * The key is about this operator's own microphone. What is ARRIVING is
+     * announced by the light, which is drawn in every view rather than only
+     * inside a conversation: audio follows an explicit monitor, so a
+     * transmission can land on a loop this composer is not for, and a second
+     * region here would miss those and double-announce the rest.
+     */
     render(
       <RadioPtt
         radio={control({
@@ -68,13 +82,14 @@ describe("the push-to-talk key", () => {
               from: "vessel:ares",
               authorName: "Jeb",
             },
+            live: [],
             backlogSeconds: 0,
             droppedChunks: 0,
           },
         })}
       />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Receiving from Jeb");
+    expect(screen.getByRole("status")).toHaveTextContent("");
   });
 
   it("says nothing at all when nothing is happening", () => {

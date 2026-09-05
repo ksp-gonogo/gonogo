@@ -388,6 +388,7 @@ export {
   JoystickIcon,
   LayersIcon,
   MicroscopeIcon,
+  MutedIcon,
   PauseIcon,
   PencilIcon,
   PlayIcon,
@@ -397,6 +398,7 @@ export {
   SatelliteIcon,
   SendIcon,
   SettingsIcon,
+  SpeakerIcon,
   StarIcon,
   StopIcon,
 } from "./Icons";

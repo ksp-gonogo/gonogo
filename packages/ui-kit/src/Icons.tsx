@@ -35,6 +35,8 @@ import {
   Square,
   Star,
   Undo2,
+  Volume2,
+  VolumeX,
   X,
 } from "lucide-react";
 import { forwardRef } from "react";
@@ -63,6 +65,9 @@ export const JoystickIcon = makeIcon(Joystick);
 export const HistoryIcon = makeIcon(History);
 export const InfoIcon = makeIcon(Info);
 export const BroadcastIcon = makeIcon(Radio);
+/** Audible. Pair with `MutedIcon`, which is the same speaker crossed out. */
+export const SpeakerIcon = makeIcon(Volume2);
+export const MutedIcon = makeIcon(VolumeX);
 export const BellIcon = makeIcon(Bell);
 export const LayersIcon = makeIcon(Layers);
 export const SettingsIcon = makeIcon(Settings);

@@ -9,6 +9,7 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SeparationMatrix, Vantage } from "../reveal";
+import { threadKeyOf } from "../threads";
 import type { RadioDecoderLike } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
 import type { RadioFrame, RadioTransmission } from "./wire";
@@ -249,6 +250,7 @@ describe("radio playout, a cut", () => {
     expect(sink.decoded).toHaveLength(0);
     expect(session.snapshot()).toEqual({
       playing: null,
+      live: [],
       backlogSeconds: 0,
       droppedChunks: 0,
     });
@@ -341,6 +343,168 @@ describe("radio playout, what the operator is told", () => {
     expect(sink.decoded).toHaveLength(2);
     expect(sink.decoded.at(-1)?.bytes[0]).toBe(3);
     expect(session.snapshot().droppedChunks).toBe(2);
+  });
+});
+
+describe("radio monitoring, a per-conversation mute", () => {
+  const ARES_THREAD = threadKeyOf([ARES]);
+
+  it("places a transmission in the conversation its author's TEXT lands in", () => {
+    // The light has to name a thread the inbox holds, or the operator cannot
+    // act on it: the row they would open and the row they would mute are keyed
+    // by the same function the log keys its conversations by.
+    const { clock, session } = scene();
+    const t = transmission();
+    session.receive(start(t));
+    session.receive(chunk(t, 0, 1000));
+    clock.set(1000 + LIGHT_TIME);
+    session.pump(100);
+    expect(session.snapshot().live).toEqual([
+      {
+        transmissionId: "t1",
+        threadKey: ARES_THREAD,
+        with: [ARES],
+        from: ARES,
+        authorName: "Jeb",
+        muted: false,
+      },
+    ]);
+  });
+
+  it("plays a conversation the operator is not looking at", () => {
+    /*
+     * The whole decision. Audio follows an explicit monitor, never which thread
+     * happens to be on screen, so the session is told about mutes and about
+     * nothing else: there is no "open thread" for it to have an opinion about.
+     */
+    const { clock, sink, session } = scene();
+    const woomera = transmission({
+      id: "t2",
+      from: "ground:woomera",
+      authorName: "Woomera Range",
+      separationSeconds: 3,
+    });
+    session.receive(start(woomera));
+    session.receive(chunk(woomera, 0, 1000));
+    clock.set(1003);
+    session.pump(100);
+    expect(sink.decoded).toHaveLength(1);
+  });
+
+  it("silences a muted conversation and still shows it talking", () => {
+    // Mute is the tuning metaphor, not a cut. The operator chose not to HEAR
+    // this loop; they did not ask to stop knowing that it is busy.
+    const { clock, sink, session } = scene();
+    session.setMuted(new Set([ARES_THREAD]));
+    const t = transmission();
+    session.receive(start(t));
+    session.receive(chunk(t, 0, 1000));
+    clock.set(1000 + LIGHT_TIME);
+    session.pump(100);
+
+    expect(sink.decoded).toHaveLength(0);
+    expect(session.snapshot().playing).toBeNull();
+    expect(session.snapshot().live).toEqual([
+      expect.objectContaining({ transmissionId: "t1", muted: true }),
+    ]);
+  });
+
+  it("lights nothing before the crossing is over, muted or not", () => {
+    /*
+     * The one way a light could become a faster-than-light channel: reading it
+     * off the ENVELOPE, which arrives at the speed of the internet. It is read
+     * off the audio instead, so it lights when the words are heard and not one
+     * second before.
+     */
+    const { clock, session } = scene();
+    session.setMuted(new Set([ARES_THREAD]));
+    const t = transmission();
+    session.receive(start(t));
+    session.receive(chunk(t, 0, 1000));
+    expect(session.snapshot().live).toEqual([]);
+
+    clock.set(1000 + LIGHT_TIME - 0.001);
+    session.pump(100);
+    expect(session.snapshot().live).toEqual([]);
+  });
+
+  it("mutes and unmutes mid-transmission, on the chunk after the decision", () => {
+    // A persistent operator decision that takes effect where they made it, not
+    // at the next keying: a loop muted mid-sentence goes quiet mid-sentence.
+    const { clock, sink, session } = scene();
+    const t = transmission();
+    session.receive(start(t));
+    for (let seq = 0; seq < 3; seq++) {
+      session.receive(chunk(t, seq, 1000 + seq * CHUNK));
+    }
+    clock.set(1000 + LIGHT_TIME + 3 * CHUNK);
+    session.pump(100);
+    expect(sink.decoded).toHaveLength(1);
+
+    session.setMuted(new Set([ARES_THREAD]));
+    session.pump(100 + CHUNK);
+    expect(sink.decoded).toHaveLength(1);
+
+    session.setMuted(new Set());
+    session.pump(100 + 2 * CHUNK);
+    expect(sink.decoded).toHaveLength(2);
+    // A fresh stream, because the decoder was not fed the chunk in between and
+    // would otherwise be timing a stream that silently lost its middle.
+    expect(sink.resets).toBe(2);
+  });
+
+  it("mutes the speaker and nothing else: the timing and the drops are untouched", () => {
+    /*
+     * Mute belongs at the SPEAKER, after every delay decision. Dropping the
+     * chunks on arrival instead would make an unmute mid-transmission start
+     * from wherever the buffer happened to be, and would count the operator's
+     * own choice as lost audio.
+     */
+    const heard = scene();
+    const silent = scene();
+    silent.session.setMuted(new Set([ARES_THREAD]));
+    for (const { clock, session } of [heard, silent]) {
+      const t = transmission();
+      session.receive(start(t));
+      for (let seq = 0; seq < 5; seq++) {
+        session.receive(chunk(t, seq, 1000 + seq * CHUNK));
+      }
+      clock.set(1000 + LIGHT_TIME + 5 * CHUNK);
+      session.pump(100);
+    }
+    expect(silent.session.snapshot().backlogSeconds).toBe(
+      heard.session.snapshot().backlogSeconds,
+    );
+    expect(silent.session.snapshot().droppedChunks).toBe(
+      heard.session.snapshot().droppedChunks,
+    );
+  });
+
+  it("mutes one conversation without touching another", () => {
+    const { clock, sink, session } = scene();
+    session.setMuted(new Set([ARES_THREAD]));
+    const ares = transmission();
+    const woomera = transmission({
+      id: "t2",
+      from: "ground:woomera",
+      authorName: "Woomera Range",
+    });
+    session.receive(start(ares));
+    session.receive(chunk(ares, 0, 1000));
+    session.receive(start(woomera));
+    session.receive(chunk(woomera, 0, 1000));
+    clock.set(1000 + LIGHT_TIME);
+    session.pump(100);
+    session.pump(101);
+
+    expect(sink.decoded).toHaveLength(1);
+    expect(session.snapshot().playing?.authorName).toBe("Woomera Range");
+    expect(session.snapshot().live.map((l) => [l.authorName, l.muted])).toEqual(
+      [
+        ["Jeb", true],
+        ["Woomera Range", false],
+      ],
+    );
   });
 });
 

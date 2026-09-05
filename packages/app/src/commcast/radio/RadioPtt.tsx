@@ -47,19 +47,14 @@ export function RadioPtt({ radio }: { radio: RadioControl }) {
         {radio.transmitting ? "On air" : "Talk"}
       </ToggleButton>
       {/*
-        One region, whose text changes. Both states it reports are at the
-        operator's OWN present: transmitting is now, and a received transmission
-        is announced at the instant its audio is played here, which is already
-        one light-time after it was spoken. Nothing here can say that somebody
-        is speaking who cannot yet be heard, which would be the
-        faster-than-light channel the delay model exists to avoid.
+        This operator's OWN key, and only that. Reception is announced by the
+        transmission light instead, which is drawn in every view rather than
+        only inside a conversation: audio follows an explicit monitor, so what
+        arrives may be on a loop this composer is not for, and announcing it
+        here would both miss those and say it twice for the ones it caught.
       */}
       <VisuallyHidden role="status" aria-live="polite">
-        {radio.transmitting
-          ? "Transmitting"
-          : radio.reception.playing
-            ? `Receiving from ${radio.reception.playing.authorName}`
-            : ""}
+        {radio.transmitting ? "Transmitting" : ""}
       </VisuallyHidden>
       {blocked !== null && (
         <Text id={reasonId} size="xs" tone="faint">

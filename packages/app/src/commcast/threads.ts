@@ -50,8 +50,25 @@ export function counterpartiesOf(
   me: Vantage,
 ): readonly RecipientId[] {
   if (entry.out) return entry.msg.to;
-  const mine = me.vantageId;
-  return [entry.msg.from, ...entry.msg.to.filter((id) => id !== mine)];
+  return inboundCounterparties(entry.msg.from, entry.msg.to, me.vantageId);
+}
+
+/**
+ * Who a thing ARRIVING here is a conversation with: whoever sent it, plus
+ * everyone else it was addressed to.
+ *
+ * Split out of `counterpartiesOf` because the radio has the same question and
+ * no `CommcastEntry` to ask it with. A live transmission has to land in the
+ * conversation its speaker's TEXT lands in, or the indicator light would name a
+ * thread the inbox does not hold, and the mute the operator set on that
+ * conversation would not reach the voice coming in on it.
+ */
+export function inboundCounterparties(
+  from: RecipientId,
+  to: readonly RecipientId[],
+  mine: RecipientId | undefined,
+): readonly RecipientId[] {
+  return [from, ...to.filter((id) => id !== mine)];
 }
 
 /**

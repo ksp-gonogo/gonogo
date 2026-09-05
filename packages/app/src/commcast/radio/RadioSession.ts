@@ -10,6 +10,7 @@ import {
   transitSecondsOf,
   type Vantage,
 } from "../reveal";
+import { inboundCounterparties, threadKeyOf } from "../threads";
 import type { RecipientId } from "../types";
 import type { RadioFrame, RadioTransmission } from "./wire";
 import { recordRadioFrame } from "./wire";
@@ -64,14 +65,52 @@ export interface RadioDecoderLike {
   close(): void;
 }
 
+/**
+ * One transmission whose audio is reaching this screen right now.
+ *
+ * Read off the AUDIO rather than off the envelope, which is the difference
+ * between an indicator light and a faster-than-light channel: `start` crosses
+ * at the speed of the internet, so a light lit by it would announce somebody
+ * speaking a light-minute before their first word could be heard. An entry
+ * appears here at the instant its first chunk is presented, which is the
+ * instant an operator with the volume up would have heard it.
+ */
+export interface RadioLight {
+  transmissionId: string;
+  /**
+   * The conversation this belongs to at this vantage, keyed exactly as the
+   * inbox keys its rows, so the light names a thread the operator can open and
+   * the mute they set on that row reaches this voice.
+   */
+  threadKey: string;
+  /** The other ends of that conversation, sorted, this vantage excluded. */
+  with: readonly RecipientId[];
+  from: RecipientId;
+  authorName: string;
+  /** Muted here, so it is shown and not heard. */
+  muted: boolean;
+}
+
 /** What a screen can honestly say about what it is hearing. */
 export interface RadioReception {
-  /** Who is being played here right now, or `null` for silence. */
+  /** Who is being played into the speakers right now, or `null` for silence. */
   playing: {
     transmissionId: string;
     from: RecipientId;
     authorName: string;
   } | null;
+  /**
+   * Every transmission currently reaching this screen, MUTED ONES INCLUDED,
+   * in the order they were first heard.
+   *
+   * This is what the indicator light draws, and it is a list rather than the
+   * one `playing` names because the listener sums whatever reaches it: two
+   * loops can be talking at once, and the operator's question is which of them
+   * are, not which one the speaker is currently loudest with. A muted entry
+   * stays because muting is tuning, not a cut: the operator chose not to hear
+   * that loop, they did not ask to stop knowing it is busy.
+   */
+  live: readonly RadioLight[];
   /**
    * Seconds of audio the delay clock has released and playback has not yet
    * reached.
@@ -97,6 +136,7 @@ export interface RadioReception {
 
 const EMPTY_RECEPTION: RadioReception = {
   playing: null,
+  live: [],
   backlogSeconds: 0,
   droppedChunks: 0,
 };
@@ -111,6 +151,16 @@ interface HeldChunk {
 /** A transmission this screen is placing chunks against. */
 interface HeardTransmission {
   transmission: RadioTransmission;
+  /** Which conversation it belongs to here. Resolved once, at the `start`
+   *  frame, from the same vantage the separation was resolved against. */
+  threadKey: string;
+  /** The other ends of that conversation, sorted, as the inbox names them. */
+  with: readonly RecipientId[];
+  /**
+   * At least one chunk of this keying has reached the speaker, so the words
+   * have crossed and the operator may honestly be told it is talking.
+   */
+  presented: boolean;
   /**
    * The separation resolved ONCE, at the `start` frame, and never re-read.
    *
@@ -194,6 +244,17 @@ export class RadioSession {
   private readonly maxBacklogSeconds: number;
   private me: Vantage = { seat: "mission-control" };
   private pairs: SeparationMatrix | undefined;
+  /**
+   * Conversations the operator has tuned out, by thread key.
+   *
+   * The ONLY thing this class knows about the operator's attention. It is
+   * deliberately not told which thread is on screen: tying audio to that would
+   * tie hearing to where somebody's eyes happen to be, and glancing at another
+   * conversation would silently mute a person mid-sentence, which is the exact
+   * failure a mission-control voice loop exists to prevent. Monitoring is
+   * everything not in this set.
+   */
+  private muted: ReadonlySet<string> = new Set();
   /** Chunks still crossing: accepted, and not yet let through by the clock. */
   private crossing = 0;
   /** Chunks the clock has released and playback has not reached: the BACKLOG. */
@@ -260,6 +321,20 @@ export class RadioSession {
   /** The published separation matrix, likewise consulted only at a `start`. */
   setPairs(pairs: SeparationMatrix | undefined): void {
     this.pairs = pairs;
+  }
+
+  /**
+   * Which conversations are tuned out, by thread key.
+   *
+   * Consulted at the SPEAKER, per chunk, rather than frozen at the `start`
+   * frame like the separation is: a mute is a decision the operator makes now,
+   * and one made mid-sentence has to take effect mid-sentence. Nothing about
+   * the delay is re-read here, so this cannot move a release instant.
+   */
+  setMuted(keys: ReadonlySet<string>): void {
+    if (this.disposed) return;
+    this.muted = new Set(keys);
+    this.publish();
   }
 
   /**
@@ -360,8 +435,16 @@ export class RadioSession {
       ),
     );
     if (seconds === null) return;
+    const counterparties = inboundCounterparties(
+      transmission.from,
+      transmission.to,
+      this.me.vantageId,
+    );
     this.heard.set(transmission.id, {
       transmission,
+      threadKey: threadKeyOf(counterparties),
+      with: [...counterparties].sort(),
+      presented: false,
       transitSeconds: seconds,
       pacer: new PresentationPacer<HeldChunk>({
         maxBacklogSeconds: this.maxBacklogSeconds,
@@ -381,6 +464,28 @@ export class RadioSession {
 
   private present(chunk: HeldChunk): void {
     this.settle(chunk);
+    const heard = this.heard.get(chunk.transmissionId);
+    // The words have crossed, whether or not this screen chooses to hear them,
+    // so the light may now honestly say this conversation is talking.
+    if (heard) heard.presented = true;
+    if (heard !== undefined && this.muted.has(heard.threadKey)) {
+      /*
+       * The one thing mute skips: the decode. Everything either side of it
+       * runs, so a muted conversation costs the same delay arithmetic, the
+       * same accounting and the same reading as a monitored one, and unmuting
+       * mid-transmission picks up exactly where the audio has got to rather
+       * than wherever the buffer happened to be left.
+       *
+       * The decoder is dropped rather than merely skipped: it is one chain
+       * shared by every keying, and handing it a stream with a silent hole in
+       * the middle leaves it timing something it was never told about. The
+       * next audible chunk starts a fresh one.
+       */
+      this.decodingId = null;
+      if (this.playingId === chunk.transmissionId) this.playingId = null;
+      this.retire(heard);
+      return;
+    }
     if (this.decodingId !== chunk.transmissionId) {
       this.opts.decoder.reset();
       this.decodingId = chunk.transmissionId;
@@ -427,13 +532,7 @@ export class RadioSession {
 
   private publish(): void {
     const next = this.snapshotValue();
-    if (
-      next.playing?.transmissionId === this.published.playing?.transmissionId &&
-      next.droppedChunks === this.published.droppedChunks &&
-      next.backlogSeconds === this.published.backlogSeconds
-    ) {
-      return;
-    }
+    if (signatureOf(next) === signatureOf(this.published)) return;
     this.published = next;
     for (const listener of this.listeners) listener(next);
   }
@@ -441,6 +540,18 @@ export class RadioSession {
   private snapshotValue(): RadioReception {
     const held =
       this.playingId === null ? undefined : this.heard.get(this.playingId);
+    const live: RadioLight[] = [];
+    for (const heard of this.heard.values()) {
+      if (!heard.presented) continue;
+      live.push({
+        transmissionId: heard.transmission.id,
+        threadKey: heard.threadKey,
+        with: heard.with,
+        from: heard.transmission.from,
+        authorName: heard.transmission.authorName,
+        muted: this.muted.has(heard.threadKey),
+      });
+    }
     return {
       playing:
         held === undefined
@@ -450,8 +561,19 @@ export class RadioSession {
               from: held.transmission.from,
               authorName: held.transmission.authorName,
             },
+      live,
       backlogSeconds: this.paced * this.chunkSeconds,
       droppedChunks: this.droppedChunks,
     };
   }
+}
+
+/** Everything a subscriber would draw differently, as one comparable string. */
+function signatureOf(reception: RadioReception): string {
+  return [
+    reception.playing?.transmissionId ?? "",
+    reception.backlogSeconds,
+    reception.droppedChunks,
+    ...reception.live.map((l) => `${l.transmissionId}:${l.muted ? "m" : "o"}`),
+  ].join("|");
 }

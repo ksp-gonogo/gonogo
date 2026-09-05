@@ -342,6 +342,10 @@ describe("a keying with no path", () => {
     expect(scene.sink.played).toHaveLength(0);
     expect(scene.session.snapshot()).toEqual({
       playing: null,
+      // Not a light either. A cut is silence and says nothing about itself:
+      // an indicator naming somebody this vantage cannot hear would be the
+      // faster-than-light channel the whole delay model exists to prevent.
+      live: [],
       backlogSeconds: 0,
       droppedChunks: 0,
     });

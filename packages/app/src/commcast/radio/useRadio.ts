@@ -5,14 +5,24 @@ import type { CommcastLog } from "../CommcastLog";
 import type { SeparationMatrix, Vantage } from "../reveal";
 import type { RecipientId } from "../types";
 import { useRadioBackend } from "./backend";
+import { loadMutedThreads, saveMutedThreads } from "./monitor";
 import type { RadioReception } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
 import type { RadioTransmitState } from "./RadioTransmitter";
 import { RadioTransmitter } from "./RadioTransmitter";
 
 /**
- * The radio, mounted on one thread: a latching key at this end and whatever
- * reaches this vantage at the other.
+ * The radio, mounted on the WIDGET: a latching key at this end and everything
+ * this vantage is monitoring at the other.
+ *
+ * On the widget rather than inside a conversation, and that is the whole
+ * listening model rather than a placement. A session built per thread would
+ * exist only while that thread was open, so stepping back to the inbox would
+ * tear down every held chunk and going into another conversation would build a
+ * fresh one, which makes what an operator can HEAR a consequence of where they
+ * happened to be looking. Mission control tunes by an explicit per-loop
+ * monitor, so this is mounted once, hears every conversation, and is told only
+ * which ones the operator has deliberately muted.
  *
  * Both halves are built ONCE per clock and torn down with it, the same rule
  * `useCommcastFeed`'s buffer follows and for the same reason: every held
@@ -47,6 +57,16 @@ export interface RadioControl {
   fault: string | null;
   /** Latch on, latch off. */
   toggle(): void;
+  /** Whether this conversation is tuned out here. */
+  isMuted(threadKey: string): boolean;
+  /**
+   * Tune one conversation in or out, and remember it.
+   *
+   * A conversation rather than a view: nothing here takes an "open thread",
+   * because tying audio to what is on screen would mute whoever is speaking
+   * the moment the operator glanced somewhere else.
+   */
+  setMuted(threadKey: string, muted: boolean): void;
 }
 
 export interface UseRadioOptions {
@@ -73,6 +93,7 @@ export interface UseRadioOptions {
 
 const NO_RECEPTION: RadioReception = {
   playing: null,
+  live: [],
   backlogSeconds: 0,
   droppedChunks: 0,
 };
@@ -99,6 +120,15 @@ export function useRadio({
   const [transmitter, setTransmitter] = useState<RadioTransmitter | null>(null);
   const [reception, setReception] = useState<RadioReception>(NO_RECEPTION);
   const [transmit, setTransmit] = useState<RadioTransmitState>(IDLE_TRANSMIT);
+  /*
+   * Read once, from storage, rather than defaulted and then loaded in an
+   * effect: a session built on the first render would spend a frame monitoring
+   * a loop the operator had already tuned out, and one word of somebody they
+   * muted last week is exactly the thing this setting exists to stop.
+   */
+  const [muted, setMutedThreads] = useState<ReadonlySet<string>>(() =>
+    loadMutedThreads(local.stationKey),
+  );
 
   /*
    * Read through a ref by the transmitter's own `utNow`, rather than closed
@@ -142,6 +172,25 @@ export function useRadio({
 
   useEffect(() => session?.setVantage(me), [session, me]);
   useEffect(() => session?.setPairs(pairs), [session, pairs]);
+  useEffect(() => session?.setMuted(muted), [session, muted]);
+
+  const setThreadMuted = useCallback(
+    (threadKey: string, next: boolean) => {
+      if (muted.has(threadKey) === next) return;
+      const updated = new Set(muted);
+      if (next) updated.add(threadKey);
+      else updated.delete(threadKey);
+      // Written before the state, and outside the updater: an updater runs
+      // twice under StrictMode and is no place for anything that leaves a mark.
+      saveMutedThreads(local.stationKey, updated);
+      setMutedThreads(updated);
+    },
+    [muted, local.stationKey],
+  );
+  const isMuted = useCallback(
+    (threadKey: string) => muted.has(threadKey),
+    [muted],
+  );
 
   useEffect(() => {
     if (!log || !support.supported) {
@@ -206,5 +255,7 @@ export function useRadio({
     unavailable,
     fault: transmit.fault,
     toggle,
+    isMuted,
+    setMuted: setThreadMuted,
   };
 }

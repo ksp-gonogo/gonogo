@@ -24,6 +24,7 @@ import {
   Text,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
+import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
@@ -36,7 +37,10 @@ import {
   useSeparationMatrix,
 } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
+import { RadioIndicator } from "./radio/RadioIndicator";
+import { RadioMute } from "./radio/RadioMute";
 import { RadioPtt } from "./radio/RadioPtt";
+import type { RadioControl } from "./radio/useRadio";
 import { useRadio } from "./radio/useRadio";
 import {
   firstAckUtFor,
@@ -148,6 +152,35 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
       : separation.kind === "light-time"
         ? separation.seconds
         : 0;
+  /*
+   * The radio, on the WIDGET rather than inside a conversation, which is the
+   * listening model rather than a placement. Mounted in the composer it existed
+   * only while a thread was open, so stepping back to the inbox tore down every
+   * held chunk and cut off whoever was mid-sentence: audio followed where the
+   * operator happened to be looking. It hears every conversation now and is
+   * tuned by an explicit per-loop mute instead.
+   *
+   * `target` and the separation are still the OPEN thread's, because they are
+   * about transmitting: the key sends to the conversation the operator is in.
+   * Nothing about listening reads them.
+   */
+  const radio = useRadio({
+    log,
+    me,
+    pairs,
+    local,
+    target,
+    separationSeconds,
+  });
+  /* Drawn in the bar of all three views, because the transmission it reports
+     may be on a conversation that is not on screen. */
+  const indicator = (
+    <RadioIndicator
+      live={radio.reception.live}
+      nameFor={nameFor}
+      onOpen={(ids) => setView({ kind: "thread", with: ids })}
+    />
+  );
 
   if (!log) {
     /*
@@ -218,6 +251,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             dropped={dropped}
             nameFor={nameFor}
             canCompose={recipients.length > 0}
+            indicator={indicator}
             onOpen={(ids) => setView({ kind: "thread", with: ids })}
             onCompose={() => setView({ kind: "compose" })}
           />
@@ -225,6 +259,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
         {view.kind === "compose" && (
           <ComposeView
             recipients={recipients}
+            indicator={indicator}
             onBack={() => setView({ kind: "inbox" })}
             onOpen={(ids) => setView({ kind: "thread", with: ids })}
           />
@@ -239,6 +274,8 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             noSignal={noSignal}
             nameFor={nameFor}
             local={local}
+            radio={radio}
+            indicator={indicator}
             separation={separation}
             separationSeconds={separationSeconds}
             target={target}
@@ -265,6 +302,7 @@ function InboxView({
   dropped,
   nameFor,
   canCompose,
+  indicator,
   onOpen,
   onCompose,
 }: {
@@ -272,6 +310,8 @@ function InboxView({
   dropped: number;
   nameFor: (id: RecipientId) => string;
   canCompose: boolean;
+  /** The transmission light, drawn in every view's bar. */
+  indicator: ReactNode;
   onOpen: (ids: readonly RecipientId[]) => void;
   onCompose: () => void;
 }) {
@@ -288,6 +328,7 @@ function InboxView({
           <PlusIcon size={14} />
           New message
         </Button>
+        {indicator}
       </Commcast__Bar>
       {/* No footer: the inbox is a list of conversations, and there is nothing
           to type at it. The frame is the same one the other two views use, in
@@ -350,10 +391,12 @@ function InboxView({
  */
 function ComposeView({
   recipients,
+  indicator,
   onBack,
   onOpen,
 }: {
   recipients: readonly CommsRecipient[];
+  indicator: ReactNode;
   onBack: () => void;
   onOpen: (ids: readonly RecipientId[]) => void;
 }) {
@@ -370,6 +413,8 @@ function ComposeView({
         <Text size="sm" tone="default">
           New message
         </Text>
+        <Commcast__BarGap />
+        {indicator}
       </Commcast__Bar>
       <ConsoleFrame
         tone={COMMCAST_TONE}
@@ -448,6 +493,8 @@ function ThreadView({
   noSignal,
   nameFor,
   local,
+  radio,
+  indicator,
   separation,
   separationSeconds,
   target,
@@ -461,6 +508,10 @@ function ThreadView({
   noSignal: boolean;
   nameFor: (id: RecipientId) => string;
   local: ReturnType<typeof useLocalParticipant>;
+  /** The widget's one radio, handed down rather than mounted here: see the
+   *  comment where it is built. */
+  radio: RadioControl;
+  indicator: ReactNode;
   separation: ReturnType<typeof separationBetween>;
   separationSeconds: number | null;
   target: RecipientId | null;
@@ -487,13 +538,17 @@ function ThreadView({
    */
   const badgeSeconds = delayPresentation === "badge" ? separationSeconds : null;
   const noPath = separation.kind === "no-path";
+  /** What the operator calls this conversation, in the bar and on the mute. */
+  const threadName = thread.with.map(nameFor).join(", ");
   return (
     <>
       <Commcast__Bar>
         <BackButton onClick={onBack} />
         <Text size="sm" tone="default">
-          {thread.with.map(nameFor).join(", ")}
+          {threadName}
         </Text>
+        <Commcast__BarGap />
+        {indicator}
       </Commcast__Bar>
       {/* The composer lives IN the console rather than strapped under it, the
           same as the terminal widget: the frame holds the log, the outbound
@@ -547,11 +602,13 @@ function ThreadView({
             <Composer
               log={log}
               me={me}
-              pairs={pairs}
               local={local}
               utNow={utNow}
               target={target}
               noPath={noPath}
+              radio={radio}
+              threadKey={thread.key}
+              threadName={threadName}
               separationSeconds={separationSeconds}
             />
           </>
@@ -857,16 +914,17 @@ function progressFor(out: OutboundMessage, utNow: number): number {
 function Composer({
   log,
   me,
-  pairs,
   local,
   utNow,
   target,
   noPath,
+  radio,
+  threadKey,
+  threadName,
   separationSeconds,
 }: {
   log: CommcastLog;
   me: Vantage;
-  pairs: SeparationMatrix | undefined;
   local: ReturnType<typeof useLocalParticipant>;
   utNow: number | undefined;
   target: RecipientId | null;
@@ -877,23 +935,21 @@ function Composer({
    * it separately is two chances to disagree about it.
    */
   noPath: boolean;
+  /**
+   * The widget's radio, handed in rather than mounted here.
+   *
+   * It used to be built in this component, which made the listening half live
+   * and die with the open conversation: leaving for the inbox tore it down
+   * mid-sentence. The key and the mute are still drawn here, because this is
+   * where the operator talks; what they act on is one radio that outlives the
+   * view.
+   */
+  radio: RadioControl;
+  threadKey: string;
+  threadName: string;
   separationSeconds: number | null;
 }) {
   const [draft, setDraft] = useState("");
-  /*
-   * The live radio, on the same thread and the same separation the text above
-   * it crosses. It reads the separation the view already resolved rather than
-   * resolving its own, so the badge, the composer and the radio cannot disagree
-   * about how far away the other end is.
-   */
-  const radio = useRadio({
-    log,
-    me,
-    pairs,
-    local,
-    target,
-    separationSeconds,
-  });
   const ready =
     draft.trim().length > 0 &&
     utNow !== undefined &&
@@ -949,6 +1005,16 @@ function Composer({
           button has no keyboard equivalent, and this widget is operable from
           the keyboard throughout. */}
       <RadioPtt radio={radio} />
+      {/* Beside talk, because they are the two halves of one question about
+          this conversation: whether the operator is speaking on it and whether
+          they are hearing it. It is a decision about the LOOP rather than about
+          this view, so it persists and it holds wherever they navigate to
+          next. */}
+      <RadioMute
+        muted={radio.isMuted(threadKey)}
+        threadName={threadName}
+        onToggle={() => radio.setMuted(threadKey, !radio.isMuted(threadKey))}
+      />
       <label htmlFor="commcast-draft">
         <VisuallyHidden>Message</VisuallyHidden>
       </label>
