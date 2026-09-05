@@ -36,6 +36,15 @@ export {
   type ActionMenuItem,
   type ActionMenuProps,
 } from "./ActionMenu";
+// ── Audio capture ────────────────────────────────────────────────────────────
+// Permission, device choice and the stream that comes out of them. The probe
+// and the state machine are exported beside the drawn control because a host
+// with its own chrome still needs the states, and a second hand-rolled copy of
+// them is how two surfaces come to disagree about what a refusal means.
+export {
+  AudioInputPicker,
+  type AudioInputPickerProps,
+} from "./AudioInputPicker";
 export {
   type AugmentSettingsContextValue,
   AugmentSettingsProvider,
@@ -56,6 +65,11 @@ export {
   AutoEmptyState,
   type AutoEmptyStateProps,
 } from "./AutoEmptyState";
+export {
+  type AudioCaptureSupport,
+  type AudioCaptureUnsupportedReason,
+  audioCaptureSupport,
+} from "./audioCaptureSupport";
 // ── Augment seam ──────────────────────────────────────────────────────────────
 // The augment registry + declaration-merge type surface (`SlotRegistry`,
 // `SlotProps`, the segment seam, the setting types), the `<AugmentSlot>`
@@ -601,6 +615,16 @@ export {
   type UnitDefinition,
   writeQuantity,
 } from "./units";
+export {
+  type AudioInputControls,
+  type AudioInputDevice,
+  type AudioInputFailure,
+  type AudioInputState,
+  type AudioInputStatus,
+  describeAudioInput,
+  type UseAudioInputOptions,
+  useAudioInput,
+} from "./useAudioInput";
 export { type ElementSize, useElementSize } from "./useElementSize";
 export {
   type PanelAsideSize,

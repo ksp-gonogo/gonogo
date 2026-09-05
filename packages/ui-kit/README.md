@@ -302,7 +302,9 @@ Also exported: `DefaultThemeProvider` (the default dark theme, mounted), `defaul
 **Readouts**: `Readout`, `BigReadout`, `ReadoutCaption`, `Text`, `Unit`, `Badge`, `StatusPill`,
 `StatusIndicator`, `ProgressBar`, `Spinner`
 
-**Everything else**: `ActionButton`, `EmptyState`, `Truncate`
+**Everything else**: `ActionButton`, `EmptyState`, `Truncate`, `AudioInputPicker`
+(microphone permission and device choice, handing back the stream; `useAudioInput`
+is the same state machine without the chrome)
 
 **Formatters**: `formatNumber`, `formatDuration`, `formatCountdown`, `formatKspDate`
 
