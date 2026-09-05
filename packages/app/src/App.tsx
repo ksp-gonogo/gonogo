@@ -1,4 +1,5 @@
 import { DomainAvailabilityProvider } from "@ksp-gonogo/ui-kit";
+import { InjectedRadioBackend } from "./commcast/radio/InjectedRadioBackend";
 import { PeerHostProvider } from "./peer/PeerHostProvider";
 import { HostedLanding } from "./screens/HostedLanding";
 import { currentRoute } from "./screens/isStationRoute";
@@ -14,7 +15,11 @@ export default function App() {
   // store lives above the screen split so a route change never remounts it.
   return (
     <DomainAvailabilityProvider>
-      <AppRoute />
+      {/* Above the route split, because every screen carries a radio and the
+          backend must not change identity when the route does. */}
+      <InjectedRadioBackend>
+        <AppRoute />
+      </InjectedRadioBackend>
     </DomainAvailabilityProvider>
   );
 }
