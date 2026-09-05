@@ -992,8 +992,8 @@ describe("CommandButton: a lost command that answered after all", () => {
     await loseThenFind();
     const button = screen.getByRole("button");
     const name = button.getAttribute("aria-label") ?? "";
-    expect(name).toMatch(/found after being called lost/i);
-    expect(name).toMatch(/it ran/i);
+    expect(name).toMatch(/found .* after being lost/i);
+    expect(name).toMatch(/found executed/i);
   });
 
   it("says a late refusal was refused, not that it ran", async () => {
@@ -1008,9 +1008,9 @@ describe("CommandButton: a lost command that answered after all", () => {
       },
     ]);
     const name = screen.getByRole("button").getAttribute("aria-label") ?? "";
-    expect(name).toMatch(/found after being called lost/i);
-    expect(name).toMatch(/the game refused it/i);
-    expect(name).not.toMatch(/it ran/i);
+    expect(name).toMatch(/found .* after being lost/i);
+    expect(name).toMatch(/found refused/i);
+    expect(name).not.toMatch(/found executed/i);
   });
 
   it("does NOT claim a found for a control that never lost anything", async () => {
