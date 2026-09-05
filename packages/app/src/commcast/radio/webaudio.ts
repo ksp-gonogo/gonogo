@@ -234,31 +234,46 @@ export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
  */
 export class WebAudioRadioSink implements RadioAudioSink {
   private readonly ctx: AudioContext;
-  private readonly ready: Promise<AudioWorkletNode>;
+  /**
+   * The playout node, or `null` where there will not be one.
+   *
+   * It SETTLES rather than rejects, and that is the whole of why it is written
+   * this way. Building the node is two turns behind the constructor (the
+   * worklet module has to load first), and a sink closed inside that window
+   * constructs an `AudioWorkletNode` against a closed context, which throws.
+   * Attaching the only `catch` inside `play` left that rejection unhandled for
+   * exactly the sink that never played: a listener who muted, changed
+   * conversation or closed the tab before anybody spoke got an uncaught error
+   * in the console and in Axiom, for a teardown that went entirely to plan.
+   * Seen every run of the three-screen radio scene, on the one screen that
+   * hears nothing.
+   */
+  private readonly ready: Promise<AudioWorkletNode | null>;
   private closed = false;
 
   constructor(sampleRate: number = RADIO_DECODER_CONFIG.sampleRate) {
     this.ctx = new AudioContext({ sampleRate });
-    this.ready = addWorklet(this.ctx, PLAYOUT_WORKLET).then(() => {
-      const node = new AudioWorkletNode(this.ctx, "radio-playout", {
-        numberOfInputs: 0,
-        numberOfOutputs: 1,
-        outputChannelCount: [1],
-      });
-      node.connect(this.ctx.destination);
-      return node;
-    });
+    this.ready = addWorklet(this.ctx, PLAYOUT_WORKLET)
+      .then(() => {
+        if (this.closed) return null;
+        const node = new AudioWorkletNode(this.ctx, "radio-playout", {
+          numberOfInputs: 0,
+          numberOfOutputs: 1,
+          outputChannelCount: [1],
+        });
+        node.connect(this.ctx.destination);
+        return node;
+      })
+      .catch(() => null);
   }
 
   play(samples: Float32Array): void {
     if (this.closed) return;
     void this.ctx.resume().catch(() => {});
-    void this.ready
-      .then((node) => {
-        if (this.closed) return;
-        node.port.postMessage(samples, [samples.buffer]);
-      })
-      .catch(() => {});
+    void this.ready.then((node) => {
+      if (this.closed || node === null) return;
+      node.port.postMessage(samples, [samples.buffer]);
+    });
   }
 
   close(): void {
