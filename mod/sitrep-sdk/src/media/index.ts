@@ -43,6 +43,15 @@ export {
   runFrameDelayPipeline,
   startPacingTicker,
 } from "./frame-delay";
+export type { RadioSupport, RadioUnsupportedReason } from "./radio-support";
+export {
+  isRadioSupported,
+  RADIO_CHUNK_FRAMES,
+  RADIO_DECODER_CONFIG,
+  RADIO_ENCODER_CONFIG,
+  RADIO_REQUIRED_GLOBALS,
+  radioSupportStatus,
+} from "./radio-support";
 export type {
   BuiltDelayedStream,
   DelayedStreamBuild,
