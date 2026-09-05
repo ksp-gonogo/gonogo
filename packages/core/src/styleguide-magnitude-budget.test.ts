@@ -100,7 +100,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    * in", and the two counts are cardinalities rather than measurements.
    */
   "mod/GonogoRealFuelsUplink/client/src/EngineRealism/index.tsx": 3,
-  "mod/sitrep-sdk/src/command-delay.ts": 4,
+  // 5, up from a written-down 4 that was never the real figure: the scan used
+  // to count matching LINES, and `pathConnectedDuring(a.magnitude, b.magnitude)`
+  // spends two on one. Nothing was added here, the counter learned to see what
+  // was already there. That pair is a boundary rather than arithmetic:
+  // `PathConnectedDuring` is a CALLER-supplied predicate over bare UT numbers,
+  // so the instants shed their type where they leave for someone else's code.
+  "mod/sitrep-sdk/src/command-delay.ts": 5,
   // 1, in `degradeRatingOf`, and this file exists so that number stays 1. The
   // link grading has to reach a consumer as a raw number, because what a
   // consumer DOES with it is arithmetic on a quality ladder (a bitrate rung, how
@@ -115,16 +121,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // `.max(0).min(1)`, both in the algebra. This file used to unwrap for all
   // three, which is exactly the escape `isFinite()` was added to retire.
   "mod/sitrep-sdk/src/comms-degrade.ts": 1,
-  // 1, in `frameVector`, and this file exists so that number stays 1. The frame
-  // arithmetic works in bare metres throughout (a rotation matrix has no unit to
-  // carry), so SOMETHING has to unwrap a wire vector before `toFrame` sees it.
-  // The alternative is every Uplink author doing it at their own call sites,
-  // which in this repo was previously written as a cast and put `Value` objects
-  // through arithmetic that wanted numbers. The unwrap is constrained to `"m"`
-  // and `"m/s"` here, which is the check a hand-rolled one does not get.
-  // 1: the view instant, read out to stamp when a composed plan was decided.
-  // The wire carries it as a plain UT because the receiving side records it on
-  // a receipt rather than doing algebra with it.
   // 6: the floors that turn an instant into calendar PARTS, plus the round
   // that lands the inverse back on a whole second. A day number is not a
   // quantity with a unit, it is an ordinal, so producing one is where the
@@ -132,8 +128,21 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // owns none, which is what stops it being a second clock beside the one the
   // app renders through.
   "mod/sitrep-sdk/src/burn-clock.ts": 6,
+  // 1: the view instant, read out to stamp when a composed plan was decided.
+  // The wire carries it as a plain UT because the receiving side records it on
+  // a receipt rather than doing algebra with it.
   "mod/sitrep-sdk/src/api/index.ts": 1,
-  "mod/sitrep-sdk/src/frames/index.ts": 1,
+  // 3, all three in `frameVector`, and this file exists so that number stays 3.
+  // It read 1 while the scan counted matching LINES and the three components
+  // are unwrapped on one: the file gained nothing, the counter learned to see
+  // what a `[v.x, v.y, v.z]` return had always spent. The frame arithmetic
+  // works in bare metres throughout (a rotation matrix has no unit to carry),
+  // so SOMETHING has to unwrap a wire vector before `toFrame` sees it. The
+  // alternative is every Uplink author doing it at their own call sites, which
+  // in this repo was previously written as a cast and put `Value` objects
+  // through arithmetic that wanted numbers. The unwrap is constrained to `"m"`
+  // and `"m/s"` here, which is the check a hand-rolled one does not get.
+  "mod/sitrep-sdk/src/frames/index.ts": 3,
   // 2: the observed instant a plan was built from, and the comparison against
   // the view instant that catches a plan built from a state nobody could have
   // seen. Both are read out here because this file IS that boundary.
@@ -163,7 +172,13 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // handler, so passing them through lost the whole plan. Unwrapped where the
   // command shape is built, exactly as `planSendArgs` does.
   "mod/GonogoPrincipiaUplink/client/src/PlanSlots/index.tsx": 4,
-  "mod/sitrep-sdk/src/spine/timeline-store.ts": 1,
+  // 2, up from a written-down 1 the file never used: `lerpFieldValue(key,
+  // before.magnitude, after.magnitude, t)` spends two on one line, and the scan
+  // used to charge that line once. Nothing was added. Both are a boundary: the
+  // recursion re-enters itself on the plain-number branch and re-declares the
+  // unit on the way out, so the two samples meet the interpolator bare and by
+  // construction share a unit.
+  "mod/sitrep-sdk/src/spine/timeline-store.ts": 2,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
   /*
@@ -228,11 +243,16 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/LibrationPoints/index.tsx": 1,
   "packages/components/src/ManeuverPlanner/index.tsx": 5,
   "packages/components/src/ManeuverPlanner/LocalManeuverTriggerService.ts": 10,
-  // 16: the sixteenth is a maneuver node's own UT. It reads the modern
-  // vessel.maneuver shape, where the instant is a Value; the horizon it feeds
-  // is plain-number geometry against a plain-number view instant, so the
-  // unwrap belongs at that boundary rather than one term deeper.
-  "packages/components/src/MapView/index.tsx": 16,
+  // 18, up from a written-down 16, and the two are on lines this scan used to
+  // charge once each: two `{ ut, lat, lon }` literals each unwrap a latitude
+  // and a longitude side by side. The file gained no unwrap; the counter
+  // learned to see what was already there.
+  // Of the sixteen that were visible, the sixteenth is a maneuver node's own
+  // UT. It reads the modern vessel.maneuver shape, where the instant is a
+  // Value; the horizon it feeds is plain-number geometry against a plain-number
+  // view instant, so the unwrap belongs at that boundary rather than one term
+  // deeper.
+  "packages/components/src/MapView/index.tsx": 18,
   "packages/components/src/MapView/vanillaPoiProvider.ts": 2,
   // 1: minting a Value from a contributed row's magnitude-and-unit pair so the
   // host can render it through Unit. The slot cannot carry a Value (its two
@@ -245,19 +265,39 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // 1: the view instant, unwrapped to bound a history window. sampleRange
   // takes plain UT numbers because a store index is not a quantity.
   "packages/components/src/shared/usePastTrack.ts": 1,
-  "packages/components/src/shared/dockAngles.ts": 1,
+  // 3, all three in `bare`, up from a written-down 1: the three components come
+  // off one line and the scan used to charge that line once. No unwrap was
+  // added. `bare` is the honest form of the `as Vec3` cast this file used to
+  // carry, which asserted the leaves were numbers and put a `Value` into
+  // `toFixed` the moment they were not.
+  "packages/components/src/shared/dockAngles.ts": 3,
   "packages/components/src/shared/OrbitalEventChips.tsx": 1,
   "packages/components/src/Strategies/index.tsx": 1,
   "packages/components/src/SystemView/index.tsx": 23,
-  "packages/components/src/SystemView/usePhaseAngles.ts": 7,
+  // 5, and it is a real shrink rather than a re-measurement. Counting
+  // occurrences showed this file at 8, not the 7 written down: the LAN and
+  // argPe coalesce shared a line. All three of those were `?.magnitude ?? 0`
+  // and `?.magnitude` behind a `Number.isFinite` guard, which is what
+  // `magnitudeOr` and `magnitudeOf` exist to say, so they went rather than
+  // being written down. What is left is the five elements the shared Kepler
+  // solver takes as canonical SI numbers.
+  "packages/components/src/SystemView/usePhaseAngles.ts": 5,
   "packages/components/src/Targeting/index.tsx": 5,
   "packages/components/src/ThermalStatus/index.tsx": 13,
-  // +1 for the Δv budget the reach list compares against. `calc/transfer.ts` and
-  // the porkchop are deliberately plain-SI ("no React, no side effects", see their
-  // own docs), so a `Value<"m/s">` off the wire has to shed its unit exactly once
-  // to be compared against a solver's cost. Doing it in the algebra instead would
-  // mean wrapping every figure the coplanar model returns.
-  "packages/components/src/TransferWindow/index.tsx": 2,
+  // 1, down from a written-down 2 that occurrence-counting first showed to be
+  // 3. The view instant was `viewUt?.magnitude ?? 0`, which is `magnitudeOr`
+  // spelled out, and the parking radius was `sma.times(1 - ecc.magnitude)
+  // .magnitude`, two on one line: eccentricity is `Value<"1">`, so `a(1 - e)`
+  // is expressible in the algebra end to end and only the result needs
+  // unwrapping. Both went rather than being written down.
+  //
+  // The one that stays is the Δv budget the reach list compares against.
+  // `calc/transfer.ts` and the porkchop are deliberately plain-SI ("no React,
+  // no side effects", see their own docs), so a `Value<"m/s">` off the wire has
+  // to shed its unit exactly once to be compared against a solver's cost. Doing
+  // it in the algebra instead would mean wrapping every figure the coplanar
+  // model returns.
+  "packages/components/src/TransferWindow/index.tsx": 1,
   // The shared ΔV budget's one raw read: `totalVac` is `Value<"m/s"> | null` and
   // the feasibility deduction below it subtracts plain node magnitudes in a
   // running total. Doing it in the algebra would wrap and unwrap once per node
@@ -270,7 +310,11 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // wire wants: nothing added to the vector, said in one place.
   "packages/data/src/hooks/useManeuverNodes.ts": 4,
   "packages/data/src/hooks/useDataSeries.ts": 1,
-  "packages/data/src/hooks/vesselPartsAdapter.ts": 20,
+  // 22, up from a written-down 20: the part's `up` vector spends three on one
+  // line and the scan charged it once. Nothing was added to this file. It is
+  // the wire-to-plain-model adapter for the parts list, so every read here is
+  // the same boundary said once per field.
+  "packages/data/src/hooks/vesselPartsAdapter.ts": 22,
   "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
   "packages/sitrep-client/src/auto-command.ts": 1,
   "packages/sitrep-client/src/control-expectation.ts": 2,
@@ -345,6 +389,24 @@ const SEARCH_GLOBS = ["*.ts", "*.tsx"];
 const PROPERTY_ACCESS = String.raw`[]A-Za-z0-9_$)?]\.magnitude`;
 
 /**
+ * `-o` is what makes this scan count OCCURRENCES. Without it `git grep` emits
+ * one record per matching LINE and the tally below counts records, so two
+ * unwraps on one source line scored as one: sixteen lines across the tree were
+ * under-counted that way, and joining two lines was a way to spend an unwrap
+ * the budget could not see.
+ *
+ * Counting the matches in JavaScript instead is not available. `PROPERTY_ACCESS`
+ * is POSIX ERE, where the leading `]` is a literal class member; `new RegExp`
+ * reads the same text as an EMPTY class and then chokes on the `)`. The engine
+ * that matches has to be the engine that counts.
+ *
+ * Shared with the planted check below on purpose. That check asserts a figure
+ * only `-o` can produce, so the two together mean a silent return to line
+ * counting fails rather than quietly halving a doubled line.
+ */
+const GREP_FLAGS = "-noE";
+
+/**
  * Excluded from the budget:
  *  - `/dist/` build output, not source
  *  - tests and fixtures, which own the values they construct
@@ -370,8 +432,17 @@ function countsByFile(root: string): Map<string, number> {
       // TRACKED files, so a violation introduced in a BRAND-NEW file is
       // invisible to this scan until the moment it is staged, and a local
       // run before `git add` reports success while not looking at it. It
-      // still honours .gitignore, so build output stays out.
-      ["grep", "--untracked", "-nE", PROPERTY_ACCESS, "--", ...SEARCH_GLOBS],
+      // still honours .gitignore, so build output stays out. `GREP_FLAGS`
+      // carries the `-o` that makes the tally below count occurrences rather
+      // than matching lines; see its own note.
+      [
+        "grep",
+        "--untracked",
+        GREP_FLAGS,
+        PROPERTY_ACCESS,
+        "--",
+        ...SEARCH_GLOBS,
+      ],
       { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
     );
   } catch (err) {
@@ -447,6 +518,7 @@ describe("the magnitude budget only shrinks", () => {
           "const b = readings[0].magnitude;", // `]`, the class's first member
           "const c = f().magnitude;", // `)`
           "const d = maybe?.magnitude;", // optional chain
+          "const e = [v.x.magnitude, v.y.magnitude];", // TWO on one line
           "// prose about `.magnitude` is not a use of it",
         ].join("\n"),
       );
@@ -458,14 +530,23 @@ describe("the magnitude budget only shrinks", () => {
        */
       const hits = execFileSync(
         "git",
-        ["grep", "--no-index", "-nE", PROPERTY_ACCESS, "--", "p.ts"],
+        ["grep", "--no-index", GREP_FLAGS, PROPERTY_ACCESS, "--", "p.ts"],
         { cwd: dirname(planted), encoding: "utf8" },
       )
         .trim()
         .split("\n");
-      // Four uses seen, and the comment line not charged: a budget that billed
-      // a file for explaining itself is how the explanations get deleted.
-      expect(hits).toHaveLength(4);
+      /*
+       * Six uses seen across five lines, and the comment line not charged: a
+       * budget that billed a file for explaining itself is how the
+       * explanations get deleted.
+       *
+       * Six rather than five is the second thing this pins. `-o` is what makes
+       * the scan count occurrences instead of matching LINES, and dropping it
+       * silently halves the doubled line's contribution rather than breaking
+       * anything. Asserting a figure only `-o` can produce is what stops the
+       * scan quietly going back to under-counting.
+       */
+      expect(hits).toHaveLength(6);
     } finally {
       rmSync(dirname(planted), { recursive: true, force: true });
     }

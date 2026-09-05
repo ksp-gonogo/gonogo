@@ -34,7 +34,7 @@ import {
 import { type ReactNode, useEffect, useId, useMemo, useState } from "react";
 import styled from "styled-components";
 import { useAlarmCreator } from "../shared/AlarmsLauncher";
-import { magnitudeOf } from "../shared/magnitude";
+import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import {
   buildTransferPorkchop,
   computeTransfer,
@@ -216,10 +216,11 @@ function TransferWindowComponent({
   // repeating one by hand.
   const facts = useProcessor(CELESTIAL_FACTS);
   const bodies = facts?.bodies ?? NO_BODIES;
-  // `.magnitude`: everything below treats the view time as a bare UT for arithmetic,
-  // and the instant type earns nothing threaded through it. Unwrapped once, here.
-  const viewUt = useViewUt();
-  const nowUt = viewUt?.magnitude ?? 0;
+  // Everything below treats the view time as a bare UT for arithmetic, and the
+  // instant type earns nothing threaded through it. Unwrapped once, here, and
+  // through the canonical funnel, which coalesces a non-finite reading to the
+  // same 0 an absent one gets rather than passing NaN into the porkchop.
+  const nowUt = magnitudeOr(useViewUt(), 0);
 
   /**
    * The vehicle's Δv, and the third provenance on this panel.
@@ -311,9 +312,12 @@ function TransferWindowComponent({
     cycleDestination: () => cycleDestination(),
   });
 
+  // Periapsis radius, `a(1 - e)`. Eccentricity is `Value<"1">`, so the whole of
+  // it is expressible in the algebra: unwrapping `ecc` to subtract it from a
+  // literal 1 was arithmetic done on a bare number for no boundary.
   const parkingRadius =
     orbit?.sma != null && orbit?.ecc != null
-      ? orbit.sma.times(1 - orbit.ecc.magnitude).magnitude
+      ? orbit.sma.times(value("1", 1).minus(orbit.ecc)).magnitude
       : null;
 
   const solution: TransferSolution | null = useMemo(

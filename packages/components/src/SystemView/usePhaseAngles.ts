@@ -5,6 +5,7 @@ import {
   useViewUt,
 } from "@ksp-gonogo/sitrep-client";
 import { useMemo } from "react";
+import { magnitudeOf, magnitudeOr } from "../shared/magnitude";
 import type { CelestialBody } from "./useCelestialBodies";
 
 /**
@@ -49,15 +50,20 @@ export function usePhaseAngles(
       : orbitReading.state === "observed"
         ? orbitReading.value
         : undefined;
-  // `.magnitude` at the read: this widget threads the view time through geometry and
-  // solver code typed on plain numbers, and the instant type earns nothing there.
-  const ut = useViewUt()?.magnitude;
+  /**
+   * Unwrapped at the read: this widget threads the view time through geometry
+   * and solver code typed on plain numbers, and the instant type earns nothing
+   * there. `magnitudeOf` is the canonical funnel and already answers `null` for
+   * an absent or non-finite reading, so the gate below asks one question rather
+   * than re-deriving finiteness here.
+   */
+  const ut = magnitudeOf(useViewUt());
 
   return useMemo(() => {
     if (!orbit) return EMPTY;
     // No instant, no question: `deriveTrueAnomalyDeg` refuses a non-finite `ut`
     // on its own, but the gate below needs a real one to put a window to.
-    if (typeof ut !== "number" || !Number.isFinite(ut)) return EMPTY;
+    if (ut === null) return EMPTY;
     // Ask the provider before propagating the vessel's elements to the view
     // instant, the same question and the same window as SystemView's own
     // `derived` memo: the horizon is an absolute UT bound, so "can these answer
@@ -86,7 +92,7 @@ export function usePhaseAngles(
     // LAN/argPe default to 0 (equatorial / circular), the same coalescing the
     // widget uses when it draws the vessel's own orbit.
     const vesselLon = wrap360(
-      (orbit.lan?.magnitude ?? 0) + (orbit.argPe?.magnitude ?? 0) + nu,
+      magnitudeOr(orbit.lan, 0) + magnitudeOr(orbit.argPe, 0) + nu,
     );
 
     const out = new Map<number, number>();
