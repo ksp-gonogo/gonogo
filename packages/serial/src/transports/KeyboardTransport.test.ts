@@ -132,10 +132,12 @@ describe("KeyboardTransport", () => {
     });
 
     it("emits nothing for a key typed into a contenteditable", () => {
-      // The attribute, not the `contentEditable` property: jsdom implements
-      // neither that property nor `isContentEditable`, so setting it would
-      // leave the element indistinguishable from a plain div and this test
-      // would be asserting nothing.
+      /**
+       * The attribute, not the `contentEditable` property: jsdom implements
+       * neither that property nor `isContentEditable`, so setting it would
+       * leave the element indistinguishable from a plain div and this test
+       * would be asserting nothing.
+       */
       const editable = document.createElement("div");
       editable.setAttribute("contenteditable", "true");
       const inner = document.createElement("span");

@@ -67,8 +67,8 @@ export const KEYBOARD_TYPE: DeviceType = {
   id: "keyboard",
   name: "Keyboard",
   // Nominal, as for the gamepad placeholder: KeyboardTransport reads DOM key
-  // events and never runs a parser. "json-state" is what every other
-  // device-authored type carries.
+  // events and never runs a parser. Every other device-authored type carries
+  // "json-state" too.
   parser: "json-state",
   inputs: [...KEYBOARD_INPUTS],
   authoredBy: "device",

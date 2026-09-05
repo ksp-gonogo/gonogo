@@ -111,9 +111,11 @@ function isTextEntry(el: Element | null): boolean {
     return true;
   }
   const tag = el.tagName;
-  // Every <input> counts, not just the text-shaped ones: a checkbox or a
-  // range input answers to Space and the arrow keys respectively, and both
-  // are the operator typing at the page rather than at a widget.
+  /**
+   * Every <input> counts, not just the text-shaped ones: a checkbox or a range
+   * input answers to Space and the arrow keys respectively, and both are the
+   * operator typing at the page rather than at a widget.
+   */
   if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
   const role = el.getAttribute("role");
   return role !== null && TEXT_ENTRY_ROLES.has(role);
