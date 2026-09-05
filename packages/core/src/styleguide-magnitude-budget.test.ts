@@ -106,12 +106,14 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // consumer DOES with it is arithmetic on a quality ladder (a bitrate rung, how
   // much noise to mix) rather than anything in a dimension, and no `Unit` ever
   // renders it. What is unwrapped here is also the thing being CHECKED: the
-  // 0..1 promise is re-kept on arrival, and a rating that came back non-finite
-  // has to be told from one that merely overshot, which no comparison on the
-  // algebra can do (a NaN compares false in both directions and would pass
-  // through as "not degraded"). Doing it once here is the point: the alternative
-  // is every consumer unwrapping and clamping at its own call site, which is the
+  // 0..1 promise is re-kept on arrival, and doing it once here is the point: the
+  // alternative is every consumer clamping at its own call site, which is the
   // shape `1 - comms.signalStrength` already took.
+  //
+  // ONE, and only because `DegradeRating.level` is a plain number on the way
+  // out. The non-finite check is `Value.isFinite()` and the clamp is
+  // `.max(0).min(1)`, both in the algebra. This file used to unwrap for all
+  // three, which is exactly the escape `isFinite()` was added to retire.
   "mod/sitrep-sdk/src/comms-degrade.ts": 1,
   // 1, in `frameVector`, and this file exists so that number stays 1. The frame
   // arithmetic works in bare metres throughout (a rotation matrix has no unit to

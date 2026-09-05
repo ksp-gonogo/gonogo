@@ -49,12 +49,14 @@ export interface DegradeRating {
 export function degradeRatingOf(
   payload: CommsDegrade | undefined,
 ): DegradeRating | undefined {
-  const level = payload?.level?.magnitude;
-  if (level === undefined || !Number.isFinite(level)) {
+  const level = payload?.level;
+  if (!level?.isFinite()) {
     return undefined;
   }
   return {
-    level: Math.min(1, Math.max(0, level)),
+    // Clamped in the algebra, then unwrapped ONCE because `DegradeRating.level`
+    // is a plain number on the way out.
+    level: level.max(0).min(1).magnitude,
     modelId: payload?.modelId ?? "",
     modelName: payload?.modelName ?? "",
   };
