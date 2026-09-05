@@ -1,6 +1,10 @@
 import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import { parseServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import type { Transport, TransportStatus } from "./transport";
+import type {
+  Transport,
+  TransportStatus,
+  UndeliveredCommand,
+} from "./transport";
 
 /**
  * Minimal structural view of the parts of the DOM `WebSocket` this transport
@@ -107,6 +111,20 @@ export const MAX_PENDING_COMMANDS = 64;
 export const SEND_QUEUE_FULL = "E_SEND_QUEUE_FULL";
 
 /**
+ * What the operator is told about a command that was still queued when this
+ * connection stopped retrying.
+ *
+ * Says the thing that is TRUE and useful, and stops there: it never left, so
+ * nothing over there ran it, so sending it again cannot do it twice. That last
+ * clause is the whole difference between this and a lost command, which carries
+ * the opposite advice for the opposite reason.
+ */
+export const UNDELIVERED_REASON =
+  "not sent: the link never came back and this connection has stopped " +
+  "retrying. It never left this machine, so nothing ran it. Reconnect and " +
+  "send it again.";
+
+/**
  * A live `Transport` over a Sitrep mod WebSocket (`ws://<host>:<port>`,
  * default port 8090: the `GonogoAddon`/Fleck server).
  *
@@ -162,6 +180,9 @@ export class WebSocketTransport implements Transport {
   >();
   private readonly statusListeners = new Set<
     (status: TransportStatus) => void
+  >();
+  private readonly undeliveredListeners = new Set<
+    (command: UndeliveredCommand) => void
   >();
 
   /** Topics with a live `subscribe` (no matching `unsubscribe`), re-sent on every fresh open. */
@@ -234,6 +255,10 @@ export class WebSocketTransport implements Transport {
    *   command `lost`, and an `error` correlated to a lost requestId is read as
    *   proof the mod received it (`handleCommandError` flips it to `found`).
    *   Evicting later would therefore have to lie about where the command got to
+   *
+   * A queue also needs an END, and the cap is not one: what is admitted still
+   * has to be answered if the link never returns. {@link abandonQueue} is that
+   * answer, on a channel of its own for the reason the second bullet gives.
    */
   send(message: ClientMessage): void {
     if (message.type === "subscribe") {
@@ -294,6 +319,12 @@ export class WebSocketTransport implements Transport {
     return () => this.statusListeners.delete(listener);
   }
 
+  /** See `Transport.onUndelivered`, and {@link abandonQueue} for when it fires. */
+  onUndelivered(listener: (command: UndeliveredCommand) => void): () => void {
+    this.undeliveredListeners.add(listener);
+    return () => this.undeliveredListeners.delete(listener);
+  }
+
   /**
    * Permanently tear down: stop retrying, close the socket, and drop all
    * listeners. Idempotent. After this the transport never reconnects, a new
@@ -307,6 +338,7 @@ export class WebSocketTransport implements Transport {
     ws?.close();
     this.messageListeners.clear();
     this.statusListeners.clear();
+    this.undeliveredListeners.clear();
     this.setStatus("disconnected");
   }
 
@@ -393,6 +425,12 @@ export class WebSocketTransport implements Transport {
 
     if (this.now() - this.retryStart >= this.retryTimeoutMs) {
       this.retryStart = null;
+      /*
+       * Say so BEFORE the status change, so a listener that reacts to
+       * `disconnected` by tearing the client down finds the queue already
+       * accounted for rather than silently disposed with commands in it.
+       */
+      this.abandonQueue();
       this.setStatus("disconnected"); // gave up: a manual reconnect is needed
       return;
     }
@@ -402,6 +440,46 @@ export class WebSocketTransport implements Transport {
       this.retryTimer = null;
       this.open();
     }, this.retryIntervalMs);
+  }
+
+  /**
+   * Hand back every command still waiting for a link that is not coming back.
+   *
+   * The queue is bounded, so nothing grows without limit; what it was still
+   * missing is an END. Nothing reopens a socket after the give-up branch
+   * (`open` is only ever reached from `scheduleRetry`, and `dispose` is final),
+   * so a command left here would sit in memory for the life of the tab, never
+   * sent and never mentioned. The operator would have been told, minutes
+   * earlier, that it was `lost`, which says the far side MIGHT have run it: the
+   * exact opposite of what is true.
+   *
+   * Drained rather than kept, because holding what has already been accounted
+   * for is how a second give-up reports the same command twice.
+   *
+   * Not called from `dispose()`, which is the other permanent end and is
+   * already answered: `TelemetryClient.dispose` rejects every command still in
+   * flight (`E_DISPOSED`), so nothing is silent there. This is the path with no
+   * such backstop.
+   */
+  private abandonQueue(): void {
+    const stranded = this.pendingCommands.splice(0);
+    for (const message of stranded) {
+      for (const listener of this.undeliveredListeners) {
+        try {
+          listener({
+            requestId: message.requestId,
+            reason: UNDELIVERED_REASON,
+          });
+        } catch (error) {
+          // One throwing listener must not strand the commands behind it, the
+          // same isolation contract `deliver` holds for message fan-out.
+          console.error(
+            "WebSocketTransport: undelivered listener threw",
+            error,
+          );
+        }
+      }
+    }
   }
 
   private stopRetrying(): void {

@@ -2,7 +2,7 @@
 // or fix the code, but do not hand-edit the counts: the next regeneration
 // overwrites them, and the gate grades this file against the ratchet base ref.
 /**
- * Assertions that escape `unknown`, per file. The tree carries 641 of them
+ * Assertions that escape `unknown`, per file. The tree carries 619 of them
  * across 268 files.
  *
  * `unknown` is the correct return for a genuine boundary: a wire payload, a
@@ -35,7 +35,7 @@
  * type guard over the field, so a producer that renames the field breaks the
  * build instead of returning `undefined` forever.
  *
- * **A test fixture minted through an assertion.** 393 of the 641 are
+ * **A test fixture minted through an assertion.** 371 of the 619 are
  * in test files, which is not a lesser problem: the fixture carrying the same
  * wrong shape as the code is precisely how the Principia defect stayed green.
  * REMOVED BY minting the value through the generated contract type or a real
@@ -50,7 +50,7 @@
  * In that order. The wire reads come first because they are the category the
  * defect came from and the only one that can be wrong SILENTLY at runtime; the
  * DOM boundaries come last because a wrong one throws immediately and loudly.
- * 268 of the 641 are `as unknown as`, and those are worth taking
+ * 246 of the 619 are `as unknown as`, and those are worth taking
  * out of whichever category they sit in first: the double exists only because
  * the compiler already refused the conversion once.
  *
@@ -82,7 +82,7 @@
  * commit as the narrow you wrote.
  */
 export const UNKNOWN_CAST_DEBT: Record<string, number> = {
-  // packages/app: 164 in 62 files (19 out of `any`, 134 in tests), walked 332 files
+  // packages/app: 144 in 62 files (19 out of `any`, 114 in tests), walked 355 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 2,
@@ -132,7 +132,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/app/src/settings/SettingsModal.test.tsx": 6,
   "packages/app/src/sound/audio.ts": 1,
   "packages/app/src/telemetry/KspCalendarObserver.undefined.characterise.test.tsx": 1,
-  "packages/app/src/telemetry/PeerTransport.test.ts": 21,
+  "packages/app/src/telemetry/PeerTransport.test.ts": 1,
   "packages/app/src/telemetry/SitrepPeerRelay.test.tsx": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx": 2,
   "packages/app/src/test/fakeAudio.ts": 1,
@@ -198,7 +198,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/test/widgetDomSnapshot.tsx": 3,
   "packages/components/src/TransferWindow/undefined.characterise.test.tsx": 2,
   "packages/components/src/WarpControl/dual-run.test.tsx": 1,
-  // packages/core: 73 in 33 files (18 out of `any`, 68 in tests), walked 205 files
+  // packages/core: 73 in 33 files (18 out of `any`, 68 in tests), walked 206 files
   "packages/core/src/actionGroups.undefined.characterise.test.tsx": 3,
   "packages/core/src/asyncapi-document.test.ts": 16,
   "packages/core/src/contract-version-parity.test.ts": 1,
@@ -245,7 +245,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/relay/src/__tests__/analyticsConfig.test.ts": 2,
   "packages/relay/src/__tests__/discoverPublicIp.test.ts": 2,
   "packages/relay/src/version.ts": 1,
-  // packages/serial: 21 in 8 files (10 out of `any`, 9 in tests), walked 68 files
+  // packages/serial: 21 in 8 files (10 out of `any`, 9 in tests), walked 72 files
   "packages/serial/src/mocks/mockGamepad.test.ts": 1,
   "packages/serial/src/mocks/mockGamepad.ts": 4,
   "packages/serial/src/mocks/mockWebSerial.ts": 4,
@@ -254,7 +254,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/serial/src/SerialDevicesMenu/DeviceEditor.test.tsx": 3,
   "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.test.tsx": 4,
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 30 in 17 files (5 out of `any`, 28 in tests), walked 148 files
+  // packages/sitrep-client: 28 in 17 files (5 out of `any`, 26 in tests), walked 148 files
   "packages/sitrep-client/src/client.test.ts": 2,
   "packages/sitrep-client/src/currency-events.test.tsx": 1,
   "packages/sitrep-client/src/dv-legacy-scalars.test.ts": 3,
@@ -274,7 +274,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/websocket-transport.ts": 1,
   // packages/ui: 2 in 1 files (2 out of `any`, 2 in tests), walked 62 files
   "packages/ui/src/DataKeyMultiPicker.test.tsx": 2,
-  // packages/ui-kit: 21 in 14 files (6 out of `any`, 4 in tests), walked 264 files
+  // packages/ui-kit: 21 in 14 files (6 out of `any`, 4 in tests), walked 278 files
   "packages/ui-kit/src/augments.second-copy.test.ts": 1,
   "packages/ui-kit/src/augments.ts": 1,
   "packages/ui-kit/src/CommandDelay/PanelDelayRail.test.tsx": 1,
@@ -329,7 +329,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/sitrep-kernel/src/broker.test.ts": 2,
   "mod/sitrep-kernel/src/registry.test.ts": 1,
   "mod/sitrep-kernel/src/registry.ts": 2,
-  // mod/sitrep-sdk: 81 in 38 files (19 out of `any`, 24 in tests), walked 277 files
+  // mod/sitrep-sdk: 81 in 38 files (19 out of `any`, 24 in tests), walked 278 files
   "mod/sitrep-sdk/src/api/coverage/CoverageMaskStore.ts": 3,
   "mod/sitrep-sdk/src/api/host.ts": 3,
   "mod/sitrep-sdk/src/api/index.ts": 2,
@@ -383,7 +383,7 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
  * refusing it is the compiler being right.
  */
 export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
-  // packages/app: 116 in 43 files (0 out of `any`, 104 in tests), walked 332 files
+  // packages/app: 96 in 43 files (0 out of `any`, 84 in tests), walked 355 files
   "packages/app/src/__tests__/analytics-consent-peer.test.ts": 1,
   "packages/app/src/__tests__/commcast-roundtrip.test.ts": 2,
   "packages/app/src/__tests__/component-overlay-add.test.tsx": 1,
@@ -418,7 +418,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/app/src/peer/peerOptions.ts": 1,
   "packages/app/src/sound/audio.ts": 1,
   "packages/app/src/telemetry/KspCalendarObserver.undefined.characterise.test.tsx": 1,
-  "packages/app/src/telemetry/PeerTransport.test.ts": 21,
+  "packages/app/src/telemetry/PeerTransport.test.ts": 1,
   "packages/app/src/telemetry/SitrepPeerRelay.test.tsx": 1,
   "packages/app/src/telemetry/StationParity.characterise.test.tsx": 2,
   "packages/app/src/test/fakeAudio.ts": 1,
@@ -455,7 +455,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/components/src/Targeting/reading.test.tsx": 1,
   "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
   "packages/components/src/test/widgetDomSnapshot.tsx": 3,
-  // packages/core: 7 in 5 files (0 out of `any`, 4 in tests), walked 205 files
+  // packages/core: 7 in 5 files (0 out of `any`, 4 in tests), walked 206 files
   "packages/core/src/actionGroups.undefined.characterise.test.tsx": 3,
   "packages/core/src/hooks/defineTopicManifest.ts": 1,
   "packages/core/src/settings/gameHost.ts": 1,
@@ -465,12 +465,12 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/logger/src/AxiomTransport.ts": 3,
   // packages/relay: 2 in 1 files (0 out of `any`, 2 in tests), walked 12 files
   "packages/relay/src/__tests__/discoverPublicIp.test.ts": 2,
-  // packages/serial: 11 in 4 files (0 out of `any`, 1 in tests), walked 68 files
+  // packages/serial: 11 in 4 files (0 out of `any`, 1 in tests), walked 72 files
   "packages/serial/src/mocks/mockGamepad.ts": 4,
   "packages/serial/src/mocks/mockWebSerial.ts": 4,
   "packages/serial/src/SerialDeviceService.test.ts": 1,
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 23 in 11 files (0 out of `any`, 22 in tests), walked 148 files
+  // packages/sitrep-client: 21 in 11 files (0 out of `any`, 20 in tests), walked 148 files
   "packages/sitrep-client/src/currency-events.test.tsx": 1,
   "packages/sitrep-client/src/dv-legacy-scalars.test.ts": 3,
   "packages/sitrep-client/src/dv-stage-resources.test.ts": 2,
@@ -482,7 +482,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/vessel-state.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.test.ts": 3,
   "packages/sitrep-client/src/websocket-transport.ts": 1,
-  // packages/ui-kit: 11 in 6 files (0 out of `any`, 3 in tests), walked 264 files
+  // packages/ui-kit: 11 in 6 files (0 out of `any`, 3 in tests), walked 278 files
   "packages/ui-kit/src/augments.ts": 1,
   "packages/ui-kit/src/CommandDelay/PanelDelayRail.test.tsx": 1,
   "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
@@ -503,7 +503,7 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "mod/GonogoPrincipiaUplink/client/src/PlanSlots/index.tsx": 1,
   // mod/GonogoRealAntennasUplink/client: 1 in 1 files (0 out of `any`, 1 in tests), walked 15 files
   "mod/GonogoRealAntennasUplink/client/src/hopExt.test.ts": 1,
-  // mod/sitrep-sdk: 26 in 15 files (0 out of `any`, 9 in tests), walked 277 files
+  // mod/sitrep-sdk: 26 in 15 files (0 out of `any`, 9 in tests), walked 278 files
   "mod/sitrep-sdk/src/api/host.ts": 3,
   "mod/sitrep-sdk/src/api/index.ts": 2,
   "mod/sitrep-sdk/src/api/logger.test.ts": 1,
@@ -535,8 +535,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  */
 export const SCAN_FLOORS = {
   roots: 25,
-  files: 2208,
-  assertions: 2007,
+  files: 2247,
+  assertions: 1979,
 } as const;
 
 /**
@@ -549,18 +549,18 @@ export const SCAN_FLOORS = {
  * a root that collapsed.
  */
 export const ROOT_FILE_FLOORS: Record<string, number> = {
-  "packages/app": 265,
+  "packages/app": 284,
   "packages/components": 524,
   "packages/core": 164,
   "packages/data": 42,
   "packages/logger": 8,
   "packages/relay": 9,
-  "packages/serial": 54,
+  "packages/serial": 57,
   "packages/sitrep-client": 118,
   "packages/test-utils": 1,
   "packages/theme": 3,
   "packages/ui": 49,
-  "packages/ui-kit": 211,
+  "packages/ui-kit": 222,
   "mod/GonogoAvionicsUplink/client": 12,
   "mod/GonogoBreakingGroundUplink/client": 19,
   "mod/GonogoFerramAerospaceResearchUplink/client": 12,
@@ -572,6 +572,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "mod/GonogoRealFuelsUplink/client": 10,
   "mod/GonogoRp1Uplink/client": 68,
   "mod/sitrep-kernel": 12,
-  "mod/sitrep-sdk": 221,
+  "mod/sitrep-sdk": 222,
   "mod/sitrep-server": 10,
 };

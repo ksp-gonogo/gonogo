@@ -75,6 +75,27 @@ export interface CommandLoss {
 }
 
 /**
+ * One dispatch that never left this machine, as a widget surface renders it.
+ *
+ * A {@link CommandLoss} whose doubt has been RESOLVED, and resolved the other
+ * way from a {@link CommandFound}: the transport held it for a link that never
+ * came back and has now stopped retrying, so it reached no wire, no mod and no
+ * game. Nothing ran.
+ *
+ * That is a stronger claim than `lost` and it is the useful one. `lost` earns
+ * its caution, "whether it ran is unknown", from a command that may be sitting
+ * in a queue on the far side; this one is sitting in a queue on THIS side, so
+ * re-sending it cannot double anything and the operator can act on that.
+ *
+ * It carries everything the loss did, so a surface drawing the loss can draw
+ * this in its place, plus the transport's own reason.
+ */
+export interface CommandUndelivered extends CommandLoss {
+  /** Why it will never go, in the transport's own words. */
+  reason: string;
+}
+
+/**
  * One dispatch that was called lost and then answered after all, as a widget
  * surface renders it.
  *
@@ -136,6 +157,11 @@ export type CommandFoundOutcome =
  *
  * - `lost`: no answer arrived by the predicted deadline. Nothing was decided,
  *   and the command may well have executed anyway
+ * - `undelivered`: it never left this machine. The transport held it for a link
+ *   that never came back and has stopped retrying, so nothing over there ever
+ *   saw it. Distinct from `lost` because it answers the question `lost` leaves
+ *   open, and distinct from `failed` because nothing broke: the link went and
+ *   did not return
  * - `failed`: the machinery broke. A handler threw, a result would not
  *   serialize, the client was disposed mid-flight. Carries a free-text
  *   `message` because the cause is not an enumerable game state, and a retry
@@ -160,6 +186,14 @@ export type CommandFoundOutcome =
  * prevents the execution, because preventing it would trade an honest
  * uncertainty for a false certainty and lose the property that makes `lost`
  * worth having.
+ *
+ * `undelivered` is the OTHER way that doubt ends, and it is why a stranded
+ * command needed a phase rather than an `error` frame. Both of the channels a
+ * reply arrives on read a message correlated to a `lost` requestId as proof the
+ * mod received the command, and move it to `found`; answering a command that
+ * never left the browser that way would assert the opposite of the truth. So it
+ * comes off `Transport.onUndelivered` instead, a channel no server writes to,
+ * and it is terminal for good: nothing can answer a command nothing was sent.
  */
 export type CommandStatus =
   | { phase: "idle" }
@@ -176,6 +210,7 @@ export type CommandStatus =
       errorCode: CommandErrorCode;
     } & Partial<CommandRefusalDetail>)
   | { phase: "lost"; requestId: string; reason: string }
+  | { phase: "undelivered"; requestId: string; reason: string }
   | ({ phase: "found"; requestId: string } & CommandFoundOutcome);
 
 /**

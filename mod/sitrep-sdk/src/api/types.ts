@@ -1062,6 +1062,7 @@ import type {
   CommandLoss,
   CommandRefusal,
   CommandStatus,
+  CommandUndelivered,
 } from "../spine/lifecycle";
 
 export type { CommandGateStatus } from "../spine/command-gate";
@@ -1072,6 +1073,7 @@ export type {
   CommandRefusal,
   CommandRefusalDetail,
   CommandStatus,
+  CommandUndelivered,
 } from "../spine/lifecycle";
 
 /**
@@ -1166,6 +1168,10 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    *  all, until dismissed. An entry here has left `losses`. See the spine's
    *  `UseCommandResult.founds`. */
   founds: CommandFound[];
+  /** Dispatches from this hook that NEVER LEFT this machine, until dismissed.
+   *  An entry here has left `losses` too, and unlike a loss it is safe to send
+   *  again. See the spine's `UseCommandResult.undelivered`. */
+  undelivered: CommandUndelivered[];
   /** What the mod says about this command in ADVANCE, off `system.uplink.gates`;
    *  `undefined` when nothing is known. See the spine's `CommandGateStatus`. */
   gate?: CommandGateStatus;

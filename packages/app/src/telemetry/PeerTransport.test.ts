@@ -1,6 +1,11 @@
+import type { UndeliveredCommand } from "@ksp-gonogo/sitrep-client";
 import { TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import {
+  COMMAND_UNDELIVERED,
+  Quality,
+  Staleness,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
 import { PeerTransport } from "./PeerTransport";
@@ -93,6 +98,17 @@ function makeFakeClient(initialStatus: ConnStatus = "connected") {
   return fake;
 }
 
+/**
+ * The fake as the service `PeerTransport` takes.
+ *
+ * One assertion for the whole file, at the single boundary the duck-typed fake
+ * exists to stand in for, rather than the same one repeated at every
+ * construction.
+ */
+function asService(fake: ReturnType<typeof makeFakeClient>): PeerClientService {
+  return fake as unknown as PeerClientService;
+}
+
 function makeMeta(overrides: Partial<Meta> = {}): Meta {
   return {
     source: "test",
@@ -111,34 +127,30 @@ function makeMeta(overrides: Partial<Meta> = {}): Meta {
 describe("PeerTransport", () => {
   it("reads the initial status from client.getConnStatus() at construction", () => {
     const connected = makeFakeClient("connected");
-    expect(
-      new PeerTransport(connected as unknown as PeerClientService).status,
-    ).toBe("connected");
+    expect(new PeerTransport(asService(connected)).status).toBe("connected");
 
     const idle = makeFakeClient("idle");
-    expect(new PeerTransport(idle as unknown as PeerClientService).status).toBe(
+    expect(new PeerTransport(asService(idle)).status).toBe("reconnecting");
+
+    const connecting = makeFakeClient("connecting");
+    expect(new PeerTransport(asService(connecting)).status).toBe(
       "reconnecting",
     );
 
-    const connecting = makeFakeClient("connecting");
-    expect(
-      new PeerTransport(connecting as unknown as PeerClientService).status,
-    ).toBe("reconnecting");
-
     const reconnecting = makeFakeClient("reconnecting");
-    expect(
-      new PeerTransport(reconnecting as unknown as PeerClientService).status,
-    ).toBe("reconnecting");
+    expect(new PeerTransport(asService(reconnecting)).status).toBe(
+      "reconnecting",
+    );
 
     const disconnected = makeFakeClient("disconnected");
-    expect(
-      new PeerTransport(disconnected as unknown as PeerClientService).status,
-    ).toBe("disconnected");
+    expect(new PeerTransport(asService(disconnected)).status).toBe(
+      "disconnected",
+    );
   });
 
   it("forwards status changes to onStatusChange listeners", () => {
     const client = makeFakeClient("reconnecting");
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const statuses: string[] = [];
     transport.onStatusChange((s) => statuses.push(s));
 
@@ -152,7 +164,7 @@ describe("PeerTransport", () => {
 
   it("fans out a relayed stream-data frame to onMessage listeners verbatim", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const received: ServerMessage[] = [];
     transport.onMessage((m) => received.push(m));
 
@@ -169,7 +181,7 @@ describe("PeerTransport", () => {
 
   it("synthesizes a bare command-response ServerMessage from onSitrepCommandResponse", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const received: ServerMessage[] = [];
     transport.onMessage((m) => received.push(m));
 
@@ -183,7 +195,7 @@ describe("PeerTransport", () => {
 
   it("synthesizes a bare error ServerMessage from onSitrepCommandError", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const received: ServerMessage[] = [];
     transport.onMessage((m) => received.push(m));
 
@@ -199,9 +211,34 @@ describe("PeerTransport", () => {
     ]);
   });
 
+  it("reports the host's stranded command as undelivered, never as an error frame", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    const undelivered: UndeliveredCommand[] = [];
+    transport.onMessage((m) => received.push(m));
+    transport.onUndelivered((c) => undelivered.push(c));
+
+    client.emitCommandError(
+      "c0",
+      COMMAND_UNDELIVERED,
+      "the link never came back",
+    );
+
+    expect(undelivered).toEqual([
+      { requestId: "c0", reason: "the link never came back" },
+    ]);
+    /*
+     * The host queued this station's command and then stopped retrying, so it
+     * never left the host either. As an `error` frame it would reach a station
+     * that had already called the command `lost` as proof the mod received it.
+     */
+    expect(received).toEqual([]);
+  });
+
   it("send() routes a command-request to client.sendSitrepCommand", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
 
     transport.send({
       type: "command-request",
@@ -226,7 +263,7 @@ describe("PeerTransport", () => {
 
   it("send() forwards label and topic from the command-request envelope", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
 
     transport.send({
       type: "command-request",
@@ -251,7 +288,7 @@ describe("PeerTransport", () => {
 
   it("send() puts subscribe/unsubscribe on the wire, so the host learns what this station reads", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
 
     transport.send({ type: "subscribe", topic: "vessel.orbit" });
     transport.send({ type: "unsubscribe", topic: "vessel.orbit" });
@@ -265,7 +302,7 @@ describe("PeerTransport", () => {
 
   it("re-sends its live subscriptions on a fresh connection", () => {
     const client = makeFakeClient("connected");
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     transport.send({ type: "subscribe", topic: "vessel.orbit" });
     transport.send({ type: "subscribe", topic: "vessel.flight" });
     transport.send({ type: "unsubscribe", topic: "vessel.flight" });
@@ -284,7 +321,7 @@ describe("PeerTransport", () => {
 
   it("refuses a vantage selection outright, rather than making one it cannot honour", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const telemetry = new TelemetryClient(transport);
     telemetry.subscribe("vessel.orbit", () => {});
     telemetry.subscribe("vessel.flight", () => {});
@@ -305,7 +342,7 @@ describe("PeerTransport", () => {
 
   it("drops set-vantage, which moves the whole host session rather than one station", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
 
     transport.send({ type: "set-vantage", centreId: "ksc" });
 
@@ -315,7 +352,7 @@ describe("PeerTransport", () => {
 
   it("dispose() detaches every listener so later client events are ignored", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const received: ServerMessage[] = [];
     transport.onMessage((m) => received.push(m));
     const statuses: string[] = [];
@@ -337,7 +374,7 @@ describe("PeerTransport", () => {
 
   it("isolates a throwing onMessage listener from sibling listeners", () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const consoleError = vi
       .spyOn(console, "error")
       .mockImplementation(() => {});
@@ -361,7 +398,7 @@ describe("PeerTransport", () => {
 
   it("end-to-end: a TelemetryClient.dispatch() over PeerTransport resolves when the host's command-response arrives", async () => {
     const client = makeFakeClient();
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const telemetryClient = new TelemetryClient(transport);
 
     const { requestId, result } = telemetryClient.dispatch(
@@ -389,7 +426,7 @@ describe("PeerTransport", () => {
 
   it("send() synthesizes an error on a later tick instead of silently dropping a command sent with no live connection", async () => {
     const client = makeFakeClient("disconnected");
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const received: ServerMessage[] = [];
     transport.onMessage((m) => received.push(m));
 
@@ -423,7 +460,7 @@ describe("PeerTransport", () => {
 
   it("fails a command still in flight when the connection drops mid-flight, instead of hanging forever", async () => {
     const client = makeFakeClient("connected");
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const telemetryClient = new TelemetryClient(transport);
 
     const { result } = telemetryClient.dispatch("vessel.control.setSas", {
@@ -438,7 +475,7 @@ describe("PeerTransport", () => {
 
   it("a dropped command that already settled via a real response is not double-settled by a later status drop", async () => {
     const client = makeFakeClient("connected");
-    const transport = new PeerTransport(client as unknown as PeerClientService);
+    const transport = new PeerTransport(asService(client));
     const telemetryClient = new TelemetryClient(transport);
 
     const { requestId, result } = telemetryClient.dispatch(

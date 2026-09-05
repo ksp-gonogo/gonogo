@@ -8,6 +8,20 @@ export type TransportStatus =
   | "error";
 
 /**
+ * One command-request a transport accepted and can now never deliver.
+ *
+ * The `reason` is the transport's own words, kept out of the wire's `error`
+ * frame vocabulary deliberately: this never reached a server, so no server
+ * code applies to it.
+ */
+export interface UndeliveredCommand {
+  /** The dispatch's own `requestId`, as it was handed to `send`. */
+  requestId: string;
+  /** Why it will never go, in a sentence a surface can show an operator. */
+  reason: string;
+}
+
+/**
  * A dumb typed message pipe between the app and a telemetry source.
  *
  * Transports know nothing about topics, subscriptions, or commands beyond
@@ -27,6 +41,29 @@ export interface Transport {
 
   /** Register a listener for status changes. Returns an unsubscribe function. */
   onStatusChange(listener: (status: TransportStatus) => void): () => void;
+
+  /**
+   * OPTIONAL: report a command-request this transport took and will now never
+   * put on a wire, because it has permanently stopped trying.
+   *
+   * A channel of its own, and NOT a synthetic `error` frame through
+   * `onMessage`, which is the shape that looks cheaper and is wrong. An `error`
+   * correlated to a requestId the client has already called `lost` is read as
+   * proof the mod RECEIVED the command: `TelemetryClient.handleCommandError`
+   * moves it to `found`. Answering a stranded command that way would claim a
+   * command that never left the browser had reached the game.
+   *
+   * What the client does with it is the opposite claim, and a stronger one than
+   * `lost`: the command is settled `undelivered`, which says it did not run.
+   * Only report a command that genuinely never went out; a transport that
+   * cannot tell simply does not implement this, and its commands stay `lost`,
+   * which is the honest answer for "we do not know".
+   *
+   * Omitted by every transport that has no queue to strand anything in
+   * (`StubTransport`, `ReplayTransport`, `CourierTransport`) and by
+   * `PeerTransport`, which refuses a command at the press instead of holding it.
+   */
+  onUndelivered?(listener: (command: UndeliveredCommand) => void): () => void;
 
   /**
    * OPTIONAL: if a command were dispatched right now, the absolute UT this

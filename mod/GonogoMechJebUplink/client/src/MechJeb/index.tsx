@@ -93,6 +93,12 @@ function commandChip(
       return { severity: "critical", text: "refused" };
     case "lost":
       return { severity: "critical", text: "no reply" };
+    case "undelivered":
+      // The link never came back and the command was still queued here, so it
+      // reached no autopilot at all. Still `critical`, because the vessel is
+      // not doing what was asked, but a different sentence from the one above:
+      // "no reply" leaves an operator wondering whether MechJeb took it.
+      return { severity: "critical", text: "not sent" };
     case "found":
       // The command reported above as "no reply" turned out to have arrived.
       // `info`, not `nominal`: it is the most interesting thing on an otherwise

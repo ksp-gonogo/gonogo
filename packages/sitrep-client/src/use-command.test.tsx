@@ -15,7 +15,11 @@ import { TelemetryProvider } from "./context";
 import { createFakeWallClock } from "./fake-wall-clock";
 import { makeMeta, StubTransport } from "./stub-transport";
 import { TimelineStore } from "./timeline-store";
-import type { Transport, TransportStatus } from "./transport";
+import type {
+  Transport,
+  TransportStatus,
+  UndeliveredCommand,
+} from "./transport";
 import { useCommand } from "./use-command";
 import { ViewClock } from "./view-clock";
 
@@ -81,6 +85,9 @@ class EtaTransport implements Transport {
   private readonly messageListeners = new Set<
     (message: ServerMessage) => void
   >();
+  private readonly undeliveredListeners = new Set<
+    (command: UndeliveredCommand) => void
+  >();
 
   constructor(private readonly eta: number | undefined) {}
 
@@ -105,6 +112,19 @@ class EtaTransport implements Transport {
    *  it flushes what it queued while the link was down. */
   deliver(message: ServerMessage): void {
     for (const listener of this.messageListeners) listener(message);
+  }
+
+  onUndelivered(listener: (command: UndeliveredCommand) => void): () => void {
+    this.undeliveredListeners.add(listener);
+    return () => this.undeliveredListeners.delete(listener);
+  }
+
+  /** The give-up: what `WebSocketTransport` does with what it queued when the
+   *  link never comes back and it stops retrying. */
+  abandon(requestId: string, reason = "the link never came back"): void {
+    for (const listener of this.undeliveredListeners) {
+      listener({ requestId, reason });
+    }
   }
 }
 
@@ -682,6 +702,143 @@ describe("useCommand founds", () => {
 
     fireEvent.click(screen.getByText("clear"));
     expect(screen.getByText("founds:0")).toBeTruthy();
+  });
+});
+
+// ── undelivered: a dispatch that never left this machine ─────────────────
+
+/**
+ * The third way a dispatch ends without an answer, and the only one that is
+ * GOOD news.
+ *
+ * A command pressed while the link is down is held by the transport for the
+ * next open. If the link comes back it goes, late (that is the `founds` story
+ * above). If it never comes back, the transport eventually stops retrying, and
+ * what it is still holding can now never be sent by anyone. The operator has
+ * been looking at "no reply, whether it ran is unknown" the whole time, and the
+ * truth is stronger: it never left, so nothing ran it, so pressing it again
+ * cannot do it twice.
+ */
+function DeployWithUndelivered() {
+  const cmd = useCommand("deploy");
+  return (
+    <div>
+      <button type="button" onClick={() => void cmd.send(1).catch(() => {})}>
+        go
+      </button>
+      <span>phase:{cmd.status.phase}</span>
+      <span>losses:{cmd.losses.length}</span>
+      <span>undelivered:{cmd.undelivered.length}</span>
+      <span>
+        unsentCommands:{cmd.undelivered.map((u) => u.command).join(",")}
+      </span>
+      <span>
+        unsentReasons:{cmd.undelivered.map((u) => u.reason).join(",")}
+      </span>
+      <button
+        type="button"
+        onClick={() => cmd.dismiss(cmd.undelivered[0]?.id ?? "")}
+      >
+        clear
+      </button>
+      <CommandDelay handle={cmd} />
+    </div>
+  );
+}
+
+describe("useCommand undelivered", () => {
+  /** The requestId the one dispatch got, as in the founds suite above. */
+  const ONLY_REQUEST = "c0";
+
+  function renderQueued() {
+    const clock = new FakeClock(0);
+    const transport = new EtaTransport(4);
+    const client = new TelemetryClient(transport, clock);
+    render(
+      <TelemetryProvider client={client}>
+        <DeployWithUndelivered />
+      </TelemetryProvider>,
+    );
+    fireEvent.click(screen.getByText("go"));
+    return { clock, transport };
+  }
+
+  it("promotes a loss when the transport says the command never left", async () => {
+    const { clock, transport } = renderQueued();
+    await act(async () => {
+      clock.advanceTo(4 + LOSS_MARGIN);
+    });
+    expect(screen.getByText("losses:1")).toBeTruthy();
+
+    await act(async () => {
+      transport.abandon(ONLY_REQUEST, "the link never came back");
+    });
+
+    // Moved, not duplicated, exactly as a found is: one dispatch, one box, one
+    // dismiss.
+    expect(screen.getByText("losses:0")).toBeTruthy();
+    expect(screen.getByText("undelivered:1")).toBeTruthy();
+    expect(screen.getByText("phase:undelivered")).toBeTruthy();
+    // It carries what the loss carried, so a surface can still say WHICH
+    // command, plus the one thing the loss never had: why.
+    expect(screen.getByText("unsentCommands:deploy")).toBeTruthy();
+    expect(
+      screen.getByText("unsentReasons:the link never came back"),
+    ).toBeTruthy();
+  });
+
+  it("collects one that never became a loss, because nothing armed a deadline", async () => {
+    const clock = new FakeClock(0);
+    // No prediction and no delay authority: nothing can settle this dispatch on
+    // silence, so it is still in flight when the link is abandoned. It used to
+    // stay that way for the life of the tab.
+    const transport = new EtaTransport(undefined);
+    const client = new TelemetryClient(transport, clock);
+    render(
+      <TelemetryProvider client={client}>
+        <DeployWithUndelivered />
+      </TelemetryProvider>,
+    );
+    fireEvent.click(screen.getByText("go"));
+    expect(screen.getByText("phase:in-flight")).toBeTruthy();
+
+    await act(async () => {
+      transport.abandon(ONLY_REQUEST);
+    });
+
+    expect(screen.getByText("losses:0")).toBeTruthy();
+    expect(screen.getByText("undelivered:1")).toBeTruthy();
+    expect(screen.getByText("phase:undelivered")).toBeTruthy();
+  });
+
+  it("clears one through the same dismiss the losses and founds use", async () => {
+    const { clock, transport } = renderQueued();
+    await act(async () => {
+      clock.advanceTo(4 + LOSS_MARGIN);
+    });
+    await act(async () => {
+      transport.abandon(ONLY_REQUEST);
+    });
+    expect(screen.getByText("undelivered:1")).toBeTruthy();
+
+    fireEvent.click(screen.getByText("clear"));
+    expect(screen.getByText("undelivered:0")).toBeTruthy();
+  });
+
+  it("collects nothing from a command that answered", async () => {
+    const t = new StubTransport();
+    t.setCommandHandler(() => ({ ok: true }));
+    const client = new TelemetryClient(t);
+    render(
+      <TelemetryProvider client={client}>
+        <DeployWithUndelivered />
+      </TelemetryProvider>,
+    );
+    fireEvent.click(screen.getByText("go"));
+    await waitFor(() =>
+      expect(screen.getByText("phase:confirmed")).toBeTruthy(),
+    );
+    expect(screen.getByText("undelivered:0")).toBeTruthy();
   });
 });
 

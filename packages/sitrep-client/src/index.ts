@@ -412,7 +412,11 @@ export type {
   TimelineStoreOptions,
 } from "./timeline-store";
 export { lerpPayload, TimelineStore } from "./timeline-store";
-export type { Transport, TransportStatus } from "./transport";
+export type {
+  Transport,
+  TransportStatus,
+  UndeliveredCommand,
+} from "./transport";
 export type {
   ContractVersionReading,
   SystemUplinkHealth,

@@ -114,7 +114,11 @@ export type {
 // The message-pipe contract. Defined entirely in terms of this package's own
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
 // here is what lets the transport double ship from `/testing`.
-export type { Transport, TransportStatus } from "./transport";
+export type {
+  Transport,
+  TransportStatus,
+  UndeliveredCommand,
+} from "./transport";
 export type {
   ActionDefinition,
   ActionHandlers,
@@ -1041,6 +1045,7 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
  * source. The three names match the `CommandStatus` phases deliberately.
  */
 export {
+  COMMAND_UNDELIVERED,
   type CommandRejection,
   classifyCommandRejection,
   commandRefusalSubject,

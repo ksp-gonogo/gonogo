@@ -1,5 +1,10 @@
 import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { classifyCommandRejection, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  COMMAND_UNDELIVERED,
+  classifyCommandRejection,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
+import { ManualClock } from "@ksp-gonogo/sitrep-server";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -11,7 +16,7 @@ import {
   it,
   vi,
 } from "vitest";
-import { TelemetryClient } from "./client";
+import { LOSS_MARGIN, TelemetryClient } from "./client";
 import { makeMeta } from "./stub-transport";
 import type { TransportStatus } from "./transport";
 import {
@@ -600,6 +605,177 @@ describe("WebSocketTransport outbound queue", () => {
     // `failed` is the honest one, and it is the outcome that invites the retry.
     expect(rejection?.kind).toBe("failed");
     expect(client.getCommand(overflow.requestId).phase).toBe("failed");
+
+    client.dispose();
+    transport.dispose();
+  });
+
+  /**
+   * A transport whose link never comes back: every socket fails to connect, and
+   * a monotonically advancing `now` walks past the retry budget so
+   * `scheduleRetry` reaches its give-up branch. `giveUp()` drives it there.
+   */
+  function abandonedTransport() {
+    const fakes = makeFakeSocketCtor();
+    let elapsed = 0;
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 1,
+      retryTimeoutMs: 20,
+      WebSocketImpl: fakes.ctor,
+      now: () => {
+        elapsed += 15;
+        return elapsed;
+      },
+    });
+    const giveUp = () =>
+      vi.waitFor(
+        () => {
+          fakes.instances.at(-1)?.fire("close");
+          expect(transport.status).toBe("disconnected");
+        },
+        { timeout: WAIT_TIMEOUT_MS },
+      );
+    return { transport, socket: fakes.instances[0], giveUp };
+  }
+
+  it("reports every command left in the queue when it stops retrying", async () => {
+    const { transport, socket, giveUp } = abandonedTransport();
+    const errors: Array<{ requestId?: string; code: string }> = [];
+    const undelivered: Array<{ requestId: string; reason: string }> = [];
+    transport.onMessage((message) => {
+      if (message.type === "error") errors.push(message);
+    });
+    transport.onUndelivered((command) => undelivered.push(command));
+
+    for (const id of ["r0", "r1", "r2"]) transport.send(commandRequest(id));
+    await flush();
+    // Well under the cap: nothing is refused at the press, so the only thing
+    // that can ever account for these three is the give-up below.
+    expect(errors).toEqual([]);
+
+    await giveUp();
+    await flush();
+
+    // Every one of them, in the order they were pressed, and none of them on
+    // any wire.
+    expect(undelivered.map((command) => command.requestId)).toEqual([
+      "r0",
+      "r1",
+      "r2",
+    ]);
+    expect(deliveredRequestIds(socket)).toEqual([]);
+    /*
+     * NOT on the error channel, which is the whole reason this one exists: an
+     * `error` correlated to a requestId the client has already called `lost` is
+     * read as proof the mod RECEIVED the command (`handleCommandError` flips it
+     * to `found`), and these never left the machine.
+     */
+    expect(errors).toEqual([]);
+
+    transport.dispose();
+  });
+
+  it("reports a stranded command once, and does not go on holding it", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    const undelivered: string[] = [];
+    transport.onUndelivered((command) => undelivered.push(command.requestId));
+
+    transport.send(commandRequest("r0"));
+    await giveUp();
+    await flush();
+    // A second give-up (a late `close` on a socket the loop already abandoned)
+    // must not re-report a queue that is already empty.
+    await giveUp();
+    await flush();
+
+    expect(undelivered).toEqual(["r0"]);
+    transport.dispose();
+  });
+
+  it("says WHY, in words a surface can put in front of the operator", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    const reasons: string[] = [];
+    transport.onUndelivered((command) => reasons.push(command.reason));
+
+    transport.send(commandRequest("r0"));
+    await giveUp();
+    await flush();
+
+    expect(reasons).toHaveLength(1);
+    expect(reasons[0]).toMatch(/never (left|sent)|not sent/i);
+    transport.dispose();
+  });
+
+  it("tells a stranded command it never left, rather than leaving it called lost", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    const ut = new ManualClock(0);
+    const client = new TelemetryClient(transport, ut);
+    // 2s one way, as DelayAuthority reports it off `comms.delay`.
+    client.setDelaySource(() => 2);
+
+    const { requestId, result } = client.dispatch("vessel.staging.activate");
+    const settled = result.then(
+      () => "resolved",
+      (error: unknown) => classifyCommandRejection(error),
+    );
+
+    /*
+     * The loss timer fires long before the transport gives up (a round trip
+     * here is 4s, the give-up budget is minutes), so this is the state the
+     * command is in when the link is abandoned.
+     */
+    ut.advanceTo(4 + LOSS_MARGIN);
+    expect(client.getCommand(requestId).phase).toBe("lost");
+    expect(await settled).toMatchObject({ kind: "lost" });
+
+    await giveUp();
+    await flush();
+
+    // `lost` says WE DO NOT KNOW. Once the transport has stopped retrying we
+    // know: it is still in the queue, it never reached a socket, so nothing
+    // over there ran it. That is a stronger claim and it gets its own phase.
+    expect(client.getCommand(requestId).phase).toBe("undelivered");
+    // And emphatically not `found`, which asserts the mod received it.
+    expect(client.getCommand(requestId).phase).not.toBe("found");
+
+    client.dispose();
+    transport.dispose();
+  });
+
+  it("settles a command still in flight when the link is abandoned", async () => {
+    const { transport, giveUp } = abandonedTransport();
+    // A clock that never advances: the loss timer is armed and never fires, so
+    // nothing but the give-up can end this dispatch's wait.
+    const client = new TelemetryClient(transport, new ManualClock(0));
+    client.setDelaySource(() => 2);
+
+    const { requestId, result } = client.dispatch("vessel.staging.activate");
+    const settled = result.then(
+      () => "resolved",
+      (error: unknown) => classifyCommandRejection(error),
+    );
+
+    await giveUp();
+    await flush();
+
+    const rejection = await Promise.race([
+      settled,
+      new Promise<never>((_, fail) =>
+        setTimeout(
+          () => fail(new Error("the stranded dispatch never settled")),
+          1_000,
+        ),
+      ),
+    ]);
+    // `failed`, for the same reason the at-the-press refusal is: the command
+    // never left this machine, so nothing was decided over there and a retry
+    // cannot double it. The code is what separates it from a broken handler.
+    expect(rejection).toMatchObject({
+      kind: "failed",
+      code: COMMAND_UNDELIVERED,
+    });
+    expect(client.getCommand(requestId).phase).toBe("undelivered");
 
     client.dispose();
     transport.dispose();

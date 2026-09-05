@@ -30,6 +30,10 @@ function chip(): string | undefined {
       return status.error.message;
     case "lost":
       return status.reason;
+    case "undelivered":
+      // Never left this machine, so nothing ran it: the opposite claim to the
+      // arm above, and the reason an author is given both.
+      return `not sent: ${status.reason}`;
     case "found":
       // Lost, then answered. The outcome is what an author branches on, and it
       // is typed per arm the same way `refused` is above.

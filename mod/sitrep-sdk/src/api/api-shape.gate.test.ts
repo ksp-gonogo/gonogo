@@ -15,6 +15,11 @@ import * as barrel from "./index";
  */
 const EXPECTED_BARREL_VALUE_EXPORTS = [
   "AugmentSlot",
+  // The rejection code for a command that never left the machine. Published
+  // because `classifyCommandRejection` reports it as `failed` (see the constant's
+  // own doc), so this string is the only way an author tells "it did not happen"
+  // from "the machinery broke".
+  "COMMAND_UNDELIVERED",
   "DEFAULT_MASK_HEIGHT",
   "DEFAULT_MASK_WIDTH",
   "DEFAULT_PROFILE_ID",

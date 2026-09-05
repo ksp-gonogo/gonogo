@@ -1,6 +1,10 @@
-import type { Transport, TransportStatus } from "@ksp-gonogo/sitrep-client";
+import type {
+  Transport,
+  TransportStatus,
+  UndeliveredCommand,
+} from "@ksp-gonogo/sitrep-client";
 import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { hydratePayload } from "@ksp-gonogo/sitrep-sdk";
+import { COMMAND_UNDELIVERED, hydratePayload } from "@ksp-gonogo/sitrep-sdk";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
 
 /**
@@ -114,6 +118,9 @@ export class PeerTransport implements Transport {
   private readonly statusListeners = new Set<
     (status: TransportStatus) => void
   >();
+  private readonly undeliveredListeners = new Set<
+    (command: UndeliveredCommand) => void
+  >();
   private readonly unsubs: Array<() => void>;
   /** `requestId`s of sitrep commands sent but not yet settled (response/error/drop). */
   private readonly pendingCommandIds = new Set<string>();
@@ -142,6 +149,20 @@ export class PeerTransport implements Transport {
       }),
       client.onSitrepCommandError((requestId, code, message) => {
         this.pendingCommandIds.delete(requestId);
+        /*
+         * The host's own transport gave up while this station's command was
+         * still in its queue, so the command never left the HOST either.
+         * Routed off the error channel deliberately: relayed as an `error` it
+         * would reach a station that had already called the command `lost` as
+         * proof the mod received it, which is the opposite of what happened.
+         * See `Transport.onUndelivered`.
+         */
+        if (code === COMMAND_UNDELIVERED) {
+          for (const listener of this.undeliveredListeners) {
+            listener({ requestId, reason: message });
+          }
+          return;
+        }
         this.deliver({ type: "error", requestId, code, message });
       }),
       client.onConnectionStatus((status) => {
@@ -211,11 +232,23 @@ export class PeerTransport implements Transport {
     return () => this.statusListeners.delete(listener);
   }
 
+  /**
+   * See `Transport.onUndelivered`. This transport strands nothing of its own (a
+   * command pressed with no peer link is refused at the press), so the only
+   * thing reported here is what the HOST could not send: its own queue, given
+   * up on, relayed as `E_UNDELIVERED`.
+   */
+  onUndelivered(listener: (command: UndeliveredCommand) => void): () => void {
+    this.undeliveredListeners.add(listener);
+    return () => this.undeliveredListeners.delete(listener);
+  }
+
   /** Detach from `PeerClientService` and drop all listeners. Idempotent-safe (unsubs are themselves idempotent). */
   dispose(): void {
     for (const unsub of this.unsubs) unsub();
     this.messageListeners.clear();
     this.statusListeners.clear();
+    this.undeliveredListeners.clear();
     this.pendingCommandIds.clear();
     this.subscribedTopics.clear();
   }

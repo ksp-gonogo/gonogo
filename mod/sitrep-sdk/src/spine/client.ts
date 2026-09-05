@@ -1,5 +1,9 @@
 import { CommandErrorCode, type LimitBreach } from "../__generated__/contract";
-import { COMMAND_LOST, COMMAND_REFUSED } from "../api/command-rejection";
+import {
+  COMMAND_LOST,
+  COMMAND_REFUSED,
+  COMMAND_UNDELIVERED,
+} from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import type { ServerMessage } from "../envelope";
 import { warnChannelError } from "./channel-error-warning";
@@ -172,6 +176,8 @@ export class TelemetryClient {
   private readonly observedVantageListeners = new Set<() => void>();
   private readonly unsubscribeFromTransport: () => void;
   private readonly unsubscribeFromTransportStatus: () => void;
+  /** No-op for a transport with no queue to strand anything in: see `Transport.onUndelivered`. */
+  private readonly unsubscribeFromUndelivered: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
   private selectedVantageId = "ksc";
@@ -244,6 +250,10 @@ export class TelemetryClient {
       for (const listener of this.rawMessageListeners) listener(message);
       this.handleMessage(message);
     });
+    this.unsubscribeFromUndelivered =
+      transport.onUndelivered?.((command) =>
+        this.handleUndelivered(command.requestId, command.reason),
+      ) ?? (() => undefined);
     this.unsubscribeFromTransportStatus = transport.onStatusChange((status) => {
       if (!this.ownership) return;
       if (status === "connected") {
@@ -687,6 +697,7 @@ export class TelemetryClient {
   dispose(): void {
     this.unsubscribeFromTransport();
     this.unsubscribeFromTransportStatus();
+    this.unsubscribeFromUndelivered();
     this.ownership?.dispose();
 
     for (const topic of this.subscribers.keys()) {
@@ -940,6 +951,49 @@ export class TelemetryClient {
         "command lost: no confirmation received by predicted ETA",
       ),
     );
+    this.notifyStore();
+  }
+
+  /**
+   * A command the transport is never going to send, because it has stopped
+   * trying (`Transport.onUndelivered`).
+   *
+   * Reaches two different states and answers both, which is why it is not a
+   * branch of the reply handlers:
+   *
+   * - the dispatch is still awaiting an answer, because nothing ever armed a
+   *   loss timer for it (no delay authority, no transport prediction) or the
+   *   deadline has not come round. Its promise is settled here, `failed` with
+   *   `E_UNDELIVERED`: `failed` because nothing was decided over there, and a
+   *   retry is safe rather than doubling anything
+   * - the loss timer already called it `lost` and rejected. That promise is
+   *   spent and is deliberately left alone, exactly as `handleFound` leaves it;
+   *   what moves is the STATUS, from "we do not know" to "it did not happen",
+   *   which is the whole reason a stranded command cannot be answered on the
+   *   error channel. `handleCommandError` reads an error correlated to a lost
+   *   requestId as proof the mod HEARD us
+   *
+   * Any other phase is ignored. A confirmed, refused or found command was
+   * answered by the far side and so plainly did leave; a second report for an
+   * already-`undelivered` command changes nothing.
+   */
+  private handleUndelivered(requestId: string, reason: string): void {
+    const pending = this.commands.get(requestId);
+    if (!pending) return;
+    const status: CommandStatus = { phase: "undelivered", requestId, reason };
+    if (!pending.reject) {
+      if (pending.status.phase !== "lost") return;
+      pending.status = status;
+      this.notifyStore();
+      return;
+    }
+    pending.cancelLossTimer?.();
+    pending.cancelLossTimer = null;
+    const reject = pending.reject;
+    pending.status = status;
+    pending.resolve = null;
+    pending.reject = null;
+    reject(new CommandError(COMMAND_UNDELIVERED, reason));
     this.notifyStore();
   }
 

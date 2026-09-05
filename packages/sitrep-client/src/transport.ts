@@ -9,4 +9,8 @@
  * Re-exported rather than re-declared: a second declaration of the same
  * interface is exactly the drift the shared-surface guard exists to prevent.
  */
-export type { Transport, TransportStatus } from "@ksp-gonogo/sitrep-sdk";
+export type {
+  Transport,
+  TransportStatus,
+  UndeliveredCommand,
+} from "@ksp-gonogo/sitrep-sdk";

@@ -9,6 +9,19 @@ import { CommandErrorCode, type LimitBreach } from "../__generated__/contract";
  */
 export const COMMAND_REFUSED = "E_REFUSED";
 export const COMMAND_LOST = "E_LOST";
+/**
+ * The command never left this machine: the transport held it for a link that
+ * never came back, and has now stopped retrying.
+ *
+ * A `failed` rejection rather than a `kind` of its own, for the same reason the
+ * queue-full refusal and `E_DISPOSED` are: nothing was decided over there, so
+ * `lost`'s warning (a re-send may double a command that already ran) would be a
+ * lie, and an author who handles only the three kinds still reads it as "broke,
+ * a retry may work", which is true here. The code is what carries the stronger
+ * half, and it is the one of the three worth publishing: `refused` and `lost`
+ * already have a `kind` to be recognised by, this one does not.
+ */
+export const COMMAND_UNDELIVERED = "E_UNDELIVERED";
 
 /**
  * Why a dispatch promise rejected, in the same three words the command's

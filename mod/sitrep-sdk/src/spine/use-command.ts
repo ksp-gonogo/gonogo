@@ -9,6 +9,7 @@ import {
 import type { CommandGateReport } from "../__generated__/contract";
 import {
   COMMAND_LOST,
+  COMMAND_UNDELIVERED,
   classifyCommandRejection,
 } from "../api/command-rejection";
 import type {
@@ -16,6 +17,7 @@ import type {
   CommandLoss,
   CommandRefusal,
   CommandStatus,
+  CommandUndelivered,
   UseCommandOptions,
 } from "../api/types";
 import {
@@ -79,6 +81,10 @@ const NO_LOSSES: CommandLoss[] = [];
 /** Same reason as `NO_REFUSALS`, and this one is empty for nearly every hook
  *  that ever runs: a found needs a loss to have happened first. */
 const NO_FOUNDS: CommandFound[] = [];
+
+/** Same reason as `NO_REFUSALS`. Empty unless a transport gave up on a link
+ *  entirely, which is once per outage that never ends. */
+const NO_UNDELIVERED: CommandUndelivered[] = [];
 
 /**
  * How long (real UT seconds) a dispatched id may go without EVER appearing
@@ -210,6 +216,24 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    * next differs by outcome: see `CommandFoundOutcome`.
    */
   founds: CommandFound[];
+  /**
+   * Every dispatch from this hook that NEVER LEFT THIS MACHINE, newest last,
+   * until the operator clears it with the same `dismiss`. Like a found, an entry
+   * here has left `losses`: one dispatch, one box.
+   *
+   * The other way a loss ends, and the one the app could not say at all. A
+   * command pressed while the link is down is held by the transport for the next
+   * open; if the link never comes back, the transport eventually stops retrying
+   * and what it is still holding can never be sent by anyone. Until that is
+   * said, the operator is looking at "no reply, whether it ran is unknown" for a
+   * command that provably did not run.
+   *
+   * Worth its own list rather than a flag on the loss, because it inverts the
+   * advice. A loss warns that re-sending may DOUBLE a command that already ran;
+   * this one is safe to press again the moment there is a link, and that is the
+   * whole reason an operator wants to be told.
+   */
+  undelivered: CommandUndelivered[];
   /**
    * What the mod says about this command BEFORE anyone presses anything: the
    * standing verdict of its declared gates, off `system.uplink.gates`.
@@ -400,6 +424,13 @@ export function useCommand(
   // promise settled as lost and never settles again: the client's own status
   // store is the only channel a late reply moves.
   const [founds, setFounds] = useState<CommandFound[]>(NO_FOUNDS);
+  // Dispatches that never left this machine. Fed from BOTH channels, because
+  // the news arrives at whichever of the two a given dispatch was waiting on:
+  // the promise's own rejection when the command was still in flight, and the
+  // sweep below when the loss timer had already settled it (that promise is
+  // spent, exactly as it is for a found).
+  const [undelivered, setUndelivered] =
+    useState<CommandUndelivered[]>(NO_UNDELIVERED);
   const entryCacheRef = useRef<Map<string, PendingEntry>>(new Map());
   const firstSeenAtRef = useRef<Map<string, number>>(new Map());
   const connectivityHistoryRef = useRef<ConnectivityHistory>(
@@ -608,7 +639,8 @@ export function useCommand(
   }, [queue, pathConnectedDuring, acknowledged, ackPhases]);
 
   /*
-   * Promote a loss the client has since heard back about.
+   * Promote a loss the client has since heard back about, or learned never
+   * left.
    *
    * Driven off `client.subscribeStore` and not off the dispatch promise, and
    * that is the crux of the whole feature. The promise is a one-shot await that
@@ -621,13 +653,23 @@ export function useCommand(
    * exists only where a loss did, `losses` is retained until the operator
    * dismisses it, and `dispatchedIds` is pruned long before a late reply is
    * likely to land.
+   *
+   * It carries the `undelivered` promotion for the same reason and by the same
+   * route: a stranded command's promise rejected as `E_LOST` long before the
+   * transport gave up, so the status store is again the only channel the
+   * correction arrives on.
    */
   useEffect(() => {
     if (!client || losses.length === 0) return;
     const sweep = () => {
       const promoted: CommandFound[] = [];
+      const unsent: CommandUndelivered[] = [];
       for (const loss of losses) {
         const status = client.getCommand(loss.id);
+        if (status.phase === "undelivered") {
+          unsent.push({ ...loss, reason: status.reason });
+          continue;
+        }
         if (status.phase !== "found") continue;
         promoted.push(
           status.outcome === "refused"
@@ -643,11 +685,23 @@ export function useCommand(
               : { ...loss, outcome: "ran", result: status.result },
         );
       }
-      if (promoted.length === 0) return;
+      if (promoted.length === 0 && unsent.length === 0) return;
       setLosses((prev) =>
-        prev.filter((l) => !promoted.some((f) => f.id === l.id)),
+        prev.filter(
+          (l) =>
+            !promoted.some((f) => f.id === l.id) &&
+            !unsent.some((u) => u.id === l.id),
+        ),
       );
-      setFounds((prev) => [...prev, ...promoted]);
+      if (promoted.length > 0) setFounds((prev) => [...prev, ...promoted]);
+      if (unsent.length > 0) {
+        setUndelivered((prev) => [
+          ...prev,
+          // A store notify can arrive more than once for the same status, and
+          // `losses` is only filtered on the render after this one.
+          ...unsent.filter((u) => !prev.some((seen) => seen.id === u.id)),
+        ]);
+      }
     };
     // Once up front: a reply can land between the render that read `losses` and
     // the effect that subscribes, and a store notify for it would then be gone.
@@ -678,6 +732,15 @@ export function useCommand(
      */
     setFounds((prev) => {
       const keep = prev.filter((f) => f.id !== id);
+      return keep.length === prev.length ? prev : keep;
+    });
+    /*
+     * And a fourth time, same reason: nothing can answer a command that was
+     * never sent, so a dismissed one that reappeared would be a second silence
+     * about the same dispatch.
+     */
+    setUndelivered((prev) => {
+      const keep = prev.filter((u) => u.id !== id);
       return keep.length === prev.length ? prev : keep;
     });
   }, []);
@@ -766,6 +829,27 @@ export function useCommand(
           ]);
           return;
         }
+        // It never left this machine: the transport gave up on the link while
+        // this was still waiting on it. Collected here rather than in the sweep
+        // because there is no loss to promote, the deadline having never come
+        // round (or never been armed). Classified `failed`, so this reads the
+        // code: see `COMMAND_UNDELIVERED` for why it is not a `kind` of its own.
+        if (
+          rejection.kind === "failed" &&
+          rejection.code === COMMAND_UNDELIVERED
+        ) {
+          setUndelivered((prev) => [
+            ...prev,
+            {
+              id: newRequestId,
+              command,
+              args,
+              label: opts?.label ?? "",
+              reason: rejection.message,
+            },
+          ]);
+          return;
+        }
         if (rejection.kind !== "refused") return;
         setRefusals((prev) => [
           ...prev,
@@ -800,6 +884,7 @@ export function useCommand(
     refusals,
     losses,
     founds,
+    undelivered,
     shape,
     effectiveDelaySeconds,
     dismiss,
