@@ -29,9 +29,11 @@ describe("a kit button carrying an icon and a word", () => {
   });
 
   it("hands the same layout to the variants built on it", () => {
-    // The variants restyle colour and nothing else, and an operator meets them
-    // in the same bar as the base: a Ghost "Inbox" beside a plain "New message"
-    // is exactly where the two answers were visibly different.
+    /*
+     * The variants restyle colour and nothing else, and an operator meets them
+     * in the same bar as the base: a Ghost "Inbox" beside a plain "New message"
+     * is exactly where the two answers were visibly different.
+     */
     render(
       <>
         <GhostButton data-testid="ghost">

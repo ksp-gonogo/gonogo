@@ -534,9 +534,11 @@ async function takeAudio(page: Page): Promise<TapedBlock[]> {
         block.samples.byteOffset,
         block.samples.byteLength,
       );
-      // Chunked: `String.fromCharCode(...bytes)` on a whole utterance blows the
-      // argument limit, and the failure is a stack overflow rather than a
-      // truncation, so it would take the whole run down at teardown.
+      /*
+       * Chunked: `String.fromCharCode(...bytes)` on a whole utterance blows the
+       * argument limit, and the failure is a stack overflow rather than a
+       * truncation, so it would take the whole run down at teardown.
+       */
       let binary = "";
       const step = 0x8000;
       for (let i = 0; i < bytes.length; i += step) {

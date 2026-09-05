@@ -24,29 +24,50 @@ class StubAudioContext {
   };
 }
 
+/**
+ * Install a stub onto the global object.
+ *
+ * `Object.assign` takes the stub without an assertion, which is what four
+ * separate casts were standing in for: the DOM lib types these globals as the
+ * real constructors, and a test's stand-in is deliberately not one.
+ */
+function stubGlobal(name: string, value: unknown): void {
+  Object.assign(globalThis, { [name]: value });
+}
+
 function install(): void {
-  const holder = globalThis as unknown as Record<string, unknown>;
-  holder.AudioContext = StubAudioContext;
+  stubGlobal("AudioContext", StubAudioContext);
   /*
    * Throws on a closed context, which is what the browser does and what the
    * whole test is about. A stub that constructed happily would pass with the
    * defect in place, so the throw is the plant.
    */
-  holder.AudioWorkletNode = class {
-    port = { postMessage: () => {} };
-    connect = () => {};
-    constructor(ctx: unknown) {
-      if ((ctx as StubAudioContext).closed) {
-        throw new Error(
-          "AudioWorkletNode cannot be created: No execution context available.",
-        );
+  stubGlobal(
+    "AudioWorkletNode",
+    class {
+      port = { postMessage: () => {} };
+      connect = () => {};
+      constructor(ctx: unknown) {
+        if (
+          typeof ctx === "object" &&
+          ctx !== null &&
+          "closed" in ctx &&
+          ctx.closed
+        ) {
+          throw new Error(
+            "AudioWorkletNode cannot be created: No execution context available.",
+          );
+        }
       }
-    }
-  };
-  holder.URL = Object.assign(holder.URL as object, {
-    createObjectURL: () => "blob:stub",
-    revokeObjectURL: () => {},
-  });
+    },
+  );
+  stubGlobal(
+    "URL",
+    Object.assign(globalThis.URL, {
+      createObjectURL: () => "blob:stub",
+      revokeObjectURL: () => {},
+    }),
+  );
 }
 
 /** Every rejection nobody handled, for the length of one test. */
@@ -87,11 +108,13 @@ describe("the web-audio sink", () => {
     // above by never working at all.
     install();
     const sent: Float32Array[] = [];
-    const holder = globalThis as unknown as Record<string, unknown>;
-    holder.AudioWorkletNode = class {
-      port = { postMessage: (s: Float32Array) => sent.push(s) };
-      connect = () => {};
-    };
+    stubGlobal(
+      "AudioWorkletNode",
+      class {
+        port = { postMessage: (s: Float32Array) => sent.push(s) };
+        connect = () => {};
+      },
+    );
     const sink = new WebAudioRadioSink(48_000);
     sink.play(new Float32Array([0.5, -0.5]));
     await new Promise((r) => setTimeout(r, 20));
