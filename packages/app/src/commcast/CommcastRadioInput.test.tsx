@@ -189,7 +189,7 @@ describe("Commcast radio, the microphone the operator chose", () => {
     // Into a conversation, which is where the key lives: the choice is a
     // property of this console and outlives whoever it is aimed at.
     await openThread(user);
-    await user.click(screen.getByRole("button", { name: "Transmit" }));
+    await user.click(screen.getByRole("button", { name: "Talk" }));
 
     await waitFor(() => expect(s.captures).toHaveLength(1));
     expect(s.captures[0]).toEqual({ deviceId: "headset" });
@@ -203,7 +203,7 @@ describe("Commcast radio, the microphone the operator chose", () => {
     const user = userEvent.setup();
 
     await openThread(user);
-    await user.click(screen.getByRole("button", { name: "Transmit" }));
+    await user.click(screen.getByRole("button", { name: "Talk" }));
 
     await waitFor(() => expect(s.captures).toHaveLength(1));
     expect(s.captures[0]).toEqual({ deviceId: null });
