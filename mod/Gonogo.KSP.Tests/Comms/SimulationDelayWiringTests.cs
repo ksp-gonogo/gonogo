@@ -21,6 +21,7 @@ namespace Gonogo.KSP.Tests.Comms
     /// no-op host, because the kernel the policy reads is bound THERE and
     /// binding it is the thing that could be forgotten.</para>
     /// </summary>
+    [Collection(CommsCoreUplinkStatics.Name)]
     public class SimulationDelayWiringTests
     {
         private sealed class SimulatedFlightBackend : ISimulationBackend

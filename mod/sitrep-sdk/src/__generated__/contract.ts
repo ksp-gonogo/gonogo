@@ -1358,6 +1358,49 @@ export interface CommsCommandCentre
 	meta: PayloadMeta;
 }
 /**
+* The `comms.degrade` payload: how degraded the active vessel's link home is
+* right now, on one fixed scale, as the comms backend in force grades it.
+*
+* `CommsDegrade.level` runs from 0, nothing wrong, to 1, nothing usable
+* getting through, and is ABSENT when nothing graded the link. Absent is not
+* zero: see ICommsDegradeModel.Level, which states all three answers and is
+* the definition this field carries.
+*
+* **Read this rather than deriving a quality from `comms.signalStrength`.**
+* That field is 0..1 too, and it is a different quantity on a stock install
+* than on a RealAntennas one: a range fraction against an antenna curve versus
+* spare room on a data-rate ladder. Nothing on the wire distinguishes them, so
+* `1 - signalStrength` is two different quality curves on two saves. This
+* channel names its rule, so a consumer acting on the number can see which
+* grading produced it.
+*
+* DELAYED, like the link observations it grades and unlike its always-live
+* `comms.delay` sibling. A rating is an observation of the craft's link, so an
+* operator should learn of a degradation one light-time after it happened, at
+* the same instant the telemetry that suffered it arrives. It is delay-gated
+* on the ordinary terms, so through a blackout it holds at last-known; the
+* disconnect edge itself reaches a client on `comms.link`, which is the
+* connectivity authority and is exempt from that freeze precisely so it can
+* report it.
+*/
+export interface CommsDegrade
+{
+	/** The grading rule's id; `"unknown"` when nothing graded the link. */
+	modelId: string;
+	/**
+	* The grading rule's display name, so a surface can say which grading is in
+	* play.
+	*/
+	modelName: string;
+	/**
+	* The rating: 0 pristine, 1 unusable, absent when unrated. Never outside that
+	* range, and never a NaN: an arithmetic that overshot is clamped to the end it
+	* overshot, and one that failed to resolve arrives absent.
+	*/
+	level?: Value<"ratio">;
+	meta: PayloadMeta;
+}
+/**
 * One body's occlusion geometry, as resolved by the elected model.
 * `CommsOcclusionBody.index` matches `BodyEntry.Index` on `system.bodies`
 * (both are `CelestialBody.flightGlobalsIndex`), so a consumer joins the two

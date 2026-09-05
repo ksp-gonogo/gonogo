@@ -59,6 +59,8 @@ namespace Sitrep.Host.Tests
             public object? ControlPathTerminus() => null;
             /// <summary>Nothing here occludes: this stub exists for the reach read.</summary>
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
         }
 
         private static Kernel ResolvedKernel(

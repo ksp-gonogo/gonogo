@@ -553,6 +553,33 @@ public interface ICommsBackend : ISitrepProvider
     ICommsReachModel ReachModel(object? from, object? to);
 
     /// <summary>
+    /// How degraded this backend grades the active vessel's link home right now
+    /// (see <see cref="ICommsDegradeModel"/>, and <c>CommsDegrade.cs</c>'s header
+    /// for why core cannot grade it for anybody).
+    ///
+    /// <para>It is on the interface for the same reason
+    /// <see cref="OcclusionModel"/> and <see cref="ReachModel"/> are, and the
+    /// alternative was already shipping: consumers derive a quality from
+    /// <c>1 - comms.signalStrength</c>, and that field carries a range fraction
+    /// under stock and a rate-ladder headroom fraction under RealAntennas. The
+    /// derivation is therefore a different curve per install with nothing saying
+    /// so, which is a wrong number acted on rather than a missing one noticed.
+    /// Asking the seam gets a rating that arrives with its rule attached.</para>
+    ///
+    /// <para>NEVER null: a backend that will not grade the link returns
+    /// <see cref="CommsDegradeModels.Unknown"/>, whose rating is ABSENT, and
+    /// that is a one-line answer a backend with no opinion should give rather
+    /// than inventing one. Absent leaves a consumer doing exactly what it was
+    /// doing before, which is the only honest fallback on a scale whose every
+    /// value is an instruction.</para>
+    ///
+    /// <para>Live read to BUILD the rating, so main thread only, on the same
+    /// capture-on-main seam as every accessor above; the model it returns is
+    /// thereafter just a number and safe anywhere.</para>
+    /// </summary>
+    ICommsDegradeModel DegradeModel();
+
+    /// <summary>
     /// The node this backend's OWN control path terminates at, as an opaque
     /// handle, or null when it terminates nowhere (no connection, or a last hop
     /// that touches neither a ground station nor a crewed control source).

@@ -58,6 +58,30 @@ namespace Gonogo.KSP
         public const string OcclusionTopic = "comms.occlusion";
 
         /// <summary>
+        /// The elected backend's DECLARED grading of the active vessel's link:
+        /// one 0..1 rating with the rule that produced it named alongside (see
+        /// <see cref="Sitrep.Contract.CommsDegrade"/>). Sourced the same way as
+        /// every other shared channel here.
+        ///
+        /// <para>It exists so a consumer choosing a quality (a video feed's
+        /// bitrate, a voice channel's noise) has one number that means the same
+        /// KIND of thing on every install. <c>comms.signalStrength</c> cannot
+        /// serve: it carries a range fraction under stock and a rate-ladder
+        /// headroom fraction under RealAntennas, so the <c>1 - strength</c> a
+        /// consumer would otherwise write is a different curve per save with
+        /// nothing on the wire saying so.</para>
+        ///
+        /// <para>DELAYED, unlike its <c>TrueNow</c> siblings, because it is an
+        /// observation of the CRAFT's link rather than a fact the command centre
+        /// knows independently: a degradation should reach the operator one
+        /// light-time after it happened, alongside the telemetry that suffered
+        /// it. Freeze-gated on the ordinary terms; the disconnect edge reaches a
+        /// client on <see cref="LinkTopic"/>, which is exempt from that freeze
+        /// precisely so it can report it.</para>
+        /// </summary>
+        public const string DegradeTopic = "comms.degrade";
+
+        /// <summary>
         /// The client-facing connectivity MetaTopic (comms-delay-model-
         /// consistency spec): a Delayed channel the engine special-cases as
         /// freeze-EXEMPT (see <see cref="Sitrep.Host.ChannelEngine.ConnectivityMetaTopic"/>,
@@ -212,6 +236,7 @@ namespace Gonogo.KSP
         private IChannelPublisher? _delay;
         private IChannelPublisher? _link;
         private IChannelPublisher? _occlusion;
+        private IChannelPublisher? _degrade;
         private IChannelPublisher? _commandCentre;
 
         private Kernel? _kernel;
@@ -266,6 +291,17 @@ namespace Gonogo.KSP
                 new ChannelDeclaration
                 {
                     Topic = LinkTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Delay = DelayRole.Delayed,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                },
+                // comms.degrade: Delayed, and the only shared comms channel that
+                // is. See DegradeTopic: a link GRADING is an observation of the
+                // craft, so it reveals at the same light-time horizon as the
+                // telemetry it describes rather than jumping ahead of it.
+                new ChannelDeclaration
+                {
+                    Topic = DegradeTopic,
                     Delivery = Delivery.LossyLatest,
                     Delay = DelayRole.Delayed,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
@@ -331,6 +367,7 @@ namespace Gonogo.KSP
             _delay = host.Publisher(DelayTopic);
             _link = host.Publisher(LinkTopic);
             _occlusion = host.Publisher(OcclusionTopic);
+            _degrade = host.Publisher(DegradeTopic);
             _commandCentre = host.Publisher(CommandCentreTopic);
 
             host.AddSampledSource(
@@ -344,6 +381,7 @@ namespace Gonogo.KSP
                 DelayTopic,
                 LinkTopic,
                 OcclusionTopic,
+                DegradeTopic,
                 CommandCentreTopic);
 
             // Advertise comms.delay to the engine's server-side reveal gate as
@@ -602,6 +640,11 @@ namespace Gonogo.KSP
                     // (the same one system.bodies reads), so no backend has to
                     // walk FlightGlobals itself.
                     Occlusion = OcclusionFor(backend, snapshot),
+                    // The backend declares the RULE and its own rating under it;
+                    // core only stamps the meta the rest of this capture
+                    // already carries, so the grading cannot describe a
+                    // different tick from the link state beside it.
+                    Degrade = DegradeFor(backend, connectivity.Meta),
                     CommandCentre = commandCentre,
                 };
             }
@@ -624,6 +667,33 @@ namespace Gonogo.KSP
         /// is what makes the emitter's change-gate suppress it. See
         /// <see cref="_lastOcclusion"/>.
         /// </summary>
+        /// <summary>
+        /// MAIN-THREAD: the elected backend's grading of the live link, as the
+        /// payload its channel carries.
+        ///
+        /// <para>Guarded on its OWN, rather than under the whole capture's
+        /// try/catch, because the two failures deserve different outcomes. The
+        /// capture-wide guard drops the entire tick, which is right for a read
+        /// that says whether there is a link at all; a grading that throws should
+        /// cost the grading and nothing else, and dropping connectivity, path and
+        /// delay because a third-party backend's quality rule failed would let an
+        /// optional readout freeze the board. It comes back UNRATED, which is the
+        /// contract's own way of saying nobody graded this.</para>
+        /// </summary>
+        private static CommsDegrade DegradeFor(ICommsBackend backend, PayloadMeta meta)
+        {
+            ICommsDegradeModel model;
+            try
+            {
+                model = backend.DegradeModel();
+            }
+            catch (Exception)
+            {
+                model = CommsDegradeModels.Unknown;
+            }
+            return CommsDegradeModels.ToPayload(model, meta);
+        }
+
         private CommsOcclusion OcclusionFor(ICommsBackend backend, KspSnapshot? snapshot)
         {
             var built = CommsOcclusionBuilder.Build(backend.OcclusionModel(), snapshot);
@@ -650,6 +720,7 @@ namespace Gonogo.KSP
             _network?.Publish(capture.Network, capture.Ut);
             _delay?.Publish(capture.Delay, capture.Ut);
             _occlusion?.Publish(capture.Occlusion, capture.Ut);
+            _degrade?.Publish(capture.Degrade, capture.Ut);
             // comms.link: the client-facing, freeze-exempt-Delayed connectivity
             // successor. Same Connected the TrueNow comms.connectivity carries,
             // but on the topic clients read so the disconnect edge survives the
@@ -687,6 +758,7 @@ namespace Gonogo.KSP
             public CommsNetwork Network = new();
             public CommsDelay Delay = new();
             public CommsOcclusion Occlusion = new();
+            public CommsDegrade Degrade = new();
             public CommsCommandCentre CommandCentre = new();
         }
     }

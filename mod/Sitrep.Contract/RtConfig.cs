@@ -158,6 +158,10 @@ public static class RtConfig
                 // geometry, per body (see CommsOcclusion.cs)
                 typeof(CommsOcclusion),
                 typeof(CommsOcclusionBody),
+                // comms.degrade: the elected backend's declared 0..1 grading of
+                // the link, with the rule that produced it named (see
+                // CommsDegrade.cs)
+                typeof(CommsDegrade),
                 // comms.commandCentre: which centre the active vessel's own
                 // ControlPath currently terminates at (see CommsCommandCentre)
                 typeof(CommsCommandCentre),

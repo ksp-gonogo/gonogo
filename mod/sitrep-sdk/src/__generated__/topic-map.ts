@@ -38,6 +38,7 @@ import type {
   CommsCommandCentre,
   CommsConnectivity,
   CommsControlState,
+  CommsDegrade,
   CommsDelay,
   CommsLink,
   CommsNetwork,
@@ -112,6 +113,7 @@ export interface GeneratedTopicPayloadMap {
   "comms.commandCentre": CommsCommandCentre;
   "comms.connectivity": CommsConnectivity;
   "comms.controlState": CommsControlState;
+  "comms.degrade": CommsDegrade;
   "comms.delay": CommsDelay;
   "comms.link": CommsLink;
   "comms.network": CommsNetwork;
@@ -188,6 +190,7 @@ export const GENERATED_TOPIC_IDS = [
   "comms.commandCentre",
   "comms.connectivity",
   "comms.controlState",
+  "comms.degrade",
   "comms.delay",
   "comms.link",
   "comms.network",

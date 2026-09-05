@@ -166,6 +166,8 @@ namespace Sitrep.Host.IntegrationTests
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
 
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
+
             // As above: a dead graph rates nothing and routes nowhere. The
             // wrapper under test is what turns that into the no-comms-model
             // answer, so this stub must NOT pre-empt it with one of its own.

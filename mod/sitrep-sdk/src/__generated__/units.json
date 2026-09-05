@@ -277,6 +277,11 @@
       "reason": "text",
       "state": "enum"
     },
+    "CommsDegrade": {
+      "level": "ratio",
+      "modelId": "id",
+      "modelName": "text"
+    },
     "CommsDelay": {
       "oneWaySeconds": "s",
       "source": "enum"
@@ -1361,6 +1366,11 @@
       "reason": "text",
       "state": "enum"
     },
+    "comms.degrade": {
+      "level": "ratio",
+      "modelId": "id",
+      "modelName": "text"
+    },
     "comms.delay": {
       "oneWaySeconds": "s",
       "source": "enum"
@@ -1932,6 +1942,9 @@
     "CommsControlState": {
       "meta": "PayloadMeta"
     },
+    "CommsDegrade": {
+      "meta": "PayloadMeta"
+    },
     "CommsDelay": {
       "meta": "PayloadMeta"
     },
@@ -2208,6 +2221,9 @@
       "meta": "PayloadMeta"
     },
     "comms.controlState": {
+      "meta": "PayloadMeta"
+    },
+    "comms.degrade": {
       "meta": "PayloadMeta"
     },
     "comms.delay": {

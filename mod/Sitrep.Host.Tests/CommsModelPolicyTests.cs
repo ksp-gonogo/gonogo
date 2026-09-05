@@ -218,6 +218,43 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// A save with no comms model grades the link PRISTINE, as a rated zero
+        /// under its own name, and does NOT pass the wrapped backend's grading
+        /// through: nothing can attenuate a link that is not modelled, so a
+        /// grading taken off the dead CommNet graph underneath would be a reading
+        /// of something that is not there.
+        ///
+        /// <para>The rated zero is also the one place this file can say outright
+        /// what <see cref="ModelAbsent_NeverReportsAZeroSignalStrength"/> next door
+        /// cannot: signal strength has no way to express an absence and has to
+        /// report 1 while explaining that the honest answer is "not graded", and
+        /// the rating CAN express one. It still does not, and that is a
+        /// judgement rather than a default: "nothing degrades this link" is a
+        /// positive fact about the save, exactly as the no-comms-model delay is a
+        /// measured zero rather than a null.</para>
+        ///
+        /// <para>Told apart from a refusal by the id, which is why the stub
+        /// deliberately grades 0.75 under its own name: an assertion on the
+        /// number alone would pass whether the wrapper delegated or not.</para>
+        /// </summary>
+        [Fact]
+        public void ModelAbsent_GradesTheLinkPristineUnderItsOwnName()
+        {
+            var inner = new StubBackend(connected: false);
+            var wrapped = Wrap(inner, CommsControlSource.Full);
+
+            var grading = wrapped.DegradeModel();
+            Assert.Equal(0.0, grading.Level);
+            Assert.Equal("no-comms-model", grading.ModelId);
+
+            // Not the wrapped backend's answer, and not core's "nobody graded
+            // this" either: three distinguishable states, and this is the third.
+            Assert.NotEqual(inner.DegradeModel().Level, grading.Level);
+            Assert.NotEqual(CommsDegradeModels.UnknownModelId, grading.ModelId);
+            Assert.Null(CommsDegradeModels.Unknown.Level);
+        }
+
+        /// <summary>
         /// The probe reads live KSP on the capture path; a scene-settle throw
         /// must not escape onto it, and must not be read as "controllable".
         /// </summary>
@@ -295,6 +332,15 @@ namespace Sitrep.Host.Tests
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
 
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+
+            /// <summary>
+            /// A REAL rating, unlike the inert answers above, and deliberately
+            /// one the wrapper must not pass through: the wrapper's own answer is
+            /// a rated zero under its own model id, so a stub that also said
+            /// "unknown" here would pass whether the wrapper delegated or not.
+            /// </summary>
+            public ICommsDegradeModel DegradeModel() =>
+                new RatedDegradeModel("stub-grading", "Stub", 0.75);
 
             public object? ControlPathTerminus() => null;
         }

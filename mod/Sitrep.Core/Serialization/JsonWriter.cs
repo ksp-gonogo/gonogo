@@ -345,6 +345,9 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.CommsOcclusion occlusion:
                     AppendCommsOcclusion(sb, occlusion);
                     break;
+                case Sitrep.Contract.CommsDegrade degrade:
+                    AppendCommsDegrade(sb, degrade);
+                    break;
                 case Sitrep.Contract.CommsOcclusionBody occlusionBody:
                     // Reached element-by-element from AppendCommsOcclusion's own
                     // loop, and handled here too so a bare entry routed through
@@ -1830,6 +1833,41 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "meta");
             sb.Append(':');
             AppendPayloadMeta(sb, o.Meta);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// The link grading. <c>level</c> is written as an explicit JSON null
+        /// when nothing graded the link, never omitted and never substituted:
+        /// absent and 0 are opposite instructions to a consumer choosing a
+        /// quality, and a missing key reads as the second in every client that
+        /// defaults a number.
+        /// </summary>
+        private static void AppendCommsDegrade(StringBuilder sb, Sitrep.Contract.CommsDegrade d)
+        {
+            sb.Append('{');
+            AppendString(sb, "modelId");
+            sb.Append(':');
+            AppendString(sb, d.ModelId ?? "");
+            sb.Append(',');
+            AppendString(sb, "modelName");
+            sb.Append(':');
+            AppendString(sb, d.ModelName ?? "");
+            sb.Append(',');
+            AppendString(sb, "level");
+            sb.Append(':');
+            if (d.Level.HasValue)
+            {
+                AppendNumber(sb, d.Level.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "meta");
+            sb.Append(':');
+            AppendPayloadMeta(sb, d.Meta);
             sb.Append('}');
         }
 

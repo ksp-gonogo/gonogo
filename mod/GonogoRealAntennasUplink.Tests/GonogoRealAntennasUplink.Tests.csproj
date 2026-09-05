@@ -38,6 +38,11 @@
          with it and is itself KSP-free (it reaches RA only by reflection). -->
     <Compile Include="..\GonogoRealAntennasUplink\RaReach.cs" />
     <Compile Include="..\GonogoRealAntennasUplink\RaReflection.cs" />
+    <!-- RaDegrade is RA's answer to the comms seam's quality question. It is
+         handed the reading the backend already took rather than taking one, so
+         the whole rule is KSP-free and every branch of it (unrated, disconnected,
+         graded, out-of-range) is reachable headlessly. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaDegrade.cs" />
   </ItemGroup>
 
   <!-- RaRouting.cs is the RA route between two nodes, carved out of

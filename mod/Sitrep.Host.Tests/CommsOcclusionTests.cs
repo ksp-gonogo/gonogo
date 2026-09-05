@@ -171,6 +171,8 @@ namespace Sitrep.Host.Tests
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
             public object? ControlPathTerminus() => null;
             public ICommsOcclusionModel OcclusionModel() => _occlusion();
+
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
         }
 
         private static Kernel ResolvedKernel(bool raPresent)

@@ -278,6 +278,14 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
+        /// Stock's own grading of the live link (see <see cref="CommNetDegrade"/>
+        /// for the rule and for why it is not shared with the RealAntennas
+        /// backend that computes the same expression over a different quantity).
+        /// A tick with no readable link is UNRATED rather than rated unusable.
+        /// </summary>
+        public override ICommsDegradeModel DegradeModel() => CommNetDegrade.From(LinkState());
+
+        /// <summary>
         /// Stock's occlusion geometry, built from the LIVE difficulty settings
         /// (see <see cref="CommNetOcclusion"/> for the rule itself). The two
         /// multipliers are per-save and player-settable, so they are read here

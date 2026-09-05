@@ -11,9 +11,9 @@ namespace Sitrep.Contract;
 /// SHAPE, the backend keeps the JUDGEMENT.</b> The shape of a relay graph, a
 /// hop, a control state, a payload's meta, and which node a path terminates at
 /// are all fixed here. What constitutes a successful connection, what a link
-/// costs, how far it reaches, and which rock blocks it are not touched: those
-/// stay abstract, or off this class entirely, because they are the questions
-/// the backends genuinely answer differently.</para>
+/// costs, how far it reaches, how badly it is degraded, and which rock blocks
+/// it are not touched: those stay abstract, or off this class entirely, because
+/// they are the questions the backends genuinely answer differently.</para>
 ///
 /// <para><b>Why it is not merely tidier.</b> Before this class, five accessors
 /// were the same code twice in two assemblies, down to the shared
@@ -77,6 +77,9 @@ public abstract class CommsBackendBase : ICommsBackend
 
     /// <inheritdoc />
     public abstract ICommsOcclusionModel OcclusionModel();
+
+    /// <inheritdoc />
+    public abstract ICommsDegradeModel DegradeModel();
 
     // ── What only the backend can read ──────────────────────────────────────
 

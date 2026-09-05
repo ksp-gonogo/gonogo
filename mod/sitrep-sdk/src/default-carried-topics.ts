@@ -88,6 +88,17 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // carried or the disconnect edge never reaches the client and "NO SIGNAL"
   // never fires: see comms-delay-model-consistency spec.
   "comms.link",
+  // comms.degrade (CommsCoreUplink, Delayed): the elected backend's own 0..1
+  // grading of the link, with the rule that produced it named alongside. The
+  // one number a consumer choosing a quality (a video feed's bitrate, a voice
+  // channel's noise) can key on without knowing which comms mod is installed,
+  // which `comms.signalStrength` cannot be: that field means a different
+  // quantity depending on which backend the comms capability elected, and the
+  // grading here names its own rule. Must be
+  // carried or a `useTelemetry("comms.degrade")` read silently stays undefined,
+  // which a consumer is meant to read as "nobody graded this" and would here be
+  // "nobody delivered it".
+  "comms.degrade",
   // comms.commandCentre (CommsCoreUplink, TrueNow): which centre (KSC or a
   // crewed control-source vessel) the
   // active vessel's own comms link currently terminates at. CommSignal reads

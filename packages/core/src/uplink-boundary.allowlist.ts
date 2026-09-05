@@ -1118,6 +1118,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/sitrep-sdk/src/__generated__/contract.ts",
       /*
+       * -- the client-side read of comms.degrade (2026-09-05). One prose
+       * sentence names the two shipped backends, and it is the sentence that
+       * tells an author why to use this helper instead of
+       * `1 - comms.signalStrength`: that field is a range fraction on one
+       * install and rate-ladder headroom on the other, so the obvious
+       * arithmetic is a different quality curve per save with nothing on the
+       * wire saying so. Written generically it reads as caution rather than as
+       * the concrete trap it is. Text only: the helper treats `modelId` as an
+       * opaque string and has no RA type, import or branch, and its own test
+       * deliberately uses made-up ids so nothing here names a shipped backend's.
+       */
+      "mod/sitrep-sdk/src/comms-degrade.ts",
+      /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
        * <Uplink>.Tests projects too, ten of which reach a private assembly.
@@ -1168,6 +1181,21 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "packages/core/src/styleguide-magnitude-budget.test.ts",
       // -- Judgment calls, all resolved clean (audit §4) --
       "mod/Gonogo.KSP/CommNetBackend.cs",
+      /*
+       * -- stock's own link GRADING (2026-09-05), carved out of CommNetBackend.cs
+       * the same way CommNetOcclusion.cs and CommNetReach.cs already are. The
+       * judgement is on the seam: ICommsBackend.DegradeModel, each backend
+       * declaring its own rule, exactly as reach and occlusion do, so core
+       * computes nothing here for anybody. What names RA is one paragraph
+       * explaining why the identical EXPRESSION is not shared with the other
+       * backend's rule: the two read the same field, which holds a range
+       * fraction here and rate-ladder headroom there, so one shared helper would
+       * publish two quantities under one name and re-create the exact ambiguity
+       * comms.degrade exists to remove. That is a warning against a future
+       * deduplication, and it only works if it says which two rules. Comment
+       * only, no RA type or reference.
+       */
+      "mod/Gonogo.KSP/CommNetDegrade.cs",
       "mod/Gonogo.KSP/CommsCoreUplink.cs",
       /*
        * dev-only comms override + its DevTools driver both name the stock
@@ -1383,6 +1411,20 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * ground network runs many stations" is the fact it actually needed).
        */
       "mod/Sitrep.Contract/CommsReach.cs",
+      /*
+       * -- CommsDegrade.cs (2026-09-05) is the third file of that same set, and
+       * the one whose naming is most load-bearing of any of them. Its whole
+       * reason to exist is that comms.signalStrength is 0..1 and looks like the
+       * quality number a consumer wants, and is not: it holds a range fraction
+       * under the stock backend and rate-ladder headroom under this one, with
+       * nothing on the wire to tell them apart. Written generically that reads
+       * as a hypothetical, and the next author derives a quality from
+       * signalStrength again, which is what the shipped camera feed does today.
+       * Naming both quantities IS the argument for the channel. Text only: the
+       * judgement lives on ICommsBackend.DegradeModel and each backend declares
+       * its own rule, so this file computes nothing for either of them.
+       */
+      "mod/Sitrep.Contract/CommsDegrade.cs",
       "mod/Sitrep.Contract/CommsBackendBase.cs",
       "mod/Sitrep.Contract/CommsBackendViews.cs",
       "mod/Gonogo.KSP/CommNetReach.cs",

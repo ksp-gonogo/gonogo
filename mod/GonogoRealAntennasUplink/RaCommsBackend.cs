@@ -199,6 +199,14 @@ namespace Gonogo.RealAntennasUplink
         public override ICommsOcclusionModel OcclusionModel() => RaOcclusion.Model;
 
         /// <summary>
+        /// RA's own grading of the live link (see <see cref="RaDegrade"/> for the
+        /// rule, for why it grades the rate ladder rather than the dB margin this
+        /// Uplink also publishes, and for why it is not shared with the stock
+        /// backend that computes the same expression over a different quantity).
+        /// </summary>
+        public override ICommsDegradeModel DegradeModel() => RaDegrade.From(LinkState());
+
+        /// <summary>
         /// A node's UNIQUE join key, matching CommNetBackend.NodeId (that
         /// backend's own doc comment carries the full rationale): the owning
         /// vessel's persistent id for a vessel node, since two craft can share

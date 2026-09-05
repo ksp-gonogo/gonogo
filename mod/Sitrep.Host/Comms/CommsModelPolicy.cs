@@ -273,6 +273,32 @@ namespace Sitrep.Host.Comms
             "no-comms-model", "No comms model (nothing limits reach)", null);
 
         /// <summary>
+        /// PRISTINE, a rated zero, and this is the one readout where the absence
+        /// of a comms model can be said outright.
+        ///
+        /// <para><see cref="SignalStrength"/> above has to report 1 while
+        /// explaining that the honest answer is an absence, because its field
+        /// cannot carry one. <see cref="ICommsDegradeModel.Level"/> can, which
+        /// makes the choice here a real one rather than a least-bad substitute,
+        /// and the answer is NOT the absence: "nothing attenuates a link that is
+        /// not modelled" is a positive fact about the save, exactly as
+        /// <see cref="CommsDelaySource.NoCommsModel"/> is a measured zero rather
+        /// than a null delay. An absence would tell a video feed nobody graded
+        /// the link, when in fact nothing can degrade it.</para>
+        ///
+        /// <para>Deliberately not <see cref="CommsDegradeModels.Unknown"/> and
+        /// not that model's id either, on the same terms as
+        /// <see cref="ReachModel"/>: a consumer reading the id can tell "nothing
+        /// degrades this link" from "nobody rated it", which are opposite
+        /// statements that would otherwise both arrive as a bare number with no
+        /// provenance.</para>
+        /// </summary>
+        public ICommsDegradeModel DegradeModel() => NothingDegrades;
+
+        private static readonly ICommsDegradeModel NothingDegrades = new RatedDegradeModel(
+            "no-comms-model", "No comms model (nothing degrades the link)", 0.0);
+
+        /// <summary>
         /// Null. A centre is where a control PATH terminates and there are no
         /// paths, so there is no node to name.
         /// </summary>

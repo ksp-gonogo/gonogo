@@ -56,6 +56,10 @@
          antenna-power pairings, KSP-free, with the live reads (the two nodes'
          powers, the game's own range model) left in CommNetBackend.cs. -->
     <Compile Include="..\Gonogo.KSP\CommNetReach.cs" />
+    <!-- CommNetDegrade.cs is the same carve-out for stock's QUALITY rule: it is
+         handed the link reading CommNetBackend.cs already took, so the grading
+         itself is KSP-free and every branch of it is reachable headlessly. -->
+    <Compile Include="..\Gonogo.KSP\CommNetDegrade.cs" />
     <!-- The maneuver WRITE-path ownership RULE, carved out of KspVesselActuator
          so it carries no KSP dependency - same discipline as CommNetOcclusion
          above, and for a sharper reason: the actuator's command bodies reference

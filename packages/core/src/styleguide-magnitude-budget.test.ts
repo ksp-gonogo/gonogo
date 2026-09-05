@@ -101,6 +101,18 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
    */
   "mod/GonogoRealFuelsUplink/client/src/EngineRealism/index.tsx": 3,
   "mod/sitrep-sdk/src/command-delay.ts": 4,
+  // 1, in `degradeRatingOf`, and this file exists so that number stays 1. The
+  // link grading has to reach a consumer as a raw number, because what a
+  // consumer DOES with it is arithmetic on a quality ladder (a bitrate rung, how
+  // much noise to mix) rather than anything in a dimension, and no `Unit` ever
+  // renders it. What is unwrapped here is also the thing being CHECKED: the
+  // 0..1 promise is re-kept on arrival, and a rating that came back non-finite
+  // has to be told from one that merely overshot, which no comparison on the
+  // algebra can do (a NaN compares false in both directions and would pass
+  // through as "not degraded"). Doing it once here is the point: the alternative
+  // is every consumer unwrapping and clamping at its own call site, which is the
+  // shape `1 - comms.signalStrength` already took.
+  "mod/sitrep-sdk/src/comms-degrade.ts": 1,
   // 1, in `frameVector`, and this file exists so that number stays 1. The frame
   // arithmetic works in bare metres throughout (a rotation matrix has no unit to
   // carry), so SOMETHING has to unwrap a wire vector before `toFrame` sees it.

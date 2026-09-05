@@ -76,6 +76,8 @@ namespace Gonogo.KSP.Tests.Comms
             public object? ControlPathTerminus() => throw new NotSupportedException();
 
             public ICommsOcclusionModel OcclusionModel() => throw new NotSupportedException();
+
+            public ICommsDegradeModel DegradeModel() => throw new NotSupportedException();
         }
 
         /// <summary>

@@ -311,6 +311,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     reason: "text",
     state: "enum",
   },
+  "CommsDegrade": {
+    level: "ratio",
+    modelId: "id",
+    modelName: "text",
+  },
   "CommsDelay": {
     oneWaySeconds: "s",
     source: "enum",
@@ -1400,6 +1405,11 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     reason: "text",
     state: "enum",
   },
+  "comms.degrade": {
+    level: "ratio",
+    modelId: "id",
+    modelName: "text",
+  },
   "comms.delay": {
     oneWaySeconds: "s",
     source: "enum",
@@ -1996,6 +2006,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsControlState": {
     meta: "PayloadMeta",
   },
+  "CommsDegrade": {
+    meta: "PayloadMeta",
+  },
   "CommsDelay": {
     meta: "PayloadMeta",
   },
@@ -2274,6 +2287,9 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
     meta: "PayloadMeta",
   },
   "comms.controlState": {
+    meta: "PayloadMeta",
+  },
+  "comms.degrade": {
     meta: "PayloadMeta",
   },
   "comms.delay": {

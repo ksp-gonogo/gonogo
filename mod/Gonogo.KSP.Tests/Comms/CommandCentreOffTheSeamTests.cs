@@ -98,6 +98,8 @@ namespace Gonogo.KSP.Tests.Comms
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
         }
 
         /// <summary>

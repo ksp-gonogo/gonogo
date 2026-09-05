@@ -30,6 +30,7 @@ namespace Gonogo.KSP.Tests.Comms
     /// drives the real reveal gate over a backend behaving exactly as stock's
     /// does once <c>CommNetScenario</c> has destroyed itself.</para>
     /// </summary>
+    [Collection(CommsCoreUplinkStatics.Name)]
     public class CommNetDifficultyOptionTests
     {
         /// <summary>
@@ -322,6 +323,8 @@ namespace Gonogo.KSP.Tests.Comms
             public CommsNetwork Network() => new CommsNetwork();
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
 
             // The graph is dead, so there is no route, nothing rated the pair,
             // and no path terminated anywhere. Three nulls and an Unknown, which

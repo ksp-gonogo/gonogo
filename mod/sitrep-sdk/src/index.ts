@@ -59,6 +59,14 @@ export {
   isCommandId,
   registerUplinkCommand,
 } from "./commands";
+// The link grading behind comms.degrade: one 0..1 number an Uplink choosing a
+// quality (a video feed's bitrate, a voice channel's noise) can key on without
+// knowing which comms mod is installed. Published because the alternative every
+// consumer reaches for, `1 - comms.signalStrength`, is a different quality curve
+// per install with nothing on the wire saying so, and because the absent case is
+// a branch a caller must be made to write. See comms-degrade.ts.
+export type { DegradeRating } from "./comms-degrade";
+export { degradeRating, degradeRatingOf } from "./comms-degrade";
 // The compat numbers a `gonogo-uplink.json` is gated on. Published here because
 // an Uplink's build has to write them and could not read any of them.
 export {

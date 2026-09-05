@@ -713,6 +713,8 @@ namespace Sitrep.Host.IntegrationTests
             public object? ControlPathTerminus() => null;
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            public ICommsDegradeModel DegradeModel() => CommsDegradeModels.Unknown;
         }
     }
 
