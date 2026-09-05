@@ -166,6 +166,98 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// THE LATE SUBSCRIBER, which is the case neither reroute suite could
+        /// reach. Every other test here and in
+        /// <c>Sitrep.Core.Tests.CourierRerouteStampTests</c> subscribes BEFORE
+        /// the first sample is recorded, so all their deliveries are scheduled
+        /// by <c>Courier.Record</c> and the catch-up backlog in
+        /// <c>SubscribeStream</c> is empty every time they run. Here a SECOND
+        /// client joins after the reroute, with the whole old-path tail still
+        /// crossing, which is what a station opening mid-flight does.
+        ///
+        /// <para>A first client stays subscribed throughout, because the engine
+        /// only samples a channel somebody is listening to: with nobody
+        /// attached there is no archive for a late joiner to be owed, and the
+        /// test would pass on an empty stream rather than on the tail.</para>
+        ///
+        /// <para>The late client is owed what the established one is owed: the
+        /// sample stamped UT 2 as its catch-up (2 + 4 is the newest arrival
+        /// that has happened), then UT 3, 4 and 5 on the OLD path's timing.
+        /// Timing that backlog against the ledger's current 8 s instead pushes
+        /// the whole tail four seconds late and leaves the catch-up empty, so a
+        /// station joining a rerouted craft sees a dead channel and then
+        /// history.</para>
+        /// </summary>
+        [Fact]
+        public async Task AClientSubscribingAfterTheRerouteIsOwedTheOldPathTail()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new ConnectivityHorizonTestUplink());
+            engine.Start();
+            try
+            {
+                await using var established = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(established, Topic, Timeout);
+
+                engine.TickAndWait(0.0, ConnectivityHorizonTestUplink.Snapshot(0.0, connected: true, delay: 4.0), Timeout);
+                foreach (var ut in new[] { 1.0, 2.0, 3.0, 4.0, 5.0 })
+                {
+                    engine.TickAndWait(ut, ConnectivityHorizonTestUplink.Snapshot(ut, connected: true, delay: 4.0, delayed: 10.0 + ut), Timeout);
+                }
+
+                // The reroute onto the longer path, still connected throughout.
+                engine.TickAndWait(6.0, ConnectivityHorizonTestUplink.Snapshot(6.0, connected: true, delay: 8.0, delayed: 16.0), Timeout);
+                await DrainAllStreamDataAsync(established, Quiet);
+
+                // Only now does the station open.
+                await using var late = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(late, Topic, Timeout);
+
+                var byTick = new Dictionary<double, List<double>>
+                {
+                    [6.0] = (await DrainAllStreamDataAsync(late, Quiet))
+                        .Where(f => f.Topic == Topic).Select(f => f.Meta.ValidAt).ToList(),
+                };
+                for (var ut = 7.0; ut <= 14.0; ut += 1.0)
+                {
+                    engine.TickAndWait(ut, ConnectivityHorizonTestUplink.Snapshot(ut, connected: true, delay: 8.0, delayed: 10.0 + ut), Timeout);
+                    byTick[ut] = (await DrainAllStreamDataAsync(late, Quiet))
+                        .Where(f => f.Topic == Topic).Select(f => f.Meta.ValidAt).ToList();
+                }
+
+                // The tail sent under the OLD 4 s path, one per tick, on its own
+                // timing. Timed against the current 8 s ledger instead, the same
+                // three samples land at UT 11, 12 and 13, behind two others that
+                // this vantage was owed seconds earlier.
+                Assert.Equal(new[] { 3.0 }, byTick[7.0]);
+                Assert.Equal(new[] { 4.0 }, byTick[8.0]);
+                Assert.Equal(new[] { 5.0 }, byTick[9.0]);
+
+                // The catch-up frame is the UT 2 sample, and it lands on the UT 6
+                // tick or the UT 7 one: a subscription is applied on the Courier
+                // thread, so whether it is seen before or after that tick's clock
+                // move is a race with the socket, not a property of the delay
+                // model. Either way it is the newest sample that has ARRIVED, and
+                // it is never one that has not.
+                Assert.Subset(new HashSet<double> { 2.0 }, byTick[6.0].ToHashSet());
+
+                // Then genuine silence while the first post-reroute sample crosses
+                // the longer path, and it lands at 6 + 8.
+                foreach (var ut in new[] { 10.0, 11.0, 12.0, 13.0 })
+                {
+                    Assert.Empty(byTick[ut]);
+                }
+                Assert.Equal(new[] { 6.0 }, byTick[14.0]);
+
+                AssertNothingRepeatsOrArrivesEarly(byTick, oldDelay: 4.0, newDelay: 8.0);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// The two properties that hold in both directions: a sample is
         /// delivered at most once (the duplicate storm), and never reaches the
         /// vantage sooner than the shorter of the two paths could carry it (the

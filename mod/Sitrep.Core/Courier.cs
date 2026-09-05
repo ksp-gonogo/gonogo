@@ -468,10 +468,17 @@ namespace Sitrep.Core
                 return;
             }
 
+            // The reacquisition geometry, pinned once for the whole dump. Each
+            // archived copy is stamped with its own WAIT plus that light-time
+            // (see DelayStamp.Plus), so a vantage subscribing afterwards reads
+            // these as having arrived when the dump landed rather than back
+            // inside the outage they describe.
+            var dumpStamp = _network.StampFor(node);
+
             var archived = false;
             foreach (var subscriber in new List<Subscriber>(subs))
             {
-                var fireUt = dumpedAtUt + _network.DelayTo(subscriber.Vantage, node);
+                var fireUt = dumpedAtUt + dumpStamp.For(subscriber.Vantage);
                 _clock.Schedule(fireUt, () =>
                 {
                     if (!archived)
@@ -484,7 +491,12 @@ namespace Sitrep.Core
                         var archive = ArchiveFor(node);
                         foreach (var sample in samples)
                         {
-                            archive.Record(topic, sample.Value, sample.ValidAt, sample.Epoch);
+                            archive.Record(
+                                topic,
+                                sample.Value,
+                                sample.ValidAt,
+                                sample.Epoch,
+                                dumpStamp.Plus(dumpedAtUt - sample.ValidAt));
                         }
                     }
                     if (!subs.Contains(subscriber))
@@ -549,7 +561,14 @@ namespace Sitrep.Core
             bool isKeyframe = false,
             double? gapSinceUt = null)
         {
-            ArchiveFor(node).Record(topic, value, validAtUt, _epoch);
+            // The delay ledger as it stands right now, pinned to this sample and
+            // to every delivery scheduled from it. This is the only instant at
+            // which the route the sample rides is knowable: read later, from a
+            // catch-up or an in-flight reschedule, the ledger answers for a
+            // route the sample never took.
+            var stamp = _network.StampFor(node);
+
+            ArchiveFor(node).Record(topic, value, validAtUt, _epoch, stamp);
             NoteGapOpeningSample(node, topic, validAtUt, gapSinceUt);
 
             // Bound the archives as time moves, so a long session does not make
@@ -568,7 +587,7 @@ namespace Sitrep.Core
                     stickyByTopic = new Dictionary<string, ArchiveSample>();
                     _stickyKeyframes[node] = stickyByTopic;
                 }
-                stickyByTopic[topic] = new ArchiveSample(value, validAtUt, _epoch);
+                stickyByTopic[topic] = new ArchiveSample(value, validAtUt, _epoch, stamp);
             }
 
             if (!_subscribers.TryGetValue(node, out var byTopic) || !byTopic.TryGetValue(topic, out var subs))
@@ -589,7 +608,7 @@ namespace Sitrep.Core
                 // carried into the delivery closure: it is a property of this
                 // sample's journey, not a question to re-ask the ledger when it
                 // lands (see Deliver()).
-                var delay = _network.DelayTo(subscriber.Vantage, node);
+                var delay = stamp.For(subscriber.Vantage);
                 // Capture this delivery's own fire-UT now: under a single large
                 // AdvanceTo() jump, several deliveries can drain in the same
                 // batch, and each must read/report its own arrival time rather
@@ -606,7 +625,7 @@ namespace Sitrep.Core
                     // same topic. A rewind still drops this scheduled callback
                     // wholesale (ManualClock.Reset), exactly as the re-read lane
                     // would have returned nothing for an abandoned sample.
-                    var forwarded = new ArchiveSample(value, validAtUt, epoch);
+                    var forwarded = new ArchiveSample(value, validAtUt, epoch, stamp);
                     _clock.Schedule(fireUt, () =>
                     {
                         if (!subs.Contains(subscriber))
@@ -656,8 +675,13 @@ namespace Sitrep.Core
             }
             subs.Add(subscriber);
 
-            var delay = _network.DelayTo(vantage, node);
+            // The live ledger is the FALLBACK only, for a sample that carries no
+            // record-time stamp of its own (Archive-level recording, which is
+            // the golden-fixture conformance path). Everything recorded through
+            // this Courier answers from its own stamp instead.
+            var liveDelay = _network.DelayTo(vantage, node);
             var now = _clock.Now();
+            var archived = ArchiveFor(node).Samples(topic);
 
             // Catch-up: deliver whatever has already "arrived" at this
             // vantage. isCatchUp:true is the ONLY delivery site that may
@@ -684,7 +708,41 @@ namespace Sitrep.Core
             }
             else
             {
-                Deliver(node, topic, subscriber, now, stampedDelaySeconds: null, isCatchUp: true);
+                /*
+                 * Which sample has genuinely reached this vantage by now, asked
+                 * of each sample's own record-time stamp rather than of the
+                 * ledger. "now minus whatever the delay currently is" is only
+                 * the same question while the route has held still: after a
+                 * reroute onto a SHORTER path it resolves to a sample whose
+                 * light cannot have arrived yet, which is a future leak, and
+                 * after a reroute onto a LONGER one it resolves behind samples
+                 * the vantage already holds.
+                 *
+                 * The newest ARRIVAL wins, not the newest ValidAt. A shortened
+                 * route lets a later sample overtake the tail still crossing the
+                 * old path, and what a receiver holds is the last thing that
+                 * actually came down the wire, which is the same rule the
+                 * scheduled lane already delivers on.
+                 */
+                ArchiveSample? arrived = null;
+                var arrivedAt = double.NegativeInfinity;
+                foreach (var sample in archived)
+                {
+                    var at = sample.ValidAt + DelayOf(sample, vantage, liveDelay);
+                    if (at <= now && at >= arrivedAt)
+                    {
+                        arrived = sample;
+                        arrivedAt = at;
+                    }
+                }
+
+                if (arrived != null)
+                {
+                    // Delivered through the stamped lane, whose scene is exactly
+                    // this sample's own ValidAt, so it also moves the vantage's
+                    // retention cursor the way the ledger read used to.
+                    Deliver(node, topic, subscriber, now, now - arrived.Value.ValidAt, isCatchUp: true);
+                }
             }
 
             // Also schedule delivery for every sample recorded before this
@@ -695,9 +753,10 @@ namespace Sitrep.Core
             // present at the time it ran): a permanent miss. "Arrived"
             // (<= now, handled by the catch-up above) and "in flight" (> now,
             // handled here) are disjoint, so this never double-delivers.
-            foreach (var sample in ArchiveFor(node).Samples(topic))
+            foreach (var sample in archived)
             {
-                var fireUt = sample.ValidAt + delay;
+                var sampleDelay = DelayOf(sample, vantage, liveDelay);
+                var fireUt = sample.ValidAt + sampleDelay;
                 if (fireUt <= now)
                 {
                     continue;
@@ -711,12 +770,26 @@ namespace Sitrep.Core
                     {
                         return;
                     }
-                    Deliver(node, topic, subscriber, fireUt, delay);
+                    Deliver(node, topic, subscriber, fireUt, sampleDelay);
                 });
             }
 
             return () => subs.Remove(subscriber);
         }
+
+        /// <summary>
+        /// The delay <paramref name="sample"/>'s own journey to
+        /// <paramref name="vantage"/> was sent under: its record-time stamp, or
+        /// <paramref name="liveDelaySeconds"/> when it carries none.
+        ///
+        /// <para>An unstamped sample only reaches here from a direct
+        /// <see cref="Archive.Record"/> (the golden-fixture conformance replays
+        /// of the TS reference, which has no stamp concept), and falling back to
+        /// the live ledger is exactly what this whole path did before stamps
+        /// existed.</para>
+        /// </summary>
+        private static double DelayOf(ArchiveSample sample, string vantage, double liveDelaySeconds) =>
+            sample.Stamp != null ? sample.Stamp.For(vantage) : liveDelaySeconds;
 
         /// <summary>
         /// Deliver to <paramref name="subscriber"/> as of
@@ -738,10 +811,15 @@ namespace Sitrep.Core
         /// sample's own ValidAt, so what lands is what was sent, whatever the
         /// route has done since.</para>
         ///
-        /// <para><c>null</c> means "there is no journey to stamp": the
-        /// subscribe-time catch-up, which is not a sample in transit but the
-        /// question "what has already reached this vantage by now". That one
-        /// genuinely wants the CURRENT delay and the vantage cursor.</para>
+        /// <para><c>null</c> means "there is no journey to stamp", and nothing
+        /// in <see cref="Courier"/> passes it any more: the subscribe-time
+        /// catch-up used to, back when it asked the ledger "what is now minus
+        /// the CURRENT delay". It now picks the sample with the newest ARRIVAL
+        /// off the per-sample stamps and passes <c>now - that sample's ValidAt</c>,
+        /// so it lands on this same stamped lane. The parameter stays nullable
+        /// for the ledger-and-cursor read itself, which is what
+        /// <see cref="Archive.ReadAtVantage"/> still answers for
+        /// <see cref="DelayedStateReader"/>.</para>
         ///
         /// <para>Until this stamp existed the delay was re-read from the ledger
         /// here, which assumed it was unchanged between scheduling and firing.

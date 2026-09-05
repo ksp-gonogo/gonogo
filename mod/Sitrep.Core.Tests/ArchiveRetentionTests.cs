@@ -275,6 +275,13 @@ namespace Sitrep.Core.Tests
             var network = new StubNetwork();
             var courier = new Courier(clock, network);
 
+            // far's row is set BEFORE the samples are recorded, because that is
+            // when its light-time has to be true: each sample carries the delay
+            // it was sent under (ArchiveSample.Stamp), so a row written after the
+            // fact governs what is sent NEXT and never re-times a backlog that
+            // already left under the ledger's default.
+            network.SetDelay("far", "n", 250);
+
             var near = new List<object?>();
             courier.SubscribeStream("n", "t", "near", data => near.Add(data.Payload));
 
@@ -288,7 +295,6 @@ namespace Sitrep.Core.Tests
             // it is unreachable, except the birth sample.
             Assert.Equal("v300", near[near.Count - 1]);
 
-            network.SetDelay("far", "n", 250);
             var far = new List<object?>();
             courier.SubscribeStream("n", "t", "far", data => far.Add(data.Payload));
 

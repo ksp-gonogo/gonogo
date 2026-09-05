@@ -26,11 +26,33 @@ namespace Sitrep.Core
         /// </summary>
         public int Epoch { get; }
 
-        public ArchiveSample(object? value, double validAt, int epoch = 0)
+        /// <summary>
+        /// The delay ledger AS IT STOOD when this sample was recorded (see
+        /// <see cref="DelayStamp"/>), so <c>ValidAt + Stamp.For(vantage)</c> is
+        /// the instant this sample actually reaches that vantage.
+        ///
+        /// <para>The ledger is the delay NOW, per node, and it is read correctly
+        /// at record time. Nothing carried the delay that applied WHEN A GIVEN
+        /// SAMPLE WAS RECORDED, so a backlog replayed later was timed against a
+        /// route the samples in it never rode. The stamp is a fact about one
+        /// sample's journey, so it lives on the sample, immutable, the way a
+        /// media frame carries its own presentation timestamp rather than
+        /// having its timing reconstructed from a separate clock track.</para>
+        ///
+        /// <para><c>null</c> for a sample recorded through <see cref="Archive"/>
+        /// directly (the golden-fixture conformance replays of the TS reference,
+        /// which has no stamp concept). A reader with no stamp falls back to
+        /// the live ledger, which is exactly the behaviour that predated
+        /// this.</para>
+        /// </summary>
+        public DelayStamp? Stamp { get; }
+
+        public ArchiveSample(object? value, double validAt, int epoch = 0, DelayStamp? stamp = null)
         {
             Value = value;
             ValidAt = validAt;
             Epoch = epoch;
+            Stamp = stamp;
         }
     }
 
@@ -70,6 +92,7 @@ namespace Sitrep.Core
             public object? Value;
             public double ValidAt;
             public int Epoch;
+            public DelayStamp? Stamp;
         }
 
         // topic -> samples, kept ascending by validAt.
@@ -96,7 +119,7 @@ namespace Sitrep.Core
             var copy = new ArchiveSample[list.Count];
             for (var i = 0; i < list.Count; i++)
             {
-                copy[i] = new ArchiveSample(list[i].Value, list[i].ValidAt, list[i].Epoch);
+                copy[i] = new ArchiveSample(list[i].Value, list[i].ValidAt, list[i].Epoch, list[i].Stamp);
             }
             return copy;
         }
@@ -108,7 +131,7 @@ namespace Sitrep.Core
         /// pre-existing call site, i.e. the golden-fixture conformance tests
         /// that replay the TS reference, which has no epoch concept at all).
         /// </summary>
-        public void Record(string topic, object? value, double validAtUt, int epoch = 0)
+        public void Record(string topic, object? value, double validAtUt, int epoch = 0, DelayStamp? stamp = null)
         {
             if (!_samplesByTopic.TryGetValue(topic, out var list))
             {
@@ -116,7 +139,7 @@ namespace Sitrep.Core
                 _samplesByTopic[topic] = list;
             }
 
-            var sample = new Sample { Value = value, ValidAt = validAtUt, Epoch = epoch };
+            var sample = new Sample { Value = value, ValidAt = validAtUt, Epoch = epoch, Stamp = stamp };
 
             // Common case: appended in ascending order already.
             if (list.Count == 0 || validAtUt >= list[list.Count - 1].ValidAt)
@@ -155,9 +178,11 @@ namespace Sitrep.Core
         /// re-resolves to that same newer sample, putting duplicate frames on
         /// the wire and losing the tail. The clamp still governs
         /// <see cref="ReadAtVantage(string, string, double, double)"/>, which is
-        /// what a subscribe-time catch-up and
-        /// <see cref="DelayedStateReader"/> ask, because those genuinely do
-        /// resolve "now minus whatever the delay currently is".</para>
+        /// what <see cref="DelayedStateReader"/> asks, because that genuinely
+        /// does resolve "now minus whatever the delay currently is". A
+        /// subscribe-time catch-up used to as well, and stopped once samples
+        /// began carrying their own stamps: it picks the newest ARRIVAL off
+        /// those and comes back through this instant read.</para>
         /// </summary>
         public ArchiveSample? ReadAtInstant(string topic, string vantage, double sceneUt)
         {
@@ -185,7 +210,7 @@ namespace Sitrep.Core
                 found = sample;
             }
 
-            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch);
+            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
         }
 
         /// <summary>
@@ -243,7 +268,7 @@ namespace Sitrep.Core
                 found = sample;
             }
 
-            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch);
+            return found == null ? (ArchiveSample?)null : new ArchiveSample(found.Value, found.ValidAt, found.Epoch, found.Stamp);
         }
 
         /// <summary>
@@ -475,6 +500,18 @@ namespace Sitrep.Core
         /// has any samples, so an "arrived nothing yet" read still has cursor
         /// state worth preserving.
         /// </summary>
+        /// <summary>
+        /// A snapshot's copy of a stamp's per-vantage rows, or null when there
+        /// were none. A fresh map every time, because <see cref="ArchiveState"/>
+        /// is a plain POCO a caller may go on to mutate, while a
+        /// <see cref="DelayStamp"/> is immutable and shared across every sample
+        /// recorded under it.
+        /// </summary>
+        private static Dictionary<string, double>? CopyStampRows(DelayStamp? stamp)
+        {
+            return stamp?.ByVantage();
+        }
+
         public ArchiveState Snapshot()
         {
             var topics = new HashSet<string>(_samplesByTopic.Keys);
@@ -494,6 +531,8 @@ namespace Sitrep.Core
                             Value = sample.Value,
                             ValidAt = sample.ValidAt,
                             Epoch = sample.Epoch,
+                            DelayBase = sample.Stamp?.BaseSeconds,
+                            DelayByVantage = CopyStampRows(sample.Stamp),
                         });
                     }
                 }
@@ -535,7 +574,15 @@ namespace Sitrep.Core
                     var list = new List<Sample>(topicState.Samples.Count);
                     foreach (var sampleState in topicState.Samples)
                     {
-                        list.Add(new Sample { Value = sampleState.Value, ValidAt = sampleState.ValidAt, Epoch = sampleState.Epoch });
+                        list.Add(new Sample
+                        {
+                            Value = sampleState.Value,
+                            ValidAt = sampleState.ValidAt,
+                            Epoch = sampleState.Epoch,
+                            Stamp = sampleState.DelayBase == null
+                                ? null
+                                : new DelayStamp(sampleState.DelayBase.Value, sampleState.DelayByVantage),
+                        });
                     }
                     archive._samplesByTopic[topicState.Topic] = list;
                 }
@@ -590,6 +637,18 @@ namespace Sitrep.Core
         public object? Value { get; set; }
         public double ValidAt { get; set; }
         public int Epoch { get; set; }
+
+        /// <summary>
+        /// The recorded sample's <see cref="ArchiveSample.Stamp"/>, flattened
+        /// into BCL data: the vantage-independent base, and the explicit
+        /// per-vantage rows when there were any. Null base means the sample
+        /// carried no stamp. Dropping the stamp across a quicksave would put
+        /// the whole backlog back on the live ledger the moment a save was
+        /// loaded, which is the defect this exists to close.
+        /// </summary>
+        public double? DelayBase { get; set; }
+
+        public Dictionary<string, double>? DelayByVantage { get; set; }
     }
 
     /// <summary>One vantage's clamped cursor scene within an <see cref="ArchiveTopicState"/>.</summary>
