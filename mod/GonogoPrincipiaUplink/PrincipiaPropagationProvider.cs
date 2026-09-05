@@ -218,8 +218,13 @@ namespace GonogoPrincipiaUplink
                 return null;
             }
 
-            var radius = _conics.Solve(target, parentFrame, fromUt).Position.Magnitude();
-            var perturbing = 0.0;
+            // The whole state, not just its magnitude: which way the neighbourhood
+            // pulls RELATIVE TO THE CRAFT'S MOTION is what separates a tug along the
+            // track, which changes the period and runs the craft ahead of its own
+            // conic, from one straight up, which largely does not. A radius alone
+            // cannot tell the two apart and the bound used to be blind to both.
+            var craft = _conics.Solve(target, parentFrame, fromUt);
+            var forcing = new TidalForcing(craft);
             var neighbourhood = _perturbers(target.ParentBodyIndex);
             if (neighbourhood != null)
             {
@@ -232,15 +237,14 @@ namespace GonogoPrincipiaUplink
                     var bodyTarget = PropagationTarget.Body(body.BodyIndex);
                     if (!_conics.CanPropagate(bodyTarget, parentFrame, fromUt, fromUt)) continue;
 
-                    perturbing += PrincipiaHorizonBound.PerturbingAcceleration(
-                        radius,
-                        entry.GravitationalParameter,
-                        _conics.Solve(bodyTarget, parentFrame, fromUt).Position.Magnitude());
+                    forcing.Add(
+                        _conics.Solve(bodyTarget, parentFrame, fromUt).Position,
+                        entry.GravitationalParameter);
                 }
             }
 
             return PrincipiaHorizonBound.SpanSeconds(
-                perturbing, _conics.CharacteristicCycleSeconds(target));
+                forcing, elements.Ecc, _conics.CharacteristicCycleSeconds(target));
         }
 
         public ClosestApproach? SolveClosestApproach(
