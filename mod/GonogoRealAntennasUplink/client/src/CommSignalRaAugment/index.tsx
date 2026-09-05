@@ -31,12 +31,13 @@ import "../hopExt";
 
 /**
  * The value a link-budget readout may be drawn from: current, or modelled
- * forward to the frame. A stale reading gives nothing, matching CommSignal's
- * own rule: a margin held from before a gap asserts a link that may be gone.
+ * forward to the frame. A stale reading with no model gives nothing, matching
+ * CommSignal's own rule: a margin held from before a gap asserts a link that
+ * may be gone.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

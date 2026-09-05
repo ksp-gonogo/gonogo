@@ -100,7 +100,6 @@ function planView(reading: Reading<PrincipiaPlan>): PlanView {
           magnitudeOf(reading.value.sampledAtUt) ?? magnitudeOf(reading.atUt),
       };
     case "stale":
-    case "reckonable":
       return {
         kind: "seen",
         plan: reading.value,
@@ -481,7 +480,6 @@ function vesselIdOf(reading: Reading<{ vesselId: string }>): string | null {
     case "observed":
       return reading.value.vesselId ?? null;
     case "stale":
-    case "reckonable":
       return reading.value.vesselId ?? null;
     default:
       return null;

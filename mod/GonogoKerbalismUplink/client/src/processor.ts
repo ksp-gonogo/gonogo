@@ -89,8 +89,7 @@ export const SHIP_SYSTEMS = KERBALISM.registerProcessor({
     // working from and how old that is, and `levels` below is what says so.
     const resources =
       resourcesReading.state === "observed" ||
-      resourcesReading.state === "stale" ||
-      resourcesReading.state === "reckonable"
+      resourcesReading.state === "stale"
         ? resourcesReading.value
         : undefined;
     // `observedAt` rather than a hand-written five-arm switch over the reading

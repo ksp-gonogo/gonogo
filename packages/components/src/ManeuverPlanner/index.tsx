@@ -95,10 +95,10 @@ function dateable<T>(reading: Reading<T>): {
   value: T | undefined;
   needsDating: boolean;
 } {
+  if (reading.reckoning === "available")
+    return { value: reading.reckoned.value, needsDating: false };
   if (reading.state === "observed")
     return { value: reading.value, needsDating: false };
-  if (reading.state === "reckonable")
-    return { value: reading.reckoned.value, needsDating: false };
   if (reading.state === "stale")
     return { value: reading.value, needsDating: true };
   return { value: undefined, needsDating: false };
@@ -116,7 +116,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }

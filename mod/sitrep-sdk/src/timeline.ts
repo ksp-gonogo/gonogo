@@ -127,8 +127,8 @@ export interface DerivedChannelDefinition<T> {
   /**
    * Whether this record is FORWARD-MODELLED for `viewUt` rather than merely
    * carried from the last observation, and on what basis. Returning a basis
-   * promotes a missed-update reading from `stale` to `reckonable`; returning
-   * `undefined` leaves it `stale`.
+   * makes the reading `reckoning: "available"` whatever its `state`, live
+   * included; returning `undefined` leaves it `reckoning: "none"`.
    *
    * A derived channel is where class-A propagation actually lives, and it got
    * there before `Reading` existed: `deriveVesselState` calls
@@ -137,6 +137,11 @@ export interface DerivedChannelDefinition<T> {
    * frame's view time. `Reading` then labelled it `stale`, whose own doc says
    * its value is "the last REAL observation, never a modelled value". This is
    * the label that was missing, not a second model.
+   *
+   * The label is now independent of staleness, which matters most for exactly
+   * this channel: the elements are a CAUSE valid until superseded, so the solve
+   * is forward-modelled whether or not the last packet was late, and the
+   * reading can finally say so on a live read.
    *
    * Note what a class-A reckoning does NOT do: arithmetic. Kepler elements are
    * constant under two-body motion, `epoch` is epoch-referenced, and the
@@ -163,9 +168,9 @@ export interface DerivedChannelDefinition<T> {
    * explicitly and draws nothing for a field the model merely carried.
    *
    * Include a root entry (`path: ""`) where the record as a whole is
-   * forward-modelled: that is what a whole-topic read needs to reach the
-   * `reckonable` arm at all, and a field read still borrows it exactly as it
-   * borrows a bare basis.
+   * forward-modelled: that is what a whole-topic read needs to reach
+   * `reckoning: "available"` at all, and a field read still borrows it exactly
+   * as it borrows a bare basis.
    */
   deriveReckoning?: (
     get: DerivedGet,

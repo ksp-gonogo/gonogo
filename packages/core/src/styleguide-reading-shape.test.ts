@@ -63,7 +63,8 @@ function trackedSourceFiles(): string[] {
  *
  * The accessors are the sanctioned narrowings (`judgeable`, `stillTrue`, `dateable`,
  * `withoutReckoning`, `readingAge`, `notCurrent`, `hasAnswered`), plus an explicit
- * `.state` branch, which is what a widget with its own rule writes.
+ * branch on either discriminant, `.state` or `.reckoning`, which is what a widget
+ * with its own rule writes.
  *
  * `hasAnswered` is the odd one out and worth a line: the others are per-site local
  * helpers matched by name, while it is exported from the SDK and shared. It answers
@@ -128,8 +129,15 @@ function bareReadings(sources: ReadonlyMap<string, string>): Suspect[] {
       // (`x.foo` / `x?.foo`) would have been a type error, so it is not a risk.
       const bare = new RegExp(`[(,{}\\[\\s]${variable}(?![\\w.?])`).test(rest);
       if (!bare) continue;
+      // `.reckoning` counts alongside `.state` because a `Reading` carries TWO
+      // discriminants. A widget whose whole question is "is there a model" writes
+      // only the second one, and reading it is as much a narrowing as reading the
+      // first: both select union members. Matching only `.state` would report
+      // such a site as a bare reading, which is a false accusation rather than a
+      // missed one, but it teaches the reader that the scan does not know about
+      // the second axis.
       const narrowed = new RegExp(
-        `(?:${ACCESSORS.source})\\(\\s*${variable}|${variable}\\.state`,
+        `(?:${ACCESSORS.source})\\(\\s*${variable}|${variable}\\.(?:state|reckoning)`,
       ).test(rest);
       if (narrowed) continue;
       // A function declared IN THIS FILE that takes a `Reading` is a narrowing too.

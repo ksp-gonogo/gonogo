@@ -28,8 +28,8 @@ import { useTelemetry } from "./useTelemetry";
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -127,7 +127,7 @@ describe("useTelemetry: canonical TopicId read", () => {
     // are the `pending` arm. A widget on a station with no host reads exactly what a
     // widget waiting for its first frame reads, which is the honest answer.
     const { result } = renderHook(() => useTelemetry("vessel.orbit"));
-    expect(result.current).toEqual({ state: "pending" });
+    expect(result.current).toEqual({ state: "pending", reckoning: "none" });
   });
 });
 

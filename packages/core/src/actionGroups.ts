@@ -142,8 +142,8 @@ export function useActionGroups(): ActionGroup[] {
   //
   // The group's VALUE is the part that goes stale, and it is read separately by
   // whatever renders a toggle: that read branches, this one does not need to.
-  // `vessel.control` is declared unmodellable, so there is no `reckonable` arm
-  // to consider here.
+  // `vessel.control` is declared unmodellable, so its reckoning is always
+  // `"none"` and there is no model to consider here.
   const named =
     control.state === "observed" || control.state === "stale"
       ? control.value

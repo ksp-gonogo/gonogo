@@ -57,8 +57,8 @@ export interface ProcessorHandle<R, Id extends string = string> {
  *
  * `evaluate` skips a processor whose `lastFrameGeneration` matches the frame,
  * so it is memoised WITHIN a frame and re-evaluated ACROSS frames.
- * `sampleReading` re-derives a `reckonable` arm whenever the frame's view time
- * moves. Both are keyed on the same thing, the frame, so a processor sees a
+ * `sampleReading` re-derives a reading carrying a model whenever the frame's
+ * view time moves. Both are keyed on the same thing, the frame, so a processor sees a
  * reading built for the moment it is deriving for without any new invalidation
  * machinery.
  *

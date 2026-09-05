@@ -402,13 +402,11 @@ function LandingStatusComponent({
    * `observed`, which is the whole distinction.
    */
   const describe = <T,>(r: Reading<T>): T | undefined =>
-    r.state === "observed"
-      ? r.value
-      : r.state === "reckonable"
-        ? r.reckoned.value
-        : r.state === "stale"
-          ? r.value
-          : undefined;
+    r.reckoning === "available"
+      ? r.reckoned.value
+      : r.state === "observed" || r.state === "stale"
+        ? r.value
+        : undefined;
 
   // Which situation the vessel is in does not decay the way a velocity does: a
   // craft that was on the pad when the last frame arrived has not since taken
@@ -442,8 +440,7 @@ function LandingStatusComponent({
    * there. Drives a caption, never a blank: the numbers below are still the best
    * picture available and stay on screen.
    */
-  const isDated = (r: Reading<unknown>): boolean =>
-    r.state === "stale" || r.state === "reckonable";
+  const isDated = (r: Reading<unknown>): boolean => r.state === "stale";
   const datedInputs = [
     isDated(flightReading) ? "flight" : null,
     isDated(surfaceReading) ? "surface" : null,

@@ -266,9 +266,7 @@ export const CELESTIAL_FACTS = CORE_UPLINK_CLIENT.registerProcessor({
   deps: [{ reading: "system.bodies" }] as const,
   compute: ([reading], frame): CelestialFacts => {
     const known =
-      reading.state === "observed" ||
-      reading.state === "stale" ||
-      reading.state === "reckonable"
+      reading.state === "observed" || reading.state === "stale"
         ? reading.value
         : undefined;
     // The frame's own frozen view time, which is what puts every body on the

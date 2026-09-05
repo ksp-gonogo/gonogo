@@ -248,8 +248,8 @@ interface Applicant {
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -270,7 +270,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -338,7 +337,14 @@ function AstronautComplexComponent(
    */
   const fundsReading = topics.useTelemetry("career.status");
   const careerFunds = magnitudeOf(judgeable(fundsReading)?.economy?.funds);
-  const fundsNotCurrent = notCurrent(fundsReading);
+  /*
+   * The note this drives explains a MISSING figure, so it has to be off
+   * whenever a figure is on screen. `judgeable` above hands back a modelled
+   * balance, and hanging "Funds no longer current" under a number the operator
+   * can read would deny the very figure the hire is being priced against.
+   */
+  const fundsNotCurrent =
+    notCurrent(fundsReading) && fundsReading.reckoning === "none";
   /**
    * Crew are a standing cost, not a one-off: a hire this balance covers today
    * adds to a payroll the same balance keeps paying. The rate comes from

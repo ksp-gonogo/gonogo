@@ -47,7 +47,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -71,12 +70,13 @@ function SemiMajorAxisComponent({
    * honest thing to draw, and blanking it would lose the one figure this tile
    * exists to show.
    *
-   * `withoutReckoning` first, deliberately: it is what makes the caption fire on
-   * a modelled reading too. A propagated orbit conserves SMA exactly, so a
-   * reckoned figure here would be the same number dressed as fresh evidence,
-   * and it would also disagree in kind with the sparkline beside it, which is
-   * observed history and cannot be modelled forward. So this widget declines the
-   * model and says how old the observation is instead.
+   * `withoutReckoning` first, deliberately: it puts `reckoned` out of reach so
+   * no later edit can quietly draw a modelled figure here. A propagated orbit
+   * conserves SMA exactly, so a reckoned figure would be the same number dressed
+   * as fresh evidence, and it would also disagree in kind with the sparkline
+   * beside it, which is observed history and cannot be modelled forward. So this
+   * widget declines the model and says how old the observation is instead. The
+   * caption fires off `state` alone, which the decline leaves exactly as it was.
    */
   const orbitReading = withoutReckoning(topics.useTelemetry("vessel.orbit"));
   const sma = stillTrue(orbitReading, undefined)?.sma;

@@ -41,8 +41,8 @@ const REFERENCE_SAMPLES = 80;
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -249,7 +249,12 @@ function AtmosphereProfileComponent({
      confirmed vacuum, a stale record) and only the third is worth explaining,
      so the notice fires on staleness alone. Gated on `chipFits` because a
      widget too small to have drawn the chip has withheld nothing. */
-  const showNotCurrentNotice = chipFits && flightNotCurrent;
+  /* And off entirely when the record was modelled forward: `flight` comes from
+     `judgeable`, so the chip above is drawn from the model, and a notice saying
+     the readings are gone beside the density they produced is the one reading
+     of this the operator cannot make sense of. */
+  const showNotCurrentNotice =
+    chipFits && flightNotCurrent && flightReading.reckoning === "none";
 
   return (
     <Fill>

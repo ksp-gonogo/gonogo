@@ -174,8 +174,8 @@ type ViewMode = "tracking" | "approach" | "docking-hud";
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -196,7 +196,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -205,7 +204,6 @@ function observedPayload<T>(reading: Reading<T>): T | undefined {
   switch (reading.state) {
     case "observed":
     case "stale":
-    case "reckonable":
       return reading.value;
     default:
       return undefined;
@@ -333,13 +331,22 @@ function TargetingComponent({
   // "any non-body target under 100 m".
   const dockingAvailable = dockRelPos !== undefined;
 
-  // The pairing is still selected but its geometry is no longer current, so the
-  // reticle is being WITHHELD rather than never having existed. Worth its own
-  // flag because the two look identical from outside: the HUD simply is not
-  // there, and without this the operator would read a link that went quiet as a
-  // target that stopped being a docking port. The approach view names it.
+  /*
+   * The pairing is still selected but its geometry is no longer current, so the
+   * reticle is being WITHHELD rather than never having existed. Worth its own
+   * flag because the two look identical from outside: the HUD simply is not
+   * there, and without this the operator would read a link that went quiet as a
+   * target that stopped being a docking port. The approach view names it.
+   *
+   * Withheld is the whole claim, so the reckoning arm is excluded: `dock` above
+   * is `judgeable`, and a modelled pairing draws the reticle and every
+   * alignment row from it. Captioning that HUD "no longer current" would deny
+   * an instrument the operator is looking straight at.
+   */
   const alignmentWithheld =
-    notCurrent(dockReading) && dockPairing?.relativePosition !== undefined;
+    notCurrent(dockReading) &&
+    dockReading.reckoning === "none" &&
+    dockPairing?.relativePosition !== undefined;
   /*
    * The age, spelled out: an instant minus an instant is a duration, and the
    * affine rules make that the type. The clamp is there because samples arrive
@@ -517,17 +524,18 @@ function TargetingComponent({
     rows >= 5 && relVel !== undefined && Number.isFinite(relVel);
   const showTargetName = rows >= 4 || cols >= 5;
 
-  // Out of contact, either way. The two arms differ in what they let us DRAW,
-  // which is why they are arms; they agree that the headline number is an
-  // observation rather than a reading of now, which is why they share a tone.
-  const outOfContact =
-    targetReading.state === "stale" || targetReading.state === "reckonable";
+  // Out of contact: the headline number is an observation rather than a reading
+  // of now, and the muted tone is what says so. Whether a model is on offer is a
+  // separate question, answered just below, and does not change this one.
+  const outOfContact = targetReading.state === "stale";
   // Pulled here, in the branch that renders it, so a modelled number can only
   // reach the screen through code that says it is modelling. `withoutReckoning`
   // is the alternative and would be wrong for this widget: range to a target is
   // exactly the quantity an approach is flown on.
   const reckoned =
-    targetReading.state === "reckonable" ? targetReading.reckoned : undefined;
+    targetReading.reckoning === "available"
+      ? targetReading.reckoned
+      : undefined;
   // Derived exactly as the observed distance is, from the same Vec3 field, so a
   // modelled range and an observed one are the same quantity computed the same
   // way. A model that returns a payload with no relative position has nothing

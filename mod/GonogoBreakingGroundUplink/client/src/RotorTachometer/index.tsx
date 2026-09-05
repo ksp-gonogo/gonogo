@@ -64,13 +64,13 @@ export interface RotorInfo {
 }
 
 /**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
+ * The value a VERDICT may be drawn from: current, or modelled forward to the
+ * frame. A stale reading with no model gives nothing, because a judgement cannot
+ * be dated: the operator reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -86,7 +86,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }

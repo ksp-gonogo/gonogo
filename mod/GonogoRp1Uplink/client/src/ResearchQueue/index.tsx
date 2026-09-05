@@ -135,10 +135,10 @@ function ResearchRow({ node }: Readonly<{ node: Rp1ResearchEntry }>) {
  */
 const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;
 
-/** The value where one is current; see LaunchComplexStatus for why reckonable counts. */
+/** The value where one is current; see LaunchComplexStatus for why a model counts. */
 function current<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

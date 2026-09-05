@@ -98,10 +98,17 @@ describe("degradeRating: the reading read", () => {
   it("returns nothing while no rating has arrived", () => {
     // Three distinct reasons to have no rating, one answer, because a consumer
     // has the same thing to do about all three: keep doing what it was doing.
-    const pending: Reading<CommsDegrade> = { state: "pending" };
-    const unowned: Reading<CommsDegrade> = { state: "unowned" };
+    const pending: Reading<CommsDegrade> = {
+      state: "pending",
+      reckoning: "none",
+    };
+    const unowned: Reading<CommsDegrade> = {
+      state: "unowned",
+      reckoning: "none",
+    };
     const absent: Reading<CommsDegrade> = {
       state: "absent",
+      reckoning: "none",
       atUt: value("ut", 100),
     };
 
@@ -113,6 +120,7 @@ describe("degradeRating: the reading read", () => {
   it("returns the rating for an observed reading", () => {
     const reading: Reading<CommsDegrade> = {
       state: "observed",
+      reckoning: "none",
       value: graded,
       atUt: value("ut", 100),
     };
@@ -127,6 +135,7 @@ describe("degradeRating: the reading read", () => {
     // matters. What says the link is DOWN is comms.link, not this.
     const reading: Reading<CommsDegrade> = {
       state: "stale",
+      reckoning: "none",
       value: graded,
       asOfUt: value("ut", 100),
       grade: "last-before-blackout",

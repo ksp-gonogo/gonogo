@@ -2,7 +2,7 @@ import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { getDataSource } from "../api/registry";
 import type { DataSource } from "../api/types";
 import { isTopicCarried } from "../carried-channels";
-import type { Reading } from "../reading";
+import type { Reading, UnmodelledReading } from "../reading";
 import type { TopicId, TopicPayload } from "../topics";
 import {
   useCarriedChannelsOptional,
@@ -11,7 +11,7 @@ import {
 } from "./context";
 import { warnGatedRead } from "./gated-read-warning";
 import { resolveValueTopic } from "./map-topic";
-import type { NeverReckonable, UnmodelledReading } from "./never-reckonable";
+import type { NeverReckonable } from "./never-reckonable";
 import { useTelemetrySubscriberLabel } from "./subscriber-identity";
 import { useDataSourceSubscription } from "./use-data-source-subscription";
 
@@ -121,7 +121,10 @@ import { useDataSourceSubscription } from "./use-data-source-subscription";
  * One shared `pending` for the canonical no-provider path. A fresh object per
  * call would fail `useSyncExternalStore`'s reference comparison and loop.
  */
-const CANONICAL_PENDING: Reading<never> = { state: "pending" };
+const CANONICAL_PENDING: Reading<never> = {
+  state: "pending",
+  reckoning: "none",
+};
 
 /**
  * Canonical overload: keyed by TopicId, returns the Topic's `Reading`.
@@ -141,9 +144,11 @@ const CANONICAL_PENDING: Reading<never> = { state: "pending" };
  * reach a value without confronting its currency, because the only hook that
  * hands one over makes you write the discriminant first.
  *
- * For a topic in `NEVER_RECKONABLE` the `reckonable` arm is dropped from the
- * return type, so a caller cannot write a branch for a case that can never
- * occur. `stale` remains and remains the judgement.
+ * For a topic in `NEVER_RECKONABLE` the return narrows to `UnmodelledReading`,
+ * which drops every `reckoning: "available"` member, so a caller cannot write a
+ * branch for a case that can never occur. Reckonability is a SECOND
+ * discriminant rather than an arm of `state`, so nothing is dropped from
+ * `state` itself: `stale` remains, and remains the judgement.
  *
  * ## The compile break does NOT always happen, and this is the trap
  *

@@ -142,9 +142,10 @@ export function TrajectoryCurrencyBridge({
  * arrived" is the stream badge's sentence, and saying it twice in two
  * vocabularies would make the panel less clear, not more. A `stale` reading is
  * likewise the stream badge's judgement. This bridge speaks only about a
- * trajectory it actually has, and `reckonable` counts as having one: a reckoned
- * value is still elements with a horizon attached, and whether that horizon
- * covers the view instant is precisely the question worth asking about it.
+ * trajectory it actually has, and a reading carrying a reckoning counts as
+ * having one: a reckoned value is still elements with a horizon attached, and
+ * whether that horizon covers the view instant is precisely the question worth
+ * asking about it.
  *
  * With no view UT there is no question to ask, so nothing is contributed rather
  * than a guess substituted. That is the case on a screen whose clock has not
@@ -155,10 +156,10 @@ function TrajectoryCurrencyContribution() {
   const reading = useTelemetry(TRAJECTORY_TOPIC);
   const viewUt = magnitudeOf(useViewUt());
   const orbit =
-    reading.state === "observed"
-      ? reading.value
-      : reading.state === "reckonable"
-        ? reading.reckoned.value
+    reading.reckoning === "available"
+      ? reading.reckoned.value
+      : reading.state === "observed"
+        ? reading.value
         : undefined;
   const contribution =
     orbit === undefined || viewUt === null

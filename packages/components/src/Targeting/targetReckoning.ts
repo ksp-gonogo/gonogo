@@ -47,9 +47,9 @@ export const targetReckoning = defineProcessor({
  * quiet reads `stale` and the widget renders no modelled figure.
  *
  * Declining is the honest answer while nothing can model the gap, and it is a
- * real statement rather than a placeholder: the `reckonable` arm's PRESENCE is
- * what tells a widget a number can be trusted, so a stub that offered one would
- * make the type lie in exactly the way the type exists to prevent.
+ * real statement rather than a placeholder: `reckoning: "available"` is what
+ * tells a widget a number can be trusted, so a stub that offered one would make
+ * the type lie in exactly the way the type exists to prevent.
  *
  * ## The horizon, when this is built
  *
@@ -58,10 +58,11 @@ export const targetReckoning = defineProcessor({
  * This function's job is therefore to stop RETURNING a model past its own
  * horizon rather than to return one with a caveat attached, which is what the
  * `viewUt` argument is for: the elapsed window is `viewUt - point.validAt`. The
- * arm is rebuilt whenever the view time moves, so withdrawing is all it takes:
- * the topic presents as `stale` from that frame on, and no caller can be
- * holding a model that has gone bad. That is why `Reading` carries no horizon
- * field and `reckoned` has no failure return.
+ * reading is rebuilt whenever the view time moves, so withdrawing is all it
+ * takes: the topic reads `reckoning: "none"` from that frame on, keeping
+ * whatever `state` it honestly has, and no caller can be holding a model that
+ * has gone bad. That is why `Reading` carries no horizon field and `reckoned`
+ * has no failure return.
  *
  * The other half of the horizon is a burn. A dead-reckoned position assumes
  * nothing has thrusted, and a craft out of contact is exactly a craft we cannot

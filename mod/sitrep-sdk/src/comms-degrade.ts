@@ -80,7 +80,6 @@ export function degradeRating(
   switch (reading.state) {
     case "observed":
     case "stale":
-    case "reckonable":
       return degradeRatingOf(reading.value);
     default:
       return undefined;

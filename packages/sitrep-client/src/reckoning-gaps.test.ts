@@ -28,8 +28,14 @@ import { ViewClock } from "./view-clock";
  * Every case here reads in PREDICTED mode. That is not incidental: in
  * confirmed mode the view clock clamps to the newest delivered sample, so
  * there is no gap between the observation and the frame and nothing to reckon
- * across. Reckoning is a question only where `viewUt` runs ahead of the last
- * thing that arrived, which is exactly what predicted mode is for.
+ * across. Reckoning MATTERS only where `viewUt` runs ahead of the last thing
+ * that arrived, which is exactly what predicted mode is for.
+ *
+ * It is now OFFERED more widely than that. Since reckonability became its own
+ * discriminant, `readingFrom` consults the reckoner on a live reading too, so a
+ * topic can read `observed` with `reckoning: "available"`. Nothing here exercises
+ * that path: every case takes the transport down first, because the gaps this
+ * file pins are about carrying a value across a loss of contact.
  */
 
 function fakeWall(start = 0) {
@@ -120,9 +126,7 @@ describe("a derived reading must not claim the frame's own view time as its obse
     expect(viewUt).toBe(1300);
 
     const reading = store.sampleReading<unknown>("vessel.state");
-    expect(reading.state === "stale" || reading.state === "reckonable").toBe(
-      true,
-    );
+    expect(reading.state).toBe("stale");
     // The age, as the subtraction it now is: twenty minutes since the ORBIT was
     // observed, not zero because the derived channel was recomputed this frame.
     expect(
@@ -130,12 +134,12 @@ describe("a derived reading must not claim the frame's own view time as its obse
     ).toEqual(value("s", 1200));
   });
 
-  it("does not serve a forward-modelled derived value on the `stale` arm", () => {
+  it("does not serve a forward-modelled derived value with no reckoning on offer", () => {
     // `Reading`'s doc on the stale arm: "The last REAL observation. Never a
     // modelled value." Under OnRails `vessel.state.position` IS
-    // `kepler.solve(elements, viewUt)`, so serving it as `stale` makes the type
-    // say the opposite of what it carries. A model that exists is what the
-    // `reckonable` arm is for.
+    // `kepler.solve(elements, viewUt)`, so serving it with `reckoning: "none"`
+    // makes the type say the opposite of what it carries. A model that exists
+    // says so on the reckoning axis, and the modelled figure rides `reckoned`.
     const wall = fakeWall();
     const { store } = predictedStore(wall);
     store.registerDerivedChannel(vesselStateChannel);
@@ -145,8 +149,8 @@ describe("a derived reading must not claim the frame's own view time as its obse
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReading<unknown>("vessel.state").state).toBe(
-      "reckonable",
+    expect(store.sampleReading<unknown>("vessel.state").reckoning).toBe(
+      "available",
     );
   });
 });
@@ -194,15 +198,15 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("temperature");
-    expect(reading.state).toBe("reckonable");
-    if (reading.state !== "reckonable") return;
+    expect(reading.reckoning).toBe("available");
+    if (reading.reckoning !== "available") return;
     const reckoning = reading.reckoned;
     expect(reckoning.atUt).toEqual(value("ut", 160));
     expect(reckoning.value).toBe(65);
   });
 });
 
-describe("a reckonable arm withdraws when its model stops being offered", () => {
+describe("a reckoning withdraws when its model stops being offered", () => {
   it("is re-derived on later frames, so a horizon can expire", () => {
     // The identity cache reuses a reading while its point, status and epoch are
     // unchanged. A blackout is exactly that for as long as it lasts, so a model
@@ -224,13 +228,17 @@ describe("a reckonable arm withdraws when its model stops being offered", () => 
     wall.advanceBy(10);
     store.setTransportConnected(false);
     store.beginFrame();
-    expect(store.sampleReading<number>("temperature").state).toBe("reckonable");
+    expect(store.sampleReading<number>("temperature").reckoning).toBe(
+      "available",
+    );
 
-    // Nothing arrives; only time passes. Past the horizon the model withdraws
-    // and the topic presents as stale from that frame on.
+    // Nothing arrives; only time passes. Past the horizon the model withdraws,
+    // and the topic keeps the staleness it honestly has with nothing on offer.
     wall.advanceBy(600);
     store.beginFrame();
-    expect(store.sampleReading<number>("temperature").state).toBe("stale");
+    const expired = store.sampleReading<number>("temperature");
+    expect(expired.reckoning).toBe("none");
+    expect(expired.state).toBe("stale");
   });
 
   it("keeps a STALE reading's identity across frames in which nothing arrived", () => {
@@ -286,7 +294,14 @@ describe("a reckoning says which fields it actually modelled", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReading<Target>("vessel.target").state).toBe("stale");
+    /*
+     * The reckoning axis is the one that carries the refusal. `state` alone no
+     * longer says it: a model that DID cover the root would leave the reading
+     * stale too, and only differ here.
+     */
+    const reading = store.sampleReading<Target>("vessel.target");
+    expect(reading.reckoning).toBe("none");
+    expect(reading.state).toBe("stale");
   });
 });
 
@@ -317,7 +332,8 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     store.beginFrame();
 
     const first = store.sampleReading<number>("temperature");
-    if (first.state !== "reckonable") throw new Error("expected reckonable");
+    if (first.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(first.reckoned.value).toBe(10);
 
     // Ten more seconds of silence. Nothing ingests; only the clock moves.
@@ -325,7 +341,8 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     store.beginFrame();
 
     const second = store.sampleReading<number>("temperature");
-    if (second.state !== "reckonable") throw new Error("expected reckonable");
+    if (second.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(second.reckoned.value).toBe(20);
     expect(second.reckoned.atUt).toEqual(value("ut", 120));
   });
@@ -352,7 +369,8 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("temperature");
-    if (reading.state !== "reckonable") throw new Error("expected reckonable");
+    if (reading.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(reading.reckoned).toBe(reading.reckoned);
   });
 
@@ -378,7 +396,8 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("temperature");
-    if (reading.state !== "reckonable") throw new Error("expected reckonable");
+    if (reading.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(runs).toBe(1);
     void reading.reckoned;
     void reading.reckoned;
@@ -403,13 +422,15 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.setTransportConnected(false);
     store.beginFrame();
     const first = store.sampleReading<number>("temperature");
-    if (first.state !== "reckonable") throw new Error("expected reckonable");
+    if (first.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(first.reckoned.value).toBe(10);
 
     wall.advanceBy(10);
     store.beginFrame();
     const second = store.sampleReading<number>("temperature");
-    if (second.state !== "reckonable") throw new Error("expected reckonable");
+    if (second.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(second.reckoned).not.toBe(first.reckoned);
     expect(second.reckoned.value).toBe(20);
   });
@@ -433,7 +454,8 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     store.beginFrame();
 
     const reading = store.sampleReading<number>("temperature");
-    if (reading.state !== "reckonable") throw new Error("expected reckonable");
+    if (reading.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     const copied = { ...reading };
     expect(copied.reckoned).toBe(reading.reckoned);
     expect(copied.reckoned.value).toBe(65);

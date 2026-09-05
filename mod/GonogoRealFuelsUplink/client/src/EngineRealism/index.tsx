@@ -36,13 +36,13 @@ import "../topics";
 
 /**
  * The value a judgement may be drawn from: current, or modelled forward to the
- * frame. A stale reading gives nothing. An ignition budget held from before a
- * gap is the worst kind of number to draw, because the burn it describes may
- * already have spent it.
+ * frame. A stale reading with no model gives nothing. An ignition budget held
+ * from before a gap is the worst kind of number to draw, because the burn it
+ * describes may already have spent it.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

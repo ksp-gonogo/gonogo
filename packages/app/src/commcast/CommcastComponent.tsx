@@ -61,8 +61,8 @@ import { type CommcastEntry, useCommcastFeed } from "./useCommcastFeed";
  * freezes at send has to be the separation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

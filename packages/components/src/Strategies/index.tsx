@@ -89,8 +89,8 @@ export interface Strategy {
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -111,7 +111,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -304,10 +303,18 @@ function StrategiesComponent({
   const funds = economy?.funds;
   const reputation = economy?.reputation;
   const science = economy?.science;
-  // Distinguishes "the balances went stale" from "no economy has ever arrived".
-  // Both blank the figures and both refuse Activate, but only one of them is a
-  // statement about the link, and the operator acts differently on each.
-  const balancesNotCurrent = notCurrent(careerReading);
+  /*
+   * Distinguishes "the balances went stale" from "no economy has ever arrived".
+   * Both blank the figures and both refuse Activate, but only one of them is a
+   * statement about the link, and the operator acts differently on each.
+   *
+   * A reckoned reading is neither, which is why the arm is excluded: `economy`
+   * above is `judgeable`, so a model puts real figures in `funds`, `science`
+   * and `reputation`. Left in, this flag would print "balances not current"
+   * INSTEAD of the numbers it is holding and refuse an Activate it can price.
+   */
+  const balancesNotCurrent =
+    notCurrent(careerReading) && careerReading.reckoning === "none";
   /**
    * A strategy commits funds against a programme that may already be running a
    * standing cost, so the balance beside the Activate control is only half of

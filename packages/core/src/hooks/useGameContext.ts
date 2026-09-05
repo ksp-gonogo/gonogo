@@ -139,8 +139,8 @@ export function useGameContext(): GameContext {
   // Topic reads; kc.padOccupied -> the DERIVED spaceCenter.state channel
   // (space-center-state.ts, off spaceCenter.launchSites), read via useStream.
   // Both are DISCRETE game states that change by event, and both are declared
-  // unmodellable, so there is no `reckonable` arm and the only question is what
-  // a stale one means. The answer is: it is still true. The game does not leave
+  // unmodellable, so neither ever carries a reckoning and the only question is
+  // what a stale one means. The answer is: it is still true. The game does not leave
   // the Flight scene or stop being a career because a telemetry frame went
   // missing, and every widget downstream uses this to decide whether to DIM
   // itself, so treating a stale scene as unknown would blank half the dashboard

@@ -170,10 +170,11 @@ describe("Targeting: stale renders the last observation as an observation", () =
   });
 
   it("renders the modelled range beside the observation once a model exists", async () => {
-    // The `reckonable` arm end to end. The shipped reckoner declines (nothing
-    // can honestly model this yet), so the test registers one: the point is that
-    // the widget renders BOTH figures, the observation with its age and the
-    // model with its basis, rather than substituting one for the other.
+    // The `reckoning: "available"` axis end to end. The shipped reckoner
+    // declines (nothing can honestly model this yet), so the test registers one:
+    // the point is that the widget renders BOTH figures, the observation with
+    // its age and the model with its basis, rather than substituting one for the
+    // other.
     registerReckoner<TopicPayload<"vessel.target">>(
       "vessel.target",
       // The same owner the shipped decliner registers under: this test replaces

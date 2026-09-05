@@ -122,8 +122,8 @@ declare module "@ksp-gonogo/core" {
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -144,7 +144,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -211,12 +210,21 @@ function ActionGroupComponent(
    * refuses to do off an unresolved read. A held boolean would both misstate the
    * craft and command the wrong way.
    */
+  /*
+   * "Not current" here means "the pill has nothing in it", which the view
+   * spends on a reason line and on disabling the toggle. `judgeable` draws a
+   * modelled value where one exists, so the reckoning arm has to come out of
+   * this test: left in, the widget would show a state, disable the toggle that
+   * could invert it, and caption a full pill as empty.
+   */
+  const valueNotCurrent =
+    notCurrent(controlReading) && controlReading.reckoning === "none";
   return (
     <ActionGroupView
       {...props}
       group={group}
       value={resolveGroupValue(group, judgeable(controlReading))}
-      valueNotCurrent={notCurrent(controlReading)}
+      valueNotCurrent={valueNotCurrent}
     />
   );
 }

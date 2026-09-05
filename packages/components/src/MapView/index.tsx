@@ -419,9 +419,7 @@ function MapViewComponent({
   // caption below saying how old they are: a number beside a label can be
   // dated honestly.
   const flight =
-    flightReading.state === "observed" ||
-    flightReading.state === "stale" ||
-    flightReading.state === "reckonable"
+    flightReading.state === "observed" || flightReading.state === "stale"
       ? flightReading.value
       : undefined;
   // The MARKER cannot. A dot on a map is a positive claim about where the craft
@@ -431,12 +429,21 @@ function MapViewComponent({
   // offer, and otherwise from nothing at all: the `NoSignal` overlay below says
   // which, so the suppression is visible rather than an empty map.
   const positioned =
-    flightReading.state === "observed"
-      ? flightReading.value
-      : flightReading.state === "reckonable"
-        ? flightReading.reckoned.value
+    flightReading.reckoning === "available"
+      ? flightReading.reckoned.value
+      : flightReading.state === "observed"
+        ? flightReading.value
         : undefined;
-  const positionStale = flightReading.state === "stale";
+  /*
+   * "Marker withheld", so it has to be false in exactly the cases where a
+   * marker IS drawn. `state === "stale"` alone is not that question any more:
+   * a stale reading carrying a model reaches `positioned` above and draws, so
+   * testing staleness by itself would caption a withheld marker beside a marker
+   * that is on the map. The withholding is what the caption is about, and the
+   * withholding happens when no model is on offer.
+   */
+  const positionStale =
+    flightReading.state === "stale" && flightReading.reckoning === "none";
   const lat = positioned?.latitude;
   const lon = positioned?.longitude;
   const altSea = vesselState?.altitudeAsl ?? undefined;
@@ -453,10 +460,10 @@ function MapViewComponent({
   // whether a Kepler solve is the right way to sample it.
   const orbitReading = useTelemetry("vessel.orbit");
   const orbitSample =
-    orbitReading.state === "observed"
-      ? orbitReading.value
-      : orbitReading.state === "reckonable"
-        ? orbitReading.reckoned.value
+    orbitReading.reckoning === "available"
+      ? orbitReading.reckoned.value
+      : orbitReading.state === "observed"
+        ? orbitReading.value
         : undefined;
   const trajectory: OrbitTrajectory | null = useOrbitTrajectory(orbitSample);
   const trajectoryWithheld =

@@ -18,12 +18,14 @@ import { value } from "../unit-system/value";
 export type {
   ModelledField,
   Reading,
+  ReadingReckoning,
   ReadingState,
   ReckonerFor,
   Reckoning,
   ReckoningBasis,
   StaleGrade,
   TopicModel,
+  UnmodelledReading,
 } from "../reading";
 export { hasAnswered, observedAt, withoutReckoning } from "../reading";
 
@@ -44,10 +46,11 @@ function rootCoverage(model: {
  * thin and this is what gets tested.
  *
  * With no reckoner, one that declines, or one whose coverage does not reach the
- * payload root, a missed-update reading is `stale`. That is deliberately the
- * default: absence of a model is a real statement ("nothing trustworthy can be
- * said"), so nothing here invents one, and a model that moves one field of
- * forty-seven has not modelled the payload a whole-topic read asks for.
+ * payload root, the reading is `reckoning: "none"` whatever its `state`. That is
+ * deliberately the default: absence of a model is a real statement ("nothing
+ * trustworthy can be said"), so nothing here invents one, and a model that moves
+ * one field of forty-seven has not modelled the payload a whole-topic read asks
+ * for.
  *
  * `viewUt` is the frame's frozen view time and is required rather than
  * optional: every reckoning is a function of it, and a default would let a
@@ -71,47 +74,66 @@ export function readingFrom<T>(
   unowned = false,
 ): Reading<T> {
   if (!point || status === "resyncing") {
-    return unowned ? { state: "unowned" } : { state: "pending" };
+    return unowned
+      ? { state: "unowned", reckoning: "none" }
+      : { state: "pending", reckoning: "none" };
   }
   // A tombstone outranks every staleness grade, the same precedence
   // `sampleRawStatus` uses and for the same reason: a confirmed absence is a
   // stronger claim than "may have changed, cannot tell". It also has no
-  // observed VALUE to carry, so the stale arms could not represent it anyway.
+  // observed VALUE to carry, so nothing here could model it anyway.
   if (point.payload === null || status === "absent") {
-    return { state: "absent", atUt: value("ut", point.validAt) };
-  }
-  if (status === "live") {
     return {
-      state: "observed",
-      value: point.payload,
+      state: "absent",
+      reckoning: "none",
       atUt: value("ut", point.validAt),
     };
   }
-  const model = reckoner?.(point, status, viewUt);
+  const live = status === "live";
+  /*
+   * Asked on a LIVE reading too, which is the point of the reckoning axis being
+   * separate from the staleness one. A conic solved from the elements on the
+   * wire is forward-modelled whether or not the last packet was late, and until
+   * the axes split there was no way for the reading to say so: claiming a model
+   * meant also claiming we had missed updates. `grade` is `undefined` here, so a
+   * reckoner that integrates from the loss of contact can still decline.
+   *
+   * The model RUNS here, once per reading build, which is once per frame per
+   * topic actually read. Eager rather than pulled: provider-supplied compute on
+   * the frame path is what this whole pipeline already is, and cost is answered
+   * by declaring a topic too expensive rather than by a mechanism in the type.
+   * Running it once is also what stops one question asked twice inside a frame
+   * giving two answers, which a thunk called at two call sites would.
+   */
+  const model = reckoner?.(point, live ? undefined : status, viewUt);
   const root = model && rootCoverage(model);
-  if (model && root) {
-    const observed = point.payload;
-    // Memoised for the life of this arm, which is the life of this frame's view
-    // time: the arm is rebuilt whenever `viewUt` moves, so the cache expires
-    // with it and needs no invalidation of its own. The same reasoning that
-    // makes rebuilding the arm correct makes caching inside it correct.
-    //
-    // It matters because a call site wanting both the number and its provenance
-    // naturally writes `reckon().value` in one place and `reckon().basis` in
-    // another. Uncached that is two model runs (for class A, two Kepler solves)
-    // and, worse, TWO OBJECT IDENTITIES for one frame's answer: the identity
-    // trap already fixed in `sampleReading` and in the processor evaluator,
-    // reappearing one layer in. The hazard is not the cost, it is one question
-    // asked twice inside a frame being able to give two answers.
-    //
-    // The model runs HERE, once per arm build, which is once per frame per topic
-    // actually read. Eager rather than pulled: provider-supplied compute on the
-    // frame path is what this whole pipeline already is, and cost is answered by
-    // declaring a topic too expensive rather than by a mechanism in the type.
-    // See the arm's own doc.
+  if (live) {
+    if (!model || !root) {
+      return {
+        state: "observed",
+        reckoning: "none",
+        value: point.payload,
+        atUt: value("ut", point.validAt),
+      };
+    }
     return {
-      state: "reckonable",
-      value: observed,
+      state: "observed",
+      reckoning: "available",
+      value: point.payload,
+      atUt: value("ut", point.validAt),
+      reckoned: {
+        value: model.reckon(viewUt),
+        atUt: value("ut", viewUt),
+        basis: root.basis,
+        modelled: model.modelled,
+      },
+    };
+  }
+  if (model && root) {
+    return {
+      state: "stale",
+      reckoning: "available",
+      value: point.payload,
       asOfUt: value("ut", point.validAt),
       grade: status,
       reckoned: {
@@ -124,6 +146,7 @@ export function readingFrom<T>(
   }
   return {
     state: "stale",
+    reckoning: "none",
     value: point.payload,
     asOfUt: value("ut", point.validAt),
     grade: status,

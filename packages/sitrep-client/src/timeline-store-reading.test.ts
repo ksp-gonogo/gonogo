@@ -48,6 +48,7 @@ describe("TimelineStore.sampleReading", () => {
     expect(second).not.toBe(first);
     expect(second).toEqual({
       state: "observed",
+      reckoning: "none",
       value: 6,
       atUt: value("ut", 11),
     });
@@ -61,6 +62,7 @@ describe("TimelineStore.sampleReading", () => {
     const frame = s.currentFrame();
     expect(s.sampleReading("vessel.target", frame)).toEqual({
       state: "observed",
+      reckoning: "none",
       value: s.sample<number>("vessel.target", frame)?.payload,
       atUt: value("ut", 10),
     });
@@ -70,7 +72,10 @@ describe("TimelineStore.sampleReading", () => {
   it("is pending for a topic that has never produced a point", () => {
     const s = store();
     s.beginFrame();
-    expect(s.sampleReading("vessel.target")).toEqual({ state: "pending" });
+    expect(s.sampleReading("vessel.target")).toEqual({
+      state: "pending",
+      reckoning: "none",
+    });
   });
 
   it("reports the link going down as stale, keeping the last value", () => {
@@ -79,6 +84,7 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.target")).toEqual({
       state: "observed",
+      reckoning: "none",
       value: 5,
       atUt: value("ut", 10),
     });
@@ -87,6 +93,7 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.target")).toEqual({
       state: "stale",
+      reckoning: "none",
       grade: "disconnected",
       value: 5,
       asOfUt: value("ut", 10),
@@ -99,6 +106,7 @@ describe("TimelineStore.sampleReading", () => {
     s.beginFrame();
     expect(s.sampleReading("vessel.target")).toEqual({
       state: "absent",
+      reckoning: "none",
       atUt: value("ut", 10),
     });
   });

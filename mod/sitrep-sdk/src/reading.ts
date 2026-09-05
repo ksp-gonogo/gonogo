@@ -71,9 +71,9 @@ export interface Reckoning<T> {
    * exists to prevent, committed by the mechanism meant to prevent it.
    *
    * `basis` above stays, and is the basis of the entry covering the root. A
-   * whole-topic read only reaches `reckonable` when the model covers the root
-   * (see `TopicModel`), so it is always well defined on a reckoning a caller
-   * can hold.
+   * whole-topic read only reaches `reckoning: "available"` when the model covers
+   * the root (see `TopicModel`), so it is always well defined on a reckoning a
+   * caller can hold.
    */
   modelled: readonly ModelledField[];
 }
@@ -144,11 +144,23 @@ export interface TopicModel<T> {
  *   so. It is what lets a widget report "no target set, confirmed 3 s ago"
  *   instead of asserting it for the rest of the mission
  * - `observed`: the newest sample that could have reached us
- * - `stale`: we have missed updates, and nothing can honestly model the gap.
- *   `value` is the last REAL observation, always reachable, and `asOfUt` says
- *   when it was made. This is the honest majority: most data can only be AGED
- * - `reckonable`: we have missed updates, AND a model exists. Carries the last
- *   observation exactly as `stale` does, plus `reckoned`
+ * - `stale`: we have missed updates. `value` is the last REAL observation,
+ *   always reachable, and `asOfUt` says when it was made
+ *
+ * ## The second discriminant: `reckoning`
+ *
+ * Whether a forward model is on offer is a SEPARATE axis, carried on its own
+ * required field rather than folded into `state`:
+ *
+ * - `reckoning: "none"`: no model is on offer this frame. The honest majority
+ * - `reckoning: "available"`: a model is on offer, and `reckoned` carries what
+ *   it says the quantity is at the frame's view time
+ *
+ * Every arm carries the field, `pending`, `unowned` and `absent` included, where
+ * it is permanently `"none"`: nothing has been observed (or the subject has said
+ * there is nothing), so there is nothing to carry forward. Carrying it on every
+ * arm is what makes the axes independent, because a caller can ask
+ * `reading.reckoning === "available"` without first narrowing `state`.
  *
  * ## Why `unowned` is not `pending`
  *
@@ -196,29 +208,47 @@ export interface TopicModel<T> {
  * duplicate a fact the call site holds and admit the possibility of the two
  * disagreeing.
  *
- * ## Why `reckonable` is an arm and `grade` is a field
+ * ## Why `reckoning` is a discriminant and `grade` is a plain field
  *
  * One rule, applied twice: compiler pressure is worth paying where it forces a
  * DIFFERENT branch, and worth trading away where it would force several
  * identical ones.
  *
- * `grade` does not change what you draw, it labels the same render, so three
- * arms would be three copy-pasted bodies drifting apart across thirty-nine
- * widgets. Field.
+ * `grade` does not change what you draw, it labels the same render, so four
+ * arms would be four copy-pasted bodies drifting apart across thirty-nine
+ * widgets. Plain field.
  *
  * A reckoning DOES change what you draw: a propagated position is a different
  * marker in a different place from a last-known position. An OPTIONAL `reckoned`
- * field on the stale arm was the first shape tried here and it was wrong,
- * because an optional field is one a destructuring consumer ignores by default
- * and ignoring it compiles. A reckoning that EXISTS could be silently dropped
- * while the widget still looked right, which is precisely the failure this type
- * is built to prevent. Arm.
+ * field was the first shape tried here and it was wrong, because an optional
+ * field is one a destructuring consumer ignores by default and ignoring it
+ * compiles: `reading.reckoned` typechecks everywhere and answers `undefined`, so
+ * a reckoning that EXISTS could be silently dropped while the widget still
+ * looked right. That is precisely the failure this type is built to prevent, and
+ * it is still not the shape here.
  *
- * `reckoned` IS a plain field today, and that is not the shape that was
- * rejected: it is REQUIRED, and it sits on an arm a caller can only be inside by
- * having branched there. What was rejected was an optional field on an arm that
- * did not need it, where ignoring it was the default. Reaching this one still
- * means writing the discriminant.
+ * `reckoned` is a REQUIRED field of a union member selected by a REQUIRED
+ * discriminant. `reading.reckoned` does not compile until `reading.reckoning ===
+ * "available"` has been written, because on the other member the property does
+ * not exist at all. That is the same compiler pressure the old `reckonable` arm
+ * applied, and it is what "forces a branch" means here: reaching a reckoning
+ * costs a written test, exactly as reaching a value costs one.
+ *
+ * ## Why it is a SECOND discriminant rather than an arm of the first
+ *
+ * `reckonable` used to be an arm of `state`, which made reckonability a SUBTYPE
+ * OF STALE and left live-and-reckonable unrepresentable. It is not: the two are
+ * orthogonal. A model is a medium for expressing prediction, and a quantity
+ * whose cause is known (a conic, a rate) is forward-modellable whether or not
+ * the last packet arrived on time. The only real connection is behavioural: a
+ * widget is most likely to REACH for a modelled figure once its live one has
+ * gone stale.
+ *
+ * Riding the staleness discriminant made two readings of one fact disagree in
+ * one frame. `vessel.state` is derived from `vessel.orbit` and forward-solves
+ * from the same elements; it read `reckonable` while `vessel.orbit` read `stale`,
+ * because the only way to say "a model exists" was to also say "we have missed
+ * updates". Splitting the axis lets both say what is true of them.
  *
  * A widget may still legitimately decline to propagate (a scalar readout may
  * only want a number and a staleness caption). That has to be a WRITTEN choice:
@@ -227,19 +257,19 @@ export interface TopicModel<T> {
  * ## No horizon field, and no way to over-extrapolate
  *
  * Nothing here says how far a reckoning may be trusted, and `reckoned` is never
- * absent on an arm that carries it. Both fall out of the arm being rebuilt every frame: once the
- * provider's horizon is exceeded it stops offering a model, and the topic
- * simply presents as `stale` from that frame on. So the presence of the arm IS
- * the statement of trust, structurally rather than by convention, and there is
- * no horizon for a caller to compare against and reckon anyway.
+ * absent on a reading that carries it. Both fall out of the reading being
+ * rebuilt every frame: once the provider's horizon is exceeded it stops offering
+ * a model, and the topic simply reads `reckoning: "none"` from that frame on,
+ * keeping whatever `state` it honestly has. So `reckoning: "available"` IS the
+ * statement of trust, structurally rather than by convention, and there is no
+ * horizon for a caller to compare against and reckon anyway.
  *
- * **Do not make `reckoned` able to answer "unavailable".** The absence of
- * the `reckonable` arm already says it, at the only moment it can be said
- * honestly. A failure return would mean a caller could hold a capability that
- * has since gone bad and discover it at call time, which puts an error path in
- * thirty-nine widgets to represent something the discriminant already carries.
- * If a model needs to withdraw, it withdraws by not being offered on the next
- * frame.
+ * **Do not make `reckoned` able to answer "unavailable".** `reckoning: "none"`
+ * already says it, at the only moment it can be said honestly. A failure return
+ * would mean a caller could hold a capability that has since gone bad and
+ * discover it at call time, which puts an error path in thirty-nine widgets to
+ * represent something the discriminant already carries. If a model needs to
+ * withdraw, it withdraws by not being offered on the next frame.
  *
  * ## The three-channel rule, and why this is its exception
  *
@@ -256,12 +286,26 @@ export interface TopicModel<T> {
  * single-view-time invariant and `FrameToken` exist to prevent.
  */
 export type Reading<T> =
-  | { state: "pending" }
-  | { state: "unowned" }
-  | { state: "absent"; atUt: Value<"ut"> }
-  | { state: "observed"; value: T; atUt: Value<"ut"> }
+  | { state: "pending"; reckoning: "none" }
+  | { state: "unowned"; reckoning: "none" }
+  | { state: "absent"; reckoning: "none"; atUt: Value<"ut"> }
+  | {
+      state: "observed";
+      reckoning: "none";
+      value: T;
+      atUt: Value<"ut">;
+    }
+  | {
+      state: "observed";
+      reckoning: "available";
+      /** The observation itself. Never a modelled value; see `reckoned`. */
+      value: T;
+      atUt: Value<"ut">;
+      reckoned: Reckoning<T>;
+    }
   | {
       state: "stale";
+      reckoning: "none";
       /** The last REAL observation. Never a modelled value. */
       value: T;
       /** The UT that observation was made at. */
@@ -269,14 +313,15 @@ export type Reading<T> =
       grade: StaleGrade;
     }
   | {
-      state: "reckonable";
-      /** The last REAL observation, exactly as on `stale`. Never modelled. */
+      state: "stale";
+      reckoning: "available";
+      /** The last REAL observation, exactly as on the unmodelled member. */
       value: T;
       asOfUt: Value<"ut">;
       grade: StaleGrade;
       /**
        * The forward-modelled value for this frame's view time, computed when the
-       * arm is built.
+       * reading is built.
        *
        * A PLAIN FIELD, and the reasoning is worth keeping because it went the
        * other way twice first. Laziness was justified as "a reckoner is
@@ -302,12 +347,13 @@ export type Reading<T> =
        * as a permanent plain value. A field survives a copy.
        *
        * Fresh per frame either way, which is what the identity contract needs: a
-       * reckoning is a function of the view time, so an arm that kept its
+       * reckoning is a function of the view time, so a reading that kept its
        * identity while `viewUt` advanced would answer for a moment that had
        * passed, and a model could never withdraw at its horizon. The store
-       * re-derives this arm (and only this arm) when the frame's view time
-       * moves; `stale` keeps the frozen identity that stops every widget
-       * re-rendering at frame cadence. See `TimelineStore.sampleReading`.
+       * re-derives a reading (and only a reading whose topic has a model on
+       * offer) when the frame's view time moves; an unmodelled topic keeps the
+       * frozen identity that stops every widget re-rendering at frame cadence.
+       * See `TimelineStore.sampleReading`.
        */
       reckoned: Reckoning<T>;
     };
@@ -329,13 +375,15 @@ export type Reading<T> =
  *   only that the instant is behind the live edge. Reckon FROM it freely; never
  *   draw it as the state of the craft now
  *
- * Expect `reckonable` to correlate with `last-before-blackout` without the type
- * enforcing it. A model needs to know WHEN contact was lost to integrate from,
- * and that is the only grade that knows, being stamped with the blackout's
- * start. `held-stale` knows only that a heartbeat was missed. A provider with
- * an independent clock on the loss of contact may legitimately reckon from any
- * grade, which is why the arm split is by whether a model EXISTS rather than by
- * grade.
+ * Expect `reckoning: "available"` to correlate with `last-before-blackout`
+ * without the type enforcing it. A model that integrates from the loss of
+ * contact needs to know WHEN contact was lost, and that is the only grade that
+ * knows, being stamped with the blackout's start. `held-stale` knows only that a
+ * heartbeat was missed. A provider with an independent clock on the loss of
+ * contact may legitimately reckon from any grade, and a model whose basis is a
+ * CAUSE rather than an integration (a conic, a rate) reckons from a live reading
+ * just as honestly. That is why the reckoning axis is by whether a model EXISTS
+ * rather than by grade, and why it is not part of `state` at all.
  */
 export type StaleGrade =
   | "held-stale"
@@ -344,14 +392,19 @@ export type StaleGrade =
   | "recorded";
 
 /**
- * The discriminant alone, for the handful of types that carry a reading's ARM
- * beside a value they joined from several topics rather than nesting the
- * `Reading` itself (`BudgetProvenance`, `LevelsProvenance`).
+ * The staleness discriminant alone, for the handful of types that carry a
+ * reading's ARM beside a value they joined from several topics rather than
+ * nesting the `Reading` itself (`BudgetProvenance`, `LevelsProvenance`).
  *
- * Derived rather than written out, because both of those spelled the five arms
- * as a literal union and both silently went stale the moment a sixth was added:
- * the compiler caught them here, at the assignment, rather than where the
- * mirror was declared. A derived alias makes the next arm propagate on its own.
+ * Derived rather than written out, because both of those spelled the arms as a
+ * literal union and both silently went stale the moment another was added: the
+ * compiler caught them here, at the assignment, rather than where the mirror was
+ * declared. A derived alias makes the next arm propagate on its own.
+ *
+ * It carries NOTHING about reckoning, and a provenance type wanting that says so
+ * with its own {@link ReadingReckoning} field rather than by widening this one.
+ * The two axes are independent in `Reading` and stay independent in a mirror of
+ * it.
  *
  * This is NOT a licence to replace a `Reading` with its state. A provenance
  * field is for a value that is not one Topic's anything; a widget reading one
@@ -359,20 +412,29 @@ export type StaleGrade =
  */
 export type ReadingState = Reading<unknown>["state"];
 
+/** The reckoning discriminant alone, the companion to {@link ReadingState}. */
+export type ReadingReckoning = Reading<unknown>["reckoning"];
+
 /**
- * Collapse `reckonable` down to `stale`: the written, greppable way for a
- * widget to decline to propagate.
+ * Drop the model: the written, greppable way for a widget to decline to
+ * propagate.
  *
- * Note it no longer avoids the model's COST: `reckoned` is computed when the arm
- * is built, so by the time a widget collapses the arm the model has already run.
- * This is about what gets DRAWN, not about saving work; a topic whose model is
- * too expensive to run per frame belongs in `NEVER_RECKONABLE`'s too-expensive
- * group instead.
+ * It leaves `state` alone, which is the whole point of the axes being separate.
+ * A live reading that declines its model is still `observed`, and a stale one is
+ * still `stale` at the same grade. Only `reckoning` moves, to `"none"`, and the
+ * return type says so: an {@link UnmodelledReading} has no `reckoned` for a
+ * caller to reach for afterwards.
+ *
+ * Note it does not avoid the model's COST: `reckoned` is computed when the
+ * reading is built, so by the time a widget declines it the model has already
+ * run. This is about what gets DRAWN, not about saving work; a topic whose model
+ * is too expensive to run per frame belongs in `NEVER_RECKONABLE`'s
+ * too-expensive group instead.
  *
  * Legitimate for a scalar readout that wants the last observed number with a
  * staleness caption and no modelled figure. It exists as a named helper so the
  * decision shows up in review and "which widgets decline to reckon" is a
- * search. Without one, thirty-nine widgets would collapse the two arms with an
+ * search. Without one, thirty-nine widgets would ignore the discriminant with an
  * inline fallthrough and the optional field would be back by convention.
  *
  * **Never use this on anything that draws a POSITION or an ATTITUDE.** A marker
@@ -380,15 +442,39 @@ export type ReadingState = Reading<unknown>["state"];
  * it cannot know, and that is the sharpest form of the failure this type
  * exists to prevent. Such a widget should either propagate or stop drawing.
  */
-export function withoutReckoning<T>(reading: Reading<T>): Reading<T> {
-  if (reading.state !== "reckonable") return reading;
+export function withoutReckoning<T>(reading: Reading<T>): UnmodelledReading<T> {
+  if (reading.reckoning === "none") return reading;
+  if (reading.state === "observed") {
+    return {
+      state: "observed",
+      reckoning: "none",
+      value: reading.value,
+      atUt: reading.atUt,
+    };
+  }
   return {
     state: "stale",
+    reckoning: "none",
     value: reading.value,
     asOfUt: reading.asOfUt,
     grade: reading.grade,
   };
 }
+
+/**
+ * A `Reading` with no model on offer: every member whose `reckoning` is
+ * `"none"`, so `reckoned` is not merely absent at runtime but absent from the
+ * type.
+ *
+ * `stale` is still there and still has to be handled: that is where the
+ * judgement lives, and this narrowing does not reduce it. What it removes is a
+ * branch a caller could write for a case that cannot occur.
+ *
+ * Declared here rather than beside `NEVER_RECKONABLE` because two different
+ * things produce one: a topic declared unmodellable, and any reading a widget
+ * has run {@link withoutReckoning} over.
+ */
+export type UnmodelledReading<T> = Extract<Reading<T>, { reckoning: "none" }>;
 
 /**
  * Whether the producer has spoken about this topic at all, whatever it said.
@@ -408,8 +494,8 @@ export function withoutReckoning<T>(reading: Reading<T>): Reading<T> {
  * than five to be missed.
  *
  * `absent` is deliberately TRUE: a producer saying "there is no value" is still
- * a producer, and a tombstone is data. `stale` and `reckonable` likewise, since
- * a domain that reported and went quiet is still installed.
+ * a producer, and a tombstone is data. `stale` likewise, since a domain that
+ * reported and went quiet is still installed.
  *
  * The two falses are NOT interchangeable even though this collapses them, and a
  * caller that renders something for the user should branch on the arm rather
@@ -432,7 +518,6 @@ export function hasAnswered(reading: {
     case "absent":
     case "observed":
     case "stale":
-    case "reckonable":
       return true;
   }
 }
@@ -448,9 +533,9 @@ export function hasAnswered(reading: {
  * was one more thing to keep honest.
  *
  * `pending` and `unowned` have no instant: there is no observation to be old, and for
- * `unowned` there never will be. Every other arm has one, `reckonable` included, where
- * the age of the last real contact is the number an operator wants beside a modelled
- * figure.
+ * `unowned` there never will be. Every other arm has one whether or not a model is on
+ * offer, and where one is, the age of the last real contact is the number an operator
+ * wants beside the modelled figure.
  *
  * Callers still clamp at zero. Samples arrive out of order (`ClientTimeline`
  * insert-sorts for it), so one can sit marginally ahead of the frame's view time, and
@@ -465,30 +550,36 @@ export function observedAt<T>(reading: Reading<T>): Value<"ut"> | undefined {
     case "observed":
       return reading.atUt;
     case "stale":
-    case "reckonable":
       return reading.asOfUt;
   }
 }
 
 /**
  * A provider of forward models, consulted once per reading. Returning
- * `undefined` is the honest majority answer and produces a `stale` reading;
- * returning a model produces `reckonable`.
+ * `undefined` is the honest majority answer and leaves the reading
+ * `reckoning: "none"`; returning a model makes it `"available"`.
  *
  * `TopicModel.reckon` is what makes the reckoning a pull. This function itself
  * must stay cheap: it is asked whether a model EXISTS and what it covers,
  * which are questions about the basis, not requests to run it.
+ *
+ * `grade` is `undefined` when the reading is LIVE, and a reckoner is asked on
+ * live readings deliberately. A model whose basis is a CAUSE (a conic, a rate)
+ * is as true of a value that arrived on time as of one that stopped arriving,
+ * and the only thing that used to stop it saying so was reckonability riding the
+ * staleness discriminant. A reckoner that genuinely integrates FROM the loss of
+ * contact declines on `undefined` and says why.
  *
  * `viewUt` is the third argument because declining is the ONLY way a model has
  * to express a horizon, and a horizon is a statement about how far a value is
  * being carried. Given the point and the grade alone, a reckoner knows when
  * the observation was made and not what it is being asked to reach, so it
  * could not decline at the one moment declining matters. Everything
- * `Reading`'s doc says about the arm's presence being the statement of trust
- * rests on this argument existing.
+ * `Reading`'s doc says about `"available"` being the statement of trust rests
+ * on this argument existing.
  */
 export type ReckonerFor<T> = (
   point: TimelinePoint<T>,
-  grade: StaleGrade,
+  grade: StaleGrade | undefined,
   viewUt: number,
 ) => TopicModel<T> | undefined;

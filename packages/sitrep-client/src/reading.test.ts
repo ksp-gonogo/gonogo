@@ -6,6 +6,7 @@ import {
   type Reading,
   type ReckonerFor,
   readingFrom,
+  type UnmodelledReading,
   withoutReckoning,
 } from "./reading";
 import { makeMeta } from "./stub-transport";
@@ -21,8 +22,8 @@ function point(validAt: number, payload: number | null): TimelinePoint<number> {
 }
 
 /**
- * A model that always has an answer, so the `reckonable` arm is reachable. It
- * covers the payload ROOT, which is what a whole-topic read needs: a model
+ * A model that always has an answer, so `reckoning: "available"` is reachable.
+ * It covers the payload ROOT, which is what a whole-topic read needs: a model
  * naming only a sub-path has nothing to say about the payload as a whole.
  */
 const alwaysReckons: ReckonerFor<number> = (p) => ({
@@ -37,6 +38,7 @@ describe("readingFrom", () => {
   it("has no point yet, so the reading is pending", () => {
     expect(readingFrom(undefined, "resyncing", VIEW_UT)).toEqual({
       state: "pending",
+      reckoning: "none",
     });
   });
 
@@ -46,6 +48,7 @@ describe("readingFrom", () => {
     // a sample from the future of what they are looking at.
     expect(readingFrom(point(10, 5), "resyncing", VIEW_UT)).toEqual({
       state: "pending",
+      reckoning: "none",
     });
   });
 
@@ -54,6 +57,7 @@ describe("readingFrom", () => {
     // (confirmed 3 s ago)" rather than asserting it for the rest of the mission.
     expect(readingFrom(point(10, null), "absent", VIEW_UT)).toEqual({
       state: "absent",
+      reckoning: "none",
       atUt: value("ut", 10),
     });
   });
@@ -61,6 +65,7 @@ describe("readingFrom", () => {
   it("reports a live point as observed, with its observation time", () => {
     expect(readingFrom(point(10, 5), "live", VIEW_UT)).toEqual({
       state: "observed",
+      reckoning: "none",
       value: 5,
       atUt: value("ut", 10),
     });
@@ -73,40 +78,86 @@ describe("readingFrom", () => {
   ] as const)("reports %s as stale with no reckoner, keeping the last real value", (status) => {
     expect(readingFrom(point(10, 5), status, VIEW_UT)).toEqual({
       state: "stale",
+      reckoning: "none",
       grade: status,
       value: 5,
       asOfUt: value("ut", 10),
     });
   });
 
-  it("is stale, not reckonable, when the reckoner declines", () => {
+  it("offers no reckoning when the reckoner declines", () => {
     // The honest majority: most data can only be AGED. A declining reckoner and
     // no reckoner at all must be indistinguishable to a widget, so that
     // "nothing trustworthy can be said" has exactly one rendering.
     const declines: ReckonerFor<number> = () => undefined;
     expect(readingFrom(point(10, 5), "held-stale", VIEW_UT, declines)).toEqual({
       state: "stale",
+      reckoning: "none",
       grade: "held-stale",
       value: 5,
       asOfUt: value("ut", 10),
     });
   });
 
-  it("is reckonable when a model exists, and still carries the real observation", () => {
+  it("offers a reckoning when a model exists, and still carries the real observation", () => {
     const reading = readingFrom(
       point(10, 5),
       "last-before-blackout",
       VIEW_UT,
       alwaysReckons,
     );
-    expect(reading.state).toBe("reckonable");
-    if (reading.state !== "reckonable") return;
+    // The two axes say separate things about the same reading: we have missed
+    // updates AND a model is on offer. Neither implies the other.
+    expect(reading.state).toBe("stale");
+    expect(reading.reckoning).toBe("available");
+    if (reading.state !== "stale") return;
     // The last REAL value, not the modelled one. A widget that wants "10% at
-    // last contact" reads this; a widget that wants the propagated figure calls
+    // last contact" reads this; a widget that wants the propagated figure reads
     // `reckoned`. Neither is a substitute for the other.
     expect(reading.value).toBe(5);
     expect(reading.asOfUt).toEqual(value("ut", 10));
     expect(reading.grade).toBe("last-before-blackout");
+  });
+
+  /**
+   * The capability the split exists for, and the case that was unrepresentable
+   * while reckonability rode the staleness discriminant: a value that arrived on
+   * time, with a model that can carry it forward to the frame's view time.
+   * Saying so used to mean also claiming we had missed updates.
+   */
+  it("offers a reckoning on a LIVE reading, which stays observed", () => {
+    const reading = readingFrom(point(10, 5), "live", VIEW_UT, alwaysReckons);
+    expect(reading).toEqual({
+      state: "observed",
+      reckoning: "available",
+      value: 5,
+      atUt: value("ut", 10),
+      reckoned: {
+        value: 6,
+        atUt: value("ut", VIEW_UT),
+        basis: "linear-dead-reckoning",
+        modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+      },
+    });
+  });
+
+  it("tells a live reckoner it is live, by passing no grade", () => {
+    /*
+     * A reckoner that integrates FROM the loss of contact needs to know contact
+     * was never lost, and declining is how it says so. `undefined` is that
+     * signal, and it is the only one available.
+     */
+    const grades: (string | undefined)[] = [];
+    const recording: ReckonerFor<number> = (p, grade) => {
+      grades.push(grade);
+      return {
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: () => p.payload ?? 0,
+      };
+    };
+    readingFrom(point(10, 5), "live", VIEW_UT, recording);
+    readingFrom(point(10, 5), "held-stale", VIEW_UT, recording);
+    expect(grades).toEqual([undefined, "held-stale"]);
   });
 
   it("runs the model once per arm build, not once per read", () => {
@@ -124,7 +175,8 @@ describe("readingFrom", () => {
     });
 
     const reading = readingFrom(point(10, 5), "held-stale", VIEW_UT, counting);
-    if (reading.state !== "reckonable") throw new Error("expected reckonable");
+    if (reading.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(runs).toBe(1);
     void reading.reckoned;
     void reading.reckoned;
@@ -138,7 +190,9 @@ describe("readingFrom", () => {
       VIEW_UT,
       alwaysReckons,
     );
-    if (reading.state !== "reckonable") throw new Error("expected reckonable");
+    if (reading.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
+    if (reading.state !== "stale") throw new Error("expected stale");
     const reckoned = reading.reckoned;
     expect(reckoned).toEqual({
       value: 6,
@@ -162,13 +216,14 @@ describe("readingFrom", () => {
       readingFrom(point(10, null), "held-stale", VIEW_UT, alwaysReckons),
     ).toEqual({
       state: "absent",
+      reckoning: "none",
       atUt: value("ut", 10),
     });
   });
 });
 
 describe("withoutReckoning", () => {
-  it("collapses reckonable to stale, keeping the observation intact", () => {
+  it("drops the model from a stale reading and leaves the grade alone", () => {
     const reading = readingFrom(
       point(10, 5),
       "held-stale",
@@ -177,9 +232,26 @@ describe("withoutReckoning", () => {
     );
     expect(withoutReckoning(reading)).toEqual({
       state: "stale",
+      reckoning: "none",
       grade: "held-stale",
       value: 5,
       asOfUt: value("ut", 10),
+    });
+  });
+
+  /**
+   * Only `reckoning` moves. Declining a model is not an admission that updates
+   * were missed, and while reckonability rode the staleness discriminant this
+   * call could not say so: it collapsed the reading to `stale` and told the
+   * operator contact had been lost when it had not.
+   */
+  it("leaves a LIVE reading observed when it declines the model", () => {
+    const reading = readingFrom(point(10, 5), "live", VIEW_UT, alwaysReckons);
+    expect(withoutReckoning(reading)).toEqual({
+      state: "observed",
+      reckoning: "none",
+      value: 5,
+      atUt: value("ut", 10),
     });
   });
 
@@ -202,24 +274,39 @@ describe("Reading, as a type", () => {
     // The whole point of the union. This test is really the `@ts-expect-error`s:
     // they fail the build the day a value becomes reachable without writing the
     // discriminant, which is the property the sweep depends on.
-    const pending: Reading<number> = { state: "pending" };
+    const pending: Reading<number> = { state: "pending", reckoning: "none" };
     // @ts-expect-error `pending` has no value at all, by design
     expect(pending.value).toBeUndefined();
 
-    const absent: Reading<number> = { state: "absent", atUt: value("ut", 10) };
+    const absent: Reading<number> = {
+      state: "absent",
+      reckoning: "none",
+      atUt: value("ut", 10),
+    };
     // @ts-expect-error a confirmed absence has no value, by design
     expect(absent.value).toBeUndefined();
+  });
 
-    const stale: Reading<number> = {
+  /**
+   * The second discriminant carries the same compiler pressure the `reckonable`
+   * arm used to: `reckoned` is a required field of a member selected by a
+   * required discriminant, so reaching it costs a written test exactly as
+   * reaching a value does. An optional field would have compiled here.
+   */
+  it("cannot be read for a reckoning without writing the discriminant", () => {
+    const reading: Reading<number> = {
       state: "stale",
+      reckoning: "none",
       grade: "held-stale",
       value: 5,
       asOfUt: value("ut", 10),
     };
-    // A stale reading has no `reckon`: the capability IS the arm, so a widget
-    // cannot call a model that does not exist.
-    // @ts-expect-error `stale` offers no reckoning, by design
-    expect(stale.reckon).toBeUndefined();
+    // @ts-expect-error the reckoning axis has not been narrowed yet, by design
+    expect(reading.reckoned).toBeUndefined();
+
+    const unmodelled: UnmodelledReading<number> = reading;
+    // @ts-expect-error a reading with no model on offer has no `reckoned` at all
+    expect(unmodelled.reckoned).toBeUndefined();
   });
 });
 
@@ -236,6 +323,7 @@ describe("observedAt", () => {
   it("answers with the OBSERVATION's instant for a stale reading", () => {
     const stale: Reading<number> = {
       state: "stale",
+      reckoning: "none",
       grade: "held-stale",
       value: 5,
       asOfUt: value("ut", 10),
@@ -246,9 +334,10 @@ describe("observedAt", () => {
     );
   });
 
-  it("answers by the OBSERVATION for a reckonable reading, not by its model", () => {
+  it("answers by the OBSERVATION for a reading with a model, not by its model", () => {
     const reading: Reading<number> = {
-      state: "reckonable",
+      state: "stale",
+      reckoning: "available",
       grade: "held-stale",
       value: 5,
       asOfUt: value("ut", 10),
@@ -264,13 +353,13 @@ describe("observedAt", () => {
   });
 
   it("answers for a confirmed absence too, so a tombstone can itself go old", () => {
-    expect(observedAt({ state: "absent", atUt: value("ut", 10) })).toEqual(
-      value("ut", 10),
-    );
+    expect(
+      observedAt({ state: "absent", reckoning: "none", atUt: value("ut", 10) }),
+    ).toEqual(value("ut", 10));
   });
 
   it("has no instant for a pending reading: there is no observation to be old", () => {
-    expect(observedAt({ state: "pending" })).toBeUndefined();
+    expect(observedAt({ state: "pending", reckoning: "none" })).toBeUndefined();
   });
 
   it("subtracts to a NEGATIVE duration when a sample sits ahead of the frame", () => {
@@ -279,7 +368,11 @@ describe("observedAt", () => {
     // Out-of-order arrival is normal (`ClientTimeline` insert-sorts for it), so a
     // sample can sit marginally ahead of the frame's view time, and every caller
     // clamps at zero because "-0.4 s old" is never a thing to render.
-    const absent: Reading<number> = { state: "absent", atUt: value("ut", 10) };
+    const absent: Reading<number> = {
+      state: "absent",
+      reckoning: "none",
+      atUt: value("ut", 10),
+    };
     const raw = value("ut", 9.6).minus(observedAt(absent) as Value<"ut">);
     expect(raw.magnitude).toBeCloseTo(-0.4);
     expect(Math.max(0, raw.magnitude)).toBe(0);
@@ -290,12 +383,14 @@ describe("the unowned arm", () => {
   it("is what an empty read becomes once the mod's verdict is in", () => {
     expect(readingFrom(undefined, "resyncing", 0, undefined, true)).toEqual({
       state: "unowned",
+      reckoning: "none",
     });
   });
 
   it("is pending without the verdict, which is the default", () => {
     expect(readingFrom(undefined, "resyncing", 0)).toEqual({
       state: "pending",
+      reckoning: "none",
     });
   });
 
@@ -307,17 +402,18 @@ describe("the unowned arm", () => {
   it("never displaces an observation", () => {
     expect(readingFrom(point(10, 5), "live", 10, undefined, true)).toEqual({
       state: "observed",
+      reckoning: "none",
       value: 5,
       atUt: value("ut", 10),
     });
   });
 
   it("has no observation instant, exactly as pending has none", () => {
-    expect(observedAt({ state: "unowned" })).toBeUndefined();
+    expect(observedAt({ state: "unowned", reckoning: "none" })).toBeUndefined();
   });
 
   it("passes through withoutReckoning untouched", () => {
-    const reading: Reading<number> = { state: "unowned" };
+    const reading: Reading<number> = { state: "unowned", reckoning: "none" };
     expect(withoutReckoning(reading)).toBe(reading);
   });
 });
@@ -333,22 +429,38 @@ describe("hasAnswered", () => {
     expect(hasAnswered({ state: "unowned" })).toBe(false);
   });
 
+  it("reads the staleness axis only, whatever the reckoning axis says", () => {
+    /*
+     * It takes the discriminant alone and must keep doing so: a presence gate
+     * asking "has the producer spoken" is not asking whether a model is on
+     * offer, and the two axes are independent.
+     */
+    expect(hasAnswered({ state: "observed" })).toBe(true);
+  });
+
   // `hasAnswered` takes the discriminant alone, so a whole arm written inline
   // is a fresh literal with excess properties and does not compile. Naming each
   // arm as a `Reading<number>` first keeps the arms visible, which is the point
   // of the assertions, and puts them under the union's own check: an arm that
   // stopped matching `Reading` would now fail here rather than pass as an
   // anonymous bag.
-  const absent: Reading<number> = { state: "absent", atUt };
-  const observed: Reading<number> = { state: "observed", value: 1, atUt };
+  const absent: Reading<number> = { state: "absent", reckoning: "none", atUt };
+  const observed: Reading<number> = {
+    state: "observed",
+    reckoning: "none",
+    value: 1,
+    atUt,
+  };
   const stale: Reading<number> = {
     state: "stale",
+    reckoning: "none",
     value: 1,
     asOfUt: atUt,
     grade: "held-stale",
   };
-  const reckonable: Reading<number> = {
-    state: "reckonable",
+  const staleWithModel: Reading<number> = {
+    state: "stale",
+    reckoning: "available",
     value: 1,
     asOfUt: atUt,
     grade: "last-before-blackout",
@@ -367,6 +479,6 @@ describe("hasAnswered", () => {
   it("is true for every arm that carries an observation", () => {
     expect(hasAnswered(observed)).toBe(true);
     expect(hasAnswered(stale)).toBe(true);
-    expect(hasAnswered(reckonable)).toBe(true);
+    expect(hasAnswered(staleWithModel)).toBe(true);
   });
 });

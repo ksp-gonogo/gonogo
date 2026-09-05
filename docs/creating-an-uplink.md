@@ -521,19 +521,28 @@ is checked; `optionalChannels` is the same for a read the widget can do without.
 
 ### What a Topic read answers: `Reading`
 
-`useTelemetry` does not answer your payload. It answers a `Reading` of it, a six-arm discriminated
-union, and there is no arm you can read a value off without first writing the discriminant:
+`useTelemetry` does not answer your payload. It answers a `Reading` of it, a discriminated union
+carrying TWO independent discriminants, and there is no member you can read a value off without first
+writing `state`:
 
 ```text
 type Reading<T> =
-  | { state: "pending" }
-  | { state: "unowned" }
-  | { state: "absent";      atUt: Value<"ut"> }
-  | { state: "observed";    value: T; atUt: Value<"ut"> }
-  | { state: "stale";       value: T; asOfUt: Value<"ut">; grade: StaleGrade }
-  | { state: "reckonable";  value: T; asOfUt: Value<"ut">; grade: StaleGrade;
-                            reckoned: Reckoning<T> };
+  | { state: "pending";   reckoning: "none" }
+  | { state: "unowned";   reckoning: "none" }
+  | { state: "absent";    reckoning: "none";      atUt: Value<"ut"> }
+  | { state: "observed";  reckoning: "none";      value: T; atUt: Value<"ut"> }
+  | { state: "observed";  reckoning: "available"; value: T; atUt: Value<"ut">;
+                          reckoned: Reckoning<T> }
+  | { state: "stale";     reckoning: "none";      value: T; asOfUt: Value<"ut">;
+                          grade: StaleGrade }
+  | { state: "stale";     reckoning: "available"; value: T; asOfUt: Value<"ut">;
+                          grade: StaleGrade; reckoned: Reckoning<T> };
 ```
+
+`state` answers how CURRENT the value is. `reckoning` answers whether a forward MODEL is on offer for
+it. They are orthogonal: a quantity whose cause is known (a conic, a rate) is forward-modellable
+whether or not the last packet arrived on time, so a live reading can carry a model just as a stale one
+can. Every member carries `reckoning`, so you can ask either question first.
 
 This is the most consequential thing on the read surface, so it is worth the paragraph. A widget that
 renders stale data as though it were live is this project's worst failure mode, and the weaker fix
@@ -554,16 +563,26 @@ What each arm means:
 - **`observed`**: the newest sample that could have reached us. Note that under a light-time delay every
   value is old, and a value 4 s old under a 4 s light-time is as current as physics permits, so it is
   `observed`. Delay is not staleness
-- **`stale`**: updates we should have had did not arrive, and nothing can honestly model the gap.
-  `value` is the last REAL observation and `asOfUt` says when it was made. This is the honest majority
-- **`reckonable`**: updates were missed AND a model exists. Carries the last real observation exactly as
-  `stale` does, plus `reckoned`, the forward-modelled value for this frame
+- **`stale`**: updates we should have had did not arrive. `value` is the last REAL observation and
+  `asOfUt` says when it was made. This is the honest majority
 
-`grade` says which kind of missed update it was (`held-stale`, `disconnected`, `last-before-blackout`),
-and it labels the same render rather than changing it, which is why it is a field and not three more
-arms. `reckoned` is a required field on its own arm, because an optional one is a field a destructuring
-consumer ignores by default, and silently dropping a reckoning while the widget still looked right is
-precisely what this type prevents.
+And the second axis:
+
+- **`reckoning: "none"`**: no model is on offer this frame. Also the honest majority
+- **`reckoning: "available"`**: a model is on offer, and `reckoned` carries what it says the quantity is
+  at this frame's view time. `value` is still the last real observation, never the modelled number, so a
+  widget that ignores the model renders real data rather than an invented figure
+
+`grade` says which kind of missed update a stale reading was (`held-stale`, `disconnected`,
+`last-before-blackout`), and it labels the same render rather than changing it, which is why it is a
+plain field and not three more arms. `reckoned` is different: it is a REQUIRED field of a member
+selected by a REQUIRED discriminant, so `reading.reckoned` does not compile until you have written
+`reading.reckoning === "available"`. An OPTIONAL field would compile everywhere and answer `undefined`,
+and silently dropping a reckoning while the widget still looked right is precisely what this type
+prevents.
+
+A model withdraws by not being offered on the next frame, so there is no horizon field to compare
+against and `reckoned` is never absent on a reading that carries it.
 
 Here is the whole union handled once, in a helper, which is the shape to copy:
 
@@ -593,14 +612,27 @@ import { EXAMPLE } from "../uplink";
 type ReactorConfig = Record<string, never>;
 
 /**
- * The value to draw, and what to say about its currency. One branch per arm,
- * and the compiler will not let you leave one out, so a seventh arm added
- * later fails here rather than rendering as blank.
+ * The value to draw, and what to say about its currency.
+ *
+ * The model is asked about FIRST, on its own axis, so a reading carrying one
+ * can never fall through into a branch written for the unmodelled case. After
+ * that there is one branch per `state`, and the compiler will not let you leave
+ * one out, so a new state added later fails here rather than rendering blank.
  */
 function present(reading: Reading<ReactorStatus>): {
   caption: string;
   status?: ReactorStatus;
 } {
+  if (reading.reckoning === "available") {
+    // The modelled value for THIS frame, not the last observation. Draw
+    // `reading.value` instead and you have declined to propagate, which is
+    // legitimate and should be written as `withoutReckoning(reading)` so it
+    // is greppable.
+    return {
+      caption: "modelled forward to this frame",
+      status: reading.reckoned.value,
+    };
+  }
   switch (reading.state) {
     case "pending":
       return { caption: "waiting for the first sample" };
@@ -616,15 +648,6 @@ function present(reading: Reading<ReactorStatus>): {
       return {
         caption: `last seen ${writeQuantity(reading.asOfUt)} (${reading.grade})`,
         status: reading.value,
-      };
-    case "reckonable":
-      // The modelled value for THIS frame, not the last observation. Draw
-      // `reading.value` instead and you have declined to propagate, which is
-      // legitimate and should be written as `withoutReckoning(reading)` so it
-      // is greppable.
-      return {
-        caption: `modelled forward from ${writeQuantity(reading.asOfUt)}`,
-        status: reading.reckoned.value,
       };
   }
 }
@@ -687,8 +710,9 @@ Two rules the helper encodes, worth stating separately:
   forever and the widget says "no reading" for the rest of the mission. A cast is a stronger blind spot
   than `unknown`, because someone chose it
 - **A judgement is withheld, not held.** A go/no-go, a band, a coloured pill: the operator reads those
-  as the situation NOW, and a judgement cannot be dated. Draw those from `observed` and `reckonable`
-  only, and say nothing on `stale`. A stale GO is the worst thing a widget can draw
+  as the situation NOW, and a judgement cannot be dated. Draw those from `observed`, or from a reading
+  whose `reckoning` is `"available"` so the figure really is for this frame, and say nothing on a plain
+  `stale`. A stale GO is the worst thing a widget can draw
 
 `hasAnswered(reading)` collapses the arms to a boolean for the narrow case of a presence gate, where the
 question is "should the gate be open" rather than "what should I say". Do not reach for it in a widget

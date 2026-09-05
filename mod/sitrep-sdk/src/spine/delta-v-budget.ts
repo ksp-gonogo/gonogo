@@ -236,9 +236,7 @@ export function deriveDeltaVBudget(
   // Carried, not withheld: every arm that has a value gives one up. See this
   // file's header for why the alternative is the dangerous direction.
   const summary =
-    summaryReading.state === "observed" ||
-    summaryReading.state === "stale" ||
-    summaryReading.state === "reckonable"
+    summaryReading.state === "observed" || summaryReading.state === "stale"
       ? summaryReading.value
       : undefined;
   const observedAtUt = observedAt(summaryReading);

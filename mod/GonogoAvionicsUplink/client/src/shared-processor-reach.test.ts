@@ -65,7 +65,7 @@ describe("an Uplink can reach the SDK's shared Processors", () => {
     expect(bodyAtIndex(facts, 1)?.name).toBe("Kerbin");
 
     const budget: DeltaVBudget = deriveDeltaVBudget(
-      { state: "pending" },
+      { state: "pending", reckoning: "none" },
       [{ stage: 0, dvVac: 1200 }],
       0,
       0,

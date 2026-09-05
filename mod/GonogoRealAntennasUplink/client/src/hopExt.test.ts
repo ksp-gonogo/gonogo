@@ -18,8 +18,8 @@ import { REALANTENNAS_PROVIDER_ID, readRealAntennasHopExt } from "./hopExt";
  * `undefined` off the wrapper.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

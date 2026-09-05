@@ -240,8 +240,8 @@ describe("the reckoning label", () => {
   });
 
   it("offers no basis while the numbers ARE the observation", () => {
-    // Nothing has been modelled at the anchor itself, so labelling it
-    // reckonable would claim a model ran when none did.
+    // Nothing has been modelled at the anchor itself, so offering a basis
+    // would claim a model ran when none did.
     expect(
       deriveResourceProjectionReckoning(inputs(), 1000, NEVER_STATUS),
     ).toBeUndefined();

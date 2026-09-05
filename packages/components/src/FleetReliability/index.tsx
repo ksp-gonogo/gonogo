@@ -105,8 +105,8 @@ type UpdatesProps = SlotProps<"fleet-roster.updates">;
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -122,7 +122,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -697,8 +696,16 @@ export function FleetReliabilityUpdates({ vesselId, compact }: UpdatesProps) {
       carried: 0,
       reserve: aboard.get(item.name)?.quantity ?? 0,
     }));
+  /*
+   * Either channel being old is enough to replace the whole row with a notice,
+   * so neither arm may fire while a current set can still be drawn. A reading
+   * carrying a model is exactly that case: `parts` above is `judgeable` and
+   * takes the modelled list, so leaving the reckoning arm in would hide a
+   * propagated failure set behind a sentence saying there is none to show.
+   */
   const notCurrent =
-    partsReading.state === "stale" || summaryReading.state === "stale";
+    (partsReading.state === "stale" && partsReading.reckoning === "none") ||
+    (summaryReading.state === "stale" && summaryReading.reckoning === "none");
 
   // S0. Active-vessel gate: reliability.* is active-vessel-only (see module doc).
   if (!identity || identity.vesselId !== vesselId) return null;

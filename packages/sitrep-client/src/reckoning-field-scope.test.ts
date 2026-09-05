@@ -98,17 +98,19 @@ describe("a per-topic model, expressed per field", () => {
     const position = store.sampleReading<{ x: number }>(
       "vessel.target.relativePosition",
     );
-    expect(position.state).toBe("reckonable");
-    if (position.state !== "reckonable") return;
+    expect(position.reckoning).toBe("available");
+    if (position.reckoning !== "available") return;
     const reckoning = position.reckoned;
     expect(reckoning.value).toEqual({ x: 1600 });
     expect(reckoning.atUt).toEqual(value("ut", 160));
     expect(reckoning.basis).toBe("linear-dead-reckoning");
 
-    // Same frame, same model, same topic. Nothing dead-reckons a name.
-    expect(store.sampleReading<string>("vessel.target.name").state).toBe(
-      "stale",
-    );
+    // Same frame, same model, same topic. Nothing dead-reckons a name, so the
+    // sibling is offered no model at all: it is the reckoning axis that says
+    // so, both fields being equally stale.
+    const name = store.sampleReading<string>("vessel.target.name");
+    expect(name.reckoning).toBe("none");
+    expect(name.state).toBe("stale");
   });
 
   it("still declines the whole-topic read, because the model does not cover the payload", () => {
@@ -123,10 +125,10 @@ describe("a per-topic model, expressed per field", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReading<Target>("vessel.target").state).toBe("stale");
+    expect(store.sampleReading<Target>("vessel.target").reckoning).toBe("none");
   });
 
-  it("carries the OBSERVED field value on the reckonable arm, not the modelled one", () => {
+  it("carries the OBSERVED field value beside the reckoning, not the modelled one", () => {
     // The field read narrows the payload, so it would be easy for the arm's
     // `value` to come back already advanced. It must not: `value` is the last
     // real observation on every arm that has one, and the model is a pull.
@@ -142,7 +144,9 @@ describe("a per-topic model, expressed per field", () => {
     const position = store.sampleReading<{ x: number }>(
       "vessel.target.relativePosition",
     );
-    if (position.state !== "reckonable") throw new Error("expected reckonable");
+    if (position.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
+    if (position.state !== "stale") throw new Error("expected stale");
     expect(position.value).toEqual({ x: 1000 });
     expect(position.asOfUt).toEqual(value("ut", 100));
   });
@@ -161,8 +165,8 @@ describe("a per-topic model, expressed per field", () => {
     store.beginFrame();
 
     const x = store.sampleReading<number>("vessel.target.relativePosition.x");
-    expect(x.state).toBe("reckonable");
-    if (x.state !== "reckonable") return;
+    expect(x.reckoning).toBe("available");
+    if (x.reckoning !== "available") return;
     expect(x.reckoned.value).toBe(1600);
   });
 
@@ -191,8 +195,9 @@ describe("a per-topic model, expressed per field", () => {
     store.beginFrame();
 
     expect(
-      store.sampleReading<number>("vessel.dock.relativePositionError").state,
-    ).toBe("stale");
+      store.sampleReading<number>("vessel.dock.relativePositionError")
+        .reckoning,
+    ).toBe("none");
   });
 });
 
@@ -223,7 +228,9 @@ describe("a topic two owners both model is served with neither", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReading<Target>("vessel.target").state).toBe("stale");
+    const reading = store.sampleReading<Target>("vessel.target");
+    expect(reading.reckoning).toBe("none");
+    expect(reading.state).toBe("stale");
     expect(getReckonerConflicts()).toEqual([
       { topic: "vessel.target", owners: ["n-body-model", "two-body-model"] },
     ]);
@@ -279,7 +286,8 @@ describe("every path to a reckoning shares the one cache", () => {
     const position = store.sampleReading<{ x: number }>(
       "vessel.target.relativePosition",
     );
-    if (position.state !== "reckonable") throw new Error("expected reckonable");
+    if (position.reckoning !== "available")
+      throw new Error("expected a reckoning on offer");
     expect(position.reckoned).toBe(position.reckoned);
     expect(runs).toBe(1);
   });

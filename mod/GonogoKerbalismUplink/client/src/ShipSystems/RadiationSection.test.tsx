@@ -336,10 +336,10 @@ describe("RadiationSection", () => {
       // harness drove a live trend off two samples that measured nothing.
       const reading = useTelemetry("kerbalism.spaceweather");
       const weather =
-        reading.state === "observed"
-          ? reading.value
-          : reading.state === "reckonable"
-            ? reading.reckoned.value
+        reading.reckoning === "available"
+          ? reading.reckoned.value
+          : reading.state === "observed"
+            ? reading.value
             : undefined;
       useEffect(() => {
         setUtRef = setUt;

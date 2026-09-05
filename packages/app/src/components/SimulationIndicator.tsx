@@ -22,9 +22,16 @@ import { Badge, Cluster } from "@ksp-gonogo/ui-kit";
  * than a MISSION badge it has no basis for.
  */
 export function SimulationIndicator() {
-  // Declared unmodellable, same reasoning as the scene: a flight does not stop
-  // being a rehearsal because a frame went missing, so a stale reading is still
-  // the reading and only never-arrived is unknown.
+  /*
+   * A discrete game fact, the same reasoning as the scene: a flight does not
+   * stop being a rehearsal because a frame went missing, so a stale reading is
+   * still the reading and only never-arrived is unknown.
+   *
+   * Unlike the scene, `flight.simulation` is NOT in `NEVER_RECKONABLE`, so a
+   * reading of it can carry a model. That changes nothing here on purpose: the
+   * value wanted is the flag the game reported, not a projection of one, so
+   * both `reckoning` arms of each state are read the same way.
+   */
   const reading = useTelemetry("flight.simulation");
   const payload =
     reading.state === "observed" || reading.state === "stale"

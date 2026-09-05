@@ -129,8 +129,8 @@ interface ShipMapConfig {
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -155,7 +155,15 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const hottestPartName = judgeable(thermalReading)?.hottestPart?.name;
-  const hottestNotCurrent = notCurrent(thermalReading);
+  /*
+   * The reckoning arm is excluded deliberately, and the tag below is why: it
+   * claims the ring was withheld, which is only true when nothing was drawn.
+   * A modelled hottest part IS rung by `judgeable` above, so a bare
+   * `state === "stale"` would print "hot: no longer current" beside the very
+   * ring it says is missing. Only a held reading with no model withholds.
+   */
+  const hottestNotCurrent =
+    notCurrent(thermalReading) && thermalReading.reckoning === "none";
   // Ambient skin temperature: drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top. Read straight off `vessel.flight` (the same channel
@@ -165,9 +173,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // every arm that has one.
   const flightReading = topics.useTelemetry("vessel.flight");
   const externalTemperature =
-    flightReading.state === "observed" ||
-    flightReading.state === "stale" ||
-    flightReading.state === "reckonable"
+    flightReading.state === "observed" || flightReading.state === "stale"
       ? flightReading.value.externalTemperature
       : undefined;
   // Current throttle: gates the engine-flame overlay so a staged-but-

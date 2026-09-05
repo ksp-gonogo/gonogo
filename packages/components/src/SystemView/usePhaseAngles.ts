@@ -44,10 +44,10 @@ export function usePhaseAngles(
   // transfer window the craft was in, not the one it is in.
   const orbitReading = useTelemetry("vessel.orbit");
   const orbit =
-    orbitReading.state === "observed"
-      ? orbitReading.value
-      : orbitReading.state === "reckonable"
-        ? orbitReading.reckoned.value
+    orbitReading.reckoning === "available"
+      ? orbitReading.reckoned.value
+      : orbitReading.state === "observed"
+        ? orbitReading.value
         : undefined;
   // `.magnitude` at the read: this widget threads the view time through geometry and
   // solver code typed on plain numbers, and the instant type earns nothing there.

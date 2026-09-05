@@ -14,9 +14,13 @@ import { controlChannelIds, getControlChannel } from "@ksp-gonogo/sitrep-sdk";
  * - `useTelemetry` returns the WHOLE topic payload, so reckoning a commanded
  *   `sasMode` would mean constructing a whole `VesselControl` and handing the
  *   caller fifteen other stale facts to express one expectation
- * - `readingFrom` returns `observed` BEFORE it consults a reckoner, so a
- *   command-echo reckoner is unreachable in the live case, which is exactly
- *   when an operator presses the button
+ * - a command echo is not a forward model of anything, which is why
+ *   `vessel.control` is declared in `NEVER_RECKONABLE`. That used to be argued
+ *   from mechanism instead: `readingFrom` returned `observed` before it
+ *   consulted a reckoner, so a command-echo reckoner was unreachable in the live
+ *   case, which is exactly when an operator presses the button. It now consults
+ *   the reckoner on a live reading too, so the mechanism no longer makes the
+ *   point and the declaration is what does
  * - a `Reading` is sampled at the delayed, scrubbable `viewUt`, while the
  *   pending queue is real-time command-centre bookkeeping. Folding them puts
  *   two clocks inside the one type whose stated purpose is that a frame has

@@ -283,10 +283,7 @@ export {
   redirectKinematicSubtopic,
   resolveValueTopic,
 } from "./map-topic";
-export type {
-  NeverReckonable,
-  UnmodelledReading,
-} from "./never-reckonable";
+export type { NeverReckonable } from "./never-reckonable";
 export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";
 export type {
   ImpactPoint,
@@ -367,6 +364,7 @@ export type {
   Reckoning,
   ReckoningBasis,
   StaleGrade,
+  UnmodelledReading,
 } from "./reading";
 /**
  * Re-exported from `./reading`, which re-exports them from `@ksp-gonogo/sitrep-sdk`.

@@ -1,8 +1,6 @@
-import type { Reading } from "../reading";
-
 /**
  * Topics that do not carry a forward model, declared so the type system can drop
- * the `reckonable` arm for them.
+ * the modelled members from a read of them.
  *
  * **Two different reasons live in this one list, and they are kept in separate
  * named groups because they want opposite responses later.** "No model can
@@ -16,9 +14,8 @@ import type { Reading } from "../reading";
  * A static "this IS propagatable" is a lie waiting to happen: an orbit is
  * propagatable except during a burn or past an unmodelled SOI change, so the
  * class is a fact about the current MOMENT and an attribute cannot express it.
- * That is why there is no `[SitrepReckoning]` in the contract and why the
- * `reckonable` arm's presence is decided per frame by whether a model is on
- * offer.
+ * That is why there is no `[SitrepReckoning]` in the contract and why a
+ * reading's `reckoning` is decided per frame by whether a model is on offer.
  *
  * The negative is the other way round. "This can never be reckoned" is a
  * permanent fact about the QUANTITY: an attitude has no model and never will, an
@@ -36,18 +33,27 @@ import type { Reading } from "../reading";
  * A list that merely RECORDS the default has no source construct to scan for,
  * so it rots without ever failing. This one is not that, because **it has the
  * compiler as a consumer**: a wrong entry surfaces the moment someone writes a
- * `reckonable` branch that then refuses to compile, and a missing one surfaces
- * in `never-reckonable.test.ts`, which asserts every Topic is classified.
+ * `reckoning === "available"` branch that then refuses to compile.
  *
  * A list nothing reads rots. A list the type checker reads cannot.
+ *
+ * What is NOT checked, deliberately, is the other direction. Nothing asserts
+ * that every Topic appears here or is deliberately absent, and a total
+ * classification would be the wrong guarantee to want: absence means "no model
+ * has been written yet", which is the honest default and the state most topics
+ * are permanently in. `never-reckonable.test.ts` therefore checks only that
+ * every entry names a real Topic, that no entry also has a registered model,
+ * that there are no duplicates, and that the runtime predicate agrees with the
+ * list. Do not read "classified" into it: a topic missing from this list is not
+ * an omission to be caught.
  *
  * ## Adding to it
  *
  * Add a topic here only when no model could ever exist for it, and say why in
  * the comment beside it. If the answer is "no model YET", leave it out: the
- * absence of a registered reckoner already presents as `stale`, which is the
- * honest default, and putting it here would forbid the model someone is about
- * to write.
+ * absence of a registered reckoner already reads `reckoning: "none"`, which is
+ * the honest default, and putting it here would forbid the model someone is
+ * about to write.
  */
 export const NEVER_RECKONABLE = [
   // ── Unmodellable: no model can exist, permanently ──────────────────────────
@@ -135,16 +141,6 @@ export const NEVER_RECKONABLE = [
 
 /** A topic declared unmodellable. */
 export type NeverReckonable = (typeof NEVER_RECKONABLE)[number];
-
-/**
- * A `Reading` with the `reckonable` arm removed.
- *
- * `stale` is still there and still has to be handled: that is where the
- * judgement lives, and this narrowing does not reduce it. What it removes is a
- * branch a caller could write for a case that cannot occur, and the wondering
- * about whether they had missed one.
- */
-export type UnmodelledReading<T> = Exclude<Reading<T>, { state: "reckonable" }>;
 
 const declared: ReadonlySet<string> = new Set(NEVER_RECKONABLE);
 

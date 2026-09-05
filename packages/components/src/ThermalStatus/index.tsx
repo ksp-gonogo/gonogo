@@ -71,8 +71,8 @@ type Band = "unknown" | "nominal" | "warm" | "hot" | "critical";
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -189,7 +189,15 @@ function ThermalStatusComponent({
    */
   const thermalReading = topics.useTelemetry("vessel.thermal");
   const thermal = judgeable(thermalReading);
-  const thermalNotCurrent = notCurrent(thermalReading);
+  /*
+   * This flag replaces the entire readout with a sentence, so it has to mean
+   * the bands could not be computed at all. `thermal` above is `judgeable` and
+   * takes a modelled record where one is offered, so the reckoning arm comes
+   * out: left in, the widget would hide a full set of bands it had just worked
+   * out behind a notice saying it has none.
+   */
+  const thermalNotCurrent =
+    notCurrent(thermalReading) && thermalReading.reckoning === "none";
   const rawHottestName = thermal?.hottestPart?.name;
   const rawHottestTempK = thermal?.hottestPart?.skinTemp;
   const rawHottestMaxK = thermal?.hottestPart?.skinMaxTemp;

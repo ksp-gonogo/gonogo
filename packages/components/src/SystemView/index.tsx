@@ -383,10 +383,10 @@ function SystemViewComponent({
   // takes over. Same decision as MapView and FleetComms, for the same reason.
   const orbitReading = topics.useTelemetry("vessel.orbit");
   const orbit =
-    orbitReading.state === "observed"
-      ? orbitReading.value
-      : orbitReading.state === "reckonable"
-        ? orbitReading.reckoned.value
+    orbitReading.reckoning === "available"
+      ? orbitReading.reckoned.value
+      : orbitReading.state === "observed"
+        ? orbitReading.value
         : undefined;
   // An identity does not decay: a stale SOI index is still which body this craft
   // is around, and it only decides which FRAME the dot belongs in.

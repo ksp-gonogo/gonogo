@@ -218,10 +218,10 @@ function LibrationPointsComponent({
   // nothing: the diagram simply draws no craft.
   const orbitReading = topics.useTelemetry("vessel.orbit");
   const orbit =
-    orbitReading.state === "observed"
-      ? orbitReading.value
-      : orbitReading.state === "reckonable"
-        ? orbitReading.reckoned.value
+    orbitReading.reckoning === "available"
+      ? orbitReading.reckoned.value
+      : orbitReading.state === "observed"
+        ? orbitReading.value
         : undefined;
   const identityReading = topics.useTelemetry("vessel.identity");
   const identity =

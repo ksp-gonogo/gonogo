@@ -113,8 +113,8 @@ const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -135,7 +135,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -465,7 +464,16 @@ function CrewStatusComponent({
    */
   const resourcesReading = topics.useTelemetry("vessel.resources");
   const resources = judgeable(resourcesReading);
-  const suitReadingsNotCurrent = notCurrent(resourcesReading);
+  /*
+   * `EvaSuitReadout` returns early on this flag and drops both meters, so it
+   * has to mean "there is nothing to meter". A suit draw is exactly the shape a
+   * model propagates, and `resources` above already takes the modelled value,
+   * so leaving the reckoning arm in would throw away O2 and charge figures the
+   * widget is holding, on the one readout that decides whether a kerbal outside
+   * the craft has time to get back in.
+   */
+  const suitReadingsNotCurrent =
+    notCurrent(resourcesReading) && resourcesReading.reckoning === "none";
   const suitOxygen = isEVA
     ? toSuitResourceReadout(resources?.resources?.Oxygen)
     : undefined;

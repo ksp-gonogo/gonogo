@@ -35,9 +35,11 @@ export type PlanWriteView =
  * reading from an hour ago is the exact mistake the producer's own protocol is
  * built to prevent.
  *
- * `reading.value` on the stale arms and never `reckoned`: a modelled plan is a
- * guess at a burn LIST, and an index written back has to be one the producer
- * actually reported holding a burn.
+ * `reading.value` and never `reckoned`, on whichever arm it arrives: a modelled
+ * plan is a guess at a burn LIST, and an index written back has to be one the
+ * producer actually reported holding a burn. Reckoning rides its own
+ * discriminant, so a LIVE plan can carry a model too, and this declines that one
+ * for the same reason.
  */
 export function planView(reading: Reading<PrincipiaPlan>): PlanWriteView {
   switch (reading.state) {
@@ -58,7 +60,6 @@ export function planView(reading: Reading<PrincipiaPlan>): PlanWriteView {
     case "observed":
       return { kind: "plan", plan: reading.value, outOfContact: null };
     case "stale":
-    case "reckonable":
       return {
         kind: "plan",
         plan: reading.value,

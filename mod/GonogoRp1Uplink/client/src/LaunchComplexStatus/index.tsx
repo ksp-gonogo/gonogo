@@ -278,11 +278,11 @@ const OPERATION_VERB: Readonly<Record<string, string>> = {
 /**
  * The value where one is current. A ground fact read while the link is down is
  * still the last thing the space centre said, and these channels are TrueNow,
- * so a reckonable reading is as good as an observed one here.
+ * so a reading carrying a model is as good as an observed one here.
  */
 function current<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

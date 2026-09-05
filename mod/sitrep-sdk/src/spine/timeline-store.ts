@@ -1205,9 +1205,16 @@ export class TimelineStore {
     if (!point || point.payload === null) return undefined;
     const status = this.sampleStatus(topic, token);
     /*
-     * The three statuses that are not a missed update. `readingFrom` withholds
-     * the model from all three as well, and for the same reason: there is no
-     * silence for a model to have carried a value across.
+     * The three statuses that are not a missed update. A tail FILLS a silence,
+     * and there is no silence in any of them, so there is nothing to draw.
+     *
+     * This deliberately no longer matches `readingFrom`, which does consult a
+     * reckoner on a live reading: a POINT reading asks "is this quantity
+     * forward-modelled", which a conic answers yes to whether or not the last
+     * packet was late, while a tail asks "what happened during the gap", which
+     * has no answer when there was no gap. The two questions diverged when
+     * reckonability came off the staleness discriminant, and the divergence is
+     * the correct outcome rather than an oversight.
      */
     if (status === "live" || status === "resyncing" || status === "absent") {
       return undefined;
@@ -1456,9 +1463,10 @@ export class TimelineStore {
     const deriveReckoning = resolved?.def.deriveReckoning;
     if (!deriveReckoning) return undefined;
     return (point, _grade, viewUt) => {
-      // A tombstoned record never reaches the reckonable arm (`readingFrom`
-      // ranks `absent` above every staleness grade), so this only narrows the
-      // payload type. There is no modelled value for a confirmed absence.
+      // A tombstoned record never carries a model (`readingFrom` ranks `absent`
+      // above every staleness grade and above the reckoning question), so this
+      // only narrows the payload type. There is no modelled value for a
+      // confirmed absence.
       const modelledValue = point.payload;
       if (modelledValue === null) return undefined;
       const get: DerivedGet = (inputTopic) => this.sample(inputTopic, token);

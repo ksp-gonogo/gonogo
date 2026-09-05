@@ -98,8 +98,8 @@ declare module "@ksp-gonogo/core" {
  * reads a band or a pill as the situation NOW.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 
@@ -120,7 +120,6 @@ function stillTrue<T, A>(
 ): T | A | undefined {
   if (reading.state === "observed") return reading.value;
   if (reading.state === "stale") return reading.value;
-  if (reading.state === "reckonable") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
 }
@@ -182,10 +181,17 @@ function SpaceCenterStatusComponent({
    * a stock career reports no such mechanism and this shows nothing at all.
    */
   const netFunds = netFundsPerDay(judgeable(careerReading)?.economy);
-  // Only claim a balance is being held when one actually arrived and is being
-  // refused. A career that never reported an `economy` block has nothing held.
+  /*
+   * Only claim a balance is being held when one actually arrived and is being
+   * refused. A career that never reported an `economy` block has nothing held,
+   * and neither has one whose balance was modelled forward: `careerFunds` above
+   * comes off `judgeable`, so a reckoned reading puts a figure on screen and
+   * leaves the upgrades enabled. Saying "held" over a balance the operator can
+   * read would name the wrong reason for a row of buttons that are working.
+   */
   const heldFunds =
     fundsNotCurrent &&
+    careerReading.reckoning === "none" &&
     magnitudeOf(stillTrue(careerReading, undefined)?.economy?.funds) !== null;
   const { chargesFunds } = useGameContext();
   const sceneReading = useTelemetry("spaceCenter.scene");
@@ -282,9 +288,17 @@ function SpaceCenterStatusComponent({
    * for a KSC with nothing left to upgrade.
    */
   const upgradesEnabled = scene === "SpaceCenter";
-  // Cite the scene only when withholding it actually cost the operator the
-  // affordance. A held "Flight" disables nothing that was ever enabled.
-  const heldScene = notCurrent(sceneReading) && lastScene === "SpaceCenter";
+  /*
+   * Cite the scene only when withholding it actually cost the operator the
+   * affordance. A held "Flight" disables nothing that was ever enabled, and a
+   * modelled scene was never withheld at all: `upgradesEnabled` reads it
+   * through `judgeable`, so a reckoned reading keeps the buttons live and this
+   * line would be captioning an affordance the operator still has.
+   */
+  const heldScene =
+    notCurrent(sceneReading) &&
+    sceneReading.reckoning === "none" &&
+    lastScene === "SpaceCenter";
   const heldUpgradeInputs = [
     heldScene ? "scene" : undefined,
     heldFunds ? "funds balance" : undefined,

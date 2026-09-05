@@ -39,12 +39,13 @@ function csTopic(constName: string): string {
 }
 
 /**
- * A value only where one is current. What this Uplink is careful about is
- * absence, and a stale reading is a third thing again.
+ * A value only where one is current, or where a model carries it forward to the
+ * frame. What this Uplink is careful about is absence, and an unmodelled stale
+ * reading is a third thing again.
  */
 function judgeable<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

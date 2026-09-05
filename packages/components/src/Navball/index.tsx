@@ -225,7 +225,6 @@ function lastObserved<T>(reading: Reading<T>): T | undefined {
   switch (reading.state) {
     case "observed":
     case "stale":
-    case "reckonable":
       return reading.value;
     default:
       return undefined;

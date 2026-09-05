@@ -973,10 +973,10 @@ function outOfReach(
   return price !== null && held !== null && held < price;
 }
 
-/** The value where one is current; see ProgramStatus for why reckonable counts. */
+/** The value where one is current; see ProgramStatus for why a model counts. */
 function current<T>(reading: Reading<T>): T | undefined {
+  if (reading.reckoning === "available") return reading.reckoned.value;
   if (reading.state === "observed") return reading.value;
-  if (reading.state === "reckonable") return reading.reckoned.value;
   return undefined;
 }
 

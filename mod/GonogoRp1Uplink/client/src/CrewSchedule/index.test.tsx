@@ -100,7 +100,7 @@ describe("CrewSchedule", () => {
     });
     /* Mint a frame before asserting ABSENCE. An emit alone does not make a
        reading readable: `current()` returns undefined until the reading is
-       `observed` or `reckonable`, and the frame that gets it there is normally
+       `observed` or carrying a model, and the frame that gets it there is normally
        an animation frame off `ViewClock.onFrame`. That is timing, so the
        assertion passed locally where the frame had not landed and failed on CI
        where it had, with the enrolment control reporting an unread channel.
@@ -130,7 +130,7 @@ describe("CrewSchedule", () => {
     });
     /* Mint a frame before asserting ABSENCE. An emit alone does not make a
        reading readable: `current()` returns undefined until the reading is
-       `observed` or `reckonable`, and the frame that gets it there is normally
+       `observed` or carrying a model, and the frame that gets it there is normally
        an animation frame off `ViewClock.onFrame`. That is timing, so the
        assertion passed locally where the frame had not landed and failed on CI
        where it had, with the enrolment control reporting an unread channel.
@@ -199,7 +199,7 @@ describe("CrewSchedule", () => {
     });
     /* Mint a frame before asserting ABSENCE. An emit alone does not make a
        reading readable: `current()` returns undefined until the reading is
-       `observed` or `reckonable`, and the frame that gets it there is normally
+       `observed` or carrying a model, and the frame that gets it there is normally
        an animation frame off `ViewClock.onFrame`. That is timing, so the
        assertion passed locally where the frame had not landed and failed on CI
        where it had, with the enrolment control reporting an unread channel.
@@ -230,7 +230,7 @@ describe("CrewSchedule", () => {
     });
     /* Mint a frame before asserting ABSENCE. An emit alone does not make a
        reading readable: `current()` returns undefined until the reading is
-       `observed` or `reckonable`, and the frame that gets it there is normally
+       `observed` or carrying a model, and the frame that gets it there is normally
        an animation frame off `ViewClock.onFrame`. That is timing, so the
        assertion passed locally where the frame had not landed and failed on CI
        where it had, with the enrolment control reporting an unread channel.
