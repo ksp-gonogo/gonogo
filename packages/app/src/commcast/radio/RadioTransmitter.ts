@@ -42,7 +42,22 @@ export interface RadioCapture {
  */
 export type StartRadioCapture = (
   onChunk: (bytes: Uint8Array, amplitude: number) => void,
+  options?: RadioCaptureOptions,
 ) => Promise<RadioCapture>;
+
+/** Which input to key, where the operator has said. */
+export interface RadioCaptureOptions {
+  /**
+   * The device the operator chose, or `null`/absent for whichever one the
+   * browser considers default.
+   *
+   * Read at KEY-DOWN rather than held, so a choice made between two
+   * transmissions takes effect on the next one without anything being rebuilt,
+   * and a choice made mid-transmission does not swap the microphone out from
+   * under a sentence already going out.
+   */
+  deviceId?: string | null;
+}
 
 /** What the operator is transmitting, and to whom, decided once at key-down. */
 export interface RadioKeyDown {

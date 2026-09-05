@@ -62,7 +62,7 @@ function isRadioBackend(held: unknown): held is RadioBackend {
   const candidate = held as Partial<RadioBackend>;
   return (
     typeof candidate.startCapture === "function" &&
-    typeof candidate.createDecoder === "function"
+    typeof candidate.createReceiver === "function"
   );
 }
 

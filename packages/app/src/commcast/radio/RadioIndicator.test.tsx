@@ -112,6 +112,45 @@ describe("the transmission light", () => {
     expect(regions[0]).toHaveTextContent("Woomera Range");
   });
 
+  it("says how many are being heard AT ONCE, once there is more than one", () => {
+    /*
+     * The listener sums whatever reaches it, so two unmuted lamps mean two
+     * voices in the same ear at the same moment, and that is why the first one
+     * has suddenly become hard to follow. Two names side by side do not say
+     * that on their own: they read the same as two loops that were busy a
+     * moment apart.
+     */
+    render(
+      <RadioIndicator
+        live={[
+          light(),
+          light({ transmissionId: "t2", from: "ground:woomera" }),
+        ]}
+        nameFor={nameFor}
+        onOpen={() => {}}
+      />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "2 at once talking over each other",
+    );
+  });
+
+  it("counts only what is HEARD, not what is merely busy", () => {
+    // A muted loop is drawn and not heard, so it cannot be one of the voices
+    // talking over the other. One voice is not an overlap and gets no count.
+    render(
+      <RadioIndicator
+        live={[
+          light(),
+          light({ transmissionId: "t2", from: "ground:woomera", muted: true }),
+        ]}
+        nameFor={nameFor}
+        onOpen={() => {}}
+      />,
+    );
+    expect(screen.getByRole("status")).not.toHaveTextContent("at once");
+  });
+
   it("takes the operator to the conversation it names", async () => {
     /*
      * The mute lives beside the key, inside a conversation, and radio leaves no

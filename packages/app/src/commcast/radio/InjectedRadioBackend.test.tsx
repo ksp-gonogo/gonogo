@@ -20,9 +20,12 @@ const CHANGED_EVENT = "gonogo:radio-backend";
 function stubBackend(): RadioBackend {
   return {
     startCapture: () => Promise.resolve({ stop: () => {} }),
-    createDecoder: () => ({
-      decode: () => {},
-      reset: () => {},
+    createReceiver: () => ({
+      openStream: () => ({
+        decode: () => {},
+        reset: () => {},
+        close: () => {},
+      }),
       close: () => {},
     }),
   };

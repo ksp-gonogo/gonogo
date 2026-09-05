@@ -30,7 +30,11 @@ import {
 } from "@ksp-gonogo/sitrep-sdk/media";
 import { chunkAmplitude } from "./amplitude";
 import type { RadioBackend } from "./backend";
-import type { RadioAudioSink, RadioDecoderLike } from "./RadioSession";
+import type {
+  RadioAudioSink,
+  RadioDecoderLike,
+  RadioReceiver,
+} from "./RadioSession";
 import type { RadioCapture, StartRadioCapture } from "./RadioTransmitter";
 
 /** Seconds of audio one chunk carries: the 20 ms grid the real encoder uses. */
@@ -346,13 +350,84 @@ export class ClipDecoder implements RadioDecoderLike {
   }
 }
 
+/**
+ * A listening output that keeps every lane apart.
+ *
+ * The real receiver sums its lanes on the audio thread, which is exactly what
+ * makes the sum unreadable: once two voices are one waveform, no test can say
+ * which of them arrived or whether either survived intact. So the recording one
+ * keeps a sink per stream, and what it proves is the property the mix depends
+ * on and cannot itself demonstrate: that two simultaneous transmissions are
+ * decoded SEPARATELY and each comes out whole. That the lanes are then summed
+ * and limited is proved against the shipped worklet, in `mix.test.ts`.
+ */
+export class RecordingRadioReceiver implements RadioReceiver {
+  /** Every stream opened on this receiver, in the order transmissions began. */
+  readonly decoders: ClipDecoder[] = [];
+  closed = false;
+
+  openStream(): RadioDecoderLike {
+    const decoder = new ClipDecoder(new RecordingRadioSink());
+    this.decoders.push(decoder);
+    return decoder;
+  }
+
+  close(): void {
+    this.closed = true;
+  }
+
+  /**
+   * Every block played on any lane, lane by lane in the order the streams were
+   * opened.
+   *
+   * The reading for SEQUENTIAL transmissions, which is what most of the harness
+   * exercises: one keying at a time, so lane order is time order and this is
+   * simply what the operator heard. It is deliberately NOT a mix, and comparing
+   * it against two overlapping clips would be comparing against something no
+   * listener ever hears. For that, read the lanes separately.
+   */
+  get played(): PlayedBlock[] {
+    return this.decoders.flatMap((decoder) => decoder.sink.played);
+  }
+
+  /** The same, end to end, for comparing against `clipPcm`. */
+  pcm(): Float32Array {
+    const blocks = this.played;
+    const whole = new Float32Array(
+      blocks.reduce((n, block) => n + block.samples.length, 0),
+    );
+    let at = 0;
+    for (const block of blocks) {
+      whole.set(block.samples, at);
+      at += block.samples.length;
+    }
+    return whole;
+  }
+
+  /** Streams started across every lane: the property the session owes, summed. */
+  get resets(): number {
+    return this.decoders.reduce((n, decoder) => n + decoder.resets, 0);
+  }
+}
+
 /** A whole radio driven by a clip: what to hand `RadioBackendProvider`, and the
  *  handles to drive and read it. */
 export interface ClipRadio {
   readonly backend: RadioBackend;
   readonly mic: ClipMic;
-  /** Every listening chain built under this backend, newest last. A mount that
-   *  rebuilds its session builds another, so the count is itself a reading. */
+  /**
+   * Every listening OUTPUT built under this backend, newest last: one per
+   * session. A mount that rebuilds its session builds another, so the count is
+   * itself a reading, and it is the one that says an injected backend landed.
+   */
+  readonly receivers: RecordingRadioReceiver[];
+  /**
+   * Every decode STREAM, across every receiver: one per transmission heard.
+   *
+   * A getter rather than a stored array, because streams are opened as
+   * transmissions begin rather than when the session is built, and a caller
+   * asking what has been heard wants the answer at the moment it asks.
+   */
   readonly decoders: ClipDecoder[];
 }
 
@@ -366,16 +441,19 @@ export interface ClipRadio {
  */
 export function clipRadio(clip: RadioClip): ClipRadio {
   const mic = clipMic(clip);
-  const decoders: ClipDecoder[] = [];
+  const receivers: RecordingRadioReceiver[] = [];
   return {
     mic,
-    decoders,
+    receivers,
+    get decoders() {
+      return receivers.flatMap((receiver) => receiver.decoders);
+    },
     backend: {
       startCapture: mic.start,
-      createDecoder: () => {
-        const decoder = new ClipDecoder(new RecordingRadioSink());
-        decoders.push(decoder);
-        return decoder;
+      createReceiver: () => {
+        const receiver = new RecordingRadioReceiver();
+        receivers.push(receiver);
+        return receiver;
       },
     },
   };

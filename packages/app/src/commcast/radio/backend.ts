@@ -1,11 +1,7 @@
 import { createContext, useContext } from "react";
-import type { RadioDecoderLike } from "./RadioSession";
+import type { RadioReceiver } from "./RadioSession";
 import type { StartRadioCapture } from "./RadioTransmitter";
-import {
-  startWebAudioCapture,
-  WebAudioRadioSink,
-  WebCodecsRadioDecoder,
-} from "./webaudio";
+import { startWebAudioCapture, WebAudioRadioReceiver } from "./webaudio";
 
 /**
  * The two places the radio touches the browser, named as one thing and handed
@@ -26,14 +22,21 @@ import {
 export interface RadioBackend {
   /** Open the microphone and encode it, one callback per 20 ms chunk. */
   startCapture: StartRadioCapture;
-  /** A fresh decode-and-play chain for one screen's listening half. */
-  createDecoder(): RadioDecoderLike;
+  /**
+   * One screen's listening half: a single output that every transmission opens
+   * its own decode stream on, and that sums them.
+   *
+   * A receiver rather than a decoder, because the mix has to be built at the
+   * listener and therefore has to be a thing the backend owns. See
+   * {@link RadioReceiver}.
+   */
+  createReceiver(): RadioReceiver;
 }
 
 /** The real one: WebCodecs Opus over Web Audio, which is all `webaudio.ts` is. */
 export const WEB_AUDIO_RADIO_BACKEND: RadioBackend = {
   startCapture: startWebAudioCapture,
-  createDecoder: () => new WebCodecsRadioDecoder(new WebAudioRadioSink()),
+  createReceiver: () => new WebAudioRadioReceiver(),
 };
 
 /**

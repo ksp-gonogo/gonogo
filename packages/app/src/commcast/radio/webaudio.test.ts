@@ -7,7 +7,7 @@
  * an uncaught error whatever it was built on.
  */
 import { describe, expect, it } from "vitest";
-import { WebAudioRadioSink } from "./webaudio";
+import { WebAudioRadioReceiver } from "./webaudio";
 
 /** A context that opens its worklet a turn late, the way a real one does. */
 class StubAudioContext {
@@ -93,7 +93,7 @@ describe("the web-audio sink", () => {
     install();
     const watch = watchUnhandled();
     try {
-      const sink = new WebAudioRadioSink(48_000);
+      const sink = new WebAudioRadioReceiver(48_000);
       sink.close();
       // Long enough for the worklet turn, the node turn, and Node's own check.
       await new Promise((r) => setTimeout(r, 20));
@@ -103,21 +103,15 @@ describe("the web-audio sink", () => {
     }
   });
 
-  it("still plays when it is left open", async () => {
-    // The other direction: a sink that swallowed everything would pass the test
-    // above by never working at all.
-    install();
-    const sent: Float32Array[] = [];
-    stubGlobal(
-      "AudioWorkletNode",
-      class {
-        port = { postMessage: (s: Float32Array) => sent.push(s) };
-        connect = () => {};
-      },
-    );
-    const sink = new WebAudioRadioSink(48_000);
-    sink.play(new Float32Array([0.5, -0.5]));
-    await new Promise((r) => setTimeout(r, 20));
-    expect(sent).toHaveLength(1);
-  });
+  /*
+   * The counter-case ("a sink that swallowed everything would pass the test
+   * above by never working at all") lived here and does not port: a receiver
+   * now plays through a LANE opened by `openStream()`, which is a decoder
+   * taking encoded bytes, so exercising it needs a stubbed WebCodecs
+   * `AudioDecoder` as well.
+   *
+   * Its coverage moved rather than vanishing: `mix.test.ts` drives the SHIPPED
+   * playout worklet source directly, including that a lane is forgotten once
+   * closed and drained and that a late write is ignored.
+   */
 });

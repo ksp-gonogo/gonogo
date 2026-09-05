@@ -66,6 +66,37 @@ export interface RadioDecoderLike {
 }
 
 /**
+ * This screen's one listening output, and the reason mixing happens HERE.
+ *
+ * Every transmission this vantage has a path to opens its own decode stream on
+ * the receiver, and the receiver SUMS them into a single output. Each stream
+ * has already waited out its own crossing before a sample of it reaches the
+ * sum, which is the property that matters: the sum must sit DOWNSTREAM of
+ * per-source delay. What no arrangement can do is mix once and fan the result
+ * out, because the transmissions in a mix have different light-times to
+ * different listeners.
+ *
+ * The host could delay per listener and sum correctly. It does not, for cost
+ * rather than for truth: it would have to decode every stream to PCM, where it
+ * currently forwards opaque Opus frames, and it would build a mix per listener
+ * per speaker where each listener builds one. See `mix.ts`.
+ *
+ * One stream per transmission rather than one for the channel is also what
+ * makes two talkers audible at all. Sharing a decoder means each keying's
+ * chunks arrive interleaved with somebody else's and are read against the wrong
+ * stream's state; sharing a playout queue means they come out one after the
+ * other at twice the wall time. Two lanes, summed, is the whole fix.
+ *
+ * What is deliberately absent is per-source gain: see `mix.ts`. The band is
+ * shared, and the only volume control is the per-thread mute.
+ */
+export interface RadioReceiver {
+  /** A decode chain for one transmission, mixed into this receiver's output. */
+  openStream(): RadioDecoderLike;
+  close(): void;
+}
+
+/**
  * One transmission whose audio is reaching this screen right now.
  *
  * Read off the AUDIO rather than off the envelope, which is the difference
@@ -93,12 +124,14 @@ export interface RadioLight {
 
 /** What a screen can honestly say about what it is hearing. */
 export interface RadioReception {
-  /** Who is being played into the speakers right now, or `null` for silence. */
-  playing: {
-    transmissionId: string;
-    from: RecipientId;
-    authorName: string;
-  } | null;
+  /*
+   * There is deliberately no `playing` naming ONE speaker. There used to be,
+   * and it could only ever be a lie the moment a second person keyed up: the
+   * listener sums whatever reaches it, so at any instant there may be several
+   * voices in the operator's ear and no way to elect one of them. `live` below
+   * carries all of them, each with whether it is being heard, which is the
+   * complete reading and the one the lamps draw.
+   */
   /**
    * Every transmission currently reaching this screen, MUTED ONES INCLUDED,
    * in the order they were first heard.
@@ -135,7 +168,6 @@ export interface RadioReception {
 }
 
 const EMPTY_RECEPTION: RadioReception = {
-  playing: null,
   live: [],
   backlogSeconds: 0,
   droppedChunks: 0,
@@ -191,6 +223,23 @@ interface HeardTransmission {
    * conversational gap carries no information about it at all.
    */
   pacer: PresentationPacer<HeldChunk>;
+  /**
+   * This keying's own decode stream, one lane of the listener's mix.
+   *
+   * Opened at the `start` frame and closed when the transmission retires, so
+   * two people talking at once are two streams summed rather than one stream
+   * being handed two people's chunks. Opened even for a conversation the
+   * operator has muted, so unmuting mid-sentence resumes into a stream that was
+   * always there rather than building one against a backlog.
+   */
+  decoder: RadioDecoderLike;
+  /**
+   * The decoder has been told a stream is running. `false` before the first
+   * audible chunk, and again after a muted one: a gap the decoder was never
+   * told about leaves it timing something that did not happen, so the next
+   * audible chunk starts a fresh stream instead.
+   */
+  streaming: boolean;
   /** Chunks accepted here and not yet played, dropped or skipped. */
   inflight: number;
   /**
@@ -210,7 +259,12 @@ export interface RadioSessionOptions {
    * spoken word for a round trip.
    */
   view: DelayClockLike;
-  decoder: RadioDecoderLike;
+  /**
+   * Where every transmission is decoded and summed. Owned by this session:
+   * built with it and closed with it, because every lane on it belongs to a
+   * held chunk whose release instant was computed against this session's clock.
+   */
+  receiver: RadioReceiver;
   /** Wall-clock seconds, for pacing. Injected so a test can drive it. */
   nowWall?: () => number;
   /**
@@ -271,8 +325,6 @@ export class RadioSession {
    * this session has never been driven at.
    */
   private releaseWall: number | null = null;
-  private playingId: string | null = null;
-  private decodingId: string | null = null;
   private published: RadioReception = EMPTY_RECEPTION;
   private disposed = false;
 
@@ -412,8 +464,11 @@ export class RadioSession {
     this.disposed = true;
     this.unsubscribeFrame();
     this.buffer.dispose();
-    for (const held of this.heard.values()) held.pacer.dispose();
-    this.opts.decoder.close();
+    for (const held of this.heard.values()) {
+      held.pacer.dispose();
+      held.decoder.close();
+    }
+    this.opts.receiver.close();
     this.heard.clear();
     this.listeners.clear();
   }
@@ -457,6 +512,8 @@ export class RadioSession {
           this.discard(frame.data);
         },
       }),
+      decoder: this.opts.receiver.openStream(),
+      streaming: false,
       inflight: 0,
       ended: false,
     });
@@ -465,10 +522,11 @@ export class RadioSession {
   private present(chunk: HeldChunk): void {
     this.settle(chunk);
     const heard = this.heard.get(chunk.transmissionId);
+    if (heard === undefined) return;
     // The words have crossed, whether or not this screen chooses to hear them,
     // so the light may now honestly say this conversation is talking.
-    if (heard) heard.presented = true;
-    if (heard !== undefined && this.muted.has(heard.threadKey)) {
+    heard.presented = true;
+    if (this.muted.has(heard.threadKey)) {
       /*
        * The one thing mute skips: the decode. Everything either side of it
        * runs, so a muted conversation costs the same delay arithmetic, the
@@ -476,35 +534,32 @@ export class RadioSession {
        * mid-transmission picks up exactly where the audio has got to rather
        * than wherever the buffer happened to be left.
        *
-       * The decoder is dropped rather than merely skipped: it is one chain
-       * shared by every keying, and handing it a stream with a silent hole in
-       * the middle leaves it timing something it was never told about. The
-       * next audible chunk starts a fresh one.
+       * The stream is ended rather than merely skipped: a decoder handed audio
+       * with a silent hole in the middle is timing something it was never told
+       * about. The next audible chunk starts a fresh one, on this
+       * transmission's own lane, so unmuting never disturbs anybody else's.
        */
-      this.decodingId = null;
-      if (this.playingId === chunk.transmissionId) this.playingId = null;
+      heard.streaming = false;
       this.retire(heard);
       return;
     }
-    if (this.decodingId !== chunk.transmissionId) {
-      this.opts.decoder.reset();
-      this.decodingId = chunk.transmissionId;
+    if (!heard.streaming) {
+      heard.decoder.reset();
+      heard.streaming = true;
     }
-    this.playingId = chunk.transmissionId;
     /*
      * Microseconds, the unit `EncodedAudioChunk` takes, and counted off the
      * SEQUENCE rather than off the UT. A decoder is timing a stream of its own,
      * and a UT that jumped under a revert or a quickload would hand it a
      * discontinuity it has no way to read.
      */
-    this.opts.decoder.decode(
+    heard.decoder.decode(
       chunk.bytes,
       Math.round(chunk.seq * this.chunkSeconds * 1e6),
     );
     // Retire only AFTER the decode, so the last chunk of a finished
     // transmission is still attributed to it while it plays.
-    const held = this.heard.get(chunk.transmissionId);
-    if (held) this.retire(held);
+    this.retire(heard);
   }
 
   private discard(chunk: HeldChunk | undefined): void {
@@ -526,8 +581,11 @@ export class RadioSession {
   private retire(held: HeardTransmission): void {
     if (!held.ended || held.inflight > 0) return;
     held.pacer.dispose();
+    // Closes this keying's lane of the mix. Whatever the lane still holds plays
+    // out first: the sum has already been handed those samples, and cutting
+    // them would truncate the last word of every transmission.
+    held.decoder.close();
     this.heard.delete(held.transmission.id);
-    if (this.playingId === held.transmission.id) this.playingId = null;
   }
 
   private publish(): void {
@@ -538,8 +596,6 @@ export class RadioSession {
   }
 
   private snapshotValue(): RadioReception {
-    const held =
-      this.playingId === null ? undefined : this.heard.get(this.playingId);
     const live: RadioLight[] = [];
     for (const heard of this.heard.values()) {
       if (!heard.presented) continue;
@@ -553,14 +609,6 @@ export class RadioSession {
       });
     }
     return {
-      playing:
-        held === undefined
-          ? null
-          : {
-              transmissionId: held.transmission.id,
-              from: held.transmission.from,
-              authorName: held.transmission.authorName,
-            },
       live,
       backlogSeconds: this.paced * this.chunkSeconds,
       droppedChunks: this.droppedChunks,
@@ -571,7 +619,6 @@ export class RadioSession {
 /** Everything a subscriber would draw differently, as one comparable string. */
 function signatureOf(reception: RadioReception): string {
   return [
-    reception.playing?.transmissionId ?? "",
     reception.backlogSeconds,
     reception.droppedChunks,
     ...reception.live.map((l) => `${l.transmissionId}:${l.muted ? "m" : "o"}`),

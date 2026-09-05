@@ -5,7 +5,12 @@ import {
   radioSupportStatus,
 } from "@ksp-gonogo/sitrep-sdk/media";
 import { chunkAmplitude } from "./amplitude";
-import type { RadioAudioSink, RadioDecoderLike } from "./RadioSession";
+import { mixSample } from "./mix";
+import type {
+  RadioAudioSink,
+  RadioDecoderLike,
+  RadioReceiver,
+} from "./RadioSession";
 import type { RadioCapture, StartRadioCapture } from "./RadioTransmitter";
 
 /**
@@ -58,42 +63,97 @@ registerProcessor("radio-capture", RadioCaptureProcessor);
 `;
 
 /**
- * Playout: a queue of decoded blocks drained one sample at a time, silence when
- * it runs dry.
+ * Playout: one queue PER TRANSMISSION, drained together and summed, silence
+ * from whichever of them has run dry.
  *
- * The queue is what makes playback run at NATURAL rate whatever cadence the
+ * A queue is what makes playback run at NATURAL rate whatever cadence the
  * releases arrive in, which is the property the delay pipeline needs at the
  * end of it: `PresentationPacer` spaces the releases and this absorbs whatever
  * spacing error is left, without ever playing faster to catch up.
+ *
+ * There are several of them because the band is shared and the delays are not.
+ * A single queue plays what it is given in the order it was given, so two
+ * people talking at once would come out one after the other at twice the wall
+ * time, each drifting further behind the moment they spoke. Per-lane queues
+ * advance independently: a lane with nothing in it contributes zero and stays
+ * where it is, so a talker who pauses does not push everybody else back.
+ *
+ * The limiter is {@link mixSample}, embedded from its own source rather than
+ * written out again here, because an audio thread cannot import a module and a
+ * second copy of the arithmetic is a second copy to get wrong. It is bound to a
+ * `const` so the name survives a build that renames the declaration.
  */
-const PLAYOUT_WORKLET = `
+export const PLAYOUT_WORKLET = `
+const mix = ${mixSample.toString()};
 class RadioPlayoutProcessor extends AudioWorkletProcessor {
   constructor() {
     super();
-    this.queue = [];
-    this.offset = 0;
-    this.port.onmessage = (event) => { this.queue.push(event.data); };
+    this.lanes = new Map();
+    // The highest lane id that has finished. Lane ids are handed out in
+    // increasing order and never reused, so one number is enough to tell a
+    // lane that has not started yet from one that is over.
+    this.retired = -1;
+    this.port.onmessage = (event) => {
+      const message = event.data;
+      let lane = this.lanes.get(message.lane);
+      if (lane === undefined) {
+        if (message.samples === undefined) return;
+        // Audio for a transmission that has already finished playing out.
+        // Dropped rather than opening a fresh lane, so a late write cannot
+        // resurrect somebody who has stopped talking.
+        if (message.lane <= this.retired) return;
+        lane = { queue: [], offset: 0, closed: false };
+        this.lanes.set(message.lane, lane);
+      }
+      if (message.samples !== undefined) lane.queue.push(message.samples);
+      if (message.close === true) lane.closed = true;
+    };
   }
   process(_inputs, outputs) {
     const out = outputs[0] && outputs[0][0];
     if (!out) return true;
+    // Read once per quantum rather than per sample: 128 walks of the map to do
+    // the same thing 128 times is the one avoidable cost on the audio thread.
+    const lanes = [...this.lanes.values()];
     for (let i = 0; i < out.length; i++) {
-      const head = this.queue[0];
-      if (head === undefined) {
-        out[i] = 0;
-        continue;
+      let sum = 0;
+      for (let l = 0; l < lanes.length; l++) {
+        const lane = lanes[l];
+        const head = lane.queue[0];
+        if (head === undefined) continue;
+        sum += head[lane.offset++];
+        if (lane.offset >= head.length) {
+          lane.queue.shift();
+          lane.offset = 0;
+        }
       }
-      out[i] = head[this.offset++];
-      if (this.offset >= head.length) {
-        this.queue.shift();
-        this.offset = 0;
-      }
+      out[i] = mix(sum);
+    }
+    for (const [id, lane] of this.lanes) {
+      if (!lane.closed || lane.queue.length > 0) continue;
+      this.lanes.delete(id);
+      if (id > this.retired) this.retired = id;
     }
     return true;
   }
 }
 registerProcessor("radio-playout", RadioPlayoutProcessor);
 `;
+
+/**
+ * How the microphone is opened, whichever one it is.
+ *
+ * Shared with the device picker so the input an operator auditions in the
+ * settings is processed exactly as the one they transmit through: a picker that
+ * opened a raw stream would let them choose on the strength of a level the
+ * radio never sends.
+ */
+export const RADIO_CAPTURE_CONSTRAINTS: MediaTrackConstraints = {
+  channelCount: 1,
+  echoCancellation: true,
+  noiseSuppression: true,
+  autoGainControl: true,
+};
 
 function moduleUrl(source: string): string {
   return URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
@@ -117,7 +177,10 @@ async function addWorklet(ctx: AudioContext, source: string): Promise<void> {
  * operator: an insecure origin is something they can act on (reach the page over
  * https or through localhost), a missing codec is not.
  */
-export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
+export const startWebAudioCapture: StartRadioCapture = async (
+  onChunk,
+  options,
+) => {
   const support = radioSupportStatus();
   if (!support.supported) {
     throw new Error(
@@ -129,10 +192,15 @@ export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
 
   const stream = await navigator.mediaDevices.getUserMedia({
     audio: {
-      channelCount: 1,
-      echoCancellation: true,
-      noiseSuppression: true,
-      autoGainControl: true,
+      ...RADIO_CAPTURE_CONSTRAINTS,
+      /*
+       * `exact`, so a chosen headset that has been unplugged FAILS the keying
+       * rather than quietly opening the laptop's own microphone. An operator
+       * who picked a device wants that device, and a radio that silently
+       * switched to the room would be broadcasting something they did not
+       * mean to send.
+       */
+      ...(options?.deviceId ? { deviceId: { exact: options.deviceId } } : {}),
     },
   });
 
@@ -224,7 +292,14 @@ export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
 };
 
 /**
- * Speakers, through an `AudioWorklet` ring.
+ * Speakers, through an `AudioWorklet` ring: ONE output for this screen, with a
+ * lane on it for every transmission.
+ *
+ * One `AudioContext` rather than one per talker, and that is not only thrift.
+ * Two contexts run on two clocks, so two transmissions summed by the operating
+ * system would drift apart over a long keying; and engines cap how many a page
+ * may hold, so a busy band would eventually fail to open one at all. Summing
+ * inside a single graph is exact and unbounded.
  *
  * The context is created on construction and RESUMED on every write, because a
  * browser starts one suspended until the page has seen a user gesture. A
@@ -232,7 +307,7 @@ export const startWebAudioCapture: StartRadioCapture = async (onChunk) => {
  * which is a genuine gap rather than a designed silence; the first interaction
  * with the page clears it.
  */
-export class WebAudioRadioSink implements RadioAudioSink {
+export class WebAudioRadioReceiver implements RadioReceiver {
   private readonly ctx: AudioContext;
   /**
    * The playout node, or `null` where there will not be one.
@@ -249,6 +324,7 @@ export class WebAudioRadioSink implements RadioAudioSink {
    * hears nothing.
    */
   private readonly ready: Promise<AudioWorkletNode | null>;
+  private nextLane = 0;
   private closed = false;
 
   constructor(sampleRate: number = RADIO_DECODER_CONFIG.sampleRate) {
@@ -276,10 +352,49 @@ export class WebAudioRadioSink implements RadioAudioSink {
     });
   }
 
+  openStream(): RadioDecoderLike {
+    return new WebCodecsRadioDecoder(this.lane(this.nextLane++));
+  }
+
   close(): void {
     if (this.closed) return;
     this.closed = true;
     void this.ctx.close().catch(() => {});
+  }
+
+  /**
+   * One transmission's share of the sum.
+   *
+   * Ids increase and are never reused, which the worklet relies on: it keeps
+   * only the highest it has finished, and refuses anything at or below it. A
+   * write after a close cannot therefore land in somebody else's voice, nor
+   * restart a transmission that has already played out.
+   */
+  private lane(id: number): RadioAudioSink {
+    const post = (message: object, transfer: Transferable[]) => {
+      if (this.closed) return;
+      void this.ctx.resume().catch(() => {});
+      void this.ready
+        .then((node) => {
+          // `null` when the sink was closed inside the two turns the worklet
+          // takes to load, which is the case the settling `ready` exists for.
+          if (this.closed || node === null) return;
+          node.port.postMessage(message, transfer);
+        })
+        .catch(() => {});
+    };
+    let laneClosed = false;
+    return {
+      play: (samples: Float32Array) => {
+        if (laneClosed) return;
+        post({ lane: id, samples }, [samples.buffer]);
+      },
+      close: () => {
+        if (laneClosed) return;
+        laneClosed = true;
+        post({ lane: id, close: true }, []);
+      },
+    };
   }
 }
 

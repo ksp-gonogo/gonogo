@@ -20,7 +20,6 @@ function control(over: Partial<RadioControl> = {}): RadioControl {
     opening: false,
     amplitudes: [],
     reception: {
-      playing: null,
       live: [],
       backlogSeconds: 0,
       droppedChunks: 0,
@@ -30,6 +29,8 @@ function control(over: Partial<RadioControl> = {}): RadioControl {
     toggle: () => {},
     isMuted: () => false,
     setMuted: () => {},
+    inputDeviceId: null,
+    setInputDevice: () => {},
     ...over,
   };
 }
@@ -107,12 +108,16 @@ describe("the push-to-talk key", () => {
       <RadioPtt
         radio={control({
           reception: {
-            playing: {
-              transmissionId: "t1",
-              from: "vessel:ares",
-              authorName: "Jeb",
-            },
-            live: [],
+            live: [
+              {
+                transmissionId: "t1",
+                threadKey: "vessel:ares",
+                with: ["vessel:ares"],
+                from: "vessel:ares",
+                authorName: "Jeb",
+                muted: false,
+              },
+            ],
             backlogSeconds: 0,
             droppedChunks: 0,
           },

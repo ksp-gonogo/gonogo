@@ -10,7 +10,7 @@ import { PerfBudget } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { SeparationMatrix, Vantage } from "../reveal";
 import { threadKeyOf } from "../threads";
-import type { RadioDecoderLike } from "./RadioSession";
+import type { RadioDecoderLike, RadioReceiver } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
 import type { RadioFrame, RadioTransmission } from "./wire";
 
@@ -42,24 +42,44 @@ function fakeClock(startUt = 0) {
   };
 }
 
-function recordingDecoder() {
+/**
+ * A listening output that records every lane opened on it, pooled.
+ *
+ * Pooled rather than kept apart because what this file asserts is the SESSION's
+ * behaviour: which chunks reached a speaker, in what order, under what timing.
+ * That two simultaneous transmissions land in two separate decode streams is
+ * asserted where it belongs, against the clip harness, in
+ * `clips.roundtrip.test.ts`.
+ */
+function recordingReceiver() {
   const decoded: Array<{ bytes: Uint8Array; timestamp: number }> = [];
   let resets = 0;
+  let streams = 0;
   let closed = false;
-  const decoder: RadioDecoderLike = {
-    decode: (bytes, timestamp) => decoded.push({ bytes, timestamp }),
-    reset: () => {
-      resets += 1;
+  const receiver: RadioReceiver = {
+    openStream: (): RadioDecoderLike => {
+      streams += 1;
+      return {
+        decode: (bytes, timestamp) => decoded.push({ bytes, timestamp }),
+        reset: () => {
+          resets += 1;
+        },
+        close: () => {},
+      };
     },
     close: () => {
       closed = true;
     },
   };
   return {
-    decoder,
+    receiver,
     decoded,
     get resets() {
       return resets;
+    },
+    /** Decode streams opened: one per transmission this vantage can hear. */
+    get streams() {
+      return streams;
     },
     get closed() {
       return closed;
@@ -125,10 +145,10 @@ function scene(
   } = {},
 ) {
   const clock = fakeClock(opts.startUt ?? 0);
-  const sink = recordingDecoder();
+  const sink = recordingReceiver();
   const session = new RadioSession({
     view: clock.view,
-    decoder: sink.decoder,
+    receiver: sink.receiver,
     chunkSeconds: CHUNK,
     ...(opts.maxBufferedBytes === undefined
       ? {}
@@ -249,7 +269,6 @@ describe("radio playout, a cut", () => {
 
     expect(sink.decoded).toHaveLength(0);
     expect(session.snapshot()).toEqual({
-      playing: null,
       live: [],
       backlogSeconds: 0,
       droppedChunks: 0,
@@ -267,25 +286,32 @@ describe("radio playout, a cut", () => {
 });
 
 describe("radio playout, what the operator is told", () => {
-  it("names who is being played, and falls silent when they finish", () => {
+  it("names who is being heard, and falls silent when they finish", () => {
     const { clock, sink, session } = scene();
     const t = transmission();
     session.receive(start(t));
     session.receive(chunk(t, 0, 1000));
+    session.receive(chunk(t, 1, 1000 + CHUNK));
     session.receive({
       kind: "end",
       transmissionId: t.id,
       authorStationKey: t.authorStationKey,
-      ut: 1000 + CHUNK,
+      ut: 1000 + 2 * CHUNK,
     });
     // Key-up crosses at the speed of the internet while the words it ends are
     // still crossing the light-time, so the name has to survive it.
-    expect(session.snapshot().playing).toBeNull();
+    expect(session.snapshot().live).toEqual([]);
 
-    clock.set(1000 + LIGHT_TIME);
+    clock.set(1000 + LIGHT_TIME + CHUNK);
     session.pump(100);
     expect(sink.decoded).toHaveLength(1);
-    expect(session.snapshot().playing).toBeNull();
+    expect(session.snapshot().live.map((l) => l.authorName)).toEqual(["Jeb"]);
+
+    // The last chunk played, so the transmission is over at THIS vantage and
+    // the lamp goes out. Not before: the name has to outlive the `end` frame.
+    session.pump(100 + CHUNK);
+    expect(sink.decoded).toHaveLength(2);
+    expect(session.snapshot().live).toEqual([]);
   });
 
   it("reports a backlog rather than playing faster to catch up", () => {
@@ -301,7 +327,7 @@ describe("radio playout, what the operator is told", () => {
     clock.set(1000 + LIGHT_TIME + 5 * CHUNK);
     session.pump(100);
     expect(session.snapshot().backlogSeconds).toBeCloseTo(4 * CHUNK, 6);
-    expect(session.snapshot().playing?.authorName).toBe("Jeb");
+    expect(session.snapshot().live.map((l) => l.authorName)).toEqual(["Jeb"]);
 
     session.pump(100 + CHUNK);
     expect(session.snapshot().backlogSeconds).toBeCloseTo(3 * CHUNK, 6);
@@ -403,7 +429,6 @@ describe("radio monitoring, a per-conversation mute", () => {
     session.pump(100);
 
     expect(sink.decoded).toHaveLength(0);
-    expect(session.snapshot().playing).toBeNull();
     expect(session.snapshot().live).toEqual([
       expect.objectContaining({ transmissionId: "t1", muted: true }),
     ]);
@@ -498,7 +523,12 @@ describe("radio monitoring, a per-conversation mute", () => {
     session.pump(101);
 
     expect(sink.decoded).toHaveLength(1);
-    expect(session.snapshot().playing?.authorName).toBe("Woomera Range");
+    expect(
+      session
+        .snapshot()
+        .live.filter((l) => !l.muted)
+        .map((l) => l.authorName),
+    ).toEqual(["Woomera Range"]);
     expect(session.snapshot().live.map((l) => [l.authorName, l.muted])).toEqual(
       [
         ["Jeb", true],
@@ -509,7 +539,7 @@ describe("radio monitoring, a per-conversation mute", () => {
 });
 
 describe("radio playout, teardown", () => {
-  it("closes the decoder and stops answering", () => {
+  it("closes the listening output and stops answering", () => {
     const { clock, sink, session } = scene();
     const t = transmission();
     session.receive(start(t));
@@ -519,7 +549,7 @@ describe("radio playout, teardown", () => {
     session.pump(100);
     expect(sink.closed).toBe(true);
     expect(sink.decoded).toHaveLength(0);
-    expect(session.snapshot().playing).toBeNull();
+    expect(session.snapshot().live).toEqual([]);
   });
 });
 

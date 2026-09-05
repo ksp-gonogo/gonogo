@@ -5,6 +5,7 @@ import type { CommcastLog } from "../CommcastLog";
 import type { SeparationMatrix, Vantage } from "../reveal";
 import type { RecipientId } from "../types";
 import { useRadioBackend } from "./backend";
+import { loadInputDevice, saveInputDevice } from "./inputDevice";
 import { loadMutedThreads, saveMutedThreads } from "./monitor";
 import type { RadioReception } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
@@ -76,6 +77,13 @@ export interface RadioControl {
    * the moment the operator glanced somewhere else.
    */
   setMuted(threadKey: string, muted: boolean): void;
+  /**
+   * The input the operator chose to transmit from, or `null` for the browser's
+   * default. Remembered per screen, the same way the mute exceptions are.
+   */
+  inputDeviceId: string | null;
+  /** Transmit from this input from the next keying onward. */
+  setInputDevice(deviceId: string | null): void;
 }
 
 export interface UseRadioOptions {
@@ -101,7 +109,6 @@ export interface UseRadioOptions {
 }
 
 const NO_RECEPTION: RadioReception = {
-  playing: null,
   live: [],
   backlogSeconds: 0,
   droppedChunks: 0,
@@ -138,6 +145,12 @@ export function useRadio({
   const [muted, setMutedThreads] = useState<ReadonlySet<string>>(() =>
     loadMutedThreads(local.stationKey),
   );
+  /* Read from storage on the first render for the same reason: an operator who
+     chose a headset last week must not have their first press go out through
+     the laptop's own microphone while an effect catches up. */
+  const [inputDeviceId, setInputDeviceId] = useState<string | null>(() =>
+    loadInputDevice(local.stationKey),
+  );
 
   /*
    * Read through a ref by the transmitter's own `utNow`, rather than closed
@@ -146,6 +159,15 @@ export function useRadio({
    */
   const clockRef = useRef(clock);
   clockRef.current = clock;
+
+  /*
+   * Likewise a ref rather than a dependency: rebuilding the transmitter on a
+   * device change would tear down a keying in progress, and a microphone the
+   * operator swapped while talking is the one moment they are least able to
+   * notice that their transmission ended. The device is read at key-down.
+   */
+  const inputDeviceRef = useRef(inputDeviceId);
+  inputDeviceRef.current = inputDeviceId;
 
   useEffect(() => {
     if (!log || !clock || !support.supported) {
@@ -164,7 +186,13 @@ export function useRadio({
         confirmedEdgeUt: () => clock.utNowEstimate(),
         onFrame: (cb) => clock.onFrame(cb),
       },
-      decoder: backend.createDecoder(),
+      /*
+       * One output for the screen, with a lane per transmission summed into
+       * it, so two people talking at once are two voices rather than one
+       * garbled stream. Built here and closed by `dispose`, because every lane
+       * on it belongs to chunks released against this clock.
+       */
+      receiver: backend.createReceiver(),
     });
     setSession(built);
     setReception(built.snapshot());
@@ -201,6 +229,16 @@ export function useRadio({
     [muted],
   );
 
+  const setInputDevice = useCallback(
+    (deviceId: string | null) => {
+      // Written before the state and outside an updater, as the mute is, for
+      // the same StrictMode reason.
+      saveInputDevice(local.stationKey, deviceId);
+      setInputDeviceId(deviceId);
+    },
+    [local.stationKey],
+  );
+
   useEffect(() => {
     if (!log || !support.supported) {
       setTransmitter(null);
@@ -210,7 +248,10 @@ export function useRadio({
     const built = new RadioTransmitter({
       send: (frame) => log.sendRadio(frame),
       utNow: () => clockRef.current?.utNowEstimate(),
-      startCapture: backend.startCapture,
+      startCapture: (onChunk) =>
+        backend.startCapture(onChunk, {
+          deviceId: inputDeviceRef.current,
+        }),
     });
     setTransmitter(built);
     const unsubscribe = built.subscribe(setTransmit);
@@ -267,5 +308,7 @@ export function useRadio({
     toggle,
     isMuted,
     setMuted: setThreadMuted,
+    inputDeviceId,
+    setInputDevice,
   };
 }

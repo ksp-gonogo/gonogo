@@ -319,20 +319,24 @@ async function installClipRadio(page: Page): Promise<void> {
   }, CLIP_CHUNKS);
   /*
    * The swap tears down the real session and stands a fresh one up, and the
-   * listening chain is what says it landed: `useRadio` builds exactly one
-   * decoder per session, off the backend it was handed, so a decoder existing
+   * listening OUTPUT is what says it landed: `useRadio` builds exactly one
+   * receiver per session, off the backend it was handed, so a receiver existing
    * here means this screen is hearing through the clip rather than through
    * WebCodecs. Waiting on the KEY instead would not do: the key lives in the
    * composer, which only exists inside a conversation, and a receiving screen
    * never opens one.
+   *
+   * The receiver rather than a decoder, because a decode STREAM is opened per
+   * transmission and this screen has not heard one yet: waiting on `decoders`
+   * would wait for somebody to talk, which is the thing the test goes on to do.
    */
   await page.waitForFunction(
     () =>
       (
         (window as unknown as Record<string, unknown>).__gonogoClipRadio as
-          | { decoders: unknown[] }
+          | { receivers: unknown[] }
           | undefined
-      )?.decoders.length !== 0,
+      )?.receivers.length !== 0,
     undefined,
     { timeout: 20_000, polling: 50 },
   );

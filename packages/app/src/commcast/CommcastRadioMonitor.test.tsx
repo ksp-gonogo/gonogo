@@ -107,11 +107,14 @@ function recordingBackend() {
   const backend: RadioBackend = {
     startCapture: () =>
       Promise.reject(new Error("this suite never keys the microphone")),
-    createDecoder: (): RadioDecoderLike => ({
-      decode: (bytes) => {
-        played.push(String.fromCharCode(...bytes));
-      },
-      reset: () => {},
+    createReceiver: () => ({
+      openStream: (): RadioDecoderLike => ({
+        decode: (bytes) => {
+          played.push(String.fromCharCode(...bytes));
+        },
+        reset: () => {},
+        close: () => {},
+      }),
       close: () => {},
     }),
   };

@@ -45,6 +45,20 @@ export function RadioIndicator({
    */
   onOpen: (ids: readonly RecipientId[]) => void;
 }) {
+  /*
+   * How many of them the operator is actually hearing AT ONCE.
+   *
+   * The listener sums every transmission it has a path to, so two unmuted
+   * lamps mean two voices in the same ear at the same moment, and the second
+   * one is why the first has suddenly become hard to follow. Two lamps side by
+   * side do not say that on their own: they read equally well as "two loops
+   * are busy", which is the state a moment earlier and the state a moment
+   * later. Naming the overlap is the difference between an operator asking
+   * somebody to say again and an operator asking one of them to stand by.
+   *
+   * Only ever drawn above one, because "1 at once" is not a reading.
+   */
+  const audible = live.filter((one) => !one.muted).length;
   return (
     /*
      * ONE region for every lamp. A live region per lamp would announce the same
@@ -55,6 +69,14 @@ export function RadioIndicator({
     <Radio__Indicator role="status" aria-live="polite">
       {live.length === 0 && (
         <StatusIndicator tone="neutral">Quiet</StatusIndicator>
+      )}
+      {audible > 1 && (
+        <StatusIndicator tone="warn">
+          {audible} at once
+          {/* The sentence a screen reader needs, since "2 at once" beside two
+              names is only legible as a picture. */}
+          <VisuallyHidden> talking over each other</VisuallyHidden>
+        </StatusIndicator>
       )}
       {live.map((one) => (
         <StatusIndicator

@@ -18,7 +18,6 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { SeparationMatrix, Vantage } from "../reveal";
 import {
   CLIP_CHUNK_SECONDS,
-  ClipDecoder,
   clipMic,
   clipPcm,
   clipSamples,
@@ -26,7 +25,7 @@ import {
   LONG_CLIP,
   type RadioClip,
   REPLY_CLIP,
-  RecordingRadioSink,
+  RecordingRadioReceiver,
   SHORT_CLIP,
 } from "./clips";
 import { RadioSession } from "./RadioSession";
@@ -34,8 +33,11 @@ import { RadioTransmitter } from "./RadioTransmitter";
 import type { RadioFrame } from "./wire";
 
 const ARES = "vessel:ares";
+const WOOMERA = "woomera";
 const KSC = "ksc";
 const LIGHT_TIME = 240;
+/** A second correspondent, further out, so one listener holds two crossings. */
+const FAR_LIGHT_TIME = 600;
 const START_UT = 1000;
 
 /**
@@ -75,12 +77,11 @@ function crossing(
 ) {
   let ut = START_UT;
   const frames: RadioFrame[] = [];
-  const sink = new RecordingRadioSink();
-  const decoder = new ClipDecoder(sink);
+  const receiver = new RecordingRadioReceiver();
   const session = new RadioSession({
     // The reader's OWN present, which is the adapter `useRadio` hands it.
     view: { confirmedEdgeUt: () => ut, onFrame: () => () => {} },
-    decoder,
+    receiver,
     chunkSeconds: CLIP_CHUNK_SECONDS,
   });
   session.setVantage(GROUND);
@@ -102,8 +103,7 @@ function crossing(
   return {
     session,
     transmitter,
-    sink,
-    decoder,
+    receiver,
     frames,
     get ut() {
       return ut;
@@ -174,8 +174,8 @@ describe("a keying, spoken and heard", () => {
     scene.advance(LIGHT_TIME + 1);
     scene.play(0, SHORT_CLIP.chunks.length);
 
-    expect(scene.sink.played).toHaveLength(SHORT_CLIP.chunks.length);
-    expect([...scene.sink.pcm()]).toEqual([...clipPcm(SHORT_CLIP)]);
+    expect(scene.receiver.played).toHaveLength(SHORT_CLIP.chunks.length);
+    expect([...scene.receiver.pcm()]).toEqual([...clipPcm(SHORT_CLIP)]);
   });
 
   it("holds every word until the light has had time to cross", async () => {
@@ -185,7 +185,7 @@ describe("a keying, spoken and heard", () => {
     // The whole utterance is on the wire and the far end has all of it. It has
     // still heard nothing, which is the only thing the delay model asserts.
     scene.play(0, 10);
-    expect(scene.sink.played).toHaveLength(0);
+    expect(scene.receiver.played).toHaveLength(0);
     expect(scene.frames.filter((f) => f.kind === "chunk")).toHaveLength(
       SHORT_CLIP.chunks.length,
     );
@@ -194,8 +194,8 @@ describe("a keying, spoken and heard", () => {
     // rest is still crossing, spaced by the 20 ms it was spoken on.
     scene.advance(LIGHT_TIME);
     scene.play(0, 1);
-    expect(scene.sink.played).toHaveLength(1);
-    expect([...scene.sink.played[0].samples]).toEqual([
+    expect(scene.receiver.played).toHaveLength(1);
+    expect([...scene.receiver.played[0].samples]).toEqual([
       ...clipSamples({ ...SHORT_CLIP.chunks[0], index: 0 }),
     ]);
   });
@@ -213,11 +213,11 @@ describe("a keying, spoken and heard", () => {
 
     scene.advance(119);
     scene.play(0, 5);
-    expect(scene.sink.played).toHaveLength(0);
+    expect(scene.receiver.played).toHaveLength(0);
 
     scene.advance(2);
     scene.play(0, 1);
-    expect(scene.sink.played).toHaveLength(1);
+    expect(scene.receiver.played).toHaveLength(1);
   });
 
   it("reports the backlog when the release edge outruns playback", async () => {
@@ -238,20 +238,19 @@ describe("a keying, spoken and heard", () => {
     const backlog = scene.session.snapshot().backlogSeconds;
     expect(backlog).toBeGreaterThan(0.9);
     expect(backlog).toBeLessThanOrEqual(LONG_CLIP.seconds);
-    expect(scene.sink.played).toHaveLength(1);
+    expect(scene.receiver.played).toHaveLength(1);
   });
 
-  it("says who is being played, at the instant they are heard", async () => {
+  it("says who is being heard, at the instant they are heard", async () => {
     const scene = crossing([SHORT_CLIP]);
     await scene.say(0);
-    expect(scene.session.snapshot().playing).toBeNull();
+    expect(scene.session.snapshot().live).toEqual([]);
 
     scene.advance(LIGHT_TIME);
     scene.play(0, 1);
-    expect(scene.session.snapshot().playing).toMatchObject({
-      from: ARES,
-      authorName: "Jeb",
-    });
+    expect(scene.session.snapshot().live).toEqual([
+      expect.objectContaining({ from: ARES, authorName: "Jeb", muted: false }),
+    ]);
   });
 });
 
@@ -301,7 +300,7 @@ describe("a keying across a separation that is changing", () => {
     expect(scene.session.snapshot().droppedChunks).toBe(0);
 
     scene.listen(arrivalsEnd, 0.4, CLOSING);
-    expect([...scene.sink.pcm()]).toEqual([...clipPcm(DRIFT_CLIP)]);
+    expect([...scene.receiver.pcm()]).toEqual([...clipPcm(DRIFT_CLIP)]);
   });
 
   it("hears every word when the separation is opening, instead of snapping past some", async () => {
@@ -321,8 +320,8 @@ describe("a keying across a separation that is changing", () => {
     scene.listen(0, DRIFT_CLIP.seconds / OPENING + 0.2, OPENING);
 
     expect(scene.session.snapshot().droppedChunks).toBe(0);
-    expect(scene.sink.played).toHaveLength(DRIFT_CLIP.chunks.length);
-    expect([...scene.sink.pcm()]).toEqual([...clipPcm(DRIFT_CLIP)]);
+    expect(scene.receiver.played).toHaveLength(DRIFT_CLIP.chunks.length);
+    expect([...scene.receiver.pcm()]).toEqual([...clipPcm(DRIFT_CLIP)]);
   });
 });
 
@@ -339,10 +338,9 @@ describe("a keying with no path", () => {
     scene.advance(LIGHT_TIME + 1);
     scene.play(0, SHORT_CLIP.chunks.length);
 
-    expect(scene.sink.played).toHaveLength(0);
+    expect(scene.receiver.played).toHaveLength(0);
     expect(scene.session.snapshot()).toEqual({
-      playing: null,
-      // Not a light either. A cut is silence and says nothing about itself:
+      // Not a light. A cut is silence and says nothing about itself:
       // an indicator naming somebody this vantage cannot hear would be the
       // faster-than-light channel the whole delay model exists to prevent.
       live: [],
@@ -385,16 +383,16 @@ describe("two keyings a conversational gap apart", () => {
     // The first utterance, heard whole.
     scene.advance(LIGHT_TIME - 60 - SHORT_CLIP.seconds + 1);
     const wall = scene.play(0, SHORT_CLIP.chunks.length);
-    expect(scene.sink.played).toHaveLength(SHORT_CLIP.chunks.length);
+    expect(scene.receiver.played).toHaveLength(SHORT_CLIP.chunks.length);
 
     // The second one's light-time is up. One pump, at the wall instant the
     // first one finished on, and the reply is already speaking.
     scene.advance(61);
     scene.session.pump(wall);
-    expect(scene.sink.played).toHaveLength(SHORT_CLIP.chunks.length + 1);
-    expect([...scene.sink.played[SHORT_CLIP.chunks.length].samples]).toEqual([
-      ...clipSamples({ ...REPLY_CLIP.chunks[0], index: 0 }),
-    ]);
+    expect(scene.receiver.played).toHaveLength(SHORT_CLIP.chunks.length + 1);
+    expect([
+      ...scene.receiver.played[SHORT_CLIP.chunks.length].samples,
+    ]).toEqual([...clipSamples({ ...REPLY_CLIP.chunks[0], index: 0 })]);
   });
 
   it("starts a fresh decode for the second one", async () => {
@@ -407,10 +405,146 @@ describe("two keyings a conversational gap apart", () => {
 
     scene.advance(LIGHT_TIME - 60 - SHORT_CLIP.seconds + 1);
     const wall = scene.play(0, SHORT_CLIP.chunks.length);
-    expect(scene.decoder.resets).toBe(1);
+    expect(scene.receiver.resets).toBe(1);
 
     scene.advance(61);
     scene.session.pump(wall);
-    expect(scene.decoder.resets).toBe(2);
+    expect(scene.receiver.resets).toBe(2);
+  });
+});
+
+/**
+ * Two vantages keying at the same moment, into one listener.
+ *
+ * A second TRANSMITTER rather than a second keying on the first, because a
+ * transmitter is exclusive by design: one operator cannot talk twice at once,
+ * and what is under test is two operators. They are at different distances, so
+ * the listener is holding two crossings at once as well, which is the case a
+ * single shared decode chain could not express at all.
+ */
+function twoTalkers(near: RadioClip, far: RadioClip) {
+  let ut = START_UT;
+  const receiver = new RecordingRadioReceiver();
+  const session = new RadioSession({
+    view: { confirmedEdgeUt: () => ut, onFrame: () => () => {} },
+    receiver,
+    chunkSeconds: CLIP_CHUNK_SECONDS,
+  });
+  session.setVantage(GROUND);
+  session.setPairs(
+    new Map([
+      [ARES, new Map([[KSC, LIGHT_TIME]])],
+      [WOOMERA, new Map([[KSC, FAR_LIGHT_TIME]])],
+    ]),
+  );
+
+  function talker(from: string, name: string, clip: RadioClip) {
+    const mic = clipMic(clip);
+    const transmitter = new RadioTransmitter({
+      send: (frame) => session.receive(frame),
+      utNow: () => ut,
+      startCapture: (onChunk) => mic.start(onChunk),
+    });
+    return {
+      mic,
+      key: () =>
+        transmitter.keyDown({
+          to: [KSC],
+          from,
+          authorStationKey: `station-${from}`,
+          authorName: name,
+          authorSeat: "pilot",
+          // Resolved at the listener from the matrix above, which is what a
+          // vantage that can see the published pairs does.
+          separationSeconds: null,
+        }),
+      unkey: () => transmitter.keyUp(),
+    };
+  }
+
+  const scene = {
+    session,
+    receiver,
+    near: talker(ARES, "Jeb", near),
+    far: talker(WOOMERA, "Woomera Range", far),
+    advance(seconds: number) {
+      ut += seconds;
+    },
+    /** Both of them key, say their whole clip alternating on the 20 ms grid,
+     *  and unkey. What two people keying together puts on one wire. */
+    async bothSay() {
+      await scene.near.key();
+      await scene.far.key();
+      let speaking = true;
+      while (speaking) {
+        const a = scene.near.mic.speak();
+        const b = scene.far.mic.speak();
+        speaking = a || b;
+        if (speaking) ut += CLIP_CHUNK_SECONDS;
+      }
+      scene.near.unkey();
+      scene.far.unkey();
+    },
+    play(fromWall: number, steps: number): number {
+      let wall = fromWall;
+      for (let i = 0; i < steps; i++) {
+        session.pump(wall);
+        wall += CLIP_CHUNK_SECONDS;
+      }
+      return wall;
+    },
+  };
+  return scene;
+}
+
+describe("two people talking at once", () => {
+  it("decodes them separately, and each one arrives whole", async () => {
+    /*
+     * The defect this arrangement exists for. Sharing one decode chain meant
+     * each keying's chunks arrived interleaved with the other's and were read
+     * against the wrong stream's state, so neither utterance survived. Two
+     * streams, summed at the speaker, is what makes both of them audible.
+     */
+    const scene = twoTalkers(SHORT_CLIP, REPLY_CLIP);
+    await scene.bothSay();
+
+    scene.advance(FAR_LIGHT_TIME + 1);
+    scene.play(0, SHORT_CLIP.chunks.length + REPLY_CLIP.chunks.length);
+
+    expect(scene.receiver.decoders).toHaveLength(2);
+    expect([...scene.receiver.decoders[0].sink.pcm()]).toEqual([
+      ...clipPcm(SHORT_CLIP),
+    ]);
+    expect([...scene.receiver.decoders[1].sink.pcm()]).toEqual([
+      ...clipPcm(REPLY_CLIP),
+    ]);
+    /*
+     * One fresh stream each, not one per interleaved chunk. A shared decoder
+     * was reset every time the OTHER talker's chunk came through, which is
+     * fifty new streams a second and is why neither voice was intelligible.
+     */
+    expect(scene.receiver.resets).toBe(2);
+  });
+
+  it("lights both loops, each at its own light-time", async () => {
+    const scene = twoTalkers(SHORT_CLIP, REPLY_CLIP);
+    await scene.bothSay();
+
+    // The near one has crossed and the far one has not. A lamp lit by the
+    // envelope would light both together, which no light-time explains.
+    scene.advance(LIGHT_TIME);
+    scene.play(0, 1);
+    expect(scene.session.snapshot().live.map((l) => l.authorName)).toEqual([
+      "Jeb",
+    ]);
+
+    scene.advance(FAR_LIGHT_TIME - LIGHT_TIME);
+    scene.play(CLIP_CHUNK_SECONDS, 1);
+    expect(
+      scene.session
+        .snapshot()
+        .live.map((l) => l.authorName)
+        .sort(),
+    ).toEqual(["Jeb", "Woomera Range"]);
   });
 });

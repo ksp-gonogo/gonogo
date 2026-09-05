@@ -20,12 +20,14 @@ import {
   ScrollArea,
   Section,
   SelectableRow,
+  SettingsIcon,
   SignalDelayBadge,
   Text,
+  ToggleButton,
   VisuallyHidden,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import styled from "styled-components";
 import { StationNameEditor, useStationNameOptional } from "../stationIdentity";
 import {
@@ -38,6 +40,7 @@ import {
 } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
 import { RadioIndicator } from "./radio/RadioIndicator";
+import { RadioInput } from "./radio/RadioInput";
 import { RadioMute } from "./radio/RadioMute";
 import { RadioPtt } from "./radio/RadioPtt";
 import type { RadioControl } from "./radio/useRadio";
@@ -251,6 +254,7 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
             dropped={dropped}
             nameFor={nameFor}
             canCompose={recipients.length > 0}
+            radio={radio}
             indicator={indicator}
             onOpen={(ids) => setView({ kind: "thread", with: ids })}
             onCompose={() => setView({ kind: "compose" })}
@@ -302,6 +306,7 @@ function InboxView({
   dropped,
   nameFor,
   canCompose,
+  radio,
   indicator,
   onOpen,
   onCompose,
@@ -310,11 +315,19 @@ function InboxView({
   dropped: number;
   nameFor: (id: RecipientId) => string;
   canCompose: boolean;
+  /**
+   * The widget's radio. The inbox is where the microphone is CHOSEN, because
+   * the choice belongs to this console rather than to any one correspondent,
+   * and this is the view the operator reaches by backing out of all of them.
+   */
+  radio: RadioControl;
   /** The transmission light, drawn in every view's bar. */
   indicator: ReactNode;
   onOpen: (ids: readonly RecipientId[]) => void;
   onCompose: () => void;
 }) {
+  const [inputOpen, setInputOpen] = useState(false);
+  const inputPanelId = useId();
   return (
     <>
       <Commcast__Bar>
@@ -324,12 +337,33 @@ function InboxView({
           </Text>
         )}
         <Commcast__BarGap />
+        {/* A disclosure rather than `<details>`: webkit ignores CSS on that
+            element's open state, so the same markup renders differently on one
+            of the three engines the gate photographs. */}
+        <ToggleButton
+          type="button"
+          size="sm"
+          active={inputOpen}
+          aria-expanded={inputOpen}
+          aria-controls={inputPanelId}
+          onClick={() => setInputOpen((open) => !open)}
+        >
+          <SettingsIcon size={14} aria-hidden="true" />
+          Microphone
+        </ToggleButton>
         <Button type="button" onClick={onCompose} disabled={!canCompose}>
           <PlusIcon size={14} />
           New message
         </Button>
         {indicator}
       </Commcast__Bar>
+      {inputOpen && (
+        <RadioInput
+          id={inputPanelId}
+          deviceId={radio.inputDeviceId}
+          onChoose={radio.setInputDevice}
+        />
+      )}
       {/* No footer: the inbox is a list of conversations, and there is nothing
           to type at it. The frame is the same one the other two views use, in
           the same tone, so the tile does not change shape on the way in. */}
