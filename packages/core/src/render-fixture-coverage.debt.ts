@@ -49,16 +49,27 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/LandingStatus#x",
   "packages/components/src/LandingStatus#y",
   /*
-   * `body.rotationPeriod`, `inputs.surfaceGravity`: the sdk's STATIC body
-   * registry, not the `system.bodies` payload. `getBody(name)` returns a
-   * `BodyDefinition`, which shares field names with `BodyEntry` and is a
-   * different record with a different source, so no fixture could answer
-   * either. LandingStatus never reads a surface gravity at all, it derives one
-   * as `body.gm / radius^2` and names the local input after it.
+   * MISCLASSIFIED, and here only because RENDER_GAP cannot be added to.
    *
-   * AtmosphereProfile's `atmosphere` used to sit here for the same reason and
-   * no longer does: its pressure curve is drawn from the reported profile now,
-   * and `earth-rss-reentry` carries one.
+   * The comment these two carried said both names were the sdk's static body
+   * table rather than the `system.bodies` payload. That was true the day it was
+   * written and false the next: `07587a9c8` took both figures off the wire and
+   * demoted the table to a fallback. `streamBody.bodyFromStream` merges
+   * `reported(facts.rotationPeriod) ?? table?.rotationPeriod`, and
+   * `descentLayers` reads `body?.surfaceGravity` before deriving anything from
+   * gm and radius. So each is a real read of a declared `BodyEntry` field, and
+   * no fixture of either widget carries one: every `system.bodies` entry in
+   * both `__fixtures__` dirs leaves the two null and the table answers instead.
+   *
+   * By the rule at the top of this file they belong in RENDER_GAP, and putting
+   * them there is growth on a shrink-only list that the gate refuses. Settling
+   * them means feeding both fields in one fixture per widget and looking at
+   * what changes; until someone does, this paragraph is the record that they
+   * are owed.
+   *
+   * AtmosphereProfile's `atmosphere` sat here under the older, genuine reading
+   * of the same comment and no longer does: its pressure curve is drawn from
+   * the reported profile now, and `earth-rss-reentry` carries one.
    */
   "packages/components/src/LandingStatus#surfaceGravity",
   "packages/components/src/MapView#rotationPeriod",
@@ -76,8 +87,16 @@ export const COINCIDENTAL: readonly string[] = [
   "packages/components/src/PowerSystems#state",
   "packages/components/src/ScienceData#state",
   "packages/components/src/Strategies#state",
-  "packages/components/src/TechTree#state",
   "mod/GonogoRp1Uplink/client/src/CrewSchedule#state",
+  /*
+   * `reading.state` here too, but TechTree also reads a tech node's own
+   * `e.state` in `parseTechNodes`, so the discriminant is not the whole answer.
+   * It stays a coincidence for a different reason: the `state` the scan matched
+   * belongs to `CareerContract`, which TechTree never reads, and
+   * `CareerTechNode` declares `unlocked` and no `state` at all. No fixture of
+   * `career.status` can carry the field this widget is looking for.
+   */
+  "packages/components/src/TechTree#state",
   // `ideal.x` / `cur.x`, chart coordinates in the conformance drawing
   "packages/components/src/TransferWindow#x",
   "packages/components/src/TransferWindow#y",
