@@ -16,11 +16,13 @@ import { PerfBudget } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it } from "vitest";
 import { CommcastLog } from "../commcast/CommcastLog";
 import { CommcastMesh } from "../commcast/CommcastMesh";
+import type { RadioFrame } from "../commcast/radio/wire";
 import {
   sentArrivalUtFor,
   sentPhaseFor,
   type Vantage,
 } from "../commcast/reveal";
+import { EMPTY_COMMCAST_LOG } from "../commcast/types";
 import type { PeerClientService } from "../peer/PeerClientService";
 import type { PeerHostService } from "../peer/PeerHostService";
 import type { PeerMessage } from "../peer/protocol";
@@ -48,6 +50,7 @@ const JEB = {
 
 type Transmit = Extract<PeerMessage, { type: "commcast-transmit" }>;
 type Ack = Extract<PeerMessage, { type: "commcast-ack" }>;
+type Radio = Extract<PeerMessage, { type: "commcast-radio" }>;
 
 /**
  * The star, wired by hand: peers speak only to the host, and the host repeats
@@ -65,6 +68,15 @@ function fakeMesh() {
     onCommcastTransmit: (cb: (peerId: string, msg: Transmit) => void) => {
       const fn = (peerId: string, msg: PeerMessage) => {
         if (msg.type === "commcast-transmit") cb(peerId, msg);
+      };
+      fromPeers.push(fn);
+      return () => {
+        fromPeers.splice(fromPeers.indexOf(fn), 1);
+      };
+    },
+    onCommcastRadio: (cb: (peerId: string, msg: Radio) => void) => {
+      const fn = (peerId: string, msg: PeerMessage) => {
+        if (msg.type === "commcast-radio") cb(peerId, msg);
       };
       fromPeers.push(fn);
       return () => {
@@ -91,6 +103,10 @@ function fakeMesh() {
       sendCommcastAck: (ack: Ack["ack"]) => {
         for (const cb of fromPeers) cb("peer", { type: "commcast-ack", ack });
       },
+      sendCommcastRadio: (frame: Radio["frame"]) => {
+        for (const cb of fromPeers)
+          cb("peer", { type: "commcast-radio", frame });
+      },
       onCommcastTransmit: (cb: (msg: Transmit["msg"]) => void) => {
         const fn = (msg: PeerMessage) => {
           if (msg.type === "commcast-transmit") cb(msg.msg);
@@ -103,6 +119,15 @@ function fakeMesh() {
       onCommcastAck: (cb: (ack: Ack["ack"]) => void) => {
         const fn = (msg: PeerMessage) => {
           if (msg.type === "commcast-ack") cb(msg.ack);
+        };
+        toPeers.push(fn);
+        return () => {
+          toPeers.splice(toPeers.indexOf(fn), 1);
+        };
+      },
+      onCommcastRadio: (cb: (frame: Radio["frame"]) => void) => {
+        const fn = (msg: PeerMessage) => {
+          if (msg.type === "commcast-radio") cb(msg.frame);
         };
         toPeers.push(fn);
         return () => {
@@ -158,18 +183,21 @@ function scene() {
     CommcastMesh.forHost(wire.host, "ksc-1", {
       onMessage: (msg) => log.receiveTransmission(msg),
       onAck: (ack) => log.receiveAck(ack),
+      onRadio: (frame) => log.receiveRadio(frame),
     }),
   );
   const aboard = participant("pilot-1", ARES, (log) =>
     CommcastMesh.forClient(wire.peer(), "pilot-1", {
       onMessage: (msg) => log.receiveTransmission(msg),
       onAck: (ack) => log.receiveAck(ack),
+      onRadio: (frame) => log.receiveRadio(frame),
     }),
   );
   const range = participant("woomera-1", WOOMERA, (log) =>
     CommcastMesh.forClient(wire.peer(), "woomera-1", {
       onMessage: (msg) => log.receiveTransmission(msg),
       onAck: (ack) => log.receiveAck(ack),
+      onRadio: (frame) => log.receiveRadio(frame),
     }),
   );
   meshes.push(ground.mesh, aboard.mesh, range.mesh);
@@ -352,18 +380,21 @@ describe("Commcast, a station beside its host", () => {
       CommcastMesh.forHost(wire.host, "ksc-1", {
         onMessage: (msg) => log.receiveTransmission(msg),
         onAck: (ack) => log.receiveAck(ack),
+        onRadio: (frame) => log.receiveRadio(frame),
       }),
     );
     const station = participant("station-1", KSC, (log) =>
       CommcastMesh.forClient(wire.peer(), "station-1", {
         onMessage: (msg) => log.receiveTransmission(msg),
         onAck: (ack) => log.receiveAck(ack),
+        onRadio: (frame) => log.receiveRadio(frame),
       }),
     );
     const aboard = participant("pilot-1", ARES, (log) =>
       CommcastMesh.forClient(wire.peer(), "pilot-1", {
         onMessage: (msg) => log.receiveTransmission(msg),
         onAck: (ack) => log.receiveAck(ack),
+        onRadio: (frame) => log.receiveRadio(frame),
       }),
     );
     meshes.push(host.mesh, station.mesh, aboard.mesh);
@@ -380,5 +411,116 @@ describe("Commcast, a station beside its host", () => {
     expect(
       sentArrivalUtFor(aboard.log.snapshot().outbox[0], ABOARD, 1000),
     ).toBeUndefined();
+  });
+});
+
+/**
+ * Live radio on the same star, and the two properties that only the whole wire
+ * can show: everyone subscribed hears it, and nobody hears themselves.
+ *
+ * The delay is not here, deliberately. A radio frame reaches every screen at
+ * the speed of the internet and is HELD at the far end, by `RadioSession`
+ * against that vantage's own clock, exactly as a text message is held by
+ * `useCommcastFeed`. What the wire owes is delivery and echo-suppression; the
+ * light-time is the listener's own arithmetic.
+ */
+describe("Commcast radio, live across the mesh", () => {
+  function radioScene() {
+    const heard = new Map<string, RadioFrame[]>();
+    const wire = fakeMesh();
+    const collect = (key: string) => (frame: RadioFrame) => {
+      const list = heard.get(key) ?? [];
+      list.push(frame);
+      heard.set(key, list);
+    };
+    const ground = participant("ksc-1", KSC, (log) =>
+      CommcastMesh.forHost(wire.host, "ksc-1", {
+        onMessage: (msg) => log.receiveTransmission(msg),
+        onAck: (ack) => log.receiveAck(ack),
+        onRadio: (frame) => log.receiveRadio(frame),
+      }),
+    );
+    const aboard = participant("pilot-1", ARES, (log) =>
+      CommcastMesh.forClient(wire.peer(), "pilot-1", {
+        onMessage: (msg) => log.receiveTransmission(msg),
+        onAck: (ack) => log.receiveAck(ack),
+        onRadio: (frame) => log.receiveRadio(frame),
+      }),
+    );
+    const range = participant("woomera-1", WOOMERA, (log) =>
+      CommcastMesh.forClient(wire.peer(), "woomera-1", {
+        onMessage: (msg) => log.receiveTransmission(msg),
+        onAck: (ack) => log.receiveAck(ack),
+        onRadio: (frame) => log.receiveRadio(frame),
+      }),
+    );
+    meshes.push(ground.mesh, aboard.mesh, range.mesh);
+    ground.log.onRadio(collect("ksc"));
+    aboard.log.onRadio(collect("ares"));
+    range.log.onRadio(collect("woomera"));
+    return { ground, aboard, range, heard };
+  }
+
+  const KEYING: RadioFrame = {
+    kind: "start",
+    transmissionId: "t1",
+    authorStationKey: "pilot-1",
+    transmission: {
+      id: "t1",
+      to: [KSC],
+      from: ARES,
+      authorStationKey: "pilot-1",
+      authorName: "Jeb",
+      authorSeat: "pilot",
+      startedUt: 1000,
+      separationSeconds: LIGHT_TIME,
+    },
+  };
+
+  it("reaches every other screen, and never the one that spoke", () => {
+    const { aboard, heard } = radioScene();
+    aboard.log.sendRadio(KEYING);
+    aboard.log.sendRadio({
+      kind: "chunk",
+      transmissionId: "t1",
+      authorStationKey: "pilot-1",
+      seq: 0,
+      ut: 1000,
+      bytes: new Uint8Array([7, 7, 7]),
+    });
+
+    expect(heard.get("ksc")).toHaveLength(2);
+    expect(heard.get("woomera")).toHaveLength(2);
+    // The transmitter never hears themselves, and the drop is on the STATION
+    // key: a host and a station at one centre share a vantage and must still
+    // hear each other.
+    expect(heard.get("ares")).toBeUndefined();
+  });
+
+  it("carries the audio bytes through the wire untouched", () => {
+    const { aboard, heard } = radioScene();
+    aboard.log.sendRadio(KEYING);
+    aboard.log.sendRadio({
+      kind: "chunk",
+      transmissionId: "t1",
+      authorStationKey: "pilot-1",
+      seq: 0,
+      ut: 1000,
+      bytes: new Uint8Array([0, 255, 128]),
+    });
+    const landed = heard.get("ksc")?.[1];
+    expect(landed?.kind).toBe("chunk");
+    if (landed?.kind !== "chunk") throw new Error("no chunk");
+    expect([...landed.bytes]).toEqual([0, 255, 128]);
+  });
+
+  it("stores nothing anywhere, at either end", () => {
+    // Live audio has no transcript. A participant who was away missed it, the
+    // way they would have on a radio, and the message ledger never sees it.
+    const { ground, aboard, range } = radioScene();
+    aboard.log.sendRadio(KEYING);
+    for (const log of [ground.log, aboard.log, range.log]) {
+      expect(log.snapshot()).toEqual(EMPTY_COMMCAST_LOG);
+    }
   });
 });

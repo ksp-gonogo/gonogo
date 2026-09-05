@@ -1,5 +1,6 @@
 import type { PeerClientService } from "../peer/PeerClientService";
 import type { PeerHostService } from "../peer/PeerHostService";
+import type { RadioFrame } from "./radio/wire";
 import type { CommsAck, CommsMessage } from "./types";
 
 export interface CommcastMeshHandlers {
@@ -7,6 +8,12 @@ export interface CommcastMeshHandlers {
   onMessage(msg: CommsMessage): void;
   /** An acknowledgement arrived. The log decides whether it is about here. */
   onAck(ack: CommsAck): void;
+  /**
+   * A live radio frame arrived. Relayed and dropped on exactly the two rules
+   * the frames above use, because it is the same star and the same problem:
+   * somebody must repeat it, and nobody may hear their own voice back.
+   */
+  onRadio(frame: RadioFrame): void;
 }
 
 /**
@@ -31,7 +38,8 @@ export class CommcastMesh {
     private readonly send: (
       frame:
         | { type: "commcast-transmit"; msg: CommsMessage }
-        | { type: "commcast-ack"; ack: CommsAck },
+        | { type: "commcast-ack"; ack: CommsAck }
+        | { type: "commcast-radio"; frame: RadioFrame },
     ) => void,
   ) {}
 
@@ -56,6 +64,11 @@ export class CommcastMesh {
         if (frame.ack.stationKey === me) return;
         handlers.onAck(frame.ack);
       }),
+      host.onCommcastRadio((_peerId, wrapped) => {
+        host.broadcast(wrapped);
+        if (wrapped.frame.authorStationKey === me) return;
+        handlers.onRadio(wrapped.frame);
+      }),
     );
     return mesh;
   }
@@ -69,7 +82,8 @@ export class CommcastMesh {
     const mesh = new CommcastMesh((frame) => {
       if (frame.type === "commcast-transmit")
         client.sendCommcastMessage(frame.msg);
-      else client.sendCommcastAck(frame.ack);
+      else if (frame.type === "commcast-ack") client.sendCommcastAck(frame.ack);
+      else client.sendCommcastRadio(frame.frame);
     });
     mesh.unsubs.push(
       client.onCommcastTransmit((msg) => {
@@ -79,6 +93,10 @@ export class CommcastMesh {
       client.onCommcastAck((ack) => {
         if (ack.stationKey === me) return;
         handlers.onAck(ack);
+      }),
+      client.onCommcastRadio((frame) => {
+        if (frame.authorStationKey === me) return;
+        handlers.onRadio(frame);
       }),
     );
     return mesh;
@@ -90,6 +108,11 @@ export class CommcastMesh {
 
   acknowledge(ack: CommsAck): void {
     this.send({ type: "commcast-ack", ack });
+  }
+
+  /** Put one live radio frame on the wire. Nothing is stored, here or anywhere. */
+  radio(frame: RadioFrame): void {
+    this.send({ type: "commcast-radio", frame });
   }
 
   dispose(): void {

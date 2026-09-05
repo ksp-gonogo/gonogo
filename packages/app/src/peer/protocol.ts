@@ -387,6 +387,29 @@ export type PeerMessage =
       type: "commcast-ack";
       ack: import("../commcast/types").CommsAck;
     }
+  // Commcast RADIO: live push-to-talk, streamed as Opus chunks and played at
+  // the far end one light-time later.
+  //
+  // The same relay rule as the two frames above, and for the same topology
+  // reason with one extra consequence. A WebRTC media track cannot serve this
+  // at all: `peer.call()` needs the callee's peer id, a station holds only the
+  // host's, and PeerJS gives the host no way to forward a received track
+  // onward without decoding and re-encoding per listener. On the data channel
+  // the N-way relay is already built and already free.
+  //
+  // `bytes` inside the frame travels as a raw `Uint8Array`, the same precedent
+  // `uplink-bundle-response` and `fog-snapshot` record above: BinaryPack
+  // passes one through untouched and base64 would add a third to a channel
+  // carrying 50 chunks a second.
+  //
+  // Nothing is stored anywhere along the way, and there is deliberately no
+  // history arm: this is live audio, so a participant who was away missed it,
+  // the way they would have on a radio. Recorded audio MESSAGES are a separate
+  // feature and would ride `commcast-transmit` with `kind: "audio"`, not this.
+  | {
+      type: "commcast-radio";
+      frame: import("../commcast/radio/wire").RadioFrame;
+    }
   // ──────────────────────────────────────────────────────────────────────
   // Sitrep telemetry-stream forwarding. The host taps its own
   // TelemetryClient (SitrepPeerRelay, one live subscriber to the mod,

@@ -116,13 +116,15 @@ export function separationFor(
   );
 }
 
-/** Seconds a message spends crossing to `me`, or `null` when it never arrives. */
-export function transitSecondsFor(
-  msg: CommsMessage,
-  me: Vantage,
-  pairs?: SeparationMatrix,
-): number | null {
-  const sep = separationFor(msg, me, pairs);
+/**
+ * Seconds a crossing over `sep` takes, or `null` when there is no crossing.
+ *
+ * The one place the four separation kinds collapse to a number, so a caller
+ * cannot quietly read `unmeasured` as a measured zero in one place and as a
+ * refusal in another. `null` is NO PATH and only that, which is what makes a
+ * cut a value rather than a special case.
+ */
+export function transitSecondsOf(sep: Separation): number | null {
   switch (sep.kind) {
     case "co-located":
       return 0;
@@ -133,6 +135,15 @@ export function transitSecondsFor(
     case "no-path":
       return null;
   }
+}
+
+/** Seconds a message spends crossing to `me`, or `null` when it never arrives. */
+export function transitSecondsFor(
+  msg: CommsMessage,
+  me: Vantage,
+  pairs?: SeparationMatrix,
+): number | null {
+  return transitSecondsOf(separationFor(msg, me, pairs));
 }
 
 /**

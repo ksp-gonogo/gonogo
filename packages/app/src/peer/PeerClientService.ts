@@ -85,6 +85,7 @@ type ClientEventMap = {
   notesSnapshot: [snap: import("../notes/types").NotesSnapshot];
   commcastTransmit: [msg: import("../commcast/types").CommsMessage];
   commcastAck: [ack: import("../commcast/types").CommsAck];
+  commcastRadio: [frame: import("../commcast/radio/wire").RadioFrame];
   gonogoAbortNotify: [stationName: string, t: number];
   analyticsConsent: [enabled: boolean];
   flightChange: [flight: FlightRecord | null];
@@ -509,6 +510,10 @@ export class PeerClientService {
     this.conn?.send({ type: "commcast-ack", ack } satisfies PeerMessage);
   }
 
+  sendCommcastRadio(frame: import("../commcast/radio/wire").RadioFrame) {
+    this.conn?.send({ type: "commcast-radio", frame } satisfies PeerMessage);
+  }
+
   sendAlarmWarpIntent(index: number) {
     this.conn?.send({
       type: "alarm-warp-intent",
@@ -907,6 +912,12 @@ export class PeerClientService {
     return this.events.on("commcastAck", cb);
   }
 
+  onCommcastRadio(
+    cb: (frame: import("../commcast/radio/wire").RadioFrame) => void,
+  ) {
+    return this.events.on("commcastRadio", cb);
+  }
+
   onAlarmFired(cb: (fire: { id: string; name: string; ut: number }) => void) {
     return this.events.on("alarmFired", cb);
   }
@@ -1057,6 +1068,9 @@ export class PeerClientService {
     },
     "commcast-ack": (msg) => {
       this.events.emit("commcastAck", msg.ack);
+    },
+    "commcast-radio": (msg) => {
+      this.events.emit("commcastRadio", msg.frame);
     },
     "alarm-fired": (msg) => {
       this.events.emit("alarmFired", {

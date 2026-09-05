@@ -28,6 +28,7 @@ export function createCommcastLog(
   const mesh = CommcastMesh.forHost(host, screenKey, {
     onMessage: (msg) => log.receiveTransmission(msg),
     onAck: (ack) => log.receiveAck(ack),
+    onRadio: (frame) => log.receiveRadio(frame),
   });
   log.setTransmitter(mesh);
   return log;

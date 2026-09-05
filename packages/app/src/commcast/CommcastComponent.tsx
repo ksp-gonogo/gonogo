@@ -36,6 +36,8 @@ import {
   useSeparationMatrix,
 } from "./CommcastContext";
 import type { CommcastLog } from "./CommcastLog";
+import { RadioPtt } from "./radio/RadioPtt";
+import { useRadio } from "./radio/useRadio";
 import {
   firstAckUtFor,
   legOf,
@@ -545,6 +547,7 @@ function ThreadView({
             <Composer
               log={log}
               me={me}
+              pairs={pairs}
               local={local}
               utNow={utNow}
               target={target}
@@ -854,6 +857,7 @@ function progressFor(out: OutboundMessage, utNow: number): number {
 function Composer({
   log,
   me,
+  pairs,
   local,
   utNow,
   target,
@@ -862,6 +866,7 @@ function Composer({
 }: {
   log: CommcastLog;
   me: Vantage;
+  pairs: SeparationMatrix | undefined;
   local: ReturnType<typeof useLocalParticipant>;
   utNow: number | undefined;
   target: RecipientId | null;
@@ -875,6 +880,20 @@ function Composer({
   separationSeconds: number | null;
 }) {
   const [draft, setDraft] = useState("");
+  /*
+   * The live radio, on the same thread and the same separation the text above
+   * it crosses. It reads the separation the view already resolved rather than
+   * resolving its own, so the badge, the composer and the radio cannot disagree
+   * about how far away the other end is.
+   */
+  const radio = useRadio({
+    log,
+    me,
+    pairs,
+    local,
+    target,
+    separationSeconds,
+  });
   const ready =
     draft.trim().length > 0 &&
     utNow !== undefined &&
@@ -925,6 +944,11 @@ function Composer({
       onSend={submit}
       sendDisabled={!ready}
     >
+      {/* Before the input, so the operator's eye finds "talk" before "type".
+          A latching key rather than hold-to-talk: press-and-hold on a real
+          button has no keyboard equivalent, and this widget is operable from
+          the keyboard throughout. */}
+      <RadioPtt radio={radio} />
       <label htmlFor="commcast-draft">
         <VisuallyHidden>Message</VisuallyHidden>
       </label>

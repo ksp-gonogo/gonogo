@@ -65,6 +65,7 @@ export function CommcastProvider({
     const mesh = CommcastMesh.forClient(peer, me.stationKey, {
       onMessage: (msg) => log.receiveTransmission(msg),
       onAck: (ack) => log.receiveAck(ack),
+      onRadio: (frame) => log.receiveRadio(frame),
     });
     log.setTransmitter(mesh);
     return () => {

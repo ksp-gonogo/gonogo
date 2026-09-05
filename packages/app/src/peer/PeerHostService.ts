@@ -243,6 +243,10 @@ type CommcastAckListener = (
   peerId: string,
   msg: Extract<PeerMessage, { type: "commcast-ack" }>,
 ) => void;
+type CommcastRadioListener = (
+  peerId: string,
+  msg: Extract<PeerMessage, { type: "commcast-radio" }>,
+) => void;
 type NoteReorderListener = (
   peerId: string,
   msg: Extract<PeerMessage, { type: "note-reorder" }>,
@@ -281,6 +285,7 @@ type HostEventMap = {
   noteReorder: Parameters<NoteReorderListener>;
   commcastTransmit: Parameters<CommcastTransmitListener>;
   commcastAck: Parameters<CommcastAckListener>;
+  commcastRadio: Parameters<CommcastRadioListener>;
 };
 
 export class PeerHostService {
@@ -1471,6 +1476,9 @@ export class PeerHostService {
     "commcast-ack": (msg, conn) => {
       this.events.emit("commcastAck", conn.peer, msg);
     },
+    "commcast-radio": (msg, conn) => {
+      this.events.emit("commcastRadio", conn.peer, msg);
+    },
     "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
       // When switching to selective with no subs yet, the peer will get
@@ -1613,6 +1621,10 @@ export class PeerHostService {
 
   onCommcastAck(cb: CommcastAckListener): () => void {
     return this.events.on("commcastAck", cb);
+  }
+
+  onCommcastRadio(cb: CommcastRadioListener): () => void {
+    return this.events.on("commcastRadio", cb);
   }
 
   onWidgetPush(cb: WidgetPushListener): () => void {

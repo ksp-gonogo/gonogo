@@ -1,5 +1,6 @@
 import { PerfBudget, safeRandomUuid } from "@ksp-gonogo/core";
 import { logger } from "@ksp-gonogo/logger";
+import type { RadioFrame } from "./radio/wire";
 import type {
   CommcastLogSnapshot,
   CommsAck,
@@ -38,6 +39,14 @@ type Listener = (snap: CommcastLogSnapshot) => void;
 export interface CommcastTransmitter {
   transmit(msg: CommsMessage): void;
   acknowledge(ack: CommsAck): void;
+  /**
+   * Live radio, riding the same wire.
+   *
+   * Optional so a transmitter double in a test that has nothing to do with
+   * audio stays two methods long, and so a mesh built before this existed keeps
+   * compiling. `CommcastMesh` implements it.
+   */
+  radio?(frame: RadioFrame): void;
 }
 
 export interface CommcastLogOptions {
@@ -83,6 +92,7 @@ export class CommcastLog {
   private droppedCount = 0;
   private vantageId: string | undefined;
   private readonly listeners = new Set<Listener>();
+  private readonly radioListeners = new Set<(frame: RadioFrame) => void>();
   private readonly now: () => number;
   private readonly storage: Storage | undefined;
   private readonly key: string;
@@ -109,6 +119,37 @@ export class CommcastLog {
    */
   setTransmitter(transmitter: CommcastTransmitter | undefined): void {
     this.transmitter = transmitter;
+  }
+
+  /**
+   * Put one live radio frame on the wire.
+   *
+   * Here rather than on a second provider because this object already owns the
+   * mesh, and both ends of the app reach it: a host's log is built at screen
+   * level with a `forHost` mesh, a station's in `CommcastProvider` with a
+   * `forClient` one, and the widget holds whichever it got. A parallel context
+   * would have to be threaded through both.
+   *
+   * It STORES nothing, and that is the difference from every other method on
+   * this class. Radio is live: there is no transcript, a listener who was away
+   * missed it, and keeping a copy here would be the recorded-audio-message
+   * feature arriving by the back door.
+   */
+  sendRadio(frame: RadioFrame): void {
+    this.transmitter?.radio?.(frame);
+  }
+
+  /** A radio frame off the wire, already stripped of this screen's own echo. */
+  receiveRadio(frame: RadioFrame): void {
+    for (const listener of this.radioListeners) listener(frame);
+  }
+
+  /** Listen to the radio channel. Nothing is replayed: there is no backlog. */
+  onRadio(cb: (frame: RadioFrame) => void): () => void {
+    this.radioListeners.add(cb);
+    return () => {
+      this.radioListeners.delete(cb);
+    };
   }
 
   snapshot(): CommcastLogSnapshot {

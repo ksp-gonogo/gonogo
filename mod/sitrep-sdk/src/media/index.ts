@@ -69,3 +69,15 @@ export {
   attachEncodedWorkerFrameDelay,
   createWorkerFrameDelayStream,
 } from "./worker/delay-worker-client";
+// The paced-release half of the delay pipeline, and a peer of the buffer above
+// rather than a worker detail. A `DelayedPlayoutBuffer` releases a BURST when
+// the confirmed edge steps (it steps at telemetry sample cadence, not at media
+// cadence), so anything presenting what it releases wants this in between. It
+// was reachable only from inside the worker backend until the push-to-talk
+// radio needed the same re-timing on the main thread; the file imports nothing
+// and pulls no worker globals along with it.
+export type {
+  PacedFrame,
+  PresentationPacerOptions,
+} from "./worker/presentation-pacer";
+export { PresentationPacer } from "./worker/presentation-pacer";

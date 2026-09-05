@@ -228,6 +228,43 @@ describe("Commcast, rendered", () => {
     expect(screen.queryByLabelText("Message")).toBeNull();
   });
 
+  it("puts the transmit key on the composer, ahead of the input", async () => {
+    /*
+     * The whole radio integration, from the widget's side: a latching key in
+     * the composer bar, before the text input, so the operator's eye finds
+     * "talk" before "type". It reports a stated reason rather than doing
+     * nothing where the pipeline cannot run, which in jsdom (and on the LAN dev
+     * server over plain http) is every time.
+     */
+    const log = makeLog();
+    log.replaceForTesting({
+      inbox: [
+        sent({
+          id: "heard",
+          from: "vessel:ares",
+          to: ["ksc"],
+          authorName: JEB.name,
+          authorSeat: "pilot",
+          sentUt: -600,
+          lastSentUt: -600,
+          body: "Kennedy, Ares. Go ahead.",
+        }),
+      ],
+    });
+    const { container } = renderWidget(log);
+    await openConversation(/Go ahead/);
+    const key = screen.getByRole("button", { name: "Transmit" });
+    expect(key).toHaveAttribute("aria-pressed", "false");
+    const input = screen.getByLabelText("Message");
+    expect(
+      key.compareDocumentPosition(input) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // A reason, not a dead control: this page is not a secure origin and has no
+    // WebCodecs, and those are different sentences to an operator.
+    expect(key).toBeDisabled();
+    expect(container).toHaveTextContent(/Not a secure origin|No audio codec/);
+  });
+
   it("keeps the composer INSIDE the console's own border", async () => {
     /*
      * The same claim the terminal widget's suite makes about its own bar, and
