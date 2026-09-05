@@ -12,7 +12,7 @@
  * exist there: jsdom computes no boxes, so `scrollWidth` is zero everywhere and
  * every one of these checks passes on a widget that is unreadable in a browser.
  *
- * Deliberately narrow on two axes, so the answer is a defect and not a taste:
+ * Deliberately narrow on three axes, so the answer is a defect and not a taste:
  *
  * - Text counts as cut off, and so does a box that DECLARES its own edges are
  *   content: see `FIT_BOX`. A box that declares nothing does not, because a
@@ -20,6 +20,9 @@
  *   gradient bleed, a graph's plot area) is routinely and correctly clipped.
  *   Judging boxes by their looks cannot tell those apart from a pill whose
  *   rounded end is sliced off, so the pill says which it is.
+ * - Only what the browser actually paints: see `painted`. A box kept laid out
+ *   under `visibility: hidden` has edges to slice and an operator who will never
+ *   see either them or what is inside them.
  * - Only where the operator cannot get to it. Content below the fold of a
  *   vertical scroll area is content they reach without thinking, and a widget
  *   that puts its overflow behind a scroller at a small size is doing the right
@@ -231,6 +234,28 @@ function drawn(el: Element): boolean {
 }
 
 /**
+ * Whether the browser paints this element at all.
+ *
+ * `display: none` leaves no box and `drawn` already discards it, but
+ * `visibility: hidden` keeps the full layout: a box to measure, a box to slice,
+ * and not one pixel of it reaching an operator. Saying such a box is cut off is
+ * an answer to a question nobody asked.
+ *
+ * `Panel` is the case that forced this. Once the header's measured-fit collapse
+ * fires, the FULL aside stays in the document under `visibility: hidden` so
+ * `useHeaderAsideFit` can go on cloning it to measure, absolutely positioned off
+ * a trigger only as wide as its own dots, and therefore free to overhang the
+ * panel by more than it is wide. Audited, that reads as Science Data slicing its
+ * own SYNCING badge at its declared minimum; what the operator sees there is the
+ * dots-and-chevron summary the collapse put in its place precisely so the header
+ * would fit. Judging the hidden copy would have every widget with a header aside
+ * answering for chrome that already did the right thing.
+ */
+function painted(el: Element): boolean {
+  return getComputedStyle(el).visibility === "visible";
+}
+
+/**
  * Every way this tile's content is unreachable at the size it is mounted at.
  *
  * `tile` is the mount box, sized to the widget's declared `minSize`. Nothing
@@ -247,6 +272,7 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
   // chose, so unlike a vessel name it can always be made to fit, and an
   // ellipsised one is the widget failing to name itself.
   for (const title of Array.from(tile.querySelectorAll(HEADINGS))) {
+    if (!painted(title)) continue;
     const over = title.scrollWidth - (title as HTMLElement).clientWidth;
     if (over <= TOLERANCE_PX) continue;
     findings.push({
@@ -262,7 +288,7 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
     // A title's ellipsis is already reported above, with the reason it is a
     // harsher rule than the one every other string gets.
     if (el.closest(HEADINGS)) continue;
-    if (!drawn(el)) continue;
+    if (!drawn(el) || !painted(el)) continue;
 
     const { cutX, cutY, escaping } = cutBy(el, tile);
     if (cutX <= TOLERANCE_PX && cutY <= TOLERANCE_PX) continue;
@@ -283,7 +309,7 @@ export function auditMinFit(tile: HTMLElement): MinFitFinding[] {
     if (spoken.has(el)) continue;
     const name = boundedName(el);
     if (name === undefined) continue;
-    if (!drawn(el)) continue;
+    if (!drawn(el) || !painted(el)) continue;
 
     const { cutX, cutY, escaping } = cutBy(el, tile);
     if (cutX <= TOLERANCE_PX && cutY <= TOLERANCE_PX) continue;

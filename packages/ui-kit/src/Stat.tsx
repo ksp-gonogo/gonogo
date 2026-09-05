@@ -70,8 +70,14 @@ export function Stat({
 export const StatStrip = styled.div`
   display: grid;
   /* 7rem is the floor at which a two-word uppercase label ("Active Kerbals")
-     still fits on two lines rather than three. */
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+     still fits on two lines rather than three, and the min() is what stops that
+     floor becoming an overflow. A bare minmax(7rem, 1fr) column is 7rem wide
+     even in a container with less than 7rem to give it, so a strip in a narrow
+     tile hangs its one cell out past the panel body and the body's overflow
+     slices the label off: Astronaut Complex lost 9px of "FUNDS" that way at the
+     3x4 minimum it declares. Below 7rem of room the column takes the room there
+     is, which is narrower than the floor wants but is at least readable. */
+  grid-template-columns: repeat(auto-fit, minmax(min(7rem, 100%), 1fr));
   gap: var(--space-6, 6px);
   align-items: stretch;
 `;
