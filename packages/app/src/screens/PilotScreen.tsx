@@ -88,6 +88,20 @@ export function PilotScreen() {
     return () => {
       for (const u of unsubs.current) u();
       unsubs.current = [];
+      /*
+       * The CONNECTION as well as the listeners, which `StationScreen`'s own
+       * teardown has always done and this one did not: dropping the callbacks
+       * leaves a live peer holding a data channel nobody reads, and the host
+       * goes on counting it. A remount then leaves the host with two
+       * connections to one pilot and it sends everything twice, which the text
+       * log hides (a message is deduped on its id) and the radio does not: a
+       * chunk has no id and the far end decodes both copies, so the operator
+       * hears a stutter.
+       *
+       * Found by the two-screen radio scene, where a pilot's every chunk
+       * arrived exactly twice.
+       */
+      client.disconnect();
     };
   }, []);
 
