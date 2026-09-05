@@ -12,11 +12,16 @@ import { TargetingComponent } from "./index";
  * `reading.test.tsx` already covers the whole link going quiet, where the TARGET
  * reading is what drops the HUD and the tracking panel states its own age. This
  * file covers the case that reading cannot see: `vessel.dock` alone stops being
- * current while `vessel.target` keeps arriving. The geometry on the dock record
- * is a judgement (a reticle, an alignment angle) and is withheld, and a withheld
+ * current while `vessel.target` keeps arriving.
+ *
+ * Two outcomes, and which one is right turns on whether a MODEL can answer.
+ * `vessel.dock.relativePosition` is declared reckonable, so a separation that
+ * went quiet seconds ago is carried forward by its closing velocity and the
+ * reticle draws from the modelled geometry under a caption naming the basis.
+ * With nothing to carry it, the reticle is withheld instead, and a withheld
  * reticle is invisible: the HUD's absence looks identical to a target that
- * stopped being a docking port. So the assertions here are on the stated REASON,
- * not on the absence.
+ * stopped being a docking port. So the assertions here are on the stated REASON
+ * in both cases, never on the absence.
  *
  * A per-topic staleness is server-stamped rather than transport-wide, which is
  * why these emit `Staleness.HeldStale` on the dock point instead of dropping the
@@ -80,7 +85,7 @@ function mountAtDockingRange() {
 }
 
 describe("Targeting: the dock channel alone stops being current", () => {
-  it("withholds the alignment reticle and says why, while the approach numbers keep coming", async () => {
+  it("carries the alignment forward and captions it, while the approach numbers keep coming", async () => {
     const { fixture, emitTarget } = mountAtDockingRange();
 
     await waitFor(() =>
@@ -101,6 +106,53 @@ describe("Targeting: the dock channel alone stops being current", () => {
         {
           relativePosition: { x: 2, y: -1.5, z: 40 },
           relativeVelocity: atRange(-0.4),
+          distance: 62,
+          forwardDot: 0.9999,
+        },
+        { validAt: PINNED_UT - 8, staleness: Staleness.HeldStale },
+      );
+      emitTarget(PINNED_UT);
+    });
+
+    // Carried, and SAID so. `vessel.dock.relativePosition` is declared
+    // reckonable, so core dead-reckons the separation across a gap this short
+    // and the alignment angles derived from it are a model's answer rather than
+    // a measurement. The reticle stays on screen, which is the improvement the
+    // mark is for, and the caption is what stops it reading as an observation.
+    await waitFor(() =>
+      expect(screen.getByText(/Alignment reckoned/)).toBeTruthy(),
+    );
+    expect(visibleText()).toContain("linear-dead-reckoning");
+    expect(visibleText()).toMatch(/last seen .+ ago/);
+    // A modelled reticle is not a withheld one, so the withheld notice must not
+    // also be on screen: two captions saying opposite things about one
+    // instrument is worse than either.
+    expect(visibleText()).not.toMatch(/no longer current/i);
+    expect(visibleText()).toContain("α/β/γ");
+  });
+
+  it("withholds the reticle, and says why, once the model declines too", async () => {
+    // The withholding this file was written for, reached the only way it still
+    // can: with no model on offer. A first-order advance of a separation is
+    // honest for seconds, so the store hands the widget a decline rather than a
+    // reckoning, and there is nothing left to draw an attitude from.
+    const { fixture, emitTarget } = mountAtDockingRange();
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("region", { name: "Docking HUD for Port Mk2" }),
+      ).toBeTruthy(),
+    );
+
+    act(() => {
+      // No closing velocity on the record, so the dead reckoner has no rate to
+      // advance the separation by and declines naming it. Same visible outcome
+      // as a gap past the horizon, and reachable at this fixture's pinned view
+      // time, which a horizon of minutes is not.
+      fixture.emit(
+        "vessel.dock",
+        {
+          relativePosition: { x: 2, y: -1.5, z: 40 },
           distance: 62,
           forwardDot: 0.9999,
         },

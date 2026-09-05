@@ -170,38 +170,46 @@ describe("Targeting: stale renders the last observation as an observation", () =
   });
 
   it("renders the modelled range beside the observation once a model exists", async () => {
-    // The `reckoning: "available"` axis end to end. The shipped reckoner
-    // declines (nothing can honestly model this yet), so the test registers one:
-    // the point is that the widget renders BOTH figures, the observation with
-    // its age and the model with its basis, rather than substituting one for the
-    // other.
-    registerReckoner<TopicPayload<"vessel.target">>(
+    // The `reckoning: "available"` axis end to end. Core's own dead reckoner
+    // would answer here too; this registers a second one under a non-core owner
+    // so the modelled range is a number the test chose, and the point is that
+    // the widget renders BOTH figures, the observation with its age and the
+    // model with its basis, rather than substituting one for the other.
+    registerReckoner<
+      TopicPayload<"vessel.target">,
+      Pick<TopicPayload<"vessel.target">, "relativePosition">
+    >(
       "vessel.target",
-      // The same owner the shipped decliner registers under: this test replaces
-      // that module's model rather than competing with it, and two owners on one
-      // topic is a conflict the registry answers with nothing.
+      // A non-core owner, so the election prefers it over core's vanilla and the
+      // figures below are the ones on screen. Core's own conic is still
+      // registered; this is what an Uplink electing a better model looks like.
       "targeting",
-      (p) => ({
-        // Covers the payload ROOT, which is what a whole-topic read needs. A
-        // real relative-position model would name just that path and this read
-        // would stay stale, which is the point of the coverage declaration; a
-        // widget wanting the field alone reads the field subtopic.
-        modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-        // 12 km: visibly different from the observed 10 km, so a test that
-        // silently rendered the observation twice would fail. `value("m", n)`
-        // rather than bare numbers because a reckoner returns the SAME payload
-        // shape the decode produces, and the widget reads `.magnitude` off each
-        // component.
-        reckon: () =>
-          ({
-            ...(p.payload as TopicPayload<"vessel.target">),
-            relativePosition: {
-              x: value("m", 7200),
-              y: value("m", 0),
-              z: value("m", 9600),
-            },
-          }) as unknown as TopicPayload<"vessel.target">,
-      }),
+      {
+        deps: [],
+        reckon: () => ({
+          // Covers the payload ROOT, which is what a whole-topic read needs. The
+          // root of a DECLARED value's reckoning is the projection, not the
+          // payload, so claiming it says every field the caller can reach off
+          // `reckoned` was moved by this model.
+          modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+          // 12 km: visibly different from the observed 10 km, so a test that
+          // silently rendered the observation twice would fail. `value("m", n)`
+          // rather than bare numbers because a reckoner returns the SAME payload
+          // shape the decode produces, and the widget reads `.magnitude` off each
+          // component.
+          reckon: () =>
+            ({
+              relativePosition: {
+                x: value("m", 7200),
+                y: value("m", 0),
+                z: value("m", 9600),
+              },
+            }) as unknown as Pick<
+              TopicPayload<"vessel.target">,
+              "relativePosition"
+            >,
+        }),
+      },
     );
 
     const { fixture, legacyAux } = await mount("dtt-reckon", 10);

@@ -1,6 +1,6 @@
 import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
-import type { ReckonerFor } from "./reading";
+import type { ReckonerDefinition } from "./reading";
 import { observedAt } from "./reading";
 import { clearReckoners, registerReckoner } from "./reckoners";
 import {
@@ -165,12 +165,15 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const { store } = predictedStore(wall);
 
     const seen: number[] = [];
-    const reckoner: ReckonerFor<number> = (point, _grade, viewUt) => {
-      seen.push(viewUt);
-      return {
-        modelled: [{ path: "", basis: "rate-integration" }],
-        reckon: () => observedPayload(point),
-      };
+    const reckoner: ReckonerDefinition<number> = {
+      deps: [],
+      reckon: (point, _deps, { viewUt }) => {
+        seen.push(viewUt);
+        return {
+          modelled: [{ path: "", basis: "rate-integration" }],
+          reckon: () => observedPayload(point),
+        };
+      },
     };
     registerReckoner("temperature", "test", reckoner);
 
@@ -187,10 +190,13 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: (at: number) => observedPayload(point) + (at - point.validAt),
+      }),
+    });
 
     store.ingest("temperature", numberPoint(100, 5));
     wall.advanceBy(60);
@@ -216,12 +222,16 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     const { store } = predictedStore(wall);
 
     const HORIZON_SECONDS = 120;
-    registerReckoner<number>("temperature", "test", (point, _grade, viewUt) => {
-      if (viewUt - point.validAt > HORIZON_SECONDS) return undefined;
-      return {
-        modelled: [{ path: "", basis: "rate-integration" }],
-        reckon: () => observedPayload(point),
-      };
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point, _deps, { viewUt }) => {
+        if (viewUt - point.validAt > HORIZON_SECONDS)
+          return { declined: { reason: "beyond-horizon" } };
+        return {
+          modelled: [{ path: "", basis: "rate-integration" }],
+          reckon: () => observedPayload(point),
+        };
+      },
     });
 
     store.ingest("temperature", numberPoint(100, 5));
@@ -277,12 +287,17 @@ describe("a reckoning says which fields it actually modelled", () => {
     const { store } = predictedStore(wall);
 
     type Target = { relativePosition: number; name: string };
-    registerReckoner<Target>("vessel.target", "test", (point) => ({
-      // Covers ONE field, never the root: the model has nothing to say about
-      // the whole payload a topic-level read asks for.
-      modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
-      reckon: () => ({ ...observedPayload(point), relativePosition: 42 }),
-    }));
+    registerReckoner<Target>("vessel.target", "test", {
+      deps: [],
+      reckon: (point) => ({
+        // Covers ONE field, never the root: the model has nothing to say about
+        // the whole payload a topic-level read asks for.
+        modelled: [
+          { path: "relativePosition", basis: "linear-dead-reckoning" },
+        ],
+        reckon: () => ({ ...observedPayload(point), relativePosition: 42 }),
+      }),
+    });
 
     store.ingest("vessel.target", {
       validAt: 100,
@@ -321,10 +336,13 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: (at: number) => observedPayload(point) + (at - point.validAt),
+      }),
+    });
 
     store.ingest("temperature", numberPoint(100, 0));
     wall.advanceBy(10);
@@ -358,10 +376,13 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: (at: number) => observedPayload(point) + (at - point.validAt),
+      }),
+    });
 
     store.ingest("temperature", numberPoint(100, 5));
     wall.advanceBy(60);
@@ -382,13 +403,16 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const { store } = predictedStore(wall);
 
     let runs = 0;
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: () => {
-        runs += 1;
-        return observedPayload(point);
-      },
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: () => {
+          runs += 1;
+          return observedPayload(point);
+        },
+      }),
+    });
 
     store.ingest("temperature", numberPoint(100, 5));
     wall.advanceBy(60);
@@ -412,10 +436,13 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: (at: number) => observedPayload(point) + (at - point.validAt),
+      }),
+    });
 
     store.ingest("temperature", numberPoint(100, 0));
     wall.advanceBy(10);
@@ -443,10 +470,13 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => observedPayload(point) + (at - point.validAt),
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: (at: number) => observedPayload(point) + (at - point.validAt),
+      }),
+    });
 
     store.ingest("temperature", numberPoint(100, 5));
     wall.advanceBy(60);

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import type { ReckonerFor } from "./reading";
+import type { ReckonerDefinition } from "./reading";
 import { clearReckoners, registerReckoner } from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { DerivedChannelDefinition } from "./timeline-store";
@@ -251,10 +251,14 @@ function disconnectedStore(nowSeconds: number): TimelineStore {
 describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
   it("carries a raw topic forward on the model its owner registered", () => {
     const store = disconnectedStore(50);
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: (at: number) => (point.payload as number) + (at - point.validAt),
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: (at: number) =>
+          (point.payload as number) + (at - point.validAt),
+      }),
+    });
     ingestPoint(store, "temperature", 10, 0);
     ingestPoint(store, "temperature", 20, 0);
     ingestPoint(store, "temperature", 30, 0);
@@ -270,12 +274,16 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
   it("stops where the owner's model withdraws", () => {
     const store = disconnectedStore(100);
     const HORIZON = 15;
-    const reckoner: ReckonerFor<number> = (point, _grade, at) => {
-      if (at - point.validAt > HORIZON) return undefined;
-      return {
-        modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-        reckon: () => point.payload as number,
-      };
+    const reckoner: ReckonerDefinition<number> = {
+      deps: [],
+      reckon: (point, _deps, { viewUt: at }) => {
+        if (at - point.validAt > HORIZON)
+          return { declined: { reason: "beyond-horizon" } };
+        return {
+          modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+          reckon: () => point.payload as number,
+        };
+      },
     };
     registerReckoner("temperature", "test", reckoner);
     ingestPoint(store, "temperature", 10, 5);
@@ -294,7 +302,10 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
 
   it("draws nothing for a model that declines outright", () => {
     const store = disconnectedStore(50);
-    registerReckoner<number>("temperature", "test", () => undefined);
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: () => ({ declined: { reason: "model-inapplicable" } }),
+    });
     ingestPoint(store, "temperature", 10, 5);
     ingestPoint(store, "temperature", 20, 5);
     store.setTransportConnected(false);
@@ -305,10 +316,13 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
 
   it("draws nothing while the topic is live, where there is no silence", () => {
     const store = disconnectedStore(50);
-    registerReckoner<number>("temperature", "test", (point) => ({
-      modelled: [{ path: "", basis: "rate-integration" }],
-      reckon: () => point.payload as number,
-    }));
+    registerReckoner<number>("temperature", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [{ path: "", basis: "rate-integration" }],
+        reckon: () => point.payload as number,
+      }),
+    });
     ingestPoint(store, "temperature", 10, 5);
     ingestPoint(store, "temperature", 20, 5);
     store.beginFrame();

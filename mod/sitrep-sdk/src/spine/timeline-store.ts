@@ -3,8 +3,12 @@ import type { Transport } from "../api/transport";
 import { PerfBudget } from "../perf/PerfBudget";
 import type {
   ModelledField,
+  ReckonerAnswer,
+  ReckonerFrame,
   ReckoningBasis,
   ReckoningDecline,
+  StaleGrade,
+  TopicModel,
 } from "../reading";
 import { reckonableInputSpelling, reckonableValuesOf } from "../reckonability";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
@@ -23,7 +27,13 @@ import {
   HeartbeatTracker,
   type HeartbeatTrackerOptions,
 } from "./heartbeat-tracker";
-import { getReckoner, getReckonerConflicts } from "./reckoners";
+import { getProcessorValue } from "./processorEvaluator";
+import type { Dep } from "./processors";
+import {
+  CORE_RECKONER_OWNER,
+  getReckoner,
+  getReckonerConflicts,
+} from "./reckoners";
 import type { StreamStatusValue } from "./stream-status";
 import { worstStatus } from "./stream-status";
 import type { Certainty, ViewClock } from "./view-clock";
@@ -1007,12 +1017,12 @@ export class TimelineStore {
    * model for instants that had no observation behind them, and stamps each one
    * with the basis the model claimed for it.
    *
-   * Both model registries are consulted, in the order `sampleReading` already
-   * walks them: a derived channel's `deriveReckoning`, then a reckoner an
-   * Uplink registered for a raw topic, then a field read borrowing its record's
-   * model. A series producer that knew about only the first would be a chart
-   * that draws core's models and silently drops an author's, which is the
-   * asymmetry an extension point is least able to report.
+   * Both model registries are consulted, in the order `sampleReading` walks
+   * them: the model registered for the topic, then a field read borrowing its
+   * record's model, then a derived channel's `deriveReckoning`. A series
+   * producer that knew about only one would be a chart that draws core's models
+   * and silently drops an author's, which is the asymmetry an extension point is
+   * least able to report.
    *
    * ## Deliberately not a `TimelinePoint`, and deliberately not merged in
    *
@@ -1071,9 +1081,16 @@ export class TimelineStore {
     fromUt: number,
     toUt: number,
   ): ReckonedSample<T>[] {
+    /*
+     * The registered model first, then the derived channel's, which is
+     * `sampleReading`'s order and was not this method's until the two were
+     * reconciled. A Topic carrying both used to serve one model to a point read
+     * and the other to a plotted tail of the same quantity, in one widget, with
+     * nothing anywhere able to report it.
+     */
     const walk =
-      this.derivedReckonedWalk(topic, toUt) ??
-      this.rawReckonedWalk(topic, fromUt, toUt);
+      this.rawReckonedWalk(topic, fromUt, toUt) ??
+      this.derivedReckonedWalk(topic, toUt);
     // Nothing observed, or the newest observation IS the view time: either way
     // there is no interval for a model to have carried anything across.
     if (!walk || walk.lastObservedUt >= toUt) return [];
@@ -1208,7 +1225,7 @@ export class TimelineStore {
   ): ReckonedWalk | undefined {
     const token = this.currentToken;
     const reckoner =
-      getReckoner<unknown>(topic) ??
+      this.registeredReckonerFn<unknown>(topic, token) ??
       this.fieldScopedReckoner<unknown>(topic, token);
     if (!reckoner) return undefined;
     const point = this.sample<unknown>(topic, token);
@@ -1430,7 +1447,10 @@ export class TimelineStore {
   ): ReckonerFor<T> | undefined {
     const parsed = this.resolveRawFieldSubtopic(topic);
     if (!parsed) return undefined;
-    const parentReckoner = getReckoner<unknown>(parsed.rawTopic);
+    const parentReckoner = this.registeredReckonerFn<unknown>(
+      parsed.rawTopic,
+      token,
+    );
     if (!parentReckoner) return undefined;
     return (_point, grade, viewUt) => {
       const parentPoint = this.sample<unknown>(parsed.rawTopic, token);
@@ -1516,31 +1536,145 @@ export class TimelineStore {
   }
 
   /**
-   * Why the declared model did not answer for `topic` this frame, or `undefined`
-   * when the contract declares nothing about it.
+   * The decline for a declared input that did not arrive, named the way the
+   * CONTRACT names it.
    *
-   * Only asked when no model was on offer, which for a DECLARED topic is a
-   * specific refusal rather than the honest default it is elsewhere: the mark is
-   * a promise that the wire carries the model's inputs, so if nothing answered,
-   * either an input did not arrive, two owners are contesting the topic, or no
-   * model is registered to run at all. Naming which beats a silent absence, and
-   * the name is the contract's own spelling of the input so the string a widget
-   * renders is the string the contract carries.
+   * A reckoner declares its inputs in `Dep` notation and the contract declares
+   * them as `relativeVelocity` / `@vessel.orbit` / `@vessel.orbit#mu`. Where the
+   * two name the same Topic the contract's spelling wins, so the string a widget
+   * renders and the string the mark carries are the same string; a dep the
+   * contract does not name falls back to the same `@topic` shape rather than to
+   * a second convention.
    */
-  private declineFor(
+  private static absentInput(topic: string, dep: Dep): ReckoningDecline {
+    if (typeof dep !== "string") {
+      return {
+        reason: "input-absent",
+        input: "reading" in dep ? `@${dep.reading}` : dep.id,
+      };
+    }
+    const declared = reckonableValuesOf(topic)
+      .flatMap((row) => row.inputs)
+      .find((input) => input.topic === dep);
+    return {
+      reason: "input-absent",
+      input: declared ? reckonableInputSpelling(declared) : `@${dep}`,
+    };
+  }
+
+  /**
+   * One declared input, resolved for the frame the model is running for.
+   *
+   * The notation is a Processor's `Dep`, unchanged, because a reckoner's inputs
+   * are the same kind of thing and a second spelling would be two vocabularies
+   * to keep in step. The RESOLUTION differs in one place and deliberately: a
+   * Topic id gives the `TimelinePoint`, not the bare payload a processor gets,
+   * because a forward model withdraws on facts that live on the envelope
+   * (`meta.quality` is what tells the conic the craft is under physics) and a
+   * payload-only resolution would hide them behind an `undefined` the model
+   * could not tell from an absent channel.
+   */
+  private resolveReckonerDep(dep: Dep, token: FrameToken): unknown {
+    if (typeof dep === "string") return this.sample<unknown>(dep, token);
+    if ("reading" in dep)
+      return this.sampleReading<unknown>(dep.reading, token);
+    return getProcessorValue(dep.id);
+  }
+
+  /**
+   * A registered model for `topic` with its inputs already resolved, the reason
+   * nothing ran, or `undefined` when nobody has registered one.
+   *
+   * The three answers are distinct and the caller needs all three: a model to
+   * offer, a refusal to render, or nothing at all, which is what lets the
+   * remaining ladder rungs (a derived channel's label, a field read borrowing
+   * its record's model) still be tried.
+   *
+   * ## A declared input that did not arrive declines BEFORE the model runs
+   *
+   * That is the whole point of declaring them. A model that reached for whatever
+   * it liked could not be told from one whose inputs never came: both answer
+   * nothing, and a caller sees a silent absence on a value the contract promised
+   * was carriable. So a `deps` entry resolving to nothing is a decline the store
+   * builds, naming the input the way the CONTRACT spells it where the contract
+   * names it at all, and the model is never asked a question it cannot answer.
+   *
+   * A `ReadingDep` never resolves to nothing (`sampleReading` always answers,
+   * `pending` included), so declaring one is a way to say "hand me this Topic's
+   * currency and let me judge it" rather than "refuse without it".
+   */
+  private registeredReckoning<T>(
+    topic: string,
+    token: FrameToken,
+    point: TimelinePoint<T> | undefined,
+    grade: StaleGrade | undefined,
+    viewUt: number,
+  ):
+    | { readonly owner: string; readonly model: TopicModel<T, unknown> }
+    | { readonly declined: ReckoningDecline }
+    | undefined {
+    const elected = getReckoner(topic);
+    if (!elected) return undefined;
+    if (!point || point.payload === null) return undefined;
+    const resolved: unknown[] = [];
+    for (const dep of elected.definition.deps) {
+      const value = this.resolveReckonerDep(dep, token);
+      if (value === undefined) {
+        return { declined: TimelineStore.absentInput(topic, dep) };
+      }
+      resolved.push(value);
+    }
+    const reckon = elected.definition.reckon as unknown as (
+      p: TimelinePoint<T>,
+      r: unknown[],
+      f: ReckonerFrame,
+    ) => ReckonerAnswer<T, unknown>;
+    const answer = reckon(point, resolved, { grade, viewUt });
+    if ("declined" in answer) return { declined: answer.declined };
+    return { owner: elected.owner, model: answer };
+  }
+
+  /**
+   * The elected registration as a plain `ReckonerFor`, for the two paths that
+   * want a model and have no use for the reason it was withheld: a field read
+   * borrowing its record's model, and a plotted tail re-asking at every instant.
+   * `sampleReading` calls {@link registeredReckoning} directly, because the
+   * reason and the owner are exactly what a reading carries.
+   */
+  private registeredReckonerFn<T>(
+    topic: string,
+    token: FrameToken,
+  ): ReckonerFor<T> | undefined {
+    if (!getReckoner(topic)) return undefined;
+    return (point, grade, viewUt) => {
+      const answer = this.registeredReckoning<T>(
+        topic,
+        token,
+        point,
+        grade,
+        viewUt,
+      );
+      return answer && "model" in answer
+        ? (answer.model as TopicModel<T>)
+        : undefined;
+    };
+  }
+
+  /**
+   * The first declared input `topic` is missing this frame, spelled the way the
+   * contract spells it, or `undefined` when every one of them is here (and when
+   * the contract declares nothing about the topic at all).
+   *
+   * Walks every marked value's inputs rather than only the one a caller asked
+   * about, because a reading is whole-topic: the projection carries every marked
+   * field, so a model that cannot produce one of them cannot fill the arm.
+   */
+  private missingDeclaredInput(
     topic: string,
     token: FrameToken,
   ): ReckoningDecline | undefined {
     const declared = reckonableValuesOf(topic);
     if (declared.length === 0) return undefined;
-
-    if (getReckonerConflicts().some((conflict) => conflict.topic === topic)) {
-      return {
-        reason: "contested",
-        note: "two owners registered a model for this topic, so neither is served",
-      };
-    }
-
     const own = this.sample<unknown>(topic, token);
     for (const declaredValue of declared) {
       for (const input of declaredValue.inputs) {
@@ -1562,11 +1696,42 @@ export class TimelineStore {
         }
       }
     }
+    return undefined;
+  }
 
-    // Every declared input is here and nothing ran. That is the state phase four
-    // of the reckoning work removes, by registering core's own conic through the
-    // same seam an Uplink would use; until then it is the honest answer and it
-    // says so rather than presenting as a missing input.
+  /**
+   * Why the declared model did not answer for `topic` this frame, or `undefined`
+   * when the contract declares nothing about it.
+   *
+   * Only asked when no model was on offer, which for a DECLARED topic is a
+   * specific refusal rather than the honest default it is elsewhere: the mark is
+   * a promise that the wire carries the model's inputs, so if nothing answered,
+   * either an input did not arrive, two owners are contesting the topic, or no
+   * model is registered to run at all. Naming which beats a silent absence, and
+   * the name is the contract's own spelling of the input so the string a widget
+   * renders is the string the contract carries.
+   */
+  private declineFor(
+    topic: string,
+    token: FrameToken,
+  ): ReckoningDecline | undefined {
+    if (reckonableValuesOf(topic).length === 0) return undefined;
+
+    if (getReckonerConflicts().some((conflict) => conflict.topic === topic)) {
+      return {
+        reason: "contested",
+        note: "two owners registered a model for this topic, so neither is served",
+      };
+    }
+
+    const missing = this.missingDeclaredInput(topic, token);
+    if (missing) return missing;
+
+    // Every declared input is here and nothing ran. Core registers a vanilla for
+    // every marked Topic, so reaching this means core's reckoner module was
+    // never imported: a build that dropped it, or a test that cleared the
+    // registry. Saying so beats presenting as a missing input, which would send
+    // a reader looking at the wire.
     return {
       reason: "model-inapplicable",
       note: "no model is registered for this topic",
@@ -1613,17 +1778,49 @@ export class TimelineStore {
         const point = this.sample<T>(topic, effectiveToken);
         const status = this.sampleStatus(topic, effectiveToken);
         const viewUt = effectiveToken.viewUt;
-        const reckoner =
-          getReckoner<T>(topic) ??
-          this.derivedReckoner<T>(topic, effectiveToken) ??
-          this.fieldScopedReckoner<T>(topic, effectiveToken);
+        /*
+         * The registered model is asked FIRST and its answer is final, decline
+         * included. Falling through to a derived channel's label after a
+         * registered model declined would serve a second model for one topic
+         * and hand two answers to one widget, which is the disagreement keeping
+         * the two ladders in the same order exists to prevent.
+         */
+        const registered =
+          // The arms `readingFrom` builds without ever consulting a model:
+          // nothing to carry (resyncing), and a confirmed absence, which outranks
+          // every staleness grade. Asking anyway would run a solve per frame
+          // through a resync and throw the answer away.
+          status === "resyncing" || status === "absent"
+            ? undefined
+            : this.registeredReckoning<T>(
+                topic,
+                effectiveToken,
+                point,
+                status === "live" ? undefined : (status as StaleGrade),
+                viewUt,
+              );
+        const reckonedModel =
+          registered && "model" in registered ? registered.model : undefined;
+        const reckoner: ReckonerFor<T> | undefined = reckonedModel
+          ? () => reckonedModel as TopicModel<T>
+          : registered
+            ? undefined
+            : (this.derivedReckoner<T>(topic, effectiveToken) ??
+              this.fieldScopedReckoner<T>(topic, effectiveToken));
+        const owner =
+          registered && "owner" in registered
+            ? registered.owner
+            : CORE_RECKONER_OWNER;
         const unowned = this.unownedTopics.has(topic);
         // Only computed where the CONTRACT declared something: an undeclared
         // topic has nothing to explain, and building a reason for one would put
         // a `declined` on a reading whose type has no room for it.
-        const declined = reckoner
-          ? undefined
-          : this.declineFor(topic, effectiveToken);
+        const declined =
+          registered && "declined" in registered
+            ? registered.declined
+            : reckoner
+              ? undefined
+              : this.declineFor(topic, effectiveToken);
         const declineKey = declined
           ? `${declined.reason}\0${declined.input ?? ""}`
           : undefined;
@@ -1651,8 +1848,24 @@ export class TimelineStore {
           return previous.reading as Reading<T>;
         }
         const reading = declined
-          ? readingFrom(point, status, viewUt, reckoner, unowned, declined)
-          : readingFrom(point, status, viewUt, reckoner, unowned);
+          ? readingFrom(
+              point,
+              status,
+              viewUt,
+              reckoner,
+              unowned,
+              declined,
+              owner,
+            )
+          : readingFrom(
+              point,
+              status,
+              viewUt,
+              reckoner,
+              unowned,
+              undefined,
+              owner,
+            );
         this.readings.set(topic, {
           point,
           status,

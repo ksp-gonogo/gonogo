@@ -15,14 +15,15 @@ import {
 } from "../units";
 import type { Value } from "../value";
 import type { ModelledField } from "./client-reading";
-import type {
-  Anomalies,
-  OrbitElements,
-  PropagationHorizonLike,
-  StateVector,
-  Vector3,
-} from "./kepler";
-import { canPropagate, solve, solveAnomalies } from "./kepler";
+import type { OrbitElements, PropagationHorizonLike, Vector3 } from "./kepler";
+import {
+  buildElements,
+  isHyperbolic,
+  keplerAdmissibility,
+  magnitude,
+  trySolve,
+  trySolveAnomalies,
+} from "./kepler-reckoning";
 import {
   findImpactPoint,
   type LegacyOrbitPatch,
@@ -768,54 +769,20 @@ export interface VesselState {
   subjectId: string;
 }
 
-function magnitude(v: Vector3): number {
-  return Math.sqrt(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);
-}
-
 /**
- * `kepler.solve`/`solveAnomalies` throw a `RangeError` for `ecc >= 1`,
- * elliptical-only, matching the C# side (see their own doc comments); that
- * throwing contract is intentional and NOT something this file changes. A
- * genuine hyperbolic OnRails trajectory (a fast escape/flyby while
- * time-warping) is real, though, and letting the throw escape into
- * derived-channel resolution would take out every `vessel.state` consumer at
- * once. Full hyperbolic anomaly support is out of scope here (see the class
- * doc): this just names the boundary so call sites can check it explicitly.
+ * The propagator itself now lives in `kepler-reckoning.ts`, one layer below
+ * this record, and these names are re-exported so no call site moved.
+ *
+ * It moved because a REGISTERED reckoner has to reach the same conic this
+ * channel does, and a module the channel owns is not reachable from one: the
+ * registration seam is under the record, not beside it. Nothing about the
+ * arithmetic changed in the move.
  */
-function isHyperbolic(ecc: number): boolean {
-  return ecc >= 1;
-}
-
-/** Non-throwing `kepler.solve`: `null` on a hyperbolic orbit instead of a RangeError. See `isHyperbolic`. */
-function trySolve(elements: OrbitElements, ut: number): StateVector | null {
-  return isHyperbolic(elements.ecc) ? null : solve(elements, ut);
-}
-
-/**
- * Dead-reckon a vessel's parent-relative position/velocity from its wire orbit
- * elements at `ut`, via the SAME `buildElements` normalization + `trySolve`
- * (kepler.solve) path the active vessel uses. Returns null for a hyperbolic /
- * unsolvable orbit rather than throwing. This is what dead-reckons each vessel
- * in the fleet; no new math, just the shared propagator.
- */
-export function propagateVesselOrbit(
-  orbit: VesselOrbitPayload,
-  ut: number,
-): StateVector | null {
-  return trySolve(buildElements(orbit), ut);
-}
-
-/** Non-throwing `kepler.solveAnomalies`: `null` on a hyperbolic orbit instead of a RangeError. See `isHyperbolic`. */
-function trySolveAnomalies(
-  elements: OrbitElements,
-  ut: number,
-): Anomalies | null {
-  return isHyperbolic(elements.ecc) ? null : solveAnomalies(elements, ut);
-}
-
-function degToRad(deg: number): number {
-  return (deg * Math.PI) / 180;
-}
+export {
+  buildElements,
+  propagateVesselOrbit,
+  type WireOrbitElements,
+} from "./kepler-reckoning";
 
 function radToDeg(rad: number): number {
   return (rad * 180) / Math.PI;
@@ -1031,50 +998,6 @@ function deriveTargetRelativeSpeed(get: DerivedGet): number | null | undefined {
 }
 
 /**
- * The elements as they arrive on the wire, and nothing else: the subset
- * {@link buildElements} normalizes.
- *
- * Structural rather than `VesselOrbitPayload` so a caller holding any orbit in
- * wire units can pass one, a vessel's own, a target's, or a patch's, without
- * having to construct the rest of a payload it does not have. Widening the
- * parameter rather than copying the conversion is what keeps this the ONE
- * place, which is the whole point of the function.
- */
-export interface WireOrbitElements {
-  sma: { magnitude: number };
-  ecc: { magnitude: number };
-  inc: { magnitude: number };
-  lan?: { magnitude: number } | null;
-  argPe?: { magnitude: number } | null;
-  meanAnomalyAtEpoch: { magnitude: number };
-  epoch: { magnitude: number };
-  mu: { magnitude: number };
-}
-
-/**
- * Build the internal-radian `OrbitElements` (`kepler.ts`) from wire elements:
- * the ONE place the wire's degree/radian unit mix is
- * normalized (inc/lan/argPe degrees→radians; `meanAnomalyAtEpoch` already
- * radians, the documented KSP quirk) and a `null` `lan`/`argPe` (undefined
- * node/apsis on a near-equatorial/near-circular orbit) is substituted with 0,
- * a physically-arbitrary-but-harmless reference. Shared by the self-vessel
- * OnRails branch and the target-orbit derivation (`tar.o.*`), so both
- * propagate through the identical conversion.
- */
-export function buildElements(o: WireOrbitElements): OrbitElements {
-  return {
-    sma: mag(o.sma),
-    ecc: mag(o.ecc),
-    inc: degToRad(mag(o.inc)),
-    lan: o.lan == null ? 0 : degToRad(mag(o.lan)),
-    argPe: o.argPe == null ? 0 : degToRad(mag(o.argPe)),
-    meanAnomalyAtEpoch: mag(o.meanAnomalyAtEpoch),
-    epoch: mag(o.epoch),
-    mu: mag(o.mu),
-  };
-}
-
-/**
  * Resolve a body INDEX to its mean radius (metres) via `system.bodies`, the
  * radius half of `deriveApsides`'s lookup, factored out for the target-orbit
  * periapsis-altitude derivation (`targetPeriapsisAlt`). Same
@@ -1092,46 +1015,6 @@ function resolveBodyRadius(
   if (bodiesPoint.payload === null) return null;
   const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
   return body?.radius ?? undefined;
-}
-
-/**
- * The radius below which a vacuum two-body coast stops describing what happens:
- * the top of the atmosphere, or the surface on a body that has none.
- *
- * `kepler-propagation` states its own limits, and the third of them is "a
- * perturbation the propagator does not model". Drag is that perturbation, and
- * it is not a gentle one: a capsule crossing the interface at orbital speed
- * loses most of it inside a couple of minutes, so a conic carried past this
- * radius is not a degraded answer but a different trajectory. Below the surface
- * it is not a trajectory at all.
- *
- * One number covers both because the model is asking one question, and the
- * separate cases would only differ in a sentence nothing reads. `atmosphere`
- * absent means airless on this wire rather than unknown, which is what makes
- * the surface a sound floor rather than a guess.
- *
- * `undefined` when nothing here resolves, and the caller treats that as "no
- * evidence" rather than as a reason to decline: see
- * {@link deriveVesselStateReckoning}.
- */
-function entryInterfaceRadius(
-  get: DerivedGet,
-  index: number | null | undefined,
-): number | undefined {
-  if (index == null) return undefined;
-  const bodiesPoint = get<SystemBodiesPayload>("system.bodies");
-  if (!bodiesPoint || bodiesPoint.payload === null) return undefined;
-  const body = bodiesPoint.payload.bodies.find((b) => b.index === index);
-  if (!body) return undefined;
-  /*
-   * `mag` rather than the raw field: `system.bodies` arrives unwrapped today
-   * and wrapped the moment its type shape is registered, and a floor that
-   * silently becomes NaN would stop declining without saying so.
-   */
-  const radius = magnitudeOr(body.radius, Number.NaN);
-  if (!Number.isFinite(radius)) return undefined;
-  const depth = magnitudeOr(body.atmosphere?.depth, 0);
-  return radius + (Number.isFinite(depth) && depth > 0 ? depth : 0);
 }
 
 /**
@@ -2155,8 +2038,9 @@ export function deriveVesselStateStatus(
  * describing a trajectory that is not happening. The failure is worst exactly
  * where an operator leans on it hardest, a re-entry, and it is invisible,
  * because a conic through air draws the same confident dashes a conic through
- * vacuum draws. `entryInterfaceRadius` supplies the floor and the check is the
- * solved radius against it, asked per instant, so the tail simply stops there.
+ * vacuum draws. `keplerAdmissibility`'s `entryInterfaceRadius` supplies the
+ * floor and the check is the solved radius against it, asked per instant, so
+ * the tail simply stops there.
  *
  * **Declining takes positive evidence.** With no body roster there is no
  * interface to have crossed, and refusing on an absent fact would blank every
@@ -2175,32 +2059,19 @@ export function deriveVesselStateReckoning(
   get: DerivedGet,
   viewUt: number,
 ): readonly ModelledField[] | undefined {
-  const orbitPoint = get<VesselOrbitPayload>("vessel.orbit");
-  if (orbitPoint?.payload == null) return undefined;
-  if (orbitPoint.meta.quality !== Quality.OnRails) return undefined;
-  const orbit = orbitPoint.payload;
-  const transitionUt = orbit.encounter?.transitionUt;
-  if (transitionUt != null) {
-    const at = mag(transitionUt);
-    if (Number.isFinite(at) && viewUt >= at) return undefined;
-  }
   /*
-   * The producer's own stated reach, which this function is the last place in
-   * the tree to start asking. Only bites on a recording old enough to carry no
-   * horizon at all: the stock provider is analytic and answers `Unbounded`, and
-   * an integrating one answering `Until` is exactly the case the seam was built
-   * for and nothing was consulting it in.
+   * All four withdrawal conditions moved to `keplerAdmissibility`, and this
+   * function is now the thin half: it asks the same question core's registered
+   * reckoners ask and turns the answer into this channel's field list. The
+   * conditions and the arithmetic they guard live once, so a registered model
+   * and this channel cannot come to disagree about where the conic ends.
    */
-  if (!canPropagate(orbit.horizon, viewUt, viewUt).propagatable) {
-    return undefined;
-  }
-  const floor = entryInterfaceRadius(get, orbit.referenceBodyIndex);
-  if (floor !== undefined) {
-    const solved = trySolve(buildElements(orbit), viewUt);
-    const radius = solved == null ? Number.NaN : magnitude(solved.position);
-    if (Number.isFinite(radius) && radius <= floor) return undefined;
-  }
-  return KEPLER_MODELLED_FIELDS;
+  const admissible = keplerAdmissibility(
+    get<VesselOrbitPayload>("vessel.orbit"),
+    get<SystemBodiesPayload>("system.bodies")?.payload ?? undefined,
+    viewUt,
+  );
+  return "declined" in admissible ? undefined : KEPLER_MODELLED_FIELDS;
 }
 
 /**

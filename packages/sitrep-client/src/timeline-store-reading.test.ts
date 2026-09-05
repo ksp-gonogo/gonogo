@@ -1,5 +1,6 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
+import { clearReckoners, registerCoreReckoners } from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
@@ -160,21 +161,30 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
     });
   });
 
-  it("says the model is missing once every declared input is here", () => {
+  it("says the model is missing when nothing is registered to run", () => {
     // The distinction the reason vocabulary exists for: an input that never
     // arrived is a data problem an operator can wait out, and a model nobody
     // registered is not. Reporting the second as the first would send them
     // looking for a channel that is already flowing.
+    //
+    // Core registers a vanilla for every marked Topic, so the registry is
+    // cleared here to reach the branch at all: what it now describes is a build
+    // that dropped core's reckoner module, not the normal case.
+    clearReckoners();
     const s = store();
     s.ingest(
       "vessel.target",
-      point<Record<string, unknown>>(10, { relativeVelocity: { x: 1 } }),
+      point<Record<string, unknown>>(10, {
+        relativePosition: { x: 1 },
+        relativeVelocity: { x: 1 },
+      }),
     );
     s.beginFrame();
 
     expect(s.sampleReading("vessel.target")).toMatchObject({
       declined: { reason: "model-inapplicable" },
     });
+    registerCoreReckoners();
   });
 
   it("leaves a topic the contract declares nothing about untouched", () => {

@@ -280,6 +280,43 @@ export {
   deriveDeltaVBudget,
   normaliseStage,
 } from "./spine/delta-v-budget";
+export {
+  type Anomalies,
+  canPropagate,
+  type OrbitElements,
+  type PropagationHorizonLike,
+  type StateVector,
+  solve,
+  solveAnomalies,
+} from "./spine/kepler";
+// ---------------------------------------------------------------------------
+// THE CONIC: the one two-body propagator in this repo, and the guard that says
+// where it stops holding.
+//
+// Published from the ROOT barrel because a registered reckoner is only a real
+// extension point if an author can reach what core reaches. Every one of these
+// lived behind `/spine`, which the isolation gate blocks, so an Uplink wanting
+// to forward-model an orbit had to vendor a solver of its own or build a derived
+// channel instead: the mechanism that can only LABEL arithmetic, never do it.
+//
+// `keplerAdmissibility` is the interesting one. It is where the four withdrawal
+// conditions live (off rails, the SOI transition, the producer's stated horizon,
+// the atmosphere interface), and a second copy of them is exactly how two models
+// of one Topic come to disagree about where the conic ends.
+// ---------------------------------------------------------------------------
+export {
+  advanceByVelocity,
+  buildElements,
+  type ConicBodiesInput,
+  type ConicOrbitInput,
+  entryInterfaceRadius,
+  isHyperbolic,
+  keplerAdmissibility,
+  propagateVesselOrbit,
+  trySolve,
+  trySolveAnomalies,
+  type WireOrbitElements,
+} from "./spine/kepler-reckoning";
 // The CONTRACT half of the Processor primitive, and the only route by which a
 // Processor one Uplink implements can be consumed, typed, by another. Published
 // alongside the handle type it returns; `defineProcessor` itself stays

@@ -28,7 +28,9 @@ export type {
   ReadingState,
   ReckonableReading,
   ReckonerAnswer,
+  ReckonerDefinition,
   ReckonerFor,
+  ReckonerFrame,
   Reckoning,
   ReckoningBasis,
   ReckoningDecline,
@@ -75,6 +77,12 @@ function rootCoverage(model: {
  * mid-resync topic can never be carrying an `unowned` verdict. Earning the
  * verdict positively is `TopicOwnershipTracker`'s job; this function trusts it.
  *
+ * `owner` is which registered owner's model this is, stamped onto the reckoning
+ * so a caller can tell core's vanilla from an Uplink's without reading the
+ * numbers and guessing. It defaults to `"core"` because every model that
+ * reaches here without one is core's own: a derived channel's label, or a field
+ * read borrowing its record's.
+ *
  * `declined` is the caller's answer for a topic whose CONTRACT declares a value
  * reckonable, and it turns the value-bearing `"none"` arms into
  * `ReckonableReading`'s. It is the caller's rather than this function's because
@@ -90,6 +98,8 @@ export function readingFrom<T>(
   viewUt: number,
   reckoner?: ReckonerFor<T>,
   unowned?: boolean,
+  declined?: undefined,
+  owner?: string,
 ): Reading<T>;
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
@@ -98,6 +108,7 @@ export function readingFrom<T>(
   reckoner: ReckonerFor<T> | undefined,
   unowned: boolean,
   declined: ReckoningDecline,
+  owner?: string,
 ): ReckonableReading<T, keyof T>;
 export function readingFrom<T>(
   point: TimelinePoint<T> | undefined,
@@ -106,6 +117,7 @@ export function readingFrom<T>(
   reckoner?: ReckonerFor<T>,
   unowned = false,
   declined?: ReckoningDecline,
+  owner = "core",
 ): Reading<T> | ReckonableReading<T, keyof T> {
   if (!point || status === "resyncing") {
     return unowned
@@ -161,6 +173,7 @@ export function readingFrom<T>(
         atUt: value("ut", viewUt),
         basis: root.basis,
         modelled: model.modelled,
+        owner,
       },
     };
   }
@@ -176,6 +189,7 @@ export function readingFrom<T>(
         atUt: value("ut", viewUt),
         basis: root.basis,
         modelled: model.modelled,
+        owner,
       },
     };
   }

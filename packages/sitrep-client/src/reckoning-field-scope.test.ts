@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { type ReckonerDefinition, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   clearReckoners,
@@ -69,17 +69,16 @@ function predictedStore(wall: { now: () => number }) {
 
 /** Dead-reckons the relative position only; every other field is a copy. */
 function registerPositionOnlyModel() {
-  registerReckoner<Target>(
-    "vessel.target",
-    "test",
-    (point, _grade, viewUt) => ({
+  registerReckoner<Target>("vessel.target", "test", {
+    deps: [],
+    reckon: (point, _deps, { viewUt }) => ({
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
       reckon: () => ({
         ...observedPayload(point),
         relativePosition: { x: 1000 + 10 * (viewUt - point.validAt) },
       }),
     }),
-  );
+  });
 }
 
 beforeEach(clearReckoners);
@@ -179,10 +178,15 @@ describe("a per-topic model, expressed per field", () => {
     registerReckoner<{
       relativePosition: number;
       relativePositionError: number;
-    }>("vessel.dock", "test", (point) => ({
-      modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
-      reckon: () => observedPayload(point),
-    }));
+    }>("vessel.dock", "test", {
+      deps: [],
+      reckon: (point) => ({
+        modelled: [
+          { path: "relativePosition", basis: "linear-dead-reckoning" },
+        ],
+        reckon: () => observedPayload(point),
+      }),
+    });
 
     store.ingest("vessel.dock", {
       validAt: 100,
@@ -202,7 +206,12 @@ describe("a per-topic model, expressed per field", () => {
 });
 
 describe("a topic two owners both model is served with neither", () => {
-  const declines = () => undefined;
+  const declines: ReckonerDefinition<Target> = {
+    deps: [],
+    reckon: () => ({
+      declined: { reason: "model-inapplicable" },
+    }),
+  };
 
   beforeEach(clearReckoners);
 
@@ -212,14 +221,20 @@ describe("a topic two owners both model is served with neither", () => {
     // with no model says "nothing trustworthy can be said", which is true; one
     // carrying whichever model loaded second is a confident picture assembled
     // by accident, and a wrong reckoner is worse than none.
-    registerReckoner<Target>("vessel.target", "two-body-model", () => ({
-      modelled: [{ path: "", basis: "linear-dead-reckoning" }],
-      reckon: () => OBSERVED,
-    }));
-    registerReckoner<Target>("vessel.target", "n-body-model", () => ({
-      modelled: [{ path: "", basis: "kepler-propagation" }],
-      reckon: () => OBSERVED,
-    }));
+    registerReckoner<Target>("vessel.target", "two-body-model", {
+      deps: [],
+      reckon: () => ({
+        modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+        reckon: () => OBSERVED,
+      }),
+    });
+    registerReckoner<Target>("vessel.target", "n-body-model", {
+      deps: [],
+      reckon: () => ({
+        modelled: [{ path: "", basis: "kepler-propagation" }],
+        reckon: () => OBSERVED,
+      }),
+    });
 
     const wall = fakeWall();
     const store = predictedStore(wall);
@@ -244,7 +259,7 @@ describe("a topic two owners both model is served with neither", () => {
     registerReckoner<Target>("vessel.target", "two-body-model", declines);
 
     expect(getReckonerConflicts()).toEqual([]);
-    expect(getReckoner("vessel.target")).toBe(declines);
+    expect(getReckoner("vessel.target")?.definition).toBe(declines);
   });
 });
 
@@ -261,10 +276,9 @@ describe("every path to a reckoning shares the one cache", () => {
     const store = predictedStore(wall);
 
     let runs = 0;
-    registerReckoner<Target>(
-      "vessel.target",
-      "test",
-      (point, _grade, viewUt) => ({
+    registerReckoner<Target>("vessel.target", "test", {
+      deps: [],
+      reckon: (point, _deps, { viewUt }) => ({
         modelled: [
           { path: "relativePosition", basis: "linear-dead-reckoning" },
         ],
@@ -276,7 +290,7 @@ describe("every path to a reckoning shares the one cache", () => {
           };
         },
       }),
-    );
+    });
 
     store.ingest("vessel.target", targetPoint(100));
     wall.advanceBy(60);

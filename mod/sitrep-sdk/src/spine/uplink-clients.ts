@@ -7,7 +7,7 @@ import {
   registerRootProvider,
 } from "../api/root-providers";
 import type { ContributionDefinition, ContributionDep } from "../api/types";
-import type { ReckonerFor } from "../reading";
+import type { ReckonerDefinition } from "../reading";
 import type { DerivedChannelDefinition } from "../timeline";
 import { contributeDerivedChannel } from "./contributed-channels";
 import { registerContribution } from "./contributions";
@@ -43,7 +43,7 @@ import { registerReckoner } from "./reckoners";
  *
  * This is the ONE declaration of the handle: `api/types.ts` re-exports it
  * rather than declaring a loose "name+arity probe" copy of its own.
- * `ResolvedDeps`, `ReckonerFor`, `DerivedChannelDefinition` and
+ * `ResolvedDeps`, `ReckonerDefinition`, `DerivedChannelDefinition` and
  * `ProcessorHandle` are all sdk-side, so there is nothing the leaf cannot name
  * and no reason to reach for `any`. Two
  * declarations of a handle whose methods are typed `any` on one side is the
@@ -131,12 +131,22 @@ export interface UplinkClientHandle {
    * registerProcessor: the owner is passed to the registry as a plain id).
    *
    * Which client owns a model is not a matter of style: only the Uplink that
-   * owns a Topic knows the physics behind it, and a topic two clients both
-   * claim is served with NO model rather than whichever loaded last. Going
+   * owns a Topic knows the physics behind it, and a topic two clients both claim
+   * withdraws BOTH of them and falls back to core's vanilla rather than serving
+   * whichever loaded last. Going
    * through the handle is what makes the owner a stamped field the boundary
    * ratchet and a health surface can read, instead of a hand-typed string.
+   *
+   * The definition DECLARES its inputs (`deps`, in the same notation a
+   * Processor uses), so a model whose inputs are split across Topics is one an
+   * Uplink can write here rather than a reason to reach for a derived channel:
+   * the store resolves them and declines by name when one is absent.
    */
-  registerReckoner<T>(topic: string, reckoner: ReckonerFor<T>): void;
+  registerReckoner<
+    T,
+    R = T,
+    const Deps extends readonly Dep[] = readonly Dep[],
+  >(topic: string, reckoner: ReckonerDefinition<T, R, Deps>): void;
   /**
    * Contribute a derived channel owned by this client.
    *
@@ -222,7 +232,11 @@ export function defineUplinkClient(cfg: {
     }): ProcessorHandle<R, `${string}:${Id}`> {
       return defineProcessor({ ...def, owner: cfg.id });
     },
-    registerReckoner<T>(topic: string, reckoner: ReckonerFor<T>): void {
+    registerReckoner<
+      T,
+      R = T,
+      const Deps extends readonly Dep[] = readonly Dep[],
+    >(topic: string, reckoner: ReckonerDefinition<T, R, Deps>): void {
       registerReckoner(topic, cfg.id, reckoner);
     },
     registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void {

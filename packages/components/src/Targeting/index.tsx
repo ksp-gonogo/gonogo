@@ -10,7 +10,7 @@ import {
   useViewUt,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
-import { TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
+import { type ReckoningBasis, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Box,
   Cluster,
@@ -42,10 +42,10 @@ import {
   vecMagnitude,
 } from "../shared/dockAngles";
 import { magnitudeOf } from "../shared/magnitude";
+
 // Side-effect import: registers the `vessel.target` reckoner (stubbed, so it
 // declines and the widget renders no modelled figure) plus the frame-memoised
 // processor its arithmetic will run through.
-import "./targetReckoning";
 
 const topics = defineTopicManifest({
   channels: ["vessel.target", "vessel.dock"],
@@ -360,14 +360,29 @@ function TargetingComponent({
    * target that stopped being a docking port. The approach view names it.
    *
    * Withheld is the whole claim, so the reckoning arm is excluded: `dock` above
-   * is `judgeable`, and a modelled pairing draws the reticle and every
-   * alignment row from it. Captioning that HUD "no longer current" would deny
-   * an instrument the operator is looking straight at.
+   * overlays the modelled separation, `α`/`β` are a pure function of it, and the
+   * HUD draws them under a caption naming the basis. Captioning that HUD "no
+   * longer current" would deny an instrument the operator is looking straight
+   * at. What must never happen is the middle case, a modelled reticle with
+   * neither caption, which is why `modelledAlignment` below is derived from the
+   * same reading in the same place.
    */
   const alignmentWithheld =
     notCurrent(withoutReckoning(dockReading)) &&
     dockReading.reckoning === "none" &&
     dockPairing?.relativePosition !== undefined;
+  /*
+   * The other half of the same question: the separation IS being carried
+   * forward, so every geometry readout in the HUD is modelled rather than
+   * observed and the HUD has to say so. Only where the observation is not
+   * current: on a live reading core's dead reckoner declines, so a caption here
+   * could only ever describe a gap.
+   */
+  const modelledAlignment =
+    dockReading.reckoning === "available" &&
+    notCurrent(withoutReckoning(dockReading))
+      ? dockReading.reckoned.basis
+      : undefined;
   /*
    * The age, spelled out: an instant minus an instant is a duration, and the
    * affine rules make that the type. The clamp is there because samples arrive
@@ -513,6 +528,11 @@ function TargetingComponent({
         x={dockX}
         y={dockY}
         forwardDot={dockForwardDot?.magnitude}
+        modelled={
+          modelledAlignment
+            ? { basis: modelledAlignment, ageSec: dockAgeSec }
+            : undefined
+        }
         showCamera={hudMode === "hud-with-camera"}
         cameraFlightId={config?.cameraFlightId}
         cols={cols}
@@ -902,6 +922,13 @@ interface DockingHudProps {
    * below and takes priority for the reticle's aligned/misaligned tint.
    */
   forwardDot: number | undefined;
+  /**
+   * Present when the separation these readouts are drawn from was carried
+   * forward rather than observed, with the basis that carried it and how old the
+   * observation behind it is. The reticle is honest either way; what would not
+   * be is drawing it without saying which.
+   */
+  modelled: { basis: ReckoningBasis; ageSec: number | undefined } | undefined;
   showCamera: boolean;
   cameraFlightId: number | null | undefined;
   cols: number;
@@ -1032,6 +1059,7 @@ function DockingHud(props: DockingHudProps) {
     x,
     y,
     forwardDot,
+    modelled,
     showCamera,
     cameraFlightId,
     cols,
@@ -1303,6 +1331,16 @@ function DockingHud(props: DockingHudProps) {
             </>
           )}
         </Grid>
+        {modelled && (
+          <ReadoutCaption role="status">
+            Alignment reckoned ({modelled.basis})
+            {modelled.ageSec !== undefined && (
+              <>
+                , last seen <Unit value={value("s", modelled.ageSec)} /> ago
+              </>
+            )}
+          </ReadoutCaption>
+        )}
       </div>
     </Box>
   );

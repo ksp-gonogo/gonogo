@@ -1,4 +1,6 @@
+import type { Dep, ProcessorHandle, ReadingDep } from "./spine/processors";
 import type { TimelinePoint } from "./timeline";
+import type { TopicId, TopicPayload } from "./topics";
 import type { Value } from "./unit-system/value";
 
 /**
@@ -76,6 +78,18 @@ export interface Reckoning<T> {
    * caller can hold.
    */
   modelled: readonly ModelledField[];
+  /**
+   * Which registered owner's model produced this. `"core"` for the vanilla
+   * every installed client ships.
+   *
+   * Reckonability is STATIC (the contract declares it), so the question a
+   * runtime answer has to settle is not whether a value can be carried forward
+   * but WHICH model carried it. That is the same question
+   * `vessel.maneuver.planner` already answers by naming its winner, and naming
+   * it is what lets an operator tell core's conic from an Uplink's without
+   * reading the numbers and guessing.
+   */
+  owner: string;
 }
 
 /** One path a model moved, and what moved it. See {@link Reckoning.modelled}. */
@@ -771,3 +785,96 @@ export type ReckonerFor<T> = (
   grade: StaleGrade | undefined,
   viewUt: number,
 ) => TopicModel<T> | undefined;
+
+/**
+ * What one declared dependency resolves to when the STORE resolves it for a
+ * reckoner.
+ *
+ * The notation is `Dep`'s, unchanged, because a reckoner's inputs are the same
+ * kind of thing a processor's are and inventing a second spelling for them
+ * would be two vocabularies to keep in step. What differs is the RESOLUTION: a
+ * Topic id resolves to the `TimelinePoint`, not to the bare payload a processor
+ * gets.
+ *
+ * That is not a convenience. A reckoner is a producer at the timeline layer,
+ * and it already holds its own point; an input's `meta.quality` is exactly the
+ * sort of fact a forward model withdraws on (the conic refuses a craft that is
+ * not on rails), and a payload-only resolution would hide it behind an
+ * `undefined` the reckoner could not tell from an absent channel.
+ */
+type ResolvedReckonerDep<D extends Dep> =
+  D extends ProcessorHandle<infer R>
+    ? R
+    : D extends ReadingDep<infer T>
+      ? Reading<TopicPayload<T>>
+      : D extends TopicId
+        ? TimelinePoint<TopicPayload<D>> | undefined
+        : never;
+
+/** Positionally-mapped tuple of a reckoner's resolved inputs, in `deps` order. */
+export type ResolvedReckonerDeps<Deps extends readonly Dep[]> = {
+  [K in keyof Deps]: Deps[K] extends Dep ? ResolvedReckonerDep<Deps[K]> : never;
+};
+
+/** What a reckoner is told about the frame it is running for, beyond its inputs. */
+export interface ReckonerFrame {
+  /** `undefined` when the reading is LIVE; see {@link ReckonerFor}. */
+  readonly grade: StaleGrade | undefined;
+  /** The frame's frozen view time: what the model is being asked to reach. */
+  readonly viewUt: number;
+}
+
+/**
+ * A registered forward model, and the published inputs it needs.
+ *
+ * This is the registration surface: `registerReckoner` takes one of these, and
+ * an Uplink reaches it through its client handle. `ReckonerFor` is the shape
+ * the store calls internally once the inputs are resolved, and an author never
+ * writes one.
+ *
+ * ## Why the inputs are DECLARED rather than reached for
+ *
+ * A reckoner that reaches for whatever it likes cannot be told from one whose
+ * inputs never arrived: both answer nothing, and the caller sees a silent
+ * `undefined` on a value the contract PROMISED was carriable. Declaring them
+ * buys the honest decline that promise is worth: the store resolves each
+ * declared input before the model runs, and an input the contract declared and
+ * the frame did not carry produces
+ * `declined: { reason: "input-absent", input: "@vessel.orbit" }` naming the
+ * contract's own spelling, without the model being asked a question it cannot
+ * answer.
+ *
+ * ## What the store enforces, and what it leaves to the model
+ *
+ * The store declines on behalf of a reckoner for the inputs the CONTRACT
+ * declares, because that is exactly the promise a mark makes. A dep declared
+ * HERE and not in the contract is the model's own refinement: it resolves to
+ * `undefined` and the model decides, which is what lets a conic treat an absent
+ * body roster as no evidence of an atmosphere rather than as a reason to blank
+ * the reading. Withdrawal takes positive evidence; an absent optional input is
+ * not evidence.
+ */
+export interface ReckonerDefinition<
+  T,
+  R = T,
+  Deps extends readonly Dep[] = readonly Dep[],
+> {
+  /** Declared inputs, in the same notation a Processor's `deps` uses. */
+  readonly deps: Deps;
+  /**
+   * Offer a model for `point` at `frame.viewUt`, or decline and say why. Cheap:
+   * it is asked whether a model exists and what it covers.
+   */
+  reckon(
+    point: TimelinePoint<T>,
+    resolved: ResolvedReckonerDeps<Deps>,
+    frame: ReckonerFrame,
+  ): ReckonerAnswer<T, R>;
+}
+
+/** A reckoner definition with its type parameters erased, as a registry holds one. */
+export type AnyReckonerDefinition = ReckonerDefinition<
+  never,
+  unknown,
+  readonly Dep[]
+>;

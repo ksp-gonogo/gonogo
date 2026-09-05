@@ -1,4 +1,5 @@
-import type { ReckonerFor } from "./client-reading";
+import type { AnyReckonerDefinition, ReckonerDefinition } from "../reading";
+import type { Dep } from "./processors";
 
 /**
  * Per-topic forward models, registered at module load the same way components
@@ -9,7 +10,7 @@ import type { ReckonerFor } from "./client-reading";
  * belongs to whoever owns the topic (a widget, an Uplink), and that module is
  * imported long before any store exists.
  *
- * ## Keyed by (topic, owner), and contested topics answer with nothing
+ * ## Keyed by (topic, owner), and a contest falls back to core
  *
  * This was a bare `Map<topic, reckoner>` with last-registration-wins, which is
  * the design `units.ts` considered and rejected for the same shape of problem,
@@ -21,19 +22,29 @@ import type { ReckonerFor } from "./client-reading";
  * Last-write-wins is also not election, whatever it is called: the winner is
  * decided by module import order, which is a fact about the bundler. A real
  * conflict is two Uplinks both claiming to model one topic, and the honest
- * answer is to serve NEITHER. A reading with no model presents as `stale`,
- * which is a true statement; a reading carrying whichever model happened to
- * load second is a confident picture assembled by accident, and `Reading`'s own
- * doc is explicit that a wrong reckoner is worse than none. Same resolution
- * `getResolvedComponents` uses for two widgets claiming one replacement target:
- * withhold both, surface the conflict, never silently merge.
+ * answer is to serve NEITHER OF THEM: a reading carrying whichever model
+ * happened to load second is a confident picture assembled by accident, and
+ * `Reading`'s own doc is explicit that a wrong reckoner is worse than none. Same
+ * resolution `getResolvedComponents` uses for two widgets claiming one
+ * replacement target: withhold both, surface the conflict, never silently merge.
+ *
+ * What withholding both must NOT mean is serving nothing while core holds a
+ * working vanilla for the same topic. See {@link getReckoner}: the contest
+ * withdraws the contenders and core's own model answers.
  *
  * Re-registration under the SAME owner is last-write-wins and deliberately not
  * an error, matching `defineUplinkClient`: a module re-evaluating under HMR or
  * a test re-importing after `resetModules` is a benign single-owner case, and
  * there is no cross-package collision to guard against within one owner.
  */
-const reckoners = new Map<string, Map<string, ReckonerFor<unknown>>>();
+const reckoners = new Map<string, Map<string, AnyReckonerDefinition>>();
+
+/**
+ * The owner core's own vanilla models register under. An Uplink cannot use it:
+ * `defineUplinkClient` stamps the client's own id, and `CORE_UPLINK_CLIENT` is
+ * the one handle carrying this one.
+ */
+export const CORE_RECKONER_OWNER = "core";
 
 /**
  * Register `owner`'s forward model for `topic`.
@@ -45,36 +56,69 @@ const reckoners = new Map<string, Map<string, ReckonerFor<unknown>>>();
  * type. An Uplink client should call its handle's bound `registerReckoner`
  * instead of naming itself here.
  */
-export function registerReckoner<T>(
+export function registerReckoner<
+  T,
+  R = T,
+  const Deps extends readonly Dep[] = readonly Dep[],
+>(
   topic: string,
   owner: string,
-  reckoner: ReckonerFor<T>,
+  reckoner: ReckonerDefinition<T, R, Deps>,
 ): void {
   const byOwner =
-    reckoners.get(topic) ?? new Map<string, ReckonerFor<unknown>>();
-  byOwner.set(owner, reckoner as ReckonerFor<unknown>);
+    reckoners.get(topic) ?? new Map<string, AnyReckonerDefinition>();
+  byOwner.set(owner, reckoner as unknown as AnyReckonerDefinition);
   reckoners.set(topic, byOwner);
 }
 
+/** The elected model for a topic, and which owner it belongs to. */
+export interface ElectedReckoner {
+  readonly owner: string;
+  readonly definition: AnyReckonerDefinition;
+}
+
 /**
- * The model to actually use for `topic`: the sole registered one, or nothing.
+ * The model to actually use for `topic`, and who owns it.
  *
- * `undefined` for a contested topic as well as an unmodelled one, and the
- * caller cannot tell the two apart on purpose. Both mean "nothing trustworthy
- * can be said", which is exactly what the `stale` arm says. A host that wants
- * to prompt the operator reads {@link getReckonerConflicts}.
+ * ## The election, and why withholding everything stopped being right
+ *
+ * This used to answer `undefined` for a contested topic as well as an
+ * unmodelled one, on the reasoning that two Uplinks claiming one topic should
+ * be served by neither. That reasoning holds for the two Uplinks and stops
+ * holding once CORE ships a vanilla: withholding then serves nothing while a
+ * working model sits registered, which is a silent outage rather than a
+ * withheld opinion, and on a value the CONTRACT declares reckonable the type
+ * has already promised a model is on offer.
+ *
+ * So the ladder is: the sole non-core owner (an Uplink that owns the physics
+ * beats the vanilla), else core's own registration (which is what a contest
+ * falls back to, and what an uncontested core-only topic uses), else nothing.
+ * A contest that core cannot cover still answers with nothing, and
+ * `TimelineStore` turns that into `declined: { reason: "contested" }` rather
+ * than a silence.
+ *
+ * {@link getReckonerConflicts} is unchanged and still names every contested
+ * topic, because "these two Uplinks disagree" is worth telling an operator
+ * whether or not core covered for them.
  */
-export function getReckoner<T>(topic: string): ReckonerFor<T> | undefined {
+export function getReckoner(topic: string): ElectedReckoner | undefined {
   const byOwner = reckoners.get(topic);
-  if (!byOwner || byOwner.size !== 1) return undefined;
-  const [only] = byOwner.values();
-  return only as ReckonerFor<T>;
+  if (!byOwner || byOwner.size === 0) return undefined;
+  const contenders = [...byOwner.entries()].filter(
+    ([owner]) => owner !== CORE_RECKONER_OWNER,
+  );
+  if (contenders.length === 1) {
+    const [owner, definition] = contenders[0];
+    return { owner, definition };
+  }
+  const core = byOwner.get(CORE_RECKONER_OWNER);
+  return core ? { owner: CORE_RECKONER_OWNER, definition: core } : undefined;
 }
 
 /** A topic two or more owners have both registered a model for. */
 export interface ReckonerConflict {
   topic: string;
-  /** The competing owners, sorted, all of them withheld. */
+  /** The competing owners, sorted. All of them are withheld; see {@link getReckoner}. */
   owners: string[];
 }
 

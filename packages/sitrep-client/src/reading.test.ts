@@ -137,6 +137,7 @@ describe("readingFrom", () => {
         atUt: value("ut", VIEW_UT),
         basis: "linear-dead-reckoning",
         modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+        owner: "core",
       },
     });
   });
@@ -199,6 +200,7 @@ describe("readingFrom", () => {
       atUt: value("ut", VIEW_UT),
       basis: "linear-dead-reckoning",
       modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+      owner: "core",
     });
     // The two UTs are different questions: when we last saw it, and what moment
     // the model is claiming about.
@@ -346,6 +348,7 @@ describe("observedAt", () => {
         atUt: value("ut", 34),
         basis: "kepler-propagation",
         modelled: [{ path: "", basis: "kepler-propagation" }],
+        owner: "core",
       },
     };
     // The model's instant is the frame; the observation's is what went old.
@@ -469,6 +472,7 @@ describe("hasAnswered", () => {
       atUt,
       basis: "linear-dead-reckoning",
       modelled: [{ path: "", basis: "linear-dead-reckoning" }],
+      owner: "core",
     },
   };
 

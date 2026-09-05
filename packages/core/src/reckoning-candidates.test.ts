@@ -29,9 +29,9 @@ import VERDICTS from "./reckoning-candidates.json";
  * So the scan's job is to ask a question, not to answer one. A new rate-bearing
  * field lands, the candidate set changes, this fails, and a person writes down
  * whether it is a real model or a coincidence. Recording the verdicts is the
- * point: a `coincidence` here is the same artefact as a declining
- * `registerReckoner` (the `targetReckoning.ts` shape), a record of a decision
- * taken, at a place the next person looks, that cannot rot without failing.
+ * point: a `coincidence` here is the same artefact as a `[SitrepReckonable]`
+ * mark that was CONSIDERED and not made, a record of a decision taken, at a
+ * place the next person looks, that cannot rot without failing.
  *
  * It fails on a new candidate, on one that has vanished, and on a unit token no
  * descriptor declares. The last matters because a missing unit registration

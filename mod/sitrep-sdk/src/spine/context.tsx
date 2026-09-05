@@ -27,6 +27,7 @@ import {
   getContributedDerivedChannels,
   onContributedChannelsChange,
 } from "./contributed-channels";
+import { registerCoreReckoners } from "./core-reckoners";
 import { DelayAuthority } from "./delay-authority";
 import { dvLegacyScalarsChannel } from "./dv-legacy-scalars";
 import {
@@ -217,6 +218,13 @@ export function TelemetryProvider({
     for (const channel of PRODUCTION_DERIVED_CHANNELS) {
       built.registerDerivedChannel(channel);
     }
+    /*
+     * Core's own forward models, through the same registry an Uplink's go
+     * through. Idempotent, and re-asserted here rather than left to the module
+     * side effect alone so a suite that cleared the registry between tests gets
+     * the vanilla back with its store.
+     */
+    registerCoreReckoners();
     // Uplink-contributed channels register AFTER the first-party ones, so a
     // topic core already owns cannot be taken over by an Uplink importing
     // itself later. Contributions are per (topic, owner) and a contested topic
