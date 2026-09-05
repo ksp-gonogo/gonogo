@@ -1,5 +1,5 @@
-import type { ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import { classifyCommandRejection, value } from "@ksp-gonogo/sitrep-sdk";
 import { ws } from "msw";
 import { setupServer } from "msw/node";
 import {
@@ -11,9 +11,14 @@ import {
   it,
   vi,
 } from "vitest";
+import { TelemetryClient } from "./client";
 import { makeMeta } from "./stub-transport";
 import type { TransportStatus } from "./transport";
-import { WebSocketTransport } from "./websocket-transport";
+import {
+  MAX_PENDING_COMMANDS,
+  SEND_QUEUE_FULL,
+  WebSocketTransport,
+} from "./websocket-transport";
 
 /**
  * Network-boundary tests for `WebSocketTransport` (browser-transport brief §
@@ -94,16 +99,21 @@ function makeFakeSocketCtor() {
   const instances: Array<{
     fire: (type: "open" | "close" | "error") => void;
     readyState: number;
+    sent: string[];
   }> = [];
 
   class FakeSocket {
     static readonly OPEN = 1;
     readyState = 0;
+    /** Every wire payload the transport handed this socket, in order. */
+    readonly sent: string[] = [];
     private readonly listeners = new Map<string, Array<() => void>>();
     constructor(_url: string) {
       instances.push(this);
     }
-    send(): void {}
+    send(data: string): void {
+      this.sent.push(data);
+    }
     close(): void {
       this.readyState = 3;
     }
@@ -113,6 +123,10 @@ function makeFakeSocketCtor() {
       this.listeners.set(type, bucket);
     }
     fire(type: "open" | "close" | "error"): void {
+      // Move `readyState` with the event, so a test that opens this socket
+      // reaches the same `readyState === OPEN` gate `sendRaw` checks.
+      if (type === "open") this.readyState = 1;
+      if (type !== "open") this.readyState = 3;
       for (const l of this.listeners.get(type) ?? []) l();
     }
   }
@@ -429,5 +443,187 @@ describe("WebSocketTransport", () => {
     await waitForStatus(transport, "connected");
     transport.dispose();
     expect(transport.status).toBe("disconnected");
+  });
+});
+
+/**
+ * The outbound queue: what the transport holds for a link that is down, and
+ * what it does when it cannot hold any more.
+ *
+ * A tab left open through a long outage kept queueing command-requests with no
+ * cap at all, so the backlog grew until the page stopped working. Bounding it
+ * means SOMETHING has to be dropped, and the rule these tests pin is that no
+ * command is ever dropped silently: every one is either delivered on the next
+ * open or refused to its sender.
+ */
+describe("WebSocketTransport outbound queue", () => {
+  /** A command-request envelope, distinguishable by `requestId`. */
+  function commandRequest(requestId: string): ClientMessage {
+    return {
+      type: "command-request",
+      requestId,
+      command: "vessel.stage",
+      label: "",
+      topic: "",
+      vantage: "",
+      args: undefined,
+      sentAt: 0,
+    };
+  }
+
+  /** A transport whose socket exists but has never opened: nothing can be sent. */
+  function downTransport() {
+    const fakes = makeFakeSocketCtor();
+    const transport = new WebSocketTransport({
+      url: SITREP_URL,
+      retryIntervalMs: 1,
+      retryTimeoutMs: 10_000,
+      WebSocketImpl: fakes.ctor,
+    });
+    const socket = fakes.instances[0];
+    expect(socket.readyState).not.toBe(1);
+    return { transport, socket };
+  }
+
+  /** One client message as it went out on the wire, read back. */
+  interface SentMessage {
+    type: string;
+    requestId?: string;
+    centreId?: string;
+    topic?: string;
+  }
+
+  /**
+   * Everything this socket was handed, decoded, in order. `JSON.parse` hands
+   * back `any`; the declared return type narrows it without an assertion.
+   */
+  function sentMessages(socket: { sent: string[] }): SentMessage[] {
+    return socket.sent.map((raw) => JSON.parse(raw));
+  }
+
+  /** The `requestId`s of the command-requests this socket actually carried, in order. */
+  function deliveredRequestIds(socket: { sent: string[] }): string[] {
+    return sentMessages(socket)
+      .filter((message) => message.type === "command-request")
+      .map((message) => message.requestId ?? "");
+  }
+
+  /** Let the refusals, which are minted in a microtask, land. */
+  const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it("accounts for every command sent while the link is down: delivered or refused, never silently dropped", async () => {
+    const { transport, socket } = downTransport();
+    const errors: Array<{ requestId?: string; code: string }> = [];
+    transport.onMessage((message) => {
+      if (message.type === "error") errors.push(message);
+    });
+
+    const ids = Array.from({ length: 5_000 }, (_, i) => `r${i}`);
+    for (const id of ids) transport.send(commandRequest(id));
+    await flush();
+
+    socket.fire("open");
+    const delivered = deliveredRequestIds(socket);
+    const refused = errors.map((error) => error.requestId);
+
+    // The backlog is BOUNDED: an outage cannot make the transport hold
+    // everything an operator (or an automation loop) ever pressed.
+    expect(delivered.length).toBeLessThan(ids.length);
+    // ...and nothing vanished on the way: the two outcomes partition the set.
+    expect([...delivered, ...refused].sort()).toEqual([...ids].sort());
+    // The survivors are the OLDEST, in order. A queue that evicted its head
+    // would run the tail of an ordered dispatch sequence without its start.
+    expect(delivered).toEqual(ids.slice(0, delivered.length));
+
+    transport.dispose();
+  });
+
+  it("holds exactly MAX_PENDING_COMMANDS, refusing only past the cap", async () => {
+    const atCap = downTransport();
+    const refusedAtCap: string[] = [];
+    atCap.transport.onMessage((message) => {
+      if (message.type === "error") refusedAtCap.push(message.code);
+    });
+    for (let i = 0; i < MAX_PENDING_COMMANDS; i++) {
+      atCap.transport.send(commandRequest(`r${i}`));
+    }
+    await flush();
+    // A cap one too tight would refuse here, and the whole backlog is legitimate.
+    expect(refusedAtCap).toEqual([]);
+    atCap.socket.fire("open");
+    expect(deliveredRequestIds(atCap.socket)).toHaveLength(
+      MAX_PENDING_COMMANDS,
+    );
+    atCap.transport.dispose();
+
+    const overCap = downTransport();
+    const refusals: Array<{ requestId?: string; code: string }> = [];
+    overCap.transport.onMessage((message) => {
+      if (message.type === "error") refusals.push(message);
+    });
+    for (let i = 0; i <= MAX_PENDING_COMMANDS; i++) {
+      overCap.transport.send(commandRequest(`r${i}`));
+    }
+    await flush();
+    // The one past the cap is refused, and it is the NEWEST that is refused.
+    expect(refusals).toHaveLength(1);
+    expect(refusals[0].requestId).toBe(`r${MAX_PENDING_COMMANDS}`);
+    expect(refusals[0].code).toBe(SEND_QUEUE_FULL);
+    overCap.transport.dispose();
+  });
+
+  it("rejects a refused dispatch as `failed`, so the operator is told a retry may work", async () => {
+    const { transport } = downTransport();
+    const client = new TelemetryClient(transport);
+
+    for (let i = 0; i < MAX_PENDING_COMMANDS; i++) {
+      // Fill the queue. These stay in flight for the whole test and are
+      // rejected by `dispose()`; swallow that, it is not what is under test.
+      client.dispatch("vessel.stage").result.catch(() => {});
+    }
+    const overflow = client.dispatch("vessel.stage");
+
+    // Raced against a short timer rather than awaited bare: a dispatch that is never answered is precisely the regression this guards, and it should read as one instead of consuming the whole test timeout in silence.
+    const rejection = await Promise.race([
+      overflow.result.then(
+        () => null,
+        (error: unknown) => classifyCommandRejection(error),
+      ),
+      new Promise<never>((_, fail) =>
+        setTimeout(
+          () => fail(new Error("the refused dispatch never settled")),
+          1_000,
+        ),
+      ),
+    ]);
+    // NOT `lost`: nothing was decided over there because nothing ever left here, and `lost` warns that re-sending could double a command that may already have run.
+    // `failed` is the honest one, and it is the outcome that invites the retry.
+    expect(rejection?.kind).toBe("failed");
+    expect(client.getCommand(overflow.requestId).phase).toBe("failed");
+
+    client.dispose();
+    transport.dispose();
+  });
+
+  it("keeps only the latest vantage selection, and replays it before re-subscribing", () => {
+    const { transport, socket } = downTransport();
+    transport.send({ type: "subscribe", topic: "vessel.state" });
+    for (const centreId of ["ksc", "woomera", "kourou"]) {
+      transport.send({ type: "set-vantage", centreId });
+    }
+
+    socket.fire("open");
+    const sent = sentMessages(socket);
+    // One selection, the last one: a vantage is state, not a backlog, so the
+    // superseded ones are dropped and nobody needs telling.
+    expect(sent.filter((message) => message.type === "set-vantage")).toEqual([
+      { type: "set-vantage", centreId: "kourou" },
+    ]);
+    // Before the re-subscribes, because the server reads the selected vantage
+    // at subscribe time: replayed after, every topic re-points at the old one.
+    expect(sent[0].type).toBe("set-vantage");
+    expect(sent[1]).toEqual({ type: "subscribe", topic: "vessel.state" });
+
+    transport.dispose();
   });
 });

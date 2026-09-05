@@ -92,6 +92,21 @@ const DEFAULT_RETRY_INTERVAL_MS = 5_000;
 const DEFAULT_RETRY_TIMEOUT_MS = 5 * 60 * 1000;
 
 /**
+ * How many undelivered command-requests the transport holds for the next open.
+ *
+ * The queue exists so a command pressed during a blink of the link still gets
+ * there; it is not storage for a whole outage. Sized well above any plausible
+ * burst of operator presses or automation dispatches across a few reconnect
+ * intervals, and far below the point where the backlog is the reason the tab
+ * stops working: an unbounded queue is what a tab left open through a long
+ * outage used to grow.
+ */
+export const MAX_PENDING_COMMANDS = 64;
+
+/** The `code` on the synthetic `error` a refused command-request is answered with. */
+export const SEND_QUEUE_FULL = "E_SEND_QUEUE_FULL";
+
+/**
  * A live `Transport` over a Sitrep mod WebSocket (`ws://<host>:<port>`,
  * default port 8090: the `GonogoAddon`/Fleck server).
  *
@@ -151,8 +166,26 @@ export class WebSocketTransport implements Transport {
 
   /** Topics with a live `subscribe` (no matching `unsubscribe`), re-sent on every fresh open. */
   private readonly subscribedTopics = new Set<string>();
-  /** Non-subscribe messages (command-requests) issued while the socket wasn't open, flushed on open. */
-  private readonly pendingSends: ClientMessage[] = [];
+  /**
+   * Command-requests issued while the socket wasn't open, flushed on open.
+   * Capped at {@link MAX_PENDING_COMMANDS}; see {@link send} for what happens
+   * to the one that does not fit.
+   */
+  private readonly pendingCommands: Array<
+    Extract<ClientMessage, { type: "command-request" }>
+  > = [];
+  /**
+   * The vantage this connection has selected, replayed on every fresh open.
+   *
+   * State, not a queued message, which is why it does not share the command
+   * queue's cap: a selection supersedes the one before it, so switching
+   * command centre repeatedly during an outage can only ever leave one. It is
+   * also why it is replayed on EVERY open rather than only when one was missed:
+   * a reconnect gets a new `ClientSession` on the mod, whose `SelectedVantage`
+   * defaults back to `ksc`, and a client that did not re-assert its selection
+   * would go on naming a command centre its data is not from.
+   */
+  private selectedVantage: string | null = null;
   private readonly carried = new Set<string>();
 
   constructor(options: WebSocketTransportOptions = {}) {
@@ -178,6 +211,30 @@ export class WebSocketTransport implements Transport {
     return [...this.carried];
   }
 
+  /**
+   * Hand a message to the socket, or hold what can be held until the next open.
+   *
+   * The message types that reach here fall into two kinds, and they do not want
+   * the same treatment while the link is down. Subscriptions and the vantage
+   * selection are STATE: the live set is replayed on every open, so one sent
+   * into a dead socket costs nothing and needs no queue. A command-request is
+   * an EVENT: it happened once, nothing replays it, and dropping one is a real
+   * loss.
+   *
+   * So only commands queue, and the queue is bounded. Past the cap the NEWEST
+   * is refused rather than the oldest evicted, for two reasons:
+   *
+   * - the backlog drains in order on reconnect, and a sequence whose head was
+   *   evicted runs its tail without its start (an ordered burn sequence,
+   *   `ManeuverPlanner.dispatchPlanBurns`, is exactly that shape). Refusing
+   *   admission keeps whatever WAS accepted an unbroken prefix
+   * - the refusal is minted AT THE PRESS, while the command is still
+   *   `in-flight`, so `TelemetryClient` settles it `failed`. A late eviction
+   *   would land after the client's own loss timer had already called the
+   *   command `lost`, and an `error` correlated to a lost requestId is read as
+   *   proof the mod received it (`handleCommandError` flips it to `found`).
+   *   Evicting later would therefore have to lie about where the command got to
+   */
   send(message: ClientMessage): void {
     if (message.type === "subscribe") {
       this.subscribedTopics.add(message.topic);
@@ -189,8 +246,42 @@ export class WebSocketTransport implements Transport {
       this.sendRaw(message);
       return;
     }
-    // command-request: deliver now if we can, otherwise queue for the next open.
-    if (!this.sendRaw(message)) this.pendingSends.push(message);
+    if (message.type === "set-vantage") {
+      this.selectedVantage = message.centreId;
+      this.sendRaw(message);
+      return;
+    }
+    if (this.sendRaw(message)) return;
+    if (this.pendingCommands.length >= MAX_PENDING_COMMANDS) {
+      this.refuseCommand(message.requestId);
+      return;
+    }
+    this.pendingCommands.push(message);
+  }
+
+  /**
+   * Answer a command the transport will not carry, on the same channel a
+   * server-side failure would arrive on, so `TelemetryClient` settles the
+   * dispatch promise as `failed` and the operator gets told rather than left
+   * watching an in-flight rail that will never move. Same shape as
+   * `PeerTransport`'s `E_PEER_DISCONNECTED` refusal, including the deferral to
+   * a later tick so it never settles inside the caller's own `dispatch()`.
+   *
+   * `failed` and not `lost` is the honest half: the command never left this
+   * machine, so nothing was decided over there and a retry cannot double
+   * anything.
+   */
+  private refuseCommand(requestId: string): void {
+    queueMicrotask(() =>
+      this.deliver({
+        type: "error",
+        requestId,
+        code: SEND_QUEUE_FULL,
+        message:
+          `not sent: ${MAX_PENDING_COMMANDS} commands are already waiting for ` +
+          "the link to come back. Retry once it does.",
+      }),
+    );
   }
 
   onMessage(listener: (message: ServerMessage) => void): () => void {
@@ -254,11 +345,15 @@ export class WebSocketTransport implements Transport {
       // retries: fatal for hours-long sessions.
       this.retryStart = null;
       this.setStatus("connected");
+      // Re-assert the vantage FIRST: the mod reads the session's selected vantage at subscribe time, so a re-subscribe sent ahead of it would re-point every topic at the fresh session's default.
+      if (this.selectedVantage !== null) {
+        this.sendRaw({ type: "set-vantage", centreId: this.selectedVantage });
+      }
       // Re-subscribe to everything still active, then drain queued commands.
       for (const topic of this.subscribedTopics) {
         this.sendRaw({ type: "subscribe", topic });
       }
-      const queued = this.pendingSends.splice(0);
+      const queued = this.pendingCommands.splice(0);
       for (const message of queued) this.sendRaw(message);
     });
     ws.addEventListener("message", (event) => {
@@ -345,6 +440,11 @@ export class WebSocketTransport implements Transport {
       this.onStreamFrame?.({ topic: message.topic, byteLength: text.length });
     }
 
+    this.deliver(message);
+  }
+
+  /** Fan one server message out to every listener. */
+  private deliver(message: ServerMessage): void {
     for (const listener of this.messageListeners) {
       try {
         listener(message);

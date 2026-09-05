@@ -568,7 +568,7 @@ describe("useCommand losses", () => {
  *
  * `lost` gives the operator permission to stop waiting; it guarantees nothing
  * about execution. A queued command really is re-sent when the socket comes
- * back (`WebSocketTransport` flushes `pendingSends` with no expiry check), and a
+ * back (`WebSocketTransport` flushes `pendingCommands` with no expiry check), and a
  * reply really can just be slow, so the command can execute after we called it
  * lost. `EtaTransport` reproduces exactly that: the loss timer fires with
  * nothing back, and then a reply arrives.
