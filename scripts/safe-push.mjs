@@ -41,7 +41,19 @@ const incomingIsOnlyDocsBot = (branch) => {
   const authors = capture0(["log", "--format=%an", range]).split("\n");
   if (authors.length === 0 || authors.some((a) => a !== "github-actions[bot]"))
     return false;
-  const files = capture0(["diff", "--name-only", range]).split("\n");
+  // THREE dots. `diff A..B` compares the two TREES, so once this branch has any
+  // commit of its own — which is the only situation in which we are pushing —
+  // it lists our files alongside the remote's and the every-file test below
+  // fails on our own work. `A...B` is the changes on the REMOTE side since the
+  // merge base, which is what "everything the remote has gained" means. The
+  // two-dot form made this helper report false in every real push: measured at
+  // 28 files against 3 on the run that found it, which is why five rejections
+  // in one night each cost a full gate despite the rebase existing.
+  const files = capture0([
+    "diff",
+    "--name-only",
+    `HEAD...origin/${branch}`,
+  ]).split("\n");
   return (
     files.length > 0 &&
     files.every((f) =>
