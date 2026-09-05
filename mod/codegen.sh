@@ -348,6 +348,17 @@ echo "codegen -> $realfuels_out_dir/topic-map.ts"
 echo "codegen -> $realfuels_out_dir/units.ts"
 echo "codegen -> $realfuels_out_dir/units.json"
 
+# asyncapi.yaml is generated from the SAME contract assemblies as everything
+# above, and it lives at the repo ROOT rather than in a __generated__ directory.
+# It used to be regenerated only by scripts/codegen-check.sh, so running this
+# script looked like it had finished the job and had not: one contract
+# doc-comment edit lands in BOTH contract.ts and asyncapi.yaml, they are checked
+# by two unrelated gates in two different CI jobs, and passing the first said
+# nothing about the second. That cost two pushes on 2026-09-05, both found
+# minutes later at the push gate.
+node "$ROOT/scripts/asyncapi-doc.mjs"
+echo "codegen -> asyncapi.yaml"
+
 # ui-kit's symbol -> kind table is generated FROM the SDK's unit model rather
 # than hand-maintained beside it. It is a separate step because its input is
 # TypeScript rather than the C# assembly: see scripts/gen-unit-kinds.mjs. Run
