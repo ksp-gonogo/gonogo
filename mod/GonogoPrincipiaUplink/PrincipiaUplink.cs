@@ -667,14 +667,39 @@ namespace GonogoPrincipiaUplink
         /// </summary>
         internal void RegisterPropagation(IUplinkHost host)
         {
+            AttachGravityModel();
+            AttachPerturbers();
+            var perturbers = _perturbers ?? (_ => NoPerturbers);
             host.Kernel.RegisterProvider(new ProviderRegistration
             {
                 Capability = PropagationCapability.Id,
                 Id = PrincipiaPropagationProvider.ProviderIdValue,
+                // The force model reaches the provider DIRECTLY rather than through
+                // the capability it is also registered under. Those are different
+                // questions: what an integration runs against is core's to resolve
+                // from whoever won, but how far THIS Uplink will vouch for a craft is
+                // a statement about its OWN model, and asking the election for it
+                // would let one mod's provider bound itself with another's masses.
                 Factory = ctx => new PrincipiaPropagationProvider(
-                    ctx.Vanilla<IPropagationProvider>(PropagationCapability.Id)),
+                    ctx.Vanilla<IPropagationProvider>(PropagationCapability.Id),
+                    () => _gravityModel?.Model,
+                    perturbers),
             });
         }
+
+        /// <summary>
+        /// Sets <c>_perturbers</c> to the real body-tree walk. Implemented only in
+        /// the game-facing partial, on the same terms as
+        /// <see cref="AttachGravityModel"/>: a build that omits that file sums
+        /// nothing, and a bound with nothing summed is the cycle ceiling alone, which
+        /// is never longer than the horizon this Uplink used to get.
+        /// </summary>
+        partial void AttachPerturbers();
+
+        /// <summary>Test seam: the neighbourhood injected, so the bound is provable with no game.</summary>
+        private Func<int, IReadOnlyList<PrincipiaPerturber>>? _perturbers;
+
+        private static readonly PrincipiaPerturber[] NoPerturbers = new PrincipiaPerturber[0];
 
         /// <summary>
         /// Offers the producer's plotting frame as the game's control frame.

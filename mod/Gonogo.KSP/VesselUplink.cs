@@ -346,8 +346,8 @@ namespace Gonogo.KSP
             // needs the game to compile and so sits outside every test run, and an
             // `is` check written here is one nothing can reach. The whole call is
             // now a lambda around a core method a resolved kernel can be handed.
-            VesselViewProvider.SetIntegratingProviderSource(
-                () => PropagationElection.ElectedIntegrates(_kernel));
+            VesselViewProvider.SetHorizonSource(
+                (target, sampleUt) => PropagationElection.HorizonFor(_kernel, target, sampleUt));
 
             // The other half of the same fact. Saying a trajectory is integrated
             // and then publishing only the osculating conic it is tangent to leaves

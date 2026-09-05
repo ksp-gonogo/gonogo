@@ -22,15 +22,15 @@ namespace Sitrep.Host.Tests
     /// today: no other test asserts on the horizon or the arc, so a concurrent
     /// class cannot see what this one installs.</para>
     ///
-    /// <para><b>Nothing here hand-sets the integrating gate, and that is a
-    /// correction rather than a style.</b> Every case below used to install
-    /// <c>SetIntegratingProviderSource(() =&gt; true)</c> directly, which asserts
-    /// everything downstream of the gate and nothing about whether any install can
-    /// open it. The gate had no implementer at all for the whole life of the
-    /// feature and this file was green throughout. So each case now RESOLVES a
-    /// kernel and installs the same expression production installs,
-    /// <see cref="PropagationElection.ElectedIntegrates"/>: what a test chooses is
-    /// which provider the install has, and the gate is computed from that.</para>
+    /// <para><b>Nothing here hand-sets the horizon, and that is a correction rather
+    /// than a style.</b> Every case below used to install a hand-written integrating
+    /// flag directly, which asserts everything downstream of the gate and nothing
+    /// about whether any install can open it. The gate had no implementer at all for
+    /// the whole life of the feature and this file was green throughout. So each case
+    /// now RESOLVES a kernel and installs the same expression production installs,
+    /// <see cref="PropagationElection.HorizonFor"/>: what a test chooses is which
+    /// provider the install has, and both the shape and the reach are computed from
+    /// that.</para>
     /// </summary>
     [Collection("VesselViewProviderStatics")]
     public class OrbitCarriesItsArcTests : IDisposable
@@ -42,7 +42,7 @@ namespace Sitrep.Host.Tests
             // Both resolvers are static, so a test that installed one and walked
             // away would change what every later test in this assembly sees.
             VesselViewProvider.SetTrajectoryArcSource(null);
-            VesselViewProvider.SetIntegratingProviderSource(() => false);
+            VesselViewProvider.SetHorizonSource(null);
         }
 
         /// <summary>
@@ -50,7 +50,7 @@ namespace Sitrep.Host.Tests
         /// way production wires it: a resolved kernel, and core's own question asked
         /// of whichever provider won.
         /// </summary>
-        private static void IntegratingInstall()
+        private static void IntegratingInstall(IPropagationProvider? provider = null)
         {
             var kernel = new Kernel();
             PropagationElection.RegisterCapability(kernel);
@@ -59,7 +59,7 @@ namespace Sitrep.Host.Tests
                 Capability = PropagationElection.CapabilityId,
                 Id = "an-nbody-backend",
                 Priority = 100.0,
-                Factory = _ => new IntegratingProvider(),
+                Factory = _ => provider ?? new IntegratingProvider(),
             });
             kernel.Resolve(new ResolveOptions { KernelVersion = "1.0.0" });
 
@@ -67,8 +67,8 @@ namespace Sitrep.Host.Tests
                 PropagationElection.ElectedIntegrates(kernel),
                 "the registered integrating provider did not win the election, so nothing "
                 + "below is testing what it claims to");
-            VesselViewProvider.SetIntegratingProviderSource(
-                () => PropagationElection.ElectedIntegrates(kernel));
+            VesselViewProvider.SetHorizonSource(
+                (target, sampleUt) => PropagationElection.HorizonFor(kernel, target, sampleUt));
         }
 
         /// <summary>
@@ -85,17 +85,103 @@ namespace Sitrep.Host.Tests
                 PropagationElection.ElectedIntegrates(kernel),
                 "the stock two-body vanilla claimed integrated trajectories, so the gate is "
                 + "not discriminating and every assertion here is vacuous");
-            VesselViewProvider.SetIntegratingProviderSource(
-                () => PropagationElection.ElectedIntegrates(kernel));
+            VesselViewProvider.SetHorizonSource(
+                (target, sampleUt) => PropagationElection.HorizonFor(kernel, target, sampleUt));
         }
 
         /// <summary>
-        /// A provider that integrates, in the only way that matters to the gate: it
-        /// carries the marker. Its arithmetic is never asked for here, because the
-        /// gate is a question about the TYPE and this file is about what the gate
-        /// then does.
+        /// A provider that integrates and vouches for a whole cycle of it: the marker
+        /// for the shape, and a bound generous enough that the cases below are about
+        /// what the horizon then DOES rather than about where it falls. Where it
+        /// falls is <see cref="VouchingProvider"/>'s subject.
         /// </summary>
         private sealed class IntegratingProvider : IPropagationProvider, IIntegratedTrajectorySource
+        {
+            /// <summary>The cycle these elements imply, near enough: 700 km of semi-major axis about a mu of 3.5316e12.</summary>
+            public const double CycleSeconds = 1958.0;
+
+            public string ProviderId => "an-nbody-backend";
+
+            public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut) =>
+                new StateVector(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+
+            public void SolveMany(
+                PropagationTarget target,
+                PropagationFrame frame,
+                IReadOnlyList<double> uts,
+                StateVector[] into)
+            {
+            }
+
+            public double? CharacteristicCycleSeconds(PropagationTarget target) => CycleSeconds;
+
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) => null;
+
+            public bool CanPropagate(
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) => true;
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) => null;
+        }
+
+        /// <summary>
+        /// A provider that integrates AND states how far it will vouch for a set of
+        /// osculating elements: it refuses any window longer than
+        /// <c>span</c>, which is what a provider whose horizon is a local property
+        /// of the craft does.
+        /// </summary>
+        private sealed class VouchingProvider : IPropagationProvider, IIntegratedTrajectorySource
+        {
+            private readonly double _cycle;
+            private readonly double _span;
+
+            public VouchingProvider(double cycleSeconds, double spanSeconds)
+            {
+                _cycle = cycleSeconds;
+                _span = spanSeconds;
+            }
+
+            public string ProviderId => "an-nbody-backend";
+
+            public StateVector Solve(PropagationTarget target, PropagationFrame frame, double ut) =>
+                new StateVector(new Vector3d(0, 0, 0), new Vector3d(0, 0, 0));
+
+            public void SolveMany(
+                PropagationTarget target,
+                PropagationFrame frame,
+                IReadOnlyList<double> uts,
+                StateVector[] into)
+            {
+            }
+
+            public double? CharacteristicCycleSeconds(PropagationTarget target) => _cycle;
+
+            public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) => null;
+
+            public bool CanPropagate(
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) =>
+                toUt - fromUt <= _span;
+
+            public ClosestApproach? SolveClosestApproach(
+                PropagationTarget subject,
+                PropagationTarget other,
+                PropagationFrame frame,
+                double fromUt,
+                double toUt) => null;
+        }
+
+        /// <summary>
+        /// A provider whose bound is a property of the CRAFT rather than of the
+        /// install: it reads the target's own elements and vouches for a window
+        /// proportional to their eccentricity. Nothing about that number is
+        /// physical; what matters is that two craft on the same cycle get different
+        /// answers, which a fraction of a cycle cannot produce.
+        /// </summary>
+        private sealed class PerCraftProvider : IPropagationProvider, IIntegratedTrajectorySource
         {
             public string ProviderId => "an-nbody-backend";
 
@@ -110,12 +196,13 @@ namespace Sitrep.Host.Tests
             {
             }
 
-            public double? CharacteristicCycleSeconds(PropagationTarget target) => null;
+            public double? CharacteristicCycleSeconds(PropagationTarget target) => 4000.0;
 
             public RadiusExtremes? RadiusExtremesOf(PropagationTarget target) => null;
 
             public bool CanPropagate(
-                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) => false;
+                PropagationTarget target, PropagationFrame frame, double fromUt, double toUt) =>
+                toUt - fromUt <= 10_000.0 * (target.Osculating?.Ecc ?? 0.0);
 
             public ClosestApproach? SolveClosestApproach(
                 PropagationTarget subject,
@@ -156,7 +243,7 @@ namespace Sitrep.Host.Tests
             },
         };
 
-        private static KspSnapshot Snapshot() => new KspSnapshot
+        private static KspSnapshot Snapshot(double ecc = 0.01) => new KspSnapshot
         {
             Ut = 0.0,
             Values = new Dictionary<string, object?>
@@ -167,7 +254,7 @@ namespace Sitrep.Host.Tests
                     ["orbit"] = new Dictionary<string, object?>
                     {
                         ["sma"] = 700_000.0,
-                        ["ecc"] = 0.01,
+                        ["ecc"] = ecc,
                         ["inc"] = 5.0,
                         ["lan"] = 10.0,
                         ["argPe"] = 20.0,
@@ -226,6 +313,69 @@ namespace Sitrep.Host.Tests
             // for forever.
             Assert.NotNull(orbit.Horizon.UntilUt);
             Assert.True(orbit.Horizon.UntilUt!.Value > 0.0);
+        }
+
+        /// <summary>
+        /// The horizon is the window the PROVIDER vouches for, not a fraction of a
+        /// cycle core picked.
+        ///
+        /// <para>The two answers are different numbers here on purpose: these
+        /// elements imply a cycle of about 1958 seconds, so a quarter-cycle rule
+        /// lands near 490 while the provider will only vouch for 300. Whose number
+        /// arrives is the whole question, and the horizon is a LOCAL property of the
+        /// craft that only the provider can compute.</para>
+        /// </summary>
+        [Fact]
+        public void TheHorizonIsTheWindowTheProviderVouchesFor()
+        {
+            IntegratingInstall(new VouchingProvider(cycleSeconds: 4000.0, spanSeconds: 300.0));
+
+            var orbit = VesselViewProvider.BuildOrbit(Snapshot());
+
+            Assert.Equal(PropagationHorizonKind.Until, orbit!.Horizon.Kind);
+            Assert.Equal(300.0, orbit.Horizon.UntilUt!.Value, 1);
+        }
+
+        /// <summary>
+        /// Two craft whose elements differ get horizons that differ, because the
+        /// provider's bound is a property of the craft and not of the install.
+        ///
+        /// <para>This is the failure the flat rule could not express: the same save
+        /// at the same instant has horizons orders of magnitude apart between craft,
+        /// and a constant fraction of each one's own cycle cannot produce that.</para>
+        /// </summary>
+        [Fact]
+        public void TwoCraftOnTheSameCycleCanHaveDifferentHorizons()
+        {
+            IntegratingInstall(new PerCraftProvider());
+
+            var calm = VesselViewProvider.BuildOrbit(Snapshot(ecc: 0.01));
+            var stirred = VesselViewProvider.BuildOrbit(Snapshot(ecc: 0.02));
+
+            Assert.Equal(PropagationHorizonKind.Until, calm!.Horizon.Kind);
+            Assert.Equal(PropagationHorizonKind.Until, stirred!.Horizon.Kind);
+            Assert.Equal(100.0, calm.Horizon.UntilUt!.Value, 1);
+            Assert.Equal(200.0, stirred.Horizon.UntilUt!.Value, 1);
+        }
+
+        /// <summary>
+        /// A provider that will not vouch for any window at all publishes no
+        /// horizon, rather than one core computed on its behalf.
+        ///
+        /// <para>Unspecified reads as unpropagatable, which is the safe direction:
+        /// the elements still publish, and no client draws a curve nothing vouched
+        /// for.</para>
+        /// </summary>
+        [Fact]
+        public void AProviderThatVouchesForNothingPublishesNoHorizon()
+        {
+            IntegratingInstall(new VouchingProvider(cycleSeconds: 4000.0, spanSeconds: -1.0));
+
+            var orbit = VesselViewProvider.BuildOrbit(Snapshot());
+
+            Assert.Equal(TrajectoryKind.Integrated, orbit!.Horizon.TrajectoryKind);
+            Assert.Equal(PropagationHorizonKind.Unspecified, orbit.Horizon.Kind);
+            Assert.Null(orbit.Horizon.UntilUt);
         }
 
         [Fact]

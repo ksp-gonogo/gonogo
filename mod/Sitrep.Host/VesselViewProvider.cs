@@ -238,14 +238,21 @@ namespace Sitrep.Host
             }
 
             var patches = MapOrbitPatches(orbit.TryGetValue("patches", out var rawPatches) ? rawPatches : null);
-            var horizon = ElementHorizon(snapshot.Ut, sma.Value, mu.Value);
             // Through FromKspDegrees, never the plain constructor: inc/lan/argPe
             // are degrees on this record and radians in the elements, and passing
             // the degree values compiles, runs, and yields a rotated orbit.
-            var arc = ElementArc(vesselId, referenceBodyIndex.Value, horizon, snapshot.Ut,
+            var target = PropagationTarget.Vessel(
+                vesselId,
+                referenceBodyIndex.Value,
                 OrbitElements.FromKspDegrees(
                     sma.Value, ecc.Value, inc.Value, lan ?? 0.0, argPe ?? 0.0,
                     maae.Value, epoch.Value, mu.Value));
+            // The target is built before the horizon rather than after, because the
+            // horizon is asked ABOUT this craft: a provider that integrates bounds
+            // each craft from its own force model, and cannot answer for one it has
+            // not been shown.
+            var horizon = ElementHorizon(target, snapshot.Ut);
+            var arc = ElementArc(target, horizon, snapshot.Ut);
 
             return new VesselOrbit
             {
@@ -304,11 +311,9 @@ namespace Sitrep.Host
         /// the bound here would put that back one layer down.</para>
         /// </summary>
         private static TrajectoryArcAnswer ElementArc(
-            string vesselId,
-            int referenceBodyIndex,
+            PropagationTarget target,
             PropagationHorizon horizon,
-            double sampleUt,
-            OrbitElements elements)
+            double sampleUt)
         {
             var source = _arcSource;
             if (source == null) return TrajectoryArcAnswer.NotAttempted();
@@ -318,10 +323,7 @@ namespace Sitrep.Host
 
             try
             {
-                return source(
-                    PropagationTarget.Vessel(vesselId, referenceBodyIndex, elements),
-                    sampleUt,
-                    toUt.Value);
+                return source(target, sampleUt, toUt.Value);
             }
             catch (Exception)
             {
@@ -333,76 +335,58 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Whether the ELECTED propagation provider integrates. Late-bound
-        /// because the capability kernel is not resolved when this static class
-        /// is first touched, the same reason the actuator's own resolvers are.
+        /// The horizon and shape a craft's elements carry, late-bound because the
+        /// capability kernel is not resolved when this static class is first touched,
+        /// the same reason the actuator's own resolvers are.
         ///
-        /// <para>A bool rather than the provider, so this class never links the
-        /// propagation interfaces, and so nothing here can branch on a provider
-        /// ID. The TYPE check that produces it lives at the election site, which
-        /// is the only place entitled to recognise its own registrations.</para>
+        /// <para>A delegate over a plain contract type rather than the provider
+        /// itself, so this class never links the propagation assembly and nothing
+        /// here can branch on which provider won. The composition that produces it,
+        /// the TYPE check for the shape and the provider's own answer for the reach,
+        /// lives at the election site, which is the only place entitled to recognise
+        /// its own registrations.</para>
+        ///
+        /// <para>It takes the TARGET and not just a period, because the reach is a
+        /// local property of the craft: the same save at the same instant has
+        /// horizons differing by orders of magnitude between craft, so anything
+        /// answering from the cycle alone is answering a question it cannot see.</para>
         /// </summary>
-        private static Func<bool>? _electedIsIntegrating;
+        private static Func<PropagationTarget, double, PropagationHorizon>? _horizonSource;
 
-        /// <summary>Installs the integrating-provider resolver; see <see cref="_electedIsIntegrating"/>.</summary>
-        public static void SetIntegratingProviderSource(Func<bool> resolver)
+        /// <summary>Installs the horizon resolver, or clears it with null; see <see cref="_horizonSource"/>.</summary>
+        public static void SetHorizonSource(
+            Func<PropagationTarget, double, PropagationHorizon>? resolver)
         {
-            _electedIsIntegrating = resolver;
+            _horizonSource = resolver;
         }
 
         /// <summary>
-        /// The horizon and shape these elements carry.
+        /// The horizon and shape these elements carry, asked of whoever propagates
+        /// them.
         ///
-        /// <para>Under the stock analytic solver: <c>Analytic</c> and
-        /// <c>Unbounded</c>, both stated rather than defaulted, because
-        /// <c>Unspecified</c> is what a producer that forgot would send and that
-        /// has to stay distinguishable.</para>
-        ///
-        /// <para>Under a provider that INTEGRATES: <c>Integrated</c>, and a
-        /// horizon a quarter of a characteristic cycle ahead of this sample. If
-        /// the cycle cannot be computed the horizon stays <c>Unspecified</c>
-        /// rather than claiming <c>Until</c> with a fabricated UT: a client reads
-        /// that as unpropagatable, which is the safe direction.</para>
+        /// <para>With no resolver installed, or with one that faults: <c>Analytic</c>
+        /// and <c>Unbounded</c>, which is what an install with no n-body backend has
+        /// anyway. Both stated rather than defaulted, because <c>Unspecified</c> is
+        /// what a producer that forgot would send and that has to stay
+        /// distinguishable.</para>
         /// </summary>
-        private static PropagationHorizon ElementHorizon(double sampleUt, double sma, double mu)
+        private static PropagationHorizon ElementHorizon(PropagationTarget target, double sampleUt)
         {
-            var integrating = false;
-            try
-            {
-                integrating = _electedIsIntegrating?.Invoke() ?? false;
-            }
-            catch (Exception)
-            {
-                // A resolver fault must not cost the whole orbit payload. False is
-                // the conservative read: it publishes the analytic answer, which
-                // is what an install with no n-body backend has anyway.
-                integrating = false;
-            }
-
-            if (!integrating)
+            var source = _horizonSource;
+            if (source == null)
             {
                 return AnalyticHorizon();
             }
 
-            var untilUt = IntegratedHorizon.UntilUt(sampleUt, CycleSecondsOf(sma, mu));
-            return new PropagationHorizon
+            try
             {
-                TrajectoryKind = TrajectoryKind.Integrated,
-                Kind = untilUt == null ? PropagationHorizonKind.Unspecified : PropagationHorizonKind.Until,
-                UntilUt = untilUt,
-            };
-        }
-
-        /// <summary>The orbital period, or null when the elements cannot produce one.</summary>
-        private static double? CycleSecondsOf(double sma, double mu)
-        {
-            if (sma <= 0.0 || mu <= 0.0 ||
-                double.IsNaN(sma) || double.IsNaN(mu) ||
-                double.IsInfinity(sma) || double.IsInfinity(mu))
-            {
-                return null;
+                return source(target, sampleUt) ?? AnalyticHorizon();
             }
-            return 2.0 * Math.PI * Math.Sqrt(sma * sma * sma / mu);
+            catch (Exception)
+            {
+                // A resolver fault must not cost the whole orbit payload.
+                return AnalyticHorizon();
+            }
         }
 
         private static PropagationHorizon AnalyticHorizon() =>

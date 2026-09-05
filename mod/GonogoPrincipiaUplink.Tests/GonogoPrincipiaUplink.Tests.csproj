@@ -22,14 +22,19 @@
        framework; the uplink needs Sitrep.Contract for ISitrepUplink.
 
        PrincipiaUplink.Observer.cs, PrincipiaSettingsSource.cs,
-       PrincipiaGravityModelSource.cs and PrincipiaSession.Live.cs are deliberately
-       ABSENT. They are the only files naming a KSP or Harmony type, and both
-       PrincipiaUplink and PrincipiaSession are partial precisely so that omitting
-       them still compiles: the AttachObserver and AttachGravityModel partial method
-       calls disappear and the publish rule is driven by a fake observer instead, and
-       the sourcing protocol runs against a fake plugin with no way to find a real
-       one. Adding any of them here would trade that coverage for a reference this
-       project does not need.
+       PrincipiaGravityModelSource.cs, PrincipiaPerturbers.cs and
+       PrincipiaSession.Live.cs are deliberately ABSENT. They are the only files
+       naming a KSP or Harmony type, and both PrincipiaUplink and PrincipiaSession
+       are partial precisely so that omitting them still compiles: the AttachObserver,
+       AttachGravityModel and AttachPerturbers partial method calls disappear and the
+       publish rule is driven by a fake observer instead, and the sourcing protocol
+       runs against a fake plugin with no way to find a real one. Adding any of them
+       here would trade that coverage for a reference this project does not need.
+
+       The horizon splits the same way. PrincipiaPerturbers is the body-tree walk
+       and is absent; PrincipiaHorizonBound is the arithmetic and the rig-measured
+       constants and is here, driven against the masses and distances the live save
+       actually had.
 
        The gravity model splits the same way and for the same reason. The GameDatabase
        walk and the star's-own-tree walk are in PrincipiaGravityModelSource and are
@@ -84,6 +89,7 @@
     <Compile Include="..\GonogoPrincipiaUplink\ReflectedPrincipiaPlugin.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\GravityModelParser.cs" />
     <Compile Include="..\GonogoPrincipiaUplink\PrincipiaPropagationProvider.cs" />
+    <Compile Include="..\GonogoPrincipiaUplink\PrincipiaHorizonBound.cs" />
 
     <!-- The write surface, all of it. Not one line of it needs the game: the
          register, the authority, the gates, the burn and integrator rules, the

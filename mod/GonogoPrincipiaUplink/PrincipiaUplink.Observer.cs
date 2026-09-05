@@ -20,5 +20,10 @@ namespace GonogoPrincipiaUplink
         {
             _gravityModel ??= new PrincipiaGravityModelSource();
         }
+
+        partial void AttachPerturbers()
+        {
+            _perturbers ??= PrincipiaPerturbers.Around;
+        }
     }
 }

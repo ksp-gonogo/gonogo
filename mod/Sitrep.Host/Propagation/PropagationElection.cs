@@ -131,5 +131,49 @@ namespace Sitrep.Host.Propagation
         /// </summary>
         public static bool ElectedIntegrates(Kernel? kernel) =>
             kernel != null && Elected(kernel) is IIntegratedTrajectorySource;
+
+        /// <summary>
+        /// The horizon and shape a craft's published elements carry: what KIND of
+        /// answer they are, and how far they reach.
+        ///
+        /// <para><b>The two halves come from different places on purpose.</b> The
+        /// shape is an IDENTITY question, and identity is this site's to answer:
+        /// whether an install's trajectories are integrated is a property of which
+        /// provider won. The reach is not. It is a local property of one craft at one
+        /// instant, differing by orders of magnitude between craft in the same save,
+        /// and only the provider that models the forces can say what it is. So the
+        /// reach is asked of the provider through
+        /// <see cref="IPropagationProvider.CanPropagate"/>, which is where a provider
+        /// states its own limits and has always been.</para>
+        ///
+        /// <para>An analytic provider reports <c>Unbounded</c> and <c>Analytic</c>,
+        /// both stated rather than defaulted, because <c>Unspecified</c> is what a
+        /// producer that forgot would send and that has to stay distinguishable. So
+        /// does a kernel that is not up yet: closed-form is the withholding
+        /// answer.</para>
+        /// </summary>
+        public static PropagationHorizon HorizonFor(
+            Kernel? kernel, PropagationTarget target, double sampleUt)
+        {
+            var provider = kernel == null ? null : Elected(kernel);
+            if (!(provider is IIntegratedTrajectorySource))
+            {
+                return new PropagationHorizon
+                {
+                    Kind = PropagationHorizonKind.Unbounded,
+                    TrajectoryKind = TrajectoryKind.Analytic,
+                };
+            }
+
+            var untilUt = IntegratedHorizon.UntilUt(provider!, target, sampleUt);
+            return new PropagationHorizon
+            {
+                TrajectoryKind = TrajectoryKind.Integrated,
+                Kind = untilUt == null
+                    ? PropagationHorizonKind.Unspecified
+                    : PropagationHorizonKind.Until,
+                UntilUt = untilUt,
+            };
+        }
     }
 }

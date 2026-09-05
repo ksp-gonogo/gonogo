@@ -41,9 +41,9 @@ export const ANALYTIC_UNBOUNDED_HORIZON = {
  * the sample instant, good until `untilUt` and no further.
  *
  * `untilUt` is a UT rather than a duration, per `PropagationHorizon.UntilUt`.
- * The default is a quarter of a ~2000 s low-orbit period ahead of UT 0, which
- * is the shape `IntegratedHorizon.UntilUt` produces; pass an explicit one when
- * a test cares where the arc stops.
+ * The default is a few minutes past UT 0, in the range a low orbit's provider
+ * vouches for; the real number is per craft and comes from whoever propagates
+ * it, so pass an explicit one when a test cares where the arc stops.
  */
 export function integratedHorizon(untilUt = 500) {
   return {

@@ -142,7 +142,11 @@ namespace GonogoPrincipiaUplink.Tests
         public void EveryClosedFormQuestionIsForwardedToTheDisplacedSolver()
         {
             var conics = new RecordingConics();
-            var provider = new PrincipiaPropagationProvider(conics);
+            var provider = new PrincipiaPropagationProvider(
+                conics, () => null, _ => new PrincipiaPerturber[0]);
+            // A BODY, deliberately: the horizon this provider computes for itself is
+            // a statement about a CRAFT's osculating elements, and asking it about a
+            // body is asking the pure forwarding question.
             var target = PropagationTarget.Body(1);
             var frame = PropagationFrame.CentredOn(0);
 
@@ -165,7 +169,8 @@ namespace GonogoPrincipiaUplink.Tests
         [Fact]
         public void AProviderWithNoDisplacedSolverIsRefusedRatherThanAnsweringZero()
         {
-            Assert.Throws<ArgumentNullException>(() => new PrincipiaPropagationProvider(null!));
+            Assert.Throws<ArgumentNullException>(() => new PrincipiaPropagationProvider(
+                null!, () => null, _ => new PrincipiaPerturber[0]));
         }
 
         /// <summary>
