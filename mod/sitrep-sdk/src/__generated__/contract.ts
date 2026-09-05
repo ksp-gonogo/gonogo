@@ -582,8 +582,7 @@ export interface ChannelEmissionReport
 *
 * The channel is a BARE ARRAY of these entries (tagged `isArray: true`, like
 * `SpaceCenterPoiEntry`), one per active centre keyed by
-* `CommandCentreEntry.id`. A TS-shape-only typing/codegen marker: the producer
-* hand-flattens each centre to a dictionary, this POCO never serializes raw.
+* `CommandCentreEntry.id`.
 */
 export interface CommandCentreEntry
 {

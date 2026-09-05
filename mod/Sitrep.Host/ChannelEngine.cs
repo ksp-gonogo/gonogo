@@ -2909,15 +2909,33 @@ namespace Sitrep.Host
             var reply = answer.Solved
                 ? VantagePlanReply.From(answer, vantage)
                 : VantagePlanReply.Refused(answer.Refusal ?? "No trajectory could be computed.");
-            return new Dictionary<string, object?>
+            return ToWire(reply);
+        }
+
+        /// <summary>
+        /// The planning reply's wire shape.
+        ///
+        /// <para>The arc goes through <see cref="VesselViewProvider.ToWire(TrajectoryArc)"/>,
+        /// the same flattener <c>vessel.orbit</c>'s own arc uses, rather than being
+        /// dropped into the dictionary as a POCO. It used to be: JsonWriter has no
+        /// case for a <see cref="TrajectoryArc"/>, so a SOLVED plan threw at the wire
+        /// boundary and was dropped, while every refusal (whose arc is null) went out
+        /// fine. A command that answers only when it has nothing to say.</para>
+        ///
+        /// <para>A named method taking the type, rather than the dictionary built
+        /// inline where it is returned, because that is the shape the coverage gate
+        /// can READ: an inline flatten inside an <c>object?</c>-returning handler is
+        /// indistinguishable from no flatten at all.</para>
+        /// </summary>
+        private static Dictionary<string, object?> ToWire(VantagePlanReply reply) =>
+            new Dictionary<string, object?>
             {
                 ["solved"] = reply.Solved,
-                ["arc"] = reply.Arc,
+                ["arc"] = reply.Arc == null ? null : VesselViewProvider.ToWire(reply.Arc),
                 ["seededAtUt"] = reply.SeededAtUt,
                 ["vantage"] = reply.Vantage,
                 ["refusal"] = reply.Refusal,
             };
-        }
 
         /// <summary>
         /// Turn an archived orbit sample into a state a propagation can start from.

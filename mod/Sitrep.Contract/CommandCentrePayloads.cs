@@ -14,8 +14,16 @@ namespace Sitrep.Contract;
 ///
 /// <para>The channel is a BARE ARRAY of these entries (tagged <c>isArray: true</c>,
 /// like <see cref="SpaceCenterPoiEntry"/>), one per active centre keyed by
-/// <see cref="Id"/>. A TS-shape-only typing/codegen marker: the producer
-/// hand-flattens each centre to a dictionary, this POCO never serializes raw.</para>
+/// <see cref="Id"/>.
+/// <internal>
+/// Published RAW: the producer builds this POCO and the publisher hands the list
+/// straight over, so each element is written by JsonWriter's own
+/// AppendCommandCentreEntry. This paragraph used to say the opposite, that the
+/// producer hand-flattened each centre and the POCO never serialized raw, and
+/// that claim was copied into WirePayloadCoverageTests' allowlist, where it
+/// exempted the type from the one gate that would have caught it. Every
+/// non-empty roster publish failed at the wire boundary until 2026-09-05.
+/// </internal></para>
 /// </summary>
 [SitrepContract]
 [SitrepTopic("commandCentre.roster", isArray: true)]

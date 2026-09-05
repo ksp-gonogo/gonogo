@@ -1594,7 +1594,13 @@ namespace Sitrep.Host
             ["meta"] = ToWire(orbit.Meta),
         };
 
-        private static Dictionary<string, object?> ToWire(TrajectoryArc arc) => new Dictionary<string, object?>
+        /// <summary>
+        /// The arc's wire shape, and the ONLY one. Reachable from outside this
+        /// class because <c>vessel.trajectory.forVantage</c> answers with the same
+        /// arc from <c>ChannelEngine</c>: a second flattener there would be a
+        /// second wire shape for one payload, free to drift a field at a time.
+        /// </summary>
+        internal static Dictionary<string, object?> ToWire(TrajectoryArc arc) => new Dictionary<string, object?>
         {
             ["frame"] = ToWire(arc.Frame),
             ["points"] = arc.Points.Select(p => (object?)ToWire(p)).ToList(),

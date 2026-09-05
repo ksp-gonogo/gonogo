@@ -307,6 +307,20 @@ namespace Sitrep.Core.Serialization
                 case Sitrep.Contract.CentreSeparationEntry separationEntry:
                     AppendCentreSeparationEntry(sb, separationEntry);
                     break;
+                case Sitrep.Contract.CommandCentreEntry centreEntry:
+                    // Same "producer owns the flatten" boundary as
+                    // CommandCentreSeparation above, and the fourth time this
+                    // codec has met the same defect. commandCentre.roster is a
+                    // BARE ARRAY of these entries and its producer
+                    // (CommandCentreDelayUplink.ToRosterEntry) publishes the
+                    // List<CommandCentreEntry> raw, so every element arrives here
+                    // through the IEnumerable case below. Without this case an
+                    // EMPTY roster serialized fine and every POPULATED one threw
+                    // NotSupportedException at the wire boundary, which is why no
+                    // headless rig could see it: it took a live save with real
+                    // command centres in it.
+                    AppendCommandCentreEntry(sb, centreEntry);
+                    break;
                 case Sitrep.Contract.CommsConnectivity connectivity:
                     // Same "producer owns the flatten" boundary as CommsDelay
                     // above: the comms.connectivity channel
@@ -439,6 +453,19 @@ namespace Sitrep.Core.Serialization
                     // A part's RepairCost list routes its elements through here
                     // the same way its Budgets do.
                     AppendRepairCostItem(sb, repairCostItem);
+                    break;
+                case Sitrep.Contract.RepairOutcome repairOutcome:
+                    /*
+                     * vessel.repair's reply payload. Not a channel value: it rides
+                     * out inside CommandResult<RepairOutcome>.Payload, which
+                     * AppendCommandResult writes back through AppendValue, so it
+                     * reaches this switch as a raw POCO exactly like a published
+                     * one. RepairRefusal.ResultFor sets Payload on EVERY outcome
+                     * it is given, success and refusal alike, so without this case
+                     * the only vessel.repair reply that survived the wire was the
+                     * null-outcome failure.
+                     */
+                    AppendRepairOutcome(sb, repairOutcome);
                     break;
                 case Sitrep.Contract.IsruDrillEntry isruDrillEntry:
                     // Same boundary again: isru.drills/isru.converters publish
@@ -1614,6 +1641,97 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "oneWaySeconds");
             sb.Append(':');
             AppendNumber(sb, e.OneWaySeconds);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// One <c>commandCentre.roster</c> entry as <c>{ id, displayName, kind,
+        /// bodyIndex, latitude, longitude, active, delayQuality }</c>, camelCase
+        /// keys in the contract's own declaration order.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// <c>latitude</c> and <c>longitude</c> are written as JSON null when the
+        /// centre is not surface-anchored, never as 0: a substituted zero is a real
+        /// place off the west coast of Kerbin's continent, and a client plotting it
+        /// cannot tell that reading from a measured one. Same rule for
+        /// <c>bodyIndex</c>, whose 0 is the sun.
+        /// </remarks>
+        private static void AppendCommandCentreEntry(
+            StringBuilder sb, Sitrep.Contract.CommandCentreEntry e)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendNullableString(sb, e.Id);
+            sb.Append(',');
+            AppendString(sb, "displayName");
+            sb.Append(':');
+            AppendNullableString(sb, e.DisplayName);
+            sb.Append(',');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendNullableString(sb, e.Kind);
+            sb.Append(',');
+            AppendString(sb, "bodyIndex");
+            sb.Append(':');
+            if (e.BodyIndex.HasValue)
+            {
+                AppendInteger(sb, e.BodyIndex.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+            sb.Append(',');
+            AppendString(sb, "latitude");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.Latitude);
+            sb.Append(',');
+            AppendString(sb, "longitude");
+            sb.Append(':');
+            AppendNullableNumber(sb, e.Longitude);
+            sb.Append(',');
+            AppendString(sb, "active");
+            sb.Append(':');
+            AppendBool(sb, e.Active);
+            sb.Append(',');
+            AppendString(sb, "delayQuality");
+            sb.Append(':');
+            AppendNullableString(sb, e.DelayQuality);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// A repair attempt's outcome as <c>{ repaired, refusal, kitsUsed,
+        /// kitsFrom }</c>, the payload half of <c>vessel.repair</c>'s reply.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// <c>refusal</c> is written as JSON null on success rather than as an
+        /// empty string, because it is the FINER half of a refusal and an empty
+        /// token would read as a reason that came back blank. The client's rule
+        /// turns on its presence.
+        /// </remarks>
+        private static void AppendRepairOutcome(
+            StringBuilder sb, Sitrep.Contract.RepairOutcome o)
+        {
+            sb.Append('{');
+            AppendString(sb, "repaired");
+            sb.Append(':');
+            AppendBool(sb, o.Repaired);
+            sb.Append(',');
+            AppendString(sb, "refusal");
+            sb.Append(':');
+            AppendNullableString(sb, o.Refusal);
+            sb.Append(',');
+            AppendString(sb, "kitsUsed");
+            sb.Append(':');
+            AppendInteger(sb, o.KitsUsed);
+            sb.Append(',');
+            AppendString(sb, "kitsFrom");
+            sb.Append(':');
+            AppendNullableString(sb, o.KitsFrom);
             sb.Append('}');
         }
 

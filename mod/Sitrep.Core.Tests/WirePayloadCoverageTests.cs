@@ -153,9 +153,6 @@ namespace Sitrep.Core.Tests
             // nextHireCost } Dictionary/List tree (applicants reusing
             // CrewRosterEntry's shape); this POCO is TS-shape-only.
             "AstronautComplexInfo",
-            // commandCentre.roster: the command-centre enumeration pass
-            // hand-flattens each centre to a Dictionary; this POCO is TS-shape-only.
-            "CommandCentreEntry",
             // time.calendar: VesselViewProvider.ToWire(TimeCalendar) returns a
             // Dictionary<string, object?> and publishes that, so JsonWriter only
             // ever sees the flattened dictionary; the POCO is TS-shape-only.
@@ -193,10 +190,13 @@ namespace Sitrep.Core.Tests
             // result, with the POCO existing so a client has a type to read it as.
             "VantagePlanRequest", "VantagePlanReply",
             "AddManeuverNodeArgs", "RemoveManeuverNodeArgs", "UpdateManeuverNodeArgs",
-            // vessel.repair: args are inbound-only, and the outcome rides out
-            // inside CommandResult<T>'s flattened reply like every other
-            // command result, so neither is ever published raw.
-            "RepairPartArgs", "RepairOutcome",
+            // vessel.repair's args are inbound-only. RepairOutcome is NOT here:
+            // it used to be, on the claim that the outcome "rides out inside
+            // CommandResult<T>'s flattened reply", and that claim was false.
+            // CommandResult<T>.Payload is written by AppendCommandResult back
+            // through AppendValue, so the raw POCO reaches the payload switch
+            // exactly like a channel value does.
+            "RepairPartArgs",
             "SetActionGroupArgs", "SetEnabledArgs",
             "SetPausedArgs", "SetSasModeArgs", "SetTargetArgs", "SetThrottleArgs",
             "SetControlFrameArgs", "SendManeuverPlanArgs", "ComposedBurn",
@@ -367,6 +367,56 @@ namespace Sitrep.Core.Tests
                 missing.Count == 0,
                 "These [SitrepContract] payload types have no JsonWriter case and would be silently dropped at the wire boundary if published raw. Add an AppendValue case + Append<Type> helper (mirror AppendCommsDelay), or (if the type is flattened by its producer / envelope-serialized / inbound-only) add it to FlattenedByProducer with a reason: "
                     + string.Join(", ", missing));
+        }
+
+        /// <summary>
+        /// The two types the 2026-09-05 incident concerned, in the shapes their
+        /// producers actually publish rather than as bare default instances.
+        ///
+        /// <para>Both had been ALLOWLISTED above on a claim that turned out to be
+        /// false: the roster's entry was recorded as hand-flattened by its
+        /// producer (it is not, <c>CommandCentreDelayUplink.ToRosterEntry</c>
+        /// builds the POCO and the publisher hands the list straight over) and the
+        /// repair outcome as riding out inside a flattened reply (it does not,
+        /// <c>CommandResult&lt;T&gt;.Payload</c> goes back through
+        /// <see cref="JsonWriter.AppendValue"/>). An allowlist entry is a human
+        /// claim, and the sweep above cannot grade one; these two are asserted
+        /// NOT allowlisted so the claim cannot come back.</para>
+        ///
+        /// <para>The roster is exercised POPULATED, which is the whole reason this
+        /// shipped: an empty <c>List&lt;CommandCentreEntry&gt;</c> serializes to
+        /// <c>[]</c> without the element type ever reaching the payload switch, so
+        /// every headless rig and every save without real command centres in it
+        /// read healthy.</para>
+        /// </summary>
+        [Fact]
+        public void CommandCentreRosterAndRepairOutcomeAreCovered_NotAllowlisted()
+        {
+            foreach (var name in new[] { nameof(CommandCentreEntry), nameof(RepairOutcome) })
+            {
+                Assert.False(FlattenedByProducer.Contains(name),
+                    $"{name} must NOT be allowlisted, it reaches JsonWriter.AppendValue as a raw POCO.");
+            }
+
+            SerializeThroughWire(new List<CommandCentreEntry>
+            {
+                new CommandCentreEntry
+                {
+                    Id = "ksc",
+                    DisplayName = "Kerbal Space Center",
+                    Kind = "GroundStation",
+                    BodyIndex = 1,
+                    Latitude = -0.0972,
+                    Longitude = -74.5577,
+                    Active = true,
+                    DelayQuality = "routed",
+                },
+            });
+
+            SerializeThroughWire(
+                RepairRefusal.ResultFor(new RepairOutcome { Repaired = true, KitsUsed = 1, KitsFrom = "carried" }));
+            SerializeThroughWire(
+                RepairRefusal.ResultFor(new RepairOutcome { Repaired = false, Refusal = RepairRefusal.NoKits }));
         }
 
         [Fact]
