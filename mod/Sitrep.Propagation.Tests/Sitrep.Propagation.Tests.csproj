@@ -14,7 +14,13 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+  <!-- Sitrep.Core is here for ONE suite, Visibility/OcclusionMeetsTheDelayLedgerTests,
+       which is the whole point of that suite: the occlusion geometry and the
+       delay ledger are each thoroughly tested and their INTERACTION was not
+       tested at all, and a test that cannot reach both cannot cover it.
+       Sitrep.Propagation itself still references nothing but Sitrep.Contract. -->
   <ItemGroup>
     <ProjectReference Include="../Sitrep.Propagation/Sitrep.Propagation.csproj" />
+    <ProjectReference Include="../Sitrep.Core/Sitrep.Core.csproj" />
   </ItemGroup>
 </Project>

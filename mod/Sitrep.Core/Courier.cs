@@ -189,6 +189,17 @@ namespace Sitrep.Core
         /// <paramref name="onResponse"/> never fires. The client is expected
         /// to infer loss via ETA timeout rather than an explicit error
         /// response.
+        ///
+        /// <para>Reachability is asked ONCE, here, and never again, so a command
+        /// dispatched into a route that dies mid-flight still executes on the
+        /// craft and still confirms. <see cref="INetwork.DropPath"/> is what
+        /// could answer that, and the telemetry lanes consult it; this one does
+        /// not. The uplink leg's geometry is the mirror of the downlink's, so
+        /// the arithmetic is available, but a command reaching a dead route is
+        /// visible to an operator through <c>system.uplink.pending</c> and
+        /// changing when an entry leaves that queue is a wire decision rather
+        /// than an internal one. Left deliberately, in the open, rather than
+        /// guessed at.</para>
         /// </summary>
         public void DispatchCommand(
             string node,
@@ -342,6 +353,11 @@ namespace Sitrep.Core
             // ever match it again. Dropped whole rather than pruned by UT, the
             // same treatment the reveal buffer gets in ChannelEngine.ProcessTick.
             _gapOpeningSample.Clear();
+            // Same reasoning one layer over: a break is a statement about the
+            // abandoned timeline, and left in place it would go on dooming light
+            // sent before it on a timeline where the relay is still alive. See
+            // INetwork.ForgetDrops.
+            _network.ForgetDrops();
             _clock.Reset(ut);
         }
 
@@ -481,6 +497,15 @@ namespace Sitrep.Core
                 var fireUt = dumpedAtUt + dumpStamp.For(subscriber.Vantage);
                 _clock.Schedule(fireUt, () =>
                 {
+                    // The whole dump left the node at dumpedAtUt, so one break
+                    // catches all of it or none of it (INetwork.DropPath). A
+                    // dump that never arrived does not become readable history
+                    // either, so this refuses the archiving as well as the
+                    // delivery.
+                    if (_network.Lost(node, dumpedAtUt))
+                    {
+                        return;
+                    }
                     if (!archived)
                     {
                         // Archived once, at the first arrival: the dump becomes
@@ -723,11 +748,20 @@ namespace Sitrep.Core
                  * old path, and what a receiver holds is the last thing that
                  * actually came down the wire, which is the same rule the
                  * scheduled lane already delivers on.
+                 *
+                 * A sample a break caught never came down the wire at all, so it
+                 * is not a candidate for "the last thing that did"
+                 * (INetwork.DropPath). The scheduled lane gets the same refusal
+                 * inside Deliver; here there is no later delivery to catch it.
                  */
                 ArchiveSample? arrived = null;
                 var arrivedAt = double.NegativeInfinity;
                 foreach (var sample in archived)
                 {
+                    if (_network.Lost(node, sample.ValidAt))
+                    {
+                        continue;
+                    }
                     var at = sample.ValidAt + DelayOf(sample, vantage, liveDelay);
                     if (at <= now && at >= arrivedAt)
                     {
@@ -829,6 +863,14 @@ namespace Sitrep.Core
         /// the new route's light-time and came out skipped (shorter route) or
         /// replayed as duplicate frames with the tail lost (longer route). See
         /// <see cref="Archive.ReadAtInstant"/>.</para>
+        ///
+        /// <para>A sample caught by a break (<see cref="INetwork.DropPath"/>) is
+        /// declined here rather than cancelled at the clock. This lane re-reads
+        /// the archive at fire time anyway, so the delivery that cannot happen
+        /// simply does not, which needs no cancellation plumbing and no second
+        /// index of scheduled callbacks. The read runs FIRST and is allowed to
+        /// move the vantage cursor: a sample that never arrived must not be
+        /// served later as a catch-up either.</para>
         /// </summary>
         private void Deliver(
             string node,
@@ -843,7 +885,7 @@ namespace Sitrep.Core
                 ? archive.ReadAtInstant(topic, subscriber.Vantage, fireUt - stampedDelaySeconds.Value)
                 : archive.ReadAtVantage(
                     topic, subscriber.Vantage, _network.DelayTo(subscriber.Vantage, node), fireUt);
-            if (sample == null)
+            if (sample == null || _network.Lost(node, sample.Value.ValidAt))
             {
                 return;
             }
@@ -861,9 +903,19 @@ namespace Sitrep.Core
         /// <see cref="SubscribeStream"/> deliberately stay on the re-read lane,
         /// a late joiner is reseeded, not replayed the whole diff history), so
         /// staleness is always <see cref="Staleness.Fresh"/>.
+        ///
+        /// <para>Declines a sample caught by a break the same way
+        /// <see cref="Deliver"/> does (<see cref="INetwork.DropPath"/>). This
+        /// lane pins its value in the closure rather than re-reading, so the
+        /// check is the only thing standing between a doomed frame and an
+        /// ordered diff stream that would apply it.</para>
         /// </summary>
         private void DeliverSample(string node, string topic, Subscriber subscriber, ArchiveSample forwarded, double fireUt)
         {
+            if (_network.Lost(node, forwarded.ValidAt))
+            {
+                return;
+            }
             subscriber.OnData(StreamDataFor(node, topic, subscriber.Vantage, forwarded, fireUt, isCatchUp: false));
         }
 

@@ -130,6 +130,61 @@ namespace Sitrep.Core
     }
 
     /// <summary>
+    /// One break in the route carrying a node's signal: when it opened, where
+    /// along the route it sat, and when (if ever) it closed again.
+    ///
+    /// <para>C#-ONLY, no TS reference. See <see cref="INetwork.DropPath"/> for
+    /// why a break cannot be expressed as a delay value.</para>
+    /// </summary>
+    public readonly struct PathDrop
+    {
+        public PathDrop(double atUt, double lightSecondsOut, double restoredAtUt)
+        {
+            AtUt = atUt;
+            LightSecondsOut = lightSecondsOut;
+            RestoredAtUt = restoredAtUt;
+        }
+
+        /// <summary>The UT the route broke.</summary>
+        public double AtUt { get; }
+
+        /// <summary>How far out from the node the break sat, in light-seconds along the route.</summary>
+        public double LightSecondsOut { get; }
+
+        /// <summary>The UT the route was whole again, or <see cref="double.PositiveInfinity"/> for a break that never closes.</summary>
+        public double RestoredAtUt { get; }
+
+        /// <summary>
+        /// Whether light that left the node at <paramref name="sentAtUt"/> ran
+        /// into this break.
+        ///
+        /// <para>Three conditions, and each one is doing work. The light must
+        /// have LEFT before the break opened, because anything sent afterwards
+        /// rides whatever route the ledger holds now and never goes near this
+        /// one. It must NOT already have crossed the break point, which is the
+        /// whole of the per-hop question and is why the position is carried at
+        /// all. And it must reach that point while the break is still open: an
+        /// occultation that clears before the wavefront gets there never touched
+        /// it.</para>
+        ///
+        /// <para>Light arriving at the break point at exactly
+        /// <see cref="AtUt"/> is treated as having crossed, matching
+        /// <c>ChordOcclusion</c>'s convention that zero clearance is a clear
+        /// path. The choice is arbitrary at a measure-zero boundary; what
+        /// matters is that only one convention exists.</para>
+        /// </summary>
+        public bool Caught(double sentAtUt)
+        {
+            if (sentAtUt > AtUt)
+            {
+                return false;
+            }
+            var reachesBreakAt = sentAtUt + LightSecondsOut;
+            return reachesBreakAt > AtUt && reachesBreakAt < RestoredAtUt;
+        }
+    }
+
+    /// <summary>
     /// Network is the seam the Courier queries for point-to-point delay and
     /// reachability between a Vantage (observer, e.g. "KSC") and a node (e.g.
     /// a vessel id). Point-to-point only (D2): a scalar delay + a boolean
@@ -182,6 +237,104 @@ namespace Sitrep.Core
         /// operator selects that centre as its vantage.
         /// </summary>
         void SetDelay(string vantage, string node, double seconds);
+
+        /// <summary>
+        /// C#-ONLY. Record that the route carrying <paramref name="node"/>'s
+        /// signal broke at <paramref name="atUt"/>,
+        /// <paramref name="lightSecondsOut"/> of light-time out from the node,
+        /// and was whole again at <paramref name="restoredAtUt"/> (omit for a
+        /// break that never closes: a destroyed relay).
+        ///
+        /// <para>THE DROP EVENT, and it is an event rather than a value on
+        /// purpose. Every other write on this ledger sets a DELAY, which can say
+        /// "further away" and "nearer" and has no honest way to say GONE. Forced
+        /// through that channel, gone has to be smuggled as a zero, a null or an
+        /// infinity, and an overloaded sentinel is what produced the
+        /// <c>overdue</c>/<c>lost</c> confusion elsewhere in this system. So a
+        /// break gets its own vocabulary, sitting beside the delay tiers rather
+        /// than inside them.</para>
+        ///
+        /// <para>A destroyed vessel is the edge case of a reroute where the new
+        /// path does not exist. A reroute is already expressible: the delay
+        /// changes, the tail in flight keeps arriving on its own record-time
+        /// <see cref="DelayStamp"/>, and the new route governs what is sent
+        /// after. What a reroute could never express is that the tail is not
+        /// arriving at all, because the relay that would have retransmitted it
+        /// is the relay that died. That is what this records.</para>
+        ///
+        /// <para>The POSITION is the part that could not be inferred. A delay
+        /// stamp fixes WHEN a sample arrives; where the break sat along the
+        /// route is what decides WHETHER it arrives, and it is the one quantity
+        /// nothing else in the stack carries. Light already past the break point
+        /// when the break opened is unaffected: it is a wavefront on the far
+        /// leg and the break is behind it.</para>
+        ///
+        /// <para>INTERNAL to the delay machinery. Nothing about a drop reaches
+        /// the wire: a client sees only the silence it produces, which is the
+        /// same silence it would see from a sample that had genuinely not
+        /// arrived yet.</para>
+        ///
+        /// <para>Deliberately orthogonal to <see cref="Reachable"/> and to every
+        /// delay tier. Reachability answers whether a NEW message can be sent;
+        /// this answers what happens to the light already on the wire, and the
+        /// two have different answers during exactly the window that matters.
+        /// Recording a drop therefore changes no delay and invalidates no
+        /// <see cref="StampFor"/> cache.</para>
+        ///
+        /// <para>NO PRODUCTION CALLER YET, said plainly because an unfed seam
+        /// that does not admit it is worse than no seam. Raising one needs a
+        /// break's POSITION, and the ordered hop list that carries it
+        /// (<c>CommsBackendBase.Path</c>) is summed into a single scalar by
+        /// <c>SignalDelay.Compute</c> before anything downstream can see it.
+        /// Retaining that list per subject per tick is a real cost and a
+        /// separate decision, and it is bounded by warp: at a rate where one
+        /// physics tick spans more UT than the whole one-way light-time, there
+        /// is no ordering between "sent", "crossed" and "broke" to be had, and
+        /// the honest behaviour is today's, which is to deliver, because we do
+        /// not know it did not cross.</para>
+        /// </summary>
+        void DropPath(
+            string node,
+            double atUt,
+            double lightSecondsOut,
+            double restoredAtUt = double.PositiveInfinity);
+
+        /// <summary>
+        /// C#-ONLY. Whether light that left <paramref name="node"/> at
+        /// <paramref name="sentAtUt"/> ran into a break recorded by
+        /// <see cref="DropPath"/>, and so can never arrive anywhere.
+        ///
+        /// <para>Asked at DELIVERY time rather than stamped at record time, and
+        /// that is the opposite of what <see cref="DelayStamp"/> exists to
+        /// enforce, for a reason worth stating. A delay is a property of the
+        /// journey and is fixed the instant the light leaves, so re-reading it
+        /// later answers for a route the sample never took. Whether a break
+        /// caught it is a fact about an instant DURING that journey, which the
+        /// record could not have known. The stamp must be early and this must be
+        /// late.</para>
+        ///
+        /// <para>Node-scalar, where a delay is per-vantage. A break sits on the
+        /// node's route home, and while two vantages can legitimately be at
+        /// different light-times off one node, nothing here can yet express a
+        /// break on one vantage's branch and not the other's. Say so rather than
+        /// pretending: a branch-point break wants the per-vantage shape
+        /// <see cref="DelayStamp"/> already has.</para>
+        /// </summary>
+        bool Lost(string node, double sentAtUt);
+
+        /// <summary>
+        /// C#-ONLY. Forget every recorded break, called by
+        /// <see cref="Courier.ResetTimeline"/> on a quickload.
+        ///
+        /// <para>A drop is a statement about one timeline, unlike a delay tier,
+        /// which the live capture overwrites every tick and which is therefore
+        /// self-correcting across a rewind. Left in place, a break recorded in
+        /// the abandoned future would go on dooming light sent before it on a
+        /// timeline where the relay is still alive. Dropped whole rather than
+        /// pruned by UT, the same treatment the Courier's gap bookkeeping
+        /// gets.</para>
+        /// </summary>
+        void ForgetDrops();
     }
 
     /// <summary>
@@ -385,6 +538,67 @@ namespace Sitrep.Core
         public void SetReachable(string vantage, string node, bool ok)
         {
             Set(_reachability, vantage, node, ok);
+        }
+
+        /*
+         * The recorded breaks, per node, in the order they were recorded. See
+         * INetwork.DropPath.
+         *
+         * A list rather than one entry because a route can break more than once
+         * over a session, and an occultation every orbit is the ordinary case
+         * rather than the exotic one. It is unbounded, which is a real cost
+         * stated rather than hidden: three doubles per break, against a break
+         * rate measured in orbits and a sample rate measured in seconds.
+         * Pruning wants to know the oldest sample still in flight, which is the
+         * Courier's _owedScenes and not the ledger's to see, so it is
+         * deliberately not attempted from here.
+         *
+         * No _revision bump on write: a break changes no delay, so every cached
+         * DelayStamp stays valid (INetwork.DropPath).
+         */
+        private readonly Dictionary<string, List<PathDrop>> _drops =
+            new Dictionary<string, List<PathDrop>>();
+
+        public void DropPath(
+            string node,
+            double atUt,
+            double lightSecondsOut,
+            double restoredAtUt = double.PositiveInfinity)
+        {
+            // A NaN position would make every comparison in PathDrop.Caught
+            // false, i.e. silently record a break that catches nothing. Clamped
+            // to a break at the node itself, which catches nothing either but
+            // says so, and matches the NaN clamps on every delay setter above.
+            var outSeconds = double.IsNaN(lightSecondsOut) || lightSecondsOut < 0
+                ? 0
+                : lightSecondsOut;
+            if (!_drops.TryGetValue(node, out var held))
+            {
+                held = new List<PathDrop>();
+                _drops[node] = held;
+            }
+            held.Add(new PathDrop(atUt, outSeconds, restoredAtUt));
+        }
+
+        public bool Lost(string node, double sentAtUt)
+        {
+            if (!_drops.TryGetValue(node, out var held))
+            {
+                return false;
+            }
+            for (var i = 0; i < held.Count; i++)
+            {
+                if (held[i].Caught(sentAtUt))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void ForgetDrops()
+        {
+            _drops.Clear();
         }
 
         private static void Set<TValue>(
