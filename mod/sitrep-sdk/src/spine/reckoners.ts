@@ -67,7 +67,7 @@ export function registerReckoner<
 ): void {
   const byOwner =
     reckoners.get(topic) ?? new Map<string, AnyReckonerDefinition>();
-  byOwner.set(owner, reckoner as unknown as AnyReckonerDefinition);
+  byOwner.set(owner, reckoner);
   reckoners.set(topic, byOwner);
 }
 
@@ -115,10 +115,14 @@ export function getReckoner(topic: string): ElectedReckoner | undefined {
   return core ? { owner: CORE_RECKONER_OWNER, definition: core } : undefined;
 }
 
-/** A topic two or more owners have both registered a model for. */
+/** A topic two or more NON-CORE owners have both registered a model for. */
 export interface ReckonerConflict {
   topic: string;
-  /** The competing owners, sorted. All of them are withheld; see {@link getReckoner}. */
+  /**
+   * The competing owners, sorted, core included where it also registered. Every
+   * CONTENDER is withheld; core is not a contender and covers where it has a
+   * model. See {@link getReckoner}.
+   */
   owners: string[];
 }
 
@@ -126,11 +130,20 @@ export interface ReckonerConflict {
  * Every contested topic in the registry, for a host that wants to tell the
  * operator which Uplinks disagree. Mirrors `getReplacementConflicts`, and its
  * emptiness is the normal case.
+ *
+ * Core is not counted as a party to the contest. Core ships a vanilla for every
+ * marked Topic, so counting it would make one Uplink electing itself over the
+ * vanilla read as a disagreement, which is the normal and intended case and the
+ * one {@link getReckoner} serves without hesitating. A contest is two owners who
+ * both think they own the physics.
  */
 export function getReckonerConflicts(): ReckonerConflict[] {
   const conflicts: ReckonerConflict[] = [];
   for (const [topic, byOwner] of reckoners) {
-    if (byOwner.size >= 2) {
+    const contenders = [...byOwner.keys()].filter(
+      (owner) => owner !== CORE_RECKONER_OWNER,
+    );
+    if (contenders.length >= 2) {
       conflicts.push({ topic, owners: [...byOwner.keys()].sort() });
     }
   }

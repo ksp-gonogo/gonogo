@@ -872,9 +872,25 @@ export interface ReckonerDefinition<
   ): ReckonerAnswer<T, R>;
 }
 
-/** A reckoner definition with its type parameters erased, as a registry holds one. */
-export type AnyReckonerDefinition = ReckonerDefinition<
-  never,
-  unknown,
-  readonly Dep[]
->;
+/**
+ * A reckoner definition as the registry holds one, with its type parameters
+ * erased to what a caller holding only a topic string can still say.
+ *
+ * Written out rather than spelled `ReckonerDefinition<unknown, unknown, ...>`
+ * because the erasure IS the point: `reckon` is declared here with the argument
+ * types the store passes and the answer type it reads back, so a definition
+ * written against a concrete Topic reaches this shape by method bivariance and
+ * the store calls it without an assertion in either direction. The two
+ * `as unknown as` casts that used to bridge them were the same round trip
+ * written twice, and neither said which way it was unsound.
+ */
+export interface AnyReckonerDefinition {
+  /** Declared inputs, in the same notation a Processor's `deps` uses. */
+  readonly deps: readonly Dep[];
+  /** See {@link ReckonerDefinition.reckon}; the store resolves `deps` in order. */
+  reckon(
+    point: TimelinePoint<unknown>,
+    resolved: readonly unknown[],
+    frame: ReckonerFrame,
+  ): ReckonerAnswer<unknown, unknown>;
+}

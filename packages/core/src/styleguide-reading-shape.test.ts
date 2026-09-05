@@ -89,13 +89,19 @@ const ACCESSORS =
 const ALLOWED = new Set(["packages/components/scripts/probe/probe-entry.tsx"]);
 
 /**
- * Names of functions declared in this file that take a `Reading`. Calling one is a
+ * Names of functions declared in this file that take a reading. Calling one is a
  * narrowing, because the parameter type is the thing that makes it safe.
+ *
+ * `Reading` is one of three spellings, not the only one: a topic the contract
+ * declares reckonable answers with `ReckonableReading`, and one in
+ * `NEVER_RECKONABLE` with `UnmodelledReading`. All three are unions a caller has
+ * to branch, so a helper typed for any of them narrows, and matching only the
+ * bare name reported two correctly-narrowed widgets as bare reads.
  */
 function localNarrowers(text: string): string[] {
   const names: string[] = [];
   const decl =
-    /(?:function\s+(\w+)\s*(?:<[^>]*>)?\s*\([^)]*:\s*Reading<|const\s+(\w+)\s*=\s*(?:<[^>]*>)?\s*\([^)]*:\s*Reading<)/g;
+    /(?:function\s+(\w+)\s*(?:<[^>]*>)?\s*\([^)]*:\s*\w*Reading<|const\s+(\w+)\s*=\s*(?:<[^>]*>)?\s*\([^)]*:\s*\w*Reading<)/g;
   let m: RegExpExecArray | null = decl.exec(text);
   while (m !== null) {
     const name = m[1] ?? m[2];
@@ -241,6 +247,24 @@ describe("styleguide: a Reading is never handed on whole", () => {
    * scan whose regex has rotted, which is the exact failure this file exists to
    * catch, so it has to prove it can still see.
    */
+  it("counts a helper typed for any reading, and nothing typed unknown", () => {
+    const helpers = [
+      "function describe<T>(r: Reading<T>): T | undefined { return undefined; }",
+      "const project = <T, K extends keyof T>(r: ReckonableReading<T, K>) => r;",
+      "function plain<T>(r: UnmodelledReading<T>): T | undefined { return undefined; }",
+      "function parseThing(raw: unknown): string | undefined { return undefined; }",
+    ].join("\n");
+
+    // All three reading spellings, and NOT the `unknown` receiver, which is the
+    // hazard the scan exists for. A regex that widened far enough to accept the
+    // fourth would report every tree clean.
+    expect(localNarrowers(helpers).sort()).toEqual([
+      "describe",
+      "plain",
+      "project",
+    ]);
+  });
+
   it("still recognises the shape it is looking for", () => {
     const probe = [
       "const somethingRaw = useTelemetry('vessel.orbit');",

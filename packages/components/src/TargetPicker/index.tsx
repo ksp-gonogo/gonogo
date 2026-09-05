@@ -263,9 +263,12 @@ function TargetPickerComponent({
    * wait.
    */
   const available = stillTrue(availableReading, EMPTY_ROSTER);
-  // The model is dropped on the way in: this reads the target's identity and the
-  // range it was last OBSERVED at, and a picker offering a modelled range beside
-  // a name is the confident-wrong picture the reading type exists to prevent.
+  /*
+   * The model is dropped on the way in: this reads the target's identity and
+   * the range it was last OBSERVED at, and a picker offering a modelled range
+   * beside a name is the confident-wrong picture the reading type exists to
+   * prevent.
+   */
   const target = stillTrue(
     withoutReckoning(topics.useTelemetry("vessel.target")),
     undefined,

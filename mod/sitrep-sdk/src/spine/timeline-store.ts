@@ -3,8 +3,6 @@ import type { Transport } from "../api/transport";
 import { PerfBudget } from "../perf/PerfBudget";
 import type {
   ModelledField,
-  ReckonerAnswer,
-  ReckonerFrame,
   ReckoningBasis,
   ReckoningDecline,
   StaleGrade,
@@ -1624,12 +1622,10 @@ export class TimelineStore {
       }
       resolved.push(value);
     }
-    const reckon = elected.definition.reckon as unknown as (
-      p: TimelinePoint<T>,
-      r: unknown[],
-      f: ReckonerFrame,
-    ) => ReckonerAnswer<T, unknown>;
-    const answer = reckon(point, resolved, { grade, viewUt });
+    const answer = elected.definition.reckon(point, resolved, {
+      grade,
+      viewUt,
+    });
     if ("declined" in answer) return { declined: answer.declined };
     return { owner: elected.owner, model: answer };
   }
@@ -1812,15 +1808,23 @@ export class TimelineStore {
             ? registered.owner
             : CORE_RECKONER_OWNER;
         const unowned = this.unownedTopics.has(topic);
-        // Only computed where the CONTRACT declared something: an undeclared
-        // topic has nothing to explain, and building a reason for one would put
-        // a `declined` on a reading whose type has no room for it.
+        // Built only where the CONTRACT declared a value reckonable. An
+        // undeclared topic has nothing to explain, and its reading is typed
+        // `Reading`, which has no `declined` member on any arm, so a reason
+        // attached there is one no caller can reach.
+        //
+        // The check is on the whole expression rather than on the `declineFor`
+        // branch alone. A registered reckoner declines too, and a reckoner is
+        // registered by topic STRING with no mark involved, so an Uplink may
+        // have one on any topic at all.
         const declined =
-          registered && "declined" in registered
-            ? registered.declined
-            : reckoner
-              ? undefined
-              : this.declineFor(topic, effectiveToken);
+          reckonableValuesOf(topic).length === 0
+            ? undefined
+            : registered && "declined" in registered
+              ? registered.declined
+              : reckoner
+                ? undefined
+                : this.declineFor(topic, effectiveToken);
         const declineKey = declined
           ? `${declined.reason}\0${declined.input ?? ""}`
           : undefined;
@@ -1838,12 +1842,14 @@ export class TimelineStore {
           previous.declineKey === declineKey &&
           // A reading depends on the frame's view time ONLY through a
           // reckoning, so a topic nobody models keeps its identity across a
-          // frame exactly as before. Where a model exists, an advancing view
-          // time is a real input change: the modelled value is for a different
-          // moment, and the model may have reached its horizon and withdrawn.
-          // Freezing here is what made `Reading`'s "it withdraws by not being
-          // offered on the next frame" untrue.
-          (reckoner === undefined || previous.viewUt === viewUt)
+          // frame exactly as before. Where a model is on offer now, an
+          // advancing view time is a real input change: the modelled value is
+          // for a different moment. Where one was on offer for the FROZEN
+          // reading and is not now, the withdrawal is itself the change, and
+          // reusing that reading is what made `Reading`'s "it withdraws by not
+          // being offered on the next frame" untrue.
+          ((reckoner === undefined && previous.reading.reckoning === "none") ||
+            previous.viewUt === viewUt)
         ) {
           return previous.reading as Reading<T>;
         }

@@ -108,6 +108,19 @@ namespace Sitrep.Contract.Tests
             public double Range { get; set; }
         }
 
+        /// <summary>
+        /// A published Topic payload that carries no <c>[SitrepContract]</c>, which is
+        /// the shape the gate's old <c>[SitrepContract]</c>-filtered sweep could not
+        /// see. <c>ControlFrame</c> is the shipped one; this is the same shape carrying
+        /// a mark that must be reported.
+        /// </summary>
+        [SitrepTopic("fake.topic-without-contract")]
+        public class TopicWithoutContractAttribute
+        {
+            [SitrepReckonable(ReckoningBases.KeplerPropagation, "noSuchField")]
+            public double Range { get; set; }
+        }
+
         /// <summary>The same input twice, which reads as two promises and is one.</summary>
         [SitrepContract]
         [SitrepTopic("fake.duplicate-input")]

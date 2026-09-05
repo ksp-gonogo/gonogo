@@ -19,9 +19,24 @@ namespace Sitrep.Contract.Tests
     /// </summary>
     public class ReckonabilityGateTests
     {
-        /// <summary>Every <c>[SitrepContract]</c> class in the shipped contract assembly.</summary>
+        /// <summary>
+        /// Every class in the shipped contract assembly, with no attribute filter:
+        /// the universe <c>RtConfig.EmitReckonability</c> sweeps, exactly.
+        ///
+        /// <para>It was <c>UnitCoverageAssertion.ContractTypes</c>, which keeps only
+        /// <c>[SitrepContract]</c> carriers, and codegen has no such filter. One
+        /// shipped type sits in that gap: <c>ControlFrame</c> carries
+        /// <c>[SitrepTopic("system.frame")]</c> and no <c>[SitrepContract]</c>, so the
+        /// narrower sweep was wrong in both directions at once. A mark on it reached
+        /// the published artifact with the gate green, and a cross-topic input naming
+        /// <c>@system.frame</c> was refused as a topic no <c>[SitrepTopic]</c> type
+        /// publishes, which is false. <see cref="TheSweptUniverseCoversEveryTopic"/>
+        /// is what stops the two diverging again.</para>
+        /// </summary>
         private static IReadOnlyList<Type> ContractTypes() =>
-            UnitCoverageAssertion.ContractTypes(typeof(VesselTarget).Assembly).ToList();
+            typeof(VesselTarget).Assembly.GetTypes()
+                .Where(t => t.IsClass && !t.IsAbstract)
+                .ToList();
 
         private static IReadOnlyList<Type> FakeTypes() =>
             typeof(ReckonabilityFakes).GetNestedTypes().ToList();
@@ -107,6 +122,40 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
+        /// The gate looks at every type carrying <c>[SitrepTopic]</c>, which is the
+        /// fact that keeps its sweep and codegen's from drifting apart.
+        ///
+        /// <para>A count floor cannot see this. The narrow sweep was one type short of
+        /// 74 and every floor here passed, because a floor answers "did discovery
+        /// collapse" and the question is "does it reach the same population the
+        /// emitter does". Named against the ATTRIBUTE rather than against
+        /// <c>ControlFrame</c>, so the next payload declared without
+        /// <c>[SitrepContract]</c> is covered without anyone remembering to add it.</para>
+        /// </summary>
+        [Fact]
+        public void TheSweptUniverseCoversEveryTopic()
+        {
+            var swept = new HashSet<Type>(ContractTypes());
+            var topicTypes = typeof(VesselTarget).Assembly.GetTypes()
+                .Where(t => t.IsDefined(typeof(SitrepTopicAttribute), false))
+                .ToList();
+
+            Assert.True(
+                topicTypes.Count >= 60,
+                "Only " + topicTypes.Count + " [SitrepTopic] types found, so this "
+                    + "comparison is between two collapsed sets and proves nothing.");
+
+            var missed = topicTypes.Where(t => !swept.Contains(t)).Select(t => t.Name).ToList();
+            Assert.True(
+                missed.Count == 0,
+                "The reckonability gate does not look at these published Topic payloads:\n  "
+                    + string.Join("\n  ", missed)
+                    + "\n\nRtConfig.EmitReckonability sweeps the whole assembly, so a mark on one "
+                    + "of these would be emitted into the published SDK ungated, and a cross-topic "
+                    + "input naming its topic would be refused as unpublished.");
+        }
+
+        /// <summary>
         /// The marked set is ordered and each value is marked once, so the generated
         /// artifact's row order never depends on reflection order.
         /// </summary>
@@ -158,6 +207,8 @@ namespace Sitrep.Contract.Tests
                 typeof(ReckonabilityFakes.ArrayTopicMark), "array Topic", payloads, bases);
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.UntopickedMark), "no [SitrepTopic]", payloads, bases);
+            AssertOneProblemMentioning(
+                typeof(ReckonabilityFakes.TopicWithoutContractAttribute), "noSuchField", payloads, bases);
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.UnknownBasis), "vibes", payloads, bases);
             AssertOneProblemMentioning(

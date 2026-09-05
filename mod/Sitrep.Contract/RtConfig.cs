@@ -587,14 +587,13 @@ public static class RtConfig
             EmitCommandMap(commandMapOut!);
         }
 
-        // --- Reckonable-value map (see SitrepReckonableAttribute) ---
-        // Same shape of problem, and same answer, as the four maps above:
-        // rtcli emits TYPES, and a reckonability declaration is a runtime
-        // record (which model, which published inputs) the SDK looks up to
-        // build the projection type and to name an input that never arrived.
-        // codegen.sh sets SITREP_RECKONABILITY_OUT and we reflect over the
-        // [SitrepReckonable]-tagged properties to write reckonability.ts
-        // alongside. No-op when the env var is unset.
+        // The reckonable-value map takes the same answer as the four maps
+        // above, to the same problem: rtcli emits TYPES, and a reckonability
+        // declaration is a runtime record (which model, which published
+        // inputs) the SDK looks up to build the projection type and to name an
+        // input that never arrived. codegen.sh sets SITREP_RECKONABILITY_OUT
+        // and we reflect over the [SitrepReckonable]-tagged properties to
+        // write reckonability.ts alongside. No-op when the env var is unset.
         var reckonabilityOut = Environment.GetEnvironmentVariable("SITREP_RECKONABILITY_OUT");
         if (!string.IsNullOrEmpty(reckonabilityOut))
         {
@@ -1295,6 +1294,16 @@ public static class RtConfig
     /// artifact keys on a Topic id, so a mark with no Topic has nowhere to go,
     /// and an element projection of an array Topic loses the identity fields that
     /// would join it back to its element.</para>
+    ///
+    /// <para><b>Core's own assembly only</b>, unlike <see cref="EmitTopicMap"/>'s
+    /// optional <c>assembly</c> parameter. An Uplink marking a value in its own
+    /// contract slice needs more than the parameter: the SDK reads ONE generated
+    /// table, so a per-Uplink table needs a merge seam in
+    /// <c>mod/sitrep-sdk/src/reckonability.ts</c>, and the gate in
+    /// <c>Sitrep.Contract.Tests</c> needs a per-Uplink leg to resolve the marks
+    /// against the core topic set plus the Uplink's own. No Uplink payload carries
+    /// a mark today, so this is deferred rather than blocked, and the parameter is
+    /// left off so its absence reads as the decision it is.</para>
     /// </summary>
     private static void EmitReckonability(string outPath)
     {

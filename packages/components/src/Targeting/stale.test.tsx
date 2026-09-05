@@ -124,9 +124,11 @@ describe("Targeting: the dock channel alone stops being current", () => {
     );
     expect(visibleText()).toContain("linear-dead-reckoning");
     expect(visibleText()).toMatch(/last seen .+ ago/);
-    // A modelled reticle is not a withheld one, so the withheld notice must not
-    // also be on screen: two captions saying opposite things about one
-    // instrument is worse than either.
+    /*
+     * A modelled reticle is not a withheld one, so the withheld notice must not
+     * also be on screen: two captions saying opposite things about one
+     * instrument is worse than either.
+     */
     expect(visibleText()).not.toMatch(/no longer current/i);
     expect(visibleText()).toContain("α/β/γ");
   });

@@ -29,9 +29,16 @@ namespace Sitrep.Contract;
 public class VesselOrbitTruth
 {
     [SitrepUnit(Units.Metres)]
-    // A state vector plus mu is a conic, so the pair advances together. frameRotating is declared
-    // because the model is INAPPLICABLE when it is true: an input a reckoner uses to DECLINE is
-    // still an input, and declaring it is what lets the decline name what ruled the model out.
+    /*
+     * A state vector plus mu is a conic, so the pair advances together. frameRotating is declared
+     * because the model is INAPPLICABLE when it is true: an input a reckoner uses to DECLINE is
+     * still an input, and declaring it is what lets the decline name what ruled the model out.
+     *
+     * The modelled arm is for a debug overlay, NOT for the diff harness this channel exists to
+     * feed. Reckoning it applies the very propagator the harness is measuring, so a consumer
+     * diffing element->position math must read `value`: `reckoned` there compares the propagator
+     * against itself and agrees perfectly by construction.
+     */
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "velocity", "frameRotating", "@vessel.orbit#mu")]
     public Vec3 Position { get; set; } = new();
 

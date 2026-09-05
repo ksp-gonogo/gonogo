@@ -1,6 +1,7 @@
 import { type ReckonerDefinition, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  CORE_RECKONER_OWNER,
   clearReckoners,
   getReckoner,
   getReckonerConflicts,
@@ -249,6 +250,20 @@ describe("a topic two owners both model is served with neither", () => {
     expect(getReckonerConflicts()).toEqual([
       { topic: "vessel.target", owners: ["n-body-model", "two-body-model"] },
     ]);
+  });
+
+  it("does not call core covering for one Uplink a contest", () => {
+    /*
+     * The elected case, and the one the registry is FOR: core ships a vanilla
+     * for every marked Topic, so an Uplink that models one is always the second
+     * owner on it. Counting core would report the intended arrangement as a
+     * disagreement on every install that has an Uplink at all.
+     */
+    registerReckoner<Target>("vessel.target", CORE_RECKONER_OWNER, declines);
+    registerReckoner<Target>("vessel.target", "n-body-model", declines);
+
+    expect(getReckonerConflicts()).toEqual([]);
+    expect(getReckoner("vessel.target")?.owner).toBe("n-body-model");
   });
 
   it("reports no conflict when one owner re-registers", () => {

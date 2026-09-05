@@ -171,6 +171,22 @@ export interface DerivedChannelDefinition<T> {
    * forward-modelled: that is what a whole-topic read needs to reach
    * `reckoning: "available"` at all, and a field read still borrows it exactly
    * as it borrows a bare basis.
+   *
+   * ## Composition, and the rule is the NEGATIVE one
+   *
+   * A derived value can never be reckonable BEYOND what its inputs support.
+   * Inputs being reckonable is necessary, never sufficient: deriving-then-
+   * advancing does not generally equal advancing-then-deriving, so "the inputs
+   * are reckonable therefore the output is" is unsound, and this is the surface
+   * where it is easiest to write, because a derived channel labels its own
+   * reckoning and nothing checks the label against its inputs.
+   *
+   * An input unmodellable BY CONSTANCY (a catalogue, an identity, a name) caps
+   * nothing: carrying a constant forward is exact. The cap comes from an input
+   * that MOVES and that nothing models.
+   *
+   * `SitrepReckonableAttribute` states the same rule for the contract-declared
+   * half, which is the other place it can be broken.
    */
   deriveReckoning?: (
     get: DerivedGet,

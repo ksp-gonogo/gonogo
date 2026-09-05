@@ -68,6 +68,16 @@ namespace Sitrep.Contract
     /// given frame may report a better basis at runtime; what the mark promises is
     /// that at least this model is derivable from published inputs, always.</para>
     ///
+    /// <para><b>A mark's availability is coupled to its SIBLINGS'.</b> One reading
+    /// carries ONE projection over every marked field of a Topic, so the model
+    /// answers for all of them or for none of them. A value whose own declared
+    /// inputs all arrived is still withheld while a SIBLING value's input is
+    /// missing, and the decline names the sibling's input:
+    /// <see cref="Sitrep.Contract.VesselFlight.OrbitalSpeed"/> declares only
+    /// <c>@vessel.orbit</c> and goes quiet when <c>@system.bodies</c>, which
+    /// <c>AltitudeAsl</c> needs, has not arrived. So declaring an input a model
+    /// does not use costs the marked value's siblings as well as itself.</para>
+    ///
     /// <para><b>Composition, and the rule is the NEGATIVE one.</b> A derived value
     /// can never be reckonable BEYOND what its inputs support. Inputs being
     /// reckonable is necessary, never sufficient: deriving-then-advancing does not

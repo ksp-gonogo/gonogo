@@ -264,9 +264,11 @@ function TargetingComponent({
       : dockReading.state === "observed"
         ? dockReading.value
         : undefined;
-  // Both of these ask about the OBSERVATION and never look at a model, so the
-  // model is dropped on the way in rather than each helper learning a second
-  // reading shape.
+  /*
+   * Both of these ask about the OBSERVATION and never look at a model, so the
+   * model is dropped on the way in rather than each helper learning a second
+   * reading shape.
+   */
   const dockPairing = stillTrue(withoutReckoning(dockReading), undefined);
   const target = observedPayload(withoutReckoning(targetReading));
 

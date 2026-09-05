@@ -1,6 +1,10 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
-import { clearReckoners, registerCoreReckoners } from "./reckoners";
+import {
+  clearReckoners,
+  registerCoreReckoners,
+  registerReckoner,
+} from "./reckoners";
 import { makeMeta } from "./stub-transport";
 import type { TimelinePoint } from "./timeline";
 import { TimelineStore } from "./timeline-store";
@@ -149,9 +153,11 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
   });
 
   it("spells a cross-topic input the way the contract does", () => {
-    // vessel.flight.altitudeAsl declares @vessel.orbit and @system.bodies, and
-    // the @ is what a widget renders: the string the operator sees and the
-    // string the contract carries are the same string.
+    /*
+     * vessel.flight.altitudeAsl declares @vessel.orbit and @system.bodies, and
+     * the @ is what a widget renders: the string the operator sees and the
+     * string the contract carries are the same string.
+     */
     const s = store();
     s.ingest("vessel.flight", point<Record<string, unknown>>(10, {}));
     s.beginFrame();
@@ -193,6 +199,28 @@ describe("TimelineStore.sampleReading, on a declared-reckonable topic", () => {
     s.beginFrame();
 
     expect(s.sampleReading("vessel.orbit")).not.toHaveProperty("declined");
+  });
+
+  it("leaves it untouched even when a registered model declines on it", () => {
+    /*
+     * A reckoner is registered by topic STRING and an Uplink may put one on any
+     * topic, so the declaration check has to cover the registered decline too.
+     * `vessel.orbit` is typed `Reading`, which carries no `declined` member on
+     * any arm, and attaching one there is a reason no caller can reach: the
+     * silent drop the decline exists to end, wearing the decline's own clothes.
+     */
+    clearReckoners();
+    registerReckoner("vessel.orbit", "some-uplink", {
+      deps: [],
+      reckon: () => ({ declined: { reason: "model-inapplicable" as const } }),
+    });
+    const s = store();
+    s.ingest("vessel.orbit", point(10, 5));
+    s.beginFrame();
+
+    expect(s.sampleReading("vessel.orbit")).not.toHaveProperty("declined");
+    clearReckoners();
+    registerCoreReckoners();
   });
 
   it("rebuilds the reading when a missing input arrives", () => {

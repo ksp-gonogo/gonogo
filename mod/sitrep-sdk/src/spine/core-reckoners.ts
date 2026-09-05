@@ -96,7 +96,7 @@ function elapsedOrDecline(
     return {
       reason: "beyond-horizon",
       input: "relativeVelocity",
-      note: `a relative position carried by its last velocity is honest for about ${LINEAR_HORIZON_SECONDS} s, and this is further`,
+      note: `a relative position carried by its last velocity is honest for about ${LINEAR_HORIZON_SECONDS} seconds, and this is further`,
     };
   }
   return dt;
@@ -380,20 +380,6 @@ const reckonOrbitTruth: ReckonerDefinition<
   },
 };
 
-/** Every value the contract marks, and the core model that carries it. */
-const CORE_RECKONERS: readonly [
-  string,
-  ReckonerDefinition<never, unknown, readonly never[]>,
-][] = [
-  ["vessel.target", reckonTarget],
-  ["vessel.dock", reckonDock],
-  ["vessel.flight", reckonFlight],
-  ["vessel.orbit.truth", reckonOrbitTruth],
-] as unknown as readonly [
-  string,
-  ReckonerDefinition<never, unknown, readonly never[]>,
-][];
-
 /**
  * Register core's vanilla for every marked Topic. Idempotent: the registry is
  * keyed by `(topic, owner)` and re-registration under one owner is
@@ -405,9 +391,10 @@ const CORE_RECKONERS: readonly [
  * cleared the registry between tests still gets the vanilla back.
  */
 export function registerCoreReckoners(): void {
-  for (const [topic, definition] of CORE_RECKONERS) {
-    registerReckoner(topic, CORE_RECKONER_OWNER, definition);
-  }
+  registerReckoner("vessel.target", CORE_RECKONER_OWNER, reckonTarget);
+  registerReckoner("vessel.dock", CORE_RECKONER_OWNER, reckonDock);
+  registerReckoner("vessel.flight", CORE_RECKONER_OWNER, reckonFlight);
+  registerReckoner("vessel.orbit.truth", CORE_RECKONER_OWNER, reckonOrbitTruth);
 }
 
 registerCoreReckoners();

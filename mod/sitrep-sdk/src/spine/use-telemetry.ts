@@ -169,6 +169,27 @@ const CANONICAL_PENDING: Reading<never> = {
  * `NEVER_RECKONABLE` is a contradiction, and `never-reckonable.test.ts` fails on
  * it, so the order the conditional tests them in cannot be load-bearing.
  *
+ * ## Why there are THREE arms and not the two the design asked for
+ *
+ * The design said two: `ReckonableReading` where a model exists, plain
+ * `Reading` with no `reckoned` member anywhere else. The middle arm is what
+ * survives of the second half, and it keeps the whole-payload `reckoned` for the
+ * two populations the CONTRACT cannot speak for.
+ *
+ * A DERIVED channel is the first: `vessel.state` labels its own reckoning
+ * through `deriveReckoning`, client-side, and there is no C# property to mark
+ * because there is no C# payload. An UPLINK-registered model is the second:
+ * `registerReckoner` is keyed by topic string, and an Uplink's own contract
+ * slice has no reckonability emission of its own yet (see
+ * `RtConfig.EmitReckonability`), so a model it registers on a wire topic has
+ * nowhere but this arm to land.
+ *
+ * The cost is honest and worth stating: 35 wire topics fall here today, each
+ * typed with a `reckoned` covering the WHOLE payload, and for each of them core
+ * registers nothing, so the arm is reachable only if someone registers a model.
+ * Narrowing them to `UnmodelledReading` would type away the Uplink seam, which
+ * is the one thing the middle arm is holding open.
+ *
  * ## The compile break does NOT always happen, and this is the trap
  *
  * Passing this hook's result straight into something that wants the PAYLOAD is
