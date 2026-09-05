@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 import { promisify } from "node:util";
 import type { Browser, BrowserContext, Page, TestInfo } from "@playwright/test";
@@ -60,7 +60,7 @@ import { dashboardWithWidget, getHostPeerId, seedContext } from "./helpers";
  *     by the envelope, both craft would light together; they light six seconds
  *     apart, which no internet hop explains
  *
- * ## The video
+ * ## The video, and the audio in it
  *
  * Recorded per screen (`video: "on"`) and stacked side by side into one mp4,
  * attached to the run. A timing failure is a thing you SEE: a jittered
@@ -68,6 +68,28 @@ import { dashboardWithWidget, getHostPeerId, seedContext } from "./helpers";
  * transmission that fades at the wrong instant. It is deliberately NOT routed
  * through the `visual` job, which diffs deterministic stills and is a
  * different instrument entirely.
+ *
+ * **The film has SOUND, and it is not a recording of a speaker.** Playwright
+ * records video only, a hard limit of the Chromium screencast API, so there is
+ * no audio track to be had from the recorder at any setting. What there is
+ * instead is better evidence: the decoder each screen actually runs writes its
+ * PCM into a sink this test owns, so the samples can be teed off with the wall
+ * instant they reached the speakers, dumped as one WAV per screen and muxed
+ * back under that screen's own pane. What you hear is therefore what the code
+ * produced at that vantage, already on the same clock as its picture, rather
+ * than what a device emitted into a room. Each pane is panned to where it sits
+ * on screen, so which craft is talking is audible as well as visible.
+ *
+ * ## And it is paced for a human
+ *
+ * The delay ARITHMETIC is untouched, and must stay untouched: three seconds and
+ * nine seconds are the subject. What is stretched is everything around it. The
+ * scene holds still before the key and after the last word, the utterance is
+ * three seconds rather than one, and nothing is hurried between them. That last
+ * one is the load-bearing change: with a one-second clip the near craft's lamp
+ * lit at +3 s and went dark at +4 s, five seconds before the far craft lit at
+ * all, so THE one frame worth seeing (near lit, far still dark) was a
+ * twenty-five frame flicker. At three seconds it is three seconds.
  */
 
 const execFileAsync = promisify(execFile);
@@ -93,16 +115,30 @@ const NAMES: Record<string, string> = {
 const SCREEN_SIZE = { width: 760, height: 460 } as const;
 
 /**
- * A second of somebody talking, at 20 ms a chunk.
+ * Three seconds of somebody talking, at 20 ms a chunk.
  *
- * `LONG_CLIP` rather than `SHORT_CLIP` because the scene is about a gap: half
- * a second of speech under a nine-second crossing is a blink on the video and
- * leaves too few chunks for "the whole utterance arrived in order" to mean
- * much.
+ * Built here rather than taken from the named clips, because the length is a
+ * property of THIS scene: what an utterance has to outlast is the six seconds
+ * between the two craft hearing it, and none of the shared clips is written for
+ * that. `makeClip` is the same deterministic constructor they are all built
+ * with, so nothing about the audio is sampled or seeded.
+ *
+ * Three seconds specifically. The near craft's lamp is lit for as long as the
+ * words last, so a shorter utterance puts the whole "near lit, far dark" window
+ * inside a second of film and the one frame the scene exists to show goes past
+ * before a human can register it.
  */
-const CLIP = "LONG_CLIP";
-const CLIP_CHUNKS = 50;
-const CLIP_SECONDS = 1;
+const CLIP_CHUNKS = 150;
+const CLIP_SECONDS = 3;
+
+/**
+ * Wall ms the film holds still, before the key and after the last word.
+ *
+ * A picture of an instrument needs a before and an after or there is nothing to
+ * read the change against, and the recording used to open on a page mid-boot
+ * and cut the instant the assertions were satisfied.
+ */
+const HOLD_MS = 3_000;
 
 interface ReceptionWatch {
   /** Wall ms at the first chunk this screen actually decoded, or null. */
@@ -121,12 +157,23 @@ interface ReceptionWatch {
   spoken: number;
 }
 
+/** One block of decoded audio, with the wall instant it reached the speakers. */
+interface TapedBlock {
+  /** `Date.now()` at the `play` call, the same clock the video is aligned on. */
+  at: number;
+  sampleRate: number;
+  /** Signed 16-bit mono PCM, base64. */
+  pcm: string;
+}
+
 interface Screen {
   name: string;
   context: BrowserContext;
   page: Page;
   /** Wall ms the recording started, so the stacked film can be aligned. */
   recordingFrom: number;
+  /** What this screen's speakers were handed, read off before the page closes. */
+  audio: TapedBlock[];
 }
 
 /** One frame the fixture stream is holding for every screen. */
@@ -211,26 +258,65 @@ async function publishScene(ports: readonly number[]): Promise<void> {
 }
 
 /**
- * Runs this page's radio on a recorded clip.
+ * Runs this page's radio on a recorded clip, with a tape running on the sink.
  *
  * The clip module is reached through the DEV SERVER's own module URL rather
  * than bundled into the app: the seam takes a backend the page hands it, so
  * nothing about a stand-in microphone is in the app's module graph, and what
  * loads here is the same `clips.ts` the jsdom suites use.
+ *
+ * The tape wraps `play` on each decoder's sink rather than replacing the sink
+ * or editing `clips.ts`: the recording is a property of THIS scene, and what it
+ * observes is exactly the samples the shipped session handed the speakers, at
+ * the instant it handed them over. Converted to int16 on the spot and left as
+ * binary until the dump, because this runs on the 20 ms playout tick that the
+ * whole timing measurement is made of, and base64 on that path would be the
+ * instrument disturbing its own subject.
  */
 async function installClipRadio(page: Page): Promise<void> {
-  await page.evaluate(async (clipName: string) => {
+  await page.evaluate(async (chunkCount: number) => {
     const clips = (await import(
       /* @vite-ignore */ "/src/commcast/radio/clips.ts"
-    )) as Record<string, unknown> & {
-      clipRadio: (clip: unknown) => unknown;
+    )) as {
+      makeClip: (name: string, chunkCount: number, baseHz?: number) => unknown;
+      clipRadio: (clip: unknown) => {
+        backend: {
+          startCapture: unknown;
+          createDecoder: () => { sink: { play: unknown } };
+        };
+      };
     };
-    const radio = clips.clipRadio(clips[clipName]);
+    const radio = clips.clipRadio(
+      clips.makeClip("say again your status", chunkCount),
+    );
     const holder = window as unknown as Record<string, unknown>;
+    const tape: { at: number; sampleRate: number; samples: Int16Array }[] = [];
+    holder.__gonogoRadioTape = tape;
+    const build = radio.backend.createDecoder;
+    const backend = {
+      startCapture: radio.backend.startCapture,
+      createDecoder: () => {
+        const decoder = build();
+        const sink = decoder.sink;
+        const play = (sink.play as (s: Float32Array, r: number) => void).bind(
+          sink,
+        );
+        sink.play = (samples: Float32Array, sampleRate: number) => {
+          const pcm = new Int16Array(samples.length);
+          for (let i = 0; i < samples.length; i++) {
+            const s = Math.max(-1, Math.min(1, samples[i]));
+            pcm[i] = Math.round(s * 32767);
+          }
+          tape.push({ at: Date.now(), sampleRate, samples: pcm });
+          play(samples, sampleRate);
+        };
+        return decoder;
+      },
+    };
     holder.__gonogoClipRadio = radio;
-    holder.__gonogoRadioBackend = (radio as { backend: unknown }).backend;
+    holder.__gonogoRadioBackend = backend;
     window.dispatchEvent(new Event("gonogo:radio-backend"));
-  }, CLIP);
+  }, CLIP_CHUNKS);
   /*
    * The swap tears down the real session and stands a fresh one up, and the
    * listening chain is what says it landed: `useRadio` builds exactly one
@@ -370,18 +456,37 @@ async function openConversation(page: Page, name: string): Promise<void> {
   await page.getByRole("button", { name: "Open" }).click();
 }
 
+/**
+ * The key, by the one name it answers to in every state.
+ *
+ * `Talk` throughout, latched or not: the control's label is fixed and
+ * `aria-pressed` carries the state, so a query written against the state it
+ * expects would silently match nothing the moment the key was already down.
+ */
+const talkKey = (page: Page) => page.getByRole("button", { name: "Talk" });
+
 /** Latch the key and return the wall instant it caught, read on the page. */
 async function keyDown(page: Page): Promise<number> {
-  await page.getByRole("button", { name: "Transmit" }).click();
-  await expect(
-    page.getByRole("button", { name: "Stop transmitting" }),
-  ).toBeVisible();
+  await talkKey(page).click();
+  await expect(talkKey(page)).toHaveAttribute("aria-pressed", "true");
   return await page.evaluate(() => Date.now());
 }
 
 async function keyUp(page: Page): Promise<void> {
-  await page.getByRole("button", { name: "Stop transmitting" }).click();
+  await talkKey(page).click();
+  await expect(talkKey(page)).toHaveAttribute("aria-pressed", "false");
 }
+
+/**
+ * The voice ribbon this screen is publishing onto its own panel's delay rail.
+ *
+ * `role="img"` with the crossing's own accessible name, which is what
+ * `RailCrossing` renders and the only thing about the rail that names WHICH
+ * crossing is drawn. Asserted in both directions in the scenes below: absent
+ * before the key, present while it is down.
+ */
+const voiceRibbon = (page: Page) =>
+  page.getByRole("img", { name: /transmission crossing to/i });
 
 /**
  * Speak the clip at the grid it was recorded on, and return immediately.
@@ -394,10 +499,51 @@ async function keyUp(page: Page): Promise<void> {
 async function speak(page: Page): Promise<void> {
   await page.evaluate(() => {
     const radio = (window as unknown as Record<string, unknown>)
-      .__gonogoClipRadio as { mic: { speak: () => boolean } };
+      .__gonogoClipRadio as { mic: { speak: () => boolean; spoken: number } };
+    /*
+     * Paced against the WALL rather than one chunk per tick. Three contexts are
+     * open and at most one is foreground, and a backgrounded page's timers are
+     * throttled: a tick-counting microphone would then speak in slow motion and
+     * the utterance would outlast the measurement it is the subject of. Catching
+     * up to the elapsed time keeps the clip on the grid it was recorded at
+     * whatever the engine does to the timer.
+     */
+    const from = Date.now();
     const timer = setInterval(() => {
-      if (!radio.mic.speak()) clearInterval(timer);
+      const due = Math.floor((Date.now() - from) / 20) + 1;
+      while (radio.mic.spoken < due) {
+        if (!radio.mic.speak()) {
+          clearInterval(timer);
+          return;
+        }
+      }
     }, 20);
+  });
+}
+
+/** Everything this screen's speakers were handed, with its own wall instants. */
+async function takeAudio(page: Page): Promise<TapedBlock[]> {
+  return await page.evaluate(() => {
+    const tape =
+      ((window as unknown as Record<string, unknown>).__gonogoRadioTape as
+        | { at: number; sampleRate: number; samples: Int16Array }[]
+        | undefined) ?? [];
+    return tape.map((block) => {
+      const bytes = new Uint8Array(
+        block.samples.buffer,
+        block.samples.byteOffset,
+        block.samples.byteLength,
+      );
+      // Chunked: `String.fromCharCode(...bytes)` on a whole utterance blows the
+      // argument limit, and the failure is a stack overflow rather than a
+      // truncation, so it would take the whole run down at teardown.
+      let binary = "";
+      const step = 0x8000;
+      for (let i = 0; i < bytes.length; i += step) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + step));
+      }
+      return { at: block.at, sampleRate: block.sampleRate, pcm: btoa(binary) };
+    });
   });
 }
 
@@ -419,8 +565,9 @@ async function openScreen(
     context,
     opts.dashboardKey,
     /*
-     * Tall enough that the composer bar, and therefore the key and the lamp,
-     * are on screen without scrolling: a control the video cannot see is a
+     * Tall enough that the bar carrying the key, the mute and the lamp is on
+     * screen without scrolling, and that the delay rail above the panel's title
+     * has room to draw the voice crossing: a control the video cannot see is a
      * control the reviewer cannot check.
      */
     dashboardWithWidget("commcast", { size: { w: 12, h: 9 } }),
@@ -441,11 +588,94 @@ async function openScreen(
   await expect(page.getByText("Commcast").first()).toBeVisible();
   await installClipRadio(page);
   await watchReception(page);
-  return { name: opts.name, context, page, recordingFrom };
+  return { name: opts.name, context, page, recordingFrom, audio: [] };
+}
+
+/** Mono 16-bit PCM, wrapped as a WAV file ffmpeg will take on stdin's behalf. */
+function wavFile(pcm: Int16Array, sampleRate: number): Buffer {
+  const data = Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength);
+  const header = Buffer.alloc(44);
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + data.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  // 1 = uncompressed PCM, 1 channel.
+  header.writeUInt16LE(1, 20);
+  header.writeUInt16LE(1, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(sampleRate * 2, 28);
+  header.writeUInt16LE(2, 32);
+  header.writeUInt16LE(16, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(data.length, 40);
+  return Buffer.concat([header, data]);
 }
 
 /**
- * Stack every screen's recording into one mp4, side by side.
+ * One screen's tape laid out on the film's clock: silence, then what it heard,
+ * where it heard it.
+ *
+ * Every block is placed at its OWN wall instant rather than butted against the
+ * one before, which is the whole point: the silence between the key going down
+ * and the first word is a light-time, and a track that simply concatenated what
+ * was decoded would erase exactly the thing the film is about.
+ *
+ * The one liberty taken is a cursor that never runs backwards. A playout that
+ * delivers two blocks inside the same millisecond is a real thing (the buffer
+ * releases on a clock the engine can stall), and placing the second on top of
+ * the first would DROP audio the code produced. Butting it on instead delays it
+ * by 20 ms and keeps it.
+ *
+ * A screen that heard NOTHING still gets a track, and it is silent for its
+ * whole length rather than absent. Mission control is that screen in both
+ * scenes, deliberately: nobody hears their own voice back off the relay, and a
+ * pane whose audio was simply left out of the mux would say that with the same
+ * silence as a pane whose audio the harness failed to collect.
+ */
+function trackFor(
+  blocks: readonly TapedBlock[],
+  fromMs: number,
+  seconds: number,
+  sampleRate: number,
+): Int16Array {
+  const pcm = new Int16Array(Math.ceil(seconds * sampleRate));
+  let cursor = 0;
+  for (const block of blocks) {
+    const bytes = Buffer.from(block.pcm, "base64");
+    const samples = new Int16Array(
+      bytes.buffer,
+      bytes.byteOffset,
+      bytes.byteLength / 2,
+    );
+    const at = Math.max(
+      cursor,
+      Math.round(((block.at - fromMs) / 1000) * sampleRate),
+    );
+    if (at >= pcm.length) break;
+    pcm.set(samples.subarray(0, pcm.length - at), at);
+    cursor = at + samples.length;
+  }
+  return pcm;
+}
+
+/**
+ * Where a pane's audio sits in the stereo field: left to right, in the order
+ * the panes are stacked.
+ *
+ * Constant-power rather than linear, so three voices at the same level stay at
+ * the same level wherever they are panned. It is not decoration: two craft hear
+ * the same utterance six seconds apart, and a listener told which side each
+ * pane is on can follow that with the picture off.
+ */
+function panGains(index: number, count: number): [number, number] {
+  const at = count <= 1 ? 0.5 : index / (count - 1);
+  return [Math.sqrt(1 - at), Math.sqrt(at)];
+}
+
+/**
+ * Stack every screen's recording into one mp4, side by side, each pane carrying
+ * the audio that screen's own decoder produced.
  *
  * Soft: a runner with no ffmpeg still runs the assertions, and says why there
  * is no film rather than failing a timing test over a codec.
@@ -481,15 +711,79 @@ async function stackVideos(
   if (paths.length === 0) return;
   const out = testInfo.outputPath("radio-scene.mp4");
   await mkdir(dirname(out), { recursive: true });
-  const filter =
-    paths.length === 1
-      ? null
-      : `${paths.map((_, i) => `[${i}:v]`).join("")}hstack=inputs=${paths.length}[v]`;
+
+  /*
+   * One length for every track, so the panes stay locked together: ffmpeg pads
+   * nothing for us, and a short track would slide the next input's audio
+   * forward relative to its own picture. Ends at the last thing anybody heard
+   * plus the tail hold, which is where the film ends anyway.
+   */
+  const lastHeard = Math.max(
+    commonStart,
+    ...screens.flatMap((s) => s.audio.map((b) => b.at)),
+  );
+  const trackSeconds = (lastHeard - commonStart) / 1000 + HOLD_MS / 1000;
+  /*
+   * Whatever the decoders said they were writing at, off any screen that heard
+   * something. The fallback is only ever reached when NO screen decoded a
+   * chunk, in which case every track is silence and the rate cannot be wrong
+   * about anything.
+   */
+  const sampleRate =
+    screens.flatMap((s) => s.audio).find((b) => b.sampleRate > 0)?.sampleRate ??
+    48_000;
+  const tracks: string[] = [];
+  for (const screen of screens) {
+    const path = testInfo.outputPath(`radio-${screen.name}.wav`);
+    await writeFile(
+      path,
+      wavFile(
+        trackFor(screen.audio, commonStart, trackSeconds, sampleRate),
+        sampleRate,
+      ),
+    );
+    tracks.push(path);
+    /*
+     * Attached individually as well as muxed. One screen's decoded audio is a
+     * reading in its own right and a reviewer may want to open it alone; the
+     * muxed film is for hearing the two vantages against each other.
+     */
+    await testInfo.attach(`radio-audio-${screen.name}`, {
+      path,
+      contentType: "audio/wav",
+    });
+  }
+  // One per pane, always: the pan positions are computed off the pane order, so
+  // a missing track would move every voice after it to the wrong side.
+  const withAudio = tracks.length === paths.length;
+
+  const graph: string[] = [];
+  if (paths.length > 1) {
+    graph.push(
+      `${paths.map((_, i) => `[${i}:v]`).join("")}hstack=inputs=${paths.length}[v]`,
+    );
+  }
+  if (withAudio) {
+    tracks.forEach((_, i) => {
+      const [left, right] = panGains(i, tracks.length);
+      graph.push(
+        `[${paths.length + i}:a]pan=stereo|c0=${left.toFixed(3)}*c0|c1=${right.toFixed(3)}*c0[a${i}]`,
+      );
+    });
+    graph.push(
+      `${tracks.map((_, i) => `[a${i}]`).join("")}amix=inputs=${tracks.length}:normalize=0[a]`,
+    );
+  }
+
   try {
     await execFileAsync("ffmpeg", [
       "-y",
       ...clips.flatMap((c) => ["-ss", c.skipSeconds.toFixed(3), "-i", c.path]),
-      ...(filter ? ["-filter_complex", filter, "-map", "[v]"] : []),
+      ...tracks.flatMap((t) => ["-i", t]),
+      ...(graph.length > 0 ? ["-filter_complex", graph.join(";")] : []),
+      "-map",
+      paths.length > 1 ? "[v]" : "0:v",
+      ...(withAudio ? ["-map", "[a]", "-c:a", "aac", "-b:a", "128k"] : []),
       "-c:v",
       "libx264",
       "-pix_fmt",
@@ -502,7 +796,12 @@ async function stackVideos(
       path: out,
       contentType: "video/mp4",
     });
-    console.info(`[radio] stacked video: ${out}`);
+    console.info(
+      `[radio] stacked video: ${out}` +
+        (withAudio
+          ? ` (with ${tracks.length} decoded audio track${tracks.length === 1 ? "" : "s"})`
+          : " (no audio: a pane had no recording to pair a track with)"),
+    );
   } catch (err) {
     console.warn(
       `[radio] no stacked video (${(err as Error).message.split("\n")[0]}). ` +
@@ -518,6 +817,9 @@ async function closeAll(screens: readonly Screen[]): Promise<void> {
         .__radioWatchStop as (() => void) | undefined;
       stop?.();
     });
+    // Off the page while there still IS one: the tape lives in the page, and a
+    // closed context takes it with it.
+    screen.audio = await takeAudio(screen.page);
     await screen.page.close();
     await screen.context.close();
   }
@@ -571,9 +873,28 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
     const screens = [control, craft];
 
     try {
+      // Both screens settled, both quiet, nobody keyed. The film opens on the
+      // instrument at rest, because a change is only readable against one.
+      await control.page.waitForTimeout(HOLD_MS);
       await openConversation(control.page, NAMES[NEAR]);
+      /*
+       * The rail is EMPTY before the key, and that is half of the assertion
+       * below. An idle transmitter publishes no crossing, so a ribbon here
+       * would mean the rail was drawing something nobody registered.
+       */
+      await expect(voiceRibbon(control.page)).toHaveCount(0);
+      await control.page.waitForTimeout(HOLD_MS);
+
       const keyedAt = await keyDown(control.page);
       await speak(control.page);
+
+      /*
+       * The other half: keyed, the operator's own voice is drawn crossing the
+       * gap on the panel's delay rail. `RadioPtt` registers it while the key is
+       * down and `useRadio` carries the captured loudness into it, and this is
+       * the only place the two ends of that wiring meet a real rail.
+       */
+      await expect(voiceRibbon(control.page)).toBeVisible();
 
       /*
        * A second and a bit in: the transmitter is provably mid-sentence and the
@@ -594,17 +915,27 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
         "and the lamp must not announce a speaker before their first word",
       ).toBeNull();
 
-      // Keying up does not silence what is still crossing: `end` travels at the
-      // speed of the internet while the words it ends are still in flight.
-      await control.page.waitForTimeout(200);
+      /*
+       * Held to the end of the utterance, then released. It has to be the end:
+       * a microphone whose capture is stopped mid-clip stops emitting, so an
+       * early key-up would put half an utterance on the wire and the "arrived
+       * whole, in order" assertion below would be asserting a different thing.
+       * The claim it used to make from an early release survives intact and is
+       * made a beat later, because at three seconds out the first word has
+       * still not landed when the key comes up: `end` crosses at the speed of
+       * the internet while every word it ends is still in flight.
+       */
+      await control.page.waitForTimeout(CLIP_SECONDS * 1000);
       await keyUp(control.page);
+      // And the ribbon goes with the key, rather than being left on the rail.
+      await expect(voiceRibbon(control.page)).toHaveCount(0);
 
       await waitForReception(craft.page, (r) => r.firstDecodeAt !== null, {
         timeout: 30_000,
         message: "the craft never heard the transmission",
       });
       // Long enough for the whole utterance to play out at natural rate.
-      await craft.page.waitForTimeout(2_000);
+      await craft.page.waitForTimeout(CLIP_SECONDS * 1000 + 1_500);
       const heard = await reception(craft.page);
 
       const crossing = (heard.firstDecodeAt as number) - keyedAt;
@@ -619,11 +950,11 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
 
       /*
        * The other direction of the plant. The craft heard the utterance from
-       * CHUNK ZERO, in order, and played it out in about the second it lasts,
-       * after three seconds of silence: audio that was HELD and released on a
-       * clock. A wire that had simply been dead for those three seconds would
-       * have lost its opening chunks, and a lamp lit by the envelope would have
-       * lit before any of this.
+       * CHUNK ZERO, in order, and played it out in about the three seconds it
+       * lasts, after three seconds of silence: audio that was HELD and released
+       * on a clock. A wire that had simply been dead for those three seconds
+       * would have lost its opening chunks, and a lamp lit by the envelope would
+       * have lit before any of this.
        */
       expect(heard.decoded).toEqual(
         Array.from({ length: CLIP_CHUNKS }, (_, i) => i),
@@ -655,6 +986,12 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       const selfHeard = await reception(control.page);
       expect(selfHeard.decoded).toEqual([]);
       expect(selfHeard.litAt).toBeNull();
+
+      // The film's last held frame: both lamps dark again, nothing keyed, the
+      // scene back where it started. Without it the recording cuts on the same
+      // frame as the last assertion and there is nothing to read the end
+      // against.
+      await control.page.waitForTimeout(HOLD_MS);
     } finally {
       await closeAll(screens);
       await stackVideos(screens, testInfo);
@@ -696,14 +1033,23 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
     const screens = [near, control, far];
 
     try {
+      // Three screens up, three lamps dark. Held, so the film has a rest state.
+      await control.page.waitForTimeout(HOLD_MS);
+
       // Addressed to the near craft. The far craft is not a recipient and hears
       // it anyway, because radio is a broadcast: a session registers any
       // transmission it has a path to and never asks whether it was addressed.
       await openConversation(control.page, NAMES[NEAR]);
+      await expect(voiceRibbon(control.page)).toHaveCount(0);
+      await control.page.waitForTimeout(HOLD_MS);
+
       const keyedAt = await keyDown(control.page);
       await speak(control.page);
+      // Keyed, and the operator's own voice is on their own rail while it is.
+      await expect(voiceRibbon(control.page)).toBeVisible();
       await control.page.waitForTimeout(CLIP_SECONDS * 1000 + 300);
       await keyUp(control.page);
+      await expect(voiceRibbon(control.page)).toHaveCount(0);
 
       for (const craft of [near, far]) {
         await waitForReception(craft.page, (r) => r.firstDecodeAt !== null, {
@@ -712,7 +1058,7 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
         });
       }
       // Let the far craft finish playing what it was still holding.
-      await far.page.waitForTimeout(2_000);
+      await far.page.waitForTimeout(CLIP_SECONDS * 1000 + 1_000);
 
       const nearHeard = await reception(near.page);
       const farHeard = await reception(far.page);
@@ -742,6 +1088,9 @@ test.describe("commcast radio: two screens hearing each other @chromium-only", (
       const wholeClip = Array.from({ length: CLIP_CHUNKS }, (_, i) => i);
       expect(nearHeard.decoded).toEqual(wholeClip);
       expect(farHeard.decoded).toEqual(wholeClip);
+
+      // Held on three quiet screens again, so the film ends where it opened.
+      await control.page.waitForTimeout(HOLD_MS);
     } finally {
       await closeAll(screens);
       await stackVideos(screens, testInfo);
