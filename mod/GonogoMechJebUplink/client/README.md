@@ -9,7 +9,7 @@ Flies the vessel from the console: engage MechJeb's ascent autopilot, execute th
 | --- | --- |
 | Uplink id | `mechjeb` |
 | Version | `0.0.1` |
-| Built against | contract 14.8, api 1.0.0, ui-kit 0.1.0 |
+| Built against | contract 15.0, api 1.0.0, ui-kit 0.1.0 |
 
 ## Wire
 

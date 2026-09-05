@@ -9,7 +9,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 | --- | --- |
 | Uplink id | `rp1` |
 | Version | `0.0.1` |
-| Built against | contract 14.8, api 1.0.0, ui-kit 0.1.0 |
+| Built against | contract 15.0, api 1.0.0, ui-kit 0.1.0 |
 
 ## Wire
 
@@ -238,7 +238,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | `rp1-training-courses` | `astronaut-complex.training` | `rp1.available`, `rp1.training`, `rp1.crew` |  | 2 |  |
 | `rp1-training-enrolment` | `astronaut-complex.training` | `rp1.available`, `rp1.trainingCatalogue`, `rp1.crew`, `rp1.crewProgram`, `rp1.training`, `spaceCenter.crewRoster`, `career.status` |  | 3 |  |
 | `rp1-contract-payload` | `contract-manager.sections` | – |  | 1 |  |
-| `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `rp1.constructions`, `rp1.facilities` | only while `rp1` | 3 |  |
+| `rp1-facility-upgrades` | `space-center-status.sections` | `rp1.available`, `career.status`, `career.facilities`, `rp1.constructions`, `rp1.facilities` | only while `rp1` | 3 |  |
 | `rp1-ksc-complexes` | `space-center-status.sections` | – |  | 12 |  |
 | `rp1-ksc-construction` | `space-center-status.sections` | – |  | 5 |  |
 | `rp1-launch-complex-status` | `launch-director.pad` | – |  | 2 |  |
@@ -271,7 +271,7 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 ![The payload requirement beside the contracts it shapes, with the consequence named before the press: changing either figure withdraws the matching pending offers, once each, which is the half RP-1's own tab never mentions](docs/assets/contract-payload--default.png)
 
-![A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. That is carried by "over the build" beside each price and by "Commit" on the confirm rather than by a sentence about it. Each badge is the tier the building is AT, the same number the host's grid reads for it, so the two cannot be read as a second opinion; the step is the control's, and it says "Queue upgrade". The host's own stock Upgrade controls read Blocked above, because RP-1 does not sell a tier at all](docs/assets/facility-upgrades-at-centre--default.png)
+![A career with two tiers it could commit to and one building already in the queue. The balance covers one of the two prices and not the other, and neither is refused: RP-1 bills a construction as it builds, so a short career gets a slower upgrade. That is carried by "over the build" beside each price and by "Commit" on the confirm rather than by a sentence about it. Each badge is the tier the building is AT, and it is the same number the grid above reads because it comes from the same place: on an RP-1 save this Uplink feeds the host's grid, so the two cannot be a second opinion. The step is the control's, and it says "Queue upgrade". The grid's own Upgrade controls read Blocked, because the tier they would buy is not for sale under RP-1 at all](docs/assets/facility-upgrades-at-centre--default.png)
 
 ![The same career, in flight, with RP-1's own tier channel answering. "career.status" reads the live buildings KSP instantiates at the space centre only, so the host's grid has nothing; RP-1 denormalises the level KSP persists in the save against its own config in every scene, so the tiers and the prices are here. The absence marker is keyed on whether the facilities area drew ANYTHING, not on this widget's own channel, so it is off screen: an operator flying an RP-1 career used to be told there were no facility tiers directly above a list of their facility tiers](docs/assets/facility-upgrades-away-rp1-answers--default.png)
 
@@ -361,8 +361,11 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 | --- | --- | --- | --- |
 | `rp1:programs-screen` | `strategies.screens` | – | only while `rp1` |
 | `rp1:crew-core-stats` | `astronaut-complex.readouts` | `rp1.crew`, `rp1.crewProgram` | only while `rp1` |
+| `rp1:facility-tiers` | `space-center-status.facilities` | `rp1.facilities` | only while `rp1` |
 
 ![The tab strip this Uplink's contribution puts on the Administration Building: Programs is the screen it names, the host draws the strip and lists the Programs department under it with its own Activate and Deactivate controls, and the Leaders no screen has claimed stay reachable on Other rather than disappearing. The Program Detail body below the list is a separate augment, photographed fed in its own scenes: a contribution scene carries only the contribution's OWN topics, so the catalogue it reads does not reach it here](docs/assets/programs-screen--default.png)
 
 ![RP-1's two core stats in the Astronaut Complex's own strip: how much of the roster is mid-course, with the courses nobody has started called out, and how many kerbals are about to lose a qualification, toned because that one is a date somebody has to act before](docs/assets/crew-core-stats--default.png)
+
+![The space centre read from orbit. "career.status" comes off the live UpgradeableFacility objects, which KSP puts in the scene only at the space centre, so every tier on it is absent here and the grid used to be empty. RP-1 denormalises the level the save persists against its own tier count and bills the career off it in all four scenes, so this contribution answers wherever the operator is standing and takes the grid over rather than repeating it underneath. Mission Control is one of the five RP-1 prices at a single fund under a "cosmetic only" comment: its tier is a reading and is shown, its price is for a step nothing will take and is withheld. The Upgrade controls stay dark because the stock command needs the building in the scene](docs/assets/facility-tiers-in-flight--default.png)
 
