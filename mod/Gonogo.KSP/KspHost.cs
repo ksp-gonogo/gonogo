@@ -1698,6 +1698,16 @@ namespace Gonogo.KSP
                     ["ignitionUt"] = node.IgnitionUt,
                     ["cutoffUt"] = node.CutoffUt,
                     ["frame"] = node.Frame == null ? null : node.Frame.Value.ToString(),
+                    // The burn profile the elected planner computed against:
+                    // null from a patched-conic planner, filled by an
+                    // integrating one. Absent here while the wire writer
+                    // already emitted them, so a planner that supplied all
+                    // five had them dropped on the way out.
+                    ["inertiallyFixed"] = node.InertiallyFixed,
+                    ["thrust"] = node.Thrust,
+                    ["specificImpulse"] = node.SpecificImpulse,
+                    ["initialMass"] = node.InitialMass,
+                    ["finalMass"] = node.FinalMass,
                     ["patches"] = node.Patches.ConvertAll(PatchToRaw),
                 });
             }

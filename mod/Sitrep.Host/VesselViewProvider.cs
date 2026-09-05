@@ -1012,6 +1012,16 @@ namespace Sitrep.Host
                         IgnitionUt = GetDouble(node, "ignitionUt"),
                         CutoffUt = GetDouble(node, "cutoffUt"),
                         Frame = ParseManeuverFrame(GetString(node, "frame")),
+                        // The burn profile, all null from a patched-conic
+                        // planner and all filled by an integrating one. Read
+                        // straight through with no defaulting: a zero thrust is
+                        // a claim about the craft, and `false` for the attitude
+                        // hold is a claim no planner made.
+                        InertiallyFixed = GetBool(node, "inertiallyFixed"),
+                        Thrust = GetDouble(node, "thrust"),
+                        SpecificImpulse = GetDouble(node, "specificImpulse"),
+                        InitialMass = GetDouble(node, "initialMass"),
+                        FinalMass = GetDouble(node, "finalMass"),
                         Patches = MapOrbitPatches(node.TryGetValue("patches", out var rawNodePatches) ? rawNodePatches : null),
                     });
                 }

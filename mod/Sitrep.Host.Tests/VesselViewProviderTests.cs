@@ -1312,6 +1312,69 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
+        /// The burn profile an integrating planner supplies: whether the craft
+        /// holds a fixed inertial attitude, and the thrust, Isp and masses the
+        /// plan was computed against.
+        ///
+        /// <para><c>ToWire</c> has emitted all five since they reached the
+        /// contract, and an integrating planner fills all five on every burn it
+        /// maps. This mapper read NONE of them, so they were dropped on the way
+        /// in and the wire carried five nulls beside a planner that had just
+        /// supplied them. A field the producer fills and the writer emits, lost
+        /// in between, is invisible from either end.</para>
+        /// </summary>
+        [Fact]
+        public void BuildManeuverCarriesTheBurnProfileAnIntegratingPlannerSupplies()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?>
+                    {
+                        ["ut"] = 12345.0,
+                        ["inertiallyFixed"] = true,
+                        ["thrust"] = 27.5,
+                        ["specificImpulse"] = 311.0,
+                        ["initialMass"] = 8.4,
+                        ["finalMass"] = 6.1,
+                    },
+                });
+
+            var node = Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes);
+            Assert.True(node.InertiallyFixed);
+            Assert.Equal(27.5, node.Thrust);
+            Assert.Equal(311.0, node.SpecificImpulse);
+            Assert.Equal(8.4, node.InitialMass);
+            Assert.Equal(6.1, node.FinalMass);
+        }
+
+        /// <summary>
+        /// A stock plan supplies none of the profile, and absent has to stay
+        /// absent rather than defaulting. A zero thrust is a claim about the
+        /// craft, and <c>false</c> for the attitude hold is a claim the planner
+        /// never made; both read as fact to a widget that cannot tell a default
+        /// from an answer.
+        /// </summary>
+        [Fact]
+        public void BuildManeuverLeavesTheBurnProfileNullWhenThePlannerSuppliesNone()
+        {
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                maneuverNodes: new List<object?>
+                {
+                    new Dictionary<string, object?> { ["ut"] = 12345.0 },
+                });
+
+            var node = Assert.Single(VesselViewProvider.BuildManeuver(snapshot)!.Nodes);
+            Assert.Null(node.InertiallyFixed);
+            Assert.Null(node.Thrust);
+            Assert.Null(node.SpecificImpulse);
+            Assert.Null(node.InitialMass);
+            Assert.Null(node.FinalMass);
+        }
+
+        /// <summary>
         /// An unmodelled duration reports ABSENT, never a zero-length burn at
         /// <c>Ut</c>. Collapsing them would make "we do not know when to light
         /// the engines" indistinguishable from "this burn is instantaneous".
