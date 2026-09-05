@@ -83,6 +83,8 @@ interface Pane {
   pick?: string[];
   /** Press Open, landing in the conversation itself. */
   open?: boolean;
+  /** Latch the push-to-talk key and speak a fixed clip through it. */
+  key?: boolean;
 }
 
 interface Scene {
@@ -92,7 +94,11 @@ interface Scene {
   roster?: { id: string; displayName: string; active: boolean }[];
   oneWaySeconds?: number;
   linkLost?: boolean;
-  settleOn?: string;
+  settleOn?: string | readonly string[];
+  caption?: string;
+  /** Force the radio's capability verdict, so the two refusals can be
+   *  photographed on a machine that supports the radio perfectly well. */
+  radioSupport?: "insecure-context" | "no-codec";
   pxW: number;
   pxH: number;
 }
@@ -142,6 +148,20 @@ const acked = (sentAt: number) => [
 const ackedByKsc = (sentAt: number) => [
   { from: KSC, stationKey: "ksc-1", at: sentAt + LIGHT_TIME },
 ];
+
+/**
+ * A settled exchange under every radio shot, so the key is photographed where
+ * an operator meets it: at the foot of a conversation that is already running,
+ * rather than in an empty console where it is the only thing on screen and its
+ * relationship to the rest of the bar cannot be read.
+ */
+const RADIO_SENT: Held[] = [
+  {
+    ...toAres("Ares, Kennedy. You are go for the insertion burn.", -900),
+    acks: acked(-900),
+  },
+];
+const RADIO_RECEIVED: Held[] = [toKsc("Copy go. Starting the sequence.", -600)];
 
 const SCENES: Scene[] = [
   {
@@ -466,6 +486,161 @@ const SCENES: Scene[] = [
     settleOn: "Nothing said yet",
     pxW: 460,
     pxH: 460,
+  },
+  {
+    /*
+     * THE RADIO AT REST. The key is at the head of the composer bar so the
+     * operator's eye finds "talk" before "type", and it is a LATCH rather than
+     * hold-to-talk: press-and-hold on a real button has no keyboard
+     * equivalent, and this widget is operable from the keyboard throughout.
+     *
+     * Four light-minutes away, so the same bar carries the delay reading the
+     * text composer already had. Nothing about the radio replaces it.
+     */
+    name: "radio-idle",
+    caption: "RADIO · at rest, four light-minutes from the craft",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: RADIO_SENT,
+        received: RADIO_RECEIVED,
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: ["Talk", "Starting the sequence"],
+    pxW: 520,
+    pxH: 480,
+  },
+  {
+    /*
+     * KEYED, and really keyed: the click below mints an envelope, freezes the
+     * separation and streams a recorded clip through the shipped transmitter.
+     * Only the microphone and the codec are stood in for.
+     *
+     * The key states its own two states in words as well as in tone, because a
+     * latch an operator cannot leave by accident is a latch they have to be
+     * able to read at a glance.
+     */
+    name: "radio-on-air",
+    caption: "RADIO · keyed, streaming to the craft",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: RADIO_SENT,
+        received: RADIO_RECEIVED,
+        key: true,
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    settleOn: ["On air", "Starting the sequence"],
+    pxW: 520,
+    pxH: 480,
+  },
+  {
+    /*
+     * NO PATH, AND STILL TALKING. This is a settled ruling rather than an
+     * oversight: loss of path stops DELIVERY, never transmission. The bar turns
+     * and flags it, the operator keeps their key, and every chunk still goes on
+     * the wire, where a listener who does have a path to this vantage can hear
+     * it. Refusing the press would be this end deciding something only the
+     * other end can answer.
+     *
+     * What the LISTENER gets is silence and nothing else, which is why there is
+     * no second pane here: there would be nothing in it. Announcing "somebody
+     * is transmitting and you cannot hear them" would be the faster-than-light
+     * channel the entire delay model exists to prevent.
+     */
+    name: "radio-no-path",
+    caption: "RADIO · no path, and the key still open",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: RADIO_SENT,
+        received: RADIO_RECEIVED,
+        key: true,
+      },
+    ],
+    // Published and EMPTY: nothing measures this pair, and with no path home to
+    // fall back on the separation resolves to no-path rather than to a zero.
+    separation: [],
+    roster: ROSTER,
+    settleOn: ["On air", "NO PATH", "Starting the sequence"],
+    pxW: 520,
+    pxH: 480,
+  },
+  {
+    /*
+     * NOT A SECURE ORIGIN, which is the state the LAN dev topology puts a
+     * station in every single time: the dev server binds the LAN
+     * (`vite.config.ts`, `server: { host: true }`), so a screen opened at
+     * `http://<lan-ip>:5173` is on a plain-http origin and the browser refuses
+     * the microphone outright.
+     *
+     * It is something the operator can act on, and it pairs with the shot below
+     * to show that the two refusals do not read the same.
+     */
+    name: "radio-insecure-origin",
+    caption: "RADIO · plain http, so no microphone at all",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: RADIO_SENT,
+        received: RADIO_RECEIVED,
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    radioSupport: "insecure-context",
+    settleOn: ["Not a secure origin", "Starting the sequence"],
+    pxW: 520,
+    pxH: 480,
+  },
+  {
+    /*
+     * NO AUDIO CODEC, kept a separate sentence from the shot above on purpose.
+     * A presence-only probe gets this wrong in BOTH directions: on an insecure
+     * origin chromium and firefox report the codec absent while webkit reports
+     * it present, so one check would call two engines codec-less where their
+     * codec is fine and call the third supported where it is about to be
+     * refused a microphone. This is the state where the answer really is the
+     * browser, and there is nothing the operator can do about it.
+     */
+    name: "radio-no-codec",
+    caption: "RADIO · a browser with no WebCodecs audio",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Ares 4",
+        sent: RADIO_SENT,
+        received: RADIO_RECEIVED,
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: LIGHT_TIME,
+    radioSupport: "no-codec",
+    settleOn: ["No audio codec", "Starting the sequence"],
+    pxW: 520,
+    pxH: 480,
   },
   {
     /*

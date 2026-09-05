@@ -17,6 +17,9 @@ import { ThemeProvider } from "styled-components";
 import { CommcastWidget } from "../../src/commcast/CommcastComponent";
 import { CommcastLog } from "../../src/commcast/CommcastLog";
 import { CommcastLogProvider } from "../../src/commcast/CommcastLogContext";
+import { RadioBackendProvider } from "../../src/commcast/radio/backend";
+import type { ClipRadio } from "../../src/commcast/radio/clips";
+import { clipRadio, SHORT_CLIP } from "../../src/commcast/radio/clips";
 import type { CommsAck, CommsMessage } from "../../src/commcast/types";
 import {
   StationIdentityProvider,
@@ -106,7 +109,33 @@ export interface Pane {
   pick?: string[];
   /** Press Open on what `pick` chose, landing in the conversation itself. */
   open?: boolean;
+  /**
+   * Latch the push-to-talk key, then speak a fixed clip through it.
+   *
+   * The real thing, driven by a real click on the real control: the transmitter
+   * mints an envelope, freezes the separation and chunks the audio, and only
+   * the microphone and the codec are stood in for. A render that reached into
+   * the widget's state to paint an "on air" button would be photographing a
+   * claim rather than the feature.
+   */
+  key?: boolean;
 }
+
+/**
+ * Force the radio's capability verdict for a scene.
+ *
+ * The two refusals are the states an operator is likeliest to meet and the
+ * hardest to photograph, because a machine that CAN run the radio never shows
+ * either. They are also deliberately distinct: an insecure origin is something
+ * the operator can act on (reach the page over https, or through localhost), a
+ * missing codec is not, and the dev server binds the LAN so a station opened at
+ * `http://<lan-ip>:5173` is in the first state every time.
+ *
+ * Forced by moving the globals `radioSupportStatus()` actually reads, so the
+ * real detect runs and the render cannot go on being right about a verdict the
+ * shipped code has stopped producing.
+ */
+export type RadioSupportOverride = "insecure-context" | "no-codec";
 
 export interface Scene {
   panes: Pane[];
@@ -125,8 +154,20 @@ export interface Scene {
    * is on its way.
    */
   linkLost?: boolean;
-  /** Text the scene is not settled until it renders. */
-  settleOn?: string;
+  /**
+   * Text the scene is not settled until it renders, or several such.
+   *
+   * A list rather than one string because a scene can be about two things at
+   * once: the no-path radio shot is only itself if the bar says NO PATH AND the
+   * key still says On air, and a shot that lost either of them would go to a
+   * reviewer reading as a design decision.
+   */
+  settleOn?: string | readonly string[];
+  /** What this scene is a picture of, drawn above the panes. Harness furniture,
+   *  never the widget's own words. */
+  caption?: string;
+  /** See {@link RadioSupportOverride}. */
+  radioSupport?: RadioSupportOverride;
   pxW: number;
   pxH: number;
 }
@@ -149,6 +190,38 @@ function memoryStorage(): Storage {
       m.delete(k);
     },
   } as Storage;
+}
+
+/**
+ * The globals `radioSupportStatus()` consults, as this page found them.
+ *
+ * Captured once at module load, before any scene has moved them, so restoring
+ * puts back what the engine shipped rather than what the previous scene left.
+ */
+const REAL_RADIO_GLOBALS = {
+  isSecureContext: globalThis.isSecureContext,
+  AudioEncoder: (globalThis as Record<string, unknown>).AudioEncoder,
+  AudioDecoder: (globalThis as Record<string, unknown>).AudioDecoder,
+};
+
+/** Put this page into the capability state `want` names, or back to its own. */
+function forceRadioSupport(want: RadioSupportOverride | undefined): void {
+  Object.defineProperty(globalThis, "isSecureContext", {
+    configurable: true,
+    value:
+      want === "insecure-context" ? false : REAL_RADIO_GLOBALS.isSecureContext,
+  });
+  for (const name of ["AudioEncoder", "AudioDecoder"] as const) {
+    if (want === "no-codec") {
+      delete (globalThis as Record<string, unknown>)[name];
+      continue;
+    }
+    Object.defineProperty(globalThis, name, {
+      configurable: true,
+      writable: true,
+      value: REAL_RADIO_GLOBALS[name],
+    });
+  }
 }
 
 function twoFrames(): Promise<void> {
@@ -257,7 +330,11 @@ async function clickWhenReady(
  * silently: a scene whose row never appeared reports it, because a screenshot
  * of an inbox where a conversation was expected reads as a design claim.
  */
-async function drivePane(pane: Pane, index: number): Promise<boolean> {
+async function drivePane(
+  pane: Pane,
+  index: number,
+  radio: ClipRadio,
+): Promise<boolean> {
   const el = paneEl(index);
   if (!el) return false;
   if (pane.compose === true) {
@@ -265,11 +342,20 @@ async function drivePane(pane: Pane, index: number): Promise<boolean> {
     for (const name of pane.pick ?? []) {
       if (!(await clickWhenReady(el, name, ROW))) return false;
     }
-    if (pane.open !== true) return true;
-    return await clickWhenReady(el, "Open");
+    if (pane.open === true && !(await clickWhenReady(el, "Open"))) return false;
+  } else if (pane.openThread !== undefined) {
+    if (!(await clickWhenReady(el, pane.openThread, ROW))) return false;
   }
-  if (pane.openThread === undefined) return true;
-  return await clickWhenReady(el, pane.openThread, ROW);
+  if (pane.key !== true) return true;
+  /*
+   * Latch, then talk. The click is what mints the envelope and freezes the
+   * separation, and the clip only starts once the key has caught, so a shot of
+   * a pressed key is a shot of a transmitter that really is transmitting.
+   */
+  if (!(await clickWhenReady(el, "Talk"))) return false;
+  radio.mic.speakAll();
+  await twoFrames();
+  return true;
 }
 
 /**
@@ -383,12 +469,23 @@ function paneTree(pane: Pane, index: number) {
       pending: (pane.crossing ?? []).map(toMessage),
     });
   }
+  /*
+   * The radio, on a recorded clip. `webaudio.ts` is the only file in the radio
+   * folder that touches a device or a codec, and a render harness can have
+   * neither: no microphone to grant, and an `AudioContext` per pane per attempt
+   * would run a page into its own limit. What is substituted is exactly those
+   * two ends; the transmitter, the wire, the session and the control are all
+   * the shipped ones.
+   */
+  const radio = clipRadio(SHORT_CLIP);
   // The SCREEN is what a provider carries; the seat is derived from it by `seatOf`, which is the whole reason a pane is declared by seat here: a peer-fed pilot would be a third screen at the same seat and this scene would not change.
   const widget = (
     <ScreenProvider value={pane.seat === "pilot" ? "pilot" : "main"}>
       <fixture.Provider>
         <StationIdentityProvider service={identity}>
-          <CommcastWidget id={`commcast-${index}`} config={{}} w={6} h={9} />
+          <RadioBackendProvider value={radio.backend}>
+            <CommcastWidget id={`commcast-${index}`} config={{}} w={6} h={9} />
+          </RadioBackendProvider>
         </StationIdentityProvider>
       </fixture.Provider>
     </ScreenProvider>
@@ -396,6 +493,7 @@ function paneTree(pane: Pane, index: number) {
   return {
     fixture,
     log,
+    radio,
     node: (
       <div
         key={`${pane.seat}:${pane.vantage ?? ""}:${index}`}
@@ -445,6 +543,11 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
   mount.style.height = `${scene.pxH}px`;
   mount.style.overflow = "hidden";
 
+  // BEFORE the mount, because the verdict is read once per mounted radio and
+  // never re-read. Reset every time rather than only when a scene asks, so a
+  // retry and the next scene both start from what the engine really offers.
+  forceRadioSupport(scene.radioSupport);
+
   if (root) {
     root.unmount();
     root = undefined;
@@ -471,14 +574,35 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
       <div
         style={{
           display: "flex",
-          gap: "16px",
+          flexDirection: "column",
+          gap: "8px",
           width: "100%",
           height: "100%",
           padding: "8px",
           boxSizing: "border-box",
         }}
       >
-        {panes.map((p) => p.node)}
+        {scene.caption === undefined ? null : (
+          <div
+            style={{
+              font: "11px var(--font-family-mono, ui-monospace, monospace)",
+              letterSpacing: "0.06em",
+              color: "var(--color-text-muted, #9a9a9a)",
+            }}
+          >
+            {scene.caption}
+          </div>
+        )}
+        <div
+          style={{
+            display: "flex",
+            gap: "16px",
+            flex: "1 1 auto",
+            minHeight: 0,
+          }}
+        >
+          {panes.map((p) => p.node)}
+        </div>
       </div>
     </ThemeProvider>,
   );
@@ -542,18 +666,22 @@ async function renderSceneOnce(scene: Scene): Promise<boolean> {
    */
   if (!(await settle(() => noDeadComposer()))) return false;
   for (let i = 0; i < scene.panes.length; i++) {
-    if (!(await drivePane(scene.panes[i], i))) return false;
+    if (!(await drivePane(scene.panes[i], i, panes[i].radio))) return false;
   }
   /*
    * The SECOND is the scene's own claim. The clock landing is not the arrival
    * happening: the buffer releases on a later frame, and a shot taken before it
    * photographs an empty log as though that were the scene's intent.
    */
-  return await settle(
-    () =>
-      noDeadComposer() &&
-      (scene.settleOn === undefined || mountedText().includes(scene.settleOn)),
-  );
+  return await settle(() => noDeadComposer() && showsAll(scene.settleOn));
+}
+
+/** Whether every string the scene is waiting on is on screen. */
+function showsAll(wanted: string | readonly string[] | undefined): boolean {
+  if (wanted === undefined) return true;
+  const text = mountedText();
+  const all = typeof wanted === "string" ? [wanted] : wanted;
+  return all.every((one) => text.includes(one));
 }
 
 /** Whether every composer on screen has a clock behind it. */

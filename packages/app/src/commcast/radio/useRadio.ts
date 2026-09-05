@@ -4,15 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CommcastLog } from "../CommcastLog";
 import type { SeparationMatrix, Vantage } from "../reveal";
 import type { RecipientId } from "../types";
+import { useRadioBackend } from "./backend";
 import type { RadioReception } from "./RadioSession";
 import { RadioSession } from "./RadioSession";
-import type { RadioTransmitState, StartRadioCapture } from "./RadioTransmitter";
+import type { RadioTransmitState } from "./RadioTransmitter";
 import { RadioTransmitter } from "./RadioTransmitter";
-import {
-  startWebAudioCapture,
-  WebAudioRadioSink,
-  WebCodecsRadioDecoder,
-} from "./webaudio";
 
 /**
  * The radio, mounted on one thread: a latching key at this end and whatever
@@ -73,8 +69,6 @@ export interface UseRadioOptions {
    * end is.
    */
   separationSeconds: number | null;
-  /** Overrides the microphone, for tests and probes. */
-  startCapture?: StartRadioCapture;
 }
 
 const NO_RECEPTION: RadioReception = {
@@ -97,8 +91,8 @@ export function useRadio({
   local,
   target,
   separationSeconds,
-  startCapture,
 }: UseRadioOptions): RadioControl {
+  const backend = useRadioBackend();
   const clock = useViewClockOptional();
   const support = useMemo(() => radioSupportStatus(), []);
   const [session, setSession] = useState<RadioSession | null>(null);
@@ -131,7 +125,7 @@ export function useRadio({
         confirmedEdgeUt: () => clock.utNowEstimate(),
         onFrame: (cb) => clock.onFrame(cb),
       },
-      decoder: new WebCodecsRadioDecoder(new WebAudioRadioSink()),
+      decoder: backend.createDecoder(),
     });
     setSession(built);
     setReception(built.snapshot());
@@ -144,7 +138,7 @@ export function useRadio({
       setSession(null);
       setReception(NO_RECEPTION);
     };
-  }, [log, clock, support.supported]);
+  }, [log, clock, support.supported, backend]);
 
   useEffect(() => session?.setVantage(me), [session, me]);
   useEffect(() => session?.setPairs(pairs), [session, pairs]);
@@ -158,7 +152,7 @@ export function useRadio({
     const built = new RadioTransmitter({
       send: (frame) => log.sendRadio(frame),
       utNow: () => clockRef.current?.utNowEstimate(),
-      startCapture: startCapture ?? startWebAudioCapture,
+      startCapture: backend.startCapture,
     });
     setTransmitter(built);
     const unsubscribe = built.subscribe(setTransmit);
@@ -168,7 +162,7 @@ export function useRadio({
       setTransmitter(null);
       setTransmit(IDLE_TRANSMIT);
     };
-  }, [log, support.supported, startCapture]);
+  }, [log, support.supported, backend]);
 
   const toggle = useCallback(() => {
     if (!transmitter) return;
