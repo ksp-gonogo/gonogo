@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import { createPanelStore } from "../store/createPanelStore";
 import { createStore } from "../store/createStore";
 import type { CommandDelayHandle } from "./CommandDelay";
+import type { RailTags } from "./railTags";
 
 /**
  * One command's delay-output registration into the Panel-scoped rail.
@@ -14,6 +15,32 @@ import type { CommandDelayHandle } from "./CommandDelay";
 export interface CommandHandle extends CommandDelayHandle {
   /** Stable for the registering hook's whole mounted life. */
   id: string;
+}
+
+/**
+ * One tagged NON-command crossing registered into the same rail: a thing that
+ * occupies the gap without being a dispatch awaiting an ack.
+ *
+ * Kept a separate registration rather than another `CommandHandle` shape,
+ * because a crossing has none of a command's parts. There is no `inFlight`, no
+ * refusal, no loss, no must-consume token and nothing to dismiss; a handle
+ * carrying all of those as empties would be claiming a command's guarantees
+ * while providing none of them, which is the exact confusion `RailTags` exists
+ * to end.
+ */
+export interface CrossingHandle {
+  /** Stable for the registering hook's whole mounted life. */
+  id: string;
+  /** The three axes. What the rail draws follows entirely from these. */
+  tags: RailTags;
+  /** The graphic's accessible name, e.g. "Your transmission crossing to Odyssey". */
+  label: string;
+  /** Waveform samples, 0..1 each, NEWEST LAST. Read only for a continuous entry. */
+  amplitudes?: readonly number[];
+  /** How many samples span the trip to the boundary (one light-time). */
+  spanSamples?: number;
+  /** For a discrete entry: 0 at this end, 1 at the far end of the drawn journey. */
+  progress?: number;
 }
 
 /**
@@ -35,15 +62,34 @@ export interface DelayRailStore {
   subscribe(onChange: () => void): () => void;
   /** The current active handles, insertion-ordered, referentially stable while unchanged. */
   getActiveHandles(): readonly CommandHandle[];
+  /** Add or replace a tagged crossing (keyed on `entry.id`). Returns its deregister function. */
+  registerCrossing(entry: CrossingHandle): () => void;
+  /** Update a registered crossing's non-id fields in place. */
+  updateCrossing(id: string, next: Omit<CrossingHandle, "id">): void;
+  /** Subscribe to any change in the active crossing set. Returns unsubscribe. */
+  subscribeCrossings(onChange: () => void): () => void;
+  /** The current active crossings, insertion-ordered, stable while unchanged. */
+  getActiveCrossings(): readonly CrossingHandle[];
 }
 
 export function createDelayRailStore(): DelayRailStore {
   const base = createStore<CommandHandle>();
+  /*
+   * A second store rather than a second entry TYPE in the first, so their
+   * listener sets are separate: a voice ribbon updating fifty times a second
+   * has no business re-rendering a command subscriber that reads neither its
+   * amplitudes nor its tags.
+   */
+  const crossings = createStore<CrossingHandle>();
   return {
     register: base.register,
     update: base.update,
     subscribe: base.subscribe,
     getActiveHandles: base.getSnapshot,
+    registerCrossing: crossings.register,
+    updateCrossing: crossings.update,
+    subscribeCrossings: crossings.subscribe,
+    getActiveCrossings: crossings.getSnapshot,
   };
 }
 
@@ -93,5 +139,22 @@ export function useActiveHandles(): readonly CommandHandle[] {
     store ? store.subscribe : NO_SUBSCRIBE,
     store ? store.getActiveHandles : NO_HANDLES_SNAPSHOT,
     store ? store.getActiveHandles : NO_HANDLES_SNAPSHOT,
+  );
+}
+
+const NO_CROSSINGS: readonly CrossingHandle[] = [];
+const NO_CROSSINGS_SNAPSHOT = (): readonly CrossingHandle[] => NO_CROSSINGS;
+
+/**
+ * The panel's active tagged crossings, or `[]` with none registered and none
+ * possible. The crossing twin of `useActiveHandles`, on the crossing store's
+ * own listener set.
+ */
+export function useActiveCrossings(): readonly CrossingHandle[] {
+  const store = useDelayRailStore();
+  return useSyncExternalStore(
+    store ? store.subscribeCrossings : NO_SUBSCRIBE,
+    store ? store.getActiveCrossings : NO_CROSSINGS_SNAPSHOT,
+    store ? store.getActiveCrossings : NO_CROSSINGS_SNAPSHOT,
   );
 }

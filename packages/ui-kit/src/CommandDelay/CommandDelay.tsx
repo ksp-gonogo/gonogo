@@ -8,6 +8,8 @@ import {
   type InFlightListDensity,
   type InFlightListMode,
 } from "./InFlightList";
+import { RailCrossing } from "./RailCrossing";
+import { type RailTags, railDrawsReturnLeg, railTagsOf } from "./railTags";
 import {
   type InFlightCommandLike,
   toInFlightListItems,
@@ -47,6 +49,18 @@ export interface CommandDelayHandle {
    * persistent per-frame axis (fly-by-wire). Comes from `commandShape(topic)`.
    */
   shape: "discrete" | "stream";
+  /**
+   * What this entry IS on the rail's three axes, for anything the default
+   * assumption gets wrong. Omitted (the case for every command today) it reads
+   * as a discrete command awaiting an ack, which is exactly what the rail
+   * silently assumed before the axes had names.
+   *
+   * `shape` already answers the continuity axis, so a stream handle needs no
+   * tag to be drawn continuous, and does NOT become fire-and-forget by being
+   * continuous: a stream command's ack is the confirmed readback and its
+   * deviance is expected-against-actual. See `railTags.ts`.
+   */
+  tags?: Partial<RailTags>;
   /**
    * The command's effective one-way delay under its selected vantage. `0`
    * (meta-vantage / a direct LAN link) means there is nothing to visualise, so
@@ -171,6 +185,37 @@ export function CommandDelay({
       if (h._output) h._output.consumed = true;
     }
   });
+
+  /*
+   * The DELIVERY axis, before either ack-shaped renderer gets a look in.
+   * `InFlightList` is a wait for a reply and `ControlDelayStream`'s last two
+   * zones ARE one, so both are the wrong picture for an entry nothing answers:
+   * they would draw a return leg that does not exist, which is the lie the
+   * axes were named to remove. It crosses to the boundary and ends.
+   */
+  const tags = all.length > 0 ? railTagsOf(all[0]) : null;
+  /*
+   * EVERY handle, not just the first: a merged render of one acked command and
+   * one fire-and-forget one has no single honest picture, so the ack-shaped
+   * path keeps it rather than one handle's tag speaking for its siblings.
+   */
+  if (
+    tags &&
+    !railDrawsReturnLeg(tags) &&
+    all.every((h) => !railDrawsReturnLeg(railTagsOf(h)))
+  ) {
+    const items = toInFlightListItems(all.flatMap((h) => h.inFlight));
+    const leading = items[0];
+    if (!leading) return null;
+    return (
+      <RailCrossing
+        tags={tags}
+        label={ariaLabel ?? "In flight, no reply expected"}
+        progress={leading.progress}
+        variant={variant}
+      />
+    );
+  }
 
   // A lone stream handle draws the continuous strip; a stream's own delay is
   // gated inside ControlDelayStream, but the shared instant short-circuit still

@@ -4,8 +4,13 @@ import { CommandDelay } from "./CommandDelay";
 import { CommandFoundList, type RailFound } from "./CommandFoundList";
 import { CommandLossList, type RailLoss } from "./CommandLossList";
 import { CommandRefusalList, type RailRefusal } from "./CommandRefusalList";
-import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
+import {
+  type CommandHandle,
+  useActiveCrossings,
+  useActiveHandles,
+} from "./DelayRailContext";
 import { usePanelRailTarget } from "./PanelRailTarget";
+import { RailCrossing } from "./RailCrossing";
 
 /**
  * Whether a handle's `CommandDelay` would draw anything: a stream with real
@@ -68,6 +73,7 @@ function handleHasContent(handle: CommandHandle): boolean {
  */
 export function PanelDelayRail() {
   const handles = useActiveHandles();
+  const crossings = useActiveCrossings();
   const visible = handles.filter(handleHasContent);
   // Refusals come from EVERY registered handle, not just the ones with delay
   // content: a refused command has nothing in flight by definition (it settled),
@@ -94,7 +100,11 @@ export function PanelDelayRail() {
     (h.founds ?? []).map((f) => ({ ...f, shape: h.shape })),
   );
   const deadCount = refusals.length + losses.length;
-  const hasContent = visible.length > 0 || deadCount > 0 || founds.length > 0;
+  const hasContent =
+    visible.length > 0 ||
+    deadCount > 0 ||
+    founds.length > 0 ||
+    crossings.length > 0;
   const railRef = useRef<HTMLDivElement>(null);
   const targetRef = usePanelRailTarget();
   const [pinned, setPinned] = useState(false);
@@ -216,6 +226,20 @@ export function PanelDelayRail() {
             handle={h}
             variant={pinned ? "expanded" : "rail"}
             ariaLabel={pinned ? "Delay detail" : undefined}
+          />
+        ))}
+        {/* Tagged crossings share the band with the commands, the same way two
+            commands do: every rail child sits in the one grid cell collapsed,
+            and stacks when the rail grows. */}
+        {crossings.map((c) => (
+          <RailCrossing
+            key={c.id}
+            tags={c.tags}
+            label={c.label}
+            amplitudes={c.amplitudes}
+            spanSamples={c.spanSamples}
+            progress={c.progress}
+            variant={pinned ? "expanded" : "rail"}
           />
         ))}
         {!pinned && (deadCount > 0 || founds.length > 0) && (

@@ -191,10 +191,12 @@ export {
 } from "./CommandDelay/commandRefusalSentence";
 export {
   type CommandHandle,
+  type CrossingHandle,
   createDelayRailStore,
   DelayRailContext,
   DelayRailProvider,
   type DelayRailStore,
+  useActiveCrossings,
   useActiveHandles,
   useDelayRailStore,
 } from "./CommandDelay/DelayRailContext";
@@ -208,6 +210,26 @@ export {
 } from "./CommandDelay/InFlightList";
 export { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 export {
+  crossingBoundaryX,
+  RailCrossing,
+  type RailCrossingProps,
+  ribbonPath,
+} from "./CommandDelay/RailCrossing";
+export {
+  DEFAULT_RAIL_TAGS,
+  type RailContinuity,
+  type RailDelivery,
+  type RailDirection,
+  type RailTagSource,
+  type RailTags,
+  railDrawsReturnLeg,
+  railFlow,
+  railMark,
+  railTagsOf,
+  railToneToken,
+  VOICE_RAIL_TAGS,
+} from "./CommandDelay/railTags";
+export {
   SignalDelayBadge,
   type SignalDelayBadgeProps,
 } from "./CommandDelay/SignalDelayBadge";
@@ -219,6 +241,7 @@ export {
   type CommandFailures,
   useCommandFailures,
 } from "./CommandDelay/useCommandFailures";
+export { usePanelCrossing } from "./CommandDelay/usePanelCrossing";
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
 export {
