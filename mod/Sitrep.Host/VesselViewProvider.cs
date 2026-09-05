@@ -333,29 +333,6 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The horizon these elements carry.
-        ///
-        /// <para><see cref="PropagationHorizonKind.Unbounded"/> because the only
-        /// <c>IPropagationProvider</c> that exists is <c>KeplerProvider</c>, an
-        /// analytic two-body solver whose <c>CanPropagate</c> ignores its window
-        /// parameters entirely: it has no horizon, and saying so is a claim
-        /// rather than a default.</para>
-        ///
-        /// <para>This is the ONE place to change when a provider that INTEGRATES
-        /// is elected, i.e. an n-body backend. Such a provider must
-        /// return <see cref="PropagationHorizonKind.Until"/> with a per-sample
-        /// UT, because the horizon is a local property: the same save at the same
-        /// instant has horizons differing by orders of magnitude between craft,
-        /// scaling as <c>2 (mu_perturber / mu_primary) (r / d)^3</c>. A measured
-        /// 20 km Minmus orbit drifts ~11 m per hour under two-body extrapolation
-        /// while an ordinary high-Kerbin orbit perturbed by the Mun drifts ~19 km
-        /// per hour, which is why one global answer cannot be right.</para>
-        ///
-        /// <para>Until then the client-side gate never refuses. That is the
-        /// system working with a provider that has no limit, not a dead branch:
-        /// do not delete it as unreachable.</para>
-        /// </summary>
-        /// <summary>
         /// Whether the ELECTED propagation provider integrates. Late-bound
         /// because the capability kernel is not resolved when this static class
         /// is first touched, the same reason the actuator's own resolvers are.
