@@ -322,6 +322,16 @@ namespace Gonogo.KSP.Tests.Comms
             public CommsNetwork Network() => new CommsNetwork();
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            // The graph is dead, so there is no route, nothing rated the pair,
+            // and no path terminated anywhere. Three nulls and an Unknown, which
+            // is what a backend that cannot answer is contractually required to
+            // say rather than guessing.
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+
+            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+
+            public object? ControlPathTerminus() => null;
         }
 
         /// <summary>

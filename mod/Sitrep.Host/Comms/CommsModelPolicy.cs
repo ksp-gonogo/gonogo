@@ -237,6 +237,48 @@ namespace Sitrep.Host.Comms
         public ICommsOcclusionModel OcclusionModel() => _inner.OcclusionModel();
 
         /// <summary>
+        /// EMPTY between two distinct places, which the contract defines as
+        /// "routed, with nothing to measure", and that is exactly the case here:
+        /// there is no relay graph to solve and no light-time to accumulate. Not
+        /// null, which would mean no route exists and would put every pair back
+        /// on a fallback this wrapper was added to stop them needing.
+        ///
+        /// <para>Null is still the answer for a missing handle or the same node
+        /// at both ends, on the contract's own terms: a path to yourself is not
+        /// a route, whatever model is in force.</para>
+        /// </summary>
+        public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+        {
+            if (from == null || to == null || ReferenceEquals(from, to))
+            {
+                return null;
+            }
+            return new List<CommsRouteHop>();
+        }
+
+        /// <summary>
+        /// NO MAXIMUM, and deliberately not <see cref="CommsReachModels.Unknown"/>.
+        ///
+        /// <para>The two carry the same absent maximum and therefore compare the
+        /// same through <see cref="CommsReachModels.Reaches"/>, but they mean
+        /// opposite things: Unknown is "nobody rated this pair", while this is
+        /// "nothing limits it", which is a fact about the save. They are told
+        /// apart by <see cref="ICommsReachModel.ModelId"/>, so a predictor that
+        /// reports what it modelled can say which of the two it was standing on
+        /// rather than reporting an absence it did not cause.</para>
+        /// </summary>
+        public ICommsReachModel ReachModel(object? from, object? to) => NoLimitReach;
+
+        private static readonly ICommsReachModel NoLimitReach = new MaxRangeReachModel(
+            "no-comms-model", "No comms model (nothing limits reach)", null);
+
+        /// <summary>
+        /// Null. A centre is where a control PATH terminates and there are no
+        /// paths, so there is no node to name.
+        /// </summary>
+        public object? ControlPathTerminus() => null;
+
+        /// <summary>
         /// The craft's own control tier, fail-soft to
         /// <see cref="CommsControlSource.None"/>: the probe reads live KSP, and
         /// a throw on a scene-settle tick must not be allowed to escape onto

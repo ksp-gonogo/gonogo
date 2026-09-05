@@ -287,6 +287,16 @@ namespace Sitrep.Host.Tests
             public CommsNetwork Network() => new CommsNetwork();
 
             public ICommsOcclusionModel OcclusionModel() => _occlusion;
+
+            // Deliberately inert. Every one of these is a question the wrapper
+            // answers for itself rather than delegating, so a stub that returned
+            // anything meaningful here would be asserting against its own value
+            // instead of the wrapper's.
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+
+            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+
+            public object? ControlPathTerminus() => null;
         }
     }
 }

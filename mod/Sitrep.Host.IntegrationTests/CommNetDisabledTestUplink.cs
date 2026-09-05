@@ -165,6 +165,15 @@ namespace Sitrep.Host.IntegrationTests
             };
 
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
+
+            // As above: a dead graph rates nothing and routes nowhere. The
+            // wrapper under test is what turns that into the no-comms-model
+            // answer, so this stub must NOT pre-empt it with one of its own.
+            public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
+
+            public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
+
+            public object? ControlPathTerminus() => null;
         }
     }
 }
