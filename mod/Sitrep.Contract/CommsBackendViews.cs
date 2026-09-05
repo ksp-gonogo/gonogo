@@ -211,3 +211,33 @@ public readonly struct CommsLinkState
     /// </summary>
     public double SignalStrength { get; }
 }
+
+/// <summary>
+/// One observed break in a subject's route home: when it happened, and how far
+/// out along the route it sat.
+///
+/// <para>Backend-facing, like every other view in this file, and deliberately
+/// NOT a contract type: a break never reaches the wire. It is raised on the
+/// main thread by whoever can see the hop geometry, carried to the engine as
+/// two plain doubles, and spent on <c>INetwork.DropPath</c>. A client sees only
+/// the silence it produces.</para>
+/// </summary>
+public readonly struct PathBreak
+{
+    public PathBreak(double atUt, double lightSecondsOut)
+    {
+        AtUt = atUt;
+        LightSecondsOut = lightSecondsOut;
+    }
+
+    /// <summary>The UT the break was observed.</summary>
+    public double AtUt { get; }
+
+    /// <summary>
+    /// How far out from the subject the break sat, in light-seconds along the
+    /// route it was using. This is the quantity that decides WHETHER a sample
+    /// arrives rather than when: light already past this point is a wavefront on
+    /// the far leg and the break is behind it.
+    /// </summary>
+    public double LightSecondsOut { get; }
+}

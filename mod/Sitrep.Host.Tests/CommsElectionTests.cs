@@ -19,6 +19,8 @@ namespace Sitrep.Host.Tests
     {
         private sealed class FakeBackend : ICommsBackend
         {
+
+        public bool? StillCarriesTo(string nodeId) => null;
             private readonly ICommsOcclusionModel _occlusion;
 
             public FakeBackend(string id, ICommsOcclusionModel? occlusion = null)

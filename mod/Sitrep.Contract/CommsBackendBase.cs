@@ -209,6 +209,10 @@ public abstract class CommsBackendBase : ICommsBackend
     {
         var hops = new List<CommsHop>();
         var path = ControlPath();
+        // Every tick's ordinary path read is what keeps StillCarriesTo able to
+        // reach a node the route has since dropped: once it is off the route
+        // there is nowhere else to get a handle for it.
+        Remember(path);
         if (path != null)
         {
             foreach (var link in path)
@@ -240,6 +244,78 @@ public abstract class CommsBackendBase : ICommsBackend
     /// graph is a change to what a backend SUPPLIES here and this shape is
     /// already the one that would carry it.</para>
     /// </summary>
+    /*
+     * The node views seen on the control path most recently, by id, plus the
+     * subject end of it. Retained so StillCarriesTo can still reach a node the
+     * route has since stopped using: its handle is what RouteBetween needs, and
+     * once the node is off the route there is nowhere else to get one.
+     *
+     * Handles are held across ticks and never dereferenced here. A stale one is
+     * safe by RouteBetween's own contract, which answers null for a missing
+     * handle, and that answer is exactly the one a destroyed relay should give.
+     */
+    private readonly Dictionary<string, CommsNodeView> _lastSeenNodes =
+        new Dictionary<string, CommsNodeView>();
+    private CommsNodeView? _lastSubject;
+
+    /// <inheritdoc cref="ICommsBackend.StillCarriesTo" path="/summary"/>
+    public bool? StillCarriesTo(string nodeId)
+    {
+        if (string.IsNullOrEmpty(nodeId))
+        {
+            return null;
+        }
+
+        var path = ControlPath();
+        Remember(path);
+
+        if (path != null)
+        {
+            foreach (var link in path)
+            {
+                if (link.A.Id == nodeId || link.B.Id == nodeId)
+                {
+                    // On the route this very tick, so it is carrying by
+                    // demonstration rather than by inference.
+                    return true;
+                }
+            }
+        }
+
+        // The craft's own transmitter. RouteBetween answers null for the same
+        // node at both ends, which would read as a break at zero light-seconds
+        // and doom every sample ever sent.
+        if (_lastSubject != null && _lastSubject.Value.Id == nodeId)
+        {
+            return true;
+        }
+
+        if (_lastSubject == null || !_lastSeenNodes.TryGetValue(nodeId, out var node))
+        {
+            // Never seen it on a route, so there is nothing to have lost.
+            return null;
+        }
+
+        // Null is "will not route between them": a missing handle, or an end it
+        // cannot reach. Both mean the same thing here. An EMPTY list is routed
+        // with nothing to measure, which is still carrying.
+        return RouteBetween(_lastSubject.Value.Handle, node.Handle) != null;
+    }
+
+    private void Remember(IReadOnlyList<CommsLinkView>? path)
+    {
+        if (path == null || path.Count == 0)
+        {
+            return;
+        }
+        _lastSubject = path[0].A;
+        foreach (var link in path)
+        {
+            _lastSeenNodes[link.A.Id] = link.A;
+            _lastSeenNodes[link.B.Id] = link.B;
+        }
+    }
+
     public CommsNetwork Network()
     {
         var nodes = new List<CommsNetworkNode>();

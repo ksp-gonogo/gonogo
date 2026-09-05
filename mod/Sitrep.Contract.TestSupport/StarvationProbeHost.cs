@@ -261,6 +261,10 @@ namespace Sitrep.Contract.TestSupport
         {
         }
 
+        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread)
+        {
+        }
+
         public void ForceKeyframe(string topic)
         {
         }

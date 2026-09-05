@@ -42,6 +42,8 @@ namespace Gonogo.KSP.Tests.Comms
         /// </summary>
         private sealed class ClosestWhereBackend : ICommsBackend
         {
+
+        public bool? StillCarriesTo(string nodeId) => null;
             public string ProviderId => "test-closest-where";
 
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)

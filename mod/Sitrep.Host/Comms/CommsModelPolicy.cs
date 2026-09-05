@@ -257,6 +257,14 @@ namespace Sitrep.Host.Comms
         }
 
         /// <summary>
+        /// ALWAYS CARRYING. Nothing can stop carrying on a save that models no
+        /// links, so no route change here is ever a break, and the drop event
+        /// stays silent for the whole save. True rather than null because this
+        /// is a positive fact about the save and not an absence of opinion.
+        /// </summary>
+        public bool? StillCarriesTo(string nodeId) => true;
+
+        /// <summary>
         /// NO MAXIMUM, and deliberately not <see cref="CommsReachModels.Unknown"/>.
         ///
         /// <para>The two carry the same absent maximum and therefore compare the

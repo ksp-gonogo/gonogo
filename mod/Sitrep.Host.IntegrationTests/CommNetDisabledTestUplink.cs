@@ -130,6 +130,8 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         internal sealed class DeadGraphBackend : ICommsBackend
         {
+
+        public bool? StillCarriesTo(string nodeId) => null;
             public string ProviderId => "commnet";
 
             public CommsConnectivity Connectivity() => new CommsConnectivity

@@ -300,6 +300,8 @@ namespace Gonogo.KSP.Tests.Comms
         /// </summary>
         private sealed class DeadGraphBackend : ICommsBackend
         {
+
+        public bool? StillCarriesTo(string nodeId) => null;
             public string ProviderId => "commnet";
 
             public CommsConnectivity Connectivity() => new CommsConnectivity
@@ -346,6 +348,8 @@ namespace Gonogo.KSP.Tests.Comms
         /// </summary>
         private sealed class NoOpUplinkHost : IUplinkHost
         {
+
+        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) { }
             internal NoOpUplinkHost(Kernel kernel) => Kernel = kernel;
 
             public Kernel Kernel { get; }

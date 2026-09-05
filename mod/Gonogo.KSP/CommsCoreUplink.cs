@@ -395,6 +395,13 @@ namespace Gonogo.KSP
             // live elected backend is safe.
             host.SetSignalDelaySource(ComputeDelayOnMain);
 
+            // The DROP EVENT, off the same elected backend and the same tick.
+            // The delay above says how far away the craft is; this says when a
+            // hop it was routing through stopped carrying, which is the only
+            // thing that can retire telemetry already in flight behind a relay
+            // that died. See IUplinkHost.SetPathBreakSource and PathBreakWatch.
+            host.SetPathBreakSource(ObservePathBreakOnMain);
+
             // Freeze-on-disconnect: advertise the CONNECTED/DISCONNECTED state to
             // the reveal gate the SAME subscription-independent, main-thread way
             // as the delay. When the control link is down, the gate withholds
@@ -556,6 +563,48 @@ namespace Gonogo.KSP
                 path,
                 path.Meta?.Source ?? "",
                 path.Meta?.Quality ?? Quality.OnRails);
+        }
+
+        /*
+         * The retained route, for the drop event. Per-uplink rather than static:
+         * it is a comparison against the last tick, and two elections or two
+         * saves must not compare against each other's geometry.
+         */
+        private readonly PathBreakWatch _pathBreaks = new PathBreakWatch();
+
+        /// <summary>
+        /// MAIN-THREAD break observation for the delay ledger (see
+        /// <see cref="IUplinkHost.SetPathBreakSource"/>): the same elected
+        /// backend and the same <see cref="ICommsBackend.Path"/> read
+        /// <see cref="ComputeDelayOnMain"/> makes, put to
+        /// <see cref="PathBreakWatch"/> so the per-hop light-times that
+        /// <see cref="SignalDelay.Compute"/> sums away are seen by something
+        /// before they are lost.
+        ///
+        /// <para>Returns null pre-election, and forgets the retained route
+        /// whenever delay is not being applied at all. A route retained across
+        /// an off/on cycle would be compared against a situation it does not
+        /// belong to, and two unrelated routes differ in every hop, which reads
+        /// as a break on the deepest one.</para>
+        /// </summary>
+        internal PathBreak? ObservePathBreakOnMain(KspSnapshot? snapshot, double ut)
+        {
+            var backend = ElectedBackend();
+            if (backend == null)
+            {
+                _pathBreaks.Forget();
+                return null;
+            }
+
+            var config = SignalDelayConfig;
+            if (config == null || !config.Enabled)
+            {
+                _pathBreaks.Forget();
+                return null;
+            }
+
+            return _pathBreaks.Observe(
+                backend.Path(), config.LightSpeedScale, ut, backend.StillCarriesTo);
         }
 
         /// <summary>

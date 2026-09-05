@@ -649,6 +649,8 @@ namespace Sitrep.Host.IntegrationTests
         /// </summary>
         internal sealed class FakeCommsBackend : ICommsBackend
         {
+
+        public bool? StillCarriesTo(string nodeId) => null;
             private readonly double? _hopDistanceMeters;
 
             public FakeCommsBackend(string id, double? hopDistanceMeters)
@@ -1148,6 +1150,31 @@ namespace Sitrep.Host.IntegrationTests
             // exists to sidestep (see this class's own doc comment).
             host.SetSignalDelaySource(ComputeDelay);
             host.SetConnectivitySource(ComputeConnected);
+            host.SetPathBreakSource(ComputeBreak);
+        }
+
+        /// <summary>
+        /// The DROP EVENT, raised on the tick whose snapshot carries
+        /// <c>breakOut</c>: how far out along the route, in light-seconds, a hop
+        /// stopped carrying. Silent on every other tick, so every fixture that
+        /// never sets it is byte-for-byte unaffected.
+        ///
+        /// <para>Deliberately takes the position as a number rather than running
+        /// <c>PathBreakWatch</c> over a fabricated <c>CommsPath</c>: what this
+        /// fixture is for is the engine seam, main-thread capture through the
+        /// tick job to <c>INetwork.DropPath</c> and out to what the socket does
+        /// or does not carry. Deriving the position from geometry is
+        /// <c>PathBreakWatchTests</c>' job, and putting it here too would give a
+        /// wire test two unrelated reasons to fail.</para>
+        /// </summary>
+        private static PathBreak? ComputeBreak(KspSnapshot? snapshot, double ut)
+        {
+            var raw = Read(snapshot, "breakOut");
+            if (raw == null)
+            {
+                return null;
+            }
+            return new PathBreak(ut, Convert.ToDouble(raw));
         }
 
         private static object? MapLink(KspSnapshot? snapshot)
@@ -1196,7 +1223,12 @@ namespace Sitrep.Host.IntegrationTests
             return value;
         }
 
-        public static KspSnapshot Snapshot(double ut, bool? connected = null, double? delay = null, double? delayed = null)
+        public static KspSnapshot Snapshot(
+            double ut,
+            bool? connected = null,
+            double? delay = null,
+            double? delayed = null,
+            double? breakOut = null)
         {
             var values = new Dictionary<string, object?>();
             if (connected.HasValue)
@@ -1210,6 +1242,10 @@ namespace Sitrep.Host.IntegrationTests
             if (delayed.HasValue)
             {
                 values["delayed"] = delayed.Value;
+            }
+            if (breakOut.HasValue)
+            {
+                values["breakOut"] = breakOut.Value;
             }
             return new KspSnapshot { Ut = ut, Values = values };
         }

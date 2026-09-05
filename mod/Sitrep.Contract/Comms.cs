@@ -520,6 +520,32 @@ public interface ICommsBackend : ISitrepProvider
     IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to);
 
     /// <summary>
+    /// Whether this backend can still carry a signal from the active vessel to
+    /// <paramref name="nodeId"/>, a node it was recently routing THROUGH.
+    /// <c>null</c> means it cannot say.
+    ///
+    /// <para>It exists to tell two things apart that <see cref="Path"/> alone
+    /// cannot, and the difference decides whether telemetry already in flight
+    /// ever lands. A relay leaving the route because a cheaper one appeared is
+    /// an ordinary reroute: the old relay is still there, still forwarding, and
+    /// the tail crossing it arrives. A relay leaving the route because it was
+    /// destroyed, or because a body moved in front of it, is a BREAK: nothing
+    /// retransmits the tail and it is lost. Both look identical in a before and
+    /// after comparison of <see cref="Path"/>, because both are simply a
+    /// different list of hops.</para>
+    ///
+    /// <para><c>null</c> rather than a guess when the backend has no opinion,
+    /// on the same terms as <see cref="CommsReachModels.Unknown"/>. A caller
+    /// that cannot establish a break must do what it does with no break at all,
+    /// which is deliver, because a wrongly-declared break deletes telemetry that
+    /// physically arrived.</para>
+    ///
+    /// <para>Live read, so main thread only, on the same capture-on-main seam as
+    /// every accessor above.</para>
+    /// </summary>
+    bool? StillCarriesTo(string nodeId);
+
+    /// <summary>
     /// The reach rule this backend applies between two nodes: how far apart
     /// they can be and still carry a link (see <see cref="ICommsReachModel"/>
     /// for the whole rule, and <c>CommsReach.cs</c>'s header for why core

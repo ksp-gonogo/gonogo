@@ -15,6 +15,8 @@ namespace GonogoMechJebUplink.Tests
     /// </summary>
     internal sealed class NullUplinkHost : IUplinkHost
     {
+
+        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) { }
         private static NotSupportedException NotExpected() =>
             new NotSupportedException("MechJebUplink.Register should not call the host in a headless test build");
 

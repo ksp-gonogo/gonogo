@@ -1025,6 +1025,43 @@ namespace Sitrep.Contract
         /// </summary>
         void SetConnectivitySource(Func<KspSnapshot?, bool?> computeOnMainThread);
 
+        /// <summary>
+        /// Advertise a BREAK in the subject's route home: the drop event, the
+        /// third and last thing the reveal gate's delay authority can say.
+        /// Evaluated on the SAME thread and cadence as
+        /// <see cref="SetSignalDelaySource"/> and
+        /// <see cref="SetConnectivitySource"/>, with the tick's UT, so it may
+        /// read the elected comms backend's hop geometry and routing.
+        ///
+        /// <para><b>Why none of the other two can carry it.</b> The delay says
+        /// how far away the craft is and can say further and nearer; it has no
+        /// honest value for GONE, and forcing one through produces a zero, a
+        /// null or an infinity that some other reader will take at face value.
+        /// Connectivity says whether anything NEW can be sent, which is a
+        /// different question from what becomes of the light already on the
+        /// wire: a relay dying mid-flight leaves the craft connected by another
+        /// route while the tail crossing the dead one is lost. That tail is what
+        /// this reports, and it is the only statement that can retire a sample
+        /// which could not physically have arrived.</para>
+        ///
+        /// <para>The break carries a POSITION as well as an instant, because
+        /// position is what decides whether rather than when: light already past
+        /// the break point is on the far leg and lands normally.
+        /// <c>Sitrep.Host.Comms.PathBreakWatch</c> is the shipped producer, and
+        /// its doc comment carries the reroute-versus-destruction discrimination
+        /// and the warp domain the answer is only valid inside.</para>
+        ///
+        /// <para>INTERNAL to the delay machinery: nothing about a break reaches
+        /// the wire, and a client sees only the silence it produces.</para>
+        ///
+        /// <para>Fail-soft, mirroring the two sources above: a throwing source
+        /// takes only its owning uplink inert, a <c>null</c> result is the
+        /// ordinary "no break this tick", and registering no source at all keeps
+        /// today's behaviour, which is that every recorded sample is delivered
+        /// at its own light-time whatever became of the route.</para>
+        /// </summary>
+        void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread);
+
         /// <summary>The C# port of <c>mod/sitrep-kernel</c>'s capability/provider registry (see <see cref="Kernel"/>).</summary>
         Kernel Kernel { get; }
 

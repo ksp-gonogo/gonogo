@@ -18,6 +18,8 @@ namespace Sitrep.Host.Tests
     /// </summary>
     internal sealed class FakeUplinkHost : IUplinkHost
     {
+
+        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread) { }
         private readonly Action<string> _onForceKeyframe;
         private readonly Action<IEnumerable<string>> _onResetChannelBirth;
 

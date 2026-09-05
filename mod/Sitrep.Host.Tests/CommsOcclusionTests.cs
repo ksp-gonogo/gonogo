@@ -152,6 +152,8 @@ namespace Sitrep.Host.Tests
 
         private sealed class StubBackend : ICommsBackend
         {
+
+        public bool? StillCarriesTo(string nodeId) => null;
             private readonly Func<ICommsOcclusionModel> _occlusion;
 
             public StubBackend(string id, Func<ICommsOcclusionModel> occlusion)

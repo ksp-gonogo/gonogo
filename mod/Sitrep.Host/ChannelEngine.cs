@@ -651,6 +651,16 @@ namespace Sitrep.Host
         private string _signalDelaySourceOwnerId = "";
         private volatile bool _signalDelaySourceDisabled;
 
+        // The DROP EVENT's source (see IUplinkHost.SetPathBreakSource), sourced
+        // and disciplined exactly as _signalDelaySource above: a main-thread
+        // closure reading the elected backend, captured every tick in
+        // CapturePathBreakOnMain, carried on the TickJob and spent Courier-side
+        // in ApplyPathBreak on INetwork.DropPath, BEFORE the clock advances so a
+        // break is on the books before any delivery it dooms can fire.
+        private Func<KspSnapshot?, double, PathBreak?>? _pathBreakSource;
+        private string _pathBreakSourceOwnerId = "";
+        private volatile bool _pathBreakSourceDisabled;
+
         // Freeze-on-disconnect (server-side reveal-gate enforcement): the
         // subscription-independent CONNECTED/DISCONNECTED signal, sourced the
         // SAME way _signalDelaySource sources the delay (a main-thread closure
@@ -1768,6 +1778,18 @@ namespace Sitrep.Host
             _signalDelaySource = computeOnMainThread;
             _signalDelaySourceOwnerId = _currentRegisteringUplinkId ?? "";
             _signalDelaySourceDisabled = false;
+        }
+
+        // Same ownership and last-registration-wins discipline as
+        // SetSignalDelaySource above, and registered by the same exclusive comms
+        // uplink: a break is a statement about the route the delay authority is
+        // already measuring, so a second opinion on it would be a second delay
+        // model. See IUplinkHost.SetPathBreakSource.
+        public void SetPathBreakSource(Func<KspSnapshot?, double, PathBreak?> computeOnMainThread)
+        {
+            _pathBreakSource = computeOnMainThread;
+            _pathBreakSourceOwnerId = _currentRegisteringUplinkId ?? "";
+            _pathBreakSourceDisabled = false;
         }
 
         public void SetVesselDelay(string vesselId, double oneWaySeconds)
@@ -3427,7 +3449,7 @@ namespace Sitrep.Host
         /// mapper delegates and the explicit job queue, never the Courier/
         /// clock directly (those are Courier-thread-only).
         /// </summary>
-        public void Tick(double ut, KspSnapshot? snapshot) => EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), null));
+        public void Tick(double ut, KspSnapshot? snapshot) => EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), null));
 
         /// <summary>
         /// Runs every registered <see cref="AddSampledSource"/> capture on the
@@ -3518,6 +3540,33 @@ namespace Sitrep.Host
             catch (Exception ex)
             {
                 return new SignalDelayCapture(null, ex);
+            }
+        }
+
+        /// <summary>
+        /// Drop-event twin of <see cref="CaptureSignalDelayOnMain"/>: runs the
+        /// registered path-break source (see
+        /// <see cref="IUplinkHost.SetPathBreakSource"/>) on the CURRENT
+        /// (main-loop) thread with this tick's UT, so it may read the elected
+        /// comms backend's hop geometry and ask its router whether a hop that
+        /// left the route is still carrying. Only the resulting two doubles
+        /// cross to the Courier thread; no live handle does.
+        /// </summary>
+        private PathBreakCapture CapturePathBreakOnMain(KspSnapshot? snapshot, double ut)
+        {
+            var source = _pathBreakSource;
+            if (source == null || _pathBreakSourceDisabled)
+            {
+                return default;
+            }
+
+            try
+            {
+                return new PathBreakCapture(source(snapshot, ut), null);
+            }
+            catch (Exception ex)
+            {
+                return new PathBreakCapture(null, ex);
             }
         }
 
@@ -3616,7 +3665,7 @@ namespace Sitrep.Host
         internal void TickAndWait(double ut, KspSnapshot? snapshot, TimeSpan timeout)
         {
             var barrier = new ManualResetEventSlim(false);
-            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), barrier));
+            EnqueueJob(new TickJob(ut, snapshot, RunCaptures(snapshot), CaptureSignalDelayOnMain(snapshot), CaptureConnectivityOnMain(snapshot), CapturePathBreakOnMain(snapshot, ut), barrier));
             barrier.Wait(timeout);
         }
 
@@ -4134,6 +4183,38 @@ namespace Sitrep.Host
         private void FailSoftSignalDelaySource(Exception ex)
         {
             Console.Error.WriteLine("[ChannelEngine] signal delay source (owner \"" + _signalDelaySourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(ex));
+        }
+
+        /// <summary>
+        /// Spend this tick's DROP EVENT on the delay ledger: everything the
+        /// subject sent that had not crossed the break when it opened can never
+        /// arrive, and <see cref="INetwork.DropPath"/> is what retires it (see
+        /// <see cref="IUplinkHost.SetPathBreakSource"/>).
+        ///
+        /// <para>Scoped to <see cref="NodeId"/>, the active vessel's own node,
+        /// and that is where the hop identity a break needs actually exists: the
+        /// per-vessel fleet delays are routed light-times with no node ids on
+        /// them, and the command-centre matrix's route hops structurally carry
+        /// none. A fleet subject going dark is still handled the way it always
+        /// was, by the reveal gate freezing it.</para>
+        ///
+        /// <para>Fail-soft in the safe direction: a source that threw raises
+        /// nothing, because a break that cannot be established must behave
+        /// exactly like no break, which is to deliver.</para>
+        /// </summary>
+        private void ApplyPathBreak(TickJob tick)
+        {
+            if (tick.PathBreak.Error != null)
+            {
+                Console.Error.WriteLine("[ChannelEngine] path break source (owner \"" + _pathBreakSourceOwnerId + "\") threw (recoverable, retrying next tick): " + SafeExceptionMessage(tick.PathBreak.Error));
+                return;
+            }
+            var found = tick.PathBreak.Value;
+            if (found == null)
+            {
+                return;
+            }
+            _network.DropPath(NodeId, found.Value.AtUt, found.Value.LightSecondsOut);
         }
 
         /// <summary>
@@ -4771,6 +4852,12 @@ namespace Sitrep.Host
             // the sampled-source handles (SetVesselDelay) and the delay refresh
             // above run before it is known. See RefreshLedgerDelays.
             RefreshLedgerDelays();
+
+            // The DROP EVENT, written after the ledger's delays and well before
+            // this tick's _clock.AdvanceTo: a break has to be on the books
+            // before any delivery it dooms is allowed to fire, and every
+            // scheduled delivery for this tick fires inside that advance.
+            ApplyPathBreak(tick);
 
             // Prune the pending-uplink roster BEFORE the channel loop below so
             // the UplinkPendingTopic mapper (run inside that loop) always
@@ -5618,14 +5705,21 @@ namespace Sitrep.Host
             // before the channel loop. Default (Value null, Error null) when no
             // connectivity source is registered, the gate stays CONNECTED.
             public readonly ConnectivityCapture Connectivity;
+
+            // The DROP EVENT for this tick, computed on the main-loop thread by
+            // CapturePathBreakOnMain (see _pathBreakSource) and spent in
+            // ProcessTick on INetwork.DropPath before the clock advances.
+            // Default (Value null, Error null) when no source is registered.
+            public readonly PathBreakCapture PathBreak;
             public readonly ManualResetEventSlim? Done;
-            public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, ManualResetEventSlim? done)
+            public TickJob(double ut, KspSnapshot? snapshot, CapturedSample[]? captures, SignalDelayCapture signalDelay, ConnectivityCapture connectivity, PathBreakCapture pathBreak, ManualResetEventSlim? done)
             {
                 Ut = ut;
                 Snapshot = snapshot;
                 Captures = captures;
                 SignalDelay = signalDelay;
                 Connectivity = connectivity;
+                PathBreak = pathBreak;
                 Done = done;
             }
         }
@@ -5665,6 +5759,17 @@ namespace Sitrep.Host
             public readonly CommsDelay? Value;
             public readonly Exception? Error;
             public SignalDelayCapture(CommsDelay? value, Exception? error)
+            {
+                Value = value;
+                Error = error;
+            }
+        }
+
+        private readonly struct PathBreakCapture
+        {
+            public readonly PathBreak? Value;
+            public readonly Exception? Error;
+            public PathBreakCapture(PathBreak? value, Exception? error)
             {
                 Value = value;
                 Error = error;

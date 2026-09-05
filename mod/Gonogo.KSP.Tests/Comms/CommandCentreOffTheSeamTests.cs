@@ -82,6 +82,8 @@ namespace Gonogo.KSP.Tests.Comms
         /// </summary>
         private sealed class ForeignBackend : ICommsBackend
         {
+
+        public bool? StillCarriesTo(string nodeId) => null;
             private readonly CommNode _terminus;
 
             public ForeignBackend(CommNode terminus) => _terminus = terminus;
