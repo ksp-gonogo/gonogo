@@ -181,6 +181,27 @@ If you have such a list, **every entry needs a comment saying what would let it
 leave**, and the list itself deserves a periodic look. An unexplained entry is a
 regression with a hall pass.
 
+### A budget entry is often a missing API, not a debt
+
+Before raising any numeric budget, ask what method the thing being escaped is
+missing. A count that goes up because the API cannot express something is an
+**API gap**; the fix is to widen the API, and the budget then falls on its own.
+A count that goes up because the API already had the method and nobody used it
+is a **mistake**, and the fix is to use it. Neither is a debt to budget.
+
+We learned this on `.magnitude`. `Value.isFinite()` was added specifically to
+retire `Number.isFinite(x.magnitude)`, and its doc says so; a later file did the
+exact thing it was built to replace and took a budget entry for it. `min`/`max`
+take a bare operand for the same reason, after `Math.max(0, x.magnitude)` had
+been written five times.
+
+Only a genuine boundary earns an entry: a plain-number return type, a
+third-party call, a wire shape you do not own.
+
+**So bring an API change rather than a request to raise a ratchet.** The raise
+is the last resort, not the first move, and a raise proposed without saying
+which method would have avoided it has skipped the question.
+
 ---
 
 ## The categories

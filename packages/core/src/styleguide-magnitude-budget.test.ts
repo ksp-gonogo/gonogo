@@ -581,8 +581,18 @@ describe("the magnitude budget only shrinks", () => {
       throw new Error(
         "`.magnitude` is an escape hatch and these files reach for it more " +
           "than the budget allows. If the new use is arithmetic, do it in the " +
-          "algebra (a.minus(b), value(unit, n), .in(unit)) instead. If it " +
-          "genuinely needs the raw number, raise the count here and say why:\n" +
+          "algebra (a.minus(b), value(unit, n), .in(unit)) instead.\n\n" +
+          "BEFORE RAISING THE COUNT, ask what method Value is missing. A count " +
+          "that goes up because the algebra cannot express something is an API " +
+          "gap: widen Value and the budget falls on its own. A count that goes " +
+          "up because the method already exists and was not used is a mistake. " +
+          "`isFinite()` was added to retire `Number.isFinite(x.magnitude)`, and " +
+          "`min`/`max` take a bare operand so `x.max(0)` replaces " +
+          "`Math.max(0, x.magnitude)`. See 'A budget entry is often a missing " +
+          "API' in docs/ratchets.md.\n\n" +
+          "Only a genuine boundary earns an entry: a plain-number return type, " +
+          "a third-party call, a wire shape you do not own. Raise the count " +
+          "here only then, and say which boundary it is:\n" +
           over.join("\n"),
       );
     }
