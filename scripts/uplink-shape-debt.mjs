@@ -28,23 +28,16 @@
  *
  * An Uplink with NO entry is held to zero.
  *
- * ## Seeded 2026-08-31, at the true state
+ * ## Seeded 2026-08-31, cleared 2026-09-05
  *
- * Every number here is the asset count of an Uplink that has never had a shape
- * recorded, because the mechanism did not exist. None of it is grandfathered
- * staleness being tolerated: it is the set of pictures nothing has yet been able
- * to ask a question about.
+ * The seed was 154 assets across ten Uplinks, every one of them a picture that
+ * had never had a shape recorded because the mechanism did not exist. All ten
+ * entries measured zero once `uplink-docs.yml` had regenerated each page, so the
+ * list is empty and the gate now holds every Uplink to zero.
+ *
+ * The empty object is load-bearing, the same way `act-warning-debt.mjs`'s is:
+ * with no entries, the first asset that arrives without a recorded shape reads
+ * as new and fails.
  */
 
-export const UNRECORDED_DEBT = {
-  "@ksp-gonogo/gonogo-avionics-uplink": 6,
-  "@ksp-gonogo/gonogo-breaking-ground-uplink": 11,
-  "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink": 13,
-  "@ksp-gonogo/gonogo-kerbalism-uplink": 13,
-  "@ksp-gonogo/gonogo-kos-uplink": 5,
-  "@ksp-gonogo/gonogo-mechjeb-uplink": 5,
-  "@ksp-gonogo/gonogo-principia-uplink": 22,
-  "@ksp-gonogo/gonogo-real-fuels-uplink": 4,
-  "@ksp-gonogo/gonogo-realantennas-uplink": 4,
-  "@ksp-gonogo/gonogo-rp1-uplink": 71,
-};
+export const UNRECORDED_DEBT = {};
