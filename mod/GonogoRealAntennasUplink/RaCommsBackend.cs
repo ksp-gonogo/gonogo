@@ -22,7 +22,7 @@ namespace Gonogo.RealAntennasUplink
     /// <para>Main-thread only (live KSP reads), called from the RA uplink's
     /// capture-on-main sampler.</para>
     /// </summary>
-    public sealed class RaCommsBackend : ICommsBackend
+    public sealed class RaCommsBackend : CommsBackendBase
     {
         public const string Id = "realantennas";
 
@@ -41,7 +41,7 @@ namespace Gonogo.RealAntennasUplink
             _kernel = kernel;
         }
 
-        public string ProviderId => Id;
+        public override string ProviderId => Id;
 
         /// <summary>
         /// The craft this backend answers for, from core's <c>activeVessel</c>
@@ -58,96 +58,120 @@ namespace Gonogo.RealAntennasUplink
 
         private CommNetVessel? Connection() => ScopedVessel()?.connection;
 
-        public CommsConnectivity Connectivity()
+        // ── What CommsBackendBase cannot read for itself ────────────────────
+
+        /// <summary>
+        /// The craft this backend answers for. Same question the stock backend
+        /// answers, reached by a different route: core's <c>activeVessel</c>
+        /// capability through the kernel, since an Uplink has no
+        /// <c>ActiveVesselScope</c> to read. Both resolve to
+        /// <c>KspActiveVessel</c>, so they agree.
+        /// </summary>
+        protected override CommsSubject Subject()
+        {
+            var vessel = ScopedVessel();
+            return vessel == null
+                ? CommsSubject.None
+                : new CommsSubject(vessel.id.ToString(), vessel.loaded);
+        }
+
+        /// <summary>
+        /// The three live readings off the link.
+        ///
+        /// <para>All three are STOCK reads even here, and deliberately so:
+        /// <c>RACommNetVessel</c> sets <c>IsConnected</c> from RA's own gates
+        /// (canComm, an explicit electric-charge <c>powered</c> flag, occlusion,
+        /// and a positive data rate BOTH ways) and <c>FindClosestWhere</c>'s
+        /// <c>minRelayTL</c>, and it overrides neither <c>GetControlLevel</c> nor
+        /// <c>UpdateControlState</c>. So the DETERMINATION differs wildly and the
+        /// reported value is the same stock accessor, which is exactly the case
+        /// for reading it through the shared half rather than reimplementing
+        /// it.</para>
+        ///
+        /// <para>The strength is the one reading that means something different
+        /// here (RA fills it with a rate-ladder headroom fraction, stock with a
+        /// range fraction). That is a defect in the wire field rather than in
+        /// this read, and it is carried through unchanged rather than papered
+        /// over: see <see cref="CommsLinkState.SignalStrength"/>.</para>
+        /// </summary>
+        protected override CommsLinkState? LinkState()
         {
             var conn = Connection();
-            var meta = Meta();
             if (conn == null)
             {
-                return new CommsConnectivity { ControlSource = CommsControlSource.None, Meta = meta };
+                return null;
             }
-            var level = conn.GetControlLevel();
-            return new CommsConnectivity
-            {
-                Connected = conn.IsConnected,
-                ControlSource = MapSource(level),
-                HasLocalControl = level == Vessel.ControlLevel.PARTIAL_MANNED || level == Vessel.ControlLevel.FULL,
-                Meta = meta,
-            };
+            return new CommsLinkState(conn.IsConnected, GradeOf(conn.GetControlLevel()), conn.SignalStrength);
         }
 
-        public CommsSignalStrength SignalStrength()
-            => new CommsSignalStrength { Value = Connection()?.SignalStrength ?? 0.0, Meta = Meta() };
-
-        public CommsControlState ControlState()
+        /// <summary>
+        /// The control path as KSP-free link views. Stock reads throughout,
+        /// because <c>RACommLink : CommNet.CommLink</c> and
+        /// <c>RACommNode : CommNet.CommNode</c>: the objects RA solves over ARE
+        /// stock's, so <c>ControlPath</c> and <c>precisePosition</c> need no RA
+        /// reflection at all.
+        /// </summary>
+        protected override IReadOnlyList<CommsLinkView>? ControlPath()
         {
-            var conn = Connection();
-            if (conn == null)
+            var path = Connection()?.ControlPath;
+            if (path == null)
             {
-                return new CommsControlState { State = CommsControlStateKind.None, Meta = Meta() };
+                return null;
             }
-            return new CommsControlState
-            {
-                State = MapStateKind(conn.GetControlLevel()),
-                Reason = conn.IsConnected ? null : "no connection to a command source",
-                Meta = Meta(),
-            };
-        }
 
-        public CommsPath Path()
-        {
-            var conn = Connection();
-            var hops = new List<CommsHop>();
-            var path = conn?.ControlPath;
-            if (path != null)
+            var links = new List<CommsLinkView>();
+            foreach (var link in path)
             {
-                foreach (var link in path)
+                if (link?.a == null || link.b == null)
                 {
-                    if (link?.a == null || link.b == null)
-                    {
-                        continue;
-                    }
-                    hops.Add(new CommsHop
-                    {
-                        From = NodeId(link.a),
-                        To = NodeId(link.b),
-                        FromIsHome = link.a.isHome,
-                        ToIsHome = link.b.isHome,
-                        Kind = link.b.isHome || link.a.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
-                        DistanceMeters = (link.a.precisePosition - link.b.precisePosition).magnitude,
-                        // The RA-only per-hop extras (band, tech level, modulation,
-                        // encoder, required Eb/N0, beamwidth, EC draw, reverse rate)
-                        // ride the provider extension bag under "realantennas",
-                        // typed client-side by RealAntennasHopExt. Null under bare
-                        // CommNet, where this backend is not even elected.
-                        Extensions = RaHopExtensions.ForHop(_ra, link),
-                    });
+                    continue;
                 }
+                links.Add(new CommsLinkView(View(link.a), View(link.b), link));
             }
-            return new CommsPath { Hops = hops, Meta = Meta() };
+            return links;
         }
 
-        public CommsNetwork Network()
+        /// <summary>
+        /// The one genuinely RA-specific thing on a hop: the per-hop extras
+        /// (band, tech level, modulation, encoder, required Eb/N0, beamwidth, EC
+        /// draw, reverse rate) under this provider's own namespace, typed
+        /// client-side by <c>RealAntennasHopExt</c>. The FORWARD band rate is
+        /// deliberately absent: it rides this Uplink's own
+        /// <c>realantennas.hopRates</c> channel, keyed by the same
+        /// <see cref="NodeId"/>s these hops carry.
+        ///
+        /// <para>Read back off <see cref="CommsLinkView.Handle"/>, which is
+        /// what that handle is for: a link-level fact has no home on either
+        /// node, so the view carries the link itself. Main-thread only, on the
+        /// capture that produced the view.</para>
+        /// </summary>
+        protected override Dictionary<string, object?>? HopExtensions(CommsLinkView link)
+            => link.Handle is CommLink raLink ? RaHopExtensions.ForHop(_ra, raLink) : null;
+
+        /// <summary>
+        /// Stock's <c>Vessel.ControlLevel</c> in the contract's vocabulary; the
+        /// collapse to the three states the wire carries happens once, in
+        /// <see cref="CommsBackendBase"/>.
+        /// </summary>
+        private static CommsControlGrade GradeOf(Vessel.ControlLevel level) => level switch
         {
-            var conn = Connection();
-            var nodes = new List<CommsNetworkNode>();
-            var edges = new List<CommsNetworkEdge>();
-            var seen = new HashSet<string>();
-            var path = conn?.ControlPath;
-            if (path != null)
-            {
-                foreach (var link in path)
-                {
-                    if (link?.a == null || link.b == null)
-                    {
-                        continue;
-                    }
-                    AddNode(nodes, seen, link.a);
-                    AddNode(nodes, seen, link.b);
-                    edges.Add(new CommsNetworkEdge { A = NodeId(link.a), B = NodeId(link.b), Active = true });
-                }
-            }
-            return new CommsNetwork { Nodes = nodes, Edges = edges, Meta = Meta() };
+            Vessel.ControlLevel.FULL => CommsControlGrade.Full,
+            Vessel.ControlLevel.PARTIAL_MANNED => CommsControlGrade.PartialManned,
+            Vessel.ControlLevel.PARTIAL_UNMANNED => CommsControlGrade.PartialUnmanned,
+            _ => CommsControlGrade.None,
+        };
+
+        /// <summary>One node as the base's view of it, positions converted into the contract's own vector.</summary>
+        private static CommsNodeView View(CommNode node)
+        {
+            var p = node.precisePosition;
+            return new CommsNodeView(
+                node,
+                NodeId(node),
+                NodeDisplayName(node),
+                node.isHome,
+                node.isControlSource,
+                new Sitrep.Contract.Vector3d(p.x, p.y, p.z));
         }
 
         /// <summary>
@@ -155,7 +179,7 @@ namespace Gonogo.RealAntennasUplink
         /// that is a different question from stock's, and what it costs to get
         /// wrong).
         /// </summary>
-        public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+        public override IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
             => RaRouting.Between(from, to);
 
         /// <summary>
@@ -163,7 +187,7 @@ namespace Gonogo.RealAntennasUplink
         /// why stock's rule silently reports zero reach for every craft on an RA
         /// install, which is what asking the seam instead of core fixes).
         /// </summary>
-        public ICommsReachModel ReachModel(object? from, object? to)
+        public override ICommsReachModel ReachModel(object? from, object? to)
             => RaReach.Between(_ra, from, to);
 
         /// <summary>
@@ -172,21 +196,7 @@ namespace Gonogo.RealAntennasUplink
         /// backend whose multipliers are a per-save difficulty setting, so this
         /// is a constant.
         /// </summary>
-        public ICommsOcclusionModel OcclusionModel() => RaOcclusion.Model;
-
-        private static void AddNode(List<CommsNetworkNode> nodes, HashSet<string> seen, CommNode node)
-        {
-            var id = NodeId(node);
-            if (seen.Add(id))
-            {
-                nodes.Add(new CommsNetworkNode
-                {
-                    Id = id,
-                    DisplayName = NodeDisplayName(node),
-                    Kind = node.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
-                });
-            }
-        }
+        public override ICommsOcclusionModel OcclusionModel() => RaOcclusion.Model;
 
         /// <summary>
         /// A node's UNIQUE join key, matching CommNetBackend.NodeId (that
@@ -240,30 +250,5 @@ namespace Gonogo.RealAntennasUplink
             return null;
         }
 
-        private static CommsControlSource MapSource(Vessel.ControlLevel level) => level switch
-        {
-            Vessel.ControlLevel.FULL => CommsControlSource.Full,
-            Vessel.ControlLevel.PARTIAL_MANNED => CommsControlSource.Partial,
-            Vessel.ControlLevel.PARTIAL_UNMANNED => CommsControlSource.Partial,
-            _ => CommsControlSource.None,
-        };
-
-        private static CommsControlStateKind MapStateKind(Vessel.ControlLevel level) => level switch
-        {
-            Vessel.ControlLevel.FULL => CommsControlStateKind.Full,
-            Vessel.ControlLevel.PARTIAL_MANNED => CommsControlStateKind.PartialManoeuvre,
-            Vessel.ControlLevel.PARTIAL_UNMANNED => CommsControlStateKind.PartialManoeuvre,
-            _ => CommsControlStateKind.None,
-        };
-
-        private PayloadMeta Meta()
-        {
-            var vessel = ScopedVessel();
-            return new PayloadMeta
-            {
-                Source = vessel != null ? "vessel:" + vessel.id : "game",
-                Quality = vessel != null && vessel.loaded ? Quality.Loaded : Quality.OnRails,
-            };
-        }
     }
 }

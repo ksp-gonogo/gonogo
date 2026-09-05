@@ -344,6 +344,12 @@
          does walk live parts) calls it. -->
     <Compile Include="..\Gonogo.KSP\FleetVesselResourcesBuilder.cs" />
     <Compile Include="..\Gonogo.KSP\CommandCentres\KspCommandCentre.cs" />
+    <!-- CommandCentreResolution.cs is core's half of naming the centre a
+         control path ended at: the elected backend says WHICH node, this
+         matches it against the registry. It reads CommNode, so it belongs
+         under the KspManaged gate with KspCommandCentre rather than beside the
+         KSP-free rules above. -->
+    <Compile Include="..\Gonogo.KSP\CommandCentres\CommandCentreResolution.cs" />
     <!-- SurfaceCoordinates.cs turns a centre's world position into the body-fixed
          lat/long the roster publishes. It needs CelestialBody, so it sits under this
          gate with KspCommandCentre, but its longitude wrap is pure arithmetic and is

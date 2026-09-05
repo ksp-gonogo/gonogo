@@ -23,11 +23,11 @@ namespace Gonogo.KSP
     /// (<see cref="CommsCoreUplink"/>). It is a stateless view over
     /// <see cref="ActiveVesselScope.Current"/>, not a cached snapshot.</para>
     /// </summary>
-    public sealed class CommNetBackend : ICommsBackend
+    public sealed class CommNetBackend : CommsBackendBase
     {
         public const string Id = "commnet";
 
-        public string ProviderId => Id;
+        public override string ProviderId => Id;
 
         /// <summary>
         /// The active vessel's stock CommNet connection, or null when there is
@@ -36,12 +36,18 @@ namespace Gonogo.KSP
         /// valid CommNet control graph: its <c>connection</c>/<c>ControlPath</c>/
         /// <see cref="CommNet.CommNode"/> getters can dereference torn-down state
         /// and throw an NRE deep inside stock code (the "Vessel ... has been
-        /// unloaded" transient). Gating on <c>vessel.loaded</c> here (plus the
-        /// per-method try/catch below) makes the whole read path NULL-SAFE:
-        /// a settling/no-control-path vessel yields a graceful "disconnected /
-        /// no delay" result, which is ALSO the correct real-world meaning (no
-        /// live link ⇒ no hop geometry ⇒ no computable delay), never an exception
-        /// that would trip the engine's fail-soft and kill comms for the session.
+        /// unloaded" transient).
+        ///
+        /// <para>This gate is a GUARD, not a swallow, and that distinction is
+        /// the whole of it. Declining to touch a torn graph yields a graceful
+        /// "disconnected / no delay" result, which is ALSO the correct
+        /// real-world meaning: no live link, no hop geometry, no computable
+        /// delay. What used to sit behind it was a per-method try/catch that
+        /// turned a read which DID throw into the same authoritative
+        /// <c>connected:false</c>, and that is a freeze lever rather than a
+        /// reading: see <see cref="CommsBackendBase"/>'s error contract, which
+        /// this backend now inherits, and which lets a throw propagate to the
+        /// engine's own fail-soft instead.</para>
         /// </summary>
         private static CommNetVessel? Connection()
         {
@@ -53,157 +59,103 @@ namespace Gonogo.KSP
             return vessel.connection;
         }
 
-        public CommsConnectivity Connectivity()
-        {
-            var meta = Meta();
-            var disconnected = new CommsConnectivity
-            {
-                Connected = false,
-                ControlSource = CommsControlSource.None,
-                HasLocalControl = false,
-                Meta = meta,
-            };
-            try
-            {
-                var conn = Connection();
-                if (conn == null)
-                {
-                    return disconnected;
-                }
+        // ── What CommsBackendBase cannot read for itself ────────────────────
 
-                var level = conn.GetControlLevel();
-                return new CommsConnectivity
-                {
-                    Connected = conn.IsConnected,
-                    ControlSource = MapControlSource(level),
-                    // A manned pod (or FULL) can be controlled without a link home.
-                    HasLocalControl = level == Vessel.ControlLevel.PARTIAL_MANNED
-                                      || level == Vessel.ControlLevel.FULL,
-                    Meta = meta,
-                };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] CommNetBackend.Connectivity read failed (treating as disconnected): " + ex.Message);
-                return disconnected;
-            }
+        /// <summary>
+        /// The craft this backend answers for, from
+        /// <see cref="ActiveVesselScope.Current"/> rather than from
+        /// <c>FlightGlobals.ActiveVessel</c>: during an EVA KSP's own answer is
+        /// the kerbal, whose connection is the suit's.
+        /// </summary>
+        protected override CommsSubject Subject()
+        {
+            var vessel = ActiveVesselScope.Current;
+            return vessel == null
+                ? CommsSubject.None
+                : new CommsSubject(vessel.id.ToString(), vessel.loaded);
         }
 
-        public CommsSignalStrength SignalStrength()
+        /// <summary>
+        /// Stock's three live readings off the link, or null when there is no
+        /// live comms graph to touch (see <see cref="Connection"/>).
+        /// </summary>
+        protected override CommsLinkState? LinkState()
         {
-            try
+            var conn = Connection();
+            if (conn == null)
             {
-                var conn = Connection();
-                return new CommsSignalStrength
-                {
-                    Value = conn?.SignalStrength ?? 0.0,
-                    Meta = Meta(),
-                };
+                return null;
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] CommNetBackend.SignalStrength read failed (treating as zero): " + ex.Message);
-                return new CommsSignalStrength { Value = 0.0, Meta = Meta() };
-            }
+            return new CommsLinkState(conn.IsConnected, GradeOf(conn.GetControlLevel()), conn.SignalStrength);
         }
 
-        public CommsControlState ControlState()
+        /// <summary>
+        /// Stock's <c>ControlPath</c> as KSP-free link views.
+        ///
+        /// <para>A link with a torn-down endpoint is SKIPPED rather than
+        /// contributing a degenerate view. That is the same rule
+        /// <see cref="RouteHops"/> applies and for the same reason: a zero
+        /// -length hop would shorten the route rather than fail it, and a view
+        /// built from a null node would carry an empty id that de-duplicates
+        /// against every other broken node in the graph.</para>
+        /// </summary>
+        protected override IReadOnlyList<CommsLinkView>? ControlPath()
         {
-            try
+            var path = Connection()?.ControlPath;
+            if (path == null)
             {
-                var conn = Connection();
-                if (conn == null)
-                {
-                    return new CommsControlState { State = CommsControlStateKind.None, Meta = Meta() };
-                }
+                return null;
+            }
 
-                var level = conn.GetControlLevel();
-                return new CommsControlState
-                {
-                    State = MapControlStateKind(level),
-                    Reason = conn.IsConnected ? null : "no connection to a command source",
-                    Meta = Meta(),
-                };
-            }
-            catch (Exception ex)
+            var links = new List<CommsLinkView>();
+            foreach (var link in path)
             {
-                Debug.LogWarning("[Gonogo] CommNetBackend.ControlState read failed (treating as no control): " + ex.Message);
-                return new CommsControlState { State = CommsControlStateKind.None, Meta = Meta() };
+                if (link?.a == null || link.b == null)
+                {
+                    continue;
+                }
+                links.Add(new CommsLinkView(View(link.a), View(link.b), link));
             }
+            return links;
         }
 
-        public CommsPath Path()
+        /// <summary>
+        /// One node as the base's view of it. The position converts from KSP's
+        /// <c>Vector3d</c> to the contract's, which is what keeps the shared hop
+        /// arithmetic compilable with no KSP reference assemblies; both ends of
+        /// a link come from <c>precisePosition</c>, so they share a frame and
+        /// the difference is meaningful.
+        /// </summary>
+        private static CommsNodeView View(CommNode node)
         {
-            var hops = new List<CommsHop>();
-            try
-            {
-                var conn = Connection();
-                var path = conn?.ControlPath;
-                if (path != null)
-                {
-                    foreach (var link in path)
-                    {
-                        if (link?.a == null || link.b == null)
-                        {
-                            continue;
-                        }
-                        hops.Add(new CommsHop
-                        {
-                            From = NodeId(link.a),
-                            To = NodeId(link.b),
-                            FromIsHome = link.a.isHome,
-                            ToIsHome = link.b.isHome,
-                            Kind = link.b.isHome || link.a.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
-                            DistanceMeters = (link.a.precisePosition - link.b.precisePosition).magnitude,
-                        });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // A torn-down node/path mid-enumeration ⇒ surface whatever hops
-                // were read cleanly (typically none) as an empty/partial path.
-                // Empty path ⇒ SignalDelay.None ⇒ no delay authority, the correct
-                // graceful meaning for a vessel with no live control path.
-                Debug.LogWarning("[Gonogo] CommNetBackend.Path read failed (treating as no path): " + ex.Message);
-                hops.Clear();
-            }
-            return new CommsPath { Hops = hops, Meta = Meta() };
+            var p = node.precisePosition;
+            return new CommsNodeView(
+                node,
+                NodeId(node),
+                NodeDisplayName(node),
+                node.isHome,
+                node.isControlSource,
+                new Sitrep.Contract.Vector3d(p.x, p.y, p.z));
         }
 
-        public CommsNetwork Network()
+        /// <summary>
+        /// Stock's <c>Vessel.ControlLevel</c> in the contract's vocabulary. The
+        /// only mapping this backend owns: the collapse to the three states the
+        /// wire carries happens once, in <see cref="CommsBackendBase"/>.
+        /// </summary>
+        private static CommsControlGrade GradeOf(Vessel.ControlLevel level)
         {
-            // Bare CommNet does not cheaply enumerate the whole relay graph;
-            // per §1 ("backend-dependent detail") we surface the control-path
-            // nodes/edges as the minimal graph. RA overrides with a richer one.
-            var nodes = new List<CommsNetworkNode>();
-            var edges = new List<CommsNetworkEdge>();
-            var seen = new HashSet<string>();
-            try
+            switch (level)
             {
-                var conn = Connection();
-                var path = conn?.ControlPath;
-                if (path != null)
-                {
-                    foreach (var link in path)
-                    {
-                        if (link?.a == null || link.b == null)
-                        {
-                            continue;
-                        }
-                        AddNode(nodes, seen, link.a);
-                        AddNode(nodes, seen, link.b);
-                        edges.Add(new CommsNetworkEdge { A = NodeId(link.a), B = NodeId(link.b), Active = true });
-                    }
-                }
+                case Vessel.ControlLevel.FULL:
+                    return CommsControlGrade.Full;
+                case Vessel.ControlLevel.PARTIAL_MANNED:
+                    return CommsControlGrade.PartialManned;
+                case Vessel.ControlLevel.PARTIAL_UNMANNED:
+                    return CommsControlGrade.PartialUnmanned;
+                default:
+                    return CommsControlGrade.None;
             }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] CommNetBackend.Network read failed (treating as empty graph): " + ex.Message);
-                nodes.Clear();
-                edges.Clear();
-            }
-            return new CommsNetwork { Nodes = nodes, Edges = edges, Meta = Meta() };
         }
 
         /// <summary>
@@ -231,7 +183,7 @@ namespace Gonogo.KSP
         /// "no route" meaning, rather than an exception that would take comms
         /// down for the session.</para>
         /// </summary>
-        public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
+        public override IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to)
         {
             try
             {
@@ -295,7 +247,7 @@ namespace Gonogo.KSP
         /// failed read, where absent leaves the consumer predicting exactly what
         /// it could before.</para>
         /// </summary>
-        public ICommsReachModel ReachModel(object? from, object? to)
+        public override ICommsReachModel ReachModel(object? from, object? to)
         {
             try
             {
@@ -326,25 +278,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The node stock's own <c>ControlPath</c> terminates at, as an opaque
-        /// handle for core to resolve (see
-        /// <see cref="ICommsBackend.ControlPathTerminus"/> for why the split
-        /// falls here rather than at a named centre).
-        /// </summary>
-        public object? ControlPathTerminus()
-        {
-            try
-            {
-                return TerminalNode(Connection()?.ControlPath?.Last);
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] CommNetBackend.ControlPathTerminus failed (treating as no terminus): " + ex.Message);
-                return null;
-            }
-        }
-
-        /// <summary>
         /// Stock's occlusion geometry, built from the LIVE difficulty settings
         /// (see <see cref="CommNetOcclusion"/> for the rule itself). The two
         /// multipliers are per-save and player-settable, so they are read here
@@ -352,7 +285,7 @@ namespace Gonogo.KSP
         /// (main menu) falls back to the stock defaults instead of throwing,
         /// which is also what the game would apply.
         /// </summary>
-        public ICommsOcclusionModel OcclusionModel()
+        public override ICommsOcclusionModel OcclusionModel()
         {
             try
             {
@@ -367,20 +300,6 @@ namespace Gonogo.KSP
             {
                 Debug.LogWarning("[Gonogo] CommNetBackend.OcclusionModel read failed (using stock defaults): " + ex.Message);
                 return CommNetOcclusion.StockDefaults();
-            }
-        }
-
-        private static void AddNode(List<CommsNetworkNode> nodes, HashSet<string> seen, CommNode node)
-        {
-            var id = NodeId(node);
-            if (seen.Add(id))
-            {
-                nodes.Add(new CommsNetworkNode
-                {
-                    Id = id,
-                    DisplayName = NodeDisplayName(node),
-                    Kind = node.isHome ? CommsHopKind.Home : CommsHopKind.Relay,
-                });
             }
         }
 
@@ -466,130 +385,5 @@ namespace Gonogo.KSP
             return null;
         }
 
-        /// <summary>
-        /// Identifies which command centre the active vessel's <c>ControlPath</c>
-        /// currently terminates at. Stock
-        /// <c>CreateControlConnection</c> tries a route home first and only falls
-        /// back to the nearest crewed control source when no home is reachable
-        /// (agent-2's command-centre-sources research), so the terminal node of
-        /// an already-resolved <c>ControlPath</c> is exactly "the centre this
-        /// stats readout is relative to": no separate routing decision needed
-        /// here, only IDENTIFYING the node stock already picked. Matched by
-        /// reference against the SAME live centres <c>commandCentre.roster</c>
-        /// enumerates, so the two can never name the terminus differently. Not
-        /// part of <see cref="ICommsBackend"/>: a RealAntennas backend has no
-        /// obligation to implement this yet, so <see cref="CommsCoreUplink"/>
-        /// downcasts and a backend that cannot answer yields "unknown".
-        /// </summary>
-        public CommsCommandCentre CommandCentre(CommandCentreRegistry? registry)
-        {
-            try
-            {
-                if (registry == null)
-                {
-                    return new CommsCommandCentre { Meta = Meta() };
-                }
-
-                var conn = Connection();
-                var terminal = TerminalNode(conn?.ControlPath?.Last);
-                if (terminal == null)
-                {
-                    return new CommsCommandCentre { Meta = Meta() };
-                }
-
-                foreach (var centre in registry.EnumerateActive())
-                {
-                    if (centre is KspCommandCentre ksp && ReferenceEquals(ksp.Node, terminal))
-                    {
-                        return new CommsCommandCentre
-                        {
-                            Id = ksp.Id,
-                            DisplayName = ksp.DisplayName,
-                            Kind = ksp.Kind.ToString(),
-                            BodyIndex = ksp.BodyIndex,
-                            Meta = Meta(),
-                        };
-                    }
-                }
-
-                return new CommsCommandCentre { Meta = Meta() };
-            }
-            catch (Exception ex)
-            {
-                Debug.LogWarning("[Gonogo] CommNetBackend.CommandCentre read failed (treating as unknown): " + ex.Message);
-                return new CommsCommandCentre { Meta = Meta() };
-            }
-        }
-
-        /// <summary>
-        /// The remote end of the path's last hop: whichever side is flagged
-        /// <c>isHome</c> (a ground station reached via <c>FindHome</c>) or, when
-        /// neither end is home, <c>isControlSource</c> (a crewed vessel reached
-        /// via the no-home <c>FindClosestControlSource</c> fallback). Home is
-        /// checked first because stock always prefers it: a home-reachable path's
-        /// last hop can, in principle, also touch a control-source relay.
-        /// </summary>
-        private static CommNode? TerminalNode(CommLink? last)
-        {
-            if (last == null)
-            {
-                return null;
-            }
-            if (last.a != null && last.a.isHome)
-            {
-                return last.a;
-            }
-            if (last.b != null && last.b.isHome)
-            {
-                return last.b;
-            }
-            if (last.a != null && last.a.isControlSource)
-            {
-                return last.a;
-            }
-            if (last.b != null && last.b.isControlSource)
-            {
-                return last.b;
-            }
-            return null;
-        }
-
-        private static CommsControlSource MapControlSource(Vessel.ControlLevel level)
-        {
-            switch (level)
-            {
-                case Vessel.ControlLevel.FULL:
-                    return CommsControlSource.Full;
-                case Vessel.ControlLevel.PARTIAL_MANNED:
-                case Vessel.ControlLevel.PARTIAL_UNMANNED:
-                    return CommsControlSource.Partial;
-                default:
-                    return CommsControlSource.None;
-            }
-        }
-
-        private static CommsControlStateKind MapControlStateKind(Vessel.ControlLevel level)
-        {
-            switch (level)
-            {
-                case Vessel.ControlLevel.FULL:
-                    return CommsControlStateKind.Full;
-                case Vessel.ControlLevel.PARTIAL_MANNED:
-                case Vessel.ControlLevel.PARTIAL_UNMANNED:
-                    return CommsControlStateKind.PartialManoeuvre;
-                default:
-                    return CommsControlStateKind.None;
-            }
-        }
-
-        internal static PayloadMeta Meta()
-        {
-            var vessel = ActiveVesselScope.Current;
-            return new PayloadMeta
-            {
-                Source = vessel != null ? "vessel:" + vessel.id : "game",
-                Quality = vessel != null && vessel.loaded ? Quality.Loaded : Quality.OnRails,
-            };
-        }
     }
 }

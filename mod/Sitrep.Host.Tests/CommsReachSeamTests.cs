@@ -49,6 +49,7 @@ namespace Sitrep.Host.Tests
             public CommsNetwork Network() => new CommsNetwork();
             public IReadOnlyList<CommsRouteHop>? RouteBetween(object? from, object? to) => null;
             public ICommsReachModel ReachModel(object? from, object? to) => _reach(from, to);
+            public object? ControlPathTerminus() => null;
             /// <summary>Nothing here occludes: this stub exists for the reach read.</summary>
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
         }

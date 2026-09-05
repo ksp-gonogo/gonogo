@@ -64,6 +64,14 @@
       <HintPath>$(KspManaged)\UnityEngine.CoreModule.dll</HintPath>
     </Reference>
     <Compile Include="..\GonogoRealAntennasUplink\RaRouting.cs" />
+    <!-- RaCommsBackend itself, so its SHAPE can be asserted: which of its
+         accessors come from the shared CommsBackendBase and which it answers
+         itself. It needs CommNet types (it walks a stock ControlPath) so it
+         belongs under this gate, and it drags its own collaborators, all of
+         which are either KSP-free or gated with it. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaCommsBackend.cs" />
+    <Compile Include="..\GonogoRealAntennasUplink\RaHopExtensions.cs" />
+    <Compile Include="..\GonogoRealAntennasUplink\RaOcclusion.cs" />
     <Compile Include="Routing\**\*.cs" />
   </ItemGroup>
 

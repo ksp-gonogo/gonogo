@@ -2002,10 +2002,17 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CommsLink": {
     meta: "PayloadMeta",
   },
+  "CommsLinkView": {
+    a: "CommsNodeView",
+    b: "CommsNodeView",
+  },
   "CommsNetwork": {
     edges: "CommsNetworkEdge[]",
     meta: "PayloadMeta",
     nodes: "CommsNetworkNode[]",
+  },
+  "CommsNodeView": {
+    position: "Vector3d",
   },
   "CommsOcclusion": {
     bodies: "CommsOcclusionBody[]",

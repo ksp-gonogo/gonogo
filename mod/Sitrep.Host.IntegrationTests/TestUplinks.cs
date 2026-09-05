@@ -710,6 +710,8 @@ namespace Sitrep.Host.IntegrationTests
             // requires every backend to name its geometry.
             public ICommsReachModel ReachModel(object? from, object? to) => CommsReachModels.Unknown;
 
+            public object? ControlPathTerminus() => null;
+
             public ICommsOcclusionModel OcclusionModel() => CommsOcclusionModels.Unknown;
         }
     }

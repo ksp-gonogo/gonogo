@@ -553,6 +553,36 @@ public interface ICommsBackend : ISitrepProvider
     ICommsReachModel ReachModel(object? from, object? to);
 
     /// <summary>
+    /// The node this backend's OWN control path terminates at, as an opaque
+    /// handle, or null when it terminates nowhere (no connection, or a last hop
+    /// that touches neither a ground station nor a crewed control source).
+    ///
+    /// <para><b>Why a handle and not a
+    /// <see cref="CommsCommandCentre"/>.</b> Naming the centre takes two things
+    /// and only one of them is the backend's: WHICH node the path ended at is a
+    /// fact about the path, and the path is the backend's; matching that node
+    /// against the live centre registry, and shaping the answer, is core's, and
+    /// the registry is a core type an Uplink may not even reference. So the
+    /// backend answers the half it owns and core does the rest, once, for
+    /// whichever backend won.</para>
+    ///
+    /// <para>Before this method existed the whole question sat behind a
+    /// <c>backend is CommNetBackend</c> downcast in the core comms
+    /// registration, so <c>comms.commandCentre</c> was all-null forever on a
+    /// RealAntennas install: indistinguishable from "no connection", and dark
+    /// exactly where RSS/RA's dozen ground stations make "which one am I
+    /// talking to" a real question rather than a trivial one. The terminal-node
+    /// rule itself is shared (both backends inherit stock's <c>isHome</c> and
+    /// <c>isControlSource</c> unchanged), which is why it is asked of the
+    /// interface rather than reimplemented per backend.</para>
+    ///
+    /// <para>Live read, main thread only. The handle it returns is a live KSP
+    /// object and MUST NOT cross a thread boundary or outlive the capture that
+    /// produced it; core resolves it to a payload on the same seam.</para>
+    /// </summary>
+    object? ControlPathTerminus();
+
+    /// <summary>
     /// The occlusion geometry this backend applies: which radius of a body
     /// actually blocks a radio path through it (see
     /// <see cref="ICommsOcclusionModel"/>). Stock CommNet shrinks the body by

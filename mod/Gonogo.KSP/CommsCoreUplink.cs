@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Gonogo.KSP.CommandCentres;
 using Gonogo.KSP.SilenceTracking;
 using Sitrep.Contract;
 using Sitrep.Host.CommandCentres;
@@ -133,59 +134,21 @@ namespace Gonogo.KSP
         /// </summary>
         internal static void ConfigureSimulationKernel(Kernel? kernel) => _policyKernel = kernel;
 
-        // Whether this save models a comms network. Held behind a delegate for
-        // the same reason _policyKernel is a settable static: the delay accessor
-        // below is read by five surfaces without an instance of this uplink in
-        // hand, and the read underneath it goes through HighLogic.CurrentGame,
-        // which is a property over a MonoBehaviour singleton and therefore
-        // answers null in every headless process no matter what a test sets.
-        // The seam is what lets the COMPOSITION here be exercised at all; the
-        // live read itself is CommsModelPresence.Present and is only reachable
-        // in a running KSP.
-        private static Func<bool?> _commsModelProbe = () => CommsModelPresence.Present;
-
-        /// <summary>Point the no-comms-model rule at a different answer; pass null to put the live read back.</summary>
-        internal static void ConfigureCommsModelProbe(Func<bool?>? probe) =>
-            _commsModelProbe = probe ?? (() => CommsModelPresence.Present);
-
-        private static bool? CommsModelPresent
-        {
-            get
-            {
-                try
-                {
-                    return _commsModelProbe();
-                }
-                catch (Exception)
-                {
-                    return null;
-                }
-            }
-        }
-
         /// <summary>
         /// The signal-delay config in force, so every delay reader (the reveal
         /// gate, comms.delay, fleet light-time, the command-centre pass and the
         /// currency deadline) uses one answer.
         ///
         /// <para>EFFECTIVE, not authored: a simulation cuts the delay unless the
-        /// operator asked otherwise, and a save that models no comms network at
-        /// all cuts it outright. Deriving both here is what makes every one of
-        /// those readers cut together rather than leaving a board whose
+        /// operator asked otherwise, and deriving it here is what makes every
+        /// one of those readers cut together rather than leaving a board whose
         /// telemetry is live and whose money still arrives late. See
-        /// <see cref="SimulationDelayPolicy"/> and
-        /// <see cref="CommsModelPolicy"/>.</para>
-        ///
-        /// <para>The no-comms-model cut is applied SECOND so it wins: it is the
-        /// more fundamental of the two (see
-        /// <see cref="SignalDelayConfig.CutForNoCommsModel"/>).</para>
+        /// <see cref="SimulationDelayPolicy"/>.</para>
         /// </summary>
         internal static SignalDelayConfig SignalDelayConfig =>
-            CommsModelPolicy.Effective(
-                SimulationDelayPolicy.Effective(
-                    _signalDelayConfig,
-                    SimulationElection.Elected(_policyKernel)),
-                CommsModelPresent);
+            SimulationDelayPolicy.Effective(
+                _signalDelayConfig,
+                SimulationElection.Elected(_policyKernel));
 
         /// <summary>The config as AUTHORED, before a simulation could have cut it: what the settings row reports and the command below writes.</summary>
         internal static SignalDelayConfig AuthoredSignalDelayConfig => _signalDelayConfig;
@@ -374,25 +337,6 @@ namespace Gonogo.KSP
         }
 
         /// <summary>
-        /// The elected backend as every comms reader in this uplink must see
-        /// it: wrapped by <see cref="CommsModelPolicy"/> when this save models
-        /// no comms network, so the reveal gate's connectivity source, the
-        /// comms.* channels and the delay source cannot disagree about whether
-        /// there is a link. Null pre-election, exactly as
-        /// <see cref="CommsElection.Elected"/> is.
-        ///
-        /// <para>MAIN-THREAD: the wrap reads the live difficulty option and, in
-        /// the wrapped case, the active craft, so it belongs on the same
-        /// capture-on-main seam every backend read already does.</para>
-        /// </summary>
-        internal ICommsBackend? ElectedBackend() =>
-            CommsModelPolicy.Effective(
-                _kernel != null ? CommsElection.Elected(_kernel) : null,
-                CommsModelPresent,
-                CommsModelPresence.LocalControl,
-                CommsModelPresence.Meta);
-
-        /// <summary>
         /// MAIN-THREAD connectivity computation for the engine's reveal gate (see
         /// <see cref="IUplinkHost.SetConnectivitySource"/>): reads the elected
         /// backend's <see cref="ICommsBackend.Connectivity"/> live, exactly where
@@ -417,7 +361,7 @@ namespace Gonogo.KSP
                 return devOverride.Value;
             }
 
-            var backend = ElectedBackend();
+            var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
             if (backend == null)
             {
                 return null;
@@ -487,7 +431,7 @@ namespace Gonogo.KSP
         /// </summary>
         internal CommsDelay? ComputeDelayOnMain(KspSnapshot? snapshot)
         {
-            var backend = ElectedBackend();
+            var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
             if (backend == null)
             {
                 return null;
@@ -506,14 +450,8 @@ namespace Gonogo.KSP
             // tick: the correct "never reveal earlier than the known horizon"
             // behaviour, symmetric with ComputeConnectedOnMain above.
             var path = backend.Path();
-            // The EFFECTIVE config, not the authored one. Reading the authored
-            // field here (and in CaptureOnMain below) left the two readers this
-            // accessor exists to keep together - the reveal gate and comms.delay
-            // itself - as the only two that never saw a cut, so a simulation
-            // cut the currency deadline and the fleet's light-time while the
-            // gate went on holding telemetry for the full delay.
             return SignalDelay.Compute(
-                SignalDelayConfig,
+                _signalDelayConfig,
                 path,
                 path.Meta?.Source ?? "",
                 path.Meta?.Quality ?? Quality.OnRails);
@@ -528,7 +466,7 @@ namespace Gonogo.KSP
         /// </summary>
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
-            var backend = ElectedBackend();
+            var backend = _kernel != null ? CommsElection.Elected(_kernel) : null;
             if (backend == null)
             {
                 return null; // election not resolved / no backend (pre-flight)
@@ -538,7 +476,7 @@ namespace Gonogo.KSP
             {
                 var path = backend.Path();
                 var delay = SignalDelay.Compute(
-                    SignalDelayConfig,
+                    _signalDelayConfig,
                     path,
                     path.Meta?.Source ?? "",
                     path.Meta?.Quality ?? Quality.OnRails);
@@ -567,17 +505,25 @@ namespace Gonogo.KSP
                 }
 
                 // comms.commandCentre: which centre the vessel's OWN path
-                // terminated at, KSC vs a crewed control-source vessel. Only
-                // CommNetBackend resolves this today: a third-party backend
-                // (RealAntennas) gets the same all-null "unknown" result the
-                // no-connection case already produces, never a throw. A save
-                // with no comms model lands in that bucket too, via the wrapper
-                // ElectedBackend applies, and all-null is the right answer
-                // there: a centre is where a control PATH terminates, and there
-                // are no paths.
-                var commandCentre = backend is CommNetBackend commNetBackend
-                    ? commNetBackend.CommandCentre(_commandCentreRegistry)
-                    : new CommsCommandCentre { Meta = connectivity.Meta };
+                // terminated at, KSC vs a crewed control-source vessel.
+                //
+                // Asked of the SEAM, in two halves. The elected backend says
+                // which node its own path ended at, because the path is its;
+                // core matches that node against its own centre registry,
+                // because the registry is core's and an Uplink may not even
+                // reference the type. This used to be one `backend is
+                // CommNetBackend` downcast, under which the channel was all-null
+                // forever on a RealAntennas install and therefore
+                // indistinguishable from having no connection at all, dark
+                // exactly where RSS/RA's dozen ground stations make "which one
+                // am I talking to" a real question.
+                //
+                // A save with no comms model still lands on all-null, now via a
+                // terminus nothing can report rather than via a downcast that
+                // failed. That remains the right answer: a centre is where a
+                // control PATH terminates, and there are no paths.
+                var commandCentre = CommandCentreResolution.Resolve(
+                    backend.ControlPathTerminus(), _commandCentreRegistry, connectivity.Meta);
 
                 return new CommsCapture
                 {
@@ -663,9 +609,7 @@ namespace Gonogo.KSP
         /// itself is <see cref="CommsHealth"/>.
         /// </summary>
         public UplinkHealth Health() =>
-            CommsHealth.Evaluate(
-                _kernel != null && CommsElection.Elected(_kernel) != null,
-                CommsModelPresent);
+            CommsHealth.Evaluate(_kernel != null && CommsElection.Elected(_kernel) != null);
 
         /// <summary>Plain cross-thread payload bundle: no live KSP references.</summary>
         private sealed class CommsCapture
