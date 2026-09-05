@@ -2,6 +2,7 @@ import { safeRandomUuid } from "@ksp-gonogo/core";
 import type { FlightRecord } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import Peer, { type DataConnection } from "peerjs";
+import { radioFrameFromWire } from "../commcast/radio/wire";
 import { deriveHostPeerId } from "./hostPeerId";
 import { attachIceDiagnostics } from "./iceDiagnostics";
 import { MessageDispatcher } from "./MessageDispatcher";
@@ -1070,7 +1071,10 @@ export class PeerClientService {
       this.events.emit("commcastAck", msg.ack);
     },
     "commcast-radio": (msg) => {
-      this.events.emit("commcastRadio", msg.frame);
+      // `radioFrameFromWire`, because BinaryPack delivers the chunk's audio as
+      // an `ArrayBuffer` where a `Uint8Array` went in. Undone at the boundary
+      // it changed at, so nothing downstream has to know it ever did.
+      this.events.emit("commcastRadio", radioFrameFromWire(msg.frame));
     },
     "alarm-fired": (msg) => {
       this.events.emit("alarmFired", {

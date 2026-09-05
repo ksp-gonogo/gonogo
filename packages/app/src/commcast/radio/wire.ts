@@ -16,9 +16,13 @@ import type { RecipientId } from "../types";
  * topology rather than preference. PeerJS is a star: a station holds the host's
  * peer id and nobody else's, so `peer.call()` cannot reach another station at
  * all, and the host has no way to forward a received track onward without
- * becoming a mixing SFU. The data channel already relays N ways, and it already
- * carries a `Uint8Array` through BinaryPack untouched, so the chunks travel as
- * bytes rather than paying base64's third.
+ * becoming a mixing SFU. The data channel already relays N ways, and it carries
+ * binary through BinaryPack without base64's added third, so the chunks travel
+ * as bytes.
+ *
+ * It does NOT carry them untouched, which this file used to say: a `Uint8Array`
+ * comes out of BinaryPack at the far end as an `ArrayBuffer`. See
+ * {@link radioFrameFromWire}, which is where that is undone.
  */
 
 /**
@@ -152,6 +156,44 @@ export const RADIO_BYTES_BUDGET = new PerfBudget({
   windowMs: 1000,
   unit: "bytes",
 });
+
+/**
+ * One frame as it came OFF the wire, with its audio back in the shape the type
+ * promises.
+ *
+ * **PeerJS hands the far end an `ArrayBuffer` where a `Uint8Array` went in.**
+ * Measured across the real mesh, not reasoned about: every chunk arriving at a
+ * peer reported `[object ArrayBuffer]`, `byteLength` 6, and `bytes[0]`
+ * `undefined`. The declared type says `Uint8Array` on both sides and always
+ * has, and the same conversion is already recorded one protocol message over,
+ * where `sendBundleFetch` copies the wire's bytes before hashing them.
+ *
+ * Nothing caught it because the one consumer tolerates both: `EncodedAudioChunk`
+ * takes any `BufferSource`, so the shipped decoder decodes an `ArrayBuffer`
+ * perfectly happily and the defect is invisible to a listener. It is not
+ * invisible to anything that INDEXES the audio, which is every other thing one
+ * might do with it: a decoder that checks a magic byte, an amplitude read, a
+ * test comparing what was heard against what was said. The first of those found
+ * it within a second of the first two-screen keying.
+ *
+ * Normalised HERE rather than at the decoder, because the wire is where the
+ * shape changed and a type that is only true on the sending side is worth
+ * nothing to anybody downstream.
+ */
+export function radioFrameFromWire(frame: RadioFrame): RadioFrame {
+  if (frame.kind !== "chunk") return frame;
+  const bytes = frame.bytes as Uint8Array | ArrayBuffer;
+  /*
+   * Already right, on the same screen or through a transport that preserved
+   * it: returned untouched rather than copied, because this runs 50 times a
+   * second per talker.
+   */
+  if (bytes instanceof Uint8Array) return frame;
+  if (bytes instanceof ArrayBuffer) {
+    return { ...frame, bytes: new Uint8Array(bytes) };
+  }
+  return frame;
+}
 
 /** Record one frame against both budgets, whichever direction it crossed in. */
 export function recordRadioFrame(frame: RadioFrame): void {

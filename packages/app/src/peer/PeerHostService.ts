@@ -9,6 +9,7 @@ import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
 import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
+import { radioFrameFromWire } from "../commcast/radio/wire";
 import { BUILD_TIME, VERSION } from "../version";
 import { BundleFetchCache } from "./BundleFetchCache";
 import { deriveHostPeerId } from "./hostPeerId";
@@ -1477,7 +1478,15 @@ export class PeerHostService {
       this.events.emit("commcastAck", conn.peer, msg);
     },
     "commcast-radio": (msg, conn) => {
-      this.events.emit("commcastRadio", conn.peer, msg);
+      // `radioFrameFromWire`, because BinaryPack delivers the chunk's audio as
+      // an `ArrayBuffer` where a `Uint8Array` went in. Normalised before the
+      // host repeats it as well as before it hears it: the relay's copy is
+      // what reaches every other peer, so fixing only its own ear would leave
+      // every station listening to the wrong shape.
+      this.events.emit("commcastRadio", conn.peer, {
+        ...msg,
+        frame: radioFrameFromWire(msg.frame),
+      });
     },
     "peer-data-mode": (msg, conn) => {
       this.peerMode.set(conn, msg.mode);
