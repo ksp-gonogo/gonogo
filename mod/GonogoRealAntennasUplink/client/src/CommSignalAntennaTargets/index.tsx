@@ -23,10 +23,12 @@ import {
   CommandButton,
   Field,
   FieldLabel,
+  Grid,
   Input,
   magnitudeOf,
   Select,
   Stack,
+  SubjectHeading,
   Text,
   Unit,
   usePanelDelay,
@@ -98,50 +100,63 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
   return (
     <Card>
       <Stack gap="xs">
-        <Cluster gap="sm" align="center" justify="between">
-          <Text size="sm" tone="default">
-            {antennaName}
-          </Text>
-          <Cluster gap="sm" align="center">
-            {antenna.techLevel != null ? (
-              <Text size="xs" tone="muted">
-                TL <Unit value={antenna.techLevel} />
-              </Text>
-            ) : null}
-            {/* A badge for the dish, plain text for the omni. Both are facts
-                about the hardware rather than states, and every severity a
-                Badge can carry paints one: green read as "good" for an antenna
-                that simply cannot be aimed. */}
-            {antenna.steerable ? (
+        {/*
+          A badge for the dish, plain text for the omni. Both are facts about the
+          hardware rather than states, and every severity a `Badge` can carry
+          paints one: green read as "this antenna is good" for one that simply
+          cannot be aimed.
+        */}
+        <SubjectHeading
+          status={
+            antenna.steerable ? (
               <Badge severity="info">Dish</Badge>
             ) : (
               <Text size="xs" tone="muted" style={LABEL_STYLE}>
                 Omni
               </Text>
-            )}
-          </Cluster>
-        </Cluster>
+            )
+          }
+        >
+          <Text size="sm" tone="default">
+            {antennaName}
+          </Text>
+        </SubjectHeading>
 
-        {antenna.steerable ? (
-          <Cluster gap="md" align="baseline" wrap>
-            <Text size="xs" tone="muted" style={LABEL_STYLE}>
-              Aimed at
-            </Text>
-            <Text size="sm" tone={antenna.targeted ? "default" : "muted"}>
-              {antenna.targeted ? antenna.targetLabel : "Not aimed"}
-            </Text>
-            {magnitudeOf(antenna.cone10Db) !== null ? (
-              <>
-                <Text size="xs" tone="muted" style={LABEL_STYLE}>
-                  Beam
-                </Text>
-                <Text size="sm" tone="default">
-                  <Unit value={antenna.cone10Db} />
-                </Text>
-              </>
-            ) : null}
-          </Cluster>
-        ) : null}
+        {/* The antenna's own facts. Tech level sits here rather than beside the
+            name: it is a property of the hardware, not a state of it, and the
+            heading's status slot is for states. */}
+        <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
+          {antenna.techLevel != null ? (
+            <>
+              <Text size="xs" tone="muted" style={LABEL_STYLE}>
+                Tech level
+              </Text>
+              <Text size="sm" tone="default">
+                <Unit value={antenna.techLevel} />
+              </Text>
+            </>
+          ) : null}
+          {antenna.steerable ? (
+            <>
+              <Text size="xs" tone="muted" style={LABEL_STYLE}>
+                Aimed at
+              </Text>
+              <Text size="sm" tone={antenna.targeted ? "default" : "muted"}>
+                {antenna.targeted ? antenna.targetLabel : "Not aimed"}
+              </Text>
+            </>
+          ) : null}
+          {antenna.steerable && magnitudeOf(antenna.cone10Db) !== null ? (
+            <>
+              <Text size="xs" tone="muted" style={LABEL_STYLE}>
+                Beam
+              </Text>
+              <Text size="sm" tone="default">
+                <Unit value={antenna.cone10Db} />
+              </Text>
+            </>
+          ) : null}
+        </Grid>
 
         {antenna.steerable ? (
           <>
