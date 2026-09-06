@@ -159,7 +159,6 @@ namespace Sitrep.Core.Tests
                 // ships, no source change needed here.
                 ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
-                ["GonogoRealFuelsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
 
                 // Sitrep.Core for EnvelopeCodec, to assert what an extension puts
                 // on the wire. An author outside this repo has no encoder to
@@ -239,7 +238,6 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Contract.TestSupport",
                     "Sitrep.Core.Serialization",
                 },
-                ["GonogoRealFuelsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoRp1Uplink.Tests"] = new[]
                 {
                     "Sitrep.Contract.TestSupport",

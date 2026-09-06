@@ -119,11 +119,12 @@ export const SCAN_FLOORS = {
   declarations: 85,
   /**
    * Uplink clients contributing at least one declaration. Was 9 when this gate
-   * was written; one Uplink departed this repo on 2026-09-02 and took its
-   * declarations with it. Lowered to the count the gate itself measured,
-   * not to a number chosen to make it pass: raise it again the moment an Uplink
-   * arrives, because the point of this floor is to catch a per-client walk that
-   * has started failing silently.
+   * was written; two Uplinks have since departed this repo and taken their
+   * declarations with them, one on 2026-09-02 and RealFuels after it. Lowered
+   * each time to the count the gate itself measured, not to a number chosen to
+   * make it pass: raise it again the moment an Uplink arrives, because the
+   * point of this floor is to catch a per-client walk that has started failing
+   * silently.
    */
-  uplinksWithDeclarations: 8,
+  uplinksWithDeclarations: 7,
 } as const;

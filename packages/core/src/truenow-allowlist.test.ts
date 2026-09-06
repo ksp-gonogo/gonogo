@@ -207,12 +207,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // `Delay = DelayRole.TrueNow` line inside that helper. Its call site is
   // `Static(ProfileTopic)`, which HELPER_TRUENOW does not match. 4 + 1 = 5.
   "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 5,
-  // realfuels.available: whether the RealFuels assembly is INSTALLED, a fact
-  // about the player's install the command centre knows independent of any
-  // vessel's comms link, same class as kerbcast.available. (Its two siblings,
-  // realfuels.engines and realfuels.boiloff, are per-vessel readings and are
-  // correctly Delayed.) 1 explicit declaration.
-  "mod/GonogoRealFuelsUplink/RealFuelsUplink.cs": 1,
   // aero.available: whether a full-fidelity aerodynamics model is INSTALLED and
   // readable, a fact about the player's install the command centre knows
   // independent of any vessel's comms link, same class as realfuels.available

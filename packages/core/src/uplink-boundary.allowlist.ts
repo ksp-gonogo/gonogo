@@ -2454,17 +2454,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/GonogoKerbalismUplink/KerbalismReliabilityMap.cs",
       "mod/GonogoKerbalismUplink/KerbalismUplink.cs",
       /*
-       * The RealFuels Uplink names TestFlight to say what it deliberately does
-       * NOT model. RealFuels has no failure model of its own (its own config
-       * copies TestFlight's numbers in purely so its editor UI can show them),
-       * so the two Uplinks answer different questions and the boundary between
-       * them is worth stating where the next author will read it. Doc-mention:
-       * neither file imports, references or derives from anything in the owning
-       * dir.
-       */
-      "mod/GonogoRealFuelsUplink/RealFuelsUplink.cs",
-      "mod/GonogoRealFuelsUplink.Contract/RealFuelsPayloads.cs",
-      /*
        * The core uplink that declares the reliability channels names both
        * backends in the same breath, for the same reason.
        */

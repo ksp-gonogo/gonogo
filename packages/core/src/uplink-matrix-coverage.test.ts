@@ -112,13 +112,13 @@ describe("the Uplink CI matrix covers every Uplink", () => {
   it("gives a leg to every client pnpm knows about", () => {
     const fromLock = lockfileClients();
     // Guards the guard: a lockfile read that matched nothing would compare two
-    // empty sets and pass. 9 since an Uplink left the repo and took its
-    // client with it.
+    // empty sets and pass. 8 since GonogoAvionicsUplink and GonogoRealFuelsUplink
+    // left for the gonogo-uplinks repo and took their clients with them.
     expect(
       fromLock.length,
       "pnpm-lock.yaml lists no mod/Gonogo*Uplink/client importers, so this test is comparing " +
         "two empty sets. The lockfile format or the workspace layout changed.",
-    ).toBeGreaterThanOrEqual(9);
+    ).toBeGreaterThanOrEqual(8);
 
     expect(
       matrix.filter((leg) => leg.client).map((leg) => leg.id),
@@ -129,9 +129,9 @@ describe("the Uplink CI matrix covers every Uplink", () => {
 
   it("gives a leg to every plugin project in the solution", () => {
     const fromSolution = solutionUplinks();
-    // 9 since GonogoTestFlightUplink and GonogoAvionicsUplink migrated to the
-    // gonogo-uplinks repo.
-    expect(fromSolution.length).toBeGreaterThanOrEqual(9);
+    // 8 since GonogoTestFlightUplink, GonogoAvionicsUplink and
+    // GonogoRealFuelsUplink took their projects out of the solution.
+    expect(fromSolution.length).toBeGreaterThanOrEqual(8);
     expect(
       matrix.filter((leg) => leg.csproj).map((leg) => leg.id),
       `${SCRIPT} disagrees with mod/Gonogo.sln about which Uplinks have a plugin csproj.`,

@@ -109,8 +109,8 @@ describe("an Uplink's tsconfig travels with it", () => {
 
   it("finds the clients it is meant to be checking", () => {
     // A walk that returns nothing reports no offenders, which is what a clean
-    // tree reports too. 9 since an Uplink left the repo and took its client
-    // with it.
-    expect(uplinkClientTsconfigs().length).toBeGreaterThanOrEqual(9);
+    // tree reports too. 8 since GonogoAvionicsUplink and GonogoRealFuelsUplink
+    // left for the gonogo-uplinks repo and took their clients with them.
+    expect(uplinkClientTsconfigs().length).toBeGreaterThanOrEqual(8);
   });
 });

@@ -81,9 +81,11 @@ describe("generated contract docs", () => {
 
   it("finds every generated contract", () => {
     // A walk that matched nothing would pass every assertion below. Nine since
-    // a second Uplink left the repo and took its contract slice with it; a
-    // floor guards against the walk breaking, so it tracks what is here.
-    expect(contracts.length).toBeGreaterThanOrEqual(9);
+    // A walk that matched nothing would pass every assertion below. Eight
+    // since GonogoAvionicsUplink and GonogoRealFuelsUplink left the repo and
+    // took their contract slices with them; a floor guards against the walk
+    // breaking, so it tracks what is here.
+    expect(contracts.length).toBeGreaterThanOrEqual(8);
   });
 
   it("sees markup it is meant to reject", () => {

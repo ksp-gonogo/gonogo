@@ -99,11 +99,4 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
     repo: "ksp-gonogo/GonogoFerramAerospaceResearchUplink",
     clientDir: resolve(modDir, "GonogoFerramAerospaceResearchUplink/client"),
   },
-  {
-    id: "realfuels",
-    name: "Real Fuels",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoRealFuelsUplink",
-    clientDir: resolve(modDir, "GonogoRealFuelsUplink/client"),
-  },
 ];

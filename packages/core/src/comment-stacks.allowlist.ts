@@ -71,8 +71,6 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "mod/GonogoRealAntennasUplink/client/src/hopExt.ts": 1,
   "mod/GonogoRealAntennasUplink/client/src/index.ts": 2,
   "mod/GonogoRealAntennasUplink/client/src/topics.test.ts": 3,
-  "mod/GonogoRealFuelsUplink/client/src/EngineRealism/index.tsx": 2,
-  "mod/GonogoRealFuelsUplink/client/src/topics.test.ts": 3,
   "mod/GonogoRp1Uplink/client/gonogo-render.setup.ts": 1,
   "mod/GonogoRp1Uplink/client/src/KscComplexes/Centre.tsx": 1,
   "mod/GonogoRp1Uplink/client/src/KscComplexes/index.tsx": 1,

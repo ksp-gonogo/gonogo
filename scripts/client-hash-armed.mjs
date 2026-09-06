@@ -28,7 +28,7 @@
  *
  * Seeded red for every Uplink would be a second permanently-failing job, and this
  * repo already owns one and has twice had a real failure hide behind it. So the
- * remaining seven are grandfathered in `UNARMED_DEBT` and anything NOT listed is
+ * remaining six are grandfathered in `UNARMED_DEBT` and anything NOT listed is
  * held to armed: a new Uplink vouches for its bundle from the day it lands.
  *
  * Both directions, like every other ratchet here. An entry that becomes armed and
@@ -93,23 +93,6 @@ const UNARMED_DEBT = new Set([
   "GonogoPrincipiaUplink",
   "GonogoRealAntennasUplink",
   "GonogoRp1Uplink",
-  /*
-   * Added 2026-08-28 with the Uplink, which is what this list says never to do,
-   * so the reason has to stand on its own.
-   *
-   * Its stated reason was that the client "reaches the app as a static import in
-   * main.tsx", so there were no fetched bytes for a third witness to be over.
-   * That was already false when it was written and is corrected here rather than
-   * copied: `main.tsx` registers NOTHING statically, every client in
-   * `uplink-bundle-targets.ts` is fetched and hashed by the loader, and this one
-   * is in that list.
-   *
-   * The entry stands on the reason all eight share: the Uplink's `UplinkManifest`
-   * names no `ExpectedClientHash`, so there is no const for a bake to fill. A
-   * `.g.cs` written anyway would compile into the assembly, be read by nobody,
-   * and let this gate report armed while the mod still vouched for nothing.
-   */
-  "GonogoRealFuelsUplink",
 ]);
 
 /**

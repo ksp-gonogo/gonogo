@@ -257,24 +257,6 @@
     "reason": "Real, and already integrated by the producer: mass flow is the rate of mass, and the plan carries the answer as `finalMassTons`, so a reckoning here would re-derive a number the wire already holds and disagree with it whenever the burn is throttled. Worth modelling only for the mass PARTWAY through a burn in progress, which nothing asks for yet.",
     "verdict": "real-but-unmodelled"
   },
-  "RealFuelsEngineEntry.ratedBurnTimeSeconds": {
-    "rates": [
-      "ignitionProbability",
-      "predictedMaximumResiduals",
-      "ullageStability"
-    ],
-    "reason": "Coincidence, and the purest form of the dimensionless artefact: all three siblings are `ratio` tokens, so the algebra makes each of them the per-second rate of every duration in the type. None is a rate of anything. A rated burn time is a MANUFACTURER'S LIMIT rather than a quantity that moves: RealFuels reads it off the engine config and it does not change while the engine runs, so there is nothing to integrate even before asking which sibling to integrate. The clock that actually runs against this limit is elapsed ignited time, which this Uplink does not publish.",
-    "verdict": "coincidence"
-  },
-  "RealFuelsEngineEntry.ratedContinuousBurnTimeSeconds": {
-    "rates": [
-      "ignitionProbability",
-      "predictedMaximumResiduals",
-      "ullageStability"
-    ],
-    "reason": "Coincidence, for the same reason as its sibling limit above: three dimensionless ratios stand in as the rate of every duration in the type, and a continuous-burn rating is a fixed figure off the engine config that does not move while the engine runs.",
-    "verdict": "coincidence"
-  },
   "ReliabilityBudget.limitSeconds": {
     "rates": ["consumed"],
     "reason": "The same dimensional degeneracy, and the fraction genuinely IS used over limit, so it is derived FROM this pair rather than being its rate: integrating `consumed` to get seconds would recompute an input from an output. There is no clock here either. A budget's seconds are consumed by OPERATION (thrust-weighted, for a rated burn), not by time passing, so nothing advances between frames for a reckoner to integrate.",
