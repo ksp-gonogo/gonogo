@@ -2,8 +2,8 @@
 
 **gonogo is MIT. The rule is mechanical: an Uplink that COMPILE-TIME LINKS a GPL or
 unresolved-licence mod inherits that mod's copyleft; every other Uplink, and everything else in
-this repository, is MIT. Today that catches `GonogoKosUplink` and `GonogoMechJebUplink`. If you
-don't touch those, MIT is all you need to know.**
+this repository, is MIT. If you are not writing an Uplink that links a copyleft mod, MIT is all
+you need to know.**
 
 Uplinks are migrating out of this repository into `gonogo-uplinks`, so treat the names below as
 examples of the rule rather than a register to maintain: when an Uplink leaves, its obligation
@@ -22,62 +22,23 @@ This is deliberate. An extension surface that forces a licence on its extensions
 surface, and roughly 12% of the KSP ecosystem ships all-rights-reserved, those authors should be
 able to write an Uplink too.
 
-## The exceptions
+## The exception, stated as a rule
 
 | Component | Licence | Why |
 |---|---|---|
-| `mod/GonogoKosUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-kos-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
-| `mod/GonogoMechJebUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-mechjeb-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links MechJeb2 (`MechJeb2.dll`), which is GPL-3.0. |
+| An Uplink that COMPILE-TIME LINKS a copyleft mod | that mod's licence | Linking binds you to it. The Uplink is a leaf: its own assembly, its own CKAN package, its own GameData folder, and nothing in this repository references it. |
+| An Uplink that REFLECTS against a mod | MIT | Reflection reaches the mod's types at arm's length, which is what to do when a mod's licence forbids linking. |
 | Everything else | MIT | Nothing else links anything copyleft. |
 
-All three exceptions are **dependency leaves**, nothing in the repository references any of them,
-so their copyleft propagates nowhere. A GPL work linking MIT works is fine and imposes nothing on
-those MIT works. Each ships as its own CKAN package in its own GameData folder.
+**No Uplink is named here on purpose.** Uplinks are migrating out of this repository into
+`gonogo-uplinks`, and a licence obligation travels with the code that incurs it: when an Uplink
+leaves, its obligation leaves too, and its own NOTICE is where the detail belongs. A register of
+names in this file would go stale on every migration and tell a reader something false. The
+mechanism above does not go stale.
 
-The full GPLv3 text is at `LICENSE-GPL-3.0.txt`, and beside each GPL component as its own `LICENSE`.
-
-### GonogoKosUplink (permanent)
-
-kOS is GPL-3.0 and we link it directly, in-process, against its public API. There is no version of
-this that isn't copyleft short of dropping the integration. Users of `GonogoKosUplink` have already
-installed kOS, so they have already opted into a GPL mod. See `mod/GonogoKosUplink/NOTICE-KOS.txt`.
-
-### SCANsat: a question that left with its Uplink
-
-`GonogoScansatUplink` has migrated to `gonogo-uplinks`, and its licensing question went with it.
-Recorded here only so the question is not lost: SCANsat's repository `LICENSE.txt` is 3-clause BSD
-(permissive) while its published CKAN metadata declares `restricted` (all-rights-reserved), and the
-Uplink compile-time links `SCANsat.dll`, so which one governs is load-bearing rather than academic.
-**The question was put to the SCANsat stewards (https://github.com/KSPModStewards/SCANsat) and had
-not been answered when the Uplink left.** Until it is, that Uplink stays GPL-3.0-only, which is the
-conservative option. Do not relicense it to MIT on the strength of the BSD text alone. The full
-rationale travels with the Uplink, in its own NOTICE.
-
-### GonogoMechJebUplink
-
-MechJeb2 is GPL-3.0 and this uplink compile-time links `MechJeb2.dll`, so the assembly is
-GPL-3.0-only. Same shape as the two rows above, and for the same reason: a leaf assembly, its own
-CKAN package, its own GameData folder, nothing in the repository references it.
-
-Compile-time binding is not a deviation here. `GonogoKosUplink` names types out of `kOS.Module`,
-`kOS.Safe.Screen` and `kOS.UserIO` and is GPL-3.0-only by exactly the same mechanism, so the
-copyleft on this one is not novel.
-
-Reflection is what an Uplink does for a mod whose LICENCE forbids linking: it reaches the mod's
-types at arm's length and stays MIT. The two Uplinks that did this here (against AGExt, GPL-3.0,
-and RP-1, CC-BY-NC-SA-4.0) have since migrated to `gonogo-uplinks` and carry their own notices.
-MechJeb2 is linkable, so the licence poses no question this uplink has to route around.
-
-`MechJeb2.dll` is vendored in the private reference set alongside `kOS.dll` and `SCANsat.dll`, so
-CI compiles this assembly and `publish-mods.yml` publishes it. A compile-time reference copy held
-in a private build repository is not distribution and adds no obligation. Reasoning and evidence in
-`local_docs/design/mechjeb-provider-and-vendoring.md`; the linkage notice is
-`mod/GonogoMechJebUplink/NOTICE-MECHJEB.txt`.
-
-What the three GPL-3.0-only rows DO owe on every release is the licence text travelling with the
-work, and each ships as its own standalone CKAN package, so each zip is the work. Each project
-directory holds the full GPLv3 and `_build-uplink-mod.yml` bundles it into the zip beside the
-NOTICE.
+So the question to ask about any Uplink is only: **does it link, or does it reflect?** If it
+links something copyleft, that Uplink's assembly and its co-located client take the mod's licence,
+and it needs a NOTICE of its own saying so. Otherwise it is MIT like the rest of the repository.
 
 ## The kerbcast caveat: read this before relying on the SPA's MIT
 
@@ -125,10 +86,10 @@ user's own install.
 
 ## An invariant worth knowing
 
-**MIT → GPL is one-way.** `GonogoKosUplink` may link the MIT `Sitrep.*` assemblies. The reverse (an
-MIT assembly referencing `GonogoKosUplink`) would be a violation. Nothing does this today, because
-`GonogoKosUplink` is a leaf. It is a mistake a future change could make silently, so if you find yourself
-adding a reference *to* `GonogoKosUplink` from anywhere, stop.
+**MIT → GPL is one-way.** A copyleft Uplink may link the MIT `Sitrep.*` assemblies. The reverse, an
+MIT assembly referencing a copyleft Uplink, would be a violation. Nothing does this today, because
+every Uplink is a leaf. It is a mistake a future change could make silently, so if you find yourself
+adding a reference *to* a copyleft Uplink from anywhere, stop.
 
 ## CKAN vs SPDX: a mechanical trap
 
