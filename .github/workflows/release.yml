@@ -14,10 +14,11 @@ name: release
 #   2. builds the production site and uploads it as the GitHub Release
 #      asset `gonogo-site.tar.gz` (deploy.yml composes the Pages root
 #      from the newest release's asset),
-#   3. dispatches publish-images.yml with channel=release so all three
-#      GHCR images get `<version>` + `latest` tags,
-#   4. dispatches publish-mods.yml with channel=release so the four mod
-#      GameData zips get attached to this release and pushed to SpaceDock,
+#   3. dispatches publish-images.yml with channel=release so both GHCR
+#      images (gonogo, gonogo-relay) get `<version>` + `latest` tags,
+#   4. dispatches publish-mods.yml with channel=release so every mod
+#      GameData zip in that workflow's matrix gets attached to this release
+#      and pushed to SpaceDock,
 #   5. dispatches deploy.yml so the Pages root flips to this release
 #      immediately instead of on the next push to main,
 #   6. publishes any @ksp-gonogo package whose own version has moved to
