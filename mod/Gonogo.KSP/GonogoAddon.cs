@@ -144,7 +144,13 @@ namespace Gonogo.KSP
                 // capability, the same reasoning CommandCentreDelayUplink
                 // below is registered directly for.
                 _engine.RegisterUplink(new FleetChannels());
-                _engine.RegisterDiscoveredUplinks(UplinkDiscovery.Discover());
+                // Same sink as SetDiagnosticLog above, for the same reason: the
+                // scan's three rejection paths (unscannable assembly, no public
+                // parameterless constructor, a throwing constructor) went only to
+                // Console.Error, so a third-party Uplink the scan refused looked
+                // exactly like one that loaded and had not published yet.
+                _engine.RegisterDiscoveredUplinks(
+                    UplinkDiscovery.Discover(msg => Debug.LogWarning("[Gonogo] " + msg)));
 
                 // Plan 3 command centres (agent-6): the stock home-node + crewed-
                 // vessel sources feed BOTH set-vantage validation (the engine's own

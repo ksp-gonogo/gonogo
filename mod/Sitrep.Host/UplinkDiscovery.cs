@@ -80,20 +80,48 @@ namespace Sitrep.Host
         /// types and instantiates each via its parameterless constructor.
         /// Never throws: any per-assembly or per-type failure (a type that
         /// can't be loaded, has no parameterless constructor, or throws in
-        /// its constructor) is logged to <see cref="Console.Error"/> and
-        /// skipped: discovery itself must never be fatal, mirroring the
-        /// per-Uplink <c>Register()</c> fail-soft <see cref="ChannelEngine"/>
-        /// applies one layer up.
+        /// its constructor) is logged and skipped: discovery itself must never
+        /// be fatal, mirroring the per-Uplink <c>Register()</c> fail-soft
+        /// <see cref="ChannelEngine"/> applies one layer up.
+        ///
+        /// <para><paramref name="diagnosticLog"/> is the Deck-visible sink,
+        /// the same arrangement as <see cref="ChannelEngine.SetDiagnosticLog"/>
+        /// and wired from <c>GonogoAddon</c> to <c>UnityEngine.Debug</c>.
+        /// Without it these three failures went only to
+        /// <see cref="Console.Error"/>, which KSP does not capture, so an
+        /// Uplink rejected by the scan was indistinguishable from one that
+        /// loaded and had not published yet: the author's only signal was a
+        /// subscribe that never answered.</para>
         /// </summary>
-        public static IReadOnlyList<DiscoveredUplink> Discover()
+        public static IReadOnlyList<DiscoveredUplink> Discover(Action<string>? diagnosticLog = null)
         {
-            return Discover(AppDomain.CurrentDomain.GetAssemblies());
+            return Discover(AppDomain.CurrentDomain.GetAssemblies(), diagnosticLog);
         }
 
         /// <summary>Testable overload: scans an explicit assembly set instead of the current AppDomain's loaded set.</summary>
-        public static IReadOnlyList<DiscoveredUplink> Discover(IEnumerable<Assembly> candidateAssemblies)
+        public static IReadOnlyList<DiscoveredUplink> Discover(
+            IEnumerable<Assembly> candidateAssemblies,
+            Action<string>? diagnosticLog = null)
         {
             var found = new List<DiscoveredUplink>();
+
+            void Log(string message)
+            {
+                Console.Error.WriteLine("[UplinkDiscovery] " + message);
+                if (diagnosticLog == null)
+                {
+                    return;
+                }
+                try
+                {
+                    diagnosticLog("[UplinkDiscovery] " + message);
+                }
+                catch
+                {
+                    // A broken log sink must never break discovery, which is
+                    // the one thing here that is not allowed to be fatal.
+                }
+            }
 
             foreach (var assembly in candidateAssemblies)
             {
@@ -115,7 +143,7 @@ namespace Sitrep.Host
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine("[UplinkDiscovery] failed to scan assembly \"" + assembly.FullName + "\": " + ex);
+                    Log("failed to scan assembly \"" + assembly.FullName + "\": " + ex);
                     continue;
                 }
 
@@ -146,8 +174,8 @@ namespace Sitrep.Host
                         var ctor = type.GetConstructor(Type.EmptyTypes);
                         if (ctor == null)
                         {
-                            Console.Error.WriteLine(
-                                "[UplinkDiscovery] \"" + type.FullName + "\" carries [SitrepUplink] but has no " +
+                            Log(
+                                "\"" + type.FullName + "\" carries [SitrepUplink] but has no " +
                                 "parameterless constructor: skipped (a discoverable Uplink must resolve any " +
                                 "real dependency itself, see UplinkDiscovery's doc comment).");
                             continue;
@@ -158,7 +186,7 @@ namespace Sitrep.Host
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine("[UplinkDiscovery] failed to inspect/instantiate \"" + type.FullName + "\": " + ex);
+                        Log("failed to inspect/instantiate \"" + type.FullName + "\": " + ex);
                     }
                 }
             }

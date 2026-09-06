@@ -71,6 +71,35 @@ namespace Sitrep.Host.Tests
             Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
         }
 
+        /// <summary>
+        /// Both rejection paths reach the caller's sink, naming the offending
+        /// type. GonogoAddon passes UnityEngine.Debug.LogWarning here; before
+        /// the sink existed these lines went only to Console.Error, which KSP
+        /// does not capture, so an Uplink the scan refused was invisible and
+        /// an author's only evidence was a subscribe that never answered.
+        /// </summary>
+        [Fact]
+        public void ReportsEveryRejectionToTheDiagnosticSink()
+        {
+            var lines = new List<string>();
+
+            UplinkDiscovery.Discover(ThisAssembly, lines.Add);
+
+            Assert.Contains(lines, l => l.Contains(nameof(NoParameterlessCtorUplink)) && l.Contains("parameterless constructor"));
+            Assert.Contains(lines, l => l.Contains(nameof(ThrowingCtorUplink)));
+        }
+
+        /// <summary>A caller whose sink throws still gets a complete scan: reporting a failure must never become one.</summary>
+        [Fact]
+        public void SurvivesADiagnosticSinkThatThrows()
+        {
+            var found = UplinkDiscovery.Discover(
+                ThisAssembly,
+                _ => throw new InvalidOperationException("broken sink"));
+
+            Assert.Contains(found, d => d.Uplink.Manifest.Id == "discovery-test-normal");
+        }
+
         [Fact]
         public void SurvivesTypeWhoseAttributeResolutionThrowsWithoutAbortingTheWholeScan()
         {
