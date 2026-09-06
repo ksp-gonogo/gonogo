@@ -144,6 +144,23 @@ export class TopicOwnershipTracker {
   }
 
   /**
+   * The mod REFUSED `topic` outright, with an `unknown-topic` error frame.
+   * Settles it unowned now rather than waiting out the ack window.
+   *
+   * The window exists because silence was the only answer an undeclared topic
+   * used to get. A refusal is the same verdict arriving as a statement, so it
+   * reaches the same callback: one diagnostic, one message, and no second one
+   * from the timer that is still armed behind it.
+   */
+  noteRefused(topic: string): void {
+    if (!this.connected) return;
+    this.disarm(topic);
+    if (this.owned.has(topic) || this.unowned.has(topic)) return;
+    this.unowned.add(topic);
+    this.onUnowned(topic);
+  }
+
+  /**
    * Nothing subscribes to `topic` any more.
    *
    * Cancels a window in flight but keeps a verdict already reached, so a widget

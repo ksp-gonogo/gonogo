@@ -764,6 +764,13 @@ export class TelemetryClient {
       // the author was left with the exact silence the mod had just gone to
       // the trouble of explaining. See `channel-error-warning.ts`.
       if (!message.requestId && message.topic) {
+        // `unknown-topic` is the mod refusing the subscribe, not a channel that
+        // was acked and then broke, so it belongs to the ownership verdict and
+        // NOT to `warnChannelError`, whose text says the opposite happened.
+        if (message.code === "unknown-topic") {
+          this.ownership?.noteRefused(message.topic);
+          return;
+        }
         warnChannelError(
           this.channelErrorsWarned,
           message.topic,

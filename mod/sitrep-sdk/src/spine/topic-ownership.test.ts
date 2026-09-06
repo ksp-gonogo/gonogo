@@ -33,6 +33,28 @@ describe("TopicOwnershipTracker", () => {
     expect(seen).toEqual(["nobody.publishes.this"]);
   });
 
+  it("decides unowned immediately on an unknown-topic refusal, without waiting out the window", () => {
+    const seen: string[] = [];
+    const tracker = new TopicOwnershipTracker((topic) => seen.push(topic));
+    tracker.noteSubscribeSent("nobody.publishes.this");
+
+    tracker.noteRefused("nobody.publishes.this");
+
+    expect(tracker.ownershipOf("nobody.publishes.this")).toBe("unowned");
+    expect(seen).toEqual(["nobody.publishes.this"]);
+  });
+
+  it("does not report a refused topic a second time when the window it disarmed would have elapsed", () => {
+    const seen: string[] = [];
+    const tracker = new TopicOwnershipTracker((topic) => seen.push(topic));
+    tracker.noteSubscribeSent("nobody.publishes.this");
+    tracker.noteRefused("nobody.publishes.this");
+
+    vi.advanceTimersByTime(OWNERSHIP_ACK_WINDOW_MS * 2);
+
+    expect(seen).toEqual(["nobody.publishes.this"]);
+  });
+
   it("decides owned on the ack, and never fires the callback", () => {
     const seen: string[] = [];
     const tracker = new TopicOwnershipTracker((topic) => seen.push(topic));

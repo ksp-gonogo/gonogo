@@ -122,8 +122,76 @@ namespace Sitrep.Host.IntegrationTests
             }
         }
 
+        /// <summary>
+        /// The other half of the same diagnosis problem, and the one an Uplink
+        /// author hits first: subscribing to a topic NO uplink declares used to
+        /// be answered with nothing at all. A mistyped topic, an Uplink the
+        /// assembly scan refused, and a topic that exists but has not published
+        /// yet all produced the identical null result, so the first-run check
+        /// every author performs ("subscribe and see if anything comes back")
+        /// could not tell them apart.
+        ///
+        /// <para>Now an <c>error</c> frame comes back, and it separates the
+        /// first two: whether an uplink owning the topic's leading segment is
+        /// registered at all is exactly the difference between a naming mistake
+        /// and a load failure.</para>
+        /// </summary>
+        [Theory]
+        [InlineData("prefixed.nosuchtopic", "is registered")]
+        [InlineData("nosuchuplink.status", "no uplink with id \"nosuchuplink\" is registered")]
+        public async Task SubscribingToAnUndeclaredTopicIsRefusedWithAnErrorNamingWhichHalfIsMissing(
+            string topic,
+            string expectedFragment)
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new PrefixedTestUplink());
+            engine.Start();
+            try
+            {
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+
+                await client.SendAsync(EnvelopeCodec.WriteSubscribe(new Subscribe { Topic = topic }));
+                var error = await ReceiveTypedAsync<ErrorMsg>(client, Timeout);
+
+                Assert.Equal("unknown-topic", error.Code);
+                Assert.Equal(topic, error.Topic);
+                Assert.Contains(expectedFragment, error.Message);
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
         private static KspSnapshot Snapshot(double ut) =>
             new KspSnapshot { Ut = ut, Values = new Dictionary<string, object?> { ["declared"] = ut } };
+
+        /// <summary>An ordinary healthy uplink whose id IS its topic prefix, which is what the error message keys on.</summary>
+        private sealed class PrefixedTestUplink : ISitrepUplink
+        {
+            public const string DeclaredTopic = "prefixed.status";
+
+            public UplinkHealth Health() => UplinkHealth.Healthy;
+
+            public UplinkManifest Manifest { get; } = new UplinkManifest
+            {
+                Id = "prefixed",
+                Version = "1.0.0",
+                Channels = new List<ChannelDeclaration>
+                {
+                    new ChannelDeclaration
+                    {
+                        Topic = DeclaredTopic,
+                        Delivery = Delivery.LossyLatest,
+                        Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
+                        Delay = DelayRole.Delayed,
+                    },
+                },
+            };
+
+            public void Register(IUplinkHost host) =>
+                host.AddChannelSource(DeclaredTopic, _ => 1.0);
+        }
 
         /// <summary>
         /// The shape that killed the <c>vessel</c> uplink live: a Manifest that

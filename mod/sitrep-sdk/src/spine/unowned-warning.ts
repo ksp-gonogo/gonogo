@@ -52,9 +52,10 @@ export function unownedTopicMessage(
       : `Read by ${readers.join(", ")}`;
   return (
     `[unowned topic] Nothing will ever publish "${topic}". ${who}, and that read ` +
-    `will never resolve. The mod acks every subscribe it accepts and did not ack ` +
-    `this one, which means no installed Uplink declares the channel and it falls ` +
-    `under no dynamic namespace. Check, in order: the topic is spelled the way the ` +
+    `will never resolve. The mod either refused the subscribe with an ` +
+    `unknown-topic error or never acked it, which means no installed Uplink ` +
+    `declares the channel and it falls under no dynamic namespace. Check, in ` +
+    `order: the topic is spelled the way the ` +
     `Uplink declares it; the Uplink that owns it is installed and enabled; and its ` +
     `Register did not throw on load, which fail-softs and leaves its channels ` +
     `undeclared (the system.uplinks roster carries available:false and a reason).`

@@ -3443,6 +3443,51 @@ namespace Sitrep.Host
                 LogHost("could not deliver the payload-serialization error for channel \"" + topic + "\": " + SafeExceptionMessage(publishEx));
             }
         }
+
+        /// <summary>
+        /// Answers a subscribe for a topic no uplink declares, instead of the
+        /// bare <c>return</c> this used to be.
+        ///
+        /// <para>Silence made three unrelated causes look identical from the
+        /// wire: a mistyped Topic name, an Uplink that never loaded (the
+        /// discovery-time failures are logged, but an author who does not
+        /// already suspect the host never looks), and a Topic that exists and
+        /// simply has not published yet. An Uplink author's whole first-run
+        /// check is "subscribe and see if anything comes back", so all three
+        /// arrived as the same null result and the docs had to warn about
+        /// it.</para>
+        ///
+        /// <para>The message splits the first two apart by asking whether an
+        /// uplink owning the topic's leading segment is registered at all: a
+        /// live uplink plus an undeclared topic is a naming mistake, and no
+        /// such uplink is a load failure. Same <c>error</c> frame the command
+        /// path and <see cref="PublishPayloadSerializationError"/> already use,
+        /// so a client that handles one handles this.</para>
+        /// </summary>
+        private void PublishUnknownTopicError(ClientSession session, string topic)
+        {
+            var dot = topic.IndexOf('.');
+            var uplinkId = dot > 0 ? topic.Substring(0, dot) : topic;
+            var message = _availability.ContainsKey(uplinkId)
+                ? $"no channel \"{topic}\" is declared; uplink \"{uplinkId}\" is registered, so check the topic name against its manifest and its entry on \"{UplinksTopic}\""
+                : $"no channel \"{topic}\" is declared, and no uplink with id \"{uplinkId}\" is registered";
+
+            var error = new ErrorMsg
+            {
+                Topic = topic,
+                Code = "unknown-topic",
+                Message = message,
+            };
+            try
+            {
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }
+            catch (Exception publishEx)
+            {
+                LogHost("could not deliver the unknown-topic error for \"" + topic + "\": " + SafeExceptionMessage(publishEx));
+            }
+        }
+
         /// <summary>
         /// Sampler counterpart of <see cref="FailSoftChannel"/>/<see cref="FailSoftCommand"/>,
         /// the coverage-sweep fix for the sampler loop's missing owner
@@ -5422,6 +5467,7 @@ namespace Sitrep.Host
                 var dynamicPrefix = FindDynamicNamespaceForTopic(topic);
                 if (dynamicPrefix == null)
                 {
+                    PublishUnknownTopicError(session, topic);
                     return;
                 }
                 EnsureDynamicTopicDeclared(dynamicPrefix, topic);
