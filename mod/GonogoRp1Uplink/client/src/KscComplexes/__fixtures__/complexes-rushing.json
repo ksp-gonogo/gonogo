@@ -16,6 +16,8 @@
       "LC-1",
       "LC-2",
       "RUSHING",
+      "rushing costs",
+      "efficiency held",
       "Stop rushing",
       "Unassigned",
       "Max",
@@ -144,6 +146,7 @@
             "sizeMaxDepth": 12,
             "resourcesHandled": ["Kerosene", "LqdOxygen"],
             "salaryPerDay": 120.9,
+            "rushSalaryDeltaPerDay": 60.45,
             "upkeepPerDay": 45,
             "newPadCost": 14118.31
           },

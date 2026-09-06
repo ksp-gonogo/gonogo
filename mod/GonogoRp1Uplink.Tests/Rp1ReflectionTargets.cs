@@ -378,6 +378,13 @@ namespace GonogoRp1Uplink.Tests
              * resource name, amount, isModify, LC type.
              */
             new Rp1MethodTarget(Rp0, "RP0.Formula", "ResourceTankCost", 4, true, "Rp1LcCostModel"),
+            /*
+             * The rollout price, per vehicle, and the same call
+             * ReconRolloutProject's constructor makes: quoting it anywhere else
+             * would be a second copy of a formula that moves between releases.
+             * One parameter, the VesselProject.
+             */
+            new Rp1MethodTarget(Rp0, "RP0.Formula", "GetRolloutCost", 1, true, "Rp1ScReflection"),
             new Rp1MethodTarget(Rp0, "RP0.KCTUtilities", "AddVesselToBuildList", 2, true, "Rp1BuildCommands, Rp1BuildStartCommands"),
             new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "RunQuery", 4, true, "Rp1Pricing"),
             new Rp1MethodTarget(Rp0, "RP0.CurrencyModifierQueryRP0", "CanAfford", 1, false, "Rp1Pricing"),

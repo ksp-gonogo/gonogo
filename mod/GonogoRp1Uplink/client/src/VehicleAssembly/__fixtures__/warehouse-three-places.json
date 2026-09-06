@@ -132,6 +132,7 @@
             "timeLeftSeconds": 0,
             "stalled": false,
             "cost": 3200,
+            "costRemaining": 0,
             "associatedVesselId": "ship-atlas-1"
           },
           {
@@ -146,6 +147,7 @@
             "timeLeftSeconds": 360000,
             "stalled": false,
             "cost": 1450,
+            "costRemaining": 870,
             "associatedVesselId": "ship-vanguard-1"
           }
         ]
@@ -160,6 +162,7 @@
             "lcId": "lc-1",
             "shipName": "Atlas-LV3",
             "cost": 40000,
+            "rolloutCost": 4120,
             "mass": 120,
             "humanRated": false,
             "launchSite": "LaunchPad",
@@ -173,6 +176,7 @@
             "lcId": "lc-2",
             "shipName": "Vanguard",
             "cost": 18500,
+            "rolloutCost": 1870,
             "mass": 62,
             "humanRated": false,
             "launchSite": "LaunchPad 2",
@@ -186,6 +190,7 @@
             "lcId": "lc-2",
             "shipName": "Redstone",
             "cost": 12400,
+            "rolloutCost": 1310,
             "mass": 30,
             "humanRated": false,
             "launchSite": "LaunchPad 2",

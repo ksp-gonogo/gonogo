@@ -259,4 +259,128 @@ public class Rp1ScMathTests
         }));
         Assert.Null(Rp1ScMath.SequencedTimeLeft(new List<Rp1ScMath.BlockingOp>()));
     }
+
+    [Fact]
+    public void A_part_finished_move_has_only_the_unmade_progress_left_to_pay()
+    {
+        // RP-1 draws a rollout's price down as it proceeds, so a move 40% of the
+        // way there has paid 40% of its price and a press that resumes it commits
+        // to the other 60%. Quoting the total would overstate what the press
+        // costs by everything already spent.
+        Assert.Equal(600.0, Rp1ScMath.UnbilledCost(1000.0, progress: 400.0, totalPoints: 1000.0)!.Value, 6);
+        Assert.Equal(1000.0, Rp1ScMath.UnbilledCost(1000.0, progress: 0.0, totalPoints: 1000.0)!.Value, 6);
+        Assert.Equal(0.0, Rp1ScMath.UnbilledCost(1000.0, progress: 1000.0, totalPoints: 1000.0)!.Value, 6);
+    }
+
+    [Fact]
+    public void An_uncosted_project_has_an_absent_remainder_rather_than_a_free_one()
+    {
+        // The same absence ProgressRatio gives, for the same reason: RP-1 has not
+        // costed the project, which is not the project being free.
+        Assert.Null(Rp1ScMath.UnbilledCost(1000.0, progress: 0.0, totalPoints: 0.0));
+        Assert.Null(Rp1ScMath.UnbilledCost(1000.0, progress: 0.0, totalPoints: double.NaN));
+    }
+
+    /// <summary>
+    /// RP-1's own effective-head expression, so these tests feed the recovery
+    /// the shape it claims to invert rather than a number chosen to satisfy it.
+    /// </summary>
+    /// <remarks>
+    /// <c>SpaceCenterManagement.GetEffectiveEngineersForSalary(LaunchComplex)</c>
+    /// in one line: the working part of a crew draws at the rush rate, the rest
+    /// at the idle fraction. Its four arms differ only in how many are working.
+    /// </remarks>
+    private static double Heads(int working, int engineers, double rushSalary, double idleMult) =>
+        working * rushSalary + (engineers - working) * idleMult;
+
+    [Fact]
+    public void Rushing_a_fully_working_crew_costs_the_whole_crew_over_again()
+    {
+        // The ordinary complex: everyone is working, so RP-1 charges every head
+        // at the rush rate and the extra is one full crew's salary.
+        var quiet = Heads(working: 10, engineers: 10, rushSalary: 1.0, idleMult: 0.25);
+
+        Assert.Equal(
+            10.0,
+            Rp1ScMath.RushSalaryDelta(quiet, 10, idleMult: 0.25, rushMult: 2.0, isRushing: false)!.Value,
+            9);
+    }
+
+    [Fact]
+    public void The_extra_reads_the_same_from_inside_a_rush_as_from_outside_it()
+    {
+        // One figure answers both presses, which is the whole point of publishing
+        // the DELTA rather than a rushed total: what starting a rush would add is
+        // what stopping one would save, and the count it is recovered from is
+        // taken in different modes on either side of the press.
+        var quiet = Heads(working: 6, engineers: 9, rushSalary: 1.0, idleMult: 0.25);
+        var rushing = Heads(working: 6, engineers: 9, rushSalary: 2.0, idleMult: 0.25);
+
+        var fromOutside = Rp1ScMath.RushSalaryDelta(quiet, 9, 0.25, 2.0, isRushing: false);
+        var fromInside = Rp1ScMath.RushSalaryDelta(rushing, 9, 0.25, 2.0, isRushing: true);
+
+        Assert.Equal(6.0, fromOutside!.Value, 9);
+        Assert.Equal(6.0, fromInside!.Value, 9);
+    }
+
+    [Fact]
+    public void A_part_idle_crew_is_charged_for_the_working_part_only()
+    {
+        // The hangar and the human-rated-complex-on-an-uncrewed-vehicle arms:
+        // RP-1 multiplies the working part and leaves the rest at the idle
+        // fraction, so salary * rushMult is not the answer. Six of the ten are
+        // working, so rushing adds six salaries and not ten, and not the 7.0 the
+        // effective count times (mult - 1) would give.
+        var heads = Heads(working: 6, engineers: 10, rushSalary: 1.0, idleMult: 0.25);
+
+        Assert.Equal(7.0, heads, 9);
+        Assert.Equal(
+            6.0,
+            Rp1ScMath.RushSalaryDelta(heads, 10, idleMult: 0.25, rushMult: 2.0, isRushing: false)!.Value,
+            9);
+    }
+
+    [Fact]
+    public void Rushing_a_complex_with_nothing_active_costs_nothing()
+    {
+        // RP-1's !IsActive arm pays the whole crew at the idle fraction, and
+        // IsRushing does not enter it. Zero is the honest answer and the one a
+        // client cannot reach on its own: a salary times the multiplier would
+        // quote an increase for a complex where rushing changes nothing.
+        var idleCrew = Heads(working: 0, engineers: 8, rushSalary: 1.0, idleMult: 0.25);
+
+        Assert.Equal(
+            0.0,
+            Rp1ScMath.RushSalaryDelta(idleCrew, 8, idleMult: 0.25, rushMult: 2.0, isRushing: false)!.Value,
+            9);
+    }
+
+    [Fact]
+    public void A_complex_with_no_crew_and_one_RP1_charges_nothing_for_both_cost_nothing_to_rush()
+    {
+        // Two different states with the same true answer: nobody to pay more, and
+        // a complex that is not operational, which RP-1 bills at zero whatever
+        // its roster says.
+        Assert.Equal(0.0, Rp1ScMath.RushSalaryDelta(0.0, 0, 0.25, 2.0, isRushing: false)!.Value);
+        Assert.Equal(0.0, Rp1ScMath.RushSalaryDelta(0.0, 12, 0.25, 2.0, isRushing: false)!.Value);
+    }
+
+    [Fact]
+    public void An_unreadable_term_leaves_the_extra_absent_rather_than_free()
+    {
+        // Each of the three inputs on its own, because a zero here would read as
+        // "rushing this complex is free", which is the one answer that would have
+        // an operator press it.
+        Assert.Null(Rp1ScMath.RushSalaryDelta(null, 10, 0.25, 2.0, isRushing: false));
+        Assert.Null(Rp1ScMath.RushSalaryDelta(10.0, 10, null, 2.0, isRushing: false));
+        Assert.Null(Rp1ScMath.RushSalaryDelta(10.0, 10, 0.25, null, isRushing: false));
+    }
+
+    [Fact]
+    public void A_preset_that_pays_idle_and_working_crew_alike_leaves_the_split_unrecoverable()
+    {
+        // The divisor is what separates the two rates, and RP-1's settings are
+        // config rather than constants. Absent, not an infinity.
+        Assert.Null(Rp1ScMath.RushSalaryDelta(10.0, 10, idleMult: 1.0, rushMult: 2.0, isRushing: false));
+    }
 }

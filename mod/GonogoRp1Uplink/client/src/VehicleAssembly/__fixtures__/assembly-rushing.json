@@ -106,6 +106,7 @@
             "lcId": "lc-1",
             "shipName": "Atlas",
             "cost": 40000,
+            "rolloutCost": 4120,
             "mass": 120,
             "humanRated": false,
             "launchSite": "LaunchPad",

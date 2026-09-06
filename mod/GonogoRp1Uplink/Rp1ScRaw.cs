@@ -143,6 +143,10 @@ namespace GonogoRp1Uplink
         /// </summary>
         public string? EfficiencyGroupKey;
         public double? SalaryPerDay;
+
+        /// <summary>What rushing adds to the daily crew bill, whichever mode the complex is in now.</summary>
+        public double? RushSalaryDeltaPerDay;
+
         public double? UpkeepPerDay;
         public double? NewPadCost;
 
@@ -235,6 +239,14 @@ namespace GonogoRp1Uplink
         /// with its envelope.
         /// </summary>
         public string[]? RolloutRefusals;
+
+        /// <summary>
+        /// RP-1's price for rolling this vehicle out, or null when it would not
+        /// price one. Only ever populated for a WAREHOUSE row, for the same
+        /// reason <see cref="RolloutRefusals"/> is: a vehicle still being
+        /// integrated has no rollout to be quoted for.
+        /// </summary>
+        public double? RolloutCost;
     }
 
     public sealed class Rp1PadRaw
@@ -288,6 +300,10 @@ namespace GonogoRp1Uplink
         public bool Stalled;
         public int BlockingPeers;
         public double Cost;
+
+        /// <summary>What finishing the move still has to pay of <see cref="Cost"/>.</summary>
+        public double? CostRemaining;
+
         public string? AssociatedVesselId;
     }
 

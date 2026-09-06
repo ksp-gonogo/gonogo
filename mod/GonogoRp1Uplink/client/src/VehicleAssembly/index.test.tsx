@@ -86,6 +86,9 @@ function built(overrides: Record<string, unknown> = {}) {
     lcId: "lc-1",
     mass: 120,
     projectType: "VAB",
+    // What the MOVE costs, which is a different number from what the vehicle
+    // cost to build and the one the rollout control spends.
+    rolloutCost: 4_000,
     // A SECOND id, and the one an operation joins on: RP-1 stamps an
     // operation's associatedID from shipID and never from KCTPersistentID.
     shipId: "ship-atlas-1",
@@ -114,6 +117,8 @@ function operation(overrides: Record<string, unknown> = {}) {
     associatedVesselId: "ship-atlas-1",
     blockingPeers: 0,
     cost: 4_000,
+    // 20% of the way there, so a fifth of the price is already drawn down.
+    costRemaining: 3_200,
     kscName: "Cape",
     launchPadId: "LaunchPad",
     lcId: "lc-1",
@@ -620,6 +625,88 @@ describe("VehicleAssembly", () => {
     // REQUIRES it, so the dispatch records where the vehicle was sent rather
     // than leaving it to be inferred from whichever pad was free at the time.
     expect(sent?.args).toEqual({ id: "vp-atlas-1", pad: "LaunchPad" });
+  });
+
+  it("prices the rollout beside the press, over the move and never as a verdict", async () => {
+    const { view } = await withOneBuiltVehicle();
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "Roll Atlas · LC-1 out to LaunchPad",
+        }),
+      ).toBeInTheDocument();
+    });
+
+    const text = (view.container.textContent ?? "").replace(/\s+/g, " ");
+    // RP-1's own figure for THIS vehicle, and the three words that say how it is
+    // taken: nothing at the press, drawn down as the vehicle moves.
+    expect(text).toContain("over the rollout");
+    expect(text).toMatch(/4,?000.*over the rollout/);
+
+    /*
+     * The one reading that must never appear. RP-1 bills a rollout the way it
+     * bills a construction, so a career short of funds gets a SLOWER move rather
+     * than a refusal, and an affordability verdict here would describe something
+     * the game does not do. The confirm says COMMIT for the same reason.
+     */
+    expect(text).not.toMatch(/afford/i);
+    expect(
+      screen.getByRole("button", {
+        name: "Roll Atlas · LC-1 out to LaunchPad",
+      }),
+    ).toBeEnabled();
+  });
+
+  it("prices a resumed rollout at what is LEFT, not at the whole move", async () => {
+    const { fixture, view } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      fixture.emit("rp1.pads", [{ ...PADS[0], state: "Rollback" }]);
+      fixture.emit("rp1.operations", [operation({ type: "Rollback" })]);
+      fixture.emit("rp1.warehouse", [built()]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("ROLLING BACK")).toBeInTheDocument();
+    });
+
+    // The move is a fifth done and RP-1 has already drawn that fifth down, so
+    // turning it round bills the rest. Quoting the vehicle's full 4,000 would
+    // overstate the press by everything the first attempt paid.
+    const text = (view.container.textContent ?? "").replace(/\s+/g, " ");
+    expect(text).toMatch(/3,?200.*over the rollout/);
+    expect(text).not.toMatch(/4,?000.*over the rollout/);
+  });
+
+  it("still offers the press when RP-1 has not priced the move", async () => {
+    // Absent is not free, and it is not a reason to withhold a control either:
+    // the command reads the price itself, so the worst case is a refusal one
+    // step later against the certainty of hiding a press that would have worked.
+    const { fixture, view } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", [built({ rolloutCost: undefined })]);
+      fixture.emit("rp1.buildQueue", []);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", {
+          name: "Roll Atlas · LC-1 out to LaunchPad",
+        }),
+      ).toBeEnabled();
+    });
+    expect(view.container.textContent).toContain(
+      "RP-1 has not priced this rollout",
+    );
   });
 
   it("makes the operator choose when the complex has more than one free pad", async () => {

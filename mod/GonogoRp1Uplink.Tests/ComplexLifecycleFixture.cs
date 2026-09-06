@@ -284,6 +284,24 @@ namespace RP0
             var cost = amount * perUnit;
             return isModify ? cost * ModifyMultiplier : cost;
         }
+
+        /// <summary>
+        /// What moving a vehicle to a pad costs.
+        /// </summary>
+        /// <remarks>
+        /// <para>NOT the shipped expression, which mixes the vehicle's effective
+        /// cost, its complex's mass ceiling and an engineer-salary subsidy term:
+        /// reproducing that would test this file's arithmetic rather than the
+        /// reflection's. What IS reproduced is everything production depends on:
+        /// the signature (static, one <c>VesselProject</c>), and an answer that
+        /// varies per vehicle, so two vehicles cannot silently share a price and
+        /// a capture that quoted the wrong one would look right.</para>
+        ///
+        /// <para>A costless vehicle prices at zero, which is also RP-1's own
+        /// answer outside a career, and is how the absent-not-free branch is
+        /// reached.</para>
+        /// </remarks>
+        public static double GetRolloutCost(VesselProject vessel) => vessel.cost * 0.1;
     }
 
 }

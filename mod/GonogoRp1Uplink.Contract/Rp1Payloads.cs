@@ -100,8 +100,10 @@ public sealed class Rp1CentreEntry
     /// <summary>
     /// What this centre's engineers draw per day, RP-1's own effective figure:
     /// an unassigned engineer counts at a fraction (see
-    /// <see cref="Rp1Personnel.IdleSalaryMult"/>) and a rushing complex's crew
-    /// counts double, so this is not headcount times a rate.
+    /// <see cref="Rp1Personnel.IdleSalaryMult"/>) and a rushing complex's working
+    /// crew counts at the rush multiplier (see
+    /// <see cref="Rp1RushTerms.SalaryMult"/>), so this is not headcount times a
+    /// rate.
     /// </summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? SalaryPerDay { get; set; }
@@ -384,11 +386,40 @@ public sealed class Rp1ComplexEntry
 
     /// <summary>
     /// What this complex's crew draws per day, at RP-1's own effective count: a
-    /// rushing complex pays double, and a complex nothing is active in pays its
-    /// crew at the idle fraction.
+    /// rushing complex pays its working crew at the rush multiplier (see
+    /// <see cref="Rp1RushTerms.SalaryMult"/>), and a complex nothing is active in
+    /// pays its whole crew at the idle fraction.
     /// </summary>
     [SitrepUnit(Units.FundsPerDay)]
     public double? SalaryPerDay { get; set; }
+
+    /// <summary>
+    /// What rushing this complex ADDS to its daily crew bill: the difference
+    /// between what the crew draws rushing and what the same crew draws not
+    /// rushing, always stated as the increase.
+    ///
+    /// <para>Signed the same way whichever mode the complex is in, so one figure
+    /// answers both presses: it is what starting a rush would add, and what
+    /// stopping one would save. Zero is a real answer, and the one a client is
+    /// most likely to get wrong on its own: a complex with nothing active pays
+    /// its whole crew at the idle fraction, which rushing does not touch, so
+    /// rushing it costs nothing extra and buys nothing.</para>
+    ///
+    /// <para>Not <see cref="SalaryPerDay"/> times the rush multiplier. RP-1
+    /// multiplies only the part of the crew that is WORKING, and leaves the rest
+    /// at the idle fraction, so that product overstates the increase at every
+    /// complex where the two differ. Null when the split could not be resolved,
+    /// which is not zero.</para>
+    /// <internal>
+    /// Recovered rather than reproduced: RP-1's effective head count is affine
+    /// in the rush multiplier (working * rushSalary + idle * idleMult), so the
+    /// working half falls out of the one count it publishes without copying the
+    /// ladder in RP0.SpaceCenterManagement.GetEffectiveEngineersForSalary. See
+    /// Rp1ScMath.RushSalaryDelta.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.FundsPerDay)]
+    public double? RushSalaryDeltaPerDay { get; set; }
 
     /// <summary>
     /// What the complex itself costs per day, crew aside: RP-1's launch-complex
@@ -608,6 +639,35 @@ public sealed class Rp1WarehouseItemEntry
     [SitrepUnit(Units.Funds)]
     public double? Cost { get; set; }
 
+    /// <summary>
+    /// What moving this vehicle to a pad will cost, RP-1's own price for THIS
+    /// vehicle at the complex holding it.
+    ///
+    /// <para><b>A total drawn down OVER the rollout, not a charge at the
+    /// press.</b> RP-1 bills a rollout the way it bills a construction: nothing
+    /// leaves the treasury when the operator commits, and each tick takes the
+    /// share of the total that tick's progress earned. A career that cannot
+    /// cover a tick is not refused, it advances by the fraction it can afford
+    /// and carries on, so a shortfall here SLOWS the move and never blocks it.
+    /// A client must price this as a rate over the move; "cannot afford" is a
+    /// refusal RP-1 does not make.</para>
+    ///
+    /// <para>Warehouse only, because only a finished vehicle can be rolled out,
+    /// and absent when RP-1 would not price it: outside a career, or when the
+    /// call could not be made. Absent is not free.</para>
+    /// <internal>
+    /// RP0.Formula.GetRolloutCost(VesselProject), the identical call
+    /// ReconRolloutProject's constructor makes when the rollout command creates
+    /// the project, so the number on the control is the number that goes onto
+    /// it. Safe from a sampled capture: it reads plain fields (effectiveCost,
+    /// cost, mass) and a non-persistent complex cache, and memoises nothing onto
+    /// the save. Billed by RP0.LCOpsProject.IncrementProgress, which is where
+    /// the progressive rule above is written.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? RolloutCost { get; set; }
+
     [SitrepUnit(Units.Tonnes)]
     public double? Mass { get; set; }
 
@@ -791,6 +851,26 @@ public sealed class Rp1OperationEntry
 
     [SitrepUnit(Units.Funds)]
     public double? Cost { get; set; }
+
+    /// <summary>
+    /// The part of <see cref="Cost"/> nothing has been billed for yet: the share
+    /// the progress still to be made will draw.
+    ///
+    /// <para>What FINISHING this move costs from here, and the figure a control
+    /// that resumes one has to quote. RP-1 draws a rollout's price down as the
+    /// rollout proceeds rather than taking it at the press, so an operation
+    /// already half done has already paid half its price and
+    /// <see cref="Cost"/> overstates what a press commits to by the half
+    /// gone.</para>
+    ///
+    /// <para>Counted the same way for a REVERSED operation, which bills nothing
+    /// while it runs: it is what completing the rollout from here would draw,
+    /// which is exactly what an operator turning a rollback round is about to
+    /// spend. Absent when RP-1 has not costed the project in build points, which
+    /// is not zero.</para>
+    /// </summary>
+    [SitrepUnit(Units.Funds)]
+    public double? CostRemaining { get; set; }
 
     /// <summary>The vehicle this operation is moving, or null for reconditioning.</summary>
     [SitrepUnit(Units.Id)]

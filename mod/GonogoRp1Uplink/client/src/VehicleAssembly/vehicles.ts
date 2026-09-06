@@ -211,6 +211,34 @@ export function rolloutRefusalsOf(
     : refusals;
 }
 
+/**
+ * What pressing a rollout on this vehicle commits the career to, as RP-1's own
+ * figure, or undefined when it did not price one.
+ *
+ * <para><b>A total drawn down OVER the move, and not a charge at the press.</b>
+ * RP-1 bills a rollout the way it bills a construction: each tick takes the
+ * share of the price that tick's progress earned, and a career that cannot cover
+ * a tick advances by the fraction it can afford rather than being refused. So
+ * this prices a RATE, a shortfall slows the move, and nothing on this card may
+ * say a rollout cannot be afforded.</para>
+ *
+ * <para>Two different numbers, because there are two different presses. A
+ * vehicle standing in the warehouse is quoted its whole rollout price. One
+ * already half rolled BACK is resumed rather than started, and RP-1 bills only
+ * the progress still to make, so its remaining figure is the one that answers
+ * what the press costs: the full price would overstate it by everything the
+ * first attempt already paid.</para>
+ */
+export function rolloutBillOf(
+  item: Vehicle,
+  operation: Rp1OperationEntry | undefined,
+): Rp1WarehouseItemEntry["rolloutCost"] {
+  if (operation !== undefined) {
+    return operation.costRemaining;
+  }
+  return (item as Rp1WarehouseItemEntry).rolloutCost;
+}
+
 /** The complex a vehicle belongs to, or undefined when RP-1 named none. */
 export function complexOf(
   complexes: readonly Rp1ComplexEntry[] | undefined,

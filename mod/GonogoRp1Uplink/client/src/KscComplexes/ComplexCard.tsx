@@ -136,7 +136,8 @@ export function ComplexCard({
           information". What stays above it is what changes and what is acted on:
           the crew, because RP-1 advances work at Engineers/MaxEngineers so a
           complex with nobody assigned builds nothing, and the badges, because a
-          rushing complex is paying double salary and an unstaffed one is idle.
+          rushing complex is paying a multiple of its salary and an unstaffed one
+          is idle.
           The envelope, the costs and the pads are reference: true for months at a
           time and read when a decision needs them.
 
@@ -156,7 +157,6 @@ export function ComplexCard({
           variant="inline"
         >
           <Stack gap="sm">
-            {rushing && <RushStatus terms={terms} />}
             <Envelope complex={complex} />
             <Costs complex={complex} />
             {complex.lcId != null && (
@@ -179,7 +179,21 @@ export function ComplexCard({
               renamePad={renamePad}
             />
             {operational && (
-              <RushControl complex={complex} handle={rush} name={name} />
+              /* The terms and the press together, which is the whole of this
+                 fix: the payroll a rush commits the career to used to be drawn
+                 only once one was already running, three sections above the
+                 control that starts it. */
+              <Stack gap="xs">
+                <RushTerms complex={complex} terms={terms} />
+                <Inline gap="xs">
+                  <RushControl
+                    complex={complex}
+                    handle={rush}
+                    name={name}
+                    terms={terms}
+                  />
+                </Inline>
+              </Stack>
             )}
             {/* Immediately under the envelope and the costs, which are what a
                 renovation changes and what it is priced against. Above the
@@ -430,29 +444,55 @@ function AssignControl({
 }
 
 /**
- * What rushing is doing to this complex, while it is doing it.
+ * What rushing this complex costs and buys, stated BEFORE the press as well as
+ * during it.
  *
- * <para>On the card rather than once for the section, and only on a complex that
- * is actually rushing: these are the terms in force here now, which is a reading
- * rather than a note about how RP-1 works. A quiet complex shows none of it, so
- * the figures never repeat across the career's complexes.</para>
+ * <para>It used to draw only while a complex was already rushing, which put the
+ * price of an ongoing commitment on the far side of the decision to make it: an
+ * operator pressed Rush and found out afterwards what their payroll had become.
+ * The terms are the same either way round, so one line answers both, and it sits
+ * with the control rather than at the top of the panel.</para>
  *
- * <para>The efficiency line is the term RP-1's own tooltip leaves out, and the
+ * <para><b>The daily figure is THIS complex's, and not the multiplier applied to
+ * its salary.</b> RP-1 multiplies only the part of a crew that is working and
+ * leaves the rest at its idle fraction, so a complex with nothing active costs
+ * nothing extra to rush however many engineers stand on it. The mod recovers the
+ * split and publishes the increase; a client doing the multiplication itself
+ * would quote a rise that never happens.</para>
+ *
+ * <para>The efficiency term is the one RP-1's own tooltip leaves out, and the
  * one that costs the most over a career: a rushing complex's crew gains no
- * efficiency for the whole time it runs.</para>
+ * efficiency for the whole time it runs. It is not a number, so it is worded
+ * here rather than carried on the wire.</para>
  */
-function RushStatus({ terms }: Readonly<{ terms: Rp1RushTerms | undefined }>) {
+function RushTerms({
+  complex,
+  terms,
+}: Readonly<{
+  complex: Rp1ComplexEntry;
+  terms: Rp1RushTerms | undefined;
+}>) {
+  const extra = complex.rushSalaryDeltaPerDay;
   return (
     <Cluster gap="xs" wrap>
       <Text size="xs" tone="muted">
-        rushing
+        rushing costs
       </Text>
       <Text size="xs">
-        {terms === undefined ? (
-          <>{NULL_DISPLAY} RP-1 has not said what rushing costs</>
+        {/* True on both sides of the press: what starting one would add to the
+            payroll is what stopping one gives back. */}
+        {extra == null ? (
+          <>{NULL_DISPLAY} an unread amount </>
         ) : (
           <>
-            <Unit value={terms.rateMult} /> rate ·{" "}
+            <Unit value={extra} /> in crew pay{" "}
+          </>
+        )}
+        {terms === undefined ? (
+          <>· {NULL_DISPLAY} RP-1 has not said on what terms</>
+        ) : (
+          <>
+            · <Unit value={terms.rateMult} /> rate ·{" "}
             <Unit value={terms.salaryMult} /> salary · efficiency held
           </>
         )}
@@ -576,17 +616,26 @@ function Costs({ complex }: Readonly<{ complex: Rp1ComplexEntry }>) {
  * together, integrations and rollouts and reconditionings alike, so a control
  * shaped like "rush this build" would be a lie about what the game does.</para>
  *
- * <para>What it does to a complex is read off {@link RushStatus} once it is
- * running. The press itself names the salary in its accessible name, so a
- * screen-reader user is not asked to commit to a price they cannot see.</para>
+ * <para>What it costs and what it buys is read off {@link RushTerms}, directly
+ * above the press, whether or not the complex is rushing already. The press
+ * itself names the salary multiplier in its accessible name, so a screen-reader
+ * user is not asked to commit to terms they cannot see.</para>
+ *
+ * <para><b>The multiplier in that name is the wire's, never a word.</b> It read
+ * "at double the salary" for as long as the number was not on the wire, and RP-1
+ * takes it from a save's own settings: on a career that had tuned it, the label
+ * stated a price nobody was going to pay. Absent, the clause goes rather than
+ * degrading to a guess.</para>
  */
 function RushControl({
   complex,
   name,
+  terms,
   handle,
 }: Readonly<{
   complex: Rp1ComplexEntry;
   name: string;
+  terms: Rp1RushTerms | undefined;
   handle: Parameters<typeof CommandButton>[0]["handle"];
 }>) {
   const lcId = complex.lcId;
@@ -594,6 +643,11 @@ function RushControl({
     return null;
   }
   const rushing = complex.isRushing === true;
+  const salaryMult = magnitudeOf(terms?.salaryMult);
+  const price =
+    salaryMult === null
+      ? ""
+      : `, at ${Number(salaryMult.toFixed(2))}× the crew salary`;
 
   return (
     <CommandButton
@@ -602,7 +656,7 @@ function RushControl({
       aria-label={
         rushing
           ? `Stop rushing work at ${name}`
-          : `Rush work at ${name}, at double the salary`
+          : `Rush work at ${name}${price}`
       }
       commandLabel={rushing ? `Stop rushing ${name}` : `Rush ${name}`}
       handle={handle}

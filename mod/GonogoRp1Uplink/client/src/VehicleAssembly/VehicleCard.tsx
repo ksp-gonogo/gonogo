@@ -20,6 +20,7 @@ import { ProjectCard } from "../shared/ProjectCard";
 import {
   atPad,
   eligiblePadNames,
+  rolloutBillOf,
   rolloutRefusalsOf,
   settled,
   unstaffed,
@@ -121,6 +122,7 @@ export function VehicleCard({
           operation={operation}
           pads={pads}
           refusals={rolloutRefusalsOf(item)}
+          rolloutBill={rolloutBillOf(item, operation)}
           waiting={waiting}
         />
       )}
@@ -321,12 +323,19 @@ function VehicleState({
  * Interleaved, a refusal read as a caption belonging to the button beside it,
  * which is the one reading that is never true: it explains the button that is
  * not there.</para>
+ *
+ * <para>The rollout PRICE sits above the line for the mirror-image reason. It is
+ * one figure for the whole move whichever pad it goes to, so a copy beside each
+ * pad button would restate one price two and three times, and a single copy
+ * inside the row would read as belonging to whichever button it landed
+ * next to.</para>
  */
 function VehicleActions({
   id,
   name,
   label,
   cost,
+  rolloutBill,
   waiting,
   pads,
   refusals,
@@ -337,6 +346,7 @@ function VehicleActions({
   name: string;
   label: string;
   cost: Rp1WarehouseItemEntry["cost"];
+  rolloutBill: Rp1WarehouseItemEntry["rolloutCost"];
   waiting: boolean;
   pads: readonly Rp1PadEntry[];
   refusals: readonly string[] | undefined;
@@ -361,6 +371,12 @@ function VehicleActions({
 
   return (
     <Stack gap="sm">
+      {/* Above the buttons rather than below them, because it is what the press
+          costs rather than an explanation of a press that is not offered. */}
+      {(eligiblePads.length > 0 || operation?.type === "Rollback") && (
+        <RolloutPrice bill={rolloutBill} />
+      )}
+
       <Cluster gap="sm" justify="start" wrap>
         <RolloutControls
           handle={handles.rollout}
@@ -375,7 +391,10 @@ function VehicleActions({
             aria-label={`Send ${label} back out to the pad`}
             commandLabel={`Roll out ${name}`}
             confirmAriaLabel={`Confirm sending ${label} back out to the pad`}
-            confirmLabel="Confirm"
+            // COMMIT rather than spend, the same wording the facility upgrades
+            // carry: nothing leaves the treasury at the press, RP-1 draws the
+            // price down over the move.
+            confirmLabel="Commit"
             handle={handles.rollout}
             label="Roll out again"
             size="sm"
@@ -419,6 +438,37 @@ function VehicleActions({
 }
 
 /**
+ * What the rollout will cost the career, beside the control that spends it.
+ *
+ * <para><b>"Over the rollout", the same three words the facility upgrades use,
+ * and for the same reason: RP-1 takes NOTHING at the press.</b> It draws the
+ * price down as the move proceeds, and a career that cannot cover a tick
+ * advances by the fraction it can afford and carries on. So there is no
+ * affordability verdict here and there must never be one: a shortfall makes a
+ * rollout SLOWER, and "cannot afford" would describe a refusal RP-1 does not
+ * make.</para>
+ *
+ * <para>An unpriced move still offers the control. The command reads the price
+ * itself, so the worst case is a refusal one step later, against the certainty
+ * of hiding a press that would have worked.</para>
+ */
+function RolloutPrice({
+  bill,
+}: Readonly<{ bill: Rp1WarehouseItemEntry["rolloutCost"] }>) {
+  return (
+    <Text size="xs" tone="muted">
+      {bill == null ? (
+        <>{NULL_DISPLAY} RP-1 has not priced this rollout</>
+      ) : (
+        <>
+          <Unit decimals={0} value={bill} /> over the rollout
+        </>
+      )}
+    </Text>
+  );
+}
+
+/**
  * One rollout control per ELIGIBLE pad.
  *
  * <para><b>The pad is always named.</b> The command requires it, per the
@@ -458,7 +508,9 @@ function RolloutControls({
           aria-label={`Roll ${label} out to ${padName}`}
           commandLabel={`Roll ${name} out to ${padName}`}
           confirmAriaLabel={`Confirm rolling ${label} out to ${padName}`}
-          confirmLabel="Confirm"
+          // See the price above the row: the press commits the career to a bill
+          // RP-1 draws down over the move, and spends nothing when it lands.
+          confirmLabel="Commit"
           handle={handle}
           key={padName}
           label={short ? "Roll out" : `Roll out to ${padName}`}

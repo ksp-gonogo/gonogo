@@ -1091,6 +1091,25 @@ export interface Rp1ComplexEntry
 	*/
 	salaryPerDay?: Value<"f/day">;
 	/**
+	* What rushing this complex ADDS to its daily crew bill: the difference
+	* between what the crew draws rushing and what the same crew draws not
+	* rushing, always stated as the increase.
+	*
+	* Signed the same way whichever mode the complex is in, so one figure answers
+	* both presses: it is what starting a rush would add, and what stopping one
+	* would save. Zero is a real answer, and the one a client is most likely to
+	* get wrong on its own: a complex with nothing active pays its whole crew at
+	* the idle fraction, which rushing does not touch, so rushing it costs nothing
+	* extra and buys nothing.
+	*
+	* Not `Rp1ComplexEntry.salaryPerDay` times the rush multiplier. RP-1
+	* multiplies only the part of the crew that is WORKING, and leaves the rest at
+	* the idle fraction, so that product overstates the increase at every complex
+	* where the two differ. Null when the split could not be resolved, which is
+	* not zero.
+	*/
+	rushSalaryDeltaPerDay?: Value<"f/day">;
+	/**
 	* What the complex itself costs per day, crew aside: RP-1's launch-complex
 	* maintenance, scaled by the number of pads it has. A complex still being
 	* built pays it in proportion to how far the construction has got, which is
@@ -1246,6 +1265,23 @@ export interface Rp1WarehouseItemEntry
 	lcId?: string;
 	shipName?: string;
 	cost?: Value<"funds">;
+	/**
+	* What moving this vehicle to a pad will cost, RP-1's own price for THIS
+	* vehicle at the complex holding it.
+	*
+	* **A total drawn down OVER the rollout, not a charge at the press.** RP-1
+	* bills a rollout the way it bills a construction: nothing leaves the treasury
+	* when the operator commits, and each tick takes the share of the total that
+	* tick's progress earned. A career that cannot cover a tick is not refused, it
+	* advances by the fraction it can afford and carries on, so a shortfall here
+	* SLOWS the move and never blocks it. A client must price this as a rate over
+	* the move; "cannot afford" is a refusal RP-1 does not make.
+	*
+	* Warehouse only, because only a finished vehicle can be rolled out, and
+	* absent when RP-1 would not price it: outside a career, or when the call
+	* could not be made. Absent is not free.
+	*/
+	rolloutCost?: Value<"funds">;
 	mass?: Value<"t">;
 	humanRated?: boolean;
 	launchSite?: string;
@@ -1362,6 +1398,22 @@ export interface Rp1OperationEntry
 	*/
 	blockingPeers?: Value<"count">;
 	cost?: Value<"funds">;
+	/**
+	* The part of `Rp1OperationEntry.cost` nothing has been billed for yet: the
+	* share the progress still to be made will draw.
+	*
+	* What FINISHING this move costs from here, and the figure a control that
+	* resumes one has to quote. RP-1 draws a rollout's price down as the rollout
+	* proceeds rather than taking it at the press, so an operation already half
+	* done has already paid half its price and `Rp1OperationEntry.cost` overstates
+	* what a press commits to by the half gone.
+	*
+	* Counted the same way for a REVERSED operation, which bills nothing while it
+	* runs: it is what completing the rollout from here would draw, which is
+	* exactly what an operator turning a rollback round is about to spend. Absent
+	* when RP-1 has not costed the project in build points, which is not zero.
+	*/
+	costRemaining?: Value<"funds">;
 	/** The vehicle this operation is moving, or null for reconditioning. */
 	associatedVesselId?: string;
 }

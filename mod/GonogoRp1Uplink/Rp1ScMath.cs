@@ -366,5 +366,117 @@ namespace GonogoRp1Uplink
         /// client cannot render "not priced" as "not moving".
         /// </summary>
         public static bool IsStalled(double? rate) => rate != null && rate.Value == 0.0;
+
+        /// <summary>
+        /// The share of a costed project's price that its REMAINING progress will
+        /// still draw, and so what finishing it costs from here.
+        ///
+        /// <para>RP-1 bills these projects as they proceed
+        /// (<c>LCOpsProject.IncrementProgress</c> takes
+        /// <c>|Δprogress| / BP * cost</c> a tick), so the price already paid is
+        /// the fraction already made and what a press commits to is what is left.
+        /// Counted forward whichever way the project is running: a reversed one
+        /// bills nothing while it reverses, and this is what completing it in the
+        /// forward direction would draw.</para>
+        ///
+        /// <para>Absent when there are no build points to be a fraction of, on the
+        /// same terms as <see cref="ProgressRatio"/>: RP-1 has not costed the
+        /// project, which is not the same as it being free.</para>
+        /// </summary>
+        public static double? UnbilledCost(double cost, double progress, double totalPoints)
+        {
+            if (totalPoints <= 0.0 || double.IsNaN(totalPoints) || double.IsNaN(progress))
+            {
+                return null;
+            }
+            var left = (totalPoints - progress) / totalPoints;
+            if (left < 0.0)
+            {
+                left = 0.0;
+            }
+            else if (left > 1.0)
+            {
+                left = 1.0;
+            }
+            return cost * left;
+        }
+
+        /// <summary>
+        /// The extra engineer-equivalents a complex pays for while it rushes:
+        /// what starting a rush would add to its crew bill, and what stopping one
+        /// would save. Absent when the inputs do not resolve, which is not zero.
+        /// </summary>
+        /// <remarks>
+        /// <para><b>Recovered from RP-1's own count rather than reproduced from
+        /// its ladder.</b> <c>GetEffectiveEngineersForSalary(LaunchComplex)</c>
+        /// has four arms and every one of them is
+        /// <c>working * rushSalary + (engineers - working) * idleMult</c> for some
+        /// working count: the whole crew for an ordinary complex, none of it for
+        /// one with nothing active, and a split for a hangar or for a human-rated
+        /// complex building an uncrewed vehicle. That expression is affine in the
+        /// rush multiplier, so the working count falls out of the single figure
+        /// RP-1 publishes and the extra is <c>working * (rushMult - 1)</c>. A
+        /// mirror of the ladder would need the complex's build list, its rollout
+        /// list and two <c>MaxEngineersFor</c> overloads, and would be a second
+        /// copy of a rule that moves.</para>
+        ///
+        /// <para>Why not simply multiply the salary: the idle part of a crew is
+        /// not multiplied, so <c>salary * rushMult</c> overstates the increase at
+        /// exactly the complexes where the split is non-trivial, and states a
+        /// cost at a complex where rushing changes nothing at all.</para>
+        /// </remarks>
+        /// <param name="effectiveEngineers">
+        /// RP-1's effective head count for this complex, as it is NOW.
+        /// </param>
+        /// <param name="engineers">The complex's actual engineer count.</param>
+        /// <param name="idleMult">The fraction of full salary an idle engineer draws.</param>
+        /// <param name="rushMult">The multiplier a working engineer draws at while rushing.</param>
+        /// <param name="isRushing">Whether the count above was taken while rushing.</param>
+        public static double? RushSalaryDelta(
+            double? effectiveEngineers,
+            int engineers,
+            double? idleMult,
+            double? rushMult,
+            bool isRushing)
+        {
+            if (effectiveEngineers == null || idleMult == null || rushMult == null)
+            {
+                return null;
+            }
+
+            // A crew of nobody costs nothing extra to rush, and so does a complex
+            // RP-1 charges nothing for, which is one that is not operational.
+            // Both are taken before the algebra, which would read a zero count as
+            // a crew of negative working engineers.
+            if (engineers <= 0 || effectiveEngineers.Value == 0.0)
+            {
+                return 0.0;
+            }
+
+            var idle = idleMult.Value;
+            var rush = rushMult.Value;
+            var current = isRushing ? rush : 1.0;
+            // The divisor is what separates a working engineer from an idle one,
+            // so a preset that made them draw the same leaves the split
+            // unrecoverable rather than infinite.
+            if (current == idle || double.IsNaN(effectiveEngineers.Value))
+            {
+                return null;
+            }
+
+            var working = (effectiveEngineers.Value - engineers * idle) / (current - idle);
+            // Clamped because the recovery is exact only while RP-1's expression
+            // holds: a release that adds a term to it would otherwise put a crew
+            // of eleven working engineers on a complex staffed by six.
+            if (working < 0.0)
+            {
+                working = 0.0;
+            }
+            else if (working > engineers)
+            {
+                working = engineers;
+            }
+            return working * (rush - 1.0);
+        }
     }
 }

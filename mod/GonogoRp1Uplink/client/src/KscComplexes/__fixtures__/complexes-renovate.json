@@ -150,6 +150,7 @@
             },
             "launchPadCount": 1,
             "salaryPerDay": 32.9,
+            "rushSalaryDeltaPerDay": 32.9,
             "upkeepPerDay": 45
           }
         ]

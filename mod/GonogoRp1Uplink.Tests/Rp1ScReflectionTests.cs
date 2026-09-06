@@ -194,6 +194,47 @@ public class Rp1ScReflectionTests : IDisposable
     }
 
     [Fact]
+    public void A_rollback_publishes_what_turning_it_round_would_still_cost()
+    {
+        // The one press that spends without a fresh price to quote: a rollback
+        // resumed as a rollout finishes the move it half undid, and RP-1 bills
+        // only the progress left to make. The vehicle's full rollout price would
+        // overstate it by everything the first attempt already paid.
+        var op = new ReconRolloutProject
+        {
+            BP = 1000.0,
+            progress = 400.0,
+            cost = 2500.0,
+            RRType = ReconRolloutProject.RolloutReconType.Rollback,
+            associatedID = "vessel-1",
+        };
+        op.SetBuildRate(2.0);
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Recon_Rollout.Add(op);
+        Install(pad, efficiency: 1.0);
+
+        var operation = Single(new Rp1ScReflection().Read(1.0).Operations);
+        Assert.Equal(2500.0, operation.Cost, 6);
+        Assert.Equal(1500.0, operation.CostRemaining!.Value, 6);
+    }
+
+    [Fact]
+    public void An_uncosted_operation_has_no_remainder_rather_than_a_free_one()
+    {
+        var op = new ReconRolloutProject
+        {
+            BP = 0.0,
+            cost = 2500.0,
+            RRType = ReconRolloutProject.RolloutReconType.Rollout,
+        };
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Recon_Rollout.Add(op);
+        Install(pad, efficiency: 1.0);
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Operations).CostRemaining);
+    }
+
+    [Fact]
     public void A_reconditioning_operation_does_not_block_integration()
     {
         // IsBlocking is false for reconditioning alone, which is why the queue
@@ -331,6 +372,37 @@ public class Rp1ScReflectionTests : IDisposable
         Assert.Null(item.Rate);
         Assert.Null(item.TimeLeftSeconds);
         Assert.Null(item.ProgressRatio);
+    }
+
+    [Fact]
+    public void A_warehouse_vehicle_is_priced_for_the_move_and_a_queued_one_is_not()
+    {
+        // The rollout price is RP-1's own, per vehicle, and it is a DIFFERENT
+        // number from what the vehicle cost to build: the control an operator
+        // presses spends this one.
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Warehouse.Add(new VesselProject { shipName = "Ready One", cost = 40_000f });
+        // Nothing to quote for a vehicle that cannot be rolled out yet, for the
+        // same reason the envelope refusals are warehouse-only.
+        pad.BuildList.Add(new VesselProject { shipName = "Still Building", cost = 40_000f, buildPoints = 1000.0 });
+        Install(pad, efficiency: 1.0);
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Equal(4_000.0, Single(raw.Warehouse).RolloutCost!.Value, 6);
+        Assert.Null(Single(raw.BuildQueue).RolloutCost);
+    }
+
+    [Fact]
+    public void A_rollout_RP1_prices_at_zero_is_published_as_absent_rather_than_free()
+    {
+        // Zero is what RP-1 answers outside a career, where the question does not
+        // arise. Drawn as a price it would read as a free move.
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Warehouse.Add(new VesselProject { shipName = "Ready One", cost = 0f });
+        Install(pad, efficiency: 1.0);
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Warehouse).RolloutCost);
     }
 
     [Fact]
@@ -537,6 +609,14 @@ public class Rp1ScReflectionTests : IDisposable
         Assert.Equal(20.0, raw.Personnel!.ResearcherSalaryPerDay);
         Assert.Equal(1000.0, raw.Personnel!.EngineerSalaryPerYear);
         Assert.Equal(0.25, raw.Personnel!.IdleSalaryMult);
+
+        // What rushing ADDS, on both complexes and signed the same way in both
+        // modes: the one already rushing reports what stopping would save, and
+        // the quiet one what starting would cost. It is the crew's own salary
+        // over again here, because RP-1 charges every head of a working crew at
+        // the rush rate.
+        Assert.Equal(10 * 1000 / 365.25, first.RushSalaryDeltaPerDay!.Value, 6);
+        Assert.Equal(4 * 1000 / 365.25, second.RushSalaryDeltaPerDay!.Value, 6);
     }
 
     [Fact]

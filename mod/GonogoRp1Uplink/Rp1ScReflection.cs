@@ -420,6 +420,11 @@ namespace GonogoRp1Uplink
             var ramp = RampFor(efficiencySource, isRushing, engineers, maxEngineers, efficiency, maxEfficiency);
             var sizeMax = Member(lc, "SizeMax");
 
+            // Asked once and used twice: the bill this complex pays now, and what
+            // rushing would add to it, which is recovered from the same count
+            // rather than from a second call RP-1 has no method for.
+            var heads = EffectiveEngineers(payroll, payroll.ComplexSalary, lc);
+
             raw.Complexes.Add(new Rp1ComplexRaw
             {
                 KscName = kscName,
@@ -449,7 +454,13 @@ namespace GonogoRp1Uplink
                 ResourcesHandled = ReadResourcesHandled(lc),
                 ResourceCapacities = ReadResourceCapacities(lc),
                 EfficiencyGroupKey = ReadEfficiencyGroupKey(lc),
-                SalaryPerDay = SalaryPerDay(payroll, payroll.ComplexSalary, lc),
+                SalaryPerDay = SalaryFor(payroll, heads),
+                RushSalaryDeltaPerDay = SalaryFor(payroll, Rp1ScMath.RushSalaryDelta(
+                    heads,
+                    engineers,
+                    payroll.EngineerIdleSalaryMult,
+                    payroll.RushSalaryMult,
+                    isRushing)),
                 UpkeepPerDay = ComplexUpkeep(payroll, lc),
                 NewPadCost = NewPadCost(lc, lcType),
                 SizeMaxX = UnlimitedAsAbsent(ReadDouble(sizeMax, "x")),
@@ -470,6 +481,7 @@ namespace GonogoRp1Uplink
                 // publishing envelope refusals against one would answer a
                 // question nobody asked and read as the reason it cannot move.
                 item.RolloutRefusals = RolloutRefusals(lc, vp);
+                item.RolloutCost = RolloutCost(vp);
                 raw.Warehouse.Add(item);
             }
 
@@ -669,6 +681,8 @@ namespace GonogoRp1Uplink
                 TimeLeftSeconds = Ramped(seconds, ramp),
                 BlockingPeers = subjectIndex >= 0 ? blockingSet.Count - 1 : 0,
                 Cost = ReadDouble(op, "cost") ?? 0.0,
+                CostRemaining = Rp1ScMath.UnbilledCost(
+                    ReadDouble(op, "cost") ?? 0.0, progress, totalPoints),
                 AssociatedVesselId = EmptyAsAbsent(ReadString(op, "associatedID")),
             };
         }
@@ -916,6 +930,9 @@ namespace GonogoRp1Uplink
             /// <summary>The fraction of full salary an engineer assigned to nothing draws.</summary>
             public double? EngineerIdleSalaryMult;
 
+            /// <summary>What a WORKING engineer draws at while the complex rushes.</summary>
+            public double? RushSalaryMult;
+
             /// <summary><c>GetEffectiveEngineersForSalary(LaunchComplex)</c>, by first-parameter type.</summary>
             public MethodInfo? ComplexSalary;
 
@@ -943,6 +960,7 @@ namespace GonogoRp1Uplink
                 Settings = settings,
                 EngineerSalaryPerYear = ReadDouble(settings, "salaryEngineers"),
                 EngineerIdleSalaryMult = ReadDouble(settings, "EngineerIdleSalaryMult"),
+                RushSalaryMult = ReadDouble(settings, "RushSalaryMult"),
                 ComplexSalary = Rp1Types.InstanceMethodOn(
                     scm, "GetEffectiveEngineersForSalary", LaunchComplexTypeName, 1),
                 CentreSalary = Rp1Types.InstanceMethod(
@@ -963,20 +981,29 @@ namespace GonogoRp1Uplink
         /// their own lists and return a number, so calling them is both safe and
         /// the only way to get a figure that agrees with the one RP-1 bills. The
         /// ladder behind it is not arithmetic worth copying: an idle complex pays
-        /// at a fraction, a rushing one pays double, and a human-rated complex
+        /// at a fraction, a rushing one pays its working crew at the rush
+        /// multiplier its own settings name, and a human-rated complex
         /// building an uncrewed vehicle pays part of its crew at each rate.</para>
         /// </summary>
-        private double? SalaryPerDay(Payroll payroll, MethodInfo? method, object subject)
-        {
-            if (method == null || payroll.Scm == null || payroll.EngineerSalaryPerYear == null)
-            {
-                return null;
-            }
-            var heads = InvokeForDouble(method, payroll.Scm, subject);
-            return heads == null
+        private double? SalaryPerDay(Payroll payroll, MethodInfo? method, object subject) =>
+            SalaryFor(payroll, EffectiveEngineers(payroll, method, subject));
+
+        /// <summary>
+        /// RP-1's effective head count for one complex or one centre: the number
+        /// its salary bill is a rate times, with idle and rushing crew already
+        /// weighted. Split out from <see cref="SalaryPerDay"/> because the rush
+        /// delta is recovered from the COUNT and not from the money.
+        /// </summary>
+        private double? EffectiveEngineers(Payroll payroll, MethodInfo? method, object subject) =>
+            method == null || payroll.Scm == null
+                ? (double?)null
+                : InvokeForDouble(method, payroll.Scm, subject);
+
+        /// <summary>A head count as a daily bill, or absent when RP-1 named no salary rate.</summary>
+        private static double? SalaryFor(Payroll payroll, double? heads) =>
+            heads == null || payroll.EngineerSalaryPerYear == null
                 ? (double?)null
                 : heads.Value * payroll.EngineerSalaryPerYear.Value / DaysPerYear;
-        }
 
         /// <summary>
         /// The part of a centre's salary bill that buys no work: its unassigned
@@ -1652,6 +1679,43 @@ namespace GonogoRp1Uplink
                 lcType: ReadEnumName(lc, "LCType")));
 
             return reasons.Count == 0 ? null : reasons.ToArray();
+        }
+
+        /// <summary>
+        /// What RP-1 will bill for rolling this vehicle out, or absent when it
+        /// would not price one.
+        ///
+        /// <para>RP-1's own <c>Formula.GetRolloutCost</c>, which is the identical
+        /// call <c>ReconRolloutProject</c>'s constructor makes when the rollout
+        /// command creates the project, so the figure on the control is the one
+        /// that goes onto it. Safe from a sampled capture, unlike the eligibility
+        /// getters above: its body reads <c>effectiveCost</c>, <c>cost</c> and
+        /// <c>mass</c> as plain fields and reaches the complex through a
+        /// non-persistent cache, so it memoises nothing onto the save.</para>
+        ///
+        /// <para>Zero is RP-1's own answer outside a career and is published as
+        /// absent, because a rollout is not free: a client that drew a zero would
+        /// be quoting a price on a save where the question does not arise.</para>
+        /// </summary>
+        private double? RolloutCost(object vp)
+        {
+            if (_formula == null)
+            {
+                return null;
+            }
+            var method = Rp1Types.StaticMethod(_formula, "GetRolloutCost", 1);
+            if (method == null)
+            {
+                return null;
+            }
+            try
+            {
+                return NonZero(Rp1Types.ToDouble(method.Invoke(null, new[] { vp })));
+            }
+            catch (Exception)
+            {
+                return null;
+            }
         }
 
         private bool? PadWaitingVessel(object pad, out string? vesselName)

@@ -141,6 +141,7 @@
             "sizeMaxDepth": 12,
             "resourcesHandled": ["Kerosene", "LqdOxygen"],
             "salaryPerDay": 120.9,
+            "rushSalaryDeltaPerDay": 120.9,
             "upkeepPerDay": 45,
             "newPadCost": 14118.31
           },

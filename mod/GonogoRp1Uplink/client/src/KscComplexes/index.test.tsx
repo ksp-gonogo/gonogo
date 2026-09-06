@@ -56,6 +56,10 @@ const COMPLEXES = [
     massMin: 6,
     maxEngineers: 60,
     name: "LC-1",
+    // NOT salaryPerDay times the multiplier: the mod recovers the working part
+    // of the crew and prices only that, so the two figures are free to disagree
+    // and a client that multiplied would be wrong here.
+    rushSalaryDeltaPerDay: 24.6,
     salaryPerDay: 49.3,
     upkeepPerDay: 45,
   },
@@ -68,6 +72,7 @@ const COMPLEXES = [
     lcType: "Pad",
     maxEngineers: 40,
     name: "LC-2",
+    rushSalaryDeltaPerDay: 16.4,
     salaryPerDay: 16.4,
     upkeepPerDay: 30,
   },
@@ -102,9 +107,13 @@ function mount() {
   return { fixture, view };
 }
 
+/** RP-1's stock rush settings, which a save is free to have tuned. */
+const RUSH_TERMS = { rateMult: 1.5, salaryMult: 2 };
+
 function withCentre(
   complexes: readonly Record<string, unknown>[] = COMPLEXES,
   centres: readonly Record<string, unknown>[] = [CAPE],
+  rushTerms: Record<string, unknown> = RUSH_TERMS,
 ) {
   const mounted = mount();
   act(() => {
@@ -120,9 +129,21 @@ function withCentre(
       researchers: 31,
       totalEngineers: 30,
     });
-    mounted.fixture.emit("rp1.rushTerms", { rateMult: 1.5, salaryMult: 2 });
+    mounted.fixture.emit("rp1.rushTerms", rushTerms);
   });
   return mounted;
+}
+
+/**
+ * One complex's rush line, as flattened text.
+ *
+ * <para>Found from the complex's NAME rather than from the line's own lead
+ * words, because every operational complex carries one now: a query on the
+ * words matches every card in the career and says nothing about which.</para>
+ */
+function termsFor(complexName: string): string {
+  const card = screen.getByText(complexName).closest("div")?.parentElement;
+  return (card?.textContent ?? "").replace(/\s+/g, " ");
 }
 
 /**
@@ -328,24 +349,36 @@ describe("KscComplexes", () => {
     expect(view.container.textContent).toContain("idle 4.1");
   });
 
-  it("rushes a whole complex on one press", async () => {
+  it("prices the rush before the press, not after it", async () => {
     const user = userEvent.setup();
     const { fixture } = withCentre();
 
-    // Nothing is rushing, so nothing here states rushing's terms: they are a
-    // reading of a complex that is doing it, not a note about how RP-1 works.
     await waitFor(() => {
       expect(screen.getByText("LC-1")).toBeInTheDocument();
     });
     await openAllDetail(user);
-    expect(screen.queryByText(/efficiency held/)).not.toBeInTheDocument();
+
+    /*
+     * The whole of the defect this covers: nothing here is rushing, and what
+     * rushing would COST is on screen anyway. It used to be drawn only once a
+     * complex was already rushing, which put a recurring payroll increase on the
+     * far side of the decision to take it on.
+     */
+    const terms = termsFor("LC-1");
+    expect(terms).toContain("rushing costs");
+    // This complex's own daily increase, in funds, off the wire. Not its salary
+    // times the multiplier: RP-1 raises only the part of a crew that is working.
+    expect(terms).toMatch(/24\.6/);
+    expect(terms).toMatch(/150.*rate/);
+    expect(terms).toMatch(/200.*salary/);
+    expect(terms).toContain("efficiency held");
 
     // One press, unlike the vehicle controls in Vehicle Assembly, and the
     // difference is real: rushing spends nothing when it lands. It raises the
-    // rate and doubles the salary, so the cost arrives later as payroll.
+    // rate and multiplies the salary, so the cost arrives later as payroll.
     await user.click(
       await screen.findByRole("button", {
-        name: "Rush work at LC-1, at double the salary",
+        name: "Rush work at LC-1, at 2× the crew salary",
       }),
     );
 
@@ -355,6 +388,42 @@ describe("KscComplexes", () => {
     // The COMPLEX, never a vehicle: IsRushing is a bool on the launch complex,
     // so a per-vehicle rush would be a lie about what the game does.
     expect(sent?.args).toEqual({ lcId: "lc-1", rushing: true });
+  });
+
+  it("takes the salary multiplier in its accessible name from the wire", async () => {
+    const user = userEvent.setup();
+    // A save that has tuned RushSalaryMult. RP-1 reads it out of its own
+    // settings rather than fixing it, and the label used to read "at double the
+    // salary" whatever the wire carried, so on a career like this one it named a
+    // price nobody was going to pay.
+    withCentre(COMPLEXES, [CAPE], { rateMult: 1.25, salaryMult: 3.5 });
+
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    await openAllDetail(user);
+
+    expect(
+      screen.getByRole("button", {
+        name: "Rush work at LC-1, at 3.5× the crew salary",
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it("names no multiplier at all when RP-1 has not published one", async () => {
+    const user = userEvent.setup();
+    // Absent, the clause goes. Degrading to a remembered figure is what put a
+    // wrong one in a screen reader's mouth in the first place.
+    withCentre(COMPLEXES, [CAPE], {});
+
+    await waitFor(() => {
+      expect(screen.getByText("LC-1")).toBeInTheDocument();
+    });
+    await openAllDetail(user);
+
+    expect(
+      screen.getByRole("button", { name: "Rush work at LC-1" }),
+    ).toBeInTheDocument();
   });
 
   it("offers the way out of rush mode, and states its terms while it runs", async () => {
@@ -368,14 +437,13 @@ describe("KscComplexes", () => {
       expect(screen.getByText("RUSHING")).toBeInTheDocument();
     });
     await openAllDetail(user);
-    // On the one complex it applies to, as figures. The efficiency term is the
-    // one RP-1's own tooltip leaves out and the one that costs most over a
-    // career.
-    const terms = screen.getByText("rushing").closest("div");
-    const termsText = (terms?.textContent ?? "").replace(/\s+/g, " ");
-    expect(termsText).toMatch(/150.*rate/);
-    expect(termsText).toMatch(/200.*salary/);
-    expect(termsText).toContain("efficiency held");
+    // The same line, on the same terms, from inside the rush: what it costs to
+    // run is what stopping it gives back. The efficiency term is the one RP-1's
+    // own tooltip leaves out and the one that costs most over a career.
+    const terms = termsFor("LC-1");
+    expect(terms).toMatch(/150.*rate/);
+    expect(terms).toMatch(/200.*salary/);
+    expect(terms).toContain("efficiency held");
 
     await user.click(
       screen.getByRole("button", { name: "Stop rushing work at LC-1" }),

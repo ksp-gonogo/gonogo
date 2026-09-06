@@ -79,6 +79,7 @@ namespace GonogoRp1Uplink
                     ["resourceCapacities"] = c.ResourceCapacities,
                     ["efficiencyGroupKey"] = c.EfficiencyGroupKey,
                     ["salaryPerDay"] = c.SalaryPerDay,
+                    ["rushSalaryDeltaPerDay"] = c.RushSalaryDeltaPerDay,
                     ["upkeepPerDay"] = c.UpkeepPerDay,
                     ["newPadCost"] = c.NewPadCost,
                 });
@@ -173,6 +174,10 @@ namespace GonogoRp1Uplink
                     ["lcId"] = v.LcId,
                     ["shipName"] = v.ShipName,
                     ["cost"] = v.Cost,
+                    // What the move costs, which is a different number from what
+                    // the vehicle cost to build and is the one an operator weighs
+                    // a rollout against.
+                    ["rolloutCost"] = v.RolloutCost,
                     ["mass"] = v.Mass,
                     ["humanRated"] = v.HumanRated,
                     ["launchSite"] = v.LaunchSite,
@@ -229,6 +234,11 @@ namespace GonogoRp1Uplink
                     ["stalled"] = o.Stalled,
                     ["blockingPeers"] = o.BlockingPeers,
                     ["cost"] = o.Cost,
+                    // What the move has left to pay, which is what a control that
+                    // resumes one commits to. RP-1 draws the price down as the
+                    // move proceeds, so the total is the wrong number to quote at
+                    // a project already part of the way there.
+                    ["costRemaining"] = o.CostRemaining,
                     ["associatedVesselId"] = o.AssociatedVesselId,
                 });
             }
