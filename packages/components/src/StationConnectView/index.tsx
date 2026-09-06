@@ -34,6 +34,13 @@ export interface StationConnectViewProps {
   connStatus: StationConnStatus;
   /** Broker couldn't resolve the code on the most recent attempt. */
   hostNotFound: boolean;
+  /**
+   * This browser can't reach the PeerJS broker at all. A different fault
+   * from `hostNotFound`, and it wants the opposite advice: nothing about the
+   * code or the main screen is wrong, this device has no route to the
+   * internet service both ends meet on.
+   */
+  brokerUnreachable?: boolean;
   /** This station reached "connected" at least once this session. */
   everConnected: boolean;
   /** Fired on every keystroke in the host-code input. */
@@ -50,6 +57,7 @@ export function StationConnectView({
   hostInput,
   connStatus,
   hostNotFound,
+  brokerUnreachable = false,
   everConnected,
   onHostInputChange,
   onConnect,
@@ -80,27 +88,49 @@ export function StationConnectView({
           </ConnectButton>
         </ConnectRow>
         {nameEditor && <NameRow>{nameEditor}</NameRow>}
-        {hostNotFound && everConnected && (
+        {brokerUnreachable && (
+          <ErrorMsg>
+            Can&apos;t reach the peer broker. This device joins through an
+            internet service, so it needs a working internet connection even
+            when the main screen is on the same WiFi. Check that this device is
+            online and that the network allows outbound HTTPS.
+          </ErrorMsg>
+        )}
+        {!brokerUnreachable && hostNotFound && everConnected && (
           <ReconnectMsg role="status" aria-live="polite">
             Host reconnecting... The main screen is restarting and will be back
             shortly: this station reconnects automatically.
           </ReconnectMsg>
         )}
-        {hostNotFound && !everConnected && (
+        {!brokerUnreachable && hostNotFound && !everConnected && (
           <ErrorMsg>
             Couldn't find code &ldquo;{hostInput.trim().toUpperCase()}&rdquo;.
             Check the main screen: the code may have changed, or the main-screen
             tab may be closed/asleep.
           </ErrorMsg>
         )}
-        {!hostNotFound && connStatus === "disconnected" && (
-          <ErrorMsg>Connection lost. Check the host ID and try again.</ErrorMsg>
-        )}
+        {!brokerUnreachable &&
+          !hostNotFound &&
+          connStatus === "disconnected" && (
+            <ErrorMsg>
+              Connection lost. Check the host ID and try again.
+            </ErrorMsg>
+          )}
         <StatusIndicator
-          tone={statusTone(connStatus, hostNotFound, everConnected)}
+          tone={statusTone(
+            connStatus,
+            hostNotFound,
+            everConnected,
+            brokerUnreachable,
+          )}
           live
         >
-          {describeConnStatus(connStatus, hostNotFound, everConnected)}
+          {describeConnStatus(
+            connStatus,
+            hostNotFound,
+            everConnected,
+            brokerUnreachable,
+          )}
         </StatusIndicator>
         <DiagnosticsRow>
           <DiagnosticsButton type="button" onClick={onDownloadLogs}>
@@ -116,7 +146,14 @@ export function describeConnStatus(
   status: StationConnStatus,
   hostNotFound: boolean,
   everConnected: boolean,
+  brokerUnreachable = false,
 ): string {
+  // Ranked above hostNotFound: a station that never reached the broker also
+  // never learned anything about the host, so "that code isn't there" would
+  // be a guess dressed as a finding.
+  if (brokerUnreachable) {
+    return "Can't reach the peer broker: this device needs internet access.";
+  }
   if (hostNotFound) {
     return everConnected
       ? "Host reconnecting: waiting for the main screen to come back..."
@@ -140,7 +177,9 @@ export function statusTone(
   status: StationConnStatus,
   hostNotFound: boolean,
   everConnected: boolean,
+  brokerUnreachable = false,
 ): "neutral" | "info" | "go" | "nogo" {
+  if (brokerUnreachable) return "nogo";
   // A reclaim window (previously connected) is a transient "info" state, not
   // the hard "nogo" of a wrong/dead code.
   if (hostNotFound) return everConnected ? "info" : "nogo";

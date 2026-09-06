@@ -137,6 +137,9 @@ if (config.skipCoturn) {
     );
     coturnHandle = startCoturn({
       externalIp,
+      port: config.turnPort,
+      minPort: config.turnMinPort,
+      maxPort: config.turnMaxPort,
       // Only attach the private half when it differs, `X/X` is pointless,
       // and when externalIp is itself local (native runs) coturn binds it fine.
       localIp: localIp && localIp !== externalIp ? localIp : undefined,

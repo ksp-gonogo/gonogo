@@ -50,7 +50,7 @@ Either way, coturn has to be reachable from outside your network. Forward these 
 | `3478` | UDP | TURN signalling |
 | `49160–49170` | UDP | TURN relay sessions (one port per active relayed client) |
 
-The relay range is 11 ports (`49160–49170`), sized for up to ~10 simultaneous relayed clients, and kept small because consumer routers want one forward entry per port. If you need more concurrent relayed stations, widen the range in `docker-compose.yml` and `packages/relay/src/coturnManager.ts` together; they must match.
+The relay range is 11 ports (`49160–49170`), sized for up to ~10 simultaneous relayed clients, and kept small because consumer routers want one forward entry per port. If you need more concurrent relayed stations, widen it with `TURN_MIN_PORT` / `TURN_MAX_PORT` on the relay, publish the same range from the container (`docker-compose.yml` reads the same two variables), and widen the router forwards to match; all three must agree.
 
 The relay auto-discovers its public IP at startup and advertises it to clients. If your ISP gives you a stable IP, that's all you need; if it rotates, restart the relay when it changes or pin it explicitly with `TURN_EXTERNAL_IP=<your public IP>` in the environment.
 

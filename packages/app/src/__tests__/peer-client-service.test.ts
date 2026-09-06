@@ -383,6 +383,58 @@ describe("PeerClientService reconnect loop", () => {
     expect(FakePeer.instances).toHaveLength(2);
   });
 
+  it("separates a broker this browser can't reach from a host that isn't there", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    const reachable: boolean[] = [];
+    svc.onBrokerReachable((r) => reachable.push(r));
+
+    svc.connect("Z6HK");
+    // No internet on this device: peerjs never gets a socket to the broker.
+    FakePeer.instances[0].emit(
+      "error",
+      Object.assign(new Error("Lost connection to server."), {
+        type: "network",
+      }),
+    );
+    expect(reachable).toEqual([false]);
+
+    // A missing host is the OTHER fault: the broker answered, so it must not
+    // move the reachability verdict.
+    FakePeer.instances[0].emit(
+      "error",
+      Object.assign(new Error("Could not connect to peer gonogo-host-Z6HK"), {
+        type: "peer-unavailable",
+      }),
+    );
+    expect(reachable).toEqual([false]);
+
+    // Reaching `open` clears it, once, not on every retry.
+    vi.advanceTimersByTime(50);
+    driveOpen(FakePeer.instances[1]);
+    expect(reachable).toEqual([false, true]);
+  });
+
+  it("replays the last broker verdict to a listener that subscribes later", () => {
+    const svc = new PeerClientService({
+      retryIntervalMs: 50,
+      retryTimeoutMs: 60_000,
+    });
+    svc.connect("Z6HK");
+    FakePeer.instances[0].emit(
+      "error",
+      Object.assign(new Error("Lost connection to server."), {
+        type: "network",
+      }),
+    );
+
+    const late: boolean[] = [];
+    svc.onBrokerReachable((r) => late.push(r));
+    expect(late).toEqual([false]);
+  });
+
   it("disconnect() stops any pending retry", () => {
     const svc = new PeerClientService({
       retryIntervalMs: 50,

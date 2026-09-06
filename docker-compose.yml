@@ -12,21 +12,29 @@ services:
     ports:
       - "3002:3002"
       # TURN signalling. Both UDP and TCP for client compatibility.
-      - "3478:3478/udp"
-      - "3478:3478/tcp"
+      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/udp"
+      - "${TURN_PORT:-3478}:${TURN_PORT:-3478}/tcp"
       # TURN relay port range. Every active relay session takes one port
       # in this window, so the whole range must be mappable to the host.
-      # Matches min-port / max-port in coturnManager.ts. Sized at 11
-      # ports: covers ≤10 simultaneous TURN-relayed clients, and
-      # consumer routers (Google Wi-Fi etc.) require one port-forward
-      # entry per port, so a small range keeps the click cost down.
-      - "49160-49170:49160-49170/udp"
+      # Same TURN_MIN_PORT / TURN_MAX_PORT the relay passes to coturn, so
+      # widening the window is one pair of env vars rather than a source
+      # edit. Sized at 11 ports by default: covers ≤10 simultaneous
+      # TURN-relayed clients, and consumer routers (Google Wi-Fi etc.)
+      # require one port-forward entry per port, so a small range keeps
+      # the click cost down.
+      - "${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49170}:${TURN_MIN_PORT:-49160}-${TURN_MAX_PORT:-49170}/udp"
     environment:
       PORT: 3002
       # Optional pin for the public IP coturn advertises to clients.
       # When unset (the typical case) the relay auto-discovers it via a
       # public lookup at startup.
       TURN_EXTERNAL_IP: ${TURN_EXTERNAL_IP:-}
+      # TURN ports, kept in step with the published `ports:` above. Change
+      # them here (or in `.env`) rather than in coturnManager.ts, and widen
+      # the router forwards to match.
+      TURN_PORT: ${TURN_PORT:-3478}
+      TURN_MIN_PORT: ${TURN_MIN_PORT:-49160}
+      TURN_MAX_PORT: ${TURN_MAX_PORT:-49170}
       # Axiom log shipping. Empty default → no transport installed
       # (matches the browser pattern). Set in `.env` next to this file
       # to opt in.

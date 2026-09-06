@@ -76,6 +76,28 @@ describe("StationConnectView", () => {
     ).not.toBeNull();
   });
 
+  it("blames the broker, not the code, when this device can't reach the broker", () => {
+    render(
+      <StationConnectView
+        {...baseProps}
+        hostInput="ZZ9Q"
+        connStatus="disconnected"
+        hostNotFound
+        brokerUnreachable
+      />,
+    );
+    expect(
+      screen.getByText(/needs a working internet connection/i),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(/this device needs internet access/i),
+    ).not.toBeNull();
+    // The code-is-wrong copy would send the operator to the main screen for a
+    // fault that is entirely on this device's network.
+    expect(screen.queryByText(/Couldn't find code/i)).toBeNull();
+    expect(screen.queryByText(/Check the host ID/i)).toBeNull();
+  });
+
   it("renders the injected name editor slot", () => {
     render(
       <StationConnectView
@@ -116,6 +138,13 @@ describe("connect status helpers", () => {
     expect(describeConnStatus("reconnecting", true, true)).toMatch(
       /Host reconnecting/i,
     );
+  });
+
+  it("ranks an unreachable broker above a missing host in both helpers", () => {
+    expect(describeConnStatus("disconnected", true, false, true)).toMatch(
+      /Can't reach the peer broker/i,
+    );
+    expect(statusTone("reconnecting", true, true, true)).toBe("nogo");
   });
 
   it("tones a never-connected dead code nogo but a reclaim window info", () => {

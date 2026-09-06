@@ -41,6 +41,24 @@ function isPeerJsError(e: unknown): e is PeerJsError {
  */
 const PEER_UNAVAILABLE_PREFIX = "Could not connect to peer ";
 
+/**
+ * PeerJS error types that mean "this browser never reached the broker",
+ * as opposed to "the broker answered and the host isn't there".
+ *
+ * The distinction is the whole diagnosis on the connect screen. Both ends
+ * meet by name on a PeerJS broker that lives on the internet, so a station
+ * on an offline LAN, a guest network with no outbound, or a captive portal
+ * fails here and NOT at the host, and the advice ("check the code, check
+ * the main screen") for the other case is wrong for this one.
+ */
+const BROKER_ERROR_TYPES = new Set([
+  "network",
+  "server-error",
+  "socket-error",
+  "socket-closed",
+  "ssl-unavailable",
+]);
+
 function isMissingHost(err: PeerJsError, hostPeerId: string | null): boolean {
   if (!hostPeerId) return true;
   if (!err.message.startsWith(PEER_UNAVAILABLE_PREFIX)) return false;
@@ -92,6 +110,7 @@ type ClientEventMap = {
   flightChange: [flight: FlightRecord | null];
   flightListChange: [];
   hostUnavailable: [hostPeerId: string];
+  brokerReachable: [reachable: boolean];
   coverageSnapshot: [msg: Extract<PeerMessage, { type: "fog-snapshot" }>];
   // Sitrep telemetry-stream forwarding: see protocol.ts's `sitrep-frame`/
   // `sitrep-command-*` doc comment. `sitrepFrame` carries the host-relayed
@@ -138,6 +157,8 @@ export class PeerClientService {
   // `PeerTransport`, built once the station is already `connected`) can
   // read a synchronous snapshot instead of waiting for the next event.
   private connStatus: ConnStatus = "idle";
+  /** Last broker-reachability verdict; `null` until the first attempt resolves. */
+  private brokerReachable: boolean | null = null;
   private relayPeerId: string | null = null;
   // Relay TURN creds from the latest `relay-peer-id` broadcast. Applied to the
   // station's own Peer (see applyRelayIceServers) AND exposed here so a brokered
@@ -255,9 +276,18 @@ export class PeerClientService {
     // key is invisible to the host on the broker even if the ids match.
     this.peer = new Peer(this.stationPeerId, peerBrokerOptions());
     this.peer.on("open", () => {
+      // Reaching `open` means the broker answered and holds our id, so any
+      // earlier "can't reach the broker" verdict is stale.
+      this.setBrokerReachable(true);
       this.connectToHost();
     });
     this.peer.on("error", (err) => {
+      // Classify BEFORE the peer-unavailable branches below: a broker we
+      // never reached is a different fault from a host that isn't there,
+      // and only this branch can tell the operator which one they have.
+      if (isPeerJsError(err) && BROKER_ERROR_TYPES.has(err.type ?? "")) {
+        this.setBrokerReachable(false);
+      }
       // PeerJS emits `peer-unavailable` on the *Peer* (not the conn) when
       // any outgoing peer.connect() targets a missing id. The station's
       // OCISLY stream source shares this Peer, so its failed connect to a
@@ -861,6 +891,32 @@ export class PeerClientService {
    */
   onHostUnavailable(cb: (hostPeerId: string) => void) {
     return this.events.on("hostUnavailable", cb);
+  }
+
+  /**
+   * Fires with `false` when this browser cannot reach the PeerJS broker at
+   * all, and with `true` once it does. Distinct from `onHostUnavailable`:
+   * that one means the broker answered and nobody holds the host's id.
+   *
+   * Replays the last verdict on subscribe, so a listener that mounts after
+   * the first failed attempt still sees it.
+   */
+  onBrokerReachable(cb: (reachable: boolean) => void) {
+    const unsub = this.events.on("brokerReachable", cb);
+    if (this.brokerReachable !== null) cb(this.brokerReachable);
+    return unsub;
+  }
+
+  /** Emit only on a change, so a retry loop doesn't re-notify every 2s. */
+  private setBrokerReachable(reachable: boolean): void {
+    if (this.brokerReachable === reachable) return;
+    this.brokerReachable = reachable;
+    if (!reachable) {
+      logger.warn(
+        "[PeerClient] cannot reach the PeerJS broker: this device needs internet access to join a session",
+      );
+    }
+    this.events.emit("brokerReachable", reachable);
   }
 
   /**

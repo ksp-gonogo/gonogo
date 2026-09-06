@@ -41,8 +41,9 @@ export interface CoturnOptions {
    * 49200 because Google Wi-Fi (and most consumer routers) require
    * one port-forward entry per port; the old range demanded 41
    * clicks. If your sessions routinely exceed ~10 concurrent
-   * TURN-relayed clients, widen this and the matching docker-compose
-   * mapping + Dockerfile EXPOSE.
+   * TURN-relayed clients, widen it with `TURN_MIN_PORT`/`TURN_MAX_PORT`
+   * (see `config.ts`) and widen the matching docker-compose mapping and
+   * router forwards to the same window. No source edit is needed.
    */
   maxPort?: number;
   /** Username for static credentials. Defaults to `gonogo`. */

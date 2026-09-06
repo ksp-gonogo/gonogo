@@ -44,6 +44,7 @@ export function PilotScreen() {
   const [client] = useState(() => new PeerClientService());
   const [status, setStatus] = useState<ConnStatus>("idle");
   const [hostNotFound, setHostNotFound] = useState(false);
+  const [brokerUnreachable, setBrokerUnreachable] = useState(false);
   const [everConnected, setEverConnected] = useState(false);
   const [hostInput, setHostInput] = useState(
     () => localStorage.getItem(HOST_ID_KEY) ?? "",
@@ -76,6 +77,7 @@ export function PilotScreen() {
         }
       }),
       client.onHostUnavailable(() => setHostNotFound(true)),
+      client.onBrokerReachable((reachable) => setBrokerUnreachable(!reachable)),
     );
     client.connect(trimmed);
   };
@@ -118,6 +120,7 @@ export function PilotScreen() {
           hostInput={hostInput}
           connStatus={status}
           hostNotFound={hostNotFound}
+          brokerUnreachable={brokerUnreachable}
           everConnected={everConnected}
           onHostInputChange={setHostInput}
           onConnect={connect}
