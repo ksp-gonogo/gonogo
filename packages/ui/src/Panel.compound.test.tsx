@@ -29,9 +29,9 @@ describe("Panel (compound)", () => {
   });
 
   it("passes children straight through when given no title or subtitle", () => {
-    // The migration bridge. A widget still rendering its own PanelTitle keeps
-    // today's unpadded behaviour, so widgets move one at a time and each
-    // render change is attributable. Remove with the named exports.
+    // The migration bridge. A widget that draws its own heading (as a
+    // `Panel.Title` child) keeps today's unpadded behaviour, so widgets move to
+    // `panelTitle` one at a time and each render change is attributable.
     const { container } = render(
       <Panel>
         <span>legacy</span>

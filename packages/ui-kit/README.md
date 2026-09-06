@@ -136,7 +136,7 @@ Measured against the box, not guessed from a column count, so the full name
 comes back the moment the tile is wide enough. While a short form is showing,
 the full one stays the heading's accessible name and its hover tooltip.
 
-`compactTitle` and `<PanelTitle compact={...}>` are the same thing; use whichever
+`compactTitle` and `<Panel.Title compact={...}>` are the same thing; use whichever
 form your widget already renders its title in. Write real abbreviations rather
 than truncations: a machine-shortened title is the ellipsis this replaces.
 

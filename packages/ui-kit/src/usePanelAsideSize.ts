@@ -21,7 +21,7 @@ export type PanelAsideSize = "full" | "tiny" | "collapsed";
 
 /**
  * How much spare room the full aside needs, once collapsed, before
- * `PanelHeader` lets it re-expand. This is the whole hysteresis: collapsing
+ * `Panel.Header` lets it re-expand. This is the whole hysteresis: collapsing
  * reacts the instant content stops fitting (no dead band, so a tile that is
  * genuinely too narrow never clips), but re-expanding only fires once there is
  * real room to spare. Without the margin, a panel sitting exactly at the fit
@@ -103,7 +103,7 @@ function measureNaturalElementWidth(el: HTMLElement | null): number {
 }
 
 /**
- * The measured-fit collapse `PanelHeader` runs to decide whether its aside
+ * The measured-fit collapse `Panel.Header` runs to decide whether its aside
  * belongs inline or behind the dots + expand box. Measured rather than a fixed
  * `@container (max-width: 320px)` breakpoint on the PANEL's width, because a
  * width breakpoint is content-blind: it collapses a short-title widget with
@@ -111,7 +111,7 @@ function measureNaturalElementWidth(el: HTMLElement | null): number {
  * content behind black space.
  *
  * `rowRef` is the header row, whose measured width is the room available to
- * title + aside together. `titleRef` (the rendered `PanelTitle`) and
+ * title + aside together. `titleRef` (the rendered `Panel.Title`) and
  * `asideRef` (the `[data-panel-aside-full]` box) are both measured via
  * `measureNaturalElementWidth` (see its own doc comment for why a live
  * measurement is not reliable here).
@@ -169,8 +169,8 @@ export function useHeaderAsideFit(
 const PanelAsideSizeContext = createContext<PanelAsideSize>("full");
 
 /**
- * Carries `PanelHeader`'s measured-fit collapse decision down to content
- * inside `panelAside`. `PanelHeader` is the only producer; content never
+ * Carries `Panel.Header`'s measured-fit collapse decision down to content
+ * inside `panelAside`. `Panel.Header` is the only producer; content never
  * measures independently, so it can never disagree with the chrome around it
  * about which state the aside is in.
  */
@@ -179,7 +179,7 @@ export const PanelAsideSizeProvider = PanelAsideSizeContext.Provider;
 /**
  * Report the aside's CURRENT render bucket to content that must compute it
  * (rather than author full+collapsed markup and let the chrome pick).
- * Defaults to `full` outside a `PanelHeader` (no provider), the same
+ * Defaults to `full` outside a `Panel.Header` (no provider), the same
  * assume-there-is-room default `useElementSize` and friends use, so a widget
  * under test with no `Panel` in the tree behaves exactly as before.
  */

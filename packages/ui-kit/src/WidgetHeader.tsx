@@ -12,7 +12,7 @@ export interface WidgetHeaderProps
  * Standard widget header row: a title slot on the left and an actions slot on
  * the right, separated by a subtle bottom border.
  *
- * Either pass `title` (string / node: typically a `<PanelTitle>`-shaped
+ * Either pass `title` (string / node: typically a `<Panel.Title>`-shaped
  * label) or pass arbitrary `children` for full control of the left side.
  * `actions` is an optional right-aligned slot (toggles, icon buttons, etc.).
  */

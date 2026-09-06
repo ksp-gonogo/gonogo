@@ -37,7 +37,6 @@ import {
   getAugmentsForSlot,
   gridToPixels,
   Panel,
-  PanelBody,
   registerAugment,
   Section,
   setQuantityLocale,

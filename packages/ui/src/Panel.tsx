@@ -11,16 +11,7 @@ import styled from "styled-components";
  * Add nothing to it. A Panel part added here would be invisible to Uplinks,
  * which is the split that caused the problem in the first place.
  */
-export {
-  Panel,
-  PanelBody,
-  PanelContainer,
-  PanelContextProvider,
-  PanelGlow,
-  type PanelProps,
-  PanelTitle,
-  ScrollArea,
-} from "@ksp-gonogo/ui-kit";
+export { Panel, type PanelProps, ScrollArea } from "@ksp-gonogo/ui-kit";
 
 /** Dim placeholder text for an empty slot. App-side only. */
 export const Placeholder = styled.span`

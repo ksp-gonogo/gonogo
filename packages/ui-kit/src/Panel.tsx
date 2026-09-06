@@ -196,7 +196,7 @@ export interface PanelTitleProps
  * A panel's title, in the longest form that fits.
  *
  * A component rather than the bare styled `h3` it used to be, so `compact` has
- * somewhere to live for the six widgets that render `<PanelTitle>` as a child
+ * somewhere to live for the six widgets that render `<Panel.Title>` as a child
  * instead of passing `panelTitle`. Two of those six are the worst offenders in
  * the whole tree at their own declared minimum size, so an affordance the child
  * form could not reach would have missed the widgets it was written for.
@@ -1154,7 +1154,7 @@ export const ScrollArea = forwardRef<
  * otherwise.
  *
  * There is deliberately no `auto`. The AXIS is always derived (see
- * `PanelSplit`), so an `auto` side would only ever have meant `end`, and a
+ * `Panel.Split`), so an `auto` side would only ever have meant `end`, and a
  * value that is identical to another value is a promise the API is not
  * keeping. Dropping it says what actually happens; it can be added later if
  * the panel ever gains a real reason to pick a side.
@@ -1504,10 +1504,9 @@ export interface PanelProps extends ComponentPropsWithoutRef<"div"> {
    * name would have meant omitting the real attribute, silently removing the
    * ability to give a panel a tooltip.
    *
-   * Widgets that instead render `PanelTitle` as a child get the older unpadded
+   * Widgets that instead render `Panel.Title` as a child get the older unpadded
    * passthrough, so the migration can move one widget at a time and each
-   * render change is attributable to that widget. That fallback goes when the
-   * named subcomponent exports are retired.
+   * render change is attributable to that widget.
    */
   panelTitle?: ReactNode;
   /**
@@ -2195,6 +2194,10 @@ export const Panel = Object.assign(PanelRoot, {
   Section,
   Split: PanelSplit,
   Sidebar: PanelSidebar,
+  /* The per-severity dot a collapsed header draws. It lives under `status/`
+     rather than in this file, but it is a Panel part like any other and
+     `Panel.StatusDot` is the only way to reach it. */
+  StatusDot: PanelStatusDot,
   // The single interface the title-redesign ghost dot consumes. Producing the
   // summary is this file's concern; painting it (the ghost) is the title spec's.
   useStatusSummary,

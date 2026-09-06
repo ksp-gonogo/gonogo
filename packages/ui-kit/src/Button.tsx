@@ -6,7 +6,7 @@ import styled from "styled-components";
  * Sentence case, and no uppercase tracking with it. A button says what pressing
  * it does, and a wall of shouted verbs competes with the readings it sits among.
  * Uppercase stays where it marks a heading or a state token (`SectionTitle`,
- * `PanelTitle`, `Badge`, `StatusPill`, table headers), so case is one of the
+ * `Panel.Title`, `Badge`, `StatusPill`, table headers), so case is one of the
  * things that tells an instrument from a control.
  *
  * The label text is the caller's: this changes how a button is drawn, never what

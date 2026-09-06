@@ -216,7 +216,6 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
-export { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
 export {
   crossingBoundaryX,
   RailCrossing,
@@ -482,31 +481,25 @@ export {
 // The one sanctioned em dash in the codebase; see NullValue.tsx's own header
 // comment for the full rationale and the ratchet that enforces it.
 export { NULL_DISPLAY, NullValue } from "./NullValue";
-// ── Panel family ─────────────────────────────────────────────────────────────
-// `Panel` is a compound component: `Panel.Container`, `.Title`, `.Subtitle`,
-// `.Toolbar`, `.Glow`, `.Body`, `.Split` and `.Sidebar` are reachable from it, so
-// a widget that needs
-// a variant can hand-compose the same arrangement. The named exports below are the same
-// objects, kept for widgets that render them as children; prefer
-// `<Panel panelTitle="...">` in new code. See README.md's Panel section.
+/**
+ * `Panel` is a compound component, and it is the ONLY door to its parts:
+ * `Panel.Container`, `.Header`, `.Toolbar`, `.Footer`, `.Title`, `.Glow`,
+ * `.Body`, `.Split`, `.Sidebar`, `.StatusDot`, `.Delay`, `.Context` and
+ * `.Providers` all hang off it, so a widget needing a variant hand-composes
+ * from there.
+ *
+ * The parts were once ALSO exported bare, which made the same objects reachable
+ * without going through `Panel`. Two of them were plain `styled.div`, so the
+ * bare form froze a DOM structure as published API. They are gone, and
+ * `styleguide-panel-parts.test.ts` fails the build if one comes back.
+ */
 export {
   FRAMEWORK_AUGMENT_SEGMENTS,
   Panel,
-  PanelBody,
-  PanelContainer,
-  PanelContextProvider,
-  PanelFooter,
-  PanelGlow,
-  PanelHeader,
   type PanelProps,
-  PanelProviders,
-  PanelSidebar,
   type PanelSidebarSide,
-  PanelSplit,
   type PanelSplitProps,
-  PanelTitle,
   type PanelTitleProps,
-  PanelToolbar,
   ScrollArea,
   WidgetSections,
 } from "./Panel";
@@ -559,10 +552,7 @@ export {
 } from "./SubjectHeading";
 export { Switch } from "./Switch";
 export { STAT_TONE_COLOR, type StatTone } from "./statTone";
-export {
-  PanelStatusDot,
-  type PanelStatusDotProps,
-} from "./status/PanelStatusDot";
+export type { PanelStatusDotProps } from "./status/PanelStatusDot";
 export {
   createPanelStatusStore,
   type PanelStatusStore,
