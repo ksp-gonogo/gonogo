@@ -20,11 +20,11 @@
  * another file's regression, and the net would sit still while the tree got worse.
  *
  * Regenerate with `pnpm act-warning-gate --update --only <substring>` and commit the
- * diff alongside whatever you fixed. Prefer `--only`: a bare `--update` rewrites every
- * entry from one fresh measurement, so a commit about one widget also writes down that
- * run's roll for every noisy entry it never touched. An entry carrying a COMMENT is
- * never lowered by either, because a comment marks a number that was chosen rather
- * than measured.
+ * diff alongside whatever you fixed. An unscoped `--update` is REFUSED, because
+ * rewriting every entry from one fresh measurement writes that run's roll for every
+ * noisy entry the commit never touched; `--all` is the deliberate spelling for
+ * seeding or reseeding the lot. An entry carrying a COMMENT is never lowered by
+ * either, because a comment marks a number that was chosen rather than measured.
  *
  * ## What was actually behind the 104
  *

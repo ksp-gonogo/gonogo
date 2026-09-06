@@ -53,15 +53,19 @@
  *
  * Usage:
  *   pnpm act-warning-gate              check against the committed debt
- *   pnpm act-warning-gate --update     rewrite the debt from what is measured now
  *   pnpm act-warning-gate --filter ui  restrict to packages matching a substring
  *   pnpm act-warning-gate --update --only <substring>
  *                                      rewrite ONLY entries matching <substring>
+ *   pnpm act-warning-gate --update --all
+ *                                      reseed every entry from this one measurement
  *
- * `--only` exists because a plain `--update` is a force-push for baselines: it rewrites
- * the whole tree from one fresh measurement, so a commit about one widget's fix also
- * writes down that run's roll for every noisy entry it never touched. Fixing four files
- * should move four numbers.
+ * `--update` REQUIRES one of those two scopes, and refuses before it measures
+ * anything if it has neither. An unscoped rewrite is a force-push for baselines: it
+ * takes the whole tree from one fresh roll, so a commit about one widget's fix also
+ * writes down that run's number for every noisy entry it never touched. Fixing four
+ * files should move four numbers, and the flag that says otherwise should have to be
+ * typed. `--all` is for seeding the list, or reseeding it after a change that moves
+ * every file.
  */
 
 import { spawnSync } from "node:child_process";
@@ -78,6 +82,37 @@ const filterIdx = args.indexOf("--filter");
 const filter = filterIdx >= 0 ? args[filterIdx + 1] : null;
 const onlyIdx = args.indexOf("--only");
 const only = onlyIdx >= 0 ? args[onlyIdx + 1] : null;
+const all = args.includes("--all");
+
+/*
+ * Both refusals happen HERE, before a single suite runs.
+ *
+ * Measuring first and refusing afterwards spends the whole walk of the tree to
+ * print an argument error, which is minutes, and a person who has just waited
+ * that long re-runs with whatever makes it stop complaining rather than with
+ * what they meant.
+ */
+if (update && filter && !only) {
+  console.error(
+    "Refusing to --update under --filter. The debt is the whole tree, and rewriting " +
+      "it from one package's measurement would delete every entry that was never run, " +
+      "reporting the rest of the tree as fixed. Either drop --filter, or add --only " +
+      "<substring> to say which entries you actually mean to rewrite.",
+  );
+  process.exit(1);
+}
+if (update && !only && !all) {
+  console.error(
+    "Refusing an unscoped --update. These counts are races: the same file measures 0, " +
+      "1 and 21 on an unchanged tree depending on machine load, so rewriting every " +
+      "entry from one run writes this run's roll for files your change never touched, " +
+      "inside a commit that says it fixed something else.\n" +
+      "Say which entries you mean:\n" +
+      "  pnpm act-warning-gate --update --only <substring>   the files you fixed\n" +
+      "  pnpm act-warning-gate --update --all                seed or reseed the lot",
+  );
+  process.exit(1);
+}
 
 /**
  * Both React 18 spellings. The second only appears when `act()` is called without
@@ -381,16 +416,8 @@ console.log(
     `\n${loadLine()}\n`,
 );
 
+// Both scope refusals fired at argument-parse time, before any of this ran.
 if (update) {
-  if (filter && !only) {
-    console.error(
-      "Refusing to --update under --filter. The debt is the whole tree, and rewriting " +
-        "it from one package's measurement would delete every entry that was never run, " +
-        "reporting the rest of the tree as fixed. Either drop --filter, or add --only " +
-        "<substring> to say which entries you actually mean to rewrite.",
-    );
-    process.exit(1);
-  }
   if (only) {
     // Every committed entry survives untouched except the ones named, which take what
     // was just measured, and are dropped when that is now zero.
@@ -518,7 +545,8 @@ problems = problems.filter((p) => !p.startsWith("BETTER"));
 if (better.length > 0) {
   console.log(
     `Below the recorded count, twice:\n${better.map((b) => `  ${b}`).join("\n")}\n` +
-      `If you fixed these, run \`pnpm act-warning-gate --update\` and commit the debt ` +
+      `If you fixed these, run \`pnpm act-warning-gate --update --only <substring>\` ` +
+      `naming the files above, and commit the debt ` +
       `with the fix.\nIf you did not, they are intermittent and the entry stays at the ` +
       `count it reaches when it fires.\n`,
   );
