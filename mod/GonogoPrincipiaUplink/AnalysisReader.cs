@@ -27,9 +27,14 @@ namespace GonogoPrincipiaUplink
     /// the way. Supplying a pair is an operator's manual override for comparing
     /// against a nominal orbit, not a precondition for getting an answer.</para>
     ///
-    /// <para>So the recurrence is read here. The solar times of nodes are a
-    /// separate field and are still not read, which is a gap rather than a
-    /// trade.</para>
+    /// <para>So the recurrence, the equatorial crossings and the solar times of
+    /// the nodes are all read here, none of them asked for.</para>
+    ///
+    /// <para><b>And the elements are dated.</b> The vessel's analysis carries no
+    /// instant of its own, which was taken for a long time to mean its age was
+    /// unknowable. It is not: the mean-element series carries instants and the
+    /// producer's own averaging fixes the offset from the anchor exactly. See
+    /// <c>MeanElementsEpoch</c>.</para>
     /// </summary>
     public sealed class AnalysisReader
     {
@@ -60,8 +65,8 @@ namespace GonogoPrincipiaUplink
         internal const string FirstReentryTimeField = "first_reentry_time";
 
         /// <summary>
-        /// The element time series, which this Uplink reads nothing from and
-        /// disposes anyway.
+        /// The mean-element time series, which is read for its first instant and
+        /// then freed.
         ///
         /// <para>It arrives as an iterator over a native vector allocated on every
         /// call, and the marshaller's cleanup step is empty, so the only thing that
@@ -71,6 +76,10 @@ namespace GonogoPrincipiaUplink
         /// allocates its own.</para>
         /// </summary>
         internal const string PlottableElementsField = "plottable_elements";
+
+        /// <summary>The instant one entry of that series carries, and the only
+        /// field of it anything here reads.</summary>
+        internal const string PlottableElementTimeField = "time";
 
         /// <summary>Fields on an interval.</summary>
         internal const string IntervalMinField = "min";
@@ -134,17 +143,16 @@ namespace GonogoPrincipiaUplink
             {
                 VesselId = vesselGuid,
                 SampledAtUt = nowUt,
-                // No epoch: the vessel analysis is anchored wherever the craft's
-                // history ended when the producer last requested one, and the
-                // producer publishes no instant for it. Saying so is the only
-                // honest option, and a client renders it as an unknown age rather
-                // than as a fresh reading.
-                Orbit = Describe(vessel.OrbitAnalysis(FirstGroundTrackRevolution), celestials, null),
+                // No epoch is PASSED, which is not the same as there being none:
+                // only a coast's caller knows one, and the vessel's is recovered
+                // from the mean elements instead. See MeanElementsEpoch.
+                Orbit = Describe(
+                    frame, vessel.OrbitAnalysis(FirstGroundTrackRevolution), celestials, null),
             };
 
             if (vessel.TryFlightPlan(out var plan))
             {
-                ReadCoasts(plan, celestials, observation);
+                ReadCoasts(frame, plan, celestials, observation);
             }
             return observation;
         }
@@ -173,6 +181,7 @@ namespace GonogoPrincipiaUplink
         /// plain loop rather than a cursor.</para>
         /// </summary>
         private static void ReadCoasts(
+            PrincipiaFrame frame,
             PrincipiaFlightPlanGate plan,
             ICelestialNames celestials,
             AnalysisObservation observation)
@@ -208,6 +217,7 @@ namespace GonogoPrincipiaUplink
                     StartsAtUt = starts[index],
                     EndsAtUt = ends[index],
                     Analysis = Describe(
+                        frame,
                         plan.CoastAnalysis(index, FirstGroundTrackRevolution),
                         celestials,
                         starts[index]),
@@ -215,13 +225,6 @@ namespace GonogoPrincipiaUplink
             }
         }
 
-        /// <summary>
-        /// One analysis struct, flattened, or null when there was none.
-        ///
-        /// <para><paramref name="epochUt"/> is passed in rather than found, because
-        /// nothing on the struct carries it: a coast's analysis begins where the
-        /// coast begins and only the caller knows that.</para>
-        /// </summary>
         /// <summary>
         /// Copies the ground-track recurrence across, when the producer fitted one.
         ///
@@ -303,8 +306,20 @@ namespace GonogoPrincipiaUplink
                 Interval(solar, DescendingSolarTimeField, DegreesPerRadian, 0.0);
         }
 
+        /// <summary>
+        /// One analysis struct, flattened, or null when there was none.
+        ///
+        /// <para><paramref name="epochUt"/> is passed in by a caller that already
+        /// knows it: a coast's analysis begins where the coast begins, and the coast
+        /// boundaries are read from the plan rather than from the analysis. Pass
+        /// null and the epoch is recovered from the mean elements instead, which is
+        /// the vessel's own case.</para>
+        /// </summary>
         internal static OrbitAnalysisObservation? Describe(
-            object? analysis, ICelestialNames celestials, double? epochUt)
+            PrincipiaFrame frame,
+            object? analysis,
+            ICelestialNames celestials,
+            double? epochUt)
         {
             if (analysis == null)
             {
@@ -338,6 +353,10 @@ namespace GonogoPrincipiaUplink
                 return observation;
             }
 
+            // Read the series, then free it. The order is load-bearing rather than
+            // tidy: freeing the iterator invalidates the only thing on the whole
+            // payload that carries an instant.
+            observation.ElementsEpochUt = epochUt ?? MeanElementsEpoch(frame, elements);
             DisposePlottableElements(elements);
 
             var radius = primaryIndex == null ? null : celestials.RadiusOf(primaryIndex.Value);
@@ -384,6 +403,39 @@ namespace GonogoPrincipiaUplink
             return observation;
         }
 
+        /// <summary>
+        /// When the analysis was taken from, recovered from the mean elements
+        /// because nothing on the analysis struct says.
+        ///
+        /// <para>The producer anchors a vessel's analysis at whatever instant the
+        /// craft's history had reached when one was last requested, and publishes no
+        /// field for it. Its own averaging is what makes the anchor recoverable: a
+        /// mean element at <c>t</c> is a boxcar over <c>t</c> plus or minus half a
+        /// sidereal period, so the series cannot begin until half a period after the
+        /// trajectory does, and the producer starts it at exactly
+        /// <c>t_min + period/2</c>. Taking that half-period back off the first
+        /// sample lands on the anchor itself. It is an identity out of the
+        /// producer's own construction, not an estimate of one.</para>
+        ///
+        /// <para>Absent rather than approximated when either half is missing. An
+        /// epoch that quietly meant "the first sample" for one analysis and "the
+        /// anchor" for another would make the age this dates read differently for
+        /// the same staleness.</para>
+        /// </summary>
+        private static double? MeanElementsEpoch(PrincipiaFrame frame, object elements)
+        {
+            var first = frame.FirstMeanElement(Fields.Get(elements, PlottableElementsField));
+            if (first == null)
+            {
+                return null;
+            }
+            var sampleUt = Fields.GetDouble(first, PlottableElementTimeField);
+            var siderealPeriod = Fields.GetDouble(elements, SiderealPeriodField);
+            return sampleUt == null || siderealPeriod == null
+                ? null
+                : sampleUt.Value - (siderealPeriod.Value / 2.0);
+        }
+
         private static IntervalObservation? Interval(
             object elements, string name, double scale, double offset)
         {
@@ -409,7 +461,7 @@ namespace GonogoPrincipiaUplink
             value == null ? null : value.Value * factor;
 
         /// <summary>
-        /// Frees the element time series this reading does not use.
+        /// Frees the element time series once its first instant has been taken.
         ///
         /// <para>Tolerant on purpose: a build that does not carry the field, or
         /// carries something that is not disposable, costs nothing here, and a

@@ -106,6 +106,28 @@ namespace GonogoPrincipiaUplink
             IntPtr plugin, string vesselGuid, int index);
 
         /// <summary>
+        /// Whether an iterator has run off the end of what it walks.
+        ///
+        /// <para>No plugin handle, and that is the shape rather than an omission:
+        /// the iterator owns the native vector behind it, ownership having
+        /// transferred to us when the analysis that allocated it was read. Its only
+        /// abort is a null iterator.</para>
+        /// </summary>
+        bool IteratorAtEnd(object iterator);
+
+        /// <summary>
+        /// The mean element the iterator denotes, as the producer's own struct.
+        ///
+        /// <para>Two aborts, neither of them diagnosable afterwards: an iterator
+        /// over something other than plottable elements, and a read past the end.
+        /// The first cannot arise while the only iterator that reaches here is an
+        /// analysis's own <c>plottable_elements</c>; the second is excluded by
+        /// <see cref="IteratorAtEnd"/> on the same iterator immediately
+        /// before.</para>
+        /// </summary>
+        object? IteratorGetPlottableElements(object iterator);
+
+        /// <summary>
         /// Whether the WRITE half of this surface bound, and why not when it did
         /// not.
         ///

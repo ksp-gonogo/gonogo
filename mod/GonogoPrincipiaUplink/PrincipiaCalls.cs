@@ -40,8 +40,10 @@ namespace GonogoPrincipiaUplink
         /// <para>Grouped by the precondition each needs: no handle at all;
         /// a live plugin handle; a live handle plus a <c>HasVessel</c> that
         /// returned true this frame; those plus a <c>FlightPlanExists</c> that
-        /// returned true this frame; and finally those plus an index taken from
-        /// the matching <c>NumberOf*</c> in the same frame.</para>
+        /// returned true this frame; those plus an index taken from the matching
+        /// <c>NumberOf*</c> in the same frame; and last, the two iterator reads,
+        /// whose precondition is about the iterator we were handed rather than
+        /// about the plugin.</para>
         /// </summary>
         public static readonly string[] Allowed =
         {
@@ -90,6 +92,24 @@ namespace GonogoPrincipiaUplink
             "FlightPlanGetManoeuvreFrenetTrihedron",
             "FlightPlanGetGuidance",
             "FlightPlanGetManoeuvreInitialPlottedVelocity",
+
+            /*
+             * Neither a handle nor a vessel, but an iterator over a native vector
+             * that this frame's own analysis read allocated and gave us ownership
+             * of. So the preconditions are the iterator's, not the plugin's.
+             *
+             * `IteratorAtEnd` dies on a null iterator and on nothing else, its whole
+             * body being a null check and a comparison against the container's end.
+             * `IteratorGetPlottableElements` has two more: a `dynamic_cast` to the
+             * plottable-element iterator, and a `CHECK` against the end inside the
+             * read itself. Neither is reachable here. The cast cannot fail while the
+             * only iterator this assembly ever holds is an analysis's own
+             * `plottable_elements`, and the end check cannot fail while every read
+             * is preceded by `IteratorAtEnd` on the same iterator with no advance in
+             * between.
+             */
+            "IteratorAtEnd",
+            "IteratorGetPlottableElements",
         };
 
         /// <summary>

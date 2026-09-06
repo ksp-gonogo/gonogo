@@ -209,13 +209,18 @@ namespace GonogoPrincipiaUplink.Tests
         }
 
         /// <summary>
-        /// The vessel's own analysis is anchored wherever the craft's history ended
-        /// when the producer last requested one, and the producer publishes no
-        /// instant for it. Null says so; a substituted "now" would make a reading
-        /// of unknown age look current.
+        /// The vessel's own analysis IS dateable, which this Uplink spent its whole
+        /// life asserting it was not.
+        ///
+        /// <para>Nothing on the analysis struct carries an instant, and that was
+        /// taken to settle the question. It does not: the producer's mean elements
+        /// each carry one, and its own averaging fixes the offset exactly, because a
+        /// boxcar over one sidereal period cannot start until half a period into the
+        /// trajectory. First sample 3300, period 5400, so the analysis was anchored
+        /// at 600.</para>
         /// </summary>
         [Fact]
-        public void TheVesselAnalysisIsPublishedWithNoEpochBecauseItHasNone()
+        public void DatesTheVesselAnalysisFromItsOwnMeanElements()
         {
             var (_, observation) = Read(p =>
             {
@@ -223,17 +228,75 @@ namespace GonogoPrincipiaUplink.Tests
                 p.VesselAnalysis = new FakeOrbitAnalysis();
             });
 
-            Assert.Null(observation!.Orbit!.ElementsEpochUt);
+            Assert.Equal(600.0, observation!.Orbit!.ElementsEpochUt);
         }
 
         /// <summary>
-        /// The element time series is freed rather than left to a finaliser. The
-        /// producer's marshaller cleanup for it is empty and the producer never
-        /// disposes one, so a second reader on the same cadence would double the
-        /// finaliser pressure for a payload it does not read.
+        /// The FIRST sample and not the last, and the series is never walked. It
+        /// comes out of an adaptive-step integrator, so its length is whatever the
+        /// orbit's regularity made it, and this read happens once a tick on the main
+        /// thread for the vessel and again for every coast. Two calls per analysis
+        /// is the budget; one per step the producer took is not.
         /// </summary>
         [Fact]
-        public void FreesTheElementSeriesItDoesNotRead()
+        public void ReadsOneSampleRatherThanWalkingTheSeries()
+        {
+            var (plugin, _) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis = new FakeOrbitAnalysis();
+            });
+
+            Assert.Single(Named(plugin, "IteratorAtEnd"));
+            Assert.Single(Named(plugin, "IteratorGetPlottableElements"));
+        }
+
+        /// <summary>
+        /// An empty series is not an epoch of nought. Reading past the end aborts
+        /// the producer rather than answering, so the emptiness has to be asked
+        /// about rather than discovered.
+        /// </summary>
+        [Fact]
+        public void AnEmptySeriesLeavesTheElementsUndated()
+        {
+            var analysis = new FakeOrbitAnalysis();
+            analysis.elements!.plottable_elements = new FakeDisposableIterator();
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid);
+                p.VesselAnalysis = analysis;
+            });
+
+            Assert.Null(observation!.Orbit!.ElementsEpochUt);
+            Assert.True(observation.Orbit.ElementsPresent);
+        }
+
+        /// <summary>
+        /// A coast keeps the epoch its own boundaries give it, rather than the one
+        /// the series would derive. Both name the same instant, but the plan's copy
+        /// is read directly and the series' copy is reconstructed, and preferring
+        /// the measurement keeps one contract field meaning one thing.
+        /// </summary>
+        [Fact]
+        public void ACoastIsDatedFromThePlanRatherThanFromTheSeries()
+        {
+            var (_, observation) = Read(p =>
+            {
+                p.Add(Guid, hasFlightPlan: true, manoeuvres: 0);
+                p.CoastAnalysis = new FakeOrbitAnalysis();
+            });
+
+            Assert.Equal(2000.0, observation!.Coasts[0].Analysis!.ElementsEpochUt);
+        }
+
+        /// <summary>
+        /// The element time series is freed after its instant is taken, rather than
+        /// left to a finaliser. The producer's marshaller cleanup for it is empty
+        /// and the producer never disposes one, so a second reader on the same
+        /// cadence would double the finaliser pressure.
+        /// </summary>
+        [Fact]
+        public void FreesTheElementSeriesOnceItHasBeenRead()
         {
             var analysis = new FakeOrbitAnalysis();
             Read(p =>

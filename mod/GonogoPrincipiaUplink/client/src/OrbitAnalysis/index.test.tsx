@@ -61,7 +61,12 @@ function orbit(overrides: Record<string, unknown> = {}) {
     primaryBody: "Kerbin",
     gravitationallyBound: true,
     elementsPresent: true,
-    elementsEpochUt: null,
+    /*
+     * Inside one revolution of the view, because that is what a vessel analysis
+     * ordinarily looks like: the producer re-anchors one every two seconds while
+     * its own main window is open.
+     */
+    elementsEpochUt: VIEW_UT - 1800,
     siderealPeriodSeconds: 5401.2,
     nodalPeriodSeconds: 5388.4,
     anomalisticPeriodSeconds: 5412.9,
@@ -136,31 +141,72 @@ describe("OrbitAnalysisSection", () => {
   });
 
   /**
-   * The producer publishes no instant for a vessel's own analysis and keeps the
-   * last completed one indefinitely once its window shuts. Mean elements look
-   * exactly as confident an hour old, so the one thing this must never do is
-   * present an undateable reading as a current one.
+   * The vessel's own analysis is dated now, which it was not for most of this
+   * widget's life: the producer carries no instant on the analysis struct, and
+   * that was read as the age being unknowable rather than as its being somewhere
+   * else. It is on the mean elements, and the Uplink recovers it.
    */
-  it("says the elements are of unknown age rather than implying they are current", async () => {
+  it("dates the vessel's own analysis rather than calling it undateable", async () => {
     const stream = mount();
     await emit(stream, { vesselId: "v", sampledAtUt: VIEW_UT, orbit: orbit() });
+
+    const text = await visibleText(stream.container);
+    expect(text).toContain("Measured from");
+    expect(text).toContain("ago");
+    expect(text).not.toContain("Elements of unknown age");
+  });
+
+  /**
+   * An epoch that could not be established is still its own state, and the one
+   * thing it must never do is read as "these are current". Absent is not zero.
+   */
+  it("says the elements are of unknown age when they carry no epoch", async () => {
+    const stream = mount();
+    await emit(stream, {
+      vesselId: "v",
+      sampledAtUt: VIEW_UT,
+      orbit: orbit({ elementsEpochUt: null }),
+    });
 
     const text = await visibleText(stream.container);
     expect(text).toContain("Elements of unknown age");
     expect(text).not.toContain("Measured from now");
   });
 
-  /** A dated reading is dated, and an old one says how old. */
-  it("dates elements that carry an epoch", async () => {
-    const stream = mount();
-    await emit(stream, {
+  /**
+   * Stale is decided against the orbit's OWN sidereal period rather than a fixed
+   * span, because every band on this section is a mean over one period: an age
+   * shorter than that is inside the smearing the numbers already carry. A fixed
+   * threshold would call the same fraction of a revolution fresh in low orbit
+   * and stale around the Mun.
+   *
+   * <p>Asserted on the attribute because the verdict is otherwise carried only
+   * by a text colour, and a colour is a CSS variable nothing can read here.</p>
+   */
+  it("calls an age stale only once it exceeds one revolution", async () => {
+    const fresh = mount();
+    await emit(fresh, {
+      vesselId: "v",
+      sampledAtUt: VIEW_UT,
+      orbit: orbit({ elementsEpochUt: VIEW_UT - 5000 }),
+    });
+    expect(
+      fresh.container
+        .querySelector("[data-elements-age]")
+        ?.getAttribute("data-elements-age"),
+    ).toBe("current");
+
+    const stale = mount();
+    await emit(stale, {
       vesselId: "v",
       sampledAtUt: VIEW_UT,
       orbit: orbit({ elementsEpochUt: VIEW_UT - 7200 }),
     });
-
-    expect(await visibleText(stream.container)).toContain("Measured from");
-    expect(await visibleText(stream.container)).toContain("ago");
+    expect(
+      stale.container
+        .querySelector("[data-elements-age]")
+        ?.getAttribute("data-elements-age"),
+    ).toBe("stale");
   });
 
   /**

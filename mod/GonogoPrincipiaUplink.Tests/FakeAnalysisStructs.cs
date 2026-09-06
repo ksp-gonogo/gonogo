@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace GonogoPrincipiaUplink.Tests
 {
@@ -138,11 +139,39 @@ namespace GonogoPrincipiaUplink.Tests
         public double? first_collision_risk_time;
         public double? first_reentry_time;
 
-        /// <summary>The iterator the reader frees and reads nothing from. Its
-        /// disposal is the point: the producer's marshaller cleanup is empty, so
-        /// nothing but a finaliser ever frees the native vector behind one.</summary>
-        public FakeDisposableIterator plottable_elements = new FakeDisposableIterator();
+        /// <summary>
+        /// The mean-element series, which the reader takes one instant off and then
+        /// frees.
+        ///
+        /// <para>Its first sample sits half a sidereal period after 600, because
+        /// that is the relation the reader inverts: the producer's boxcar cannot
+        /// start until half a period into the trajectory, so an anchor of 600 with
+        /// the 5400-second period above puts the first sample at 3300.</para>
+        /// </summary>
+        public FakeDisposableIterator plottable_elements =
+            new FakeDisposableIterator(3300.0, 4700.0, 8700.0);
 #pragma warning restore IDE1006
+    }
+
+    /// <summary>
+    /// One entry of the mean-element series, in the producer's own spelling.
+    ///
+    /// <para>The instant is the SECOND field on purpose. A reader that took the
+    /// first double it found would pass against a struct that led with the time,
+    /// and would publish a semi-major axis as an epoch.</para>
+    /// </summary>
+    public struct FakePlottableElements
+    {
+#pragma warning disable IDE1006
+        public double semimajor_axis;
+        public double time;
+#pragma warning restore IDE1006
+
+        public FakePlottableElements(double time)
+        {
+            this.time = time;
+            semimajor_axis = 6_705_000.0;
+        }
     }
 
     /// <summary>A closed interval. A struct, as the producer's is.</summary>
@@ -160,10 +189,31 @@ namespace GonogoPrincipiaUplink.Tests
         }
     }
 
-    /// <summary>Records whether it was disposed, which is the only thing the reader
-    /// is meant to do with it.</summary>
+    /// <summary>
+    /// A cursor over a mean-element series, which records its own disposal.
+    ///
+    /// <para>It carries samples rather than being an opaque handle, because the
+    /// first sample's instant is what dates a vessel's elements: against an empty
+    /// stand-in, a reader that never looked would pass.</para>
+    /// </summary>
     public sealed class FakeDisposableIterator : IDisposable
     {
+        public FakeDisposableIterator(params double[] sampleTimes)
+        {
+            foreach (var time in sampleTimes)
+            {
+                Samples.Add(new FakePlottableElements(time));
+            }
+        }
+
+        public List<FakePlottableElements> Samples { get; } =
+            new List<FakePlottableElements>();
+
+        /// <summary>Where the walk has got to. Starts at the beginning, as a freshly
+        /// marshalled one does: the producer constructs its iterator from the
+        /// container's <c>begin()</c>, so nothing has to reset one.</summary>
+        public int Cursor { get; set; }
+
         public int Disposals { get; private set; }
 
         public void Dispose() => Disposals++;

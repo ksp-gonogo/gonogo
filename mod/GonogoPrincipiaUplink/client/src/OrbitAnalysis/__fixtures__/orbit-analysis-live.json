@@ -24,7 +24,7 @@
             "primaryBody": "Kerbin",
             "gravitationallyBound": true,
             "elementsPresent": true,
-            "elementsEpochUt": null,
+            "elementsEpochUt": 999820,
             "siderealPeriodSeconds": 5401.2,
             "nodalPeriodSeconds": 5388.4,
             "anomalisticPeriodSeconds": 5412.9,

@@ -325,6 +325,18 @@ namespace GonogoPrincipiaUplink
             IntPtr plugin, string vesselGuid, int index) =>
             Vector(Call("FlightPlanGetManoeuvreInitialPlottedVelocity", plugin, vesselGuid, index));
 
+        /// <summary>
+        /// Both iterator reads go through the producer's own extension methods on
+        /// the same forwarder as everything else, so its custom marshaller is what
+        /// turns the managed handle back into the native pointer. Binding the
+        /// export by symbol would have meant reimplementing that marshaller for one
+        /// argument type.
+        /// </summary>
+        public bool IteratorAtEnd(object iterator) => Bool("IteratorAtEnd", iterator);
+
+        public object? IteratorGetPlottableElements(object iterator) =>
+            Call("IteratorGetPlottableElements", iterator);
+
         public bool WritesBound(out string reason)
         {
             reason = _writeBindFailure;

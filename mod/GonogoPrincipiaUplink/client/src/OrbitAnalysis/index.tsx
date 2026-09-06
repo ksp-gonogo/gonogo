@@ -59,33 +59,44 @@ function analysisView(reading: Reading<PrincipiaAnalysis>): AnalysisView {
 }
 
 /**
- * How old the elements are, and the honest answer when that is unknowable.
+ * How old the elements are, and how much that age matters.
  *
- * <p>The producer publishes no instant for a vessel's own analysis: it is
- * anchored wherever the craft's history ended when the analyser was last asked
- * to run, and nothing on the payload carries that. So the age is a real number
- * for a coast and genuinely absent here, and the absence gets said outright
- * rather than left as a zero.</p>
+ * <p>Mean elements look exactly as confident an hour old as a second old, and
+ * the producer keeps its last completed analysis indefinitely once its own
+ * window shuts. So the age leads the numbers rather than sitting somewhere it
+ * can be skipped.</p>
  *
- * <p>Which is the point of the line. Mean elements look exactly as confident
- * when they are an hour old, and the producer keeps the last completed analysis
- * indefinitely once its window closes.</p>
+ * <p>The line between current and stale is the orbit's OWN sidereal period, and
+ * it is derived rather than picked. Every band below is a mean over one period,
+ * so an age shorter than one period is inside the smearing the elements already
+ * carry and cannot be told from zero by the elements themselves. Past it, the
+ * reading describes an orbit the craft may have left. A fixed number of seconds
+ * would have said "stale" for a Munar orbit and "fresh" for a low one at the
+ * same fraction of a revolution.</p>
+ *
+ * <p>Unknown is still a case and still says so outright: absent is not zero, and
+ * an undateable reading must not read as a current one.</p>
+ *
+ * <p>The verdict is also an attribute, because it is otherwise carried only by a
+ * colour. A tone is a CSS variable and nothing can assert on one, so the rule
+ * that decides it would be the only rule here nothing could see go wrong.</p>
  *
  * <p>Text rather than a badge, and that is the size talking: a badge does not
  * wrap, and the host widget declares itself usable at a hundred and twelve
- * pixels wide, which is narrower than any of these four phrases. A clipped
- * qualifier is worse than a wrapped one.</p>
+ * pixels wide, which is narrower than any of these phrases. A clipped qualifier
+ * is worse than a wrapped one.</p>
  */
 function AgeLine({
-  epochUt,
+  orbit,
   viewUt,
 }: {
-  epochUt: number | null;
+  orbit: PrincipiaOrbitAnalysis;
   viewUt: number | null;
 }) {
+  const epochUt = magnitudeOf(orbit.elementsEpochUt);
   if (epochUt === null || viewUt === null) {
     return (
-      <Text tone="warn" size="sm">
+      <Text tone="warn" size="sm" data-elements-age="unknown">
         Elements of unknown age
       </Text>
     );
@@ -93,7 +104,7 @@ function AgeLine({
   const age = viewUt - epochUt;
   if (age === 0) {
     return (
-      <Text tone="go" size="sm">
+      <Text tone="go" size="sm" data-elements-age="current">
         Measured from now
       </Text>
     );
@@ -103,13 +114,19 @@ function AgeLine({
     // elements describe an orbit the craft is not in, which is the whole point
     // of a planned coast and exactly the thing an unlabelled band would blur.
     return (
-      <Text tone="info" size="sm">
+      <Text tone="info" size="sm" data-elements-age="ahead">
         Measured from <Countdown value={-age} /> ahead
       </Text>
     );
   }
+  const period = magnitudeOf(orbit.siderealPeriodSeconds);
+  const withinOneRevolution = period !== null && age < period;
   return (
-    <Text tone="warn" size="sm">
+    <Text
+      tone={withinOneRevolution ? "info" : "warn"}
+      size="sm"
+      data-elements-age={withinOneRevolution ? "current" : "stale"}
+    >
       Measured from <Countdown value={age} /> ago
     </Text>
   );
@@ -228,7 +245,7 @@ export function OrbitAnalysisRows({
         <Text tone="warn" size="sm">
           Elements not determined
         </Text>
-        <AgeLine epochUt={magnitudeOf(orbit.elementsEpochUt)} viewUt={viewUt} />
+        <AgeLine orbit={orbit} viewUt={viewUt} />
         {/* The interesting cause, and the one an operator can act on: the
             analysis integrates forward from the craft's present state, and it
             refuses a span shorter than one revolution. Waiting fixes it; looking
@@ -249,7 +266,7 @@ export function OrbitAnalysisRows({
           shown in two places: here under the current orbit, and again inside a
           coast row of the flight plan. A qualifier left in one header is a
           qualifier the other surface silently drops. */}
-      <AgeLine epochUt={magnitudeOf(orbit.elementsEpochUt)} viewUt={viewUt} />
+      <AgeLine orbit={orbit} viewUt={viewUt} />
       {orbit.gravitationallyBound === false && (
         <Text tone="warn" size="sm">
           Not gravitationally bound
@@ -472,8 +489,8 @@ function HazardRow({
  *
  * <p><b>And it is a reading with an age.</b> The producer keeps the last
  * completed analysis indefinitely once its own window shuts, and mean elements
- * look no less confident for being an hour old. The badge is the first thing in
- * the section for that reason.</p>
+ * look no less confident for being an hour old. The age line is the first thing
+ * under the phrase for that reason.</p>
  */
 export function OrbitAnalysisSection() {
   const view = analysisView(useTelemetry("principia.analysis"));

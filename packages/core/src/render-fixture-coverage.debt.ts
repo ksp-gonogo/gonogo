@@ -120,16 +120,5 @@ export const COINCIDENTAL: readonly string[] = [
  * refusing a new one: feed the field in a fixture instead.
  */
 export const RENDER_GAP: readonly string[] = [
-  /*
-   * Not closeable from a fixture, and the reason is on the producer.
-   * `AnalysisReader` passes `null` for a VESSEL's own analysis and the coast's
-   * start time for a coast, because Principia anchors a vessel analysis
-   * wherever the craft's history ended and publishes no instant for it. So this
-   * topic can only ever carry null here, `AgeLine`'s "Elements of unknown age"
-   * branch is the one every render of this widget shows, and the dated branch
-   * belongs to CoastAnalysis, whose fixtures do carry an epoch. Feeding a
-   * number here would be inventing a frame the game cannot send.
-   */
-  "mod/GonogoPrincipiaUplink/client/src/OrbitAnalysis#elementsEpochUt",
   "packages/components/src/Objectives#description",
 ];

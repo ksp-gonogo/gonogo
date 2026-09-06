@@ -84,6 +84,34 @@ namespace GonogoPrincipiaUplink
             return true;
         }
 
+        /// <summary>
+        /// The first entry of an analysis's mean-element series, as the producer's
+        /// own struct, or null when the series is absent or empty.
+        ///
+        /// <para>Takes no vessel gate because it needs none: the iterator carries a
+        /// native vector whose ownership transferred to us when the analysis was
+        /// read, and neither call touches the plugin. The frame is still the way in,
+        /// so a read cannot outlive the callback that produced the iterator.</para>
+        ///
+        /// <para><b>The first entry, and never a walk to the last.</b> The series
+        /// comes out of an adaptive-step integrator, so its length depends on how
+        /// regular the orbit turned out to be and has no bound this side can state.
+        /// The first entry is two calls whatever that length is; reaching the last
+        /// would be one call per step the producer happened to take, once a tick,
+        /// on the main thread, for every analysis on screen.</para>
+        /// </summary>
+        public object? FirstMeanElement(object? plottableElements)
+        {
+            _session.Enter(_generation, "an analysis's first mean element");
+            if (plottableElements == null)
+            {
+                return null;
+            }
+            return _session.Plugin.IteratorAtEnd(plottableElements)
+                ? null
+                : _session.Plugin.IteratorGetPlottableElements(plottableElements);
+        }
+
         public void Dispose() => _session.EndFrame(_generation);
     }
 

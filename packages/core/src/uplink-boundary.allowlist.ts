@@ -2626,14 +2626,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
-       * -- RENDER-FIXTURE COVERAGE ratchet (2026-08-29). Two files, for two
-       * reasons. The debt list is keyed by widget directory, so it names this
-       * Uplink's OrbitAnalysis by construction. The test itself cites commit
-       * a718dd36a as its worked example and quotes the six field names its
-       * planted-failure demonstration reports, which is prose in a doc comment
-       * and holds no coupling: the demonstration is the evidence that the gate
-       * can fail at all, and naming what it printed is what makes that
-       * checkable.
+       * -- RENDER-FIXTURE COVERAGE ratchet (2026-08-29). Two files, and both
+       * name this Uplink in PROSE now rather than as data. The debt list is
+       * keyed by widget directory and used to carry OrbitAnalysis's
+       * `elementsEpochUt`; that entry is gone, the vessel's own analysis being
+       * dated on the wire now, so all that is left is the worked example in its
+       * header. The test itself cites commit a718dd36a and quotes the six field
+       * names its planted-failure demonstration reports, which holds no
+       * coupling either: the demonstration is the evidence that the gate can
+       * fail at all, and naming what it printed is what makes that checkable.
        */
       "packages/core/src/render-fixture-coverage.debt.ts",
       "packages/core/src/render-fixture-coverage.test.ts",
@@ -3090,7 +3091,6 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/app/src/__tests__/topic-cs-sync.test.ts",
     "packages/app/src/__tests__/uplink-widget-declarations.test.ts",
     "packages/core/src/comment-stacks.allowlist.ts",
-    "packages/core/src/render-fixture-coverage.debt.ts",
     "packages/core/src/styleguide-magnitude-budget.test.ts",
     "packages/core/src/truenow-allowlist.test.ts",
   ],

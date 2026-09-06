@@ -148,14 +148,19 @@ export interface PrincipiaOrbitAnalysis
 	*/
 	elementsPresent?: boolean;
 	/**
-	* The instant the elements are measured FROM, or null when it is not knowable.
+	* The instant the elements are measured FROM: the start of the span the
+	* analysis integrated, on the same clock as every other instant here.
 	*
-	* Known for a coast, whose analysis is anchored at the coast's own start. Not
-	* known for the vessel's current-orbit analysis: that one is anchored wherever
-	* the craft's history happened to end when the producer last requested it, and
-	* the producer publishes no instant for it. Null therefore means "we cannot
-	* date these", which is a different statement from "these are current", and a
-	* client must not render it as the second.
+	* A coast's analysis is anchored at the coast's own start. The vessel's
+	* current-orbit analysis is anchored wherever the craft's history happened to
+	* have reached when the producer last ran one, which is what makes this the
+	* field that says how OLD the elements are. Both are the same quantity and a
+	* client can treat them alike.
+	*
+	* Null means the epoch could not be established, which is a different
+	* statement from "these are current" and must not be rendered as the second.
+	* Mean elements look exactly as confident an hour old, and the producer keeps
+	* its last completed analysis indefinitely once its own window shuts.
 	*/
 	elementsEpochUt?: Value<"ut">;
 	/** The period of the mean longitude. */

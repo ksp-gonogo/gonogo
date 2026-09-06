@@ -232,6 +232,42 @@ namespace GonogoPrincipiaUplink.Tests
         /// promises.</summary>
         public object? CoastAnalysis { get; set; } = "coast-analysis";
 
+        public bool IteratorAtEnd(object iterator)
+        {
+            var cursor = Cursor("IteratorAtEnd", iterator);
+            return cursor.Cursor >= cursor.Samples.Count;
+        }
+
+        /// <summary>
+        /// Faults where the native read aborts: past the end, and on an iterator
+        /// over anything else.
+        ///
+        /// <para>Both are <c>CHECK</c>s in the producer rather than error returns,
+        /// so a double that answered a default for either would hide the one thing
+        /// the caller has to get right.</para>
+        /// </summary>
+        public object? IteratorGetPlottableElements(object iterator)
+        {
+            var cursor = Cursor("IteratorGetPlottableElements", iterator);
+            if (cursor.Cursor >= cursor.Samples.Count)
+            {
+                throw new PrincipiaWouldHaveAbortedException(
+                    "read a mean element past the end of the series");
+            }
+            return cursor.Samples[cursor.Cursor];
+        }
+
+        private FakeDisposableIterator Cursor(string call, object iterator)
+        {
+            Calls.Add(call);
+            if (iterator is not FakeDisposableIterator cursor)
+            {
+                throw new PrincipiaWouldHaveAbortedException(
+                    call + " on an iterator over something other than mean elements");
+            }
+            return cursor;
+        }
+
         public bool FlightPlanExists(IntPtr plugin, string vesselGuid) =>
             Vessel("FlightPlanExists", plugin, vesselGuid).HasFlightPlan;
 
