@@ -1065,7 +1065,20 @@ namespace Sitrep.Contract
         /// <summary>The C# port of <c>mod/sitrep-kernel</c>'s capability/provider registry (see <see cref="Kernel"/>).</summary>
         Kernel Kernel { get; }
 
-        /// <summary>Fail-soft: flag the CURRENTLY-registering uplink as unavailable (see <see cref="Availability"/>).</summary>
+        /// <summary>
+        /// Fail-soft: flag the CURRENTLY-registering uplink as unavailable (see
+        /// <see cref="Availability"/>), so an uplink whose mod is not installed
+        /// says so and returns instead of throwing. The rest of Gonogo loads
+        /// either way.
+        ///
+        /// <para>Registration-time only: it names the uplink whose
+        /// <see cref="ISitrepUplink.Register"/> is on the stack, so a call from a
+        /// callback, a command handler, or anywhere after
+        /// <see cref="ISitrepUplink.Register"/> has returned writes nothing. That
+        /// call is logged rather than dropped in silence, and the state it wanted
+        /// to report belongs on <see cref="ISitrepUplink.Health"/>, which is
+        /// polled for exactly this.</para>
+        /// </summary>
         void SetAvailability(Availability availability);
 
         /// <summary>
@@ -1308,6 +1321,37 @@ namespace Sitrep.Contract
         /// <see cref="UplinkHealthState.Healthy"/>, no <see cref="Detail"/>.
         /// </summary>
         public static readonly UplinkHealth Healthy = new UplinkHealth(UplinkHealthState.Healthy);
+
+        /// <summary>
+        /// Working, but not as it should be: the uplink is registered and its
+        /// dependency is present, and something it needs is missing or wrong
+        /// (no CPU selected, a capture that threw, a version it does not
+        /// recognise). <paramref name="detail"/> is the sentence an operator
+        /// reads under the state, and a degraded report is the one shape where
+        /// omitting it leaves them nothing to act on.
+        ///
+        /// <para>A factory rather than a field, exactly as
+        /// <see cref="Availability.Unavailable"/> is one beside
+        /// <see cref="Availability.Available"/>: the healthy case has nothing
+        /// to say and can be a shared value, and these two cannot honestly
+        /// exist without a reason.</para>
+        /// </summary>
+        public static UplinkHealth Degraded(
+            string detail,
+            IReadOnlyList<UplinkHealthFact>? facts = null) =>
+            new UplinkHealth(UplinkHealthState.Degraded, detail, facts);
+
+        /// <summary>
+        /// Not usable at all: the mod this uplink integrates is absent, or a
+        /// capability it depends on never resolved, so none of its channels
+        /// will carry anything. <paramref name="detail"/> says which, in the
+        /// operator's terms. A factory for the same reason
+        /// <see cref="Degraded"/> is one.
+        /// </summary>
+        public static UplinkHealth Unavailable(
+            string detail,
+            IReadOnlyList<UplinkHealthFact>? facts = null) =>
+            new UplinkHealth(UplinkHealthState.Unavailable, detail, facts);
     }
 
     // Health is MANDATORY, not opt-in: `Health()` is a member of the base

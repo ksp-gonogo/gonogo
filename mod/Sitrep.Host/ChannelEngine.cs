@@ -2821,10 +2821,20 @@ namespace Sitrep.Host
 
         public void SetAvailability(Availability availability)
         {
-            if (_currentRegisteringUplinkId != null)
+            if (_currentRegisteringUplinkId == null)
             {
-                _availability[_currentRegisteringUplinkId] = availability;
+                // Never silent, same rule as MarkUplinkUnavailable: availability
+                // names the uplink whose Register is running, so a call from
+                // anywhere else has nothing to write and does nothing at all. An
+                // uplink that reported "my mod is missing" from a callback and
+                // was dropped here reads on the wire exactly like a healthy one.
+                LogHost("SetAvailability(" + (availability.IsAvailable ? "Available" : "Unavailable")
+                    + ") called outside an uplink's Register: IGNORED. Availability is a "
+                    + "registration-time verdict; report a later change from ISitrepUplink.Health.");
+                return;
             }
+
+            _availability[_currentRegisteringUplinkId] = availability;
         }
 
         // Courier-thread-only (see IUplinkHost.ForceKeyframe's doc
