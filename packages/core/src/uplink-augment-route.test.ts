@@ -8,12 +8,25 @@ import { describe, expect, it } from "vitest";
  * READING as well as writing. Never through `@ksp-gonogo/ui-kit`.
  *
  * Both packages are published, so both imports resolve and neither looks wrong.
- * They are not equivalent. The sdk's `registerAugment` is a shim onto the injected
- * host, so it reaches the app's single registry. ui-kit's is the registry itself,
- * and an Uplink that imports it gets whatever copy its own bundle contains: it
- * registers into a map the app never reads. The symptom is that the author's
- * augments never appear, with no error anywhere, which is the failure the whole
- * injected-host design exists to prevent.
+ * They are not equivalent, for two reasons that survive and one that no longer
+ * does.
+ *
+ * TYPES. An Uplink writes `declare module "@ksp-gonogo/sitrep-sdk"` to add its
+ * slot ids, so `AugmentSlot` taken off ui-kit is typed against ui-kit's
+ * `SlotRegistry`, which that declaration never merged into.
+ *
+ * FAILURE MODE. With no host installed the sdk's shims throw a named error that
+ * says the package is not external and names the fix (`getHost()` in
+ * `mod/sitrep-sdk/src/api/host.ts`); ui-kit's carry on silently. A mis-bundled
+ * Uplink should fail loud at first registration.
+ *
+ * WHAT NO LONGER APPLIES: the second-copy trap. ui-kit's registry state was a
+ * module-static `Map` until 2026-09-01, so an Uplink that inlined ui-kit instead
+ * of marking it external registered into its own copy and its augments silently
+ * never appeared. `packages/ui-kit/src/augments.ts` now keeps that state in one
+ * `globalThis` slot and `augments.second-copy.test.ts` arranges a genuine second
+ * module instance to prove two copies converge. This guard is not what stops
+ * that any more; the two reasons above are why it stays.
  *
  * This is a GUARD rather than a narrowing of ui-kit's barrel, and that was
  * checked rather than assumed. `packages/core/src/augments.ts` re-exports the
@@ -121,11 +134,11 @@ describe("an Uplink reaches the augment registry through the sdk", () => {
         offenders()
           .map((o) => `  ${o}`)
           .join("\n") +
-        `\n\nui-kit's is the registry itself, so a bundled Uplink registers into\n` +
-        `a map the app never reads and its augments silently never appear.\n` +
-        `Import from @ksp-gonogo/sitrep-sdk instead (or, for the test-only\n` +
-        `clearAugments, from @ksp-gonogo/sitrep-sdk/testing): those are shims\n` +
-        `onto the injected host, so they reach the app's single registry.`,
+        `\n\nImport from @ksp-gonogo/sitrep-sdk instead (or, for the test-only\n` +
+        `clearAugments, from @ksp-gonogo/sitrep-sdk/testing). Those are shims onto\n` +
+        `the injected host, so your slot ids merge into the registry your\n` +
+        `declare-module targets, and a mis-bundled Uplink throws a named error at\n` +
+        `first registration instead of carrying on silently. See docs/uplink-isolation.md.`,
     ).toEqual([]);
   });
 

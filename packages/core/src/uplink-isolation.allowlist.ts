@@ -39,10 +39,11 @@
  *
  * The test-side entries have a single shared cause: nothing published carried a
  * test harness, so every Uplink reached into `core` / `sitrep-client` /
- * `test-utils` for one. `@ksp-gonogo/sitrep-testing` is that harness, published
- * and sitting ABOVE the spine so it can hand an author the REAL
- * `TelemetryClient` / `TimelineStore` / `StubTransport` rather than a
- * reimplementation of them.
+ * `test-utils` for one. That harness is now `@ksp-gonogo/sitrep-sdk/testing`,
+ * which hands an author the REAL `TelemetryClient` / `TimelineStore` /
+ * `StubTransport` rather than a reimplementation of them. It was briefly a
+ * separate `@ksp-gonogo/sitrep-testing` package sitting above the spine; that
+ * package is DELETED, and the subpath is where the harness lives now.
  *
  * See `docs/uplink-isolation.md`.
  */

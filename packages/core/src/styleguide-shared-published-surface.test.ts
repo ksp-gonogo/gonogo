@@ -35,10 +35,10 @@ import { describe, expect, it } from "vitest";
  * `KNOWN_DIVERGENCES` is a shrink-only debt list, the same device this repo uses
  * for the uplink-isolation boundary, not a blessing. Its entries are the pairs
  * where the sdk's declaration is a HOST SHIM and ui-kit's is the registry it
- * ultimately reaches, which is a genuine architectural question (an Uplink
- * importing the ui-kit half directly would read a bundled copy of a registry the
- * app never writes to: the dead-registry failure the whole host model exists to
- * prevent) rather than a copy to delete. A NEW duplicate fails outright.
+ * ultimately reaches, which is a genuine architectural question rather than a
+ * copy to delete: the shim is what carries an Uplink's `declare module
+ * "@ksp-gonogo/sitrep-sdk"` slot ids and what throws a named error when the
+ * package was not marked external. A NEW duplicate fails outright.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -59,9 +59,12 @@ const DECLARED_RE =
 const KNOWN_DIVERGENCES: readonly string[] = [
   // The whole augment surface: the sdk's four are one-line shims onto `getHost()`,
   // ui-kit's are the registry those shims eventually reach. RULED that an Uplink
-  // imports the sdk's, for reading as well as writing, because importing ui-kit's
-  // directly gets a bundled registry the app never reads and the symptom is the
-  // author's augments silently never appearing.
+  // imports the sdk's, for reading as well as writing: the shim is what carries
+  // the Uplink's own `declare module "@ksp-gonogo/sitrep-sdk"` slot ids, and what
+  // throws a named error when the package was not marked external instead of
+  // carrying on silently. The dead-registry symptom this list used to cite is no
+  // longer among the reasons: ui-kit's registry moved into one `globalThis` slot
+  // on 2026-09-01, so two loaded copies converge (`augments.second-copy.test.ts`).
   //
   // Enforced by `uplink-augment-route.test.ts`, not by narrowing ui-kit's barrel.
   // That was checked rather than assumed: `core/src/augments.ts` re-exports this
