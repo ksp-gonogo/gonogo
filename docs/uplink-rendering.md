@@ -9,6 +9,7 @@ fixtures and one declared `description`; everything else is read off your
 registrations.
 
 ```
+pnpm exec gonogo-uplink bundle          # the file you distribute + its manifest
 pnpm exec gonogo-uplink render          # every fixture, to ./renders/
 pnpm exec gonogo-uplink render --scene flight-plan-healthy
 pnpm exec gonogo-uplink docs            # README.md + gonogo-uplink.json + assets
@@ -16,20 +17,54 @@ pnpm exec gonogo-uplink docs --check    # CI gate: fail when the page is stale
 ```
 
 Run it from your client package directory. No `package.json` script is required;
-add an alias if you want one.
+add an alias if you want one. `gonogo-uplink --help` lists every command, and
+each command takes `--help` of its own.
+
+**What it loads to find your registrations** is `src/index.ts`, or `src/index.tsx`,
+or your `package.json`'s `main` if neither exists, in that order. Source before a
+build output on purpose: a render of `dist/` is a screenshot of whatever the last
+build contained, with nothing to say it is stale. `--entry <file>` names a
+different one. That module has to reach every registration, which it does the way
+the app does, by bare-importing them for their side effects:
+
+```ts
+// client/src/index.ts
+import "./uplink";   // defineUplinkClient(...) runs first
+import "./Reactor";  // registerComponent(...)
+```
+
+If the entry misses a module, that Uplink is missing a widget everywhere at once:
+in the render, in the page and in the app. Nothing is silently smaller, though —
+a bundle that declares no client at all fails naming the cause, and a registered
+widget with no fixture fails naming the widget.
 
 ## What you need installed
 
-The tool ships in `@ksp-gonogo/ui-kit`, which you already depend on. Three
-optional peers:
+The `gonogo-uplink` command itself is `@ksp-gonogo/sitrep-sdk`'s, which every
+Uplink already depends on, and `bundle` and `bake-hash` need nothing else.
+`render` and `docs` drive a real browser, and that half lives in
+`@ksp-gonogo/ui-kit`: the sdk resolves it from YOUR package when one of those two
+verbs is used, so it is never loaded by a CI job that only bundles.
 
 ```jsonc
 "devDependencies": {
-  "playwright": "^1.60.0",              // the browser the render happens in
-  "esbuild": "^0.28.0",                 // bundles the generated browser entry
+  "@ksp-gonogo/ui-kit": "^0.2.0",        // the browser half of render / docs
+  "playwright": "^1.60.0",               // the browser the render happens in
+  "esbuild": "^0.28.0",                  // bundles the generated browser entry
   "@fontsource/jetbrains-mono": "^5.2.8" // the app's own monospace face
 }
 ```
+
+**The playwright package is not a browser.** Installing it gets you the driver
+and no executable to drive, and the first `render` then dies on a missing one. So
+both halves, locally and in CI:
+
+```
+npm i -D playwright && npx playwright install chromium
+```
+
+`--engine firefox` and `--engine webkit` work the same way and want the matching
+`npx playwright install`.
 
 The font is optional and the tool tells you which mode it is in on every run
 (`font: locked` or `font: fallback`). Without it your renders use whatever
@@ -39,7 +74,11 @@ comparable between machines.
 ## Fixtures
 
 A fixture is a JSON file under `src/<Anything>/__fixtures__/`. Found by walking,
-so there is no registry file to keep up to date.
+so there is no registry file to keep up to date. **Its filename, minus `.json`,
+is the scene's name**: that is what `--scene` matches and what the rendered
+`<scene>--<mode>.png` is called, so `src/Reactor/__fixtures__/flight-plan-healthy.json`
+is `--scene flight-plan-healthy`. A name that matches nothing fails listing every
+scene it knows.
 
 ```jsonc
 {
@@ -68,10 +107,21 @@ and folds in the dynamic whole-topic prefixes the app folds in. If a topic your
 fixture emits is not reachable that way, the run tells you and names it.
 
 **The pixel size.** Modes come from `defaultSize` and `minSize`, plus the three
-responsive shapes every widget is rendered at (`mobile-9x8`, `portrait-5x18`,
-`landscape-18x5`). A fixture may narrow that set and cannot add to it. An augment
-or contribution has no `defaultSize` to derive one from, so it takes
-`_scene.size: { "w": 13, "h": 12 }` and defaults to that.
+responsive shapes every widget is rendered at. So a widget's mode names are drawn
+from exactly five, in one namespace, and `_scene.modes` may name any mix of them:
+
+| mode | where it comes from |
+| --- | --- |
+| `default` | the registration's `defaultSize` |
+| `min` | the registration's `minSize`, and only when it differs from `defaultSize` |
+| `mobile-9x8` | fixed, 9 × 8 grid units |
+| `portrait-5x18` | fixed, 5 × 18 |
+| `landscape-18x5` | fixed, 18 × 5 |
+
+A fixture may narrow that set and cannot add to it; naming one the target does not
+have fails listing the ones it does. An augment or contribution has no
+`defaultSize` to derive one from, so it takes `_scene.size: { "w": 13, "h": 12 }`
+and defaults to that.
 
 ### Using the widget before the shot
 
@@ -147,8 +197,9 @@ with a respectable bounding box: what the reader gets is "V...". Both fail here.
 
 Checked at every mode the scene renders, because the narrow shapes are where a
 neighbour wraps. When a widget legitimately drops a label at one size, narrow the
-scene with `_scene.modes`. Any readable instance passes, so a label that appears
-more than once (a "Funds" row in each of three sections) is fine.
+scene with `_scene.modes` to the modes where the label is meant to survive. Any
+readable instance passes, so a label that appears more than once (a "Funds" row in
+each of three sections) is fine.
 
 Not available on a motion scene: what one exists to show is text arriving and
 leaving, so there is no single moment the assertion could be about.
@@ -174,45 +225,29 @@ silence. The run reports every such topic by name, with the derived allowlist
 beside it, so a fixture feeding a topic your widget does not read is an error
 rather than a blank panel.
 
-## When a review render looks cropped and the widget is fine
+## Nothing in a render is cropped, so a clipped label is a finding
 
-A review render (`render-widget`, and anything with `fullContent`) grows the tile
-until nothing is clipped, so you see the whole widget rather than the top of it.
-The growth is a MEASUREMENT, and the thing worth knowing is that it measures a
-specific list of nodes:
+Before every shot the harness grows `#root` until nothing is clipped, so you get
+the whole widget rather than the top of it. It finds the clipping boxes rather
+than working from a list: every element under the root is measured, and any that
+is not `overflow-y: visible` and whose content is taller than its box contributes
+to the growth, iterating to a fixpoint because growing the box can reveal a little
+more. **There is nothing to keep up to date here.** A widget that grows a new kind
+of scroller is measured the day it does.
 
-```js
-const nodes = [
-  el,                                              // #root
-  el.firstElementChild,                            // the Panel container
-  ...document.querySelectorAll("[data-scroll-area-inner]"),
-  ...document.querySelectorAll("[data-panel-body]"),
-];
-```
+That was worth building the awkward way round. The obvious implementation is a
+list of the selectors content hides behind, and a list is invisible to exactly the
+case it is for: a scroller that is not named clips its own overflow, every
+ancestor above it then reports no overflow at all, the tile does not grow, and the
+widget reads as cropped in the render while being perfectly correct in the app. A
+list has to be edited by whoever adds the scroller, and nothing fails when they
+do not.
 
-It grows `#root` by the largest `scrollHeight - clientHeight` across those, to a
-fixpoint. **A scroller that is not on that list is invisible to it**, because a
-scroller clips its own overflow and every ancestor above it then reports no
-overflow at all. The tile does not grow, and the widget reads as cropped in the
-render while being perfectly correct in the app.
-
-That is not hypothetical. `[data-panel-body]`, Panel's own scroller and the one
-every widget uses that does not nest a `ScrollArea`, was missing from the list
-until 2026-08-30. It surfaced during the `Panel sections` conversion, and the way
-it surfaced is the part to remember: converting a widget to `sections` often
-removes a nested `ScrollArea`, which moved that widget from the measured path to
-the unmeasured one. So the harness got quietly less trustworthy the more of that
-work got done, and every affected widget looked like it had just grown a fresh
-layout bug in the commit that converted it.
-
-**So if a render looks cropped:** check whether the content sits in a scroller the
-list does not name before you go looking for a layout bug. Adding a new kind of
-scroller to the widget set means adding it here too; nothing fails if you forget,
-which is exactly why it is written down.
-
-Only the review path is affected. The visual gate and the overlap gate both run
-with `fullContent` off and take the fixed tile deliberately, so no baseline and no
-overlap finding can move with this list.
+Only the VERTICAL crop is lifted. The mount still lays out at the real tile
+WIDTH, so responsive breakpoints engage exactly as they do in the dashboard, and
+that is deliberate: a label ellipsised or squeezed to nothing by its neighbours
+is a real layout finding at that width, not an artifact of the harness. It is
+what `_scene.paints` is for.
 
 ## The page
 
@@ -223,11 +258,20 @@ overlap finding can move with this list.
   your bundle
 - `docs/assets/*.png` and `*.gif`
 
+**`README.md` is generated in full, so `docs` replaces it whole**, every run. It
+will not replace one it did not write: every generated README opens with a
+`<!-- Generated by \`gonogo-uplink docs\`. -->` comment, and a `README.md` without
+that line stops the command with the file untouched. Move your prose somewhere
+the generator does not write and run it again.
+
 You write ONE FIELD, and it is not a file: `description` on
 `defineUplinkClient`, one or two sentences saying what the Uplink does. The tool
 refuses to write a page without one.
 
 ```ts
+// client/src/uplink.ts
+import { defineUplinkClient } from "@ksp-gonogo/sitrep-sdk";
+
 export const MY_UPLINK = defineUplinkClient({
   id: "my-uplink",
   version: "0.0.1",
@@ -258,9 +302,29 @@ One guard is structural: a registered widget with no fixture is reported, becaus
 a page that quietly lists three of your four widgets reads exactly like an Uplink
 with three widgets.
 
-### `gonogo-uplink.json`
+### The bundle, and the two copies of `gonogo-uplink.json`
 
-**`docs` and `bundle` write the same file.** They used to write two different
+`gonogo-uplink bundle` builds the file the app loads. It reads your `uplink.json`
+for the id (see below), bundles your entry with esbuild, and writes three files:
+
+```
+dist/<id>/<id>.client.js         # the bundle you distribute
+dist/<id>/<id>.client.js.sha256  # its digest, for a release script
+dist/<id>/gonogo-uplink.json     # the manifest that SHIPS, integrity already filled
+```
+
+`--client <dir>` (default: the working directory), `--entry <file>` (default:
+`src/index.ts`) and `--out <dir>` (default: `<client>/dist`) move those. Each
+Uplink gets its own directory because the loader derives the sidecar's URL from
+the bundle's own by stripping the last path segment, so two Uplinks published
+into one flat directory share one sidecar path and the last one written wins.
+
+So there are two copies of this file and they have different jobs. The one
+`bundle` writes beside the bundle is the one the app fetches, and it is stamped.
+The one `docs` writes at your package root is the copy that gets COMMITTED, and
+`docs --check` and the page test compare against it.
+
+**`docs` and `bundle` write the same shape.** They used to write two different
 shapes under one filename with nothing to say which the loader honours; they now
 call one writer in the SDK, so running either gives you the same manifest.
 
@@ -274,12 +338,21 @@ segment off the bundle's URL, so the two are always siblings. `sdkVersion` is th
 version of the tool that wrote the file.
 
 `author` and `repo` are yours, and they come from the `uplink.json` beside both
-halves of your Uplink (`creating-an-uplink.md`, "Distribution"). An Uplink
-without one carries empty strings rather than an invented author.
+halves of your Uplink. It is searched UPWARD from your client package, three
+levels, so a flat template (`uplink.json` one level up) and the first-party
+monorepo layout (two levels up) are both found. An Uplink without one carries
+empty strings rather than an invented author. Its full contents are in
+`creating-an-uplink.md`, "Distribution".
 
-`integrity` is the sha256 of the file you distribute, so pass `--bundle <path>`
-when you generate for a release; without it the field is empty and the app will
-quarantine your Uplink with an integrity mismatch, and the run warns you.
+`integrity` is the sha256 of the file you distribute. **`bundle` fills it for
+free**, because it has just written the bytes; that is the copy the app hashes
+and quarantines on, and there is nothing to remember. The committed copy `docs`
+writes is a different question: a working copy has no distributed file, so
+`docs` leaves the field empty and says so on stderr, and the page test strips the
+field before comparing for exactly that reason. `docs --bundle <path>` stamps it
+if you want the committed copy stamped too, and a release is the only time that
+is worth doing — `docs --check` compares the manifest byte for byte, so a stamped
+committed copy makes every later plain `--check` disagree with itself.
 
 The one field nothing can derive is `minAppVersion`, which is a claim about the
 APP rather than about your code. Declare it as `"minAppVersion": "1.4.0"` in your
@@ -289,7 +362,7 @@ APP rather than about your code. Declare it as `"minAppVersion": "1.4.0"` in you
 "gonogo": { "minAppVersion": "1.4.0" }
 ```
 
-`uplink.json` wins when both declare it.
+`uplink.json` wins when both declare it, and absent means `"0.0.0"`, no floor.
 
 Your `defineUplinkClient({ version })` must equal your `package.json` version. The
 tool refuses to write a manifest where they disagree, because the app compares
@@ -300,9 +373,12 @@ what it reads in the manifest against what your loaded bundle declares.
 Keeping the page current is two different questions, and it is worth knowing
 which is which because they cost very different amounts.
 
-**Does the page's text still match the registrations?** That is a registry read, and
-your test suite has already loaded your client with a host installed. So it runs
-as a test, with no browser:
+**Does the page's text still match the registrations?** That is a registry read,
+which your test suite is already set up for: an Uplink's suite loads its own
+client under jsdom against a host installed by `installRealTestHost` (from
+`@ksp-gonogo/sitrep-sdk/testing`, in your vitest `setupFiles` — see
+`creating-an-uplink.md`, "Testing your Uplink"). So it runs as a test, with no
+browser:
 
 ```ts
 // client/src/uplink-page.test.ts
@@ -314,13 +390,20 @@ it("the generated page still describes this Uplink", () => {
 });
 ```
 
-Add a widget without regenerating and that fails. It is the same
+There is no vacuous pass hiding in that setup. Without a host installed the
+client's own module-load `registerComponent` throws, so the import fails before
+the assertion; with a host but nothing imported, the check finds no declared
+Uplink client and says so, naming that as the usual cause. The failure you get is
+never "everything is fine".
+
+Add a widget without regenerating and that fails too. It is the same
 `readInventory` and the same `buildReadme` the generator uses, not a second
 implementation, so it cannot start describing a different Uplink from the one the
 pictures are of.
 
-**Are the committed images current?** That one has to render, so it needs
-Chromium: `gonogo-uplink docs --check`, wherever your CI has Playwright.
+**Are the committed images current?** That one has to render, so it needs a
+browser: `gonogo-uplink docs --check`, wherever your CI has Playwright and its
+chromium.
 
 ```
 pnpm exec gonogo-uplink docs --check
@@ -330,20 +413,22 @@ Run both if you can. Run the first if you can only run one: it is the half that
 catches a widget quietly missing from the page, and a page listing three of your
 four widgets reads exactly like an Uplink with three widgets.
 
-Two things neither half compares. **Asset bytes**: rasterisation is per-engine
+One thing neither half compares is **asset bytes**: rasterisation is per-engine
 and per-OS, so a byte comparison would fail on every machine but the one that
 generated it, and a gate that cries wolf is a gate someone turns off. Only WHICH
-assets exist is checked. **`integrity`**: it is a fact about a release artifact,
-absent from a working copy, so the test ignores it outright and `docs` leaves it
-empty until you pass `--bundle`.
+assets exist is checked, plus their recorded shapes.
 
 ## Your own browser-side glue
 
 Most Uplinks need none. If yours has a fake only you can write (a fake data
 source with a bespoke status surface, a WebRTC session), put it in
-`client/gonogo-render.setup.ts` and the generated entry picks it up:
+`client/gonogo-render.setup.ts` and the generated entry picks it up. Name it
+`gonogo-render.setup.tsx` when it contains JSX, as the `wrap` hook below does:
+both spellings are looked for, and JSX will not parse in a `.ts` file.
 
-```ts
+```tsx
+// client/gonogo-render.setup.tsx
+import { registerDataSource, unregisterDataSource } from "@ksp-gonogo/sitrep-sdk";
 import { defineRenderSetup } from "@ksp-gonogo/ui-kit/render-probe";
 
 export default defineRenderSetup({

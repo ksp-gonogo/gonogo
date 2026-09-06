@@ -7,6 +7,7 @@ import {
   buildManifest,
   buildReadme,
   type DocsInputs,
+  README_GENERATED_MARKER,
   scenesAssertingNothing,
 } from "./docs";
 import { type Engine, renderUplink } from "./driver";
@@ -135,7 +136,11 @@ const USAGE = `gonogo-uplink <render|docs> [options]
 `;
 
 async function main(argv: readonly string[]): Promise<void> {
-  if (argv.length === 0 || argv[0] === "--help" || argv[0] === "-h") {
+  // Anywhere in the line, not only first. The sdk's own help tells an author to
+  // run a command with --help for its options, and `render --help` reached
+  // `parseArgs` and came back with `unknown flag "--help"`, which is the tool
+  // refusing the thing its help had just recommended.
+  if (argv.length === 0 || argv.includes("--help") || argv.includes("-h")) {
     console.log(USAGE);
     return;
   }
@@ -214,6 +219,7 @@ async function main(argv: readonly string[]): Promise<void> {
   );
 
   if (!args.check) {
+    await refuseToClobberHandWrittenReadme(pkg.dir, readmePath);
     await writeFile(readmePath, readme, "utf8");
     await writeFile(manifestPath, manifestJson, "utf8");
     await writeShapeRecord(assetOut, {
@@ -335,6 +341,41 @@ async function readDocsExempt(dir: string): Promise<DocsExempt> {
     // Absent is the normal case and means "every augment must render".
     return {};
   }
+}
+
+/**
+ * Refuse to overwrite a `README.md` this command did not write.
+ *
+ * `docs` generates the README from the registrations, so replacing the one it
+ * generated last time is the job. Replacing one a PERSON wrote is not, and a
+ * bare `writeFile` cannot tell the two apart: the first run in a package that
+ * already had a hand-written readme destroyed it silently, and outside git there
+ * was nothing to recover.
+ *
+ * A refusal rather than a `--force`, because the recovery is one `git mv` and a
+ * flag would be a second thing to know about. The generated file carries
+ * {@link README_GENERATED_MARKER} on its first line, so a package this command
+ * has generated once never sees this again.
+ */
+export async function refuseToClobberHandWrittenReadme(
+  dir: string,
+  readmePath: string,
+): Promise<void> {
+  if (!existsSync(readmePath)) return;
+  const existing = await readFile(readmePath, "utf8");
+  if (existing.startsWith(README_GENERATED_MARKER)) return;
+  throw new Error(
+    `gonogo-uplink docs: ${display(dir, readmePath)} was not written by this ` +
+      "command, and the page it generates would replace the whole file.\n\n" +
+      "Everything a generated page says comes from your registrations, your " +
+      "contract slice and your fixtures, so there is nowhere in it for prose " +
+      "to survive. Move what you want to keep somewhere the generator does " +
+      "not write (docs/, or the repository root's own README), then run this " +
+      "again:\n" +
+      `  git mv ${display(dir, readmePath)} NOTES.md\n\n` +
+      "Every README this command writes opens with " +
+      `"${README_GENERATED_MARKER}", which is how it recognises its own.`,
+  );
 }
 
 function reportFont(mode: string, advice?: string): void {

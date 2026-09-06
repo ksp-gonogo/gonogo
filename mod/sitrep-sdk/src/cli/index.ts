@@ -102,7 +102,34 @@ function installedVersion(fromDir: string, pkg: string): string {
  * all the same sidecar path and the last one wins, which is why each gets its own
  * directory here.
  */
+const BUNDLE_USAGE = `gonogo-uplink bundle [options]
+
+  Build the ESM bundle the app import()s, plus the gonogo-uplink.json sidecar
+  beside it with its integrity hash already filled.
+
+  --client <dir>   the Uplink client package (default: cwd)
+  --entry <file>   the module to bundle (default: src/index.ts)
+  --out <dir>      output root (default: <client>/dist); the bundle lands in
+                   <out>/<id>/<id>.client.js so each Uplink owns its sidecar`;
+
+const BAKE_HASH_USAGE = `gonogo-uplink bake-hash --bundle <file> --out <file> --namespace <ns>
+
+  Write a client bundle's sha256 into a generated C# const, so the running mod
+  can vouch for the client it was released with. Run it AFTER bundle and BEFORE
+  the DLL is compiled, or the DLL vouches for bytes that were not shipped.
+
+  --bundle <file>     the built client bundle to hash
+  --out <file>        the ExpectedClientHash.g.cs to write
+  --namespace <ns>    the C# namespace to declare it in`;
+
+const wantsHelp = (argv: readonly string[]): boolean =>
+  argv.includes("--help") || argv.includes("-h");
+
 async function bundle(argv: readonly string[]): Promise<number> {
+  if (wantsHelp(argv)) {
+    console.log(BUNDLE_USAGE);
+    return 0;
+  }
   const clientDir = resolve(flag(argv, "--client") ?? process.cwd());
   const outDir = resolve(flag(argv, "--out") ?? join(clientDir, "dist"));
 
@@ -231,6 +258,10 @@ async function bundle(argv: readonly string[]): Promise<number> {
  * the ones shipped. A release script owns that sequence.
  */
 async function bakeHash(argv: readonly string[]): Promise<number> {
+  if (wantsHelp(argv)) {
+    console.log(BAKE_HASH_USAGE);
+    return 0;
+  }
   const bundlePath = flag(argv, "--bundle");
   const out = flag(argv, "--out");
   const namespace = flag(argv, "--namespace");

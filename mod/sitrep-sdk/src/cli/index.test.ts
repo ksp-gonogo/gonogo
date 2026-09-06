@@ -78,6 +78,25 @@ describe("gonogo-uplink bake-hash", () => {
 });
 
 /**
+ * The top-level help says "Run a command with --help for its options", and for
+ * a while no command honoured it: `bundle --help` started a build and
+ * `render --help` came back with `unknown flag "--help"`, which is the tool
+ * refusing what its own help had just told the author to type.
+ */
+describe("every command answers --help", () => {
+  for (const verb of ["bundle", "bake-hash"]) {
+    it(`${verb} prints its options rather than running`, () => {
+      const out = execFileSync(process.execPath, [BIN, verb, "--help"], {
+        stdio: "pipe",
+        encoding: "utf8",
+      });
+      expect(out).toContain(`gonogo-uplink ${verb}`);
+      expect(out).toContain("--");
+    });
+  }
+});
+
+/**
  * The browser verbs are forwarded to ui-kit, and WHOSE ui-kit is the whole
  * question.
  *
