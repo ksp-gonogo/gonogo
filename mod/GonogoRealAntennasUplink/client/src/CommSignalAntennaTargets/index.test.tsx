@@ -228,15 +228,27 @@ describe("the antenna targeting section", () => {
   });
 
   /**
-   * The cost, stated once. An unaimed dish takes no pointing loss at all and an
-   * aimed one loses the link outright once the far end leaves the beam, so a
-   * card that presented aiming as a pure gain would be misleading.
+   * The section carries no explanatory line at all. It reports what each
+   * antenna is and where it points; a sentence teaching what aiming costs is
+   * the operator's to know, not the panel's to say.
    */
-  it("says what aiming costs", async () => {
+  it("explains nothing", async () => {
     const stream = mount();
     await emit(stream, [antenna()]);
 
-    expect(screen.getByText(/drops outside its beam/)).toBeTruthy();
+    expect(screen.queryByText(/drops outside its beam/)).toBeNull();
+  });
+
+  /**
+   * An omni is labelled because nothing else on its card says why it has no
+   * controls. A dish is not: the controls are the mark, and a badge repeating
+   * it was decoration.
+   */
+  it("labels an omni and leaves a dish unbadged", async () => {
+    const stream = mount();
+    await emit(stream, [antenna()]);
+
+    expect(screen.queryByText("Dish")).toBeNull();
   });
 
   it("has no accessibility violations", async () => {

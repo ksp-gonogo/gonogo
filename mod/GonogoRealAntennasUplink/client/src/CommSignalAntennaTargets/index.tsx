@@ -19,7 +19,6 @@ import {
   useTelemetry,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Badge,
   Card,
   Cluster,
   CommandButton,
@@ -28,6 +27,7 @@ import {
   Grid,
   Input,
   magnitudeOf,
+  SectionTitle,
   Select,
   Stack,
   SubjectHeading,
@@ -101,18 +101,15 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
 
   return (
     <Card>
-      <Stack gap="xs">
+      <Stack gap="sm">
         {/*
-          A badge for the dish, plain text for the omni. Both are facts about the
-          hardware rather than states, and every severity a `Badge` can carry
-          paints one: green read as "this antenna is good" for one that simply
-          cannot be aimed.
+          Only the omni is labelled. The targeting controls below already mark
+          a dish as one, so a badge saying so repeated what the card shows; the
+          omni has no controls, and nothing else on it says why.
         */}
         <SubjectHeading
           status={
-            antenna.steerable ? (
-              <Badge severity="info">Dish</Badge>
-            ) : (
+            antenna.steerable ? null : (
               <Text size="xs" tone="muted" style={LABEL_STYLE}>
                 Omni
               </Text>
@@ -125,9 +122,9 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
         </SubjectHeading>
 
         {/* The antenna's own facts. Tech level sits here rather than beside the
-            name: it is a property of the hardware, not a state of it, and the
-            heading's status slot is for states. */}
-        <Grid cols="auto 1fr" gap="md" rowGap="xs" align="baseline">
+            name: it is a property of the hardware, and the heading's status slot
+            is for what an antenna is currently doing. */}
+        <Grid cols="auto 1fr" gap="lg" rowGap="sm" align="baseline">
           {antenna.techLevel != null ? (
             <>
               <Text size="xs" tone="muted" style={LABEL_STYLE}>
@@ -161,141 +158,150 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
         </Grid>
 
         {antenna.steerable ? (
-          <>
-            <Field>
-              <FieldLabel htmlFor={`${fieldId}-mode`}>Mode</FieldLabel>
-              <Select
-                id={`${fieldId}-mode`}
-                value={mode}
-                onChange={(e) => setMode(e.target.value as ModeId)}
-              >
-                {MODES.map((m) => (
-                  <option
-                    key={m.id}
-                    value={m.id}
-                    disabled={!modeIsUnlocked(m.id)}
+          /*
+            Two groups, not one run: the fields sit tight to each other and the
+            actions a step further out. A press that lands as close to the last
+            field as the fields do to one another reads as another field.
+          */
+          <Stack gap="lg">
+            <Stack gap="sm">
+              <Field>
+                <FieldLabel htmlFor={`${fieldId}-mode`}>Mode</FieldLabel>
+                <Select
+                  id={`${fieldId}-mode`}
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as ModeId)}
+                >
+                  {MODES.map((m) => (
+                    <option
+                      key={m.id}
+                      value={m.id}
+                      disabled={!modeIsUnlocked(m.id)}
+                    >
+                      {modeIsUnlocked(m.id) ? m.label : `${m.label} (locked)`}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              {mode === "Vessel" ? (
+                <Field>
+                  <FieldLabel htmlFor={`${fieldId}-vessel`}>Vessel</FieldLabel>
+                  <Select
+                    id={`${fieldId}-vessel`}
+                    value={vesselId}
+                    onChange={(e) => setVesselId(e.target.value)}
                   >
-                    {modeIsUnlocked(m.id) ? m.label : `${m.label} (locked)`}
-                  </option>
-                ))}
-              </Select>
-            </Field>
+                    <option value="">Choose a target</option>
+                    {vessels.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : null}
 
-            {mode === "Vessel" ? (
-              <Field>
-                <FieldLabel htmlFor={`${fieldId}-vessel`}>Vessel</FieldLabel>
-                <Select
-                  id={`${fieldId}-vessel`}
-                  value={vesselId}
-                  onChange={(e) => setVesselId(e.target.value)}
-                >
-                  <option value="">Choose a target</option>
-                  {vessels.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.name}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            ) : null}
+              {mode === "BodyCenter" || mode === "BodyLatLonAlt" ? (
+                <Field>
+                  <FieldLabel htmlFor={`${fieldId}-body`}>Body</FieldLabel>
+                  <Select
+                    id={`${fieldId}-body`}
+                    value={bodyName}
+                    onChange={(e) => setBodyName(e.target.value)}
+                  >
+                    <option value="">Home</option>
+                    {bodies.map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </Select>
+                </Field>
+              ) : null}
 
-            {mode === "BodyCenter" || mode === "BodyLatLonAlt" ? (
-              <Field>
-                <FieldLabel htmlFor={`${fieldId}-body`}>Body</FieldLabel>
-                <Select
-                  id={`${fieldId}-body`}
-                  value={bodyName}
-                  onChange={(e) => setBodyName(e.target.value)}
-                >
-                  <option value="">Home</option>
-                  {bodies.map((b) => (
-                    <option key={b} value={b}>
-                      {b}
-                    </option>
-                  ))}
-                </Select>
-              </Field>
-            ) : null}
+              {mode === "BodyLatLonAlt" ? (
+                <Cluster gap="md" wrap>
+                  <Field>
+                    <FieldLabel htmlFor={`${fieldId}-lat`}>Lat °</FieldLabel>
+                    <Input
+                      id={`${fieldId}-lat`}
+                      inputMode="decimal"
+                      value={latitude}
+                      onChange={(e) => setLatitude(e.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor={`${fieldId}-lon`}>Lon °</FieldLabel>
+                    <Input
+                      id={`${fieldId}-lon`}
+                      inputMode="decimal"
+                      value={longitude}
+                      onChange={(e) => setLongitude(e.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor={`${fieldId}-alt`}>Alt m</FieldLabel>
+                    <Input
+                      id={`${fieldId}-alt`}
+                      inputMode="decimal"
+                      value={altitude}
+                      onChange={(e) => setAltitude(e.target.value)}
+                    />
+                  </Field>
+                </Cluster>
+              ) : null}
 
-            {mode === "BodyLatLonAlt" ? (
-              <Cluster gap="sm" wrap>
-                <Field>
-                  <FieldLabel htmlFor={`${fieldId}-lat`}>Lat °</FieldLabel>
-                  <Input
-                    id={`${fieldId}-lat`}
-                    inputMode="decimal"
-                    value={latitude}
-                    onChange={(e) => setLatitude(e.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor={`${fieldId}-lon`}>Lon °</FieldLabel>
-                  <Input
-                    id={`${fieldId}-lon`}
-                    inputMode="decimal"
-                    value={longitude}
-                    onChange={(e) => setLongitude(e.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor={`${fieldId}-alt`}>Alt m</FieldLabel>
-                  <Input
-                    id={`${fieldId}-alt`}
-                    inputMode="decimal"
-                    value={altitude}
-                    onChange={(e) => setAltitude(e.target.value)}
-                  />
-                </Field>
-              </Cluster>
-            ) : null}
+              {mode === "AzEl" ? (
+                <Cluster gap="md" wrap>
+                  <Field>
+                    <FieldLabel htmlFor={`${fieldId}-az`}>Az °</FieldLabel>
+                    <Input
+                      id={`${fieldId}-az`}
+                      inputMode="decimal"
+                      value={azimuth}
+                      onChange={(e) => setAzimuth(e.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor={`${fieldId}-el`}>El °</FieldLabel>
+                    <Input
+                      id={`${fieldId}-el`}
+                      inputMode="decimal"
+                      value={elevation}
+                      onChange={(e) => setElevation(e.target.value)}
+                    />
+                  </Field>
+                </Cluster>
+              ) : null}
 
-            {mode === "AzEl" ? (
-              <Cluster gap="sm" wrap>
-                <Field>
-                  <FieldLabel htmlFor={`${fieldId}-az`}>Az °</FieldLabel>
-                  <Input
-                    id={`${fieldId}-az`}
-                    inputMode="decimal"
-                    value={azimuth}
-                    onChange={(e) => setAzimuth(e.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor={`${fieldId}-el`}>El °</FieldLabel>
-                  <Input
-                    id={`${fieldId}-el`}
-                    inputMode="decimal"
-                    value={elevation}
-                    onChange={(e) => setElevation(e.target.value)}
-                  />
-                </Field>
-              </Cluster>
-            ) : null}
+              {mode === "OrbitRelative" ? (
+                <Cluster gap="md" wrap>
+                  <Field>
+                    <FieldLabel htmlFor={`${fieldId}-fwd`}>
+                      Prograde °
+                    </FieldLabel>
+                    <Input
+                      id={`${fieldId}-fwd`}
+                      inputMode="decimal"
+                      value={forward}
+                      onChange={(e) => setForward(e.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor={`${fieldId}-oel`}>El °</FieldLabel>
+                    <Input
+                      id={`${fieldId}-oel`}
+                      inputMode="decimal"
+                      value={elevation}
+                      onChange={(e) => setElevation(e.target.value)}
+                    />
+                  </Field>
+                </Cluster>
+              ) : null}
+            </Stack>
 
-            {mode === "OrbitRelative" ? (
-              <Cluster gap="sm" wrap>
-                <Field>
-                  <FieldLabel htmlFor={`${fieldId}-fwd`}>Prograde °</FieldLabel>
-                  <Input
-                    id={`${fieldId}-fwd`}
-                    inputMode="decimal"
-                    value={forward}
-                    onChange={(e) => setForward(e.target.value)}
-                  />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor={`${fieldId}-oel`}>El °</FieldLabel>
-                  <Input
-                    id={`${fieldId}-oel`}
-                    inputMode="decimal"
-                    value={elevation}
-                    onChange={(e) => setElevation(e.target.value)}
-                  />
-                </Field>
-              </Cluster>
-            ) : null}
-
-            <Cluster gap="sm" wrap justify="start">
+            <Cluster gap="md" wrap justify="start">
               {/* Armed: a slew is a signal to the craft and the dish stops
                   hearing whatever it was on when it moves. */}
               <CommandButton
@@ -328,7 +334,7 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
                 pendingLabel="Aiming..."
               />
             </Cluster>
-          </>
+          </Stack>
         ) : null}
       </Stack>
     </Card>
@@ -363,16 +369,8 @@ function CommSignalAntennaTargets() {
       : [];
 
   return (
-    <Stack gap="xs" aria-label="Antenna targeting">
-      <Text size="xs" tone="muted" style={LABEL_STYLE}>
-        Antenna targeting
-      </Text>
-      {/* The cost, once. An unaimed dish takes no pointing loss at all; an
-          aimed one loses the link outright once the far end leaves the beam. */}
-      <Text size="xs" tone="muted">
-        Unaimed, a dish points everywhere free. Aimed, the link drops outside
-        its beam.
-      </Text>
+    <Stack gap="sm" aria-label="Antenna targeting">
+      <SectionTitle>Antenna targeting</SectionTitle>
       {antennas.map((antenna) => (
         <AntennaCard
           key={antenna.antennaId}
