@@ -1,8 +1,13 @@
 # Licensing
 
-**gonogo is MIT. Three uplinks are GPL-3.0-only, because each compile-time links a GPL or
-unresolved-licence mod: `GonogoKosUplink`, `GonogoScansatUplink`, `GonogoMechJebUplink`. If you
-don't touch those three, MIT is all you need to know.**
+**gonogo is MIT. The rule is mechanical: an Uplink that COMPILE-TIME LINKS a GPL or
+unresolved-licence mod inherits that mod's copyleft; every other Uplink, and everything else in
+this repository, is MIT. Today that catches `GonogoKosUplink` and `GonogoMechJebUplink`. If you
+don't touch those, MIT is all you need to know.**
+
+Uplinks are migrating out of this repository into `gonogo-uplinks`, so treat the names below as
+examples of the rule rather than a register to maintain: when an Uplink leaves, its obligation
+leaves with it, and the mechanism above is what still decides the answer.
 
 That's the whole rule. The rest of this file is the detail behind it.
 
@@ -22,7 +27,6 @@ able to write an Uplink too.
 | Component | Licence | Why |
 |---|---|---|
 | `mod/GonogoKosUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-kos-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links kOS (`kOS.dll` / `kOS.Safe.dll`), which is GPL-3.0-only. |
-| `mod/GonogoScansatUplink` (+ `@ksp-gonogo/gonogo-scansat-uplink`) | GPL-3.0-only | **Provisional, on hold.** See below. |
 | `mod/GonogoMechJebUplink` (+ `.Tests`, + `@ksp-gonogo/gonogo-mechjeb-uplink`) | GPL-3.0-only | **Permanent.** Compile-time links MechJeb2 (`MechJeb2.dll`), which is GPL-3.0. |
 | Everything else | MIT | Nothing else links anything copyleft. |
 
@@ -38,20 +42,16 @@ kOS is GPL-3.0 and we link it directly, in-process, against its public API. Ther
 this that isn't copyleft short of dropping the integration. Users of `GonogoKosUplink` have already
 installed kOS, so they have already opted into a GPL mod. See `mod/GonogoKosUplink/NOTICE-KOS.txt`.
 
-### GonogoScansatUplink (provisional: do not "finish the job")
+### SCANsat: a question that left with its Uplink
 
-SCANsat's licensing contradicts itself: its repository `LICENSE.txt` is 3-clause BSD (permissive,
-which would allow MIT here), but its published CKAN metadata declares `restricted` (CKAN's
-all-rights-reserved bucket). We compile-time link `SCANsat.dll`, so which one governs is
-load-bearing rather than academic.
-
-**The question is out with the SCANsat stewards (https://github.com/KSPModStewards/SCANsat).**
-Until they answer, this uplink and its co-located TypeScript client stay GPL-3.0-only. That is the
-conservative option and it costs nothing: like `GonogoKosUplink` it is a leaf.
-
-Do not relicense it to MIT on the strength of the BSD text alone. If the `restricted` tag turns out
-to govern, the problem is bigger than a licence field, because we link the DLL. Full rationale in
-`mod/GonogoScansatUplink/NOTICE-SCANSAT.txt`.
+`GonogoScansatUplink` has migrated to `gonogo-uplinks`, and its licensing question went with it.
+Recorded here only so the question is not lost: SCANsat's repository `LICENSE.txt` is 3-clause BSD
+(permissive) while its published CKAN metadata declares `restricted` (all-rights-reserved), and the
+Uplink compile-time links `SCANsat.dll`, so which one governs is load-bearing rather than academic.
+**The question was put to the SCANsat stewards (https://github.com/KSPModStewards/SCANsat) and had
+not been answered when the Uplink left.** Until it is, that Uplink stays GPL-3.0-only, which is the
+conservative option. Do not relicense it to MIT on the strength of the BSD text alone. The full
+rationale travels with the Uplink, in its own NOTICE.
 
 ### GonogoMechJebUplink
 
@@ -59,15 +59,14 @@ MechJeb2 is GPL-3.0 and this uplink compile-time links `MechJeb2.dll`, so the as
 GPL-3.0-only. Same shape as the two rows above, and for the same reason: a leaf assembly, its own
 CKAN package, its own GameData folder, nothing in the repository references it.
 
-Compile-time binding is not a deviation here. `GonogoScansatUplink` names `SCANUtil`,
-`SCANcontroller` and `SCANexperiment`; `GonogoKosUplink` names types out of `kOS.Module`,
-`kOS.Safe.Screen` and `kOS.UserIO`. Three uplinks bind their mod's types, and the copyleft on this
-one is not novel: `GonogoKosUplink` is GPL-3.0-only by the same mechanism.
+Compile-time binding is not a deviation here. `GonogoKosUplink` names types out of `kOS.Module`,
+`kOS.Safe.Screen` and `kOS.UserIO` and is GPL-3.0-only by exactly the same mechanism, so the
+copyleft on this one is not novel.
 
-Reflection is what this repository does for a mod whose LICENCE forbids linking, and both of the
-uplinks that reflect say so in their own notice: AGExt is GPL-3.0 and RP-1 is CC-BY-NC-SA-4.0, so
-`GonogoActionGroupsExtendedUplink` and `GonogoAvionicsUplink` reach them at arm's length and stay
-MIT. MechJeb2 is linkable, so the licence poses no question this uplink has to route around.
+Reflection is what an Uplink does for a mod whose LICENCE forbids linking: it reaches the mod's
+types at arm's length and stays MIT. The two Uplinks that did this here (against AGExt, GPL-3.0,
+and RP-1, CC-BY-NC-SA-4.0) have since migrated to `gonogo-uplinks` and carry their own notices.
+MechJeb2 is linkable, so the licence poses no question this uplink has to route around.
 
 `MechJeb2.dll` is vendored in the private reference set alongside `kOS.dll` and `SCANsat.dll`, so
 CI compiles this assembly and `publish-mods.yml` publishes it. A compile-time reference copy held
