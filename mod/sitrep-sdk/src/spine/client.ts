@@ -178,6 +178,8 @@ export class TelemetryClient {
   private readonly unsubscribeFromTransportStatus: () => void;
   /** No-op for a transport with no queue to strand anything in: see `Transport.onUndelivered`. */
   private readonly unsubscribeFromUndelivered: () => void;
+  /** No-op for a transport carrying nobody else's verdict: see `Transport.onLost`. */
+  private readonly unsubscribeFromLost: () => void;
   private readonly commands = new Map<string, PendingCommand>();
   private nextRequestId = 0;
   private selectedVantageId = "ksc";
@@ -253,6 +255,14 @@ export class TelemetryClient {
     this.unsubscribeFromUndelivered =
       transport.onUndelivered?.((command) =>
         this.handleUndelivered(command.requestId, command.reason),
+      ) ?? (() => undefined);
+    this.unsubscribeFromLost =
+      transport.onLost?.((command) =>
+        this.handleLoss(
+          command.requestId,
+          "relayed-loss",
+          `command lost: ${command.reason}`,
+        ),
       ) ?? (() => undefined);
     this.unsubscribeFromTransportStatus = transport.onStatusChange((status) => {
       if (!this.ownership) return;
@@ -698,6 +708,7 @@ export class TelemetryClient {
     this.unsubscribeFromTransport();
     this.unsubscribeFromTransportStatus();
     this.unsubscribeFromUndelivered();
+    this.unsubscribeFromLost();
     this.ownership?.dispose();
 
     for (const topic of this.subscribers.keys()) {
@@ -925,11 +936,18 @@ export class TelemetryClient {
   }
 
   /**
-   * Fires when a command's loss-inference timer reaches `etaConfirm +
-   * LOSS_MARGIN` with no response yet. A no-op if the command has already
-   * settled (or is unknown), the timer is always cancelled on settle, but
-   * this guard covers the case where cancellation and firing raced within
-   * the same clock-driven callback batch.
+   * The one place a command becomes `lost`, whichever of its two callers got
+   * here first. A no-op if the command has already settled (or is unknown), the
+   * timer is always cancelled on settle, but this guard covers the case where
+   * cancellation and firing raced within the same clock-driven callback batch.
+   *
+   * - our own loss-inference timer reaching `etaConfirm + LOSS_MARGIN` with no
+   *   response, which is the local case and the default reason
+   * - a transport RELAYING someone else's verdict (`Transport.onLost`), which is
+   *   how the host's loss reaches a station: the station's command is dispatched
+   *   to the mod by the host, so the host's timer is the only one measuring that
+   *   leg. A station arms its own off the relayed `comms.delay`, timing a
+   *   different leg, so the two fire in either order and both must land here
    *
    * Terminal for the PROMISE and not for the entry. The correlation record stays
    * in `commands`, so a reply arriving after this (the transport re-sends what it
@@ -937,20 +955,26 @@ export class TelemetryClient {
    * its way home and moves the status to `found`. Nothing here tries to stop the
    * command executing: `lost` is our ignorance, not the game's answer.
    */
-  private handleLoss(requestId: string): void {
+  private handleLoss(
+    requestId: string,
+    reason = "signal-lost",
+    message = "command lost: no confirmation received by predicted ETA",
+  ): void {
     const pending = this.commands.get(requestId);
     if (!pending || pending.status.phase !== "in-flight") return;
     const reject = pending.reject;
-    pending.status = { phase: "lost", requestId, reason: "signal-lost" };
+    /*
+     * A no-op when this IS the timer firing, and load-bearing when a relayed
+     * loss beat our own deadline: the phase guard above would make the later
+     * firing harmless, but the scheduled callback would still be holding a
+     * command that is finished with.
+     */
+    pending.cancelLossTimer?.();
+    pending.status = { phase: "lost", requestId, reason };
     pending.resolve = null;
     pending.reject = null;
     pending.cancelLossTimer = null;
-    reject?.(
-      new CommandError(
-        COMMAND_LOST,
-        "command lost: no confirmation received by predicted ETA",
-      ),
-    );
+    reject?.(new CommandError(COMMAND_LOST, message));
     this.notifyStore();
   }
 

@@ -115,6 +115,7 @@ export type {
 // wire messages, so it belongs here rather than in `sitrep-client`, and living
 // here is what lets the transport double ship from `/testing`.
 export type {
+  LostCommand,
   Transport,
   TransportStatus,
   UndeliveredCommand,
@@ -1045,6 +1046,7 @@ export function createPerfBudget(opts: PerfBudgetOptions): PerfBudgetHandle {
  * source. The three names match the `CommandStatus` phases deliberately.
  */
 export {
+  COMMAND_LOST,
   COMMAND_UNDELIVERED,
   type CommandRejection,
   classifyCommandRejection,

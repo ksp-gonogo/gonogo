@@ -1,7 +1,12 @@
-import type { UndeliveredCommand } from "@ksp-gonogo/sitrep-client";
-import { TelemetryClient } from "@ksp-gonogo/sitrep-client";
+import type {
+  Clock,
+  LostCommand,
+  UndeliveredCommand,
+} from "@ksp-gonogo/sitrep-client";
+import { LOSS_MARGIN, TelemetryClient } from "@ksp-gonogo/sitrep-client";
 import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
+  COMMAND_LOST,
   COMMAND_UNDELIVERED,
   Quality,
   Staleness,
@@ -9,6 +14,40 @@ import {
 import { describe, expect, it, vi } from "vitest";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
 import { PeerTransport } from "./PeerTransport";
+
+/**
+ * Deterministic `Clock` test double, the same shape `client.test.ts` uses and
+ * for the same reason: a station's loss timer is armed off the delay authority,
+ * so proving what a relayed loss does to an already-lost command means driving
+ * that timer rather than waiting on wall-clock time.
+ */
+class FakeClock implements Clock {
+  private currentUt: number;
+  private pending: { atUt: number; fn: () => void; cancelled: boolean }[] = [];
+
+  constructor(startUt = 0) {
+    this.currentUt = startUt;
+  }
+
+  now(): number {
+    return this.currentUt;
+  }
+
+  schedule(atUt: number, fn: () => void): () => void {
+    const callback = { atUt, fn, cancelled: false };
+    this.pending.push(callback);
+    return () => {
+      callback.cancelled = true;
+    };
+  }
+
+  advanceTo(ut: number): void {
+    this.currentUt = ut;
+    const due = this.pending.filter((cb) => !cb.cancelled && cb.atUt <= ut);
+    this.pending = this.pending.filter((cb) => cb.cancelled || cb.atUt > ut);
+    for (const cb of due) cb.fn();
+  }
+}
 
 /**
  * Duck-typed fake of the `PeerClientService` surface `PeerTransport`
@@ -199,14 +238,14 @@ describe("PeerTransport", () => {
     const received: ServerMessage[] = [];
     transport.onMessage((m) => received.push(m));
 
-    client.emitCommandError("c0", "E_LOST", "no confirmation");
+    client.emitCommandError("c0", "E_NO_CLIENT", "host has no live client");
 
     expect(received).toEqual([
       {
         type: "error",
         requestId: "c0",
-        code: "E_LOST",
-        message: "no confirmation",
+        code: "E_NO_CLIENT",
+        message: "host has no live client",
       },
     ]);
   });
@@ -234,6 +273,81 @@ describe("PeerTransport", () => {
      * that had already called the command `lost` as proof the mod received it.
      */
     expect(received).toEqual([]);
+  });
+
+  it("reports the host's own loss as a loss, never as an error frame", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    const lost: LostCommand[] = [];
+    transport.onMessage((m) => received.push(m));
+    transport.onLost((c) => lost.push(c));
+
+    client.emitCommandError("c0", COMMAND_LOST, "no confirmation by ETA");
+
+    expect(lost).toEqual([
+      { requestId: "c0", reason: "no confirmation by ETA" },
+    ]);
+    /*
+     * The host's loss timer ran out, which is the host saying it does not know.
+     * As an `error` frame that would reach the station as proof the mod
+     * received the command, which is the opposite claim.
+     */
+    expect(received).toEqual([]);
+  });
+
+  it("a host-relayed loss leaves a station's already-lost command lost, not found", async () => {
+    const clock = new FakeClock(0);
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const telemetryClient = new TelemetryClient(transport, clock);
+    // What `TelemetryProvider` wires from the relayed `comms.delay`: a station
+    // sizes its own deadline off the mod's delay, never off the PeerJS hop.
+    telemetryClient.setDelaySource(() => 4);
+
+    const { requestId, result } = telemetryClient.dispatch(
+      "vessel.control.setSas",
+      { enabled: true },
+    );
+    const settled = result.catch((err: unknown) => err);
+    clock.advanceTo(8 + LOSS_MARGIN);
+    expect(telemetryClient.getCommand(requestId)).toMatchObject({
+      phase: "lost",
+    });
+
+    // The host's own timer ran out too and it relays that verdict. Agreement,
+    // not news: the command must not move to `found`, which would tell the
+    // operator the mod received something the host only reported losing.
+    client.emitCommandError(requestId, COMMAND_LOST, "no confirmation by ETA");
+
+    expect(telemetryClient.getCommand(requestId)).toMatchObject({
+      phase: "lost",
+    });
+    await expect(settled).resolves.toMatchObject({ code: COMMAND_LOST });
+  });
+
+  it("a host-relayed loss settles a station's in-flight command as lost, not failed", async () => {
+    const clock = new FakeClock(0);
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const telemetryClient = new TelemetryClient(transport, clock);
+    telemetryClient.setDelaySource(() => 4);
+
+    const { requestId, result } = telemetryClient.dispatch(
+      "vessel.control.setSas",
+      { enabled: true },
+    );
+    const settled = result.catch((err: unknown) => err);
+    // The host's round trip to the mod is not the station's, so its timer can
+    // reach the deadline first. Whichever gets there first, the phase is the
+    // same one: `failed` would promise the operator a safe retry that could
+    // double a command the mod may already have run.
+    client.emitCommandError(requestId, COMMAND_LOST, "no confirmation by ETA");
+
+    expect(telemetryClient.getCommand(requestId)).toMatchObject({
+      phase: "lost",
+    });
+    await expect(settled).resolves.toMatchObject({ code: COMMAND_LOST });
   });
 
   it("send() routes a command-request to client.sendSitrepCommand", () => {

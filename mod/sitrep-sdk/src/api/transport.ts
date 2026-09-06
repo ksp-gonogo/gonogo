@@ -22,6 +22,21 @@ export interface UndeliveredCommand {
 }
 
 /**
+ * One command-request that whoever this transport relays for has given up
+ * waiting on, and said so.
+ *
+ * Structurally the same as {@link UndeliveredCommand} and deliberately not the
+ * same type, because the two make opposite claims about the same command.
+ * Undelivered says it never left; this says nobody knows whether it did.
+ */
+export interface LostCommand {
+  /** The dispatch's own `requestId`, as it was handed to `send`. */
+  requestId: string;
+  /** Why the far side stopped waiting, in its own words. */
+  reason: string;
+}
+
+/**
  * A dumb typed message pipe between the app and a telemetry source.
  *
  * Transports know nothing about topics, subscriptions, or commands beyond
@@ -60,10 +75,38 @@ export interface Transport {
    * which is the honest answer for "we do not know".
    *
    * Omitted by every transport that has no queue to strand anything in
-   * (`StubTransport`, `ReplayTransport`, `CourierTransport`) and by
-   * `PeerTransport`, which refuses a command at the press instead of holding it.
+   * (`StubTransport`, `ReplayTransport`, `CourierTransport`). `PeerTransport`
+   * strands nothing of its own, refusing a command at the press rather than
+   * holding it, and implements this anyway to relay the HOST's stranded queue.
    */
   onUndelivered?(listener: (command: UndeliveredCommand) => void): () => void;
+
+  /**
+   * OPTIONAL: report a command-request that the machine this transport relays
+   * for has stopped waiting for and called lost.
+   *
+   * A channel of its own for the same reason `onUndelivered` is one, and this
+   * is the case that shows why that rule cannot be a list of reserved codes on
+   * the error channel: an `error` correlated to a requestId IS the proof that
+   * the mod received the command, so a relayed loss arriving that way turns
+   * "we do not know" into "it ran". Making "the mod answered" mean "unless the
+   * code is one of these" leaves the next reader an invariant that is no longer
+   * true anywhere it is stated.
+   *
+   * What the client does with it is settle `lost`, the phase whose whole
+   * content is that nothing was decided: the command may have reached the game,
+   * and a re-send may double it. Weaker than `undelivered` on purpose, so a
+   * transport that knows a command never left must use that channel and not
+   * this one. Reporting a loss for a command whose fate you actually know
+   * throws away the answer.
+   *
+   * Implemented only by `PeerTransport`, the one transport carrying a verdict
+   * it did not reach itself: a station's command is dispatched to the mod by
+   * the host, so the host's loss timer is the only one measuring that leg. The
+   * station arms its own off the relayed `comms.delay`, which times a different
+   * leg, so the two can fire in either order and both orders land here.
+   */
+  onLost?(listener: (command: LostCommand) => void): () => void;
 
   /**
    * OPTIONAL: if a command were dispatched right now, the absolute UT this

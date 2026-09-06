@@ -498,6 +498,154 @@ describe("TelemetryClient delayed command lifecycle (eta + loss)", () => {
 });
 
 /**
+ * The channel a transport reports SOMEONE ELSE'S loss on.
+ *
+ * `PeerTransport` is the case: a station's command is dispatched to the mod by
+ * the host, so the host's loss timer is the only one timing that leg. Relayed as
+ * an `error` frame instead, the host saying "I stopped waiting" would arrive as
+ * proof the mod received the command, because that is what an `error` correlated
+ * to a requestId means (`handleCommandError` moves a lost command to `found` on
+ * one). Hence a channel rather than a reserved code.
+ */
+describe("TelemetryClient: a loss relayed by the transport", () => {
+  class RelayingTransport implements Transport {
+    readonly status: TransportStatus = "connected";
+    private readonly messageListeners = new Set<
+      (message: ServerMessage) => void
+    >();
+    private readonly lostListeners = new Set<
+      (command: { requestId: string; reason: string }) => void
+    >();
+
+    constructor(private readonly eta: number | undefined) {}
+
+    predictConfirmEta(): number | undefined {
+      return this.eta;
+    }
+
+    send(): void {
+      // The test drives every reply.
+    }
+
+    onMessage(listener: (message: ServerMessage) => void): () => void {
+      this.messageListeners.add(listener);
+      return () => this.messageListeners.delete(listener);
+    }
+
+    onStatusChange(): () => void {
+      return () => {};
+    }
+
+    onLost(
+      listener: (command: { requestId: string; reason: string }) => void,
+    ): () => void {
+      this.lostListeners.add(listener);
+      return () => this.lostListeners.delete(listener);
+    }
+
+    relayLoss(requestId: string, reason: string): void {
+      for (const listener of this.lostListeners)
+        listener({ requestId, reason });
+    }
+
+    deliver(message: ServerMessage): void {
+      for (const listener of this.messageListeners) listener(message);
+    }
+  }
+
+  it("settles a still-waiting dispatch as lost, not failed", async () => {
+    // No prediction, so nothing here arms a deadline of its own: the relay's
+    // verdict is the only thing that can end this wait.
+    const transport = new RelayingTransport(undefined);
+    const client = new TelemetryClient(transport, new FakeClock(0));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { requestId, result } = client.dispatch("vessel.staging.activate");
+    const settled = result.then(
+      () => "resolved",
+      (error: unknown) => classifyCommandRejection(error),
+    );
+    transport.relayLoss(requestId, "no confirmation by ETA");
+
+    // `lost`, which warns that a re-send may double a command the mod may
+    // already have run. `failed` would promise a safe retry instead.
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "lost",
+      requestId,
+      reason: "relayed-loss",
+    });
+    expect(await settled).toMatchObject({ kind: "lost" });
+    warn.mockRestore();
+  });
+
+  it("leaves an already-lost command lost: the relay is agreeing, not answering", async () => {
+    const clock = new FakeClock(0);
+    const transport = new RelayingTransport(4);
+    const client = new TelemetryClient(transport, clock);
+
+    const { requestId, result } = client.dispatch("vessel.staging.activate");
+    const settled = result.then(
+      () => "resolved",
+      (error: unknown) => classifyCommandRejection(error),
+    );
+    clock.advanceTo(4 + LOSS_MARGIN);
+    expect(client.getCommand(requestId).phase).toBe("lost");
+    expect(await settled).toMatchObject({ kind: "lost" });
+
+    transport.relayLoss(requestId, "no confirmation by ETA");
+
+    expect(client.getCommand(requestId).phase).toBe("lost");
+    // The phase this defect produced. An `error` frame carrying `E_LOST` is
+    // read as the mod having answered, so the host reporting its own ignorance
+    // told the station the command had run.
+    expect(client.getCommand(requestId).phase).not.toBe("found");
+  });
+
+  it("cannot unmake an answer: a relayed loss for a confirmed command changes nothing", async () => {
+    const clock = new FakeClock(0);
+    const transport = new RelayingTransport(4);
+    const client = new TelemetryClient(transport, clock);
+
+    const { requestId, result } = client.dispatch("vessel.staging.activate");
+    transport.deliver({
+      type: "command-response",
+      requestId,
+      result: { ok: true },
+      meta: makeMeta(),
+    });
+    await expect(result).resolves.toEqual({ ok: true });
+
+    transport.relayLoss(requestId, "no confirmation by ETA");
+
+    expect(client.getCommand(requestId)).toEqual({
+      phase: "confirmed",
+      requestId,
+      result: { ok: true },
+    });
+  });
+
+  it("stops listening on dispose, so a late relayed loss reaches nothing", async () => {
+    const transport = new RelayingTransport(undefined);
+    const client = new TelemetryClient(transport, new FakeClock(0));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    const { requestId, result } = client.dispatch("vessel.staging.activate");
+    const settled = result.then(
+      () => "resolved",
+      (error: unknown) => classifyCommandRejection(error),
+    );
+    client.dispose();
+    expect(await settled).toMatchObject({ kind: "failed" });
+
+    // Nothing to throw at: `dispose` already emptied the correlation map, and
+    // the listener is detached, so this must not resurrect a status either.
+    transport.relayLoss(requestId, "no confirmation by ETA");
+    expect(client.getCommand(requestId)).toEqual({ phase: "idle" });
+    warn.mockRestore();
+  });
+});
+
+/**
  * A command the mod REFUSED is not a command that worked. The mod answers a
  * well-formed refusal on the normal `command-response` channel, carrying a
  * typed `CommandResult.errorCode`; the `"error"` message type is reserved for

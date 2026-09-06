@@ -10,6 +10,7 @@
  * interface is exactly the drift the shared-surface guard exists to prevent.
  */
 export type {
+  LostCommand,
   Transport,
   TransportStatus,
   UndeliveredCommand,

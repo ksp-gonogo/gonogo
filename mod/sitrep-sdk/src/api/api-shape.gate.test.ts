@@ -15,6 +15,15 @@ import * as barrel from "./index";
  */
 const EXPECTED_BARREL_VALUE_EXPORTS = [
   "AugmentSlot",
+  /*
+   * The rejection code for a command nothing answered. Published as the pair to
+   * `COMMAND_UNDELIVERED` below, for the one author who needs a code rather than
+   * a `kind`: whoever writes a RELAYING transport. Those two codes are the ones
+   * that must come off the error channel and onto `Transport.onLost` /
+   * `onUndelivered`, because an error correlated to a requestId means the mod
+   * received the command, and relaying either of them as one asserts that.
+   */
+  "COMMAND_LOST",
   // The rejection code for a command that never left the machine. Published
   // because `classifyCommandRejection` reports it as `failed` (see the constant's
   // own doc), so this string is the only way an author tells "it did not happen"

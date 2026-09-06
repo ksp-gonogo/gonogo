@@ -194,6 +194,14 @@ export type CommandFoundOutcome =
  * never left the browser that way would assert the opposite of the truth. So it
  * comes off `Transport.onUndelivered` instead, a channel no server writes to,
  * and it is terminal for good: nothing can answer a command nothing was sent.
+ *
+ * A loss REPORTED BY SOMEONE ELSE takes the third channel, `Transport.onLost`,
+ * for the same reason and to reach a different phase: the host relaying its own
+ * lost verdict to a station is saying it does not know, which is `lost` exactly
+ * and is neither an answer nor a claim that the command stayed put. Three
+ * claims, three channels. A reserved code on the error channel would have been
+ * cheaper and would have made "the mod answered" mean "unless the code is one
+ * of these", which is the sort of exception the next reader does not find.
  */
 export type CommandStatus =
   | { phase: "idle" }

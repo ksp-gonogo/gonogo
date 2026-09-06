@@ -422,6 +422,7 @@ export type {
 } from "./timeline-store";
 export { lerpPayload, TimelineStore } from "./timeline-store";
 export type {
+  LostCommand,
   Transport,
   TransportStatus,
   UndeliveredCommand,

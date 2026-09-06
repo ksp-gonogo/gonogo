@@ -1,10 +1,15 @@
 import type {
+  LostCommand,
   Transport,
   TransportStatus,
   UndeliveredCommand,
 } from "@ksp-gonogo/sitrep-client";
 import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { COMMAND_UNDELIVERED, hydratePayload } from "@ksp-gonogo/sitrep-sdk";
+import {
+  COMMAND_LOST,
+  COMMAND_UNDELIVERED,
+  hydratePayload,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
 
 /**
@@ -52,7 +57,10 @@ function toTransportStatus(status: ConnStatus): TransportStatus {
  * passes it as `<SitrepTelemetryProvider carriedChannels={...}>`'s explicit
  * prop. `predictConfirmEta` is also omitted: loss-inference for a station's
  * command dispatch would need the PeerJS round trip's own timing model
- * layered on top of the mod's courier model, not built for v1.
+ * layered on top of the mod's courier model, not built for v1. What the
+ * station gets instead is the host's own verdict, over `onLost`: the host
+ * dispatched the command to the mod and its timer is the only one measuring
+ * that leg.
  *
  * `subscribe`/`unsubscribe` go over the wire, so a station receives what its
  * own mounted widgets ask for rather than what the host happens to be reading.
@@ -121,6 +129,7 @@ export class PeerTransport implements Transport {
   private readonly undeliveredListeners = new Set<
     (command: UndeliveredCommand) => void
   >();
+  private readonly lostListeners = new Set<(command: LostCommand) => void>();
   private readonly unsubs: Array<() => void>;
   /** `requestId`s of sitrep commands sent but not yet settled (response/error/drop). */
   private readonly pendingCommandIds = new Set<string>();
@@ -159,6 +168,25 @@ export class PeerTransport implements Transport {
          */
         if (code === COMMAND_UNDELIVERED) {
           for (const listener of this.undeliveredListeners) {
+            listener({ requestId, reason: message });
+          }
+          return;
+        }
+        /*
+         * The host's own loss timer ran out on this station's command. That is
+         * the host reporting IGNORANCE, not an answer: the mod may have run the
+         * command and may never have seen it.
+         *
+         * Off the error channel for the same reason the undelivered branch
+         * above is, and onto a different one, because the two say different
+         * things. `undelivered` claims the command never left the machine, and
+         * a host that merely stopped waiting makes no such claim. Relayed as an
+         * `error` it would reach a station that had already called the command
+         * lost as proof the mod received it: the host says "I do not know" and
+         * the operator is told "it ran".
+         */
+        if (code === COMMAND_LOST) {
+          for (const listener of this.lostListeners) {
             listener({ requestId, reason: message });
           }
           return;
@@ -243,12 +271,23 @@ export class PeerTransport implements Transport {
     return () => this.undeliveredListeners.delete(listener);
   }
 
+  /**
+   * See `Transport.onLost`. A station's command is dispatched to the mod by the
+   * host, so the host's loss timer is the only one timing that leg, and this is
+   * the channel its verdict arrives on.
+   */
+  onLost(listener: (command: LostCommand) => void): () => void {
+    this.lostListeners.add(listener);
+    return () => this.lostListeners.delete(listener);
+  }
+
   /** Detach from `PeerClientService` and drop all listeners. Idempotent-safe (unsubs are themselves idempotent). */
   dispose(): void {
     for (const unsub of this.unsubs) unsub();
     this.messageListeners.clear();
     this.statusListeners.clear();
     this.undeliveredListeners.clear();
+    this.lostListeners.clear();
     this.pendingCommandIds.clear();
     this.subscribedTopics.clear();
   }
