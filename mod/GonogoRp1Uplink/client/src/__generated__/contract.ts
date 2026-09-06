@@ -861,8 +861,8 @@ export interface Rp1CentreEntry
 	/**
 	* What this centre's engineers draw per day, RP-1's own effective figure: an
 	* unassigned engineer counts at a fraction (see `Rp1Personnel.idleSalaryMult`)
-	* and a rushing complex's crew counts double, so this is not headcount times a
-	* rate.
+	* and a rushing complex's working crew counts at the rush multiplier (see
+	* `Rp1RushTerms.salaryMult`), so this is not headcount times a rate.
 	*/
 	salaryPerDay?: Value<"f/day">;
 	/**
@@ -1086,8 +1086,9 @@ export interface Rp1ComplexEntry
 	efficiencyGroupKey?: string;
 	/**
 	* What this complex's crew draws per day, at RP-1's own effective count: a
-	* rushing complex pays double, and a complex nothing is active in pays its
-	* crew at the idle fraction.
+	* rushing complex pays its working crew at the rush multiplier (see
+	* `Rp1RushTerms.salaryMult`), and a complex nothing is active in pays its
+	* whole crew at the idle fraction.
 	*/
 	salaryPerDay?: Value<"f/day">;
 	/**

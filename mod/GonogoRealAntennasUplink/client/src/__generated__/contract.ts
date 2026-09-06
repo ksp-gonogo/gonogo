@@ -158,6 +158,11 @@ export interface RealAntennasAntennaState
 	/**
 	* Whether this antenna currently holds a target. The fields below describe it
 	* when true and are all null when false.
+	*
+	* False on a steerable antenna means it has not been aimed yet, which is the
+	* state a dish leaves the editor in. There is no command that returns one to
+	* it: both targeting commands move an antenna between targets, and
+	* RealAntennas itself never puts a vessel dish back.
 	*/
 	targeted: boolean;
 	/** Antenna gain (dBi), the quantity beamwidth and steerability both come off. */
