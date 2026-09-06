@@ -26,7 +26,25 @@ namespace Sitrep.Contract;
 #endif
 public class PendingUplink
 {
-    /// <summary>== the dispatch <c>CommandRequest.RequestId</c>, the correlation key.</summary>
+    /// <summary>
+    /// The ENGINE's own id for this dispatch, unique within this queue.
+    ///
+    /// <para>NOT the <c>requestId</c> a client put on its <c>command-request</c>,
+    /// and not relatable to it: that id is the client's own choice and two
+    /// clients can pick the same one, so the engine mints this separately and
+    /// nothing on the wire pairs the two. A client looking for its OWN dispatch
+    /// here matches on the <see cref="Label"/> and <see cref="Topic"/> it
+    /// supplied, both of which are carried through verbatim.</para>
+    /// <internal>
+    /// ChannelEngine.NextRequestId(), minted in ProcessDispatchCommand and passed
+    /// to Courier.DispatchCommand; the socket handler's req.RequestId is captured
+    /// only by the response closure and never reaches the job. Said out loud
+    /// because this comment read "== the dispatch CommandRequest.RequestId, the
+    /// correlation key" until 2026-09-06, and Sitrep.Contract has exactly one
+    /// CommandRequest: the wire one. A client author hovering the published TSDoc
+    /// would join on an id that can never match.
+    /// </internal>
+    /// </summary>
     [SitrepUnit(Units.Id)]
     public string Id { get; set; } = "";
 

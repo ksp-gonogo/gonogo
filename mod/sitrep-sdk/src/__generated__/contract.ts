@@ -5676,7 +5676,16 @@ export interface GateVerdict
 */
 export interface PendingUplink
 {
-	/** == the dispatch `CommandRequest.RequestId`, the correlation key. */
+	/**
+	* The ENGINE's own id for this dispatch, unique within this queue.
+	*
+	* NOT the `requestId` a client put on its `command-request`, and not relatable
+	* to it: that id is the client's own choice and two clients can pick the same
+	* one, so the engine mints this separately and nothing on the wire pairs the
+	* two. A client looking for its OWN dispatch here matches on the
+	* `PendingUplink.label` and `PendingUplink.topic` it supplied, both of which
+	* are carried through verbatim.
+	*/
 	id: string;
 	/** Wire command name (e.g. `kos.run`). */
 	command: string;
