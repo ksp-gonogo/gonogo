@@ -34,7 +34,7 @@ import "./Reactor";  // registerComponent(...)
 ```
 
 If the entry misses a module, that Uplink is missing a widget everywhere at once:
-in the render, in the page and in the app. Nothing is silently smaller, though —
+in the render, in the page and in the app. Nothing is silently smaller, though:
 a bundle that declares no client at all fails naming the cause, and a registered
 widget with no fixture fails naming the widget.
 
@@ -351,7 +351,7 @@ writes is a different question: a working copy has no distributed file, so
 `docs` leaves the field empty and says so on stderr, and the page test strips the
 field before comparing for exactly that reason. `docs --bundle <path>` stamps it
 if you want the committed copy stamped too, and a release is the only time that
-is worth doing — `docs --check` compares the manifest byte for byte, so a stamped
+is worth doing, because `docs --check` compares the manifest byte for byte, so a stamped
 committed copy makes every later plain `--check` disagree with itself.
 
 The one field nothing can derive is `minAppVersion`, which is a claim about the
@@ -376,7 +376,7 @@ which is which because they cost very different amounts.
 **Does the page's text still match the registrations?** That is a registry read,
 which your test suite is already set up for: an Uplink's suite loads its own
 client under jsdom against a host installed by `installRealTestHost` (from
-`@ksp-gonogo/sitrep-sdk/testing`, in your vitest `setupFiles` — see
+`@ksp-gonogo/sitrep-sdk/testing`, in your vitest `setupFiles`. See
 `creating-an-uplink.md`, "Testing your Uplink"). So it runs as a test, with no
 browser:
 

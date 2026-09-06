@@ -479,10 +479,10 @@ describe("the README docs is about to overwrite", () => {
     ).resolves.toBeUndefined();
   });
 
-  // Everything a generated page says comes from the registrations, so there is
-  // nowhere in it for prose to survive: overwriting a readme a person wrote
-  // destroys it outright, and before this the first run in such a package did
-  // exactly that with no warning.
+  /* Everything a generated page says comes from the registrations, so there is
+     nowhere in it for prose to survive: overwriting a readme a person wrote
+     destroys it outright, and before this the first run in such a package did
+     exactly that with no warning. */
   it("refuses a hand-written one, naming what to do with it", async () => {
     const dir = fakePackage({
       "README.md": "# My Uplink\n\nNotes I spent an afternoon on.\n",

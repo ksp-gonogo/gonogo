@@ -148,9 +148,9 @@ export function describeConnStatus(
   everConnected: boolean,
   brokerUnreachable = false,
 ): string {
-  // Ranked above hostNotFound: a station that never reached the broker also
-  // never learned anything about the host, so "that code isn't there" would
-  // be a guess dressed as a finding.
+  /* Ranked above hostNotFound: a station that never reached the broker also
+     never learned anything about the host, so "that code isn't there" would
+     be a guess dressed as a finding. */
   if (brokerUnreachable) {
     return "Can't reach the peer broker: this device needs internet access.";
   }

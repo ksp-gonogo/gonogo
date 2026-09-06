@@ -282,9 +282,9 @@ export class PeerClientService {
       this.connectToHost();
     });
     this.peer.on("error", (err) => {
-      // Classify BEFORE the peer-unavailable branches below: a broker we
-      // never reached is a different fault from a host that isn't there,
-      // and only this branch can tell the operator which one they have.
+      /* Classify BEFORE the peer-unavailable branches below: a broker we
+         never reached is a different fault from a host that isn't there,
+         and only this branch can tell the operator which one they have. */
       if (isPeerJsError(err) && BROKER_ERROR_TYPES.has(err.type ?? "")) {
         this.setBrokerReachable(false);
       }
