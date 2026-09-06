@@ -136,44 +136,126 @@ const EXCLUDED = /\/dist\/|\.test\.|\.spec\.|test-d|__fixtures__|__generated__/;
  */
 const COMMENT_LINE = /^(\/\/|\*|\/\*)/;
 
-function repoRoot(startDir: string): string {
-  return execFileSync("git", ["rev-parse", "--show-toplevel"], {
-    cwd: startDir,
-    encoding: "utf8",
-  }).trim();
+/**
+ * The two passes the tally needs, and why one grep cannot serve both.
+ *
+ * `-o` is what makes this scan count OCCURRENCES. Without it `git grep` emits
+ * one record per matching LINE and the tally counts records, so two dispatches
+ * written on one source line score as one and joining two lines becomes a way
+ * to spend a dispatch the budget cannot see. The sibling `.magnitude` budget
+ * was under-counting sixteen lines that way before it took the flag.
+ *
+ * But `-o` alone would break `COMMENT_LINE`, which is the reason the fix here
+ * is a different shape from the sibling's. That filter reads the text after
+ * `file:lineno:`, and under `-o` that slice is no longer the source line, it is
+ * just the matched fragment (`void cmd.send(`), which never begins a comment.
+ * The filter would go INERT, and `use-command.ts` would start being charged two
+ * occurrences for the paragraph explaining why it marks these rejections
+ * handled. It carries no budget entry, so the naive flag swap does not fail
+ * later, it fails on the spot.
+ *
+ * So: `-nE` builds the set of `file:lineno` that are prose, `-noE` counts
+ * occurrences and drops the ones landing on a line in that set. Same engine,
+ * same pattern, two questions.
+ *
+ * Counting the matches in JavaScript instead is not available to the sibling
+ * and is not wanted here either. `FIRE_AND_FORGET` is POSIX ERE, and the header
+ * above warns that a `]` added to its class must come FIRST, where JavaScript
+ * would read `[]` as an EMPTY class. The engine that matches has to be the
+ * engine that counts, or the two drift the day someone widens the pattern.
+ *
+ * Both flag strings are shared with the planted check below on purpose: it
+ * asserts a figure that only the two passes together can produce.
+ */
+const GREP_FLAGS_LINES = "-nE";
+const GREP_FLAGS_OCCURRENCES = "-noE";
+
+/**
+ * Runs one pass and hands back its records. A function rather than a fixed
+ * command so the planted check can point the same tally at a temp directory
+ * through `--no-index`.
+ */
+type GrepPass = (flags: string) => string;
+
+function runGrep(cwd: string, args: string[]): string {
+  try {
+    return execFileSync("git", args, {
+      cwd,
+      encoding: "utf8",
+      maxBuffer: 1024 * 1024 * 16,
+    });
+  } catch (err) {
+    // git grep exits 1 when nothing matches. That is not a pass here: the whole
+    // repo losing every dispatch at once is a broken search, and the file floor
+    // below is what says so.
+    if ((err as { status?: number }).status === 1) return "";
+    throw err;
+  }
 }
 
-function countsByFile(root: string): Map<string, number> {
-  let out: string;
-  try {
-    out = execFileSync(
-      "git",
+function repoPass(root: string): GrepPass {
+  return (flags) =>
+    runGrep(root, [
+      "grep",
       // `--untracked` is load-bearing: `git grep` alone searches only TRACKED
       // files, so a brand-new widget's blind dispatches are invisible to this
       // budget until the moment they are committed, which is the one moment
       // nobody is looking. It still honours .gitignore, so build output and
       // node_modules stay out.
-      ["grep", "-nE", "--untracked", FIRE_AND_FORGET, "--", ...SEARCH_GLOBS],
-      { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
-    );
-  } catch (err) {
-    // git grep exits 1 when nothing matches. That is not a pass here: the whole
-    // repo losing every dispatch at once is a broken search, and the file floor
-    // below is what says so.
-    if ((err as { status?: number }).status === 1) return new Map();
-    throw err;
+      "--untracked",
+      flags,
+      FIRE_AND_FORGET,
+      "--",
+      ...SEARCH_GLOBS,
+    ]);
+}
+
+/**
+ * `file:lineno` for every match sitting on a prose line, read from the
+ * line-oriented pass because that is the only one that still carries the source
+ * text to judge.
+ */
+function proseLines(pass: GrepPass): Set<string> {
+  const prose = new Set<string>();
+  for (const record of pass(GREP_FLAGS_LINES).split("\n")) {
+    const split = splitRecord(record);
+    if (!split) continue;
+    if (COMMENT_LINE.test(split.text.trim())) prose.add(split.key);
   }
+  return prose;
+}
+
+function splitRecord(
+  record: string,
+): { file: string; key: string; text: string } | undefined {
+  if (!record) return undefined;
+  const firstColon = record.indexOf(":");
+  const secondColon = record.indexOf(":", firstColon + 1);
+  if (firstColon < 1 || secondColon < 0) return undefined;
+  return {
+    file: record.slice(0, firstColon),
+    key: record.slice(0, secondColon),
+    text: record.slice(secondColon + 1),
+  };
+}
+
+function countsByFile(pass: GrepPass): Map<string, number> {
+  const prose = proseLines(pass);
   const counts = new Map<string, number>();
-  for (const line of out.split("\n")) {
-    if (!line || EXCLUDED.test(line)) continue;
-    const firstColon = line.indexOf(":");
-    const secondColon = line.indexOf(":", firstColon + 1);
-    if (firstColon < 1 || secondColon < 0) continue;
-    const file = line.slice(0, firstColon);
-    if (COMMENT_LINE.test(line.slice(secondColon + 1).trim())) continue;
-    counts.set(file, (counts.get(file) ?? 0) + 1);
+  for (const record of pass(GREP_FLAGS_OCCURRENCES).split("\n")) {
+    if (!record || EXCLUDED.test(record)) continue;
+    const split = splitRecord(record);
+    if (!split || prose.has(split.key)) continue;
+    counts.set(split.file, (counts.get(split.file) ?? 0) + 1);
   }
   return counts;
+}
+
+function repoRoot(startDir: string): string {
+  return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    cwd: startDir,
+    encoding: "utf8",
+  }).trim();
 }
 
 /**
@@ -202,7 +284,7 @@ function staleEntries(
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
 
 describe("the fire-and-forget command budget only shrinks", () => {
-  const counts = countsByFile(root);
+  const counts = countsByFile(repoPass(root));
 
   it("is actually looking at the codebase", () => {
     expect(counts.size).toBeGreaterThanOrEqual(MINIMUM_FILES_EXPECTED);
@@ -216,9 +298,10 @@ describe("the fire-and-forget command budget only shrinks", () => {
      * a `]` added anywhere but first in the bracket class ends the class early
      * and silently matches nothing from then on.
      *
-     * Driven through `git grep` rather than a JS RegExp so the engine under
-     * test is the one that runs, and from a temp dir outside any repository
-     * because `--no-index` refuses a path outside the repo it finds from cwd.
+     * Driven through the real `countsByFile`, not a bare `git grep`, so the
+     * planted file measures the tally that runs rather than only the regex it
+     * runs. `--no-index` from a temp dir outside any repository, because it
+     * refuses a path outside the repo it finds from cwd.
      */
     const dir = mkdtempSync(join(tmpdir(), "faf-ratchet-"));
     try {
@@ -229,18 +312,31 @@ describe("the fire-and-forget command budget only shrinks", () => {
           "void hireCmd.send(args);", // a suffixed one
           "void this.engage.send();", // a dotted receiver
           "void land.send(x);", // a handle named nothing like a command
+          "void a.send(1); void b.send(2);", // TWO on one line
+          "// void prose.send() written up is not a dispatch",
+          " * void doc.send() inside a block comment is not one either",
         ].join("\n"),
       );
-      const hits = execFileSync(
-        "git",
-        ["grep", "--no-index", "-nE", FIRE_AND_FORGET, "--", "p.ts"],
-        { cwd: dir, encoding: "utf8" },
-      )
-        .trim()
-        .split("\n");
-      // Four, including the two receiver shapes an earlier suffix-matching pass
-      // missed: the header records it walking past four files for that reason.
-      expect(hits).toHaveLength(4);
+      const counts = countsByFile((flags) =>
+        runGrep(dir, [
+          "grep",
+          "--no-index",
+          flags,
+          FIRE_AND_FORGET,
+          "--",
+          "p.ts",
+        ]),
+      );
+      /*
+       * Six dispatches over five lines, the two prose lines charged for
+       * nothing. That single figure pins both halves of the two-pass tally,
+       * because every way of breaking one of them lands somewhere else: line
+       * counting instead of occurrences gives 5, an inert `COMMENT_LINE` filter
+       * gives 8, and losing both at once gives 7. A budget that billed a file
+       * for explaining itself is how the explanations get deleted, and a budget
+       * that scored a doubled line as one is how a dispatch gets spent unseen.
+       */
+      expect(counts.get("p.ts")).toBe(6);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
