@@ -683,9 +683,10 @@ describe("VehicleAssembly", () => {
   });
 
   it("still offers the press when RP-1 has not priced the move", async () => {
-    // Absent is not free, and it is not a reason to withhold a control either:
-    // the command reads the price itself, so the worst case is a refusal one
-    // step later against the certainty of hiding a press that would have worked.
+    /* Absent is not free, and it is not a reason to withhold a control either:
+       the command reads the price itself, so the worst case is a refusal one
+       step later against the certainty of hiding a press that would have
+       worked. */
     const { fixture, view } = mount();
     await rp1IsPresent(fixture);
     act(() => {

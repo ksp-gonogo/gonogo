@@ -56,9 +56,9 @@ const COMPLEXES = [
     massMin: 6,
     maxEngineers: 60,
     name: "LC-1",
-    // NOT salaryPerDay times the multiplier: the mod recovers the working part
-    // of the crew and prices only that, so the two figures are free to disagree
-    // and a client that multiplied would be wrong here.
+    /* NOT salaryPerDay times the multiplier: the mod recovers the working part
+       of the crew and prices only that, so the two figures are free to disagree
+       and a client that multiplied would be wrong here. */
     rushSalaryDeltaPerDay: 24.6,
     salaryPerDay: 49.3,
     upkeepPerDay: 45,

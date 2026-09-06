@@ -391,9 +391,9 @@ function VehicleActions({
             aria-label={`Send ${label} back out to the pad`}
             commandLabel={`Roll out ${name}`}
             confirmAriaLabel={`Confirm sending ${label} back out to the pad`}
-            // COMMIT rather than spend, the same wording the facility upgrades
-            // carry: nothing leaves the treasury at the press, RP-1 draws the
-            // price down over the move.
+            /* COMMIT rather than spend, the same wording the facility upgrades
+               carry: nothing leaves the treasury at the press, RP-1 draws the
+               price down over the move. */
             confirmLabel="Commit"
             handle={handles.rollout}
             label="Roll out again"
