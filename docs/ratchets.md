@@ -10,7 +10,123 @@ You write down the hundred. The gate fails if the number goes up. You delete ent
 as you fix them. It only turns one way.
 
 This document describes the shapes we ended up with, why each exists, and what we got
-wrong first. It is written to be lifted into another project.
+wrong first. Everything below the next section is written to be lifted into another
+project. The next section is not: it names this repo's paths and commands, because a
+red build is when most people open this page and an essay is no use to them.
+
+---
+
+## Start here if one just failed
+
+### Where they are
+
+- **The gates**: `packages/core/src/*.test.ts`. 67 of them scan outside their own
+  package, and they live in `@ksp-gonogo/core` whatever they police (the reasoning is
+  under "Where a ratchet lives"). Which files those are is derived, not listed:
+  `packages/core/scan-tests.mjs` picks out the ones that reach outside the package
+- **Their debt lists**: beside them, as `packages/core/src/<subject>.allowlist.ts` or
+  `<subject>.debt.ts`. `RATCHET_ALLOWLIST_PATHS` in `packages/core/src/ratchetBaseRef.ts`
+  enumerates every list that is graded against a base revision
+- **Numeric budgets** are usually a constant inside the gate file itself, not a
+  separate list: `MAGNITUDE_BUDGET` in
+  `packages/core/src/styleguide-magnitude-budget.test.ts` is the model
+- **The gates that cannot be tests** are in `scripts/`, each with its data beside it:
+  `scripts/act-warning-gate.mjs` + `scripts/act-warning-debt.mjs`,
+  `scripts/uplink-shape-gate.mjs` + `scripts/uplink-shape-debt.mjs`. The census and
+  regeneration tools for the test-hosted gates live there too
+  (`scripts/panel-body-debt.mjs`, `scripts/comment-stack-debt.mjs`,
+  `scripts/unknown-cast-debt.mjs`)
+
+### How to run one
+
+```bash
+pnpm --filter @ksp-gonogo/core test:scans      # every cross-package ratchet
+pnpm act-warning-gate                          # the standalone act-warning gate
+
+# one gate, after `pnpm build` once (the suite needs the workspace's dists):
+pnpm --filter @ksp-gonogo/core exec vitest run \
+  --config vitest.scans.config.ts src/styleguide-panel-body.test.ts
+```
+
+`turbo run test` is a smaller task set and does not reach these. **Commit first, then
+re-run**: several of these scans enumerate with `git ls-files` or `git grep`, so an
+untracked file is invisible to them, and the set of gates that runs at all is itself
+derived from `git ls-files`.
+
+### What the failure is telling you
+
+The category decides the remedy, and they differ sharply. You do not have to know
+which category a gate is in beforehand: its failure text says. Match on what you were
+just printed.
+
+| The failure says                                                                  | Category                            | Do this                                                                                                                                             |
+| --------------------------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| violations named one by one, each with its file and line, absent from a list      | 1, shrink-only list                 | **Fix the code.** The list may only lose entries. Adding one is the move the gate exists to refuse                                                    |
+| a count over a number: `exceeds baseline (N) by M`, `used, budget N`, `not on the list` | 2, numeric, over arm           | Fix the code. A raise is last resort and has to name the API method that would have avoided it (see "A budget entry is often a missing API")           |
+| `is down to N and the baseline still reads M`, `sit above what their file uses`   | 2, numeric, shrink arm              | You improved something. Retype the figure the message prints, in the file it names, in the same commit. The walk past the note above it is the point   |
+| a diff against a committed artefact                                                | 3, snapshot                         | Decide whether the change was intended, then regenerate by the sanctioned route the failure names, never by hand                                       |
+| `declared but unknown`, `known but no longer declared`                             | 4, two-sided sync                   | There is no debt list to move. One side is stale: make the two equal                                                                                  |
+| `BLIND: ...`, `found no ... at all`, a planted violation that was not seen             | 7, self-verification                | The instrument, not your change. Leave every debt list alone and fix the scan                                                                          |
+| anything prefixed `[ratchet]`                                                      | the apparatus                       | Not your change either. See "The base revision" below                                                                                                 |
+
+### Ceiling or equality: ask the tree, not a list
+
+A numeric gate is a **ceiling** (over fails, under passes and is reported) or an
+**equality** (either side fails). Which one it should be is decided by one question
+you can answer for any gate in a minute: **run it twice on an unchanged tree.** A
+count produced by scanning text is the same number both times and should be an
+equality; a count observed from a run, warnings emitted or events seen, moves with
+machine load and has to be a ceiling. `act-warning-gate` is the second kind.
+`styleguide-styled-components`, `styleguide-magnitude-budget` and
+`styleguide-fire-and-forget-commands` are the first, and are equalities: if your fix
+lowers one of them, it stays red until you retype the number, and the failure prints
+the exact figure and the file to put it in.
+
+**On a ceiling over a race, a growth red is real even if it does not reproduce.**
+Contention does not invent the race, it gives it more chances to fire, so the high
+reading is the true one and the low one is not evidence you fixed anything. Re-running
+until it goes green is how a gate loses its grip. The act gate prints the machine load
+beside the count so the two readings can be compared honestly.
+
+### Regenerating a list
+
+Some lists have a tool, some deliberately do not.
+
+| List                                       | Regenerate with                                            |
+| ------------------------------------------ | ---------------------------------------------------------- |
+| `scripts/act-warning-debt.mjs`             | `pnpm act-warning-gate --update --only <substring>`         |
+| `packages/core/src/panel-body.allowlist.ts` | `node scripts/panel-body-debt.mjs --update`                 |
+| `packages/core/src/comment-stacks.allowlist.ts` | `node scripts/comment-stack-debt.mjs --update`         |
+| `packages/core/src/unknown-cast.debt.ts`   | `node scripts/unknown-cast-debt.mjs --update`               |
+| `PROSE_DEBT` in `scripts/asyncapi/prose-hygiene.mjs` | `node scripts/asyncapi-doc.mjs --update-prose-debt` |
+| the three equality gates above             | nothing. By hand, which is the design (see category 2)              |
+
+The four `--update` tools that rewrite a shrink-only list rewrite the whole of it, and
+that is safe for them: the gate refuses a list that grew, so a bare run cannot launder
+a new violation into the baseline. The act gate is the exception, because its numbers
+are a race rather than a census, and rewriting all of it from one roll writes down that
+run's number for files your change never touched, inside a commit that says it fixed
+something else. So `pnpm act-warning-gate --update` **refuses** without a scope, before
+it measures anything: `--only <substring>` names what you fixed, `--all` is the
+deliberate spelling for a full reseed.
+
+### The base revision
+
+Any failure whose message begins `[ratchet]` is the measuring apparatus, not your
+change, and no debt list should move because of it. They all come from
+`packages/core/src/ratchetBaseRef.ts`, and these are the two you will meet:
+
+- `[ratchet] base revision unreachable: ...`: nothing to grade against. Locally,
+  `git fetch origin staging`, or set `RATCHET_BASE_REF=<commit>` yourself. In CI, the
+  checkout needs `fetch-depth: 0` and the "Resolve the ratchets' base revision" step
+- `[ratchet] the base revision <ref> IS the commit under test`: the base resolved to
+  HEAD, so every list would be diffed against itself. `scripts/resolve-ratchet-base-ref.sh`
+  works the right one out per trigger
+
+`RATCHET_BASE_REF` is the supported override and CI sets it from that script; note
+that `packages/core/turbo.json` has to declare it under `env` or turbo passes nothing
+through and the gates fall back. What was wrong in the story below is not the variable,
+it is having defaulted it silently.
 
 ---
 
@@ -65,8 +181,8 @@ expressed as a lint rule at all.
 
 ### They live in one package, not in the packages they police
 
-We have around forty of them, and they sit in a single shared package rather than
-being distributed to the code they check. Two reasons, both learned:
+We have 67 of them, all in `packages/core/src` (the `@ksp-gonogo/core` package) rather
+than distributed to the code they check. Two reasons, both learned:
 
 - **A gate inside the thing it polices dies with it.** Delete or restructure the
   package and the rule silently goes with it. Housed centrally, the gate survives and
@@ -116,24 +232,41 @@ Both halves generalise, and both are the same mistake in different clothes:
 
 What we run now:
 
-- one resolver, shared by every ratchet, that **throws** when no base can be
-  reached and **throws** when the base turns out to be the commit under test.
-  Neither condition can be expressed as a passing test, so neither can be
-  mistaken for one
-- a CI step that works the base out per trigger and refuses rather than guessing:
-  the tip **before** the push (`github.event.before`) on a push, the branch's
-  fork point on a pull request, never `origin/<the branch being pushed>`
+- one resolver, shared by every ratchet (`packages/core/src/ratchetBaseRef.ts`),
+  that **throws** when no base can be reached and **throws** when the base turns
+  out to be the commit under test. Neither condition can be expressed as a
+  passing test, so neither can be mistaken for one. Both messages carry a
+  `[ratchet]` prefix and say what to do, so an apparatus failure cannot be
+  mistaken for a violation of your change either
+- a CI step that works the base out per trigger and refuses rather than guessing
+  (`scripts/resolve-ratchet-base-ref.sh`, run by the "Resolve the ratchets' base
+  revision" step): the tip **before** the push (`github.event.before`) on a push,
+  the branch's fork point on a pull request, never `origin/<the branch being
+  pushed>`. It publishes the answer as `RATCHET_BASE_REF`
 - a checkout at `fetch-depth: 0`, because at depth 1 there is no second revision
   to compare against
-- a separate test, `ratchet-base-ref.test.ts`, whose only subject is the
-  apparatus: did a base resolve, is it an ancestor of the checkout rather than
-  the checkout itself, was every debt list actually readable there. None of the
-  five gates can ask that about itself, which is the whole reason the blindness
-  lasted
+- `RATCHET_BASE_REF` declared under `env` in `packages/core/turbo.json`, because
+  turbo passes through nothing it is not told about, and a variable it drops is a
+  fallback nobody sees taken
+- a separate test, `packages/core/src/ratchet-base-ref.test.ts`, whose only
+  subject is the apparatus: did a base resolve, is it an ancestor of the checkout
+  rather than the checkout itself, was every debt list actually readable there.
+  None of the five gates can ask that about itself, which is the whole reason the
+  blindness lasted
 
 The last one is category 7 below applied to the machinery rather than to a scan,
 and it is where the value is. Fixing the base ref makes the gates work; the guard
 is what tells you when they stop working again.
+
+**The variable survives; the silent default is what died.** `RATCHET_BASE_REF` is
+still how CI hands the resolver its answer and still how you pin one locally
+(`RATCHET_BASE_REF=<commit> pnpm --filter @ksp-gonogo/core test:scans`). The defect
+was a fallback that could not fail, not the environment variable. With nothing set,
+the resolver walks `origin/staging`, `origin/main`, `main`, takes the merge base of
+the first that exists with HEAD, and throws if none of them do. It returns "no base"
+in exactly one case, a local checkout sitting ON that merge base with nothing supplied,
+where there is genuinely nothing to diff; on a runner that same case is a failure,
+because there the base is supplied and being handed the subject is a config bug.
 
 ### When a test is the wrong host
 
@@ -233,6 +366,16 @@ is recoverable, where "not wired yet" would not have been. And the detector was 
 CI the whole time, inside `visual`: what was missing was never the check, it was a green
 job to report it in.
 
+**This is about wiring a NEW gate, and it is not permission to un-wire a live one.**
+The question there was whether a rule nobody had been held to yet should start blocking
+on the day it landed, with a known-red widget in front of it. A gate that has been green
+and just failed on your change is answering a different question, and taking it out of
+CI deletes the only evidence of what you changed. The available moves are to fix the
+code, or to argue in the open that the rule is wrong and change the rule; quieting the
+gate is not one of them. Note also that the anecdote ends with the gate wired, not with
+the deferral: what made the deferral survivable was a named blocker somebody could come
+back and clear.
+
 **A list with a real zero needs a floor that is not the debt.** Most of ours never
 approach empty, so an instrument check floored on the population is safe. The
 panel-body ratchet is meant to reach zero, and a floor under its population would be
@@ -246,7 +389,7 @@ shrink check can load the file's content at an arbitrary git revision without dr
 the test framework and the scanner along with it. We did not do this first and the
 shrink check was painful until we did.
 
-### 2. Numeric debt (per file, as a ceiling)
+### 2. Numeric debt (per file, as a ceiling or an equality)
 
 When violations are countable rather than nameable: warnings emitted, occurrences of
 a pattern: the list holds a number per file rather than a name per violation.
@@ -273,6 +416,15 @@ over-baseline arm could not see them arriving because they fit. All three of
 `styleguide-fire-and-forget-commands` had drifted this way (71/41, 329/294, 55/32), and
 all three are now equalities.
 
+**Which kind a gate is, is a property of its measurement, not a fact you have to look
+up.** Run it twice on an unchanged tree: a census of text gives the same number and
+wants an equality, an observation of a run does not and wants a ceiling. That test also
+tells you what a red means. Under an equality your own fix leaves the gate red until you
+retype the number, and the failure hands you the figure and the file. Under a ceiling a
+growth red is a real sighting even when the next run comes in lower, because contention
+gives a race more chances to fire rather than inventing one: re-running until it passes
+is how a gate stops being believed.
+
 **"Reported" has to mean reported to someone.** The reason nobody noticed is the
 mechanism this whole document opens with, turned on itself: shrinkage was a
 `console.warn`, vitest 4's default reporter suppresses console output for a test that
@@ -295,6 +447,15 @@ We also found it necessary to distinguish a number that was **measured** from on
 was **chosen**. An entry carrying an explanatory comment is never lowered
 automatically by the regeneration tool, because a human picked it for a reason and a
 fresh measurement would silently overwrite that reason.
+
+**A regeneration tool has to be scoped to what you changed.** Rewriting a whole list
+from one fresh measurement is a force-push for baselines: a commit about one widget's
+fix also writes down that run's number for every entry it never touched, which is
+unreadable in review and, on a race-y count, simply wrong. Where the gate refuses a
+grown list a full rewrite is harmless, because a new violation cannot be laundered
+through it. Where the count is an observation it is not, so `pnpm act-warning-gate
+--update` refuses a bare run and makes you say `--only <substring>` or `--all`. The
+listing under "Regenerating a list" above says which tool belongs to which list.
 
 The three equality gates above honour that by having no regeneration tool at all. The
 failure prints the exact figure to type and stops; typing it by hand is what walks a
@@ -453,8 +614,12 @@ user interface of a ratchet, and it is read by someone who is mid-task and did n
 expect it.
 
 **Say what to do next, including the escape hatch.** Every gate here prints how to
-regenerate, how to add a justified exception, and where the reasoning lives. A gate
-with no legitimate escape hatch gets disabled the first time it is wrong.
+regenerate, how to add a justified exception, and where the reasoning lives, naming
+the file to edit and the exact figure to type. A gate with no legitimate escape hatch
+gets disabled the first time it is wrong. The consequence for a reader is that the
+failure text is the primary source: the triage table under "Start here if one just
+failed" is keyed on it for that reason, and where the two disagree the message wins,
+because it was generated from the code and this page was not.
 
 **Require a reason for every exception, and test that the reasons are real.** One of
 ours has a companion check that every entry has a substantive justification, and
@@ -511,12 +676,17 @@ agent at a real codebase.
 >
 > - counts are **per file**, never one project-wide total, so that one file's fix
 >   cannot pay for another file's regression
-> - the entry is a **ceiling**: more than the number fails, fewer is reported and
->   passes. The counts vary between runs and a gate that fails on a downward move will
->   go red on an untouched branch
+> - decide **ceiling or equality by measuring**: run the count twice on an unchanged
+>   tree. If it moves, the entry is a ceiling (more fails, fewer is reported and passes),
+>   because a gate that fails on a downward move will go red on an untouched branch. If
+>   it does not move, make it an equality: the slack under a ceiling is standing
+>   permission for that many new violations, and the over arm cannot see them arrive
 > - print the machine load or whatever else makes the count vary, beside the count
 > - an entry carrying an explanatory comment must never be lowered automatically by the
 >   regeneration tool, because a human chose that number for a reason
+> - if there is a regeneration tool, make it **refuse an unscoped rewrite**. Rewriting
+>   every entry from one measurement writes that run's number for files the commit never
+>   touched. Fixing four files should move four numbers
 >
 > First, **prove the measurement instrument can see the problem at all**: check
 > whether the obvious command actually surfaces it, and tell me if it does not. Then
