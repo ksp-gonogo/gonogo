@@ -1,6 +1,5 @@
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { useRef } from "react";
 import { describe, expect, it } from "vitest";
 import {
   createDelayRailStore,
@@ -8,7 +7,6 @@ import {
   type DelayRailStore,
 } from "./DelayRailContext";
 import { PanelDelayRail } from "./PanelDelayRail";
-import { PanelRailTargetContext } from "./PanelRailTarget";
 import { VOICE_RAIL_TAGS } from "./railTags";
 import { usePanelCrossing } from "./usePanelCrossing";
 
@@ -34,19 +32,11 @@ function Talker({ amplitudes }: { amplitudes: readonly number[] | null }) {
 }
 
 function inPanel(children: React.ReactNode, store: DelayRailStore) {
-  function Harness() {
-    const targetRef = useRef<HTMLDivElement>(null);
-    return (
-      <div ref={targetRef} data-testid="target">
-        <PanelRailTargetContext.Provider value={targetRef}>
-          <DelayRailContext.Provider value={store}>
-            {children}
-          </DelayRailContext.Provider>
-        </PanelRailTargetContext.Provider>
-      </div>
-    );
-  }
-  return render(<Harness />);
+  return render(
+    <DelayRailContext.Provider value={store}>
+      {children}
+    </DelayRailContext.Provider>,
+  );
 }
 
 describe("usePanelCrossing", () => {
@@ -97,20 +87,12 @@ describe("usePanelCrossing", () => {
     );
     expect(container.querySelector("[data-rail-crossing]")).not.toBeNull();
 
-    function Harness() {
-      const targetRef = useRef<HTMLDivElement>(null);
-      return (
-        <div ref={targetRef} data-testid="target">
-          <PanelRailTargetContext.Provider value={targetRef}>
-            <DelayRailContext.Provider value={store}>
-              <Talker amplitudes={null} />
-              <PanelDelayRail />
-            </DelayRailContext.Provider>
-          </PanelRailTargetContext.Provider>
-        </div>
-      );
-    }
-    rerender(<Harness />);
+    rerender(
+      <DelayRailContext.Provider value={store}>
+        <Talker amplitudes={null} />
+        <PanelDelayRail />
+      </DelayRailContext.Provider>,
+    );
     expect(container.querySelector("[data-rail-crossing]")).toBeNull();
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
     await act(async () => {});

@@ -277,7 +277,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   // packages/ui-kit: 21 in 14 files (6 out of `any`, 4 in tests), walked 278 files
   "packages/ui-kit/src/augments.second-copy.test.ts": 1,
   "packages/ui-kit/src/augments.ts": 1,
-  "packages/ui-kit/src/CommandDelay/PanelDelayRail.test.tsx": 1,
   "packages/ui-kit/src/page-check.ts": 1,
   "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
   "packages/ui-kit/src/render-probe.tsx": 1,
@@ -482,7 +481,6 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/sitrep-client/src/websocket-transport.ts": 1,
   // packages/ui-kit: 11 in 6 files (0 out of `any`, 3 in tests), walked 278 files
   "packages/ui-kit/src/augments.ts": 1,
-  "packages/ui-kit/src/CommandDelay/PanelDelayRail.test.tsx": 1,
   "packages/ui-kit/src/Panel.sidebar.test.tsx": 1,
   "packages/ui-kit/src/render-probe.tsx": 1,
   "packages/ui-kit/src/render/driver.ts": 6,
