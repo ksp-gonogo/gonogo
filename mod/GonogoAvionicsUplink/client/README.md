@@ -3,7 +3,7 @@
 
 # Avionics
 
-Answers the question an RP-1 launch turns on: is the vessel within the active avionics unit's controllable-mass limit.
+Reports the active RP-1 avionics unit's tonnage limit against the vessel's mass.
 
 | | |
 | --- | --- |

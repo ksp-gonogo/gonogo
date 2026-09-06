@@ -14,6 +14,6 @@ export const REALFUELS = defineUplinkClient({
   version: UPLINK_VERSION,
   name: "RealFuels",
   description:
-    "Answers the two questions a Realism Overhaul burn turns on: can this " +
-    "engine be lit again, and is the propellant settled enough to light it.",
+    "Reports per-engine RealFuels limits: ignitions remaining, ullage " +
+    "stability and pressure feed, plus cryogenic boiloff.",
 });
