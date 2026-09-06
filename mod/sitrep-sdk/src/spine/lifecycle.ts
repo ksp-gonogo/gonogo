@@ -83,7 +83,7 @@ export interface CommandLoss {
  * game. Nothing ran.
  *
  * That is a stronger claim than `lost` and it is the useful one. `lost` earns
- * its caution, "whether it ran is unknown", from a command that may be sitting
+ * its caution, "may have run", from a command that may be sitting
  * in a queue on the far side; this one is sitting in a queue on THIS side, so
  * re-sending it cannot double anything and the operator can act on that.
  *

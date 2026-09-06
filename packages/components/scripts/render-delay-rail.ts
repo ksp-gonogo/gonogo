@@ -79,6 +79,9 @@ const SCENARIOS: ReadonlyArray<{
   name: string;
   panelTitle: string;
   handles: unknown[];
+  /** Taller than the default when a scenario's pinned float carries stacked
+   *  outcome boxes rather than a queue. */
+  viewportH?: number;
 }> = [
   {
     name: "01-resting-empty-queue",
@@ -235,6 +238,63 @@ const SCENARIOS: ReadonlyArray<{
       },
     ],
   },
+  {
+    name: "07-outcome-boxes-wording",
+    panelTitle: "NAVBALL",
+    viewportH: 560,
+    /*
+     * The four terminal outcomes stacked in the order the float draws them, so
+     * every sentence on this surface can be read against the others in one
+     * shot: a refusal, a loss, an undelivered, a found. That side-by-side is
+     * the whole point, since what separates a loss from an undelivered is
+     * whether pressing the button again is safe, and a reader has to be able to
+     * tell the two apart at a glance.
+     */
+    handles: [
+      {
+        id: "outcomes",
+        inFlight: [],
+        shape: "discrete",
+        effectiveDelaySeconds: 5,
+        dismiss: undefined,
+        refusals: [
+          {
+            id: "r0",
+            command: "vessel.control.setSasMode",
+            args: { mode: "prograde" },
+            label: "",
+            // 17 is NoConnection: the one general reason whose wording changed.
+            errorCode: 17,
+          },
+        ],
+        losses: [
+          {
+            id: "l0",
+            command: "vessel.control.setSasMode",
+            args: { mode: "prograde" },
+            label: "",
+          },
+        ],
+        undelivered: [
+          {
+            id: "u0",
+            command: "vessel.control.setRcs",
+            args: { enabled: true },
+            label: "",
+          },
+        ],
+        founds: [
+          {
+            id: "f0",
+            command: "vessel.stage.next",
+            args: undefined,
+            label: "",
+            outcome: "ran",
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 async function main(): Promise<void> {
@@ -305,6 +365,8 @@ async function main(): Promise<void> {
     );
 
     for (const scenario of SCENARIOS) {
+      const pxH = scenario.viewportH ?? VIEWPORT_H;
+      await page.setViewportSize({ width: VIEWPORT_W, height: pxH });
       await page.evaluate(
         (payload) =>
           (
@@ -316,13 +378,13 @@ async function main(): Promise<void> {
           handles: scenario.handles,
           panelTitle: scenario.panelTitle,
           pxW: VIEWPORT_W,
-          pxH: VIEWPORT_H,
+          pxH,
         },
       );
       // Park the cursor away from the top rail so a stationary pointer left over
       // from the previous scenario's click cannot hover-open the float in this
       // scenario's COLLAPSED shot.
-      await page.mouse.move(VIEWPORT_W / 2, VIEWPORT_H - 10);
+      await page.mouse.move(VIEWPORT_W / 2, pxH - 10);
       await page.waitForTimeout(80);
 
       const outName = `${scenario.name}.png`;

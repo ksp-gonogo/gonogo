@@ -109,7 +109,8 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
   [CommandErrorCode.WrongState]: "it is not in a state that allows it",
   [CommandErrorCode.NotClearToProceed]: "the flight is not clear for it yet",
   [CommandErrorCode.CapabilityMismatch]: "this craft cannot do it",
-  [CommandErrorCode.NoConnection]: "there is no usable link to send it on",
+  // Not "to send it on": a link is for sending, and this is read after one failed.
+  [CommandErrorCode.NoConnection]: "there is no usable link",
   [CommandErrorCode.NotUnlocked]: "it has not been unlocked yet",
   [CommandErrorCode.SiteOccupied]: "another vessel is on the launch site",
   // Deliberately not "a limit has been reached": under a career overhaul the

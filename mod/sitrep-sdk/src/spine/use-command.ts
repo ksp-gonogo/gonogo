@@ -225,7 +225,7 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    * command pressed while the link is down is held by the transport for the next
    * open; if the link never comes back, the transport eventually stops retrying
    * and what it is still holding can never be sent by anyone. Until that is
-   * said, the operator is looking at "no reply, whether it ran is unknown" for a
+   * said, the operator is looking at "no reply, may have run" for a
    * command that provably did not run.
    *
    * Worth its own list rather than a flag on the loss, because it inverts the

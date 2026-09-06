@@ -33,11 +33,16 @@ export interface RailLoss extends CommandLossEntry {
 /**
  * What the operator is told about a command that went quiet.
  *
- * Two facts and no verdict. The command got no answer by the round trip its own
- * delay predicted, and whether it ran is genuinely unknown: the engine drops a
- * command for an unreachable subject without executing it, but a reply can also
- * simply be lost on the way home, and nothing on this side can tell those
- * apart. Anything more definite would be inventing the half we do not have.
+ * Two words and a verdict the operator can act on. "May have run" is the whole
+ * content of this state: the engine drops a command for an unreachable subject
+ * without executing it, but a reply can also simply be lost on the way home, and
+ * nothing on this side can tell those apart, so pressing again may do the thing
+ * twice.
+ *
+ * What came out was everything the operator does not act on. "By the predicted
+ * round trip" is the mechanism that decided the command was late, and "whether
+ * it ran is unknown" is the definition of `lost` read back to someone already
+ * looking at a box labelled lost.
  *
  * Deliberately never the word "refused": that is the game's verdict, and the
  * game never gave one here.
@@ -45,7 +50,7 @@ export interface RailLoss extends CommandLossEntry {
 export function commandLossSentence(loss: CommandLossLike): string {
   const subject = commandRefusalSubject(loss);
   const what = subject || loss.command || "The command";
-  return `${what}: no reply by the predicted round trip. Whether it ran is unknown.`;
+  return `${what}: no reply. May have run.`;
 }
 
 export interface CommandLossListProps {

@@ -30,15 +30,20 @@ export type RailUndelivered = RailLoss;
 /**
  * What the operator is told about a command that never went out.
  *
- * Two facts, and the second one is the whole reason this phase exists. It never
- * left, so nothing over there ran it, so sending it again repeats nothing. That
- * is the INVERSE of the loss sentence sitting above it in the rail: "whether it
- * ran is unknown" earns its caution from a command that may be waiting on the
- * far side, and this one is waiting on THIS side, where we can see it.
+ * Two words and the verdict, which is the whole reason this phase exists. It
+ * never left, so nothing over there ran it, so pressing again repeats nothing.
+ * That is the INVERSE of the loss sentence sitting above it in the rail, and the
+ * pair is written to be read as a pair: "may have run" against "safe to
+ * re-send", a doubt against a permission, in two different sentence shapes so
+ * that the polarity is not the only thing telling them apart.
  *
- * Written as a fact and not as advice. The rail is instrumentation: it says a
- * re-send cannot double the command and lets the operator decide whether to
- * make one, the same way the loss beside it stops at what is known.
+ * "Never left this machine" became "never sent", and "nothing ran it, so a
+ * re-send cannot double it" spent a clause deriving its own conclusion out loud.
+ * The conclusion is the part the operator uses.
+ *
+ * "Safe to re-send" is a fact and not advice, which is the line the whole rail
+ * holds: it says a second press cannot double the command and leaves the
+ * decision alone, the same way the loss beside it stops at what is known.
  *
  * It does not quote the transport's `reason`, though the entry carries one, and
  * the loss sentence beside it takes the same line. The phase has exactly one
@@ -55,7 +60,7 @@ export function commandUndeliveredSentence(
 ): string {
   const subject = commandRefusalSubject(undelivered);
   const what = subject || undelivered.command || "The command";
-  return `${what}: never left this machine. Nothing ran it, so a re-send cannot double it.`;
+  return `${what}: never sent. Safe to re-send.`;
 }
 
 export interface CommandUndeliveredListProps {

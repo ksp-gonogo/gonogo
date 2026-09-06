@@ -10,33 +10,41 @@ import {
 } from "./CommandUndeliveredList";
 
 describe("commandUndeliveredSentence", () => {
-  it("names the subject and says it never left this machine", () => {
+  it("names the subject and says it was never sent", () => {
     expect(
       commandUndeliveredSentence({
         command: "vessel.control.setSas",
         args: undefined,
       }),
-    ).toBe(
-      "Set Sas: never left this machine. Nothing ran it, so a re-send cannot double it.",
-    );
+    ).toBe("Set Sas: never sent. Safe to re-send.");
   });
 
   it("says a re-send is safe, which is the half that decides what happens next", () => {
-    // "Not sent" alone leaves the operator wondering whether to press again.
+    // "Never sent" alone leaves the operator wondering whether to press again.
     // The command is still in a queue on THIS side, so pressing it again cannot
     // repeat anything, and that is the whole reason the phase exists.
-    const sentence = commandUndeliveredSentence({ command: "a.b" });
-    expect(sentence).toMatch(/nothing ran it/i);
-    expect(sentence).toMatch(/cannot double it/i);
+    expect(commandUndeliveredSentence({ command: "a.b" })).toMatch(
+      /safe to re-send/i,
+    );
   });
 
-  it("says the OPPOSITE of the loss it replaced", () => {
-    // The loss earns its caution from a command that may be waiting on the far
-    // side. This one is waiting on ours, where we can see it, so the doubt the
-    // loss sentence carries would be a falsehood here.
+  it("says the OPPOSITE of the loss it replaced, in a different shape", () => {
+    /*
+     * The loss earns its caution from a command that may be waiting on the far
+     * side. This one is waiting on ours, where we can see it, so the doubt the
+     * loss sentence carries would be a falsehood here.
+     *
+     * Both were cut to the one fact an operator acts on, which is the risk in
+     * pressing again, and cutting is what could blur them: two sentences that
+     * differ only by a "may" against a "cannot" read alike at a glance. So this
+     * pins the polarity AND the shape, a doubt about the past against a
+     * permission for the next press, and neither borrowing the other's words.
+     */
     const dispatch = { command: "vessel.control.setSas", label: "" };
-    expect(commandLossSentence(dispatch)).toMatch(/whether it ran is unknown/i);
-    expect(commandUndeliveredSentence(dispatch)).not.toMatch(/unknown/i);
+    expect(commandLossSentence(dispatch)).toMatch(/may have run/i);
+    expect(commandLossSentence(dispatch)).not.toMatch(/safe/i);
+    expect(commandUndeliveredSentence(dispatch)).toMatch(/safe to re-send/i);
+    expect(commandUndeliveredSentence(dispatch)).not.toMatch(/may have run/i);
   });
 
   it("never calls it lost, the state it replaces", () => {

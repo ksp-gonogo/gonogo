@@ -715,7 +715,7 @@ describe("useCommand founds", () => {
  * next open. If the link comes back it goes, late (that is the `founds` story
  * above). If it never comes back, the transport eventually stops retrying, and
  * what it is still holding can now never be sent by anyone. The operator has
- * been looking at "no reply, whether it ran is unknown" the whole time, and the
+ * been looking at "no reply, may have run" the whole time, and the
  * truth is stronger: it never left, so nothing ran it, so pressing it again
  * cannot do it twice.
  */

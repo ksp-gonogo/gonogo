@@ -62,11 +62,14 @@ export interface RailFound extends CommandFoundEntry {
  * Deliberately never the word "confirmed". Confirmed means it worked as
  * expected; this is the opposite of expected. The operator was given permission
  * to stop waiting, may well have re-sent the command on the strength of that,
- * and is now being told the first one arrived. So the sentence says the
- * reversal first ("found after being called lost") and the verdict second, and
- * the reversal is what makes it different from every other line the rail draws.
+ * and is now being told the first one arrived. "Found" is the word that carries
+ * that reversal, and it is the only line the rail draws that has one.
  *
- * The verdict clause differs by outcome because what the operator does next
+ * "After being lost" trailed every one of these and said what "found" already
+ * means, so it went the same way as the loss sentence's "whether it ran is
+ * unknown".
+ *
+ * The verdict beside it differs by outcome because what the operator does next
  * does:
  *
  * - `ran`: it executed. If they re-sent it, it executed twice, and this is the
@@ -79,19 +82,16 @@ export interface RailFound extends CommandFoundEntry {
  *
  * No imperative anywhere in it. The rail is instrumentation: it says what
  * happened and lets the operator decide, the same way the loss sentence beside
- * it stops at "whether it ran is unknown".
+ * it stops at "may have run".
  */
 export function commandFoundSentence(found: CommandFoundLike): string {
   const subject = commandRefusalSubject(found);
   const what = subject || found.command || "The command";
   /*
-   * The outcome sits INSIDE the opening rather than trailing it, so the word
-   * that decides what the operator does next lands where the eye already is.
-   * "being called" came out as redundant: lost is the state the rail showed,
-   * not an accusation anyone made.
+   * Two words: the reversal and the verdict. Nothing else survived the cut,
+   * because nothing else changes what the operator does next.
    */
-  const opening = (state: string) =>
-    `${what}: found ${state} after being lost.`;
+  const opening = (state: string) => `${what}: found ${state}.`;
   if (found.outcome === "refused") {
     /*
      * The refusal composer, not a second table of reasons. A late refusal is

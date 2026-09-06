@@ -670,7 +670,6 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("status", { name: /answered/i });
-      expect(list.textContent).toMatch(/found .* after being lost/i);
       expect(list.textContent).toMatch(/found executed/i);
       // Confirmed means it worked as expected. Being told a command was lost
       // and then that it ran is the opposite of expected, and an operator who
@@ -686,7 +685,6 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("status", { name: /answered/i });
-      expect(list.textContent).toMatch(/found .* after being lost/i);
       expect(list.textContent).toMatch(/found refused/i);
       expect(list.textContent).not.toMatch(/found executed/i);
     });
@@ -780,8 +778,8 @@ describe("PanelDelayRail", () => {
 
       await user.click(screen.getByRole("button", { name: /Signal-delay/ }));
       const list = screen.getByRole("status", { name: /never sent/i });
-      expect(list.textContent).toMatch(/never left this machine/i);
-      expect(list.textContent).toMatch(/cannot double it/i);
+      expect(list.textContent).toMatch(/never sent/i);
+      expect(list.textContent).toMatch(/safe to re-send/i);
       // The one thing it must not repeat is the loss's doubt: this command
       // provably did not run.
       expect(list.textContent).not.toMatch(/unknown/i);

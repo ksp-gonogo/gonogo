@@ -989,11 +989,16 @@ describe("CommandButton: a lost command that answered after all", () => {
   });
 
   it("carries the whole sentence on the accessible name, as the lost phase does", async () => {
+    /*
+     * The visible phase is the single word "Found". A screen-reader user
+     * landing on it learns that something reversed and nothing about which
+     * command or what it did, so the name has to carry the subject as well as
+     * the verdict.
+     */
     await loseThenFind();
     const button = screen.getByRole("button");
     const name = button.getAttribute("aria-label") ?? "";
-    expect(name).toMatch(/found .* after being lost/i);
-    expect(name).toMatch(/found executed/i);
+    expect(name).toMatch(/^Set Sas: found executed\.$/);
   });
 
   it("says a late refusal was refused, not that it ran", async () => {
@@ -1008,7 +1013,6 @@ describe("CommandButton: a lost command that answered after all", () => {
       },
     ]);
     const name = screen.getByRole("button").getAttribute("aria-label") ?? "";
-    expect(name).toMatch(/found .* after being lost/i);
     expect(name).toMatch(/found refused/i);
     expect(name).not.toMatch(/found executed/i);
   });
