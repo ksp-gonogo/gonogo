@@ -80,7 +80,14 @@ const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   align-items: center;
   gap: var(--space-8, 8px);
   font-size: var(--font-size-xs);
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  /*
+     One rung in from the old --space-6, because the height is the token's job
+     now and the inset's only remaining one is keeping a WRAPPED sentence off
+     the border. At 6px this box came out 29.4px on a single line of xs text at
+     a 1.4 line height, which is over the control height and therefore back to
+     being the one thing in a bar that does not line up.
+  */
+  padding: var(--space-4, 4px) var(--space-8, 8px);
   /* A readout, but a BOXED one, and it sits in bars next to the controls it has
      to line up with (the radio bar puts one between a mute and a talk key). The
      kit's one control height, see --control-height. */

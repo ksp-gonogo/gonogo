@@ -307,7 +307,14 @@
    * decides whether a control clears the floor.
    *
    * 28px is where the two commonest controls in the app already sat, so this
-   * lifts the small ones to meet them rather than moving everything.
+   * lifts the small ones to meet them rather than moving everything. The check
+   * that it is high enough, worth writing down because a floor a control
+   * OVERSHOOTS is a floor that does nothing for it: a default Button is
+   * 12 inset + 2 border + a 14px glyph = 28, a small ToggleButton 4 + 2 + 14 =
+   * 20, and a StatusIndicator 8 + 2 + 11px text at a 1.4 line height = 25.4.
+   * Every one of them lands on the floor. The indicator is why its own inset
+   * came down a rung; at the old one it cleared 28 and stayed the odd box out.
+   * Coarse pointers ignore all of this and take the 44px touch target.
    */
   --control-height: 28px;
 
