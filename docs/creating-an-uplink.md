@@ -1414,10 +1414,19 @@ At load time the app runs `checkUplinkCompat(manifest, app)` and gets one of thr
   honour); the Uplink is quarantined with the exact reason shown in the in-app Uplinks list
 - **`warn-load`** the only soft case: the app is older than `minAppVersion`, logged but still loaded
 
-Build these numbers, never type them. The mod side bakes its matching client hash the same way, with
-`gonogo-uplink bake-hash` writing `ExpectedClientHash.g.cs`, so the running mod can vouch for the exact
-bundle it expects. Hash the bundle you actually publish: a hash of a differently-built copy is one the
-loader can never match, and it fails as tampering rather than as a bad build. (The Uplinks bundled with
+Build these numbers, never type them. The mod side bakes its matching client hash the same way:
+
+```bash
+gonogo-uplink bake-hash \
+  --bundle ExampleUplink/client/dist/example/example.client.js \
+  --out ExampleUplink/Generated/ExpectedClientHash.g.cs \
+  --namespace Example.Generated
+```
+
+That writes an `internal static class ExpectedClientHash` with one `Value` constant, which is what
+your `UplinkManifest.ExpectedClientHash` reads (see Part 1), so the running mod can vouch for the
+exact bundle it expects. Hash the bundle you actually publish: a hash of a differently-built copy is
+one the loader can never match, and it fails as tampering rather than as a bad build. (The Uplinks bundled with
 this repo take `pnpm --filter @ksp-gonogo/app bake-uplink-hash <UplinkId>` instead, because their bundle
 is emitted by the app's own build rather than by their author.)
 
@@ -1552,8 +1561,10 @@ The load sequence the app runs for each Uplink:
    nothing is fetched for an Uplink that will be refused)
 3. ask for **consent** on first load of a given `id@version` (a remembered grant short-circuits next time)
 4. fetch the bundle bytes
-5. verify `sha256(bytes)` against the descriptor's `integrity`, and against the hash the running mod
-   vouches for when it emits one (a three-way agreement: mod, index, bytes)
+5. verify `sha256(bytes)` against the descriptor's `integrity`. For a first-party Uplink that is a
+   three-way agreement (mod, index, bytes); a third-party id has no index entry, so your mod's own
+   `ExpectedClientHash` IS the `integrity` and the check is mod against bytes. Still a real hash
+   gate, and the one thing no override can be granted past
 6. `import()` the bundle, which runs its `registerComponent(...)` calls against the host
 
 Every refusal quarantines the Uplink with a legible reason in the in-app Uplinks list. There are no silent
