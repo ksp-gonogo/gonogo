@@ -974,50 +974,6 @@ build_gonogomechjebuplink() {
   ls -la "$install_dir"
 }
 
-build_gonogoavionicsuplink() {
-  local proj="$ROOT/mod/GonogoAvionicsUplink/GonogoAvionicsUplink.csproj"
-  local out_dir="$ROOT/mod/GonogoAvionicsUplink/bin/Release"
-  local install_dir="$DATA_ROOT/local_docs/syncthing/kspdata/GameData/GonogoAvionicsUplink/Plugins"
-  if [ ! -f "$proj" ]; then
-    echo "GonogoAvionicsUplink csproj not found at $proj"
-    return 3
-  fi
-  if [ ! -d "$DATA_ROOT/local_docs/syncthing/kspdata/GameData" ]; then
-    echo "kspdata GameData not found under $DATA_ROOT/local_docs/syncthing/kspdata"
-    return 3
-  fi
-  echo "=== building GonogoAvionicsUplink ==="
-  perl -e 'alarm shift; exec @ARGV' "$BUILD_TIMEOUT_S" \
-    dotnet build "$proj" -c Release --nologo -v minimal
-  if [ ! -f "$out_dir/GonogoAvionicsUplink.dll" ]; then
-    echo "GonogoAvionicsUplink.dll not produced (missing at $out_dir/GonogoAvionicsUplink.dll)"
-    return 4
-  fi
-  mkdir -p "$install_dir"
-  # GonogoAvionicsUplink.dll AND GonogoAvionicsUplink.Contract.dll: the
-  # uplink-types-out-of-core plan split AvionicsStatus into its own
-  # contract-slice project (Private="true", the default, so `dotnet build`
-  # DOES copy it into $out_dir, unlike the reference below). Sitrep.Contract.dll
-  # (provided by GonogoCore) is reference-only (Private="false") and must NOT
-  # be copied here - see .superpowers/sdd/uplink-packaging-pattern.md. Applies
-  # the deploy-script lesson the MechJeb pilot's build_gonogomechjebuplink
-  # fixed: a single-DLL copy here would silently drop the Contract.dll from
-  # the deployed GameData folder and break the mod at KSP load.
-  cp "$out_dir/GonogoAvionicsUplink.dll" "$install_dir/"
-  if [ ! -f "$out_dir/GonogoAvionicsUplink.Contract.dll" ]; then
-    echo "GonogoAvionicsUplink.Contract.dll not produced (missing at $out_dir/GonogoAvionicsUplink.Contract.dll)"
-    return 4
-  fi
-  cp "$out_dir/GonogoAvionicsUplink.Contract.dll" "$install_dir/"
-  {
-    echo "version=$(git -C "$ROOT" describe --tags --always --dirty 2>/dev/null || echo unknown)"
-    echo "git_sha=$(git -C "$ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
-    echo "build_date=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  } > "$install_dir/build-info.txt"
-  echo "=== deployed to $install_dir ==="
-  ls -la "$install_dir"
-}
-
 build_gonogorp1uplink() {
   local proj="$ROOT/mod/GonogoRp1Uplink/GonogoRp1Uplink.csproj"
   local out_dir="$ROOT/mod/GonogoRp1Uplink/bin/Release"
@@ -1313,7 +1269,6 @@ case "${1:-help}" in
       gonogorealantennasuplink) build_gonogorealantennasuplink ;;
       gonogokosuplink) build_gonogokosuplink ;;
       gonogomechjebuplink) build_gonogomechjebuplink ;;
-      gonogoavionicsuplink) build_gonogoavionicsuplink ;;
       gonogokerbalismuplink) build_gonogokerbalismuplink ;;
       gonogoprincipiauplink) build_gonogoprincipiauplink ;;
       gonogoferramaerospaceresearchuplink) build_gonogoferramaerospaceresearchuplink ;;
@@ -1321,7 +1276,7 @@ case "${1:-help}" in
       devtools) build_devtools ;;
       *)
         echo "usage: gonogo_claude_tools.sh build <target>"
-        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogoavionicsuplink, gonogokerbalismuplink, gonogoprincipiauplink, gonogoferramaerospaceresearchuplink, gonogorp1uplink, devtools"
+        echo "  targets: ocisly [--baseline], kerbcast, gonogo, gonogoscansatuplink, gonogorealantennasuplink, gonogokosuplink, gonogomechjebuplink, gonogokerbalismuplink, gonogoprincipiauplink, gonogoferramaerospaceresearchuplink, gonogorp1uplink, devtools"
         exit 2
         ;;
     esac

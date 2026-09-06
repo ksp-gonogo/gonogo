@@ -77,7 +77,6 @@ const DEBT_FILE = join(HERE, "minsize-debt.ts");
 const REGISTRATIONS = [
   "@ksp-gonogo/components",
   "@ksp-gonogo/serial",
-  "@ksp-gonogo/gonogo-avionics-uplink",
   "@ksp-gonogo/gonogo-breaking-ground-uplink",
   "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink",
   "@ksp-gonogo/gonogo-kerbalism-uplink",

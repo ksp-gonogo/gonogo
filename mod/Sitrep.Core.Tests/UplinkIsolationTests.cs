@@ -157,7 +157,6 @@ namespace Sitrep.Core.Tests
 
                 // The Unit-coverage assertion only. Clears the day TestSupport
                 // ships, no source change needed here.
-                ["GonogoAvionicsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoRealFuelsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
@@ -222,7 +221,6 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Host",
                     "Sitrep.Host.ActionGroups",
                 },
-                ["GonogoAvionicsUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoKerbalismUplink.Tests"] = new[]
                 {

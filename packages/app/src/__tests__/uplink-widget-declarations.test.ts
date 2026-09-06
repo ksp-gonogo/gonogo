@@ -17,7 +17,6 @@ import { describe, expect, it } from "vitest";
  * Uplink loaded, every widget registered, one resolvable vocabulary.
  */
 import "@ksp-gonogo/components";
-import "@ksp-gonogo/gonogo-avionics-uplink";
 import "@ksp-gonogo/gonogo-breaking-ground-uplink";
 import "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink";
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
@@ -149,7 +148,6 @@ describe("widget and augment declarations resolve to something real", () => {
     // times, and one client failing to register is precisely the case where an
     // empty check reads as a clean one.
     const fromUplinks = [
-      "avionics-go-no-go",
       "robotics-console",
       "ship-systems",
       "kos-terminal",

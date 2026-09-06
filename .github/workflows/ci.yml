@@ -607,7 +607,6 @@ jobs:
             GonogoActionGroupsExtendedUplink.Tests
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
-            GonogoAvionicsUplink.Tests
             GonogoMechJebUplink.Tests
             GonogoPrincipiaUplink.Tests
             GonogoRp1Uplink.Tests

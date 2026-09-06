@@ -51,13 +51,6 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
     clientDir: resolve(modDir, "GonogoKerbalismUplink/client"),
   },
   {
-    id: "avionics",
-    name: "Avionics",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoAvionicsUplink",
-    clientDir: resolve(modDir, "GonogoAvionicsUplink/client"),
-  },
-  {
     id: "mechjeb",
     name: "MechJeb",
     author: "jonpepler",

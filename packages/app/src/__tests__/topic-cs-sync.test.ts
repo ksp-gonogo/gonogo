@@ -7,7 +7,6 @@ import { fileURLToPath } from "node:url";
 // Topics PLUS every bare-primitive Uplink Topic. These imports are DELIBERATE and must stay
 // static (not the app's possibly-dynamic runtime load path) so the test is deterministic.
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
-import "@ksp-gonogo/gonogo-avionics-uplink";
 import "@ksp-gonogo/gonogo-principia-uplink";
 import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-realantennas-uplink";
@@ -134,6 +133,5 @@ describe("C#-declared Topics stay in exact sync with the full runtime registry",
     // registration.
     const known = new Set<string>(getAllKnownTopicIds());
     expect(known.has("kerbalism.available")).toBe(true);
-    expect(known.has("avionics.available")).toBe(true);
   });
 });

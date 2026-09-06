@@ -88,7 +88,6 @@ if (process.argv.includes("--require") && !required) {
  * because a debt list nobody prunes stops describing anything.
  */
 const UNARMED_DEBT = new Set([
-  "GonogoAvionicsUplink",
   "GonogoFerramAerospaceResearchUplink",
   "GonogoKerbalismUplink",
   "GonogoPrincipiaUplink",

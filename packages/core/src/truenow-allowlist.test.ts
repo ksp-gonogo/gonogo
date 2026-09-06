@@ -207,20 +207,15 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // `Delay = DelayRole.TrueNow` line inside that helper. Its call site is
   // `Static(ProfileTopic)`, which HELPER_TRUENOW does not match. 4 + 1 = 5.
   "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 5,
-  // avionics.available: whether the RP-1 avionics assembly is INSTALLED, a
-  // fact about the player's install the command centre knows independent of any
-  // vessel's comms link, same class as kerbcast.available / uplink health. (Its
-  // sibling avionics.status is the per-vessel controllable-mass reading and is
-  // correctly Delayed.) 1 explicit declaration.
-  "mod/GonogoAvionicsUplink/AvionicsUplink.cs": 1,
-  // realfuels.available: whether the RealFuels assembly is INSTALLED, the same
-  // install-fact class as avionics.available above. (Its two siblings,
+  // realfuels.available: whether the RealFuels assembly is INSTALLED, a fact
+  // about the player's install the command centre knows independent of any
+  // vessel's comms link, same class as kerbcast.available. (Its two siblings,
   // realfuels.engines and realfuels.boiloff, are per-vessel readings and are
   // correctly Delayed.) 1 explicit declaration.
   "mod/GonogoRealFuelsUplink/RealFuelsUplink.cs": 1,
   // aero.available: whether a full-fidelity aerodynamics model is INSTALLED and
   // readable, a fact about the player's install the command centre knows
-  // independent of any vessel's comms link, same class as avionics.available
+  // independent of any vessel's comms link, same class as realfuels.available
   // above. Its sibling aero.state is the per-vessel aerodynamic reading and is
   // correctly Delayed: angle of attack and stall are exactly the kind of
   // in-flight state an operator must not see ahead of light-time.

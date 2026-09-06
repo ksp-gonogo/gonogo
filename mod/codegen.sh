@@ -115,30 +115,6 @@ echo "codegen -> $mechjeb_out_dir/units.ts"
 echo "codegen -> $mechjeb_out_dir/units.json"
 echo "codegen -> $mechjeb_out_dir/command-map.ts"
 
-# Avionics: the second relocation. Unlike MechJeb, AvionicsStatus DOES carry
-# [SitrepTopic("avionics.status")], so SITREP_AVIONICS_TOPICMAP_OUT is set
-# here, mirroring the core invocation above.
-avionics_proj="$ROOT/mod/GonogoAvionicsUplink.Contract.Codegen"
-avionics_out_dir="$ROOT/mod/GonogoAvionicsUplink/client/src/__generated__"
-avionics_bin="$avionics_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$avionics_proj/GonogoAvionicsUplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$avionics_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_AVIONICS_TOPICMAP_OUT="$avionics_out_dir/topic-map.ts" \
-  SITREP_AVIONICS_UNITMAP_OUT="$avionics_out_dir/units.ts" \
-  SITREP_AVIONICS_UNITJSON_OUT="$avionics_out_dir/units.json" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$avionics_bin/GonogoAvionicsUplink.Contract.xml" \
-  SourceAssemblies="$avionics_bin/GonogoAvionicsUplink.Contract.dll" \
-  TargetFile="$avionics_out_dir/contract.ts" \
-  ConfigurationMethod="GonogoAvionicsUplink.AvionicsRtConfig.Configure"
-echo "codegen -> $avionics_out_dir/contract.ts"
-echo "codegen -> $avionics_out_dir/topic-map.ts"
-echo "codegen -> $avionics_out_dir/units.ts"
-echo "codegen -> $avionics_out_dir/units.json"
-
 # Kerbalism: the fifth relocation, and the largest by every measure. FIFTEEN
 # types and FIVE [SitrepTopic]-tagged roots (kerbalism.spaceweather / .profile /
 # .lifesupport / .crew (isArray) / .features), so SITREP_KERBALISM_TOPICMAP_OUT

@@ -18,7 +18,6 @@
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "@ksp-gonogo/gonogo-avionics-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-principia-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-rp1-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-breaking-ground-uplink": "workspace:*",

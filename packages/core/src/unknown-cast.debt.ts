@@ -534,7 +534,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  * steady as the debt falls and still fails if the walk stops seeing assertions.
  */
 export const SCAN_FLOORS = {
-  roots: 25,
+  // 24 since an Uplink left the repo and took its client with it.
+  roots: 24,
   files: 2247,
   assertions: 1979,
 } as const;
@@ -561,7 +562,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/theme": 3,
   "packages/ui": 49,
   "packages/ui-kit": 222,
-  "mod/GonogoAvionicsUplink/client": 12,
   "mod/GonogoBreakingGroundUplink/client": 19,
   "mod/GonogoFerramAerospaceResearchUplink/client": 12,
   "mod/GonogoKerbalismUplink/client": 57,

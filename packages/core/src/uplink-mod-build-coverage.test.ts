@@ -93,12 +93,14 @@ describe("every Uplink plugin assembly is compiled by CI", () => {
     const discovered = discoveredUplinkProjects();
 
     // Guards the guard: a solution read that matched nothing would make the
-    // comparison below pass against an empty set.
+    // comparison below pass against an empty set. 10 since an
+    // Uplink left the repo and took its four projects with it.
     expect(
       inSolution.length,
       "mod/Gonogo.sln lists no Gonogo*Uplink projects, so this test is comparing two empty sets.",
-      // 10 since GonogoTestFlightUplink migrated to the gonogo-uplinks repo.
-    ).toBeGreaterThanOrEqual(10);
+      // 9 since GonogoTestFlightUplink and GonogoAvionicsUplink migrated to the
+      // gonogo-uplinks repo.
+    ).toBeGreaterThanOrEqual(9);
 
     expect(
       discovered,

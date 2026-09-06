@@ -119,7 +119,8 @@ describe("typed Topic registry", () => {
   // relocated out of Sitrep.Contract into GonogoAvionicsUplink.Contract
   // (uplink-types-out-of-core plan), so it is no longer this SDK's own
   // codegen output. It is now a bare-registered Uplink Topic, same shape as
-  // avionics.available: see mod/GonogoAvionicsUplink/client/src/topics.ts.
+  // avionics.available. That Uplink has since left for the gonogo-uplinks
+  // repo, where both Topics are declared in uplinks/avionics/client/src/topics.ts.
 
   it("is driven by the generated (codegen) map, not a hand-authored one", () => {
     // The registry must be exactly the generated ids plus the documented hand tail,
