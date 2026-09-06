@@ -4,7 +4,7 @@ import { dirname } from "node:path";
 import { promisify } from "node:util";
 import type { Browser, BrowserContext, Page, TestInfo } from "@playwright/test";
 import { expect } from "@playwright/test";
-import { dashboardWithWidget, seedContext } from "./helpers";
+import { seedContext } from "./helpers";
 
 /**
  * The machinery two radio scenes share: three real screens on the real mesh,
@@ -43,8 +43,55 @@ export const NAMES: Record<string, string> = {
   [FAR]: "Far Craft",
 };
 
-/** Each screen renders at this size, so the stacked video tiles evenly. */
-export const SCREEN_SIZE = { width: 760, height: 460 } as const;
+/**
+ * Each screen renders at this size, so the stacked film tiles evenly.
+ *
+ * Large enough that the widget is READABLE at a normal playback size once three
+ * of them are side by side, and no larger. The screencast is the constraint,
+ * not the disk: three contexts recording at 900x620 could not keep up with the
+ * wall, and a pane whose recording runs slow cannot be aligned by trimming,
+ * because trimming assumes a second of video is a second of wall. Measured, the
+ * station's pane came out THIRTY-THREE SECONDS behind the other two, which the
+ * stopwatch drawn on each pane is what caught.
+ *
+ * The width also decides the grid: 800 leaves a container comfortably inside
+ * the `xs` band rather than on the 768 px boundary between two column counts.
+ */
+export const SCREEN_SIZE = { width: 800, height: 520 } as const;
+
+/**
+ * The grid's real column counts, from
+ * `packages/app/src/components/Dashboard/layoutNormalization.ts`.
+ *
+ * Repeated here rather than guessed, which is the whole reason this exists.
+ * `dashboardWithWidget` in `helpers.ts` carries its own 12/10/8/6/4, which
+ * matches nothing the app uses: at a 900 px viewport the grid picks `sm` and
+ * gives out EIGHTEEN columns, so a layout asking for eight got less than half
+ * the pane and the widget was photographed in a corner of its own screen.
+ * Every entry here is the full width of its breakpoint, so whichever one the
+ * container lands on, the widget fills the pane.
+ */
+const GRID_COLS = { lg: 36, md: 30, sm: 18, xs: 12, xxs: 6 } as const;
+
+/**
+ * Rows tall enough to fill the pane under the caption strip, at the grid's own
+ * 25 px row and 10 px margin.
+ */
+const GRID_ROWS = 12;
+
+/** The commcast widget, filling whatever breakpoint the pane lands on. */
+function commcastDashboard() {
+  const i = "widget-commcast";
+  const at = (w: number) => [
+    { i, x: 0, y: 0, w, h: GRID_ROWS, moved: false, static: false },
+  ];
+  return {
+    items: [{ i, componentId: "commcast" }],
+    layouts: Object.fromEntries(
+      Object.entries(GRID_COLS).map(([bp, cols]) => [bp, at(cols)]),
+    ),
+  };
+}
 
 /**
  * Wall ms the film holds still, before the key and after the last word.
@@ -53,7 +100,7 @@ export const SCREEN_SIZE = { width: 760, height: 460 } as const;
  * read the change against, and the recording used to open on a page mid-boot
  * and cut the instant the assertions were satisfied.
  */
-export const HOLD_MS = 3_000;
+export const HOLD_MS = 3_500;
 
 export interface ReceptionWatch {
   /** Wall ms at the first chunk this screen actually decoded, or null. */
@@ -566,12 +613,12 @@ export async function openScreen(
     context,
     opts.dashboardKey,
     /*
-     * Tall enough that the bar carrying the key, the mute and the lamp is on
-     * screen without scrolling, and that the delay rail above the panel's title
+     * Full width and tall, so the bar carrying the key, the mute and the lamp
+     * is on screen without scrolling and the delay rail above the panel's title
      * has room to draw the voice crossing: a control the video cannot see is a
      * control the reviewer cannot check.
      */
-    dashboardWithWidget("commcast", { size: { w: 12, h: 9 } }),
+    commcastDashboard(),
     opts.sitrepPort,
   );
   const page = await context.newPage();
@@ -699,16 +746,32 @@ export async function installCaption(
     document.body.append(root);
 
     const pad = (n: number, width = 2) => String(n).padStart(width, "0");
+    /*
+     * A fifty-millisecond timer, and the DOM is only touched when the reading
+     * actually changes.
+     *
+     * `requestAnimationFrame` is the obvious way to draw a clock and it is the
+     * wrong one here. It turns three otherwise-static pages into three pages
+     * repainting sixty times a second, and Chromium's screencast emits a frame
+     * per repaint: the recorder fell far enough behind the wall that the panes
+     * could no longer be aligned at all. The instrument was distorting its own
+     * subject, and at a resolution nobody can read anyway.
+     */
+    let shown = "";
     const tick = () => {
       const ms = Date.now() - o.epoch;
       const sign = ms < 0 ? "-" : "+";
       const abs = Math.abs(ms);
-      clock.textContent = `T${sign}${pad(Math.floor(abs / 60000))}:${pad(
+      const next = `T${sign}${pad(Math.floor(abs / 60000))}:${pad(
         Math.floor(abs / 1000) % 60,
       )}.${Math.floor(abs / 100) % 10}`;
-      requestAnimationFrame(tick);
+      if (next !== shown) {
+        shown = next;
+        clock.textContent = next;
+      }
     };
     tick();
+    setInterval(tick, 50);
   }, opts);
 }
 
@@ -838,7 +901,7 @@ export function panGains(index: number, count: number): [number, number] {
 export async function stackVideos(
   screens: readonly Screen[],
   testInfo: TestInfo,
-  opts: { epoch?: number; fileName?: string } = {},
+  opts: { epoch?: number; fileName?: string; endedAt?: number } = {},
 ): Promise<string | null> {
   const clips: { path: string; skipSeconds: number }[] = [];
   /*
@@ -876,6 +939,13 @@ export async function stackVideos(
    */
   const lastHeard = Math.max(
     commonStart,
+    /*
+     * The end of the SCENE, not merely of the audio. The last beat is a held
+     * frame on quiet screens, which is the whole point of holding it, and a
+     * film cut at the last decoded chunk ends two seconds into the silence it
+     * was supposed to end on.
+     */
+    opts.endedAt ?? 0,
     ...screens.flatMap((s) => s.audio.map((b) => b.at)),
   );
   const trackSeconds = (lastHeard - commonStart) / 1000 + HOLD_MS / 1000;
@@ -936,7 +1006,7 @@ export async function stackVideos(
      * the film exists to let you hear would be the one moment it clips.
      */
     graph.push(
-      `${tracks.map((_, i) => `[a${i}]`).join("")}amix=inputs=${tracks.length}:normalize=0,alimiter=limit=0.92[a]`,
+      `${tracks.map((_, i) => `[a${i}]`).join("")}amix=inputs=${tracks.length}:normalize=0,alimiter=limit=0.85[a]`,
     );
   }
 
@@ -949,6 +1019,14 @@ export async function stackVideos(
       "-map",
       paths.length > 1 ? "[v]" : "0:v",
       ...(withAudio ? ["-map", "[a]", "-c:a", "aac", "-b:a", "128k"] : []),
+      /*
+       * Ends where the SCENE ends, not where the recorder stopped. A context is
+       * only closed after the last assertion, and the teardown that follows is
+       * recorded like everything else: without this the film ran five and a
+       * half minutes, of which three were three dead screens.
+       */
+      "-t",
+      trackSeconds.toFixed(3),
       "-c:v",
       "libx264",
       "-pix_fmt",
@@ -978,6 +1056,19 @@ export async function stackVideos(
 }
 
 export async function closeAll(screens: readonly Screen[]): Promise<void> {
+  /*
+   * Every tape is taken off while every page is still up, and only then is
+   * anything closed.
+   *
+   * The order is load-bearing and was found the hard way. Closing a screen at a
+   * time works until the HOST is one of them: the moment its page goes, every
+   * remaining peer starts reconnecting, and `PeerClientService` retries hard
+   * enough to saturate the page's own main thread. A `page.evaluate` issued
+   * against a peer in that state does not come back, so a teardown that read
+   * the last screen's audio after closing the host hung for as long as the test
+   * had left and took the film down with it, having already recorded
+   * everything the film was for.
+   */
   for (const screen of screens) {
     await screen.page.evaluate(() => {
       const stop = (window as unknown as Record<string, unknown>)
@@ -987,7 +1078,10 @@ export async function closeAll(screens: readonly Screen[]): Promise<void> {
     // Off the page while there still IS one: the tape lives in the page, and a
     // closed context takes it with it.
     screen.audio = await takeAudio(screen.page);
-    await screen.page.close();
-    await screen.context.close();
   }
+  await Promise.all(screens.map((screen) => screen.page.close()));
+  // Contexts one at a time: closing a context finalises its recording and
+  // flushes whatever artifacts it owes, and three doing that into one output
+  // directory at once is a race with nothing to gain.
+  for (const screen of screens) await screen.context.close();
 }
