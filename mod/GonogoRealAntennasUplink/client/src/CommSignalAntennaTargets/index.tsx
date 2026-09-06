@@ -1,15 +1,17 @@
-// The antenna-targeting section: one card per antenna on the active vessel,
-// composed into the base CommSignal widget's universal `comm-signal.sections`
-// seat beside the link-budget section already there.
-//
-// Reads `realantennas.antennas` and sends `realantennas.antenna.target` /
-// `.targetHome`. Presence-gated on `realantennas.available`, so an install
-// without RealAntennas never sees it.
-//
-// Targeting is per ANTENNA, never per vessel: RealAntennas stores one target per
-// antenna with no arbitration between them, and the link solver treats two
-// dishes aimed two ways as two candidate links. Hence a card each, rather than
-// one control for the craft.
+/**
+ * The antenna-targeting section: one card per antenna on the active vessel,
+ * composed into the base CommSignal widget's universal `comm-signal.sections`
+ * seat beside the link-budget section already there.
+ *
+ * Reads `realantennas.antennas` and sends `realantennas.antenna.target` /
+ * `.targetHome`. Presence-gated on `realantennas.available`, so an install
+ * without RealAntennas never sees it.
+ *
+ * Targeting is per ANTENNA, never per vessel: RealAntennas stores one target per
+ * antenna with no arbitration between them, and the link solver treats two
+ * dishes aimed two ways as two candidate links. Hence a card each, rather than
+ * one control for the craft.
+ */
 
 import {
   registerAugment,
@@ -187,7 +189,7 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
                   value={vesselId}
                   onChange={(e) => setVesselId(e.target.value)}
                 >
-                  <option value="">Choose…</option>
+                  <option value="">Choose a target</option>
                   {vessels.map((v) => (
                     <option key={v.id} value={v.id}>
                       {v.name}

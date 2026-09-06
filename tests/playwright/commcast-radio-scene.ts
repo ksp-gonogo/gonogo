@@ -687,8 +687,10 @@ export async function installCaption(
       "pointer-events:none",
       "z-index:2147483647",
       "font-family:ui-monospace,SFMono-Regular,Menlo,monospace",
-      `border:3px solid ${o.accent}`,
-      "box-sizing:border-box",
+      // An outline, not a border: it draws over the viewport instead of adding
+      // to it, so the frame needs no box-sizing to stay inside `inset:0`.
+      `outline:3px solid ${o.accent}`,
+      "outline-offset:-3px",
     ].join(";");
 
     const badge = document.createElement("div");
@@ -1080,8 +1082,8 @@ export async function closeAll(screens: readonly Screen[]): Promise<void> {
     screen.audio = await takeAudio(screen.page);
   }
   await Promise.all(screens.map((screen) => screen.page.close()));
-  // Contexts one at a time: closing a context finalises its recording and
-  // flushes whatever artifacts it owes, and three doing that into one output
-  // directory at once is a race with nothing to gain.
+  /* Contexts one at a time: closing a context finalises its recording and
+     flushes whatever artifacts it owes, and three doing that into one output
+     directory at once is a race with nothing to gain. */
   for (const screen of screens) await screen.context.close();
 }
