@@ -55,10 +55,13 @@ export {
   CommSignalRaBadges,
   CommSignalRaSection,
 } from "./CommSignalRaAugment";
-// The two antenna-targeting commands. `export *` for the same reason topics.ts
-// is re-exported: a side-effect-only import is elided from the emitted
-// dist/index.d.ts, so the CommandArgsMap augmentation inside it would never
-// cross the package boundary.
+/**
+ * The two antenna-targeting commands.
+ *
+ * `export *` for the same reason topics.ts is re-exported: a side-effect-only
+ * import is elided from the emitted `dist/index.d.ts`, so the `CommandArgsMap`
+ * augmentation inside it would never cross the package boundary.
+ */
 export * from "./commands";
 // The typed reader + hop-bag hydration registration for extensions.realantennas.
 export { readRealAntennasHopExt } from "./hopExt";

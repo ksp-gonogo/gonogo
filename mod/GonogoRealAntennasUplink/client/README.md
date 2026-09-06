@@ -18,12 +18,25 @@ Elects RealAntennas as the comms backend when it is installed, so the comms read
 | `comms.dataRate` | `CommsDataRate` | lossy-latest | true-now |
 | `comms.linkMargin` | `CommsLinkMargin` | lossy-latest | true-now |
 | `comms.linkQuality` | `CommsLinkQuality` | lossy-latest | true-now |
+| `realantennas.antennas` | `RealAntennasAntennaState[]` | lossy-latest | delayed |
 | `realantennas.hopRates` | `RealAntennasHopRate[]` | lossy-latest | true-now |
 | `realantennas.available` | – | lossy-latest | true-now |
 
 | Payload | Fields |
 | --- | --- |
 | `RealAntennasHopExt` | `band` text, `beamwidth` °, `codingRate` ratio, `encoder` text, `modulationBits` count, `powerDrawEc` units/s, `requiredEbN0` dB, `reverseBitsPerSec` bit/s, `techLevel` count |
+
+## Commands
+
+| Command | Args | Result |
+| --- | --- | --- |
+| `realantennas.antenna.target` | `RealAntennasTargetArgs` | `CommandResult` |
+| `realantennas.antenna.targetHome` | `RealAntennasAntennaArgs` | `CommandResult` |
+
+| Args | Fields |
+| --- | --- |
+| `RealAntennasAntennaArgs` | `antennaId` id |
+| `RealAntennasTargetArgs` | `altitude` m, `antennaId` id, `azimuth` °, `bodyName` text, `elevation` °, `forward` °, `latitude` °, `longitude` °, `mode` text, `vesselId` id |
 
 ## Augments
 

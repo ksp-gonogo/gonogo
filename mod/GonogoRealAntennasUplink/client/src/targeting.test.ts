@@ -43,9 +43,11 @@ describe("the realantennas.antennas targeting channel", () => {
     expect(getAllKnownTopicIds()).toContain(REALANTENNAS_ANTENNAS_TOPIC);
   });
 
-  // The channel value is a bare ARRAY, and a client that got an object here
-  // would silently render nothing rather than fail: driving a real frame through
-  // the decode path is what distinguishes the two.
+  /**
+   * The channel value is a bare ARRAY, and a client that got an object here
+   * would silently render nothing rather than fail. Driving a real frame through
+   * the decode path is what distinguishes the two.
+   */
   it("decodes as an array of antennas, with its angles hydrated", async () => {
     const fixture = setupStreamFixture({
       carriedChannels: [REALANTENNAS_ANTENNAS_TOPIC],
@@ -101,9 +103,11 @@ describe("the two antenna-targeting commands", () => {
     expect(UPLINK_COMMAND_IDS).toContain(csConst("TargetHomeCommand"));
   });
 
-  // Without the registerUplinkCommand loop in commands.ts these are unknown ids
-  // and `useCommand` refuses to dispatch them, which is silence rather than an
-  // error a caller can see.
+  /**
+   * Without the `registerUplinkCommand` loop in commands.ts these are unknown
+   * ids and `useCommand` refuses to dispatch them, which is silence rather than
+   * an error a caller can see.
+   */
   it("are known CommandIds once this client's commands module has loaded", () => {
     for (const id of UPLINK_COMMAND_IDS) {
       expect(isCommandId(id), `${id} is not a known CommandId`).toBe(true);
