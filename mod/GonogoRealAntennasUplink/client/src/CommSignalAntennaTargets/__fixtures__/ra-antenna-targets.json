@@ -1,0 +1,89 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. Two antennas on the active craft: a tech-level-4 dish aimed at Kerbin's centre, and an omni that cannot hold a target at all. Rendered INSIDE the base CommSignal widget, because that is the only place this section exists."
+  },
+  "_scene": {
+    "augment": "realantennas-comm-signal-antenna-targets",
+    "host": "comm-signal",
+    "caption": "A card per antenna: what each is aimed at, the modes its tech level has earned, and the controls to move it",
+    "modes": ["default"],
+    "size": { "w": 8, "h": 20 },
+    "paints": ["Antenna targeting", "Aimed at", "Mode", "AIM", "HOME"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "realantennas.available", "payload": true },
+      { "topic": "comms.link", "payload": { "connected": true } },
+      {
+        "topic": "comms.delay",
+        "payload": { "source": 1, "oneWaySeconds": 0.0004 }
+      },
+      {
+        "topic": "system.bodies",
+        "payload": {
+          "bodies": [
+            { "name": "Kerbin", "index": 1 },
+            { "name": "Mun", "index": 2 },
+            { "name": "Duna", "index": 6 }
+          ]
+        }
+      },
+      {
+        "topic": "system.vessels",
+        "payload": {
+          "vessels": [
+            {
+              "vesselId": "8b6a5d4c-1111-2222-3333-444455556666",
+              "name": "Duna Relay 1",
+              "vesselType": 7,
+              "situation": 4
+            }
+          ]
+        }
+      },
+      {
+        "topic": "realantennas.antennas",
+        "payload": [
+          {
+            "antennaId": "4021/0",
+            "index": 0,
+            "name": "HG-55 High Gain Antenna",
+            "steerable": true,
+            "targeted": true,
+            "gain": 34.5,
+            "techLevel": 4,
+            "beamwidth": 2.5,
+            "cone3Db": 1.25,
+            "cone10Db": 2.5,
+            "minimumDistance": 22903,
+            "targetKind": "BodyLatLonAlt",
+            "targetLabel": "Kerbin:(0.00:0.00:-600000)",
+            "targetBodyName": "Kerbin",
+            "targetLatitude": 0,
+            "targetLongitude": 0,
+            "targetAltitude": -600000,
+            "availableTargetModes": ["Vessel", "BodyCenter", "AzEl"],
+            "meta": { "source": "vessel:1", "quality": 1 }
+          },
+          {
+            "antennaId": "4030/0",
+            "index": 1,
+            "name": "Communotron 16",
+            "steerable": false,
+            "targeted": false,
+            "gain": 2.2,
+            "techLevel": 3,
+            "beamwidth": 90,
+            "cone3Db": 45,
+            "cone10Db": 90,
+            "minimumDistance": 0,
+            "availableTargetModes": [],
+            "meta": { "source": "vessel:1", "quality": 1 }
+          }
+        ]
+      }
+    ]
+  }
+}

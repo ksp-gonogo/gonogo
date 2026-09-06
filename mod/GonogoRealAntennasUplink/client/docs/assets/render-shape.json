@@ -2,6 +2,11 @@
   "version": 1,
   "engine": "chromium",
   "assets": {
+    "ra-antenna-targets--default.png": {
+      "hash": "6aa70992b732912a",
+      "elements": 72,
+      "text": "560742f1"
+    },
     "ra-hop-rates-bottleneck--default.png": {
       "hash": "e706093bf7be7c7c",
       "elements": 93,

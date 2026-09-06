@@ -72,3 +72,4 @@ export * from "./topics";
 // tree-shake the registrations away.
 import "./CommSignalRaAugment";
 import "./CommSignal/hopRates";
+import "./CommSignalAntennaTargets";

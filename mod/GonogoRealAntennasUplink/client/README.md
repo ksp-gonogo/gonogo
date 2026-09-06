@@ -44,12 +44,15 @@ Elects RealAntennas as the comms backend when it is installed, so the comms read
 | --- | --- | --- | --- | --- | --- |
 | `realantennas-comm-signal-badge` | `comm-signal.badges` | `comms.dataRate`, `comms.path` | only while `realantennas` | 0 |  |
 | `realantennas-comm-signal-section` | `comm-signal.sections` | `comms.linkMargin`, `comms.path` | only while `realantennas` | 3 |  |
+| `realantennas-comm-signal-antenna-targets` | `comm-signal.sections` | `realantennas.antennas`, `system.bodies`, `system.vessels` | only while `realantennas` | 1 |  |
 
 ![RealAntennas installed but the link is dark: the budget section withholds itself entirely rather than showing a labelled blank](docs/assets/ra-installed-nothing-to-report--default.png)
 
 ![RealAntennas' link budget composed into CommSignal: margin closing, with the negotiated encoder, modulation and tech level under it](docs/assets/ra-link-budget-closes--default.png)
 
 ![Link budget that does NOT close: a negative margin marked '(open)' rather than left to colour alone](docs/assets/ra-link-budget-open--default.png)
+
+![A card per antenna: what each is aimed at, the modes its tech level has earned, and the controls to move it](docs/assets/ra-antenna-targets--default.png)
 
 ## Contributions
 
