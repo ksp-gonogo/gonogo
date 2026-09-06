@@ -195,6 +195,70 @@ describe("PanelDelayRail", () => {
     ).toBe("48px");
   });
 
+  /**
+   * The passive rail is a band drawn OVER the panel's top edge, never a row
+   * above it. Every widget on the dashboard would otherwise lose its first
+   * ~16px of body the moment a command went in flight, which is a layout shift
+   * on a data transition and the one thing the rail must not cost a widget that
+   * is only watching.
+   */
+  describe("passive rail costs no layout space", () => {
+    function railButton(): HTMLButtonElement {
+      return screen.getByRole("button", {
+        name: /signal-delay detail/i,
+      }) as HTMLButtonElement;
+    }
+
+    it("lifts the collapsed rail out of flow, so the frame it is measured through has nothing in it", () => {
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      inPanel(<PanelDelayRail />, store);
+      expect(getComputedStyle(railButton()).position).toBe("absolute");
+    });
+
+    it("puts the rail back in flow once it is pinned, where taking space is what the operator asked for", async () => {
+      const user = userEvent.setup();
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      inPanel(<PanelDelayRail />, store);
+      await user.click(railButton());
+      expect(getComputedStyle(railButton()).position).toBe("relative");
+    });
+
+    it("publishes NO height while collapsed, so the sticky header keeps the offset it has with no rail at all", () => {
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      const frame = container.querySelector(
+        "[data-panel-rail-frame]",
+      ) as HTMLElement;
+      // What an out-of-flow rail measures. Publishing `0px` would not do: the
+      // panel's fallback is the negative body inset, so a literal zero would
+      // still shift the header, by the 8px it cancels.
+      drive(frame, 0);
+      expect(
+        targetOf(container).style.getPropertyValue("--panel-rail-height"),
+      ).toBe("");
+    });
+
+    it("drops the published height again when a grown rail collapses back", () => {
+      const store = createDelayRailStore();
+      store.register(handle("cmd"));
+      const { container } = inPanel(<PanelDelayRail />, store);
+      const frame = container.querySelector(
+        "[data-panel-rail-frame]",
+      ) as HTMLElement;
+      drive(frame, 48);
+      expect(
+        targetOf(container).style.getPropertyValue("--panel-rail-height"),
+      ).toBe("48px");
+      drive(frame, 0);
+      expect(
+        targetOf(container).style.getPropertyValue("--panel-rail-height"),
+      ).toBe("");
+    });
+  });
+
   describe("pin-to-grow (v4)", () => {
     function railButton(): HTMLButtonElement {
       return screen.getByRole("button", {
