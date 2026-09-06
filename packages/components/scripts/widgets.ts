@@ -1743,124 +1743,15 @@ const WIDGETS: WidgetRenderConfig[] = [
       },
     ],
   },
-  {
-    // ShipSystems: Kerbalism vessel-wide resource ledger, replacing the
-    // deleted LifeSupportSystems widget. Its actual source lives at
-    // mod/GonogoKerbalismUplink/client/src/ShipSystems, the fixture stays
-    // under packages/components/src/ShipSystems/__fixtures__ purely because
-    // `fixturesPath` resolves against packages/components/src/ (see that
-    // fixture's own `_meta` for the same convention). Drives the widget over
-    // a real `setupStreamFixture` via probe-entry.tsx's `_stream` path.
-    widgetId: "ship-systems",
-    fixturesPath: "ShipSystems/__fixtures__",
-    outPath: "renders/kerbalism-ship-systems",
-    modes: [
-      // minSize 4×5: tightest placement the widget allows.
-      { name: "min-4x5", w: 4, h: 5 },
-      // defaultSize 9×15: the common operator view.
-      { name: "default-9x15", w: 9, h: 15 },
-      // Generous size: every section (root cause, ledger, wear, habitat,
-      // processes, greenhouse augment) reads with room to spare.
-      { name: "wide-12x18", w: 12, h: 18 },
-      // Healthy-vessel review shot: nominal fixture only, no shortage banner,
-      // panelAside status chip reads "Nominal".
-      { name: "nominal-9x15", w: 9, h: 15, forFixtures: ["nominal"] },
-      // Root-cause banner review shot: shortage fixture only, generous height
-      // so the banner and every section below it is visible uncropped.
-      {
-        name: "root-cause-9x18",
-        w: 9,
-        h: 18,
-        forFixtures: ["resource-shortage"],
-      },
-      /*
-       * Ledger accordion expanded: click the first supply row's Disclosure
-       * trigger (Electric Charge, the root cause, sorted first) to reveal its
-       * buildLedger terms. aria-label is the stable selector: Disclosure's
-       * trigger is a plain <button> with no other hook, and this fixture's
-       * profile always names Electric Charge's displayName the same way.
-       */
-      {
-        name: "ledger-expanded-12x18",
-        w: 12,
-        h: 18,
-        forFixtures: ["resource-shortage"],
-        clicks: [
-          {
-            selector:
-              'button[aria-label="Show rate breakdown for Electric Charge"]',
-            awaitMs: 100,
-          },
-        ],
-      },
-      /*
-       * Same accordion, at the default and minimum widths: the shape that
-       * caught the ledger overflowing the panel at anything narrower than
-       * wide-12x18 (see LedgerBody's own doc comment).
-       */
-      {
-        name: "ledger-expanded-9x15",
-        w: 9,
-        h: 15,
-        forFixtures: ["resource-shortage"],
-        clicks: [
-          {
-            selector:
-              'button[aria-label="Show rate breakdown for Electric Charge"]',
-            awaitMs: 100,
-          },
-        ],
-      },
-      {
-        name: "ledger-expanded-4x8",
-        w: 4,
-        h: 8,
-        forFixtures: ["resource-shortage"],
-        clicks: [
-          {
-            selector:
-              'button[aria-label="Show rate breakdown for Electric Charge"]',
-            awaitMs: 100,
-          },
-        ],
-      },
-      /*
-       * Ledger DESIGN review shot: resource-shortage's Electric Charge only
-       * has ONE ledger term (Water Recycler), which is not enough to judge a
-       * bar that is meant to diverge either side of zero. ledger-showcase's
-       * Electric Charge has five terms of mixed sign and varied magnitude
-       * (a dominant +0.45/s producer down to a -0.003/s trickle), at both
-       * the default and a generous width, so the diverging red/green
-       * DivergingBar treatment is legible across several rows at once.
-       */
-      {
-        name: "ledger-showcase-9x15",
-        w: 9,
-        h: 15,
-        forFixtures: ["ledger-showcase"],
-        clicks: [
-          {
-            selector:
-              'button[aria-label="Show rate breakdown for Electric Charge"]',
-            awaitMs: 100,
-          },
-        ],
-      },
-      {
-        name: "ledger-showcase-12x18",
-        w: 12,
-        h: 18,
-        forFixtures: ["ledger-showcase"],
-        clicks: [
-          {
-            selector:
-              'button[aria-label="Show rate breakdown for Electric Charge"]',
-            awaitMs: 100,
-          },
-        ],
-      },
-    ],
-  },
+  /*
+   * ship-systems moved to
+   * @ksp-gonogo/gonogo-kerbalism-uplink/scripts/widgets.ts, joining the widget
+   * itself, which has always lived there: its three probe fixtures went with
+   * it, into a `probe/` subfolder of the widget's own `__fixtures__/`, the
+   * same shape kos-terminal uses. Nothing in packages/ read them, so no copy
+   * stayed behind: an Uplink that leaves for gonogo-uplinks takes its own test
+   * data with it. Same move as space-weather above.
+   */
   {
     // FleetRoster: fleet-wide roster TABLE (one row per known vessel),
     // reading the real `system.vessels`/`system.bodies` Topics (stream
