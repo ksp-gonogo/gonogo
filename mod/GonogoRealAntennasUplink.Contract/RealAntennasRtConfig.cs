@@ -91,6 +91,17 @@ public static class RealAntennasRtConfig
             // AutoI(false) keeps its generated name and ApplyUnitValueTypes retypes
             // BitsPerSec to Value<"bit/s"> instead of leaving it a bare number.
             typeof(RealAntennasHopRate),
+            // realantennas.antennas: the per-antenna targeting state. Like
+            // RealAntennasHopRate the channel value is a bare ARRAY of these, and
+            // it carries [SitrepTopic] so EmitTopicMap names it with the `[]`
+            // suffix the IsArray flag produces.
+            typeof(RealAntennasAntennaState),
+            // The two targeting commands' args. No [SitrepTopic] (they are write
+            // shapes, not channels) but they carry [SitrepCommand], so
+            // EmitCommandMap names them and ApplyUnitValueTypes retypes their
+            // angles and distances rather than leaving them bare numbers.
+            typeof(RealAntennasTargetArgs),
+            typeof(RealAntennasAntennaArgs),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());
@@ -130,6 +141,20 @@ public static class RealAntennasRtConfig
         if (!string.IsNullOrEmpty(topicMapOut))
         {
             Sitrep.Contract.RtConfig.EmitTopicMap(topicMapOut!, typeof(RealAntennasRtConfig).Assembly);
+        }
+
+        // This slice declares commands as of the targeting surface, so it emits
+        // its own command map beside the topic map. `CommandResult` is core's and
+        // is not in this slice's contract.ts, so it comes from the published
+        // package rather than a relative path that would not resolve out of
+        // client/src/__generated__/.
+        var commandMapOut = Environment.GetEnvironmentVariable("SITREP_REALANTENNAS_COMMANDMAP_OUT");
+        if (!string.IsNullOrEmpty(commandMapOut))
+        {
+            Sitrep.Contract.RtConfig.EmitCommandMap(
+                commandMapOut!,
+                typeof(RealAntennasRtConfig).Assembly,
+                resultImportFrom: "@ksp-gonogo/sitrep-sdk");
         }
 
         var unitMapOut = Environment.GetEnvironmentVariable("SITREP_REALANTENNAS_UNITMAP_OUT");

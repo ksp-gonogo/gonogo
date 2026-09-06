@@ -212,9 +212,10 @@ echo "codegen -> $kos_out_dir/command-map.ts"
 # because the rest of the comms.* family is the shared shape an ELECTED backend
 # fills and stays core. Highest Topic ratio of any slice, three types and three
 # [SitrepTopic] roots (comms.linkQuality / comms.dataRate / comms.linkMargin), so
-# SITREP_REALANTENNAS_TOPICMAP_OUT names all three. No command args at all here
-# (these channels are read-only observations) and nothing nests, so the field ->
-# nested-type SHAPE half of the emitted units.ts comes out empty. What IS dense is
+# SITREP_REALANTENNAS_TOPICMAP_OUT names all three, plus realantennas.antennas
+# from the targeting surface. That surface also brought this slice its first
+# commands, so a command map is emitted here now as well. Nothing nests, so the
+# field -> nested-type SHAPE half of the emitted units.ts comes out empty. What IS dense is
 # the unit retyping: four of the five annotated properties name a real dimension
 # (ratio, two bit rates, a decibel margin), so every generated interface in this
 # slice carries a Value<>, and its client can prove the runtime hydration by
@@ -231,6 +232,7 @@ DOTNET_ROLL_FORWARD=LatestMajor \
   SITREP_REALANTENNAS_TOPICMAP_OUT="$realantennas_out_dir/topic-map.ts" \
   SITREP_REALANTENNAS_UNITMAP_OUT="$realantennas_out_dir/units.ts" \
   SITREP_REALANTENNAS_UNITJSON_OUT="$realantennas_out_dir/units.json" \
+  SITREP_REALANTENNAS_COMMANDMAP_OUT="$realantennas_out_dir/command-map.ts" \
   dotnet "$RTCLI" \
   DocumentationFilePath="$realantennas_bin/GonogoRealAntennasUplink.Contract.xml" \
   SourceAssemblies="$realantennas_bin/GonogoRealAntennasUplink.Contract.dll" \
@@ -240,6 +242,7 @@ echo "codegen -> $realantennas_out_dir/contract.ts"
 echo "codegen -> $realantennas_out_dir/topic-map.ts"
 echo "codegen -> $realantennas_out_dir/units.ts"
 echo "codegen -> $realantennas_out_dir/units.json"
+echo "codegen -> $realantennas_out_dir/command-map.ts"
 
 # Principia: the plan, settings and analysis slice. Topic-carrying, so the topic
 # map is emitted here the same as every other slice above. What IS different is

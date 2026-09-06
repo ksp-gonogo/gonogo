@@ -20,16 +20,21 @@ namespace GonogoRealAntennasUplink.Tests
     /// covered: same zero-pending starting point as every other relocated
     /// slice.</para>
     ///
-    /// <para><b>What is distinctive about this slice: it is nearly all real
-    /// quantities.</b> Four of the five annotated properties name a dimension the
-    /// unit model resolves (a ratio, two bit rates, a decibel margin), and the
-    /// fifth is a bool flag. There are no identifiers, no free text and no command
-    /// args here at all, because these channels are pure observations: the only
-    /// thing a client ever does with RealAntennas is look at it. That makes this
-    /// the densest slice of the seven on units and the one where the RETYPING does
-    /// most of the work, the mirror image of the slice before it. Decibels is the
-    /// case worth naming: a margin printed without its unit is not merely bare, it
-    /// is ambiguous with the ratio on the sibling channel.</para>
+    /// <para><b>What is distinctive about the link half of this slice: it is
+    /// nearly all real quantities.</b> Four of the five annotated properties on
+    /// the three link channels name a dimension the unit model resolves (a ratio,
+    /// two bit rates, a decibel margin), and the fifth is a bool flag. Decibels is
+    /// the case worth naming: a margin printed without its unit is not merely
+    /// bare, it is ambiguous with the ratio on the sibling channel.</para>
+    ///
+    /// <para><b>The targeting surface broke that pattern, deliberately.</b> The
+    /// per-antenna channel and the two commands' args brought this slice its first
+    /// identifiers, its first free text and its first command args, because
+    /// RealAntennas stopped being something a client only looks at. Their unit
+    /// declarations carry a different weight in consequence: an antenna id is a
+    /// token read off the channel and handed straight back, and an angle written
+    /// as a bare number is the same ambiguity the margin has, one step closer to
+    /// the craft.</para>
     ///
     /// <para>This test only checks the ATTRIBUTE side (every scalar wire property
     /// carries <c>[SitrepUnit]</c>); the generated-file/import side is
@@ -45,7 +50,7 @@ namespace GonogoRealAntennasUplink.Tests
                 "Units.Decibels/Units.BitsPerSecond");
 
         /// <summary>
-        /// All three are reached by the sweep, and nothing else is.
+        /// Every type in the slice is reached by the sweep, and nothing else is.
         /// <see cref="EveryScalarWirePropertyDeclaresAUnit"/> passes VACUOUSLY on
         /// any type the sweep does not reach, so a type losing its
         /// <c>[SitrepContract]</c> tag would leave the remaining green looking
@@ -68,7 +73,57 @@ namespace GonogoRealAntennasUplink.Tests
                 // The element type of the realantennas.hopRates channel: the
                 // forward band rate that left CommsHop (Major 13) for this Uplink's
                 // own channel, keyed by node id. RA-owned, guarded here.
-                nameof(RealAntennasHopRate));
+                nameof(RealAntennasHopRate),
+                // The targeting surface: the per-antenna channel's element type and
+                // the two commands' args. They are what made this slice stop being
+                // pure observation, so the class comment above no longer describes
+                // the whole of it: identifiers and free text arrived with them.
+                nameof(RealAntennasAntennaState),
+                nameof(RealAntennasTargetArgs),
+                nameof(RealAntennasAntennaArgs));
+
+        /// <summary>
+        /// The antenna id is what both commands address, and it must stay a
+        /// declared identifier rather than drifting into free text: a client reads
+        /// it off this channel and hands it straight back, so it is a token, not a
+        /// label to render.
+        /// </summary>
+        [Fact]
+        public void TheAntennaAddressIsDeclaredAnIdentifierOnBothSidesOfTheRoundTrip()
+        {
+            foreach (var property in new[]
+                     {
+                         typeof(RealAntennasAntennaState).GetProperty(nameof(RealAntennasAntennaState.AntennaId))!,
+                         typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.AntennaId))!,
+                         typeof(RealAntennasAntennaArgs).GetProperty(nameof(RealAntennasAntennaArgs.AntennaId))!,
+                     })
+            {
+                Assert.Equal(Units.Id, property.GetCustomAttribute<SitrepUnitAttribute>()!.Unit);
+            }
+        }
+
+        /// <summary>
+        /// Every angle on the targeting surface declares degrees. A bare number
+        /// beside a beamwidth is exactly the ambiguity the margin's decibels test
+        /// below exists for: an elevation of 0.7 could be radians, and RealAntennas
+        /// stores none of these in radians.
+        /// </summary>
+        [Fact]
+        public void EveryTargetingAngleDeclaresDegrees()
+        {
+            foreach (var property in new[]
+                     {
+                         typeof(RealAntennasAntennaState).GetProperty(nameof(RealAntennasAntennaState.Beamwidth))!,
+                         typeof(RealAntennasAntennaState).GetProperty(nameof(RealAntennasAntennaState.Cone3Db))!,
+                         typeof(RealAntennasAntennaState).GetProperty(nameof(RealAntennasAntennaState.Cone10Db))!,
+                         typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.Azimuth))!,
+                         typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.Elevation))!,
+                         typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.Forward))!,
+                     })
+            {
+                Assert.Equal(Units.Degrees, property.GetCustomAttribute<SitrepUnitAttribute>()!.Unit);
+            }
+        }
 
         /// <summary>
         /// The margin, pinned by name and by unit. It is the one reading in this

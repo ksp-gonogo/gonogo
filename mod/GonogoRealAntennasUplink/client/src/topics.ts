@@ -37,6 +37,7 @@ import type {
   CommsDataRate,
   CommsLinkMargin,
   CommsLinkQuality,
+  RealAntennasAntennaState,
   RealAntennasHopRate,
 } from "./__generated__/contract";
 import {
@@ -78,6 +79,19 @@ export const COMMS_LINK_MARGIN_TOPIC = "comms.linkMargin";
  */
 export const REALANTENNAS_HOP_RATES_TOPIC = "realantennas.hopRates";
 
+/**
+ * Per-antenna targeting state: a BARE ARRAY of {@link RealAntennasAntennaState},
+ * one entry per antenna on the scoped craft, carrying what each antenna is, which
+ * target modes its tech level has earned, and where it is currently pointed. Its
+ * value MUST match `RealAntennasUplink.AntennasTopic` in
+ * ../../RealAntennasUplink.cs.
+ *
+ * Unlike every other Topic in this file it is DELAYED, not true-now: the others
+ * describe the link as KSC computes it ground-side, this describes the craft, and
+ * the two commands that write to it are delayed too.
+ */
+export const REALANTENNAS_ANTENNAS_TOPIC = "realantennas.antennas";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "realantennas.available": boolean;
@@ -85,6 +99,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "comms.dataRate": CommsDataRate;
     "comms.linkMargin": CommsLinkMargin;
     "realantennas.hopRates": RealAntennasHopRate[];
+    "realantennas.antennas": RealAntennasAntennaState[];
   }
 }
 
@@ -93,6 +108,7 @@ registerBarePrimitiveTopic(COMMS_LINK_QUALITY_TOPIC);
 registerBarePrimitiveTopic(COMMS_DATA_RATE_TOPIC);
 registerBarePrimitiveTopic(COMMS_LINK_MARGIN_TOPIC);
 registerBarePrimitiveTopic(REALANTENNAS_HOP_RATES_TOPIC);
+registerBarePrimitiveTopic(REALANTENNAS_ANTENNAS_TOPIC);
 
 // The runtime half of the relocation. Both registries are fed, by looping over
 // the generated maps rather than naming entries, so a Topic or type added to
@@ -149,4 +165,7 @@ export type _ResolvesLinkMargin = Expect<
 >;
 export type _ResolvesHopRates = Expect<
   Equal<TopicPayload<"realantennas.hopRates">, RealAntennasHopRate[]>
+>;
+export type _ResolvesAntennas = Expect<
+  Equal<TopicPayload<"realantennas.antennas">, RealAntennasAntennaState[]>
 >;

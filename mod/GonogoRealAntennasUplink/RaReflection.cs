@@ -185,6 +185,277 @@ namespace Gonogo.RealAntennasUplink
             return antennas;
         }
 
+        // ── Antenna TARGETING: the read half ─────────────────────────────────────
+        //
+        // Every member below is public on RealAntennas' own types, so this stays
+        // the same arm's-length reach the rest of the class is: nothing here
+        // names an RA type at compile time, and the write half below builds its
+        // argument out of a stock KSP ConfigNode.
+        //
+        // Two of the names read as the opposite of what they mean, so this class
+        // renames them at the boundary rather than passing the confusion on.
+        // RealAntennas' `CanTarget` is not "is able to be targeted", it is
+        // "currently holds a target"; its `IsTracking` is "is a dish AND holds no
+        // target". The capability question, "can this thing be aimed at all", is
+        // `Shape != Omni`, which is what Steerable answers.
+
+        /// <summary>
+        /// The antenna's current target (an <c>AntennaTarget</c> component), or
+        /// null when it holds none. Held as a bare <c>object</c>.
+        /// </summary>
+        public object? Target(object antenna) => ReadMember(antenna, "Target");
+
+        /// <summary>
+        /// Whether the antenna can hold a target at all: <c>Shape != Omni</c>,
+        /// which RealAntennas derives from gain alone. Null when unreadable.
+        /// </summary>
+        public bool? Steerable(object antenna)
+        {
+            var shape = ReadMember(antenna, "Shape");
+            if (shape == null)
+            {
+                return null;
+            }
+            var name = shape.ToString();
+            return name != null && !name.Equals("Omni", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// Whether the antenna currently holds a target:
+        /// <c>RealAntenna.CanTarget</c>, renamed. Null when unreadable.
+        /// </summary>
+        public bool? Targeted(object antenna) => ReadMember(antenna, "CanTarget") as bool?;
+
+        /// <summary>
+        /// The near-field limit a tight beam imposes (metres):
+        /// <c>RealAntenna.MinimumDistance</c>. Null when unreadable.
+        /// </summary>
+        public double? MinimumDistance(object antenna) => ReadDoubleMember(antenna, "MinimumDistance");
+
+        /// <summary>The antenna's name, which is its part's title: <c>RealAntenna.Name</c>.</summary>
+        public string? AntennaName(object antenna) => ReadMember(antenna, "Name") as string;
+
+        /// <summary>
+        /// The live <c>ModuleRealAntenna</c> behind this antenna, non-null only
+        /// while its vessel is LOADED. Held as a bare <c>object</c>.
+        /// </summary>
+        public object? Parent(object antenna) => ReadMember(antenna, "Parent");
+
+        /// <summary>
+        /// The persisted module snapshot behind this antenna, non-null only while
+        /// its vessel is UNLOADED. Its presence is the load-state test the
+        /// targeting commands guard on.
+        /// </summary>
+        public object? ParentSnapshot(object antenna) => ReadMember(antenna, "ParentSnapshot");
+
+        /// <summary>
+        /// The stored kind of a target: the class RealAntennas built for it,
+        /// mapped back to the mode name that produces it (<c>Vessel</c>,
+        /// <c>BodyLatLonAlt</c>, <c>AzEl</c>, <c>OrbitRelative</c>). Null for a
+        /// null target or a class this does not recognise.
+        ///
+        /// <para>Derived from the runtime type name because nothing stores the
+        /// mode: <c>AntennaTarget</c> has one subclass per kind and the mode enum
+        /// is only ever used to CHOOSE one.</para>
+        /// </summary>
+        public string? TargetKind(object? target)
+        {
+            var name = target?.GetType().Name;
+            return name switch
+            {
+                "AntennaTargetVessel" => "Vessel",
+                "AntennaTargetLatLonAlt" => "BodyLatLonAlt",
+                "AntennaTargetAzEl" => "AzEl",
+                "AntennaTargetOrbitRelative" => "OrbitRelative",
+                _ => null,
+            };
+        }
+
+        /// <summary>
+        /// A target's <c>vesselId</c>: the vessel aimed at for a <c>Vessel</c>
+        /// target, and the vessel the angles are measured FROM for the two
+        /// attitude kinds.
+        /// </summary>
+        public string? TargetVesselId(object? target) => ReadMember(target, "vesselId") as string;
+
+        /// <summary>A <c>BodyLatLonAlt</c> target's body name.</summary>
+        public string? TargetBodyName(object? target) => ReadMember(target, "bodyName") as string;
+
+        /// <summary>
+        /// A <c>BodyLatLonAlt</c> target's aim point as (latitude, longitude,
+        /// altitude). RealAntennas stores it as one <c>Vector3</c> whose
+        /// components are those three, so it is split here rather than published
+        /// as a vector nothing would read as a position.
+        /// </summary>
+        public (double? Latitude, double? Longitude, double? Altitude) TargetLatLonAlt(object? target)
+        {
+            var vector = ReadMember(target, "latLonAlt");
+            if (vector == null)
+            {
+                return (null, null, null);
+            }
+            return (ReadDoubleMember(vector, "x"), ReadDoubleMember(vector, "y"), ReadDoubleMember(vector, "z"));
+        }
+
+        /// <summary>An <c>AzEl</c> target's azimuth (degrees).</summary>
+        public double? TargetAzimuth(object? target) => ReadDoubleMember(target, "azimuth");
+
+        /// <summary>An <c>AzEl</c> or <c>OrbitRelative</c> target's elevation (degrees).</summary>
+        public double? TargetElevation(object? target) => ReadDoubleMember(target, "elevation");
+
+        /// <summary>An <c>OrbitRelative</c> target's deflection from prograde (degrees).</summary>
+        public double? TargetForward(object? target) => ReadDoubleMember(target, "forward");
+
+        /// <summary>
+        /// The install's target-mode table as mode name to required tech level,
+        /// off <c>TargetModeInfo.All</c>. Empty when RealAntennas has not loaded
+        /// it yet or the surface has moved, which
+        /// <see cref="RaTargetPlan.ModeIsUnlocked"/> reads as "ungated" rather
+        /// than "everything forbidden".
+        ///
+        /// <para>It is config, not code: the table is built from
+        /// <c>TargetingMode</c> nodes at scenario start, and Realism Overhaul
+        /// moves three of the five levels. Reading it is the only way to gate
+        /// honestly on the install actually running.</para>
+        /// </summary>
+        public IReadOnlyDictionary<string, int> TargetModeTechLevels()
+        {
+            var levels = new Dictionary<string, int>();
+            try
+            {
+                var type = SafeGetType("RealAntennas.Targeting.TargetModeInfo");
+                var all = type?.GetField("All", BindingFlags.Public | BindingFlags.Static)?.GetValue(null);
+                if (all is not System.Collections.IEnumerable entries)
+                {
+                    return levels;
+                }
+                foreach (var entry in entries)
+                {
+                    // A Dictionary<string, TargetModeInfo> enumerates as
+                    // KeyValuePair, whose Value is the info object. Read the name
+                    // off the info rather than off the pair's key, so a table
+                    // keyed some other way still yields the right mode name.
+                    var info = ReadMember(entry, "Value") ?? entry;
+                    if (ReadMember(info, "name") is not string name || string.IsNullOrEmpty(name))
+                    {
+                        continue;
+                    }
+                    levels[name] = ReadIntMember(info, "techLevel") ?? 0;
+                }
+            }
+            catch (Exception)
+            {
+                return new Dictionary<string, int>();
+            }
+            return levels;
+        }
+
+        // ── Antenna TARGETING: the write half ────────────────────────────────────
+
+        /// <summary>
+        /// <c>AntennaTarget.LoadFromConfig(ConfigNode, RealAntenna)</c>, the only
+        /// sanctioned way to build a target. <paramref name="configNode"/> is a
+        /// stock KSP <c>ConfigNode</c>, passed as <c>object</c> so this class
+        /// keeps no KSP reference; the returned <c>AntennaTarget</c> comes back
+        /// as <c>object</c> for the same reason.
+        ///
+        /// <para>Unity-bound (it creates a <c>GameObject</c> and adds a
+        /// component), so the caller must already be on the main thread.</para>
+        ///
+        /// <para>Null both when the surface has moved and when RealAntennas
+        /// itself declines to build one, which it does silently for a node whose
+        /// <c>name</c> is not one of the four it knows.</para>
+        /// </summary>
+        public object? LoadTargetFromConfig(object configNode, object antenna)
+        {
+            try
+            {
+                var type = SafeGetType("RealAntennas.Targeting.AntennaTarget");
+                var method = type?.GetMethod(
+                    "LoadFromConfig", BindingFlags.Public | BindingFlags.Static);
+                return method?.Invoke(null, new[] { configNode, antenna });
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Assigns <c>RealAntenna.Target</c>. False when the property could not
+        /// be resolved or the assignment threw.
+        ///
+        /// <para>The parameter is non-nullable and that is the whole point.
+        /// Assigning null is the one write on this surface that throws, on any
+        /// antenna whose craft is unloaded, and the throw is NOT atomic: the
+        /// antenna has already been cleared and its saved <c>TARGET</c> node
+        /// already deleted by the time it happens, so a caller that caught it
+        /// would report failure having destroyed the aim point.</para>
+        ///
+        /// <para>Nor is a null target a state to put a vessel dish into.
+        /// RealAntennas assigns null in exactly one place, for a ground station;
+        /// a vessel dish it only ever moves between targets. An untargeted dish
+        /// takes no pointing loss at all, which is why offering it as a command
+        /// would be a full-gain dish in every direction at once. Untargeted is
+        /// what a dish is before it is initialised, not somewhere to send one
+        /// back to.</para>
+        /// </summary>
+        public bool SetTarget(object antenna, object target)
+        {
+            try
+            {
+                var property = antenna.GetType().GetProperty(
+                    "Target", BindingFlags.Public | BindingFlags.Instance);
+                if (property == null || !property.CanWrite)
+                {
+                    return false;
+                }
+                property.SetValue(antenna, target);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Invokes a public parameterless method by name, for the two the
+        /// targeting commands need: <c>RealAntenna.SetDefaultTarget()</c> and
+        /// <c>RACommNetNetwork.InvalidateCache()</c>. False when the method could
+        /// not be resolved or it threw.
+        /// </summary>
+        public bool InvokeVoid(object? target, string method)
+        {
+            if (target == null)
+            {
+                return false;
+            }
+            try
+            {
+                var info = target.GetType().GetMethod(
+                    method, BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+                if (info == null)
+                {
+                    return false;
+                }
+                info.Invoke(target, null);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Reads a public member by name off any object, for a caller that holds
+        /// an RA handle this class has no named accessor for (the comms network
+        /// off <c>CommNetScenario.Instance</c>, a module's <c>part</c>). Same
+        /// fail-soft-to-null posture as every accessor above.
+        /// </summary>
+        public object? ReadPublicMember(object? target, string name) => ReadMember(target, name);
+
         private static object? ReadObject(PropertyInfo? property, object? target)
         {
             if (property == null || target == null)

@@ -114,3 +114,171 @@ export interface RealAntennasHopRate
 	/** Forward band rate (bits/sec) for this hop, off the live RACommLink. */
 	bitsPerSec: Value<"bit/s">;
 }
+/**
+* One antenna of the reported craft, on the `realantennas.antennas` channel:
+* what it is, what it can do, and where it is currently pointed. The channel
+* value is a bare ARRAY of these, one entry per antenna, in the order
+* RealAntennas holds them.
+*
+* DELAYED, unlike the rest of this Uplink's channels. The others describe the
+* LINK as KSC computes it ground-side and are true now; where a dish is
+* pointed is a property of the craft, and the commands that change it ride the
+* Courier's light-time delay. A true-now readout beside a delayed command
+* would show the new aim point while the command was still in flight.
+*/
+export interface RealAntennasAntennaState
+{
+	/**
+	* The address both targeting commands take, stable across a reordering of the
+	* craft's antenna list: the flight id of the part the antenna belongs to, plus
+	* an ordinal when one part carries several antennas (`"1234567890/0"`). Falls
+	* back to `"index/<n>"` for an antenna whose part cannot be read, which is the
+	* unloaded case.
+	*
+	* An index alone would not do. Both commands are `Delayed`, so a command
+	* dispatched against "the second antenna" arrives minutes later against
+	* whatever is second BY THEN, and a decoupled part between the two moments
+	* aims a different dish.
+	*/
+	antennaId: string;
+	/**
+	* Position in RealAntennas' own antenna list for this craft: display order,
+	* not an address.
+	*/
+	index: Value<"count">;
+	/** The antenna's name, which is the part title. */
+	name?: string;
+	/**
+	* Whether this antenna can hold a target at all. RealAntennas derives it from
+	* gain alone (a dish is an antenna with more than 5 dBi; there is no stored
+	* "steerable" flag), and an antenna that is not steerable refuses both
+	* commands.
+	*/
+	steerable: boolean;
+	/**
+	* Whether this antenna currently holds a target. The fields below describe it
+	* when true and are all null when false.
+	*/
+	targeted: boolean;
+	/** Antenna gain (dBi), the quantity beamwidth and steerability both come off. */
+	gain?: Value<"dB">;
+	/** Antenna tech level (0..9): the level the mode gate compares against. */
+	techLevel?: Value<"count">;
+	/**
+	* Beamwidth (degrees), from gain. RealAntennas draws the 3 dB cone at half
+	* this and the 10 dB cone at all of it, so this is the wider of the two.
+	*/
+	beamwidth?: Value<"°">;
+	/** The 3 dB cone half-angle (degrees): half the beamwidth. */
+	cone3Db?: Value<"°">;
+	/** The 10 dB cone half-angle (degrees): the beamwidth itself. */
+	cone10Db?: Value<"°">;
+	/**
+	* The near-field limit a tight beam imposes (metres): RealAntennas reports
+	* zero for an antenna holding no target, and for a beam 90° or wider.
+	*/
+	minimumDistance?: Value<"m">;
+	/**
+	* The STORED kind of the current target: `Vessel`, `BodyLatLonAlt`, `AzEl` or
+	* `OrbitRelative`. Null when the antenna holds no target.
+	*
+	* `BodyCenter` never appears here, and the omission is deliberate.
+	* RealAntennas has five mode NAMES and four target classes: "body centre" is a
+	* way of filling in a `BodyLatLonAlt` (lat 0, lon 0, altitude minus the body's
+	* radius) and nothing records that it was chosen that way. Reporting the
+	* stored kind is a read; reporting `BodyCenter` would be a guess about how the
+	* numbers were arrived at.
+	*/
+	targetKind?: string;
+	/**
+	* The target as RealAntennas itself renders it, which is the same string its
+	* in-game "Antenna Target" field shows. Null when the antenna holds no target.
+	*/
+	targetLabel?: string;
+	/**
+	* The target vessel's id, for a `Vessel` target. For `AzEl` and
+	* `OrbitRelative` this is the craft the angles are measured FROM, which is the
+	* antenna's own, not something being aimed at.
+	*/
+	targetVesselId?: string;
+	/** The body a `BodyLatLonAlt` target is on. */
+	targetBodyName?: string;
+	/** Latitude of a `BodyLatLonAlt` target (degrees). */
+	targetLatitude?: Value<"°">;
+	/** Longitude of a `BodyLatLonAlt` target (degrees). */
+	targetLongitude?: Value<"°">;
+	/**
+	* Altitude of a `BodyLatLonAlt` target (metres above the surface). A value of
+	* minus the body's radius is the body's centre, which is what RealAntennas
+	* writes for its own "Body Center" affordance and for the default target it
+	* gives an untargeted dish.
+	*/
+	targetAltitude?: Value<"m">;
+	/** Azimuth of an `AzEl` target (degrees, 0..360). */
+	targetAzimuth?: Value<"°">;
+	/** Elevation of an `AzEl` or `OrbitRelative` target (degrees, -90..90). */
+	targetElevation?: Value<"°">;
+	/** Deflection from prograde of an `OrbitRelative` target (degrees, -180..180). */
+	targetForward?: Value<"°">;
+	/**
+	* The mode names `realantennas.antenna.target` will accept for THIS antenna:
+	* every mode the install declares whose tech level this antenna has reached.
+	*
+	* It is per-antenna because the gate is per-antenna, and it is on the wire
+	* because the gate is DATA. The five levels are config, not code, and Realism
+	* Overhaul moves three of them, so a client that hard-coded the stock numbers
+	* would offer modes this install refuses and hide modes it allows.
+	*/
+	availableTargetModes: string[];
+	meta: PayloadMeta;
+}
+/**
+* Args for `realantennas.antenna.target`: point one antenna at one thing.
+*
+* Which of the optional fields are read depends on
+* `RealAntennasTargetArgs.mode`, and a field the mode does not read is ignored
+* rather than refused.
+*/
+export interface RealAntennasTargetArgs
+{
+	/** Which antenna, as `RealAntennasAntennaState.antennaId` gives it. */
+	antennaId: string;
+	/**
+	* One of `Vessel`, `BodyCenter`, `BodyLatLonAlt`, `AzEl`, `OrbitRelative`.
+	* Anything else is refused.
+	*
+	* `BodyCenter` is accepted here even though nothing stores it (see
+	* `RealAntennasAntennaState.targetKind`): it is the mode the tech-level gate
+	* is declared against, and it saves every caller having to know that the
+	* body's centre is written as latitude 0, longitude 0, altitude minus the
+	* radius. It is stored as, and reads back as, `BodyLatLonAlt`.
+	*/
+	mode: string;
+	/**
+	* The vessel to point at, for `Vessel`. Ignored by every other mode: `AzEl`
+	* and `OrbitRelative` are measured from the antenna's OWN craft, which the
+	* handler fills in, so a caller cannot aim one craft's dish by another craft's
+	* attitude.
+	*/
+	vesselId?: string;
+	/** The body, for `BodyCenter` and `BodyLatLonAlt`. Empty means the home body. */
+	bodyName?: string;
+	/** Latitude (degrees, -90..90), for `BodyLatLonAlt`. */
+	latitude?: number;
+	/** Longitude (degrees, -180..360), for `BodyLatLonAlt`. */
+	longitude?: number;
+	/** Altitude above the surface (metres), for `BodyLatLonAlt`. */
+	altitude?: number;
+	/** Azimuth (degrees, 0..360), for `AzEl`. */
+	azimuth?: number;
+	/** Elevation (degrees, -90..90), for `AzEl` and `OrbitRelative`. */
+	elevation?: number;
+	/** Deflection from prograde (degrees, -180..180), for `OrbitRelative`. */
+	forward?: number;
+}
+/** Args for `realantennas.antenna.targetHome`: one antenna, no options. */
+export interface RealAntennasAntennaArgs
+{
+	/** Which antenna, as `RealAntennasAntennaState.antennaId` gives it. */
+	antennaId: string;
+}

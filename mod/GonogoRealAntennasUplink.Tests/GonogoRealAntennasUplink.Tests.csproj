@@ -43,6 +43,13 @@
          the whole rule is KSP-free and every branch of it (unrated, disconnected,
          graded, out-of-range) is reachable headlessly. -->
     <Compile Include="..\GonogoRealAntennasUplink\RaDegrade.cs" />
+    <!-- RaTargetPlan is everything realantennas.antenna.target settles BEFORE
+         the game is touched: mode validation, the tech-level gate RealAntennas
+         declares but does not enforce, the argument ranges, and the exact
+         TARGET node each mode lowers to. It holds no ConfigNode and no vessel
+         (the KSP half is RaTargeting, which is not compiled here), so every
+         branch of it is reachable headlessly. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaTargetPlan.cs" />
   </ItemGroup>
 
   <!-- RaRouting.cs is the RA route between two nodes, carved out of

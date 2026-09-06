@@ -38,7 +38,10 @@ export type {
   CommsDataRate,
   CommsLinkMargin,
   CommsLinkQuality,
+  RealAntennasAntennaArgs,
+  RealAntennasAntennaState,
   RealAntennasHopExt,
+  RealAntennasTargetArgs,
 } from "./__generated__/contract";
 // The per-hop forward-rate contribution: fills CommSignal's `comm-signal.hop-rates`
 // slot off `realantennas.hopRates`, so the base route schedule can render each
@@ -52,6 +55,11 @@ export {
   CommSignalRaBadges,
   CommSignalRaSection,
 } from "./CommSignalRaAugment";
+// The two antenna-targeting commands. `export *` for the same reason topics.ts
+// is re-exported: a side-effect-only import is elided from the emitted
+// dist/index.d.ts, so the CommandArgsMap augmentation inside it would never
+// cross the package boundary.
+export * from "./commands";
 // The typed reader + hop-bag hydration registration for extensions.realantennas.
 export { readRealAntennasHopExt } from "./hopExt";
 export * from "./topics";

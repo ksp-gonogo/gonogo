@@ -59,6 +59,33 @@
     "CommsLinkQuality": {
       "value": "ratio"
     },
+    "RealAntennasAntennaArgs": {
+      "antennaId": "id"
+    },
+    "RealAntennasAntennaState": {
+      "antennaId": "id",
+      "availableTargetModes": "text",
+      "beamwidth": "°",
+      "cone10Db": "°",
+      "cone3Db": "°",
+      "gain": "dB",
+      "index": "count",
+      "minimumDistance": "m",
+      "name": "text",
+      "steerable": "flag",
+      "targetAltitude": "m",
+      "targetAzimuth": "°",
+      "targetBodyName": "text",
+      "targetElevation": "°",
+      "targetForward": "°",
+      "targetKind": "text",
+      "targetLabel": "text",
+      "targetLatitude": "°",
+      "targetLongitude": "°",
+      "targetVesselId": "id",
+      "targeted": "flag",
+      "techLevel": "count"
+    },
     "RealAntennasHopExt": {
       "band": "text",
       "beamwidth": "°",
@@ -74,6 +101,18 @@
       "bitsPerSec": "bit/s",
       "fromNodeId": "id",
       "toNodeId": "id"
+    },
+    "RealAntennasTargetArgs": {
+      "altitude": "m",
+      "antennaId": "id",
+      "azimuth": "°",
+      "bodyName": "text",
+      "elevation": "°",
+      "forward": "°",
+      "latitude": "°",
+      "longitude": "°",
+      "mode": "text",
+      "vesselId": "id"
     }
   },
   "topics": {
@@ -87,6 +126,30 @@
     },
     "comms.linkQuality": {
       "value": "ratio"
+    },
+    "realantennas.antennas": {
+      "antennaId": "id",
+      "availableTargetModes": "text",
+      "beamwidth": "°",
+      "cone10Db": "°",
+      "cone3Db": "°",
+      "gain": "dB",
+      "index": "count",
+      "minimumDistance": "m",
+      "name": "text",
+      "steerable": "flag",
+      "targetAltitude": "m",
+      "targetAzimuth": "°",
+      "targetBodyName": "text",
+      "targetElevation": "°",
+      "targetForward": "°",
+      "targetKind": "text",
+      "targetLabel": "text",
+      "targetLatitude": "°",
+      "targetLongitude": "°",
+      "targetVesselId": "id",
+      "targeted": "flag",
+      "techLevel": "count"
     },
     "realantennas.hopRates": {
       "bitsPerSec": "bit/s",

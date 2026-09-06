@@ -80,6 +80,51 @@ namespace Gonogo.RealAntennasUplink
         }
 
         /// <summary>
+        /// The <c>realantennas.antennas</c> channel value: a bare ARRAY, one
+        /// flattened entry per antenna on the reported craft. An empty list is a
+        /// legitimate value (a craft carrying no RealAntennas antenna at all),
+        /// not typed absence.
+        ///
+        /// <para>Every nullable stays null rather than collapsing to a zero: a
+        /// beamwidth that could not be read and a beamwidth of zero are
+        /// different facts, and only one of them is true of any antenna.</para>
+        /// </summary>
+        public static List<Dictionary<string, object?>> Antennas(IReadOnlyList<RealAntennasAntennaState> antennas)
+        {
+            var list = new List<Dictionary<string, object?>>(antennas.Count);
+            foreach (var antenna in antennas)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["antennaId"] = antenna.AntennaId,
+                    ["index"] = antenna.Index,
+                    ["name"] = antenna.Name,
+                    ["steerable"] = antenna.Steerable,
+                    ["targeted"] = antenna.Targeted,
+                    ["gain"] = antenna.Gain,
+                    ["techLevel"] = antenna.TechLevel,
+                    ["beamwidth"] = antenna.Beamwidth,
+                    ["cone3Db"] = antenna.Cone3Db,
+                    ["cone10Db"] = antenna.Cone10Db,
+                    ["minimumDistance"] = antenna.MinimumDistance,
+                    ["targetKind"] = antenna.TargetKind,
+                    ["targetLabel"] = antenna.TargetLabel,
+                    ["targetVesselId"] = antenna.TargetVesselId,
+                    ["targetBodyName"] = antenna.TargetBodyName,
+                    ["targetLatitude"] = antenna.TargetLatitude,
+                    ["targetLongitude"] = antenna.TargetLongitude,
+                    ["targetAltitude"] = antenna.TargetAltitude,
+                    ["targetAzimuth"] = antenna.TargetAzimuth,
+                    ["targetElevation"] = antenna.TargetElevation,
+                    ["targetForward"] = antenna.TargetForward,
+                    ["availableTargetModes"] = antenna.AvailableTargetModes,
+                    ["meta"] = Meta(antenna.Meta),
+                });
+            }
+            return list;
+        }
+
+        /// <summary>
         /// <c>{ source, quality }</c>, quality as its integer ordinal. A null
         /// meta collapses to the same defaults core's own writer used (empty
         /// source, <c>Quality.OnRails</c>), so a payload built without one keeps

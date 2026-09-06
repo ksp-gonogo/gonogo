@@ -54,6 +54,33 @@ namespace Gonogo.RealAntennasUplink
         /// </summary>
         public const string AvailableTopic = "realantennas.available";
 
+        /// <summary>
+        /// The per-antenna targeting channel: a bare ARRAY of
+        /// <see cref="RealAntennasAntennaState"/>, one entry per antenna on the
+        /// scoped craft, carrying what each antenna is, what modes its tech level
+        /// has earned, and where it is currently pointed.
+        ///
+        /// <para>Per-ANTENNA because that is the granularity RealAntennas stores:
+        /// there is no vessel-level target and no primary antenna, and the link
+        /// solver considers every compatible antenna pair, so two dishes aimed
+        /// two ways are two candidate links rather than a conflict to resolve.</para>
+        ///
+        /// <para>DELAYED, unlike this Uplink's other four channels. They describe
+        /// the link as KSC computes it ground-side; this describes the craft, and
+        /// the two commands that write to it are delayed too.</para>
+        /// </summary>
+        public const string AntennasTopic = "realantennas.antennas";
+
+        /// <summary>Point one antenna at one thing. Args: <see cref="RealAntennasTargetArgs"/>.</summary>
+        public const string TargetCommand = "realantennas.antenna.target";
+
+        /// <summary>
+        /// Point one antenna at the home BODY'S CENTRE, RealAntennas' own default
+        /// aim point. See <see cref="RaTargeting.TargetHome"/> for what that does
+        /// and does not mean. Args: <see cref="RealAntennasAntennaArgs"/>.
+        /// </summary>
+        public const string TargetHomeCommand = "realantennas.antenna.targetHome";
+
         // Fallback link-budget inputs, used only when the live per-link read
         // returns null. RA exposes both per antenna: the receiver noise
         // temperature via RealAntenna.AMWTemp (tech-level driven, TL0 ~27000 K, TL9
@@ -77,12 +104,29 @@ namespace Gonogo.RealAntennasUplink
         private IChannelPublisher? _dataRate;
         private IChannelPublisher? _linkMargin;
         private IChannelPublisher? _hopRates;
+        private IChannelPublisher? _antennas;
+
+        /// <summary>Targeting's reflection + KSP half, built at Register once RA is confirmed present.</summary>
+        private RaTargeting? _targeting;
 
         private static ChannelDeclaration TrueNow(string topic) => new ChannelDeclaration
         {
             Topic = topic,
             Delivery = Delivery.LossyLatest,
             Delay = DelayRole.TrueNow,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+        };
+
+        /// <summary>
+        /// Same delivery as <see cref="TrueNow"/>, opposite delay disposition: a
+        /// flight-side fact ground learns at light-time. See
+        /// <see cref="AntennasTopic"/> for why this Uplink has one of each.
+        /// </summary>
+        private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
+        {
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Delay = DelayRole.Delayed,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
@@ -97,6 +141,17 @@ namespace Gonogo.RealAntennasUplink
                 TrueNow(DataRateTopic),
                 TrueNow(LinkMarginTopic),
                 TrueNow(HopRatesTopic),
+                Delayed(AntennasTopic),
+            },
+            Commands = new List<CommandDeclaration>
+            {
+                // Both Delayed: slewing a dish is a signal to the craft, the same
+                // classification every other vessel-actuation command carries.
+                // That is also why the channel beside them is delayed, and why an
+                // antenna is addressed by a stable id rather than by its position
+                // in a list that can change while the command is in flight.
+                new CommandDeclaration { Command = TargetCommand, Delayed = true },
+                new CommandDeclaration { Command = TargetHomeCommand, Delayed = true },
             },
         };
 
@@ -156,8 +211,54 @@ namespace Gonogo.RealAntennasUplink
             _dataRate = host.Publisher(DataRateTopic);
             _linkMargin = host.Publisher(LinkMarginTopic);
             _hopRates = host.Publisher(HopRatesTopic);
+            _antennas = host.Publisher(AntennasTopic);
 
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, LinkQualityTopic, DataRateTopic, LinkMarginTopic, HopRatesTopic);
+
+            // Its own sampled source rather than a sixth topic on the one above:
+            // the antenna walk reads every antenna on the craft and the mode
+            // table beside it, and there is no reason to pay for that on a tick
+            // where only a data rate was subscribed.
+            _targeting = new RaTargeting(_ra);
+            host.AddSampledSource(CaptureAntennasOnMain, HandleAntennasOnCourier, AntennasTopic);
+
+            host.AddCommandHandler<RealAntennasTargetArgs, CommandResult>(
+                TargetCommand, args => _targeting.Target(ScopedVessel(), args));
+            host.AddCommandHandler<RealAntennasAntennaArgs, CommandResult>(
+                TargetHomeCommand, args => _targeting.TargetHome(ScopedVessel(), args));
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture for <c>realantennas.antennas</c>. The vessel is
+        /// resolved once and the whole list is read from it, so no two entries can
+        /// describe different craft.
+        /// </summary>
+        internal object? CaptureAntennasOnMain(KspSnapshot? snapshot)
+        {
+            if (_targeting == null)
+            {
+                return null;
+            }
+            return new RaAntennaCapture
+            {
+                Ut = snapshot?.Ut ?? 0.0,
+                Antennas = _targeting.ReadAntennas(ScopedVessel()),
+            };
+        }
+
+        /// <summary>
+        /// COURIER-THREAD handle for <c>realantennas.antennas</c>: the flattened
+        /// array. An empty array is PUBLISHED rather than withheld, because the
+        /// channel is LossyLatest: withholding it on a craft with no antennas
+        /// would leave the previous craft's list standing on the wire.
+        /// </summary>
+        internal void HandleAntennasOnCourier(object? captured)
+        {
+            if (captured is not RaAntennaCapture capture)
+            {
+                return;
+            }
+            _antennas?.Publish(RaWire.Antennas(capture.Antennas), capture.Ut);
         }
 
         /// <summary>
@@ -418,6 +519,12 @@ namespace Gonogo.RealAntennasUplink
             public CommsLinkMargin? LinkMargin;
             public CommsLinkQuality? LinkQuality;
             public List<RealAntennasHopRate>? HopRates;
+        }
+
+        private sealed class RaAntennaCapture
+        {
+            public double Ut;
+            public List<RealAntennasAntennaState> Antennas = new List<RealAntennasAntennaState>();
         }
     }
 }

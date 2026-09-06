@@ -46,10 +46,12 @@ describe("generated contract.ts: Value usage resolves to core", () => {
     expect(src).toMatch(/decibelMargin:\s*Value<"dB">;/);
   });
 
-  // The contrast case, and the only non-quantity in the slice. `closesLink`
-  // declares Units.Flag, which ApplyUnitValueTypes leaves alone by design, so it
-  // must stay a bare boolean. It is what proves the retyping is driven by the
-  // TOKEN rather than by "has a [SitrepUnit] attribute".
+  // The contrast case. `closesLink` declares Units.Flag, which
+  // ApplyUnitValueTypes leaves alone by design, so it must stay a bare boolean.
+  // It is what proves the retyping is driven by the TOKEN rather than by "has a
+  // [SitrepUnit] attribute". It was the slice's only non-quantity until the
+  // targeting surface arrived with flags, ids and free text of its own; it stays
+  // the case asserted here because it is the one on a channel that predates them.
   it("leaves the annotated non-quantity bare", () => {
     expect(source()).toMatch(/closesLink:\s*boolean;/);
   });
@@ -69,6 +71,7 @@ describe("generated contract.ts: Value usage resolves to core", () => {
       /import\s*\{\s*PayloadMeta\s*\}\s*from\s*['"]@ksp-gonogo\/sitrep-sdk['"]/,
     );
     expect(src).not.toMatch(/meta:\s*any;/);
-    expect(src.match(/meta:\s*PayloadMeta;/g)).toHaveLength(3);
+    // The three link channels plus the per-antenna targeting state.
+    expect(src.match(/meta:\s*PayloadMeta;/g)).toHaveLength(4);
   });
 });
