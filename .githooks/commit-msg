@@ -114,3 +114,28 @@ count toward this.
 MSG
   exit 1
 fi
+
+# The repo's stated style is Conventional Commits, and until 2026-09-06 nothing
+# here checked for a type at all: "TestFlight has left: remove the in-repo copy"
+# passed, and six such subjects reached staging. The scope pattern allows
+# SPACES, because `test(space centre):` and `fix(kerbalism uplink):` are already
+# in use and a stricter pattern would reject the history it is meant to protect.
+case "$subject" in
+  "Revert "*|"Merge "*) ;;
+  *)
+    if ! printf '%s' "$subject" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([^)]+\))?!?: .'; then
+      cat >&2 <<MSG
+commit-msg: refusing a subject with no Conventional Commits type.
+
+  $subject
+
+staging history becomes release notes, and the type is what sorts a change into
+them. Start with one of:
+  feat fix docs style refactor perf test build ci chore revert
+optionally scoped, e.g. fix(rail): or test(space centre):, then ": " and the
+change in the imperative.
+MSG
+      exit 1
+    fi
+    ;;
+esac
