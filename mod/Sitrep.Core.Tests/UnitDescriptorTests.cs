@@ -156,6 +156,33 @@ namespace Sitrep.Core.Tests
             Assert.DoesNotContain("banana", maps.Vocabulary);
         }
 
+        /// <summary>
+        /// An Uplink's catalog under a SUFFIXED name, which is what an author
+        /// writes once they have to put it in the same namespace as their
+        /// payloads: a class named exactly <c>Units</c> shadows
+        /// <see cref="Units"/> there and breaks every existing
+        /// <c>[SitrepUnit(Units.Flag)]</c> beside it.
+        /// </summary>
+        public static class ExampleUnits
+        {
+            public const string Gizmos = "gizmos";
+        }
+
+        [Fact]
+        public void ACatalogNamedForItsUplinkIsFound()
+        {
+            var maps = UnitDescriptor.Collect(
+                validateVocabulary: false,
+                assembly: typeof(ExampleUplinkPayload).Assembly);
+
+            // Declared in ExampleUnits above, so the vocabulary carries it and a
+            // property annotated with it would survive the validating pass.
+            Assert.Contains("gizmos", maps.Vocabulary);
+            // And the widening really is a widening: a token NOBODY declared is
+            // still absent, so the check can still fail.
+            Assert.DoesNotContain("banana", maps.Vocabulary);
+        }
+
         [Fact]
         public void IsStableAcrossCalls()
         {

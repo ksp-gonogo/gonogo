@@ -27,8 +27,8 @@ have read any of them.
 
 ## Repo layout
 
-Keep both halves in one repo. The first-party shape is four sibling projects plus the client, and it is
-worth mirroring, because the split between the mod and its **contract** is load-bearing rather than
+Keep both halves in one repo. The shape below is worth mirroring, because the split between the mod
+and its **contract**, and between the contract and its codegen twin, is load-bearing rather than
 tidiness (see "Getting your contract into your client"):
 
 ```text
@@ -43,18 +43,110 @@ example-uplink/
       src/
         uplink.ts                 # defineUplinkClient(...): the client identity
         topics.ts                 # your Topics, typed and registered
-        index.ts                  # side-effect registration entry point
+        commands.ts               # your Commands, typed and registered
+        units.ts                  # registerUnit on both seams, for tokens you introduce
+        index.ts                  # the entry point: bare imports plus two named re-exports
         Reactor/index.tsx         # a widget, registered with owner: EXAMPLE
         __generated__/            # codegen output, never hand-edited
         test/setup.ts
   ExampleUplink.Contract/         # the wire types, referencing only Sitrep.Contract
   ExampleUplink.Contract.Codegen/ # the codegen-only twin of the above
+  CodegenTwin.props               # the shape both twins share (see "Add a codegen-only TWIN")
+  Sitrep.Contract/                # vendored: the codegen twin needs its sources, not its DLL
+  Sitrep.Contract.Codegen/        # the codegen-only twin of THAT
   ExampleUplink.Tests/
 ```
 
 The client is nested under the mod directory rather than beside it because the two halves version and
 ship together, and because `gonogo-uplink bundle` searches up to three levels above the client for
 `uplink.json`, so either arrangement is found.
+
+### The tools, and where each assembly comes from
+
+Two things are worth pinning down before the first file, because neither is discoverable by reading
+the code.
+
+**`gonogo-uplink` is a bin of `@ksp-gonogo/sitrep-sdk`**, the same package your client already depends
+on. There is nothing else to install: `pnpm exec gonogo-uplink <command>` from your client directory,
+or `npx gonogo-uplink` under npm. Every invocation in this guide is that command.
+
+**`Sitrep.Contract.dll` is not on NuGet.** It is installed by the Gonogo mod, at
+`<KSP>/GameData/Gonogo/Plugins/Sitrep.Contract.dll`, built for `net472`. You reference that file
+directly, with `Private="false"`, because GonogoCore already loads it and a second copy in your own
+output would give KSP two. The same is true of KSP's and Unity's own assemblies, which live in
+`<KSP>/KSP_x64_Data/Managed/`, and of `0Harmony.dll` under `GameData/000_Harmony/` if you patch
+anything.
+
+So the mod project, in full:
+
+```text
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <LangVersion>12</LangVersion>
+    <Nullable>enable</Nullable>
+    <AssemblyName>ExampleUplink</AssemblyName>
+    <RootNamespace>ExampleUplink</RootNamespace>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- Your own machine's paths; pass them on the command line in CI. -->
+    <KspManaged>/path/to/KSP/KSP_x64_Data/Managed</KspManaged>
+    <KspGameData>/path/to/KSP/GameData</KspGameData>
+  </PropertyGroup>
+
+  <!-- Private="false" throughout: KSP has all of these loaded already. -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp" Private="false">
+      <HintPath>$(KspManaged)/Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine" Private="false">
+      <HintPath>$(KspManaged)/UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule" Private="false">
+      <HintPath>$(KspManaged)/UnityEngine.CoreModule.dll</HintPath>
+    </Reference>
+    <!-- Only if you install a Harmony patch (see "Reading another mod's internals"). -->
+    <Reference Include="0Harmony" Private="false">
+      <HintPath>$(KspGameData)/000_Harmony/0Harmony.dll</HintPath>
+    </Reference>
+    <Reference Include="Sitrep.Contract" Private="false">
+      <HintPath>$(KspGameData)/Gonogo/Plugins/Sitrep.Contract.dll</HintPath>
+    </Reference>
+    <!-- YOUR contract slice takes the default Private="true": nothing else
+         ships it, so it has to land beside your DLL. -->
+    <ProjectReference Include="../ExampleUplink.Contract/ExampleUplink.Contract.csproj" />
+  </ItemGroup>
+</Project>
+```
+
+And the contract slice, which touches no KSP type and so stays a plain library:
+
+```text
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- net48, matching the mod that references it. rtcli never loads THIS
+         build: it loads the netstandard2.0 twin of step 2. -->
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>ExampleUplink.Contract</AssemblyName>
+    <RootNamespace>ExampleUplink</RootNamespace>
+    <KspGameData>/path/to/KSP/GameData</KspGameData>
+  </PropertyGroup>
+  <!-- NO Reinforced.Typings reference here, in either target framework. See
+       "Add a codegen-only TWIN" for what happens when one creeps in. -->
+  <ItemGroup>
+    <Reference Include="Sitrep.Contract" Private="false">
+      <HintPath>$(KspGameData)/Gonogo/Plugins/Sitrep.Contract.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
+```
+
+Note the split: the mod half reaches into KSP, the contract slice is plain DTOs and touches nothing
+but `Sitrep.Contract`. That is what lets step 2 recompile those same sources as `netstandard2.0` for
+rtcli, which could not load a KSP-linked assembly at all, and it is why the two are separate projects
+rather than one.
 
 ---
 
@@ -73,6 +165,11 @@ your payload types are a shape it cannot type-check against. A refusal is not si
 wizard shows a row saying which contract you were built for and which one the running mod speaks. A
 MINOR difference either way is fine, Minor bumps are additive.
 
+`ISitrepUplink` has exactly three members, and this example uses all of them: `Manifest`, `Register`
+and `Health`. There is **no teardown hook**, deliberately: an Uplink is registered once per game
+session and lives as long as the mod does, so a Harmony patch you install in `Register` stays
+installed. Patch defensively rather than planning to remove it.
+
 ```csharp
 using System.Collections.Generic;
 using Sitrep.Contract;
@@ -81,6 +178,7 @@ using ExampleUplink.Contract;
 [SitrepUplink("example")]
 public sealed class ExampleUplink : ISitrepUplink
 {
+    public const string AvailableTopic = "example.available";
     public const string ReactorTopic = "example.reactor";
     public const string SetOutputCommand = "example.setOutput";
 
@@ -89,10 +187,39 @@ public sealed class ExampleUplink : ISitrepUplink
         Id = "example",
         Version = "0.1.0",
 
+        // How an operator sees you in the consent dialog, and where a
+        // suspicious one goes to look. Empty reads as absent, never as a
+        // stand-in value.
+        Name = "Example Uplink",
+        Author = "you",
+        Repo = "https://github.com/you/example-uplink",
+
+        // Where the app fetches your CLIENT from, and the hash it must match.
+        // Both are read off the live `system.uplinks` roster: this is how the
+        // app learns your bundleUrl. See "Distribution".
+        ClientSource = new UplinkClientSource
+        {
+            Url = "https://example.com/uplinks/example/example.client.js",
+        },
+        // `gonogo-uplink bake-hash --namespace Example.Generated` writes the
+        // class this reads; see "The one version line".
+        ExpectedClientHash = Example.Generated.ExpectedClientHash.Value,
+
         // Topics this Uplink publishes. Each ChannelDeclaration names a Topic,
         // its delivery mode, its emission cadence, and its delay role.
         Channels = new List<ChannelDeclaration>
         {
+            // The presence gate: a bare boolean saying the mod behind this
+            // Uplink is actually running. Nothing synthesises this for you,
+            // it is an ordinary channel you declare and publish like any
+            // other, and every Uplink in this repo declares one.
+            new ChannelDeclaration
+            {
+                Topic = AvailableTopic,
+                Delivery = Delivery.LossyLatest,
+                Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                Delay = DelayRole.TrueNow,
+            },
             new ChannelDeclaration
             {
                 Topic = ReactorTopic,
@@ -119,17 +246,63 @@ public sealed class ExampleUplink : ISitrepUplink
 
     public void Register(IUplinkHost host)
     {
-        // Publish a Topic: map the current game snapshot to the value.
+        // Publish a Topic. The mapper is `Func<KspSnapshot?, object?>`, and
+        // what it returns has to be a shape the core serializer can write:
+        // see "Flatten your payload" below for why ReadReactor hands back a
+        // dictionary rather than the POCO.
+        host.AddChannelSource(AvailableTopic, _ => true);
         host.AddChannelSource(ReactorTopic, snapshot => ReadReactor(snapshot));
 
         // Handle a Command: typed args in, a CommandResult out.
         host.AddCommandHandler<SetOutputArgs, CommandResult>(SetOutputCommand, SetOutput);
     }
 
-    private ReactorStatus? ReadReactor(KspSnapshot? snapshot) => /* ... */ null;
-    private CommandResult SetOutput(SetOutputArgs args) => CommandResult.Ok();
+    private Dictionary<string, object?>? ReadReactor(KspSnapshot? snapshot)
+    {
+        var status = ReadReactorStatus(snapshot);
+        // Publishing nothing is how you say "no reading", and the client sees
+        // `pending` rather than a fabricated zero.
+        return status == null ? null : ExampleWire.Reactor(status);
+    }
+
+    private ReactorStatus? ReadReactorStatus(KspSnapshot? snapshot) => /* ... */ null;
+
+    private CommandResult SetOutput(SetOutputArgs args)
+    {
+        if (args.TargetPower < 0)
+        {
+            // A REFUSAL: the game said no. This is what lands on the client
+            // handle's `refusals`, with `detail` shown in the game's own words.
+            return CommandResult.Fail(
+                CommandErrorCode.Range, "Output cannot be negative.");
+        }
+        return CommandResult.Ok();
+    }
 }
 ```
+
+**Returning a payload from a command.** `CommandResult.Ok()` is success and nothing more. To answer
+with data, declare the payload type on the attribute (`[SitrepCommand("example.readout", Payload =
+typeof(ReactorReadout))]`, see "Register your commands"), handle it as
+`AddCommandHandler<TArgs, CommandResult<ReactorReadout>>`, and return
+`CommandResult<ReactorReadout>.Ok(payload)`. The generated TS names that reply `CommandResultOf<T>`.
+
+**`Emission` and `Delivery`, since both are easy to copy without reading.**
+
+- `Delivery.LossyLatest` drops a superseded sample rather than queueing it, which is what a READING
+  wants: the newest value is the only one worth having. `Delivery.ReliableOrdered` is the other
+  member, for a stream where every item matters and order is meaningful (an event log, a terminal
+  feed)
+- `keyframeIntervalUt: 30` emits unconditionally every 30 UT seconds whether or not the value
+  changed. It is the baseline that makes a cold start, a quickload and a resubscribe recoverable
+  without waiting for the next real change, and it must be greater than zero
+- `quantum` is the deadband a value must clear before a CHANGE emission fires in between keyframes.
+  `EmissionQuantum.Absolute(0)` means any change at all emits; `Absolute(5)` means five units of the
+  value's own scale; `EmissionQuantum.PercentOfRange(0.01, min, max)` is 1% of a known range, for a
+  value whose useful precision is relative rather than absolute
+- two optional constructor arguments tune the rest: `minSampleIntervalUt` refuses to even look more
+  often than that, and `maxRateIntervalUt` clamps how often a re-tripping deadband may fire. Both
+  default to 0, which disables them
 
 Key points:
 
@@ -150,16 +323,47 @@ Key points:
   silently, with no log line and no degraded mode
 - **Topic and Command names are namespaced by your id** (`example.reactor`), which keeps them from
   colliding with other Uplinks
-- **Flatten your payload before you publish it.** The example above returns a `ReactorStatus` for
-  readability, but what actually reaches the wire has to be a shape the core serializer can write:
-  numbers, strings, booleans, enums, `Dictionary<string, object?>` and arrays, nested however you
-  like. It cannot write a class of your own, and by design it never will be able to, a core
-  serializer may not reference your assembly. So build the dictionary in a small `Wire` class,
-  keyed camelCase to match your generated TS interfaces field for field, and publish that.
-  `GonogoRealAntennasUplink/RaWire.cs` is the pattern to copy; your POCO stays as the typing mirror
-  codegen reflects over. Publish the POCO raw and the mod tells you so: the subscriber gets a
-  `payload-serialization-error` naming your type, the app logs it, and your Uplink is marked
-  Unavailable with the same reason on the `system.uplinks` roster and in KSP.log
+- **Flatten your payload before you publish it.** What reaches the wire has to be a shape the core
+  serializer can write: numbers, strings, booleans, enums, `Dictionary<string, object?>` and arrays,
+  nested however you like. It cannot write a class of your own, and by design it never will be able
+  to, a core serializer may not reference your assembly. Publish the POCO raw and the mod tells you
+  so: the subscriber gets a `payload-serialization-error` naming your type, the app logs it, and your
+  Uplink is marked Unavailable with the same reason on the `system.uplinks` roster and in KSP.log
+
+So your POCO stays as the typing mirror codegen reflects over, and one small class turns it into the
+wire shape. This is the whole of it:
+
+```text
+using System.Collections.Generic;
+using ExampleUplink.Contract;
+
+namespace ExampleUplink
+{
+    /// <summary>The wire shapes for this Uplink's channels.</summary>
+    internal static class ExampleWire
+    {
+        // Keys are camelCase and match the generated TS interface field for
+        // field: `outputPower` here is `outputPower?: Value<"kW">` there. A key
+        // that does not match is a field the client reads as undefined, with
+        // nothing failing, so keep the two in step by eye when you add one.
+        public static Dictionary<string, object?> Reactor(ReactorStatus s) =>
+            new Dictionary<string, object?>
+            {
+                ["online"] = s.Online,
+                ["outputPower"] = s.OutputPower,
+                ["coreTemp"] = s.CoreTemp,
+                ["throughput"] = s.Throughput,
+            };
+    }
+}
+```
+
+Two conventions the serializer expects and the generated types assume. An **enum** goes on the wire
+as its integer ordinal, not its name. A **nested payload** is another `Dictionary<string, object?>`
+under its own key, and a **list** of them is a `List<Dictionary<string, object?>>`; both are exactly
+what the generated interface's nested type and array say they are.
+`GonogoRealAntennasUplink/RaWire.cs` in this repo is the same class with four channels on it, if you
+want a longer worked one.
 
 ### Reading another mod's internals
 
@@ -226,13 +430,35 @@ command args, references `Sitrep.Contract` and nothing else, and is what both yo
 read. Annotate the quantities:
 
 ```csharp
+#if SITREP_CODEGEN
+using Reinforced.Typings.Attributes;
+#endif
 using Sitrep.Contract;
 
 namespace ExampleUplink.Contract
 {
+    // Three attributes, and only one of them is guarded.
+    //
+    // [SitrepContract] marks this as a WIRE type. It lives in Sitrep.Contract
+    // itself, so anything reflecting over it resolves an assembly that is
+    // already loaded.
+    //
+    // [SitrepTopic] names the Topic this payload is the shape of, and is what
+    // EmitTopicMap reflects over.
+    //
+    // [TsInterface] is Reinforced.Typings', and it MUST sit behind the #if:
+    // it is the attribute whose presence in a SHIPPED assembly drags in a
+    // metadata reference to Reinforced.Typings.dll, which is deliberately
+    // never deployed. See step 2. Every contract type in this repo is written
+    // exactly this way.
+    [SitrepContract]
     [SitrepTopic("example.reactor")]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
     public sealed class ReactorStatus
     {
+        // `Units` here is Sitrep.Contract's own catalog, from the using above.
         [SitrepUnit(Units.Flag)]
         public bool Online { get; set; }
 
@@ -243,19 +469,32 @@ namespace ExampleUplink.Contract
         public double CoreTemp { get; set; }
 
         // A token the core catalog has never heard of is FINE: the generated
-        // SitrepUnit union is open. Declare it in your OWN Units class (see
+        // SitrepUnit union is open. Declare it in your OWN catalog class (see
         // "Your own catalog") so a typo still fails, then teach the client
         // what it means.
-        [SitrepUnit("thermalUnits")]
+        [SitrepUnit(ExampleUnits.ThermalUnits)]
         public double Throughput { get; set; }
     }
 
+    // A command's args class is the same shape, plus [SitrepCommand], which is
+    // what fills the generated command map. See "Register your commands".
+    [SitrepContract]
+    [SitrepCommand("example.setOutput")]
+#if SITREP_CODEGEN
+    [TsInterface]
+#endif
     public sealed class SetOutputArgs
     {
+        [SitrepUnit("kW")]
         public double TargetPower { get; set; }
     }
 }
 ```
+
+`[TsInterface]` and the fluent `builder.ExportAsInterfaces(...)` in step 3 configure the same
+blueprint, so strictly you could do without the attribute. Keep it: it is how every slice in this
+repo reads, and it means the type declares its own intent rather than depending on being remembered
+in a list two files away.
 
 **2. Add a codegen-only TWIN of that project.** Reinforced.Typings drives codegen by reading
 `[TsInterface]`/`[TsEnum]` out of an assembly's metadata, so those attributes have to be compiled into
@@ -266,11 +505,12 @@ reference to `Reinforced.Typings.dll` while being deployed without it throws
 repo had that leak.
 
 So `ExampleUplink.Contract.Codegen` recompiles the SAME sources with `SITREP_CODEGEN` defined, which is
-the only configuration in which the RT attributes and your `RtConfig` class exist at all. Nothing
-references the twin and nothing ships it. `mod/CodegenTwin.props` is the shared shape; a twin is five
-lines:
+the only configuration in which the RT attributes and your `Configure` method exist at all. Nothing
+references the twin and nothing ships it. The twin itself is a name, a source directory and one
+reference, over a shared props file:
 
 ```text
+<!-- ExampleUplink.Contract.Codegen/ExampleUplink.Contract.Codegen.csproj -->
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <CodegenTwinSource>..\ExampleUplink.Contract</CodegenTwinSource>
@@ -278,11 +518,66 @@ lines:
     <RootNamespace>ExampleUplink</RootNamespace>
   </PropertyGroup>
   <Import Project="..\CodegenTwin.props" />
+  <!-- The CODEGEN-flavoured core contract, not the shipped DLL: rtcli resolves
+       the core types your slice references, and the RtConfig helpers step 3
+       calls exist only in this build. See "Where the codegen contract comes
+       from" below. -->
+  <ItemGroup>
+    <ProjectReference Include="..\Sitrep.Contract.Codegen\Sitrep.Contract.Codegen.csproj" />
+  </ItemGroup>
 </Project>
 ```
 
 Keeping `AssemblyName` equal to the shipped assembly's name matters: rtcli sees the same assembly
 identity, type names and member order, so the generated TypeScript does not churn.
+
+`CodegenTwin.props` is the half both twins share. It is not published anywhere, so write it yourself,
+once, beside them:
+
+```text
+<!-- CodegenTwin.props -->
+<Project>
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <DefineConstants>$(DefineConstants);SITREP_CODEGEN</DefineConstants>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <!-- A netstandard2.0 library does not copy package assemblies to output by
+         default, which would leave Reinforced.Typings.dll absent beside the very
+         assembly rtcli loads for its attributes. -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- The only route from your `///` prose to the generated TypeScript:
+         Reinforced.Typings reads an XMLDOC file, never the sources. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(CodegenTwinSource)\**\*.cs"
+             Exclude="$(CodegenTwinSource)\bin\**\*.cs;$(CodegenTwinSource)\obj\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- A plain reference on purpose: a twin is codegen-only, so
+         Reinforced.Typings.dll landing in ITS output is exactly what we want. -->
+    <PackageReference Include="Reinforced.Typings" Version="1.6.7" />
+  </ItemGroup>
+</Project>
+```
+
+#### Where the codegen contract comes from
+
+The `Sitrep.Contract.dll` in your KSP install is the SHIPPED build, and step 3's `RtConfig` helpers
+are not in it: they take a `Reinforced.Typings.Fluent.ConfigurationBuilder`, which is precisely the
+reference the shipped assembly may not carry, so the whole class sits behind the same
+`#if SITREP_CODEGEN`. Codegen therefore needs a codegen-flavoured build of the core contract too, and
+you make one the same way you make yours: gonogo is public and MIT, so take `mod/Sitrep.Contract/`
+from `github.com/ksp-gonogo/gonogo` at the tag matching the contract major your Uplink targets, drop
+it beside your projects, and give it a twin whose `CodegenTwinSource` points at it and whose
+`AssemblyName` is `Sitrep.Contract`. Nothing you ship references either copy.
+
+This is the one place the build path is heavier than it should be, and it is heavier because there is
+no published codegen artifact yet, not because vendoring is the design.
 
 **3. Write the `Configure` method rtcli calls.** It lives in the contract project, behind
 `#if SITREP_CODEGEN`. Three calls do the work: export the types as interfaces, retype the annotated
@@ -302,7 +597,15 @@ namespace ExampleUplink.Contract
             builder.Global(g => g
                 .CamelCaseForProperties()
                 .UseModules(true)
-                .AutoOptionalProperties());
+                .AutoOptionalProperties()
+                // What makes rtcli's DocumentationFilePath reach the emitted
+                // declarations at all, and turns the raw XMLDOC into TSDoc.
+                .GenerateDocumentation()
+                .UseVisitor<Sitrep.Contract.RtDocVisitor>());
+
+            // Must precede any registration below: the fluent configuration
+            // runs before the documentation is loaded.
+            Sitrep.Contract.RtDocText.MergeRemarksIntoSummaries(builder);
 
             // Held in a local because ApplyUnitValueTypes re-enters this exact
             // set: only a type registered with rtcli may have its properties
@@ -336,6 +639,21 @@ namespace ExampleUplink.Contract
                     Environment.GetEnvironmentVariable("EXAMPLE_UNITJSON_OUT"),
                     typeof(ExampleRtConfig).Assembly);
             }
+
+            // The write-side map, off your [SitrepCommand] tags. Omit this and
+            // `command-map.ts` is never written, so `client/src/commands.ts`
+            // imports a file that does not exist. `CommandResult` /
+            // `CommandResultOf` are core's and are not in YOUR contract.ts, so
+            // they come from the published package rather than a relative path
+            // that would not resolve out of src/__generated__/.
+            var commandMapOut = Environment.GetEnvironmentVariable("EXAMPLE_COMMANDMAP_OUT");
+            if (!string.IsNullOrEmpty(commandMapOut))
+            {
+                Sitrep.Contract.RtConfig.EmitCommandMap(
+                    commandMapOut!,
+                    typeof(ExampleRtConfig).Assembly,
+                    resultImportFrom: "@ksp-gonogo/sitrep-sdk");
+            }
         }
     }
 }
@@ -354,15 +672,22 @@ OUT="ExampleUplink/client/src/__generated__"
 dotnet build ExampleUplink.Contract.Codegen/ExampleUplink.Contract.Codegen.csproj -v minimal
 mkdir -p "$OUT"
 
+BIN="ExampleUplink.Contract.Codegen/bin/Debug/netstandard2.0"
+
 DOTNET_ROLL_FORWARD=LatestMajor \
   EXAMPLE_TOPICMAP_OUT="$OUT/topic-map.ts" \
   EXAMPLE_UNITMAP_OUT="$OUT/units.ts" \
   EXAMPLE_UNITJSON_OUT="$OUT/units.json" \
+  EXAMPLE_COMMANDMAP_OUT="$OUT/command-map.ts" \
   dotnet "$RT_PKG/tools/net5.0/rtcli.dll" \
-  SourceAssemblies="ExampleUplink.Contract.Codegen/bin/Debug/netstandard2.0/ExampleUplink.Contract.dll" \
+  DocumentationFilePath="$BIN/ExampleUplink.Contract.xml" \
+  SourceAssemblies="$BIN/ExampleUplink.Contract.dll" \
   TargetFile="$OUT/contract.ts" \
   ConfigurationMethod="ExampleUplink.Contract.ExampleRtConfig.Configure"
 ```
+
+`DocumentationFilePath` is what carries your `///` prose onto the generated declarations. Leave it
+out and the emitted TypeScript is field names with no reasoning attached.
 
 Five files land in `src/__generated__/`, and none of them is ever hand-edited:
 
@@ -474,13 +799,14 @@ Every widget and augment your client registers stamps that handle as `owner`. Th
 the handle: the widget picker's mod search tags derive from `owner.id` automatically, so a user searching
 "example" finds your widgets with no per-widget field to remember.
 
-Here is the smallest complete widget, reading the bare boolean Topic:
+Here is the smallest complete widget, reading the bare boolean presence Topic the mod declares and
+publishes in Part 1:
 
 ```tsx
 // client/src/Presence/index.tsx
 import type { ComponentProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
-import { Panel, StatusPill } from "@ksp-gonogo/ui-kit";
+import { Panel, Section, StatusPill } from "@ksp-gonogo/ui-kit";
 // Side-effect import: your Topics have to be typed and registered before a
 // widget reads one, and a widget pulls that itself rather than relying on the
 // entry point's import order.
@@ -495,12 +821,20 @@ function PresenceWidget(_props: ComponentProps<PresenceConfig>) {
   const reading = useTelemetry("example.available");
   const online = reading.state === "observed" && reading.value;
 
+  // The body goes in `sections` and the Panel tag is self-closing. Passing
+  // children instead is the retiring form; see "Giving your widget a body".
   return (
-    <Panel panelTitle="Reactor" compactTitle={["REACTOR", "RTR"]}>
-      <StatusPill $tone={online ? "go" : "warning"}>
-        {online ? "ONLINE" : "NO READING"}
-      </StatusPill>
-    </Panel>
+    <Panel
+      panelTitle="Reactor"
+      compactTitle={["REACTOR", "RTR"]}
+      sections={
+        <Section title="Status">
+          <StatusPill $tone={online ? "go" : "warning"}>
+            {online ? "ONLINE" : "NO READING"}
+          </StatusPill>
+        </Section>
+      }
+    />
   );
 }
 
@@ -815,30 +1149,28 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 for (const id of GENERATED_COMMAND_IDS) {
   registerUplinkCommand(id);
 }
+
+// Something NAMED for `index.ts` to re-export, so the augmentation above
+// survives into `dist/index.d.ts`. See the paragraph below.
+export const UPLINK_COMMAND_IDS = GENERATED_COMMAND_IDS;
 ```
 
 Both halves come off the generated map rather than a list written here, so a command you add to your
-contract later needs no new line. Re-export this module from `client/src/index.ts` (`export {} from
-"./commands"`, not a bare `import`), for the same reason `topics.ts` is re-exported: a bare import is
-elided from the emitted `dist/index.d.ts` and the augmentation never crosses the package boundary.
+contract later needs no new line. **Re-export something NAMED from this module** in
+`client/src/index.ts` (`export { UPLINK_COMMAND_IDS } from "./commands";`), for the same reason
+`topics.ts` is re-exported: a bare `import "./commands"` is elided from the emitted
+`dist/index.d.ts`, so the `declare module` augmentation never crosses the package boundary and every
+consumer resolves your commands to the bare envelope. Export a constant, as above, if the module has
+nothing else to give.
 
-What fills the map is the `[SitrepCommand]` attribute on your args class, in your contract slice:
-
-```csharp
-[SitrepContract]
-[TsInterface]
-[SitrepCommand("example.setOutput")]
-public class SetOutputArgs
-{
-    [SitrepUnit(Units.Kilowatts)]
-    public double TargetPower { get; set; }
-}
-```
-
-One args class can carry several tags where one shape serves several commands. `Payload = typeof(T)`
-names the `T` of a handler's `CommandResult<T>`; leave it off and the command resolves a bare
-`CommandResult`, which is success or nothing more. A command that takes no arguments carries its tag
-on an empty marker class of your own, the way a no-payload DTO already works.
+What fills the map is the `[SitrepCommand]` attribute on your args class, which is the one already on
+`SetOutputArgs` in "Put the wire types in their own project" above. One args class can carry several
+tags where one shape serves several commands. `Payload = typeof(T)` names the `T` a handler answers
+with as `CommandResult<T>` (`CommandResultOf<T>` on the TypeScript side); leave it off and the
+command resolves a bare `CommandResult`, which is success or nothing more. `Result = typeof(T)` is
+the sibling that names the resolved type outright rather than wrapping it, and setting both throws.
+A command that takes no arguments carries its tag on an empty marker class of your own, the way a
+no-payload DTO already works.
 
 A command id you have NOT registered still dispatches: it falls to `useCommand`'s untyped overload,
 where `args` is `unknown` unless you name it. The reply is not: it stays `AnyCommandReply`, the result
@@ -999,15 +1331,25 @@ lives beside the per-widget store it writes. Import that one from ui-kit.
 
 ### Wire the side-effect entry point
 
-`client/src/index.ts` is the entry the app loads. Registration happens as a side effect of import, so keep
-the registration imports as **bare imports** (never let a bundler tree-shake them away):
+`client/src/index.ts` is the entry the app loads, and it has two jobs that want two different forms.
+
+Most registration happens as a side effect of import, so those stay **bare imports** (never let a
+bundler tree-shake them away). The two modules carrying a `declare module` augmentation are the
+exception: a bare import is elided from the emitted `dist/index.d.ts`, so `topics.ts` and
+`commands.ts` are **re-exported by name** instead. Miss that and everything still runs, while every
+consumer resolves your Topics to `unknown` and your commands to the bare envelope.
 
 ```ts
 // client/src/index.ts
 import "./uplink"; // defineUplinkClient(EXAMPLE) runs first
-import "./topics"; // the Topic types and the runtime registrations
+import "./units"; // registerUnit on both seams, before anything renders
 import "./Presence"; // registerComponent(... owner: EXAMPLE)
 import "./Reactor"; // ditto
+
+// Named re-exports, NOT bare imports: these two carry the `declare module`
+// augmentations, and only an export carries one across the package boundary.
+export { UPLINK_COMMAND_IDS } from "./commands";
+export * from "./topics";
 ```
 
 ---
@@ -1163,9 +1505,15 @@ never appear.
 Decentralised by design: you own the repo and you host the bundle. There is no central hub.
 
 - Publish your **mod** through CKAN like any KSP mod
-- Host your **client bundle** yourself (a static host, a release asset, your own server) and ship its URL
-  alongside the mod
-- The app's registry descriptor for your Uplink carries the `bundleUrl` and the `integrity` hash
+- Host your **client bundle** yourself (a static host, a release asset, your own server)
+- **Your MOD declares where it lives.** `UplinkManifest.ClientSource.Url` is the bundle URL and
+  `UplinkManifest.ExpectedClientHash` is the sha256 the bytes must match, both shown in Part 1. They
+  ride the live `system.uplinks` roster on `clientSource` and `expectedClientHash`, and the app builds
+  its loader descriptor from them plus the sidecar manifest it fetches beside the bundle. There is
+  nothing to register anywhere: an Uplink whose mod is installed and declares a `ClientSource` is an
+  Uplink the app will offer to load
+- `ClientSource.DevPath` is an optional local override the loader PREFERS when present: point it at a
+  `http://localhost:PORT` build you are serving while iterating, and leave it null in a release
 
 `gonogo-uplink bundle` builds the file you distribute. It reads an `uplink.json` sitting beside both
 halves (searched up to three levels above the client), which is where the facts about the Uplink as a
@@ -1197,7 +1545,9 @@ what is installed; `?uplinkLoaderIds=a,b` names ids by hand for that case.
 
 The load sequence the app runs for each Uplink:
 
-1. resolve the version to load from the registry descriptor
+1. build the descriptor: for a third-party Uplink that means `clientSource` and `expectedClientHash`
+   off the roster entry, plus the `gonogo-uplink.json` sidecar fetched beside the bundle, which is
+   where the version and every compat number come from
 2. run the compat gate + the mod-hash gate **before fetching any bytes** (import is irreversible, so
    nothing is fetched for an Uplink that will be refused)
 3. ask for **consent** on first load of a given `id@version` (a remembered grant short-circuits next time)
@@ -1223,12 +1573,12 @@ render there is the render the app performs. `gonogo-uplink render` then photogr
 through a real browser. See "Testing your Uplink" below; that is the whole of the fast loop, and it
 needs no game running.
 
-What is NOT built is pointing a running app at a local bundle: a localhost dev-server URL or a local
-directory in place of the published `bundleUrl`, so you could watch a real dashboard update as you
-edit. That is gated behind on-device work and remains a promise this guide is making, not a button that
-exists today. Until it lands, seeing your widget inside a live app means building a bundle with
-`gonogo-uplink bundle` and serving it from a local static host over `https` or `localhost`, which
-verifies the way the real path does, at the cost of a rebuild per edit.
+Pointing a running app at a LOCAL bundle does work: set `ClientSource.DevPath` on your mod's manifest
+to a `http://localhost:PORT` URL and the loader prefers it over `Url`. What is NOT built is making that
+loop fast. For a third-party Uplink the hash your MOD vouches for is the only trust anchor there is,
+so the integrity gate compares the fetched bytes against it and nothing can be loaded past that. Each
+edit therefore costs a `gonogo-uplink bundle`, a `bake-hash`, a mod rebuild and a page reload. It is
+a way to see your widget in a real dashboard, not a way to iterate in one.
 
 (The first-party workflow, importing the client as a workspace package into the app build for an HMR
 loop, is not available to you and is not meant to be: it requires being inside this repo, which is
@@ -1306,9 +1656,11 @@ stream and not about a mock of it.
 
 ```tsx
 // client/src/Reactor/index.test.tsx
-import { render, screen, setupStreamFixture, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { value } from "@ksp-gonogo/sitrep-sdk";
+import { setupStreamFixture, waitFor } from "@ksp-gonogo/sitrep-sdk/testing";
+import { renderWidget } from "@ksp-gonogo/ui-kit/testing";
 import { expect, it } from "vitest";
-import { ReactorWidget } from "./index";
+import "./index";
 
 it("shows the reactor's output once a frame arrives", async () => {
   const fixture = setupStreamFixture({
@@ -1316,16 +1668,18 @@ it("shows the reactor's output once a frame arrives", async () => {
     pinnedUt: 1000, // omit to leave the clock live
   });
 
-  render(
-    <fixture.Provider>
-      <ReactorWidget id="example-reactor" />
-    </fixture.Provider>,
-  );
+  // `renderWidget` takes the REGISTERED ID, not the element, and mounts the
+  // widget in the dashboard's provider stack. `wrapper` goes OUTSIDE that
+  // stack, which is where the app mounts the equivalent.
+  renderWidget("example-reactor", { wrapper: fixture.Provider });
 
   await waitFor(() => expect(fixture.transport.isSubscribed("example.reactor")).toBe(true));
+  // `magnitude` is denominated in the unit the token names: this is 420 kW.
   fixture.emit("example.reactor", { outputPower: { magnitude: 420, unit: "kW" } });
 
-  await waitFor(() => expect(screen.getByText("420")).toBeInTheDocument());
+  // Not `getByText`: a `<Unit>` readout is several elements, never one text
+  // node. See "Testing it" under Showing a quantity.
+  await waitFor(() => expect(document.body).toShowQuantity(value("kW", 420)));
 });
 ```
 
@@ -1350,9 +1704,27 @@ this is a drop-in for the import source.
 
 For a widget rather than a plain component, `renderWidget` from
 `@ksp-gonogo/ui-kit/testing` mounts it inside the same provider stack the dashboard
-puts around one. A widget rendered bare is a widget the app never runs: `Panel`
-reads its stream status off a provider, so with none mounted the status badge never
-appears and a `waitFor` on it returns having proved nothing.
+puts around one, which is what the stream-fixture test above uses. A widget
+rendered bare is a widget the app never runs: `Panel` reads its stream status off a
+provider, so with none mounted the status badge never appears and a `waitFor` on it
+returns having proved nothing.
+
+It takes the REGISTERED ID rather than the element, so the module that calls
+`registerComponent` has to have been imported:
+
+```text
+renderWidget(widgetId: string, options?: {
+  instanceId?: string;   // what the widget sees as its own `id` prop
+  config?: Record<string, unknown>;  // its per-instance config
+  w?: number; h?: number;            // grid units, for a responsive widget
+  onConfigChange?: (config: Record<string, unknown>) => void;
+  wrapper?: (props: { children: ReactNode }) => JSX.Element;
+}): RenderResult
+```
+
+`wrapper` mounts OUTSIDE the dashboard stack, which is where the app mounts the
+equivalent: a stream fixture's `Provider` belongs above the widget host, because
+the host's own hooks read telemetry through it.
 
 Include the accessibility smoke assertion in a widget's test, through the helper
 rather than by hand: `await expectNoA11yViolations(container)` from
@@ -1442,8 +1814,17 @@ children: its content is the panel rather than a section of it.
 ## Showing a quantity, and testing that you did
 
 Every number your Topic declares a unit for arrives as a `Value`: an object
-carrying the magnitude AND the unit, not a bare number. Render it with `<Unit>`
-and name neither:
+carrying the magnitude AND the unit, not a bare number.
+
+**`magnitude` is denominated in the unit the token names, always.** A value whose
+unit is `"kW"` holds kilowatts, so `{ magnitude: 420, unit: "kW" }` is 420 kW and
+`{ magnitude: 420, unit: "W" }` is 420 watts, and the two are the same quantity
+only if one of them is wrong. What the ladder does is separate: it converts to
+the family's base to pick a RUNG, which is why `value("W", 12400)` renders
+"12.4 kW". Get this the wrong way round in a fixture and every number in your
+tests is off by the unit's ratio, while still looking right.
+
+Render one with `<Unit>` and name neither half:
 
 ```tsx
 // client/src/Reactor/Readout.tsx
@@ -1478,17 +1859,23 @@ descriptor, the same document the mod serves on `system.units`.
 
 #### Your own catalog
 
-Declare the tokens you introduce in a public static `Units` class in your
-contract project. Codegen judges your assembly against core's catalog PLUS
-yours, so an undeclared token stops the build instead of reaching the client as
-an opaque symbol with no dimension and no ladder. There is no first-party
-exemption: the rule that applies to the Uplinks shipped in this repo is the one
-that applies to yours.
+Declare the tokens you introduce in a public static class in your contract
+project **whose name ends in `Units`**. Codegen judges your assembly against
+core's catalog PLUS yours, so an undeclared token stops the build instead of
+reaching the client as an opaque symbol with no dimension and no ladder. There
+is no first-party exemption: the rule that applies to the Uplinks shipped in
+this repo is the one that applies to yours.
+
+Name it for your Uplink rather than calling it `Units` outright. A class named
+exactly `Units` in the same namespace as your payloads SHADOWS
+`Sitrep.Contract.Units`, so `[SitrepUnit(Units.Flag)]` on the type next door
+stops resolving the moment you add one, with an error that reads like a missing
+`using`. The catalog scan accepts either name for exactly this reason.
 
 ```csharp
 namespace ExampleUplink.Contract
 {
-    public static class Units
+    public static class ExampleUnits
     {
         public const string ThermalUnits = "thermalUnits";
     }
@@ -1570,8 +1957,10 @@ it("shows the output it was given", () => {
   expect(visibleText()).toContain("12.4 kW");
 
   // Or assert the QUANTITY without pinning how it is spelled. `toShowQuantity`
-  // comes from the `expect.extend` in the setup file above.
-  expect(document.body).toShowQuantity(value("kW", 12400));
+  // comes from the `expect.extend` in the setup file above. 12400 W is what
+  // the kit renders as "12.4 kW": the magnitude is in the unit the token
+  // names, and the ladder picks the rung.
+  expect(document.body).toShowQuantity(value("W", 12400));
 });
 ```
 
@@ -1635,7 +2024,11 @@ week after.
 ## Checklist
 
 - [ ] mod class carries `[SitrepUplink("<id>")]`, implements `ISitrepUplink`, and declares its Topics
-      (`Channels`) and Commands
+      (`Channels`) and Commands, including a `<id>.available` presence channel it publishes itself
+- [ ] the manifest declares `Name`/`Author`/`Repo`, and a `ClientSource.Url` plus
+      `ExpectedClientHash`, which is how the app finds and verifies your bundle
+- [ ] every Topic mapper returns a serializer-writable shape (a `Dictionary<string, object?>`), never
+      a POCO of your own
 - [ ] `Health()` returns a cached verdict, never a live KSP read
 - [ ] the wire types live in their own `.Contract` project, with a `.Contract.Codegen` twin, and the
       SHIPPED contract assembly carries no Reinforced.Typings reference
@@ -1651,7 +2044,8 @@ week after.
 - [ ] every `useTelemetry` read branches on `Reading.state`; no cast past the union, and no judgement
       (a pill, a band, a go/no-go) drawn from `stale`
 - [ ] every delayed command's handle reaches `usePanelDelay` or `<CommandDelay>`
-- [ ] `client/src/index.ts` bare-imports every registration module
+- [ ] `client/src/index.ts` bare-imports every registration module, and RE-EXPORTS `topics.ts` and
+      `commands.ts` by name so their `declare module` augmentations reach `dist/index.d.ts`
 - [ ] the bundle is built external-expecting (react, styled-components, sdk, ui-kit NOT inlined), and
       imports nothing else of gonogo's
 - [ ] `uplink.json` declares the id, name, author and repo, so `gonogo-uplink bundle` can run
@@ -1659,8 +2053,9 @@ week after.
       release so `integrity` is filled
 - [ ] the mod is on CKAN and the client bundle is hosted with its URL + integrity hash
 - [ ] every quantity renders through `<Unit>`; no hand-formatted unit symbols
-- [ ] every unit token you introduce is declared in your own `Units` class, and registered on both
-      seams: dimension and ratio with the SDK, family and rungs with ui-kit
+- [ ] every unit token you introduce is declared in your own `<Name>Units` class (never named plainly
+      `Units`, which shadows core's), and registered on both seams: dimension and ratio with the SDK,
+      family and rungs with ui-kit
 - [ ] `expectNoHandTypedUnits({ dir: "src" })` runs as a test (skip only if the Uplink renders nothing)
 - [ ] the test setup calls `setQuantityLocale("en-GB")`, so a render is reproducible
 - [ ] tests import `@ksp-gonogo/sitrep-sdk/testing` and `@ksp-gonogo/ui-kit/testing`, and nothing in `src/` does

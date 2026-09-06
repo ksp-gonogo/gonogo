@@ -110,21 +110,35 @@ namespace Sitrep.Contract
         }
 
         /// <summary>
-        /// An Uplink's own unit catalog, by convention a public static class
-        /// named <c>Units</c> in the assembly being reflected.
+        /// An Uplink's own unit catalog: a public static class in the assembly
+        /// being reflected whose name is <c>Units</c> or ends in <c>Units</c>
+        /// (<c>Rp1Units</c>, <c>AeroUnits</c>).
         /// </summary>
         /// <remarks>
         /// An Uplink models quantities core has never heard of, so it declares
         /// them alongside its wire types and they are judged the same way core's
         /// are. Absent, the Uplink simply declares no units of its own and only
         /// core's catalog applies.
+        ///
+        /// <para><b>Why the suffix and not the exact name.</b> A catalog named
+        /// exactly <c>Units</c> SHADOWS this assembly's own <see cref="Units"/>
+        /// for any file in the same namespace, so the moment an Uplink adds one
+        /// beside its payloads every existing <c>[SitrepUnit(Units.Flag)]</c> in
+        /// that namespace stops resolving. The in-repo slices work round it by
+        /// putting their payloads in a different namespace and qualifying their
+        /// own as <c>Contract.Units.X</c>, which is a trick nobody would guess
+        /// and which the guide could only document as a trap. Accepting a
+        /// suffixed name lets an author call theirs <c>ExampleUnits</c> and have
+        /// no collision to work round. Widening only ADDS tokens to the
+        /// vocabulary, so nothing that passed the check before can start
+        /// failing.</para>
         /// </remarks>
         private static void AddUplinkCatalog(Assembly target, SortedSet<string> into)
         {
             if (target == typeof(UnitDescriptor).Assembly) return;
             foreach (var type in LoadableTypes(target))
             {
-                if (type.Name == "Units" && type.IsAbstract && type.IsSealed)
+                if (type.Name.EndsWith("Units", StringComparison.Ordinal) && type.IsAbstract && type.IsSealed)
                 {
                     AddStringConstants(type, into);
                 }
