@@ -35,9 +35,11 @@ describe("waveformPath", () => {
   });
 
   it("crosses the centre line, so an amplitude is a PEAK and not a pen width", () => {
-    // The defect this replaces: a filled envelope, thin where the operator was
-    // quiet and fat where they were loud, which reads as a growing stroke
-    // rather than as a wave. A wave goes above the line and then below it.
+    /*
+     * The defect this replaces: a filled envelope, thin where the operator was
+     * quiet and fat where they were loud, which reads as a growing stroke
+     * rather than as a wave. A wave goes above the line and then below it.
+     */
     const ys = vertices(waveformPath(new Array(64).fill(1), 63, 100)).map(
       (v) => v.y,
     );
@@ -53,9 +55,11 @@ describe("waveformPath", () => {
   });
 
   it("holds one period whatever the sample density, so it always reads as a wave", () => {
-    // 128 chunks of history and 50 draw the same number of vertices over the
-    // same distance: the period is the DRAWING's, not the capture rate's, so a
-    // dense ring does not collapse into a solid hatch.
+    /*
+     * 128 chunks of history and 50 draw the same number of vertices over the
+     * same distance: the period is the DRAWING's, not the capture rate's, so a
+     * dense ring does not collapse into a solid hatch.
+     */
     const dense = waveformPath(new Array(129).fill(0.5), 128, 100);
     const sparse = waveformPath(new Array(51).fill(0.5), 50, 100);
     expect(vertices(dense)).toHaveLength(vertices(sparse).length);
@@ -131,9 +135,11 @@ describe("RailCrossing", () => {
     const trace = container.querySelector('[data-role="ribbon"]');
     expect(trace?.getAttribute("fill")).toBe("none");
     expect(trace?.getAttribute("stroke")).toMatch(/^url\(#/);
-    // The box is stretched to the widget's width (preserveAspectRatio="none"),
-    // so a scaled stroke would come out several times thicker across than it is
-    // tall: the pen the operator already objected to, back by another route.
+    /*
+     * The box is stretched to the widget's width (preserveAspectRatio="none"),
+     * so a scaled stroke would come out several times thicker across than it is
+     * tall: the pen the operator already objected to, back by another route.
+     */
     expect(trace?.getAttribute("vector-effect")).toBe("non-scaling-stroke");
   });
 

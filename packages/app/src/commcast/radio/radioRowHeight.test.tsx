@@ -49,9 +49,11 @@ describe("the audio controls share one height", () => {
     const heights = [talk, mute, light].map(
       (el) => getComputedStyle(el).minHeight,
     );
-    // Not merely equal: three controls that all declare NOTHING are equal too
-    // (they compute to `auto` alike), and that is the state this exists to
-    // fail, so the shared floor has to be a real one.
+    /*
+     * Not merely equal: three controls that all declare NOTHING are equal too,
+     * computing to `auto` alike, and that is the state this exists to fail. The
+     * shared floor has to be a real one.
+     */
     expect(heights[0]).not.toBe("auto");
     expect(heights[0]).not.toBe("");
     expect(new Set(heights).size).toBe(1);
