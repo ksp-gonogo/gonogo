@@ -1,7 +1,7 @@
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { crossingBoundaryX, RailCrossing, ribbonPath } from "./RailCrossing";
+import { crossingBoundaryX, RailCrossing, waveformPath } from "./RailCrossing";
 import { DEFAULT_RAIL_TAGS, type RailTags, VOICE_RAIL_TAGS } from "./railTags";
 
 const SCIENCE_HOME: RailTags = {
@@ -16,39 +16,77 @@ const FLY_BY_WIRE: RailTags = {
   delivery: "acked",
 };
 
-describe("ribbonPath", () => {
+/** Every "x.xx,y.yy" vertex of a path, in order. */
+function vertices(d: string): { x: number; y: number }[] {
+  return [...d.matchAll(/(-?\d+\.\d\d),(-?\d+\.\d\d)/g)].map((m) => ({
+    x: Number(m[1]),
+    y: Number(m[2]),
+  }));
+}
+
+const MID_Y = 8;
+
+describe("waveformPath", () => {
   it("puts the newest sample at this end and older ones further out", () => {
     // Newest last in, so 0.9 is `now` and lands at x=0.
-    const d = ribbonPath([0.1, 0.9], 1, 100);
+    const d = waveformPath([0.1, 0.9], 1, 100);
     expect(d.startsWith("M0.00,")).toBe(true);
     expect(d).toContain("100.00,");
   });
 
-  it("draws a closed outline, top out and bottom back", () => {
-    const d = ribbonPath([0.5, 0.5, 0.5], 2, 100);
-    expect(d.endsWith(" Z")).toBe(true);
-    // Three samples, both edges: six vertices.
-    expect(d.match(/\d+\.\d\d,\d+\.\d\d/g)).toHaveLength(6);
+  it("crosses the centre line, so an amplitude is a PEAK and not a pen width", () => {
+    // The defect this replaces: a filled envelope, thin where the operator was
+    // quiet and fat where they were loud, which reads as a growing stroke
+    // rather than as a wave. A wave goes above the line and then below it.
+    const ys = vertices(waveformPath(new Array(64).fill(1), 63, 100)).map(
+      (v) => v.y,
+    );
+    expect(ys.some((y) => y < MID_Y)).toBe(true);
+    expect(ys.some((y) => y > MID_Y)).toBe(true);
+    for (let i = 1; i < ys.length; i++) {
+      expect(Math.sign(ys[i] - MID_Y)).toBe(-Math.sign(ys[i - 1] - MID_Y));
+    }
   });
 
-  it("is symmetric about the mid-line, so amplitude reads either way", () => {
-    const d = ribbonPath([1], 1, 100);
-    expect(d).toContain("0.00,2.50");
-    expect(d).toContain("0.00,13.50");
+  it("is an open trace, not the closed outline of a filled shape", () => {
+    expect(waveformPath([0.5, 0.5, 0.5], 2, 100).endsWith(" Z")).toBe(false);
+  });
+
+  it("holds one period whatever the sample density, so it always reads as a wave", () => {
+    // 128 chunks of history and 50 draw the same number of vertices over the
+    // same distance: the period is the DRAWING's, not the capture rate's, so a
+    // dense ring does not collapse into a solid hatch.
+    const dense = waveformPath(new Array(129).fill(0.5), 128, 100);
+    const sparse = waveformPath(new Array(51).fill(0.5), 50, 100);
+    expect(vertices(dense)).toHaveLength(vertices(sparse).length);
+    expect(vertices(dense).length).toBeGreaterThan(8);
+  });
+
+  it("is symmetric about the mid-line, so the peaks read either way", () => {
+    const d = waveformPath(new Array(64).fill(1), 63, 100);
+    expect(d).toContain(",2.50");
+    expect(d).toContain(",13.50");
   });
 
   it("drops samples that have already arrived rather than piling them up", () => {
-    const wide = ribbonPath([0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 2, 100);
-    // span 2 => ages 0,1,2 are still crossing; the three older ones are home.
-    expect(wide.match(/\d+\.\d\d,\d+\.\d\d/g)).toHaveLength(6);
+    // span 2 => ages 0,1,2 are still crossing; the three older ones are home,
+    // so the trace reaches the boundary and stops rather than folding them in.
+    const wide = vertices(waveformPath([0.5, 0.5, 0.5, 0.5, 0.5, 0.5], 2, 100));
+    expect(wide[wide.length - 1].x).toBe(100);
+  });
+
+  it("draws silence as a flat line on the centre rather than as nothing at all", () => {
+    const flat = vertices(waveformPath(new Array(32).fill(0), 31, 100));
+    expect(flat.length).toBeGreaterThan(1);
+    for (const v of flat) expect(v.y).toBe(MID_Y);
   });
 
   it("is empty with nothing to draw", () => {
-    expect(ribbonPath([], 4, 100)).toBe("");
+    expect(waveformPath([], 4, 100)).toBe("");
   });
 
   it("survives a non-finite sample rather than emitting NaN geometry", () => {
-    const d = ribbonPath([Number.NaN, 0.5], 1, 100);
+    const d = waveformPath([Number.NaN, 0.5], 1, 100);
     expect(d).not.toContain("NaN");
   });
 });
@@ -79,6 +117,24 @@ describe("RailCrossing", () => {
     expect(container.querySelector('[data-role="ribbon"]')).not.toBeNull();
     // The lie the tagging exists to remove: nothing is drawn coming back.
     expect(container.querySelector('[data-role="dot"]')).toBeNull();
+  });
+
+  it("strokes the voice as a trace rather than filling it as a blob", () => {
+    const { container } = render(
+      <RailCrossing
+        tags={VOICE_RAIL_TAGS}
+        amplitudes={[0.2, 0.6, 0.4]}
+        spanSamples={3}
+        label="Your transmission crossing to Odyssey"
+      />,
+    );
+    const trace = container.querySelector('[data-role="ribbon"]');
+    expect(trace?.getAttribute("fill")).toBe("none");
+    expect(trace?.getAttribute("stroke")).toMatch(/^url\(#/);
+    // The box is stretched to the widget's width (preserveAspectRatio="none"),
+    // so a scaled stroke would come out several times thicker across than it is
+    // tall: the pen the operator already objected to, back by another route.
+    expect(trace?.getAttribute("vector-effect")).toBe("non-scaling-stroke");
   });
 
   it("puts the boundary at the far end for a fire-and-forget entry", () => {
@@ -130,16 +186,27 @@ describe("RailCrossing", () => {
   });
 
   it("runs the fade the way the entry does", () => {
+    const samples = [0.5, 0.5, 0.5, 0.5];
     const { container: out } = render(
-      <RailCrossing tags={FLY_BY_WIRE} amplitudes={[0.5]} label="Pitch" />,
+      <RailCrossing tags={FLY_BY_WIRE} amplitudes={samples} label="Pitch" />,
     );
     const { container: inbound } = render(
-      <RailCrossing tags={VOICE_RAIL_TAGS} amplitudes={[0.5]} label="Voice" />,
+      <RailCrossing
+        tags={VOICE_RAIL_TAGS}
+        amplitudes={samples}
+        label="Voice"
+      />,
     );
-    expect(out.querySelector("linearGradient")?.getAttribute("x1")).toBe("0");
-    expect(inbound.querySelector("linearGradient")?.getAttribute("x1")).toBe(
-      "1",
-    );
+    const span = (c: HTMLElement): [number, number] => {
+      const g = c.querySelector("linearGradient");
+      return [Number(g?.getAttribute("x1")), Number(g?.getAttribute("x2"))];
+    };
+    // A command leaves this end clear and dissolves toward the target; what
+    // arrives is clearest where it lands.
+    const [outX1, outX2] = span(out);
+    expect(outX1).toBeLessThan(outX2);
+    const [inX1, inX2] = span(inbound);
+    expect(inX1).toBeGreaterThan(inX2);
   });
 
   it("gives two mounted crossings their own gradient id", () => {

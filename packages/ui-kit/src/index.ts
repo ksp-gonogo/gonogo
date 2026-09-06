@@ -221,7 +221,7 @@ export {
   crossingBoundaryX,
   RailCrossing,
   type RailCrossingProps,
-  ribbonPath,
+  waveformPath,
 } from "./CommandDelay/RailCrossing";
 export {
   DEFAULT_RAIL_TAGS,
