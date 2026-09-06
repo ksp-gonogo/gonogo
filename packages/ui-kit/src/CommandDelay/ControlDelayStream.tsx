@@ -476,8 +476,35 @@ const ControlDelayStream__Svg = styled.svg<{
 }>`
   display: block;
   width: 100%;
+  /* The rail height is the band the Panel reserves for it, not a size the graph
+     chose: the strip is permanent, so a stream that wanted 32 would be asking
+     every widget on the dashboard for another 16px of body forever, or asking
+     the title to move the moment a stream went live, which is the bug the
+     reserved band exists to end. */
   height: ${({ $variant }) =>
-    $variant === "rail" ? "32px" : $variant === "expanded" ? "86px" : "40px"};
+    $variant === "rail"
+      ? "var(--panel-rail-band, var(--space-16, 16px))"
+      : $variant === "expanded"
+        ? "86px"
+        : "40px"};
+
+  /* The viewBox is 30 units tall and stretches (preserveAspectRatio none), so a
+     16px rail scales everything vertically by 0.53 and a 0.8-unit trace lands
+     at 0.43 device px: under one pixel, where a line stops being a line and
+     becomes a grey wash. The strokes are scaled back by 30/16 so the trace is a
+     real pixel wide at the height the band actually gives it. Ratios between
+     them are kept: the divergence line stays the heaviest ink.
+
+     Below about 12px this stops working, the plot band (24 of the 30 units)
+     dropping under 10px, at which point a full 0..1 axis excursion is not
+     distinguishable from a flat line and a stream rail is not honest at all. */
+  ${({ $variant }) =>
+    $variant === "rail"
+      ? `[data-role="commanded"],
+         [data-role="echo"],
+         [data-role="deviation-expected"] { stroke-width: 1.5; }
+         [data-role="deviation-actual"] { stroke-width: 1.88; }`
+      : ""}
 
   /* Expanded (pinned) is a full-bleed, taller graph with NO box: the operator
      rejected the bordered box, the graph spans the full widget width edge to

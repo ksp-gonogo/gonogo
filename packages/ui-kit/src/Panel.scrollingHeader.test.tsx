@@ -17,7 +17,8 @@ describe("Panel sticky header (standard)", () => {
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
     expect(scroller).not.toBeNull();
     expect(scroller.contains(heading)).toBe(true);
-    // First in-flow child (the delay rail renders null with no command in flight).
+    // First in-flow child. The delay rail is NOT in here: its band is the panel
+    // container's own top inset, outside this scroller entirely.
     const header = scroller.querySelector("[data-panel-header]") as HTMLElement;
     expect(scroller.firstElementChild).toBe(header);
   });

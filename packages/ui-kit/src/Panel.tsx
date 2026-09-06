@@ -20,7 +20,6 @@ import styled, { css } from "styled-components";
 import { AugmentSlot, useWidgetSegmentBound } from "./AugmentSlot";
 import { Badge } from "./Badge";
 import { PanelDelayRail } from "./CommandDelay/PanelDelayRail";
-import { PanelRailTargetContext } from "./CommandDelay/PanelRailTarget";
 import { fitBox } from "./fitBox";
 import { type BadgeEntry, usePanelBadgesContext } from "./PanelBadges";
 import { SECTION_FILL_ATTR, SECTION_FULL_ATTR, Section } from "./Section";
@@ -119,11 +118,44 @@ export const PanelContainer = styled.div`
   container-type: inline-size;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md, 4px);
-  /* No uniform content inset here: the inset is Panel.Body's, so that visual
-     content (charts/maps/gauges/plots) can be placed outside the body and
-     reach the chrome, and so a hand-composed panel gets the same result as
-     Panel without having to cancel a container padding. */
-  padding: 0;
+  /* TOP ONLY, and it is the delay rail's band. Every widget reserves the same
+     strip at its own top edge so that a command going in flight draws into
+     room that was already standing there, rather than pushing the title down
+     or borrowing the header's space, which is what the two earlier rails did.
+     The band is the widget's top padding whether or not that widget has a
+     command to show, because a consistent place to look is the point.
+
+     The sides and the bottom stay at ZERO, deliberately: that is what lets
+     visual content (charts/maps/gauges/plots) be placed outside the body and
+     reach the chrome, and what lets a hand-composed panel get the same result
+     as Panel without having to cancel a container padding. A uniform inset
+     here would break every full-bleed widget. The remaining inset is
+     Panel.Body's.
+
+     --space-16 is the ladder's widget-chrome inset, and it clears what the
+     collapsed rail actually has to draw. No design document states a budget for
+     this band (the "7px" and "16px" in the delay-UX docs describe a dot slider
+     and the drag bar respectively, neither of which is this), so the check is:
+
+     - the discrete grazing-glow strip is comfortable: its viewBox is 16 units
+       tall and the blip's centre sits 4 units ABOVE the top edge with radius 9,
+       so only the top ~5 units carry ink at all
+     - the outcome summary ("3 commands failed") is the tallest thing the strip
+       ever renders, at --font-size-xs: 11px normally and 12px on a coarse
+       pointer. At the body line height that is a 16.8px line box on a Steam
+       Deck, which 16px would clip, so the summary takes the flush line box
+       instead (see PanelDelayRail__Summaries). It is single-line chrome text,
+       which is exactly what --line-height-flush is for, and PanelTitle already
+       uses it for the same reason
+     - the stream sparkline would happily take more. Its viewBox is 30 units
+       tall, stretched, so 16px scales it by 0.53 and its 0.8-unit trace lands
+       at 0.43 device px, under one pixel. Rather than tax every widget forever
+       for the one case, the rail variant scales its own stroke widths back up
+       (see ControlDelayStream); below about 12px even that fails, the plot
+       band falling under 10px where a full 0..1 excursion stops being
+       distinguishable from a flat line */
+  --panel-rail-band: var(--space-16, 16px);
+  padding: var(--panel-rail-band) 0 0;
   width: 100%;
   height: 100%;
   display: flex;
@@ -140,10 +172,10 @@ export const PanelContainer = styled.div`
    here keeps all headers readable with no per-widget change. */
 const PanelTitle__Box = styled.h3`
   margin: 0;
-  /* Halved top inset (--space-6, from --space-12) so the sticky header sits
-     close to the panel's true top edge rather than leaving a band of bare
-     header above it. */
-  padding: var(--space-6, 6px) var(--space-16, 16px) var(--space-8, 8px);
+  /* No top inset: PanelHeader__Row carries the header's, so a panel whose
+     header is its first element pays for it once, in the panel, rather than
+     once here and again in the aside beside it. */
+  padding: 0 var(--space-16, 16px) var(--space-8, 8px);
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.15em;
@@ -239,6 +271,18 @@ export const PanelTitle = forwardRef<HTMLHeadingElement, PanelTitleProps>(
 const EMPTY_COMPACT: readonly string[] = [];
 
 const PanelHeader__Row = styled.div<{ $overlay?: boolean }>`
+  /* The row owns the header's TOP inset, which its two boxes used to carry one
+     each. A hand-composed header still needs it, since nothing guarantees it is
+     the first thing in its panel. PanelStickyHeader takes it away again: inside
+     a Panel the header IS guaranteed to be first, under the delay rail's
+     reserved band, and that band is the panel's top padding.
+
+     NOT in the overlay case, where it goes back on the boxes (see
+     OVERLAY_TITLE_ROW_INSET). A floating header's inset is not spacing, it is
+     the reach of the opaque backing that keeps the drawing underneath from
+     reading through the title, and a row-level inset leaves that top strip
+     transparent: OrbitView's frame caption showed through it. */
+  padding-top: ${({ $overlay }) => ($overlay ? "0" : "var(--space-6, 6px)")};
   display: flex;
   /* Centre, not flex-start: the title is single-line and truncates
      rather than wrapping (see PanelTitle's overflow rules below), so its box
@@ -301,6 +345,15 @@ const OVERLAY_BOX = `
   pointer-events: auto;
 `;
 
+/**
+ * The top inset the row carries for every in-flow header, given back to the two
+ * title-row boxes when the header FLOATS. There the inset is not spacing, it is
+ * how far the opaque backing reaches above the glyphs, and a row-level one
+ * leaves that strip transparent for the drawing to read through. Not on the
+ * toolbar, which sits on its own line and never had one.
+ */
+const OVERLAY_TITLE_ROW_INSET = `padding-top: var(--space-6, 6px);`;
+
 const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
   min-width: 0;
   /* Grow into the room the row is not using, as well as shrinking out of the
@@ -311,7 +364,7 @@ const PanelHeader__Titles = styled.div<{ $overlay?: boolean }>`
      visually, the title is left-aligned in a box with no background of its
      own; the aside was already pushed right by the row's space-between. */
   flex: 1 1 auto;
-  ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
+  ${({ $overlay }) => ($overlay ? OVERLAY_BOX + OVERLAY_TITLE_ROW_INSET : "")}
 `;
 
 const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
@@ -325,10 +378,11 @@ const PanelHeader__Aside = styled.div<{ $overlay?: boolean }>`
      yields the space (its min-width 0). */
   justify-content: flex-end;
   flex-shrink: 0;
-  /* PanelTitle owns the left inset and the vertical rhythm; mirror both here
-     so the badges line up with the title rather than the panel edge. */
-  padding: var(--space-6, 6px) var(--space-16, 16px) var(--space-8, 8px);
-  ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
+  /* PanelTitle owns the left inset and the bottom rhythm; mirror both here so
+     the badges line up with the title rather than the panel edge. The top is
+     the row's, shared by both boxes. */
+  padding: 0 var(--space-16, 16px) var(--space-8, 8px);
+  ${({ $overlay }) => ($overlay ? OVERLAY_BOX + OVERLAY_TITLE_ROW_INSET : "")}
 `;
 
 /**
@@ -1791,23 +1845,26 @@ export const PanelFooter = styled.div`
    inset); only the body content below keeps the body's padding. `PanelHeader`
    itself is untouched, this is purely how `PanelRoot` assembles it. */
 const PanelStickyHeader = styled(PanelHeader)`
-  /* Sticks below the delay rail (which publishes its height into
-     --panel-rail-height) while the body scrolls under it, so title + aside stay
-     in view without a scroll-away ghost. It stays TRANSPARENT: the panel glow
-     under it is its backing, so scrolled content reads faintly through/behind it
-     rather than the header being an opaque bar. z-index lifts it over the
-     scrolling content and the overflow glow. */
+  /* Sticks at the top of the body scroller while the body scrolls under it, so
+     title + aside stay in view without a scroll-away ghost. It stays
+     TRANSPARENT: the panel glow under it is its backing, so scrolled content
+     reads faintly through/behind it rather than the header being an opaque bar.
+     z-index lifts it over the scrolling content and the overflow glow.
+
+     It knows nothing about the delay rail any more. The rail's band is the
+     panel container's own top padding, OUTSIDE this scroller, so the header
+     starts below it and stays below it however tall the rail grows: no
+     published height, no offset to track. */
   position: sticky;
-  /* Reach the panel's true top edge. No rail: stick at MINUS the body's top
-     padding, cancelling the inset so the header reaches the true top. Rail
-     present: the rail sits flush at the true top (its wrap cancels the same
-     inset) and publishes its height, so the header sticks exactly at that
-     height, directly under the rail, no extra padding term. */
-  top: var(--panel-rail-height, calc(-1 * var(--space-8, 8px)));
+  /* Reach the scroller's true top edge, cancelling the body's own top inset. */
+  top: calc(-1 * var(--space-8, 8px));
   z-index: 2;
-  /* Cancel the body's inset horizontally so the header spans the full panel
-     width; the negative top keeps the title at the body's own inset and lines
-     the header up with the pulled-up sticky offset. */
+  /* The panel's top inset is the rail band above this scroller, so the header
+     does not carry one of its own here. See PanelHeader__Row, which does carry
+     it for every OTHER placement. */
+  padding-top: 0;
+  /* Cancel the body's inset so the header spans the full panel width and lands
+     at the scroller's true top; only the body content below keeps the inset. */
   margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
   /* The sticky header is transparent, and the scroll glow behind it is a
      uniform lighter tint that affords scrolling without masking. So the ONE header
@@ -1926,13 +1983,6 @@ function PanelRoot({
       : null,
   );
   const summary = useStatusSummary();
-
-  // A ref to the panel's own container element so `PanelDelayRail` can publish
-  // `--panel-rail-height` onto it (an ancestor of both the rail and the ghost)
-  // through `PanelRailTargetContext`, with no DOM query. A ref, not state, so
-  // capturing the container costs no extra render: the rail reads `ref.current`
-  // in its effect, which runs after the container ref is attached.
-  const railTargetRef = useRef<HTMLDivElement>(null);
 
   // With a store in the tree the header renders the winning contribution; with
   // none (a standalone panel in the settings modal or the station connect view,
@@ -2061,6 +2111,10 @@ function PanelRoot({
   if (!hasHeader) {
     return (
       <PanelContainer {...rest}>
+        {/* The same band an unmigrated widget gets as every other one: the
+            delay rail is a property of being a widget, not of having migrated
+            to `panelTitle`. */}
+        <PanelDelayRail />
         {content}
         {/* Same universal seam as the headed path below: an unmigrated widget
             (its own title row inside its children) is still a widget, and an
@@ -2076,8 +2130,8 @@ function PanelRoot({
   // A `floatingHeader` is the one overlay case: it paints over a non-scrolling
   // `bleed` body (a map/globe/plot fills the tile) rather than sticking above
   // scrolling content. Every OTHER header, standard or with a `panelToolbar`, is
-  // ONE sticky header inside the scroller (see `body` below): it sticks at
-  // `top: var(--panel-rail-height)` so title + aside (+ toolbar) stay in view
+  // ONE sticky header inside the scroller (see `body` below): it sticks at the
+  // scroller's own top so title + aside (+ toolbar) stay in view
   // while the body scrolls under it. One mechanism, and no scroll-away ghost.
   const header = floatingHeader ? (
     <PanelHeader
@@ -2098,15 +2152,11 @@ function PanelRoot({
 
   const body = (
     <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
-      {/* The signal-delay rail rides at the true top of the scroller, above the
-          header: in-flight command countdowns sit over the title and the sticky
-          header / ghost rest below its published height. Renders nothing when no
-          command is in flight, so a no-command panel's DOM is unchanged. */}
-      <PanelDelayRail />
-      {/* The sticky header rides INSIDE the scroller, directly under the rail: it
-          sticks at `top: var(--panel-rail-height)` so title + aside (+ toolbar)
-          stay in view while the body scrolls under it. Only a floating (overlay)
-          header lives outside the scroller. */}
+      {/* The sticky header is the scroller's first in-flow child: it sticks at
+          the scroller's top so title + aside (+ toolbar) stay in view while the
+          body scrolls under it. The delay rail is NOT in here, it draws in the
+          container's own top band above this scroller. Only a floating
+          (overlay) header lives outside the scroller. */}
       {!floatingHeader && header}
       {fitToSize ? <PanelFitBody>{content}</PanelFitBody> : content}
       {/* The universal `${componentId}.sections` augment segment: body sections
@@ -2153,25 +2203,27 @@ function PanelRoot({
 
   return (
     <PanelProviders>
-      <PanelRailTargetContext.Provider value={railTargetRef}>
-        <PanelContainer ref={railTargetRef} {...rest}>
-          <PanelGlow>
-            {/* Only a floating (overlay) header sits outside the scroller, as a
-                sibling above it painting over the bleed body. Every other header
-                is a sticky child of the scroller (in `body`), so there is no
-                scroll-away ghost to re-surface. */}
-            {/* Only when there is no sidebar: with one, the header is hosted
-                inside the body track instead (see `floatingBody`). */}
-            {floatingHeader && panelSidebar === undefined && header}
-            {bodyRegion}
-          </PanelGlow>
-          {/* After the glow region, so it sits below the scroller and stays
-              pinned while the body scrolls. */}
-          {panelFooter !== undefined && (
-            <PanelFooter>{panelFooter}</PanelFooter>
-          )}
-        </PanelContainer>
-      </PanelRailTargetContext.Provider>
+      <PanelContainer {...rest}>
+        {/* The signal-delay rail, drawing in the container's own reserved top
+            band and nowhere else. It is the container's first child rather than
+            the scroller's so that the band belongs to the WIDGET: it is above
+            the header, above any bleed body, and outside the box that would
+            clip it. */}
+        <PanelDelayRail />
+        <PanelGlow>
+          {/* Only a floating (overlay) header sits outside the scroller, as a
+              sibling above it painting over the bleed body. Every other header
+              is a sticky child of the scroller (in `body`), so there is no
+              scroll-away ghost to re-surface. */}
+          {/* Only when there is no sidebar: with one, the header is hosted
+              inside the body track instead (see `floatingBody`). */}
+          {floatingHeader && panelSidebar === undefined && header}
+          {bodyRegion}
+        </PanelGlow>
+        {/* After the glow region, so it sits below the scroller and stays
+            pinned while the body scrolls. */}
+        {panelFooter !== undefined && <PanelFooter>{panelFooter}</PanelFooter>}
+      </PanelContainer>
     </PanelProviders>
   );
 }

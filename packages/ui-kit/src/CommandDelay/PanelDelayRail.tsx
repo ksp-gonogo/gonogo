@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import styled, { css } from "styled-components";
 import { CommandDelay } from "./CommandDelay";
 import { CommandFoundList, type RailFound } from "./CommandFoundList";
@@ -13,7 +13,6 @@ import {
   useActiveCrossings,
   useActiveHandles,
 } from "./DelayRailContext";
-import { usePanelRailTarget } from "./PanelRailTarget";
 import { RailCrossing } from "./RailCrossing";
 
 /**
@@ -29,7 +28,7 @@ import { RailCrossing } from "./RailCrossing";
  * delay UX is drawn elsewhere (the Navball's trim command shares
  * `vessel.control.setAxes` with the axes, but has no readback channel to build
  * a strip from) would otherwise mount the rail permanently to draw nothing
- * inside it, an empty 16px band on every delayed link.
+ * inside it, an empty band on every delayed link.
  */
 function handleHasContent(handle: CommandHandle): boolean {
   if (handle.shape === "stream") {
@@ -46,36 +45,41 @@ function handleHasContent(handle: CommandHandle): boolean {
  * renders each handle's delay UI through `CommandDelay`. Takes no prop: it is
  * context-collecting, so a command widget passes nothing.
  *
- * v3/v4 shape: the rail is a single `<button>` sitting flush at the true top
- * edge and spanning the full widget width. Collapsed it is the 16px drag-bar
- * strip (grazing glows for discrete commands, a mini sparkline for a stream);
- * with several commands in flight their summaries overlay in that one band.
+ * **The band is RESERVED, not taken.** `PanelContainer` carries a top-only
+ * inset sized for this rail, on every panel, whether or not that panel has a
+ * command to show; the rail is the container's first child and pulls itself up
+ * into that inset. So a command going up costs the widget nothing: the strip
+ * the rail draws in was already there and stays there when the last command
+ * clears. That is what makes the v3 brief's requirement satisfiable rather than
+ * self-contradictory. Two earlier shapes tried to conjure the space instead,
+ * one by pushing the title down whenever a rail appeared and one by drawing
+ * over the sticky header and taking its clicks, and both were the same mistake:
+ * the space the rail needs is a property of the widget, not of the traffic.
  *
- * **The collapsed rail costs the widget NO layout space.** It is drawn OVER the
- * panel's top edge, out of flow, and publishes no height at all, so a widget
- * that is merely watching a command in flight keeps every row of its body and
- * its title does not move. Activating it (click / Enter / Space, native
- * `<button>`; Esc collapses) PINS it, and pinning GROWS the rail into real
- * layout space: each command switches to its fuller `inline` view (the discrete
- * list, the full-height stream graph with its labels back), the button returns
- * to normal flow, and because the measured height feeds `--panel-rail-height`,
- * the Panel title and body are pushed DOWN. Content sliding is the price of
- * OPENING the rail, and it is only ever charged then.
+ * Collapsed, the rail is that strip in NORMAL FLOW inside the band (grazing
+ * glows for discrete commands, a mini sparkline for a stream); with several
+ * commands in flight their summaries overlay in that one band. It covers
+ * nothing and moves nothing.
+ *
+ * Activating it (click / Enter / Space, native `<button>`; Esc collapses) PINS
+ * it, and pinning GROWS the rail beyond the band: each command switches to its
+ * fuller `expanded` view (the discrete list, the full-height stream graph with
+ * its labels back), and because the rail is the container's first child, every
+ * pixel it grows by pushes the Panel title and body DOWN. Content sliding is
+ * the price of OPENING the rail, and it is only ever charged then.
  * `aria-pressed` / `aria-expanded` carry the state. Activating it AGAIN
  * (click / Enter / Space / Esc) un-pins and re-minifies it: pin is a true
  * toggle, not a one-way expand, and the pinned rail shows a small "▲"
  * hint so that's discoverable, not just present in the aria-label (which
  * carries the word "collapse" for assistive tech; the visible hint stays
- * icon-only). Hover
- * separately grows it as a transient preview (pointer devices only, gone on
- * pointer-leave, a no-op once pinned); an explicit un-pin click wins over a
+ * icon-only). Hover separately grows it as a transient preview, gone on
+ * pointer-leave and a no-op once pinned; an explicit un-pin click wins over a
  * pointer that simply hasn't moved off the rail yet, see
  * `suppressHoverPreview` below.
  *
- * Renders `null` when no active handle has anything to draw, so a widget whose
- * commands are all instant or idle gets no rail element at all and the panel
- * reads the `--panel-rail-height` fallback, which a collapsed rail also leaves
- * standing since it publishes nothing. "Anything to draw" is
+ * Renders the band EMPTY when no active handle has anything to draw, so a
+ * widget whose commands are all instant or idle gets the reserved strip and no
+ * rail chrome inside it. "Anything to draw" is
  * five things, not one: something in flight, something the game refused,
  * something nothing ever answered, something that answered after it was called
  * lost, and something that never left this machine. The last four are terminal
@@ -126,18 +130,23 @@ export function PanelDelayRail() {
     deadCount > 0 ||
     founds.length > 0 ||
     crossings.length > 0;
-  const railRef = useRef<HTMLDivElement>(null);
-  const targetRef = usePanelRailTarget();
   const [pinned, setPinned] = useState(false);
-  // Suppresses the CSS hover-preview immediately after an explicit un-pin
+  /**
+   * The transient hover preview, held in React rather than left to a CSS
+   * `:hover` rule, so that one flag decides both the rail's height and WHICH
+   * view each command draws. Under the old CSS rule the box grew on hover while
+   * its contents stayed the collapsed strip, which is a preview of nothing.
+   */
+  const [previewing, setPreviewing] = useState(false);
+  // Suppresses the hover-preview immediately after an explicit un-pin
   // click made while the pointer is still over the rail, the common case
   // (the pointer is right there because the operator just clicked it). Without
-  // this, `:hover` alone keeps forcing the grown layout, so the click's
+  // this, the hover alone keeps forcing the grown layout, so the click's
   // un-pin is invisible until the pointer happens to leave, reading as "there
   // is no way to collapse it back".
   //
   // Cleared on the pointer's next genuine ENTRY, not its exit: collapsing the
-  // rail out from under a stationary pointer changes the CSS `:hover` match
+  // rail out from under a stationary pointer changes the hover match
   // (browsers re-run hit-testing after layout) WITHOUT dispatching a real
   // `mouseleave` DOM event, real leave/enter events only fire on actual
   // pointer movement, so a leave-triggered clear can be silently skipped when
@@ -145,51 +154,17 @@ export function PanelDelayRail() {
   // `mouseenter`, by contrast, is spec-guaranteed on real re-entry, so it is
   // the reliable place to lift the suppression for the next hover.
   const [suppressHoverPreview, setSuppressHoverPreview] = useState(false);
+  const grown = pinned || (previewing && !suppressHoverPreview);
 
   /*
-   * Re-run when the rail mounts / unmounts (hasContent flip). On mount it
-   * observes the rail FRAME and publishes its height onto the target element; on
-   * unmount it removes the var so the panel falls back to its no-rail offset.
-   * The single ResizeObserver watches ONLY the frame, so a pin GROWING the rail
-   * republishes the taller height (pushing the header + body down) with no
-   * measure-render-measure loop. It is the frame rather than the toggle button
-   * because the refusal boxes are the button's SIBLING (see the render below):
-   * measuring the button alone would leave their height out of the var and let
-   * the panel body render straight through them.
-   *
-   * A COLLAPSED rail measures zero, because the frame's CSS lifts the button out
-   * of flow to draw it over the panel's top edge, and a zero measurement REMOVES
-   * the var rather than publishing `0px`. The two are not the same number: the
-   * panel's fallback is minus the body's own top inset, so a literal zero would
-   * still push the header down by the 8px that fallback exists to cancel. This
-   * is also why the flow switch is left to CSS: the hover preview grows the rail
-   * without React hearing about it, and the observer sees the resulting height
-   * either way.
-   *
-   * hasContent is the mount/unmount TRIGGER, not a value read in the body, which
-   * the exhaustive-deps rule cannot see.
+   * There is no measured height to publish and nothing to observe. The rail is
+   * the panel container's first child, drawing inside the container's own top
+   * band, so growing it pushes the glow, the header and the body down by
+   * ordinary flow. The `--panel-rail-height` variable, the `ResizeObserver`
+   * that fed it and the `PanelRailTarget` context that carried the element it
+   * was written onto were all machinery for a rail living INSIDE the scroller
+   * it had to move, and none of them survive the move out of it.
    */
-  // biome-ignore lint/correctness/useExhaustiveDependencies: hasContent is the rail-mount/unmount trigger, not a body input
-  useEffect(() => {
-    const rail = railRef.current;
-    const target = targetRef?.current;
-    if (!rail || !target || typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver((entries) => {
-      const height = entries[entries.length - 1]?.contentRect.height ?? 0;
-      if (height > 0) {
-        target.style.setProperty("--panel-rail-height", `${height}px`);
-      } else {
-        target.style.removeProperty("--panel-rail-height");
-      }
-    });
-    ro.observe(rail);
-    return () => {
-      ro.disconnect();
-      target.style.removeProperty("--panel-rail-height");
-    };
-  }, [hasContent, targetRef]);
-
-  if (!hasContent) return null;
 
   // Stream(s) on top, discrete underneath (operator's v3 ordering): a stable
   // partition, streams keep their order, discrete keep theirs.
@@ -233,105 +208,115 @@ export function PanelDelayRail() {
     : undefined;
 
   return (
-    /* The pin and hover-suppression state is carried on the FRAME as well as on
-       the button, because the frame is what decides whether the rail is in the
-       panel's flow at all and CSS cannot ask a child. */
-    <PanelDelayRail__Frame
-      data-panel-rail-frame=""
-      data-pinned={pinned}
-      data-suppress-hover={suppressHoverPreview}
-      ref={railRef}
-    >
-      <PanelDelayRail__Rail
-        type="button"
-        data-panel-rail=""
-        data-pinned={pinned}
-        data-suppress-hover={suppressHoverPreview}
-        aria-pressed={pinned}
-        aria-expanded={pinned}
-        aria-label={
-          pinned
-            ? "Signal-delay detail; activate to collapse"
-            : "Signal-delay detail; activate to expand it in place"
-        }
-        onClick={() => {
-          setPinned((p) => {
-            const next = !p;
-            if (!next) setSuppressHoverPreview(true);
-            return next;
-          });
-        }}
-        onMouseEnter={() => setSuppressHoverPreview(false)}
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && pinned) {
-            e.stopPropagation();
-            setPinned(false);
+    /* An EMPTY band carries no state attributes, only the band's own marker.
+       Every widget in the app renders this element whether it commands anything
+       or not, so a state flag on an empty strip would be noise on every widget's
+       DOM and in every snapshot of one, describing a control that is not there. */
+    <PanelDelayRail__Frame data-panel-rail-frame="">
+      {/* Nothing to draw leaves the band standing EMPTY, which is the whole
+          point: the strip is the panel's, not the traffic's, so a widget with
+          no command in flight looks the same as one waiting on an ack. */}
+      {!hasContent ? null : (
+        <PanelDelayRail__Rail
+          type="button"
+          data-panel-rail=""
+          data-grown={grown}
+          data-pinned={pinned}
+          data-suppress-hover={suppressHoverPreview}
+          aria-pressed={pinned}
+          aria-expanded={grown}
+          aria-label={
+            pinned
+              ? "Signal-delay detail; activate to collapse"
+              : "Signal-delay detail; activate to expand it in place"
           }
-        }}
-      >
-        {pinned && (
-          <PanelDelayRail__CollapseHint aria-hidden="true">
-            ▲
-          </PanelDelayRail__CollapseHint>
-        )}
-        {ordered.map((h) => (
-          <CommandDelay
-            key={h.id}
-            handle={h}
-            variant={pinned ? "expanded" : "rail"}
-            ariaLabel={pinned ? "Delay detail" : undefined}
-          />
-        ))}
-        {/* Tagged crossings share the band with the commands, the same way two
+          onClick={() => {
+            setPinned((p) => {
+              const next = !p;
+              if (!next) setSuppressHoverPreview(true);
+              return next;
+            });
+          }}
+          onMouseEnter={() => {
+            setSuppressHoverPreview(false);
+            setPreviewing(true);
+          }}
+          onMouseLeave={() => setPreviewing(false)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape" && pinned) {
+              e.stopPropagation();
+              setPinned(false);
+              /* Same escape hatch as the un-pin click: a pointer resting on
+                 the rail while the operator reaches for Escape would otherwise
+                 hold the preview open and swallow the collapse. */
+              setSuppressHoverPreview(true);
+            }
+          }}
+        >
+          {grown && (
+            <PanelDelayRail__CollapseHint aria-hidden="true">
+              ▲
+            </PanelDelayRail__CollapseHint>
+          )}
+          {ordered.map((h) => (
+            <CommandDelay
+              key={h.id}
+              handle={h}
+              variant={grown ? "expanded" : "rail"}
+              ariaLabel={grown ? "Delay detail" : undefined}
+            />
+          ))}
+          {/* Tagged crossings share the band with the commands, the same way two
             commands do: every rail child sits in the one grid cell collapsed,
             and stacks when the rail grows. */}
-        {crossings.map((c) => (
-          <RailCrossing
-            key={c.id}
-            tags={c.tags}
-            label={c.label}
-            amplitudes={c.amplitudes}
-            spanSamples={c.spanSamples}
-            progress={c.progress}
-            variant={pinned ? "expanded" : "rail"}
-          />
-        ))}
-        {!pinned && (deadCount > 0 || founds.length > 0) && (
-          /* One end-aligned run holding both counts. They are separate
+          {crossings.map((c) => (
+            <RailCrossing
+              key={c.id}
+              tags={c.tags}
+              label={c.label}
+              amplitudes={c.amplitudes}
+              spanSamples={c.spanSamples}
+              progress={c.progress}
+              variant={grown ? "expanded" : "rail"}
+            />
+          ))}
+          {!grown && (deadCount > 0 || founds.length > 0) && (
+            /* One end-aligned run holding both counts. They are separate
              sentences in separate colours, but they share the band's single
              grid cell, so laying them out apart would stack one over the
              other. */
-          <PanelDelayRail__Summaries>
-            {deadCount > 0 && (
-              <PanelDelayRail__FailureSummary role="status">
-                {deadCount === 1
-                  ? "1 command failed"
-                  : `${deadCount} commands failed`}
-              </PanelDelayRail__FailureSummary>
-            )}
-            {founds.length > 0 && (
-              <PanelDelayRail__FoundSummary role="status">
-                {founds.length === 1
-                  ? "1 lost command found"
-                  : `${founds.length} lost commands found`}
-              </PanelDelayRail__FoundSummary>
-            )}
-          </PanelDelayRail__Summaries>
-        )}
-      </PanelDelayRail__Rail>
+            <PanelDelayRail__Summaries>
+              {deadCount > 0 && (
+                <PanelDelayRail__FailureSummary role="status">
+                  {deadCount === 1
+                    ? "1 command failed"
+                    : `${deadCount} commands failed`}
+                </PanelDelayRail__FailureSummary>
+              )}
+              {founds.length > 0 && (
+                <PanelDelayRail__FoundSummary role="status">
+                  {founds.length === 1
+                    ? "1 lost command found"
+                    : `${founds.length} lost commands found`}
+                </PanelDelayRail__FoundSummary>
+              )}
+            </PanelDelayRail__Summaries>
+          )}
+        </PanelDelayRail__Rail>
+      )}
       {/* Underneath BOTH queues, and outside the toggle button rather than
           inside it. A dismiss control is a button, and a button inside a button
           is a nested interactive: axe fails it, and a real keyboard user gets a
           control they cannot reach past the one wrapping it. */}
-      {pinned && refusals.length > 0 && (
+      {grown && refusals.length > 0 && (
         <CommandRefusalList refusals={refusals} onDismiss={dismissRefusal} />
       )}
-      {pinned && losses.length > 0 && (
+      {grown && losses.length > 0 && (
         <CommandLossList losses={losses} onDismiss={dismissLoss} />
       )}
       {/* Under the losses, because it is one of the two ways a loss ends, and
           the one that keeps its warning colour. */}
-      {pinned && undelivered.length > 0 && (
+      {grown && undelivered.length > 0 && (
         <CommandUndeliveredList
           undelivered={undelivered}
           onDismiss={dismissUndelivered}
@@ -340,7 +325,7 @@ export function PanelDelayRail() {
       {/* Last, under the losses, because it is the resolution of one: an
           operator reading down the rail meets the silence and then the answer
           to it. */}
-      {pinned && founds.length > 0 && (
+      {grown && founds.length > 0 && (
         <CommandFoundList founds={founds} onDismiss={dismissFound} />
       )}
     </PanelDelayRail__Frame>
@@ -348,91 +333,44 @@ export function PanelDelayRail() {
 }
 
 /**
- * The measured rail box: the toggle button plus, when expanded, the refusal
- * boxes under it. The FRAME carries the flush-to-the-edges bleed, not the
- * button (it cancels the panel body's own side inset), so both children line up
- * on the same edges rather than each choosing its own.
+ * The rail's box, sitting IN the container's reserved top band: the negative
+ * top margin pulls it up into that inset exactly, so collapsed it fills the
+ * band and adds nothing to the panel's height, and every pixel it grows past
+ * the band pushes the glow, the header and the body down. It holds the toggle
+ * button and, once open, the outcome boxes under it.
  *
- * It is also where the rail's TWO MODES live, which is the whole of the passive
- * rail's cost to a widget:
+ * The band's permanence is the whole design. A rail that claimed space on
+ * arrival pushed every watching widget's content down on a data transition; one
+ * that borrowed the header's space drew over the title and took its clicks.
+ * Neither is needed once the strip is simply always there: the rail moves into
+ * room that was already standing empty, and leaves it standing empty again.
  *
- * - COLLAPSED, the button is absolutely positioned over the panel's top edge and
- *   the frame measures ZERO. A widget only watching a command in flight keeps
- *   every pixel of its body: the band is drawn on top of the panel's first 16px
- *   rather than a row pushed in above the title. That is the fix for the passive
- *   rail costing every widget its first rows the instant anything went in flight
- * - GROWN (pinned, or the hover preview), the button returns to normal flow and
- *   the frame takes its top bleed back, so the measured height republishes and
- *   the title + body slide down. Content moving is what the operator asked for
- *   when they open the rail, and only then
- *
- * Both switches are CSS rather than React state, because the hover preview is
- * CSS: `:hover` matches the frame while the pointer is over its out-of-flow
- * child, so one selector covers pointer preview and pin alike.
+ * With no rail chrome inside it the band reads as the widget's top padding, and
+ * that is what it is.
  */
-const grownFrame = css`
-  /* Cancels the body's own top inset, so the grown rail starts at the panel's
-     true top edge exactly as it did before it learnt to collapse. */
-  margin-top: calc(-1 * var(--space-8, 8px));
-
-  & > [data-panel-rail] {
-    position: relative;
-    z-index: auto;
-  }
-`;
-
 const PanelDelayRail__Frame = styled.div`
-  /* Never let the panel scroller's flex layout shrink this below its content:
-     the grown rail takes its full height and the body scrolls under it. */
+  /* Never let the container's flex column shrink this below its content: the
+     grown rail takes its full height and the body gives up the difference. */
   flex: 0 0 auto;
-  /* The containing block for the collapsed rail's out-of-flow band. */
-  position: relative;
-  margin: 0 calc(-1 * var(--space-16, 16px));
-
-  & > [data-panel-rail] {
-    position: absolute;
-    /* Up over the body's top inset, so the band grazes the panel's true top
-       edge rather than starting a padding's width below it. */
-    top: calc(-1 * var(--space-8, 8px));
-    left: 0;
-    right: 0;
-    /* Over the sticky header (Panel.tsx's z-index 2), which is transparent and
-       sits in the same strip: below it the band would be un-clickable, and the
-       disclosure is the only way a touch operator opens the rail at all. Local
-       sibling ordering inside the panel's own stacking context, so no named z
-       rung. */
-    z-index: 3;
-  }
-
-  &[data-pinned="true"] {
-    ${grownFrame}
-  }
-
-  @media (hover: hover) {
-    &:hover:not([data-suppress-hover="true"]) {
-      ${grownFrame}
-    }
-  }
+  /* Up into the container's own top inset, which is the band. The two numbers
+     are one declaration (PanelContainer's --panel-rail-band), so the strip and
+     the room made for it cannot drift apart. */
+  margin-top: calc(-1 * var(--panel-rail-band, var(--space-16, 16px)));
+  min-height: var(--panel-rail-band, var(--space-16, 16px));
 `;
 
 /**
- * The rail button. Flush to the true top-left-right edges (cancels the body's
- * own top + side inset, so it sits at the very top with no dead band above it
- * and spans the full width; the sticky header's offset accounts for the flush
- * rail, see PanelStickyHeader). A real `<button>` for the pin disclosure, reset
- * to carry no button chrome.
+ * The rail button, filling the reserved band. A real `<button>` for the pin
+ * disclosure, reset to carry no button chrome.
  *
- * Collapsed (the resting state, kept COMPACT): a thin band, all handles OVERLAID
- * (grid, every child in the one cell) so several grazing glows + a mini sparkline
- * share the top edge rather than crowd. The frame holds it OUT OF FLOW there, so
- * the band lies over the panel's first 16px and the title stays exactly where a
- * panel with no rail puts it. GROWN on hover OR pin (click): the band becomes a
- * flex column that stacks each command's fuller view, the frame puts it back in
- * flow, and the republished `--panel-rail-height` pushes the title + body DOWN
- * (the operator is happy for content to slide on expand; growth eats the
- * stream-to-title padding first). Hover is a transient preview on pointer
- * devices; a click PINS it open. Coarse pointers get a taller collapsed strip
- * and rely on the pin (no hover).
+ * Collapsed (the resting state, kept COMPACT): a thin strip in NORMAL FLOW,
+ * capped at the band's own height, all handles OVERLAID (grid, every child in
+ * the one cell) so several grazing glows and a mini sparkline share it rather
+ * than crowd. It covers nothing, and the title sits exactly where the empty
+ * band leaves it. GROWN on hover OR pin (click): the strip becomes a flex
+ * column that stacks each command's fuller view and outgrows the band, pushing
+ * the title + body DOWN by ordinary flow (the operator is happy for content to
+ * slide on expand). Hover is a transient preview; a click PINS it open.
  */
 const grownRail = css`
   display: flex;
@@ -461,9 +399,7 @@ const PanelDelayRail__Rail = styled.button`
      and what both the button and the refusal boxes have to line up inside. */
   margin: 0;
   padding: 0;
-  /* Positioning context for the pinned-only collapse hint below. The FRAME
-     overrides this to absolute while collapsed, which is what keeps a passive
-     rail out of the panel's flow; both values position the hint. */
+  /* Positioning context for the open-only collapse hint below. */
   position: relative;
   background: transparent;
   color: inherit;
@@ -471,25 +407,21 @@ const PanelDelayRail__Rail = styled.button`
   cursor: pointer;
   text-align: inherit;
 
-  /* Collapsed: one 16px band, children stacked in a single grid cell. Height is
-     capped by max-height so pinning can animate it open (auto is not
+  /* Collapsed: the reserved band, children stacked in a single grid cell.
+     Height is capped by max-height so opening can animate (auto is not
      animatable): the element's height follows min(content, max-height), so
      growing the cap grows the rail smoothly and shrinking it collapses it. */
   display: grid;
   height: auto;
-  /* Cap collapsed height so it stays a thin band: a discrete-only rail settles
-     at its 16px grazing-glow height (height:auto), a stream at its 32px mini
-     graph, both under this cap. */
-  max-height: 32px;
+  /* The band, and nothing over it. Both a discrete rail's grazing glows and a
+     stream's mini graph draw at this height, so the strip a widget reserves is
+     the strip the rail fills. */
+  max-height: var(--panel-rail-band, var(--space-16, 16px));
   overflow: hidden;
   transition: max-height var(--duration-slow, 200ms) var(--ease-standard, ease);
 
   & > * {
     grid-area: 1 / 1;
-  }
-
-  @media (pointer: coarse) {
-    max-height: 36px;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -501,20 +433,11 @@ const PanelDelayRail__Rail = styled.button`
     outline-offset: -2px;
   }
 
-  /* Pinned (sticky) grows. */
-  &[data-pinned="true"] {
+  /* Open (pinned or the hover preview) grows past the band. Both arrive as
+     React state now rather than a CSS hover rule, because the published height
+     has to be the grown one only. */
+  &[data-grown="true"] {
     ${grownRail}
-  }
-
-  /* Hover is a transient preview grow on pointer devices only (touch has no
-     hover and relies on the pin). A pinned rail is already grown, so hover is a
-     no-op there. The data-suppress-hover exclusion is the un-pin-while-hovering
-     escape hatch above: an explicit click-to-collapse wins over a pointer that
-     merely never moved. */
-  @media (hover: hover) {
-    &:hover:not([data-suppress-hover="true"]) {
-      ${grownRail}
-    }
   }
 `;
 
@@ -548,6 +471,13 @@ const PanelDelayRail__Summaries = styled.span`
   gap: var(--space-8, 8px);
   padding: 0 var(--space-16, 16px);
   font-size: var(--font-size-xs);
+  /* Flush, not the browser's metrics-based "normal": this is single-line chrome
+     text that never wraps, and it has to fit the reserved band. At the body
+     line height an xs glyph carries a 16.8px line box on a coarse pointer,
+     which is taller than the band itself, so the count would clip on the one
+     device most likely to be showing it. Flush shrinks the box to the font's
+     own metrics and the text centres in the strip. */
+  line-height: var(--line-height-flush, 1);
   font-weight: 700;
   letter-spacing: 0.04em;
   white-space: nowrap;

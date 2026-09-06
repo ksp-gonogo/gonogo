@@ -2,15 +2,13 @@ import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { useRef } from "react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   type CommandHandle,
   createDelayRailStore,
   DelayRailContext,
 } from "./DelayRailContext";
 import { PanelDelayRail } from "./PanelDelayRail";
-import { PanelRailTargetContext } from "./PanelRailTarget";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 
 const IN_FLIGHT: InFlightCommandLike[] = [
@@ -33,79 +31,16 @@ function handle(id: string): CommandHandle {
   };
 }
 
-// A drivable ResizeObserver so a test can supply the rail's measured height:
-// jsdom has no layout, and the package setup installs a no-op stub. This
-// stands in for it, capturing the callback so `drive()` can fire it with a
-// chosen contentRect.
-interface ROEntry {
-  target: Element;
-  contentRect: { width: number; height: number };
-}
-class DrivableResizeObserver {
-  static instances: DrivableResizeObserver[] = [];
-  readonly observed = new Set<Element>();
-  readonly callback: (entries: ROEntry[]) => void;
-  constructor(callback: (entries: ROEntry[]) => void) {
-    this.callback = callback;
-    DrivableResizeObserver.instances.push(this);
-  }
-  observe(el: Element) {
-    this.observed.add(el);
-  }
-  unobserve(el: Element) {
-    this.observed.delete(el);
-  }
-  disconnect() {
-    this.observed.clear();
-  }
-}
-
-function drive(el: Element, height: number) {
-  act(() => {
-    for (const ro of DrivableResizeObserver.instances) {
-      if (ro.observed.has(el)) {
-        ro.callback([{ target: el, contentRect: { width: 300, height } }]);
-      }
-    }
-  });
-}
-
-const realResizeObserver = globalThis.ResizeObserver;
-
-/** A target element (provided via `PanelRailTargetContext`, exactly as `Panel`
- * provides its container) the rail publishes `--panel-rail-height` onto.
- * Captured by ref into state so it is non-null for the rail's effect, the same
- * one-render-late availability the real Panel container has. */
+/** The rail with a store above it, which is all it needs now: the band it draws
+ * in is the panel container's own top inset, so there is no measured height to
+ * publish and no element to publish it onto. */
 function inPanel(rail: JSX.Element, store = createDelayRailStore()) {
-  function Harness() {
-    const targetRef = useRef<HTMLDivElement>(null);
-    return (
-      <div ref={targetRef} data-testid="target">
-        <PanelRailTargetContext.Provider value={targetRef}>
-          <DelayRailContext.Provider value={store}>
-            {rail}
-          </DelayRailContext.Provider>
-        </PanelRailTargetContext.Provider>
-      </div>
-    );
-  }
-  return render(<Harness />);
-}
-
-function targetOf(container: HTMLElement): HTMLElement {
-  return container.querySelector('[data-testid="target"]') as HTMLElement;
+  return render(
+    <DelayRailContext.Provider value={store}>{rail}</DelayRailContext.Provider>,
+  );
 }
 
 describe("PanelDelayRail", () => {
-  beforeEach(() => {
-    DrivableResizeObserver.instances = [];
-    globalThis.ResizeObserver =
-      DrivableResizeObserver as unknown as typeof ResizeObserver;
-  });
-  afterEach(() => {
-    globalThis.ResizeObserver = realResizeObserver;
-  });
-
   it("renders the delay UI for an active handle in context", () => {
     const store = createDelayRailStore();
     store.register(handle("cmd"));
@@ -133,19 +68,12 @@ describe("PanelDelayRail", () => {
     await expectNoA11yViolations(container);
   });
 
-  it("renders nothing and sets no rail element when no handles are active (snapshot-stable for no-command widgets)", () => {
+  it("renders no rail chrome when no handles are active (the band stands empty)", () => {
     const { container } = inPanel(<PanelDelayRail />);
-    // Renders null: no rail element at all, so a no-command widget's Panel DOM
-    // is byte-identical to before this rail existed.
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
     expect(
       container.querySelector('[aria-label="In-flight commands"]'),
     ).toBeNull();
-    // No var published: the panel reads the `var(--panel-rail-height, 0px)`
-    // fallback (effective height 0).
-    expect(
-      targetOf(container).style.getPropertyValue("--panel-rail-height"),
-    ).toBe("");
   });
 
   it("renders nothing for a registered but idle/instant handle (empty inFlight, nothing to draw)", () => {
@@ -161,9 +89,6 @@ describe("PanelDelayRail", () => {
     });
     const { container } = inPanel(<PanelDelayRail />, store);
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
-    expect(
-      targetOf(container).style.getPropertyValue("--panel-rail-height"),
-    ).toBe("");
   });
 
   it("renders nothing for a delayed stream handle with no buffers to draw", () => {
@@ -182,80 +107,53 @@ describe("PanelDelayRail", () => {
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
   });
 
-  it("publishes its measured height into --panel-rail-height on the panel target", () => {
-    const store = createDelayRailStore();
-    store.register(handle("cmd"));
-    const { container } = inPanel(<PanelDelayRail />, store);
-    const rail = container.querySelector(
-      "[data-panel-rail-frame]",
-    ) as HTMLElement;
-    drive(rail, 48);
-    expect(
-      targetOf(container).style.getPropertyValue("--panel-rail-height"),
-    ).toBe("48px");
-  });
-
   /**
-   * The passive rail is a band drawn OVER the panel's top edge, never a row
-   * above it. Every widget on the dashboard would otherwise lose its first
-   * ~16px of body the moment a command went in flight, which is a layout shift
-   * on a data transition and the one thing the rail must not cost a widget that
-   * is only watching.
+   * The band is the widget's, not the traffic's. It stands at its reserved
+   * height whether or not anything is in flight, so a command going up moves
+   * nothing, and the rail never has to borrow the space from a neighbour: both
+   * earlier shapes did one or the other, one pushing every watching widget's
+   * title down on a data transition, the other drawing over the sticky header
+   * and taking the clicks that belonged to it.
+   *
+   * jsdom runs no layout, so the reservation is pinned structurally and through
+   * the two declarations that make it: the rail's box is there with no rail
+   * chrome in it, it is in NORMAL FLOW rather than lifted over anything, and it
+   * pulls up into the container's inset by exactly the band.
    */
-  describe("passive rail costs no layout space", () => {
+  describe("the band is reserved, not taken", () => {
     function railButton(): HTMLButtonElement {
       return screen.getByRole("button", {
         name: /signal-delay detail/i,
       }) as HTMLButtonElement;
     }
 
-    it("lifts the collapsed rail out of flow, so the frame it is measured through has nothing in it", () => {
-      const store = createDelayRailStore();
-      store.register(handle("cmd"));
-      inPanel(<PanelDelayRail />, store);
-      expect(getComputedStyle(railButton()).position).toBe("absolute");
+    it("stands the band up for a widget with nothing in flight at all", () => {
+      const { container } = inPanel(<PanelDelayRail />);
+      // The band, with no rail chrome inside it: an empty strip that reads as
+      // the widget's top padding, which is exactly what it is.
+      expect(container.querySelector("[data-panel-rail-frame]")).not.toBeNull();
+      expect(container.querySelector("[data-panel-rail]")).toBeNull();
     });
 
-    it("puts the rail back in flow once it is pinned, where taking space is what the operator asked for", async () => {
-      const user = userEvent.setup();
+    it("costs the panel nothing collapsed: it pulls up into the container's inset by exactly the band", () => {
+      const { container } = inPanel(<PanelDelayRail />);
+      const frame = container.querySelector(
+        "[data-panel-rail-frame]",
+      ) as HTMLElement;
+      const style = getComputedStyle(frame);
+      // The two halves of "reserved, not taken": the box is the band tall, and
+      // it sits in room the container already made, not room it added.
+      expect(style.minHeight).toContain("--panel-rail-band");
+      expect(style.marginTop).toContain("--panel-rail-band");
+    });
+
+    it("keeps the collapsed rail in normal flow inside that band, covering nothing", () => {
       const store = createDelayRailStore();
       store.register(handle("cmd"));
       inPanel(<PanelDelayRail />, store);
-      await user.click(railButton());
+      // Not `absolute`: an out-of-flow band is one drawn over the sticky
+      // header, which is how it came to swallow the header's clicks.
       expect(getComputedStyle(railButton()).position).toBe("relative");
-    });
-
-    it("publishes NO height while collapsed, so the sticky header keeps the offset it has with no rail at all", () => {
-      const store = createDelayRailStore();
-      store.register(handle("cmd"));
-      const { container } = inPanel(<PanelDelayRail />, store);
-      const frame = container.querySelector(
-        "[data-panel-rail-frame]",
-      ) as HTMLElement;
-      // What an out-of-flow rail measures. Publishing `0px` would not do: the
-      // panel's fallback is the negative body inset, so a literal zero would
-      // still shift the header, by the 8px it cancels.
-      drive(frame, 0);
-      expect(
-        targetOf(container).style.getPropertyValue("--panel-rail-height"),
-      ).toBe("");
-    });
-
-    it("drops the published height again when a grown rail collapses back", () => {
-      const store = createDelayRailStore();
-      store.register(handle("cmd"));
-      const { container } = inPanel(<PanelDelayRail />, store);
-      const frame = container.querySelector(
-        "[data-panel-rail-frame]",
-      ) as HTMLElement;
-      drive(frame, 48);
-      expect(
-        targetOf(container).style.getPropertyValue("--panel-rail-height"),
-      ).toBe("48px");
-      drive(frame, 0);
-      expect(
-        targetOf(container).style.getPropertyValue("--panel-rail-height"),
-      ).toBe("");
     });
   });
 
@@ -874,20 +772,20 @@ describe("PanelDelayRail", () => {
     });
   });
 
-  it("drops --panel-rail-height back to the 0px fallback when the last command completes", () => {
+  it("keeps the band when the last command completes under an open rail, and gives the detail back", async () => {
+    const user = userEvent.setup();
     const store = createDelayRailStore();
     const deregister = store.register(handle("cmd"));
     const { container } = inPanel(<PanelDelayRail />, store);
-    const rail = container.querySelector(
-      "[data-panel-rail-frame]",
-    ) as HTMLElement;
-    drive(rail, 48);
-    const target = targetOf(container);
-    expect(target.style.getPropertyValue("--panel-rail-height")).toBe("48px");
-    // Command completes: the rail unmounts and removes the var, so the panel
-    // falls back to 0px.
+    await user.click(
+      screen.getByRole("button", { name: /signal-delay detail/i }),
+    );
+    expect(container.querySelector('[aria-label*="Launch"]')).not.toBeNull();
+    // Command completes: the rail chrome goes, and with it the height the open
+    // detail was taking, so the panel's content comes back up. The BAND stays,
+    // since it was never the command's to take.
     act(() => deregister());
     expect(container.querySelector("[data-panel-rail]")).toBeNull();
-    expect(target.style.getPropertyValue("--panel-rail-height")).toBe("");
+    expect(container.querySelector("[data-panel-rail-frame]")).not.toBeNull();
   });
 });
