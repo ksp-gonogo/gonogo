@@ -672,6 +672,51 @@ export function withoutReckoning<T>(
 export type UnmodelledReading<T> = Extract<Reading<T>, { reckoning: "none" }>;
 
 /**
+ * The value of an OBSERVED reading, and `undefined` on every other arm.
+ *
+ * The narrowing to write when a value only means anything if it is CURRENT: a
+ * verdict, a band, a status pill, whether a control may be pressed. `pending`,
+ * `unowned` and `absent` have no value to give, and `stale` deliberately gives
+ * nothing either, because the question asked was what is true now and a
+ * last-known figure answers a different one. A widget that wants the last-known
+ * figure branches on the `stale` arm itself and captions it with the age from
+ * {@link observedAt}, which is what that arm carries `asOfUt` for.
+ *
+ * It is exported rather than left to each caller because it was written out by
+ * hand, identically, in thirty-nine copies across eight Uplinks and the
+ * built-in widget library. The reason it was copied instead of imported is that
+ * the SDK never offered it: an Uplink may import this package and `ui-kit` and
+ * nothing else of the app's, so a helper every consumer needs and the SDK
+ * withholds gets duplicated once per consumer.
+ *
+ * **Not the right read on a reckonable topic, where the model is the point.** A
+ * topic the contract declares reckonable answers with a
+ * {@link ReckonableReading}, and its `reckoned` is the whole reason the
+ * declaration exists: taking the observation there draws the last real sample
+ * while a model able to say where the craft IS goes unread. Such a widget
+ * branches on `reckoning` and reads `reckoned.value`. This function answers for
+ * the OBSERVATION on either union and never consults a model, so on a
+ * reckonable topic it is a deliberate choice to ignore one rather than a way of
+ * reaching it.
+ */
+/*
+ * The ReckonableReading overload comes FIRST, for the same load-bearing reason
+ * `withoutReckoning`'s does: `Reading<Pick<T, K>>` accepts a
+ * `ReckonableReading<T, K>` by inference, so declaring the wider one first would
+ * type the OBSERVATION as the projection the model moves, and a caller reading
+ * any other field of the payload it actually holds would fail to compile.
+ */
+export function observedValue<T, K extends keyof T>(
+  reading: ReckonableReading<T, K>,
+): T | undefined;
+export function observedValue<T>(reading: Reading<T>): T | undefined;
+export function observedValue<T>(
+  reading: Reading<T> | ReckonableReading<T, keyof T>,
+): T | undefined {
+  return reading.state === "observed" ? reading.value : undefined;
+}
+
+/**
  * Whether the producer has spoken about this topic at all, whatever it said.
  *
  * The question a PRESENCE GATE asks, and five call sites were asking it by hand

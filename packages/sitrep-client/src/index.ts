@@ -379,8 +379,17 @@ export type {
  * decaying verdict is context-dependent rather than a property of the field, so a
  * shared helper forced one answer on every reader. Each widget branches on the arms
  * and decides for itself. What remains answers questions that have one answer.
+ *
+ * `observedValue` is one of those and not a return of the verdict accessor: it names
+ * an ARM rather than a policy, and a widget that wants the last-known figure still
+ * branches on `stale` itself and captions it.
  */
-export { observedAt, readingFrom, withoutReckoning } from "./reading";
+export {
+  observedAt,
+  observedValue,
+  readingFrom,
+  withoutReckoning,
+} from "./reading";
 export type { ReckonerConflict } from "./reckoners";
 export {
   clearReckoners,

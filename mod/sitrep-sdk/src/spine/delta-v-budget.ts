@@ -11,7 +11,7 @@ import { CORE_UPLINK_CLIENT } from "./uplink-clients";
 // disagree about the same craft in flight:
 //
 //   FuelStatus        `parseStages` for the rows, `dv.summary.totalDv*` for the
-//                     total, `judgeable` for the arm (withholds when stale)
+//                     total, the observed arm only (withholds when stale)
 //   ManeuverPlanner   `useProcessor(DELTA_V_BUDGET)` (this processor), which
 //                     SUMS `dv.stages` client-side for the total, spells an
 //                     absent per-stage field `0`, and also withholds when stale

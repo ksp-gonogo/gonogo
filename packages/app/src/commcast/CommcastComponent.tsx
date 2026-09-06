@@ -1,8 +1,11 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
-import type { Reading } from "@ksp-gonogo/sitrep-client";
-import type { CommsDelay, CommsLink } from "@ksp-gonogo/sitrep-sdk";
-import { signalDelayPresentation, value } from "@ksp-gonogo/sitrep-sdk";
+import type { CommsLink } from "@ksp-gonogo/sitrep-sdk";
+import {
+  observedValue,
+  signalDelayPresentation,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
   ArrowLeftIcon,
@@ -63,17 +66,6 @@ import type { CommsRecipient, OutboundMessage, RecipientId } from "./types";
 import { type CommcastEntry, useCommcastFeed } from "./useCommcastFeed";
 
 /**
- * The value a VERDICT may be drawn from: current, or modelled forward to the
- * frame. A stale reading gives nothing, because the separation a message
- * freezes at send has to be the separation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
-/**
  * Which of the widget's three screens the operator is on.
  *
  * An INBOX and the conversations inside it, rather than one transcript with a
@@ -108,10 +100,15 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    * its distance to every receiver. Addressing makes the published pair matrix
    * the primary source and leaves this standing in for the one pair
    * `comms.delay` actually measures, until the matrix covers it.
+   *
+   * The OBSERVED value only: the separation a message freezes at send has to be
+   * the separation now, so a stale reading gives nothing and the pair matrix or
+   * the null answer stands in instead. `comms.delay` carries no forward model
+   * either, so there is nothing else the read could have taken.
    */
   const pathHome =
-    judgeable<CommsDelay>(useTelemetry("comms.delay"))?.oneWaySeconds
-      ?.magnitude ?? null;
+    observedValue(useTelemetry("comms.delay"))?.oneWaySeconds?.magnitude ??
+    null;
   /*
    * A CONFIRMED loss of line of sight, and only that. `undefined` is "no link
    * data yet" and reads as connected, the same rule the terminal widget applies

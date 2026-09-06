@@ -1,5 +1,5 @@
 import {
-  type Reading,
+  observedValue,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
@@ -22,17 +22,6 @@ import type { DataSource, DataSourceStatus } from "../types";
 import { useTelemetry } from "./useTelemetry";
 
 // Minimal in-memory legacy DataSource: same shape as useTelemetry.legacy-datasource.test.ts.
-/**
- * The value a VERDICT may be drawn from: current, or modelled forward to the frame.
- * A stale reading gives nothing, because a judgement cannot be dated: the operator
- * reads a band or a pill as the situation NOW.
- */
-function judgeable<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
-
 function makeSource(id = "data") {
   const dataListeners = new Map<string, Set<(v: unknown) => void>>();
   const statusListeners = new Set<(s: DataSourceStatus) => void>();
@@ -88,9 +77,9 @@ describe("useTelemetry: canonical TopicId read", () => {
     const client = new TelemetryClient(transport);
 
     function Orbit() {
-      const orbit = judgeable(useTelemetry("vessel.orbit"));
+      const orbit = observedValue(useTelemetry("vessel.orbit"));
       // Compile-time proof: the canonical overload resolves to a `Reading` of the
-      // Topic's payload, and `judgeable` narrows it back to the payload. A wrong
+      // Topic's payload, and `observedValue` narrows it back to the payload. A wrong
       // payload type here would fail `typecheck`.
       // `.magnitude`: `sma` is a declared length, so the decode hands the
       // widget a `Value`. The probe prints the number to keep the assertion

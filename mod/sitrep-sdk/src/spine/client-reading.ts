@@ -38,7 +38,12 @@ export type {
   TopicModel,
   UnmodelledReading,
 } from "../reading";
-export { hasAnswered, observedAt, withoutReckoning } from "../reading";
+export {
+  hasAnswered,
+  observedAt,
+  observedValue,
+  withoutReckoning,
+} from "../reading";
 
 import type { TimelinePoint } from "./client-timeline";
 import type { StreamStatusValue } from "./stream-status";

@@ -4,6 +4,7 @@ import type {
   ReckoningDecline,
   UnmodelledReading,
 } from "./reading";
+import { observedValue } from "./reading";
 import type { Value } from "./unit-system/value";
 
 /**
@@ -267,3 +268,41 @@ export const aReadingIsNotReckonable: ReckonableReading<
   Flightish,
   "altitudeAsl"
 > = plainFlight;
+
+/*
+ * `observedValue` answers with the OBSERVATION on either union, and on the
+ * reckonable one that means the whole payload rather than the projection.
+ *
+ * This is the assertion the overload ORDER exists for. `Reading<Pick<T, K>>`
+ * accepts a `ReckonableReading<T, K>` by inference, so with the wider overload
+ * declared first the observation would come back typed as the fields the model
+ * moves, and `situation` (which no model moves, and which the observation
+ * plainly carries) would stop compiling. Reading it here is what would fail.
+ */
+export function theObservationIsThePayloadNotTheProjection(
+  r: ReckonableReading<Flightish, "altitudeAsl">,
+): string | undefined {
+  return observedValue(r)?.situation;
+}
+
+/*
+ * And on a plain reading it is the payload, so a widget keeps every field it
+ * had before the helper existed.
+ */
+export function theObservationOfAPlainReading(
+  r: Reading<Flightish>,
+): string | undefined {
+  return observedValue(r)?.situation;
+}
+
+/*
+ * It is not a way to reach a model. The return is the observation and nothing
+ * else, so a caller who wants the modelled figure still writes the reckoning
+ * branch that {@link Reading} exists to force.
+ */
+export function theObservationIsNotAModel(
+  r: ReckonableReading<Flightish, "altitudeAsl">,
+) {
+  // @ts-expect-error the observation is a payload, it carries no reckoning.
+  return observedValue(r)?.reckoned;
+}

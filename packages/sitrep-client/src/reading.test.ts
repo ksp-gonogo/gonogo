@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   hasAnswered,
   observedAt,
+  observedValue,
   type Reading,
   type ReckonerFor,
   readingFrom,
@@ -268,6 +269,64 @@ describe("withoutReckoning", () => {
       // reading must not pay a new identity for it.
       expect(withoutReckoning(reading)).toBe(reading);
     }
+  });
+});
+
+describe("observedValue", () => {
+  it("answers with the value of an observed reading", () => {
+    expect(observedValue(readingFrom(point(10, 5), "live", VIEW_UT))).toBe(5);
+  });
+
+  /**
+   * The OBSERVATION, never the model, on the arm where both are present. A
+   * caller who wants the modelled figure writes the reckoning branch; this
+   * helper existing is not a second way to reach one.
+   */
+  it("answers with the observation even where a model is on offer", () => {
+    const reading = readingFrom(point(10, 5), "live", VIEW_UT, alwaysReckons);
+    expect(reading.reckoning).toBe("available");
+    expect(observedValue(reading)).toBe(5);
+  });
+
+  /**
+   * Stale gives NOTHING, which is the whole judgement in the helper and the one
+   * a caller has to agree with before using it. The last real observation is
+   * still on the arm for a widget that wants it; what this says is that the
+   * widget asking must say so by branching, rather than getting a decayed
+   * figure back from a call that reads like a plain value access.
+   */
+  it("withholds a stale value, model or no model", () => {
+    for (const reading of [
+      readingFrom(point(10, 5), "held-stale", VIEW_UT),
+      readingFrom(point(10, 5), "held-stale", VIEW_UT, alwaysReckons),
+      readingFrom(point(10, 5), "disconnected", VIEW_UT),
+    ]) {
+      expect(observedValue(reading)).toBeUndefined();
+    }
+  });
+
+  it("has nothing to give on the arms that carry no value", () => {
+    expect(
+      observedValue(readingFrom(undefined, "resyncing", VIEW_UT)),
+    ).toBeUndefined();
+    expect(
+      observedValue(
+        readingFrom(undefined, "resyncing", VIEW_UT, undefined, true),
+      ),
+    ).toBeUndefined();
+    expect(
+      observedValue(readingFrom(point(10, null), "absent", VIEW_UT)),
+    ).toBeUndefined();
+  });
+
+  /**
+   * A falsy payload is a VALUE, and this is the trap the helper is worth
+   * having for: `observedValue(r) ?? fallback` is right and
+   * `observedValue(r) || fallback` is wrong, so the helper has to be able to
+   * hand back a `0` for the difference to matter.
+   */
+  it("hands back a falsy observation rather than swallowing it", () => {
+    expect(observedValue(readingFrom(point(10, 0), "live", VIEW_UT))).toBe(0);
   });
 });
 

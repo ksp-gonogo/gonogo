@@ -61,20 +61,23 @@ function trackedSourceFiles(): string[] {
  * A read whose result is passed on as a bare identifier rather than having a field
  * taken off it, and which never goes through one of the reading accessors.
  *
- * The accessors are the sanctioned narrowings (`judgeable`, `stillTrue`, `dateable`,
- * `withoutReckoning`, `readingAge`, `notCurrent`, `hasAnswered`), plus an explicit
- * branch on either discriminant, `.state` or `.reckoning`, which is what a widget
- * with its own rule writes.
+ * The accessors are the sanctioned narrowings (`observedValue`, `stillTrue`,
+ * `dateable`, `withoutReckoning`, `readingAge`, `notCurrent`, `hasAnswered`), plus an
+ * explicit branch on either discriminant, `.state` or `.reckoning`, which is what a
+ * widget with its own rule writes.
  *
- * `hasAnswered` is the odd one out and worth a line: the others are per-site local
- * helpers matched by name, while it is exported from the SDK and shared. It answers
- * the presence-gate question ("has the producer spoken at all"), which the other
- * three do not, and it is shared precisely because five sites were answering it by
- * hand as `state !== "pending"` and every one of them read the `unowned` arm as the
- * producer having answered.
+ * `observedValue` and `hasAnswered` are the two exported from the SDK; the rest are
+ * per-site local helpers matched by name. Both were shared for the same reason, which
+ * is the reason this list should be read as a live judgement rather than a fixed set:
+ * a narrowing written out by hand at many sites is a MISSING EXPORT, and it stays
+ * copied for as long as the SDK withholds it. `hasAnswered` answers the presence-gate
+ * question ("has the producer spoken at all") that five sites were answering by hand
+ * as `state !== "pending"`, each reading the `unowned` arm as the producer having
+ * answered. `observedValue` answers "the value, only while it is current", and stood
+ * copy-pasted in thirty-nine identical definitions before it was exported.
  */
 const ACCESSORS =
-  /judgeable|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered/;
+  /observedValue|stillTrue|dateable|withoutReckoning|readingAge|notCurrent|hasAnswered/;
 
 /**
  * The one sanctioned exception, with its reason.
@@ -236,7 +239,8 @@ describe("styleguide: a Reading is never handed on whole", () => {
             `\`unknown\` or takes a cast, it will accept the Reading, fail its own ` +
             `shape checks, and the widget will render as though the vessel reported ` +
             `nothing. That is invisible to \`tsc\`:\n${detail}\n\n` +
-            `Narrow it at the read: \`judgeable\` for a verdict, \`stillTrue\` for a ` +
+            `Narrow it at the read: \`observedValue\` for a value that only ` +
+            `counts while it is current, \`stillTrue\` for a ` +
             `standing fact, \`dateable\` for a value you can caption with its age, ` +
             `\`hasAnswered\` for a presence gate.`,
     ).toEqual([]);
