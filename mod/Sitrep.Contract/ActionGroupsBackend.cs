@@ -2,6 +2,22 @@ using System.Collections.Generic;
 
 namespace Sitrep.Contract
 {
+    /// <summary>The exclusive capability id every action-groups backend competes for.</summary>
+    /// <remarks>
+    /// An id both halves must spell identically belongs where both halves can
+    /// reach it. This one used to be declared beside the election in the
+    /// unpublished <c>Sitrep.Host</c>, so the AGX uplink re-declared
+    /// <c>"actionGroups"</c> as a constant of its own and a test pinned the two
+    /// equal: a test that pins two constants together is a test that exists
+    /// because there should only have been one. <see cref="CrewStandingCapability"/>
+    /// is the shape this now follows.
+    /// </remarks>
+    public static class ActionGroupsCapability
+    {
+        /// <summary>The capability id. One declaration, reachable from an Uplink.</summary>
+        public const string Id = "actionGroups";
+    }
+
     /// <summary>
     /// The action-groups capability seam: the exact shape
     /// <see cref="ICommsBackend"/> established for comms, and

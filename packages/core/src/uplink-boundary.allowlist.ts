@@ -1473,9 +1473,13 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * `comm-signal.hop-rates`. The widget only ever knew the slot id, so the
        * prose now names the comms capability instead and both ratcheted off.
        */
-      // AGX's own election/reflection tests cite CommsElectionTests /
-      // RaReflection as the pattern they mirror: doc-mention only.
-      "mod/GonogoActionGroupsExtendedUplink.Tests/ActionGroupsExtendedElectionTests.cs",
+      /*
+       * The AGX election tests were here too, citing CommsElectionTests as the
+       * pattern they mirror. They were rewritten to reach nothing outside
+       * Sitrep.Contract and no longer cite it, so the entry ratcheted off.
+       */
+      // AGX's reflection test cites RaReflection as the pattern it mirrors:
+      // doc-mention only.
       "mod/GonogoActionGroupsExtendedUplink.Tests/AgxReflectionTests.cs",
     ],
   },
@@ -1513,12 +1517,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       /*
        * The mod-side Uplink isolation ratchet. Its shrink-only debt lists are
        * keyed by project name, and since 2026-08-30 they cover the
-       * <Uplink>.Tests projects too, ten of which reach a private assembly.
-       * A debt list has to name its subjects, so this is a ratchet-inventory
-       * file and the entry goes when that Uplink's debt does. Nothing else in
-       * the file names a mod: both directory walks are checked against the
-       * project list in Gonogo.sln rather than a hardcoded one, precisely so
-       * these stay the only ones.
+       * <Uplink>.Tests projects too. This Uplink's debt entry is GONE, so what
+       * is left is the note recording how it was paid off: that is why the file
+       * dropped out of SURVIVES_COMMENT_STRIP below, it no longer carries the
+       * project name as data. Nothing else in the file names a mod: both
+       * directory walks are checked against the project list in Gonogo.sln
+       * rather than a hardcoded one, precisely so these stay the only ones.
        */
       "mod/Sitrep.Core.Tests/UplinkIsolationTests.cs",
       /*
@@ -2746,7 +2750,7 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     "packages/core/src/truenow-allowlist.test.ts",
     "packages/core/src/uplink-isolation.allowlist.ts",
   ],
-  agx: ["mod/Sitrep.Core.Tests/UplinkIsolationTests.cs"],
+  agx: [],
   avionics: [
     // The isolation ratchet's forbidden-package list, which keeps this
     // Uplink's package name after its departure on 2026-09-06: that rule may

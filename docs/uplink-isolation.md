@@ -374,9 +374,12 @@ yet, and assembly-scan discovery fixes no order.
 Two things fell out of doing this:
 
 - **Keep the capability id in the contract.** `ActionGroupsElection.CapabilityId`
-  lives in the unpublished `Sitrep.Host`, so the AGX uplink has to re-declare
-  `"actionGroups"` as its own constant and a test pins the two equal. An id both
-  halves must spell identically belongs where both halves can reach it
+  lived in the unpublished `Sitrep.Host`, so the AGX uplink re-declared
+  `"actionGroups"` as its own constant and a test pinned the two equal. An id both
+  halves must spell identically belongs where both halves can reach it, so it is
+  `Sitrep.Contract`'s `ActionGroupsCapability.Id` now and the host constant is an
+  alias of it. `CrewStandingCapability.Id` and `PropagationCapability.Id` are the
+  same shape
 - **A capability resolves only after every Uplink has registered.** That ordering
   is what lets an Uplink register a provider at all, so nothing can resolve one
   during its own `Register`. Capture the Kernel there and resolve per use, the way
@@ -494,9 +497,9 @@ internal sealed class RecordingUplinkHost : IUplinkHost
 }
 ```
 
-`GonogoPrincipiaUplink.Tests` and `GonogoTestFlightUplink.Tests` reach nothing
-private and are the shape to copy. The other ten are the ones carrying debt, not
-the ones to imitate.
+`GonogoPrincipiaUplink.Tests`, `GonogoTestFlightUplink.Tests` and
+`GonogoActionGroupsExtendedUplink.Tests` reach nothing private and are the shape
+to copy. The remaining nine are the ones carrying debt, not the ones to imitate.
 
 Two other habits keep a Tests project clean, and both come from those two:
 
@@ -580,7 +583,7 @@ whoever forks it inherits tests they cannot run.
 
 Seeded from measurement on 2026-08-30, shrink-only like the others:
 
-- **All ten reach `Sitrep.Contract.TestSupport`**, which is `IsPackable=false` and
+- **All ten reached `Sitrep.Contract.TestSupport`**, which is `IsPackable=false` and
   `net10.0`-only, so there is no build of it an outside author could reference
   even if they had it. Six of the ten reach nothing else, and clear the day that
   project is publishable. A NEW Tests project does not join this list and cannot:
@@ -588,12 +591,30 @@ Seeded from measurement on 2026-08-30, shrink-only like the others:
 - **`GonogoKerbalismUplink.Tests` and `GonogoRealAntennasUplink.Tests`** also
   reach `Sitrep.Core`, for `EnvelopeCodec`, to assert what an extension puts on
   the wire
-- **`GonogoActionGroupsExtendedUplink.Tests`, `GonogoKosUplink.Tests` and
-  `GonogoRp1Uplink.Tests`** also reach `Sitrep.Host`, and `Sitrep.Core`,
-  `Sitrep.Transport` and `Sitrep.Propagation` behind it, none of which their
-  csprojs name. Those are the transitive case, and the widest breaches
+- **`GonogoKosUplink.Tests` and `GonogoRp1Uplink.Tests`** also reach
+  `Sitrep.Host`, and `Sitrep.Core`, `Sitrep.Transport` and `Sitrep.Propagation`
+  behind it, none of which their csprojs name. Those are the transitive case, and
+  the widest breaches
 - **`GonogoPrincipiaUplink.Tests` and `GonogoTestFlightUplink.Tests`** are clean,
-  which is the proof the other ten owe
+  which is the proof the rest owe
+
+**`GonogoActionGroupsExtendedUplink.Tests` was the widest of the ten and is now
+clean**, which is worth writing down because none of the three fixes was the one
+the list above makes it look like:
+
+- the capability id moved to `Sitrep.Contract`, so the id has ONE declaration
+  rather than two spellings a test pins equal
+- the cases needing `ChannelEngine` turned out to be asserting CORE's two-pass
+  discovery ordering, through a hand-written double of the Uplink rather than the
+  Uplink itself. Nothing about them was AGX's, so they moved to
+  `Sitrep.Host.Tests/ActionGroupsElectionTests.cs`, where the engine may be named
+- the probe host became `RecordingUplinkHost.cs` in the Tests project, which is
+  what "Testing a NEW Uplink" above tells a new Uplink to write anyway
+
+Only the first was a contract change. The other two were a test asserting
+somebody else's behaviour from the one place that may not name it, and a shared
+helper reached for out of habit: look for both before concluding an entry here
+needs `Sitrep.Contract.TestSupport` to ship.
 
 There is no packaging equivalent for a `.Tests` project and there should not be:
 a test assembly's `bin/` is never installed into `GameData`, so there is no

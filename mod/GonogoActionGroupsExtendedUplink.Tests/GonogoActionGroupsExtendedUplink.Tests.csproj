@@ -31,18 +31,23 @@
     <Compile Include="..\GonogoActionGroupsExtendedUplink\ActionGroupsExtendedUplink.cs" />
   </ItemGroup>
 
+  <!--
+    Sitrep.Contract, and nothing else of this repo's: the same one-line compile
+    surface the Uplink itself has, which is what makes this suite travel with the
+    Uplink instead of being left behind by it.
+
+    It used to reference Sitrep.Host (for ChannelEngine/UplinkDiscovery and the
+    ActionGroups election helper) and Sitrep.Contract.TestSupport (for
+    StarvationProbeHost), dragging Sitrep.Core, Sitrep.Transport and
+    Sitrep.Propagation along transitively without naming any of them. All three
+    needs are gone rather than excused: the capability id moved to
+    Sitrep.Contract (ActionGroupsCapability), the engine-ordering cases moved to
+    Sitrep.Host.Tests where the engine may be named, and the host double is
+    RecordingUplinkHost.cs here, per docs/uplink-isolation.md "Testing a NEW
+    Uplink".
+  -->
   <ItemGroup>
     <ProjectReference Include="..\Sitrep.Contract\Sitrep.Contract.csproj" />
-    <!-- ChannelEngine/UplinkDiscovery (the election-adversarial-ordering
-         tests) and the ActionGroups seam (Sitrep.Host.ActionGroups) both
-         live in Sitrep.Host, which is itself KSP-free, same reference
-         Sitrep.Host.Tests takes on itself. -->
-    <ProjectReference Include="..\Sitrep.Host\Sitrep.Host.csproj" />
-    <!-- Sitrep.Contract.TestSupport: StarvationProbeHost, the host an Uplink can
-         be registered into and TICKED, so ActionGroupsStarvationTests can ask
-         what the exclusive capability answers under named subscriptions rather
-         than what was registered. -->
-    <ProjectReference Include="..\Sitrep.Contract.TestSupport\Sitrep.Contract.TestSupport.csproj" />
   </ItemGroup>
 
 </Project>

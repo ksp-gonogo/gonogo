@@ -462,11 +462,12 @@ namespace Sitrep.Contract
     /// </summary>
     /// <remarks>
     /// An id both halves must spell identically belongs where both halves can
-    /// reach it. <c>ActionGroupsElection.CapabilityId</c> is the counter-example:
-    /// it lives in the unpublished <c>Sitrep.Host</c>, so the AGX uplink has to
-    /// re-declare <c>"actionGroups"</c> as a constant of its own and a test pins
+    /// reach it. <c>ActionGroupsElection.CapabilityId</c> was the counter-example:
+    /// it lived in the unpublished <c>Sitrep.Host</c>, so the AGX uplink had to
+    /// re-declare <c>"actionGroups"</c> as a constant of its own and a test pinned
     /// the two equal. A test that pins two constants together is a test that
-    /// exists because there should only have been one.
+    /// exists because there should only have been one, and that one now lives in
+    /// <see cref="ActionGroupsCapability"/> beside this.
     /// </remarks>
     public static class CrewStandingCapability
     {

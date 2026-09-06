@@ -142,19 +142,6 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> TestProjectReferenceDebt =
             new(StringComparer.Ordinal)
             {
-                // Sitrep.Host for ChannelEngine/UplinkDiscovery and the
-                // Sitrep.Host.ActionGroups seam. Core/Transport/Propagation arrive
-                // behind it and are not named in the csproj at all, which is the
-                // transitive case this gate exists to see.
-                ["GonogoActionGroupsExtendedUplink.Tests"] = new[]
-                {
-                    "Sitrep.Contract.TestSupport",
-                    "Sitrep.Core",
-                    "Sitrep.Host",
-                    "Sitrep.Propagation",
-                    "Sitrep.Transport",
-                },
-
                 // The Unit-coverage assertion only. Clears the day TestSupport
                 // ships, no source change needed here.
                 ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
@@ -196,9 +183,21 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Transport",
                 },
 
-                // Absent, and deliberately: GonogoPrincipiaUplink.Tests and
-                // GonogoTestFlightUplink.Tests reach nothing private. They are the
-                // proof this is achievable and the shape the other ten owe.
+                // Absent, and deliberately: GonogoPrincipiaUplink.Tests,
+                // GonogoTestFlightUplink.Tests and, since the widest of the ten was
+                // paid off, GonogoActionGroupsExtendedUplink.Tests reach nothing
+                // private. They are the proof this is achievable and the shape the
+                // rest owe.
+                //
+                // What paying one off took, since the list above reads as if the
+                // TestSupport entries were the only cheap ones: the capability id
+                // moved to Sitrep.Contract, so the id had one declaration instead of
+                // two spellings pinned equal by a test; the cases needing
+                // ChannelEngine turned out to be asserting CORE's discovery ordering
+                // through a hand-written double of the Uplink, and moved to
+                // Sitrep.Host.Tests where the engine may be named; and the probe host
+                // was written into the Tests project itself, which is what
+                // docs/uplink-isolation.md tells a NEW Uplink to do.
             };
 
         /// <summary>
@@ -213,12 +212,6 @@ namespace Sitrep.Core.Tests
         private static readonly Dictionary<string, string[]> TestProjectImportDebt =
             new(StringComparer.Ordinal)
             {
-                ["GonogoActionGroupsExtendedUplink.Tests"] = new[]
-                {
-                    "Sitrep.Contract.TestSupport",
-                    "Sitrep.Host",
-                    "Sitrep.Host.ActionGroups",
-                },
                 ["GonogoKerbalismUplink.Tests"] = new[]
                 {
                     "Sitrep.Contract.TestSupport",

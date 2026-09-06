@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using Sitrep.Contract;
-using Sitrep.Contract.TestSupport;
-using Sitrep.Host.ActionGroups;
 using Xunit;
 
 namespace Gonogo.ActionGroupsExtendedUplink.Tests
@@ -40,7 +38,7 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
 
             host.DriveTicks(3, new KspSnapshot());
 
-            var elected = ActionGroupsElection.Elected(host.Kernel);
+            var elected = host.ElectedBackend();
             Assert.NotNull(elected);
             Assert.Equal(ActionGroupsExtendedUplink.ProviderId, elected!.ProviderId);
             Assert.NotNull(elected.Groups());
@@ -57,7 +55,7 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
         {
             var host = Registered();
 
-            var elected = ActionGroupsElection.Elected(host.Kernel);
+            var elected = host.ElectedBackend();
             Assert.NotNull(elected);
             Assert.Equal(ActionGroupsExtendedUplink.ProviderId, elected!.ProviderId);
             Assert.NotNull(elected.Groups());
@@ -67,11 +65,9 @@ namespace Gonogo.ActionGroupsExtendedUplink.Tests
         /// The capability declared the way core declares it, the real uplink
         /// registered against a present AGX, the election run.
         /// </summary>
-        private static StarvationProbeHost Registered()
+        private static RecordingUplinkHost Registered()
         {
-            var kernel = new Kernel();
-            ActionGroupsElection.RegisterCapability(kernel, _ => new StockStandIn());
-            var host = new StarvationProbeHost(kernel);
+            var host = new RecordingUplinkHost(_ => new StockStandIn());
             new ActionGroupsExtendedUplink(new PresentAgx()).Register(host);
             host.Resolve();
             return host;

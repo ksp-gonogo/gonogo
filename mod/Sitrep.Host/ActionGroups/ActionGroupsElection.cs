@@ -30,8 +30,13 @@ namespace Sitrep.Host.ActionGroups
     /// </summary>
     public static class ActionGroupsElection
     {
-        /// <summary>The exclusive capability id every action-groups backend competes for.</summary>
-        public const string CapabilityId = "actionGroups";
+        /// <summary>
+        /// The exclusive capability id every action-groups backend competes for,
+        /// which is <see cref="ActionGroupsCapability.Id"/> and not a second
+        /// spelling of it. It is declared in the contract because a provider has
+        /// to name it too, and a provider cannot reference this assembly.
+        /// </summary>
+        public const string CapabilityId = ActionGroupsCapability.Id;
 
 
 
