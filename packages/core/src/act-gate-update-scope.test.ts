@@ -1,5 +1,4 @@
 // @vitest-environment node
-//
 // Node realm rather than the package's jsdom default: this spawns the gate.
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
@@ -30,9 +29,11 @@ describe("the act-warning gate refuses an unscoped --update", () => {
     return spawnSync("node", [gate, ...args], {
       cwd: repoRoot,
       encoding: "utf8",
-      // Long enough to fail the test rather than hang the suite if the refusal
-      // is ever moved back behind the measurement, which is exactly what this
-      // is here to notice.
+      /*
+       * Long enough to fail the test rather than hang the suite if the refusal
+       * is ever moved back behind the measurement, which is exactly what this
+       * file is here to notice.
+       */
       timeout: 30_000,
     });
   }
