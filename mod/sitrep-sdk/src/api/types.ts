@@ -100,9 +100,21 @@ export interface ComponentDefinition<TConfig = Record<string, unknown>> {
   mobileWidth?: "full" | "half";
   mobileHeight?: number;
   dataRequirements?: DataRequirement[];
-  /** Channels this widget REQUIRES; read non-null through the manifest hook. */
+  /**
+   * Channels this widget REQUIRES. Declaring one is not what creates the
+   * subscription: {@link useTelemetry} subscribes on its own, declared or not.
+   * What it does is gate the mount. The dashboard resolves each required
+   * channel to the Uplink that owns it, and when that Uplink reports itself
+   * degraded or unavailable the widget is replaced by that Uplink's own reason
+   * line instead of rendering empty.
+   */
   channels?: readonly WidgetChannelId[];
-  /** Channels this widget OPTIONALLY consumes: each read is `| undefined`. */
+  /**
+   * Channels this widget OPTIONALLY consumes. Identical to `channels` for
+   * reading: the same `Reading`, not a `| undefined` of it. The whole
+   * behavioural difference is the gate above, and it is that these are never
+   * put through it, so an unhealthy optional channel never blocks the render.
+   */
   optionalChannels?: readonly WidgetChannelId[];
   /**
    * What this widget DRAWS, when that is narrower than the channels it mounts

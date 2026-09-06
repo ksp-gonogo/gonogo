@@ -3,7 +3,7 @@
 // two PUBLISHED packages an Uplink author may import.
 //
 // The guide once taught `useTelemetry("t").coreTemp`, which is a type error on
-// all six arms of the `Reading` union it actually answers with, and nothing
+// every member of the `Reading` union it actually answers with, and nothing
 // noticed for 860 lines. Every ts/tsx block here is therefore a COMPLETE
 // module: imports included, standing on its own. A block that cannot be one
 // belongs in a `text` fence, not a `ts` fence.

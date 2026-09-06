@@ -255,7 +255,7 @@ jobs:
       #
       # It exists because the guide taught code that could not compile: every
       # widget example dereferenced `useTelemetry`'s result directly while the
-      # real signature is a six-arm `Reading<T>` union, and the word `Reading`
+      # real signature is a `Reading<T>` union over two discriminants, and `Reading`
       # did not appear once in 860 lines. Nothing could say so, because prose is
       # not compiled. A blind third-party review found it; a gate is what stops
       # it coming back.

@@ -11,66 +11,53 @@ import type {
 import { useTelemetry } from "./useTelemetry";
 
 /**
- * Per-widget Topic declaration + single-hook optionality typing, the Phase-0
- * type-design spike for the Uplink architecture (spec §3.2 / §3.3).
- *
- * ## What this proves
- *
- * A widget declares the Topics it consumes as **two explicitly-typed arrays**
- * (§3.2): `channels` (required) and `optionalChannels` (optional): and reads
- * them through **one** hook (`useTelemetry`, §3.3) whose return type is
- * *inferred from which array the Topic sits in*:
+ * Per-widget Topic declaration: two explicitly-typed arrays plus one read hook
+ * bound to their union, so declaration and read cannot drift.
  *
  *   const topics = defineTopicManifest({
  *     channels: ["vessel.resources"],          // required
- *     optionalChannels: ["comm.link"],         // optional
+ *     optionalChannels: ["comms.delay"],       // optional
  *   });
  *
- *   const res = topics.useTelemetry("vessel.resources");   // VesselResources        (non-null)
- *   const link = topics.useTelemetry("comm.link");         // CommLink | undefined
+ *   const res = topics.useTelemetry("vessel.resources");   // Reading<VesselResources>
+ *   const delay = topics.useTelemetry("comms.delay");      // Reading<CommsDelay>
  *
- * The optionality is enforced by the type system, not convention: a Value from
- * a required Topic is guaranteed present, a Value from an optional Topic is
- * `| undefined`. A widget therefore **cannot** hard-depend on an optional
- * Topic (§3.3 static guarantee), and cannot read a Topic it never declared
- * (reading an undeclared Topic is a compile error, the argument is constrained
- * to the union of the two arrays).
+ * ## Both arrays read the same, and this is the correction worth reading
  *
- * ## Why a single-hook design (not a two-hook split)
+ * The original design had the bound hook resolve a REQUIRED Topic to its
+ * payload non-null and an OPTIONAL one to `payload | undefined`, and this doc
+ * described that for long after the type stopped doing it. It does not do it
+ * and must not: see {@link WidgetTopicValue} for the argument. `pending` IS
+ * "nothing has arrived", the `Reading` union already carries the distinction,
+ * and a conditional layered on top would be a lie that nothing could catch,
+ * because the bound hook is built with `as unknown as`.
  *
- * The spike brief allowed falling back to a two-hook split
- * (`useTelemetry` required + `useOptionalTelemetry`) if the mapped-type single
- * hook proved unsound or ugly. It did not, the single hook is viable and is
- * the design that lands:
+ * The claim that made it sound safe was also false: the orchestrator does NOT
+ * withhold a widget until its required Topics are live. What it gates on is the
+ * owning Uplink's HEALTH (`RequiresGuard` + `useUplinkHealthFor`, longest-prefix
+ * match against the `system.uplinkHealth` roster), which is a different
+ * question and answers `unresolved` for a while on every page load.
  *
- * - **One import, one call site shape.** A widget author writes
- *   `topics.useTelemetry(id)` for every Topic and the return type is correct
- *   automatically; there is no "did I pick the right hook for this array?"
- *   decision to get wrong, which is the exact class of mistake the two-array
- *   (vs `?`-prefix) declaration in §3.2 exists to remove.
- * - **The array *is* the single source of truth.** Move a Topic from
- *   `optionalChannels` to `channels` and every read of it flips from
- *   `| undefined` to non-null with no other edit. With a two-hook split the
- *   author would also have to swap the hook at each call site, and a missed one
- *   would compile, silently defeating the guarantee.
- * - **`const` type parameters make `as const` optional.** Callers get the
- *   narrow tuple types either way; `as const` still works and is proven in the
- *   type tests, but is not required for the inference to fire.
+ * ## So what the two arrays actually do
+ *
+ * - **Neither creates the subscription.** The base hook subscribes on its own,
+ *   for a declared Topic and an undeclared one alike
+ * - **`channels` gates the mount.** A required channel whose owning Uplink
+ *   resolves unhealthy replaces the widget with that Uplink's own
+ *   `health.detail`. An unresolved owner does not block
+ * - **`optionalChannels` never gates.** They are deliberately not passed to the
+ *   guard. That is the whole behavioural difference between the two lists
+ * - **Both constrain the read.** The hook's argument is the union of the two
+ *   arrays, so reading a Topic the widget never declared is a compile error.
+ *   That is this helper's real value, and it survives the correction above
  *
  * ## Runtime
  *
- * This helper carries **zero runtime behaviour**: the returned hook is a thin
- * delegation to the base canonical {@link useTelemetry}. The required-vs-optional
- * distinction is purely type-level. The required branch's non-null return is an
- * honest contract by construction: the orchestrator only mounts a widget once
- * its required Topics are live (§3.3), so a mounted widget's required read is
- * never actually `undefined`. This is a static assertion of a runtime invariant
- * the orchestrator upholds: not a cast that can lie inside a mounted widget.
- *
- * Because `defineTopicManifest` is called once at module scope per widget, the
- * returned hook has a stable identity and obeys the Rules of Hooks as long as
- * the widget calls `topics.useTelemetry(...)` unconditionally (exactly as it
- * would call the base hook).
+ * Zero runtime behaviour: the returned hook is a thin delegation to the base
+ * canonical {@link useTelemetry}. Because `defineTopicManifest` is called once
+ * at module scope per widget, the returned hook has a stable identity and obeys
+ * the Rules of Hooks as long as the widget calls `topics.useTelemetry(...)`
+ * unconditionally (exactly as it would call the base hook).
  */
 
 /**
@@ -162,9 +149,13 @@ export interface TopicManifest<
  *   });
  *
  *   function PowerSystems() {
- *     const res = useTelemetry("vessel.resources"); // VesselResources (non-null)
- *     const delay = useTelemetry("comms.delay");    // CommsDelay | undefined
- *     // ...
+ *     const res = useTelemetry("vessel.resources"); // Reading<VesselResources>
+ *     const delay = useTelemetry("comms.delay");    // Reading<CommsDelay>
+ *
+ *     // Both branch the same way. `pending` is merely unlikely on a required
+ *     // channel, not unrepresentable, so neither read is dereferenceable.
+ *     if (res.state !== "observed") return null;
+ *     return renderResources(res.value, delay);
  *   }
  *
  *   registerComponent({ id: "power-systems", channels, optionalChannels, component: PowerSystems /* ... *\/ });
