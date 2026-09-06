@@ -148,15 +148,6 @@ jobs:
             extra_dlls: "GonogoMechJebUplink.Contract.dll"
             notice: mod/GonogoMechJebUplink/NOTICE-MECHJEB.txt
             mod_id_var: SPACEDOCK_MOD_ID_GONOGOMECHJEBUPLINK
-          - id: GonogoActionGroupsExtendedUplink
-            csproj: mod/GonogoActionGroupsExtendedUplink/GonogoActionGroupsExtendedUplink.csproj
-            dll: GonogoActionGroupsExtendedUplink.dll
-            gamedata: GonogoActionGroupsExtendedUplink
-            # No .Contract slice: this Uplink carries no command-arg DTOs, it
-            # elects a backend and publishes through Sitrep.Contract's own types.
-            extra_dlls: ""
-            notice: mod/GonogoActionGroupsExtendedUplink/NOTICE-AGEXT.txt
-            mod_id_var: SPACEDOCK_MOD_ID_GONOGOACTIONGROUPSEXTENDEDUPLINK
     uses: ./.github/workflows/_build-uplink-mod.yml
     with:
       id: ${{ matrix.id }}

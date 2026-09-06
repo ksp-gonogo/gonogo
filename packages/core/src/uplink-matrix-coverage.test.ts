@@ -129,9 +129,9 @@ describe("the Uplink CI matrix covers every Uplink", () => {
 
   it("gives a leg to every plugin project in the solution", () => {
     const fromSolution = solutionUplinks();
-    // 7 since GonogoTestFlightUplink and three more took their projects out of
+    // 6 since GonogoTestFlightUplink and four more took their projects out of
     // the solution for the gonogo-uplinks repo.
-    expect(fromSolution.length).toBeGreaterThanOrEqual(7);
+    expect(fromSolution.length).toBeGreaterThanOrEqual(6);
     expect(
       matrix.filter((leg) => leg.csproj).map((leg) => leg.id),
       `${SCRIPT} disagrees with mod/Gonogo.sln about which Uplinks have a plugin csproj.`,

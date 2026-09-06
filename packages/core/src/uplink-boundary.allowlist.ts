@@ -1300,15 +1300,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/core/src/truenow-allowlist.test.ts",
       /*
-       * The AGX uplink is the SAME election shape RA established for comms,
-       * and its
-       * doc-comments say so explicitly, citing GonogoRealAntennasUplink /
-       * RaReflection as the worked precedent: prose only, no RA type,
-       * reference or coupling.
-       */
-      "mod/GonogoActionGroupsExtendedUplink/ActionGroupsExtendedUplink.cs",
-      "mod/GonogoActionGroupsExtendedUplink/AgxReflection.cs",
-      /*
        * -- the occlusion-model seam: three prose mentions and one test --
        * All four name RealAntennas because the seam exists to record that the
        * two comms backends occlude at DIFFERENT radii (stock scales the body
@@ -1473,14 +1464,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * `comm-signal.hop-rates`. The widget only ever knew the slot id, so the
        * prose now names the comms capability instead and both ratcheted off.
        */
-      /*
-       * The AGX election tests were here too, citing CommsElectionTests as the
-       * pattern they mirror. They were rewritten to reach nothing outside
-       * Sitrep.Contract and no longer cite it, so the entry ratcheted off.
-       */
-      // AGX's reflection test cites RaReflection as the pattern it mirrors:
-      // doc-mention only.
-      "mod/GonogoActionGroupsExtendedUplink.Tests/AgxReflectionTests.cs",
     ],
   },
 

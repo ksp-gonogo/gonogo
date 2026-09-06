@@ -14,12 +14,12 @@
  *
  * ## Why each leg carries capability facts
  *
- * The Uplinks are RAGGED. Twelve directories: ten have a client, eleven have a
- * plugin csproj, nine have a contract slice, `GonogoBreakingGroundUplink` is
- * client-only, and `GonogoActionGroupsExtendedUplink` and
- * `GonogoTestFlightUplink` are C#-only. A uniform matrix running the same steps
- * everywhere would no-op on roughly a third of its cells and report green, which
- * is the failure this whole exercise exists to stop.
+ * The Uplinks are RAGGED. Seven directories: all seven have a client, six have
+ * a plugin csproj, six have a contract slice, and `GonogoBreakingGroundUplink`
+ * is client-only. A uniform matrix running the same steps everywhere would
+ * no-op on some of its cells and report green, which is the failure this whole
+ * exercise exists to stop. The C#-only shape has left with the Uplinks that had
+ * it and the fields still carry it, because the next arrival may bring it back.
  *
  * What is NOT a capability fact: whether an Uplink has a generated page. That
  * used to be emitted as `docsCheck`, derived from a `docs:check` script the
@@ -60,7 +60,7 @@ const MOD = join(ROOT, "mod");
  * count so a deliberate removal does not trip it, and far enough above zero that
  * a broken walk does.
  */
-const FLOOR = 8;
+const FLOOR = 7;
 
 const readJson = (path) => {
   try {

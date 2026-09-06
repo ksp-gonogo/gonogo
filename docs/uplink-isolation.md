@@ -497,9 +497,11 @@ internal sealed class RecordingUplinkHost : IUplinkHost
 }
 ```
 
-`GonogoPrincipiaUplink.Tests`, `GonogoTestFlightUplink.Tests` and
-`GonogoActionGroupsExtendedUplink.Tests` reach nothing private and are the shape
-to copy. The remaining nine are the ones carrying debt, not the ones to imitate.
+`GonogoPrincipiaUplink.Tests` reaches nothing private and is the shape to copy.
+`GonogoTestFlightUplink.Tests` and `GonogoActionGroupsExtendedUplink.Tests` were
+the other two, and have since left for the `gonogo-uplinks` repo, which is what
+being that shape is FOR. The rest are the ones carrying debt, not the ones to
+imitate.
 
 Two other habits keep a Tests project clean, and both come from those two:
 
@@ -595,12 +597,16 @@ Seeded from measurement on 2026-08-30, shrink-only like the others:
   `Sitrep.Host`, and `Sitrep.Core`, `Sitrep.Transport` and `Sitrep.Propagation`
   behind it, none of which their csprojs name. Those are the transitive case, and
   the widest breaches
-- **`GonogoPrincipiaUplink.Tests` and `GonogoTestFlightUplink.Tests`** are clean,
-  which is the proof the rest owe
+- **`GonogoPrincipiaUplink.Tests`** is clean, which is the proof the rest owe.
+  `GonogoTestFlightUplink.Tests` was too, and has left for the `gonogo-uplinks`
+  repo
 
-**`GonogoActionGroupsExtendedUplink.Tests` was the widest of the ten and is now
-clean**, which is worth writing down because none of the three fixes was the one
-the list above makes it look like:
+**`GonogoActionGroupsExtendedUplink.Tests` was the widest of the ten, was made
+clean, and only then left for the `gonogo-uplinks` repo.** That order is the
+point: a debt exported is a debt an outside author inherits and cannot pay, and
+a merged copy that predates the fix passes an existence check while losing the
+work. It is worth writing down because none of the three fixes was the one the
+list above makes it look like:
 
 - the capability id moved to `Sitrep.Contract`, so the id has ONE declaration
   rather than two spellings a test pins equal

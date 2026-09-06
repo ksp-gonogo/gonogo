@@ -88,9 +88,9 @@ namespace Sitrep.Core.Tests
             "Sitrep.Contract.TestSupport",
         };
 
-        private const int MinimumUplinkProjectCount = 7;
+        private const int MinimumUplinkProjectCount = 6;
 
-        private const int MinimumUplinkTestProjectCount = 7;
+        private const int MinimumUplinkTestProjectCount = 6;
 
         /// <summary>
         /// Private assemblies each Uplink can still REACH, transitively, through the
@@ -183,21 +183,23 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Transport",
                 },
 
-                // Absent, and deliberately: GonogoPrincipiaUplink.Tests,
-                // GonogoTestFlightUplink.Tests and, since the widest of the ten was
-                // paid off, GonogoActionGroupsExtendedUplink.Tests reach nothing
-                // private. They are the proof this is achievable and the shape the
-                // rest owe.
+                // Absent, and deliberately: GonogoPrincipiaUplink.Tests reaches
+                // nothing private. It is the proof this is achievable and the shape
+                // the rest owe.
                 //
-                // What paying one off took, since the list above reads as if the
-                // TestSupport entries were the only cheap ones: the capability id
-                // moved to Sitrep.Contract, so the id had one declaration instead of
-                // two spellings pinned equal by a test; the cases needing
-                // ChannelEngine turned out to be asserting CORE's discovery ordering
-                // through a hand-written double of the Uplink, and moved to
-                // Sitrep.Host.Tests where the engine may be named; and the probe host
-                // was written into the Tests project itself, which is what
-                // docs/uplink-isolation.md tells a NEW Uplink to do.
+                // GonogoActionGroupsExtendedUplink.Tests was the widest entry here
+                // and was paid off in full before the Uplink left for the
+                // gonogo-uplinks repo, which is the order that matters: a debt
+                // exported is a debt an outside author inherits and cannot pay.
+                // What it took, since the list above reads as if the TestSupport
+                // entries were the only cheap ones: the capability id moved to
+                // Sitrep.Contract, so the id had one declaration instead of two
+                // spellings pinned equal by a test; the cases needing ChannelEngine
+                // turned out to be asserting CORE's discovery ordering through a
+                // hand-written double of the Uplink, and moved to Sitrep.Host.Tests
+                // where the engine may be named; and the probe host was written into
+                // the Tests project itself, which is what docs/uplink-isolation.md
+                // tells a NEW Uplink to do.
             };
 
         /// <summary>
