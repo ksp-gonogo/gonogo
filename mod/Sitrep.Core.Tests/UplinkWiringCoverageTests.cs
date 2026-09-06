@@ -97,7 +97,7 @@ namespace Sitrep.Core.Tests
         private const int MinimumUplinksRegisteringCommands = 4;
 
         /// <summary>Uplinks that must be seen to take a publisher. Same floor, same reason.</summary>
-        private const int MinimumUplinksPublishingTopics = 6;
+        private const int MinimumUplinksPublishingTopics = 5;
 
         [Fact]
         public void EveryCommandAnUplinkRegistersIsAlsoDeclared()

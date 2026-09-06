@@ -60,7 +60,7 @@ const MOD = join(ROOT, "mod");
  * count so a deliberate removal does not trip it, and far enough above zero that
  * a broken walk does.
  */
-const FLOOR = 10;
+const FLOOR = 8;
 
 const readJson = (path) => {
   try {

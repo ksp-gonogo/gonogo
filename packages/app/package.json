@@ -21,7 +21,6 @@
     "@ksp-gonogo/gonogo-principia-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-rp1-uplink": "workspace:*",
     "@ksp-gonogo/gonogo-breaking-ground-uplink": "workspace:*",
-    "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink": "workspace:*",
     "@ksp-gonogo/components": "workspace:*",
     "@ksp-gonogo/core": "workspace:*",
     "@ksp-gonogo/data": "workspace:*",

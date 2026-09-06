@@ -293,8 +293,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoBreakingGroundUplink/client/src/DeployedScience/index.tsx": 4,
   "mod/GonogoBreakingGroundUplink/client/src/RoboticsConsole/index.tsx": 2,
   "mod/GonogoBreakingGroundUplink/client/src/RotorTachometer/index.tsx": 2,
-  // mod/GonogoFerramAerospaceResearchUplink/client: 4 in 1 files (0 out of `any`, 0 in tests), walked 16 files
-  "mod/GonogoFerramAerospaceResearchUplink/client/src/DescentEnvelope/index.ts": 4,
   // mod/GonogoKerbalismUplink/client: 21 in 8 files (6 out of `any`, 18 in tests), walked 72 files
   "mod/GonogoKerbalismUplink/client/src/ecosystem.test.ts": 9,
   "mod/GonogoKerbalismUplink/client/src/isru.test.ts": 2,
@@ -534,9 +532,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
  * steady as the debt falls and still fails if the walk stops seeing assertions.
  */
 export const SCAN_FLOORS = {
-  // 23 since GonogoAvionicsUplink and GonogoRealFuelsUplink left and took
-  // their client roots with them.
-  roots: 23,
+  // 22 since three Uplinks left on 2026-09-06 and took their client roots too.
+  roots: 22,
   files: 2247,
   assertions: 1979,
 } as const;
@@ -564,7 +561,6 @@ export const ROOT_FILE_FLOORS: Record<string, number> = {
   "packages/ui": 49,
   "packages/ui-kit": 222,
   "mod/GonogoBreakingGroundUplink/client": 19,
-  "mod/GonogoFerramAerospaceResearchUplink/client": 12,
   "mod/GonogoKerbalismUplink/client": 57,
   "mod/GonogoKosUplink/client": 37,
   "mod/GonogoMechJebUplink/client": 8,

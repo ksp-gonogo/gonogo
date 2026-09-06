@@ -69,16 +69,15 @@ const DEBT_FILE = join(HERE, "minsize-debt.ts");
  * Every module whose import registers widgets in the running app.
  *
  * Bare specifiers, resolved from `packages/app`, which is the one package that
- * depends on all of them. Two Uplinks reach the app through the runtime bundle
+ * depends on all of them. Some Uplinks reach the app through the runtime bundle
  * loader rather than a static import, and they are named here anyway: which
  * widgets a gate covers should not depend on how their bundle happens to be
- * delivered, and the FAR Uplink is one of the two worst offenders.
+ * delivered.
  */
 const REGISTRATIONS = [
   "@ksp-gonogo/components",
   "@ksp-gonogo/serial",
   "@ksp-gonogo/gonogo-breaking-ground-uplink",
-  "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink",
   "@ksp-gonogo/gonogo-kerbalism-uplink",
   "@ksp-gonogo/gonogo-kos-uplink",
   "@ksp-gonogo/gonogo-mechjeb-uplink",

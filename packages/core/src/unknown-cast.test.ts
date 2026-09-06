@@ -338,9 +338,8 @@ describe("the walk covered what it claims to have covered", () => {
         existsSync(join(REPO_ROOT, "mod", name, "client", "tsconfig.json")),
       )
       .map((name) => `mod/${name}/client`);
-    // 8 since GonogoAvionicsUplink and GonogoRealFuelsUplink left for the
-    // gonogo-uplinks repo and took their clients with them.
-    expect(clients.length).toBeGreaterThanOrEqual(8);
+    // 7 since three Uplinks took their clients to gonogo-uplinks on 2026-09-06.
+    expect(clients.length).toBeGreaterThanOrEqual(7);
     expect(
       clients.filter((rel) => !roots.includes(rel)),
       "An Uplink client has a tsconfig.json and is not in the scan.",

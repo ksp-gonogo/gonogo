@@ -154,9 +154,9 @@ namespace Gonogo.KSP.Tests
             }
 
             Assert.True(
-                found.Count >= 25,
+                found.Count >= 24,
                 "only " + found.Count + " uplinks found across mod/, against this repo's "
-                + "twenty-seven: the walk is truncated and the checks above are passing "
+                + "twenty-four: the walk is truncated and the checks above are passing "
                 + "over whatever it stopped reading");
         }
 

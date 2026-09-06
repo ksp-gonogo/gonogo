@@ -157,7 +157,7 @@ namespace Sitrep.Core.Tests
         /// floors sit below that so ordinary movement does not trip them and a
         /// broken path cannot pass as a clean one.
         /// </summary>
-        private const int MinimumCaptureProjectCount = 28;
+        private const int MinimumCaptureProjectCount = 22;
 
         private const int MinimumScannedFileCount = 500;
 

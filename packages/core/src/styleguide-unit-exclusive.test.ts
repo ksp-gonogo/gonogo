@@ -554,7 +554,7 @@ describe("Unit is the only unit renderer", () => {
     // pin a count that legitimately moves when an Uplink lands or leaves.
     // Set at the current number, removing one Uplink would fail this for no
     // reason and the number would get raised back on reflex.
-    expect(roots.length, "roots discovered").toBeGreaterThanOrEqual(18);
+    expect(roots.length, "roots discovered").toBeGreaterThanOrEqual(17);
     expect(scanned, "source files walked").toBeGreaterThan(900);
     const empty = roots.filter((r) => perRoot[r] === 0);
     expect(

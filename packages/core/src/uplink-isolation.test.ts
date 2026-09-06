@@ -180,7 +180,7 @@ describe("uplink isolation", () => {
     expect(files.length).toBeGreaterThan(200);
     expect(
       new Set(files.map((f) => f.split("/mod/")[1]?.split("/")[0])).size,
-    ).toBeGreaterThanOrEqual(8);
+    ).toBeGreaterThanOrEqual(7);
   });
 
   /**
@@ -244,7 +244,7 @@ describe("uplink isolation", () => {
    * from every Uplink being clean, and a renamed directory would produce it.
    */
   it("actually read the Uplink manifests", () => {
-    expect(uplinkManifests().length).toBeGreaterThanOrEqual(8);
+    expect(uplinkManifests().length).toBeGreaterThanOrEqual(7);
   });
 
   it("no Uplink client imports an app-internal package outside the debt list", () => {

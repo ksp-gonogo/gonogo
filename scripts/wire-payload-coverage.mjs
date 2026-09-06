@@ -539,11 +539,11 @@ export function selfCheck() {
  * A floor on the Uplink slices the walk finds, not an equality.
  *
  * A discovery that matches nothing hashes nothing and reports a clean tree, and
- * that reads as success. Set below the nine slices on disk today so removing an
+ * that reads as success. Set below the six slices on disk today so removing an
  * Uplink does not trip it, and far enough above zero that a broken walk does.
  * Same reasoning, and the same shape, as `uplink-matrix.mjs`'s own FLOOR.
  */
-const UPLINK_SLICE_FLOOR = 7;
+const UPLINK_SLICE_FLOOR = 5;
 
 /**
  * The generated slices to walk: the core contract, plus every Uplink that owns

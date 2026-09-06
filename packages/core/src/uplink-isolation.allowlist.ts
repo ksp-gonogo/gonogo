@@ -66,6 +66,7 @@ export const FORBIDDEN_PACKAGES = [
   "logger",
   "sitrep-client",
   "test-utils",
+  "gonogo-avionics-uplink",
   "gonogo-breaking-ground-uplink",
   "gonogo-kerbalism-uplink",
   "gonogo-kerbcast-uplink",

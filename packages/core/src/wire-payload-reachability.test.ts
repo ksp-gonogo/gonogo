@@ -160,11 +160,11 @@ describe("wire payload reachability", () => {
     // cannot see them: that is how the third instance of this bug class, an
     // Uplink publishing one of its OWN enums, sat outside the sweep. A
     // discovery that matches nothing hashes nothing and reports a clean tree,
-    // so the count is floored rather than trusted. Nine slices, 94 roots and 93
-    // types at the time of writing.
-    expect(report.uplinkSlices).toBeGreaterThan(6);
-    expect(report.uplinkRoots).toBeGreaterThan(60);
-    expect(report.uplinkReached).toBeGreaterThan(60);
+    // so the count is floored rather than trusted. Six slices since three
+    // Uplinks left for the gonogo-uplinks repo on 2026-09-06.
+    expect(report.uplinkSlices).toBeGreaterThan(4);
+    expect(report.uplinkRoots).toBeGreaterThan(40);
+    expect(report.uplinkReached).toBeGreaterThan(40);
     // Every discovered slice actually contributed, rather than the total being
     // carried by one large Uplink while the rest silently walked nothing.
     for (const slice of report.slices) expect(slice.roots).toBeGreaterThan(0);

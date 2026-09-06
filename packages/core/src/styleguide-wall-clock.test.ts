@@ -252,7 +252,7 @@ describe("wall-clock allowlist: currency is measured against the frame, never Da
   it("walked every widget root, not just the first one", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
     const { scanned, roots } = scanWallClock(root);
-    expect(roots, "widget roots discovered").toBeGreaterThanOrEqual(9);
+    expect(roots, "widget roots discovered").toBeGreaterThanOrEqual(8);
     expect(scanned, "widget source files walked").toBeGreaterThan(200);
   });
 

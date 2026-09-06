@@ -125,7 +125,7 @@ function countFixtures(root: string): number {
 
 /** A floor, not an equality. A walk that matches nothing reports no violations,
  *  which is indistinguishable from a clean tree. */
-const FLOOR = 8;
+const FLOOR = 7;
 
 describe("one render process", () => {
   const clients = uplinkClients();

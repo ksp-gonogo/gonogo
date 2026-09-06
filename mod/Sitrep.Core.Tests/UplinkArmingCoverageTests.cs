@@ -50,7 +50,7 @@ namespace Sitrep.Core.Tests
         /// Twelve Uplinks today. A floor, not an equality: adding one must not need
         /// this number touched, removing several deliberately should.
         /// </summary>
-        private const int MinimumUplinkProjectCount = 9;
+        private const int MinimumUplinkProjectCount = 7;
 
         /// <summary>
         /// The exact wiring an armed Uplink's manifest needs, whitespace-collapsed.

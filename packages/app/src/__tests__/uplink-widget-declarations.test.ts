@@ -18,7 +18,6 @@ import { describe, expect, it } from "vitest";
  */
 import "@ksp-gonogo/components";
 import "@ksp-gonogo/gonogo-breaking-ground-uplink";
-import "@ksp-gonogo/gonogo-ferram-aerospace-research-uplink";
 import "@ksp-gonogo/gonogo-kerbalism-uplink";
 import "@ksp-gonogo/gonogo-kos-uplink";
 import "@ksp-gonogo/gonogo-mechjeb-uplink";

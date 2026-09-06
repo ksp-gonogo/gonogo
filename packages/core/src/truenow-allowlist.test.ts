@@ -207,15 +207,6 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // `Delay = DelayRole.TrueNow` line inside that helper. Its call site is
   // `Static(ProfileTopic)`, which HELPER_TRUENOW does not match. 4 + 1 = 5.
   "mod/GonogoKerbalismUplink/KerbalismUplink.cs": 5,
-  // aero.available: whether a full-fidelity aerodynamics model is INSTALLED and
-  // readable, a fact about the player's install the command centre knows
-  // independent of any vessel's comms link, same class as realfuels.available
-  // above. Its sibling aero.state is the per-vessel aerodynamic reading and is
-  // correctly Delayed: angle of attack and stall are exactly the kind of
-  // in-flight state an operator must not see ahead of light-time.
-  // 1 explicit declaration.
-  "mod/GonogoFerramAerospaceResearchUplink/FerramAerospaceResearchUplink.cs": 1,
-
   // Every rp1.* channel: RP-1's space centre, read at the KSC. The build queue,
   // the launch complexes and their pads, the rollout operations, the research
   // queue, the payroll and Confidence are all ground state the command centre

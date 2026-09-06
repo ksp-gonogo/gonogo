@@ -279,33 +279,6 @@ echo "codegen -> $rp1_out_dir/units.ts"
 echo "codegen -> $rp1_out_dir/units.json"
 echo "codegen -> $rp1_out_dir/command-map.ts"
 
-# Ferram Aerospace Research: the aerodynamic-state slice. One type, one
-# [SitrepTopic] (aero.state), and the densest unit annotation of any slice:
-# twelve of AeroState's fifteen properties name a real dimension, so nearly the
-# whole generated interface retypes to Value<>. Two of those tokens are this
-# Uplink's own (kg/m² and W/kg, declared in its Units class), and the catalog
-# check judges the slice against core's tokens PLUS that class.
-aero_proj="$ROOT/mod/GonogoFerramAerospaceResearchUplink.Contract.Codegen"
-aero_out_dir="$ROOT/mod/GonogoFerramAerospaceResearchUplink/client/src/__generated__"
-aero_bin="$aero_proj/bin/Debug/netstandard2.0"
-
-dotnet build "$aero_proj/GonogoFerramAerospaceResearchUplink.Contract.Codegen.csproj" -v minimal
-mkdir -p "$aero_out_dir"
-
-DOTNET_ROLL_FORWARD=LatestMajor \
-  SITREP_AERO_TOPICMAP_OUT="$aero_out_dir/topic-map.ts" \
-  SITREP_AERO_UNITMAP_OUT="$aero_out_dir/units.ts" \
-  SITREP_AERO_UNITJSON_OUT="$aero_out_dir/units.json" \
-  dotnet "$RTCLI" \
-  DocumentationFilePath="$aero_bin/GonogoFerramAerospaceResearchUplink.Contract.xml" \
-  SourceAssemblies="$aero_bin/GonogoFerramAerospaceResearchUplink.Contract.dll" \
-  TargetFile="$aero_out_dir/contract.ts" \
-  ConfigurationMethod="GonogoFerramAerospaceResearchUplink.AeroRtConfig.Configure"
-echo "codegen -> $aero_out_dir/contract.ts"
-echo "codegen -> $aero_out_dir/topic-map.ts"
-echo "codegen -> $aero_out_dir/units.ts"
-echo "codegen -> $aero_out_dir/units.json"
-
 # asyncapi.yaml is generated from the SAME contract assemblies as everything
 # above, and it lives at the repo ROOT rather than in a __generated__ directory.
 # It used to be regenerated only by scripts/codegen-check.sh, so running this

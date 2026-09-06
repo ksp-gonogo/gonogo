@@ -92,11 +92,4 @@ export const UPLINK_BUNDLE_TARGETS: UplinkBundleTarget[] = [
     repo: "ksp-gonogo/GonogoRp1Uplink",
     clientDir: resolve(modDir, "GonogoRp1Uplink/client"),
   },
-  {
-    id: "aero",
-    name: "Aerodynamics",
-    author: "jonpepler",
-    repo: "ksp-gonogo/GonogoFerramAerospaceResearchUplink",
-    clientDir: resolve(modDir, "GonogoFerramAerospaceResearchUplink/client"),
-  },
 ];

@@ -88,9 +88,9 @@ namespace Sitrep.Core.Tests
             "Sitrep.Contract.TestSupport",
         };
 
-        private const int MinimumUplinkProjectCount = 9;
+        private const int MinimumUplinkProjectCount = 7;
 
-        private const int MinimumUplinkTestProjectCount = 10;
+        private const int MinimumUplinkTestProjectCount = 7;
 
         /// <summary>
         /// Private assemblies each Uplink can still REACH, transitively, through the
@@ -157,7 +157,6 @@ namespace Sitrep.Core.Tests
 
                 // The Unit-coverage assertion only. Clears the day TestSupport
                 // ships, no source change needed here.
-                ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoMechJebUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
 
                 // Sitrep.Core for EnvelopeCodec, to assert what an extension puts
@@ -220,7 +219,6 @@ namespace Sitrep.Core.Tests
                     "Sitrep.Host",
                     "Sitrep.Host.ActionGroups",
                 },
-                ["GonogoFerramAerospaceResearchUplink.Tests"] = new[] { "Sitrep.Contract.TestSupport" },
                 ["GonogoKerbalismUplink.Tests"] = new[]
                 {
                     "Sitrep.Contract.TestSupport",
