@@ -44,7 +44,8 @@ uplink_csprojs() {
 # which is indistinguishable from success. The floor is what makes that
 # impossible; it is a FLOOR rather than an equality so adding an Uplink does not
 # require editing this script, which is the whole point of discovering.
-FLOOR=11
+# Lowered from 11 when GonogoTestFlightUplink migrated to the gonogo-uplinks repo.
+FLOOR=10
 COUNT="$(uplink_csprojs | wc -l | tr -d ' ')"
 if [ "$COUNT" -lt "$FLOOR" ]; then
   echo "✖ uplink mod build: discovered only $COUNT Uplink csproj(s), fewer than this repo has ever had ($FLOOR)."

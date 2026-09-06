@@ -2197,17 +2197,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "packages/components/src/test/installProfile.ts",
       /*
-       * The MIRROR of the entries the `testflight` token already carries for
-       * Kerbalism's own reliability files: the two backends compete for one
-       * elected capability, so each names the other to say what it does and does
-       * not model. TestFlight's raw type records that its substituted defaults
-       * shipped at a priority outranking Kerbalism's, and its backend records
-       * which priority it beats. Doc-mentions; neither reaches into the owning
-       * dir.
-       */
-      "mod/GonogoTestFlightUplink/EngineReliabilityRaw.cs",
-      "mod/GonogoTestFlightUplink/TestFlightReliabilityBackend.cs",
-      /*
        * The wire-side distinctness instrument, which names every reliability
        * situation the mod can produce, both backends included, because the whole
        * assertion is that no two of them serialise to the same bytes. Wire values
@@ -2426,6 +2415,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
    * Uplink and no token at all until now, so nothing was checking it. Its
    * provider registers generically into the "reliability" capability, so core
    * never names it.
+   *
+   * The Uplink moved to the gonogo-uplinks repo on 2026-09-06, so those
+   * owning dirs no longer exist and every mention below is held by this
+   * list alone. They stay named for the same reason kerbcast's and
+   * scansat's do: the pair says where the code went, rather than
+   * pretending it is still here.
    */
   testflight: {
     domainDebt: [],
@@ -2460,6 +2455,17 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * case this bucket documents.
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
+      /*
+       * -- DEPARTURE FLOORS (2026-09-06): both hold an anti-blind minimum on
+       * how many Uplink projects mod/Gonogo.sln lists, and both had to drop
+       * from 11 to 10 when this Uplink moved to the gonogo-uplinks repo. A
+       * floor that moves without recording which Uplink left is a number
+       * nobody can audit later, so each carries the name in a comment.
+       * Text-only mention in a ratchet-inventory file, the same case as the
+       * entry above.
+       */
+      "packages/core/src/uplink-matrix-coverage.test.ts",
+      "packages/core/src/uplink-mod-build-coverage.test.ts",
       /*
        * FleetReliability's characterisation test emits `reliability.summary`
        * payloads carrying real `source` values, which is what the wire carries.

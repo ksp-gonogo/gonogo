@@ -97,7 +97,8 @@ describe("every Uplink plugin assembly is compiled by CI", () => {
     expect(
       inSolution.length,
       "mod/Gonogo.sln lists no Gonogo*Uplink projects, so this test is comparing two empty sets.",
-    ).toBeGreaterThanOrEqual(11);
+      // 10 since GonogoTestFlightUplink migrated to the gonogo-uplinks repo.
+    ).toBeGreaterThanOrEqual(10);
 
     expect(
       discovered,

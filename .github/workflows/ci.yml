@@ -608,7 +608,6 @@ jobs:
             GonogoKosUplink.Tests
             GonogoKerbalismUplink.Tests
             GonogoAvionicsUplink.Tests
-            GonogoTestFlightUplink.Tests
             GonogoMechJebUplink.Tests
             GonogoPrincipiaUplink.Tests
             GonogoRp1Uplink.Tests
