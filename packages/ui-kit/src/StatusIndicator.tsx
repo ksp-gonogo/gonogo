@@ -81,6 +81,10 @@ const StatusIndicator__Row = styled.div<{ "data-tone": StatusTone }>`
   gap: var(--space-8, 8px);
   font-size: var(--font-size-xs);
   padding: var(--space-6, 6px) var(--space-8, 8px);
+  /* A readout, but a BOXED one, and it sits in bars next to the controls it has
+     to line up with (the radio bar puts one between a mute and a talk key). The
+     kit's one control height, see --control-height. */
+  min-height: var(--control-height, 28px);
   background: var(--color-surface-raised);
   border: 1px solid;
   border-radius: var(--radius-sm, 3px);

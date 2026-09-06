@@ -105,6 +105,12 @@ const ToggleButton__Body = styled.button<{
   gap: var(--space-4, 4px);
   font-family: inherit;
   font-weight: 600;
+  /* The kit's one control height, shared with Button and StatusIndicator, so a
+     bar of mixed controls is one band rather than a ragged run. The size prop
+     picks the type scale and the inset, never the height. See
+     --control-height. */
+  min-height: var(--control-height, 28px);
+  line-height: var(--line-height-flush, 1);
   /* Sentence case, the same as the kit's Button: this label is the thing being
      chosen, and a row of shouted choices reads as an alarm rather than a
      picker. */

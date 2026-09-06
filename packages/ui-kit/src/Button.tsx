@@ -36,6 +36,13 @@ export const Button = styled.button`
   font-size: var(--font-size-sm);
   font-weight: 600;
   padding: var(--space-6, 6px) var(--space-12, 12px);
+  /* The kit's one control height, so a button lines up with the toggles and
+     readouts it shares a bar with. Flush line height with it: left at the
+     browser's "normal" the box is sized by descender headroom this chrome text
+     never uses, which is how two buttons a rung apart in type came out
+     different heights. See --control-height in tokens.css. */
+  min-height: var(--control-height, 28px);
+  line-height: var(--line-height-flush, 1);
   cursor: pointer;
   transition: border-color var(--duration-fast, 120ms), color var(--duration-fast, 120ms);
 

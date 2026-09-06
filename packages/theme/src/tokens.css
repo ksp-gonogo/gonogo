@@ -290,6 +290,28 @@
   --radius-circle: 50%;
 
   /*
+   * CONTROL HEIGHT. One rung, and one is the point of it.
+   *
+   * Every boxed control in the kit used to take its height from whatever was
+   * inside it: a small toggle around a 14px glyph came out at 20px, the same
+   * toggle around a word at 17, a bordered status readout at 27 and a default
+   * button at 30. Put four of them in a row, which is what a widget bar IS, and
+   * the row is visibly ragged with no one declaration to blame. Commcast's
+   * radio bar is where the operator finally said so.
+   *
+   * So `size` on a control chooses its type scale and its inset, never its
+   * height: a control is a control-shaped box. Read it as a `min-height` so
+   * genuinely taller content (a wrapped label, a coarse-pointer target) still
+   * grows the box rather than clipping inside it, and pair it with
+   * `--line-height-flush` so a line box's unused descender headroom is not what
+   * decides whether a control clears the floor.
+   *
+   * 28px is where the two commonest controls in the app already sat, so this
+   * lifts the small ones to meet them rather than moving everything.
+   */
+  --control-height: 28px;
+
+  /*
    * Z-INDEX, as named layers rather than a numeric ramp.
    *
    * Only app-global chrome belongs here. Roughly half the z-index
