@@ -741,12 +741,40 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
   ${({ $overlay }) => ($overlay ? OVERLAY_BOX : "")}
 `;
 
+/**
+ * A panel body is the app's DEFAULT density tier, and it says so by
+ * re-declaring the three steppable gap names at the values `tokens.css`
+ * already gives them at `:root`.
+ *
+ * Numerically that is a no-op on a panel sitting at the top level, and it is
+ * meant to be: the point is that the canonical rhythm is now WRITTEN
+ * somewhere a reader can find it, beside the surface that owns it, rather than
+ * being a property of nothing in particular. `Card` states the compact tier
+ * the same way (`Card.tsx`), and the two together are the whole ladder the
+ * semantic names step along.
+ *
+ * It also makes the tier RECOVERABLE. Card's compact tier inherits into every
+ * descendant, which is correct for a card's own contents and wrong for a panel
+ * nested inside one: a panel is a panel wherever it is mounted, and without
+ * this it would silently render at a card's density. Nothing composes that way
+ * today; declaring the default is what keeps it from being a latent bug when
+ * something does.
+ *
+ * `--gap-hairline` does not appear because it does not step, and the insets do
+ * not appear because the body's own three-value padding is one of the shapes
+ * the inset names deliberately cannot express (`tokens.css` says which, and
+ * why).
+ */
 const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
+  --gap-tight: var(--space-4, 4px);
+  --gap-related: var(--space-8, 8px);
+  --gap-section: var(--space-16, 16px);
+
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-8, 8px);
+  gap: var(--gap-related, var(--space-8, 8px));
   padding: var(--space-8, 8px) var(--space-16, 16px) var(--space-12, 12px);
   /* Body IS the scroller. It owns overflow so that Panel.Glow can own only the
      glow; the inset therefore sits INSIDE the scrolling box, which is what
