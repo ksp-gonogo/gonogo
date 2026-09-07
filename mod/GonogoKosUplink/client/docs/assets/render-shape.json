@@ -3,7 +3,7 @@
   "engine": "chromium",
   "assets": {
     "boot-then-run--default.gif": {
-      "hash": "cd3a130fec0eb11e",
+      "hash": "4170cf1c45ebe4bf",
       "elements": 58,
       "text": "a0774835"
     },
@@ -13,9 +13,9 @@
       "text": "54cb2e54"
     },
     "lander-cpu-attached--default.png": {
-      "hash": "cdb559cbc31c6364",
+      "hash": "978e102370283ef8",
       "elements": 67,
-      "text": "d115c9d3"
+      "text": "12f1d671"
     },
     "two-cpus-idle--default.png": {
       "hash": "15dea0840304d55a",
