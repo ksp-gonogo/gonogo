@@ -8,8 +8,10 @@ import type { Meta, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
 import {
   COMMAND_LOST,
   COMMAND_UNDELIVERED,
+  isValue,
   Quality,
   Staleness,
+  value,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { ConnStatus, PeerClientService } from "../peer/PeerClientService";
@@ -230,6 +232,35 @@ describe("PeerTransport", () => {
     expect(received).toEqual([
       { type: "command-response", requestId: "c0", result: { ok: true }, meta },
     ]);
+  });
+
+  it("gives a relayed command result's quantities their prototypes back", () => {
+    const client = makeFakeClient();
+    const transport = new PeerTransport(asService(client));
+    const received: ServerMessage[] = [];
+    transport.onMessage((m) => received.push(m));
+
+    /*
+     * A `Value` is two fields plus a prototype and only the fields cross a
+     * PeerJS hop, so this is the shape the station actually receives. A refusal
+     * comes down this channel (the host re-encodes it onto the response channel
+     * so the reason survives, see `PeerHostService.handleSitrepCommand`) and its
+     * `LimitBreach.facilityLevel` is one of these: relayed raw it renders and
+     * then throws on the first method call, inside a component body.
+     */
+    client.emitCommandResponse(
+      "c0",
+      structuredClone({
+        success: false,
+        breach: { facilityLevel: value("ratio", 1) },
+      }),
+      makeMeta(),
+    );
+
+    const result = received[0] as {
+      result: { breach: { facilityLevel: unknown } };
+    };
+    expect(isValue(result.result.breach.facilityLevel)).toBe(true);
   });
 
   it("synthesizes a bare error ServerMessage from onSitrepCommandError", () => {

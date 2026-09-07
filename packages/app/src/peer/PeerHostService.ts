@@ -6,7 +6,11 @@ import type {
 } from "@ksp-gonogo/data";
 import { debugPeer, logger } from "@ksp-gonogo/logger";
 import { getActiveTelemetryClient } from "@ksp-gonogo/sitrep-client";
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import {
+  classifyCommandRejection,
+  Quality,
+  Staleness,
+} from "@ksp-gonogo/sitrep-sdk";
 import type { Seat } from "@ksp-gonogo/sitrep-sdk/spine";
 import Peer, { type DataConnection } from "peerjs";
 import { radioFrameFromWire } from "../commcast/radio/wire";
@@ -1928,6 +1932,41 @@ export class PeerHostService {
         meta: placeholderMeta,
       } satisfies PeerMessage);
     } catch (err) {
+      const rejection = classifyCommandRejection(err);
+      /*
+       * The mod received the command and said no, with a typed reason and often
+       * the numbers behind it. That answer reached this host on the RESPONSE
+       * channel (a `CommandResult` with `success: false`) and was turned into a
+       * rejection by the host's own `TelemetryClient`, so relaying it below
+       * would keep `code` and `message` and drop `errorCode`, `breach` and
+       * `detail`: a station operator saw a bare failure where the host operator
+       * beside them saw "the VAB holds 140 t and this is 210 t".
+       *
+       * Re-encoded onto the response channel rather than smuggled through a
+       * widened error message, because that is the channel the mod itself
+       * refuses on. The station's own `TelemetryClient` then runs the same
+       * refusal branch the host ran, reaching `refused` with the reason intact
+       * and filling `command`/`args`/`label` from its own pending record, and a
+       * refusal that arrives after the station already called the command lost
+       * lands on `found`/`refused` without anyone writing that path twice.
+       *
+       * Not logged as a host failure: nothing on this machine broke, the game
+       * declined. The station's command status carries the outcome.
+       */
+      if (rejection.kind === "refused") {
+        conn.send({
+          type: "sitrep-command-response",
+          requestId: msg.requestId,
+          result: {
+            success: false,
+            errorCode: rejection.errorCode,
+            breach: rejection.breach,
+            detail: rejection.detail,
+          },
+          meta: placeholderMeta,
+        } satisfies PeerMessage);
+        return;
+      }
       const { code, message } = err as { code?: string; message?: string };
       logger.warn(
         `[PeerHost] sitrep command RPC failed (${msg.command}): ${message ?? String(err)}`,
