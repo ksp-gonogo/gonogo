@@ -3,12 +3,15 @@ import { describe, expect, it } from "vitest";
 import { Panel } from "./Panel";
 
 /**
- * The sticky header (Task 6): the standard header is the first in-flow child
- * INSIDE the body scroller and sticks at `top: var(--panel-rail-height)` while
- * the body scrolls under it, so title + aside stay in view without a scroll-away
- * ghost. A `panelToolbar` header uses the SAME sticky mechanism (reconciled from
- * the old pinned-sibling branch); only a `floatingHeader` is an overlay outside
- * the scroller. These assert the relationships (and `position`), not pixels.
+ * The sticky header (Task 6): the standard header rides INSIDE the body
+ * scroller, in the sticky unit that is the scroller's first in-flow child, and
+ * sticks at the scroller's top while the body scrolls under it, so title +
+ * aside stay in view without a scroll-away ghost. The delay rail is the unit's
+ * other half (see `Panel.delay.test.tsx`), which is what makes the two travel
+ * together rather than merely both being pinned. A `panelToolbar` header uses
+ * the SAME sticky mechanism (reconciled from the old pinned-sibling branch);
+ * only a `floatingHeader` is an overlay outside the scroller. These assert the
+ * relationships (and `position`), not pixels.
  */
 describe("Panel sticky header (standard)", () => {
   it("puts the heading INSIDE the scrolling body as the first in-flow child", () => {
@@ -17,16 +20,23 @@ describe("Panel sticky header (standard)", () => {
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
     expect(scroller).not.toBeNull();
     expect(scroller.contains(heading)).toBe(true);
-    // First in-flow child. The delay rail is NOT in here: its band is the panel
-    // container's own top inset, outside this scroller entirely.
-    const header = scroller.querySelector("[data-panel-header]") as HTMLElement;
-    expect(scroller.firstElementChild).toBe(header);
+    // First in-flow child is the sticky unit, and the header is inside it,
+    // under the delay rail's band.
+    const unit = scroller.querySelector(
+      "[data-panel-sticky-top]",
+    ) as HTMLElement;
+    expect(scroller.firstElementChild).toBe(unit);
+    expect(unit.contains(heading)).toBe(true);
   });
 
   it("sticks the header (position: sticky) so the title stays in view", () => {
     render(<Panel panelTitle="ALTITUDE">body</Panel>);
-    const header = document.querySelector("[data-panel-header]") as HTMLElement;
-    expect(getComputedStyle(header).position).toBe("sticky");
+    // The stickiness lives on the unit the header shares with the rail, so
+    // whatever holds the title in view holds the rail there too.
+    const unit = document.querySelector(
+      "[data-panel-sticky-top]",
+    ) as HTMLElement;
+    expect(getComputedStyle(unit).position).toBe("sticky");
   });
 
   it("renders exactly one heading and no scroll-away ghost", () => {
@@ -67,8 +77,11 @@ describe("Panel sticky header, one mechanism for the toolbar case", () => {
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
     // Reconciled into the sticky model: the heading now rides inside the scroller.
     expect(scroller.contains(heading)).toBe(true);
-    const header = document.querySelector("[data-panel-header]") as HTMLElement;
-    expect(getComputedStyle(header).position).toBe("sticky");
+    const unit = document.querySelector(
+      "[data-panel-sticky-top]",
+    ) as HTMLElement;
+    expect(unit.contains(heading)).toBe(true);
+    expect(getComputedStyle(unit).position).toBe("sticky");
     expect(document.querySelector("[data-panel-ghost]")).toBeNull();
     // The toolbar's controls ride along in the sticky header.
     expect(
@@ -88,6 +101,10 @@ describe("Panel sticky header, one mechanism for the toolbar case", () => {
     expect(document.querySelector("[data-panel-ghost]")).toBeNull();
     const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
     expect(scroller.contains(header)).toBe(false);
+    /* No sticky unit here, because nothing scrolls: the bleed body is fixed to
+       the tile, so the rail keeps the container's band beside this overlay
+       rather than joining a unit with nothing to stick to. */
+    expect(document.querySelector("[data-panel-sticky-top]")).toBeNull();
   });
 });
 

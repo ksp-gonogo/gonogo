@@ -45,16 +45,23 @@ function handleHasContent(handle: CommandHandle): boolean {
  * renders each handle's delay UI through `CommandDelay`. Takes no prop: it is
  * context-collecting, so a command widget passes nothing.
  *
- * **The band is RESERVED, not taken.** `PanelContainer` carries a top-only
- * inset sized for this rail, on every panel, whether or not that panel has a
- * command to show; the rail is the container's first child and pulls itself up
- * into that inset. So a command going up costs the widget nothing: the strip
- * the rail draws in was already there and stays there when the last command
- * clears. That is what makes the v3 brief's requirement satisfiable rather than
- * self-contradictory. Two earlier shapes tried to conjure the space instead,
- * one by pushing the title down whenever a rail appeared and one by drawing
- * over the sticky header and taking its clicks, and both were the same mistake:
- * the space the rail needs is a property of the widget, not of the traffic.
+ * **The band is RESERVED, not taken.** Every panel stands the same strip up at
+ * its own top edge whether or not it has a command to show. So a command going
+ * up costs the widget nothing: the strip the rail draws in was already there
+ * and stays there when the last command clears. That is what makes the v3
+ * brief's requirement satisfiable rather than self-contradictory. Two earlier
+ * shapes tried to conjure the space instead, one by pushing the title down
+ * whenever a rail appeared and one by drawing over the sticky header and taking
+ * its clicks, and both were the same mistake: the space the rail needs is a
+ * property of the widget, not of the traffic.
+ *
+ * WHICH box holds the band open depends on where the header is, because the
+ * rail travels with the header. In a headed panel the rail is the first row of
+ * `PanelStickyTop` inside the body scroller and its own `min-height` is the
+ * band. In a headless one, and under a `floatingHeader` (which paints over a
+ * bleed body that never scrolls), it is the container's first child and pulls
+ * itself up into the top-only inset `PanelContainer` reserves. Same height,
+ * same permanence, same place on screen.
  *
  * Collapsed, the rail is that strip in NORMAL FLOW inside the band (grazing
  * glows for discrete commands, a mini sparkline for a stream); with several
@@ -64,9 +71,13 @@ function handleHasContent(handle: CommandHandle): boolean {
  * Activating it (click / Enter / Space, native `<button>`; Esc collapses) PINS
  * it, and pinning GROWS the rail beyond the band: each command switches to its
  * fuller `expanded` view (the discrete list, the full-height stream graph with
- * its labels back), and because the rail is the container's first child, every
- * pixel it grows by pushes the Panel title and body DOWN. Content sliding is
- * the price of OPENING the rail, and it is only ever charged then.
+ * its labels back), and every pixel it grows by pushes the Panel title and body
+ * DOWN. Content sliding is the price of OPENING the rail, and it is only ever
+ * charged then. Opened while the body is ALREADY scrolled, the rail extends
+ * down over the scrolled content instead, since the sticky unit it heads is
+ * held at the scroller's top: the operator's scroll position is not yanked out
+ * from under them to make room.
+ *
  * `aria-pressed` / `aria-expanded` carry the state. Activating it AGAIN
  * (click / Enter / Space / Esc) un-pins and re-minifies it: pin is a true
  * toggle, not a one-way expand, and the pinned rail shows a small "▲"
@@ -157,13 +168,13 @@ export function PanelDelayRail() {
   const grown = pinned || (previewing && !suppressHoverPreview);
 
   /*
-   * There is no measured height to publish and nothing to observe. The rail is
-   * the panel container's first child, drawing inside the container's own top
-   * band, so growing it pushes the glow, the header and the body down by
+   * There is no measured height to publish and nothing to observe. The rail
+   * heads the sticky unit it shares with the header (or, headless, is the
+   * container's first child), so growing it moves the title and the body by
    * ordinary flow. The `--panel-rail-height` variable, the `ResizeObserver`
    * that fed it and the `PanelRailTarget` context that carried the element it
-   * was written onto were all machinery for a rail living INSIDE the scroller
-   * it had to move, and none of them survive the move out of it.
+   * was written onto were all machinery for a rail that had to tell a SEPARATE
+   * sticky header how far down to start. One element, no second offset.
    */
 
   // Stream(s) on top, discrete underneath (operator's v3 ordering): a stable
@@ -333,11 +344,16 @@ export function PanelDelayRail() {
 }
 
 /**
- * The rail's box, sitting IN the container's reserved top band: the negative
- * top margin pulls it up into that inset exactly, so collapsed it fills the
- * band and adds nothing to the panel's height, and every pixel it grows past
- * the band pushes the glow, the header and the body down. It holds the toggle
- * button and, once open, the outcome boxes under it.
+ * The rail's box. Collapsed it is exactly the band tall and adds nothing to the
+ * panel's height; every pixel it grows past the band pushes the header and the
+ * body down. It holds the toggle button and, once open, the outcome boxes under
+ * it.
+ *
+ * The negative top margin is for the CONTAINER placement (headless panel,
+ * floating header), where it pulls the box up into the top-only inset
+ * `PanelContainer` reserves. Inside the sticky unit there is no such inset to
+ * pull into and `PanelStickyTop` gives the margin back; the `min-height` below
+ * is what stands the band up in both.
  *
  * The band's permanence is the whole design. A rail that claimed space on
  * arrival pushed every watching widget's content down on a data transition; one
@@ -352,6 +368,16 @@ const PanelDelayRail__Frame = styled.div`
   /* Never let the container's flex column shrink this below its content: the
      grown rail takes its full height and the body gives up the difference. */
   flex: 0 0 auto;
+  /* FULLY OPAQUE, and that is load-bearing rather than decorative. In a headed
+     panel the rail rides inside the body's scroller as the first row of the
+     sticky unit (see PanelStickyTop in Panel.tsx), so the widget's own content
+     passes underneath it on every scroll. The sticky HEADER is transparent on
+     purpose and lets that content read faintly through, which is fine for a
+     title nobody misreads; a delay reading is the opposite case, and a
+     semi-transparent base ghosts rather than masks (the same reason the scroll
+     glow's mask layer is at full opacity). The same token the panel surface
+     already is, so nothing changes where the rail sits in the container band. */
+  background: var(--color-surface-panel);
   /* Up into the container's own top inset, which is the band. The two numbers
      are one declaration (PanelContainer's --panel-rail-band), so the strip and
      the room made for it cannot drift apart. */

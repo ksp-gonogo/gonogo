@@ -104,7 +104,7 @@ const SECTION_FILL_RULE = `
   }
 `;
 
-export const PanelContainer = styled.div`
+export const PanelContainer = styled.div<{ $railTravels?: boolean }>`
   /* Chrome only. The inset belongs to Panel.Body and the glow to Panel.Glow;
      this is the border, the surface and the clip, and nothing else. */
   background: var(--color-surface-panel);
@@ -156,6 +156,15 @@ export const PanelContainer = styled.div`
        distinguishable from a flat line */
   --panel-rail-band: var(--space-16, 16px);
   padding: var(--panel-rail-band) 0 0;
+  /* Given back when the rail TRAVELS WITH THE HEADER (see PanelStickyTop): the
+     band is then the first row of the sticky unit inside the body scroller, so
+     reserving it here as well would stand two bands at the panel's top edge.
+     The band itself is unchanged in size and in permanence, only in which box
+     holds it open; every other panel shape (headless, floating header,
+     hand-composed) still reserves it right here. Plain concatenation, NOT a
+     nested template literal: a backtick inside a styled template breaks the
+     parse and builds an empty dist. */
+  ${({ $railTravels }) => ($railTravels ? "padding-top: 0;" : "")}
   width: 100%;
   height: 100%;
   display: flex;
@@ -1062,6 +1071,16 @@ const ScrollAreaInner = styled.div`
 const ScrollOverflowGlow = styled.div<{
   $position: "top" | "bottom";
   $visible: boolean;
+  /**
+   * How far below the scroller's top edge the TOP glow starts. Non-zero exactly
+   * when the delay rail travels with the header inside the scroller: the rail
+   * band is opaque and has no scrolled content to mask, so a glow drawn behind
+   * it would spend its solid half on a strip that does not need one and hand
+   * the transparent header only the faded tail. Offsetting by the band puts the
+   * header back at the glow's own top, which is where it sat when the band was
+   * the container's padding.
+   */
+  $topOffset?: string;
 }>`
   position: absolute;
   /* Flush with the scroller's own edges. There is no pad-var escape hatch: the
@@ -1071,7 +1090,8 @@ const ScrollOverflowGlow = styled.div<{
      Deleting that nesting is the fix; four widgets had it. */
   left: 0;
   right: 0;
-  ${({ $position }) => ($position === "top" ? "top: 0;" : "bottom: 0;")}
+  ${({ $position, $topOffset }) =>
+    $position === "top" ? `top: ${$topOffset ?? "0"};` : "bottom: 0;"}
   /* 44px is the container both layers fade within; each layer sets its OWN
      reach through its gradient stops below (mask ~50%, affordance ~40%).
      Height is outside the ratchet's scanned properties, so it stays a
@@ -1268,6 +1288,7 @@ const PanelSplit__Box = styled.div<{
   $axis: PanelSidebarAxis;
   $side: "start" | "end";
   $size: string;
+  $railBand?: boolean;
 }>`
   flex: 1;
   min-height: 0;
@@ -1298,6 +1319,21 @@ const PanelSplit__Box = styled.div<{
      said end would be a silently broken hand-composition. */
   ${({ $side }) =>
     $side === "start" ? "& > [data-panel-sidebar] { order: -1; }" : ""}
+
+  /* The rail band, given to the sidebar track when the rail travels with the
+     header. The band is the WIDGET's top inset, uniform across every panel, and
+     inside a sticky unit it belongs to the BODY's scroller alone; the sidebar
+     is a sibling track that cannot see it, so without this the one region of a
+     panel with no band would be the sidebar, starting flush against the border
+     while the body beside it kept the strip. Same reasoning, and the same
+     owner, as the order and inset rules above: exactly one place knows the
+     arrangement. */
+  ${({ $railBand }) =>
+    $railBand
+      ? `& > [data-panel-sidebar] {
+           padding-block-start: var(--panel-rail-band);
+         }`
+      : ""}
 
   /* Give back the sidebar's inset on the edge that faces the BODY, which pays a
      16px inset of its own there: two of them make the gutter between the two
@@ -1331,6 +1367,13 @@ export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
    * block axis. Defaults to `14rem` and `40%` respectively.
    */
   size?: string;
+  /**
+   * The body track holds the delay rail's band inside its own scroller (the
+   * rail travels with the header), so give the SIDEBAR track a matching top
+   * inset. Without it the sidebar is the one region of the panel starting flush
+   * against the border while every other region keeps the widget's band.
+   */
+  railBand?: boolean;
 }
 
 /**
@@ -1355,6 +1398,7 @@ export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
 export function PanelSplit({
   side = "end",
   size,
+  railBand,
   children,
   ...rest
 }: PanelSplitProps) {
@@ -1396,6 +1440,7 @@ export function PanelSplit({
       $axis={axis}
       $side={side}
       $size={resolvedSize}
+      $railBand={railBand}
       {...rest}
     >
       {children}
@@ -1547,8 +1592,18 @@ const PanelGlow__Root = styled.div`
  */
 export function PanelGlow({
   children,
+  railBandAbove,
   ...rest
-}: ComponentPropsWithoutRef<"div">) {
+}: ComponentPropsWithoutRef<"div"> & {
+  /**
+   * The scroller's first row is the delay rail's opaque band, because the rail
+   * travels with the header (see `PanelStickyTop`). Starts the TOP glow below
+   * that band, so the transparent header sits at the glow's own top edge and
+   * keeps the backing it had when the band was the container's padding. Off for
+   * every other panel shape, where the band is not inside the scroller at all.
+   */
+  railBandAbove?: boolean;
+}) {
   const ctx = useContext(PanelCtx);
   const el = ctx?.scroller ?? null;
 
@@ -1577,7 +1632,11 @@ export function PanelGlow({
   return (
     <PanelGlow__Root {...rest}>
       {children}
-      <ScrollOverflowGlow $position="top" $visible={overflow.top} />
+      <ScrollOverflowGlow
+        $position="top"
+        $visible={overflow.top}
+        $topOffset={railBandAbove ? "var(--panel-rail-band)" : undefined}
+      />
       <ScrollOverflowGlow $position="bottom" $visible={overflow.bottom} />
     </PanelGlow__Root>
   );
@@ -1896,34 +1955,78 @@ export const PanelFooter = styled.div`
   background: var(--color-surface-panel);
 `;
 
-/* The standard header, reparented as the FIRST in-flow child of the scroller
-   so title and body scroll as one unit. The negative margins cancel the body's
-   own top/side inset for the header alone, so `PanelTitle`'s own inset governs
-   and the title lands exactly where the pinned band put it (top-left, same
-   inset); only the body content below keeps the body's padding. `PanelHeader`
-   itself is untouched, this is purely how `PanelRoot` assembles it. */
-const PanelStickyHeader = styled(PanelHeader)`
-  /* Sticks at the top of the body scroller while the body scrolls under it, so
-     title + aside stay in view without a scroll-away ghost. It stays
-     TRANSPARENT: the panel glow under it is its backing, so scrolled content
-     reads faintly through/behind it rather than the header being an opaque bar.
-     z-index lifts it over the scrolling content and the overflow glow.
-
-     It knows nothing about the delay rail any more. The rail's band is the
-     panel container's own top padding, OUTSIDE this scroller, so the header
-     starts below it and stays below it however tall the rail grows: no
-     published height, no offset to track. */
+/**
+ * The delay rail and the header, as ONE sticky unit at the top of the body
+ * scroller.
+ *
+ * The rail used to be the panel CONTAINER's first child, outside this scroller
+ * and permanently at the panel's top edge, which put it in the right place at
+ * every scroll offset without ever being attached to the header. That is
+ * always-visible-at-the-top, and it is not the same thing as travelling with
+ * the header: the two were pinned by different mechanisms in different boxes
+ * and stayed adjacent by arithmetic. Holding both in one sticky element makes
+ * "the rail sits on the header" true by construction, so nothing can move one
+ * without moving the other.
+ *
+ * It also retires the last reason the deleted `--panel-rail-height` machinery
+ * existed. That variable, its `ResizeObserver` and the `PanelRailTarget`
+ * context were all there so a rail inside the scroller could tell a SEPARATE
+ * sticky header how far down to start. With one element there is no second
+ * offset to publish: the rail is the unit's first row and the header is its
+ * second, and a growing rail simply makes the unit taller.
+ *
+ * Only for the in-flow header. A `floatingHeader` paints over a non-scrolling
+ * bleed body and there is no scroller for a sticky unit to stick in, and a
+ * headless panel has no header to travel with; both keep the rail as the
+ * container's first child, in the band the container reserves. The rule is
+ * that the rail goes wherever the header is.
+ */
+const PanelStickyTop = styled.div`
   position: sticky;
   /* Reach the scroller's true top edge, cancelling the body's own top inset. */
   top: calc(-1 * var(--space-8, 8px));
   z-index: 2;
-  /* The panel's top inset is the rail band above this scroller, so the header
+  /* Cancel the body's inset so the unit spans the full panel width and lands at
+     the scroller's true top; only the body content below keeps the inset. */
+  margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
+  display: flex;
+  flex-direction: column;
+  /* Never squeeze: at very short widget heights the scroller's flex column
+     would otherwise crush the band and the title toward zero. */
+  flex-shrink: 0;
+
+  /* The rail's own negative margin is how it pulls up into the CONTAINER's
+     reserved padding. There is no padding to pull into here, the band is this
+     unit's own first row, so it is given back. The band's height is unchanged:
+     the rail frame's own min-height is what stands it up either way. */
+  & > [data-panel-rail-frame] {
+    margin-top: 0;
+  }
+`;
+
+/* The standard header, reparented into the sticky unit above as the FIRST
+   in-flow child of the scroller, so rail, title and body scroll as one unit.
+   The unit's negative margins cancel the body's own top/side inset for the
+   header alone, so `PanelTitle`'s own inset governs and the title lands exactly
+   where the pinned band put it (top-left, same inset); only the body content
+   below keeps the body's padding. `PanelHeader` itself is untouched, this is
+   purely how `PanelRoot` assembles it. */
+const PanelStickyHeader = styled(PanelHeader)`
+  /* The sticky position, the z lift and the inset cancellation all live on
+     PanelStickyTop, which is the box that carries the rail as well. What stays
+     here is what belongs to the HEADER in that placement.
+
+     It stays TRANSPARENT: the panel glow under it is its backing, so scrolled
+     content reads faintly through/behind it rather than the header being an
+     opaque bar. The rail above it is the opposite, fully opaque, because a
+     reading that content can be read through is a reading that can be misread;
+     that is also why the top glow starts at the header rather than at the unit
+     (see railBandAbove on PanelGlow), so the header keeps exactly the backing
+     it has always had. */
+  /* The panel's top inset is the rail band above this header, so the header
      does not carry one of its own here. See PanelHeader__Row, which does carry
      it for every OTHER placement. */
   padding-top: 0;
-  /* Cancel the body's inset so the header spans the full panel width and lands
-     at the scroller's true top; only the body content below keeps the inset. */
-  margin: calc(-1 * var(--space-8, 8px)) calc(-1 * var(--space-16, 16px)) 0;
   /* The sticky header is transparent, and the scroll glow behind it is a
      uniform lighter tint that affords scrolling without masking. So the ONE header
      designed to read over the glow AND over scrolled content gets a brighter
@@ -2185,6 +2288,16 @@ function PanelRoot({
     );
   }
 
+  /**
+   * Whether the delay rail travels with the header inside the body scroller.
+   * True for every in-flow header, which is every headed panel but the floating
+   * one; that one paints over a bleed body with nothing to scroll, so its rail
+   * stays in the container's band. Four boxes read it and they have to agree:
+   * the container gives its band back, the split hands the band to the sidebar
+   * track instead, the glow starts below it, and the sticky unit holds it.
+   */
+  const railTravels = !floatingHeader;
+
   // A `floatingHeader` is the one overlay case: it paints over a non-scrolling
   // `bleed` body (a map/globe/plot fills the tile) rather than sticking above
   // scrolling content. Every OTHER header, standard or with a `panelToolbar`, is
@@ -2210,12 +2323,17 @@ function PanelRoot({
 
   const body = (
     <PanelBody fitToSize={fitToSize} bleed={floatingHeader}>
-      {/* The sticky header is the scroller's first in-flow child: it sticks at
-          the scroller's top so title + aside (+ toolbar) stay in view while the
-          body scrolls under it. The delay rail is NOT in here, it draws in the
-          container's own top band above this scroller. Only a floating
-          (overlay) header lives outside the scroller. */}
-      {!floatingHeader && header}
+      {/* The rail and the header, as one sticky unit and the scroller's first
+          in-flow child: it sticks at the scroller's top so the band, the title
+          and the aside (+ toolbar) stay in view together while the body scrolls
+          under them. Only a floating (overlay) header lives outside the
+          scroller, and its rail stays outside with it. */}
+      {!floatingHeader && (
+        <PanelStickyTop data-panel-sticky-top="">
+          <PanelDelayRail />
+          {header}
+        </PanelStickyTop>
+      )}
       {fitToSize ? <PanelFitBody>{content}</PanelFitBody> : content}
       {/* The universal `${componentId}.sections` augment segment: body sections
           an Uplink appends to ANY widget, with the widget declaring, naming and
@@ -2250,8 +2368,9 @@ function PanelRoot({
       // No sidebar means no split either: the body stays a direct child of the
       // glow, the exact element tree every existing widget already renders. The
       // header rides the body scroller here exactly as the standard case, so
-      // the sidebar's own ScrollArea is untouched.
-      <PanelSplit side={sidebarSide} size={sidebarSize}>
+      // the sidebar's own ScrollArea is untouched, and `railBand` hands the
+      // sidebar track the band the rail is holding open inside that scroller.
+      <PanelSplit side={sidebarSide} size={sidebarSize} railBand={railTravels}>
         {floatingBody}
         {/* Written after the body on purpose; `sidebarSide` moves it visually
             and never in the DOM. */}
@@ -2261,14 +2380,15 @@ function PanelRoot({
 
   return (
     <PanelProviders>
-      <PanelContainer {...rest}>
-        {/* The signal-delay rail, drawing in the container's own reserved top
-            band and nowhere else. It is the container's first child rather than
-            the scroller's so that the band belongs to the WIDGET: it is above
-            the header, above any bleed body, and outside the box that would
-            clip it. */}
-        <PanelDelayRail />
-        <PanelGlow>
+      <PanelContainer $railTravels={railTravels} {...rest}>
+        {/* A FLOATING header only. It paints over a bleed body that does not
+            scroll, so there is no sticky unit for the rail to join and it draws
+            in the container's own reserved top band instead: above the header,
+            above the bleed body, and outside the box that would clip it. Every
+            other headed panel puts the rail in the sticky unit with the header
+            (see `body`). */}
+        {floatingHeader && <PanelDelayRail />}
+        <PanelGlow railBandAbove={railTravels}>
           {/* Only a floating (overlay) header sits outside the scroller, as a
               sibling above it painting over the bleed body. Every other header
               is a sticky child of the scroller (in `body`), so there is no
