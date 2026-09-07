@@ -156,6 +156,35 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(1_000_000.0, Funding.Instance!.Funds);
         }
 
+        /// <summary>
+        /// The free rocket. RP-1's own total answered, and answered with something
+        /// that is not a number; substituted at zero it priced the vehicle at
+        /// nothing, asked the currency query whether the career could afford a
+        /// charge of nought, and got the yes that put an unpriced vehicle on the
+        /// build list.
+        /// </summary>
+        [Fact]
+        public void Refuses_a_vehicle_whose_own_total_cost_is_not_a_number()
+        {
+            var lc = Centre();
+            var original = new VesselProjectWithUnpriceableTotal
+            {
+                shipName = "Atlas",
+                cost = 40_000f,
+                buildPoints = 1000.0,
+            };
+            original.SetComplex(lc);
+            lc.Warehouse.Add(original);
+
+            var result = Repeat(original.KCTPersistentID);
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Contains("price", result.Detail, StringComparison.OrdinalIgnoreCase);
+            Assert.Empty(lc.BuildList);
+            Assert.Equal(1_000_000.0, Funding.Instance!.Funds);
+        }
+
         [Fact]
         public void Refuses_a_vehicle_no_complex_holds()
         {

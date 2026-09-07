@@ -121,6 +121,16 @@ namespace RP0
             }
         }
     }
+
+    /// <summary>
+    /// A strategy that will not say what level it is committed at. The
+    /// Administration Building caps that level, so the one comparison the
+    /// off-screen path makes has a ceiling and no figure to hold against it.
+    /// </summary>
+    public class StrategyRP0WithUnreadableFactor : StrategyRP0
+    {
+        public new double Factor => throw new System.InvalidOperationException("Factor unreadable");
+    }
 }
 
 namespace RP0.Programs

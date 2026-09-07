@@ -371,17 +371,33 @@ namespace GonogoRp1Uplink
             var integrating = Count(Rp1Types.Member(complex, "BuildList"));
             if (held > 0 || integrating > 0)
             {
+                // Only the counts that were READ are named. The other list is the
+                // one that entered this branch, so a substituted zero beside it
+                // would send an operator to look at an empty warehouse that was
+                // never read rather than at the vehicles they have to scrap.
+                var counted = new List<string>();
+                if (held != null)
+                {
+                    counted.Add(Plural(held.Value, "finished vehicle", "finished vehicles"));
+                }
+                if (integrating != null)
+                {
+                    counted.Add(Plural(integrating.Value, "vehicle being integrated", "vehicles being integrated"));
+                }
                 return Refuse(CommandResult.Fail(
                     CommandErrorCode.ModeUnavailable,
-                    name + " still holds " + Plural(held ?? 0, "finished vehicle", "finished vehicles")
-                    + " and " + Plural(integrating ?? 0, "vehicle being integrated", "vehicles being integrated")
+                    name + " still holds " + string.Join(" and ", counted.ToArray())
                     + ". Scrap them first: dismantling would destroy them"));
             }
 
             // Read BEFORE the delete, which is what destroys them.
             var efficiency = EfficiencyAtRisk(complex, lcId, out var survivesWith);
-            var padCount = Count(Rp1Types.Member(complex, "LaunchPads")) ?? 0;
-            var engineers = Rp1Types.Member(complex, "Engineers") as int? ?? 0;
+            // Both are REPORTED and neither is acted on, so an unreadable one costs
+            // its own line of the answer and nothing else. Absent rather than zero:
+            // "no pads were removed" and "no engineers came free" are two things a
+            // dismantle that removed pads and freed engineers did not do.
+            var padCount = Count(Rp1Types.Member(complex, "LaunchPads"));
+            var engineers = Rp1Types.Member(complex, "Engineers") as int?;
 
             if (!TryDeletePads(complex, name, out var padRefusal))
             {

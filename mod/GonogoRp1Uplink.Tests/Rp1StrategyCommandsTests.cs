@@ -33,6 +33,9 @@ namespace GonogoRp1Uplink.Tests
             RP0.SpaceCenterManagement.Instance = null;
             ProgramHandler.Instance = null;
             StrategyCallLog.Reset();
+            // The commit ceiling reads off KSP's own difficulty table, so a test
+            // that stands one up must not leave it standing for the next.
+            GameVariables.Instance = null;
         }
 
         /// <summary>A career with one leader on the roster and both singletons live.</summary>
@@ -290,6 +293,53 @@ namespace GonogoRp1Uplink.Tests
 
             Assert.True(result.Success);
             Assert.Equal(0.5, leader.Factor);
+        }
+
+        /// <summary>
+        /// The Administration Building's cap is the one arm of
+        /// <c>CanBeActivated</c> this path reproduces by comparing numbers rather
+        /// than asking RP-1, so it is the one arm a missing number can walk
+        /// through. Substituted at zero the strategy cleared every ceiling there
+        /// is, and the commitment was made at a level nobody had read.
+        /// </summary>
+        [Fact]
+        public void Refuses_a_strategy_that_will_not_say_what_level_it_is_committed_at()
+        {
+            var leader = new RP0.StrategyRP0WithUnreadableFactor
+            {
+                Config = new Strategies.StrategyConfig { Name = "leaderKorolev", Title = "Korolev" },
+            };
+            Seed(leader);
+            GameVariables.Instance = new GameVariables { StrategyCommitRange = 0.5f };
+
+            var result = Activate(leader.Config.Name);
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.NotClearToProceed, result.ErrorCode);
+            // The clause only this arm produces. A bare failure would also be
+            // satisfied by the catch around the whole eligibility walk, which is
+            // a different refusal about a different thing.
+            Assert.Contains("commitment level", result.Detail);
+            Assert.Empty(RP0.Programs.StrategyCallLog.Calls);
+        }
+
+        /// <summary>
+        /// And the ceiling still permits when IT is the unreadable half. That is
+        /// no known limit rather than a known limit with nothing to check against
+        /// it, and refusing there would refuse every activation on a save whose
+        /// Administration level cannot be read.
+        /// </summary>
+        [Fact]
+        public void Activates_when_the_ceiling_itself_cannot_be_read()
+        {
+            var leader = new RP0.StrategyRP0WithUnreadableFactor
+            {
+                Config = new Strategies.StrategyConfig { Name = "leaderKorolev", Title = "Korolev" },
+            };
+            Seed(leader);
+            GameVariables.Instance = null;
+
+            Assert.True(Activate(leader.Config.Name).Success);
         }
     }
 }

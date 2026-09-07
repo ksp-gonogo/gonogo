@@ -381,7 +381,9 @@ namespace GonogoRp1Uplink
                     CommandErrorCode.NotReady,
                     $"\"{shipName}\" is in the warehouse at {vehicle.ComplexName} and has not been rolled out to a pad");
             }
-            if (!rollout.Complete)
+            // Only a rollout that SAYS it is unfinished refuses. One that would not
+            // say permits, the same as a rollout nobody could measure at all.
+            if (rollout.Complete == false)
             {
                 return GateVerdict.Fail(
                     CommandErrorCode.NotReady, $"\"{shipName}\" is still rolling out to {PadWords(rollout.PadId)}");
@@ -586,7 +588,7 @@ namespace GonogoRp1Uplink
                 get
                 {
                     var op = OperationOfType("Rollback");
-                    return op == null || op.Complete ? null : op;
+                    return op == null || op.Complete != false ? null : op;
                 }
             }
 
@@ -600,7 +602,7 @@ namespace GonogoRp1Uplink
             {
                 foreach (var op in Operations())
                 {
-                    if (op.Type == "Reconditioning" && !op.Complete
+                    if (op.Type == "Reconditioning" && op.Complete == false
                         && string.Equals(op.PadId, padName, StringComparison.Ordinal))
                     {
                         return true;
@@ -664,11 +666,23 @@ namespace GonogoRp1Uplink
                 // through the call, so nothing on RP-1's side is invoked. A
                 // reversed operation counts down to zero; every other one counts
                 // up to its build points.
-                var progress = Rp1Types.ReadDouble(op, "progress") ?? 0.0;
-                var buildPoints = Rp1Types.ReadDouble(op, "BP") ?? 0.0;
-                Complete = Rp1Types.ReadBool(op, "IsReversed") == true
-                    ? progress <= 0.0
-                    : progress >= buildPoints;
+                //
+                // ABSENT when either side of that comparison is, because a
+                // substituted zero lies in BOTH directions: an invented zero
+                // progress reports a finished rollout as still moving and refuses
+                // a launch RP-1 would allow, and an invented zero BP reports an
+                // operation that has not started as finished. Every reader below
+                // treats the unknown the way this file's header says a comparison
+                // that cannot be made must be treated: it permits, and the launch
+                // itself asks RP-1.
+                var progress = Rp1Types.ReadDouble(op, "progress");
+                var buildPoints = Rp1Types.ReadDouble(op, "BP");
+                var reversed = Rp1Types.ReadBool(op, "IsReversed") == true;
+                Complete = progress == null || (!reversed && buildPoints == null)
+                    ? (bool?)null
+                    : reversed
+                        ? progress.Value <= 0.0
+                        : progress.Value >= buildPoints!.Value;
             }
 
             /// <summary>The <c>RolloutReconType</c> member name, e.g. <c>Rollout</c>.</summary>
@@ -676,7 +690,8 @@ namespace GonogoRp1Uplink
 
             public string? PadId { get; }
 
-            public bool Complete { get; }
+            /// <summary>Null when the operation would not say how far along it is.</summary>
+            public bool? Complete { get; }
 
             public bool Mine(string shipId) =>
                 shipId.Length > 0

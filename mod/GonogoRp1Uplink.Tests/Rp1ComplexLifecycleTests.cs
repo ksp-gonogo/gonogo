@@ -63,14 +63,16 @@ namespace GonogoRp1Uplink.Tests
         private static LaunchComplex Complex(
             string name = "LC-1",
             int pads = 2,
-            LaunchComplexType type = LaunchComplexType.Pad)
+            LaunchComplexType type = LaunchComplexType.Pad,
+            LaunchComplex? instance = null)
         {
-            var lc = new LaunchComplex
-            {
-                Name = name,
-                LcTypeValue = type,
-                IsOperational = true,
-            };
+            // The caller may bring its own complex, which is how a subclass that
+            // will not answer for one of its members gets the same centre wiring
+            // as every other case here.
+            var lc = instance ?? new LaunchComplex();
+            lc.Name = name;
+            lc.LcTypeValue = type;
+            lc.IsOperational = true;
             lc.StatsValue.Name = name;
             lc.StatsValue.lcType = type;
 
@@ -214,6 +216,47 @@ namespace GonogoRp1Uplink.Tests
             // it: switching afterwards would land on an index the removal shifted.
             Assert.Equal(1, ksc.SwitchAwayCalls);
             Assert.Same(lc, Assert.Single(SCMEvents.OnLCDismantled!.Fired));
+        }
+
+        /// <summary>
+        /// The two figures a dismantle REPORTS, absent rather than nought when the
+        /// complex would not say. Substituted, a dismantle that removed two pads
+        /// and freed fourteen engineers answered that it had done neither, and the
+        /// only place either number exists after the delete is this payload.
+        /// </summary>
+        [Fact]
+        public void A_dismantle_reports_no_crew_freed_rather_than_none_when_the_count_will_not_read()
+        {
+            var lc = Complex(pads: 2, instance: new LaunchComplexWithUnreadableCrew());
+            SCMEvents.CreateLifecycleEvents();
+
+            var result = Dismantle(lc);
+
+            Assert.True(result.Success);
+            Assert.Null(result.Payload!["engineersFreed"]);
+            // The pad count read perfectly well, and still says so: one unreadable
+            // member costs its own line of the answer and nothing else.
+            Assert.Equal(2, result.Payload!["padsRemoved"]);
+        }
+
+        /// <summary>
+        /// The last guard before the delete, in the ONE state it exists for: RP-1's
+        /// own bool says the complex is free while its warehouse holds a vehicle.
+        /// The refusal names what it counted and stays silent about what it could
+        /// not; substituted, it announced "0 vehicles being integrated" about a
+        /// list it never read.
+        /// </summary>
+        [Fact]
+        public void A_dismantle_refusal_names_only_the_vehicles_it_could_count()
+        {
+            var lc = Complex(instance: new LaunchComplexThatDisagreesWithItsOwnLists());
+
+            var result = Dismantle(lc);
+
+            Assert.False(result.Success);
+            Assert.Contains("1 finished vehicle", result.Detail);
+            Assert.DoesNotContain("being integrated", result.Detail);
+            Assert.Contains(lc, lc.KSC!.LaunchComplexes);
         }
 
         [Fact]

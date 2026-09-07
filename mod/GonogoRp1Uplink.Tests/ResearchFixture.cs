@@ -417,7 +417,16 @@ public class GameVariables
         Instance = new GameVariables();
     }
 
+    /// <summary>
+    /// The most of a strategy a career may commit to, which the Administration
+    /// screen reads at its own level and the off-screen activation has to ask for
+    /// itself. Whatever level it is asked at, as with the science ceiling above.
+    /// </summary>
+    public float StrategyCommitRange = 1f;
+
     public virtual float GetScienceCostLimit(float RnDnormLevel) => ScienceCostLimit;
+
+    public virtual float GetStrategyCommitRange(float adminNormLevel) => StrategyCommitRange;
 }
 
 /// <summary>

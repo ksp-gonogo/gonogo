@@ -212,6 +212,17 @@ namespace RP0
         public new double BP => throw new InvalidOperationException("BP unreadable");
     }
 
+    /// <summary>
+    /// A move that will not say how far along it is. Its build points still read,
+    /// so the comparison has one side and not the other, which is the half a
+    /// substituted zero used to answer: it reported a finished rollout as still
+    /// moving and refused the launch.
+    /// </summary>
+    public class ReconRolloutProjectWithUnreadableProgress : ReconRolloutProject
+    {
+        public new double progress => throw new InvalidOperationException("progress unreadable");
+    }
+
     public class ReconRolloutProject : LCOpsProject
     {
         public enum RolloutReconType
@@ -537,6 +548,20 @@ namespace RP0
         public new float cost => throw new InvalidOperationException("cost unreadable");
 
         public new float mass => throw new InvalidOperationException("mass unreadable");
+    }
+
+    /// <summary>
+    /// A vehicle whose total cost comes back as something no reader can turn into
+    /// a number, which is what a retyped <c>GetTotalCost</c> looks like from the
+    /// outside: the call SUCCEEDS and its answer is not a price.
+    ///
+    /// <para>Retyped rather than thrown deliberately. A throw already refuses,
+    /// through the catch that wraps the whole pricing walk; the reading that got
+    /// past every guard was the one that came back and could not be read.</para>
+    /// </summary>
+    public class VesselProjectWithUnpriceableTotal : VesselProject
+    {
+        public new decimal GetTotalCost() => 40_000m;
     }
 
     /// <summary>
@@ -1321,6 +1346,27 @@ namespace RP0
     {
         public new Dictionary<string, object> ResourcesHandled =>
             new Dictionary<string, object> { ["LqdOxygen"] = "plenty" };
+    }
+
+    /// <summary>
+    /// A complex whose own gate disagrees with its own lists, which is the ONE
+    /// state the dismantle's last guard exists for: <c>CanDismantle</c> answers
+    /// yes off an empty warehouse while the warehouse itself holds a vehicle, and
+    /// the build list beside it will not answer at all.
+    ///
+    /// <para>Built as a divergent OBJECT rather than by letting a test set the
+    /// bool, which <see cref="LaunchComplex.CanModifyButton"/>'s own remarks rule
+    /// out: the point there is that a test cannot invent a refusal its state does
+    /// not support, and this invents the opposite, an agreement the state does not
+    /// support, which is what the guard is written against.</para>
+    /// </summary>
+    public class LaunchComplexThatDisagreesWithItsOwnLists : LaunchComplex
+    {
+        public new List<VesselProject> Warehouse { get; } =
+            new List<VesselProject> { new VesselProject { shipName = "Atlas 3" } };
+
+        public new List<VesselProject> BuildList =>
+            throw new InvalidOperationException("BuildList unreadable");
     }
 
     /// <summary>A centre whose hired roster cannot be read; the other half of the same subtraction.</summary>

@@ -205,6 +205,37 @@ namespace GonogoRp1Uplink.Tests
         }
 
         /// <summary>
+        /// A rollout that will not say how far along it is refuses NOTHING.
+        ///
+        /// <para>Substituted at zero progress against build points that read
+        /// perfectly well, the comparison came out "not finished" and the gate
+        /// held a vehicle on the pad with a sentence about a rollout it had not
+        /// measured. This file's header is what decides the direction: a
+        /// comparison that cannot be made permits, and the launch asks RP-1
+        /// itself.</para>
+        /// </summary>
+        [Fact]
+        public void ARolloutThatWillNotSayHowFarAlongItIsDoesNotRefuse()
+        {
+            var lc = Centre();
+            var vp = Vehicle();
+            lc.Warehouse.Add(vp);
+            lc.Recon_Rollout.Add(new ReconRolloutProjectWithUnreadableProgress
+            {
+                associatedID = vp.shipID.ToString(),
+                RRType = ReconRolloutProject.RolloutReconType.Rollout,
+                launchPadID = "Pad A",
+                BP = 100.0,
+            });
+
+            // The rolled-out rule itself, named rather than reached through the
+            // set: it is the only one that reads the operation's progress, and a
+            // pass on the whole set could come from any of them.
+            Assert.Equal(GateOutcome.Pass, Ask(Rp1LaunchGate.RolledOut).Outcome);
+            Assert.Equal(GateOutcome.Pass, AskAll().Outcome);
+        }
+
+        /// <summary>
         /// A rollout belonging to a DIFFERENT vehicle does not launch this one.
         /// RP-1 associates the operation by the vehicle's shipID, and matching on
         /// the pad alone would fly whatever happened to be standing there.
