@@ -228,10 +228,6 @@ const LOCAL_FORMATTER_DEBT: Record<string, { count: number; why: string }> = {
     count: 1,
     why: "not a quantity: maps a stream status enum to a word",
   },
-  "packages/ui-kit/src/CommandDelay/CameraSetpointInput.tsx": {
-    count: 1,
-    why: "not a quantity: pins an input's own edit-buffer precision, not a readout",
-  },
   "packages/ui/src/LineChart.tsx": {
     count: 1,
     why: "not a quantity: an unlabelled y-axis tick on a caller-supplied series",

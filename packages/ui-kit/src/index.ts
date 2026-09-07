@@ -136,12 +136,6 @@ export {
   useCommandButton,
 } from "./CommandButton/CommandButton";
 export {
-  type CameraSetpoint,
-  type CameraSetpointBounds,
-  CameraSetpointInput,
-  type CameraSetpointInputProps,
-} from "./CommandDelay/CameraSetpointInput";
-export {
   CommandDelay,
   type CommandDelayHandle,
   type CommandDelayProps,
