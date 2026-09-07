@@ -249,14 +249,34 @@ namespace GonogoPrincipiaUplink
                         + "Switch the burn to Cartesian in-game first.");
                 }
 
+                // A VALUE fault, not a shape one, and the difference decides what an
+                // operator does next. The shape was tested at the top of this method
+                // and refused there, so a null triple here is a component the
+                // producer holds and this Uplink cannot express: NaN or an infinity,
+                // which is what a singular manoeuvre reads as.
+                //
+                // Refused only where it is actually needed. An edit KEEPS whichever
+                // components it does not state, so an unreadable triple is fatal to
+                // a partial edit and irrelevant to a complete one: stating all three
+                // overwrites every slot, which is the one move that rescues a burn
+                // that has gone singular, and refusing it would leave an operator
+                // with a plan they can see and cannot mend.
                 var current = Fields.DeltaV(burn);
-                if (current == null)
+                var statesEveryComponent =
+                    edit.DeltaVTangent.HasValue && edit.DeltaVNormal.HasValue
+                    && edit.DeltaVBinormal.HasValue;
+                if (current == null && !statesEveryComponent)
                 {
-                    return ShapeChanged(PrincipiaBurnStruct.XyzField);
+                    return PrincipiaWriteResult.Refused(
+                        PrincipiaWriteRefusal.ValueNotFinite,
+                        "This burn's Dv is not a finite triple, and an edit keeps whichever "
+                        + "components it does not state, so there is nothing to keep. Principia "
+                        + "reports that as a singular manoeuvre rather than aborting on it. "
+                        + "State all three components, or mend the burn in-game.");
                 }
-                var tangent = edit.DeltaVTangent ?? current.Value.X;
-                var normal = edit.DeltaVNormal ?? current.Value.Y;
-                var binormal = edit.DeltaVBinormal ?? current.Value.Z;
+                var tangent = edit.DeltaVTangent ?? current!.Value.X;
+                var normal = edit.DeltaVNormal ?? current!.Value.Y;
+                var binormal = edit.DeltaVBinormal ?? current!.Value.Z;
                 if (!IsFinite(tangent) || !IsFinite(normal) || !IsFinite(binormal))
                 {
                     return NotFinite("Dv component");

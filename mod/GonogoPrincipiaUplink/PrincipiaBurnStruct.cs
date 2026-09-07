@@ -255,7 +255,23 @@ namespace GonogoPrincipiaUplink
         }
 
         /// <summary>
-        /// The burn's Δv triple, or null when the intensity could not be read.
+        /// The burn's Δv triple, or null when the intensity, the xyz, or any ONE of
+        /// the three components could not be read.
+        ///
+        /// <para><b>The component case is the reachable one and it is not a shape
+        /// change.</b> <see cref="MissingBurnField"/> already refuses a burn whose
+        /// xyz has lost a member, so a moved field is caught above this. What is
+        /// left is a component the producer genuinely holds and this Uplink cannot
+        /// express: <see cref="ReflectedMembers.AsDouble"/> answers null for NaN and
+        /// for either infinity, which is the state Principia calls a singular
+        /// manoeuvre and reports rather than aborting on.</para>
+        ///
+        /// <para><b>All three go, not the one.</b> A Δv of (120, 0, -30) standing in
+        /// for one whose middle component is not a number is a burn nobody planned,
+        /// and handing back two thirds of a vector while still calling it the vector
+        /// makes the same claim in a quieter voice. The published magnitude already
+        /// required all three, so this is the rule the rest of the read path was
+        /// written to.</para>
         /// </summary>
         public PrincipiaVector? DeltaV(object burn)
         {
@@ -269,10 +285,14 @@ namespace GonogoPrincipiaUplink
             {
                 return null;
             }
-            return new PrincipiaVector(
-                GetDouble(xyz, XField) ?? 0.0,
-                GetDouble(xyz, YField) ?? 0.0,
-                GetDouble(xyz, ZField) ?? 0.0);
+            var x = GetDouble(xyz, XField);
+            var y = GetDouble(xyz, YField);
+            var z = GetDouble(xyz, ZField);
+            if (x == null || y == null || z == null)
+            {
+                return null;
+            }
+            return new PrincipiaVector(x.Value, y.Value, z.Value);
         }
 
         /// <summary>The intensity's coordinate system, as the producer's own enum
