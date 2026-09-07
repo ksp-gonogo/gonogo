@@ -52,8 +52,12 @@ function formatElapsed(ms: number): string {
 const Wrap = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-8) var(--space-16);
+  /* Three levels of the same ladder, so the grouping reads without counting
+     pixels: the OFFLINE label and the source list are different kinds of thing
+     (section), one source is separated from the next by related, and a
+     source's name and its status are one entry (tight). */
+  gap: var(--gap-section);
+  padding: var(--inset-panel);
   background: rgba(120, 30, 30, 0.92);
   border: 1px solid var(--color-status-nogo-bg);
   border-radius: var(--radius-pill);
@@ -122,13 +126,13 @@ const Label = styled.span`
 
 const List = styled.div`
   display: flex;
-  gap: var(--space-12);
+  gap: var(--gap-related);
   flex-wrap: nowrap;
 `;
 
 const Entry = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-tight);
   align-items: baseline;
 `;
 

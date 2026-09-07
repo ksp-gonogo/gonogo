@@ -190,9 +190,9 @@ const NodeLi = styled.li<{ $completed: boolean }>`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  column-gap: var(--space-8);
-  row-gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
+  column-gap: var(--gap-related);
+  row-gap: var(--gap-tight);
+  padding: var(--inset-row);
   background: ${({ $completed }) =>
     $completed ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   border: 1px solid
@@ -204,14 +204,14 @@ const NodeLi = styled.li<{ $completed: boolean }>`
 const NodeMain = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-hair);
+  gap: var(--gap-hairline);
   min-width: 0;
 `;
 
 const NodePrimary = styled.div<{ $completed: boolean }>`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   font-size: var(--font-size-sm);
   color: ${({ $completed }) =>
     $completed ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
@@ -227,7 +227,7 @@ const NodeMeta = styled.div`
 const RowActions = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-tight);
 `;
 
 // The cursor, hover and colour transition come from the kit's IconButton;
@@ -277,7 +277,7 @@ const EditPanel = styled.div`
 const EditGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-tight);
 `;
 
 const EditHint = styled.div`
@@ -290,7 +290,7 @@ const EditHint = styled.div`
 const EditActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   padding-top: var(--space-4);
 `;
 
@@ -299,6 +299,10 @@ const EditActions = styled.div`
 const CompactPrimaryButton = styled(PrimaryButton)`
   align-self: auto;
   font-size: var(--font-size-xs);
+  /* The compact-button inset, shared with SecondaryButton below. No --inset-*
+     names it: --inset-row is narrower than the label needs and --inset-panel
+     would make these two footer buttons taller than the 22px row controls
+     above them. */
   padding: var(--space-4) var(--space-10);
 `;
 

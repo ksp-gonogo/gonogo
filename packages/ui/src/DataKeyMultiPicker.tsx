@@ -103,7 +103,7 @@ export function DataKeyMultiPicker({
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const SearchInput = styled.input`
@@ -112,7 +112,7 @@ const SearchInput = styled.input`
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-row);
   width: 100%;
 
   &:focus {
@@ -171,8 +171,8 @@ const HiddenCheckbox = styled.input`
 const RowLabel = styled.label`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-related);
+  padding: var(--inset-row);
   cursor: pointer;
   user-select: none;
 `;
@@ -201,10 +201,18 @@ const ItemLabel = styled.span`
 const ItemUnit = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
+  /* Not --indent-step. This margin separates a unit from the label it sits
+     BESIDE on one line; it is a gap wearing margin's clothes, and the indent
+     name means the step a nested row is pushed in by, which would push this
+     16px away from its own label. */
   margin-left: var(--space-6);
 `;
 
 const Empty = styled.div`
+  /* Vertical larger than horizontal, which no --inset-* names: chip, row and
+     panel all widen faster than they grow. The empty state wants the height to
+     read as deliberate space rather than a collapsed list, so it stays a pair
+     of rungs. */
   padding: var(--space-12) var(--space-8);
   font-size: var(--font-size-sm);
   color: var(--color-text-faint);

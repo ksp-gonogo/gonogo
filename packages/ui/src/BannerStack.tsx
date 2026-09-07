@@ -49,7 +49,7 @@ const ToastStack = styled.div`
   display: flex;
   flex-direction: row-reverse;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   height: 48px;
   max-width: calc(100vw - 112px - env(safe-area-inset-right, 0px));
   overflow-x: auto;

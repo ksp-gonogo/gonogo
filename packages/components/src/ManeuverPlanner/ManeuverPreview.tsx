@@ -477,7 +477,7 @@ function ShortfallBanner({
 const PreviewSection = styled.section`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   padding-top: var(--space-4);
 `;
 
@@ -524,14 +524,16 @@ const PreviewContainer = styled.div`
 const PreviewMain = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 
   /* Wide-short: readouts and diagram share a row instead of stacking with a
      large empty gutter. Narrow widths keep the natural single-column stack. */
   @container (min-width: 460px) {
     flex-direction: row;
     align-items: flex-start;
-    gap: var(--space-16);
+    /* Side by side these stop being one stacked reading and become two
+       different kinds of thing, so the gutter steps up a name. */
+    gap: var(--gap-section);
   }
 `;
 
@@ -565,7 +567,7 @@ const ErrorLine = styled.div`
   color: var(--color-status-nogo-fg);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-border-strong);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-row);
   border-radius: var(--radius-xs);
 `;
 
@@ -573,6 +575,6 @@ const CommitRow = styled.div`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   padding-top: var(--space-4);
 `;

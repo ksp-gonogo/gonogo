@@ -226,7 +226,7 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-10) var(--space-12);
+  padding: var(--inset-panel);
   border-bottom: 1px solid var(--color-surface-raised);
   background: var(--color-surface-panel);
 `;
@@ -253,7 +253,7 @@ const Close = styled.button`
 
 const Body = styled.div`
   overflow-y: auto;
-  padding: var(--space-12) var(--space-16);
+  padding: var(--inset-panel);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-prose);
@@ -275,13 +275,17 @@ const Body = styled.div`
   code {
     background: var(--color-surface-sunken);
     color: var(--color-status-go-fg);
-    padding: var(--space-hair) var(--space-4);
+    padding: var(--inset-chip);
     border-radius: var(--radius-xs);
     font-size: var(--font-size-xs);
   }
   pre {
     background: var(--color-surface-sunken);
     color: var(--color-status-go-fg);
+    /* A code block is not a chip, a list row or a panel, so no --inset-*
+       names it. --inset-panel would add 6px each side on top of the Body inset
+       this sits inside, indenting the sample further than the prose it
+       illustrates. */
     padding: var(--space-8) var(--space-10);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-xs);

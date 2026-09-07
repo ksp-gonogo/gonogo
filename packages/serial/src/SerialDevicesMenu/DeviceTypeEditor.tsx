@@ -380,7 +380,7 @@ function DiscoveredInputs({ inputs }: Readonly<{ inputs: DeviceInput[] }>) {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 `;
 
 const ParserHeader = styled.div`
@@ -392,17 +392,17 @@ const ParserHeader = styled.div`
 const DiscoveredList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-tight);
 `;
 
 const DiscoveredRow = styled.div`
   display: flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   align-items: center;
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-row);
   font-size: var(--font-size-xs);
 `;
 
@@ -433,12 +433,12 @@ const InputsHeader = styled.div`
 
 const InputRow = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   align-items: flex-end;
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-row);
 `;
 
 const SmallField = styled(Field)`

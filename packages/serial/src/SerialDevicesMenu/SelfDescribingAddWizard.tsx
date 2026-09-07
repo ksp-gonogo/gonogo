@@ -411,7 +411,7 @@ export function SelfDescribingAddWizard({ onClose }: Readonly<Props>) {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   padding: var(--space-12);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -429,7 +429,7 @@ const Header = styled.h4`
 const Status = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   font-size: var(--font-size-sm);
   color: var(--color-status-info-fg);
 `;
@@ -480,5 +480,5 @@ const ConflictBox = styled.div`
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;

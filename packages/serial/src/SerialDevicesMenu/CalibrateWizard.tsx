@@ -385,7 +385,7 @@ const SAMPLE_COL = "14px";
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   padding: var(--space-12);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
@@ -403,7 +403,7 @@ const Header = styled.h4`
 const SampleViewer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-tight);
   padding: var(--space-8);
   background: var(--color-surface-app);
   border-radius: var(--radius-md);
@@ -463,13 +463,13 @@ const Hint = styled.div`
 const InputsList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const InputRow = styled.div<{ $active: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-tight);
   padding: var(--space-8);
   border-radius: var(--radius-sm);
   border: 1px solid
@@ -481,7 +481,7 @@ const InputRow = styled.div<{ $active: boolean }>`
 const InputLabel = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   font-size: var(--font-size-sm);
 `;
 
@@ -510,7 +510,7 @@ const LivePreview = styled.div`
 const RangeRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   margin-top: var(--space-4);
 `;
 
@@ -522,11 +522,11 @@ const Capturing = styled.div`
 
 const ManualRange = styled.div`
   display: flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;

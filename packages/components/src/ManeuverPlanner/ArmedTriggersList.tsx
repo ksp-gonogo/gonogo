@@ -49,15 +49,15 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-tight);
 `;
 
 const ArmedRow = styled.li`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-8);
-  padding: var(--space-4) var(--space-6);
+  gap: var(--gap-related);
+  padding: var(--inset-row);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-status-warning-bg);
   border-radius: var(--radius-xs);
@@ -66,7 +66,7 @@ const ArmedRow = styled.li`
 const Main = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-hair);
+  gap: var(--gap-hairline);
   min-width: 0;
 `;
 
@@ -83,7 +83,7 @@ const Meta = styled.div`
   letter-spacing: 0.04em;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--gap-tight);
 `;
 
 const CancelButton = styled.button`

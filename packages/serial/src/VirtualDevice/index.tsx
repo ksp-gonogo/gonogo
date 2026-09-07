@@ -180,7 +180,7 @@ export { VirtualDeviceComponent };
 const ButtonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const MomentaryButton = styled.button`

@@ -1046,8 +1046,8 @@ const RefBodyCaption = styled.div`
 const WaitingPanel = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-tight);
+  padding: var(--inset-row);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-xs);
@@ -1056,7 +1056,7 @@ const WaitingPanel = styled.div`
 const StatusList = styled.ul`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-tight);
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1065,7 +1065,7 @@ const StatusList = styled.ul`
 const StatusRow = styled.li`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const StatusDot = styled.span<{ $ok: boolean }>`

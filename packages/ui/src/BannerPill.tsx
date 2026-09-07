@@ -100,6 +100,12 @@ const FixedPill = styled.div<{
   z-index: ${(p) => p.$zIndex};
   display: inline-flex;
   align-items: center;
+  /* Both rungs stay literal, for two different reasons.
+     10 is the one rung with no gap name over it: --gap-related is 8 and
+     --gap-section is 16.
+     (6,12) is the BUTTON inset, the same pair ui-kit's Button, FileInput and
+     DimmedOverlay use, and no --inset-* names it. A pill by shape is not a
+     chip by inset: --inset-chip is (1,6), which would halve this. */
   gap: var(--space-10);
   padding: var(--space-6) var(--space-12);
   background: rgba(0, 0, 0, 0.82);
@@ -119,6 +125,8 @@ const InlinePill = styled.div<{
 }>`
   display: inline-flex;
   align-items: center;
+  /* Same two reasons as FixedPill above; this pill is a rung taller because it
+     is the interactive one and carries a 44px touch target. */
   gap: var(--space-10);
   padding: var(--space-8) var(--space-12);
   background: rgba(0, 0, 0, 0.88);

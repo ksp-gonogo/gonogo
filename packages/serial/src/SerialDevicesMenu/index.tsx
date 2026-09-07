@@ -419,19 +419,19 @@ const Credit = styled.p`
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const Toolbar = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const ToolbarButtons = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const Heading = styled.h3`
@@ -460,7 +460,7 @@ const WebSerialUnavailableBanner = styled.div`
   color: var(--color-status-warning-bg);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-body);
-  padding: var(--space-10) var(--space-12);
+  padding: var(--inset-panel);
 
   code {
     font-family: var(--font-mono, monospace);
@@ -475,17 +475,20 @@ const WebSerialUnavailableBanner = styled.div`
 // Same shape as InputMappingTab's: the kit's Card plus this menu's own
 // padding and the column it lays its head and body out in.
 const DeviceCard = styled(Card)`
+  /* Roomier than Card's own --inset-row, same as InputMappingTab's binding
+     card, and written in rungs for the same reason: --inset-row is what is
+     being overridden and --inset-panel would call a card a panel. */
   padding: var(--space-10) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const RowHead = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const DeviceName = styled.span`
@@ -501,14 +504,14 @@ const RowMeta = styled.span`
 
 const RowActions = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-6);
 `;
 
 const PendingPicker = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   padding: var(--space-8);
   background: var(--color-status-warning-bg);
   border-radius: var(--radius-sm);
@@ -521,7 +524,7 @@ const PendingHint = styled.span`
 
 const PendingActions = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 

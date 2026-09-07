@@ -301,7 +301,7 @@ export function InputMappingTab({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 `;
 
 const Empty = styled.div`
@@ -313,7 +313,7 @@ const Empty = styled.div`
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-related);
 `;
 
 // The surface, radius and padding come from the kit's Card; only the border
@@ -322,6 +322,10 @@ const List = styled.div`
 const BindingCard = styled(Card)<{ $listening: boolean }>`
   border-color: ${({ $listening }) =>
     $listening ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
+  /* Deliberately roomier than Card's own --inset-row: a binding card holds a
+     select and a Bind button, and it is the only card on the screen. Written
+     in rungs because neither --inset-row (too tight, it is what is being
+     overridden) nor --inset-panel (this is not a panel) is an honest name. */
   padding: var(--space-10) var(--space-12);
   transition: border-color var(--duration-instant) var(--ease-linear);
 `;
@@ -329,7 +333,7 @@ const BindingCard = styled(Card)<{ $listening: boolean }>`
 const ListenStatus = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-6);
   font-size: var(--font-size-xs);
   color: var(--color-status-info-fg);
@@ -338,7 +342,7 @@ const ListenStatus = styled.div`
 const BoundReadout = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-6);
   font-size: var(--font-size-xs);
   color: var(--color-text-dim);
