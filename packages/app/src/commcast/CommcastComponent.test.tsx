@@ -407,18 +407,19 @@ describe("Commcast, rendered", () => {
     await act(async () => {});
   });
 
-  it("hangs the delay reading in the console's corner, not in the composer", async () => {
+  it("hangs the delay reading at the console's foot, not over the log", async () => {
     /*
-     * The operator's ruling, and the defect it was about: this console put the
-     * reading INSIDE the composer, beside Send, while the terminal widget it
-     * was converged with pinned it in the console's top-right corner. Two
-     * consoles built from the same parts answered the same question in two
-     * places, which is what made the shared frame look like it was doing less
-     * than it was: "I like it in the top right corner, please can we just
-     * align to that".
+     * The defect and the fix, in one place. This console used to put the
+     * reading INSIDE the composer beside Send while the terminal widget pinned
+     * it in the top-right corner of the scrollback, so the pair answered the
+     * same question in two places. The corner won that argument and then lost
+     * on its own terms: over a column of prose it sits on a sentence somebody
+     * has to read. The frame's foot is where both go now, in the same column as
+     * the queue's countdowns, because a separation and an ETA are the same kind
+     * of value and had been diagonally opposite each other.
      *
-     * Structural rather than positional: a role query cannot tell the two
-     * apart, because both drew a perfectly good badge.
+     * Structural rather than positional: a role query cannot tell any of these
+     * apart, because every one of them drew a perfectly good badge.
      */
     const log = makeLog();
     log.setVantage("ksc");
@@ -434,16 +435,24 @@ describe("Commcast, rendered", () => {
     await userEvent.click(screen.getByRole("button", { name: "Open" }));
 
     const badge = screen.getByLabelText("Signal delay");
-    const corner = container.querySelector("[data-console-corner]");
-    expect(corner).not.toBeNull();
-    expect(corner?.contains(badge)).toBe(true);
-    // And out of the row the operator types into: a reading beside Send is a
-    // reading that moves with the control it is meant to be a cost of.
+    const standing = container.querySelector("[data-console-standing]");
+    expect(standing).not.toBeNull();
+    expect(standing?.contains(badge)).toBe(true);
+    /*
+     * At the foot, and still out of the row the operator types into: a reading
+     * inside the composer moves with the control it is meant to be a cost of,
+     * which is what put it there and then took it out again.
+     */
     expect(
       screen
         .getByRole("button", { name: "Send" })
         .parentElement?.contains(badge),
     ).toBe(false);
+    expect(
+      standing?.parentElement?.contains(
+        screen.getByRole("button", { name: "Send" }),
+      ),
+    ).toBe(true);
     await act(async () => {});
   });
 

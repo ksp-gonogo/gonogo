@@ -231,6 +231,9 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
   /* Local ordering against the row it is pinned to only; not app-global
      chrome, so not on the --z-* ladder. */
   z-index: 1;
+  /* It overlaps the send button's top corner, and a word saying why the row is
+     refusing input must not eat a press aimed at the control under it. */
+  pointer-events: none;
   padding: var(--space-hair) var(--space-6);
   font-family: monospace;
   font-size: var(--font-size-2xs);

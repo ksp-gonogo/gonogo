@@ -591,12 +591,13 @@ function ThreadView({
 
           The delay reading is the console's decision now. This one used to draw
           the chip inside the composer, beside Send, on the reasoning that a
-          chip over a column of prose sits on a sentence somebody has to read.
-          Both placements were defensible and the PAIR was not: one console
-          answered "how far away is the other end" over the scrollback and this
-          one answered it next to the control, so an operator moving between
-          them looked in two places for one reading. Settled by the operator in
-          favour of the corner, and neither widget picks any more.
+          chip over a column of prose sits on a sentence somebody has to read;
+          the terminal widget pinned the same chip in its top-right corner. The
+          corner won the argument for a pair that had to agree, then proved this
+          console's objection right on the first render with a full log. Both
+          hang it at the foot now, over the composer's bottom border and in the
+          same column as the outbound queue's countdowns, so the separation and
+          the ETAs read as one stack of times.
 
           `inFlightFrozenAtDispatch` is the one thing this console asks for that
           the terminal widget does not, and it has to. A message freezes its
@@ -986,8 +987,9 @@ function Composer({
        The flag now says ONLY that. It used to carry the round trip too, which
        made one pinned slot answer two unrelated questions and put a figure
        there that the strip above was already drawing. The delay reading is the
-       console's own corner now, and the flag went back to being about refusal.
-       The two never contend: no path means no separation to quote. */
+       console's own standing slot now, and the flag went back to being about
+       refusal. The two never contend: no path means no separation to quote,
+       and they straddle opposite borders of this bar in any case. */
     <ComposerBar
       blocked={noPath}
       prompt="❯"

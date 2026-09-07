@@ -31,7 +31,7 @@ describe("ConsoleFrame", () => {
      * to the console rather than a control in the widget.
      */
     const { container } = render(
-      <ConsoleFrame footer={<button type="button">Send</button>}>
+      <ConsoleFrame composer={<button type="button">Send</button>}>
         <p>scrollback</p>
       </ConsoleFrame>,
     );
@@ -56,63 +56,127 @@ describe("ConsoleFrame", () => {
     ).toHaveLength(1);
   });
 
-  it("pins the corner over the scrollback, not over the composer", () => {
+  it("draws the standing reading at the foot, never over the scrollback", () => {
     /*
-     * The corner is the console's standing-reading slot, and the operator's
-     * ruling on where it goes: "I like it in the top right corner, please can
-     * we just align to that". A reading pinned there is over what has already
-     * been said; the same reading in the composer row sits on the line being
-     * typed, which is what the two consoles had drifted to doing differently.
+     * The defect this placement fixes. The slot was the top-right of the
+     * scrollback, which on a column of prose is a sentence somebody has to
+     * read: "I don't think it can stay in that top corner". At the foot it sits
+     * on a border instead, and in the same column as the queue's countdowns,
+     * because a separation and an ETA are the same kind of value and were
+     * diagonally opposite each other.
      */
     const { container } = render(
       <ConsoleFrame
-        corner={<span>one-way ~0.4 s</span>}
-        footer={<button type="button">Send</button>}
+        standing={<span>one-way ~0.4 s</span>}
+        composer={<button type="button">Send</button>}
       >
         <p>scrollback</p>
       </ConsoleFrame>,
     );
-    const corner = container.querySelector("[data-console-corner]");
-    expect(corner).not.toBeNull();
-    expect(corner?.contains(screen.getByText("one-way ~0.4 s"))).toBe(true);
-    // Over the scrollback: the corner's parent is the surface that holds it,
-    // never the foot that holds the input.
+    const standing = container.querySelector("[data-console-standing]");
+    expect(standing).not.toBeNull();
+    expect(standing?.contains(screen.getByText("one-way ~0.4 s"))).toBe(true);
+    // The foot that holds the input, never the surface that holds the log.
     expect(
-      corner?.parentElement?.contains(screen.getByText("scrollback")),
-    ).toBe(true);
-    expect(
-      corner?.parentElement?.contains(
+      standing?.parentElement?.contains(
         screen.getByRole("button", { name: "Send" }),
       ),
+    ).toBe(true);
+    expect(
+      standing?.parentElement?.contains(screen.getByText("scrollback")),
     ).toBe(false);
   });
 
-  it("costs the body no height for what it pins in the corner", () => {
+  it("costs the body no height while there is a composer to straddle", () => {
     /*
      * The reason the slot is here rather than in each console: a badge as a
      * flex sibling adds its own row, and at a widget's declared minSize that
-     * row pushes the composer out of the tile. Absolute, so it is out of flow.
+     * row pushes the composer out of the tile. Out of flow over the composer's
+     * bottom border, so it adds none.
      */
     const { container } = render(
-      <ConsoleFrame corner={<span>chip</span>}>
+      <ConsoleFrame standing={<span>chip</span>} composer={<input />}>
         <p>scrollback</p>
       </ConsoleFrame>,
     );
-    const corner = container.querySelector(
-      "[data-console-corner]",
+    const standing = container.querySelector(
+      "[data-console-standing]",
     ) as HTMLElement;
-    expect(getComputedStyle(corner).position).toBe("absolute");
+    expect(getComputedStyle(standing).position).toBe("absolute");
   });
 
-  it("draws no corner at all when there is no standing reading", () => {
-    // An empty pinned box in the corner of every console is a slot showing
+  it("puts the standing reading back in flow when there is no composer", () => {
+    /*
+     * The state most likely to be got wrong. An inbox has nothing to type at,
+     * so there is no border to straddle and an overlay would go back on the
+     * prose. It takes a line of its own at the foot instead, growing a foot
+     * that was not otherwise there, and pays the band of height that costs.
+     */
+    const { container } = render(
+      <ConsoleFrame standing={<span>chip</span>}>
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    const standing = container.querySelector(
+      "[data-console-standing]",
+    ) as HTMLElement;
+    expect(getComputedStyle(standing).position).not.toBe("absolute");
+    expect(
+      container.querySelector("[data-console-frame]")?.children,
+    ).toHaveLength(2);
+    expect(
+      standing.parentElement?.contains(screen.getByText("scrollback")),
+    ).toBe(false);
+  });
+
+  it("keeps a falsy composer's foot but stops straddling it", () => {
+    /*
+     * A terminal in character mode composes nothing, so the foot stays (the
+     * surface above must not change height with the mode) and the border it
+     * would have straddled is gone with the composer.
+     */
+    const { container } = render(
+      <ConsoleFrame standing={<span>chip</span>} composer={false}>
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    const standing = container.querySelector(
+      "[data-console-standing]",
+    ) as HTMLElement;
+    expect(getComputedStyle(standing).position).not.toBe("absolute");
+  });
+
+  it("draws no standing slot at all when there is no reading", () => {
+    // An empty pinned box at the foot of every console is a slot showing
     // through, which is what a conditional slot is for.
     const { container } = render(
       <ConsoleFrame>
         <p>scrollback</p>
       </ConsoleFrame>,
     );
-    expect(container.querySelector("[data-console-corner]")).toBeNull();
+    expect(container.querySelector("[data-console-standing]")).toBeNull();
+  });
+
+  it("puts the queue above the composer, and both above the standing reading", () => {
+    /*
+     * Two slots rather than one `footer` node, so the frame can see whether
+     * there is a composer to place the reading against instead of taking the
+     * caller's word for it.
+     */
+    const { container } = render(
+      <ConsoleFrame
+        queue={<span>queue</span>}
+        composer={<button type="button">Send</button>}
+        standing={<span>chip</span>}
+      >
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    const foot = container.querySelector("[data-console-frame]")
+      ?.lastElementChild as HTMLElement;
+    expect(Array.from(foot.children).map((child) => child.textContent)).toEqual(
+      ["queue", "Send", "chip"],
+    );
   });
 
   it("declares the tone for what is inside it, and wears none of it", () => {

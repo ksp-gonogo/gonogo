@@ -35,6 +35,21 @@ const LOG = [
   "Kennedy Flight: Reading you five by five.",
 ];
 
+/**
+ * A scrollback that FILLS the surface, right edge included. The three-line log
+ * above leaves the top-right of the pane blank, so it cannot show what an
+ * overlay pinned there costs; these lines run to the edge and the topmost one
+ * is the line a top-right chip sits on.
+ */
+const FULL_LOG = [
+  "Kennedy Flight: Ares, Kennedy, we have you at three by three on the omni.",
+  "Jeb: Kennedy, Ares. Reading you the same. Switching to the high gain now.",
+  "Kennedy Flight: Copy the switch. Stand by on the burn attitude, we are still",
+  "Kennedy Flight: chewing on the state vector down here. Two minutes, maybe.",
+  "Bill: Flight, Ares. Tank two isolated, pressures holding at nine hundred.",
+  "Kennedy Flight: Beautiful. Ares, you are go for the burn on my mark.",
+];
+
 /** One thing crossing. */
 const ONE_OUT = [
   {
@@ -280,6 +295,55 @@ const SCENARIOS: Scenario[] = [
       lines: LOG,
     },
   },
+  {
+    // The chip against a FULL surface. The states above leave the top-right of
+    // the pane blank, so none of them can show what an overlay pinned there
+    // lands on; this one puts a sentence under it.
+    name: "20-short-delay-badge-full-scrollback",
+    payload: {
+      panelTitle: "CONSOLE",
+      oneWaySeconds: 0.4,
+      inFlight: ONE_OUT,
+      composer: "bar",
+      lines: FULL_LOG,
+    },
+  },
+  {
+    // The queue against the same full surface, so the chip state above and this
+    // one can be compared for where each puts its figures.
+    name: "21-long-delay-strip-full-scrollback",
+    payload: {
+      panelTitle: "CONSOLE",
+      oneWaySeconds: 240,
+      inFlight: ONE_OUT,
+      composer: "bar",
+      lines: FULL_LOG,
+    },
+  },
+  {
+    /*
+     * The chip with NO composer to sit on, against a full surface: the state
+     * most likely to be got wrong, and the one `11-composer-omitted` cannot
+     * show because it passes no delay at all.
+     */
+    name: "22-short-delay-badge-no-composer",
+    payload: {
+      panelTitle: "CONSOLE",
+      oneWaySeconds: 0.4,
+      composer: "omitted",
+      lines: FULL_LOG,
+    },
+  },
+  {
+    // The chip with a foot that exists and holds nothing.
+    name: "23-short-delay-badge-composer-falsy",
+    payload: {
+      panelTitle: "CONSOLE",
+      oneWaySeconds: 0.4,
+      composer: "falsy",
+      lines: FULL_LOG,
+    },
+  },
 ];
 
 async function main(): Promise<void> {
@@ -362,6 +426,28 @@ async function main(): Promise<void> {
         const frame = document.querySelector("[data-console-frame]");
         const foot = frame?.lastElementChild as HTMLElement | undefined;
         const surface = frame?.firstElementChild as HTMLElement | undefined;
+        /*
+         * WHERE the standing chip landed, as a number rather than as a picture.
+         * `column` is the right edge of the chip's own content box, which is the
+         * column its figure ends in; the queue's countdown ends in the same one
+         * when the two are aligned, and the two are never drawn together, so
+         * only comparing across scenarios can show it.
+         */
+        const chip = frame?.querySelector('[aria-label="Signal delay"]');
+        const queue = frame?.querySelector('[aria-label="Uplink queue"]');
+        const [chipColumn, queueColumn] = [chip, queue].map((el) => {
+          if (!el) return null;
+          const box = el.getBoundingClientRect();
+          const cs = getComputedStyle(el as HTMLElement);
+          return (
+            Math.round(
+              (box.right -
+                Number.parseFloat(cs.paddingRight) -
+                Number.parseFloat(cs.borderRightWidth)) *
+                10,
+            ) / 10
+          );
+        });
         return {
           children: frame?.children.length ?? 0,
           footH:
@@ -371,10 +457,13 @@ async function main(): Promise<void> {
           surfaceH: surface
             ? Math.round(surface.getBoundingClientRect().height)
             : null,
+          // Which half of the frame the chip is drawn in, by containment.
+          chipIn: chip ? (surface?.contains(chip) ? "surface" : "foot") : null,
+          column: chipColumn ?? queueColumn,
         };
       });
       console.log(
-        `  ${outName.padEnd(46)} frame children=${measured.children} surface=${measured.surfaceH}px foot=${measured.footH ?? "none"}`,
+        `  ${outName.padEnd(46)} frame children=${measured.children} surface=${measured.surfaceH}px foot=${measured.footH ?? "none"} chip=${measured.chipIn ?? "none"} column=${measured.column ?? "n/a"}`,
       );
     }
   } finally {

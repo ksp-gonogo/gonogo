@@ -365,13 +365,14 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
   });
 
-  it("char-mode: hangs the delay reading in the console's own corner slot", async () => {
+  it("char-mode: hangs the delay reading in the console's own standing slot", async () => {
     /*
      * The same slot Commcast's badge hangs in, so the two consoles put the
-     * reading in one place: "I like it in the top right corner, please can we
-     * just align to that". The corner used to be this widget's alone, pinned
-     * with its own absolute rule, which is why the other console could put its
-     * copy somewhere else and nothing noticed.
+     * reading in one place. It used to be a corner of the screen, pinned by
+     * this widget with its own absolute rule, which is why the other console
+     * could put its copy beside Send and nothing noticed. It is the frame's
+     * foot now, over the composition bar's bottom border, aligned to the
+     * column the uplink queue's countdowns run in.
      *
      * A structural query, because position is invisible to a role query: both
      * consoles rendered a perfectly good badge while it hung in two different
@@ -395,9 +396,16 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     );
 
     const badge = await screen.findByLabelText("Signal delay");
-    const corner = container.querySelector("[data-console-corner]");
-    expect(corner).not.toBeNull();
-    expect(corner?.contains(badge)).toBe(true);
+    const standing = container.querySelector("[data-console-standing]");
+    expect(standing).not.toBeNull();
+    expect(standing?.contains(badge)).toBe(true);
+    /*
+     * Never over the emulator screen: char mode is the one arm that always
+     * badges, so this is also the state that had a chip on the terminal at
+     * every separation.
+     */
+    const frame = container.querySelector("[data-console-frame]");
+    expect(frame?.firstElementChild?.contains(badge)).toBe(false);
   });
 
   it("char-mode: no measurable path (null oneWaySeconds) hides the badge instead of crashing", async () => {

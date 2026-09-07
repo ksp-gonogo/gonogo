@@ -30,7 +30,9 @@ import { Unit } from "../Unit";
  * consoles that draw one used it to reach opposite answers: a character grid
  * pinned it in its own top corner, a column of prose put it in the composer row
  * beside Send. `Console` owns the placement for both now, so this stays free of
- * `position` and neither console gets to pick.
+ * `position` and neither console gets to pick. Where it settled is the prose
+ * console's answer rather than the grid's: at the foot, over the composer's
+ * bottom border, in the same column as the queue's countdowns.
  *
  * Not on the barrel for the same reason: `Console` is the only thing that draws
  * one, and a widget reaching this directly is a widget deciding for itself

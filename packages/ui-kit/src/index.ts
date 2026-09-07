@@ -253,7 +253,7 @@ export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
 /*
  * The COMPOSITION, and the only door to the console's parts: the frame it draws
- * in and the chip it hangs in the corner are reached through this and are not
+ * in and the chip it hangs at the foot are reached through this and are not
  * exported bare, the same rule `Panel` follows for its own parts. Two consoles
  * assembling the arrangement themselves is how they drifted apart the first
  * time. `ComposerBar` above stays public because what goes ON the row is the
