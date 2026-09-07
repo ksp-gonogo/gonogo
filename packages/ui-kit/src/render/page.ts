@@ -128,6 +128,66 @@ function oneKitPerPage(): Record<string, string> {
   return alias;
 }
 
+/**
+ * Everything else that must be ONE copy in the page, pinned to the Uplink's
+ * own resolution of it.
+ *
+ * The kit was not the only package that can arrive twice, only the first one
+ * noticed. A `--with` module lives OUTSIDE the Uplink's package, so esbuild
+ * resolves its imports from that module's own `node_modules` rather than the
+ * Uplink's, and when the two are separate installs (a published Uplink beside a
+ * checkout of this repo, which is the case `--with` exists for) every shared
+ * package is bundled twice.
+ *
+ * React is the one that bites, and it bites in a way that reads as a bug in the
+ * widget: an augment mounted inside a cross-package host threw "Cannot read
+ * properties of null (reading 'useEffect')" from its first hook, because the
+ * copy it called had no current dispatcher, the copy RENDERING it did. A
+ * CONTRIBUTION scene survives this, which is why it went unnoticed: a
+ * contribution is data its host draws, so no module from the Uplink ever
+ * renders and no second React is ever entered. An augment supplies a COMPONENT,
+ * and is the first thing to run hooks from both sides at once.
+ *
+ * styled-components duplicates into two theme contexts and two stylesheets, so
+ * one side of the page renders unthemed.
+ *
+ * The sdk is deliberately NOT on this list. Its registries live on `globalThis`
+ * and are already shared, which is what makes a cross-package host resolvable
+ * at all; its `createContext` spine is not, so a second copy would read no
+ * telemetry. Pinning it needs a resolver that honours an `import`-only exports
+ * map, which the one here is not, and nothing has yet been seen to break for
+ * want of it. It belongs on this list the day something does.
+ *
+ * Pinned to the UPLINK's copy, for the same reason the kit is pinned to `dist`:
+ * an Uplink is what the render is of, so its resolution is the honest one. With
+ * one install in play every entry resolves to what esbuild would have chosen
+ * anyway and the whole map is inert.
+ *
+ * Each value is the package DIRECTORY, never the entry file, and both halves of
+ * that were measured. esbuild substitutes an alias at the START of the import
+ * path, so a file value turns `react-dom/test-utils` into
+ * `.../react-dom/index.js/test-utils` and fails the build; and a file value
+ * picked by a CJS resolver is the package's CJS half, which for
+ * styled-components pulled in Node's `stream` and failed the build a second
+ * way. A directory leaves the subpath and the export CONDITION to esbuild,
+ * which is the half of resolution that was never the problem.
+ */
+export function oneCopyPerPage(dir: string): Record<string, string> {
+  const from = createRequire(join(dir, "noop.js"));
+  const alias: Record<string, string> = {};
+  for (const specifier of ["react", "react-dom", "styled-components"]) {
+    try {
+      // Through `package.json` because that is the one path inside a package
+      // whose location IS the directory, whatever the entry points are called.
+      alias[specifier] = dirname(from.resolve(`${specifier}/package.json`));
+    } catch {
+      // Not reachable from the Uplink, so there is no copy of it here to be the
+      // one copy. Leave esbuild to it rather than guess.
+    }
+  }
+  return alias;
+}
+
 /** The generated browser entry. Awaited imports, never static ones. */
 export function generateEntry(
   pkg: UplinkPackage,
@@ -183,7 +243,9 @@ export async function buildProbePage(
     sourcemap: "inline",
     define: { "process.env.NODE_ENV": '"production"' },
     plugins: [cssSideEffectPlugin],
-    alias: oneKitPerPage(),
+    // The kit's pins go LAST: it resolves itself to its own sibling files, and
+    // an Uplink's copy of the kit is not the one running this bundle.
+    alias: { ...oneCopyPerPage(pkg.dir), ...oneKitPerPage() },
     absWorkingDir: pkg.dir,
   });
   const bundle = result.outputFiles[0].text;
