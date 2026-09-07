@@ -315,10 +315,6 @@ namespace Sitrep.Core.Tests
             return subjects.Where(contractTypes.Contains).Distinct(StringComparer.Ordinal);
         }
 
-        // ----------------------------------------------------------------
-        // structure
-        // ----------------------------------------------------------------
-
         internal sealed class ScannedMethod
         {
             public ScannedMethod(string name, string parameters, string? owner, int bodyStart, int bodyLength)
