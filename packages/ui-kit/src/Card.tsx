@@ -84,13 +84,35 @@ const STRIP_WIDTH = "3px";
  * Sunken inset card: a nested surface for a single record inside a list
  * (a tracked vessel, a fleet entry). Extracted from the Scanning widget's
  * `VesselCard`.
+ *
+ * A card is the app's COMPACT density tier, and it says so by re-declaring
+ * the three steppable gap names one rung down. Everything rendered inside a
+ * card inherits them, across styled-components, across packages and into a
+ * third party's own CSS, so a widget written as `gap: var(--gap-related)`
+ * tightens inside a card without its author writing a conditional. That is
+ * the whole reason the tiers live on custom properties rather than on a
+ * React context: a context reaches the kit's own primitives and nothing
+ * else, and most of the app's spacing is declared in a widget's own
+ * `styled.div`.
+ *
+ * `--gap-hairline` does not step: it is already the bottom of the ladder.
+ * The insets do not step either, because a chip inside a card is still a
+ * chip; a card that wanted its children's edges tightened would be saying
+ * something about them rather than about itself.
+ *
+ * Every new density tier needs a written reason like this one, or the
+ * vocabulary problem the names were built to fix returns wearing a hat.
  */
 export const Card = styled.div<CardProps>`
+  --gap-tight: var(--space-2, 2px);
+  --gap-related: var(--space-6, 6px);
+  --gap-section: var(--space-12, 12px);
+
   position: relative;
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm, 3px);
-  padding: var(--space-6, 6px) var(--space-8, 8px);
+  padding: var(--inset-row, var(--space-6, 6px) var(--space-8, 8px));
   ${({ tone, accentColor }) => {
     if (accentColor) return `border-left: ${STRIP_WIDTH} solid ${accentColor};`;
     return tone ? `border-left: 2px solid ${TONE_COLOR[tone]};` : "";
