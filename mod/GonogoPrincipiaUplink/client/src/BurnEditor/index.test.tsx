@@ -1124,4 +1124,107 @@ describe("BurnEditor", () => {
     expect(screen.getByLabelText(/^TANGENT/)).not.toBeDisabled();
     await act(async () => {});
   });
+
+  /**
+   * A component the mod could not read is not a component of zero.
+   *
+   * The mod withholds the whole triple when any one of the three is not a finite
+   * number, which is what Principia's own singular-manoeuvre state reads as. The
+   * form used to substitute a zero per component, so a burn nobody could measure
+   * came up as three boxes of `0` under a MAGNITUDE of `0.0 m/s`, and the two
+   * writes that send the triple were live over it.
+   *
+   * Asserted on the BOXES and on the form's own magnitude row, never on the list
+   * above them: the row already renders the dash for the same absence, off the
+   * separate `deltaV` field, so a whole-document assertion would have passed with
+   * the substitution still in place.
+   */
+  it("shows no delta-v components for a burn whose triple could not be read", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      burns: [
+        burn({
+          deltaV: null,
+          deltaVTangent: null,
+          deltaVNormal: null,
+          deltaVBinormal: null,
+        }),
+      ],
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(screen.getByLabelText(/^TANGENT/)).toHaveValue(null);
+    expect(screen.getByLabelText("NORMAL")).toHaveValue(null);
+    expect(screen.getByLabelText("BINORMAL")).toHaveValue(null);
+
+    const form = document.querySelector("[data-burn-editor-form]");
+    expect(form?.textContent ?? "").toContain(`MAGNITUDE${NULL_DISPLAY}`);
+    await act(async () => {});
+  });
+
+  /**
+   * And neither write may fabricate one. APPLY and ADD both send all three
+   * components, so an unstated component would go out as whatever the form was
+   * showing; with nothing to show there is nothing honest to send.
+   */
+  it("holds both burn writes shut while a delta-v component is unstated", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      burns: [
+        burn({
+          deltaV: null,
+          deltaVTangent: null,
+          deltaVNormal: null,
+          deltaVBinormal: null,
+        }),
+      ],
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "Add a burn from these values" }),
+    ).toBeDisabled();
+    // REMOVE is not among them: it sends the index alone, and dropping a burn
+    // whose delta-v nobody can read is the likeliest thing an operator wants.
+    expect(
+      screen.getByRole("button", { name: "Remove this burn from the plan" }),
+    ).not.toBeDisabled();
+    await act(async () => {});
+  });
+
+  /**
+   * Stating all three reopens them, and this is the whole reason the boxes stay
+   * live rather than being frozen like the spherical case above. The mod's own
+   * rule is the other half: an edit keeps whichever components it does not
+   * state, so a complete triple is the one edit that mends a singular burn and a
+   * partial one has nothing to keep.
+   */
+  it("reopens the burn writes once all three components are typed", async () => {
+    const stream = mount();
+    await emitPlan(stream, {
+      burns: [
+        burn({
+          deltaV: null,
+          deltaVTangent: null,
+          deltaVNormal: null,
+          deltaVBinormal: null,
+        }),
+      ],
+    });
+    await userEvent.click(screen.getByRole("button", { name: "Burn 1" }));
+
+    await userEvent.type(screen.getByLabelText(/^TANGENT/), "25");
+    await userEvent.type(screen.getByLabelText("NORMAL"), "0");
+    await userEvent.type(screen.getByLabelText("BINORMAL"), "-5");
+
+    expect(
+      screen.getByRole("button", { name: "Apply the edited burn" }),
+    ).not.toBeDisabled();
+    const form = document.querySelector("[data-burn-editor-form]");
+    expect(form?.textContent ?? "").not.toContain(`MAGNITUDE${NULL_DISPLAY}`);
+    await act(async () => {});
+  });
 });

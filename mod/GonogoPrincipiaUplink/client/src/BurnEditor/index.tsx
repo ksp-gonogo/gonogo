@@ -55,13 +55,21 @@ import "../topics";
  */
 const editWindow = commandWindow;
 
-/** What the operator has changed but not yet sent. */
+/**
+ * What the operator has changed but not yet sent.
+ *
+ * The three components are nullable and the rest is not, which is the split the
+ * wire makes. The mod withholds the whole Dv triple when any one of the three is
+ * not a finite number, because that is what Principia's own singular-manoeuvre
+ * state reads as; a null here is that absence carried through rather than
+ * flattened, and the boxes stay empty until the operator states one.
+ */
 interface Draft {
   burnIndex: number;
   ignitionUt: number;
-  tangent: number;
-  normal: number;
-  binormal: number;
+  tangent: number | null;
+  normal: number | null;
+  binormal: number | null;
   inertiallyFixed: boolean;
   instantImpulse: boolean;
 }
@@ -70,12 +78,29 @@ function draftOf(burn: PrincipiaPlannedBurn): Draft {
   return {
     burnIndex: magnitudeOf(burn.index) ?? 0,
     ignitionUt: magnitudeOf(burn.ignitionUt) ?? 0,
-    tangent: magnitudeOf(burn.deltaVTangent) ?? 0,
-    normal: magnitudeOf(burn.deltaVNormal) ?? 0,
-    binormal: magnitudeOf(burn.deltaVBinormal) ?? 0,
+    tangent: magnitudeOf(burn.deltaVTangent),
+    normal: magnitudeOf(burn.deltaVNormal),
+    binormal: magnitudeOf(burn.deltaVBinormal),
     inertiallyFixed: burn.inertiallyFixed === true,
     instantImpulse: false,
   };
+}
+
+/**
+ * The triple, when the operator has one to send.
+ *
+ * Both writes send all three, and an edit that omits a component leaves the
+ * plugin's own in place, so a partial triple is the one thing neither control may
+ * dispatch: the mod refuses it on arrival a light time later, and the burn it
+ * would have been refused over is one whose Dv nobody could read in the first
+ * place.
+ */
+function statedTriple(
+  draft: Draft,
+): { tangent: number; normal: number; binormal: number } | null {
+  const { tangent, normal, binormal } = draft;
+  if (tangent === null || normal === null || binormal === null) return null;
+  return { tangent, normal, binormal };
 }
 
 /**
@@ -107,7 +132,13 @@ function DeltaVRow({
   icon: typeof TangentIcon;
   label: string;
   hint?: string;
-  value: number;
+  /**
+   * Null when the mod could not read this component. The box goes EMPTY rather
+   * than to a zero: an empty number field says nothing, and a zero says the burn
+   * has no delta-v on this axis. It stays typeable, because stating all three is
+   * the one edit that mends a burn whose triple went singular.
+   */
+  value: number | null;
   disabled: boolean;
   /**
    * False when the slot's unit depends on a coordinate system that does not put
@@ -116,7 +147,7 @@ function DeltaVRow({
    * speed, so there is no one symbol that is true of the row.
    */
   unitKnown?: boolean;
-  onChange: (next: number) => void;
+  onChange: (next: number | null) => void;
 }) {
   return (
     <Cluster gap="sm" justify="start">
@@ -132,8 +163,15 @@ function DeltaVRow({
         step={0.1}
         style={{ width: "8rem" }}
         disabled={disabled}
-        value={value}
+        value={value === null ? "" : value}
         onChange={(event) => {
+          // An emptied box is UNSTATED, not zero. `Number("")` is 0 and finite,
+          // so clearing the field used to state a component the operator had
+          // just withdrawn, and the write sent it.
+          if (event.target.value === "") {
+            onChange(null);
+            return;
+          }
           const next = Number(event.target.value);
           if (Number.isFinite(next)) onChange(next);
         }}
@@ -176,12 +214,18 @@ function ProfileRow({
   );
 }
 
-/** The magnitude of a triple, so the row of three has a headline. */
-export function deltaVMagnitude(draft: Draft): number {
+/**
+ * The magnitude of a triple, so the row of three has a headline, or null when a
+ * component is unstated. A hypotenuse over two components and a substituted zero
+ * is smaller than the burn and reads as a measurement of it.
+ */
+export function deltaVMagnitude(draft: Draft): number | null {
+  const stated = statedTriple(draft);
+  if (stated === null) return null;
   return Math.sqrt(
-    draft.tangent * draft.tangent +
-      draft.normal * draft.normal +
-      draft.binormal * draft.binormal,
+    stated.tangent * stated.tangent +
+      stated.normal * stated.normal +
+      stated.binormal * stated.binormal,
   );
 }
 
@@ -297,6 +341,17 @@ export function BurnEditor() {
    * struct freeze here and REMOVE, which writes none, does not.
    */
   const burnStructUnverified = surface?.burnLayoutVerified !== true;
+  /*
+   * A triple with a component nobody stated. The mod withholds all three when
+   * any one of them is not a finite number, which is what Principia's own
+   * singular-manoeuvre state reads as, and an emptied box withdraws one the same
+   * way. Both writes send the whole triple, and an edit that omits a component
+   * leaves the plugin's own in place, so there is nothing to send and nothing to
+   * keep: the mod refuses exactly this a light time later, and refusing it here
+   * costs the operator the round trip rather than the plan.
+   */
+  const tripleUnstated = draft !== null && statedTriple(draft) === null;
+  const draftMagnitude = draft === null ? null : deltaVMagnitude(draft);
   /*
    * The ignition field stays live inside a shut window: pushing the burn further
    * out is how the operator REOPENS one, and freezing the field would leave the
@@ -607,14 +662,17 @@ export function BurnEditor() {
                     A hypotenuse is only the size of the burn when the three
                     slots are three components of it. Over a magnitude and two
                     angles it is a number with no meaning, and one that reads as
-                    a plausible delta-v, so the dash is the honest answer. */}
-                {componentsUnreadable ? (
+                    a plausible delta-v, so the dash is the honest answer.
+
+                    Two absences reach the same dash and they are not the same
+                    absence. The spherical one is a triple that IS readable and
+                    is not a vector; the unstated one is a component nobody
+                    could read. Both are said in words above, and neither may
+                    show a number here. */}
+                {componentsUnreadable || draftMagnitude === null ? (
                   <Text>{NULL_DISPLAY}</Text>
                 ) : (
-                  <Unit
-                    value={value("m/s", deltaVMagnitude(draft))}
-                    decimals={1}
-                  />
+                  <Unit value={value("m/s", draftMagnitude)} decimals={1} />
                 )}
               </Row>
             </Stack>
@@ -658,9 +716,13 @@ export function BurnEditor() {
                   requestId: `replace-${draft.burnIndex}-${draft.ignitionUt}-${draft.tangent}-${draft.normal}-${draft.binormal}-${draft.inertiallyFixed}-${draft.instantImpulse}`,
                   burnIndex: draft.burnIndex,
                   ignitionUt: draft.ignitionUt,
-                  deltaVTangent: draft.tangent,
-                  deltaVNormal: draft.normal,
-                  deltaVBinormal: draft.binormal,
+                  // `undefined`, never a zero, for a component the operator has not
+                  // stated: the mod leaves an omitted component at the plugin's own
+                  // value, which is the only honest thing to say about one nobody
+                  // could read. Both controls are held shut in that state anyway.
+                  deltaVTangent: draft.tangent ?? undefined,
+                  deltaVNormal: draft.normal ?? undefined,
+                  deltaVBinormal: draft.binormal ?? undefined,
                   inertiallyFixed: draft.inertiallyFixed,
                   profile: draft.instantImpulse
                     ? PrincipiaBurnProfile.InstantImpulse
@@ -672,7 +734,9 @@ export function BurnEditor() {
                 confirmTone="nogo"
                 pendingLabel="Applying..."
                 onConfirmed={(result) => setLastWrite(planWriteReceipt(result))}
-                disabled={frozen || tooLate || burnStructUnverified}
+                disabled={
+                  frozen || tooLate || burnStructUnverified || tripleUnstated
+                }
                 aria-label="Apply the edited burn"
                 confirmAriaLabel="Confirm applying the edited burn"
               />
@@ -707,9 +771,13 @@ export function BurnEditor() {
                   requestId: `insert-${draft.burnIndex}-${draft.ignitionUt}-${draft.tangent}-${draft.normal}-${draft.binormal}-${draft.inertiallyFixed}-${draft.instantImpulse}`,
                   burnIndex: draft.burnIndex,
                   ignitionUt: draft.ignitionUt,
-                  deltaVTangent: draft.tangent,
-                  deltaVNormal: draft.normal,
-                  deltaVBinormal: draft.binormal,
+                  // `undefined`, never a zero, for a component the operator has not
+                  // stated: the mod leaves an omitted component at the plugin's own
+                  // value, which is the only honest thing to say about one nobody
+                  // could read. Both controls are held shut in that state anyway.
+                  deltaVTangent: draft.tangent ?? undefined,
+                  deltaVNormal: draft.normal ?? undefined,
+                  deltaVBinormal: draft.binormal ?? undefined,
                   /*
                    * The same two fields APPLY sends, because this control copies
                    * the burn ON SCREEN and both are part of it. Insert leaves an
@@ -734,7 +802,9 @@ export function BurnEditor() {
                  * ignition too, so one composed for an instant the write cannot
                  * beat is a burn added to the plan already in the past.
                  */
-                disabled={frozen || tooLate || burnStructUnverified}
+                disabled={
+                  frozen || tooLate || burnStructUnverified || tripleUnstated
+                }
                 aria-label="Add a burn from these values"
                 confirmAriaLabel="Confirm adding a burn from these values"
               />
@@ -775,6 +845,20 @@ export function BurnEditor() {
                 Principia's burn struct has not survived a round trip in this
                 session. APPLY and ADD write one and are refused; REMOVE writes
                 none.
+              </Text>
+            )}
+
+            {/* Why the boxes above are empty and live at the same time, and why
+                the two writes are dark over them. Said here rather than beside
+                the delta-v rows because it is about the CONTROLS: the rows say
+                what is missing, this says what it costs and what mends it. */}
+            {tripleUnstated && (
+              <Text tone="warn" size="sm">
+                At least one delta-v component is unstated, so there is no
+                triple to send: an edit keeps whichever components it omits, and
+                Principia holds none this Uplink could read for those. Type all
+                three to mend the burn. REMOVE sends the index alone and is
+                unaffected.
               </Text>
             )}
 
