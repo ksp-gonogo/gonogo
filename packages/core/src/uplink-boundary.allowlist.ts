@@ -245,19 +245,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/default-carried-topics.ts",
 
       /*
-       * WirePayloadCoverageTests.cs: the wire-coverage ratchet. Its
-       * FlattenedByProducer set is a literal-string allowlist over every
-       * [SitrepContract] type, so it necessarily names every Uplink's payload
-       * types: kOS's and the career/vessel POCOs are already listed there the
-       * same way. kerbcast's comment now records the RELOCATION (the three
-       * types left this assembly for GonogoKerbcastUplink.Contract, so no
-       * allowlist entry is needed there any more), for the record noting
-       * KerbcastCameraEntry was flattened by its producer even while it
-       * lived here. Type-name strings in a ratchet, not a dependency.
-       */
-      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
-
-      /*
        * UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
        * ratchet (uplink-types-out-of-core plan, §5a). It necessarily names
        * every relocated Uplink's token in its own RelocatedModTokens data and
@@ -490,7 +477,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       "mod/sitrep-sdk/src/default-carried-topics.ts",
 
       // -- TEST-only --
-      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+
       /*
        * UplinkContractOwnershipTests.cs: the mod-side relocation-ownership
        * ratchet (uplink-types-out-of-core plan §5a). Registers a "scansat"
@@ -1741,12 +1728,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * originating field: prose only.
        */
       "mod/Sitrep.Contract/SitrepUnitAttribute.cs",
-      /*
-       * WirePayloadCoverageTests.cs's comment records that the mechjeb.*
-       * command-arg allowlist entries were removed because the types left
-       * this assembly: provenance, not a reference to the types.
-       */
-      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
     ],
   },
   /*
@@ -1844,12 +1825,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
       "mod/Sitrep.Contract/ContractVersion.cs",
       "mod/Sitrep.Contract/RtConfig.cs",
-      /*
-       * WirePayloadCoverageTests.cs's comment records that the AvionicsStatus
-       * allowlist entry was removed because the type left this assembly:
-       * provenance, not a reference to the type.
-       */
-      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
 
       /*
        * -- The MechJeb pilot's own forward-looking cross-references --
@@ -2304,7 +2279,7 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * types left.
        */
       "mod/Sitrep.Core.Tests/UplinkContractOwnershipTests.cs",
-      "mod/Sitrep.Core.Tests/WirePayloadCoverageTests.cs",
+
       /*
        * sitrep-sdk's own tests: both now carry a comment recording what MOVED
        * OUT of core's generated surface with this relocation (the five Topic ids,
@@ -2534,6 +2509,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * days behind the mod's pin with nothing comparing them.
        */
       "packages/core/src/principia-plugin-version-parity.test.ts",
+      /*
+       * -- PRODUCER FIELD PARITY gate: names Principia in its own worked
+       * example. The five burn-profile fields that reached the wire as null on
+       * every Principia plan are WHY this gate exists, so the doc comment cites
+       * the incident and `PrincipiaManeuverPlanSource` as the producer that was
+       * filling them correctly all along. Prose citing a fix to read, the same
+       * shape as the unknown-cast entry above. No import, no topic read.
+       */
+      "mod/Sitrep.Core.Tests/ProducerFieldParityTests.cs",
       // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
       // `packages/<pkg>/src` and nothing else, so twenty files under a
       // package's `scripts` directory and at its root were never visited, and

@@ -63,7 +63,7 @@ namespace Sitrep.Core.Tests
         ///
         /// <para>So do not defend this floor as the count falls. It exists
         /// because a directory walk that returns nothing reports no violations
-        /// and looks exactly like a clean repo — and at the target state that
+        /// and looks exactly like a clean repo, and at the target state that
         /// is the honest situation, which this instrument cannot tell from a
         /// broken walk. Before the last mod Uplink leaves, REPLACE the floor
         /// with something that still works at zero: assert the walk finds the
