@@ -89,6 +89,21 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * Two were migrated in the same change, so the table below starts at 566.
  * Under half of the app's spacing will ever carry a semantic name, and a
  * ratchet that pretended otherwise would be permanently, unfixably red.
+ *
+ * SHAPE is not the same as VALUE, and the first migration tranche found the
+ * difference. Three value families sit in an expressible shape and still have
+ * no honest name, so they will not reach zero and an entry covering one should
+ * not be read as unfinished work:
+ *
+ *   - `gap: var(--space-10)`. 10 is the one rung with no gap name over it:
+ *     --gap-related is 8 and --gap-section is 16, so aliasing it either
+ *     tightens a cluster or opens a hole. 9 sites at the seed.
+ *   - The BUTTON inset, `(6,12)`, which ui-kit's own Button declares and three
+ *     app files copy. --inset-row is narrower and --inset-panel taller; the
+ *     vocabulary has chip, row and panel and no control.
+ *   - Pairs whose horizontal half is not larger than the vertical, `(12,8)`
+ *     and `(6,4)`. Every --inset-* widens faster than it grows, so naming one
+ *     transposes it.
  */
 type Family =
   | "spacing"
@@ -429,17 +444,8 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/LandingStatus/index.tsx": 4,
     "packages/components/src/LaunchDirector/index.tsx": 31,
     "packages/components/src/LibrationPoints/index.tsx": 1,
-    "packages/components/src/ManeuverPlanner/ArmedTriggersList.tsx": 5,
-    "packages/components/src/ManeuverPlanner/BurnConformanceRow.tsx": 1,
-    "packages/components/src/ManeuverPlanner/BurnWindowRows.tsx": 3,
-    "packages/components/src/ManeuverPlanner/index.tsx": 4,
-    "packages/components/src/ManeuverPlanner/ManeuverNodeList.tsx": 1,
-    "packages/components/src/ManeuverPlanner/ManeuverPreview.tsx": 5,
-    "packages/components/src/ManeuverPlanner/NodeRow.tsx": 10,
-    "packages/components/src/ManeuverPlanner/PresetInput.tsx": 3,
-    "packages/components/src/ManeuverPlanner/PresetPicker.tsx": 1,
-    "packages/components/src/ManeuverPlanner/styles.ts": 3,
-    "packages/components/src/ManeuverPlanner/TriggerEditor.tsx": 7,
+    "packages/components/src/ManeuverPlanner/NodeRow.tsx": 2,
+    "packages/components/src/ManeuverPlanner/styles.ts": 1,
     "packages/components/src/MapView/MapPoiLayer.tsx": 3,
     "packages/components/src/MapView/MapView.styles.ts": 6,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 1,
@@ -471,26 +477,15 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/data/src/FlightsManager/FlightGraph.tsx": 5,
     "packages/data/src/FlightsManager/index.tsx": 20,
     "packages/data/src/replaySession/ReplaySessionBanner.tsx": 6,
-    "packages/serial/src/InputMappingTab.tsx": 5,
-    "packages/serial/src/InputTester/index.tsx": 5,
-    "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 8,
-    "packages/serial/src/SerialDevicesMenu/DeviceEditor.tsx": 1,
-    "packages/serial/src/SerialDevicesMenu/DeviceTypeEditor.tsx": 6,
-    "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 4,
-    "packages/serial/src/SerialDevicesMenu/index.tsx": 10,
-    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 4,
-    "packages/serial/src/SerialDevicesMenu/SelfDescribingAddWizard.tsx": 3,
-    "packages/serial/src/SerialPortRecoveryWatcher.tsx": 2,
-    "packages/serial/src/VirtualDevice/AnalogPad.tsx": 1,
-    "packages/serial/src/VirtualDevice/index.tsx": 1,
+    "packages/serial/src/InputMappingTab.tsx": 1,
+    "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
+    "packages/serial/src/SerialDevicesMenu/index.tsx": 1,
+    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
     "packages/ui/src/BannerPill.tsx": 4,
-    "packages/ui/src/BannerStack.tsx": 1,
-    "packages/ui/src/DataKeyMultiPicker.tsx": 6,
-    "packages/ui/src/DimmedOverlay.tsx": 2,
-    "packages/ui/src/Fab.tsx": 2,
+    "packages/ui/src/DataKeyMultiPicker.tsx": 2,
+    "packages/ui/src/DimmedOverlay.tsx": 1,
+    "packages/ui/src/Fab.tsx": 1,
     "packages/ui/src/FileInput.tsx": 3,
-    "packages/ui/src/SourceOfflineBanner.tsx": 4,
-    "packages/ui/src/Tag.tsx": 1,
   },
 };
 

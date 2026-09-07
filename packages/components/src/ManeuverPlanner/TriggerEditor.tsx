@@ -92,8 +92,8 @@ export function TriggerEditor({
 const Editor = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-related);
+  padding: var(--inset-row);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xs);
@@ -110,14 +110,14 @@ const EditorTitle = styled.div`
 const EditorField = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-tight);
   flex: 1;
   min-width: 0;
 `;
 
 const OpRow = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const OpSelect = styled.select`
@@ -125,7 +125,7 @@ const OpSelect = styled.select`
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xs);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--inset-row);
   font-size: var(--font-size-sm);
 `;
 
@@ -134,7 +134,7 @@ const ValueInput = styled.input`
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xs);
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-row);
   font-size: var(--font-size-sm);
   font-family: inherit;
   width: 100%;
@@ -149,6 +149,6 @@ const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   padding-top: var(--space-2);
 `;

@@ -93,10 +93,13 @@ const Banner = styled.div`
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-sm);
+  /* The button inset, shared with ui-kit's Button and FileInput's own. It is
+     wider than --inset-row and shorter than --inset-panel, so no --inset-*
+     names it; see the note on the pills in BannerPill. */
   padding: var(--space-6) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-tight);
   align-items: center;
   text-align: center;
   max-width: 80%;

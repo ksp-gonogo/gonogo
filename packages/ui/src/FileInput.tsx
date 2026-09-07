@@ -76,6 +76,8 @@ export const FileInput = forwardRef<HTMLInputElement, FileInputProps>(
 const FileInputRow = styled.div`
   display: flex;
   align-items: center;
+  /* 10 is the one rung with no gap name over it: --gap-related is 8 and
+     --gap-section is 16. */
   gap: var(--space-10);
   flex-wrap: wrap;
 `;
@@ -90,6 +92,8 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   letter-spacing: 0.04em;
+  /* The button inset, shared with ui-kit's Button. Wider than --inset-row and
+     shorter than --inset-panel, so no --inset-* names it. */
   padding: var(--space-6) var(--space-12);
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
@@ -110,7 +114,11 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
     min-height: 44px;
     /* One rung wider than the base inset (--space-12), same as ui-kit Button.
        A 14px value would snap onto the base rung and erase the horizontal
-       widening this block exists for. */
+       widening this block exists for.
+
+       It happens to equal --inset-panel, and is deliberately not written as
+       one: this pair is a 44px touch target, so it must move when the touch
+       guidance moves and must NOT move when the panel tier does. */
     padding: var(--space-10) var(--space-16);
   }
 `;

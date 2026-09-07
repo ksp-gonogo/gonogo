@@ -78,7 +78,7 @@ function RecoveryContent({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 `;
 
 const Body = styled.p`
@@ -91,5 +91,5 @@ const Body = styled.p`
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;

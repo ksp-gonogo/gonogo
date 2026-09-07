@@ -273,7 +273,7 @@ const StatusRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   font-size: var(--font-size-xs);
 `;
 
@@ -295,7 +295,7 @@ const AnalogRow = styled.div`
   display: grid;
   grid-template-columns: 80px 1fr 48px;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const AnalogName = styled.span`
@@ -370,14 +370,17 @@ const AnalogValue = styled.span<{ $live: boolean }>`
 const ButtonGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const ButtonPill = styled.div<{ $pressed: boolean }>`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-6) var(--space-8);
+  /* Tighter than the grid gap above on purpose: the dot, the glyph and the
+     name are three parts of one readout, and they have to read as one thing
+     against the space between pills. */
+  gap: var(--gap-tight);
+  padding: var(--inset-row);
   border-radius: var(--radius-sm);
   border: 1px solid
     ${({ $pressed }) =>

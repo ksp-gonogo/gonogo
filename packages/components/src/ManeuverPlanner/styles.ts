@@ -9,7 +9,7 @@ import styled from "styled-components";
 export const FeasibilityChip = styled.span<{ $ok: boolean }>`
   font-size: var(--font-size-xs);
   font-weight: ${({ $ok }) => ($ok ? 400 : 700)};
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
   /* A stadium, not a corner: --radius-pill rather than a fixed px, so the
      shape survives a change to this chip's padding or font size. */
   border-radius: var(--radius-pill);
@@ -30,7 +30,11 @@ export const FeasibilityChip = styled.span<{ $ok: boolean }>`
 export const FeasibilityBanner = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-tight);
+  /* No --inset-* names a full-width banner: --inset-row is the record inside a
+     list and --inset-panel is the surface a banner sits ON, and taking either
+     would either narrow the shortfall text or set it in from the panel edge
+     twice. */
   padding: var(--space-6) var(--space-10);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-nogo-bg);

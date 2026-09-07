@@ -259,7 +259,7 @@ export function GamepadLearnWizard({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 `;
 
 const Progress = styled.div`
@@ -272,6 +272,8 @@ const Progress = styled.div`
 const PromptRow = styled.div`
   display: flex;
   align-items: center;
+  /* 10 is the one rung with no gap name over it: --gap-related is 8 and
+     --gap-section is 16. */
   gap: var(--space-10);
   padding: var(--space-12);
   background: var(--color-surface-raised);
@@ -292,7 +294,7 @@ const PromptPositional = styled.span`
 const ListenStatus = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   font-size: var(--font-size-xs);
   color: var(--color-status-info-fg);
 `;
@@ -333,5 +335,5 @@ const FinishedHint = styled.div`
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;

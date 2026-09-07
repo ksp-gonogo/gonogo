@@ -139,15 +139,19 @@ function InstantRow({ row, nowUt }: { row: BurnInstantRow; nowUt: number }) {
       as="li"
       data-burn-instant-row=""
       title={row.question}
-      style={{ alignItems: "stretch", gap: "var(--space-8)" }}
+      style={{ alignItems: "stretch", gap: "var(--gap-related)" }}
     >
       <Cluster
         justify="start"
-        style={{ gap: "var(--space-6)", minWidth: 0, alignItems: "stretch" }}
+        style={{
+          gap: "var(--gap-related)",
+          minWidth: 0,
+          alignItems: "stretch",
+        }}
       >
         <KindSwatch kind={row.kind} />
         <Stack gap="xs" style={{ minWidth: 0 }}>
-          <Cluster align="baseline" style={{ gap: "var(--space-6)" }}>
+          <Cluster align="baseline" style={{ gap: "var(--gap-related)" }}>
             <span style={{ ...KIND_CHIP, color: KIND_COLOUR[row.kind] }}>
               {row.label}
             </span>
@@ -285,7 +289,11 @@ export function BurnWindowRows({
       {/* No "Burn window" caption here: the section heading above already
           says "Burn windows", and restating it on the first row said nothing
           the heading hadn't. The duration is the one fact this line adds. */}
-      <Cluster justify="end" align="baseline" style={{ gap: "var(--space-6)" }}>
+      <Cluster
+        justify="end"
+        align="baseline"
+        style={{ gap: "var(--gap-related)" }}
+      >
         {/* The null case keeps its own branch rather than leaning on Unit's
             null token: a bare "lasts" beside that token claims there is a burn
             length and declines to say it, where a bare dash says there is no

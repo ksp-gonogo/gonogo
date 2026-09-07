@@ -82,7 +82,7 @@ export function AnalogPad({ label, onChange, onRelease }: Readonly<Props>) {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-tight);
 `;
 
 const Label = styled.span`

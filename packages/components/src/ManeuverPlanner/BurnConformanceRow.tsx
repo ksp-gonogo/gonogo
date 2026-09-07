@@ -61,7 +61,7 @@ export function BurnConformanceRow({
     <Row
       as="li"
       data-burn-conformance-row=""
-      style={{ alignItems: "stretch", gap: "var(--space-8)" }}
+      style={{ alignItems: "stretch", gap: "var(--gap-related)" }}
     >
       {/* The chip alone. "delivered of planned" sat under it and only restated
           the two numbers already beside it, which is description rather than
