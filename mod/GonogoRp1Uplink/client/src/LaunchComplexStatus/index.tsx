@@ -132,6 +132,13 @@ export function LaunchComplexStatus({
                 <Countdown value={operation.timeLeftSeconds} />
               ) : operation.stalled ? (
                 <Badge severity="caution">STALLED</Badge>
+              ) : operation.progress == null ||
+                operation.totalPoints == null ? (
+                /* Not "not costed yet", which would be untrue: an operation
+                   RP-1 quoted no rate for is already the stall above. This is
+                   the case where the work remaining would not read, so there
+                   are no two ends to measure between. */
+                <>{NULL_DISPLAY} no reading of how far this move has got</>
               ) : (
                 <>{NULL_DISPLAY} not costed yet</>
               )}

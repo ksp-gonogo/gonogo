@@ -228,6 +228,17 @@ function TimeLeft({
       </Text>
     );
   }
+  // Ahead of the uncosted sentence and distinct from it: a build that is
+  // neither ticking nor stalled but cannot say where it stands has been costed,
+  // it just would not read. Saying "not costed" here sends an operator to wait
+  // for a recalculation that has already happened.
+  if (build.progress == null || build.totalPoints == null) {
+    return (
+      <Text size="xs" tone="muted">
+        {NULL_DISPLAY} RP-1 has not said how far along this build is.
+      </Text>
+    );
+  }
   return (
     <Text size="xs" tone="muted">
       {NULL_DISPLAY} RP-1 has not costed this build yet.

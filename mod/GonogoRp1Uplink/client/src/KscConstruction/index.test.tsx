@@ -209,6 +209,36 @@ describe("KscConstruction", () => {
     expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
   });
 
+  /*
+   * The other side of the same distinction: this row answered for its throttle
+   * AND its rate, so it has been costed. What went unread is where the work
+   * stands, and an ETA needs both ends of it.
+   */
+  it("names the missing progress reading rather than calling the row uncosted", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.centres", CENTRES);
+    fixture.emit("career.status", CAREER);
+    fixture.emit("rp1.constructions", [
+      construction({
+        name: "Runway",
+        facilityType: "Runway",
+        progress: null,
+        totalPoints: null,
+        progressRatio: null,
+        timeLeftSeconds: null,
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Runway/)).toBeInTheDocument();
+    });
+    expect(visibleText()).toContain("has not said how far along this is");
+    expect(visibleText()).not.toContain("RP-1 has not costed this yet");
+    expect(visibleText()).not.toContain("has not said what throttle");
+    expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
+  });
+
   it("calls a throttled-to-zero construction stalled", async () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);

@@ -1035,6 +1035,237 @@ public class Rp1ScReflectionTests : IDisposable
         Assert.Equal(100.0, Single(new Rp1ScReflection().Read(1.0).Centres).UpkeepPerDay);
     }
 
+    /// <summary>
+    /// Research and applicant head counts are ABSENT rather than zero. A career
+    /// with nobody in research genuinely sits at 0, so the substitution arrives
+    /// looking exactly like a reading, and it is the figure the hire control
+    /// counts a target up from.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_research_roster_publishes_no_head_count_rather_than_zero()
+    {
+        SpaceCenterManagement.Instance = new SpaceCenterManagementWithUnreadableStaff();
+
+        var personnel = new Rp1ScReflection().Read(1.0).Personnel;
+
+        Assert.NotNull(personnel);
+        Assert.Null(personnel!.Researchers);
+        Assert.Null(personnel.Applicants);
+    }
+
+    /// <summary>
+    /// The crew CEILING, absent rather than zero. It sits directly beside the
+    /// crew count and is read off the same object, so leaving it substituted was
+    /// the adjacent-reads-treated-differently shape: a complex staffed past a
+    /// cap of nobody, and a hire control darkened on a complex with room in it.
+    ///
+    /// <para>The ETA is asserted as UNCHANGED on purpose. The ramp needs the cap
+    /// and now declines without it, but a substituted cap of zero already
+    /// no-opped the ramp inside <c>RampedTimeLeft</c>, so the two agree on the
+    /// clock and the published field is the whole of the difference. Asserting a
+    /// shorter ETA here would be a test that passes either way.</para>
+    /// </summary>
+    [Fact]
+    public void An_unreadable_crew_ceiling_publishes_no_maximum_rather_than_a_cap_of_nobody()
+    {
+        var vp = new VesselProject { shipName = "Titan", buildPoints = 4_000_000.0 };
+        vp.SetBuildRate(1.0);
+        var pad = new LaunchComplexWithUnreadableMaxCrew { Name = "Pad A", Engineers = 50 };
+        pad.BuildList.Add(vp);
+        Install(pad, efficiency: 0.5);
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Null(Single(raw.Complexes).MaxEngineers);
+        // The crew still counts, which is what makes this the adjacent-read case.
+        Assert.Equal(50, Single(raw.Complexes).Engineers);
+        // Un-ramped, and therefore RP-1's plain division: 4e6 points at 0.5/s.
+        Assert.Equal(8_000_000.0, Single(raw.BuildQueue).TimeLeftSeconds!.Value, 6);
+    }
+
+    /// <summary>
+    /// A pad's tier, absent rather than zero. Tier 0 is a real pad flying small
+    /// rockets, so the substitution is a tier an operator cannot tell from a
+    /// read one.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_pad_tier_publishes_no_level_rather_than_tier_zero()
+    {
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.LaunchPads.Add(new LCLaunchPadWithUnreadableLevel { name = "Pad A-1" });
+        Install(pad, efficiency: 1.0);
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Pads).Level);
+    }
+
+    /// <summary>
+    /// A vehicle that will not say where it stands publishes no progress, no
+    /// fraction and no ETA. Substituted, the two zeros made a vehicle that is
+    /// half built read as one nobody has started, and the ETA divided a total of
+    /// nothing.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_build_progress_publishes_no_fraction_or_ETA()
+    {
+        var vp = new VesselProjectWithUnreadableProgress { shipName = "Agena" };
+        vp.SetBuildRate(4.0);
+        var pad = new LaunchComplex { Name = "Pad A", Engineers = 10 };
+        pad.BuildList.Add(vp);
+        Install(pad, efficiency: 0.5);
+
+        var item = Single(new Rp1ScReflection().Read(1.0).BuildQueue);
+
+        Assert.Null(item.Progress);
+        Assert.Null(item.TotalPoints);
+        Assert.Null(item.ProgressRatio);
+        Assert.Null(item.TimeLeftSeconds);
+        // The RATE still reads, which is the point: this row has been costed, so
+        // a client saying "not costed yet" here would be telling an operator to
+        // wait for a recalculation that has already happened.
+        Assert.Equal(2.0, item.Rate!.Value, 6);
+    }
+
+    /// <summary>
+    /// A blocking move whose build points will not read stays IN the set and
+    /// takes every ETA on the complex with it. Substituted, its points and its
+    /// progress both came out at zero, which satisfied the completeness test and
+    /// dropped it from the set outright: the survivors then divided a complex
+    /// they did not have to themselves and every ETA answered EARLY.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_blocking_move_leaves_its_peers_without_an_early_ETA()
+    {
+        var unreadable = new ReconRolloutProjectWithUnreadablePoints
+        {
+            progress = 100.0,
+            RRType = ReconRolloutProject.RolloutReconType.Rollout,
+        };
+        unreadable.SetBuildRate(4.0);
+        var peer = new ReconRolloutProject
+        {
+            BP = 1000.0,
+            progress = 500.0,
+            RRType = ReconRolloutProject.RolloutReconType.Rollout,
+        };
+        peer.SetBuildRate(4.0);
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.Recon_Rollout.Add(unreadable);
+        pad.Recon_Rollout.Add(peer);
+        Install(pad, efficiency: 0.5);
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        // Both rows are still there, and the readable one still names its peer.
+        Assert.Equal(2, raw.Operations.Count);
+        Assert.All(raw.Operations, op => Assert.Null(op.TimeLeftSeconds));
+        Assert.All(raw.Operations, op => Assert.Equal(1, op.BlockingPeers));
+
+        // And the complex cannot say it is clear to integrate, because the sum
+        // that decides it is missing a term.
+        Assert.Null(Single(raw.Complexes).CanIntegrate);
+    }
+
+    /// <summary>
+    /// The blocking total is absent, never a sum short by one unreadable
+    /// operation, and the vehicles behind it get no rate. Zero is the value that
+    /// CLEARS integration, so a total that quietly omits a blocking rollout does
+    /// not read as a gap: it reads as a clear pad, and every vehicle on it
+    /// publishes a confident full-speed rate.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_blocking_move_stops_the_complex_claiming_it_can_integrate()
+    {
+        var vp = new VesselProject { shipName = "Gemini", buildPoints = 1000.0 };
+        vp.SetBuildRate(4.0);
+        var unreadable = new ReconRolloutProjectWithUnreadablePoints
+        {
+            progress = 100.0,
+            RRType = ReconRolloutProject.RolloutReconType.Rollout,
+        };
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.BuildList.Add(vp);
+        pad.Recon_Rollout.Add(unreadable);
+        Install(pad, efficiency: 0.5);
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Null(Single(raw.Complexes).CanIntegrate);
+        Assert.Null(Single(raw.BuildQueue).Rate);
+        Assert.False(Single(raw.BuildQueue).Stalled);
+    }
+
+    /// <summary>
+    /// A construction that will not say how big it is publishes no fraction and
+    /// no ETA, rather than a total of nothing to divide by.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_construction_size_publishes_no_fraction_or_ETA()
+    {
+        var project = new FacilityUpgradeProject { name = "LaunchPad", progress = 200.0 };
+        project.SetBuildRate(4.0);
+        var ksc = new LCSpaceCenter { KSCName = "Cape", FacilityUpgrades = { project } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+        ConstructionProject.ThrowOnBpRead = true;
+
+        var row = Single(new Rp1ScReflection().Read(1.0).Constructions);
+
+        Assert.Null(row.TotalPoints);
+        Assert.Null(row.ProgressRatio);
+        Assert.Null(row.TimeLeftSeconds);
+        // Costed, as above: the rate is what says so.
+        Assert.Equal(4.0, row.Rate!.Value, 6);
+    }
+
+    /// <summary>
+    /// A research node's science price, absent rather than zero. Science is the
+    /// one currency RP-1 genuinely refuses a purchase over, so a substituted
+    /// cost tells an operator the node is free and always affordable.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_science_price_publishes_no_cost_rather_than_a_free_node()
+    {
+        var node = new ResearchProjectWithUnreadableCost { techID = "start", techName = "Start" };
+        node.SetBuildRate(4.0);
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { TechList = { node } };
+
+        var research = Single(new Rp1ScReflection().Read(1.0).Research);
+
+        Assert.Null(research.ScienceCost);
+        Assert.Null(research.Progress);
+        Assert.Null(research.ProgressRatio);
+        Assert.Null(research.TimeLeftSeconds);
+        Assert.Equal(4.0, research.Rate!.Value, 6);
+    }
+
+    /// <summary>
+    /// One unreadable axis takes the whole efficiency group key, which is what
+    /// this reading already promises. A substituted zero does not degrade the
+    /// key, it makes a FALSE one: the axis collapses onto every other complex
+    /// whose axis went unread, so two complexes RP-1 rates separately publish
+    /// the same group and read as sharing a crew rating.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_envelope_axis_publishes_no_efficiency_group_key()
+    {
+        Install(new LaunchComplexWithUnreadableSizeAxis { Name = "Pad A" }, efficiency: 0.5);
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Complexes).EfficiencyGroupKey);
+    }
+
+    /// <summary>
+    /// And an unreadable resource CAPACITY, on the same terms: RP-1 compares
+    /// names and amounts, so "=0" is a capacity rather than a stand-in, and two
+    /// complexes carrying different amounts of the same propellant would publish
+    /// one group.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_resource_capacity_publishes_no_efficiency_group_key()
+    {
+        Install(new LaunchComplexWithUnreadableResourceAmount { Name = "Pad A" }, efficiency: 0.5);
+
+        Assert.Null(Single(new Rp1ScReflection().Read(1.0).Complexes).EfficiencyGroupKey);
+    }
+
     private static Rp1ComplexRaw ByName(List<Rp1ComplexRaw> complexes, string name) =>
         complexes.Single(c => c.Name == name);
 

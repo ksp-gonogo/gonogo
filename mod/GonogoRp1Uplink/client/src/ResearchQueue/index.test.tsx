@@ -148,6 +148,35 @@ describe("ResearchQueue", () => {
     expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
   });
 
+  /*
+   * The third absence, and the one that is NOT the two above it: the throttle
+   * and the rate both read, so RP-1 has costed this node. What would not read
+   * is where it stands, and an ETA needs both ends of the work remaining.
+   * Calling it uncosted would send an operator to wait for a recalculation that
+   * has already happened.
+   */
+  it("names the missing progress reading rather than calling the node uncosted", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.research", [
+      node({
+        progress: null,
+        progressRatio: null,
+        scienceCost: null,
+        timeLeftSeconds: null,
+        stalled: false,
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/no reading of how far along this is/),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/not costed yet/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/no throttle reading/)).not.toBeInTheDocument();
+  });
+
   it("registers itself into the tech tree's universal sections segment", () => {
     // The seam needed no first-party change: Panel mounts
     // `${componentId}.sections` for every widget.

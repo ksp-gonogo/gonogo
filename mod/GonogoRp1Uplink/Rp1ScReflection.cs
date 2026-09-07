@@ -292,8 +292,12 @@ namespace GonogoRp1Uplink
             raw.Personnel = new Rp1PersonnelRaw
             {
                 TotalEngineers = totalEngineers,
-                Researchers = ReadInt(scm, "Researchers") ?? 0,
-                Applicants = ReadInt(scm, "Applicants") ?? 0,
+                // Absent, never zero, on the terms TotalEngineers above already
+                // holds: a career with nobody in research genuinely sits at 0,
+                // so a substituted zero is a staffing level an operator has no
+                // way to tell from a read one.
+                Researchers = ReadInt(scm, "Researchers"),
+                Applicants = ReadInt(scm, "Applicants"),
                 EngineerSalaryPerDay = ReadDouble(payroll.Maintenance, "IntegrationSalaryPerDay"),
                 ResearcherSalaryPerDay = ReadDouble(payroll.Maintenance, "ResearchSalaryPerDay"),
                 EngineerSalaryPerYear = payroll.EngineerSalaryPerYear,
@@ -416,12 +420,18 @@ namespace GonogoRp1Uplink
                 ? maxEfficiency
                 : efficiencySource == null ? (double?)null : ReadDouble(efficiencySource, "Efficiency");
 
-            var maxEngineers = ReadInt(lc, "MaxEngineers") ?? 0;
+            // Absent rather than zero, and read the same way as the crew count
+            // beside it: a cap of zero says this complex can hold nobody, which
+            // is a real state (a complex still under construction) and therefore
+            // indistinguishable from an unreadable one.
+            var maxEngineers = ReadInt(lc, "MaxEngineers");
 
             var reconRollout = Materialise(Member(lc, "Recon_Rollout"));
             var vesselRepairs = Materialise(Member(lc, "VesselRepairs"));
             var projectBpTotal = ProjectBpTotal(reconRollout, vesselRepairs);
-            var canIntegrate = projectBpTotal == 0.0;
+            // Null-propagating: a blocking total nobody could sum is not a total
+            // of zero, and zero is precisely what clears integration to proceed.
+            var canIntegrate = projectBpTotal == null ? (bool?)null : projectBpTotal.Value == 0.0;
 
             var ramp = RampFor(efficiencySource, isRushing, engineers, maxEngineers, efficiency, maxEfficiency);
             var sizeMax = Member(lc, "SizeMax");
@@ -514,7 +524,11 @@ namespace GonogoRp1Uplink
                     PadId = ReadGuidString(pad, "id"),
                     Name = ReadString(pad, "name"),
                     LaunchSiteName = ReadString(pad, "launchSiteName"),
-                    Level = ReadInt(pad, "level") ?? 0,
+                    // Absent, never zero: tier 0 is a pad that exists and flies
+                    // the smallest rockets, so the substitution is a tier rather
+                    // than a gap, and it is what an upgrade target is read
+                    // against.
+                    Level = ReadInt(pad, "level"),
                     FractionalLevel = NegativeAsAbsent(ReadDouble(pad, "fractionalLevel")),
                     State = ReadEnumName(pad, "State"),
                     IsOperational = ReadBool(pad, "isOperational"),
@@ -540,23 +554,39 @@ namespace GonogoRp1Uplink
                 {
                     continue;
                 }
-                var points = Math.Abs(ReadDouble(op, "BP") ?? 0.0);
-                var progress = ReadDouble(op, "progress") ?? 0.0;
+                var rawPoints = ReadDouble(op, "BP");
+                var rawProgress = ReadDouble(op, "progress");
                 var reversed = ReadBool(op, "IsReversed") == true;
-                if (reversed ? progress <= 0.0 : progress >= points)
+                var points = rawPoints == null ? (double?)null : Math.Abs(rawPoints.Value);
+
+                // Completion is a comparison between the two, so an unreadable
+                // half cannot settle it. Substituting zeros made that comparison
+                // TRUE and dropped the operation from the set entirely, which is
+                // the worst of the available wrongs: the survivors then divide a
+                // complex they do not have to themselves and every ETA on it
+                // answers EARLY. It stays in the set instead, with the unreadable
+                // term carried through, and SequencedTimeLeft declines the whole
+                // sequence rather than one row of it.
+                var complete = points != null
+                    && rawProgress != null
+                    && (reversed ? rawProgress.Value <= 0.0 : rawProgress.Value >= points.Value);
+                if (complete)
                 {
                     continue;
                 }
+
                 var baseRate = ReadDouble(op, "_buildRate") ?? -1.0;
                 blockingOps.Add(op);
                 blockingSet.Add(new Rp1ScMath.BlockingOp
                 {
                     Points = points,
-                    Remaining = reversed ? progress : points - progress,
+                    Remaining = points == null || rawProgress == null
+                        ? (double?)null
+                        : reversed ? rawProgress.Value : points.Value - rawProgress.Value,
                     // Un-shared: the sequencing applies each project's share
                     // itself, and re-applying it here would square it.
                     Rate = baseRate < 0.0 || efficiency == null
-                        ? 0.0
+                        ? (double?)null
                         : baseRate * efficiency.Value * rushRate,
                 });
             }
@@ -595,7 +625,7 @@ namespace GonogoRp1Uplink
             object vp,
             double? efficiency,
             double rushRate,
-            bool canIntegrate,
+            bool? canIntegrate,
             Func<double, double>? ramp,
             bool withProgress)
         {
@@ -627,8 +657,12 @@ namespace GonogoRp1Uplink
                 return item;
             }
 
-            item.Progress = ReadDouble(vp, "progress") ?? 0.0;
-            item.TotalPoints = ReadDouble(vp, "buildPoints") ?? 0.0;
+            // Absent, never zero. A substituted progress publishes a vehicle NOT
+            // STARTED and a substituted total publishes one that costs no work;
+            // both are claims about the integration, and the fraction, the ETA
+            // and the stall flag are all computed off them.
+            item.Progress = ReadDouble(vp, "progress");
+            item.TotalPoints = ReadDouble(vp, "buildPoints");
             item.ProgressRatio = Rp1ScMath.ProgressRatio(item.Progress, item.TotalPoints);
 
             var baseRate = ReadDouble(vp, "_buildRate") ?? -1.0;
@@ -646,15 +680,17 @@ namespace GonogoRp1Uplink
             object op,
             double? efficiency,
             double rushRate,
-            double projectBpTotal,
+            double? projectBpTotal,
             Func<double, double>? ramp,
             List<object> blockingOps,
             List<Rp1ScMath.BlockingOp> blockingSet)
         {
             var reversed = ReadBool(op, "IsReversed") == true;
             var blocking = ReadBool(op, "IsBlocking") == true;
-            var totalPoints = ReadDouble(op, "BP") ?? 0.0;
-            var progress = ReadDouble(op, "progress") ?? 0.0;
+            // Absent, never zero, for the reason ReadBuildItem gives: a move
+            // nobody could measure is not one that has not begun.
+            var totalPoints = ReadDouble(op, "BP");
+            var progress = ReadDouble(op, "progress");
             var baseRate = ReadDouble(op, "_buildRate") ?? -1.0;
             var cost = ReadDouble(op, "cost");
 
@@ -743,8 +779,11 @@ namespace GonogoRp1Uplink
         /// </remarks>
         private Rp1ConstructionRaw ReadConstruction(string? kscName, object project, string kind)
         {
-            var progress = ReadDouble(project, "progress") ?? 0.0;
-            var totalPoints = ReadDouble(project, "BP") ?? 0.0;
+            // Absent, never zero: a construction whose progress could not be read
+            // is not one nobody has broken ground on, and one whose build points
+            // could not be read is not one that finishes for free.
+            var progress = ReadDouble(project, "progress");
+            var totalPoints = ReadDouble(project, "BP");
             var workRate = ReadDouble(project, "workRate");
             var rate = Rp1ScMath.ConstructionRate(ReadDouble(project, "_buildRate") ?? -1.0, workRate);
 
@@ -774,8 +813,11 @@ namespace GonogoRp1Uplink
         {
             foreach (var node in Enumerate(Member(scm, "TechList")))
             {
-                var scienceCost = ReadInt(node, "scienceCost") ?? 0;
-                var progress = ReadDouble(node, "progress") ?? 0.0;
+                // Absent, never zero. Science is the one currency RP-1 genuinely
+                // refuses a purchase over, so a substituted cost of 0 tells an
+                // operator the node is free and that they can always afford it.
+                var scienceCost = ReadInt(node, "scienceCost");
+                var progress = ReadDouble(node, "progress");
                 var workRate = ReadDouble(node, "workRate");
                 var rate = Rp1ScMath.ResearchRate(ReadDouble(node, "_buildRate") ?? -1.0, workRate);
 
@@ -836,32 +878,60 @@ namespace GonogoRp1Uplink
         /// build points of every blocking, incomplete operation across the
         /// rollout and repair queues, which are exactly what
         /// <c>GetAllLCOps()</c> enumerates. Zero means integration can proceed.
+        ///
+        /// <para>Absent the moment ONE operation will not answer, rather than a
+        /// sum short by that operation's points. Zero is the value that clears
+        /// integration and hands every vehicle on the complex a full-speed rate,
+        /// so a total that quietly omits a blocking rollout does not read as a
+        /// gap: it reads as a clear pad.</para>
         /// </summary>
-        private double ProjectBpTotal(List<object> reconRollout, List<object> vesselRepairs)
+        private double? ProjectBpTotal(List<object> reconRollout, List<object> vesselRepairs)
         {
             var total = 0.0;
             foreach (var op in reconRollout)
             {
-                total += BlockingBp(op);
+                var bp = BlockingBp(op);
+                if (bp == null)
+                {
+                    return null;
+                }
+                total += bp.Value;
             }
             foreach (var op in vesselRepairs)
             {
-                total += BlockingBp(op);
+                var bp = BlockingBp(op);
+                if (bp == null)
+                {
+                    return null;
+                }
+                total += bp.Value;
             }
             return total;
         }
 
-        private double BlockingBp(object op)
+        /// <summary>
+        /// One operation's contribution to the blocking total: its absolute build
+        /// points while it is incomplete, and nothing once it is done. Absent
+        /// when the points or the progress could not be read, because completion
+        /// is a comparison BETWEEN the two and a pair of substituted zeros
+        /// satisfies it: an unreadable operation would otherwise report itself
+        /// finished and contribute nothing.
+        /// </summary>
+        private double? BlockingBp(object op)
         {
             if (ReadBool(op, "IsBlocking") != true)
             {
                 return 0.0;
             }
-            var bp = ReadDouble(op, "BP") ?? 0.0;
-            var progress = ReadDouble(op, "progress") ?? 0.0;
+            var bp = ReadDouble(op, "BP");
+            var progress = ReadDouble(op, "progress");
+            if (bp == null || progress == null)
+            {
+                return null;
+            }
             var reversed = ReadBool(op, "IsReversed") == true;
-            var complete = reversed ? progress <= 0.0 : progress >= bp;
-            return complete ? 0.0 : Math.Abs(bp);
+            var complete = reversed ? progress.Value <= 0.0 : progress.Value >= bp.Value;
+            return complete ? 0.0 : Math.Abs(bp.Value);
         }
 
         /// <summary>
@@ -875,14 +945,22 @@ namespace GonogoRp1Uplink
             object? efficiencySource,
             bool isRushing,
             int? engineers,
-            int maxEngineers,
+            int? maxEngineers,
             double? efficiency,
             double maxEfficiency)
         {
-            // A crew nobody could count cannot be ramped. The un-ramped estimate
-            // stands instead, which is the same degradation an unreadable
-            // efficiency record already gets.
-            if (efficiencySource == null || efficiency == null || engineers == null || _lcEfficiency == null)
+            // A crew nobody could count cannot be ramped, and neither can one
+            // whose CAP nobody could read: the ramp's whole input is the fraction
+            // of the cap that is staffed, and a substituted cap of zero silently
+            // collapses that fraction to nought, which is "nobody is improving"
+            // dressed as a computed answer. The un-ramped estimate stands
+            // instead, which is the same degradation an unreadable efficiency
+            // record already gets, and it errs LONG rather than early.
+            if (efficiencySource == null
+                || efficiency == null
+                || engineers == null
+                || maxEngineers == null
+                || _lcEfficiency == null)
             {
                 return null;
             }
@@ -893,7 +971,8 @@ namespace GonogoRp1Uplink
             }
 
             var crew = engineers.Value;
-            var portionEngineers = maxEngineers > 0 ? (double)crew / maxEngineers : 0.0;
+            var cap = maxEngineers.Value;
+            var portionEngineers = cap > 0 ? (double)crew / cap : 0.0;
             var startingEfficiency = efficiency.Value;
             Func<double, double> weightedEfficiency = seconds =>
             {
@@ -918,7 +997,7 @@ namespace GonogoRp1Uplink
                 maxEfficiency,
                 isRushing,
                 crew,
-                maxEngineers,
+                cap,
                 weightedEfficiency);
         }
 
@@ -1239,7 +1318,23 @@ namespace GonogoRp1Uplink
                 var massMax = ReadDouble(lc, "MassMax");
                 var sizeMax = Member(lc, "SizeMax");
                 var human = ReadBool(lc, "IsHumanRated");
-                if (massMax == null || sizeMax == null || human == null)
+                // The three AXES are pieces of the key on exactly the terms
+                // MassMax beside them is, and substituting zero for one does not
+                // degrade the key, it makes a FALSE one: an unreadable axis
+                // collapses onto a genuine zero and onto every other complex
+                // whose axis went unread, so two complexes RP-1 rates separately
+                // publish the same group and read as sharing a crew rating. The
+                // whole key goes absent instead, which is what this function
+                // already promises.
+                var sizeX = sizeMax == null ? (double?)null : ReadDouble(sizeMax, "x");
+                var sizeY = sizeMax == null ? (double?)null : ReadDouble(sizeMax, "y");
+                var sizeZ = sizeMax == null ? (double?)null : ReadDouble(sizeMax, "z");
+                if (massMax == null
+                    || sizeMax == null
+                    || human == null
+                    || sizeX == null
+                    || sizeY == null
+                    || sizeZ == null)
                 {
                     return null;
                 }
@@ -1248,9 +1343,9 @@ namespace GonogoRp1Uplink
                 {
                     lcType,
                     massMax.Value.ToString("R", CultureInfo.InvariantCulture),
-                    (ReadDouble(sizeMax, "x") ?? 0.0).ToString("R", CultureInfo.InvariantCulture),
-                    (ReadDouble(sizeMax, "y") ?? 0.0).ToString("R", CultureInfo.InvariantCulture),
-                    (ReadDouble(sizeMax, "z") ?? 0.0).ToString("R", CultureInfo.InvariantCulture),
+                    sizeX.Value.ToString("R", CultureInfo.InvariantCulture),
+                    sizeY.Value.ToString("R", CultureInfo.InvariantCulture),
+                    sizeZ.Value.ToString("R", CultureInfo.InvariantCulture),
                     human.Value ? "hr" : "nhr",
                 };
 
@@ -1263,8 +1358,16 @@ namespace GonogoRp1Uplink
                         if (entry.Key is string name && name.Length > 0)
                         {
                             var amount = ToDouble(entry.Value);
+                            // RP-1 compares NAMES AND AMOUNTS, so an unreadable
+                            // amount cannot be stood in for: "=0" is a capacity,
+                            // and two complexes carrying different amounts of the
+                            // same propellant would publish one group.
+                            if (amount == null)
+                            {
+                                return null;
+                            }
                             resources.Add(
-                                name + "=" + (amount ?? 0.0).ToString("R", CultureInfo.InvariantCulture));
+                                name + "=" + amount.Value.ToString("R", CultureInfo.InvariantCulture));
                         }
                     }
                     resources.Sort(StringComparer.Ordinal);

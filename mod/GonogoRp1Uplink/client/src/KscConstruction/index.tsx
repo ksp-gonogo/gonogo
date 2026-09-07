@@ -249,11 +249,7 @@ function TimeLeft({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
       </>
     );
   }
-  // Told apart from the line above it, because the two want different things
-  // of an operator. An uncosted project resolves itself the next time RP-1
-  // recalculates; a throttle nobody could read is the one setting this row's
-  // whole rate is derived from, and no ETA can be had while it is missing.
-  // Told apart from the line above it, because the two want different things
+  // Told apart from the line at the end, because the two want different things
   // of an operator. An uncosted project resolves itself the next time RP-1
   // recalculates; a throttle nobody could read is the one setting this row's
   // whole rate is derived from, and no ETA can be had while it is missing.
@@ -261,6 +257,13 @@ function TimeLeft({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
     return (
       <>{NULL_DISPLAY} RP-1 has not said what throttle this is running at</>
     );
+  }
+  // Also told apart, and for the same reason in the other direction: a row that
+  // answered for its throttle and its rate HAS been costed, so the sentence
+  // below would be a falsehood. What went unread is where the work stands, and
+  // an ETA needs both ends of it.
+  if (row.progress == null || row.totalPoints == null) {
+    return <>{NULL_DISPLAY} RP-1 has not said how far along this is</>;
   }
   return <>{NULL_DISPLAY} RP-1 has not costed this yet</>;
 }
