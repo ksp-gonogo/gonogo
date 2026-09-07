@@ -4,7 +4,14 @@
 // string, and none of it touches the DOM. The browser half is exercised by
 // running the tool against a real Uplink, which is what `gonogo-uplink render`
 // is; this file covers the parts that decide whether a run happens at all.
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { deflateSync } from "node:zlib";
@@ -14,7 +21,7 @@ import { refuseToClobberHandWrittenReadme } from "./cli";
 import { resolveUplinkPackage } from "./context";
 import { README_GENERATED_MARKER, scenesAssertingNothing } from "./docs";
 import { encodeGif } from "./gif";
-import { generateEntry } from "./page";
+import { generateEntry, oneCopyPerPage } from "./page";
 import { decodePng } from "./png";
 import { assertEveryWidgetCovered, buildScenes } from "./scenes";
 
@@ -107,6 +114,50 @@ const INVENTORY: UplinkInventory = {
     },
   ],
 };
+
+/**
+ * The single-copy pins. A `--with` module lives outside the Uplink's package, so
+ * its imports resolve from a different `node_modules` when the two are separate
+ * installs, and every shared package is bundled twice. React is the one that
+ * bites: an augment mounted inside a cross-package host threw "Cannot read
+ * properties of null (reading 'useEffect')" from its first hook.
+ *
+ * Both assertions below are about the alias VALUE, and both are mistakes that
+ * were made and measured on the way to this rule rather than hypotheticals.
+ */
+describe("one copy per page", () => {
+  it("pins a package to its directory, so subpaths and conditions still resolve", () => {
+    const alias = oneCopyPerPage(join(__dirname, ".."));
+    // esbuild substitutes an alias at the START of an import path, so a value
+    // pointing at the ENTRY FILE turns `react-dom/test-utils` into
+    // `.../react-dom/index.js/test-utils`, which is a build error rather than a
+    // wrong render. A directory is also what leaves the export CONDITION to
+    // esbuild: the CJS half a Node resolver picks needed Node's `stream` for
+    // styled-components and failed the build a second way.
+    expect(Object.keys(alias)).toContain("react");
+    for (const [specifier, value] of Object.entries(alias)) {
+      expect(statSync(value).isDirectory(), `${specifier} -> ${value}`).toBe(
+        true,
+      );
+      expect(existsSync(join(value, "package.json"))).toBe(true);
+    }
+  });
+
+  it("names only what it could resolve, so an unreachable package is left to esbuild", () => {
+    // The catch arm. A specifier the Uplink cannot reach has no copy here to BE
+    // the one copy, and throwing would fail a render with nothing wrong with
+    // it. Asserted as a subset rather than as an empty map, because a resolver
+    // walks to the filesystem root and then to Node's global folders, so
+    // "nothing is installed near this directory" is not a state a test can
+    // arrange on every machine.
+    const alias = oneCopyPerPage(
+      mkdtempSync(join(tmpdir(), "gonogo-nomodules-")),
+    );
+    for (const specifier of Object.keys(alias)) {
+      expect(["react", "react-dom", "styled-components"]).toContain(specifier);
+    }
+  });
+});
 
 describe("the generated browser entry", () => {
   it("awaits the host install before importing the client", () => {

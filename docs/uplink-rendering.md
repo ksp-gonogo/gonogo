@@ -481,6 +481,18 @@ Paths relative to your client package, not module specifiers. `--with <module>`
 does the same thing for a single run. Without either, a scene naming a host fails
 with the host it could not find and the list of what was in the bundle.
 
+The module may sit in a **different install** from your Uplink, which is what an
+Uplink developed outside this repo needs: point `--with` at a checkout of
+`packages/components/src/index.ts` and the real widget mounts. `react`,
+`react-dom` and `styled-components` are pinned to your Uplink's copy for the
+whole page so the two sides share one of each. They were not, until an augment
+mounted in a cross-install host threw `Cannot read properties of null (reading
+'useEffect')` on its first hook: a second React had no dispatcher, because the
+one RENDERING the tree was the other. A CONTRIBUTION scene never showed it, and
+that is not luck. A contribution is data its host draws, so no module of yours
+ever renders and no second React is entered; an augment supplies a component,
+and is the first thing to run hooks from both installs at once.
+
 Every augment registered on that slot mounts, not only the one the scene is of,
 which is the honest picture and is worth knowing when you read one: a section
 below yours in the same slot is really there.
