@@ -47,10 +47,13 @@ namespace Sitrep.Core.Tests
     public class UplinkArmingCoverageTests
     {
         /// <summary>
-        /// Twelve Uplinks today. A floor, not an equality: adding one must not need
-        /// this number touched, removing several deliberately should.
+        /// Six Uplinks today, down from nine when three left for the
+        /// gonogo-uplinks repo on 2026-09-06. A floor, not an equality: adding
+        /// one must not need this number touched, removing several deliberately
+        /// should, and it is the same six <c>UplinkIsolationTests</c>'s own
+        /// floor already reads.
         /// </summary>
-        private const int MinimumUplinkProjectCount = 7;
+        private const int MinimumUplinkProjectCount = 6;
 
         /// <summary>
         /// The exact wiring an armed Uplink's manifest needs, whitespace-collapsed.

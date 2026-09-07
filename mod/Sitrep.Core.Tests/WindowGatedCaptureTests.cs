@@ -153,11 +153,13 @@ namespace Sitrep.Core.Tests
         /// <summary>
         /// Floors on what the walk found, because a directory-walking gate whose
         /// walk returns nothing reports no violations and looks exactly like a
-        /// clean repo. Measured 2026-09-01 at 31 projects and 562 files; the
-        /// floors sit below that so ordinary movement does not trip them and a
-        /// broken path cannot pass as a clean one.
+        /// clean repo. Measured 2026-09-01 at 31 projects and 562 files, and
+        /// again after three Uplinks left for the gonogo-uplinks repo on
+        /// 2026-09-06 at 21 and 21; the floors sit at or below that so ordinary
+        /// movement does not trip them and a broken path cannot pass as a clean
+        /// one.
         /// </summary>
-        private const int MinimumCaptureProjectCount = 22;
+        private const int MinimumCaptureProjectCount = 21;
 
         private const int MinimumScannedFileCount = 500;
 
