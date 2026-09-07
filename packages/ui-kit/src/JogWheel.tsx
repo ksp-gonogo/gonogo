@@ -10,6 +10,10 @@
  * `aria-valuenow`/`aria-valuemin`/`aria-valuemax`/`aria-valuetext` +
  * `aria-orientation`; full keyboard operation (Arrow ±step, Home/End =
  * min/max). All emits are suppressed while `disabled`.
+ *
+ * Sized with `width`/`height` in CSS px, the same pair `Dial` and `Tape` take.
+ * A corner-sized control (three wheels inside a 232px tile) wants about 72x24,
+ * which reads at the scale of a video overlay's own 52x52 aim pad.
  */
 
 import type { KeyboardEvent, PointerEvent } from "react";
@@ -40,6 +44,17 @@ interface JogWheelCommon {
   format?: (v: number) => string;
   ariaLabel: string;
   disabled?: boolean;
+  /**
+   * Box width in CSS px, as `Dial` and `Tape` take theirs. Defaults to 120
+   * horizontal / 40 vertical, so an existing call site keeps the size it has.
+   * Clamped up to {@link JOG_WHEEL_MIN_TARGET_PX}.
+   */
+  width?: number;
+  /**
+   * Box height in CSS px. Defaults to 40 horizontal / 120 vertical. Clamped up
+   * to {@link JOG_WHEEL_MIN_TARGET_PX}.
+   */
+  height?: number;
 }
 
 export type JogWheelProps =
@@ -72,6 +87,30 @@ const RATE_TICK_MS = 60;
 
 /** Default steps per second at full displacement. */
 const DEFAULT_STEPS_PER_SECOND = 30;
+
+/**
+ * The floor either axis is clamped up to: WCAG 2.2 SC 2.5.8 (Target Size,
+ * Minimum) at AA. A jog wheel is a pointer drag target with no spacing
+ * exception to lean on, so a caller asking for less gets 24 rather than
+ * something that looks right and cannot be grabbed.
+ *
+ * <p>Drag RANGE is unaffected by the box: the wheel captures the pointer, and
+ * `SENSITIVITY_PX_PER_STEP` / `RATE_TRAVEL_PX` are measured against pointer
+ * travel, which carries on outside the element. A small wheel is a smaller
+ * thing to grab, not a shorter throw.</p>
+ */
+export const JOG_WHEEL_MIN_TARGET_PX = 24;
+
+/**
+ * Below this on the cross axis the 4px inset leaves less room than the caret
+ * label's own line box needs, and `overflow: hidden` takes the difference off
+ * the text. Wider than this nothing changes.
+ */
+const COMPACT_CROSS_AXIS_PX = 32;
+
+/** Default box, per orientation: the long axis first. */
+const DEFAULT_LONG_PX = 120;
+const DEFAULT_SHORT_PX = 40;
 
 /**
  * Pure clamp + quantise: move `value` by `deltaSteps` of `step` (fractional
@@ -111,7 +150,18 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
     format,
     ariaLabel,
     disabled = false,
+    width,
+    height,
   } = props;
+  const vertical = orientation === "vertical";
+  const boxWidth = Math.max(
+    JOG_WHEEL_MIN_TARGET_PX,
+    width ?? (vertical ? DEFAULT_SHORT_PX : DEFAULT_LONG_PX),
+  );
+  const boxHeight = Math.max(
+    JOG_WHEEL_MIN_TARGET_PX,
+    height ?? (vertical ? DEFAULT_LONG_PX : DEFAULT_SHORT_PX),
+  );
   const rate = props.mode === "rate";
   // A rate control has no ends, so its arithmetic runs unbounded. `applyDelta`
   // clamps, and clamping to an invented pair is exactly what this mode exists
@@ -238,6 +288,9 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
       tabIndex={disabled ? -1 : 0}
       $orientation={orientation}
       $disabled={disabled}
+      $width={boxWidth}
+      $height={boxHeight}
+      $compact={(vertical ? boxWidth : boxHeight) < COMPACT_CROSS_AXIS_PX}
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
@@ -262,15 +315,19 @@ export function JogWheel(props: JogWheelProps): JSX.Element {
 const JogWheel__Root = styled.div<{
   $orientation: "horizontal" | "vertical";
   $disabled: boolean;
+  $width: number;
+  $height: number;
+  $compact: boolean;
 }>`
   position: relative;
   overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: ${(p) => (p.$orientation === "vertical" ? "40px" : "120px")};
-  height: ${(p) => (p.$orientation === "vertical" ? "120px" : "40px")};
-  padding: var(--space-4, 4px);
+  width: ${(p) => p.$width}px;
+  height: ${(p) => p.$height}px;
+  padding: ${(p) =>
+    p.$compact ? "var(--space-2, 2px)" : "var(--space-4, 4px)"};
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xs, 2px);
   background: var(--color-surface-raised);

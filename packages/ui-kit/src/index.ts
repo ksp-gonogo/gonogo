@@ -415,7 +415,11 @@ export {
   StopIcon,
 } from "./Icons";
 export { Inline, type InlineProps } from "./Inline";
-export { JogWheel, type JogWheelProps } from "./JogWheel";
+export {
+  JOG_WHEEL_MIN_TARGET_PX,
+  JogWheel,
+  type JogWheelProps,
+} from "./JogWheel";
 export {
   type KspCalendar,
   kspCalendar,
