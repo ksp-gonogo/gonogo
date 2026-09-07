@@ -68,7 +68,8 @@ const EVERY_FRAME_FIELD: Required<PrincipiaReferenceFrame> = {
 
 const EVERY_FIELD: Required<PrincipiaSettings> = {
   observedAtUt: quantity("ut", 1_000_000),
-  pluginVersion: "principia 2026080123-Grassmann",
+  pluginVersion:
+    "2026081218-Levi-Civita-0-gc6615048e8fc76722b081bb3f1f4536afcf66870",
   readingSuspended: true,
   readingSuspendedReason: "recording a journal",
   plottingFrame: EVERY_FRAME_FIELD,

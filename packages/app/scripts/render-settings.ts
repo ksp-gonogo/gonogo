@@ -60,7 +60,8 @@ const q = (unit: string, magnitude: number) => ({ magnitude, unit });
 /** A session mid-flight: Kerbin-centred inertial, journal off, reading. */
 const PRINCIPIA_LIVE = {
   observedAtUt: q("ut", VIEW_UT),
-  pluginVersion: "principia 2026080123-Grassmann",
+  pluginVersion:
+    "2026081218-Levi-Civita-0-gc6615048e8fc76722b081bb3f1f4536afcf66870",
   readingSuspended: false,
   plottingFrame: {
     selector: "Plotting frame",
