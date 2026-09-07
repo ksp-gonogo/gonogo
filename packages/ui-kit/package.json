@@ -48,7 +48,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup && cp node_modules/@ksp-gonogo/theme/dist/tokens.css dist/tokens.css",
+    "build": "tsup && node scripts/extend-package-specifiers.mjs && cp node_modules/@ksp-gonogo/theme/dist/tokens.css dist/tokens.css",
     "dev": "tsup --watch",
     "lint": "tsc --noEmit",
     "render:markers": "node scripts/render-markers.ts",
