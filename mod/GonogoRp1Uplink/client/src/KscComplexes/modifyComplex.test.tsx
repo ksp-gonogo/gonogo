@@ -237,6 +237,31 @@ describe("renovating a launch complex", () => {
     });
   });
 
+  /*
+   * An unreadable crew does not become a crew of nobody. Substituted, the line
+   * read "0 engineers are unassigned for the whole renovation", which is a
+   * promise that the press costs the operator no staff at all on exactly the
+   * complex whose staffing nobody could read.
+   */
+  it("does not promise a crew of nobody when the count is unreadable", async () => {
+    const user = userEvent.setup();
+    const { view } = mount({ ...LC1, engineers: undefined });
+    await openRenovation(user);
+
+    /*
+     * The clause that only the RENOVATION panel carries. The complex card
+     * behind it says "RP-1 has not said how many engineers this complex holds"
+     * word for word for the same absence, so matching that half asserts nothing
+     * about this control: it passed with the substitution planted back.
+     */
+    await waitFor(() => {
+      expect(view.container.textContent).toContain(
+        "all of them are unassigned for the whole renovation",
+      );
+    });
+    expect(view.container.textContent).not.toMatch(/\b0 engineers/);
+  });
+
   it("draws neither tonnage nor human rating for the hangar, which RP-1 refuses both of", async () => {
     const user = userEvent.setup();
     mount({

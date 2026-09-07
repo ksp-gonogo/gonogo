@@ -223,6 +223,87 @@ public class Rp1ProgramFundingTests
         Assert.Empty(Rp1ProgramsMath.FundingSchedule(
             null, 4.0 * Year, 400_000.0, null, null, false, false));
     }
+
+    /// <summary>
+    /// A RUNNING Program whose paid-out total or elapsed fraction is unreadable
+    /// has no schedule either. Substituted, the table restarted at year 1 from a
+    /// zero running total and republished the entire original promise under a
+    /// column headed "Pays": every row overstated by what the career has already
+    /// banked. The same absence already nulls <c>fundsRemaining</c>, so this is
+    /// the payload agreeing with itself.
+    /// </summary>
+    [Fact]
+    public void A_running_Program_with_an_unreadable_paid_out_total_yields_no_schedule()
+    {
+        Assert.Empty(Rp1ProgramsMath.FundingSchedule(
+            FlatCurve(), 4.0 * Year, 400_000.0,
+            fracElapsed: 0.5, fundsPaidOut: null, isActive: true, isComplete: false));
+        Assert.Empty(Rp1ProgramsMath.FundingSchedule(
+            FlatCurve(), 4.0 * Year, 400_000.0,
+            fracElapsed: null, fundsPaidOut: 200_000.0, isActive: true, isComplete: false));
+    }
+
+    /// <summary>
+    /// An OFFER is unaffected: it has paid nothing, so the whole schedule from
+    /// year 1 is the right answer there and the guard above must not swallow it.
+    /// </summary>
+    [Fact]
+    public void An_offer_still_tabulates_from_year_one_with_neither_figure()
+    {
+        var schedule = Rp1ProgramsMath.FundingSchedule(
+            FlatCurve(), 4.0 * Year, 400_000.0,
+            fracElapsed: null, fundsPaidOut: null, isActive: false, isComplete: false);
+
+        Assert.Equal(4, schedule.Count);
+        Assert.Equal(1, schedule[0].Year);
+        Assert.Equal(100_000.0, schedule[0].Funds, 6);
+    }
+
+    /// <summary>
+    /// A curve with coincident keys reads a finite number wherever it is
+    /// sampled, whatever order the keys arrive in.
+    ///
+    /// <para>The Hermite sum divides by the span between the two keys of the
+    /// segment and that division is what the guard covers, because a NaN here
+    /// does not stop at the arithmetic: the writer routes a non-finite double to
+    /// a sentinel STRING, so it survives serialisation and lands in a numeric
+    /// field on the wire.</para>
+    ///
+    /// <para>This test does NOT go red with the guard removed, and that is the
+    /// finding rather than a gap in it. The segment search takes the LAST key at
+    /// or below the sample, so the only way to select a zero-span pair is for its
+    /// right-hand key to be the final one, and the clamp above the loop has
+    /// already returned by then. The sweep is what establishes that: it samples
+    /// every arrangement rather than arguing about one.</para>
+    /// </summary>
+    [Fact]
+    public void A_curve_with_coincident_keys_reads_finite_wherever_it_is_sampled()
+    {
+        var fracs = new[] { 0.0, 0.2, 0.5, 0.5, 0.8, 1.0, 1.0 };
+        for (var duplicated = 0; duplicated < fracs.Length; duplicated++)
+        {
+            var keys = new List<Rp1FundingCurveKeyRaw>();
+            for (var i = 0; i < fracs.Length; i++)
+            {
+                keys.Add(new Rp1FundingCurveKeyRaw
+                {
+                    Frac = i == duplicated && i > 0 ? fracs[i - 1] : fracs[i],
+                    PaidFraction = i / (double)fracs.Length,
+                    InTangent = 1.0,
+                    OutTangent = 1.0,
+                });
+            }
+
+            for (var sample = -0.25; sample <= 1.25; sample += 0.05)
+            {
+                var read = Rp1ProgramsMath.EvaluateCurve(keys, sample);
+                Assert.NotNull(read);
+                Assert.True(
+                    !double.IsNaN(read!.Value) && !double.IsInfinity(read.Value),
+                    $"key {duplicated} duplicated, sampled at {sample}, read {read.Value}");
+            }
+        }
+    }
 }
 
 /// <summary>

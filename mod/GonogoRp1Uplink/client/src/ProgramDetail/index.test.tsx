@@ -298,6 +298,43 @@ describe("ProgramDetail", () => {
     expect(table).toHaveTextContent("400,000");
   });
 
+  /*
+   * A running Program with no schedule and no paid-out figure SAYS SO. Drawing
+   * nothing is what a COMPLETED Program looks like, and "this Program has
+   * finished paying" and "nobody could read what it has paid" are opposite
+   * facts to put in front of an operator.
+   */
+  it("says why a running Program has no funding summary", async () => {
+    const { fixture } = mount();
+    await feed(fixture, [
+      program({ state: "active", fundsPaidOut: null, fundingPayments: null }),
+    ]);
+
+    await waitFor(() => {
+      expect(visibleText()).toContain("FUNDING SUMMARY");
+    });
+    expect(visibleText()).toContain(
+      "has not said what this Program has been paid",
+    );
+    expect(
+      screen.queryByRole("table", { name: /per nominal year/ }),
+    ).toBeNull();
+  });
+
+  /* A COMPLETED Program still draws nothing at all, which is RP-1's own rule. */
+  it("draws no funding summary at all for a completed Program", async () => {
+    const { fixture } = mount();
+    await feed(fixture, [
+      program({
+        state: "completed",
+        completedUt: 200_000,
+        fundingPayments: null,
+      }),
+    ]);
+
+    expect(visibleText()).not.toContain("FUNDING SUMMARY");
+  });
+
   it("prices all three speeds and flags the ones out of reach", async () => {
     const { fixture } = mount();
     await feed(fixture, [
@@ -524,6 +561,35 @@ describe("ProgramDetail", () => {
       expect(screen.getByText("ACCEPT")).toBeInTheDocument();
     });
     expect(screen.getByRole("button", { name: /^accept$/i })).toBeDisabled();
+  });
+
+  /*
+   * An unreadable balance is not a short one, and the press stays live. This is
+   * the half the mod used to make impossible: it substituted 0 for a Confidence
+   * field it could not read, which arrives here as a career that has spent
+   * everything and darkens a control the operator can in fact press.
+   * `ProgramStrategy.CanActivate` asks RP-1 itself at the press, so offering it
+   * costs nothing and refusing it costs the operator the Program.
+   */
+  it("keeps ACCEPT live when the Confidence balance is unreadable", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.programs", [
+      program({ state: "offerable", canAccept: true, confidenceCost: 900 }),
+    ]);
+    fixture.emit("rp1.programSlots", slots());
+    fixture.emit("rp1.programFundingCurves", [flatCurve()]);
+    fixture.emit("rp1.confidence", { confidence: null, earned: null });
+    fixture.emit("career.status", { economy: { funds: 289_848 } });
+
+    await waitFor(() => {
+      expect(screen.getByText("ACCEPT")).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole("button", { name: /accept x-plane research/i }),
+    ).toBeEnabled();
+    // And no SHORT badge: an unknown balance cannot be compared with a price.
+    expect(visibleText()).not.toContain("SHORT");
   });
 
   /*

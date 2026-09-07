@@ -213,7 +213,9 @@ namespace GonogoRp1Uplink
             {
                 ["maxSlots"] = slots.MaxSlots,
                 ["usedSlots"] = slots.UsedSlots,
-                ["freeSlots"] = slots.MaxSlots == null ? (int?)null : slots.MaxSlots.Value - slots.UsedSlots,
+                ["freeSlots"] = slots.MaxSlots == null || slots.UsedSlots == null
+                    ? (int?)null
+                    : slots.MaxSlots.Value - slots.UsedSlots.Value,
                 ["activeCount"] = slots.ActiveCount,
                 ["completedCount"] = slots.CompletedCount,
             };

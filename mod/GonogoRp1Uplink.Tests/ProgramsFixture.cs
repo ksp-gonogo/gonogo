@@ -163,10 +163,21 @@ namespace RP0.Programs
         /// </summary>
         public int? MaxProgramSlots { get; set; }
 
-        public int ActiveProgramSlots
+        /// <summary>
+        /// Puts the occupied count out of reach, so a test can hold it to the
+        /// same rule as <see cref="MaxProgramSlots"/> beside it rather than only
+        /// to a value.
+        /// </summary>
+        public bool OccupiedSlotsUnreadable { get; set; }
+
+        public int? ActiveProgramSlots
         {
             get
             {
+                if (OccupiedSlotsUnreadable)
+                {
+                    return null;
+                }
                 var total = 0;
                 foreach (var p in ActivePrograms)
                 {

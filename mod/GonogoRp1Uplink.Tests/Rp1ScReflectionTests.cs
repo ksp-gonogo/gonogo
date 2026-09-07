@@ -27,6 +27,7 @@ public class Rp1ScReflectionTests : IDisposable
         // The default install: no KSCSwitcher, so no centre has a display name.
         // Every test that wants one says so.
         KSCSwitcherInterop.Sites = null;
+        ClearUnreadableFlags();
     }
 
     public void Dispose()
@@ -35,6 +36,20 @@ public class Rp1ScReflectionTests : IDisposable
         Confidence.Instance = null;
         MaintenanceHandler.Instance = null;
         KSCSwitcherInterop.Sites = null;
+        ClearUnreadableFlags();
+    }
+
+    /// <summary>
+    /// The static "this member cannot be read" switches, cleared at both ends. A
+    /// test that left one standing would make every later file in the collection
+    /// read absences it never asked for.
+    /// </summary>
+    private static void ClearUnreadableFlags()
+    {
+        Confidence.ThrowOnBalanceRead = false;
+        ConstructionProject.ThrowOnBpRead = false;
+        ConstructionProject.ThrowOnWorkRateRead = false;
+        ConstructionProject.ThrowOnCostRead = false;
     }
 
     [Fact]
@@ -159,7 +174,7 @@ public class Rp1ScReflectionTests : IDisposable
         Assert.Equal(2.0, item.Rate!.Value, 6);          // 4.0 * 0.5 efficiency, no rush
         Assert.Equal(400.0, item.TimeLeftSeconds!.Value, 6); // 800 points left at 2/s, under a day so no ramp
         Assert.Equal(0.2, item.ProgressRatio!.Value, 6);
-        Assert.Equal(5000.0, item.Cost, 6);
+        Assert.Equal(5000.0, item.Cost!.Value, 6);
     }
 
     [Fact]
@@ -214,7 +229,7 @@ public class Rp1ScReflectionTests : IDisposable
         Install(pad, efficiency: 1.0);
 
         var operation = Single(new Rp1ScReflection().Read(1.0).Operations);
-        Assert.Equal(2500.0, operation.Cost, 6);
+        Assert.Equal(2500.0, operation.Cost!.Value, 6);
         Assert.Equal(1500.0, operation.CostRemaining!.Value, 6);
     }
 
@@ -828,6 +843,196 @@ public class Rp1ScReflectionTests : IDisposable
         SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
 
         Assert.Null(Single(new Rp1ScReflection().Read(1.0).Centres).KscDisplayName);
+    }
+
+    /// <summary>
+    /// The balance is ABSENT rather than zero when the module is live and its
+    /// field will not read. This is the one case the two tests above cannot
+    /// reach between them: the instance probe says RP-1 is here, so a
+    /// substituted zero arrives looking exactly like the spent career the test
+    /// above pins, and it is the figure a client darkens an Accept button on.
+    /// </summary>
+    [Fact]
+    public void A_live_module_with_an_unreadable_balance_publishes_no_confidence_rather_than_zero()
+    {
+        SpaceCenterManagement.Instance = new SpaceCenterManagement();
+        Confidence.Instance = new Confidence(500.0, 900.0);
+        Confidence.ThrowOnBalanceRead = true;
+
+        var confidence = new Rp1ScReflection().Read(1.0).Confidence;
+
+        // Present, because the module IS live: that half is what the probe says.
+        Assert.NotNull(confidence);
+        Assert.Null(confidence!.Confidence);
+        Assert.Null(confidence.Earned);
+    }
+
+    /// <summary>
+    /// An unreadable centre roster leaves the idle count ABSENT. Substituted, it
+    /// went NEGATIVE: the complexes' crews still read, so the subtraction ran
+    /// zero minus a real assignment and published "0 hired, 12 assigned, -12
+    /// idle" on a fully staffed centre.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_centre_roster_publishes_no_idle_count_rather_than_a_negative_one()
+    {
+        var pad = new LaunchComplex { Name = "Pad A", Engineers = 12 };
+        var ksc = new LCSpaceCenterWithUnreadableRoster { KSCName = "Cape", LaunchComplexes = { pad } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+
+        var raw = new Rp1ScReflection().Read(1.0);
+        var centre = Single(raw.Centres);
+
+        Assert.Null(centre.Engineers);
+        Assert.Null(centre.UnassignedEngineers);
+        // The salary term derived from the same subtraction goes with it.
+        Assert.Null(centre.IdleSalaryPerDay);
+        // And the career total, which a centre nobody could count is not part of.
+        Assert.Null(raw.Personnel!.TotalEngineers);
+    }
+
+    /// <summary>
+    /// The other half of the same subtraction: a complex whose crew will not
+    /// count leaves both the complex's own figure and the centre's idle pool
+    /// absent, rather than reporting the centre's whole roster as idle.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_complex_crew_leaves_the_centres_idle_pool_absent()
+    {
+        var pad = new LaunchComplexWithUnreadableCrew { Name = "Pad A" };
+        var ksc = new LCSpaceCenter { KSCName = "Cape", Engineers = 12, LaunchComplexes = { pad } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Null(Single(raw.Complexes).Engineers);
+        Assert.Equal(12, Single(raw.Centres).Engineers);
+        Assert.Null(Single(raw.Centres).UnassignedEngineers);
+    }
+
+    /// <summary>
+    /// An unreadable throttle takes the rate, the stall flag and the ETA with
+    /// it. Assumed at 1.0 it did the opposite of what the uncosted guard exists
+    /// for: it walked a costed base rate straight through and published a
+    /// confident finish date for a project nobody could say was moving.
+    /// </summary>
+    [Fact]
+    public void A_construction_with_an_unreadable_throttle_publishes_no_rate_or_ETA()
+    {
+        var project = new FacilityUpgradeProject { name = "LaunchPad", BP = 1000.0, progress = 200.0 };
+        project.SetBuildRate(4.0);
+        var ksc = new LCSpaceCenter { KSCName = "Cape", FacilityUpgrades = { project } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+        ConstructionProject.ThrowOnWorkRateRead = true;
+
+        var row = Single(new Rp1ScReflection().Read(1.0).Constructions);
+
+        Assert.Null(row.WorkRate);
+        Assert.Null(row.Rate);
+        Assert.Null(row.TimeLeftSeconds);
+        Assert.False(row.Stalled);
+    }
+
+    /// <summary>The research queue's copy of the same rule.</summary>
+    [Fact]
+    public void A_research_node_with_an_unreadable_throttle_publishes_no_rate_or_ETA()
+    {
+        var node = new ResearchProjectWithUnreadableWorkRate
+        {
+            techID = "start_rocketry",
+            techName = "Start",
+            scienceCost = 100,
+            progress = 20.0,
+        };
+        node.SetBuildRate(4.0);
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { TechList = { node } };
+
+        var row = Single(new Rp1ScReflection().Read(1.0).Research);
+
+        Assert.Null(row.WorkRate);
+        Assert.Null(row.Rate);
+        Assert.Null(row.TimeLeftSeconds);
+        Assert.False(row.Stalled);
+    }
+
+    /// <summary>
+    /// A price nobody could read is not a free rocket. Vehicle, operation and
+    /// construction together, because the three substitutions were the same one
+    /// written three times.
+    /// </summary>
+    [Fact]
+    public void An_unreadable_price_is_absent_rather_than_zero_on_every_priced_row()
+    {
+        var vp = new VesselProjectWithUnreadablePrice { shipName = "Vanguard", buildPoints = 1000.0 };
+        var op = new ReconRolloutProjectWithUnreadablePrice
+        {
+            BP = 1000.0,
+            progress = 400.0,
+            RRType = ReconRolloutProject.RolloutReconType.Rollout,
+        };
+        var pad = new LaunchComplex { Name = "Pad A" };
+        pad.BuildList.Add(vp);
+        pad.Recon_Rollout.Add(op);
+        var project = new FacilityUpgradeProject { name = "LaunchPad", BP = 1000.0 };
+        var ksc = new LCSpaceCenter { KSCName = "Cape", LaunchComplexes = { pad }, FacilityUpgrades = { project } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+        ConstructionProject.ThrowOnCostRead = true;
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        var vehicle = Single(raw.BuildQueue);
+        Assert.Null(vehicle.Cost);
+        Assert.Null(vehicle.Mass);
+
+        var operation = Single(raw.Operations);
+        Assert.Null(operation.Cost);
+        // What is left to pay of a price nobody read is not zero either.
+        Assert.Null(operation.CostRemaining);
+
+        var construction = Single(raw.Constructions);
+        Assert.Null(construction.Cost);
+        Assert.Null(construction.SpentCost);
+        Assert.Null(construction.SpentRushCost);
+    }
+
+    /// <summary>
+    /// A centre's upkeep is absent unless EVERY complex answered. Summed over
+    /// the ones that did, it is a plausible bill in the right units that an
+    /// operator cannot tell from a correct one.
+    /// </summary>
+    [Fact]
+    public void A_centre_whose_complexes_are_only_partly_priced_publishes_no_upkeep()
+    {
+        var priced = new LaunchComplex { Name = "Pad A" };
+        var unpriceable = new LaunchComplex { Name = "Pad B" };
+        var ksc = new LCSpaceCenter { KSCName = "Cape", LaunchComplexes = { priced, unpriceable } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+        var maintenance = new MaintenanceHandler();
+        maintenance.LcUpkeepValues[priced] = 40.0;
+        maintenance.UnpriceableComplexes.Add(unpriceable);
+        MaintenanceHandler.Instance = maintenance;
+
+        var raw = new Rp1ScReflection().Read(1.0);
+
+        Assert.Equal(40.0, ByName(raw.Complexes, "Pad A").UpkeepPerDay);
+        Assert.Null(ByName(raw.Complexes, "Pad B").UpkeepPerDay);
+        Assert.Null(Single(raw.Centres).UpkeepPerDay);
+    }
+
+    /// <summary>The same centre with both complexes priced still totals them, so the guard above is not a blanket refusal.</summary>
+    [Fact]
+    public void A_centre_whose_complexes_all_answer_still_totals_them()
+    {
+        var first = new LaunchComplex { Name = "Pad A" };
+        var second = new LaunchComplex { Name = "Pad B" };
+        var ksc = new LCSpaceCenter { KSCName = "Cape", LaunchComplexes = { first, second } };
+        SpaceCenterManagement.Instance = new SpaceCenterManagement { KSCs = { ksc }, ActiveSC = ksc };
+        var maintenance = new MaintenanceHandler();
+        maintenance.LcUpkeepValues[first] = 40.0;
+        maintenance.LcUpkeepValues[second] = 60.0;
+        MaintenanceHandler.Instance = maintenance;
+
+        Assert.Equal(100.0, Single(new Rp1ScReflection().Read(1.0).Centres).UpkeepPerDay);
     }
 
     private static Rp1ComplexRaw ByName(List<Rp1ComplexRaw> complexes, string name) =>

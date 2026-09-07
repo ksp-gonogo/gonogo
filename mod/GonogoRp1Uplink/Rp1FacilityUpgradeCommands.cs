@@ -908,7 +908,7 @@ namespace GonogoRp1Uplink
                     "RP-1 could not build an upgrade project for " + leaf + ": " + Rp1Types.ExceptionReason(ex));
             }
 
-            double buildPoints;
+            double? buildPoints;
             try
             {
                 var setBp = Rp1Types.InstanceMethod(project, "SetBP", 2);
@@ -922,7 +922,7 @@ namespace GonogoRp1Uplink
                 // RP-1's ORDER, kept: SetBP reads the project's own FacilityType,
                 // which the constructor above set, and cost is written afterwards.
                 setBp.Invoke(project, new object?[] { cost.Value, oldCost.Value });
-                buildPoints = Rp1Types.ReadDouble(project, "BP") ?? 0.0;
+                buildPoints = Rp1Types.ReadDouble(project, "BP");
             }
             catch (Exception ex)
             {
@@ -930,6 +930,19 @@ namespace GonogoRp1Uplink
                     CommandErrorCode.ModeUnavailable,
                     "RP-1 could not work out how long " + leaf + "'s upgrade would take: "
                     + Rp1Types.ExceptionReason(ex));
+            }
+
+            // Refused rather than reported as zero. Build points are the whole
+            // DURATION of the project, so a substituted zero tells the operator
+            // in the confirmation they just read that the upgrade is
+            // instantaneous. Nothing has been added to RP-1's queue yet, so
+            // stopping here leaves the save exactly as it was found.
+            if (buildPoints == null)
+            {
+                return Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "RP-1 would not say how much work " + leaf + "'s upgrade takes, which is its whole "
+                    + "duration, so nothing was queued");
             }
 
             // ProcessUpgrade's absolute-value step is deliberately absent: it
@@ -980,7 +993,7 @@ namespace GonogoRp1Uplink
                 // costs the confirmation its second figure and nothing else.
                 ["cost"] = cost.Value,
                 ["funds"] = funds,
-                ["buildPoints"] = buildPoints,
+                ["buildPoints"] = buildPoints.Value,
             });
         }
 

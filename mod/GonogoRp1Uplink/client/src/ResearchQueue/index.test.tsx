@@ -128,6 +128,26 @@ describe("ResearchQueue", () => {
     expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
   });
 
+  /* The queue's copy of the same distinction; see the construction list for why. */
+  it("names the missing throttle rather than calling the node uncosted", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.research", [
+      node({
+        workRate: null,
+        rate: null,
+        timeLeftSeconds: null,
+        stalled: false,
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/no throttle reading/)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/not costed yet/)).not.toBeInTheDocument();
+    expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
+  });
+
   it("registers itself into the tech tree's universal sections segment", () => {
     // The seam needed no first-party change: Panel mounts
     // `${componentId}.sections` for every widget.

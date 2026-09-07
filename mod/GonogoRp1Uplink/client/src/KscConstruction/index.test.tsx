@@ -180,6 +180,35 @@ describe("KscConstruction", () => {
     expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
   });
 
+  /*
+   * Told apart from the uncosted case above it. The throttle is what the rate
+   * is derived FROM, so a row without one has no ETA whatever RP-1 has costed,
+   * and "not costed yet" would send an operator to wait for something that has
+   * already happened.
+   */
+  it("names the missing throttle rather than calling the row uncosted", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.centres", CENTRES);
+    fixture.emit("career.status", CAREER);
+    fixture.emit("rp1.constructions", [
+      construction({
+        name: "Runway",
+        facilityType: "Runway",
+        workRate: null,
+        rate: null,
+        timeLeftSeconds: null,
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText(/Runway/)).toBeInTheDocument();
+    });
+    expect(visibleText()).toContain("has not said what throttle");
+    expect(visibleText()).not.toContain("RP-1 has not costed this yet");
+    expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
+  });
+
   it("calls a throttled-to-zero construction stalled", async () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);

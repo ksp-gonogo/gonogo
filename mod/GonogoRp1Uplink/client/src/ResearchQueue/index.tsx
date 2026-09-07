@@ -84,6 +84,11 @@ function ResearchRow({ node }: Readonly<{ node: Rp1ResearchEntry }>) {
               <Countdown value={node.timeLeftSeconds} />
             ) : node.stalled === true ? (
               <Badge severity="caution">STALLED</Badge>
+            ) : workRate === null ? (
+              /* A different absence from the one below: the throttle is what
+                 the rate is derived FROM, so a node whose throttle would not
+                 read has no ETA even once RP-1 has costed it. */
+              <>{NULL_DISPLAY} no throttle reading</>
             ) : (
               <>{NULL_DISPLAY} not costed yet</>
             )}

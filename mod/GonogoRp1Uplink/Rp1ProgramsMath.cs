@@ -252,6 +252,16 @@ namespace GonogoRp1Uplink
                     return k0.PaidFraction;
                 }
                 var span = k1.Frac - k0.Frac;
+                // Two keys at the same position hold rather than divide. The
+                // Hermite sum below is the only unguarded denominator in this
+                // Uplink and a zero span takes every term of it to NaN, which
+                // survives serialisation as a sentinel STRING in a numeric
+                // field. A coincident pair is a step, and the step arm above
+                // already answers one that way.
+                if (span <= 0.0)
+                {
+                    return k0.PaidFraction;
+                }
                 var t = (frac - k0.Frac) / span;
                 var t2 = t * t;
                 var t3 = t2 * t;
@@ -275,6 +285,14 @@ namespace GonogoRp1Uplink
         /// already reached and measures the first row from what has actually been
         /// paid out, so it answers "what is still coming" rather than "what was
         /// promised". Empty on a completed Program, which is RP-1's own rule.</para>
+        ///
+        /// <para>Empty too on a running Program whose elapsed fraction or paid-out
+        /// total could not be read. Those two are what MOVE the table off year 1,
+        /// and substituting them restarts it there from a zero running total: the
+        /// result is the whole original promise, every row overstated by what the
+        /// career has already banked, rendered under a column headed "Pays".
+        /// Money already received is not money still coming, and the same absence
+        /// already nulls <c>fundsRemaining</c> one file over.</para>
         /// </summary>
         public static List<Rp1ProgramPaymentRaw> FundingSchedule(
             List<Rp1FundingCurveKeyRaw>? keys,
@@ -301,8 +319,12 @@ namespace GonogoRp1Uplink
             var running = 0.0;
             if (isActive)
             {
-                firstYear = (int)((fracElapsed ?? 0.0) * durationYears) + 1;
-                running = fundsPaidOut ?? 0.0;
+                if (fracElapsed == null || fundsPaidOut == null)
+                {
+                    return schedule;
+                }
+                firstYear = (int)(fracElapsed.Value * durationYears) + 1;
+                running = fundsPaidOut.Value;
             }
 
             for (var year = firstYear; year <= lastYear; year++)

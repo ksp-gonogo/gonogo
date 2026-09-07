@@ -153,7 +153,10 @@ function ModifyForm({
   };
 
   const quote = quoteModifyComplex(nextSpec, current, pricing);
-  const engineers = magnitudeOf(complex.engineers) ?? 0;
+  // Not defaulted to zero. Both sentences below are about what a renovation
+  // does to this complex's crew, and "0 engineers" is a promise that nobody is
+  // affected rather than a missing figure.
+  const engineers = magnitudeOf(complex.engineers);
   const short = funds !== null && quote !== null && funds < quote.total;
 
   /*
@@ -176,7 +179,10 @@ function ModifyForm({
   ].every((axis) => axis > 0);
   const blocked =
     overCeiling || underFloor || !sized || (!isHangar && wantedMass <= 0);
-  const confirm = `Confirm renovating ${name}, which takes its ${engineers} engineers off for the whole build`;
+  const confirm =
+    engineers === null
+      ? `Confirm renovating ${name}, which takes its engineers off for the whole build`
+      : `Confirm renovating ${name}, which takes its ${engineers} engineers off for the whole build`;
 
   return (
     <Disclosure
@@ -233,7 +239,14 @@ function ModifyForm({
             afterwards, in a dialog; the toggle is what makes its second sentence
             true. */}
         <Text size="xs" tone="muted">
-          {engineers} engineers are unassigned for the whole renovation
+          {engineers === null ? (
+            <>
+              {NULL_DISPLAY} RP-1 has not said how many engineers this complex
+              holds, and all of them are unassigned for the whole renovation
+            </>
+          ) : (
+            <>{engineers} engineers are unassigned for the whole renovation</>
+          )}
         </Text>
         <Switch
           checked={reassign}
