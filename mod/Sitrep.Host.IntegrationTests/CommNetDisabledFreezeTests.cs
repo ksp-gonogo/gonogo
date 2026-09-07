@@ -113,8 +113,9 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The wire discriminator. A CommNet-off save and a permanent blackout
         /// both show no path and no relay graph, and an operator has to be able
-        /// to tell them apart; <c>comms.delay</c> is true-now, so it says which
-        /// one this is even while a blackout would be freezing everything else.
+        /// to tell them apart. A CommNet-off save reports <c>connected:true</c>
+        /// and a known zero, so nothing is held back and <c>comms.delay</c>
+        /// says which one this is; a blackout reports null and freezes.
         /// </summary>
         [Fact]
         public async Task WithNoCommsModel_TheWireSaysKnownZeroRatherThanNothingMeasurable()

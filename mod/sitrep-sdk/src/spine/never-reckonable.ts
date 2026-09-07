@@ -130,6 +130,17 @@ export const NEVER_RECKONABLE = [
   "comms.controlState",
   "comms.connectivity",
 
+  // -- The route home. A path changes DISCRETELY: a relay drops below the
+  // horizon and the chain re-solves to a different set of hops, so there is no
+  // dimension to advance it along. All three declarable bases
+  // (kepler-propagation, linear-dead-reckoning, rate-integration) move a
+  // continuous quantity, and none of them can produce a topology. Declaring it
+  // says the route shown is the route AS OBSERVED and stops a later author
+  // extrapolating one. The per-hop DISTANCES are continuous and could be
+  // modelled; the chain they belong to cannot, and it is the chain this topic
+  // carries.
+  "comms.path",
+
   // -- Science records and archives: a catalogue of what has been collected,
   // advanced by an event rather than by a rate. `science.lab` is deliberately
   // NOT here: stored science against a science rate is a real class-B pairing.

@@ -79,8 +79,10 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // and without this topic the app quietly holds Kerbin's 6-hour day and is
   // four times wrong about every "3 days to depletion" on screen.
   "time.calendar",
-  // Comms signal-delay channel (CommsCoreUplink, TrueNow): the headline
-  // delay readout behind CommSignal's comm.signalDelay.
+  // Comms signal-delay channel (CommsCoreUplink, Delayed): the headline
+  // delay readout behind CommSignal's comm.signalDelay. It rides the
+  // light-time like the telemetry it describes, so what a widget draws is the
+  // delay as observed rather than as it is this instant.
   "comms.delay",
   // Comms connectivity MetaTopic (CommsCoreUplink, Delayed + freeze-EXEMPT),
   // the client-facing link up/down behind the comm.connected mapped key
@@ -110,7 +112,9 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // (dispatch-time bookkeeping, TrueNow). Connectivity styling reads the
   // `comms.link` MetaTopic listed above, so `comms.connectivity` is
   // deliberately absent from this list: no client reads it, and the TrueNow
-  // `comms.*` observation channels stay un-publicised.
+  // `comms.*` observation channels stay un-publicised. `comms.path` itself is
+  // Delayed and NEVER_RECKONABLE: the route drawn is the route the arriving
+  // signal took, and a chain of hops has no forward model to advance it with.
   "comms.path",
   // CommNet relay graph: the `system-view-vessel-orbits` contribution reads
   // it to draw the relay network as faint connection-line entities. That

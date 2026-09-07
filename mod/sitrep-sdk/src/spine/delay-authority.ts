@@ -3,9 +3,11 @@ import type { CommsDelay } from "../__generated__/contract";
 /**
  * The `comms.delay` channel topic: the CORE `SignalDelay` capability's
  * output (`mod/Gonogo.KSP/CommsCoreUplink.cs:DelayTopic`,
- * `mod/Sitrep.Host/ChannelEngine.cs:CommsDelayTopic`). It is a `TrueNow`
- * channel: the server never delays the value that DEFINES the delay, so the
- * SDK reads it un-gated and can trust it as the current one-way light-time.
+ * `mod/Sitrep.Host/ChannelEngine.cs:CommsDelayTopic`). A `Delayed` channel:
+ * what defines the delay is the mod's ledger, written by the capture pass, and
+ * this is the READOUT published from the same numbers, so it travels home at
+ * the speed everything else does. Read it as an observation of the link, not as
+ * the link's current state.
  */
 export const COMMS_DELAY_TOPIC = "comms.delay";
 
@@ -63,8 +65,14 @@ function readOneWaySeconds(payload: unknown): number | null {
  * media (kerbcast `DelayedPlayoutBuffer`) reads the same clock, aligning this
  * one value aligns telemetry and video for free.
  *
- * `comms.delay` is itself a `TrueNow` channel (it defines the delay, so it is
- * never gated by it): the authority can trust the value it reads as current.
+ * There is no loop here, though it takes a moment to see why. `comms.delay` is
+ * itself `Delayed`, so the reading arrives one light-time after the delay it
+ * reports took that value. What decides when it arrives is the SERVER's ledger,
+ * not this clock, and `attach` below subscribes to the raw stream rather than
+ * to a view-time-gated reading, so nothing the view clock computes feeds back
+ * into what the view clock is computed from. The consequence is only that the
+ * horizon is sized from the last delay the operator could have known, which is
+ * the same standard every other readout on this wire is held to.
  *
  * It reads the OBSERVATION and nothing else. The same payload also carries
  * `oneWaySecondsRate`, and `comms.delay` has a registered forward model that
@@ -83,10 +91,13 @@ export class DelayAuthority {
    * HOLDS the last known delay.
    *
    * Holding is what makes a blackout behave like a blackout. Losing the path
-   * does not move the craft closer, and `comms.delay`/`comms.link` are
-   * freeze-exempt, so they keep arriving at true-now and keep
-   * `ViewClock.maxSampleUt` advancing through the outage: the sample clamp
-   * does not hold the horizon back, only the delay term does. Reset it to 0
+   * does not move the craft closer, and `comms.delay` stops arriving while the
+   * link is down (an ordinary Delayed channel freezes at last-known), so
+   * holding is the only behaviour that leaves the horizon where the last real
+   * measurement put it. `comms.link` is freeze-exempt and keeps arriving, as do
+   * the TrueNow channels, so `ViewClock.maxSampleUt` still advances through the
+   * outage: the sample clamp does not hold the horizon back, only the delay
+   * term does. Reset it to 0
    * and `confirmedEdgeUt()` snaps a whole light-time forward at the moment the
    * craft becomes unreachable, dumping the media playout buffer and reporting
    * the disconnect at T+0 instead of the T+delay `CommsLink` promises.

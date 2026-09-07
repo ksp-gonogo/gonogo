@@ -43,10 +43,10 @@ namespace Sitrep.Host
 
         /// <summary>
         /// The everywhere-at-once observer vantage: <c>DelayTo(MetaVantage, *)</c>
-        /// is pinned to 0 so instant/exempt topics (comms.delay, comms.link,
-        /// TrueNow) are never delayed by the ledger even after the whole-network
-        /// default carries the signal delay (Plan 1). Keeps "instant" a vantage,
-        /// not a separate code path.
+        /// is pinned to 0 so instant/exempt topics (comms.link,
+        /// fleet.&lt;guid&gt;.contact, TrueNow) are never delayed by the ledger even
+        /// after the whole-network default carries the signal delay (Plan 1).
+        /// Keeps "instant" a vantage, not a separate code path.
         /// </summary>
         public const string MetaVantage = "meta";
 
@@ -382,9 +382,9 @@ namespace Sitrep.Host
          *      (RevealDelayFor returns 0); while the subject is dark it returns
          *      +Inf and the sample is held in the blackout recorder instead,
          *      to be replayed on reacquisition. The gate carries a real horizon
-         *      for exactly two shapes: comms.delay (0, it defines the delay)
-         *      and the freeze-exempt link/contact MetaTopics, which must be
-         *      able to report the outage from inside it.
+         *      for exactly one shape: the freeze-exempt link/contact
+         *      MetaTopics, which must be able to report the outage from inside
+         *      it.
          *
          *   2. The LEDGER, in the Courier/Archive (INetwork.DelayTo). It asks
          *      WHEN DOES IT ARRIVE. Every recorded sample is scheduled at
@@ -416,9 +416,11 @@ namespace Sitrep.Host
          * A Delayed channel's change-gated (UT,value) decisions are routed
          * through Emit and reach the Courier: i.e. the wire, for EVERY client
          * (SDK, curl, third-party, station relay): only once their reveal
-         * horizon allows. TrueNow channels (and comms.delay itself, which
-         * DEFINES the delay) bypass entirely and are recorded live.
-         * Courier-thread-only, same discipline as _emitter/_born.
+         * horizon allows. TrueNow channels bypass entirely and are recorded
+         * live. comms.delay is not among them: the delay is DEFINED by the
+         * ledger the capture pass writes, and the channel of that name is a
+         * readout off the same numbers, so it is delayed like anything else it
+         * describes. Courier-thread-only, same discipline as _emitter/_born.
          */
 
         // The literal MUST match Gonogo.KSP.CommsCoreUplink.DelayTopic, that
@@ -674,8 +676,9 @@ namespace Sitrep.Host
         // buffers rather than records live) AND FlushReveal releases nothing,
         // even a pre-outage in-flight entry whose finite horizon the clock would
         // otherwise overtake: so telemetry FREEZES at last-known. TrueNow
-        // channels (comms.delay / comms.connectivity / time.* / system.bodies)
-        // still flow, so the operator sees the outage live. This is DISTINCT
+        // channels (comms.connectivity / time.* / system.bodies) still flow,
+        // along with the freeze-exempt comms.link, so the operator sees the
+        // outage live. This is DISTINCT
         // from delay==0: a genuine connected, in-LOS zero-distance link still
         // reveals live; only a real down-link freezes.
         //
@@ -4133,15 +4136,6 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// The reveal-horizon delay (seconds) for <paramref name="topic"/>: 0
-        /// for a <see cref="DelayRole.TrueNow"/> channel and for
-        /// <c>comms.delay</c> itself (the value that DEFINES the delay must
-        /// never be gated by it: defended here regardless of how it was
-        /// declared, §4.0), otherwise the current signal delay. Fail-soft: a
-        /// non-finite or negative delay collapses to 0 (reveal live; never
-        /// worse than today).
-        /// </summary>
-        /// <summary>
         /// The declared <see cref="Delivery"/> lane for <paramref name="topic"/>,
         /// threaded into <see cref="Courier.Record"/> so a
         /// <see cref="Delivery.ReliableOrdered"/> channel (the kOS terminal's
@@ -4160,12 +4154,25 @@ namespace Sitrep.Host
                 : Delivery.LossyLatest;
         }
 
+        /// <summary>
+        /// The reveal-horizon delay (seconds) for <paramref name="topic"/>: 0
+        /// for a <see cref="DelayRole.TrueNow"/> channel, the last-known
+        /// light-time for the freeze-exempt MetaTopics, +Inf while the subject
+        /// is dark, and 0 for an ordinary connected Delayed channel, whose
+        /// light-time the LEDGER applies instead (Plan 1).
+        ///
+        /// <para><c>comms.delay</c> carries no special case here and no longer
+        /// needs one. It is an ordinary Delayed readout: what defines the delay
+        /// for every other channel is the ledger (<c>INetwork.DelayTo</c>),
+        /// which <see cref="CaptureSignalDelay"/> and the per-vessel/per-centre
+        /// writes fill from the ungated capture pass, never from a subscription
+        /// to this topic. Gating the readout therefore cannot gate the gate.</para>
+        ///
+        /// <para>Fail-soft: a non-finite or negative delay collapses to 0
+        /// (reveal live; never worse than today).</para>
+        /// </summary>
         private double RevealDelayFor(string topic)
         {
-            if (topic == CommsDelayTopic)
-            {
-                return 0.0;
-            }
             if (_channelDeclarations.TryGetValue(topic, out var decl) && decl.Delay == DelayRole.TrueNow)
             {
                 return 0.0;
@@ -5222,12 +5229,12 @@ namespace Sitrep.Host
             if (decision.ShouldEmit)
             {
                 // Event-driven publish rides the SAME reveal gate as a
-                // Tick-driven channel. comms.delay (the production delay
-                // authority: CommsCoreUplink publishes it via a Publisher) is
-                // TrueNow, so it records live and updates the gate's delay here;
-                // a Delayed publish is buffered and released by a subsequent
-                // Tick's FlushReveal (ProcessPublish carries no clock advance
-                // of its own: the horizon only moves on Tick).
+                // Tick-driven channel. A Delayed publish is buffered and
+                // released by a subsequent Tick's FlushReveal (ProcessPublish
+                // carries no clock advance of its own: the horizon only moves on
+                // Tick). comms.delay is one of those now, and the gate does not
+                // lose its number by it: Emit snoops the value on the way past,
+                // before the horizon is consulted.
                 Emit(publish.Topic, decision.Value, ut);
             }
         }
@@ -5490,14 +5497,19 @@ namespace Sitrep.Host
 
             // Instant/exempt topics ride the meta-vantage (DelayTo -> 0) so the
             // ledger never applies the whole-network signal delay to them; the
-            // gate keeps their own delay semantics (comms.delay 0, comms.link and
+            // gate keeps their own delay semantics (comms.link and
             // fleet.<guid>.contact last-connected-delay, TrueNow 0). Ordinary
             // Delayed topics keep the real per-connection vantage, which the
             // ledger delays (Plan 1). A contact topic that kept the ordinary
             // vantage would be delayed TWICE: once by its own exempt horizon in
             // the gate, then again by the ledger's live per-vessel row.
-            var isInstantClass = topic == CommsDelayTopic
-                || IsFreezeExempt(topic)
+            //
+            // comms.delay is NOT in this class. It is an ordinary Delayed
+            // readout, and the delay it reports is carried to the client by the
+            // ledger like any other. Nothing here depends on it: the ledger rows
+            // are written by the capture pass, so a subscription can be gated
+            // without the gate losing its own number.
+            var isInstantClass = IsFreezeExempt(topic)
                 || _channelDeclarations[topic].Delay == DelayRole.TrueNow;
             var vantage = isInstantClass ? MetaVantage : session.SelectedVantage;
             if (isInstantClass)

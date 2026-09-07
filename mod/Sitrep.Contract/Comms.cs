@@ -12,11 +12,15 @@ namespace Sitrep.Contract;
 // PROVIDER axis (the elected backend: CommNet vanilla, or RealAntennas
 // when present: sources the shared channels; RealAntennas alone sources
 // its private link-budget channels) and a PRESENCE axis (always-present
-// vs provider-dependent). All comms.* channels are TRUE-NOW: they describe
-// the link AS KSC SEES IT, computed ground-side. comms.delay in particular
-// is true-now sim-meta, the value that DRIVES the delay of every other
-// channel, so it is itself never delay-gated (delaying it would be
-// circular: §1 "delay classification").
+// vs provider-dependent). A third axis decides the DELAY classification, and
+// it splits this family rather than covering it: what KSC can establish about
+// the link from its own end (connectivity, signal strength, control state, the
+// network graph, the occluding geometry) is TRUE-NOW, and what describes the
+// far end of the link (comms.delay, comms.path, comms.degrade) is DELAYED,
+// because a fact about where the craft was travels home at the same speed the
+// telemetry does. Delaying comms.delay is not circular: the reveal gate and the
+// command scheduler read the engine's delay LEDGER, which the capture pass
+// writes directly, never this channel.
 //
 // R7 discipline: every payload carries PayloadMeta; absence is a nullable
 // (T?), never a NaN/0/-1 sentinel.
@@ -186,7 +190,7 @@ public class CommsHop
     /// <c>Extensions["realantennas"]</c> with band, tech level, modulation,
     /// encoder, required Eb/N0, beamwidth, EC draw and the reverse-direction
     /// rate, typed by the RA client's own <c>RealAntennasHopExt</c>. It rides
-    /// <c>comms.path</c>, so it inherits that channel's TrueNow classification.
+    /// <c>comms.path</c>, so it inherits that channel's Delayed classification.
     /// </summary>
     [ProviderExtensionBag]
     public Dictionary<string, object?>? Extensions { get; set; }
@@ -196,6 +200,15 @@ public class CommsHop
 /// The <c>comms.path</c> payload: always-present, elected backend. Ordered
 /// hops from the active vessel to KSC. Empty <see cref="Hops"/> = no path
 /// home (a real, control-loss state, not absence-of-data).
+///
+/// <para>DELAYED, and NEVER RECKONABLE. The route is the one the arriving
+/// signal took, so it reveals with the telemetry that came down it. It also
+/// carries no forward model and cannot be given one: a route changes
+/// DISCRETELY, a relay drops below the horizon and the whole chain re-solves to
+/// different hops, and every basis a reckoner could declare
+/// (Kepler propagation, dead reckoning, rate integration) moves a continuous
+/// quantity. What you are shown is the topology AS OBSERVED; nothing may
+/// extrapolate it forward.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -298,8 +311,9 @@ public enum CommsDelaySource
     /// null <see cref="CommsDelay.OneWaySeconds"/>: null means "there is a
     /// comms model and it can measure nothing right now", which is a permanent
     /// blackout and the exact opposite prognosis. This is what distinguishes
-    /// the two ON THE WIRE, and <c>comms.delay</c> is true-now, so it says so
-    /// even while a blackout would be freezing everything else.</para>
+    /// the two ON THE WIRE. A save with no comms model reports this alongside
+    /// <c>connected:true</c>, so the channel keeps arriving with nothing held
+    /// back, where a real blackout reports null and stops.</para>
     /// </summary>
     NoCommsModel,
 }
@@ -334,8 +348,21 @@ public enum CommsDelaySource
 /// blackout reports <c>null</c> here and <c>connected:false</c> on
 /// <see cref="CommsLink"/>, and this reports <c>0</c> and
 /// <c>connected:true</c>.
-/// TRUE-NOW sim-meta: this value drives the release of every other delayed
-/// channel and is therefore never itself delay-gated.
+///
+/// <para>DELAYED, like the telemetry it describes. A light-time is measured
+/// over the route a signal actually took, so the figure that reaches an
+/// operator is the delay as it WAS when the light left, and a craft whose delay
+/// has grown says so one light-time after it grew. Read it as an observation
+/// rather than as the current state of the link.
+/// <internal>
+/// Delaying it is not circular, though two doc comments used to say it was.
+/// What releases every other Delayed channel is the engine's delay LEDGER
+/// (<c>INetwork.DelayTo</c>), fed by <c>ChannelEngine.CaptureSignalDelay</c> and
+/// the per-vessel/per-centre writes, all of which run on the ungated capture
+/// path. This channel is a readout published from the same computation. The SDK
+/// side is the same shape: <c>DelayAuthority</c> subscribes to the raw stream,
+/// so the value it hands <c>ViewClock</c> is never itself gated by a view time.
+/// </internal></para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN

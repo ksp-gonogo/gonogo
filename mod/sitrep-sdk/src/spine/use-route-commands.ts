@@ -30,8 +30,9 @@ export interface UseRouteCommandsResult {
  * needs failure detection after age-out wants `useCommand`'s `inFlight`
  * instead, for its OWN dispatches).
  *
- * Reads `system.uplink.pending`/`comms.delay` via `useLatestValue` (real-time
- * command-centre bookkeeping, not the certainty-gated delayed view) and
+ * Reads `system.uplink.pending` (real-time command-centre bookkeeping) and
+ * `comms.delay` (a Delayed readout, read off the wire rather than through the
+ * horizon it sizes) via `useLatestValue`, and
  * `nowUt` via `useUtNow`: the same real-time clock reads the kOS terminal's
  * original hand-rolled strip used, for the same reason (see `useLatestValue`'s
  * own doc). `latchForward` guards the returned phases against a transient

@@ -431,10 +431,12 @@ namespace Sitrep.Host.IntegrationTests
     /// §7.3 Steps 1–3). Declares three channels spanning the delay roles a raw
     /// (non-SDK) client sees over the wire:
     /// <list type="bullet">
-    /// <item><description><c>comms.delay</c>: TrueNow; the delay AUTHORITY.
-    /// Its <see cref="CommsDelay"/> payload sets the one-way delay the gate
-    /// applies to every Delayed channel, and it must never be gated by the
-    /// delay it defines.</description></item>
+    /// <item><description><c>comms.delay</c>: the delay AUTHORITY. Its
+    /// <see cref="CommsDelay"/> payload sets the one-way delay the gate applies
+    /// to every Delayed channel. Declared TrueNow HERE, unlike production, so a
+    /// test can watch the authority land on the tick that set it; production
+    /// declares the readout Delayed, and <see cref="TestCommsCoreUplink"/> is
+    /// the fixture that mirrors that.</description></item>
     /// <item><description><c>rev.delayed</c>: Delayed; withheld until its UT
     /// crosses the reveal horizon (now − delay).</description></item>
     /// <item><description><c>rev.truenow</c>: TrueNow; revealed live regardless
@@ -545,8 +547,8 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="IUplinkCapabilityDeclarer"/> path), but backed by a
     /// synthetic <see cref="FakeCommsBackend"/> that supplies hop geometry
     /// instead of the live CommNet backend;</item>
-    /// <item>it declares <c>comms.delay</c> as a TRUE-NOW channel (§1, the
-    /// value that DEFINES the delay is never itself delay-gated) and sources
+    /// <item>it declares <c>comms.delay</c> as a DELAYED channel, exactly as
+    /// the real uplink does, and sources
     /// it from the CORE <see cref="SignalDelay.Compute"/> light-time math over
     /// the elected backend's <see cref="CommsPath"/>: gonogo's own
     /// computation, resolved every tick via
@@ -602,7 +604,12 @@ namespace Sitrep.Host.IntegrationTests
                 {
                     Topic = DelayTopic,
                     Delivery = Delivery.LossyLatest,
-                    Delay = DelayRole.TrueNow,
+                    // Delayed and non-recordable, matching production
+                    // CommsCoreUplink. This uplink exists to be the real one's
+                    // stand-in, so a TrueNow here would make every test that
+                    // reads it a test of a channel the mod does not ship.
+                    Delay = DelayRole.Delayed,
+                    Recordable = false,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
                 },
             },
@@ -925,9 +932,9 @@ namespace Sitrep.Host.IntegrationTests
     /// <see cref="IUplinkHost.SetConnectivitySource"/>, exactly as the bundled
     /// <c>Gonogo.KSP.CommsCoreUplink</c> does. Declares:
     /// <list type="bullet">
-    /// <item><c>comms.delay</c>: TrueNow; the delay authority, also emitted on
-    /// the wire so a test can prove a TrueNow channel keeps flowing during an
-    /// outage.</item>
+    /// <item><c>comms.delay</c>: the delay authority, declared TrueNow HERE
+    /// (production declares it Delayed) and emitted on the wire so a test can
+    /// prove a TrueNow channel keeps flowing during an outage.</item>
     /// <item><c>freeze.truenow</c>: TrueNow; a second live-through-outage
     /// proof carrying a plain double.</item>
     /// <item><c>freeze.delayed</c>: Delayed; the channel that must FREEZE
