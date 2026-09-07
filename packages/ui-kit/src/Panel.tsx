@@ -1298,6 +1298,29 @@ const PanelSplit__Box = styled.div<{
      said end would be a silently broken hand-composition. */
   ${({ $side }) =>
     $side === "start" ? "& > [data-panel-sidebar] { order: -1; }" : ""}
+
+  /* Give back the sidebar's inset on the edge that faces the BODY, which pays a
+     16px inset of its own there: two of them make the gutter between the two
+     regions twice the one between two sections, and the sidebar pays for it out
+     of a track that is often only 8rem wide.
+
+     Only on the inline axis. Stacked, the sidebar spans the panel's full width
+     and both of its inline edges face the panel's border, so both keep the full
+     inset; the block gutter is the two regions' own 12px and 8px, which is the
+     same pair any two stacked regions of a panel already sit at.
+
+     Here rather than on Panel.Sidebar for the reason the order rule above is:
+     exactly one place knows the arrangement, and a sidebar whose padding
+     assumed an edge the tracks put elsewhere is a silently broken
+     hand-composition. */
+  ${({ $axis, $side }) =>
+    $axis === "inline"
+      ? /* Child combinators the whole way down, so a ScrollArea the sidebar's
+           own CONTENT carries keeps its own padding. */
+        `& > [data-panel-sidebar] > * > [data-scroll-area-inner] {
+           padding-inline-${$side === "start" ? "end" : "start"}: 0;
+         }`
+      : ""}
 `;
 
 export interface PanelSplitProps extends ComponentPropsWithoutRef<"div"> {
@@ -1380,6 +1403,28 @@ export function PanelSplit({
   );
 }
 
+/**
+ * The sidebar's own scroller, named so the inset below can reach the element
+ * that actually scrolls.
+ *
+ * The inset goes INSIDE the scroller for the reason `PanelBody__Box` states
+ * about its own: padding on the box outside a scrolling element clips whatever
+ * scrolls under it, so an almanac longer than its track would lose its last
+ * line to the gutter instead of scrolling through it.
+ */
+const PanelSidebar__Scroll = styled(ScrollArea)`
+  /* Longhands, not the shorthand the body writes. jsdom's CSS parser drops a
+     shorthand whose parts are var() calls, so the shorthand form computes to 0
+     there and the rule cannot be asserted at all; the longhands survive it.
+     Same declaration either way in a real engine. */
+  & > [data-scroll-area-inner] {
+    padding-top: var(--space-8, 8px);
+    padding-right: var(--space-16, 16px);
+    padding-bottom: var(--space-12, 12px);
+    padding-left: var(--space-16, 16px);
+  }
+`;
+
 const PanelSidebar__Box = styled.div`
   display: flex;
   flex-direction: column;
@@ -1396,6 +1441,19 @@ const PanelSidebar__Box = styled.div`
  * It carries its OWN `ScrollArea` and is never inside `Panel.Body`, which is
  * the whole point of it being a region rather than more body content:
  * scrolling an almanac must not scroll the diagram it annotates off the tile.
+ *
+ * It carries the BODY'S INSET too, which it did not until a render of
+ * OrbitView's landscape arrangement was read closely: the split's tracks are
+ * flush (`gap: 0`) and nothing here had padding, so the body name and the
+ * status pill sat 0px from the panel's border while every other region in the
+ * same panel was inset 16px. A sidebar was the one region of a panel with no
+ * inset at all.
+ *
+ * Full inset on both inline edges is the hand-composed default, which is right
+ * for a sidebar with nothing beside it. Inside a `Panel.Split` the edge FACING
+ * THE BODY is given back (see `PanelSplit__Box`), because the body already pays
+ * a 16px inset of its own there and two of them read as a gutter twice the
+ * width of the one between two sections.
  */
 export function PanelSidebar({
   children,
@@ -1403,7 +1461,7 @@ export function PanelSidebar({
 }: ComponentPropsWithoutRef<"div">) {
   return (
     <PanelSidebar__Box data-panel-sidebar="" {...rest}>
-      <ScrollArea>{children}</ScrollArea>
+      <PanelSidebar__Scroll>{children}</PanelSidebar__Scroll>
     </PanelSidebar__Box>
   );
 }

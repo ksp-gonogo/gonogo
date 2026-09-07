@@ -256,6 +256,87 @@ describe("Panel sidebar, track sizing", () => {
   }
 });
 
+/**
+ * The sidebar's inset. A sidebar used to be the one region of a panel with no
+ * padding at all: the split's tracks are flush and neither box carried any, so
+ * a render of OrbitView's landscape arrangement put the body name and the
+ * status pill against the panel's own border while every other region in the
+ * same panel was inset 16px.
+ *
+ * Asserted on the SCROLLER, which is both where the rule is written (padding
+ * outside a scrolling element clips what scrolls under it) and the only place
+ * it can be seen: jsdom computes no layout, so the only observable is which
+ * element carries the declaration.
+ */
+describe("Panel sidebar, inset", () => {
+  function sidebarScroller(): HTMLElement {
+    return sidebar().querySelector("[data-scroll-area-inner]") as HTMLElement;
+  }
+
+  it("gives the sidebar the body's own inset on every edge", () => {
+    render(
+      <Panel panelTitle="SYSTEM" panelSidebar="almanac">
+        diagram
+      </Panel>,
+    );
+    const style = getComputedStyle(sidebarScroller());
+    // The body's own three values, so the sidebar's first line sits on the
+    // body's baseline rather than on the panel's border.
+    expect(style.paddingTop).toBe("var(--space-8, 8px)");
+    expect(style.paddingRight).toBe("var(--space-16, 16px)");
+    expect(style.paddingBottom).toBe("var(--space-12, 12px)");
+    expect(style.paddingLeft).toBe("var(--space-16, 16px)");
+  });
+
+  for (const [side, given] of [
+    ["end", "padding-inline-start"],
+    ["start", "padding-inline-end"],
+  ] as const) {
+    it(`gives back the inline edge facing the body for side="${side}"`, () => {
+      // The body already pays 16px on the edge the two regions share. Two of
+      // them make that gutter twice the one between two sections, out of a
+      // track that is often only 8rem wide.
+      //
+      // Asserted on the LOGICAL property, which is what the rule writes and
+      // what an RTL panel needs: the split flips the tracks by writing mode, so
+      // a physical left/right give-back would land on the wrong edge there.
+      // jsdom keeps logical and physical longhands as separate entries rather
+      // than resolving one into the other, so the physical pair above still
+      // reads as the full inset here; a real engine cascades them onto the same
+      // computed value and this rule wins it, being the more specific selector.
+      render(
+        <Panel panelTitle="SYSTEM" panelSidebar="almanac" sidebarSide={side}>
+          diagram
+        </Panel>,
+      );
+      resizeTo(split() as HTMLElement, 600, 300);
+      expect(getComputedStyle(sidebarScroller()).getPropertyValue(given)).toBe(
+        "0px",
+      );
+    });
+  }
+
+  it("keeps both inline edges once the sidebar stacks under the body", () => {
+    // Stacked it spans the panel's full width, so both of its inline edges
+    // face the panel's border and neither is the body's to pay for.
+    render(
+      <Panel panelTitle="SYSTEM" panelSidebar="almanac">
+        diagram
+      </Panel>,
+    );
+    const box = split() as HTMLElement;
+    resizeTo(box, 300, 600);
+    expect(box.dataset.panelSplit).toBe("block");
+    // `0` is jsdom's INITIAL value for a logical padding nothing declared; the
+    // give-back writes `0px`, which is how the two are told apart here. The
+    // inline-axis pair above asserts the `0px` side of that same distinction,
+    // so neither reading can pass on its own.
+    const style = getComputedStyle(sidebarScroller());
+    expect(style.getPropertyValue("padding-inline-start")).toBe("0");
+    expect(style.getPropertyValue("padding-inline-end")).toBe("0");
+  });
+});
+
 describe("panelSidebar with floatingHeader", () => {
   /**
    * A drawing widget wants both: the title floating over the drawing so it
