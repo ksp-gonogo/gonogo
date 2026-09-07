@@ -34,6 +34,85 @@ function CommandBody() {
   return <div>controls</div>;
 }
 
+/**
+ * The rail travels WITH the header, rather than merely being pinned at the same
+ * edge by a mechanism of its own.
+ *
+ * Both were always visible at the panel's top, the rail in the container's own
+ * band and the header sticky inside the scroller, and they stayed adjacent by
+ * arithmetic: two pinned boxes that happened to add up. These pin the thing that
+ * makes it structural instead, one sticky element holding both, so nothing can
+ * move one without moving the other.
+ *
+ * jsdom runs no layout, so what is asserted is the containment and the
+ * declaration. The pixels are in the scroll render.
+ */
+describe("the rail travels with the header", () => {
+  it("puts the rail and the header in ONE sticky element inside the scroller", () => {
+    render(
+      <DelayRailProvider>
+        <Panel panelTitle="Nav">
+          <CommandBody />
+        </Panel>
+      </DelayRailProvider>,
+    );
+    const scroller = document.querySelector("[data-panel-body]") as HTMLElement;
+    const unit = document.querySelector(
+      "[data-panel-sticky-top]",
+    ) as HTMLElement;
+    expect(scroller.firstElementChild).toBe(unit);
+    expect(getComputedStyle(unit).position).toBe("sticky");
+    // Both halves, in that order: the band above the title.
+    const rail = unit.querySelector("[data-panel-rail-frame]") as HTMLElement;
+    const header = unit.querySelector("[data-panel-header]") as HTMLElement;
+    expect(rail).not.toBeNull();
+    expect(header).not.toBeNull();
+    expect(
+      rail.compareDocumentPosition(header) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("keeps the band on a HEADLESS panel, where there is no header to travel with", () => {
+    // The delay rail is a property of being a widget, not of having migrated to
+    // `panelTitle`. An unmigrated widget has no header and no scroller of the
+    // panel's own, so the rail stays the container's first child and the band
+    // stays the container's top inset, exactly as before.
+    render(
+      <DelayRailProvider>
+        <Panel>
+          <CommandBody />
+        </Panel>
+      </DelayRailProvider>,
+    );
+    expect(document.querySelector("[data-panel-sticky-top]")).toBeNull();
+    const frame = document.querySelector(
+      "[data-panel-rail-frame]",
+    ) as HTMLElement;
+    expect(frame).not.toBeNull();
+    expect(frame.parentElement?.firstElementChild).toBe(frame);
+  });
+
+  it("does not let body content read through the rail", () => {
+    // The sticky HEADER is transparent on purpose and the scroll glow is its
+    // backing, which is fine for a title. The rail is a reading, and content
+    // ghosting through a reading is a reading that can be misread, so its band
+    // carries a fully opaque base of its own.
+    render(
+      <DelayRailProvider>
+        <Panel panelTitle="Nav">
+          <CommandBody />
+        </Panel>
+      </DelayRailProvider>,
+    );
+    const frame = document.querySelector(
+      "[data-panel-rail-frame]",
+    ) as HTMLElement;
+    expect(getComputedStyle(frame).background).toContain(
+      "--color-surface-panel",
+    );
+  });
+});
+
 describe("Panel.Delay wiring", () => {
   it("renders the delay rail as the first in-flow child of the body, above the header", () => {
     // The delay store is provided ABOVE the Panel (as GridItemContent does in
