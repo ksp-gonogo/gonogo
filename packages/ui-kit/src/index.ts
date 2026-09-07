@@ -241,10 +241,6 @@ export {
   VOICE_RAIL_TAGS,
 } from "./CommandDelay/railTags";
 export {
-  SignalDelayBadge,
-  type SignalDelayBadgeProps,
-} from "./CommandDelay/SignalDelayBadge";
-export {
   type InFlightCommandLike,
   toInFlightListItems,
 } from "./CommandDelay/toInFlightListItems";
@@ -255,11 +251,16 @@ export {
 export { usePanelCrossing } from "./CommandDelay/usePanelCrossing";
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
-export {
-  ConsoleFrame,
-  type ConsoleFrameProps,
-  type ConsoleTone,
-} from "./ConsoleFrame";
+/*
+ * The COMPOSITION, and the only door to the console's parts: the frame it draws
+ * in and the chip it hangs in the corner are reached through this and are not
+ * exported bare, the same rule `Panel` follows for its own parts. Two consoles
+ * assembling the arrangement themselves is how they drifted apart the first
+ * time. `ComposerBar` above stays public because what goes ON the row is the
+ * widget's, and a terminal's caret line has nothing in common with a message
+ * input past the bordered row itself.
+ */
+export { Console, type ConsoleProps, type ConsoleTone } from "./Console";
 export { Countdown, type CountdownProps } from "./Countdown";
 export { configEqual } from "./configEqual";
 // ── Contribution seam ─────────────────────────────────────────────────────────

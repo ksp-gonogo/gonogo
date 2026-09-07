@@ -115,7 +115,7 @@ export interface ComboboxListboxProps<T extends ComboboxOption> {
    * is what a picker sitting in open page flow wants.
    *
    * `"above"` is for a control at the FOOT of a container that clips. A console
-   * composer is the last thing inside `ConsoleFrame`, so a list dropping
+   * composer is the last thing inside `Console`, so a list dropping
    * downward from it is drawn entirely outside the frame and clipped to
    * nothing. Opening upward puts it over the scrollback, which is both visible
    * and where a shell's completions have always gone.

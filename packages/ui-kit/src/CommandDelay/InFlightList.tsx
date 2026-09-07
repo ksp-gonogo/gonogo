@@ -1,4 +1,4 @@
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import { currentMode, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   type CSSProperties,
   type RefObject,
@@ -12,6 +12,75 @@ import { Countdown } from "../Countdown";
 import { writeQuantity } from "../units";
 import { useElementSize } from "../useElementSize";
 import { deriveGlyph } from "./toInFlightListItems";
+
+/** Which ONE of the two delay readings a console draws. */
+export type SignalDelayPresentation = "badge" | "strip" | "none";
+
+export interface SignalDelayPresentationInput {
+  /**
+   * One-way separation in seconds, `null` when there is no measurable path.
+   * `null` and a measured zero are different readings and neither gets a badge:
+   * `null` is no path at all, zero is a link with no delay to report, and a
+   * chip saying "one-way ~0 s" is noise on a dashboard sitting at the pad.
+   */
+  oneWaySeconds: number | null;
+  /**
+   * Whether this console can put something in the strip. A read-only viewer
+   * dispatches nothing, so at a long delay it gets NEITHER reading: there is no
+   * queue to draw and a standing badge would be quoting a cost it never pays.
+   */
+  canQueue: boolean;
+  /**
+   * Force the badge whatever the magnitude. A terminal emulator in CHARACTER
+   * mode sets this: every keystroke goes to the wire on its own and the round
+   * trip shows as the emulator's own latency, so there is no composed line to
+   * queue and the strip has nothing to list at any delay.
+   */
+  alwaysBadge?: boolean;
+}
+
+/**
+ * Which ONE of the two delay readings a console shows, given how far away the
+ * other end is.
+ *
+ * A console that composes something and sends it has two ways to say what the
+ * delay costs, and they answer different questions:
+ *
+ *   - a BADGE is a standing readout of the separation itself, useful before
+ *     anything has been sent and worthless as a countdown
+ *   - a STRIP, which is `InFlightList` below, is one row per thing actually
+ *     crossing, with the instant it lands, useful only once something is out
+ *
+ * They are MUTUALLY EXCLUSIVE, which is the whole reason this is a function and
+ * not two booleans at the call site. Drawn together they say the same number
+ * twice in two different shapes, and the operator has to work out which one is
+ * about the message they just sent.
+ *
+ * It lives beside the strip rather than beside the console, because what it
+ * decides is which READING to draw and this file is what draws one of them. No
+ * console calls it: `Console` does, once, and a widget says only how far away
+ * the other end is and whether it can queue.
+ *
+ * The boundary is `currentMode`'s and is not restated here, which is why the
+ * seconds are re-wrapped to ask it: "is the delay big enough to be worth a
+ * countdown" is the same question the engine already answers when it decides to
+ * STAGE a dispatch rather than send it live. It was for a while a second
+ * function carrying its own copy of the one-second literal, with a test pinning
+ * the two together; a pin is what you need when there are two, and there is one
+ * now.
+ */
+export function signalDelayPresentation({
+  oneWaySeconds,
+  canQueue,
+  alwaysBadge = false,
+}: SignalDelayPresentationInput): SignalDelayPresentation {
+  if (oneWaySeconds === null || oneWaySeconds <= 0) return "none";
+  if (alwaysBadge) return "badge";
+  if (currentMode({ oneWaySeconds: value("s", oneWaySeconds) }) === "live") {
+    return "badge";
+  }
+  return canQueue ? "strip" : "none";
+}
 
 /**
  * Vanilla-safe display shape for one delayed command, a deliberate LOCAL

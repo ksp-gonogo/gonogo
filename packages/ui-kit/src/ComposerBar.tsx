@@ -8,13 +8,13 @@ import { SendIcon } from "./Icons";
  * BORDER says whether input is being accepted.
  *
  * The border is the point, and it is this component's rather than the frame's.
- * `ConsoleFrame` around it stays subtle and the accent lives HERE, so what the
+ * `Console` around it stays subtle and the accent lives HERE, so what the
  * operator sees outlined is the thing they type into. Wrapping the scrollback
  * and the input in one loud outline was tried and taken back out: it read as a
  * sealed console with a bottom section instead of a widget with a control in
  * it.
  *
- * The border takes `--console-tone-fg`, which `ConsoleFrame` declares from its
+ * The border takes `--console-tone-fg`, which `Console` declares from its
  * `tone`, so the input, its prompt glyph and its focus ring cannot come out in
  * different colours. Standing alone it falls back to the primary accent.
  *

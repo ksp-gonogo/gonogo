@@ -2,9 +2,14 @@ import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import styled, { css } from "styled-components";
 
 /**
- * A console: a scrolling surface that takes the remaining height of a panel
- * body, and, sitting INSIDE it at the foot, whatever the operator types into
- * it.
+ * The BOX a console is drawn in: a scrolling surface that takes the remaining
+ * height of a panel body, and, sitting INSIDE it at the foot, whatever the
+ * operator types into it.
+ *
+ * Reached through `Console` and not exported bare, the same rule `Panel`
+ * follows for its own parts. What a widget wants is the whole arrangement, and
+ * two widgets assembling it out of this plus a queue plus a chip is how they
+ * came to hang the same reading in two different corners.
  *
  * ## The composer is inside, and keeps its own box
  *

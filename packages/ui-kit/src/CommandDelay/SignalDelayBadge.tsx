@@ -29,8 +29,13 @@ import { Unit } from "../Unit";
  * the position to whoever renders it. That was the arrangement, and the two
  * consoles that draw one used it to reach opposite answers: a character grid
  * pinned it in its own top corner, a column of prose put it in the composer row
- * beside Send. `ConsoleFrame`'s `corner` slot owns the placement for both now,
- * so this stays free of `position` and neither console gets to pick.
+ * beside Send. `Console` owns the placement for both now, so this stays free of
+ * `position` and neither console gets to pick.
+ *
+ * Not on the barrel for the same reason: `Console` is the only thing that draws
+ * one, and a widget reaching this directly is a widget deciding for itself
+ * whether a chip or a queue is the right reading, which is the decision that
+ * drifted.
  */
 export interface SignalDelayBadgeProps {
   /** One-way separation in seconds. Rendered as-is; the caller decides IF. */
