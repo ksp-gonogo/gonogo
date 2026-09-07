@@ -105,6 +105,38 @@ namespace Sitrep.Host.Comms
         public const double SpeedOfLightMetersPerSecond = 299792458.0;
 
         /// <summary>
+        /// The speed light travels at under <paramref name="config"/>, m/s, or
+        /// null when nothing usable says: no config at all, or a scale that is
+        /// not a positive number and so would divide by zero or run time
+        /// backwards.
+        ///
+        /// <para>The ONE place the scale is applied. <see cref="Compute"/> sums
+        /// a route against it and <see cref="PathBreakWatch"/> builds its
+        /// per-hop ladder against it, and the two must agree exactly or a break
+        /// position lands on a route whose total the delay disagrees with. It
+        /// is also what <c>comms.delay</c> publishes, so a client dividing a
+        /// hop distance by it reaches the same light-time this does.</para>
+        /// </summary>
+        public static double? EffectiveC(SignalDelayConfig? config) =>
+            config == null ? (double?)null : EffectiveC(config.LightSpeedScale);
+
+        /// <summary>
+        /// <see cref="EffectiveC(SignalDelayConfig)"/> for a caller holding the
+        /// bare scale, which <see cref="PathBreakWatch"/> is: the drop event is
+        /// handed a scale rather than a config, because everything else on the
+        /// config decides WHETHER there is a delay and only this decides how
+        /// long the route is.
+        /// </summary>
+        public static double? EffectiveC(double lightSpeedScale)
+        {
+            if (!(lightSpeedScale > 0.0))
+            {
+                return null;
+            }
+            return SpeedOfLightMetersPerSecond * lightSpeedScale;
+        }
+
+        /// <summary>
         /// Compute <c>comms.delay</c> from the elected backend's hop geometry.
         /// TRUE-NOW sim-meta (§1): the returned value drives the delay of every
         /// other channel and is itself never delay-gated.
@@ -120,22 +152,28 @@ namespace Sitrep.Host.Comms
             Quality quality)
         {
             var meta = new PayloadMeta { Source = source ?? "", Quality = quality };
+            // Reported on every branch below, including the ones with no
+            // light-time to report: what speed this save's light travels at is
+            // knowable while a craft has no route home and while the feature is
+            // switched off, and a client converting a hop distance needs it in
+            // exactly those cases.
+            var effectiveC = EffectiveC(config);
 
             // Flag off ⇒ delay-DISABLED-but-connected: a genuine "zero delay
             // applied", not an absence. The core ViewClock then releases
             // everything live (§3.1).
             if (config == null || !config.Enabled)
             {
-                return Disabled(config, meta);
+                return Disabled(config, meta, effectiveC);
             }
 
             // A non-positive scale would divide by zero / go negative; treat
             // as "cannot compute" rather than emitting a garbage delay. This
             // is a no-measurable-path case (null), not the delay-disabled
             // case (0): the flag IS on, there's just nothing honest to report.
-            if (config.LightSpeedScale <= 0.0)
+            if (effectiveC == null)
             {
-                return NoPath(meta);
+                return NoPath(meta, null);
             }
 
             IReadOnlyList<CommsHop>? hops = path?.Hops;
@@ -144,7 +182,7 @@ namespace Sitrep.Host.Comms
                 // No path home ⇒ no geometry ⇒ no computable delay. (The link
                 // being down is reported by comms.connectivity/path; delay
                 // simply has nothing to measure.)
-                return NoPath(meta);
+                return NoPath(meta, effectiveC);
             }
 
             double totalMeters = 0.0;
@@ -155,17 +193,17 @@ namespace Sitrep.Host.Comms
                     // Typed absence on any hop ⇒ incomplete geometry ⇒ cannot
                     // honestly compute a total light-time. Do NOT treat a
                     // missing hop distance as 0.
-                    return NoPath(meta);
+                    return NoPath(meta, effectiveC);
                 }
                 totalMeters += hop.DistanceMeters.Value;
             }
 
-            double effectiveC = SpeedOfLightMetersPerSecond * config.LightSpeedScale;
-            double oneWaySeconds = totalMeters / effectiveC;
+            double oneWaySeconds = totalMeters / effectiveC.Value;
 
             return new CommsDelay
             {
                 OneWaySeconds = oneWaySeconds,
+                LightSpeedMetresPerSecond = effectiveC,
                 Source = CommsDelaySource.SignalDelay,
                 Meta = meta,
             };
@@ -181,9 +219,10 @@ namespace Sitrep.Host.Comms
         /// The magnitude is the same zero and the reason is not, and an
         /// operator looking at a live board deserves the reason.</para>
         /// </summary>
-        private static CommsDelay Disabled(SignalDelayConfig? config, PayloadMeta meta) => new CommsDelay
+        private static CommsDelay Disabled(SignalDelayConfig? config, PayloadMeta meta, double? effectiveC) => new CommsDelay
         {
             OneWaySeconds = 0.0,
+            LightSpeedMetresPerSecond = effectiveC,
             Source = SourceOfZero(config),
             Meta = meta,
         };
@@ -205,10 +244,11 @@ namespace Sitrep.Host.Comms
             return config.CutForSimulation ? CommsDelaySource.Simulation : CommsDelaySource.None;
         }
 
-        /// <summary>No measurable path (no hops, incomplete hop geometry, or an unusable light-speed scale), nothing to report, so <c>OneWaySeconds = null</c> (never 0).</summary>
-        private static CommsDelay NoPath(PayloadMeta meta) => new CommsDelay
+        /// <summary>No measurable path (no hops, incomplete hop geometry, or an unusable light-speed scale), nothing to report, so <c>OneWaySeconds = null</c> (never 0). The light speed still is, unless the scale is what was unusable.</summary>
+        private static CommsDelay NoPath(PayloadMeta meta, double? effectiveC) => new CommsDelay
         {
             OneWaySeconds = null,
+            LightSpeedMetresPerSecond = effectiveC,
             Source = CommsDelaySource.None,
             Meta = meta,
         };

@@ -10,11 +10,11 @@
 // and it sidesteps the `useHookAtTopLevel` lint a top-level `use*()` call would
 // trip. Any regression is a compile error:
 //   - a required Topic that stops resolving non-null fails an `Expect<Equal<...>>`;
-//   - an optional Topic that stops being `| undefined` fails an `Expect<Equal<...>>`;
+//   - a Topic whose contract reckonability changes fails an `Expect<Equal<...>>`;
 //   - an undeclared Topic that becomes an accepted argument fails a membership
 //     `Expect<...>`.
 
-import type { Reading } from "@ksp-gonogo/sitrep-client";
+import type { Reading, ReckonableReading } from "@ksp-gonogo/sitrep-client";
 import type {
   CommsDelay,
   VesselOrbit,
@@ -69,8 +69,16 @@ export type _AcRequiredIsReading = Expect<
 export type _AcRequired2IsReading = Expect<
   Equal<_AcRequired2, Reading<VesselOrbit>>
 >;
+/*
+ * `comms.delay` reads as a ReckonableReading rather than a plain one, and that is
+ * about the CONTRACT rather than about the channel being optional:
+ * `[SitrepReckonable]` marks `oneWaySeconds` and the generated projection is
+ * exactly the set of marked fields. A manifest read is `useTelemetry`'s own
+ * return type, so the mark reaches a widget through the bound hook unchanged,
+ * which is the property worth pinning here.
+ */
 export type _AcOptionalIsReading = Expect<
-  Equal<_AcOptional, Reading<CommsDelay>>
+  Equal<_AcOptional, ReckonableReading<CommsDelay, "oneWaySeconds">>
 >;
 
 // ── The same, WITHOUT `as const`: `const` type params make the annotation optional ─
@@ -90,7 +98,7 @@ export type _PlainRequiredIsReading = Expect<
   Equal<_PlainRequired, Reading<VesselResources>>
 >;
 export type _PlainOptionalIsReading = Expect<
-  Equal<_PlainOptional, Reading<CommsDelay>>
+  Equal<_PlainOptional, ReckonableReading<CommsDelay, "oneWaySeconds">>
 >;
 
 // Proof the read is genuinely NOT the bare payload: the inner `Equal` is FALSE, so

@@ -65,6 +65,14 @@ function readOneWaySeconds(payload: unknown): number | null {
  *
  * `comms.delay` is itself a `TrueNow` channel (it defines the delay, so it is
  * never gated by it): the authority can trust the value it reads as current.
+ *
+ * It reads the OBSERVATION and nothing else. The same payload also carries
+ * `oneWaySecondsRate`, and `comms.delay` has a registered forward model that
+ * integrates one against the other (`core-reckoners.ts`), but a reading that
+ * has been carried forward belongs to a frame's view time and this is what the
+ * view time is computed FROM. Taking a modelled delay here would close that
+ * loop on itself; `observe` below says what the authority does across a gap
+ * instead.
  */
 export class DelayAuthority {
   private oneWaySeconds = 0;
@@ -83,7 +91,19 @@ export class DelayAuthority {
    * craft becomes unreachable, dumping the media playout buffer and reporting
    * the disconnect at T+0 instead of the T+delay `CommsLink` promises.
    *
-   * The three alternatives all lose something this keeps. Freezing the clock
+   * Carrying it forward at the published `oneWaySecondsRate` is the one
+   * alternative that is not a fabrication, and it is still not what happens
+   * here, for two independent reasons. The producer reports no rate on a frame
+   * with no measurable delay, so through a blackout there is nothing to
+   * integrate but the rate observed over the route that has just stopped
+   * existing, and a light-time is a property of the route rather than of the
+   * craft: the craft's motion is real and says nothing about the route it will
+   * reacquire on. And `delaySeconds()` takes no argument because the `ViewClock`
+   * calls it while working out what the view time IS, so there is no instant to
+   * integrate to that is not the answer this is being asked for. The integration
+   * belongs where a frame's view time already exists, which is the reckoner.
+   *
+   * The three fabrications all lose something this keeps. Freezing the clock
    * (a non-finite delay) drives `confirmedEdgeUt()` to `-Infinity`, which is
    * the post-rewind "resynchronizing" state: every widget drops its last-known
    * reading, where the blackout design wants exactly those held and labelled

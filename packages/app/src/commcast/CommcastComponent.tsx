@@ -95,10 +95,13 @@ function CommcastComponent(_props: Readonly<ComponentProps>) {
    * the primary source and leaves this standing in for the one pair
    * `comms.delay` actually measures, until the matrix covers it.
    *
-   * The OBSERVED value only: the separation a message freezes at send has to be
-   * the separation now, so a stale reading gives nothing and the pair matrix or
-   * the null answer stands in instead. `comms.delay` carries no forward model
-   * either, so there is nothing else the read could have taken.
+   * The OBSERVED value only, and that is now a CHOICE rather than the only
+   * option: `comms.delay` carries a forward model, so a stale reading can offer
+   * a light-time carried to this frame's view time. It is deliberately not
+   * taken. The separation a message freezes at send has to be the separation
+   * now, and a modelled one is an estimate that would be stamped onto a message
+   * and never revisited. A stale reading therefore still gives nothing, and the
+   * pair matrix or the null answer stands in instead.
    */
   const pathHome =
     observedValue(useTelemetry("comms.delay"))?.oneWaySeconds?.magnitude ??

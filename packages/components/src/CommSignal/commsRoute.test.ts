@@ -95,7 +95,7 @@ describe("commsLegTimeSeconds", () => {
     const totalDelay = 6.2;
 
     const legTimes = hops.map((h) =>
-      commsLegTimeSeconds(h, hops, value("s", totalDelay)),
+      commsLegTimeSeconds(h, hops, value("s", totalDelay), undefined),
     );
 
     expect(legTimes[0]).toBeCloseTo((1_250_000 / totalMeters) * totalDelay, 9);
@@ -107,21 +107,50 @@ describe("commsLegTimeSeconds", () => {
     ).toBeCloseTo(totalDelay, 9);
   });
 
-  it("falls back to real light-time (distance / c) with no path delay to apportion against", () => {
+  it("divides by the save's published light speed with no path delay to apportion against", () => {
     const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
-    expect(commsLegTimeSeconds(hops[0], hops, undefined)).toBeCloseTo(1, 9);
-    expect(commsLegTimeSeconds(hops[0], hops, null)).toBeCloseTo(1, 9);
+    const c = value("m/s", 299_792_458);
+    expect(commsLegTimeSeconds(hops[0], hops, undefined, c)).toBeCloseTo(1, 9);
+    expect(commsLegTimeSeconds(hops[0], hops, null, c)).toBeCloseTo(1, 9);
+  });
+
+  it("uses the save's light speed rather than the real one when the save scales it", () => {
+    /*
+     * The whole reason `comms.delay` publishes the speed: on a save running at
+     * twice light speed this leg takes half a second, and nothing on the wire
+     * could say so while the constant was mirrored client-side.
+     */
+    const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
+    expect(
+      commsLegTimeSeconds(hops[0], hops, undefined, value("m/s", 599_584_916)),
+    ).toBeCloseTo(0.5, 9);
+  });
+
+  it("returns undefined rather than guessing when no light speed was published", () => {
+    const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
+    expect(
+      commsLegTimeSeconds(hops[0], hops, undefined, undefined),
+    ).toBeUndefined();
+    expect(
+      commsLegTimeSeconds(hops[0], hops, undefined, value("m/s", 0)),
+    ).toBeUndefined();
   });
 
   it("returns undefined for a hop with no distance to derive from", () => {
     const hops = [hop("Active Vessel", "home")];
-    expect(commsLegTimeSeconds(hops[0], hops, value("s", 6.2))).toBeUndefined();
+    expect(
+      commsLegTimeSeconds(hops[0], hops, value("s", 6.2), undefined),
+    ).toBeUndefined();
   });
 
   it("falls back to light-time when the total delay is non-positive", () => {
     const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
-    expect(commsLegTimeSeconds(hops[0], hops, value("s", 0))).toBeCloseTo(1, 9);
-    expect(commsLegTimeSeconds(hops[0], hops, value("s", -3))).toBeCloseTo(
+    const c = value("m/s", 299_792_458);
+    expect(commsLegTimeSeconds(hops[0], hops, value("s", 0), c)).toBeCloseTo(
+      1,
+      9,
+    );
+    expect(commsLegTimeSeconds(hops[0], hops, value("s", -3), c)).toBeCloseTo(
       1,
       9,
     );

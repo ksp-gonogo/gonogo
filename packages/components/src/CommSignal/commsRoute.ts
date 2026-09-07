@@ -126,13 +126,6 @@ export function commsRouteRelayCount(hops: readonly CommsHop[]): number {
 }
 
 /**
- * `SignalDelay.cs`'s own constant, mirrored here as the client-side fallback
- * for a leg with no path-wide delay to apportion against (see
- * `commsLegTimeSeconds` below).
- */
-const SPEED_OF_LIGHT_METERS_PER_SECOND = 299_792_458;
-
-/**
  * One leg's light-time, seconds. `comms.path` carries each hop's distance
  * but no per-hop delay (the contract has no such field), so this derives it
  * rather than reading it off the wire.
@@ -140,25 +133,32 @@ const SPEED_OF_LIGHT_METERS_PER_SECOND = 299_792_458;
  * When the path's total one-way delay is known, the hop's share is
  * apportioned by distance against the route's total distance:
  * `hopMeters * (pathDelaySeconds / totalMeters)`. That reproduces
- * `SignalDelay.cs`'s own `OneWaySeconds = totalMeters / (c *
- * LightSpeedScale)` math exactly, so every leg's time sums to the total
- * DELAY row above the route, whatever `LightSpeedScale` the save is
- * running, without this widget ever needing to know that scale factor.
+ * `SignalDelay.cs`'s own `OneWaySeconds = totalMeters / effectiveC` math
+ * exactly, so every leg's time sums to the total DELAY row above the route.
  *
- * Falls back to real-world light-time (`distance / c`) when there's no
- * total delay to apportion against yet (`comms.delay` hasn't arrived this
- * tick) or no hop in the path carries a distance at all. Returns
- * `undefined` when this hop itself has no distance to derive from.
+ * With no total to apportion against, it divides by the save's own light speed,
+ * which `comms.delay` publishes beside the delay as
+ * `lightSpeedMetresPerSecond`. That case is not rare: it is every save with the
+ * delay feature switched off, where the total is a real zero and the route is
+ * still worth annotating with the light-time each leg WOULD carry. This used to
+ * divide by the textbook speed of light, mirrored from `SignalDelay.cs` as a
+ * constant, which is simply the wrong number on any save that scales it, and
+ * nothing on the wire could correct it.
+ *
+ * Returns `undefined` when this hop has no distance to derive from, and now
+ * also when there is neither a total nor a light speed to divide by: guessing
+ * the constant is exactly what the published field exists to stop.
  *
  * Every unwrap the whole route makes happens HERE, which is why the delay
  * arrives as its `Value` rather than pre-unwrapped by the caller: the share is
  * a length over a length, a ratio the unit algebra has no term for, so the
- * three magnitudes are taken together in one place instead of scattered.
+ * magnitudes are taken together in one place instead of scattered.
  */
 export function commsLegTimeSeconds(
   hop: CommsHop,
   hops: readonly CommsHop[],
   pathDelay: Value<"s"> | null | undefined,
+  lightSpeed: Value<"m/s"> | null | undefined,
 ): number | undefined {
   const hopMeters = hop.distanceMeters?.magnitude;
   if (hopMeters === undefined) return undefined;
@@ -174,5 +174,9 @@ export function commsLegTimeSeconds(
   ) {
     return hopMeters * (pathDelaySeconds / totalMeters);
   }
-  return hopMeters / SPEED_OF_LIGHT_METERS_PER_SECOND;
+  const metresPerSecond = lightSpeed?.magnitude;
+  if (typeof metresPerSecond !== "number" || !(metresPerSecond > 0)) {
+    return undefined;
+  }
+  return hopMeters / metresPerSecond;
 }
