@@ -25,7 +25,17 @@ import "./styledComponentsTheme";
 // are the last line of defence for a host that mounts NO sheet: they keep a
 // padding from computing to its initial `0` and collapsing the layout. Colours
 // degrade to inherited text and are left bare, matching what shipped before.
-export * from "@ksp-gonogo/theme";
+export {
+  DefaultThemeProvider,
+  type DefaultThemeProviderProps,
+  defaultDarkTheme,
+  type ThemeBorders,
+  type ThemeColors,
+  type ThemeRadii,
+  type ThemeSpace,
+  type ThemeTypography,
+  type UiKitTheme,
+} from "@ksp-gonogo/theme";
 export {
   ActionButton,
   type ActionButtonProps,
