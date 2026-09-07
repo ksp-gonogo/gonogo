@@ -12,7 +12,6 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import { type ReckoningBasis, TargetKind, value } from "@ksp-gonogo/sitrep-sdk";
 import {
-  Box,
   Cluster,
   ConfigForm,
   Countdown,
@@ -20,6 +19,7 @@ import {
   Field,
   FieldHint,
   FieldLabel,
+  FramedDisplay,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -1121,220 +1121,234 @@ function DockingHud(props: DockingHudProps) {
   };
 
   return (
-    <Box
-      surface="app"
-      radius="xs"
+    <Panel
       role="region"
       aria-label={`Docking HUD for ${name}`}
-      style={{
-        position: "relative",
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        flexDirection: wideShort ? "row" : "column",
-        overflow: "hidden",
-      }}
-    >
-      {/* Camera-backdrop slot: an augment draws a video layer behind the
-          reticle, in the HUD's space. Gated on `showCamera` (the "HUD only
-          (no video)" variant must stay video-free) and on `showViewport`
-          (too small to be worth a backdrop), the same two conditions the
-          built-in HudCamera this slot replaced was gated on. */}
-      {showCamera && showViewport && (
-        <AugmentSlot name="targeting.camera" props={hudContext} />
-      )}
-      {showViewport && (
-        <div
-          style={{
-            position: "relative",
-            flex: 1,
-            minHeight: 0,
-            minWidth: 0,
-            // Subtle green tint over the video to sell the instrument feel.
-            background:
-              "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
-          }}
+      panelTitle="DOCKING"
+      sections={
+        /* One filling section holding both halves, rather than two sections.
+           Panel lifts a filling section into a full-width band, so a second
+           section could only ever land under this one; the wide-short layout
+           needs the readouts BESIDE the viewport, and only this widget knows
+           at which shape that flips. The direction is the whole reason for the
+           inline override. */
+        <Section
+          full
+          fill
+          gap="sm"
+          style={{ flexDirection: wideShort ? "row" : "column" }}
         >
-          {/* Fixed centre crosshair */}
-          <Crosshair />
-          {/* Reticle driven by alignment angles */}
-          <Reticle
-            aligned={aligned}
-            left={`${50 + dx * 40}%`}
-            top={`${50 + dy * 40}%`}
-          />
-          {/* Axis ticks: give the pilot a sense of scale */}
-          <HorizTick left="10%" />
-          <HorizTick left="30%" />
-          <HorizTick left="70%" />
-          <HorizTick left="90%" />
-          <VertTick top="10%" />
-          <VertTick top="30%" />
-          <VertTick top="70%" />
-          <VertTick top="90%" />
-          {/* Alignment-marker overlay slot: composable augments draw
-              on top of the reticle in the same coordinate frame via `hudContext`. */}
-          <AugmentSlot name="targeting.overlay" props={hudContext} />
-        </div>
-      )}
-
-      <div
-        style={{
-          padding: "var(--space-6) var(--space-10) var(--space-8)",
-          background: "rgba(0, 0, 0, 0.55)",
-          // Wide-short row layout docks the overlay to the side: fixed-width
-          // right column with a left divider instead of the full-width bottom
-          // bar. Centre it vertically so it reads as a paired panel.
-          ...(wideShort
-            ? {
-                flex: "0 0 240px",
-                alignSelf: "stretch",
-                display: "flex",
-                flexDirection: "column" as const,
-                justifyContent: "center",
-                borderLeft: "1px solid rgba(0, 255, 136, 0.2)",
-              }
-            : {
-                borderTop: "1px solid rgba(0, 255, 136, 0.2)",
-              }),
-        }}
-      >
-        <Cluster
-          justify="between"
-          align="baseline"
-          style={{ gap: "var(--space-10)" }}
-        >
-          <Truncate
-            style={{
-              fontSize: "var(--font-size-sm)",
-              color: "var(--color-status-go-fg)",
-              letterSpacing: "0.04em",
-            }}
-          >
-            {name}
-          </Truncate>
-          <Text
-            size="lg"
-            tone="accent"
-            style={{ fontWeight: 700, whiteSpace: "nowrap" }}
-          >
-            {distance === undefined ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={value("m", distance)} />
-            )}
-          </Text>
-        </Cluster>
-        <Grid
-          cols={stackReadouts ? "1fr" : "auto 1fr"}
-          gap="md"
-          style={{ rowGap: "var(--space-hair)", marginTop: "var(--space-4)" }}
-        >
-          <ReadoutCaption
-            style={{
-              color: "var(--color-status-go-fg)",
-              letterSpacing: "0.12em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Δv
-          </ReadoutCaption>
-          <Text
-            style={{
-              fontSize: 11,
-              whiteSpace: "nowrap",
-              color: closing
-                ? "var(--color-accent-fg)"
-                : "var(--color-status-warning-bg)",
-            }}
-          >
-            {relVel === undefined || !Number.isFinite(relVel) ? (
-              NULL_DISPLAY
-            ) : (
-              <Unit value={value("m/s", relVel)} decimals={2} />
-            )}
-          </Text>
-
-          {showAlignmentDetail && (
-            <>
-              <ReadoutCaption
+          {showViewport && (
+            /* The reticle is a drawing, so it gets a frame inside the ordinary
+               padded body rather than the body being unpadded around it: the
+               readouts below/beside it need that inset. The frame is also what
+               divides the two halves, so neither the bottom rule nor the
+               wide-short left rule the overlay used to draw is needed. */
+            <FramedDisplay style={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+              {/* Camera-backdrop slot: an augment draws a video layer behind
+                  the reticle, in the HUD's space. Gated on `showCamera` (the
+                  "HUD only (no video)" variant must stay video-free) and on
+                  `showViewport` (too small to be worth a backdrop), the same
+                  two conditions the built-in HudCamera this slot replaced was
+                  gated on. Inside the frame, which is the positioned box the
+                  augment's `inset: 0` video resolves against, so the video is
+                  clipped to the frame's own rounded edge. */}
+              {showCamera && (
+                <AugmentSlot name="targeting.camera" props={hudContext} />
+              )}
+              <div
                 style={{
-                  color: "var(--color-status-go-fg)",
-                  letterSpacing: "0.12em",
-                  whiteSpace: "nowrap",
+                  position: "relative",
+                  flex: 1,
+                  minHeight: 0,
+                  minWidth: 0,
+                  // Subtle green tint over the video to sell the instrument feel.
+                  background:
+                    "radial-gradient(circle at center, rgba(0, 255, 136, 0.08) 0%, rgba(0, 0, 0, 0.3) 70%)",
                 }}
               >
-                X/Y
-              </ReadoutCaption>
-              <Text
-                style={{
-                  fontSize: 11,
-                  whiteSpace: "nowrap",
-                  color: "var(--color-status-go-fg)",
-                }}
-              >
-                {x === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("m", x)} decimals={2} />
-                )}{" "}
-                /{" "}
-                {y === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("m", y)} decimals={2} />
-                )}
-              </Text>
-
-              <ReadoutCaption
-                style={{
-                  color: "var(--color-status-go-fg)",
-                  letterSpacing: "0.12em",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                α/β/γ
-              </ReadoutCaption>
-              <Text
-                style={{
-                  fontSize: 11,
-                  whiteSpace: "nowrap",
-                  color: "var(--color-status-go-fg)",
-                }}
-              >
-                {ax === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("°", ax)} decimals={1} />
-                )}{" "}
-                ·{" "}
-                {ay === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("°", ay)} decimals={1} />
-                )}{" "}
-                ·{" "}
-                {az === undefined ? (
-                  NULL_DISPLAY
-                ) : (
-                  <Unit value={value("°", az)} decimals={1} />
-                )}
-              </Text>
-            </>
+                {/* Fixed centre crosshair */}
+                <Crosshair />
+                {/* Reticle driven by alignment angles */}
+                <Reticle
+                  aligned={aligned}
+                  left={`${50 + dx * 40}%`}
+                  top={`${50 + dy * 40}%`}
+                />
+                {/* Axis ticks: give the pilot a sense of scale */}
+                <HorizTick left="10%" />
+                <HorizTick left="30%" />
+                <HorizTick left="70%" />
+                <HorizTick left="90%" />
+                <VertTick top="10%" />
+                <VertTick top="30%" />
+                <VertTick top="70%" />
+                <VertTick top="90%" />
+                {/* Alignment-marker overlay slot: composable augments draw
+                    on top of the reticle in the same coordinate frame via `hudContext`. */}
+                <AugmentSlot name="targeting.overlay" props={hudContext} />
+              </div>
+            </FramedDisplay>
           )}
-        </Grid>
-        {modelled && (
-          <ReadoutCaption role="status">
-            Alignment reckoned ({modelled.basis})
-            {modelled.ageSec !== undefined && (
-              <>
-                , last seen <Unit value={value("s", modelled.ageSec)} /> ago
-              </>
+
+          <div
+            style={
+              /* Wide-short row layout docks the readouts to the side: a
+                 fixed-width right column, centred vertically so it reads as a
+                 paired panel, instead of the full-width strip under the
+                 frame. */
+              wideShort
+                ? {
+                    flex: "0 0 240px",
+                    alignSelf: "stretch",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                  }
+                : undefined
+            }
+          >
+            <Cluster
+              justify="between"
+              align="baseline"
+              style={{ gap: "var(--space-10)" }}
+            >
+              <Truncate
+                style={{
+                  fontSize: "var(--font-size-sm)",
+                  color: "var(--color-status-go-fg)",
+                  letterSpacing: "0.04em",
+                }}
+              >
+                {name}
+              </Truncate>
+              <Text
+                size="lg"
+                tone="accent"
+                style={{ fontWeight: 700, whiteSpace: "nowrap" }}
+              >
+                {distance === undefined ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("m", distance)} />
+                )}
+              </Text>
+            </Cluster>
+            <Grid
+              cols={stackReadouts ? "1fr" : "auto 1fr"}
+              gap="md"
+              style={{
+                rowGap: "var(--space-hair)",
+                marginTop: "var(--space-4)",
+              }}
+            >
+              <ReadoutCaption
+                style={{
+                  color: "var(--color-status-go-fg)",
+                  letterSpacing: "0.12em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Δv
+              </ReadoutCaption>
+              <Text
+                style={{
+                  fontSize: 11,
+                  whiteSpace: "nowrap",
+                  color: closing
+                    ? "var(--color-accent-fg)"
+                    : "var(--color-status-warning-bg)",
+                }}
+              >
+                {relVel === undefined || !Number.isFinite(relVel) ? (
+                  NULL_DISPLAY
+                ) : (
+                  <Unit value={value("m/s", relVel)} decimals={2} />
+                )}
+              </Text>
+
+              {showAlignmentDetail && (
+                <>
+                  <ReadoutCaption
+                    style={{
+                      color: "var(--color-status-go-fg)",
+                      letterSpacing: "0.12em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    X/Y
+                  </ReadoutCaption>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      whiteSpace: "nowrap",
+                      color: "var(--color-status-go-fg)",
+                    }}
+                  >
+                    {x === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={value("m", x)} decimals={2} />
+                    )}{" "}
+                    /{" "}
+                    {y === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={value("m", y)} decimals={2} />
+                    )}
+                  </Text>
+
+                  <ReadoutCaption
+                    style={{
+                      color: "var(--color-status-go-fg)",
+                      letterSpacing: "0.12em",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    α/β/γ
+                  </ReadoutCaption>
+                  <Text
+                    style={{
+                      fontSize: 11,
+                      whiteSpace: "nowrap",
+                      color: "var(--color-status-go-fg)",
+                    }}
+                  >
+                    {ax === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={value("°", ax)} decimals={1} />
+                    )}{" "}
+                    ·{" "}
+                    {ay === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={value("°", ay)} decimals={1} />
+                    )}{" "}
+                    ·{" "}
+                    {az === undefined ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={value("°", az)} decimals={1} />
+                    )}
+                  </Text>
+                </>
+              )}
+            </Grid>
+            {modelled && (
+              <ReadoutCaption role="status">
+                Alignment reckoned ({modelled.basis})
+                {modelled.ageSec !== undefined && (
+                  <>
+                    , last seen <Unit value={value("s", modelled.ageSec)} /> ago
+                  </>
+                )}
+              </ReadoutCaption>
             )}
-          </ReadoutCaption>
-        )}
-      </div>
-    </Box>
+          </div>
+        </Section>
+      }
+    />
   );
 }
 
