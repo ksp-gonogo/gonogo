@@ -125,5 +125,70 @@ namespace Sitrep.Host.Tests
             Assert.Equal(CommsDelaySource.None, result.Source);
             Assert.Null(result.OneWaySeconds);
         }
+
+        [Fact]
+        public void PublishesTheSavesOwnLightSpeed_NotTheScaleFactor()
+        {
+            var c = SignalDelay.SpeedOfLightMetersPerSecond;
+            var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 2.0 };
+
+            var result = SignalDelay.Compute(cfg, PathWith(c), "s", Quality.OnRails);
+
+            // A client dividing a hop distance by this reaches the same
+            // light-time Compute did, without being taught what a scale is.
+            Assert.Equal(2.0 * c, result.LightSpeedMetresPerSecond!.Value, 6);
+        }
+
+        [Fact]
+        public void PublishesTheLightSpeedEvenWithNoRouteToApplyItTo()
+        {
+            var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 1.0 };
+
+            var result = SignalDelay.Compute(cfg, null, "s", Quality.OnRails);
+
+            // What speed light travels at is knowable while the craft has no way
+            // home, and that is exactly when a client has hop distances and no
+            // total to apportion them against.
+            Assert.Null(result.OneWaySeconds);
+            Assert.Equal(
+                SignalDelay.SpeedOfLightMetersPerSecond,
+                result.LightSpeedMetresPerSecond!.Value,
+                6);
+        }
+
+        [Fact]
+        public void PublishesTheLightSpeedWhileTheDelayFeatureIsOff()
+        {
+            var cfg = new SignalDelayConfig { Enabled = false, LightSpeedScale = 4.0 };
+
+            var result = SignalDelay.Compute(cfg, PathWith(1.0e9), "s", Quality.OnRails);
+
+            Assert.Equal(0.0, result.OneWaySeconds);
+            Assert.Equal(
+                4.0 * SignalDelay.SpeedOfLightMetersPerSecond,
+                result.LightSpeedMetresPerSecond!.Value,
+                6);
+        }
+
+        [Fact]
+        public void AnUnusableScaleLeavesTheLightSpeedNull()
+        {
+            var cfg = new SignalDelayConfig { Enabled = true, LightSpeedScale = 0.0 };
+
+            var result = SignalDelay.Compute(cfg, PathWith(1.0e9), "s", Quality.OnRails);
+
+            // The one case where nothing honest can be said about it, and the
+            // one case a client must not fall back on the textbook constant for.
+            Assert.Null(result.LightSpeedMetresPerSecond);
+        }
+
+        [Fact]
+        public void NoConfigAtAllLeavesTheLightSpeedNull()
+        {
+            var result = SignalDelay.Compute(null, PathWith(1.0e9), "s", Quality.OnRails);
+
+            Assert.Equal(0.0, result.OneWaySeconds);
+            Assert.Null(result.LightSpeedMetresPerSecond);
+        }
     }
 }

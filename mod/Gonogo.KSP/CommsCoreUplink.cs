@@ -572,6 +572,14 @@ namespace Gonogo.KSP
          */
         private readonly PathBreakWatch _pathBreaks = new PathBreakWatch();
 
+        /*
+         * The retained delay, for the published rate. Per-uplink for the same
+         * reason the route above is, and separate from it because the two are
+         * fed on different seams: the break watch runs on the path-break source
+         * and this runs in CaptureOnMain beside the delay it is a rate of.
+         */
+        private readonly SignalDelayRate _delayRate = new SignalDelayRate();
+
         /// <summary>
         /// MAIN-THREAD break observation for the delay ledger (see
         /// <see cref="IUplinkHost.SetPathBreakSource"/>): the same elected
@@ -619,6 +627,7 @@ namespace Gonogo.KSP
             var backend = ElectedBackend();
             if (backend == null)
             {
+                _delayRate.Forget();
                 return null; // election not resolved / no backend (pre-flight)
             }
 
@@ -630,6 +639,27 @@ namespace Gonogo.KSP
                     path,
                     path.Meta?.Source ?? "",
                     path.Meta?.Quality ?? Quality.OnRails);
+
+                // The rate the delay is changing at, taken HERE because this is
+                // the one seam that runs once a tick and holds both the total
+                // and the hop list it came from. ComputeDelayOnMain computes the
+                // same total for the reveal gate and deliberately does not feed
+                // this: two observations per tick would halve every interval and
+                // report a rate over an advance of zero.
+                //
+                // No snapshot means no clock to difference against, and the
+                // retained observation is dropped rather than compared to
+                // whenever the next one that has a clock arrives.
+                if (snapshot == null)
+                {
+                    _delayRate.Forget();
+                }
+                else
+                {
+                    delay.OneWaySecondsRate = _delayRate.Observe(
+                        path, delay.OneWaySeconds, delay.Source, snapshot.Ut);
+                }
+
                 var connectivity = backend.Connectivity();
 
                 // DEV-ONLY: mirror the same override ComputeConnectedOnMain

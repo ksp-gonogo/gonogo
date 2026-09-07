@@ -174,6 +174,13 @@ function CommSignalComponent({
     delayReading.state === "observed"
       ? delayReading.value.oneWaySeconds
       : undefined;
+  // The save's own light speed, for a leg with no path-wide delay to apportion
+  // against: see `commsLegTimeSeconds`. Off the same payload as the delay,
+  // because it is the same capability's statement about the same route.
+  const lightSpeed =
+    delayReading.state === "observed"
+      ? delayReading.value.lightSpeedMetresPerSecond
+      : undefined;
 
   /**
    * The centre's NAME falls back to "KSC" when the channel is absent or empty,
@@ -379,6 +386,7 @@ function CommSignalComponent({
               vesselLabel={vesselLabel}
               centreLabel={centreLabel}
               pathDelay={delay}
+              lightSpeed={lightSpeed}
               rateByHopId={rateByHopId}
             />
           </Section>
@@ -418,6 +426,7 @@ function CommsPathRoute({
   vesselLabel,
   centreLabel,
   pathDelay,
+  lightSpeed,
   rateByHopId,
 }: {
   hops: readonly CommsHop[];
@@ -425,6 +434,8 @@ function CommsPathRoute({
   centreLabel: string;
   /** The path's total one-way delay: apportioned across legs by distance, see `commsLegTimeSeconds`. */
   pathDelay: Value<"s"> | undefined;
+  /** This save's light speed, what a leg falls back to dividing by when there is no total to apportion. */
+  lightSpeed: Value<"m/s"> | undefined;
   /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`, joined from the
    *  `comm-signal.hop-rates` contribution. Empty under bare CommNet / no RA. */
   rateByHopId: ReadonlyMap<string, number>;
@@ -453,6 +464,7 @@ function CommsPathRoute({
                   hop={hop}
                   hops={hops}
                   pathDelay={pathDelay}
+                  lightSpeed={lightSpeed}
                   rate={rateByHopId.get(hopId)}
                   isBottleneck={hopId === bottleneckId}
                 />
@@ -509,18 +521,20 @@ function CommsPathLeg({
   hop,
   hops,
   pathDelay,
+  lightSpeed,
   rate,
   isBottleneck,
 }: {
   hop: CommsHop;
   hops: readonly CommsHop[];
   pathDelay: Value<"s"> | undefined;
+  lightSpeed: Value<"m/s"> | undefined;
   /** This hop's forward bitrate (bits/sec), or undefined when none was contributed. */
   rate: number | undefined;
   /** Whether this hop is the path's minimum-rate (limiting) hop. */
   isBottleneck: boolean;
 }) {
-  const legSeconds = commsLegTimeSeconds(hop, hops, pathDelay);
+  const legSeconds = commsLegTimeSeconds(hop, hops, pathDelay, lightSpeed);
   const hasDetail = hop.distanceMeters !== undefined || rate !== undefined;
   return (
     <div

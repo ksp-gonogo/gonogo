@@ -1,0 +1,113 @@
+{
+  "_meta": {
+    "scenario": "delay-off-scaled-light",
+    "notes": "The save has the delay feature switched off, so comms.delay reports a real APPLIED zero and there is no path total to apportion across the legs. The route is still worth annotating, and each leg's light-time comes from the save's own light speed, which this save has scaled to twice the real constant. Every leg therefore reads HALF the textbook light-time for its distance, which is the number the widget used to get wrong: it mirrored the speed of light as a client-side constant, and nothing on the wire could correct it. 1850km at 2c is 3.09ms; 640km at 2c is 1.07ms."
+  },
+  "comm.connected": true,
+  "comm.signalStrength": 0.63,
+  "comm.controlState": 2,
+  "comm.controlStateName": "Full",
+  "comm.signalDelay": 0,
+  "_stream": {
+    "carriedChannels": [
+      "comms.link",
+      "comms.delay",
+      "comms.path",
+      "vessel.orbit",
+      "vessel.flight",
+      "vessel.identity",
+      "system.bodies",
+      "vessel.control",
+      "vessel.target",
+      "vessel.comms",
+      "vessel.propulsion"
+    ],
+    "emits": [
+      {
+        "channel": "comms.link",
+        "value": {
+          "connected": true
+        }
+      },
+      {
+        "channel": "comms.delay",
+        "value": {
+          "oneWaySeconds": 0,
+          "oneWaySecondsRate": null,
+          "lightSpeedMetresPerSecond": 599584916
+        }
+      },
+      {
+        "channel": "comms.path",
+        "value": {
+          "hops": [
+            {
+              "from": "Active Vessel",
+              "to": "Relay Sat 1",
+              "kind": 1,
+              "distanceMeters": 1850000
+            },
+            {
+              "from": "Relay Sat 1",
+              "to": "home",
+              "kind": 0,
+              "distanceMeters": 640000
+            }
+          ]
+        }
+      },
+      {
+        "channel": "vessel.comms",
+        "value": {
+          "connected": true,
+          "signalStrength": 0.63,
+          "controlState": 4
+        }
+      },
+      {
+        "channel": "vessel.orbit",
+        "value": {
+          "referenceBodyIndex": 1,
+          "sma": 700000,
+          "ecc": 0.01,
+          "inc": 0,
+          "lan": 0,
+          "argPe": 0,
+          "meanAnomalyAtEpoch": 0,
+          "epoch": 0,
+          "mu": 3531600000000.0,
+          "horizon": {
+            "kind": 1,
+            "trajectoryKind": 1
+          }
+        }
+      },
+      {
+        "channel": "vessel.identity",
+        "value": {
+          "vesselId": "v1",
+          "name": "Active Vessel",
+          "vesselType": 0,
+          "situation": 1,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      },
+      {
+        "channel": "system.bodies",
+        "value": {
+          "bodies": [
+            {
+              "name": "Kerbin",
+              "index": 1,
+              "parentIndex": 0,
+              "radius": 600000,
+              "orbit": null
+            }
+          ]
+        }
+      }
+    ],
+    "pinnedUt": 0
+  }
+}

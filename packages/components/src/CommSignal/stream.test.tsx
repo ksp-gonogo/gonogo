@@ -391,6 +391,7 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
         "vessel.comms",
         "comms.commandCentre",
         "comms.path",
+        "comms.delay",
         "vessel.identity",
       ],
       pinnedUt: 10,
@@ -436,12 +437,31 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     // The legs carry their own numbers, which is the whole point of the
     // schedule: a widget drawing three empty stops looks identical to one
     // that works, so the distances are asserted by value.
+    expect(visibleText()).toContain("1.9 Mm");
+    expect(visibleText()).toContain("640.0 km");
+    /*
+     * No light-time yet, and that is the honest render rather than a gap. The
+     * distances are on the wire and nothing has said how fast light travels on
+     * this save, so there is no way to turn one into the other. This used to
+     * show a time anyway, computed against a client-side copy of the real speed
+     * of light, which is simply the wrong number on any save that scales it.
+     */
+    expect(visibleText()).not.toContain("6 ms");
+
+    act(() => {
+      fixture.emit("comms.delay", {
+        oneWaySeconds: 0,
+        lightSpeedMetresPerSecond: 299_792_458,
+      });
+    });
+
+    /*
+     * The delay is a real applied zero (the feature is off), so there is no
+     * path total to apportion and each leg divides by the save's own light
+     * speed instead: 1,850 km is 6 ms, 640 km is 2.
+     */
+    await waitFor(() => expect(visibleText()).toContain("6 ms"));
     const visible = visibleText();
-    expect(visible).toContain("1.9 Mm");
-    expect(visible).toContain("640.0 km");
-    // Light-time per leg, derived from the distance because no path-wide delay
-    // has arrived (the distance / c fallback): 1,850 km is 6 ms, 640 km is 2.
-    expect(visible).toContain("6 ms");
     expect(visible).toContain("2 ms");
     // The whole chain, in order, so a reordered or duplicated stop fails here
     // rather than passing on four independent substring hits.

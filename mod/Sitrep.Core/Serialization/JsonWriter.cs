@@ -227,10 +227,10 @@ namespace Sitrep.Core.Serialization
                     // the raw value), which JsonWriter otherwise cannot
                     // serialize: WITHOUT this case it fail-softs at the wire
                     // boundary and a client that subscribed comms.delay gets
-                    // nothing at all. Flattened to { oneWaySeconds, source,
-                    // meta:{ source, quality } } with enum ordinals +
-                    // camelCase keys, matching every other enum/field in this
-                    // codec.
+                    // nothing at all. Flattened to { oneWaySeconds,
+                    // oneWaySecondsRate, lightSpeedMetresPerSecond, source,
+                    // meta:{ source, quality } } with enum ordinals + camelCase
+                    // keys, matching every other enum/field in this codec.
                     AppendCommsDelay(sb, commsDelay);
                     break;
                 case Sitrep.Contract.VesselInventory vesselInventory:
@@ -558,13 +558,15 @@ namespace Sitrep.Core.Serialization
 
         /// <summary>
         /// Flattens a <see cref="Sitrep.Contract.CommsDelay"/> to the wire
-        /// object <c>{ oneWaySeconds, source, meta:{ source, quality } }</c>.
-        /// <c>oneWaySeconds</c> is nullable (R7 typed absence; see
-        /// <see cref="Sitrep.Contract.CommsDelay.OneWaySeconds"/>'s own doc
-        /// comment): written as JSON <c>null</c> when there is no measurable
-        /// path, the same nullable-double wire path as
+        /// object <c>{ oneWaySeconds, oneWaySecondsRate,
+        /// lightSpeedMetresPerSecond, source, meta:{ source, quality } }</c>.
+        /// All three numbers are nullable (R7 typed absence; see each one's own
+        /// doc comment): written as JSON <c>null</c> when there is nothing to
+        /// report, the same nullable-double wire path as
         /// <see cref="AppendCommsHop"/>'s <c>distanceMeters</c>, never collapsed
-        /// to a 0 sentinel. Enum
+        /// to a 0 sentinel. A 0 rate in particular is a MEASURED rate, a craft
+        /// holding its distance, and must never stand in for an unknown one.
+        /// Enum
         /// values (<c>source</c>, <c>meta.quality</c>) are emitted as their
         /// integer ordinal, the same convention as <c>Meta.quality</c>/
         /// <c>Meta.staleness</c> and <see cref="AppendCommandResult"/>'s
@@ -675,6 +677,30 @@ namespace Sitrep.Core.Serialization
             if (delay.OneWaySeconds.HasValue)
             {
                 AppendNumber(sb, delay.OneWaySeconds.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+
+            sb.Append(',');
+            AppendString(sb, "oneWaySecondsRate");
+            sb.Append(':');
+            if (delay.OneWaySecondsRate.HasValue)
+            {
+                AppendNumber(sb, delay.OneWaySecondsRate.Value);
+            }
+            else
+            {
+                AppendNull(sb);
+            }
+
+            sb.Append(',');
+            AppendString(sb, "lightSpeedMetresPerSecond");
+            sb.Append(':');
+            if (delay.LightSpeedMetresPerSecond.HasValue)
+            {
+                AppendNumber(sb, delay.LightSpeedMetresPerSecond.Value);
             }
             else
             {

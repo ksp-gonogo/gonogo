@@ -281,17 +281,23 @@ namespace Sitrep.Core
         /// Recording a drop therefore changes no delay and invalidates no
         /// <see cref="StampFor"/> cache.</para>
         ///
-        /// <para>NO PRODUCTION CALLER YET, said plainly because an unfed seam
-        /// that does not admit it is worse than no seam. Raising one needs a
-        /// break's POSITION, and the ordered hop list that carries it
-        /// (<c>CommsBackendBase.Path</c>) is summed into a single scalar by
-        /// <c>SignalDelay.Compute</c> before anything downstream can see it.
-        /// Retaining that list per subject per tick is a real cost and a
-        /// separate decision, and it is bounded by warp: at a rate where one
-        /// physics tick spans more UT than the whole one-way light-time, there
-        /// is no ordering between "sent", "crossed" and "broke" to be had, and
-        /// the honest behaviour is today's, which is to deliver, because we do
-        /// not know it did not cross.</para>
+        /// <para>FED, by exactly one production caller:
+        /// <c>ChannelEngine.ApplyPathBreak</c>, scoped to the active vessel's
+        /// own node. What raises it is <c>PathBreakWatch</c>, which retains the
+        /// ordered hop list (<c>CommsBackendBase.Path</c>) that
+        /// <c>SignalDelay.Compute</c> sums into a single scalar, and keeps the
+        /// per-hop cumulative light-times that scalar discards: those are the
+        /// break's POSITION, which is the quantity this seam could not be given
+        /// before. The per-vessel fleet delays and the command-centre matrix
+        /// still raise nothing, because their routes carry no node ids to name a
+        /// break on.</para>
+        ///
+        /// <para>Bounded by warp, and the bound is enforced in the watch rather
+        /// than assumed here: at a rate where one physics tick spans more UT than
+        /// the whole one-way light-time there is no ordering between "sent",
+        /// "crossed" and "broke" to be had, so it raises nothing and the honest
+        /// behaviour is the old one, which is to deliver, because we do not know
+        /// it did not cross.</para>
         /// </summary>
         void DropPath(
             string node,

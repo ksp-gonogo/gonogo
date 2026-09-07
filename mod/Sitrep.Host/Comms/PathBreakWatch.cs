@@ -170,11 +170,15 @@ namespace Sitrep.Host.Comms
         /// </summary>
         private static List<Rung>? Build(CommsPath? path, double lightSpeedScale)
         {
-            if (lightSpeedScale <= 0.0)
+            // Through SignalDelay.EffectiveC rather than multiplying here, so
+            // the rung positions and the total this route sums to are the same
+            // arithmetic. A break position derived from a different constant
+            // would sit on a route the delay disagrees with.
+            var effectiveC = SignalDelay.EffectiveC(lightSpeedScale);
+            if (effectiveC == null)
             {
                 return null;
             }
-            var effectiveC = SignalDelay.SpeedOfLightMetersPerSecond * lightSpeedScale;
 
             var rungs = new List<Rung>();
             var hops = path?.Hops;
@@ -191,7 +195,7 @@ namespace Sitrep.Host.Comms
                     return null;
                 }
                 metres += hop.DistanceMeters.Value;
-                rungs.Add(new Rung(hop.To ?? "", metres / effectiveC));
+                rungs.Add(new Rung(hop.To ?? "", metres / effectiveC.Value));
             }
             return rungs;
         }
