@@ -11,6 +11,15 @@
  * object-fit: cover; opacity: 0.55`), so the render shows where a video layer
  * lands rather than what any particular camera's picture looks like.
  *
+ * The REAL augment can now be photographed in this widget, and this stub does
+ * not replace that. It runs from the Uplink's side: a fixture naming
+ * `_scene.host: "targeting"` plus `gonogo-uplink render --with <this repo's
+ * packages/components/src/index.ts>` mounts the genuine `<video>` inside the
+ * genuine host (see `docs/uplink-rendering.md`). That is the run to make when
+ * the question is about the picture, because a stub cannot answer what
+ * `object-fit: cover` does to a real frame in a frame of this shape. This one
+ * stays because it needs no second checkout and no camera at all.
+ *
  * Both states come off one page: the stub is registered unconditionally and the
  * widget's `hudMode` config decides whether the slot is mounted at all, which
  * is the same switch an operator flips in the config form. That keeps the two
