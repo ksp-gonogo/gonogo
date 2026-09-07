@@ -58,13 +58,46 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * documentation the ratchet cannot be.
  */
 
+/**
+ * The seventh family is a different KIND of offence and belongs here anyway.
+ *
+ * The six above fail a raw number where a token exists. `rawSpacingRung` fails
+ * a raw RUNG (`gap: var(--space-8)`) where a semantic name exists, because the
+ * ladder answers "which number" and the app's complaint was never the numbers:
+ * the three commonest gap rungs sit at roughly 110 declarations each, three
+ * rungs doing one job. `--gap-related` and its siblings answer "which job", and
+ * they inherit, so a container can change what a job means for everything
+ * inside it. See the SEMANTIC SPACING block in `packages/theme/src/tokens.css`.
+ *
+ * It is scoped by DIRECTORY rather than by judgement. `packages/ui-kit/src` and
+ * `packages/theme/src` keep their rungs because the semantic layer is DEFINED
+ * in terms of them: `--gap-related: var(--space-8)` is the answer, not the
+ * offence, and a kit primitive declaring a tier has to name a rung to do it.
+ * Everywhere else the ratchets already scan is in scope, which is a superset of
+ * the widget packages and means a new package is covered the day it lands
+ * rather than the day someone remembers to add it.
+ *
+ * It counts only the declaration shapes the vocabulary can actually express: a
+ * single-valued gap, a two-value `padding` whose halves are both rungs, and a
+ * `margin-left`. That exclusion is load-bearing rather than a convenience. A
+ * uniform `padding: var(--space-8)`, a three-value one, a single-side one, a
+ * `margin-top` and an asymmetric `gap: A B` have NO semantic name to move to,
+ * on purpose (tokens.css says why), so counting them would seed a shrink-only
+ * debt over a population with nowhere to shrink to. Measured on the tree the
+ * seed was taken from: 1,206 rung references sit in a spacing declaration, 680
+ * of them in an expressible shape, 568 of those outside the two excluded roots.
+ * Two were migrated in the same change, so the table below starts at 566.
+ * Under half of the app's spacing will ever carry a semantic name, and a
+ * ratchet that pretended otherwise would be permanently, unfixably red.
+ */
 type Family =
   | "spacing"
   | "radius"
   | "fontSize"
   | "lineHeight"
   | "zIndex"
-  | "motion";
+  | "motion"
+  | "rawSpacingRung";
 
 interface Exception {
   path: string;
@@ -332,6 +365,133 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui/src/Fab.tsx": 1,
     "packages/ui/src/SourceOfflineBanner.tsx": 2,
   },
+  /**
+   * 566 across 107 keys, seeded at the whole tree the day the semantic names
+   * landed, less the one widget migrated to prove the mechanism.
+   * Unlike every baseline above it, this one is not a list of sites
+   * that legitimately stay literal: it is the MIGRATION, written down. Each
+   * entry is a file whose gaps, insets and indents still name a rung where
+   * they could name a job, and the number is how many. The widget spacing
+   * pass shrinks it a widget at a time.
+   *
+   * The cohort unit is the WIDGET, not the declaration. A half-migrated widget
+   * can have a converted declaration and its unconverted sibling differ by up
+   * to 4px, so a file goes from its seeded number to zero in one landing and
+   * this table is the record of which ones have.
+   *
+   * `mod/` shares one bucket, like the families above, because
+   * `uplink-boundary.test.ts` fails the build on any mention of an Uplink
+   * outside its owning directory.
+   */
+  rawSpacingRung: {
+    "mod/": 21,
+    "packages/app/src/alarms/AlarmBanner.tsx": 7,
+    "packages/app/src/alarms/AlarmsModal.tsx": 22,
+    "packages/app/src/alarms/StationAlarmBanner.tsx": 2,
+    "packages/app/src/analytics/AnalyticsConsentModal.tsx": 2,
+    "packages/app/src/backup/BackupManager.tsx": 4,
+    "packages/app/src/commcast/CommcastComponent.tsx": 13,
+    "packages/app/src/commcast/radio/RadioIndicator.tsx": 1,
+    "packages/app/src/commcast/radio/RadioPtt.tsx": 1,
+    "packages/app/src/components/ComponentOverlay.tsx": 10,
+    "packages/app/src/components/Dashboard/MobileDashboard.tsx": 6,
+    "packages/app/src/components/Dashboard/shared.tsx": 6,
+    "packages/app/src/components/Dashboard/WidgetGearMenu.tsx": 1,
+    "packages/app/src/components/FlightOutcomeBanner.tsx": 11,
+    "packages/app/src/components/MissionBanner.tsx": 2,
+    "packages/app/src/components/SceneChangeBanner.tsx": 2,
+    "packages/app/src/components/StationConnectionFab.tsx": 2,
+    "packages/app/src/components/StationLinkFab.tsx": 4,
+    "packages/app/src/components/VantageControl.tsx": 1,
+    "packages/app/src/firstRun/FirstRunSetup.tsx": 1,
+    "packages/app/src/firstRun/steps/UplinkReadinessStep.tsx": 2,
+    "packages/app/src/goNoGo/GoNoGoComponent.tsx": 11,
+    "packages/app/src/logs/LogsManager.tsx": 13,
+    "packages/app/src/missionProfiles/MissionProfilesModal.tsx": 10,
+    "packages/app/src/notes/NotesComponent.tsx": 8,
+    "packages/app/src/notes/TagAutocomplete.tsx": 2,
+    "packages/app/src/pushToMain/PushedDashboardOverlay.tsx": 3,
+    "packages/app/src/screens/MainScreen.tsx": 1,
+    "packages/app/src/screens/PilotScreen.tsx": 2,
+    "packages/app/src/screens/StationScreen.tsx": 1,
+    "packages/app/src/settings/SettingsModal.tsx": 7,
+    "packages/app/src/settings/SitrepConnection.tsx": 4,
+    "packages/app/src/stationIdentity/StationNameEditor.tsx": 3,
+    "packages/components/src/AtmosphereProfile/index.tsx": 4,
+    "packages/components/src/CommSignal/index.tsx": 3,
+    "packages/components/src/ContractManager/index.tsx": 11,
+    "packages/components/src/CurrentOrbit/index.tsx": 1,
+    "packages/components/src/DataSourceStatus/index.tsx": 2,
+    "packages/components/src/EscapeProfile/index.tsx": 1,
+    "packages/components/src/FleetRoster/index.tsx": 3,
+    "packages/components/src/FuelStatus/index.tsx": 4,
+    "packages/components/src/Graph/index.tsx": 5,
+    "packages/components/src/LandingStatus/index.tsx": 4,
+    "packages/components/src/LaunchDirector/index.tsx": 31,
+    "packages/components/src/LibrationPoints/index.tsx": 1,
+    "packages/components/src/ManeuverPlanner/ArmedTriggersList.tsx": 5,
+    "packages/components/src/ManeuverPlanner/BurnConformanceRow.tsx": 1,
+    "packages/components/src/ManeuverPlanner/BurnWindowRows.tsx": 3,
+    "packages/components/src/ManeuverPlanner/index.tsx": 4,
+    "packages/components/src/ManeuverPlanner/ManeuverNodeList.tsx": 1,
+    "packages/components/src/ManeuverPlanner/ManeuverPreview.tsx": 5,
+    "packages/components/src/ManeuverPlanner/NodeRow.tsx": 10,
+    "packages/components/src/ManeuverPlanner/PresetInput.tsx": 3,
+    "packages/components/src/ManeuverPlanner/PresetPicker.tsx": 1,
+    "packages/components/src/ManeuverPlanner/styles.ts": 3,
+    "packages/components/src/ManeuverPlanner/TriggerEditor.tsx": 7,
+    "packages/components/src/MapView/MapPoiLayer.tsx": 3,
+    "packages/components/src/MapView/MapView.styles.ts": 6,
+    "packages/components/src/Navball/AttitudeIndicator.tsx": 1,
+    "packages/components/src/Navball/index.tsx": 11,
+    "packages/components/src/Objectives/index.tsx": 4,
+    "packages/components/src/OrbitView/index.tsx": 1,
+    "packages/components/src/PerfBudgets/index.tsx": 5,
+    "packages/components/src/Plots/PlotBoard.tsx": 3,
+    "packages/components/src/PowerSystems/index.tsx": 11,
+    "packages/components/src/shared/KerbalInfoPopover.tsx": 2,
+    "packages/components/src/shared/KerbalStats.tsx": 1,
+    "packages/components/src/shared/OrbitalEventChips.tsx": 1,
+    "packages/components/src/ShipMap/index.tsx": 2,
+    "packages/components/src/ShipMap/PartActionMenu.tsx": 1,
+    "packages/components/src/ShipMap/ShipDiagram.tsx": 3,
+    "packages/components/src/SpaceCenterStatus/index.tsx": 10,
+    "packages/components/src/Strategies/index.tsx": 11,
+    "packages/components/src/SystemView/AlmanacPanel.tsx": 3,
+    "packages/components/src/SystemView/index.tsx": 1,
+    "packages/components/src/SystemView/SystemDiagram.tsx": 4,
+    "packages/components/src/SystemView/VesselInfoPanel.tsx": 3,
+    "packages/components/src/Targeting/index.tsx": 2,
+    "packages/components/src/TargetPicker/index.tsx": 12,
+    "packages/components/src/TechTree/index.tsx": 31,
+    "packages/components/src/ThermalStatus/index.tsx": 3,
+    "packages/components/src/TransferWindow/index.tsx": 16,
+    "packages/components/src/WarpControl/index.tsx": 5,
+    "packages/data/src/FlightsManager/ChaptersEditor.tsx": 7,
+    "packages/data/src/FlightsManager/FlightGraph.tsx": 5,
+    "packages/data/src/FlightsManager/index.tsx": 20,
+    "packages/data/src/replaySession/ReplaySessionBanner.tsx": 6,
+    "packages/serial/src/InputMappingTab.tsx": 5,
+    "packages/serial/src/InputTester/index.tsx": 5,
+    "packages/serial/src/SerialDevicesMenu/CalibrateWizard.tsx": 8,
+    "packages/serial/src/SerialDevicesMenu/DeviceEditor.tsx": 1,
+    "packages/serial/src/SerialDevicesMenu/DeviceTypeEditor.tsx": 6,
+    "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 4,
+    "packages/serial/src/SerialDevicesMenu/index.tsx": 10,
+    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 4,
+    "packages/serial/src/SerialDevicesMenu/SelfDescribingAddWizard.tsx": 3,
+    "packages/serial/src/SerialPortRecoveryWatcher.tsx": 2,
+    "packages/serial/src/VirtualDevice/AnalogPad.tsx": 1,
+    "packages/serial/src/VirtualDevice/index.tsx": 1,
+    "packages/ui/src/BannerPill.tsx": 4,
+    "packages/ui/src/BannerStack.tsx": 1,
+    "packages/ui/src/DataKeyMultiPicker.tsx": 6,
+    "packages/ui/src/DimmedOverlay.tsx": 2,
+    "packages/ui/src/Fab.tsx": 2,
+    "packages/ui/src/FileInput.tsx": 3,
+    "packages/ui/src/SourceOfflineBanner.tsx": 4,
+    "packages/ui/src/Tag.tsx": 1,
+  },
 };
 
 interface FamilySpec {
@@ -341,8 +501,28 @@ interface FamilySpec {
   properties: string[];
   /** What to write instead. */
   remedy: string;
+  /**
+   * What a new site IS, singular, for the failure message. Defaults to
+   * "hardcoded <label> value", which is right for the six literal families and
+   * wrong for `rawSpacingRung`, whose offence is a token reference.
+   */
+  offence?: string;
   /** Offending literals inside an already-var-stripped value. */
-  hits: (value: string) => string[];
+  hits: (value: string, property: string) => string[];
+  /**
+   * Read the declaration's raw text instead of the var-stripped one. Only
+   * `rawSpacingRung` wants this: the token reference IS the offence there,
+   * so stripping it first would leave nothing to find.
+   */
+  readsRaw?: boolean;
+  /** Path prefixes this family does not apply to, each with why. */
+  excludedRoots?: { prefix: string; reason: string }[];
+  /**
+   * Source text this family MUST find a hit in. A regex that stops matching
+   * reports zero offenders and zero reads as a clean tree, so every run plants
+   * this and fails as blind if the scan cannot see it.
+   */
+  plant: string;
 }
 
 /** px literals other than zero. `0px` needs no rung. */
@@ -374,6 +554,87 @@ function motionHits(value: string): string[] {
     ...(cleaned.match(EASING_FUNCTION) ?? []),
     ...(cleaned.match(EASING_KEYWORD) ?? []),
   ];
+}
+
+/**
+ * The three axes the semantic names cover, keyed by the property that
+ * declares each. `padding-inline` is deliberately absent from the inset axis:
+ * an `--inset-*` is an ordered vertical/horizontal pair and `padding-inline`
+ * would read it transposed.
+ */
+const GAP_PROPERTIES = ["gap", "row-gap", "column-gap", "rowGap", "columnGap"];
+const INSET_PROPERTIES = ["padding"];
+const INDENT_PROPERTIES = ["margin-left", "marginLeft"];
+
+/** A value that is a single `--space-*` reference and nothing else. */
+const LONE_RUNG = /^var\(\s*(--space-[a-z0-9]+)\s*(?:,[^()]*)?\)$/;
+
+/**
+ * Drop the punctuation a JS style object wraps its value in.
+ *
+ * `gap: "var(--space-4)",` in a `CSSProperties` literal is the same
+ * declaration as `gap: var(--space-4);` in a template literal, and the app
+ * writes both. Without this the quotes and the trailing comma made the value
+ * fail an exact-match test and the whole inline-style population read as
+ * clean, which is how a Navball gap sat outside the seed.
+ */
+function unquoteValue(value: string): string {
+  return value
+    .replace(/["'`]/g, " ")
+    .trim()
+    .replace(/[,;]+$/, "")
+    .trim();
+}
+
+/** Split a CSS value on top-level whitespace, keeping `var(a, b)` whole. */
+function topLevelValues(value: string): string[] {
+  const out: string[] = [];
+  let depth = 0;
+  let current = "";
+  for (const character of value.trim()) {
+    if (character === "(") depth += 1;
+    if (character === ")") depth -= 1;
+    if (depth === 0 && /\s/.test(character)) {
+      if (current) out.push(current);
+      current = "";
+      continue;
+    }
+    current += character;
+  }
+  if (current) out.push(current);
+  return out;
+}
+
+/**
+ * A rung reference in a declaration shape a semantic name can express.
+ *
+ * Everything else returns nothing, which is the honest half of this family:
+ * a `calc()` bleed, a uniform or three-value or single-side padding, a
+ * `margin-top`, a two-value padding with a `0` half and an asymmetric
+ * `gap: A B` all have no name to move to, so counting them would be seeding
+ * debt that can never be paid.
+ */
+function rawRungHits(rawValue: string, property: string): string[] {
+  const value = unquoteValue(rawValue);
+  if (value.includes("calc(")) return [];
+  const parts = topLevelValues(value);
+  const rung = (part: string) => LONE_RUNG.exec(part)?.[1];
+
+  if (GAP_PROPERTIES.includes(property) && parts.length === 1) {
+    const only = rung(parts[0]);
+    return only ? [`${only} -> --gap-*`] : [];
+  }
+  if (INSET_PROPERTIES.includes(property) && parts.length === 2) {
+    const [vertical, horizontal] = parts.map(rung);
+    return vertical && horizontal
+      ? [`${vertical} ${horizontal} -> --inset-*`]
+      : [];
+  }
+  if (INDENT_PROPERTIES.includes(property) && parts.length === 1) {
+    const only = rung(parts[0]);
+    return only ? [`${only} -> --indent-step`] : [];
+  }
+  return [];
 }
 
 /** A value that is nothing but a bare number, once quotes and commas go. */
@@ -420,6 +681,7 @@ const FAMILIES: Record<Family, FamilySpec> = {
     ],
     remedy: "use a --space-* rung (hair/2/4/6/8/10/12/16/24; 8 is the default)",
     hits: nonZeroPx,
+    plant: "  padding: 7px 13px;",
   },
   radius: {
     label: "radius",
@@ -441,12 +703,14 @@ const FAMILIES: Record<Family, FamilySpec> = {
       ...nonZeroPx(value),
       ...(value.match(/\b\d*\.?\d+%/g) ?? []),
     ],
+    plant: "  border-radius: 9px;",
   },
   fontSize: {
     label: "font-size",
     properties: ["font-size", "fontSize"],
     remedy: "use --font-size-2xs/xs/sm/base/lg",
     hits: nonZeroPx,
+    plant: "  font-size: 13px;",
   },
   lineHeight: {
     label: "line-height",
@@ -457,6 +721,7 @@ const FAMILIES: Record<Family, FamilySpec> = {
       const bare = bareNumber(value);
       return bare === undefined ? nonZeroPx(value) : [bare];
     },
+    plant: "  line-height: 1.27;",
   },
   zIndex: {
     label: "z-index",
@@ -467,6 +732,7 @@ const FAMILIES: Record<Family, FamilySpec> = {
       const bare = bareNumber(value);
       return bare === undefined ? [] : [bare];
     },
+    plant: "  z-index: 37;",
   },
   motion: {
     label: "motion",
@@ -489,6 +755,29 @@ const FAMILIES: Record<Family, FamilySpec> = {
     remedy:
       "use --duration-instant/fast/base/slow/entrance and --ease-standard/emphasis/linear/entrance; if the duration encodes something physical (a sample cadence, a 1Hz caret, an indicator whose period the operator reads) keep the literal, say so in a comment, and raise this baseline",
     hits: motionHits,
+    plant: "  transition: opacity 220ms ease-in;",
+  },
+  rawSpacingRung: {
+    label: "raw spacing rung",
+    offence: "raw spacing rung(s) in a shape a semantic name covers",
+    properties: [...GAP_PROPERTIES, ...INSET_PROPERTIES, ...INDENT_PROPERTIES],
+    remedy:
+      "name the JOB instead: --gap-hairline/tight/related/section between siblings (related is the default), --inset-chip/row/panel inside an edge, --indent-step for hierarchy. The rungs stay right for every shape those names cannot express, which tokens.css lists",
+    readsRaw: true,
+    excludedRoots: [
+      {
+        prefix: "packages/theme/src",
+        reason:
+          "Where the semantic names are declared. `--gap-related: var(--space-8)` is the answer to this ratchet, not an instance of it.",
+      },
+      {
+        prefix: "packages/ui-kit/src",
+        reason:
+          "The kit declares the density tiers, and a tier is a statement about which rung a job resolves to inside a container, so it can only be written in rungs. The kit also carries the `var(--space-8, 8px)` no-sheet fallback contract, which a semantic name cannot express in one level.",
+      },
+    ],
+    hits: rawRungHits,
+    plant: "  gap: var(--space-8);",
   },
 };
 
@@ -598,13 +887,9 @@ function isExcused(file: string, family: Family): boolean {
  * concurrent `turbo test`, so the count flickers; the git index does not
  * move mid-run.
  */
-function collectOffenders(): Record<Family, Offender[]> {
+function trackedSources(): string[] {
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
-  const offenders = Object.fromEntries(
-    Object.keys(FAMILIES).map((family) => [family, [] as Offender[]]),
-  ) as Record<Family, Offender[]>;
-
-  const tracked = execFileSync(
+  return execFileSync(
     "git",
     ["ls-files", "-z", "--", ...styleguideScanRoots(root)],
     { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
@@ -617,8 +902,15 @@ function collectOffenders(): Record<Family, Offender[]> {
         !rel.includes("/__generated__/") &&
         !rel.includes("/__snapshots__/"),
     );
+}
 
-  for (const rel of tracked) {
+function collectOffenders(): Record<Family, Offender[]> {
+  const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+  const offenders = Object.fromEntries(
+    Object.keys(FAMILIES).map((family) => [family, [] as Offender[]]),
+  ) as Record<Family, Offender[]>;
+
+  for (const rel of trackedSources()) {
     let raw: string;
     try {
       raw = readFileSync(join(root, rel), "utf8");
@@ -632,10 +924,15 @@ function collectOffenders(): Record<Family, Offender[]> {
       FamilySpec,
     ][]) {
       if (isExcused(rel, family)) continue;
+      if (spec.excludedRoots?.some((root) => rel.startsWith(root.prefix)))
+        continue;
       const matcher = new RegExp(MATCHERS[family].source, "g");
       for (const match of source.matchAll(matcher)) {
         const value = match[3];
-        for (const hit of spec.hits(stripFunctionalFallbacks(value))) {
+        const readable = spec.readsRaw
+          ? value
+          : stripFunctionalFallbacks(value);
+        for (const hit of spec.hits(readable, match[2])) {
           offenders[family].push({
             file: rel,
             line: lineOf(match.index),
@@ -682,9 +979,9 @@ function assertFamily(family: Family): void {
       )
       .join("\n");
     throw new Error(
-      `${added.length} new hardcoded ${spec.label} value(s):\n${detail}\n` +
-        `Instead of a literal, ${spec.remedy}. The ladders and the rule for ` +
-        `picking a rung are in packages/theme/src/tokens.css.\n` +
+      `${added.length} new ${spec.offence ?? `hardcoded ${spec.label} value(s)`}:\n${detail}\n` +
+        `Instead, ${spec.remedy}. The ladders, the semantic names over them ` +
+        `and the rule for picking either are in packages/theme/src/tokens.css.\n` +
         `If the value genuinely cannot sit on the ladder, comment WHY at the ` +
         `call site and then add or raise that file's entry in ` +
         `BASELINES.${family} in packages/core/src/styleguide-tokens.test.ts, ` +
@@ -738,6 +1035,10 @@ describe("design-system: hardcoded design-token values", () => {
     assertFamily("motion");
   });
 
+  it("holds the raw-spacing-rung baseline (gap, inset, indent)", () => {
+    assertFamily("rawSpacingRung");
+  });
+
   // A guard that scans nothing passes forever. If the roots, the git
   // pathspec or the extension filter ever break, every baseline silently
   // becomes unreachable and this is the only test that notices.
@@ -747,6 +1048,131 @@ describe("design-system: hardcoded design-token values", () => {
       0,
     );
     expect(total).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * "Scanned the tree" is not the same as "can still see an offence". A family
+ * whose property list or value regex drifts out of step with how the code is
+ * written finds nothing, reports nothing, and reads as a clean tree forever;
+ * `rawSpacingRung` is the most exposed, because it matches a token reference
+ * that a rename would quietly change. So every run plants one violation per
+ * family through the same matcher and the same `hits` the scan uses, and fails
+ * as BLIND rather than green when a plant comes back unseen.
+ */
+describe("design-system: the ratchet can see a violation", () => {
+  for (const [family, spec] of Object.entries(FAMILIES) as [
+    Family,
+    FamilySpec,
+  ][]) {
+    it(`catches a planted ${spec.label} violation`, () => {
+      const planted: string[] = [];
+      const matcher = new RegExp(MATCHERS[family].source, "g");
+      for (const match of stripComments(spec.plant).matchAll(matcher)) {
+        const value = match[3];
+        const readable = spec.readsRaw
+          ? value
+          : stripFunctionalFallbacks(value);
+        planted.push(...spec.hits(readable, match[2]));
+      }
+      expect(
+        planted,
+        `the ${spec.label} scan is BLIND: it found nothing in ${JSON.stringify(
+          spec.plant,
+        )}, so a zero from it says nothing about the tree`,
+      ).not.toEqual([]);
+    });
+  }
+});
+
+/**
+ * The semantic names, and the two ways a vocabulary can be satisfied by the
+ * wrong thing.
+ *
+ * `styleguide-token-refs.test.ts` documents that any name declared anywhere in
+ * the scanned source counts as declared, which would let a `--gap-related`
+ * declared only on `Card.tsx` pass while every page that is not inside a card
+ * resolves it to nothing and collapses its gap to zero. So the declaration has
+ * to be in `tokens.css`, at `:root`, and this checks that specifically.
+ *
+ * The second is shape. An `--inset-*` is an ordered vertical/horizontal PAIR,
+ * so it is only correct in the `padding` shorthand: in `padding-left` it
+ * expands to two values on one edge, and in `padding-inline` it lands
+ * transposed. That has no baseline because nothing in the tree does it and
+ * nothing should start.
+ */
+describe("design-system: the semantic spacing vocabulary", () => {
+  const VOCABULARY = [
+    "--gap-hairline",
+    "--gap-tight",
+    "--gap-related",
+    "--gap-section",
+    "--inset-chip",
+    "--inset-row",
+    "--inset-panel",
+    "--indent-step",
+  ];
+
+  const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+  const TOKENS_CSS = "packages/theme/src/tokens.css";
+  const tokens = readFileSync(join(root, TOKENS_CSS), "utf8");
+  const rootBlock = /:root\s*\{([\s\S]*?)\n\}/.exec(tokens)?.[1] ?? "";
+
+  it("declares every name at :root in tokens.css", () => {
+    const missing = VOCABULARY.filter(
+      (name) => !new RegExp(`^\\s*${name}\\s*:`, "m").test(rootBlock),
+    );
+    expect(
+      missing,
+      `${missing.join(", ")} would resolve to nothing outside a container that ` +
+        `overrides it, which for a gap is a silently collapsed layout. Declare ` +
+        `them in the SEMANTIC SPACING block of ${TOKENS_CSS}.`,
+    ).toEqual([]);
+  });
+
+  it("uses no semantic spacing name that tokens.css does not declare", () => {
+    const used = new Set<string>();
+    for (const rel of trackedSources()) {
+      const source = stripComments(readFileSync(join(root, rel), "utf8"));
+      for (const match of source.matchAll(
+        /var\(\s*(--(?:gap|inset|indent)-[a-z0-9-]+)/g,
+      )) {
+        used.add(match[1]);
+      }
+    }
+    const undeclared = [...used].filter((name) => !VOCABULARY.includes(name));
+    expect(
+      undeclared,
+      `${undeclared.join(", ")} is referenced but is not part of the ` +
+        `vocabulary declared in ${TOKENS_CSS}. Every new density name needs a ` +
+        `written reason there, or the vocabulary problem these names were ` +
+        `built to fix comes back wearing a different hat.`,
+    ).toEqual([]);
+  });
+
+  it("reaches for an --inset-* only in the padding shorthand", () => {
+    const misuse: string[] = [];
+    for (const rel of trackedSources()) {
+      if (rel === TOKENS_CSS) continue;
+      const source = stripComments(readFileSync(join(root, rel), "utf8"));
+      const lineOf = lineIndexer(source);
+      for (const match of source.matchAll(/var\(\s*--inset-[a-z0-9-]+/g)) {
+        const declaration = source.slice(
+          Math.max(0, match.index - 200),
+          match.index,
+        );
+        if (/(?:^|[^\w$.-])padding\s*:\s*[^;}\n]*$/.test(declaration)) continue;
+        misuse.push(`  ${rel}:${lineOf(match.index)}  ${match[0]}`);
+      }
+    }
+    expect(
+      misuse,
+      `an --inset-* is an ordered vertical/horizontal pair:\n${misuse.join(
+        "\n",
+      )}\nIn padding-inline it lands transposed and on a single side it ` +
+        `expands to two values on one edge. Use the padding shorthand, or a ` +
+        `--space-* rung for one edge.`,
+    ).toEqual([]);
   });
 });
 
