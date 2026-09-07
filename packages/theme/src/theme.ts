@@ -81,10 +81,24 @@ export interface ThemeTypography {
   };
 }
 
+/**
+ * The handles a widget reaches for through `gap="sm"` and friends.
+ *
+ * Seven, not five. The ladder in `tokens.css` has nine rungs and this table
+ * exposed five of them, skipping 6 and 10; 6 is the single most-used gap rung
+ * in the app, so the layer widgets are steered towards could not express the
+ * commonest spacing in it, and one step up from `sm` was a doubling to `md`.
+ * The two `+` handles are that missing half-step, in the only spelling that
+ * cannot be mistaken for a new peer size.
+ */
 export interface ThemeSpace {
   xs: string;
   sm: string;
+  /** Half a step above `sm`: the dense row and card inset (`--space-6`). */
+  "sm+": string;
   md: string;
+  /** Half a step above `md`: the roomier card and pill inset (`--space-10`). */
+  "md+": string;
   lg: string;
   xl: string;
 }
