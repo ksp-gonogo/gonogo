@@ -3,68 +3,68 @@
   "engine": "chromium",
   "assets": {
     "binary--default.png": {
-      "hash": "c93b8c71f348660e",
-      "elements": 102,
+      "hash": "52d2641eda94c51a",
+      "elements": 103,
       "text": "52c0d842"
     },
     "ec-shortage-limits-water--default.png": {
-      "hash": "b501122b2ee04283",
-      "elements": 160,
+      "hash": "4393e54ddc8a141c",
+      "elements": 161,
       "text": "ca2969e0"
     },
     "ec-shortage-limits-water--min.png": {
-      "hash": "758944b88ca7026e",
-      "elements": 160,
+      "hash": "f4e7de7f51092c96",
+      "elements": 161,
       "text": "ca2969e0"
     },
     "file-and-sample-on-one-subject--default.png": {
-      "hash": "7044d2cc99006639",
-      "elements": 93,
+      "hash": "818c9358f5739451",
+      "elements": 94,
       "text": "1f3d9756"
     },
     "greenhouse-halted-in-the-dark--default.png": {
-      "hash": "f721cf46e5573ab7",
-      "elements": 109,
+      "hash": "e8df2689b2a5fc8f",
+      "elements": 110,
       "text": "1a15f8e3"
     },
     "inner-belt--default.png": {
-      "hash": "d4145ce972a1e216",
-      "elements": 77,
+      "hash": "b8daae4bf20eb301",
+      "elements": 78,
       "text": "2e0d06fc"
     },
     "interplanetary--default.png": {
-      "hash": "72256c19e60a800f",
-      "elements": 91,
+      "hash": "205ad852ab04715a",
+      "elements": 92,
       "text": "5db7f31e"
     },
     "no-profile-for-this-vessel--default.png": {
-      "hash": "9f84fb5473c7924d",
-      "elements": 12,
+      "hash": "873ba89ffb3731a7",
+      "elements": 13,
       "text": "55062b4e"
     },
     "nominal--default.png": {
-      "hash": "613026689ec78968",
-      "elements": 76,
+      "hash": "d0c5b217b6b04ace",
+      "elements": 77,
       "text": "62b67fb2"
     },
     "nominal--min.png": {
-      "hash": "072768964ada3859",
-      "elements": 65,
+      "hash": "a989911daad5c185",
+      "elements": 66,
       "text": "970d0f26"
     },
     "radiation-dose-critical--default.png": {
-      "hash": "5515dff42a57e613",
-      "elements": 103,
+      "hash": "5c0595368e480939",
+      "elements": 104,
       "text": "806f8490"
     },
     "storm-inbound--default.png": {
-      "hash": "d977a1ae8f82c11f",
-      "elements": 91,
+      "hash": "43ebfc16de9375f6",
+      "elements": 92,
       "text": "e04b2f39"
     },
     "storm-peak--default.png": {
-      "hash": "ddeb1ef9340b5bb7",
-      "elements": 92,
+      "hash": "311a621f834be9cf",
+      "elements": 93,
       "text": "78bd6f8c"
     }
   }

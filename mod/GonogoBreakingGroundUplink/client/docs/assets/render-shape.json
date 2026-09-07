@@ -3,58 +3,58 @@
   "engine": "chromium",
   "assets": {
     "breaking-ground-absent--default.png": {
-      "hash": "df4060001b2acf53",
-      "elements": 12,
+      "hash": "4b7909ccfeb65d6e",
+      "elements": 13,
       "text": "e2f1fa7a"
     },
     "controller-not-connected--default.png": {
-      "hash": "33b03651f16a6b23",
-      "elements": 30,
+      "hash": "29b264875fa4d821",
+      "elements": 31,
       "text": "8d606e2c"
     },
     "controller-not-connected--min.png": {
-      "hash": "2e3d16cec5fca65e",
-      "elements": 30,
+      "hash": "df631bd97da12249",
+      "elements": 31,
       "text": "f5953fef"
     },
     "mun-and-minmus-bases--default.png": {
-      "hash": "7c4cffd55fc11609",
-      "elements": 60,
+      "hash": "adb7ab39285058b4",
+      "elements": 61,
       "text": "9ea1e44a"
     },
     "mun-and-minmus-bases--min.png": {
-      "hash": "83b07645ec446377",
-      "elements": 60,
+      "hash": "084fc70ce29d5852",
+      "elements": 61,
       "text": "a14f87ba"
     },
     "robotics-dlc-absent--default.png": {
-      "hash": "f12aad614d618a10",
-      "elements": 12,
+      "hash": "0698336b2a2724a7",
+      "elements": 13,
       "text": "f93a7788"
     },
     "rotors--default.png": {
-      "hash": "508565add159968d",
-      "elements": 50,
+      "hash": "3861a2f4f527f1e8",
+      "elements": 51,
       "text": "6dbac7de"
     },
     "rotors--min.png": {
-      "hash": "22db7dcc43fb4bf1",
-      "elements": 38,
+      "hash": "cd76a534434db431",
+      "elements": 39,
       "text": "5c77630d"
     },
     "rotors-dlc-absent--default.png": {
-      "hash": "68c75a00594619a0",
-      "elements": 12,
+      "hash": "3d7cf4575c108d95",
+      "elements": 13,
       "text": "f903d91f"
     },
     "servos--default.png": {
-      "hash": "fc79272d1b857887",
-      "elements": 37,
+      "hash": "1175a087f749e888",
+      "elements": 38,
       "text": "df381dff"
     },
     "servos--min.png": {
-      "hash": "7f3a32be40535841",
-      "elements": 26,
+      "hash": "a58fe2b27ae4f1bf",
+      "elements": 27,
       "text": "220c5a23"
     }
   }
