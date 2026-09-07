@@ -52,6 +52,24 @@ namespace Sitrep.Core.Tests
         /// one must not need this number touched, removing several deliberately
         /// should, and it is the same six <c>UplinkIsolationTests</c>'s own
         /// floor already reads.
+        ///
+        /// <para><b>THE TARGET IS ZERO, so this floor has a designed-in
+        /// expiry.</b> Every MOD Uplink is meant to leave for the
+        /// gonogo-uplinks repo; seven already have. What stays is the
+        /// exception: an Uplink for something that is not a third-party mod at
+        /// all, like <c>Gonogo.KSP.BreakingGroundUplink</c> (the Serenity DLC),
+        /// which ships in the core DLL by design and has no project of its own
+        /// to count. Those have never been in this number.</para>
+        ///
+        /// <para>So do not defend this floor as the count falls. It exists
+        /// because a directory walk that returns nothing reports no violations
+        /// and looks exactly like a clean repo — and at the target state that
+        /// is the honest situation, which this instrument cannot tell from a
+        /// broken walk. Before the last mod Uplink leaves, REPLACE the floor
+        /// with something that still works at zero: assert the walk finds the
+        /// exact expected SET by name, or plant a synthetic project and require
+        /// the walk to see it. Lowering the number one departure at a time is
+        /// bookkeeping, and it stops being possible at 6 more.</para>
         /// </summary>
         private const int MinimumUplinkProjectCount = 6;
 
