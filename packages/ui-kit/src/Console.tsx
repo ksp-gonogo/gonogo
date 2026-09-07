@@ -24,10 +24,15 @@ export type { ConsoleTone };
  * ## The delay reading is this component's decision, not the widget's
  *
  * A console has two ways to say what the delay costs and they are mutually
- * exclusive: a standing chip on the scrollback when the other end is close
- * enough that a countdown would be over before it could be read, and a queue of
- * what is actually crossing when it is not. Drawn together they say the same
- * number twice in two shapes.
+ * exclusive: a standing chip when the other end is close enough that a
+ * countdown would be over before it could be read, and a queue of what is
+ * actually crossing when it is not. Drawn together they say the same number
+ * twice in two shapes.
+ *
+ * Both are drawn at the FOOT, in one column, because they are the same kind of
+ * value: seconds until something happens. The chip spent three days in the
+ * top-right of the scrollback, diagonally opposite the queue and on top of the
+ * prose, where neither could be read against the other.
  *
  * So a widget does not choose between them. It says how far away the other end
  * is (`oneWaySeconds`), whether it can put anything in a queue (`canQueue`),
@@ -98,6 +103,10 @@ export interface ConsoleProps extends ComponentPropsWithoutRef<"div"> {
    * conversations and there is nothing to type at it. Given but currently
    * absent (a terminal in character mode, which composes nothing), the foot
    * stays, so the surface above it does not change height when the mode does.
+   *
+   * Either way a standing chip still grows a foot for itself, because the only
+   * other place to put it is over the log. A composer-less console pays a band
+   * of height for the reading; see the frame's placement section.
    */
   composer?: ReactNode;
   /** The scrollback: an emulator screen, a log, a list of rows. */
@@ -138,23 +147,19 @@ export function Console({
     (presentation === "strip" ||
       (inFlightFrozenAtDispatch && presentation !== "badge"));
   return (
+    /* The queue and the composer go in as two slots rather than as one `footer`
+       node. The frame places the standing reading against the composer's border
+       specifically, and a frame handed one opaque child cannot tell whether
+       there is a composer in it, so it would have to take the caller's word. */
     <ConsoleFrame
       {...(tone !== undefined ? { tone } : {})}
       {...(badgeSeconds !== null
-        ? { corner: <SignalDelayBadge oneWaySeconds={badgeSeconds} /> }
+        ? { standing: <SignalDelayBadge oneWaySeconds={badgeSeconds} /> }
         : {})}
-      {...(composer !== undefined || showStrip
-        ? {
-            footer: (
-              <>
-                {showStrip && (
-                  <InFlightList items={inFlight} ariaLabel={QUEUE_LABEL} />
-                )}
-                {composer}
-              </>
-            ),
-          }
+      {...(showStrip
+        ? { queue: <InFlightList items={inFlight} ariaLabel={QUEUE_LABEL} /> }
         : {})}
+      {...(composer !== undefined ? { composer } : {})}
       {...rest}
     >
       {children}

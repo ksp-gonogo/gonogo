@@ -1248,8 +1248,15 @@ function KosTerminalScreen({
           row height on top of everything else in `TerminalShell` and could push
           the composition bar past the widget's visible bounds on a short
           widget. They stay the widget's, because a character grid is the only
-          surface in the app with a spare top-LEFT and bottom-right, and a slot
-          per corner would be an API guessed at from one caller.
+          surface in the app with spare corners, and a slot per corner would be
+          an API guessed at from one caller.
+
+          CHARACTER mode is the one state here that pays for the delay reading
+          in height: it composes nothing, so there is no composition bar for the
+          frame to hang the chip on and the chip takes a line of its own at the
+          foot. Line mode gets it free, over the bar's bottom border. That is
+          the console's trade, not this widget's, and the alternative was the
+          chip back on the emulator screen.
 
           `tone` is the widget's whole colour decision, and nothing paints with
           it directly: it declares the accent that the composition bar's border,
@@ -1610,15 +1617,15 @@ const CpuPicker__Button = styled(GhostButton)`
 // comment). Error/danger tone (the same `--color-status-nogo-*` pair
 // `CommSignal` uses for its "lost" state) so it reads unambiguously as a
 // blocking condition, not an informational badge like `DelayBadge` below it.
-// Pinned inside `Console`'s scrollback surface, in the corner opposite the
-// console's own delay corner so the two never overlap on the (rare) render where
-// both are showing: a stale delay reading can still be latched (see
-// `delay-authority.ts`) through a connectivity drop, so both badges legitimately
-// co-render. "Opposite corner" alone isn't enough at narrow widths (e.g. the
-// widget's own registered minSize, 8x6): this badge's text is the longer of the
-// two, and with no width cap it grows straight across the frame into the delay
-// reading's corner instead of stopping short. Capped + truncated so it always
-// leaves that corner clear.
+// Pinned inside `Console`'s scrollback surface, top-left. It used to share this
+// surface with the console's delay reading in the opposite corner, and the two
+// legitimately co-render (a stale delay reading can still be latched through a
+// connectivity drop, see `delay-authority.ts`), so it was capped and truncated
+// to leave that corner clear at the widget's registered minSize of 8x6. The
+// delay reading is at the foot now and the top-right is free, but the cap
+// stays: this badge's text is long enough to run the full width of a narrow
+// tile, and a warning that reaches the far edge of the pane reads as a banner
+// rather than as a badge.
 const NoPathBadge = styled.div`
   position: absolute;
   top: var(--space-8);

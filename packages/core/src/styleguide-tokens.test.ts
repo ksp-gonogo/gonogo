@@ -266,12 +266,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // did not make, which is why it lands with the branch that first ran the
     // scan against it rather than with a Commcast change of its own.
     "packages/ui-kit/src/ComposerBar.tsx": 1,
-    // The console's corner slot over its own scrollback, local sibling ordering
-    // inside that frame's stacking context: it has to clear whatever the
-    // scrollback mounts, which for a terminal emulator is a stack of xterm's
-    // own layers. Not app-global chrome, so a named rung would lift a delay
-    // chip into the dashboard's. Moved here from the terminal widget, which
-    // pinned its own copy until both consoles were made to share the corner.
+    // The console's standing-reading slot over the composer's bottom border,
+    // local sibling ordering inside that frame's stacking context. Not
+    // app-global chrome, so a named rung would lift a delay chip into the
+    // dashboard's. Moved here from the terminal widget, which pinned its own
+    // copy until both consoles were made to share the slot.
     "packages/ui-kit/src/ConsoleFrame.tsx": 1,
     // The disclosure panel overlay, local sibling ordering inside the
     // component's own stacking context (lifts the popped panel above following

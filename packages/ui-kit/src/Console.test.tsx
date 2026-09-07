@@ -64,16 +64,45 @@ describe("Console", () => {
       expect(screen.queryByLabelText("Signal delay")).toBeNull();
     });
 
-    it("hangs the chip in the console's corner, not in the foot", () => {
+    it("hangs the chip at the foot, on the composer, not over the scrollback", () => {
       // WHERE the reading hangs is what the two consoles disagreed about, and
-      // it is invisible to a role query: both drew a perfectly good chip.
+      // it is invisible to a role query: both drew a perfectly good chip. It
+      // sat over the log for three days and sat on the prose while it did.
       const { container } = render(
-        <Console oneWaySeconds={0.4} composer={<input aria-label="Msg" />} />,
+        <Console oneWaySeconds={0.4} composer={<input aria-label="Msg" />}>
+          <p>scrollback</p>
+        </Console>,
       );
-      const corner = container.querySelector("[data-console-corner]");
-      expect(corner?.contains(screen.getByLabelText("Signal delay"))).toBe(
+      const standing = container.querySelector("[data-console-standing]");
+      expect(standing?.contains(screen.getByLabelText("Signal delay"))).toBe(
         true,
       );
+      expect(
+        standing?.parentElement?.contains(screen.getByLabelText("Msg")),
+      ).toBe(true);
+      expect(
+        standing?.parentElement?.contains(screen.getByText("scrollback")),
+      ).toBe(false);
+    });
+
+    it("grows a foot for a chip on a console that has no composer", () => {
+      /*
+       * The state most likely to be got wrong: an inbox has no composer, so
+       * there is no foot and no border, and the chip's only other home is back
+       * over the list it is meant to stay off. It gets a foot of its own.
+       */
+      const { container } = render(
+        <Console oneWaySeconds={0.4}>
+          <p>scrollback</p>
+        </Console>,
+      );
+      const frame = container.querySelector("[data-console-frame]");
+      expect(frame?.children).toHaveLength(2);
+      expect(
+        frame?.lastElementChild?.contains(
+          screen.getByLabelText("Signal delay"),
+        ),
+      ).toBe(true);
     });
 
     it("draws neither on a link with no measurable path", () => {
