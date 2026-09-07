@@ -2475,12 +2475,15 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
   },
 
   /*
-   * === principia: NO owning dir, deliberately. There is no Principia Uplink,
-   * and a token without an owning directory makes ANY mention of the mod in
-   * this repo a hard failure. That is the correct default for a mod we do not
-   * integrate: the pattern this ratchet exists to stop is core naming a
-   * specific mod, and the moment that is most likely is when someone leaves a
-   * seam "ready" for a mod that has no Uplink yet. A token keyed on mods we
+   * === principia: the token PREDATES the Uplink, and that is why it exists.
+   * It was created when there was no Principia Uplink at all, so a token with
+   * no owning directory made ANY mention of the mod a hard failure. That is
+   * the correct default for a mod we do not integrate: the pattern this
+   * ratchet exists to stop is core naming a specific mod, and the moment that
+   * is most likely is when someone leaves a seam "ready" for a mod that has no
+   * Uplink yet. The Uplink arrived 2026-08-20 and the token now has three
+   * owning dirs (see MOD_OWNERSHIP in uplink-boundary.test.ts); everything
+   * below about why it was created still stands. A token keyed on mods we
    * already integrate cannot see that case, which is exactly how
    * TargetApproachElection acquired a public RegisterPrincipiaProvider and
    * PrincipiaProviderId without ever being flagged.
@@ -2518,6 +2521,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * `planWriteReceipt` as its false-positive control.
        */
       "packages/core/src/unknown-cast.test.ts",
+      /*
+       * -- PLUGIN-VERSION PARITY ratchet: compares the mod's
+       * `PrincipiaSession.AnalysedPluginVersion` against every `pluginVersion`
+       * fixture literal, so it has to name both the C# file it reads and the
+       * mod whose build string it is checking. Reads files off disk and
+       * imports nothing but `node:fs`/`node:path`/vitest, so there is no
+       * coupling here to shrink: it is the same shape as
+       * `contract-version-parity.test.ts`, and core is where this repo keeps
+       * cross-package ratchets because neither package being compared can
+       * reach the C#. It exists because the two client fixtures sat eleven
+       * days behind the mod's pin with nothing comparing them.
+       */
+      "packages/core/src/principia-plugin-version-parity.test.ts",
       // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04): the walk took
       // `packages/<pkg>/src` and nothing else, so twenty files under a
       // package's `scripts` directory and at its root were never visited, and
@@ -2896,6 +2912,13 @@ export const SURVIVES_COMMENT_STRIP: Partial<Record<ModToken, string[]>> = {
     // whole value of the message is that it names a real fix to read, so the
     // path has to survive into the string. No import, no topic read.
     "packages/core/src/unknown-cast.test.ts",
+    // -- PLUGIN-VERSION PARITY gate: the mod name as DATA in two forms, both
+    // path strings. It reads `mod/GonogoPrincipiaUplink/PrincipiaSession.cs`
+    // off disk for the `AnalysedPluginVersion` constant, and walks
+    // `mod/GonogoPrincipiaUplink/client/src` for the fixtures that must mirror
+    // it. No import of the Uplink's package, no topic read: the only thing
+    // crossing the boundary is a filesystem path.
+    "packages/core/src/principia-plugin-version-parity.test.ts",
     // -- SCAN WIDENED TO THE WHOLE PACKAGE (2026-09-04). Each of these is
     // either the mod name as DATA (a bundle id, a wire topic, a fixture path,
     // a vitest alias) or, where noted in the entry's own line above, a real
