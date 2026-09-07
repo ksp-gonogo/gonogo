@@ -289,6 +289,28 @@ public class Rp1ProgramsReflectionTests : IDisposable
         Assert.Null(Rp1ProgramsCapture.BuildSlots(raw)!["freeSlots"]);
     }
 
+    /// <summary>
+    /// The occupied count is absent on the same terms as the ceiling beside it,
+    /// which is read off the same object one line up. Substituted, the pair
+    /// rendered as zero occupied beside an unknown ceiling: every slot free, at
+    /// the one moment nothing is known about any of them.
+    /// </summary>
+    [Fact]
+    public void The_occupied_slot_count_is_absent_rather_than_zero_when_RP1_cannot_answer()
+    {
+        var raw = ReadWith(h =>
+        {
+            h.MaxProgramSlots = 3;
+            h.OccupiedSlotsUnreadable = true;
+        });
+
+        Assert.Equal(3, raw.Slots.MaxSlots);
+        Assert.Null(raw.Slots.UsedSlots);
+        var slots = Rp1ProgramsCapture.BuildSlots(raw)!;
+        Assert.Null(slots["usedSlots"]);
+        Assert.Null(slots["freeSlots"]);
+    }
+
     [Fact]
     public void Used_slots_are_summed_over_each_active_Programs_own_cost()
     {

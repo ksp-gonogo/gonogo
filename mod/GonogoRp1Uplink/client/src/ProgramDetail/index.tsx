@@ -458,7 +458,7 @@ function ChosenProgram({
 
         <FundingCurveChart program={program} curves={curves} />
 
-        <PaymentSchedule payments={program.fundingPayments} />
+        <PaymentSchedule program={program} />
 
         <SpeedLadder
           options={program.speedOptions}
@@ -725,14 +725,32 @@ function FundingCurveChart({
 }
 
 /** RP-1's own Funding Summary: what each nominal year pays. */
-function PaymentSchedule({
-  payments,
-}: Readonly<{ payments: readonly Rp1ProgramPaymentEntry[] | undefined }>) {
-  const schedule = present(payments);
+function PaymentSchedule({ program }: Readonly<{ program: Rp1ProgramEntry }>) {
+  const schedule = present(program.fundingPayments);
   if (schedule === undefined) {
-    // Absent is RP-1's own answer on a completed Program, and it is the right
-    // one: a table of what a finished Program once would have paid reads as
-    // money still coming. Saying nothing here is saying that.
+    // A RUNNING Program measures its first row from what it has already been
+    // paid, so an unreadable paid-out total leaves it with no table rather than
+    // with the original promise republished as money still coming. Said out
+    // loud, because drawing nothing here is how a COMPLETED Program looks and
+    // those are opposite facts.
+    if (
+      program.state === "active" &&
+      (magnitudeOf(program.fundsPaidOut) === null ||
+        magnitudeOf(program.fracElapsed) === null)
+    ) {
+      return (
+        <Section>
+          <SectionTitle>FUNDING SUMMARY</SectionTitle>
+          <Text size="xs" tone="muted">
+            {NULL_DISPLAY} RP-1 has not said what this Program has been paid so
+            far, and every remaining year is measured from that
+          </Text>
+        </Section>
+      );
+    }
+    // Otherwise absent is RP-1's own answer on a completed Program, and it is
+    // the right one: a table of what a finished Program once would have paid
+    // reads as money still coming. Saying nothing here is saying that.
     return null;
   }
   return (

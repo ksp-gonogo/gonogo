@@ -168,7 +168,9 @@ namespace GonogoRp1Uplink
         /// <summary>Absent when the Administration building's ceiling could not be read.</summary>
         public int? MaxSlots;
 
-        public int UsedSlots;
+        /// <summary>Absent on the same terms as <see cref="MaxSlots"/>, which it is read beside.</summary>
+        public int? UsedSlots;
+
         public int ActiveCount;
         public int CompletedCount;
     }

@@ -191,6 +191,16 @@ namespace RP0
     {
     }
 
+    /// <summary>
+    /// A move RP-1 will not price. Rolled out of a subclass rather than a
+    /// sentinel value, because every value a price field can hold is a price,
+    /// and the reading under test is the one that has none.
+    /// </summary>
+    public class ReconRolloutProjectWithUnreadablePrice : ReconRolloutProject
+    {
+        public new double cost => throw new InvalidOperationException("cost unreadable");
+    }
+
     public class ReconRolloutProject : LCOpsProject
     {
         public enum RolloutReconType
@@ -492,6 +502,18 @@ namespace RP0
         /// starts it at.
         /// </summary>
         public int launchSiteIndex = -1;
+    }
+
+    /// <summary>
+    /// A vehicle RP-1 will neither price nor weigh. Both hidden together,
+    /// because the substitution that published a free rocket published a
+    /// weightless one beside it.
+    /// </summary>
+    public class VesselProjectWithUnreadablePrice : VesselProject
+    {
+        public new float cost => throw new InvalidOperationException("cost unreadable");
+
+        public new float mass => throw new InvalidOperationException("mass unreadable");
     }
 
     /// <summary>
@@ -961,13 +983,64 @@ namespace RP0
     /// </summary>
     public abstract class ConstructionProject
     {
+        /// <summary>
+        /// Makes <see cref="BP"/> unreadable, which is the one state a value
+        /// cannot express: RP-1 answered the constructor and the duration call
+        /// and then would not say how much work the project is.
+        /// </summary>
+        public static bool ThrowOnBpRead;
+
+        /// <summary>Makes <see cref="workRate"/> unreadable, on the same terms.</summary>
+        public static bool ThrowOnWorkRateRead;
+
+        /// <summary>Makes the three price members unreadable, on the same terms.</summary>
+        public static bool ThrowOnCostRead;
+
         public double progress;
-        public double BP;
-        public double cost;
-        public double spentCost;
-        public double spentRushCost;
         public string name = "";
-        public double workRate = 1.0;
+
+        private double _bp;
+        private double _workRate = 1.0;
+        private double _cost;
+        private double _spentCost;
+        private double _spentRushCost;
+
+        public double cost
+        {
+            get => ThrowOnCostRead ? throw new InvalidOperationException("cost unreadable") : _cost;
+            set => _cost = value;
+        }
+
+        public double spentCost
+        {
+            get => ThrowOnCostRead ? throw new InvalidOperationException("spentCost unreadable") : _spentCost;
+            set => _spentCost = value;
+        }
+
+        public double spentRushCost
+        {
+            get => ThrowOnCostRead
+                ? throw new InvalidOperationException("spentRushCost unreadable")
+                : _spentRushCost;
+            set => _spentRushCost = value;
+        }
+
+        // Properties rather than the real type's plain fields, and only so the
+        // two flags above have somewhere to live. The reader resolves a property
+        // and a field by the same walk, so the production path is unchanged.
+        public double BP
+        {
+            get => ThrowOnBpRead ? throw new InvalidOperationException("BP unreadable") : _bp;
+            set => _bp = value;
+        }
+
+        public double workRate
+        {
+            get => ThrowOnWorkRateRead
+                ? throw new InvalidOperationException("workRate unreadable")
+                : _workRate;
+            set => _workRate = value;
+        }
 
         private double _buildRate = -1.0;
 
@@ -1143,6 +1216,33 @@ namespace RP0
             _buildRate = 1.0;
             return _buildRate;
         }
+    }
+
+    /// <summary>
+    /// A node whose throttle cannot be read. A SUBCLASS rather than a flag on the
+    /// base, because the base's throttle is a <c>[Persistent]</c> field that
+    /// <c>ConfigNode.LoadObjectFromConfig</c> is driven by, and the reader
+    /// resolves the most-derived declaration first.
+    /// </summary>
+    public class ResearchProjectWithUnreadableWorkRate : ResearchProject
+    {
+        public new double workRate => throw new InvalidOperationException("workRate unreadable");
+    }
+
+    /// <summary>
+    /// A complex whose crew cannot be counted, on the same terms. The centre's
+    /// roster and the complexes' are separate reads, and this is the half that
+    /// makes the difference between them unknowable.
+    /// </summary>
+    public class LaunchComplexWithUnreadableCrew : LaunchComplex
+    {
+        public new int Engineers => throw new InvalidOperationException("Engineers unreadable");
+    }
+
+    /// <summary>A centre whose hired roster cannot be read; the other half of the same subtraction.</summary>
+    public class LCSpaceCenterWithUnreadableRoster : LCSpaceCenter
+    {
+        public new int Engineers => throw new InvalidOperationException("Engineers unreadable");
     }
 
     public class LaunchComplex
@@ -1769,13 +1869,38 @@ namespace RP0
         public static EventData<double, TransactionReasons> OnConfidenceChanged =
             new EventData<double, TransactionReasons>("OnConfidenceChanged");
 
-        private double confidence;
-        private double confidenceEarned;
+        /// <summary>
+        /// Makes the two balance members unreadable, so a test can put the walk
+        /// in the one state it cannot reach with a value: RP-1's module IS live
+        /// and the numbers on it are not there. Held as private PROPERTIES for
+        /// that reason alone; the real type declares plain private fields, and
+        /// the reader resolves either the same way.
+        /// </summary>
+        public static bool ThrowOnBalanceRead;
+
+        private double _confidence;
+        private double _confidenceEarned;
+
+        private double confidence
+        {
+            get => ThrowOnBalanceRead
+                ? throw new InvalidOperationException("confidence unreadable")
+                : _confidence;
+            set => _confidence = value;
+        }
+
+        private double confidenceEarned
+        {
+            get => ThrowOnBalanceRead
+                ? throw new InvalidOperationException("confidenceEarned unreadable")
+                : _confidenceEarned;
+            set => _confidenceEarned = value;
+        }
 
         public Confidence(double current, double earned)
         {
-            confidence = current;
-            confidenceEarned = earned;
+            _confidence = current;
+            _confidenceEarned = earned;
         }
 
         public double Current => confidence;
@@ -1917,8 +2042,20 @@ namespace RP0
         /// <summary>What a complex the test did not price costs.</summary>
         public double DefaultLcUpkeep;
 
-        public double LCUpkeep(LaunchComplex lc) =>
-            LcUpkeepValues.TryGetValue(lc, out var cost) ? cost : DefaultLcUpkeep;
+        /// <summary>
+        /// Complexes RP-1 refuses to price, so a test can leave ONE row of a
+        /// centre unreadable and see what the centre's own total then says.
+        /// </summary>
+        public readonly HashSet<LaunchComplex> UnpriceableComplexes = new HashSet<LaunchComplex>();
+
+        public double LCUpkeep(LaunchComplex lc)
+        {
+            if (UnpriceableComplexes.Contains(lc))
+            {
+                throw new InvalidOperationException("LCUpkeep unreadable");
+            }
+            return LcUpkeepValues.TryGetValue(lc, out var cost) ? cost : DefaultLcUpkeep;
+        }
 
         /// <summary>
         /// The arity-2 overload, PRIVATE on the real type as it is here, so a

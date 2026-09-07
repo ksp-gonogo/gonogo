@@ -116,21 +116,25 @@ namespace GonogoRp1Uplink
         /// <summary>
         /// Research rate, mirroring <c>ResearchProject.BuildRate</c>'s warm path:
         /// the node's own rate times the operator's throttle. Absent until RP-1
-        /// has costed the node.
+        /// has costed the node, and absent on a throttle nobody could read: an
+        /// assumed full throttle walks straight past the uncosted guard and
+        /// publishes a confident rate, a stall flag and a finish date.
         /// </summary>
-        public static double? ResearchRate(double baseRate, double workRate)
+        public static double? ResearchRate(double baseRate, double? workRate)
         {
-            if (baseRate < 0.0)
+            if (baseRate < 0.0 || workRate == null)
             {
                 return null;
             }
-            return baseRate * workRate;
+            return baseRate * workRate.Value;
         }
 
         /// <summary>
         /// A construction's effective rate, mirroring
         /// <c>ConstructionProject.GetBuildRate</c>: the costed base rate times the
-        /// operator's throttle. Absent until RP-1 has costed the project.
+        /// operator's throttle. Absent until RP-1 has costed the project, and
+        /// absent on an unreadable throttle for the reason
+        /// <see cref="ResearchRate"/> gives.
         /// </summary>
         /// <remarks>
         /// The same arithmetic as <see cref="ResearchRate"/> and a separate method
@@ -145,13 +149,13 @@ namespace GonogoRp1Uplink
         /// research nodes are zeroed at any position but the head. There is no
         /// share to divide and no sequence to walk.</para>
         /// </remarks>
-        public static double? ConstructionRate(double baseRate, double workRate)
+        public static double? ConstructionRate(double baseRate, double? workRate)
         {
-            if (baseRate < 0.0)
+            if (baseRate < 0.0 || workRate == null)
             {
                 return null;
             }
-            return baseRate * workRate;
+            return baseRate * workRate.Value;
         }
 
         /// <summary>
@@ -381,11 +385,12 @@ namespace GonogoRp1Uplink
         ///
         /// <para>Absent when there are no build points to be a fraction of, on the
         /// same terms as <see cref="ProgressRatio"/>: RP-1 has not costed the
-        /// project, which is not the same as it being free.</para>
+        /// project, which is not the same as it being free. Absent too on an
+        /// absent <paramref name="cost"/>, for the same reason.</para>
         /// </summary>
-        public static double? UnbilledCost(double cost, double progress, double totalPoints)
+        public static double? UnbilledCost(double? cost, double progress, double totalPoints)
         {
-            if (totalPoints <= 0.0 || double.IsNaN(totalPoints) || double.IsNaN(progress))
+            if (cost == null || totalPoints <= 0.0 || double.IsNaN(totalPoints) || double.IsNaN(progress))
             {
                 return null;
             }
@@ -398,7 +403,7 @@ namespace GonogoRp1Uplink
             {
                 left = 1.0;
             }
-            return cost * left;
+            return cost.Value * left;
         }
 
         /// <summary>
@@ -428,18 +433,22 @@ namespace GonogoRp1Uplink
         /// <param name="effectiveEngineers">
         /// RP-1's effective head count for this complex, as it is NOW.
         /// </param>
-        /// <param name="engineers">The complex's actual engineer count.</param>
+        /// <param name="engineers">
+        /// The complex's actual engineer count, or null when RP-1 would not give
+        /// one. Absent rather than zero: a zero count short-circuits to "rushing
+        /// costs nothing extra", which is a claim about the bill.
+        /// </param>
         /// <param name="idleMult">The fraction of full salary an idle engineer draws.</param>
         /// <param name="rushMult">The multiplier a working engineer draws at while rushing.</param>
         /// <param name="isRushing">Whether the count above was taken while rushing.</param>
         public static double? RushSalaryDelta(
             double? effectiveEngineers,
-            int engineers,
+            int? engineers,
             double? idleMult,
             double? rushMult,
             bool isRushing)
         {
-            if (effectiveEngineers == null || idleMult == null || rushMult == null)
+            if (effectiveEngineers == null || engineers == null || idleMult == null || rushMult == null)
             {
                 return null;
             }
@@ -448,7 +457,7 @@ namespace GonogoRp1Uplink
             // RP-1 charges nothing for, which is one that is not operational.
             // Both are taken before the algebra, which would read a zero count as
             // a crew of negative working engineers.
-            if (engineers <= 0 || effectiveEngineers.Value == 0.0)
+            if (engineers.Value <= 0 || effectiveEngineers.Value == 0.0)
             {
                 return 0.0;
             }
@@ -464,7 +473,8 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
-            var working = (effectiveEngineers.Value - engineers * idle) / (current - idle);
+            var crew = engineers.Value;
+            var working = (effectiveEngineers.Value - crew * idle) / (current - idle);
             // Clamped because the recovery is exact only while RP-1's expression
             // holds: a release that adds a term to it would otherwise put a crew
             // of eleven working engineers on a complex staffed by six.
@@ -472,9 +482,9 @@ namespace GonogoRp1Uplink
             {
                 working = 0.0;
             }
-            else if (working > engineers)
+            else if (working > crew)
             {
-                working = engineers;
+                working = crew;
             }
             return working * (rush - 1.0);
         }

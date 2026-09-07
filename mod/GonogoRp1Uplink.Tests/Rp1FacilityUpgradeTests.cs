@@ -74,6 +74,7 @@ namespace GonogoRp1Uplink.Tests
             Database.FacilityLevelCosts.Clear();
             Database.LockedFacilities.Clear();
             KCTUtilities.FacilityLevels.Clear();
+            ConstructionProject.ThrowOnBpRead = false;
         }
 
         /// <summary>
@@ -251,6 +252,30 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(0, payload["currentLevel"]);
             Assert.Equal(1, payload["targetLevel"]);
             Assert.Equal(500.0, payload["buildPoints"]);
+        }
+
+        /// <summary>
+        /// An unreadable duration REFUSES, the way every other step of this
+        /// command does. Substituted to zero it reported the upgrade as
+        /// instantaneous in the confirmation the operator reads immediately after
+        /// pressing, and queued it anyway: build points are the whole duration of
+        /// the project, so nought is not a missing readout but a finish date.
+        ///
+        /// <para>The refusal is safe to make here because nothing has reached
+        /// RP-1 yet: the project is constructed and priced but the Add that makes
+        /// it real is still below.</para>
+        /// </summary>
+        [Fact]
+        public void Refuses_when_RP1_will_not_say_how_long_the_upgrade_takes()
+        {
+            var centre = Career();
+            ConstructionProject.ThrowOnBpRead = true;
+
+            var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
+
+            Refused(result, CommandErrorCode.ModeUnavailable);
+            Assert.Empty(centre.FacilityUpgrades);
+            Assert.Empty(SCMEvents.OnFacilityUpgradeQueued.Fired);
         }
 
         /// <summary>

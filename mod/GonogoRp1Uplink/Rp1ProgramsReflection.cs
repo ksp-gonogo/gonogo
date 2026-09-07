@@ -177,7 +177,10 @@ namespace GonogoRp1Uplink
             raw.Slots = new Rp1ProgramSlotsRaw
             {
                 MaxSlots = ReadInt(instance, "MaxProgramSlots"),
-                UsedSlots = ReadInt(instance, "ActiveProgramSlots") ?? 0,
+                // On the same terms as MaxSlots beside it. A substituted zero
+                // renders as zero occupied beside an unknown ceiling, which says
+                // every slot is free at the one moment nothing is known.
+                UsedSlots = ReadInt(instance, "ActiveProgramSlots"),
                 ActiveCount = active.Count,
                 CompletedCount = completed.Count,
             };

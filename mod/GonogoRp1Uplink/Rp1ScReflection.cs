@@ -225,14 +225,19 @@ namespace GonogoRp1Uplink
             var lcToEfficiency = Member(scm, "LCToEfficiency") as IDictionary;
             var payroll = ReadPayroll(scm);
 
-            var totalEngineers = 0;
+            // Null-propagating, and both totals are: a centre's hired count and
+            // its complexes' counts are separate reads, so a substituted zero on
+            // either side of the subtraction below publishes a NEGATIVE idle
+            // crew beside a staffed centre. One unreadable figure takes every
+            // total it feeds with it.
+            int? totalEngineers = 0;
             foreach (var ksc in Enumerate(Member(scm, "KSCs")))
             {
                 var kscName = ReadString(ksc, "KSCName");
-                var kscEngineers = ReadInt(ksc, "Engineers") ?? 0;
-                totalEngineers += kscEngineers;
+                var kscEngineers = ReadInt(ksc, "Engineers");
+                totalEngineers = Add(totalEngineers, kscEngineers);
 
-                var assignedEngineers = 0;
+                int? assignedEngineers = 0;
                 var operationalCount = 0;
                 var anyOperationalBeyondHangar = false;
                 var lcIndex = 0;
@@ -243,8 +248,8 @@ namespace GonogoRp1Uplink
 
                 foreach (var lc in Enumerate(Member(ksc, "LaunchComplexes")))
                 {
-                    var lcEngineers = ReadInt(lc, "Engineers") ?? 0;
-                    assignedEngineers += lcEngineers;
+                    var lcEngineers = ReadInt(lc, "Engineers");
+                    assignedEngineers = Add(assignedEngineers, lcEngineers);
                     var operational = ReadBool(lc, "IsOperational") == true;
                     if (operational)
                     {
@@ -265,18 +270,19 @@ namespace GonogoRp1Uplink
 
                 ReadConstructions(raw, kscName, ksc);
 
+                var unassigned = Subtract(kscEngineers, assignedEngineers);
                 raw.Centres.Add(new Rp1CentreRaw
                 {
                     KscName = kscName,
                     KscDisplayName = DisplayNameFor(kscName),
                     IsActive = ReferenceEquals(ksc, Member(scm, "ActiveSC")),
                     Engineers = kscEngineers,
-                    UnassignedEngineers = kscEngineers - assignedEngineers,
+                    UnassignedEngineers = unassigned,
                     LaunchComplexCount = operationalCount,
                     AnyOperational = anyOperationalBeyondHangar,
                     GroundStation = GroundStationFor(ksc, kscName),
                     SalaryPerDay = SalaryPerDay(payroll, payroll.CentreSalary, ksc),
-                    IdleSalaryPerDay = IdleSalaryPerDay(payroll, kscEngineers - assignedEngineers),
+                    IdleSalaryPerDay = IdleSalaryPerDay(payroll, unassigned),
                     UpkeepPerDay = UpkeepFrom(raw.Complexes, firstComplex),
                 });
             }
@@ -389,7 +395,7 @@ namespace GonogoRp1Uplink
             object ksc,
             string? kscName,
             object lc,
-            int engineers,
+            int? engineers,
             bool operational,
             IDictionary? lcToEfficiency,
             double maxEfficiency,
@@ -603,8 +609,11 @@ namespace GonogoRp1Uplink
                 KscName = kscName,
                 LcId = lcId,
                 ShipName = ReadString(vp, "shipName"),
-                Cost = ReadDouble(vp, "cost") ?? 0.0,
-                Mass = ReadDouble(vp, "mass") ?? 0.0,
+                // Absent, never zero. A price nobody could read published as 0
+                // is a free rocket, which is a statement about the career's
+                // money rather than a gap in the readout.
+                Cost = ReadDouble(vp, "cost"),
+                Mass = ReadDouble(vp, "mass"),
                 HumanRated = ReadBool(vp, "humanRated") == true,
                 LaunchSite = ReadString(vp, "launchSite"),
                 ProjectType = ReadEnumName(vp, "Type"),
@@ -647,6 +656,7 @@ namespace GonogoRp1Uplink
             var totalPoints = ReadDouble(op, "BP") ?? 0.0;
             var progress = ReadDouble(op, "progress") ?? 0.0;
             var baseRate = ReadDouble(op, "_buildRate") ?? -1.0;
+            var cost = ReadDouble(op, "cost");
 
             var rate = Rp1ScMath.OperationRate(baseRate, efficiency, rushRate, reversed, blocking, totalPoints, projectBpTotal);
 
@@ -680,9 +690,10 @@ namespace GonogoRp1Uplink
                 Stalled = Rp1ScMath.IsStalled(rate),
                 TimeLeftSeconds = Ramped(seconds, ramp),
                 BlockingPeers = subjectIndex >= 0 ? blockingSet.Count - 1 : 0,
-                Cost = ReadDouble(op, "cost") ?? 0.0,
-                CostRemaining = Rp1ScMath.UnbilledCost(
-                    ReadDouble(op, "cost") ?? 0.0, progress, totalPoints),
+                // Absent rather than free, and the unbilled remainder goes with
+                // it: what is left to pay of a price nobody read is not zero.
+                Cost = cost,
+                CostRemaining = Rp1ScMath.UnbilledCost(cost, progress, totalPoints),
                 AssociatedVesselId = EmptyAsAbsent(ReadString(op, "associatedID")),
             };
         }
@@ -734,7 +745,7 @@ namespace GonogoRp1Uplink
         {
             var progress = ReadDouble(project, "progress") ?? 0.0;
             var totalPoints = ReadDouble(project, "BP") ?? 0.0;
-            var workRate = ReadDouble(project, "workRate") ?? 1.0;
+            var workRate = ReadDouble(project, "workRate");
             var rate = Rp1ScMath.ConstructionRate(ReadDouble(project, "_buildRate") ?? -1.0, workRate);
 
             return new Rp1ConstructionRaw
@@ -751,9 +762,11 @@ namespace GonogoRp1Uplink
                 // No efficiency ramp: a construction has no crew to get better at
                 // it, and RP-1's own estimate is the plain division.
                 TimeLeftSeconds = Rp1ScMath.BaseTimeLeft(progress, totalPoints, rate),
-                Cost = ReadDouble(project, "cost") ?? 0.0,
-                SpentCost = ReadDouble(project, "spentCost") ?? 0.0,
-                SpentRushCost = ReadDouble(project, "spentRushCost") ?? 0.0,
+                // Absent, never zero: a construction whose price could not be
+                // read is not one the career gets for nothing.
+                Cost = ReadDouble(project, "cost"),
+                SpentCost = ReadDouble(project, "spentCost"),
+                SpentRushCost = ReadDouble(project, "spentRushCost"),
             };
         }
 
@@ -763,7 +776,7 @@ namespace GonogoRp1Uplink
             {
                 var scienceCost = ReadInt(node, "scienceCost") ?? 0;
                 var progress = ReadDouble(node, "progress") ?? 0.0;
-                var workRate = ReadDouble(node, "workRate") ?? 1.0;
+                var workRate = ReadDouble(node, "workRate");
                 var rate = Rp1ScMath.ResearchRate(ReadDouble(node, "_buildRate") ?? -1.0, workRate);
 
                 raw.Research.Add(new Rp1ResearchRaw
@@ -792,6 +805,12 @@ namespace GonogoRp1Uplink
         /// answers 0 when the module is absent, and a career that has spent its
         /// confidence genuinely sits at 0, so the getter cannot tell an operator
         /// which of the two they are looking at.
+        ///
+        /// <para>The FIELD read is held to the same rule, and was not: an
+        /// unreadable balance substituted to 0 put the conflation back one level
+        /// down, where it both misinforms the readout and darkens the Accept
+        /// button on a Program the career can afford. A client already draws the
+        /// null token and declines to call anything short.</para>
         /// </summary>
         private Rp1ConfidenceRaw? ReadConfidence()
         {
@@ -806,8 +825,8 @@ namespace GonogoRp1Uplink
             }
             return new Rp1ConfidenceRaw
             {
-                Confidence = ReadDouble(instance, "confidence") ?? 0.0,
-                Earned = ReadDouble(instance, "confidenceEarned") ?? 0.0,
+                Confidence = ReadDouble(instance, "confidence"),
+                Earned = ReadDouble(instance, "confidenceEarned"),
             };
         }
 
@@ -855,12 +874,15 @@ namespace GonogoRp1Uplink
         private Func<double, double>? RampFor(
             object? efficiencySource,
             bool isRushing,
-            int engineers,
+            int? engineers,
             int maxEngineers,
             double? efficiency,
             double maxEfficiency)
         {
-            if (efficiencySource == null || efficiency == null || _lcEfficiency == null)
+            // A crew nobody could count cannot be ramped. The un-ramped estimate
+            // stands instead, which is the same degradation an unreadable
+            // efficiency record already gets.
+            if (efficiencySource == null || efficiency == null || engineers == null || _lcEfficiency == null)
             {
                 return null;
             }
@@ -870,7 +892,8 @@ namespace GonogoRp1Uplink
                 return null;
             }
 
-            var portionEngineers = maxEngineers > 0 ? (double)engineers / maxEngineers : 0.0;
+            var crew = engineers.Value;
+            var portionEngineers = maxEngineers > 0 ? (double)crew / maxEngineers : 0.0;
             var startingEfficiency = efficiency.Value;
             Func<double, double> weightedEfficiency = seconds =>
             {
@@ -894,7 +917,7 @@ namespace GonogoRp1Uplink
                 startingEfficiency,
                 maxEfficiency,
                 isRushing,
-                engineers,
+                crew,
                 maxEngineers,
                 weightedEfficiency);
         }
@@ -1018,13 +1041,27 @@ namespace GonogoRp1Uplink
         /// than left to a client that would have to write RP-1's year length
         /// down.</para>
         /// </summary>
-        private static double? IdleSalaryPerDay(Payroll payroll, int unassigned) =>
-            payroll.EngineerIdleSalaryMult == null || payroll.EngineerSalaryPerYear == null
+        private static double? IdleSalaryPerDay(Payroll payroll, int? unassigned) =>
+            unassigned == null
+                || payroll.EngineerIdleSalaryMult == null
+                || payroll.EngineerSalaryPerYear == null
                 ? (double?)null
-                : unassigned
+                : unassigned.Value
                     * payroll.EngineerIdleSalaryMult.Value
                     * payroll.EngineerSalaryPerYear.Value
                     / DaysPerYear;
+
+        /// <summary>
+        /// A running count that one unreadable term takes with it. A head count
+        /// summed over rows RP-1 partly refused is not the career's head count,
+        /// and it arrives on the wire looking exactly like one that is.
+        /// </summary>
+        private static int? Add(int? running, int? term) =>
+            running == null || term == null ? (int?)null : running.Value + term.Value;
+
+        /// <summary>The same rule across a subtraction; see <see cref="Add"/>.</summary>
+        private static int? Subtract(int? left, int? right) =>
+            left == null || right == null ? (int?)null : left.Value - right.Value;
 
         /// <summary>What the complex itself costs per day, crew aside.</summary>
         private double? ComplexUpkeep(Payroll payroll, object lc) =>
@@ -1052,8 +1089,14 @@ namespace GonogoRp1Uplink
 
         /// <summary>
         /// A centre's own upkeep: its complexes' figures, summed off the rows just
-        /// read. Absent when not one of them answered, rather than zero, because a
-        /// centre whose costs could not be read has not been shown to be free.
+        /// read. Absent unless EVERY complex answered, because a centre whose
+        /// costs could not be read has not been shown to be free, and one whose
+        /// costs were three-fifths read has not been shown to cost three fifths.
+        /// A partial sum is the worse of the two: it is a plausible bill, in the
+        /// right units, that an operator has no way to tell from a correct one.
+        ///
+        /// <para>Still absent for a centre with no complexes at all, which is the
+        /// count this loop starts from rather than a sum it reached.</para>
         /// </summary>
         private static double? UpkeepFrom(List<Rp1ComplexRaw> complexes, int from)
         {
@@ -1062,11 +1105,12 @@ namespace GonogoRp1Uplink
             for (var i = from; i < complexes.Count; i++)
             {
                 var upkeep = complexes[i].UpkeepPerDay;
-                if (upkeep != null)
+                if (upkeep == null)
                 {
-                    total += upkeep.Value;
-                    any = true;
+                    return null;
                 }
+                total += upkeep.Value;
+                any = true;
             }
             return any ? total : (double?)null;
         }

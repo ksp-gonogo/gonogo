@@ -249,6 +249,19 @@ function TimeLeft({ row }: Readonly<{ row: Rp1ConstructionEntry }>) {
       </>
     );
   }
+  // Told apart from the line above it, because the two want different things
+  // of an operator. An uncosted project resolves itself the next time RP-1
+  // recalculates; a throttle nobody could read is the one setting this row's
+  // whole rate is derived from, and no ETA can be had while it is missing.
+  // Told apart from the line above it, because the two want different things
+  // of an operator. An uncosted project resolves itself the next time RP-1
+  // recalculates; a throttle nobody could read is the one setting this row's
+  // whole rate is derived from, and no ETA can be had while it is missing.
+  if (magnitudeOf(row.workRate) === null) {
+    return (
+      <>{NULL_DISPLAY} RP-1 has not said what throttle this is running at</>
+    );
+  }
   return <>{NULL_DISPLAY} RP-1 has not costed this yet</>;
 }
 

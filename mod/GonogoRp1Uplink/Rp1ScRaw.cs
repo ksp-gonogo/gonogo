@@ -82,8 +82,23 @@ namespace GonogoRp1Uplink
         public string? KscName;
         public string? KscDisplayName;
         public bool IsActive;
-        public int Engineers;
-        public int UnassignedEngineers;
+
+        /// <summary>
+        /// Engineers hired here, and null when RP-1 would not say. Not a zero:
+        /// a centre whose roster could not be read is not a centre with nobody
+        /// on it, and the difference decides whether an operator thinks they
+        /// have anyone to assign.
+        /// </summary>
+        public int? Engineers;
+
+        /// <summary>
+        /// <see cref="Engineers"/> less what the complexes hold, so absent the
+        /// moment either half is. The two were read independently and a
+        /// substituted zero on one side of the subtraction published a NEGATIVE
+        /// idle count beside a staffed centre.
+        /// </summary>
+        public int? UnassignedEngineers;
+
         public int LaunchComplexCount;
         public bool AnyOperational;
         public string? GroundStation;
@@ -111,7 +126,10 @@ namespace GonogoRp1Uplink
         public string? LcType;
         public bool IsOperational;
         public bool IsRushing;
-        public int Engineers;
+
+        /// <summary>Crew on this complex, absent rather than zero when RP-1 would not say.</summary>
+        public int? Engineers;
+
         public int MaxEngineers;
         public double? Efficiency;
         public List<string>? EfficiencySharedWith;
@@ -226,8 +244,17 @@ namespace GonogoRp1Uplink
         public double? Rate;
         public double? TimeLeftSeconds;
         public bool Stalled;
-        public double Cost;
-        public double Mass;
+
+        /// <summary>
+        /// What the vehicle cost to build, and null when RP-1 would not price
+        /// it. A substituted zero here publishes a FREE ROCKET, which is a
+        /// claim about the career's money rather than a missing readout.
+        /// </summary>
+        public double? Cost;
+
+        /// <summary>Its mass, absent rather than zero when RP-1 would not weigh it.</summary>
+        public double? Mass;
+
         public bool HumanRated;
         public string? LaunchSite;
         public string? ProjectType;
@@ -299,7 +326,9 @@ namespace GonogoRp1Uplink
         public double? TimeLeftSeconds;
         public bool Stalled;
         public int BlockingPeers;
-        public double Cost;
+
+        /// <summary>What the move costs, absent rather than free when RP-1 would not price it.</summary>
+        public double? Cost;
 
         /// <summary>What finishing the move still has to pay of <see cref="Cost"/>.</summary>
         public double? CostRemaining;
@@ -327,13 +356,25 @@ namespace GonogoRp1Uplink
         public double Progress;
         public double TotalPoints;
         public double? ProgressRatio;
-        public double WorkRate;
+
+        /// <summary>
+        /// The operator's throttle, and null when RP-1 would not say what it is.
+        /// An assumed full throttle is not a neutral default: it fabricates a
+        /// rate, a stall flag and a finish date on a project
+        /// <see cref="Rp1ScMath.ConstructionRate"/> would otherwise have left
+        /// uncosted, which is the one guard that exists here.
+        /// </summary>
+        public double? WorkRate;
+
         public double? Rate;
         public double? TimeLeftSeconds;
         public bool Stalled;
-        public double Cost;
-        public double SpentCost;
-        public double SpentRushCost;
+
+        /// <summary>The construction's price, absent rather than free when unreadable.</summary>
+        public double? Cost;
+
+        public double? SpentCost;
+        public double? SpentRushCost;
     }
 
     public sealed class Rp1ResearchRaw
@@ -343,7 +384,12 @@ namespace GonogoRp1Uplink
         public int ScienceCost;
         public double Progress;
         public double? ProgressRatio;
-        public double WorkRate;
+
+        /// <summary>
+        /// The operator's throttle. Absent rather than 1.0 for the reason
+        /// <see cref="Rp1ConstructionRaw.WorkRate"/> is.
+        /// </summary>
+        public double? WorkRate;
         public double? Rate;
         public double? TimeLeftSeconds;
         public bool Stalled;
@@ -383,7 +429,13 @@ namespace GonogoRp1Uplink
 
     public sealed class Rp1PersonnelRaw
     {
-        public int TotalEngineers;
+        /// <summary>
+        /// Engineers across every centre, and absent the moment one centre would
+        /// not answer: a total short by one centre's roster is a headcount the
+        /// career does not have, and it reads exactly like a correct one.
+        /// </summary>
+        public int? TotalEngineers;
+
         public int Researchers;
         public int Applicants;
         public double? EngineerSalaryPerDay;
@@ -417,7 +469,16 @@ namespace GonogoRp1Uplink
 
     public sealed class Rp1ConfidenceRaw
     {
-        public double Confidence;
-        public double Earned;
+        /// <summary>
+        /// Confidence available to spend, and null when the field could not be
+        /// read. The same argument the instance probe makes one level up: a
+        /// career that has spent its Confidence genuinely sits at 0, so a
+        /// substituted zero is indistinguishable from a real broke career, and
+        /// this is the figure a client compares a Program's price against.
+        /// </summary>
+        public double? Confidence;
+
+        /// <summary>Career-total Confidence earned, absent on the same terms.</summary>
+        public double? Earned;
     }
 }
