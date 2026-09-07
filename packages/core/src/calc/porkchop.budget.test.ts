@@ -53,12 +53,32 @@ describe("porkchop solve budget", () => {
   beforeEach(() => PORKCHOP_SOLVE_BUDGET.reset());
 
   it("breaches when the grid is rebuilt at frame rate", () => {
-    // One second of a 60Hz clock, which is what `nowUt` in a memo's dependency array
-    // produces: `useViewUt` notifies every frame the clock moves.
+    /*
+     * Two claims, and they need different clocks.
+     *
+     * `buildPorkchop` records its own solves through `PerfBudget.record(n)` with
+     * no timestamp, so those land on `Date.now()`. Driving all sixty frames with
+     * real builds therefore measures how fast the MACHINE is, not what the budget
+     * does: on a loaded CI runner sixty grids took 15.2s, so only four fell inside
+     * the 1000ms window and the rate came back as exactly 4 x 32 x 32 = 4096,
+     * failing "expected 4096 to be greater than 4096". The synthetic stamps passed
+     * to `record` below were never reaching the recording that mattered.
+     */
+
+    // Claim 1, on the real clock: building a grid records its solves at all. This
+    // is the wiring, and a rewrite of `buildPorkchop` that stopped recording has to
+    // fail here.
+    buildOneGrid(0);
+    expect(PORKCHOP_SOLVE_BUDGET.rate()).toBe(32 * 32);
+    PORKCHOP_SOLVE_BUDGET.reset();
+
+    // Claim 2, on a synthetic clock: one second of a 60Hz rebuild breaches. That is
+    // what `nowUt` in a memo's dependency array produces, since `useViewUt` notifies
+    // every frame the clock moves. Stamped rather than built, so the assertion is
+    // about the budget and not about how long 60 Lambert grids take here.
     const now = 1_000_000;
     for (let frame = 0; frame < 60; frame++) {
-      buildOneGrid(0);
-      PORKCHOP_SOLVE_BUDGET.record(0, now + frame * 16.7);
+      PORKCHOP_SOLVE_BUDGET.record(32 * 32, now + frame * 16.7);
     }
 
     expect(PORKCHOP_SOLVE_BUDGET.rate(now + 999)).toBeGreaterThan(4 * 32 * 32);
