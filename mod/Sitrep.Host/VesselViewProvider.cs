@@ -973,6 +973,8 @@ namespace Sitrep.Host
                         IgnitionUt = GetDouble(node, "ignitionUt"),
                         CutoffUt = GetDouble(node, "cutoffUt"),
                         Frame = ParseManeuverFrame(GetString(node, "frame")),
+                        FrameReference = ParseManeuverFrameReference(GetString(node, "frameReference")),
+                        FrameReferenceBodyIndex = GetInt(node, "frameReferenceBodyIndex"),
                         // The burn profile, all null from a patched-conic
                         // planner and all filled by an integrating one. Read
                         // straight through with no defaulting: a zero thrust is
@@ -1182,6 +1184,7 @@ namespace Sitrep.Host
                 ProjectedTouchdownSpeed = GetDouble(landing, "projectedTouchdownSpeed"),
                 AtmosphericTimeToImpact = GetDouble(landing, "atmosphericTimeToImpact"),
                 DescentRegime = GetString(landing, "descentRegime"),
+                DragToWeightRatio = GetDouble(landing, "dragToWeightRatio"),
                 ParachuteState = GetString(landing, "parachuteState"),
                 Meta = BuildMeta(vesselId),
             };
@@ -1886,6 +1889,7 @@ namespace Sitrep.Host
             ["projectedTouchdownSpeed"] = landing.ProjectedTouchdownSpeed,
             ["atmosphericTimeToImpact"] = landing.AtmosphericTimeToImpact,
             ["descentRegime"] = landing.DescentRegime,
+            ["dragToWeightRatio"] = landing.DragToWeightRatio,
             ["parachuteState"] = landing.ParachuteState,
             ["meta"] = ToWire(landing.Meta),
         };
@@ -2097,6 +2101,32 @@ namespace Sitrep.Host
                 "radialnormalprograde" => ManeuverFrame.RadialNormalPrograde,
                 "tangentnormalbinormal" => ManeuverFrame.TangentNormalBinormal,
                 _ => ManeuverFrame.Unknown,
+            };
+        }
+
+        /// <summary>
+        /// The frame a burn's basis is measured relative to, off the raw
+        /// capture's enum NAME.
+        ///
+        /// <para>An unrecognised name maps to <c>Unspecified</c> rather than to a
+        /// guess, which is the same shape <see cref="ParseManeuverFrame"/>'s
+        /// <c>Unknown</c> has: a planner naming a frame this build has never
+        /// heard of has said something, and reading it as one of the four we do
+        /// know would be a wrong answer where a blank is an honest one.</para>
+        /// </summary>
+        private static ManeuverNode.ManeuverFrameReference? ParseManeuverFrameReference(string? raw)
+        {
+            if (raw == null)
+            {
+                return null;
+            }
+            return raw.ToLowerInvariant() switch
+            {
+                "followcontrolframe" => ManeuverNode.ManeuverFrameReference.FollowControlFrame,
+                "bodycentredinertial" => ManeuverNode.ManeuverFrameReference.BodyCentredInertial,
+                "parentdirection" => ManeuverNode.ManeuverFrameReference.ParentDirection,
+                "rotatingpulsating" => ManeuverNode.ManeuverFrameReference.RotatingPulsating,
+                _ => ManeuverNode.ManeuverFrameReference.Unspecified,
             };
         }
 

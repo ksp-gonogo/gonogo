@@ -1698,6 +1698,15 @@ namespace Gonogo.KSP
                     ["ignitionUt"] = node.IgnitionUt,
                     ["cutoffUt"] = node.CutoffUt,
                     ["frame"] = node.Frame == null ? null : node.Frame.Value.ToString(),
+                    // What that basis is measured RELATIVE to. Null from a
+                    // planner with only one frame, which is stock, and the same
+                    // absent-not-defaulted rule the burn profile below follows:
+                    // the capture carries whatever the elected planner stated
+                    // and never invents a frame it did not.
+                    ["frameReference"] = node.FrameReference == null
+                        ? null
+                        : node.FrameReference.Value.ToString(),
+                    ["frameReferenceBodyIndex"] = node.FrameReferenceBodyIndex,
                     // The burn profile the elected planner computed against:
                     // null from a patched-conic planner, filled by an
                     // integrating one. Absent here while the wire writer
