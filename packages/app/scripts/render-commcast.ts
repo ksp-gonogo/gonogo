@@ -163,7 +163,71 @@ const RADIO_SENT: Held[] = [
 ];
 const RADIO_RECEIVED: Held[] = [toKsc("Copy go. Starting the sequence.", -600)];
 
+/** Ground to the recovery ship, 0.4 s away: the short arm of the delay switch. */
+const toRecovery = (body: string, sentAt: number): Held => ({
+  from: KSC,
+  to: [RECOVERY],
+  authorName: "Kennedy Flight",
+  authorSeat: "mission-control",
+  body,
+  sentAt,
+  separationSeconds: 0.4,
+});
+
 const SCENES: Scene[] = [
+  {
+    /*
+     * THE DIVERGENCE WINDOW, for the `inFlightFrozenAtDispatch` evidence pass.
+     *
+     * A correspondent under a second away (so the delay reading is the standing
+     * chip) with something unacknowledged still in the outbound queue. That is
+     * the only state in which the frozen flag could change what is drawn, and
+     * it is not reachable from any other scene here: every other conversation
+     * is four light-minutes out.
+     */
+    name: "divergence-badge-window-crossing",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        openThread: "Recovery 1",
+        sent: [toRecovery("Recovery, Kennedy. Say your sea state.", -0.2)],
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: 0.4,
+    settleOn: "Recovery 1",
+    pxW: 460,
+    pxH: 460,
+  },
+  {
+    /*
+     * CONTROL for the scene above, and the reason it exists: at the badge window
+     * the queue is not drawn, so a shot of nothing proves nothing about whether
+     * anything was in it. The same conversation with NOTHING sent, so the two
+     * can be compared. The difference to look for is the empty state, which the
+     * scene above suppresses because its outbound queue is not empty.
+     */
+    name: "divergence-control-nothing-crossing",
+    panes: [
+      {
+        seat: "mission-control",
+        vantage: KSC,
+        name: "Kennedy Flight",
+        compose: true,
+        pick: ["Recovery 1"],
+        open: true,
+      },
+    ],
+    separation: PAIRS,
+    roster: ROSTER,
+    oneWaySeconds: 0.4,
+    settleOn: "Nothing said yet",
+    pxW: 460,
+    pxH: 460,
+  },
   {
     /*
      * The whole feature in one picture, and the state that did not exist
@@ -837,7 +901,10 @@ async function main(): Promise<void> {
      * looking like the real thing, which is why the run says so out loud when
      * it happens.
      */
-    for (const scene of SCENES) {
+    for (const scene of SCENES.filter(
+      (s) =>
+        !process.env.COMMCAST_SCENE || s.name === process.env.COMMCAST_SCENE,
+    )) {
       const { name } = scene;
       await page.goto(pathToFileURL(probeHtml).toString(), {
         waitUntil: "domcontentloaded",
