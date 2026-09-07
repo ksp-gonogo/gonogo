@@ -130,10 +130,26 @@ namespace GonogoRp1Uplink
         /// <summary>Crew on this complex, absent rather than zero when RP-1 would not say.</summary>
         public int? Engineers;
 
-        public int MaxEngineers;
+        /// <summary>
+        /// The crew this complex can hold, absent rather than zero when RP-1
+        /// would not say. It sits directly beside <see cref="Engineers"/> and is
+        /// read off the same object, so a substituted zero here publishes a
+        /// complex staffed past a cap of nobody, and darkens a hire control on a
+        /// complex with room in it.
+        /// </summary>
+        public int? MaxEngineers;
+
         public double? Efficiency;
         public List<string>? EfficiencySharedWith;
-        public bool CanIntegrate;
+
+        /// <summary>
+        /// Whether integration can proceed, which is the absence of blocking
+        /// work. Absent when the blocking total could not be summed: "nothing is
+        /// blocking" and "nobody could say what is blocking" both leave the sum
+        /// at zero, and only the first of them clears a vehicle to be built.
+        /// </summary>
+        public bool? CanIntegrate;
+
         public double? Rate;
         public bool HumanRated;
         public int? LaunchPadCount;
@@ -238,8 +254,21 @@ namespace GonogoRp1Uplink
         public string? KscName;
         public string? LcId;
         public string? ShipName;
-        public double Progress;
-        public double TotalPoints;
+
+        /// <summary>
+        /// Build points banked so far, and null when RP-1 would not say. A
+        /// substituted zero publishes a vehicle NOT STARTED, which is a claim
+        /// about where the integration stands rather than a gap in the readout.
+        /// </summary>
+        public double? Progress;
+
+        /// <summary>
+        /// Build points the vehicle costs in total, absent rather than zero: a
+        /// vehicle nobody could cost is not one that takes no work, and the
+        /// fraction, the ETA and the stall flag all divide by this.
+        /// </summary>
+        public double? TotalPoints;
+
         public double? ProgressRatio;
         public double? Rate;
         public double? TimeLeftSeconds;
@@ -283,7 +312,15 @@ namespace GonogoRp1Uplink
         public string? PadId;
         public string? Name;
         public string? LaunchSiteName;
-        public int Level;
+
+        /// <summary>
+        /// The pad's tier, absent rather than zero when RP-1 would not say. Zero
+        /// is a real tier a pad can sit at, so the substitution is
+        /// indistinguishable from a reading, and it is the figure a client
+        /// compares against an upgrade target.
+        /// </summary>
+        public int? Level;
+
         public double? FractionalLevel;
         public string? State;
 
@@ -319,8 +356,13 @@ namespace GonogoRp1Uplink
         public string? LcId;
         public string? LaunchPadId;
         public string? Type;
-        public double Progress;
-        public double TotalPoints;
+
+        /// <summary>Work banked on the move, absent rather than not-started when unreadable.</summary>
+        public double? Progress;
+
+        /// <summary>What the move costs in build points, absent rather than free of work.</summary>
+        public double? TotalPoints;
+
         public double? ProgressRatio;
         public double? Rate;
         public double? TimeLeftSeconds;
@@ -353,8 +395,13 @@ namespace GonogoRp1Uplink
         public bool? IsModify;
         public int? EngineersToReadd;
         public string? PadId;
-        public double Progress;
-        public double TotalPoints;
+
+        /// <summary>Work banked on the build, absent rather than not-started when unreadable.</summary>
+        public double? Progress;
+
+        /// <summary>The build's size in build points, absent rather than no work at all.</summary>
+        public double? TotalPoints;
+
         public double? ProgressRatio;
 
         /// <summary>
@@ -381,8 +428,17 @@ namespace GonogoRp1Uplink
     {
         public string? TechId;
         public string? TechName;
-        public int ScienceCost;
-        public double Progress;
+
+        /// <summary>
+        /// Science the node costs, absent rather than zero. This is the one
+        /// currency RP-1 genuinely refuses a purchase over, so a substituted zero
+        /// tells an operator a node is FREE and that they can always afford it.
+        /// </summary>
+        public int? ScienceCost;
+
+        /// <summary>Science banked against it, absent rather than not-started when unreadable.</summary>
+        public double? Progress;
+
         public double? ProgressRatio;
 
         /// <summary>
@@ -436,8 +492,17 @@ namespace GonogoRp1Uplink
         /// </summary>
         public int? TotalEngineers;
 
-        public int Researchers;
-        public int Applicants;
+        /// <summary>
+        /// Researchers hired, absent rather than zero on the terms
+        /// <see cref="TotalEngineers"/> gives. A career with nobody in research
+        /// genuinely sits at 0, so the substitution is indistinguishable from a
+        /// reading, and it is the figure a hire control counts up from.
+        /// </summary>
+        public int? Researchers;
+
+        /// <summary>Applicants waiting to be hired, absent on the same terms.</summary>
+        public int? Applicants;
+
         public double? EngineerSalaryPerDay;
         public double? ResearcherSalaryPerDay;
         public double? EngineerSalaryPerYear;

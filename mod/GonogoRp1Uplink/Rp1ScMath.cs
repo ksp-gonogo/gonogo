@@ -49,16 +49,24 @@ namespace GonogoRp1Uplink
 
         /// <summary>
         /// Fraction complete, guarded. Absent when there is nothing to be a
-        /// fraction of. <paramref name="reversed"/> counts down instead of up,
-        /// which is how a rollback and an air-launch unmount run.
+        /// fraction of, and absent when either term could not be read: a
+        /// substituted progress of zero publishes a confident 0%, which is a
+        /// claim that the work has not started rather than an admission that
+        /// nobody could say. <paramref name="reversed"/> counts down instead of
+        /// up, which is how a rollback and an air-launch unmount run.
         /// </summary>
-        public static double? ProgressRatio(double progress, double totalPoints, bool reversed = false)
+        public static double? ProgressRatio(double? progress, double? totalPoints, bool reversed = false)
         {
-            if (totalPoints == 0.0 || double.IsNaN(totalPoints))
+            if (progress == null
+                || totalPoints == null
+                || totalPoints.Value == 0.0
+                || double.IsNaN(totalPoints.Value))
             {
                 return null;
             }
-            return reversed ? (totalPoints - progress) / totalPoints : progress / totalPoints;
+            return reversed
+                ? (totalPoints.Value - progress.Value) / totalPoints.Value
+                : progress.Value / totalPoints.Value;
         }
 
         /// <summary>
@@ -76,13 +84,19 @@ namespace GonogoRp1Uplink
         /// for it. Absent efficiency makes the rate absent too, because a rate
         /// computed as though the crew were perfect would be a fabrication.
         /// </param>
-        public static double? VesselRate(double baseRate, double? efficiency, double rushRate, bool canIntegrate)
+        /// <param name="canIntegrate">
+        /// Whether the complex is clear of blocking work, or null when the
+        /// blocking total could not be summed. Absent makes the rate absent:
+        /// assuming a clear complex publishes a vehicle building at full speed
+        /// behind a rollout that may well be holding it at a standstill.
+        /// </param>
+        public static double? VesselRate(double baseRate, double? efficiency, double rushRate, bool? canIntegrate)
         {
-            if (baseRate < 0.0 || efficiency == null)
+            if (baseRate < 0.0 || efficiency == null || canIntegrate == null)
             {
                 return null;
             }
-            return canIntegrate ? baseRate * efficiency.Value * rushRate : 0.0;
+            return canIntegrate.Value ? baseRate * efficiency.Value * rushRate : 0.0;
         }
 
         /// <summary>
@@ -91,6 +105,13 @@ namespace GonogoRp1Uplink
         /// applies: a blocking operation gets only its portion of the complex when
         /// several run at once. Negative for a reversed operation, because that is
         /// the direction its progress moves.
+        ///
+        /// <para>Absent when a BLOCKING operation cannot work out its share:
+        /// either its own build points or the complex's blocking total was
+        /// unreadable. The un-shared rate is not a fallback, it is the rate the
+        /// operation would run at if it had the complex to itself, which is the
+        /// same optimism <see cref="SequencedTimeLeft"/> refuses. A
+        /// non-blocking operation takes no share and does not care.</para>
         /// </summary>
         public static double? OperationRate(
             double baseRate,
@@ -98,17 +119,21 @@ namespace GonogoRp1Uplink
             double rushRate,
             bool reversed,
             bool blocking,
-            double totalPoints,
-            double projectBpTotal)
+            double? totalPoints,
+            double? projectBpTotal)
         {
             if (baseRate < 0.0 || efficiency == null)
             {
                 return null;
             }
-            var rate = baseRate * efficiency.Value * rushRate * (reversed ? -1.0 : 1.0);
-            if (blocking && projectBpTotal > 0.0)
+            if (blocking && (totalPoints == null || projectBpTotal == null))
             {
-                rate *= totalPoints / projectBpTotal;
+                return null;
+            }
+            var rate = baseRate * efficiency.Value * rushRate * (reversed ? -1.0 : 1.0);
+            if (blocking && projectBpTotal!.Value > 0.0)
+            {
+                rate *= totalPoints!.Value / projectBpTotal.Value;
             }
             return rate;
         }
@@ -161,15 +186,22 @@ namespace GonogoRp1Uplink
         /// <summary>
         /// Seconds of work remaining at <paramref name="rate"/>, before the
         /// efficiency ramp. Absent at an absent or zero rate, where RP-1's own
-        /// answer is an infinity.
+        /// answer is an infinity, and absent when either endpoint of the work
+        /// remaining could not be read: a finish date computed from a substituted
+        /// zero is a date, in the right units, that an operator cannot tell from
+        /// a real one.
         /// </summary>
-        public static double? BaseTimeLeft(double progress, double totalPoints, double? rate, bool reversed = false)
+        public static double? BaseTimeLeft(double? progress, double? totalPoints, double? rate, bool reversed = false)
         {
-            if (rate == null || rate.Value == 0.0 || double.IsNaN(rate.Value))
+            if (progress == null
+                || totalPoints == null
+                || rate == null
+                || rate.Value == 0.0
+                || double.IsNaN(rate.Value))
             {
                 return null;
             }
-            var remaining = (reversed ? 0.0 : totalPoints) - progress;
+            var remaining = (reversed ? 0.0 : totalPoints.Value) - progress.Value;
             return Math.Abs(remaining) / Math.Abs(rate.Value);
         }
 
@@ -240,16 +272,22 @@ namespace GonogoRp1Uplink
         /// One blocking operation competing for a launch complex, as
         /// <see cref="SequencedTimeLeft"/> needs it.
         /// </summary>
+        /// <remarks>
+        /// Every term is nullable, and one null anywhere in the set takes the
+        /// whole sequence with it. An operation nobody could read still competes
+        /// for the complex; leaving it out, or filling it in with zeros, both
+        /// hand the survivors a bigger share than they have and answer EARLY.
+        /// </remarks>
         public struct BlockingOp
         {
             /// <summary>Absolute build points, which set this operation's share of the complex.</summary>
-            public double Points;
+            public double? Points;
 
             /// <summary>Work still to do: the distance progress has left to travel, whichever way it runs.</summary>
-            public double Remaining;
+            public double? Remaining;
 
             /// <summary>Absolute rate BEFORE the share is applied: base rate times efficiency times rush.</summary>
-            public double Rate;
+            public double? Rate;
         }
 
         /// <summary>
@@ -297,14 +335,20 @@ namespace GonogoRp1Uplink
             var pointsTotal = 0.0;
             foreach (var op in ops)
             {
-                if (op.Rate <= 0.0 || op.Points <= 0.0 || double.IsNaN(op.Rate) || double.IsNaN(op.Remaining))
+                if (op.Rate == null
+                    || op.Points == null
+                    || op.Remaining == null
+                    || op.Rate.Value <= 0.0
+                    || op.Points.Value <= 0.0
+                    || double.IsNaN(op.Rate.Value)
+                    || double.IsNaN(op.Remaining.Value))
                 {
                     return null;
                 }
-                points.Add(op.Points);
-                remaining.Add(op.Remaining);
-                rates.Add(op.Rate);
-                pointsTotal += op.Points;
+                points.Add(op.Points.Value);
+                remaining.Add(op.Remaining.Value);
+                rates.Add(op.Rate.Value);
+                pointsTotal += op.Points.Value;
             }
             if (pointsTotal <= 0.0)
             {
@@ -388,13 +432,18 @@ namespace GonogoRp1Uplink
         /// project, which is not the same as it being free. Absent too on an
         /// absent <paramref name="cost"/>, for the same reason.</para>
         /// </summary>
-        public static double? UnbilledCost(double? cost, double progress, double totalPoints)
+        public static double? UnbilledCost(double? cost, double? progress, double? totalPoints)
         {
-            if (cost == null || totalPoints <= 0.0 || double.IsNaN(totalPoints) || double.IsNaN(progress))
+            if (cost == null
+                || progress == null
+                || totalPoints == null
+                || totalPoints.Value <= 0.0
+                || double.IsNaN(totalPoints.Value)
+                || double.IsNaN(progress.Value))
             {
                 return null;
             }
-            var left = (totalPoints - progress) / totalPoints;
+            var left = (totalPoints.Value - progress.Value) / totalPoints.Value;
             if (left < 0.0)
             {
                 left = 0.0;

@@ -468,6 +468,41 @@ describe("VehicleAssembly", () => {
     expect(visibleText()).toContain("0 / 60 engineers");
   });
 
+  it("names the missing progress reading rather than calling the build uncosted", async () => {
+    /*
+     * A build that is neither ticking nor stalled but cannot say where it
+     * stands HAS been costed: the rate is what says so. "RP-1 has not costed
+     * this build yet" would send an operator to wait for a recalculation that
+     * has already happened.
+     */
+    const { fixture } = mount();
+    await rp1IsPresent(fixture);
+    act(() => {
+      fixture.emit("career.status", CAREER);
+      fixture.emit("rp1.complexes", COMPLEXES);
+      fixture.emit("rp1.pads", PADS);
+      fixture.emit("rp1.operations", []);
+      fixture.emit("rp1.warehouse", []);
+      fixture.emit("rp1.buildQueue", [
+        integrating({
+          progress: null,
+          progressRatio: null,
+          stalled: false,
+          timeLeftSeconds: null,
+          totalPoints: null,
+        }),
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("INTEGRATING")).toBeInTheDocument();
+    });
+    expect(visibleText()).toContain(
+      "RP-1 has not said how far along this build is",
+    );
+    expect(visibleText()).not.toContain("RP-1 has not costed this build yet");
+  });
+
   it("does not call a stall a staffing problem when the complex is staffed", async () => {
     /*
      * The other half, and the reason the two are separate sentences: sending an

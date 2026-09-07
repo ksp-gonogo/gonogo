@@ -240,6 +240,35 @@ describe("LaunchComplexStatus", () => {
     expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
   });
 
+  /*
+   * A third answer, and not the one above it: an operation RP-1 quoted no rate
+   * for is the stalled case, so a row that has a rate and still cannot say how
+   * far it has got has been costed. "Not costed yet" would be a falsehood.
+   */
+  it("names the missing progress reading rather than calling the move uncosted", async () => {
+    const { fixture } = mount();
+    fixture.emit("rp1.available", true);
+    fixture.emit("rp1.pads", pad("Rollout"));
+    fixture.emit("rp1.operations", [
+      padOp({
+        progress: null,
+        totalPoints: null,
+        progressRatio: null,
+        timeLeftSeconds: null,
+        stalled: false,
+      }),
+    ]);
+    fixture.emit("rp1.warehouse", [warehoused()]);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/no reading of how far this move has got/),
+      ).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/not costed yet/)).not.toBeInTheDocument();
+    expect(screen.queryByText("STALLED")).not.toBeInTheDocument();
+  });
+
   it("says STALLED when the operation is costed and going nowhere", async () => {
     const { fixture } = mount();
     fixture.emit("rp1.available", true);

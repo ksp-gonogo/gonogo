@@ -89,6 +89,13 @@ function ResearchRow({ node }: Readonly<{ node: Rp1ResearchEntry }>) {
                  the rate is derived FROM, so a node whose throttle would not
                  read has no ETA even once RP-1 has costed it. */
               <>{NULL_DISPLAY} no throttle reading</>
+            ) : node.progress == null || node.scienceCost == null ? (
+              /* Not the sentence below, which would be a falsehood here: the
+                 throttle and the rate both read, so RP-1 HAS costed this node.
+                 What would not read is where it stands, and an ETA needs both
+                 ends of the work remaining. Sending an operator to wait for a
+                 recalculation that already happened is the worse answer. */
+              <>{NULL_DISPLAY} no reading of how far along this is</>
             ) : (
               <>{NULL_DISPLAY} not costed yet</>
             )}

@@ -201,6 +201,17 @@ namespace RP0
         public new double cost => throw new InvalidOperationException("cost unreadable");
     }
 
+    /// <summary>
+    /// A move that will not say how big it is. Its build points are what buy it
+    /// a share of the complex, so an unreadable set of them is not a share of
+    /// nothing: it is a competitor of unknown weight, and every ETA on the
+    /// complex is measured against it.
+    /// </summary>
+    public class ReconRolloutProjectWithUnreadablePoints : ReconRolloutProject
+    {
+        public new double BP => throw new InvalidOperationException("BP unreadable");
+    }
+
     public class ReconRolloutProject : LCOpsProject
     {
         public enum RolloutReconType
@@ -509,6 +520,18 @@ namespace RP0
     /// because the substitution that published a free rocket published a
     /// weightless one beside it.
     /// </summary>
+    /// <summary>
+    /// A vehicle that will not say how far along it is, nor how much work it is
+    /// in total. Both ends together, for the reason
+    /// <see cref="ResearchProjectWithUnreadableCost"/> gives.
+    /// </summary>
+    public class VesselProjectWithUnreadableProgress : VesselProject
+    {
+        public new double progress => throw new InvalidOperationException("progress unreadable");
+
+        public new double buildPoints => throw new InvalidOperationException("buildPoints unreadable");
+    }
+
     public class VesselProjectWithUnreadablePrice : VesselProject
     {
         public new float cost => throw new InvalidOperationException("cost unreadable");
@@ -798,6 +821,16 @@ namespace RP0
                 default: return true;
             }
         }
+    }
+
+    /// <summary>
+    /// A pad that will not say what tier it is at. Tier 0 is a pad that exists
+    /// and flies the smallest rockets, so a substituted zero is a reading rather
+    /// than a gap, and it is what an upgrade target is compared against.
+    /// </summary>
+    public class LCLaunchPadWithUnreadableLevel : LCLaunchPad
+    {
+        public new int level => throw new InvalidOperationException("level unreadable");
     }
 
     public class LCLaunchPad
@@ -1230,6 +1263,19 @@ namespace RP0
     }
 
     /// <summary>
+    /// A node whose science price and banked progress will not read. Both on one
+    /// fixture because they are the two ends of the same measurement: an ETA and
+    /// a fraction need the distance between them, and neither end alone is
+    /// enough to publish either.
+    /// </summary>
+    public class ResearchProjectWithUnreadableCost : ResearchProject
+    {
+        public new int scienceCost => throw new InvalidOperationException("scienceCost unreadable");
+
+        public new double progress => throw new InvalidOperationException("progress unreadable");
+    }
+
+    /// <summary>
     /// A complex whose crew cannot be counted, on the same terms. The centre's
     /// roster and the complexes' are separate reads, and this is the half that
     /// makes the difference between them unknowable.
@@ -1237,6 +1283,44 @@ namespace RP0
     public class LaunchComplexWithUnreadableCrew : LaunchComplex
     {
         public new int Engineers => throw new InvalidOperationException("Engineers unreadable");
+    }
+
+    /// <summary>
+    /// A complex whose crew CEILING cannot be read, which is the other reading
+    /// the efficiency ramp is derived from: the ramp's input is the fraction of
+    /// the cap that is staffed, so an unreadable cap is not a cap of zero.
+    /// </summary>
+    public class LaunchComplexWithUnreadableMaxCrew : LaunchComplex
+    {
+        public new int MaxEngineers => throw new InvalidOperationException("MaxEngineers unreadable");
+    }
+
+    /// <summary>
+    /// A complex whose envelope answers for two axes and not the third, which is
+    /// what a renamed or retyped member on RP-1's own <c>SizeMax</c> looks like
+    /// from here. <c>SizeMax</c> itself still reads, so the whole-object guard
+    /// does not fire and the per-axis one has to.
+    /// </summary>
+    public class LaunchComplexWithUnreadableSizeAxis : LaunchComplex
+    {
+        public new PartialSize SizeMax => new PartialSize();
+
+        public class PartialSize
+        {
+            public float x = 100f;
+            public float y = 100f;
+        }
+    }
+
+    /// <summary>
+    /// A complex whose resource table names a resource and gives a capacity
+    /// nothing can read as a number. RP-1 compares names AND amounts, so this is
+    /// the half of the comparison a group key cannot stand in for.
+    /// </summary>
+    public class LaunchComplexWithUnreadableResourceAmount : LaunchComplex
+    {
+        public new Dictionary<string, object> ResourcesHandled =>
+            new Dictionary<string, object> { ["LqdOxygen"] = "plenty" };
     }
 
     /// <summary>A centre whose hired roster cannot be read; the other half of the same subtraction.</summary>
@@ -1697,6 +1781,18 @@ namespace RP0
 
         /// <summary>Reached when the target is no longer a standing instruction.</summary>
         public bool IsComplete() => !IsValid;
+    }
+
+    /// <summary>
+    /// A career whose research and applicant rosters will not read. A career
+    /// with nobody in research genuinely sits at zero, so the substitution is
+    /// indistinguishable from a reading.
+    /// </summary>
+    public class SpaceCenterManagementWithUnreadableStaff : SpaceCenterManagement
+    {
+        public new int Researchers => throw new InvalidOperationException("Researchers unreadable");
+
+        public new int Applicants => throw new InvalidOperationException("Applicants unreadable");
     }
 
     public class SpaceCenterManagement
