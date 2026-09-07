@@ -1114,9 +1114,10 @@ function readApplicants(raw: unknown): Applicant[] {
 }
 
 /**
- * The roster list. `--space-6` between cards rather than `--space-4`: each row
- * is a bordered `Card` now, and at the tighter gap two adjacent borders read as
- * one thick divider instead of as two records.
+ * The roster list. The default gap rather than the tight one: each row is a
+ * bordered `Card`, and at a tighter gap two adjacent borders read as one thick
+ * divider instead of as two records. The list itself is not inside a card, so
+ * this resolves to the roomy 8px.
  */
 const List = styled.ul`
   list-style: none;
@@ -1124,16 +1125,22 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
-/** The identity column: takes the row's width and lets the name ellipsise. */
+/**
+ * The identity column: takes the row's width and lets the name ellipsise.
+ *
+ * Its name over its role is one readout in two lines, so it asks for the tight
+ * gap. It sits inside a `Card`, which declares the compact tier, so tight is
+ * 2px here and would be 4px on a panel; this file names neither number.
+ */
 const Who = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 0;
   flex: 1;
-  gap: var(--space-2);
+  gap: var(--gap-tight);
 `;
 
 const Empty = styled.div`

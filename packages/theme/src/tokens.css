@@ -265,6 +265,66 @@
   --space-24: 24px;
 
   /*
+   * SEMANTIC SPACING. Names for the JOB a space does, over the rungs above.
+   *
+   * The ladder answers "which number", and by itself that is the
+   * complaint: the three commonest gap rungs are 6, 8 and 4 at roughly
+   * 110 declarations each, three numbers doing one job. These names
+   * answer "which job", and they carry a second property the rungs
+   * cannot. They are custom properties, so a container can re-declare
+   * the subset it changes and every descendant inherits the new value:
+   * `Card` says a card is a compact surface once, and a widget written
+   * as `gap: var(--gap-related)` is 8px on a panel and 6px inside a
+   * card without its author writing a conditional or learning either
+   * number.
+   *
+   * Every name is declared HERE, at `:root`, and a container only ever
+   * overrides. A name that resolves nowhere computes to nothing and the
+   * declaration is dropped, which for a gap is a silently collapsed
+   * layout rather than a visible error.
+   *
+   * GAPS, between siblings. Single-valued, and they round UPWARD from
+   * the rungs they absorb:
+   *   hairline  The seam between two lines of ONE readout. Absorbs hair.
+   *   tight     Rows of a dense readout, a label-over-value stack.
+   *             Absorbs 2 and 4.
+   *   related   THE DEFAULT. Items of the same kind. Absorbs 6 and 8.
+   *   section   Between groups of different kinds. Absorbs 12 and 16.
+   *
+   * INSETS, inside an edge. Two-value shorthands, because 199 of the
+   * padding declarations in the app are asymmetric vertical/horizontal
+   * pairs across 26 distinct combinations and a single value cannot
+   * express `1px 6px`. Write them in the `padding` shorthand and
+   * nowhere else; `padding-inline` would silently transpose the pair.
+   *   chip   A pill or a chip. Vertical is `hair`, NOT 2: the ladder
+   *          comment above exists to stop exactly that rounding, which
+   *          visibly inflates every chip.
+   *   row    A record in a list, and `Card`'s own inset.
+   *   panel  A whole panel or a modal body.
+   *
+   * INDENT, hierarchy. Neither an edge nor a seam: the step a nested
+   * row is pushed in by, from `margin-left`.
+   *
+   * What these names do NOT cover, stated because a vocabulary that
+   * claims everything is not usable: uniform, three-value, single-side
+   * and mixed paddings, `margin-top` rhythm, the asymmetric `gap: A B`
+   * declarations that carry their own written rationale, and the
+   * negative `calc()` bleeds. Measured over the app's ~1,200 rung
+   * references in a spacing property, these names reach a little under
+   * half. The rest stay on the ladder above, on purpose and for good.
+   */
+  --gap-hairline: var(--space-hair);
+  --gap-tight: var(--space-4);
+  --gap-related: var(--space-8);
+  --gap-section: var(--space-16);
+
+  --inset-chip: var(--space-hair) var(--space-6);
+  --inset-row: var(--space-6) var(--space-8);
+  --inset-panel: var(--space-10) var(--space-16);
+
+  --indent-step: var(--space-16);
+
+  /*
    * RADIUS. Four numeric rungs plus two shape sentinels.
    *
    * 210 of the 273 radius declarations are already 2/3/4px, and radius
