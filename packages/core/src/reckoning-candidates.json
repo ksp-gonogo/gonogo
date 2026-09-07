@@ -1,14 +1,4 @@
 {
-  "CommsDelay.oneWaySeconds": {
-    "rates": ["oneWaySecondsRate"],
-    "reason": "`oneWaySecondsRate` is the rate of `oneWaySeconds`, published by the producer for exactly this pairing, and it is MODELLED: `[SitrepReckonable(RateIntegration, \"oneWaySecondsRate\")]` marks the value and `core-reckoners.ts` registers the model. Recorded under the `real-but-unmodelled` token because this file's two verdicts ask whether the pairing is a genuine derivative, and there is no third token for one that has since been written; `DockAlignment.relativePosition` sits here on the same footing. The rate is null across a reroute and on the first observation of a route, so the model declines rather than integrating a jump, and its horizon is relative (a quarter of the light-time) because the same elapsed time means different things in low orbit and at Jool.",
-    "verdict": "real-but-unmodelled"
-  },
-  "comms.delay.oneWaySeconds": {
-    "rates": ["oneWaySecondsRate"],
-    "reason": "The same pairing as `CommsDelay.oneWaySeconds` above, reached through the topic scope rather than the type scope because `CommsDelay` is a topic payload and the scan walks both. Same verdict and same reasoning; see that entry.",
-    "verdict": "real-but-unmodelled"
-  },
   "CareerEconomy.funds": {
     "rates": [
       "subsidyMaxPerDay",

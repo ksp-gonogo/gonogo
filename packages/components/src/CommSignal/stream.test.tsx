@@ -440,25 +440,23 @@ describe("CommSignal: genuinely runs off the stream (R6 Wave 1)", () => {
     expect(visibleText()).toContain("1.9 Mm");
     expect(visibleText()).toContain("640.0 km");
     /*
-     * No light-time yet, and that is the honest render rather than a gap. The
-     * distances are on the wire and nothing has said how fast light travels on
-     * this save, so there is no way to turn one into the other. This used to
-     * show a time anyway, computed against a client-side copy of the real speed
-     * of light, which is simply the wrong number on any save that scales it.
+     * No light-time yet, and that is the honest render rather than a gap. A leg
+     * carries the share of the route's total delay its distance earns, and no
+     * total has arrived, so there is nothing for either leg to be a share OF.
      */
     expect(visibleText()).not.toContain("6 ms");
 
     act(() => {
+      // The whole route's light-time at real light speed, which is what a save
+      // at clean realism reports for this geometry.
       fixture.emit("comms.delay", {
-        oneWaySeconds: 0,
-        lightSpeedMetresPerSecond: 299_792_458,
+        oneWaySeconds: 2_490_000 / 299_792_458,
       });
     });
 
     /*
-     * The delay is a real applied zero (the feature is off), so there is no
-     * path total to apportion and each leg divides by the save's own light
-     * speed instead: 1,850 km is 6 ms, 640 km is 2.
+     * Each leg's share of that total, apportioned by distance: 1,850 km of the
+     * 2,490 km route is 6 ms of the 8, and 640 km is the remaining 2.
      */
     await waitFor(() => expect(visibleText()).toContain("6 ms"));
     const visible = visibleText();

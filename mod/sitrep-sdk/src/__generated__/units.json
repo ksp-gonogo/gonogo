@@ -283,9 +283,7 @@
       "modelName": "text"
     },
     "CommsDelay": {
-      "lightSpeedMetresPerSecond": "m/s",
       "oneWaySeconds": "s",
-      "oneWaySecondsRate": "1",
       "source": "enum"
     },
     "CommsHop": {
@@ -1374,9 +1372,7 @@
       "modelName": "text"
     },
     "comms.delay": {
-      "lightSpeedMetresPerSecond": "m/s",
       "oneWaySeconds": "s",
-      "oneWaySecondsRate": "1",
       "source": "enum"
     },
     "comms.link": {
