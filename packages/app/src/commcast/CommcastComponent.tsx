@@ -1,21 +1,16 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import type { CommsLink } from "@ksp-gonogo/sitrep-sdk";
-import {
-  observedValue,
-  signalDelayPresentation,
-  value,
-} from "@ksp-gonogo/sitrep-sdk";
+import { observedValue } from "@ksp-gonogo/sitrep-sdk";
 import { useLatestValue, useUtNow } from "@ksp-gonogo/sitrep-sdk/spine";
 import {
   ArrowLeftIcon,
   Badge,
   Button,
   ComposerBar,
-  ConsoleFrame,
+  Console,
   EmptyState,
   GhostButton,
-  InFlightList,
   type InFlightListItem,
   MissionDate,
   Panel,
@@ -24,7 +19,6 @@ import {
   Section,
   SelectableRow,
   SettingsIcon,
-  SignalDelayBadge,
   Text,
   ToggleButton,
   VisuallyHidden,
@@ -361,10 +355,11 @@ function InboxView({
           onChoose={radio.setInputDevice}
         />
       )}
-      {/* No footer: the inbox is a list of conversations, and there is nothing
-          to type at it. The frame is the same one the other two views use, in
-          the same tone, so the tile does not change shape on the way in. */}
-      <ConsoleFrame tone={COMMCAST_TONE}>
+      {/* No composer: the inbox is a list of conversations, and there is
+          nothing to type at it, so this console grows no foot. Otherwise the
+          same console the other two views are, in the same tone, so the tile
+          does not change shape on the way in. */}
+      <Console tone={COMMCAST_TONE}>
         <Commcast__Scroll>
           <Commcast__Rows>
             {dropped > 0 && (
@@ -405,7 +400,7 @@ function InboxView({
             ))}
           </Commcast__Rows>
         </Commcast__Scroll>
-      </ConsoleFrame>
+      </Console>
     </>
   );
 }
@@ -447,9 +442,9 @@ function ComposeView({
         <Commcast__BarGap />
         {indicator}
       </Commcast__Bar>
-      <ConsoleFrame
+      <Console
         tone={COMMCAST_TONE}
-        footer={
+        composer={
           /* The bar's own commit slot, and its own verb: a picker opens rather
              than sends, but it is the same control in the same place, so it
              needs neither a second button nor the spacer that used to push one
@@ -502,7 +497,7 @@ function ComposeView({
             ))}
           </Commcast__Rows>
         </Commcast__Scroll>
-      </ConsoleFrame>
+      </Console>
     </>
   );
 }
@@ -548,26 +543,6 @@ function ThreadView({
   target: RecipientId | null;
   onBack: () => void;
 }) {
-  /*
-   * The terminal widget's delay model, from the kit both widgets now share: a
-   * standing BADGE when the other end is close enough that a countdown would be
-   * over before it could be read, the in-transit STRIP when it is far enough
-   * that a countdown is the reading, and never both. Before this the chip and
-   * the strip were drawn together, saying the same separation twice in two
-   * shapes, and the operator had to work out which one was about the message
-   * they had just sent.
-   */
-  const delayPresentation = signalDelayPresentation({
-    oneWaySeconds:
-      separationSeconds === null ? null : value("s", separationSeconds),
-    canQueue: true,
-  });
-  /*
-   * The standing reading, or nothing: the other arm of the model above hands
-   * the separation to the strip instead. Narrowed here rather than inline in
-   * the JSX so the frame's slot takes a node or is absent, never an empty box.
-   */
-  const badgeSeconds = delayPresentation === "badge" ? separationSeconds : null;
   const noPath = separation.kind === "no-path";
   /** What the operator calls this conversation, in the bar and on the mute. */
   const threadName = thread.with.map(nameFor).join(", ");
@@ -609,65 +584,46 @@ function ThreadView({
           />
         </Commcast__BarRadio>
       </Commcast__Bar>
-      {/* The composer lives IN the console rather than strapped under it, the
-          same as the terminal widget: the frame holds the log, the outbound
-          queue and the line being typed, in that order. The blue outline the
-          operator sees is the input's own; the frame around it stays
-          subtle.
+      {/* The house console, the same one the terminal widget is: it holds the
+          log, the outbound queue and the line being typed, in that order, the
+          composer sits IN it rather than strapped under it, and the blue
+          outline the operator sees is the input's own.
 
-          `corner` is the terminal widget's corner, for the terminal widget's
-          reading. This console used to draw it inside the composer, beside
-          Send, on the reasoning that a chip over a column of prose sits on a
-          sentence somebody has to read. Both placements were defensible and
-          the PAIR was not: one console answered "how far away is the other
-          end" over the scrollback and this one answered it next to the
-          control, so an operator moving between them looked in two places for
-          one reading. Settled by the operator in favour of the corner, and it
-          belongs to `ConsoleFrame` now, so neither console can drift again. */}
-      <ConsoleFrame
+          The delay reading is the console's decision now. This one used to draw
+          the chip inside the composer, beside Send, on the reasoning that a
+          chip over a column of prose sits on a sentence somebody has to read.
+          Both placements were defensible and the PAIR was not: one console
+          answered "how far away is the other end" over the scrollback and this
+          one answered it next to the control, so an operator moving between
+          them looked in two places for one reading. Settled by the operator in
+          favour of the corner, and neither widget picks any more.
+
+          `inFlightFrozenAtDispatch` is the one thing this console asks for that
+          the terminal widget does not, and it has to. A message freezes its
+          separation at send and keeps crossing on it, so the queue outlives the
+          live reading the chip is drawn from: words put out at four
+          light-minutes are still four light-minutes out after the path drops,
+          and this queue is the ONLY place they appear (the log holds nothing
+          until something comes back). The terminal's route items are derived
+          from the live route instead, so it has nothing to keep drawing.
+
+          What the operator asked for survives either way: the chip and the
+          queue are still never drawn together. */}
+      <Console
         tone={COMMCAST_TONE}
-        {...(badgeSeconds === null
-          ? {}
-          : { corner: <SignalDelayBadge oneWaySeconds={badgeSeconds} /> })}
-        footer={
-          <>
-            {/* The terminal widget's uplink queue, in the terminal widget's
-                place: between the log and the composer, never inside the
-                scroll, where it would take the bottom of the log as it grows.
-                Same component and same two-leg vocabulary, because it is the
-                same journey. */}
-            {/* Gated on NOT-badge rather than on `=== "strip"`, which is where
-                this departs from the terminal widget by one case and has to.
-
-                A message freezes its separation at send and keeps crossing on
-                it, so the queue outlives the live reading the badge is drawn
-                from: words put out at four light-minutes are still four
-                light-minutes out after the path drops, and this strip is the
-                ONLY place they appear (the log holds nothing until something
-                comes back). The terminal's route items are derived from the
-                live route instead, so it has nothing to lose by reading
-                `=== "strip"`.
-
-                What the operator asked for survives either way: the badge and
-                the strip are still never drawn together. */}
-            {delayPresentation !== "badge" && (
-              <OutboundQueue
-                outbound={thread.outbound}
-                me={me}
-                utNow={utNow}
-                pairs={pairs}
-              />
-            )}
-            <Composer
-              log={log}
-              me={me}
-              local={local}
-              utNow={utNow}
-              target={target}
-              noPath={noPath}
-              separationSeconds={separationSeconds}
-            />
-          </>
+        oneWaySeconds={separationSeconds}
+        inFlight={outboundItems(thread.outbound, me, utNow, pairs)}
+        inFlightFrozenAtDispatch
+        composer={
+          <Composer
+            log={log}
+            me={me}
+            local={local}
+            utNow={utNow}
+            target={target}
+            noPath={noPath}
+            separationSeconds={separationSeconds}
+          />
         }
       >
         <Commcast__Scroll>
@@ -694,7 +650,7 @@ function ThreadView({
             {noSignal && <ThreadMarker $blocked>no signal</ThreadMarker>}
           </Commcast__List>
         </Commcast__Scroll>
-      </ConsoleFrame>
+      </Console>
     </>
   );
 }
@@ -895,14 +851,18 @@ function UnconfirmedActions({
 }
 
 /**
- * This screen's own words, still out.
+ * This screen's own words, still out, in the shape the console's queue draws.
  *
- * The kit's `InFlightList`, and the two-leg journey it draws is now literally
- * this one: `outbound` is the message crossing to its recipient, `return` is
- * the acknowledgement coming back, the same pair `FleetComms/pendingPulse.ts`
- * names for a delayed command's pulse. The commcast2 pass rejected this
- * component because "a spoken message has one leg and no reply", which was
- * true of a broadcast and is not true of an addressed message.
+ * The two-leg journey that queue draws is literally this one: `outbound` is the
+ * message crossing to its recipient, `return` is the acknowledgement coming
+ * back, the same pair `FleetComms/pendingPulse.ts` names for a delayed
+ * command's pulse. The commcast2 pass rejected the idea because "a spoken
+ * message has one leg and no reply", which was true of a broadcast and is not
+ * true of an addressed message.
+ *
+ * A derivation rather than a component, because `Console` renders the queue: it
+ * decides whether there is one to draw at all, and a widget handing it a
+ * rendered strip would be deciding that too.
  *
  * Three of the five phases are reachable here: `in-transit`, `awaiting-reply`
  * and `due`. `overdue` and `lost` are the EXIT conditions rather than rows,
@@ -911,18 +871,13 @@ function UnconfirmedActions({
  * row in the queue and a row in the log at once would be the duplicate the
  * whole design avoids.
  */
-function OutboundQueue({
-  outbound,
-  me,
-  utNow,
-  pairs,
-}: {
-  outbound: readonly OutboundMessage[];
-  me: Vantage;
-  utNow: number | undefined;
-  pairs: SeparationMatrix | undefined;
-}) {
-  const items: InFlightListItem[] = outbound.map((out) => {
+function outboundItems(
+  outbound: readonly OutboundMessage[],
+  me: Vantage,
+  utNow: number | undefined,
+  pairs: SeparationMatrix | undefined,
+): InFlightListItem[] {
+  return outbound.map((out) => {
     const phase =
       utNow === undefined ? "in-transit" : sentPhaseFor(out, me, utNow, pairs);
     return {
@@ -936,7 +891,6 @@ function OutboundQueue({
       ...(utNow === undefined ? {} : { progress: progressFor(out, utNow) }),
     };
   });
-  return <InFlightList items={items} ariaLabel="Uplink queue" />;
 }
 
 /**
@@ -1187,9 +1141,9 @@ const Commcast__Back = styled(GhostButton)`
 `;
 
 /*
- * The log's own inset, and its anchor. `ConsoleFrame` draws to its border with
- * no gutter, which is right for a terminal emulator and wrong for text, so the
- * padding goes on the scrolling children rather than on the frame.
+ * The log's own inset, and its anchor. `Console` draws to its border with no
+ * gutter, which is right for a terminal emulator and wrong for text, so the
+ * padding goes on the scrolling children rather than on the console.
  *
  * The inner is made a flex column so `Commcast__List` can take a `margin-top:
  * auto` and sit against the BOTTOM of the frame, next to the composer, growing
@@ -1324,7 +1278,7 @@ const Commcast__Actions = styled.div`
 
 /*
  * The line itself, and NOT a box. `ComposerBar` is already the bordered band
- * inside `ConsoleFrame`'s border, so an input carrying its own outline made the
+ * inside `Console`'s border, so an input carrying its own outline made the
  * one thing on the screen you type into the third box in a stack of three. The
  * terminal widget's composed line has always sat flush on its bar; this is that
  * line, drawn by a real `<input>` because these words are typed rather than

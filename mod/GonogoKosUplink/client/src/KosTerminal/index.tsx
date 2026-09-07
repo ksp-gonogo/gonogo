@@ -7,7 +7,6 @@ import type {
 import {
   registerComponent,
   safeRandomUuid,
-  signalDelayPresentation,
   useCommand,
   useLatestValue,
   useReplaySessionActive,
@@ -21,7 +20,7 @@ import {
   ComposerBar,
   ComputerIcon,
   ConfigForm,
-  ConsoleFrame,
+  Console,
   EmptyState,
   Field,
   FieldHint,
@@ -30,13 +29,11 @@ import {
   flattenComboboxGroups,
   GhostButton,
   groupComboboxOptions,
-  InFlightList,
   type InFlightListItem,
   Input,
   moveComboboxActiveIndex,
   Panel,
   Section,
-  SignalDelayBadge,
   Switch,
   useModalSaveBar,
 } from "@ksp-gonogo/ui-kit";
@@ -1194,29 +1191,17 @@ function KosTerminalScreen({
   }, [readOnly]);
 
   /*
-   * The badge/strip split, in the delay model rather than here: char mode has
-   * no composed line to queue so it always badges, line mode badges only a
-   * delay too short to count down and otherwise hands the reading to the strip,
-   * and the two are never drawn together. See `signalDelayPresentation`.
+   * How far away the craft is, and nothing about how to draw it: which of the
+   * two readings the operator gets is `Console`'s, so the widget states the two
+   * facts only it knows. Char mode has no composed line to queue, so it always
+   * takes the chip whatever the separation; a read-only screen dispatches
+   * nothing and can queue nothing.
    *
-   * The `"strip"` arm agrees with `routeMode === "staged"` because it IS that
-   * call: `signalDelayPresentation` asks `currentMode`, so the strip no longer
-   * needs to consult `routeMode` separately and risk disagreeing with the badge
-   * beside it.
+   * The `.magnitude` is where the delay leaves the contract for the design
+   * system, which is props-driven and takes plain seconds throughout. The
+   * figure a reader sees goes back out through `<Unit>` inside the chip.
    */
-  const oneWaySeconds = commsDelay?.oneWaySeconds ?? null;
-  const delayPresentation = signalDelayPresentation({
-    oneWaySeconds,
-    canQueue: lineMode && !readOnly,
-    alwaysBadge: !lineMode,
-  });
-  /*
-   * Narrowed, non-optional local for the JSX below: the presentation is a
-   * plain string, so TS can't carry its value back onto `oneWaySeconds` at the
-   * read site; only-render-when-defined instead.
-   */
-  const badgeSeconds =
-    delayPresentation === "badge" ? (oneWaySeconds?.magnitude ?? null) : null;
+  const oneWaySeconds = commsDelay?.oneWaySeconds?.magnitude ?? null;
   /*
    * The in-transit strip's display shape: reach-leg items count down to
    * reaching the craft (↑), everything else counts down to the reply (↓),
@@ -1247,152 +1232,158 @@ function KosTerminalScreen({
 
   return (
     <TerminalShell>
-      {/* The composer lives IN the console rather than strapped under it, the
-          same as the app's other console: the frame holds the screen, the
-          uplink queue and the line being typed, and the green outline the
-          operator sees is the input's own, not a second one wrapped around
-          everything.
+      {/* The house console, the same one the app's message log is: it holds the
+          screen, the uplink queue and the line being typed, the composer sits
+          IN it rather than strapped under it, and the green outline the
+          operator sees is the input's own rather than a second one wrapped
+          around everything.
 
-          All three overlays below are pinned INSIDE the frame rather than
+          It also decides which delay reading gets drawn, from the separation
+          and the two facts below. That used to be this widget's call and the
+          other console's separately, which is how they ended up hanging the
+          same chip in two different places.
+
+          The two overlays below are still pinned INSIDE the console rather than
           stacked as flex siblings of it: each one, as a sibling, added its own
-          row height on top of everything else in `TerminalShell` and could
-          push the composition bar past the widget's visible bounds on a short
-          widget.
+          row height on top of everything else in `TerminalShell` and could push
+          the composition bar past the widget's visible bounds on a short
+          widget. They stay the widget's, because a character grid is the only
+          surface in the app with a spare top-LEFT and bottom-right, and a slot
+          per corner would be an API guessed at from one caller.
 
-          The delay reading is the frame's `corner` now rather than this
-          widget's own pin, because the app's other console wanted the same
-          corner for the same reading and was putting it beside Send instead.
-          The remaining two stay here: a character grid is the only surface in
-          the app with a spare top-LEFT and bottom-right, so a slot per corner
-          would be an API guessed at from one caller.
+          `tone` is the widget's whole colour decision, and nothing paints with
+          it directly: it declares the accent that the composition bar's border,
+          its prompt and its caret all read. Green is the terminal's and stays.
+          A read-only screen takes `info`, which is the fact the old `Container`
+          border was already carrying, now said in the READABLE half of the info
+          pair: that border was drawn in `--color-status-info-bg`, a near-black
+          that said it to nobody.
 
-          `tone` is the widget's whole colour decision, and the frame paints
-          nothing with it: it declares the accent that the composition bar's
-          border, its prompt and its caret all read. Green is the terminal's and
-          stays. A read-only screen takes `info`, which is the fact the old
-          `Container` border was already carrying, now said in the READABLE half
-          of the info pair: that border was drawn in `--color-status-info-bg`, a
-          near-black that said it to nobody. */}
-      <ConsoleFrame
+          The queue is derived from the LIVE route, so it has nothing to keep
+          drawing once the reading behind it is gone: no
+          `inFlightFrozenAtDispatch` here, unlike the message log, whose words
+          carry the separation they were sent at.
+
+          `composer` is given and sometimes false rather than being left off in
+          char mode. A console with nothing to type into grows no foot at all,
+          and char mode is a MODE of a console that has one, so the screen above
+          must not change height when the operator toggles it. */}
+      <Console
         tone={readOnly ? "info" : "accent"}
-        {...(badgeSeconds !== null
-          ? { corner: <SignalDelayBadge oneWaySeconds={badgeSeconds} /> }
-          : {})}
-        footer={
-          <>
-            {delayPresentation === "strip" && (
-              <InFlightList items={stripItems} ariaLabel="Uplink queue" />
-            )}
-            {lineMode && !readOnly && (
-              <CompositionBarWrap>
-                {/* The bar's flag is a SECOND no-path indicator on purpose: the
-                    corner badge in the terminal pane is easy to miss when
-                    attention is on the input line, and the error-toned outline
-                    alone says the box is refusing input without saying why.
-                    Deliberately shorter text than the corner badge's, so a
-                    `getByText` query for either cannot collide with the
-                    other. */}
-                {/* The button presses Enter, it does not reimplement it:
-                    `handleData` is xterm's own handler, so a click and the key
-                    take one path. Focus goes straight back to the emulator
-                    afterwards, because a click lands on the button and the next
-                    thing typed would otherwise go nowhere: xterm only hears
-                    input while its own textarea holds focus. */}
-                <CompositionBar
-                  role="group"
-                  aria-label={scriptComposer ? "Run script" : "Line-mode input"}
-                  blocked={noPath}
-                  prompt="❯"
-                  {...(noPath ? { flag: "NO PATH" } : {})}
-                  onSend={() => {
-                    onDataRef.current?.("\r");
-                    termRef.current?.focus();
-                  }}
-                  /* Exactly `reduceLineModeChar`'s own `canSend`. An empty line
+        oneWaySeconds={oneWaySeconds}
+        canQueue={lineMode && !readOnly}
+        alwaysBadge={!lineMode}
+        inFlight={stripItems}
+        composer={
+          lineMode &&
+          !readOnly && (
+            <CompositionBarWrap>
+              {/* The bar's flag is a SECOND no-path indicator on purpose: the
+                  corner badge in the terminal pane is easy to miss when
+                  attention is on the input line, and the error-toned outline
+                  alone says the box is refusing input without saying why.
+                  Deliberately shorter text than the corner badge's, so a
+                  `getByText` query for either cannot collide with the
+                  other. */}
+              {/* The button presses Enter, it does not reimplement it:
+                  `handleData` is xterm's own handler, so a click and the key
+                  take one path. Focus goes straight back to the emulator
+                  afterwards, because a click lands on the button and the next
+                  thing typed would otherwise go nowhere: xterm only hears
+                  input while its own textarea holds focus. */}
+              <CompositionBar
+                role="group"
+                aria-label={scriptComposer ? "Run script" : "Line-mode input"}
+                blocked={noPath}
+                prompt="❯"
+                {...(noPath ? { flag: "NO PATH" } : {})}
+                onSend={() => {
+                  onDataRef.current?.("\r");
+                  termRef.current?.focus();
+                }}
+                /* Exactly `reduceLineModeChar`'s own `canSend`. An empty line
                      is deliberately NOT refused: Enter on one sends a bare CR
                      and kOS answers with a fresh prompt, which is a thing an
                      operator does. */
-                  sendDisabled={noPath}
-                >
-                  <CompositionBar__Text>
-                    {scriptComposer ? (
-                      scriptComposer.phase === "picking" ? (
-                        <>
-                          /{scriptComposer.query}
-                          <CompositionBar__Cursor aria-hidden="true" />
-                        </>
-                      ) : (
-                        <>
-                          {scriptComposer.path} {scriptComposer.argsText}
-                          <CompositionBar__Cursor aria-hidden="true" />
-                        </>
-                      )
+                sendDisabled={noPath}
+              >
+                <CompositionBar__Text>
+                  {scriptComposer ? (
+                    scriptComposer.phase === "picking" ? (
+                      <>
+                        /{scriptComposer.query}
+                        <CompositionBar__Cursor aria-hidden="true" />
+                      </>
                     ) : (
                       <>
-                        {composition.text.slice(0, composition.cursor)}
+                        {scriptComposer.path} {scriptComposer.argsText}
                         <CompositionBar__Cursor aria-hidden="true" />
-                        {composition.text.slice(composition.cursor)}
                       </>
-                    )}
-                  </CompositionBar__Text>
-                </CompositionBar>
-                {scriptComposer?.phase === "args" && (
-                  <ScriptComposerOptions>
-                    <Switch
-                      checked={scriptComposer.copyLocal}
-                      onChange={(checked) => {
-                        if (scriptComposerRef.current?.phase !== "args") return;
-                        const next: ScriptComposerState = {
-                          ...scriptComposerRef.current,
-                          copyLocal: checked,
-                        };
-                        scriptComposerRef.current = next;
-                        setScriptComposer(next);
-                      }}
-                      label="Copy local & run (Ctrl+L)"
-                    />
-                  </ScriptComposerOptions>
-                )}
-                {scriptListing && (
-                  /* Opens UPWARD, over the screen. The composer is the last
+                    )
+                  ) : (
+                    <>
+                      {composition.text.slice(0, composition.cursor)}
+                      <CompositionBar__Cursor aria-hidden="true" />
+                      {composition.text.slice(composition.cursor)}
+                    </>
+                  )}
+                </CompositionBar__Text>
+              </CompositionBar>
+              {scriptComposer?.phase === "args" && (
+                <ScriptComposerOptions>
+                  <Switch
+                    checked={scriptComposer.copyLocal}
+                    onChange={(checked) => {
+                      if (scriptComposerRef.current?.phase !== "args") return;
+                      const next: ScriptComposerState = {
+                        ...scriptComposerRef.current,
+                        copyLocal: checked,
+                      };
+                      scriptComposerRef.current = next;
+                      setScriptComposer(next);
+                    }}
+                    label="Copy local & run (Ctrl+L)"
+                  />
+                </ScriptComposerOptions>
+              )}
+              {scriptListing && (
+                /* Opens UPWARD, over the screen. The composer is the last
                      thing inside a frame that clips, so a list dropping
                      downward from it would be drawn entirely outside the frame
                      and clipped to nothing. Over the scrollback is also where a
                      shell's completions have always gone. */
-                  <ComboboxListbox
-                    id={scriptListboxId}
-                    ariaLabel="Script picker"
-                    placement="above"
-                    groups={scriptListing.groups}
-                    flatOptions={scriptListing.flat}
-                    activeIndex={scriptActiveIndex}
-                    getOptionId={(key) => `${scriptListboxId}-${key}`}
-                    onHoverIndex={(index) => {
-                      if (scriptComposerRef.current?.phase !== "picking")
-                        return;
-                      const next: ScriptComposerState = {
-                        ...scriptComposerRef.current,
-                        activeIndex: index,
-                      };
-                      scriptComposerRef.current = next;
-                      setScriptComposer(next);
-                    }}
-                    onSelectKey={(key) => {
-                      const next: ScriptComposerState = {
-                        phase: "args",
-                        path: key,
-                        argsText: "",
-                        copyLocal: false,
-                      };
-                      scriptComposerRef.current = next;
-                      setScriptComposer(next);
-                    }}
-                    emptyLabel={scriptListHint ?? "No scripts found"}
-                  />
-                )}
-              </CompositionBarWrap>
-            )}
-          </>
+                <ComboboxListbox
+                  id={scriptListboxId}
+                  ariaLabel="Script picker"
+                  placement="above"
+                  groups={scriptListing.groups}
+                  flatOptions={scriptListing.flat}
+                  activeIndex={scriptActiveIndex}
+                  getOptionId={(key) => `${scriptListboxId}-${key}`}
+                  onHoverIndex={(index) => {
+                    if (scriptComposerRef.current?.phase !== "picking") return;
+                    const next: ScriptComposerState = {
+                      ...scriptComposerRef.current,
+                      activeIndex: index,
+                    };
+                    scriptComposerRef.current = next;
+                    setScriptComposer(next);
+                  }}
+                  onSelectKey={(key) => {
+                    const next: ScriptComposerState = {
+                      phase: "args",
+                      path: key,
+                      argsText: "",
+                      copyLocal: false,
+                    };
+                    scriptComposerRef.current = next;
+                    setScriptComposer(next);
+                  }}
+                  emptyLabel={scriptListHint ?? "No scripts found"}
+                />
+              )}
+            </CompositionBarWrap>
+          )
         }
       >
         <Container ref={containerRef} />
@@ -1407,7 +1398,7 @@ function KosTerminalScreen({
             Change CPU
           </ChangeCpuButton>
         )}
-      </ConsoleFrame>
+      </Console>
     </TerminalShell>
   );
 }
@@ -1505,10 +1496,10 @@ const TerminalShell = styled.div`
   gap: var(--space-6);
 `;
 
-// The xterm mount, and NOT a bordered box: `ConsoleFrame` draws the one border
-// this widget has, in the one tone (`readOnly` included, which is what the
-// border here used to say). A second outline inside the frame's was the "boxes
-// in a box" reading the composer alignment set out to remove.
+// The xterm mount, and NOT a bordered box: `Console` draws the one border this
+// widget has, in the one tone (`readOnly` included, which is what the border
+// here used to say). A second outline inside the console's was the "boxes in a
+// box" reading the composer alignment set out to remove.
 const Container = styled.div`
   width: 100%;
   height: 100%;
@@ -1619,8 +1610,8 @@ const CpuPicker__Button = styled(GhostButton)`
 // comment). Error/danger tone (the same `--color-status-nogo-*` pair
 // `CommSignal` uses for its "lost" state) so it reads unambiguously as a
 // blocking condition, not an informational badge like `DelayBadge` below it.
-// Pinned inside `ConsoleFrame`'s scrollback surface, in the corner opposite the
-// frame's own `corner` slot so the two never overlap on the (rare) render where
+// Pinned inside `Console`'s scrollback surface, in the corner opposite the
+// console's own delay corner so the two never overlap on the (rare) render where
 // both are showing: a stale delay reading can still be latched (see
 // `delay-authority.ts`) through a connectivity drop, so both badges legitimately
 // co-render. "Opposite corner" alone isn't enough at narrow widths (e.g. the
