@@ -24,9 +24,10 @@ namespace Sitrep.Host.IntegrationTests
     /// backend's <see cref="CommsPath"/> geometry is delivered as the
     /// <c>comms.delay</c> payload over a REAL ClientWebSocket, with the correct
     /// one-way seconds and <see cref="CommsDelaySource.SignalDelay"/> provenance;</item>
-    /// <item><c>comms.delay</c> is TRUE-NOW, revealed on the very tick it is
-    /// emitted, never gated by the delay it itself defines (§1: gating it would
-    /// be circular).</item>
+    /// <item><c>comms.delay</c> is DELAYED, revealed one light-time after the
+    /// tick it was computed on. Gating it is not circular: what carries every
+    /// Delayed channel is the engine's ledger, which the capture pass writes,
+    /// and this channel is a readout off the same numbers.</item>
     /// </list>
     ///
     /// <para>Only <c>comms.delay</c> travels the wire here: it is the single
@@ -42,6 +43,7 @@ namespace Sitrep.Host.IntegrationTests
     public class CommsCoreEndToEndTests
     {
         private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
+        private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(500);
 
         // Kerbin-to-Mun-ish one-way distance: a realistic non-zero hop.
         private const double HopDistanceMeters = 12_000_000.0;
@@ -57,8 +59,15 @@ namespace Sitrep.Host.IntegrationTests
             return engine;
         }
 
+        /// <summary>
+        /// The delay reaches the wire one light-time after the geometry that
+        /// produced it, carrying its own <c>ValidAt</c>. This is the test that
+        /// would have caught the classification silently reverting: it fails on
+        /// a TrueNow <c>comms.delay</c>, because the frame then arrives on the
+        /// emitting tick.
+        /// </summary>
         [Fact]
-        public async Task CommsDelayFromElectedBackendGeometryArrivesLiveOverTheWire()
+        public async Task CommsDelayFromElectedBackendGeometryArrivesOneLightTimeAfterItWasMeasured()
         {
             var uplink = new TestCommsCoreUplink(HopDistanceMeters, signalDelayEnabled: true);
             using var engine = EngineWith(uplink);
@@ -77,14 +86,19 @@ namespace Sitrep.Host.IntegrationTests
 
                 const double ut = 3.0;
                 engine.TickAndWait(ut, new KspSnapshot { Ut = ut }, Timeout);
-                var delivered = await ReceiveStreamDataAsync(client, Timeout);
 
-                Assert.Equal(TestCommsCoreUplink.DelayTopic, delivered.Topic);
+                // Nothing on the emitting tick: the ledger holds it for the
+                // light-time the payload itself reports.
+                Assert.Empty(await DrainAllStreamDataAsync(client, Quiet));
 
-                // TRUE-NOW: comms.delay reaches the wire on its own tick; never
-                // gated by the (large) delay it defines.
+                // One light-time later it lands, stamped with the UT it was
+                // measured at rather than the UT it arrived at.
+                var horizon = ut + uplink.ExpectedOneWaySeconds;
+                engine.TickAndWait(horizon, new KspSnapshot { Ut = horizon }, Timeout);
+                var frames = await DrainAllStreamDataAsync(client, Timeout);
+                var delivered = Assert.Single(frames, f => f.Topic == TestCommsCoreUplink.DelayTopic);
+
                 Assert.Equal(ut, delivered.Meta.ValidAt);
-                Assert.Equal(ut, delivered.Meta.DeliveredAt);
 
                 // The CommsDelay POCO is flattened by JsonWriter to
                 // { oneWaySeconds, source, meta:{ source, quality } }, source

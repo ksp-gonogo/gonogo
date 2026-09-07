@@ -171,7 +171,7 @@ namespace Sitrep.Host.IntegrationTests
                 var preRevertEpoch = launchFrames.First(f => f.Topic == FlightTopics.StartedTopic).Meta.TimelineEpoch;
 
                 // NOW establish delay authority (4s one-way) via the
-                // comms.delay TrueNow channel, mirroring RevealGateTests' own
+                // comms.delay channel, mirroring RevealGateTests' own
                 // setup -- established AFTER the launch already revealed, so
                 // only the upcoming crash signal rides the delay window.
                 engine.TickAndWait(1.0, DelaySnapshot(1.0, 4.0, VesselA, "Alpha"), Timeout);
@@ -242,9 +242,12 @@ namespace Sitrep.Host.IntegrationTests
         /// <summary>
         /// The KSP-independent stand-in for <c>Gonogo.KSP.FlightUplink</c>:
         /// registers the REAL <see cref="FlightLifecycleSampler"/> and the
-        /// SAME <c>comms.delay</c> TrueNow authority
+        /// same <c>comms.delay</c> authority
         /// <c>Gonogo.KSP.CommsCoreUplink</c> provides in production (needed
-        /// here so the reveal gate has a nonzero delay to test against).
+        /// here so the reveal gate has a nonzero delay to test against). The
+        /// channel is declared TrueNow HERE, where production declares it
+        /// Delayed: this fixture wants the authority in force on the tick that
+        /// sets it, and never reads the readout.
         /// </summary>
         private sealed class TestFlightUplink : ISitrepUplink
         {

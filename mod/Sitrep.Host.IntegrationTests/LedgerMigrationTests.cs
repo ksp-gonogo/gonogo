@@ -13,8 +13,8 @@ namespace Sitrep.Host.IntegrationTests
     /// <summary>
     /// Ledger-migration (Plan 1) behaviour-preservation tests: the delay moves
     /// off the reveal-gate scalar into the Courier/Archive ledger, but every
-    /// observable (reveal delay, freeze-on-disconnect hold + backlog drop,
-    /// comms.delay / comms.link exemptions, command ETA) stays identical. The
+    /// observable (reveal delay, freeze-on-disconnect hold + backlog drop, the
+    /// comms.link exemption, command ETA) stays identical. The
     /// unchanged <see cref="RevealGateTests"/> suite is the primary gate; this
     /// class adds the migration-specific cross-checks.
     /// </summary>
@@ -35,9 +35,11 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, ChannelEngine.CommsDelayTopic, Timeout);
                 await SubscribeAsync(client, FreezeGateTestUplink.TrueNowTopic, Timeout);
 
-                // Connected, non-zero delay: instant-class topics (comms.delay,
-                // TrueNow) are exempt and must still arrive this tick. They ride
-                // the meta-vantage (DelayTo -> 0) so the ledger never delays them.
+                // Connected, non-zero delay: instant-class topics must still
+                // arrive this tick. They ride the meta-vantage (DelayTo -> 0) so
+                // the ledger never delays them. Both channels read here are
+                // TrueNow by this fixture's declaration, comms.delay included,
+                // which is what puts it in that class rather than its name.
                 engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 240.0, trueNow: 42.0), Timeout);
 
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
@@ -143,15 +145,17 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, ChannelEngine.CommsDelayTopic, Timeout);
                 await SubscribeAsync(client, ChannelEngine.ConnectivityMetaTopic, Timeout);
 
-                // Connected with a real delay, then a disconnect. comms.delay stays live
-                // (instant, meta-vantage); comms.link reveals the disconnect edge through
+                // Connected with a real delay, then a disconnect. This fixture
+                // declares comms.delay TrueNow, so it stays live on the
+                // meta-vantage; comms.link reveals the disconnect edge through
                 // the freeze (exempt) at its last-connected horizon.
                 engine.TickAndWait(0.0, FreezeGateTestUplink.Snapshot(0.0, connected: true, delay: 5.0), Timeout);
                 engine.TickAndWait(1.0, FreezeGateTestUplink.Snapshot(1.0, connected: false, delay: 0.0), Timeout);
                 engine.TickAndWait(10.0, FreezeGateTestUplink.Snapshot(10.0, connected: false, delay: 0.0), Timeout);
 
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
-                // comms.delay delivered (never frozen, never ledger-delayed).
+                // The TrueNow-declared comms.delay is delivered: never frozen,
+                // never ledger-delayed.
                 Assert.Contains(frames, f => f.Topic == ChannelEngine.CommsDelayTopic);
                 // comms.link's disconnect edge reached the client despite the blackout.
                 Assert.Contains(frames, f => f.Topic == ChannelEngine.ConnectivityMetaTopic);

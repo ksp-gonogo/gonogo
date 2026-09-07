@@ -48,9 +48,12 @@ function delayPoint(
 
 /**
  * The grade a reading takes once the stream stops arriving, and the one this
- * model exists for. `comms.delay` keeps arriving THROUGH a comms blackout, being
- * true-now, so what actually leaves a gap to carry across is the whole stream
- * going quiet.
+ * model exists for. Two things now leave a gap to carry across: the whole
+ * stream going quiet, and a comms blackout, which freezes `comms.delay` at its
+ * last connected frame like any other Delayed channel. The second is new: while
+ * the channel was true-now it kept arriving through an outage reporting no
+ * measurable delay, and a frame with no delay carries no rate, so there was
+ * nothing to integrate.
  */
 const STALE: StaleGrade = "held-stale";
 

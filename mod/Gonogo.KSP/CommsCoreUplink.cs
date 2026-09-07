@@ -256,10 +256,32 @@ namespace Gonogo.KSP
         {
             Topic = topic,
             Delivery = Delivery.LossyLatest,
-            // Every comms.* channel is TRUE-NOW: ground-side facts about the
-            // link as KSC sees it, and comms.delay is the value that DRIVES
-            // the delay of everything else so it is never itself delayed (§1).
+            // What KSC knows about the link WITHOUT waiting on it: whether the
+            // radio is answering, how strong it is, what it may command, the
+            // shape of the network, the geometry that occludes it. Ground-side
+            // facts, so they are not held behind a light-time.
             Delay = DelayRole.TrueNow,
+            Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+        };
+
+        /// <summary>
+        /// A comms READOUT: the same capture, published at light speed rather
+        /// than instantly. Used by <c>comms.delay</c> and <c>comms.path</c>,
+        /// which describe the far end of the link rather than this end of it.
+        ///
+        /// <para>NOT recordable, which is the other half of moving them.
+        /// Both are computed on the ground, by gonogo's own light-time math over
+        /// the elected backend's graph, so neither was ever aboard the craft and
+        /// replaying one on reacquisition would have the craft dump a recording
+        /// of a number it never held. The gap is stated instead
+        /// (<c>Meta.GapSinceUt</c>).</para>
+        /// </summary>
+        private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
+        {
+            Topic = topic,
+            Delivery = Delivery.LossyLatest,
+            Delay = DelayRole.Delayed,
+            Recordable = false,
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
@@ -272,9 +294,24 @@ namespace Gonogo.KSP
                 TrueNow(ConnectivityTopic),
                 TrueNow(SignalStrengthTopic),
                 TrueNow(ControlStateTopic),
-                TrueNow(PathTopic),
                 TrueNow(NetworkTopic),
-                TrueNow(DelayTopic),
+                // comms.path: DELAYED. The route a signal took is a fact about
+                // where the craft and every relay in the chain WERE when the
+                // signal left, so it reveals with the telemetry that came down
+                // it rather than ahead of it. Nothing depends on this channel to
+                // decide a delay: the routed light-times are written into the
+                // ledger by the capture pass (ChannelEngine.SetVesselDelay /
+                // SetAuthorityDelay / SetCentreDelay), which never reads a topic.
+                Delayed(PathTopic),
+                // comms.delay: DELAYED, and this is not circular. The reveal
+                // gate and the command scheduler read the LEDGER
+                // (INetwork.DelayTo), written straight from the capture pass;
+                // this channel is a READOUT published from the same numbers. Two
+                // paths out of one source, so delaying the readout leaves the
+                // gate that carries it untouched. What it changes is honesty: a
+                // light-time is measured from where the craft was, and an
+                // operator learns it moved one light-time after it did.
+                Delayed(DelayTopic),
                 // comms.occlusion is TrueNow for a stronger reason than its
                 // siblings: it is not an observation of the vessel at all but a
                 // statement about the universe's geometry and the rule the
@@ -284,10 +321,11 @@ namespace Gonogo.KSP
                 TrueNow(OcclusionTopic),
                 // comms.link: Delayed (rides the normal light-time horizon) but
                 // the ENGINE special-cases it as freeze-EXEMPT by topic identity
-                // (ChannelEngine.ConnectivityMetaTopic), matching how comms.delay
-                // is special-cased as always-live. Declared Delayed here for
-                // accuracy even though the exemption itself is topic-identity-
-                // keyed, not a read of this Delay disposition.
+                // (ChannelEngine.ConnectivityMetaTopic), because it is the
+                // channel that REPORTS the blackout and so cannot be frozen by
+                // it. Declared Delayed here for accuracy even though the
+                // exemption itself is topic-identity-keyed, not a read of this
+                // Delay disposition.
                 new ChannelDeclaration
                 {
                     Topic = LinkTopic,

@@ -281,9 +281,9 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
   /**
    * The shipped defect, at the layer where it does the damage.
    *
-   * Losing the path does not stop `observeSample`: `comms.delay` and
-   * `comms.link` are freeze-EXEMPT (see `CommsLink`'s contract doc), so they
-   * keep arriving at true-now through a blackout and keep pushing
+   * Losing the path does not stop `observeSample`: `comms.link` is
+   * freeze-EXEMPT (see `CommsLink`'s contract doc) and the TrueNow channels
+   * never stopped, so samples keep arriving through a blackout and keep pushing
    * `maxSampleUt` forward. The sample clamp therefore does NOT hold the
    * horizon back; the delay term is the only thing that does. Collapse the
    * delay to 0 and `confirmedEdgeUt()` snaps a full light-time forward at the
@@ -309,12 +309,14 @@ describe("DelayAuthority → ViewClock (predicted-present horizon)", () => {
     clock.observeSample(1000, 1000);
     expect(clock.confirmedEdgeUt()).toBe(940); // 1000 − 60
 
-    // Blackout. The freeze-exempt channels keep landing at true-now.
+    // Blackout. The exempt and TrueNow channels keep landing.
     wall.advanceBy(5);
     clock.observeSample(1005, 1005);
     expect(clock.confirmedEdgeUt()).toBe(945);
 
-    // ...and one of them is the no-path `comms.delay` frame itself.
+    // A frame reporting no measurable delay lands: the last one before the
+    // freeze, or a save whose comms model went away under the session. Either
+    // way it is not evidence the craft got closer.
     authority.observe({
       oneWaySeconds: null,
       source: CommsDelaySource.None,

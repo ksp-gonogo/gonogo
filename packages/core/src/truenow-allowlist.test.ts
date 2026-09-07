@@ -62,9 +62,14 @@ const HELPER_TRUENOW = /(?<![.\w])TrueNow\s*\(/g;
  *
  * Two exist. `Rp1ScUplink.Ground(topic)` carries 25 channels and scores 1;
  * `KerbalismUplink.Static(topic)` carries 1 and scores 1. So the numbers in
- * this file total 48 while the mod actually declares 66 delay-bypassing
- * channels, and rp1 alone is 25 of them, 38% of every bypass in the tree,
- * behind a single allowlist line reading 1.
+ * this file total 44 (measured 2026-09-07, after comms.delay, comms.path and
+ * commandCentre.separation moved to Delayed) while the mod declares roughly
+ * two dozen more delay-bypassing channels than that, and rp1 alone is 25 of
+ * them behind a single allowlist line reading 1.
+ *
+ * The "48 of 66" this note used to quote was already 1 out when it was read
+ * back: the scan totalled 47 the moment before those three moved. Treat the
+ * ratio as an order of magnitude and re-measure before quoting it.
  *
  * The consequence is not a wrong number, it is an ungated one: a 26th rp1
  * channel changes no count here, so nothing asks whether it is ground-side.
@@ -117,21 +122,20 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // only StockHomeNodeSource (ground-registry) is honest as TrueNow; the crewed
   // source's delay-gating is the Phase-2 follow-up.
   //
-  // commandCentre.separation: how far each active centre is from each other,
-  // the number one human needs to know how long their words take to reach
-  // another. TrueNow on the same reasoning as comms.delay rather than as the
-  // roster: this value GATES the reveal of what one vantage sends another, so
-  // delaying it would make the gate depend on itself, and freezing it through
-  // a blackout would hold a stale separation exactly while the geometry moves.
+  // commandCentre.separation USED to be here and is now Delayed, which is why
+  // this count is 1 rather than 2. The justification it carried was wrong: it
+  // claimed delaying the channel would make the gate depend on itself, and the
+  // gate reads the LEDGER (ChannelEngine.SetCentreDelay writes straight into
+  // INetwork.SetDelay), never the topic. The separation matrix is a readout off
+  // the same rows, so it rides light-time like anything else describing a place
+  // a signal has to cross.
   //
-  // It INHERITS the roster's delay-honesty debt above and does not add to it:
-  // a row only exists for a pair of ACTIVE centres, so a crewed forward centre
-  // appearing in this matrix leaks the same fact the roster already leaks by
-  // listing it, one tick earlier than that vessel's own telemetry. When the
-  // roster's crewed entries are delay-gated in Phase 2, these rows go with
-  // them. Flagged rather than filed silently: the gate permits it, and that is
-  // not the same as it being right. 2 explicit declarations.
-  "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 2,
+  // That also retires most of the delay-honesty debt this entry used to inherit
+  // from the roster: a crewed forward centre appearing in the MATRIX no longer
+  // leaks ahead of its own telemetry. The roster's own crewed entries are still
+  // TrueNow and still owe the Phase-2 fix described above. 1 explicit
+  // declaration.
+  "mod/Gonogo.KSP/CommandCentres/CommandCentreDelayUplink.cs": 1,
 
   // flight.simulation: whether the flight on screen is one of RP-1's
   // REHEARSALS. Meta about the stream rather than an observation of a craft,
@@ -160,21 +164,29 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // 4 explicit declarations.
   "mod/Gonogo.KSP/SystemUplink.cs": 4,
 
-  // Comms-LINK meta (connectivity, signal strength, control state, path,
-  // network, and the live delay value itself), facts ABOUT the link the
-  // delay is computed from, so they can't ride their own delay without a
-  // circular dependency. Joined by comms.occlusion, which is ground-side by
-  // an even wider margin: not an observation of the vessel at all, but the
-  // universe's geometry plus the rule the elected comms backend applies to
-  // it, and delaying the rule would have a predictor computing tomorrow's
-  // blackout from yesterday's assumptions. Joined too by comms.commandCentre,
-  // which names WHICH centre the active vessel's OWN path resolved to: a node
-  // its own comms.path already discloses raw, not a fact about another vessel.
+  // What KSC can establish about the link from its OWN end: connectivity,
+  // signal strength, control state, and the network graph. Joined by
+  // comms.occlusion, which is ground-side by an even wider margin: not an
+  // observation of the vessel at all, but the universe's geometry plus the rule
+  // the elected comms backend applies to it, and delaying the rule would have a
+  // predictor computing tomorrow's blackout from yesterday's assumptions.
+  // Joined too by comms.commandCentre, which names WHICH centre the active
+  // vessel's OWN path resolved to, a fact about this end of the link rather
+  // than about another vessel.
+  //
+  // comms.delay and comms.path LEFT this list and are now Delayed, which is why
+  // the count is 8 rather than 10. The old note claimed they could not ride
+  // their own delay without a circular dependency, and that is not so: the
+  // reveal gate and the command scheduler read the LEDGER (INetwork.DelayTo,
+  // filled by the ungated capture pass), while the channels of those names are
+  // readouts published from the same numbers. Both describe the far end of the
+  // link, so both wait for the light that carries them.
+  //
   // Declared via the `TrueNow(topic)` helper: 1 explicit `Delay =` line inside
-  // the helper body + 8 call sites (one per topic) + the helper's own
-  // declaration line (also matches the call-site regex) = 9 helper matches.
-  // 1 explicit + 9 helper = 10.
-  "mod/Gonogo.KSP/CommsCoreUplink.cs": 10,
+  // the helper body + 6 call sites (one per topic) + the helper's own
+  // declaration line (also matches the call-site regex) = 7 helper matches.
+  // 1 explicit + 7 helper = 8.
+  "mod/Gonogo.KSP/CommsCoreUplink.cs": 8,
 
   // RealAntennas link-quality/data-rate/link-margin, plus
   // realantennas.available (whether RA is installed, same install-fact

@@ -673,10 +673,11 @@ export interface CentreSeparationEntry
 * exactly no distance from itself, and without the row a reader would fall
 * through to "unavailable" for the one pair it is most certain about.
 *
-* TRUE-NOW, on the same reasoning as `comms.delay`: this value GATES the
-* reveal of things sent between vantages, so delaying it would make the gate
-* depend on itself, and freezing it through a blackout would hold a stale
-* separation exactly when the geometry is changing.
+* DELAYED, on the same reasoning as `comms.delay`: a separation is measured
+* between two places a signal has to cross, so the figure a reader holds is
+* the one their own light has brought them. It is the separation as OBSERVED,
+* never as it is at this instant, and a pair whose geometry has changed since
+* says so one light-time later.
 */
 export interface CommandCentreSeparation
 {
@@ -1187,7 +1188,7 @@ export interface CommsHop
 	* RealAntennas install fills `Extensions["realantennas"]` with band, tech
 	* level, modulation, encoder, required Eb/N0, beamwidth, EC draw and the
 	* reverse-direction rate, typed by the RA client's own `RealAntennasHopExt`.
-	* It rides `comms.path`, so it inherits that channel's TrueNow classification.
+	* It rides `comms.path`, so it inherits that channel's Delayed classification.
 	*/
 	extensions?: ProviderExtensions;
 }
@@ -1195,6 +1196,14 @@ export interface CommsHop
 * The `comms.path` payload: always-present, elected backend. Ordered hops from
 * the active vessel to KSC. Empty `CommsPath.hops` = no path home (a real,
 * control-loss state, not absence-of-data).
+*
+* DELAYED, and NEVER RECKONABLE. The route is the one the arriving signal
+* took, so it reveals with the telemetry that came down it. It also carries no
+* forward model and cannot be given one: a route changes DISCRETELY, a relay
+* drops below the horizon and the whole chain re-solves to different hops, and
+* every basis a reckoner could declare (Kepler propagation, dead reckoning,
+* rate integration) moves a continuous quantity. What you are shown is the
+* topology AS OBSERVED; nothing may extrapolate it forward.
 */
 export interface CommsPath
 {
@@ -1260,9 +1269,10 @@ export enum CommsDelaySource {
 	* A POSITIVE FACT, and the reason it is a member here rather than a null
 	* `CommsDelay.oneWaySeconds`: null means "there is a comms model and it can
 	* measure nothing right now", which is a permanent blackout and the exact
-	* opposite prognosis. This is what distinguishes the two ON THE WIRE, and
-	* `comms.delay` is true-now, so it says so even while a blackout would be
-	* freezing everything else.
+	* opposite prognosis. This is what distinguishes the two ON THE WIRE. A save
+	* with no comms model reports this alongside `connected:true`, so the channel
+	* keeps arriving with nothing held back, where a real blackout reports null
+	* and stops.
 	*/
 	NoCommsModel = 3
 }
@@ -1289,8 +1299,13 @@ export enum CommsDelaySource {
 * board showing no path and no relay graph is a save with the CommNet
 * difficulty option off, not a craft in a permanent blackout: the blackout
 * reports `null` here and `connected:false` on `CommsLink`, and this reports
-* `0` and `connected:true`. TRUE-NOW sim-meta: this value drives the release
-* of every other delayed channel and is therefore never itself delay-gated.
+* `0` and `connected:true`.
+*
+* DELAYED, like the telemetry it describes. A light-time is measured over the
+* route a signal actually took, so the figure that reaches an operator is the
+* delay as it WAS when the light left, and a craft whose delay has grown says
+* so one light-time after it grew. Read it as an observation rather than as
+* the current state of the link.
 */
 export interface CommsDelay
 {

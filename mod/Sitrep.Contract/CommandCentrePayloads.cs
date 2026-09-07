@@ -131,11 +131,19 @@ public class CentreSeparationEntry
 /// node is exactly no distance from itself, and without the row a reader would
 /// fall through to "unavailable" for the one pair it is most certain about.</para>
 ///
-/// <para>TRUE-NOW, on the same reasoning as <c>comms.delay</c>: this value GATES
-/// the reveal of things sent between vantages, so delaying it would make the
-/// gate depend on itself, and freezing it through a blackout would hold a stale
-/// separation exactly when the geometry is changing.
+/// <para>DELAYED, on the same reasoning as <c>comms.delay</c>: a separation is
+/// measured between two places a signal has to cross, so the figure a reader
+/// holds is the one their own light has brought them. It is the separation as
+/// OBSERVED, never as it is at this instant, and a pair whose geometry has
+/// changed since says so one light-time later.
 /// <internal>
+/// Delaying it does NOT make the gate depend on itself, whatever an earlier
+/// version of this comment said. What schedules traffic between vantages is the
+/// engine's delay LEDGER, written directly by
+/// <c>ChannelEngine.SetCentreDelay</c>/<c>SetAuthorityDelay</c> from the rows
+/// below; those writes never read a topic. This channel is a readout off the
+/// same rows, so the two are separate paths out of one source.
+///
 /// Published from the rows <c>CommandCentreDelayUplink.CaptureLedgerOnMain</c>
 /// already builds for the engine's delay ledger, filtered to the
 /// <c>centre.</c> node namespace. No additional graph solve: the pass that

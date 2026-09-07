@@ -83,13 +83,20 @@ export function useStream<T>(topic: string): T | undefined {
  * counting down against delayed data stays in step with that same delay.
  * But some topics are command-centre REAL-time bookkeeping, not delayed
  * craft telemetry: `system.uplink.pending` (dispatch timestamps stamped
- * the instant a command leaves the ground station) and `comms.delay`/
- * `comms.path` (facts about the link/route itself, not about the
- * vessel) are the current examples. Sampling those through the delayed
+ * the instant a command leaves the ground station) and `system.uplink.gates`
+ * are the current examples. Sampling those through the delayed
  * frame makes them appear (and clear) a whole one-way-delay late; this hook
  * is the fix, it reads the client's sticky last value directly, the same
  * "arrived on the wire, available now" semantics `client.subscribe` already
  * gives a non-React caller.
+ *
+ * `comms.delay` and `comms.path` are read through here too, and no longer
+ * because they are real-time: both are Delayed channels now, so the wire has
+ * already held them for a light-time and this hook shows each one the moment it
+ * lands rather than any earlier. What it still buys them is independence from
+ * the certainty horizon, which matters because `comms.delay` is what sizes that
+ * horizon: reading it through the gated frame would ask the view clock for a
+ * value the view clock is waiting on.
  *
  * No derived-topic support (unlike `useStream`): `client.getValue` only
  * ever sees raw `stream-data` frames whose `topic` matches literally, so

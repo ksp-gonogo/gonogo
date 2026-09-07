@@ -80,12 +80,22 @@ namespace Gonogo.KSP.CommandCentres
                 {
                     Topic = SeparationTopic,
                     Delivery = Delivery.LossyLatest,
-                    // TRUE-NOW on the same reasoning as comms.delay: this value
-                    // GATES the reveal of what one vantage sends another, so
-                    // delaying it would make the gate depend on itself, and
-                    // freezing it through a blackout would hold a stale
-                    // separation exactly while the geometry is moving.
-                    Delay = DelayRole.TrueNow,
+                    // DELAYED on the same reasoning as comms.delay, and the
+                    // circularity this used to claim does not exist. What gates
+                    // one vantage's traffic to another is the LEDGER: the rows
+                    // CaptureLedgerOnMain writes go straight into the engine
+                    // through SetCentreDelay/SetAuthorityDelay, which never read
+                    // a topic. This channel is a READOUT built from the same
+                    // rows, so delaying it changes what an operator is shown and
+                    // nothing about what carries it. The number they are shown is
+                    // then the separation as OBSERVED, which is the only one
+                    // anybody at a vantage could have.
+                    Delay = DelayRole.Delayed,
+                    // Never aboard anything: the matrix is solved on the ground
+                    // over the whole node list, so there is no craft that could
+                    // have written it down and nothing to replay on
+                    // reacquisition. The gap is stated instead.
+                    Recordable = false,
                     Emission = new EmissionPolicy(keyframeIntervalUt: 1000, quantum: EmissionQuantum.Absolute(0)),
                 },
             },

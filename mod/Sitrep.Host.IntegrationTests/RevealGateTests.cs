@@ -510,8 +510,10 @@ namespace Sitrep.Host.IntegrationTests
         /// <item><c>vessel.flight</c> is DELAYED, withheld until its UT crosses
         /// the reveal horizon (now − 4);</item>
         /// <item><c>time.warp</c> is TRUE-NOW, revealed live;</item>
-        /// <item><c>comms.delay</c> is TRUE-NOW, revealed live every tick,
-        /// never gated by the delay it defines.</item>
+        /// <item><c>comms.delay</c> is DELAYED like the telemetry it
+        /// describes, revealed one light-time after the tick that measured it,
+        /// while the AUTHORITY it feeds is established on that tick and
+        /// ungated: which is the whole answer to "would that be circular".</item>
         /// </list>
         /// This closes the loop the single-channel RevealGate tests above leave
         /// open: there the delay was a raw number in the snapshot; here the
@@ -542,17 +544,14 @@ namespace Sitrep.Host.IntegrationTests
                 await SubscribeAsync(client, DelayRolesTestUplink.DelayedTopic, Timeout);
                 await SubscribeAsync(client, DelayRolesTestUplink.TrueNowTopic, Timeout);
 
-                // UT 0: establish the delay authority. comms.delay (TrueNow)
-                // must reach the wire on this very tick, carrying the
-                // geometry-derived 4s: never gated by the 4s it defines.
+                // UT 0: the delay AUTHORITY is established on this tick, from
+                // the geometry, through the ungated capability read: that is
+                // what gates everything below. The comms.delay READOUT is a
+                // separate path out of the same computation and is itself
+                // Delayed, so nothing carrying it reaches the wire yet.
                 engine.TickAndWait(0.0, DelayRolesTestUplink.Snapshot(0.0), Timeout);
                 var atUt0 = await DrainAllStreamDataAsync(client, Quiet);
-                var delay0 = atUt0.LastOrDefault(f => f.Topic == TestCommsCoreUplink.DelayTopic);
-                Assert.NotNull(delay0);
-                var delayPayload = Assert.IsType<System.Collections.Generic.Dictionary<string, object?>>(delay0!.Payload);
-                Assert.Equal(4.0, Convert.ToDouble(delayPayload["oneWaySeconds"]), precision: 6);
-                Assert.Equal(0.0, delay0.Meta.ValidAt);
-                Assert.Equal(0.0, delay0.Meta.DeliveredAt); // live, ungated
+                Assert.DoesNotContain(atUt0, f => f.Topic == TestCommsCoreUplink.DelayTopic);
 
                 // UT 1: emit both role channels. time.warp (TrueNow) arrives;
                 // vessel.flight (Delayed) does NOT (horizon 1 − 4 = −3 ≪ its UT 1).
@@ -560,8 +559,9 @@ namespace Sitrep.Host.IntegrationTests
                 var atUt1 = await DrainAllStreamDataAsync(client, Quiet);
                 Assert.Equal(20.0, Latest(atUt1, DelayRolesTestUplink.TrueNowTopic));
                 Assert.DoesNotContain(atUt1, f => f.Topic == DelayRolesTestUplink.DelayedTopic);
-                // comms.delay still live on this tick.
-                Assert.Contains(atUt1, f => f.Topic == TestCommsCoreUplink.DelayTopic && f.Meta.DeliveredAt == f.Meta.ValidAt);
+                // The authority is in force even though its own readout has not
+                // arrived: gating the readout did not gate the gate.
+                Assert.DoesNotContain(atUt1, f => f.Topic == TestCommsCoreUplink.DelayTopic);
 
                 // UT 2..4: still short of the horizon, vessel.flight withheld.
                 foreach (var ut in new[] { 2.0, 3.0, 4.0 })
@@ -570,6 +570,13 @@ namespace Sitrep.Host.IntegrationTests
                 }
                 var beforeHorizon = await DrainAllStreamDataAsync(client, Quiet);
                 Assert.DoesNotContain(beforeHorizon, f => f.Topic == DelayRolesTestUplink.DelayedTopic);
+
+                // The UT-0 delay reading matured at UT 4, one light-time after
+                // it was measured, carrying its own SCET.
+                var delay0 = Assert.Single(beforeHorizon, f => f.Topic == TestCommsCoreUplink.DelayTopic);
+                var delayPayload = Assert.IsType<System.Collections.Generic.Dictionary<string, object?>>(delay0.Payload);
+                Assert.Equal(4.0, Convert.ToDouble(delayPayload["oneWaySeconds"]), precision: 6);
+                Assert.Equal(0.0, delay0.Meta.ValidAt);
 
                 // UT 5: horizon 5 − 4 = 1 reaches the buffered sample's UT 1,
                 // vessel.flight is revealed, carrying its true SCET (1), a full
@@ -624,7 +631,8 @@ namespace Sitrep.Host.IntegrationTests
                 var frames = await DrainAllStreamDataAsync(client, Quiet);
                 // FROZEN: the Delayed channel never reached the wire.
                 Assert.DoesNotContain(frames, f => f.Topic == FreezeGateTestUplink.DelayedTopic);
-                // LIVE: the TrueNow channel and comms.delay kept flowing.
+                // LIVE: the TrueNow channels kept flowing (this fixture declares
+                // comms.delay TrueNow too, so it is one of them).
                 Assert.Contains(frames, f => f.Topic == FreezeGateTestUplink.TrueNowTopic);
                 Assert.Contains(frames, f => f.Topic == ChannelEngine.CommsDelayTopic);
             }
