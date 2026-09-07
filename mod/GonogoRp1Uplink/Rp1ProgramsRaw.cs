@@ -57,7 +57,14 @@ namespace GonogoRp1Uplink
         /// <summary>RP-1's <c>Program.Speed</c> as its NAME, never its ordinal.</summary>
         public string? Speed;
 
-        public int Slots;
+        /// <summary>
+        /// Slots this Program occupies. Absent when it would not say, on the same
+        /// terms as <see cref="Rp1ProgramSlotsRaw.UsedSlots"/>: a substituted zero
+        /// reads as a Program that costs the career nothing to run, next to a
+        /// ceiling it is being counted against.
+        /// </summary>
+        public int? Slots;
+
         public bool IsHumanSpaceflight;
         public double? NominalDurationSeconds;
 

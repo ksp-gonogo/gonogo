@@ -202,7 +202,7 @@ namespace GonogoRp1Uplink
                 Title = ReadString(program, "title"),
                 State = acceptedState,
                 Speed = EnumName(speed),
-                Slots = ReadInt(program, "slots") ?? 0,
+                Slots = ReadInt(program, "slots"),
                 IsHumanSpaceflight = ReadBool(program, "isHSF") == true,
                 NominalDurationSeconds = Rp1ProgramsMath.YearsToSeconds(
                     ReadDouble(program, "nominalDurationYears")),

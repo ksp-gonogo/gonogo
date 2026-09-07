@@ -201,7 +201,19 @@ namespace GonogoRp1Uplink
                 }
 
                 var ceiling = CommitCeiling();
-                var wanted = factor ?? Rp1Types.ReadDouble(strategy, "Factor") ?? 0.0;
+                var wanted = factor ?? Rp1Types.ReadDouble(strategy, "Factor");
+                if (ceiling != null && wanted == null)
+                {
+                    // A commitment level nobody could read is not a commitment of
+                    // nothing, which is what a substituted zero says and which
+                    // clears every ceiling there is. An unreadable ceiling still
+                    // permits, as it always has: that is no known limit rather
+                    // than a known limit nothing can be checked against.
+                    return CommandResult.Fail(
+                        CommandErrorCode.NotClearToProceed,
+                        "RP-1 would not say what commitment level this strategy carries, and the"
+                        + " Administration Building caps it, so it was not activated");
+                }
                 if (ceiling != null && wanted > ceiling.Value)
                 {
                     return CommandResult.Fail(

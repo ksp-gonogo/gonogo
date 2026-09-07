@@ -84,8 +84,18 @@ namespace GonogoRp1Uplink
                     return 0.0;
                 }
 
-                var listPrice = Rp1Types.ToDouble(totalCost.Invoke(vessel, null)) ?? 0.0;
-                var query = runQuery.Invoke(null, new object[] { reason, -listPrice, 0.0, 0.0 });
+                // A price nobody could read is not a price of zero. Substituted,
+                // it buys the query a delta of -0 to judge, which every career can
+                // afford, and the vehicle joins the build list at no cost with an
+                // affordability answer that was never about this vehicle.
+                var listPrice = Rp1Types.ToDouble(totalCost.Invoke(vessel, null));
+                if (listPrice == null)
+                {
+                    failure = Unreadable(null);
+                    return 0.0;
+                }
+
+                var query = runQuery.Invoke(null, new object[] { reason, -listPrice.Value, 0.0, 0.0 });
                 var canAfford = query?.GetType().GetMethod("CanAfford", new[] { _currency! });
                 var getTotal = query?.GetType().GetMethod("GetTotal", new[] { _currency!, typeof(bool) });
                 if (query == null || canAfford == null)
@@ -103,7 +113,7 @@ namespace GonogoRp1Uplink
                 var charged = getTotal == null
                     ? (double?)null
                     : Rp1Types.ToDouble(getTotal.Invoke(query, new object[] { funds, true }));
-                return charged.HasValue ? -charged.Value : listPrice;
+                return charged.HasValue ? -charged.Value : listPrice.Value;
             }
             catch (Exception ex)
             {

@@ -607,7 +607,7 @@ namespace GonogoRp1Uplink
             }
 
             var centre = Rp1Types.Member(complex, "KSC");
-            var engineers = Rp1Types.Member(complex, "Engineers") as int? ?? 0;
+            var staff = Rp1Types.Member(complex, "Engineers") as int?;
 
             if (!career)
             {
@@ -633,6 +633,22 @@ namespace GonogoRp1Uplink
                 }
                 return Ok(name, quote, queued: false, engineersUnassigned: 0);
             }
+
+            // The career path takes the crew OFF the complex and, on request, puts
+            // them back when the renovation lands. A substituted zero does neither
+            // and reports that it did: the engineers stay on a complex that is out
+            // of service, "assign them again on completion" re-hires nobody, and
+            // the answer says nought were moved. Asked here rather than earlier
+            // because the branch above moves no crew at all, and before the first
+            // write, so a refusal leaves the complex as it was.
+            if (staff == null)
+            {
+                return Refuse(CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "RP-1 would not say how many engineers are at " + name
+                    + ", and they have to come off it before it is renovated, so nothing was queued"));
+            }
+            var engineers = staff.Value;
 
             // RP-1's order, and it matters: the staff target goes before the crew
             // move, because clearing it afterwards would clear an order the crew
@@ -1198,11 +1214,17 @@ namespace GonogoRp1Uplink
             var asked = Rp1Types.ReadDouble(spec, "massMax");
 
             // Which of the two limits was crossed, in RP-1's own wording for each.
+            // The refusal itself is RP-1's and stands either way; what a limit
+            // nobody could read costs is the figure, and a substituted zero would
+            // quote a floor of no tonnes at all as the reason.
             refusal = CommandResult.Fail(
                 CommandErrorCode.Range,
                 asked != null && max != null && asked.Value > max.Value
                     ? "cannot upgrade tonnage above the limit of " + Tonnes(max.Value)
-                    : "cannot downgrade tonnage below the limit of " + Tonnes(min ?? 0.0));
+                    : min != null
+                        ? "cannot downgrade tonnage below the limit of " + Tonnes(min.Value)
+                        : "RP-1 will not renovate the complex to that tonnage, and would not say"
+                          + " which of its limits that crosses");
             return false;
         }
 

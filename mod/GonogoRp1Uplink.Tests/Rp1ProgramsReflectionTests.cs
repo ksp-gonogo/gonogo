@@ -84,6 +84,27 @@ public class Rp1ProgramsReflectionTests : IDisposable
         Assert.Null(row.FracElapsed);
     }
 
+    /// <summary>
+    /// A Program whose slot cost will not read publishes NO slot cost, and the
+    /// wire dict carries the absence rather than a nought. It is read beside a
+    /// ceiling, and "takes no slots" next to "3 slots allowed" is an offer the
+    /// career can always afford.
+    /// </summary>
+    [Fact]
+    public void A_Program_that_will_not_say_how_many_slots_it_takes_publishes_none()
+    {
+        var raw = ReadWith(_ => ProgramHandler.Programs.Add(new ProgramWithUnreadableSlots
+        {
+            name = "EarlyXPlanes",
+            title = "Early X-Planes",
+        }));
+
+        var row = Assert.Single(raw.Programs);
+        Assert.Null(row.Slots);
+        var wire = (Dictionary<string, object?>)Rp1ProgramsCapture.BuildPrograms(raw)![0]!;
+        Assert.Null(wire["slots"]);
+    }
+
     [Fact]
     public void Requirements_met_is_what_separates_an_offer_from_a_locked_Program()
     {

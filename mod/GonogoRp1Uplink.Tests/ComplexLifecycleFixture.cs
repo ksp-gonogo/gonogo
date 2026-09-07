@@ -74,12 +74,29 @@ namespace RP0
         /// <summary>The upper renovation limit, derived from the BUILD tonnage rather than the current one.</summary>
         public float MaxPossibleMass => Math.Max(3f, (float)Math.Floor(massOrig * 2f));
 
+        /// <summary>
+        /// Makes <see cref="MinPossibleMass"/> unreadable while RP-1's own verdict
+        /// on the envelope still answers, which is what a renamed or retyped limit
+        /// looks like from the outside: the bool refuses the tonnage and the figure
+        /// behind it cannot be quoted.
+        ///
+        /// <para>A static rather than a subclass because the specification a
+        /// renovation is judged against is built by the production code with
+        /// <c>Activator.CreateInstance</c>, so a test has nothing of its own to
+        /// substitute.</para>
+        /// </summary>
+        public static bool ThrowOnMinPossibleMass;
+
         /// <summary>The lower renovation limit, same derivation.</summary>
-        public float MinPossibleMass => Math.Max(1f, (float)Math.Ceiling(massOrig * 0.5f));
+        public float MinPossibleMass => ThrowOnMinPossibleMass
+            ? throw new InvalidOperationException("MinPossibleMass unreadable")
+            : LowestPossibleMass;
+
+        private float LowestPossibleMass => Math.Max(1f, (float)Math.Ceiling(massOrig * 0.5f));
 
         public bool IsMassWithinUpgradeMargin => massMax <= MaxPossibleMass;
 
-        public bool IsMassWithinDowngradeMargin => massMax >= MinPossibleMass;
+        public bool IsMassWithinDowngradeMargin => massMax >= LowestPossibleMass;
 
         public bool IsMassWithinUpAndDowngradeMargins =>
             IsMassWithinUpgradeMargin && IsMassWithinDowngradeMargin;

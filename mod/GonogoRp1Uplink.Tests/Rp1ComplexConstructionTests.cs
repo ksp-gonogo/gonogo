@@ -62,6 +62,7 @@ namespace GonogoRp1Uplink.Tests
             KSPUtils.IsCareer = true;
             Database.ResourceInfo.LCResourceTypes.Clear();
             Formula.TankCostPerUnit.Clear();
+            LCData.ThrowOnMinPossibleMass = false;
         }
 
         private static LCSpaceCenter Centre(string name = "Cape")
@@ -87,22 +88,24 @@ namespace GonogoRp1Uplink.Tests
             float? massOrig = null,
             int engineers = 0,
             int pads = 1,
-            LaunchComplexType type = LaunchComplexType.Pad)
+            LaunchComplexType type = LaunchComplexType.Pad,
+            LaunchComplex? instance = null)
         {
-            var lc = new LaunchComplex
+            // The caller may bring its own complex, which is how a subclass that
+            // will not answer for one of its members gets the same wiring as every
+            // other case here.
+            var lc = instance ?? new LaunchComplex();
+            lc.Name = name;
+            lc.IsOperational = true;
+            lc.Engineers = engineers;
+            lc.Ksc = ksc;
+            lc.StatsValue = new LCData
             {
                 Name = name,
-                IsOperational = true,
-                Engineers = engineers,
-                Ksc = ksc,
-                StatsValue = new LCData
-                {
-                    Name = name,
-                    massMax = massMax,
-                    massOrig = massOrig ?? massMax,
-                    sizeMax = new UnityEngine.Vector3(20f, 30f, 20f),
-                    lcType = type,
-                },
+                massMax = massMax,
+                massOrig = massOrig ?? massMax,
+                sizeMax = new UnityEngine.Vector3(20f, 30f, 20f),
+                lcType = type,
             };
             lc.SyncFromStats();
             for (var i = 0; i < pads; i++)
@@ -399,6 +402,34 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(1, ksc.SwitchAwayCalls);
         }
 
+        /// <summary>
+        /// And it refuses outright when the complex will not say how many it has.
+        /// Substituted at zero the renovation went ahead: the crew stayed on a
+        /// complex about to go out of service, "reassign them on completion" was
+        /// queued to re-hire nobody, and the answer reported nought unassigned.
+        /// </summary>
+        [Fact]
+        public void A_renovation_refuses_when_the_complex_will_not_say_who_is_on_it()
+        {
+            var ksc = Centre();
+            var lc = ComplexAt(
+                ksc,
+                massMax: 100f,
+                engineers: 14,
+                instance: new LaunchComplexWithUnreadableCrew());
+
+            var result = Modify(lc, mass: 150, assignOnComplete: true);
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Contains("how many engineers", result.Detail);
+            // Nothing queued and nothing written: the complex is still in service
+            // with its crew on it.
+            Assert.Empty(ksc.LCConstructions);
+            Assert.True(lc.IsOperational);
+            Assert.Equal(0, ksc.SwitchAwayCalls);
+        }
+
         [Fact]
         public void A_renovation_can_be_told_to_put_the_SAME_crew_back()
         {
@@ -463,6 +494,28 @@ namespace GonogoRp1Uplink.Tests
             Assert.Empty(ksc.LCConstructions);
             Assert.True(lc.IsOperational);
             Assert.Equal(100f, lc.Stats.massMax);
+        }
+
+        /// <summary>
+        /// And when the limit itself will not read, the refusal says so instead of
+        /// quoting one. RP-1's verdict still refuses the tonnage; what it cannot do
+        /// is name the figure, and substituted at zero it told the operator their
+        /// complex could not go below no tonnes at all.
+        /// </summary>
+        [Fact]
+        public void Refuses_without_a_figure_when_the_tonnage_limit_will_not_read()
+        {
+            var ksc = Centre();
+            var lc = ComplexAt(ksc, massMax: 100f, massOrig: 100f);
+            LCData.ThrowOnMinPossibleMass = true;
+
+            var result = Modify(lc, mass: 49);
+
+            Assert.False(result.Success);
+            Assert.Equal(CommandErrorCode.Range, result.ErrorCode);
+            Assert.Contains("would not say which of its limits", result.Detail);
+            Assert.DoesNotContain("0t", result.Detail);
+            Assert.Empty(ksc.LCConstructions);
         }
 
         [Fact]

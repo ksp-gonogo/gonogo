@@ -83,6 +83,17 @@ namespace RP0.Programs
         public void SetSpeed(Speed spd) => speed = spd;
     }
 
+    /// <summary>
+    /// A Program that will not say how many slots it takes up. Slots are the one
+    /// scarce thing a career spends on running programs at all, so a substituted
+    /// zero is a program that costs nothing to keep, printed next to the ceiling
+    /// it is supposed to be counted against.
+    /// </summary>
+    public class ProgramWithUnreadableSlots : Program
+    {
+        public new int slots => throw new System.InvalidOperationException("slots unreadable");
+    }
+
     public class ProgramModifier
     {
         public string? srcProgram;
