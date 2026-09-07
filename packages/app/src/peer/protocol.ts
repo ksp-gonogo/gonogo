@@ -480,12 +480,26 @@ export type PeerMessage =
       args: unknown;
     }
   | {
+      /**
+       * Carries a REFUSAL as well as a success, in the mod's own shape
+       * (`CommandResult` with `success: false`): the mod refuses on its response
+       * channel, so the host does too, and the station's `TelemetryClient`
+       * reaches `refused` down the same branch the host's did. Sent as an error
+       * instead, a refusal arrived stripped to `code` and `message`, losing the
+       * typed reason and the numbers behind it. See
+       * `PeerHostService.handleSitrepCommand`.
+       */
       type: "sitrep-command-response";
       requestId: string;
       result: unknown;
       meta: import("@ksp-gonogo/sitrep-sdk").Meta;
     }
   | {
+      /**
+       * The host could not GET an answer: no live client, the dispatch machinery
+       * broke, the host's own transport gave up. Never a refusal, which is an
+       * answer and travels above.
+       */
       type: "sitrep-command-error";
       requestId: string;
       code: string;

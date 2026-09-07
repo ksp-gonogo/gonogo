@@ -154,7 +154,20 @@ export class PeerTransport implements Transport {
       }),
       client.onSitrepCommandResponse((requestId, result, meta) => {
         this.pendingCommandIds.delete(requestId);
-        this.deliver({ type: "command-response", requestId, result, meta });
+        /*
+         * The same prototype loss the frame branch above repairs, on the other
+         * channel that carries quantities. A refusal comes down here (the host
+         * re-encodes it onto this channel, see
+         * `PeerHostService.handleSitrepCommand`) and its
+         * `LimitBreach.facilityLevel` is a `Value`, as is anything a command
+         * answers with: two fields survive the hop and the methods do not.
+         */
+        this.deliver({
+          type: "command-response",
+          requestId,
+          result: hydratePayload(result),
+          meta,
+        });
       }),
       client.onSitrepCommandError((requestId, code, message) => {
         this.pendingCommandIds.delete(requestId);
