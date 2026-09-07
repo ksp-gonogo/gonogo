@@ -2,6 +2,7 @@ import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { ConsoleFrame } from "./ConsoleFrame";
 import { expectNoA11yViolations } from "./expectNoA11yViolations";
+import { emittedRuleFor as ruleFor } from "./test/emittedRule";
 
 describe("ConsoleFrame", () => {
   it("renders its content", () => {
@@ -92,7 +93,7 @@ describe("ConsoleFrame", () => {
      * The reason the slot is here rather than in each console: a badge as a
      * flex sibling adds its own row, and at a widget's declared minSize that
      * row pushes the composer out of the tile. Out of flow over the composer's
-     * bottom border, so it adds none.
+     * top border, so it adds none.
      */
     const { container } = render(
       <ConsoleFrame standing={<span>chip</span>} composer={<input />}>
@@ -157,11 +158,18 @@ describe("ConsoleFrame", () => {
     expect(container.querySelector("[data-console-standing]")).toBeNull();
   });
 
-  it("puts the queue above the composer, and both above the standing reading", () => {
+  it("puts the queue and the standing reading above the composer, in that order", () => {
     /*
      * Two slots rather than one `footer` node, so the frame can see whether
      * there is a composer to place the reading against instead of taking the
      * caller's word for it.
+     *
+     * The reading comes BEFORE the composer, which is where it is now drawn: on
+     * the top border rather than the bottom, "above the composer, not below".
+     * The straddle is out of flow and does not care, but the falsy-composer
+     * state puts the same node in flow at this exact spot, and a screen reader
+     * that hears the delay after the control it sits above hears it out of
+     * order.
      */
     const { container } = render(
       <ConsoleFrame
@@ -175,8 +183,50 @@ describe("ConsoleFrame", () => {
     const foot = container.querySelector("[data-console-frame]")
       ?.lastElementChild as HTMLElement;
     expect(Array.from(foot.children).map((child) => child.textContent)).toEqual(
-      ["queue", "Send", "chip"],
+      ["queue", "chip", "Send"],
     );
+  });
+
+  it("straddles the composer's TOP border, never the bottom one", () => {
+    /*
+     * The operator's correction: "the trip time badge should sit above the
+     * composer, not below". Read off the EMITTED RULE rather than
+     * `getComputedStyle`, which resolves neither the `var()` offset nor an
+     * `absolute` box it never laid out, and would report the initial value for
+     * both edges whichever way the stylesheet ran.
+     *
+     * Both halves are asserted: a rule that grew a `top` while keeping its
+     * `bottom` would pin the chip to a stretched box spanning the whole foot,
+     * and the positive half alone reads green on it.
+     */
+    const { container } = render(
+      <ConsoleFrame standing={<span>chip</span>} composer={<input />}>
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    const rule = ruleFor(
+      container.querySelector("[data-console-standing]") as HTMLElement,
+    );
+    expect(rule).toContain("top:var(--space-16)");
+    expect(rule).toContain("translateY(-50%)");
+    expect(rule).not.toContain("bottom:");
+  });
+
+  it("deepens the foot's TOP inset so the half-chip clears the scrollback", () => {
+    /*
+     * The base inset is a chip's padding shy of its half-height, so without the
+     * deepening the part hanging above the border reaches back over the last
+     * line of the log, which is the exact defect this reading was taken off the
+     * prose to fix.
+     */
+    const { container } = render(
+      <ConsoleFrame standing={<span>chip</span>} composer={<input />}>
+        <p>scrollback</p>
+      </ConsoleFrame>,
+    );
+    const foot = container.querySelector("[data-console-frame]")
+      ?.lastElementChild as HTMLElement;
+    expect(ruleFor(foot)).toContain("padding-top:var(--space-16)");
   });
 
   it("declares the tone for what is inside it, and wears none of it", () => {
@@ -239,32 +289,3 @@ describe("ConsoleFrame", () => {
     await expectNoA11yViolations(container);
   });
 });
-
-/**
- * The CSS styled-components actually emitted for `element`'s own generated
- * class, as text.
- *
- * Needed because jsdom's computed style cannot resolve a shorthand containing a
- * `var()` and returns the initial value instead, which makes every
- * `getComputedStyle(...).border` assertion in this file's subject area vacuous.
- * Throws rather than returning empty when no rule matches: a lookup that
- * silently finds nothing turns "the border is subtle" into "no border was
- * examined", and both read green.
- */
-function ruleFor(element: HTMLElement): string {
-  const generated = Array.from(element.classList).filter(
-    (name) => !name.startsWith("sc-"),
-  );
-  const sheet = Array.from(document.querySelectorAll("style"))
-    .map((style) => style.textContent ?? "")
-    .join("");
-  for (const name of generated) {
-    const at = sheet.indexOf(`.${name}{`);
-    if (at !== -1) {
-      return sheet.slice(at, sheet.indexOf("}", at) + 1);
-    }
-  }
-  throw new Error(
-    `no emitted rule for any of [${generated.join(", ")}]; the stylesheet lookup is broken, not the border`,
-  );
-}

@@ -54,11 +54,12 @@ import styled, { css } from "styled-components";
  * `ScrollArea`, a canvas, or a terminal emulator that scrolls itself. Owning
  * the scroll here would fight all three.
  *
- * ## The standing reading sits at the FOOT, on the composer's bottom border
+ * ## The standing reading sits at the FOOT, on the composer's TOP border
  *
  * `standing` is a readout of what is true of the LINK right now rather than of
- * any one thing said over it, and this frame draws it over the bottom border of
- * the composer, right-aligned.
+ * any one thing said over it, and this frame draws it over the top border of
+ * the composer, right-aligned: between the scrollback and the line the operator
+ * types on.
  *
  * It hung in the top-right of the scrollback for three days and the objection
  * that had been raised against putting it there was the one that came true: a
@@ -79,6 +80,36 @@ import styled, { css } from "styled-components";
  * chip flush to the composer's right edge lands its figure in the same x as a
  * countdown's. That is why the offset below is the FOOT's inset and not the
  * composer's own, which would be a chip's padding narrower.
+ *
+ * TOP rather than bottom because the reading belongs on the side of the
+ * composer the operator's eye is already crossing: "the trip time badge should
+ * sit above the composer, not below". The bottom border put it under the last
+ * control on the widget, where it read as a footnote to the send button rather
+ * than as a property of the link the queue above it is counting down on. On the
+ * top border it lands where the queue's own last row would be, which is the
+ * whole point of the shared column.
+ *
+ * ## The composer's own flag holds the OTHER end of that border
+ *
+ * `ComposerBar` pins a short flag ("NO PATH") on the same top border, and the
+ * two CAN be up at once.
+ *
+ * Not on the message console: there the flag is shown exactly when the
+ * separation is null, one expression off one source, and a null separation gets
+ * no chip. The terminal is the one that can show both, because its refusal and
+ * its separation come off two topics that reveal on different clocks:
+ * `comms.delay` is TrueNow, `comms.link` is Delayed (freeze-exempt), so on a
+ * link coming BACK the separation is measurable again a light-time before the
+ * refusal clears. Bounded by the separation itself, so at the sub-second ones
+ * that get a chip the window is under a second; a one-frame skew between the
+ * two deliveries opens the same gap for a frame.
+ *
+ * They take opposite ENDS of the border rather than being stacked or made
+ * exclusive: the chip keeps the right, because its column is shared with the
+ * queue and is the thing that must not move, and the flag takes the left, where
+ * it sits over the prompt glyph and reads as a label on the row it is refusing
+ * for. Neither knows about the other, which is what stops a fix here from
+ * needing one there.
  *
  * ## With no composer there is no border to straddle
  *
@@ -137,8 +168,8 @@ export interface ConsoleFrameProps extends ComponentPropsWithoutRef<"div"> {
    */
   composer?: ReactNode;
   /**
-   * A standing reading of the link, drawn over the bottom border of the
-   * composer and right-aligned to the queue's column of times.
+   * A standing reading of the link, drawn over the TOP border of the composer
+   * and right-aligned to the queue's column of times.
    *
    * Out of flow while there IS a composer, so it costs the body no height; an
    * ordinary right-aligned child at the foot when there is not, since then
@@ -178,12 +209,17 @@ export function ConsoleFrame({
       {hasFoot && (
         <ConsoleFrame__Foot $straddled={straddles}>
           {queue}
-          {composer}
           {standing !== undefined && (
             /* `data-console-standing`, the sibling of `data-console-frame`
                above and there for the same reason: WHERE a reading hangs is
                invisible to a role query, and both consoles rendered a perfectly
-               good one while they hung it in two different places. */
+               good one while they hung it in two different places.
+
+               BEFORE the composer, matching where it is drawn. Nothing about
+               the straddle needs it (it is out of flow either way), but the
+               falsy-composer case puts it in flow at this exact spot, and a
+               reading announced after the control it sits above is a reading
+               read out in the wrong order. */
             <ConsoleFrame__Standing
               data-console-standing=""
               $straddle={straddles}
@@ -191,6 +227,7 @@ export function ConsoleFrame({
               {standing}
             </ConsoleFrame__Standing>
           )}
+          {composer}
         </ConsoleFrame__Foot>
       )}
     </ConsoleFrame__Box>
@@ -247,11 +284,16 @@ const ConsoleFrame__Surface = styled.div`
  * same border and the same horizontal padding, so equal outer edges mean equal
  * inner ones.
  *
- * `bottom` is the foot's padding-bottom, so the chip's own bottom edge lands on
- * the composer's bottom border and the translate centres it there. The pair
- * reads the SAME token as the padding below deliberately: a hand-computed
- * offset here would have to be recomputed whenever the chip's font size moved,
- * and it does move, the xs token grows on a coarse pointer.
+ * `top` is the foot's padding-top, so the chip's own top edge lands on the
+ * composer's top border and the translate centres it there. The pair reads the
+ * SAME token as the padding below deliberately: a hand-computed offset here
+ * would have to be recomputed whenever the chip's font size moved, and it does
+ * move, the xs token grows on a coarse pointer.
+ *
+ * That offset assumes the composer is the first BOX in the foot, which holds
+ * because the straddle needs a composer and the only other thing the foot ever
+ * draws above one is the queue: `Console` picks the chip or the queue, never
+ * both, and this frame is reached through `Console` alone.
  *
  * `z-index: 1` is local sibling ordering inside this frame's own stacking
  * context: it lifts the chip over whatever else the foot draws. Not app-global
@@ -262,8 +304,8 @@ const ConsoleFrame__Standing = styled.div<{ $straddle: boolean }>`
   display: flex;
   align-items: center;
   gap: var(--space-6);
-  /* It overlaps the send button's bottom corner, the same way the composer's
-     own flag overlaps its top one. A readout must not take a press meant for
+  /* It overlaps the composer's top-right corner, the same border the row's own
+     flag straddles at the far end. A readout must not take a press meant for
      the control underneath it: there is nothing here to click. */
   pointer-events: none;
 
@@ -272,8 +314,8 @@ const ConsoleFrame__Standing = styled.div<{ $straddle: boolean }>`
       ? css`
           position: absolute;
           right: var(--space-8);
-          bottom: var(--space-16);
-          transform: translateY(50%);
+          top: var(--space-16);
+          transform: translateY(-50%);
           z-index: 1;
         `
       : /* No border to straddle, so it takes a line of its own at the foot and
@@ -293,10 +335,11 @@ const ConsoleFrame__Standing = styled.div<{ $straddle: boolean }>`
  * console rather than as its bottom section: an inset bordered box has a widget
  * around it, one flush to three edges is a region of the widget.
  *
- * `$straddled` deepens the bottom inset to hold the half-chip that hangs below
- * the composer's border. Without it the frame's own `overflow: hidden` takes a
- * slice off the bottom of the reading, which is the one place a chip pinned at
- * the foot can be clipped and the scrollback's corner never could.
+ * `$straddled` deepens the TOP inset to hold the half-chip that hangs above the
+ * composer's border. Without it that half reaches back over the bottom of the
+ * scrollback, which is the defect this reading was moved off the prose to fix
+ * in the first place: the base inset is a chip's padding shy of its half-height
+ * and the difference would land on the last line of the log.
  */
 const ConsoleFrame__Foot = styled.div<{ $straddled: boolean }>`
   position: relative;
@@ -310,6 +353,6 @@ const ConsoleFrame__Foot = styled.div<{ $straddled: boolean }>`
   ${({ $straddled }) =>
     $straddled &&
     css`
-      padding-bottom: var(--space-16);
+      padding-top: var(--space-16);
     `}
 `;

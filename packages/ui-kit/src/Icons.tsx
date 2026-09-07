@@ -10,6 +10,7 @@ import {
   ChevronUp,
   Columns2,
   Computer,
+  CornerDownLeft,
   Database,
   FileText,
   Heart,
@@ -30,7 +31,6 @@ import {
   RectangleVertical,
   Rows2,
   Satellite,
-  SendHorizontal,
   Settings,
   Square,
   Star,
@@ -112,9 +112,15 @@ export const FullHeightIcon = makeIcon(RectangleVertical);
 /**
  * Commit what is composed, on a console's composer.
  *
- * The horizontal plane rather than the tilted one: it points the way the row
- * runs, so at the far end of a composer it reads as "out of here" with no label
- * under it. `ComposerBar` is the only thing that draws it, so the glyph means
- * one thing wherever an operator meets it.
+ * The RETURN CARRIAGE, the ⏎ on the key itself: a rule running right, turning
+ * down and coming back with an arrowhead. A paper plane was here first and read
+ * as a messaging app rather than as a console: "I don't like the submit icon,
+ * it's too app-y. I want more of a return carriage icon."
+ *
+ * It also says the true thing about the control. The button is an addition to
+ * Enter and never a replacement for it (see `ComposerBar.onSend`), so a glyph
+ * that IS the Enter key names the key an operator should be using, where a send
+ * arrow named a second way to do it. `ComposerBar` is the only thing that draws
+ * it, so the glyph means one thing wherever an operator meets it.
  */
-export const SendIcon = makeIcon(SendHorizontal);
+export const SendIcon = makeIcon(CornerDownLeft);

@@ -89,6 +89,17 @@ interface Scenario {
   pxH?: number;
 }
 
+/*
+ * Every scenario below whose name carries `synthetic` passes `composer:
+ * "omitted"`, and NO console in the app does. All three call sites pass the
+ * prop (the message widget twice, the terminal widget once); what the terminal
+ * varies is its VALUE, `composer={lineMode && !readOnly}`, which is the
+ * `falsy` kind and is character mode. The omitted kind is a `ConsoleFrame`
+ * branch with no caller, kept in the matrix because the branch is live code and
+ * dropping the render would leave it the only unphotographed state, but a
+ * picture of it is not a picture of the product and must not be read as one.
+ */
+
 const SCENARIOS: Scenario[] = [
   {
     // No delay reading at all: `oneWaySeconds` never passed. The foot holds the
@@ -167,7 +178,7 @@ const SCENARIOS: Scenario[] = [
   {
     // The same, with NO composer: the foot exists only because the strip asked
     // for it, and the strip draws nothing.
-    name: "08-long-delay-empty-inflight-no-composer",
+    name: "08-synthetic-long-delay-empty-inflight-no-composer",
     payload: {
       panelTitle: "CONSOLE",
       oneWaySeconds: 240,
@@ -202,7 +213,7 @@ const SCENARIOS: Scenario[] = [
   },
   {
     // Composer OMITTED: no foot at all.
-    name: "11-composer-omitted",
+    name: "11-synthetic-composer-omitted",
     payload: { panelTitle: "CONSOLE", composer: "omitted", lines: LOG },
   },
   {
@@ -326,7 +337,7 @@ const SCENARIOS: Scenario[] = [
      * most likely to be got wrong, and the one `11-composer-omitted` cannot
      * show because it passes no delay at all.
      */
-    name: "22-short-delay-badge-no-composer",
+    name: "22-synthetic-short-delay-badge-no-composer",
     payload: {
       panelTitle: "CONSOLE",
       oneWaySeconds: 0.4,
@@ -335,12 +346,47 @@ const SCENARIOS: Scenario[] = [
     },
   },
   {
-    // The chip with a foot that exists and holds nothing.
-    name: "23-short-delay-badge-composer-falsy",
+    // The chip with a foot that exists and holds nothing: the terminal in
+    // CHARACTER mode, which is `composer={lineMode && !readOnly}` coming out
+    // false. A real state, unlike the omitted ones above.
+    name: "23-char-mode-short-delay-badge-composer-falsy",
     payload: {
       panelTitle: "CONSOLE",
       oneWaySeconds: 0.4,
       composer: "falsy",
+      lines: FULL_LOG,
+    },
+  },
+  {
+    /*
+     * The COLLISION state: the composer's refusal flag and the standing chip
+     * both up, on the same border. Reachable on the terminal, whose refusal and
+     * separation come off two topics that reveal on different clocks, so on a
+     * link coming back the separation is measurable again before the refusal
+     * clears. Not reachable on the message console, where the flag and the null
+     * separation are the same result read twice.
+     *
+     * They take opposite ENDS of the border. This render is what says so.
+     */
+    name: "24-badge-with-composer-flag",
+    payload: {
+      panelTitle: "CONSOLE",
+      oneWaySeconds: 0.4,
+      composer: "bar",
+      composerFlag: "NO PATH",
+      lines: FULL_LOG,
+    },
+  },
+  {
+    // The flag with the QUEUE rather than the chip, which is the other thing
+    // that can sit immediately above the composer.
+    name: "25-strip-with-composer-flag",
+    payload: {
+      panelTitle: "CONSOLE",
+      oneWaySeconds: 240,
+      inFlight: ONE_OUT,
+      composer: "bar",
+      composerFlag: "NO PATH",
       lines: FULL_LOG,
     },
   },
@@ -448,8 +494,27 @@ async function main(): Promise<void> {
             ) / 10
           );
         });
+        /*
+         * Whether the chip and the composer's refusal flag are touching. They
+         * straddle the same border and can be up at once, so "do they overlap"
+         * is the question this matrix exists to answer, and a 460px-wide
+         * picture is exactly the wrong instrument for a few pixels of it.
+         * `null` when the state has no flag; `"n/a"` when it has a flag and no
+         * chip, which is not the same reading as "clear".
+         */
+        const flagEl = Array.from(
+          frame?.querySelectorAll('[role="status"]') ?? [],
+        ).find((el) => (el.textContent ?? "").trim() === "NO PATH");
+        const overlap = (() => {
+          if (!flagEl) return null;
+          if (!chip) return "n/a";
+          const [f, c] = [flagEl, chip].map((el) => el.getBoundingClientRect());
+          const gap = c.left - f.right;
+          return gap > 0 ? `clear by ${Math.round(gap)}px` : "OVERLAPPING";
+        })();
         return {
           children: frame?.children.length ?? 0,
+          flagVsChip: overlap,
           footH:
             frame && foot && foot !== surface
               ? Math.round(foot.getBoundingClientRect().height)
@@ -463,7 +528,7 @@ async function main(): Promise<void> {
         };
       });
       console.log(
-        `  ${outName.padEnd(46)} frame children=${measured.children} surface=${measured.surfaceH}px foot=${measured.footH ?? "none"} chip=${measured.chipIn ?? "none"} column=${measured.column ?? "n/a"}`,
+        `  ${outName.padEnd(50)} frame children=${measured.children} surface=${measured.surfaceH}px foot=${measured.footH ?? "none"} chip=${measured.chipIn ?? "none"} column=${measured.column ?? "n/a"}${measured.flagVsChip ? ` flag-vs-chip=${measured.flagVsChip}` : ""}`,
       );
     }
   } finally {

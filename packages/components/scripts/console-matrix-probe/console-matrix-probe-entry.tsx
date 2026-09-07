@@ -35,6 +35,14 @@ interface ConsoleMatrixPayload {
   inFlight?: InFlightListItem[];
   inFlightFrozenAtDispatch?: boolean;
   composer: ComposerKind;
+  /**
+   * The composer's own refusal flag, which straddles the LEFT end of the same
+   * border the console's standing chip straddles the right end of. Here so a
+   * scenario can put both up at once: the terminal reads its refusal and its
+   * separation off two topics that reveal on different clocks, so on a link
+   * coming back the separation is measurable again before the refusal clears.
+   */
+  composerFlag?: string;
   /** Lines of prose in the scrollback, so the surface is not blank. */
   lines: string[];
   pxW: number;
@@ -43,11 +51,16 @@ interface ConsoleMatrixPayload {
 
 let activeRoot: Root | null = null;
 
-function composerFor(kind: ComposerKind) {
+function composerFor(kind: ComposerKind, flag?: string) {
   if (kind === "omitted") return undefined;
   if (kind === "falsy") return false;
   return (
-    <ComposerBar prompt="❯" onSend={() => {}} sendVariant="icon">
+    <ComposerBar
+      prompt="❯"
+      onSend={() => {}}
+      sendVariant="icon"
+      {...(flag !== undefined ? { blocked: true, flag } : {})}
+    >
       <Text size="xs" tone="faint">
         Type a message
       </Text>
@@ -56,7 +69,7 @@ function composerFor(kind: ComposerKind) {
 }
 
 function Harness(payload: ConsoleMatrixPayload) {
-  const composer = composerFor(payload.composer);
+  const composer = composerFor(payload.composer, payload.composerFlag);
   return (
     <Panel panelTitle={payload.panelTitle}>
       <Console

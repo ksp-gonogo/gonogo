@@ -46,8 +46,10 @@ export interface ComposerBarProps extends ComponentPropsWithoutRef<"div"> {
    */
   blocked?: boolean;
   /**
-   * A short chip straddling the row's top border, saying WHY, since an outline
-   * that has turned red states the fact and not the cause.
+   * A short chip straddling the LEFT end of the row's top border, saying WHY,
+   * since an outline that has turned red states the fact and not the cause. The
+   * right end of that border belongs to the console's standing delay reading,
+   * which shares a column with its queue and cannot move; see the pin below.
    *
    * A string rather than a node: it is always a few upper-case words in the
    * row's own state tone, and the two widgets that render one would otherwise
@@ -227,11 +229,20 @@ const ComposerBar__Flag = styled.div<{ $blocked: boolean }>`
      coarse pointer, i.e. on the Steam Deck, while a literal offset stayed put. */
   top: 0;
   transform: translateY(-50%);
-  right: var(--space-8);
+  /* The LEFT end of that border, because the right one is spoken for: a console
+     hangs its standing delay reading over the same edge, right-aligned to the
+     column its queue's countdowns end in, and the two can be up together. A
+     terminal reads its refusal and its separation off two topics that reveal on
+     different clocks, so on a link coming back the separation is measurable
+     again before the refusal clears, and both are drawn. They take opposite
+     ends rather than being stacked, and neither has to know about the other.
+     Over the prompt glyph reads well on its own terms too: a label at the head
+     of the row it is refusing for. */
+  left: var(--space-8);
   /* Local ordering against the row it is pinned to only; not app-global
      chrome, so not on the --z-* ladder. */
   z-index: 1;
-  /* It overlaps the send button's top corner, and a word saying why the row is
+  /* It overlaps the prompt glyph's top corner, and a word saying why the row is
      refusing input must not eat a press aimed at the control under it. */
   pointer-events: none;
   padding: var(--space-hair) var(--space-6);
