@@ -317,9 +317,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     modelName: "text",
   },
   "CommsDelay": {
-    lightSpeedMetresPerSecond: "m/s",
     oneWaySeconds: "s",
-    oneWaySecondsRate: "1",
     source: "enum",
   },
   "CommsHop": {
@@ -1413,9 +1411,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     modelName: "text",
   },
   "comms.delay": {
-    lightSpeedMetresPerSecond: "m/s",
     oneWaySeconds: "s",
-    oneWaySecondsRate: "1",
     source: "enum",
   },
   "comms.link": {

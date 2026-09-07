@@ -376,62 +376,8 @@ public class CommsDelay
     /// own summary for the null/zero split, which is the whole discriminator:
     /// null is "nothing measurable", 0 is a measured or applied zero.
     /// </summary>
-    [SitrepReckonable(ReckoningBases.RateIntegration, "oneWaySecondsRate")]
     [SitrepUnit(Units.Seconds)]
     public double? OneWaySeconds { get; set; }
-
-    /// <summary>
-    /// How fast <see cref="OneWaySeconds"/> is changing, in seconds of delay
-    /// per second of universal time. Positive while the craft recedes.
-    ///
-    /// <para>Published rather than left to be differenced, because differencing
-    /// it downstream cannot be done honestly. A consumer sees a scalar and has
-    /// no way to tell motion from a REROUTE: the moment the route changes hop
-    /// for hop the total jumps discontinuously, and the jump divided by the
-    /// interval is a rate of nothing. The producer holds the ordered hop list
-    /// this total was summed from, so it can compare route identity between
-    /// ticks and decline; and it observes on every physics tick rather than at
-    /// whatever rate the channel is sampled at or a relayed station receives
-    /// it.</para>
-    ///
-    /// <para><b>null</b> whenever there is no honest rate to report, which is
-    /// every case that is not two consecutive observations over one unchanged
-    /// route: the first observation of a route, the tick a reroute lands on, a
-    /// non-advancing or rewound clock, and every case where
-    /// <see cref="OneWaySeconds"/> is itself null. It is never 0 as a stand-in
-    /// for "unknown"; a 0 means measured, and a craft holding station really
-    /// does have a rate of zero.</para>
-    ///
-    /// <para>A SECANT over the last tick interval, not an instantaneous
-    /// derivative, so under time warp it is the mean rate across an interval
-    /// that may be long. Consuming it is a first-order carry and diverges as
-    /// the route's geometry curves; a consumer owns that horizon.</para>
-    /// </summary>
-    [SitrepUnit(Units.Dimensionless)]
-    public double? OneWaySecondsRate { get; set; }
-
-    /// <summary>
-    /// The speed light travels at in THIS save, m/s: the real constant scaled
-    /// by whatever factor the delay model is configured with. A save left at
-    /// clean realism reports 299792458.
-    ///
-    /// <para>Here so a consumer can convert a distance to a light-time without
-    /// assuming the real constant. <c>comms.path</c> publishes each hop's
-    /// distance in metres and no per-hop time, so anything wanting one has to
-    /// divide, and dividing by the textbook speed of light is simply wrong on
-    /// any save that scales it. The EFFECTIVE speed rather than the scale
-    /// factor, because the scale is a configuration knob whose meaning a
-    /// consumer would have to be taught, and this is a physical quantity in the
-    /// units of the distances it divides.</para>
-    ///
-    /// <para><b>null</b> when nothing says: no delay configuration reached the
-    /// computation, or the configured scale is not a usable positive number.
-    /// Populated even where <see cref="OneWaySeconds"/> is null or zero, since
-    /// a save's light speed is knowable while the craft has no route home and
-    /// while the delay feature is switched off.</para>
-    /// </summary>
-    [SitrepUnit(Units.MetresPerSecond)]
-    public double? LightSpeedMetresPerSecond { get; set; }
 
     [SitrepUnit(Units.Enumeration)]
     public CommsDelaySource Source { get; set; }

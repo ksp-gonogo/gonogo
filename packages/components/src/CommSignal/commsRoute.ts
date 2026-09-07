@@ -1,4 +1,4 @@
-import type { CommsHop, Value } from "@ksp-gonogo/sitrep-sdk";
+import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 
 /**
  * One `comm-signal.hop-rates` entry (components-side mirror of the sdk leaf's
@@ -126,57 +126,35 @@ export function commsRouteRelayCount(hops: readonly CommsHop[]): number {
 }
 
 /**
- * One leg's light-time, seconds. `comms.path` carries each hop's distance
- * but no per-hop delay (the contract has no such field), so this derives it
- * rather than reading it off the wire.
+ * One leg's light-time. `comms.path` carries each hop's distance but no per-hop
+ * delay (the contract has no such field), so this derives it rather than
+ * reading it off the wire.
  *
- * When the path's total one-way delay is known, the hop's share is
- * apportioned by distance against the route's total distance:
- * `hopMeters * (pathDelaySeconds / totalMeters)`. That reproduces
- * `SignalDelay.cs`'s own `OneWaySeconds = totalMeters / effectiveC` math
- * exactly, so every leg's time sums to the total DELAY row above the route.
+ * The hop's share of the path's total one-way delay, apportioned by distance
+ * against the route's total distance. That reproduces `SignalDelay.cs`'s own
+ * `OneWaySeconds = totalMeters / effectiveC` exactly, so every leg's time sums
+ * to the total DELAY row above the route, and the save's light speed cancels
+ * out of the arithmetic rather than having to be known: a length over a length
+ * is dimensionless, and scaling a delay by it lands back in seconds.
  *
- * With no total to apportion against, it divides by the save's own light speed,
- * which `comms.delay` publishes beside the delay as
- * `lightSpeedMetresPerSecond`. That case is not rare: it is every save with the
- * delay feature switched off, where the total is a real zero and the route is
- * still worth annotating with the light-time each leg WOULD carry. This used to
- * divide by the textbook speed of light, mirrored from `SignalDelay.cs` as a
- * constant, which is simply the wrong number on any save that scales it, and
- * nothing on the wire could correct it.
- *
- * Returns `undefined` when this hop has no distance to derive from, and now
- * also when there is neither a total nor a light speed to divide by: guessing
- * the constant is exactly what the published field exists to stop.
- *
- * Every unwrap the whole route makes happens HERE, which is why the delay
- * arrives as its `Value` rather than pre-unwrapped by the caller: the share is
- * a length over a length, a ratio the unit algebra has no term for, so the
- * magnitudes are taken together in one place instead of scattered.
+ * `undefined` when this hop has no distance, when the route has no distance at
+ * all, or when there is no positive total to apportion. A save with the delay
+ * feature off reports a real, applied ZERO here, and the honest annotation for a
+ * leg of a route that carries no delay is no light-time rather than the one it
+ * would carry if the feature were on.
  */
-export function commsLegTimeSeconds(
+export function commsLegTime(
   hop: CommsHop,
   hops: readonly CommsHop[],
   pathDelay: Value<"s"> | null | undefined,
-  lightSpeed: Value<"m/s"> | null | undefined,
-): number | undefined {
-  const hopMeters = hop.distanceMeters?.magnitude;
-  if (hopMeters === undefined) return undefined;
-  const totalMeters = hops.reduce(
-    (sum, h) => sum + (h.distanceMeters?.magnitude ?? 0),
-    0,
+): Value<"s"> | undefined {
+  const hopDistance = hop.distanceMeters;
+  if (hopDistance === undefined) return undefined;
+  if (!pathDelay?.greaterThan(0)) return undefined;
+  const totalDistance = hops.reduce(
+    (sum, h) => (h.distanceMeters ? sum.plus(h.distanceMeters) : sum),
+    value("m", 0),
   );
-  const pathDelaySeconds = pathDelay?.magnitude;
-  if (
-    typeof pathDelaySeconds === "number" &&
-    pathDelaySeconds > 0 &&
-    totalMeters > 0
-  ) {
-    return hopMeters * (pathDelaySeconds / totalMeters);
-  }
-  const metresPerSecond = lightSpeed?.magnitude;
-  if (typeof metresPerSecond !== "number" || !(metresPerSecond > 0)) {
-    return undefined;
-  }
-  return hopMeters / metresPerSecond;
+  if (!totalDistance.greaterThan(0)) return undefined;
+  return pathDelay.times(hopDistance.per(totalDistance));
 }

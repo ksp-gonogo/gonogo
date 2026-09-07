@@ -1,5 +1,4 @@
 import type {
-  CommsDelay,
   DockAlignment,
   VesselFlight,
   VesselOrbitTruth,
@@ -382,119 +381,6 @@ const reckonOrbitTruth: ReckonerDefinition<
 };
 
 /**
- * How far a light-time carried at its last observed rate stays honest,
- * expressed as a fraction of the light-time itself rather than as a number of
- * seconds.
- *
- * A fixed horizon is the wrong shape here, because the same elapsed time means
- * completely different things at different distances. A craft in low orbit has
- * a delay of milliseconds and a range that reverses within a single pass, so a
- * few seconds is already too far; a craft at Jool has a delay of forty minutes
- * and a range rate that barely turns over an hour, and under warp an hour of
- * view time passes in a moment. One relative rule covers both: the model is
- * good while the correction it applies is small beside the value it is
- * correcting, which is what "first-order" means.
- *
- * A quarter is the round number inside that, chosen rather than measured, and
- * it is stated once so widening it is a decision somebody takes. It also makes
- * the zero floor free: a carry that cannot move the value by more than a
- * quarter of itself can never push a light-time negative, so no separate clamp
- * has to exist to stop one.
- */
-const DELAY_RATE_HORIZON_FRACTION = 0.25;
-
-/**
- * `comms.delay.oneWaySeconds`, carried at the range rate riding the same
- * payload.
- *
- * `deps: []`, and honestly so for the same reason the target's is: both halves
- * are fields of the value's own Topic, which is what
- * `[SitrepReckonable(RateIntegration, "oneWaySecondsRate")]` says. A consumer
- * holding nothing but the stream carries it forward with one multiply-add.
- *
- * ## Why the producer publishes the rate instead of this differencing it
- *
- * A reckoner is handed ONE point and no history, so there is nothing here to
- * difference. That is the mechanical answer; the substantive one is that even a
- * consumer keeping its own history could not do this honestly. A reroute
- * changes the total discontinuously, and from the outside a reroute and a fast
- * approach look identical: one scalar, smaller than the last. Divide that jump
- * by the interval and integrating the result runs the delay away in whichever
- * direction the new route happened to differ. The producer holds the ordered
- * hop list and refuses across a route change, which is a distinction only it
- * can draw.
- */
-const reckonCommsDelay: ReckonerDefinition<
-  CommsDelay,
-  Pick<CommsDelay, "oneWaySeconds">,
-  readonly []
-> = {
-  deps: [],
-  reckon(point, _resolved, { grade, viewUt }) {
-    const payload = point.payload;
-    /*
-     * The DECLARED input first, as the target's does, so an operator gets the
-     * contract's own spelling of what was missing rather than a sentence about
-     * this model's internals. It is absent on every frame the producer refused
-     * to report a rate for, a blackout included.
-     */
-    const rate = magnitudeOr(payload?.oneWaySecondsRate, Number.NaN);
-    if (!Number.isFinite(rate)) {
-      return {
-        declined: { reason: "input-absent", input: "oneWaySecondsRate" },
-      };
-    }
-    const seconds = magnitudeOr(payload?.oneWaySeconds, Number.NaN);
-    if (!Number.isFinite(seconds)) {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          note: "no light-time was measured, so there is nothing to carry",
-        },
-      };
-    }
-    /*
-     * Declines on a LIVE reading, the same as the dead-reckoning pair above and
-     * for the same reason: this integrates FROM the last observation, so on a
-     * value that arrived on time it would replace a measured light-time with
-     * arithmetic about the same instant.
-     */
-    if (grade === undefined) {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          note: "the observation is current, so there is no gap to carry it across",
-        },
-      };
-    }
-    const dt = viewUt - point.validAt;
-    if (!Number.isFinite(dt)) {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          note: "the view time is not a number",
-        },
-      };
-    }
-    if (Math.abs(rate * dt) > DELAY_RATE_HORIZON_FRACTION * seconds) {
-      return {
-        declined: {
-          reason: "beyond-horizon",
-          input: "oneWaySecondsRate",
-          note: `a light-time carried at its last observed rate is honest while the correction stays under a fraction of ${DELAY_RATE_HORIZON_FRACTION} of the light-time, and this is further`,
-        },
-      };
-    }
-    return {
-      modelled: movedFields("rate-integration", "oneWaySeconds"),
-      reckon: (at) => ({
-        oneWaySeconds: value("s", seconds + rate * (at - point.validAt)),
-      }),
-    };
-  },
-};
-
-/**
  * Register core's vanilla for every marked Topic. Idempotent: the registry is
  * keyed by `(topic, owner)` and re-registration under one owner is
  * last-write-wins, so calling it twice is a no-op and a test that has cleared
@@ -505,7 +391,6 @@ const reckonCommsDelay: ReckonerDefinition<
  * cleared the registry between tests still gets the vanilla back.
  */
 export function registerCoreReckoners(): void {
-  registerReckoner("comms.delay", CORE_RECKONER_OWNER, reckonCommsDelay);
   registerReckoner("vessel.target", CORE_RECKONER_OWNER, reckonTarget);
   registerReckoner("vessel.dock", CORE_RECKONER_OWNER, reckonDock);
   registerReckoner("vessel.flight", CORE_RECKONER_OWNER, reckonFlight);

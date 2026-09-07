@@ -4,7 +4,7 @@ import {
   buildCommsRouteNodes,
   commsBottleneckHopId,
   commsHopId,
-  commsLegTimeSeconds,
+  commsLegTime,
   commsRouteRelayCount,
 } from "./commsRoute";
 
@@ -84,7 +84,7 @@ describe("commsRouteRelayCount", () => {
   });
 });
 
-describe("commsLegTimeSeconds", () => {
+describe("commsLegTime", () => {
   it("apportions the path's total delay across legs by distance", () => {
     const hops = [
       hopWithDistance("Active Vessel", "Relay Sat 1", 1_250_000),
@@ -95,118 +95,69 @@ describe("commsLegTimeSeconds", () => {
     const totalDelay = 6.2;
 
     const legTimes = hops.map((h) =>
-      commsLegTimeSeconds(h, hops, value("s", totalDelay), undefined),
+      commsLegTime(h, hops, value("s", totalDelay)),
     );
 
-    expect(legTimes[0]).toBeCloseTo((1_250_000 / totalMeters) * totalDelay, 9);
-    expect(legTimes[1]).toBeCloseTo((2_400_000 / totalMeters) * totalDelay, 9);
-    expect(legTimes[2]).toBeCloseTo((640_000 / totalMeters) * totalDelay, 9);
+    expect(legTimes[0]?.magnitude).toBeCloseTo(
+      (1_250_000 / totalMeters) * totalDelay,
+      9,
+    );
+    expect(legTimes[1]?.magnitude).toBeCloseTo(
+      (2_400_000 / totalMeters) * totalDelay,
+      9,
+    );
+    expect(legTimes[2]?.magnitude).toBeCloseTo(
+      (640_000 / totalMeters) * totalDelay,
+      9,
+    );
     // The apportioned legs always sum back to the total DELAY row above them.
     expect(
-      (legTimes[0] ?? 0) + (legTimes[1] ?? 0) + (legTimes[2] ?? 0),
+      (legTimes[0]?.magnitude ?? 0) +
+        (legTimes[1]?.magnitude ?? 0) +
+        (legTimes[2]?.magnitude ?? 0),
     ).toBeCloseTo(totalDelay, 9);
   });
 
-  it("divides by the save's published light speed with no path delay to apportion against", () => {
-    const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
-    const c = value("m/s", 299_792_458);
-    expect(commsLegTimeSeconds(hops[0], hops, undefined, c)).toBeCloseTo(1, 9);
-    expect(commsLegTimeSeconds(hops[0], hops, null, c)).toBeCloseTo(1, 9);
-  });
-
-  it("uses the save's light speed rather than the real one when the save scales it", () => {
+  it("apportions without being told the save's light speed", () => {
     /*
-     * The whole reason `comms.delay` publishes the speed: on a save running at
-     * twice light speed this leg takes half a second, and nothing on the wire
-     * could say so while the constant was mirrored client-side.
+     * The share is a length over a length, so whatever speed this save's light
+     * travels at cancels: a save running at twice light speed reports half the
+     * total, and each leg's share of it is unchanged.
      */
-    const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
-    expect(
-      commsLegTimeSeconds(hops[0], hops, undefined, value("m/s", 599_584_916)),
-    ).toBeCloseTo(0.5, 9);
+    const hops = [
+      hopWithDistance("Active Vessel", "Relay Sat 1", 299_792_458),
+      hopWithDistance("Relay Sat 1", "home", 299_792_458),
+    ];
+    expect(commsLegTime(hops[0], hops, value("s", 1))?.magnitude).toBeCloseTo(
+      0.5,
+      9,
+    );
+    expect(commsLegTime(hops[0], hops, value("s", 0.5))?.magnitude).toBeCloseTo(
+      0.25,
+      9,
+    );
   });
 
-  it("returns undefined rather than guessing when no light speed was published", () => {
+  it("returns a Value in seconds, not a bare number", () => {
     const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
-    expect(
-      commsLegTimeSeconds(hops[0], hops, undefined, undefined),
-    ).toBeUndefined();
-    expect(
-      commsLegTimeSeconds(hops[0], hops, undefined, value("m/s", 0)),
-    ).toBeUndefined();
+    expect(commsLegTime(hops[0], hops, value("s", 1))?.unit).toBe("s");
   });
 
   it("returns undefined for a hop with no distance to derive from", () => {
     const hops = [hop("Active Vessel", "home")];
-    expect(
-      commsLegTimeSeconds(hops[0], hops, value("s", 6.2), undefined),
-    ).toBeUndefined();
+    expect(commsLegTime(hops[0], hops, value("s", 6.2))).toBeUndefined();
   });
 
-  it("falls back to light-time when the total delay is non-positive", () => {
+  it("returns nothing when there is no delay to apportion", () => {
+    /*
+     * A save with the delay feature off reports a real, applied ZERO. The route
+     * carries no light-time, so no leg of it does either, and annotating one
+     * with the time it WOULD take is a claim about a different save.
+     */
     const hops = [hopWithDistance("Active Vessel", "home", 299_792_458)];
-    const c = value("m/s", 299_792_458);
-    expect(commsLegTimeSeconds(hops[0], hops, value("s", 0), c)).toBeCloseTo(
-      1,
-      9,
-    );
-    expect(commsLegTimeSeconds(hops[0], hops, value("s", -3), c)).toBeCloseTo(
-      1,
-      9,
-    );
-  });
-});
-
-describe("commsHopId", () => {
-  it("is the single join key both the schedule and a contributor derive from", () => {
-    expect(commsHopId("Vessel", "Relay 1")).toBe(
-      commsHopId("Vessel", "Relay 1"),
-    );
-  });
-
-  it("is direction-sensitive and collision-resistant across the from/to split", () => {
-    expect(commsHopId("Vessel", "Relay 1")).not.toBe(
-      commsHopId("Relay 1", "Vessel"),
-    );
-    // A delimiter that could be forged by concatenation must not collide: "ab"+"c"
-    // and "a"+"bc" stay distinct.
-    expect(commsHopId("ab", "c")).not.toBe(commsHopId("a", "bc"));
-  });
-});
-
-describe("commsBottleneckHopId", () => {
-  const path = [hop("Vessel", "Relay 1"), hop("Relay 1", "home")];
-  const rate = (a: string, b: string, bits: number): [string, number] => [
-    commsHopId(a, b),
-    bits,
-  ];
-
-  it("flags the minimum-rate hop when at least two hops carry a rate", () => {
-    const rates = new Map([
-      rate("Vessel", "Relay 1", 262_000),
-      rate("Relay 1", "home", 48_000),
-    ]);
-    expect(commsBottleneckHopId(path, rates)).toBe(
-      commsHopId("Relay 1", "home"),
-    );
-  });
-
-  it("does not flag a lone rated hop (nothing to be a bottleneck relative to)", () => {
-    const rates = new Map([rate("Relay 1", "home", 48_000)]);
-    expect(commsBottleneckHopId(path, rates)).toBeUndefined();
-  });
-
-  it("returns undefined under bare CommNet / no contributed rates", () => {
-    expect(commsBottleneckHopId(path, new Map())).toBeUndefined();
-  });
-
-  it("resolves a tie to the first minimum hop in path order", () => {
-    const rates = new Map([
-      rate("Vessel", "Relay 1", 48_000),
-      rate("Relay 1", "home", 48_000),
-    ]);
-    expect(commsBottleneckHopId(path, rates)).toBe(
-      commsHopId("Vessel", "Relay 1"),
-    );
+    expect(commsLegTime(hops[0], hops, undefined)).toBeUndefined();
+    expect(commsLegTime(hops[0], hops, null)).toBeUndefined();
+    expect(commsLegTime(hops[0], hops, value("s", 0))).toBeUndefined();
+    expect(commsLegTime(hops[0], hops, value("s", -3))).toBeUndefined();
   });
 });

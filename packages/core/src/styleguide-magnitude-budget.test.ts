@@ -168,16 +168,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/app/src/commcast/CommcastComponent.tsx": 1,
   "packages/app/src/commcast/CommcastContext.tsx": 1,
   "packages/app/src/telemetry/KspCalendarObserver.tsx": 4,
-  // 4, all four in `commsLegTimeSeconds`: a leg's share of the path delay is
-  // `hopMeters * (delaySeconds / totalMeters)`, a length over a length, and the
-  // algebra has no term for a ratio of two same-unit values. The fourth is the
-  // save's own light speed, which the other branch divides a hop distance by;
-  // that is a real m over m/s and would type, but it lands on the same three
-  // magnitudes as a fallback and splitting the two branches apart would put
-  // half of one function in unit algebra and half in bare arithmetic. All four
-  // unwraps are deliberately together so the route's other call sites hand it
-  // Values.
-  "packages/components/src/CommSignal/commsRoute.ts": 4,
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/ContractManager/index.tsx": 2,
   "packages/components/src/CrewStatus/badge.ts": 2,

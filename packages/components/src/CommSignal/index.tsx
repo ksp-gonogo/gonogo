@@ -31,7 +31,7 @@ import {
   type CommsRouteNode,
   commsBottleneckHopId,
   commsHopId,
-  commsLegTimeSeconds,
+  commsLegTime,
   commsRouteRelayCount,
 } from "./commsRoute";
 
@@ -173,13 +173,6 @@ function CommSignalComponent({
   const delay =
     delayReading.state === "observed"
       ? delayReading.value.oneWaySeconds
-      : undefined;
-  // The save's own light speed, for a leg with no path-wide delay to apportion
-  // against: see `commsLegTimeSeconds`. Off the same payload as the delay,
-  // because it is the same capability's statement about the same route.
-  const lightSpeed =
-    delayReading.state === "observed"
-      ? delayReading.value.lightSpeedMetresPerSecond
       : undefined;
 
   /**
@@ -386,7 +379,6 @@ function CommSignalComponent({
               vesselLabel={vesselLabel}
               centreLabel={centreLabel}
               pathDelay={delay}
-              lightSpeed={lightSpeed}
               rateByHopId={rateByHopId}
             />
           </Section>
@@ -426,16 +418,13 @@ function CommsPathRoute({
   vesselLabel,
   centreLabel,
   pathDelay,
-  lightSpeed,
   rateByHopId,
 }: {
   hops: readonly CommsHop[];
   vesselLabel: string;
   centreLabel: string;
-  /** The path's total one-way delay: apportioned across legs by distance, see `commsLegTimeSeconds`. */
+  /** The path's total one-way delay: apportioned across legs by distance, see `commsLegTime`. */
   pathDelay: Value<"s"> | undefined;
-  /** This save's light speed, what a leg falls back to dividing by when there is no total to apportion. */
-  lightSpeed: Value<"m/s"> | undefined;
   /** Per-hop forward bitrate (bits/sec) keyed by `commsHopId`, joined from the
    *  `comm-signal.hop-rates` contribution. Empty under bare CommNet / no RA. */
   rateByHopId: ReadonlyMap<string, number>;
@@ -464,7 +453,6 @@ function CommsPathRoute({
                   hop={hop}
                   hops={hops}
                   pathDelay={pathDelay}
-                  lightSpeed={lightSpeed}
                   rate={rateByHopId.get(hopId)}
                   isBottleneck={hopId === bottleneckId}
                 />
@@ -521,20 +509,18 @@ function CommsPathLeg({
   hop,
   hops,
   pathDelay,
-  lightSpeed,
   rate,
   isBottleneck,
 }: {
   hop: CommsHop;
   hops: readonly CommsHop[];
   pathDelay: Value<"s"> | undefined;
-  lightSpeed: Value<"m/s"> | undefined;
   /** This hop's forward bitrate (bits/sec), or undefined when none was contributed. */
   rate: number | undefined;
   /** Whether this hop is the path's minimum-rate (limiting) hop. */
   isBottleneck: boolean;
 }) {
-  const legSeconds = commsLegTimeSeconds(hop, hops, pathDelay, lightSpeed);
+  const legTime = commsLegTime(hop, hops, pathDelay);
   const hasDetail = hop.distanceMeters !== undefined || rate !== undefined;
   return (
     <div
@@ -557,13 +543,13 @@ function CommsPathLeg({
               <Unit value={hop.distanceMeters} />
             </Text>
           )}
-          {legSeconds !== undefined && (
+          {legTime !== undefined && (
             // nowrap: `Countdown`'s "0 ms" is plain text with a breaking
             // space, unlike `Unit`'s own number+symbol pairing (which
             // carries its own nowrap), so a narrow column could otherwise
             // split it mid-value across two lines.
             <Text tone="muted" size="xs" style={{ whiteSpace: "nowrap" }}>
-              <Countdown value={legSeconds} precise />
+              <Countdown value={legTime} precise />
             </Text>
           )}
           {/* Per-hop bitrate, joined from the `comm-signal.hop-rates`
