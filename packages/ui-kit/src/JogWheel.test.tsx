@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { JogWheel } from "./JogWheel";
+import { JOG_WHEEL_MIN_TARGET_PX, JogWheel } from "./JogWheel";
 
 describe("JogWheel", () => {
   it("exposes slider semantics with current/bounds/valuetext", () => {
@@ -68,6 +68,164 @@ describe("JogWheel", () => {
         min={0}
         max={90}
         step={1}
+        ariaLabel="Yaw"
+        onChange={() => {}}
+      />,
+    );
+    await expectNoA11yViolations(container);
+  });
+});
+
+/**
+ * Sizing. The box is the ONLY thing these change: the drag runs on captured
+ * pointer travel and the keyboard runs on `applyDelta`, and neither reads the
+ * element's dimensions.
+ */
+describe("JogWheel sizing", () => {
+  const box = (name: string) => {
+    const cs = getComputedStyle(screen.getByRole("slider", { name }));
+    return { width: cs.width, height: cs.height };
+  };
+
+  /**
+   * The declaration block styled-components wrote for this element. Needed for
+   * the inset: it is a `var()` with a fallback, and jsdom resolves an unknown
+   * custom property to the empty string rather than the fallback, so a
+   * `getComputedStyle` read of it says `0px` whatever the source says.
+   */
+  const declarations = (name: string): string => {
+    const el = screen.getByRole("slider", { name });
+    const css = [...document.querySelectorAll("style")]
+      .map((s) => s.textContent ?? "")
+      .join("");
+    for (const cls of el.classList) {
+      const at = css.indexOf(`.${cls}{`);
+      if (at >= 0) return css.slice(at, css.indexOf("}", at));
+    }
+    throw new Error(`no styled-components rule found for "${name}"`);
+  };
+
+  it("keeps the size it has always had when neither axis is given", () => {
+    render(
+      <>
+        <JogWheel
+          value={30}
+          min={0}
+          max={90}
+          step={1}
+          ariaLabel="Across"
+          onChange={() => {}}
+        />
+        <JogWheel
+          value={30}
+          min={0}
+          max={90}
+          step={1}
+          orientation="vertical"
+          ariaLabel="Down"
+          onChange={() => {}}
+        />
+      </>,
+    );
+    expect(box("Across")).toEqual({ width: "120px", height: "40px" });
+    expect(box("Down")).toEqual({ width: "40px", height: "120px" });
+    expect(declarations("Across")).toContain("padding:var(--space-4, 4px)");
+    expect(declarations("Down")).toContain("padding:var(--space-4, 4px)");
+  });
+
+  it("draws the box it is asked for, down to a corner-sized strip", () => {
+    render(
+      <JogWheel
+        value={30}
+        min={0}
+        max={90}
+        step={1}
+        width={72}
+        height={24}
+        ariaLabel="Yaw"
+        onChange={() => {}}
+      />,
+    );
+    expect(box("Yaw")).toEqual({ width: "72px", height: "24px" });
+    // 2px, not 4: at 24 tall the wider inset clips the caret label.
+    expect(declarations("Yaw")).toContain("padding:var(--space-2, 2px)");
+  });
+
+  it("refuses an unpressable box, clamping either axis to the target-size floor", () => {
+    render(
+      <JogWheel
+        value={30}
+        min={0}
+        max={90}
+        step={1}
+        width={8}
+        height={6}
+        ariaLabel="Yaw"
+        onChange={() => {}}
+      />,
+    );
+    expect(box("Yaw")).toMatchObject({
+      width: `${JOG_WHEEL_MIN_TARGET_PX}px`,
+      height: `${JOG_WHEEL_MIN_TARGET_PX}px`,
+    });
+  });
+
+  it("steps and clamps identically at the compact size", () => {
+    const onChange = vi.fn();
+    render(
+      <JogWheel
+        value={89}
+        min={0}
+        max={90}
+        step={1}
+        width={72}
+        height={24}
+        ariaLabel="Yaw"
+        onChange={onChange}
+      />,
+    );
+    const slider = screen.getByRole("slider", { name: "Yaw" });
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+    expect(onChange).toHaveBeenCalledWith(90);
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+    expect(onChange).toHaveBeenLastCalledWith(90);
+    fireEvent.keyDown(slider, { key: "Home" });
+    expect(onChange).toHaveBeenLastCalledWith(0);
+  });
+
+  it("keeps a visible focus ring at the compact size", () => {
+    render(
+      <JogWheel
+        value={30}
+        min={0}
+        max={90}
+        step={1}
+        width={72}
+        height={24}
+        ariaLabel="Yaw"
+        onChange={() => {}}
+      />,
+    );
+    // Drawn outside the border box, so shrinking the box cannot eat it.
+    const rule = [...document.querySelectorAll("style")]
+      .map((s) => s.textContent ?? "")
+      .join("");
+    expect(rule).toContain("outline:2px solid var(--color-accent-fg)");
+    expect(screen.getByRole("slider", { name: "Yaw" })).toHaveAttribute(
+      "tabindex",
+      "0",
+    );
+  });
+
+  it("has no axe violations at the compact size", async () => {
+    const { container } = render(
+      <JogWheel
+        value={30}
+        min={0}
+        max={90}
+        step={1}
+        width={72}
+        height={24}
         ariaLabel="Yaw"
         onChange={() => {}}
       />,
