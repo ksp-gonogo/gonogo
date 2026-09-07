@@ -228,11 +228,20 @@ function TimeLeft({
       </Text>
     );
   }
-  // Ahead of the uncosted sentence and distinct from it: a build that is
-  // neither ticking nor stalled but cannot say where it stands has been costed,
-  // it just would not read. Saying "not costed" here sends an operator to wait
-  // for a recalculation that has already happened.
-  if (build.progress == null || build.totalPoints == null) {
+  /*
+   * Ahead of the uncosted sentence and distinct from it: a build that is
+   * neither ticking nor stalled but cannot say where it stands has been costed,
+   * it just would not read. Saying "not costed" here sends an operator to wait
+   * for a recalculation that has already happened.
+   *
+   * `progress` ALONE, deliberately. An absent `totalPoints` is how "RP-1 has
+   * not costed this build" arrives on the wire, so testing it here swallows the
+   * uncosted case into the wrong sentence: `building-three-clocks` depicts a
+   * Vanguard with `progress: 0` and no `totalPoints` at all, which has said
+   * exactly how far along it is and has no price. The docs render gate caught
+   * that, by asserting the scene's declared copy survives the layout.
+   */
+  if (build.progress == null) {
     return (
       <Text size="xs" tone="muted">
         {NULL_DISPLAY} RP-1 has not said how far along this build is.
