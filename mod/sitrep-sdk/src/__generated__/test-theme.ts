@@ -81,7 +81,9 @@ export const GENERATED_TEST_THEME = {
   space: {
     xs: "var(--space-2)",
     sm: "var(--space-4)",
+    "sm+": "var(--space-6)",
     md: "var(--space-8)",
+    "md+": "var(--space-10)",
     lg: "var(--space-12)",
     xl: "var(--space-16)",
   },

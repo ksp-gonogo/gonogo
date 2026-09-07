@@ -84,10 +84,16 @@ export const defaultDarkTheme: UiKitTheme = {
   // moves; the t-shirt names are kept because they are the published
   // `ThemeSpace` / `ThemeRadii` contract, and renaming them to match the
   // rung numbers would break consumers for no gain.
+  //
+  // `sm+` and `md+` are additions rather than re-pointings, for the same
+  // reason: every existing handle still resolves to exactly the rung it
+  // always did, so adding them moves no pixel anywhere.
   space: {
     xs: "var(--space-2)",
     sm: "var(--space-4)",
+    "sm+": "var(--space-6)",
     md: "var(--space-8)",
+    "md+": "var(--space-10)",
     lg: "var(--space-12)",
     xl: "var(--space-16)",
   },

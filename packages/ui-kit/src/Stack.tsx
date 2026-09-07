@@ -1,7 +1,16 @@
 import type { ElementType, HTMLAttributes, ReactNode } from "react";
 import styled from "styled-components";
 
-export type SpaceToken = "xs" | "sm" | "md" | "lg" | "xl";
+/**
+ * The space handles a layout primitive accepts, ordered smallest first.
+ *
+ * `sm+` (6px) and `md+` (10px) are the two rungs `tokens.css` has and this
+ * union used to omit. 6 is the most-used gap rung in the app, so without it
+ * the alias layer could not express the commonest spacing in the codebase and
+ * one step up from `sm` meant doubling. They widen the union rather than
+ * re-point it, so nothing an existing caller passes changes meaning.
+ */
+export type SpaceToken = "xs" | "sm" | "sm+" | "md" | "md+" | "lg" | "xl";
 
 export interface StackProps extends HTMLAttributes<HTMLDivElement> {
   /** Gap between children, snapped to the space scale. Defaults to `sm`. */
