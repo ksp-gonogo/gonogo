@@ -8,8 +8,8 @@
       "text": "a0774835"
     },
     "cpu-picker-untagged--default.png": {
-      "hash": "de778e7701e07aa0",
-      "elements": 30,
+      "hash": "e5c559b2684fd6ec",
+      "elements": 31,
       "text": "54cb2e54"
     },
     "lander-cpu-attached--default.png": {
@@ -18,13 +18,13 @@
       "text": "12f1d671"
     },
     "two-cpus-idle--default.png": {
-      "hash": "15dea0840304d55a",
-      "elements": 32,
+      "hash": "43372317fa6b4f7a",
+      "elements": 33,
       "text": "db7edf95"
     },
     "two-cpus-idle--min.png": {
-      "hash": "15dea0840304d55a",
-      "elements": 32,
+      "hash": "43372317fa6b4f7a",
+      "elements": 33,
       "text": "db7edf95"
     }
   }
