@@ -266,7 +266,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // did not make, which is why it lands with the branch that first ran the
     // scan against it rather than with a Commcast change of its own.
     "packages/ui-kit/src/ComposerBar.tsx": 1,
-    // The console's standing-reading slot over the composer's bottom border,
+    // The console's standing-reading slot over the composer's top border,
     // local sibling ordering inside that frame's stacking context. Not
     // app-global chrome, so a named rung would lift a delay chip into the
     // dashboard's. Moved here from the terminal widget, which pinned its own

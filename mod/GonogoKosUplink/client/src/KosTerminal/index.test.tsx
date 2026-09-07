@@ -371,7 +371,7 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
      * reading in one place. It used to be a corner of the screen, pinned by
      * this widget with its own absolute rule, which is why the other console
      * could put its copy beside Send and nothing noticed. It is the frame's
-     * foot now, over the composition bar's bottom border, aligned to the
+     * foot now, over the composition bar's top border, aligned to the
      * column the uplink queue's countdowns run in.
      *
      * A structural query, because position is invisible to a role query: both

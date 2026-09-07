@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import { ComposerBar } from "./ComposerBar";
 import { expectNoA11yViolations } from "./expectNoA11yViolations";
+import { emittedRuleFor } from "./test/emittedRule";
 
 describe("ComposerBar", () => {
   it("renders its children", () => {
@@ -45,6 +46,34 @@ describe("ComposerBar", () => {
     expect(getComputedStyle(screen.getByRole("status")).position).toBe(
       "absolute",
     );
+  });
+
+  it("takes the LEFT end of the top border, leaving the right for the console", () => {
+    /*
+     * A console pins its standing delay reading over this same border,
+     * right-aligned to the column its queue's countdowns end in, and the two
+     * CAN be up together: a terminal reads its refusal off `comms.link`
+     * (Delayed) and its separation off `comms.delay` (TrueNow), so on a link
+     * coming back the separation is measurable again before the refusal
+     * clears. Opposite ends is what keeps them from landing on each other
+     * without either having to know about the other, and the chip is the half
+     * that cannot move, because its column is shared.
+     *
+     * Read off the emitted rule: jsdom resolves neither a `var()` inset nor a
+     * box it never laid out, so a computed-style assertion here would report
+     * "auto" for both edges whichever way the stylesheet ran. Both halves are
+     * asserted, because a rule that grew a `left` while keeping its `right`
+     * stretches the flag across the whole row and the positive half alone reads
+     * green on it.
+     */
+    render(
+      <ComposerBar blocked flag="NO PATH">
+        <input aria-label="Message" />
+      </ComposerBar>,
+    );
+    const rule = emittedRuleFor(screen.getByRole("status"));
+    expect(rule).toContain("left:var(--space-8)");
+    expect(rule).not.toContain("right:");
   });
 
   it("draws the prompt glyph the caller asks for, and hides it from readers", () => {

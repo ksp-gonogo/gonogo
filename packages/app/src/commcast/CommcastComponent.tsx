@@ -595,7 +595,7 @@ function ThreadView({
           the terminal widget pinned the same chip in its top-right corner. The
           corner won the argument for a pair that had to agree, then proved this
           console's objection right on the first render with a full log. Both
-          hang it at the foot now, over the composer's bottom border and in the
+          hang it at the foot now, over the composer's top border and in the
           same column as the outbound queue's countdowns, so the separation and
           the ETAs read as one stack of times.
 
@@ -988,8 +988,12 @@ function Composer({
        made one pinned slot answer two unrelated questions and put a figure
        there that the strip above was already drawing. The delay reading is the
        console's own standing slot now, and the flag went back to being about
-       refusal. The two never contend: no path means no separation to quote,
-       and they straddle opposite borders of this bar in any case. */
+       refusal. The two share this bar's top border, at opposite ends, and on
+       THIS console they can never both be up anyway: `noPath` and a null
+       `separationSeconds` are the same `separationBetween` result read twice,
+       and a null separation gets no chip. The terminal widget is the one that
+       can show both, because its refusal and its separation come off two
+       topics that reveal on different clocks. */
     <ComposerBar
       blocked={noPath}
       prompt="❯"

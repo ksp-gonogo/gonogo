@@ -1254,7 +1254,7 @@ function KosTerminalScreen({
           CHARACTER mode is the one state here that pays for the delay reading
           in height: it composes nothing, so there is no composition bar for the
           frame to hang the chip on and the chip takes a line of its own at the
-          foot. Line mode gets it free, over the bar's bottom border. That is
+          foot. Line mode gets it free, over the bar's top border. That is
           the console's trade, not this widget's, and the alternative was the
           chip back on the emulator screen.
 
@@ -1619,13 +1619,15 @@ const CpuPicker__Button = styled(GhostButton)`
 // blocking condition, not an informational badge like `DelayBadge` below it.
 // Pinned inside `Console`'s scrollback surface, top-left. It used to share this
 // surface with the console's delay reading in the opposite corner, and the two
-// legitimately co-render (a stale delay reading can still be latched through a
-// connectivity drop, see `delay-authority.ts`), so it was capped and truncated
-// to leave that corner clear at the widget's registered minSize of 8x6. The
-// delay reading is at the foot now and the top-right is free, but the cap
-// stays: this badge's text is long enough to run the full width of a narrow
-// tile, and a warning that reaches the far edge of the pane reads as a banner
-// rather than as a badge.
+// legitimately co-render: this badge reads `comms.link`, which is Delayed
+// (freeze-exempt) and so reveals its edges at the light-time horizon, while the
+// delay reading comes off TrueNow `comms.delay`, so a link coming back is
+// measurable again before this badge clears. It was capped and truncated to
+// leave that corner clear at the widget's registered minSize of 8x6. The delay
+// reading is at the foot now and the top-right is free, but the cap stays: this
+// badge's text is long enough to run the full width of a narrow tile, and a
+// warning that reaches the far edge of the pane reads as a banner rather than
+// as a badge.
 const NoPathBadge = styled.div`
   position: absolute;
   top: var(--space-8);
