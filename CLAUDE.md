@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Sister project
 
-**`~/personal/kerbcast/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo now consumes for camera feeds, it replaced the old OCISLY+relay camera path (removed in `55d3fbd`; the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). gonogo pulls in the `@jonpepler/kerbcast` SDK and the `CameraFeed` widget lives in `@ksp-gonogo/kerbcast`. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcast/CLAUDE.md` first, and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
+**`~/personal/kerbcast/`** is a from-scratch KSP camera-streaming mod (successor to OCISLY) that gonogo now consumes for camera feeds, it replaced the old OCISLY+relay camera path (removed in `55d3fbd`; the relay no longer carries any OCISLY gRPC/jpeg-js fan-out). gonogo pulls in the `@ksp-gonogo/kerbcast` SDK, which is where the `CameraFeed` widget lives. When working on anything that touches camera feeds or the WebRTC stream-source code, check `~/personal/kerbcast/CLAUDE.md` first, and the full design at `local_docs/ocisly_state_and_rebuild.md`. The two projects evolve in parallel; conventions (Conventional Commits, semver, perf-budget patterns, Steam-Deck-to-MacBook topology) are shared between them.
 
 ## Telemetry mod: brand "Gonogo", codename "Sitrep"
 
