@@ -1,6 +1,7 @@
 /** Pure math helpers for LineChart. No React, no side-effects. */
 
 import type {
+  BandKind,
   ReckoningBasis,
   SeriesReckonedSpan,
   SeriesStatusSpan,
@@ -269,6 +270,47 @@ export function buildBandPath(
   }
   parts.push("Z");
   return parts.join(" ");
+}
+
+/** One reckoned run's uncertainty region, ready to fill. */
+export interface UncertaintyRegion {
+  /** Closed path between the run's lower and upper bound. */
+  d: string;
+  kind: BandKind;
+}
+
+/**
+ * The shaded region behind a reckoned run: how well the model knew each point
+ * it answered for.
+ *
+ * One region PER RUN rather than one for the whole tail. A run is already the
+ * unit of shared provenance the stroke is cut on, so a region that spanned two
+ * of them would bridge a basis change (and, where a run was cut by a dropped
+ * sample, a stretch nothing answered for) with a continuous fill, which is the
+ * same lie a joined line tells across a break.
+ *
+ * A run with no band contributes nothing, and that is not the same as a band
+ * of zero width: the first says the model would not say, the second says it
+ * claims to know the value exactly.
+ */
+export function buildUncertaintyRegions(
+  xs: readonly number[],
+  reckoned: readonly SeriesReckonedSpan[],
+  scaleX: (v: number) => number,
+  scaleY: (v: number) => number,
+): UncertaintyRegion[] {
+  const out: UncertaintyRegion[] = [];
+  for (const run of reckoned) {
+    const { bandLo, bandHi, bandKind } = run;
+    if (!bandLo || !bandHi || bandKind === undefined) continue;
+    const runXs: number[] = [];
+    for (let i = run.from; i <= run.to && i < xs.length; i++) {
+      runXs.push(xs[i]);
+    }
+    const d = buildBandPath(runXs, bandLo, bandHi, scaleX, scaleY);
+    if (d !== "") out.push({ d, kind: bandKind });
+  }
+  return out;
 }
 
 /**

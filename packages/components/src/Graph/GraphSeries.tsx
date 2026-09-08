@@ -4,7 +4,11 @@ import type {
   SeriesStatusSpan,
 } from "@ksp-gonogo/data";
 import { useDataSeries } from "@ksp-gonogo/data";
-import type { ReckoningBasis, StreamStatusValue } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  BandKind,
+  ReckoningBasis,
+  StreamStatusValue,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect } from "react";
 
 interface Props {
@@ -56,8 +60,30 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
      * a measured one and mark it as never observed.
      */
     const basisAt = new Map<number, ReckoningBasis>();
+    /*
+     * The band is reindexed POINT BY POINT for the same reason: it is dense
+     * over its run, so a dropped sample has to take its own two numbers with
+     * it. Rebuilding the runs from a per-input-index lookup does that without
+     * anything here knowing where a run starts.
+     */
+    const bandAt = new Map<
+      number,
+      { lo: number; hi: number; kind: BandKind }
+    >();
     for (const run of raw.reckoned ?? []) {
       for (let i = run.from; i <= run.to; i++) basisAt.set(i, run.basis);
+      const { bandLo, bandHi, bandKind } = run;
+      if (
+        bandLo === undefined ||
+        bandHi === undefined ||
+        bandKind === undefined
+      )
+        continue;
+      for (let i = run.from; i <= run.to; i++) {
+        const at = i - run.from;
+        if (at >= bandLo.length || at >= bandHi.length) break;
+        bandAt.set(i, { lo: bandLo[at], hi: bandHi[at], kind: bandKind });
+      }
     }
     let open: SeriesStatusSpan | null = null;
     let openReckoned: SeriesReckonedSpan | null = null;
@@ -81,10 +107,29 @@ export function GraphSeries({ dataKey, windowSec, onData }: Readonly<Props>) {
         numeric.spans?.push(open);
       }
       const basis = basisAt.get(i);
+      const band = bandAt.get(i);
       if (basis === undefined) {
         openReckoned = null;
-      } else if (openReckoned !== null && openReckoned.basis === basis) {
+      } else if (
+        openReckoned !== null &&
+        openReckoned.basis === basis &&
+        openReckoned.bandKind === band?.kind
+      ) {
         openReckoned.to = out;
+        if (band !== undefined) {
+          openReckoned.bandLo?.push(band.lo);
+          openReckoned.bandHi?.push(band.hi);
+        }
+      } else if (band !== undefined) {
+        openReckoned = {
+          from: out,
+          to: out,
+          basis,
+          bandLo: [band.lo],
+          bandHi: [band.hi],
+          bandKind: band.kind,
+        };
+        numeric.reckoned?.push(openReckoned);
       } else {
         openReckoned = { from: out, to: out, basis };
         numeric.reckoned?.push(openReckoned);

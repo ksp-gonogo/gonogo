@@ -1,9 +1,11 @@
+import type { SeriesReckonedSpan } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   buildBandPath,
   buildPath,
   buildSegmentedPath,
   buildStepPath,
+  buildUncertaintyRegions,
   makeLogScale,
   makeScale,
   niceLogTicks,
@@ -303,5 +305,67 @@ describe("buildSegmentedPath", () => {
       [{ from: 5, to: 9, basis: "rate-integration" }],
     );
     expect(segments).toEqual([{ d: "M0.00,0.00 L1.00,10.00" }]);
+  });
+});
+
+describe("buildUncertaintyRegions", () => {
+  const run = (
+    from: number,
+    to: number,
+    bandLo?: number[],
+    bandHi?: number[],
+    bandKind?: "bound" | "sigma1",
+  ): SeriesReckonedSpan => ({
+    from,
+    to,
+    basis: "kepler-propagation",
+    bandLo,
+    bandHi,
+    bandKind,
+  });
+
+  it("returns nothing for a run with no band", () => {
+    expect(buildUncertaintyRegions([0, 1, 2], [run(1, 2)], id, id)).toEqual([]);
+  });
+
+  it("traces the run's own slice of x, not the whole series", () => {
+    const regions = buildUncertaintyRegions(
+      [0, 1, 2, 3],
+      [run(2, 3, [10, 20], [30, 40], "bound")],
+      id,
+      id,
+    );
+    expect(regions).toHaveLength(1);
+    expect(regions[0].kind).toBe("bound");
+    // Upper edge forward over x 2 and 3, lower edge back over the same two.
+    expect(regions[0].d).toBe(
+      "M2.00,30.00 L3.00,40.00 L3.00,20.00 L2.00,10.00 Z",
+    );
+  });
+
+  /*
+   * One region per run rather than one for the tail. A fill spanning two runs
+   * would bridge a basis change, and where a run was cut by a dropped sample
+   * it would bridge a stretch nothing answered for.
+   */
+  it("keeps two runs as two regions rather than joining them", () => {
+    const regions = buildUncertaintyRegions(
+      [0, 1, 2, 3],
+      [run(0, 1, [1, 2], [5, 6], "bound"), run(2, 3, [3, 4], [7, 8], "sigma1")],
+      id,
+      id,
+    );
+    expect(regions.map((r) => r.kind)).toEqual(["bound", "sigma1"]);
+  });
+
+  it("ignores a half-band rather than drawing one edge of it", () => {
+    expect(
+      buildUncertaintyRegions(
+        [0, 1],
+        [run(0, 1, [1, 2], undefined, "bound")],
+        id,
+        id,
+      ),
+    ).toEqual([]);
   });
 });

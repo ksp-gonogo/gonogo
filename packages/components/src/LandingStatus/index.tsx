@@ -1,6 +1,8 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
+  bandFor,
+  bandIn,
   DELTA_V_BUDGET,
   type Reading,
   type ReadingState,
@@ -656,12 +658,25 @@ function LandingStatusComponent({
     showPlots &&
     landing?.sampleSource != null &&
     (!atmospheric || atmosphericPlotsShown);
+  /*
+   * The descent rate is the one hazard axis fed straight from a reckoned
+   * field, so it is the one whose band the board can honestly use: the model
+   * banded `vessel.flight.verticalSpeed` and the solver passes that magnitude
+   * through untouched. The lateral rate is composed from two of them by
+   * `solveSuicideBurn` and the slope comes off `vessel.landing`, which no
+   * model bands, so neither gets one and both grade as they always did.
+   */
+  const verticalSpeedBand =
+    flightReading.reckoning === "available"
+      ? bandIn(bandFor(flightReading.reckoned, "verticalSpeed"), "m/s")
+      : undefined;
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle?.magnitude,
     roughnessSigma: landing?.predictedRoughness?.magnitude,
     verticalSpeed: solution.verticalSpeed,
     lateralSpeed: solution.horizontalSpeed,
     biome: landing?.predictedBiome,
+    verticalSpeedBand,
   });
   // The velocity vector + TWR only carry a meaningful vacuum picture for a
   // solved descent at a wide size; elsewhere fall back to the plain, always-
@@ -951,6 +966,11 @@ function LandingStatusComponent({
   // site verdict is moot (you can't reach a safe touchdown ANYWHERE), so the
   // banner reads ABORT (not "DIVERT to a better patch", and never a green
   // "SAFE" that would contradict the alert hero above).
+  //
+  // UNRESOLVED takes the DEFAULT tone, and neither of the other two it looks
+  // close to: green would state a verdict the board just declined to give, and
+  // amber would read as a finding about the site when the finding is about the
+  // model. The word is the whole message.
   const hazard = hazardVerdict.verdict;
   const bannerLabel = noLandingVector ? "ABORT" : (hazard ?? "NO SITE");
   const bannerTone: ReadoutTone =

@@ -1,3 +1,4 @@
+import { type UncertaintyBand, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import { deriveHazardVerdict } from "./hazardVerdict";
 
@@ -65,5 +66,120 @@ describe("deriveHazardVerdict", () => {
       { slope: [20, 30], vertical: [2, 6], lateral: [1, 3] },
     );
     expect(r.verdict).toBe("SAFE");
+  });
+});
+
+/**
+ * The band, used as a DECISION rather than a picture.
+ *
+ * Every case here holds the point estimate fixed and varies only the interval
+ * around it, because that is the whole claim: the same reading grades the same
+ * way until the model admits it does not know which side of a line it is on.
+ */
+describe("deriveHazardVerdict: an axis whose band spans a threshold", () => {
+  const mps = (lo: number, v: number, hi: number): UncertaintyBand<"m/s"> => ({
+    value: value("m/s", v),
+    lo: value("m/s", lo),
+    hi: value("m/s", hi),
+    kind: "sigma1",
+  });
+
+  it("still grades on the point estimate while the interval stays in one band", () => {
+    const r = deriveHazardVerdict({
+      verticalSpeed: 4,
+      verticalSpeedBand: mps(3.2, 4, 5.4),
+    });
+    expect(r.verdict).toBe("MARGINAL");
+    expect(r.axes[0]).toMatchObject({ axis: "vertical", band: "MARGINAL" });
+  });
+
+  it("cannot say when the interval spans the DIVERT line", () => {
+    const r = deriveHazardVerdict({
+      verticalSpeed: 5.8,
+      verticalSpeedBand: mps(4, 5.8, 9),
+    });
+    expect(r.verdict).toBe("UNRESOLVED");
+    expect(r.axes[0]).toMatchObject({
+      axis: "vertical",
+      band: "UNRESOLVED",
+      worstPossible: "DIVERT",
+    });
+  });
+
+  it("names the interval that stopped it, so the line is not read as a settled figure", () => {
+    const r = deriveHazardVerdict({
+      verticalSpeed: 5.8,
+      verticalSpeedBand: mps(4, 5.8, 9),
+    });
+    expect(r.axes[0].detail).toContain("could be");
+    expect(r.axes[0].detail).toContain("9.0");
+  });
+
+  /*
+   * The rule that keeps the fourth verdict worth having. A certain DIVERT is
+   * actionable and an unresolved axis that could at worst reach DIVERT adds
+   * nothing to it, so the board must not downgrade a firm answer to a shrug.
+   */
+  it("keeps a certain DIVERT rather than downgrading it to UNRESOLVED", () => {
+    const r = deriveHazardVerdict({
+      verticalSpeed: 5.8,
+      verticalSpeedBand: mps(4, 5.8, 9),
+      biome: "Water",
+    });
+    expect(r.verdict).toBe("DIVERT");
+    // The axis itself is still honestly unresolved; only the verdict is not.
+    expect(r.axes.find((a) => a.axis === "vertical")?.band).toBe("UNRESOLVED");
+  });
+
+  it("goes UNRESOLVED when the open axis could beat the worst certain one", () => {
+    const r = deriveHazardVerdict({
+      slopeDeg: 10, // certainly MARGINAL
+      verticalSpeed: 5.8,
+      verticalSpeedBand: mps(4, 5.8, 9), // could be DIVERT
+    });
+    expect(r.verdict).toBe("UNRESOLVED");
+  });
+
+  it("stays MARGINAL when the open axis cannot beat the worst certain one", () => {
+    const r = deriveHazardVerdict({
+      slopeDeg: 10, // certainly MARGINAL
+      verticalSpeed: 1.8,
+      verticalSpeedBand: mps(1.4, 1.8, 3.5), // SAFE or MARGINAL, never worse
+    });
+    expect(r.verdict).toBe("MARGINAL");
+  });
+
+  /*
+   * A reckoned rate crosses zero constantly (a descent rate at the top of a
+   * hop, a lateral rate as it nulls), and the ladder grades the MAGNITUDE. The
+   * magnitude of [-1, 4] reaches 0, not 1, so mapping the ends alone would
+   * assert the craft is definitely still moving.
+   */
+  it("takes the magnitude of an interval that crosses zero, not the magnitudes of its ends", () => {
+    const r = deriveHazardVerdict({
+      verticalSpeed: 0.5,
+      verticalSpeedBand: mps(-1, 0.5, 4),
+    });
+    // |v| runs 0 to 4, which spans the 2 m/s SAFE line: unresolved.
+    expect(r.verdict).toBe("UNRESOLVED");
+    expect(r.axes[0].detail).toContain("0.0");
+  });
+
+  it("resolves a zero-crossing interval that stays inside one band", () => {
+    const r = deriveHazardVerdict({
+      verticalSpeed: 0.2,
+      verticalSpeedBand: mps(-1.5, 0.2, 1.5),
+    });
+    // |v| runs 0 to 1.5, wholly under the 2 m/s SAFE line.
+    expect(r.verdict).toBe("SAFE");
+  });
+
+  it("is unchanged by a band on an axis that has no reading", () => {
+    const r = deriveHazardVerdict({
+      slopeDeg: 3,
+      verticalSpeedBand: mps(4, 5.8, 9),
+    });
+    expect(r.verdict).toBe("SAFE");
+    expect(r.axes).toHaveLength(1);
   });
 });

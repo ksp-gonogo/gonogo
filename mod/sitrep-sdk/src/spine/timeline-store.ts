@@ -2,6 +2,7 @@ import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import { PerfBudget } from "../perf/PerfBudget";
 import type {
+  BandKind,
   DepWindow,
   ModelledField,
   ReckonerWindow,
@@ -9,7 +10,9 @@ import type {
   ReckoningDecline,
   StaleGrade,
   TopicModel,
+  UncertaintyBand,
 } from "../reading";
+import { bandIsWellFormed } from "../reading";
 import { reckonableInputSpelling, reckonableValuesOf } from "../reckonability";
 import type { DerivedChannelDefinition, DerivedGet } from "../timeline";
 import { isValue, value } from "../unit-system/value";
@@ -142,6 +145,22 @@ export interface ReckonedSample<T> {
   atUt: number;
   value: T;
   basis: ReckoningBasis;
+  /**
+   * How well the model knew this instant, as bare magnitudes in the value's
+   * own unit, present only where the model offered a band for the root path.
+   *
+   * Magnitudes rather than `Value`s because `value` above is already one: a
+   * tail is only ever built for a quantity a chart can plot, so the walk has
+   * already reduced the payload to a number and a band beside it in `Value`
+   * form would be the only wrapped thing in the type.
+   *
+   * The three move together. Either all of `bandLo`, `bandHi` and `bandKind`
+   * are here or none is; a half-band is a producer bug and reads downstream as
+   * no band at all.
+   */
+  bandLo?: number;
+  bandHi?: number;
+  bandKind?: BandKind;
 }
 
 /**
@@ -301,8 +320,22 @@ interface ReckonedWalk {
   lastObservedUt: number;
   /** Every observed instant, unfiltered: the caller windows and sorts them. */
   inWindowUts: number[];
-  /** The model's answer for one instant, or nothing where it declines. */
-  answerAt(at: number): { value: unknown; basis: ReckoningBasis } | undefined;
+  /**
+   * The model's answer for one instant, or nothing where it declines.
+   *
+   * `band` is the root-path band where the model offered one, and it is asked
+   * per instant rather than once for the walk because widening with elapsed
+   * time is the whole content of a band: one interval reused down the tail
+   * would draw a parallel-sided ribbon and assert that carrying a value
+   * further costs nothing.
+   */
+  answerAt(at: number):
+    | {
+        value: unknown;
+        basis: ReckoningBasis;
+        band?: UncertaintyBand;
+      }
+    | undefined;
 }
 
 const RECKONED_TAIL_BUDGET = new PerfBudget({
@@ -1184,7 +1217,22 @@ export class TimelineStore {
       if (!answer) break; // the model's own horizon
       const raw = answer.value;
       if (typeof raw !== "number" || !Number.isFinite(raw)) break;
-      out.push({ atUt: at, value: raw as T, basis: answer.basis });
+      const sample: ReckonedSample<T> = {
+        atUt: at,
+        value: raw as T,
+        basis: answer.basis,
+      };
+      /*
+       * A malformed band is dropped and the instant still drawn. The value is
+       * the model's answer either way, and refusing the point over a bad
+       * interval would turn a shading bug into a hole in the trace.
+       */
+      if (answer.band && bandIsWellFormed(answer.band)) {
+        sample.bandLo = answer.band.lo.magnitude;
+        sample.bandHi = answer.band.hi.magnitude;
+        sample.bandKind = answer.band.kind;
+      }
+      out.push(sample);
       if (at >= toUt) break;
     }
     return out;
@@ -1325,7 +1373,11 @@ export class TimelineStore {
         const model = reckoner(point, status, at);
         const root = model?.modelled.find((entry) => entry.path === "");
         if (!model || !root) return undefined;
-        return { value: model.reckon(at), basis: root.basis };
+        return {
+          value: model.reckon(at),
+          basis: root.basis,
+          band: model.bandAt?.(at)?.[""],
+        };
       },
     };
   }
@@ -1540,6 +1592,18 @@ export class TimelineStore {
         // modelled, so the root is what it claims.
         modelled: [{ path: "", basis: covering.basis }],
         reckon: (at) => walkFieldPath(model.reckon(at), parsed.fieldPath) as T,
+        /*
+         * The band is looked up at the EXACT field path, never inherited from
+         * a shorter one the way `covering` inherits a basis. A basis is a
+         * property of the model and is true of every path it moves; a band is
+         * two numbers in one quantity's unit, so a band on the payload root is
+         * not this field's band and borrowing it would put a metre interval
+         * around a speed.
+         */
+        bandAt: (at) => {
+          const field = model.bandAt?.(at)?.[parsed.fieldPath.join(".")];
+          return field ? { "": field } : undefined;
+        },
       };
     };
   }
