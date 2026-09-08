@@ -6,8 +6,12 @@ import {
   type VesselOrbitPayload,
   type WireOf,
 } from "@ksp-gonogo/sitrep-client";
-import { Quality } from "@ksp-gonogo/sitrep-sdk";
-import { resetGatedReadWarnings } from "@ksp-gonogo/sitrep-sdk/spine";
+import { Quality, registerTopicUnits } from "@ksp-gonogo/sitrep-sdk";
+import {
+  DEAD_READ_SETTLE_MS,
+  resetDeadReadWarnings,
+  resetGatedReadWarnings,
+} from "@ksp-gonogo/sitrep-sdk/spine";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
@@ -719,5 +723,165 @@ describe("useTelemetry gate: a rescued read reports itself", () => {
 
     await waitFor(() => expect(screen.getByText("throttle:0.75")).toBeTruthy());
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The silence the gate's own report cannot see.
+ *
+ * `warnGatedRead` above needs a streamed value in hand, so the one read it can
+ * never speak about is the one that resolves to NOTHING: no topic to subscribe
+ * and no source to ask. That read ships silent and leaves a widget blank for
+ * ever, which is the failure worth being loud about.
+ *
+ * Both directions are pinned here, and the second matters more: the verdict is
+ * deferred by `DEAD_READ_SETTLE_MS` and re-derived from the registries at the
+ * moment it fires, precisely so an Uplink that registers its Topics after the
+ * dashboard has rendered cancels the report instead of being accused by it.
+ */
+describe("useTelemetry: a read that resolves to nothing says so", () => {
+  const warn = vi.fn();
+  let uninstall = () => {};
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    warn.mockClear();
+    resetDeadReadWarnings();
+    uninstall = installTestHost({ logger: { warn } as never });
+  });
+  afterEach(() => {
+    uninstall();
+    vi.useRealTimers();
+  });
+
+  function Probe({ dataKey }: { dataKey: string }) {
+    const value = useLegacyTelemetry("data", dataKey);
+    return <div>read:{value === undefined ? NULL_DISPLAY : plain(value)}</div>;
+  }
+
+  function settle() {
+    act(() => {
+      vi.advanceTimersByTime(DEAD_READ_SETTLE_MS + 1);
+    });
+  }
+
+  /**
+   * Scoped to this diagnostic rather than `warn` as a whole: a read the stream
+   * rescues raises the GATED-read line, which is correct and is that
+   * diagnostic's business. Asserting on every warning would make these tests
+   * fail on a sibling's success.
+   */
+  function deadReadLines(): string[] {
+    return warn.mock.calls
+      .map((call) => String(call[0]))
+      .filter((message) => message.startsWith("[dead read]"));
+  }
+
+  it("names the call, the reason it can never resolve, and what to write instead", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control.thruttle" />
+      </TelemetryProvider>,
+    );
+
+    expect(deadReadLines()).toEqual([]);
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
+    const message = deadReadLines()[0] ?? "";
+    expect(message).toContain(
+      'useTelemetry("data", "vessel.control.thruttle")',
+    );
+    expect(message).toContain("will never resolve");
+    expect(message).toContain("No data source is registered");
+  });
+
+  /** A read that is answering is not a read to complain about. */
+  it("says nothing about a read the stream resolves", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control.throttle" />
+      </TelemetryProvider>,
+    );
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * A registered source that has not emitted yet is the ordinary state of a
+   * screen that has just connected, and it is not evidence of anything.
+   */
+  it("says nothing when a registered source could still answer", () => {
+    const client = new TelemetryClient(new StubTransport());
+    registerDataSource(makeLegacySource());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control.thruttle" />
+      </TelemetryProvider>,
+    );
+
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * The startup race, and the reason the report is deferred at all.
+   *
+   * An Uplink registers its Topics when its BUNDLE loads, which is after the app
+   * has rendered, so this read is genuinely dead on the first frame and
+   * perfectly healthy a moment later. Firing on the spot would accuse every
+   * startup, and a warning that fires on healthy startups is one nobody reads.
+   */
+  it("says nothing when an Uplink registers the Topic after the read first ran", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="lateuplink.reactor.coreTempK" />
+      </TelemetryProvider>,
+    );
+
+    // Half the window in, still dead, and nothing said yet.
+    act(() => {
+      vi.advanceTimersByTime(DEAD_READ_SETTLE_MS / 2);
+    });
+    expect(deadReadLines()).toEqual([]);
+
+    /*
+     * The bundle lands, mid-window. `registerTopicUnits` notifies the runtime
+     * topic registry, which the provider watches, so this re-renders the tree
+     * and has to be inside `act` for that reason alone.
+     */
+    act(() => registerTopicUnits("lateuplink.reactor", { coreTempK: "K" }));
+
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /** Once per distinct read: two widgets holding the same bad call is one line. */
+  it("reports a given bad read once however many widgets hold it", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control.thruttle" />
+        <Probe dataKey="vessel.control.thruttle" />
+      </TelemetryProvider>,
+    );
+
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
   });
 });
