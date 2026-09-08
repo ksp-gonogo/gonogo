@@ -281,7 +281,7 @@ function HeightToggleButton({
 const MobileList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   width: 100%;
   align-content: flex-start;
 `;
@@ -306,7 +306,7 @@ const MobileCellHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   /* Off the spacing ladder: a header height, not an inset. The 32 -> 24 snap
      would clip ReorderBtn below (28x24 plus a 1px border, so 26px of box) top
      and bottom, and drop a mobile-only touch target from 32px to 24px. Move
@@ -321,11 +321,14 @@ const MobileCellHeader = styled.div`
 const MobileCellHeaderLeft = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   min-width: 0;
   flex: 1;
 `;
 
+/* A rung, not --gap-related: five glyph buttons ride this tray, each already
+   carrying its own 2px margin, and on a half-width cell the widget's name has
+   the rest of the row. The default gap would take 32px of that name away. */
 const MobileCellHeaderRight = styled.div`
   display: flex;
   align-items: center;
@@ -344,6 +347,8 @@ const MobileCellName = styled.span`
   min-width: 0;
 `;
 
+/* Same sub-floor glyph chrome as the remove and push buttons it sits beside;
+   see the note over RemoveBtn in shared.tsx for why the inset stays a rung. */
 const WidthToggleBtn = styled.button`
   pointer-events: all;
   background: none;

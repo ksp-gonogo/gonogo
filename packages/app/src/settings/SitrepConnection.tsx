@@ -128,7 +128,7 @@ export function SitrepConnection() {
 export const ConnectionRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 /** Shared with `SettingsModal`'s Uplink lists and `UplinkReadinessStep`. */
@@ -141,7 +141,7 @@ export const Name = styled.span`
 const Item = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const pulse = keyframes`
@@ -175,11 +175,13 @@ const StatusLabel = styled.span<{ $status: DataSourceStatus }>`
   letter-spacing: 0.05em;
 `;
 
+/* Type one rung down from the kit's Button, and nothing else: the inset it used
+   to restate was the control inset the base already carries, tightened, on a
+   button whose height is pinned by --control-height either way. */
 const RetryButton = styled(GhostButton)`
   font-size: var(--font-size-xs);
   letter-spacing: 0.05em;
   white-space: nowrap;
-  padding: var(--space-2) var(--space-6);
 `;
 
 const ConfigButton = styled(IconButton)<{ $active: boolean }>`
@@ -191,7 +193,7 @@ const ConfigButton = styled(IconButton)<{ $active: boolean }>`
 
 const SetupInstructions = styled.pre`
   margin: 0;
-  padding: var(--space-8) var(--space-10);
+  padding: var(--inset-surface);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);

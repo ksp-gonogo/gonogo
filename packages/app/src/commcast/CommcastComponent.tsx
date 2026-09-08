@@ -1076,13 +1076,13 @@ const Commcast__Frame = styled.div`
   flex-direction: column;
   min-height: 0;
   flex: 1 1 auto;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const Commcast__Identity = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 /*
@@ -1093,7 +1093,7 @@ const Commcast__Identity = styled.div`
 const Commcast__Bar = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex: 0 0 auto;
   min-width: 0;
 `;
@@ -1133,17 +1133,21 @@ const Commcast__BarTitle = styled.span`
 const Commcast__BarRadio = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex: 0 0 auto;
 `;
 
+/*
+ * Type one rung down from the kit's Button, and nothing else. The inset and the
+ * icon gap it used to restate were the control inset the base already carries,
+ * tightened: the button sits on the shared --control-height floor either way,
+ * so the tightening only narrowed it against the title beside it.
+ */
 const Commcast__Back = styled(GhostButton)`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
   flex: 0 0 auto;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-6);
 `;
 
 /*
@@ -1172,7 +1176,7 @@ const Commcast__List = styled.div`
   flex-direction: column;
   /* See the scroll wrapper above: pins a short log to the frame's bottom. */
   margin-top: auto;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 /*
@@ -1183,7 +1187,7 @@ const Commcast__List = styled.div`
 const Commcast__Rows = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 /*
@@ -1203,7 +1207,7 @@ const Commcast__RowHead = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   width: 100%;
   min-width: 0;
 `;
@@ -1229,7 +1233,7 @@ const Commcast__Preview = styled.span`
 const ThreadMarker = styled.div<{ $blocked?: boolean }>`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1257,7 +1261,7 @@ const Commcast__Message = styled.div`
 const Commcast__Meta = styled.div`
   display: flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
@@ -1278,7 +1282,7 @@ const Commcast__Body = styled.p`
 const Commcast__Actions = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 

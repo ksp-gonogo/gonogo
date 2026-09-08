@@ -514,14 +514,14 @@ function ReportBug() {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   min-width: 420px;
 `;
 
 const ModeRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const ModeButton = styled.button<{ $active: boolean }>`
@@ -529,7 +529,7 @@ const ModeButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-primary)")};
   font-size: var(--font-size-xs);
-  padding: var(--space-4) var(--space-10);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   cursor: pointer;
 `;
@@ -542,14 +542,14 @@ const ModeHint = styled.span`
 const TagList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   padding: var(--space-6) 0 0;
 `;
 
 const TagRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--gap-related);
 `;
 
 const TagHint = styled.span`
@@ -563,7 +563,7 @@ const Foot = styled.div`
 
   code {
     background: var(--color-surface-raised);
-    padding: var(--space-hair) var(--space-4);
+    padding: var(--inset-chip);
     border-radius: var(--radius-xs);
   }
 `;
@@ -572,7 +572,7 @@ const BufferRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-12);
+  gap: var(--gap-related);
 `;
 
 const Count = styled.span`
@@ -582,25 +582,25 @@ const Count = styled.span`
 
 const ActionRow = styled.div`
   display: flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const ReportForm = styled.form`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-related);
 `;
 
 const SentNotice = styled.div`
   background: var(--color-status-go-bg);
   color: var(--color-status-go-fg);
-  padding: var(--space-8) var(--space-10);
+  padding: var(--inset-surface);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-sm);
 
   code {
     background: rgba(0, 0, 0, 0.2);
-    padding: var(--space-hair) var(--space-4);
+    padding: var(--inset-chip);
     border-radius: var(--radius-xs);
   }
 `;
@@ -608,6 +608,9 @@ const SentNotice = styled.div`
 const ScreenshotPreview = styled.div`
   display: flex;
   align-items: flex-start;
+  /* A rung, because 10 is the one gap rung no name sits over: --gap-related is
+     8 and --gap-section is 16, so either would move a 120px thumbnail off the
+     text it captions. */
   gap: var(--space-10);
   padding-top: var(--space-6);
 `;
@@ -622,7 +625,7 @@ const ScreenshotThumb = styled.img`
 const ScreenshotMeta = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
 `;

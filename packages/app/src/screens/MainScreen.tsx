@@ -190,7 +190,7 @@ const NoActiveVessel__Body = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   padding: var(--space-12);
   color: var(--color-text-muted);
   font-size: var(--font-size-sm);

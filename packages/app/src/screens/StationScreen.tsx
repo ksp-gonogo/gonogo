@@ -584,7 +584,7 @@ const StationNameChip = styled.div`
   position: fixed;
   top: 12px;
   right: 16px;
-  padding: var(--space-4) var(--space-10);
+  padding: var(--inset-surface);
   background: rgba(20, 20, 20, 0.85);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);

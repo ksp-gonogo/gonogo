@@ -572,7 +572,7 @@ const BigButton = styled.button<{ $variant: BigButtonVariant }>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.6);
   transition: transform var(--duration-fast) var(--ease-standard);
   /*
@@ -602,7 +602,7 @@ const CountdownOverlay = styled.span`
   position: absolute;
   top: 8px;
   left: 8px;
-  padding: var(--space-4) var(--space-10);
+  padding: var(--inset-surface);
   background: rgba(0, 0, 0, 0.6);
   border: 1px solid var(--color-status-warning-bg);
   border-radius: var(--radius-sm);
@@ -621,7 +621,7 @@ const AbortNotice = styled.span`
 const MainLayout = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   width: 100%;
   height: 100%;
   padding: var(--space-12);
@@ -631,7 +631,7 @@ const MainHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const HeaderLabel = styled.span`
@@ -643,13 +643,13 @@ const HeaderLabel = styled.span`
 
 const HeaderRight = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const WarnChip = styled.span`
   font-size: var(--font-size-xs);
   letter-spacing: 0.15em;
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-chip);
   border: 1px solid var(--color-status-warning-border-muted);
   background: rgba(120, 100, 40, 0.25);
   color: var(--color-status-warning-fg-muted);
@@ -667,7 +667,7 @@ const CountdownBanner = styled.div`
 
 const AbortBanner = styled.div`
   text-align: center;
-  padding: var(--space-6) var(--space-10);
+  padding: var(--inset-surface);
   border: 1px solid var(--color-status-nogo-bg);
   background: rgba(200, 40, 40, 0.2);
   color: var(--color-status-nogo-fg);
@@ -687,14 +687,14 @@ const StationBoard = styled(Grid).attrs({
 `;
 
 const Cell = styled.div<{ $state: CellState }>`
-  padding: var(--space-8) var(--space-10);
+  padding: var(--inset-surface);
   border-radius: var(--radius-sm);
   border: 1px solid ${({ $state }) => cellBorder($state)};
   background: ${({ $state }) => cellBg($state)};
   color: ${({ $state }) => cellColor($state)};
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
 `;
 
 function cellBorder(state: CellState): string {
@@ -762,7 +762,7 @@ const VERSION_CHIP_COLOR: Record<"minor" | "major" | "unknown", string> = {
 
 const VersionChip = styled.span<{ $kind: "minor" | "major" | "unknown" }>`
   margin-top: var(--space-4);
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   border-radius: var(--radius-pill);
@@ -782,7 +782,7 @@ const Empty = styled.div`
 const ConfigWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-related);
 `;
 
 // ---------------------------------------------------------------------------

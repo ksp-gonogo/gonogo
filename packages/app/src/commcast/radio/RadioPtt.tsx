@@ -117,6 +117,6 @@ export function RadioPtt({
 const Radio__Ptt = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   min-width: 0;
 `;

@@ -439,35 +439,39 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // declaration.
     "packages/app/src/alarms/AlarmBanner.tsx": 1,
     "packages/app/src/alarms/StationAlarmBanner.tsx": 1,
-    "packages/app/src/analytics/AnalyticsConsentModal.tsx": 2,
-    "packages/app/src/backup/BackupManager.tsx": 4,
-    "packages/app/src/commcast/CommcastComponent.tsx": 12,
-    "packages/app/src/commcast/radio/RadioIndicator.tsx": 1,
-    "packages/app/src/commcast/radio/RadioPtt.tsx": 1,
-    "packages/app/src/components/ComponentOverlay.tsx": 10,
-    "packages/app/src/components/Dashboard/MobileDashboard.tsx": 5,
-    "packages/app/src/components/Dashboard/shared.tsx": 4,
+    /*
+     * The widget picker's five: four bands hanging off the overlay's own 16px
+     * gutter (one of them a full-width row that is a <button> and still not a
+     * control), and an empty state that wants more height than width, which no
+     * --inset-* name can say.
+     */
+    "packages/app/src/components/ComponentOverlay.tsx": 5,
+    /*
+     * A tile's drag header is 18px on the desktop branch and its glyph buttons
+     * are sized to fit it, so --inset-control, which is the other half of
+     * --control-height at 28, cannot describe them. The tray gap goes with
+     * them: five glyphs ride it and the widget's name has the rest of the row.
+     */
+    "packages/app/src/components/Dashboard/MobileDashboard.tsx": 2,
+    "packages/app/src/components/Dashboard/shared.tsx": 2,
     "packages/app/src/components/Dashboard/WidgetGearMenu.tsx": 1,
-    "packages/app/src/components/FlightOutcomeBanner.tsx": 11,
-    "packages/app/src/components/MissionBanner.tsx": 2,
-    "packages/app/src/components/SceneChangeBanner.tsx": 2,
-    "packages/app/src/components/StationConnectionFab.tsx": 2,
-    "packages/app/src/components/StationLinkFab.tsx": 4,
-    "packages/app/src/components/VantageControl.tsx": 1,
-    "packages/app/src/firstRun/FirstRunSetup.tsx": 1,
-    "packages/app/src/firstRun/steps/UplinkReadinessStep.tsx": 2,
-    "packages/app/src/goNoGo/GoNoGoComponent.tsx": 11,
-    "packages/app/src/logs/LogsManager.tsx": 13,
-    "packages/app/src/missionProfiles/MissionProfilesModal.tsx": 10,
-    "packages/app/src/notes/NotesComponent.tsx": 7,
-    "packages/app/src/notes/TagAutocomplete.tsx": 2,
-    "packages/app/src/pushToMain/PushedDashboardOverlay.tsx": 3,
-    "packages/app/src/screens/MainScreen.tsx": 1,
-    "packages/app/src/screens/PilotScreen.tsx": 2,
-    "packages/app/src/screens/StationScreen.tsx": 1,
-    "packages/app/src/settings/SettingsModal.tsx": 6,
-    "packages/app/src/settings/SitrepConnection.tsx": 4,
-    "packages/app/src/stationIdentity/StationNameEditor.tsx": 3,
+    "packages/app/src/components/FlightOutcomeBanner.tsx": 1,
+    "packages/app/src/components/SceneChangeBanner.tsx": 1,
+    /* The screenshot preview's 10px gap: the one gap rung with no name over
+       it, --gap-related being 8 and --gap-section 16. */
+    "packages/app/src/logs/LogsManager.tsx": 1,
+    /* Three glyphs stacked in PAIRS down the side of a note whose one-line
+       body is about as tall as one control inset would make them. */
+    "packages/app/src/notes/NotesComponent.tsx": 3,
+    "packages/app/src/pushToMain/PushedDashboardOverlay.tsx": 2,
+    /*
+     * The only real controls in this package still on rungs, and the file says
+     * why at length: they are the two states of one chip inside a fixed
+     * overlay with a logged history of swallowing clicks meant for the
+     * dashboard under it, so the control inset's 8px of height and 12px of
+     * width are not free.
+     */
+    "packages/app/src/stationIdentity/StationNameEditor.tsx": 2,
     "packages/components/src/AtmosphereProfile/index.tsx": 3,
     "packages/components/src/CommSignal/index.tsx": 3,
     "packages/components/src/ContractManager/index.tsx": 11,

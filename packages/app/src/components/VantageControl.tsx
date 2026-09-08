@@ -282,7 +282,7 @@ const Container = styled.div`
 const VantageReadout__Root = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const Trigger = styled(ActionButton)`

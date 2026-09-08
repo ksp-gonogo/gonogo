@@ -266,7 +266,7 @@ function describeProbeFailure(
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   min-width: 260px;
   color: var(--color-text-primary);
 `;
@@ -274,7 +274,7 @@ const Wrap = styled.div`
 const UrlRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const UrlValue = styled.a`
@@ -321,7 +321,7 @@ const Hint = styled.p`
   code {
     background: var(--color-surface-raised);
     border: 1px solid var(--color-border-subtle);
-    padding: var(--space-hair) var(--space-4);
+    padding: var(--inset-chip);
     border-radius: var(--radius-xs);
     color: var(--color-text-primary);
   }
@@ -337,7 +337,7 @@ const Empty = styled.div`
 const RegenerateWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   border-top: 1px solid var(--color-border-subtle);
   padding-top: var(--space-12);
 `;

@@ -162,8 +162,8 @@ const PilotScreen__CommsBanner = styled.div`
   z-index: var(--z-sticky);
   display: flex;
   align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-4) var(--space-12);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-status-warning-bg);
   border-top: none;

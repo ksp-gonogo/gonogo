@@ -119,7 +119,7 @@ const Dialog = styled.div`
   padding: var(--space-24);
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 
   &:focus-visible,
@@ -145,5 +145,5 @@ const Body = styled.p`
 const Actions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-12);
+  gap: var(--gap-related);
 `;
