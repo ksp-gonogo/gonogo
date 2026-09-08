@@ -568,6 +568,21 @@ function KosTerminalComponent(
   return <KosTerminalLive {...props} />;
 }
 
+/**
+ * What to say when there is no CPU to attach to. Three states, because the
+ * wire carries three: nothing reported yet, a reported-empty list, and a
+ * reported list that simply lacks the pinned tagname.
+ */
+function noCpuMessage(reported: boolean, cpuName: string | undefined): string {
+  if (!reported) {
+    return "Waiting on kos.processors: the CPU list has not been reported yet.";
+  }
+  if (cpuName) {
+    return `Waiting for kOS CPU "${cpuName}"...`;
+  }
+  return "No kOS CPUs detected. Boot a kOS processor in-flight.";
+}
+
 function KosTerminalLive({
   config,
 }: Readonly<ComponentProps<KosTerminalConfig>>) {
@@ -576,8 +591,20 @@ function KosTerminalLive({
   const lineMode = config?.lineMode ?? true;
   const scriptPaths = config?.scriptPaths ?? [];
 
-  // Live CPU list from the mod's kos.processors channel (no telnet menu-scrape).
-  const processors = useStream<KosProcessorInfo[]>("kos.processors") ?? [];
+  /*
+   * Live CPU list from the mod's kos.processors channel (no telnet
+   * menu-scrape). Absent is a THIRD state, not an empty list: `useStream`
+   * yields nothing until a push lands (or while no provider is mounted), and
+   * KosExtension.Ksp.cs publishes an explicit EMPTY list on its
+   * kOS-unavailable path precisely so a client can draw a definite "no kOS"
+   * instead of hanging. Flattening the two with `?? []` made that empty
+   * publish indistinguishable from silence, so a channel that had said
+   * nothing rendered as a confirmed absence of CPUs. `reported` keeps them
+   * apart for the copy; everything downstream wants a concrete array.
+   */
+  const reportedProcessors = useStream<KosProcessorInfo[]>("kos.processors");
+  const reported = reportedProcessors != null;
+  const processors = reportedProcessors ?? [];
   const [pickedCoreId, setPickedCoreId] = useState<number | null>(null);
   const coreId = useMemo(
     () => resolveCoreId(processors, cpuName, pickedCoreId),
@@ -603,9 +630,7 @@ function KosTerminalLive({
           <Section full>
             {processors.length === 0 ? (
               <EmptyState layout="fill" role="status" aria-live="polite">
-                {cpuName
-                  ? `Waiting for kOS CPU "${cpuName}"...`
-                  : "No kOS CPUs detected. Boot a kOS processor in-flight."}
+                {noCpuMessage(reported, cpuName)}
               </EmptyState>
             ) : (
               <CpuPicker role="group" aria-label="Pick a kOS CPU">
@@ -727,7 +752,18 @@ function KosTerminalScreen({
   );
   const effectiveScriptPaths =
     scriptPaths.length > 0 ? scriptPaths : liveListing.paths;
-  const scriptListHint = scriptPaths.length > 0 ? null : liveListing.hint;
+  /*
+   * The picker's empty-state line. `loading` was computed by the hook and
+   * read by nobody, so a listing still in flight drew the same "No scripts
+   * found" as a drive genuinely holding none: a 30-second dispatch window
+   * during which the picker asserted the volume was empty. It gets its own
+   * line, ahead of `hint`, which only ever describes a settled outcome.
+   */
+  const scriptListHint = (() => {
+    if (scriptPaths.length > 0) return null;
+    if (liveListing.loading) return "Reading the CPU's drives...";
+    return liveListing.hint;
+  })();
   // scriptPaths can change at runtime (the live drive listing),
   // read via ref for the same mount-only-closure reason as `lineModeRef`.
   const scriptPathsRef = useRef<string[]>(effectiveScriptPaths);

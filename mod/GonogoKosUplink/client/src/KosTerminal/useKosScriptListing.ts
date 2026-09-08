@@ -27,7 +27,12 @@ const SCRIPT_FILE_RE = /\.(ks|ksm)$/i;
 export interface KosScriptListingResult {
   paths: string[];
   loading: boolean;
-  /** Human hint for the empty state: no CPU tag, no connection, or a dispatch error's message. `null` once a listing has loaded (even an empty one). */
+  /**
+   * Human hint for the empty state: no CPU tag, no connection, a dispatch
+   * error's message, or a reply whose listing could not be read. `null` only
+   * once at least one volume has returned a listing we could READ, even an
+   * empty one.
+   */
   hint: string | null;
 }
 
@@ -98,19 +103,30 @@ export function useKosScriptListing(
     ).then((settled) => {
       if (cancelled) return;
       const paths: string[] = [];
-      let anyOk = false;
-      let lastError: string | null = null;
+      // "A volume answered with a listing we could READ", which is not the
+      // same as "the RPC resolved". A reply whose listing will not parse
+      // resolved perfectly well and still tells us nothing about what is on
+      // the drive, so counting it as an outcome left `hint` null and the
+      // picker drew "No scripts found" over an unread reply.
+      let anyReadable = false;
+      let dispatchProblem: string | null = null;
+      let unreadableProblem: string | null = null;
       for (const outcome of settled) {
         if (outcome.status === "rejected") {
-          lastError =
+          dispatchProblem =
             outcome.reason instanceof Error
               ? outcome.reason.message
               : String(outcome.reason);
           continue;
         }
-        anyOk = true;
         const { volume, data } = outcome.value;
-        for (const entry of parseListing(data)) {
+        const entries = parseListing(data);
+        if (entries === null) {
+          unreadableProblem = `${volume} replied, but its file listing could not be read.`;
+          continue;
+        }
+        anyReadable = true;
+        for (const entry of entries) {
           if (entry.isDir) continue;
           if (!SCRIPT_FILE_RE.test(entry.name)) continue;
           paths.push(`${volume}/${entry.name}`);
@@ -119,9 +135,14 @@ export function useKosScriptListing(
       setResult({
         paths,
         loading: false,
-        hint: anyOk
+        // An unreadable reply is the sharper signal and is preferred over a
+        // volume that simply is not there: `1:` rejecting is the ordinary
+        // case for a CPU with no local drive, and it lands last.
+        hint: anyReadable
           ? null
-          : (lastError ?? "Could not reach the CPU for a script listing."),
+          : (unreadableProblem ??
+            dispatchProblem ??
+            "Could not reach the CPU for a script listing."),
       });
     });
 
@@ -133,13 +154,24 @@ export function useKosScriptListing(
   return result;
 }
 
-function parseListing(data: KosData): KosFileEntry[] {
+/**
+ * The entries the reply reported, or NULL when the reply carried no listing
+ * we could read: no `listing` field, a `listing` that will not parse, or one
+ * that parses to something other than an array.
+ *
+ * Null and `[]` are different answers and the caller renders them
+ * differently. `[]` means the drive has no files on it; null means the CPU
+ * said something we could not interpret, which is not evidence about the
+ * drive at all. Collapsing the two into `[]` is what let the picker claim a
+ * volume was empty on the strength of a reply it had failed to parse.
+ */
+function parseListing(data: KosData): KosFileEntry[] | null {
   const raw = data.listing;
-  if (typeof raw !== "string") return [];
+  if (typeof raw !== "string") return null;
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as KosFileEntry[]) : [];
+    return Array.isArray(parsed) ? (parsed as KosFileEntry[]) : null;
   } catch {
-    return [];
+    return null;
   }
 }

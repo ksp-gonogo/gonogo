@@ -110,9 +110,20 @@ describe("KosScriptTrigger", () => {
     expect(fake.invocations()[0].cpu.tagname).toBe("probe");
   });
 
-  it("degrades gracefully with no CPU: Run is disabled and a clear reason is shown", async () => {
+  it("degrades gracefully before kos.processors has reported: Run is disabled and the silence is named", async () => {
     renderWidget();
-    // No setCpus(): the widget sees an empty processor list.
+    // No setCpus(): the channel has said NOTHING. That is not evidence the
+    // vessel carries no CPU, so the copy must not claim it is.
+    await waitFor(() =>
+      expect(screen.getByText(/kos\.processors/i)).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/No kOS CPU available/)).toBeNull();
+    expect(screen.getByRole("button", { name: "Run" })).toBeDisabled();
+  });
+
+  it("degrades gracefully with a reported-empty CPU list: Run is disabled and a clear reason is shown", async () => {
+    const { fake } = renderWidget();
+    fake.setCpus([]);
     await waitFor(() =>
       expect(screen.getByText(/No kOS CPU available/)).toBeInTheDocument(),
     );

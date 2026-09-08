@@ -149,8 +149,25 @@ class KosUplinkCpuQueue {
       // callers can distinguish a script-author fault from a transport
       // error, same as the telnet path's explicit/implicit error handling.
       call.reject(new KosScriptError(payload.error));
+    } else if (payload.fields == null) {
+      // `KosRunResult`'s contract is that exactly one of fields/error is
+      // non-null, so a frame with neither is one we cannot read. Note
+      // `== null`: JsonWriter writes an absent value as JSON null and KEEPS
+      // the key, so the strict form would let a null straight through.
+      //
+      // This used to resolve with `{}`, which is indistinguishable from a
+      // script that genuinely printed `[KOSDATA][/KOSDATA]`, so a result
+      // frame that never arrived intact read as a completed run that
+      // returned nothing: KosScriptTrigger drew a green OK over "No fields
+      // returned." A plain Error, not a KosScriptError, because nothing here
+      // is the script author's fault.
+      call.reject(
+        new Error(
+          `kos.run: CPU ${this.coreId} reported neither an error nor a field map, so the result could not be read`,
+        ),
+      );
     } else {
-      call.resolve((payload.fields ?? {}) as KosData);
+      call.resolve(payload.fields as KosData);
     }
     this.drain();
   }

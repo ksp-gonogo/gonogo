@@ -143,6 +143,62 @@ describe("KosUplinkExecutor", () => {
     await pending;
   });
 
+  it("still resolves with an empty object for a genuinely empty [KOSDATA] body", async () => {
+    // `[KOSDATA][/KOSDATA]` parses to an empty field map mod-side, so `{}`
+    // ON THE WIRE is a real answer: the script ran and reported nothing.
+    // Only an ABSENT map is the absence.
+    const { transport, client } = makeClient();
+    const commands = captureDispatches(transport);
+    const executor = new KosUplinkExecutor();
+
+    primeProcessors(executor, client, transport, [
+      { coreId: 4, tag: "cpu-a", hasBooted: true, processorMode: "READY" },
+    ]);
+    const pending = executor.run(client, "cpu-a", "0:/foo.ks", [], null);
+    await waitFor(() => commands.length === 1);
+
+    transport.emit("kos.run.4", {
+      coreId: 4,
+      requestId: commands[0].args.requestId,
+      fields: {},
+    } satisfies KosRunResult);
+
+    await expect(pending).resolves.toEqual({});
+  });
+
+  it.each([
+    ["null", null],
+    ["absent", undefined],
+  ])("rejects rather than resolving empty when a non-error result carries a %s field map", async (_label, fields) => {
+    // `KosRunResult`'s contract is that exactly one of fields/error is
+    // non-null, so neither being set is a frame we cannot read. Resolving
+    // it as `{}` claimed the script ran and returned nothing, and
+    // KosScriptTrigger drew a green OK over "No fields returned." for a
+    // run whose result never arrived intact.
+    const { transport, client } = makeClient();
+    const commands = captureDispatches(transport);
+    const executor = new KosUplinkExecutor();
+
+    primeProcessors(executor, client, transport, [
+      { coreId: 5, tag: "cpu-a", hasBooted: true, processorMode: "READY" },
+    ]);
+    const pending = executor.run(client, "cpu-a", "0:/foo.ks", [], null);
+    await waitFor(() => commands.length === 1);
+
+    transport.emit("kos.run.5", {
+      coreId: 5,
+      requestId: commands[0].args.requestId,
+      fields,
+    } as unknown as KosRunResult);
+
+    await expect(pending).rejects.toThrow(/neither an error nor a field map/i);
+    // A transport/protocol fault, NOT a script-author fault: the widget
+    // badge that distinguishes the two must not say "Script error".
+    await pending.catch((err: unknown) => {
+      expect(isKosScriptError(err)).toBe(false);
+    });
+  });
+
   it("rejects immediately with a clear error when the tagname doesn't resolve to a known coreId", async () => {
     const { client } = makeClient();
     const executor = new KosUplinkExecutor();

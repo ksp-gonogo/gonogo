@@ -124,6 +124,40 @@ namespace GonogoKosUplink.Tests
         }
 
         [Fact]
+        public void CheckVersion_InRange_Clears()
+        {
+            Assert.Null(KosVersionGuard.CheckVersion(new Version(1, 6, 0, 1)));
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(2)]
+        public void CheckVersion_OutOfRange_FailSoft(int major)
+        {
+            var r = KosVersionGuard.CheckVersion(new Version(major, 0));
+            Assert.NotNull(r);
+            Assert.False(r!.Value.IsAvailable);
+            Assert.Contains("known-good range", r.Value.Reason);
+        }
+
+        /// <summary>
+        /// A version we could not READ is not a version inside the pin.
+        /// <c>AssemblyName.Version</c> is nullable, and treating null as
+        /// in-range makes the whole version pin unreachable for exactly the
+        /// assembly it can say least about. The guard's contract is that
+        /// every failure mode degrades to <c>IsAvailable = false</c> with a
+        /// reason, and "cannot confirm the version" is a failure mode.
+        /// </summary>
+        [Fact]
+        public void CheckVersion_UnreadableVersion_FailSoftRatherThanAssumingInRange()
+        {
+            var r = KosVersionGuard.CheckVersion(null);
+            Assert.NotNull(r);
+            Assert.False(r!.Value.IsAvailable);
+            Assert.Contains("version", r.Value.Reason);
+        }
+
+        [Fact]
         public void HasFourArgProcessOneInputChar_TrueForFourArgShape()
         {
             Assert.True(KosVersionGuard.HasFourArgProcessOneInputChar(typeof(Fakes.TermWindow)));
