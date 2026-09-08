@@ -360,7 +360,7 @@ function CommsTag({ tone, children }: { tone: Tone; children: ReactNode }) {
         fontSize: "var(--font-size-2xs)",
         letterSpacing: "0.05em",
         fontWeight: 600,
-        padding: "var(--space-hair) var(--space-6)",
+        padding: "var(--inset-chip)",
         borderRadius: "var(--radius-sm)",
         border: `1px solid ${TONE_HEX[tone]}`,
         color: TONE_HEX[tone],
@@ -501,7 +501,7 @@ function FleetSignalCell({
         style={{
           margin: 0,
           display: "grid",
-          gap: "var(--space-2)",
+          gap: "var(--gap-related)",
           fontSize: "var(--font-size-xs)",
           whiteSpace: "nowrap",
         }}
@@ -561,7 +561,7 @@ function FleetSignalCell({
 const UpdatesRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   /* The 21px left inset is computed, not chosen: NameCell's 6px padding-left +
      LinkDot's 8px width + NameCell's 7px gap, so this block hangs under the
      vessel name rather than under its status dot. It stays literal; the other

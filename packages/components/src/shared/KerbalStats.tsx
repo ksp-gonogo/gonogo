@@ -309,11 +309,15 @@ const KerbalStats__Name = styled.span`
  * glance rather than packed. At the 4px gap it shipped with, "PILOT L2 C 45% S
  * 40% XP 15%" ran together into one undifferentiated line of green and an
  * operator had to parse it a character at a time.
+ *
+ * Both of its render sites are inside a `Card`, which steps --gap-related down
+ * to 6, so this row is 2px tighter than the 8 it was widened to and still 2px
+ * clear of the 4 that failed.
  */
 const KerbalStats__Meta = styled.span`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   align-items: center;
 `;
 

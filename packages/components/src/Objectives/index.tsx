@@ -377,7 +377,9 @@ const EmptyFallbackWrap = styled.div``;
 const Sections = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  /* Each child is a whole contributed section from a different source, which
+     is what --gap-section names; the rhythm inside one is LIST's below. */
+  gap: var(--gap-section);
   /* No inset and no scrolling of its own: Panel.Body owns both now, and
      keeping this one's padding would inset the sections further than the
      title above them. */
@@ -405,13 +407,13 @@ const LIST: CSSProperties = {
   padding: 0,
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
 };
 
 // Per-state `opacity` is applied inline at the call site.
 const ITEM: CSSProperties = {
   display: "flex",
-  gap: "var(--space-6)",
+  gap: "var(--gap-related)",
   alignItems: "baseline",
 };
 

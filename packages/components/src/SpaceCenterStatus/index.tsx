@@ -862,23 +862,25 @@ function formatTinyFunds(value: number): string {
   return value.toFixed(0);
 }
 
+/* A status line, the held-reading notices and the facility grid are different
+   kinds of block, so the seam between them is --gap-section. */
 const Body = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-10);
+  gap: var(--gap-section);
 `;
 
 const FacilityGrid = styled.div<{ $compact: boolean }>`
   display: grid;
   grid-template-columns: ${(p) =>
     p.$compact ? "repeat(2, minmax(0, 1fr))" : "repeat(3, minmax(0, 1fr))"};
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const FacilityCell = styled.div`
   display: flex;
   flex-direction: column;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border-radius: var(--radius-xs);
 `;
@@ -934,7 +936,7 @@ const UpgradeRow = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-4);
   /* Allow the Upgrade button to wrap to a new line when the grid cell
      is too narrow for cost + button side-by-side (default-6x7 at
@@ -969,7 +971,7 @@ const MaxBadge = styled.span`
 const TierSpecs = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-6);
   padding-top: var(--space-6);
   border-top: 1px dashed var(--color-surface-raised);
@@ -978,7 +980,7 @@ const TierSpecs = styled.div`
 const TierBlock__Root = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
 `;
 
 const TierBlock__Heading = styled.span`
@@ -1019,7 +1021,7 @@ const UpgradeButtonStyled = styled(FitLabelButton)`
   font-size: var(--font-size-2xs);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   border: 1px solid var(--color-surface-raised);
   background: transparent;

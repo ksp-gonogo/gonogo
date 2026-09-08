@@ -929,7 +929,7 @@ const HeaderMeta = styled.div`
   display: flex;
   align-items: baseline;
   flex-wrap: wrap;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   color: var(--color-text-dim);
   font-size: var(--font-size-xs);
   flex-wrap: wrap;
@@ -981,7 +981,13 @@ const TinyDrainRow = styled.div`
 const ScreenInset = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
+  /* The inset stays on the rungs. This is the screen's own gutter, not a
+     surface: nothing is drawn here, no border and no fill, and both halves
+     resolve the same in every density tier, so it fails both limbs of the
+     earning test the same way the (8,16) chrome band does. --inset-surface
+     would be a lie about what the box is and would tighten every screen by
+     4px on each side to make a ratchet number smaller. */
   padding: var(--space-8) var(--space-12);
 `;
 
@@ -1003,8 +1009,8 @@ const Empty = styled.p`
 const StrategyCard = styled.article<{ $active?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   border: 1px solid
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
@@ -1025,7 +1031,7 @@ const CardHeader = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const CardTitle = styled.div`
@@ -1074,7 +1080,7 @@ const EffectList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
 `;
 
 const EffectLine = styled.li`
@@ -1091,13 +1097,13 @@ const EffectLine = styled.li`
 const CostRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   margin-top: var(--space-2);
 `;
 
 const CostChip = styled.span<{ $insufficient?: boolean }>`
   font-size: var(--font-size-xs);
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
   border-radius: var(--radius-pill);
   background: ${({ $insufficient }) =>
     $insufficient
@@ -1113,7 +1119,7 @@ const CostChip = styled.span<{ $insufficient?: boolean }>`
 const FactorRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   margin-top: var(--space-4);
 `;
 
@@ -1214,7 +1220,7 @@ const CardFooter = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-4);
   /* At very narrow widths (portrait-5x18) the FactorTag + action button
      can't sit side by side, wrap the button onto its own line instead of

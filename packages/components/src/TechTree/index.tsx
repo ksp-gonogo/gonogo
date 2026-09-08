@@ -1069,7 +1069,7 @@ function dsBorder(ds: DisplayState): string {
 const Controls = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   /* No horizontal inset of its own: Panel.Body supplies exactly the 16px the
      title carries, so the pills line up with the title without one. A local
      padding here would double the inset and push the "Unlocked" pill back
@@ -1080,14 +1080,14 @@ const Controls = styled.div`
 
 const FilterBar = styled.div`
   display: inline-flex;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
 const FilterBtn = styled.button<{ $active: boolean }>`
   font-size: var(--font-size-2xs);
   letter-spacing: 0.06em;
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-pill);
   border: 1px solid
     ${(p) => (p.$active ? "var(--color-accent-fg)" : "var(--color-surface-raised)")};
@@ -1113,7 +1113,7 @@ const SearchInput = styled.input`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
   font: inherit;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   outline: none;
 
@@ -1133,7 +1133,7 @@ const NodeList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const NodeRowWrap = styled.li<{
@@ -1154,8 +1154,12 @@ const NodeHeader = styled.button`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-8);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-related);
+  /* A record in the node list rather than a control, so --inset-surface and
+     not --inset-control: it is a <button> because the whole row toggles, but
+     it has no --control-height floor to sit on and its height comes from the
+     title it wraps. */
+  padding: var(--inset-surface);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -1178,7 +1182,7 @@ const NodeTitle = styled.span`
   font-weight: 600;
   display: flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1205,7 +1209,7 @@ const NodeId = styled.span`
 
 const NodeMeta = styled.span`
   display: inline-flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   align-items: center;
   flex-shrink: 0;
 `;
@@ -1221,7 +1225,7 @@ const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
   font-size: var(--font-size-2xs);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
   border-radius: var(--radius-xs);
   color: ${(p) =>
     p.$tone === "go"
@@ -1233,10 +1237,13 @@ const StateBadge = styled.span<{ $tone: "go" | "accent" | "muted" }>`
     p.$tone === "go" ? "var(--color-status-go-bg)" : "transparent"};
 `;
 
+/* The expanded half of a node: a description, a requires list, a parts list
+   and the unlock control are four different kinds of block, so the seam
+   between them is --gap-section rather than the row rhythm above. */
 const NodeBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-section);
   padding: var(--space-4) var(--space-10) var(--space-8);
   border-top: 1px dashed var(--color-surface-raised);
 `;
@@ -1251,7 +1258,7 @@ const Description = styled.div`
 const Parents = styled.div`
   display: flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
@@ -1264,7 +1271,7 @@ const ParentsLabel = styled.span`
 
 const ParentsList = styled.span`
   display: inline-flex;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
@@ -1272,7 +1279,7 @@ const ParentChip = styled.span`
   font-size: var(--font-size-2xs);
   font-family: monospace;
   color: var(--color-text-muted);
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
   background: var(--color-surface-sunken);
   border-radius: var(--radius-xs);
 `;
@@ -1280,7 +1287,7 @@ const ParentChip = styled.span`
 const Parts = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
 `;
 
 const PartsLabel = styled.span`
@@ -1303,7 +1310,7 @@ const PartRow = styled.li<{ $purchased: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   font-size: var(--font-size-xs);
   padding: var(--space-hair) 0;
   opacity: ${(p) => (p.$purchased ? 0.7 : 1)};
@@ -1320,7 +1327,7 @@ const PartTitle = styled.span`
 
 const PartMeta = styled.span`
   display: inline-flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   align-items: baseline;
   flex-shrink: 0;
 `;
@@ -1373,20 +1380,24 @@ const GraphToolbar = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   flex-shrink: 0;
   flex-wrap: wrap;
 `;
 
+/* Two levels of seam, and the ratio between them is what makes the legend
+   readable: --gap-section between one entry and the next, --gap-related
+   inside an entry between its swatch and its word. Written as one gap the
+   three entries run together into six alternating marks. */
 const Legend = styled.div`
   display: inline-flex;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 `;
 
 const LegendItem = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
   letter-spacing: 0.04em;
@@ -1433,6 +1444,11 @@ const GraphCard = styled.button<{
   flex-direction: column;
   justify-content: flex-start;
   gap: var(--space-hair);
+  /* Stays on the rungs, and this is a floor conflict rather than a missing
+     name: the card is laid out at a fixed CARD_H of 48 and the comment under
+     GraphCardTitle below shows the content budget already flush at 37px, so
+     --inset-control (28px tall) and even --inset-surface would clip the
+     two-line title. Moving this pair means raising CARD_H in the same edit. */
   padding: var(--space-4) var(--space-8);
   overflow: hidden;
   text-align: left;
@@ -1507,12 +1523,15 @@ const GraphOwned = styled.span`
 
 // ── Detail panel ─────────────────────────────────────────────────────────────
 
+/* A head, a description, a meta line, a parts list and the unlock control:
+   different kinds of block, so --gap-section, and a bordered box holding
+   content, so --inset-surface. */
 const Detail = styled.div`
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
-  padding: var(--space-8) var(--space-10);
+  gap: var(--gap-section);
+  padding: var(--inset-surface);
   margin-top: var(--space-6);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-strong);
@@ -1525,7 +1544,7 @@ const DetailHead = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const DetailTitle = styled.span`
@@ -1534,7 +1553,7 @@ const DetailTitle = styled.span`
   color: var(--color-text-primary);
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const CloseBtn = styled.button`
@@ -1544,7 +1563,7 @@ const CloseBtn = styled.button`
   cursor: pointer;
   font-size: var(--font-size-base);
   line-height: var(--line-height-flush);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   font-family: inherit;
 
@@ -1561,7 +1580,7 @@ const CloseBtn = styled.button`
 const DetailMeta = styled.div`
   display: flex;
   align-items: baseline;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   flex-wrap: wrap;
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
@@ -1570,7 +1589,7 @@ const DetailMeta = styled.div`
 const ParentsInline = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex-wrap: wrap;
   font-size: var(--font-size-2xs);
   letter-spacing: 0.04em;
