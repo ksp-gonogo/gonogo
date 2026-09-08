@@ -1180,10 +1180,10 @@ function SpaceWeatherComponent({
           <div style={FOOTER_ROW}>
             <Meter
               label="Shielding"
-              // A null fraction is drawn as absence by the kit: placeholder in
-              // the header, empty track, and no `role="meter"`, because a meter
-              // asserts an `aria-valuenow` and there is none to assert. `tone`
-              // and `valueLabel` are both unread on that path.
+              /* A null fraction is drawn as absence by the kit: placeholder in
+                 the header, empty track, and no `role="meter"`, because a meter
+                 asserts an `aria-valuenow` and there is none to assert. `tone`
+                 and `valueLabel` are both unread on that path. */
               value={shieldFrac}
               tone={
                 shieldFrac === null
