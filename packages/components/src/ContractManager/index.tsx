@@ -659,7 +659,8 @@ const Summary = styled.div`
 // widget were dropped wider. `align-content: start` keeps short lists from
 // stretching, and the 8px gap is the same card spacing the single-column
 // layout uses. Each Active / Offered section is its own CardList so the
-// section labels stay full-width and the grouping holds.
+// section labels stay full-width and the grouping holds. Both branches carry
+// the same --gap-related, which is what makes them one layout rather than two.
 const CARD_MIN_WIDTH = "240px";
 const CardList = styled.div<{ $multiColumn: boolean }>`
   ${({ $multiColumn }) =>
@@ -667,10 +668,10 @@ const CardList = styled.div<{ $multiColumn: boolean }>`
       ? `display: grid;
          grid-template-columns: repeat(auto-fill, minmax(${CARD_MIN_WIDTH}, 1fr));
          align-content: start;
-         gap: var(--space-8);`
+         gap: var(--gap-related);`
       : `display: flex;
          flex-direction: column;
-         gap: var(--space-8);`}
+         gap: var(--gap-related);`}
 `;
 
 const SectionLabel = styled.div`
@@ -683,21 +684,21 @@ const SectionLabel = styled.div`
 
 const OfferedActions = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-4);
 `;
 
 const ActiveActions = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-4);
 `;
 
 const ContractCard = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   padding: var(--space-8);
   background: var(--color-surface-panel);
   border-radius: var(--radius-xs);
@@ -707,7 +708,7 @@ const ContractHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   /* At very narrow widths (compact-4x5) the title (flex:1, wrapping text)
      and the fixed-width deadline label had no room to both sit on one row:
      the deadline text (flex-shrink:0) claimed its full width regardless,
@@ -761,7 +762,7 @@ const Rewards = styled.div`
 const Reward = styled.div`
   display: flex;
   align-items: baseline;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const RewardLabel = styled.span`
@@ -783,13 +784,13 @@ const Parameters = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
 `;
 
 const Parameter = styled.li<{ $state: ContractParameterState }>`
   display: flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   font-size: var(--font-size-xs);
   color: ${(p) =>
     p.$state === "Complete"
@@ -881,7 +882,7 @@ function AltitudeShort({ m }: { m: number }) {
 const AltitudeBarRow = styled.span`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-2);
 `;
 
@@ -921,7 +922,7 @@ const ParameterAlarmButton = styled.button<{ $set?: boolean }>`
   flex-shrink: 0;
   background: transparent;
   border: none;
-  padding: var(--space-2) var(--space-4);
+  padding: var(--inset-control);
   cursor: pointer;
   color: ${(p) =>
     p.$set ? "var(--color-accent-fg)" : "var(--color-text-faint)"};

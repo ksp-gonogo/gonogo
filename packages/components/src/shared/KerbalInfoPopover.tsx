@@ -184,9 +184,11 @@ const PopoverHost = styled.div`
   z-index: var(--z-dropdown, 200);
 `;
 
+/* Portalled, so it hangs off <body> and never inherits the `Card` tier the
+   button that opens it sits in: both names here resolve at the root. */
 const PopoverPanel = styled.div`
   max-width: 320px;
-  padding: var(--space-8) var(--space-10);
+  padding: var(--inset-surface);
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
@@ -194,7 +196,7 @@ const PopoverPanel = styled.div`
   color: var(--color-text-primary);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const PopoverText = styled.p`

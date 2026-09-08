@@ -422,6 +422,26 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * in every tier and the pair is a shape the ladder writes fine, so they stay
    * rungs and say why at the declaration.
    *
+   * It then fell 64 when the space-centre widgets went over: the tech tree,
+   * strategies, contracts, space-centre status, objectives, the fleet roster
+   * and the two shared kerbal readouts the astronaut complex draws with. 64
+   * declarations changed spelling and 49 of them changed pixel value, 46 up
+   * and 3 down, chromium's numbers off the real tokens.css again. The three
+   * down are the only two sites in the cohort that were ABOVE a name: a
+   * portalled popover and the tech tree's detail panel, both at (8,10) and
+   * both --inset-surface, plus the kerbal stat row, whose only two render
+   * sites are inside a `Card` and which therefore reads --gap-related as 6.
+   * That last one is why the tier has to be resolved rather than assumed: the
+   * same token is 8px everywhere else in the cohort.
+   *
+   * Two sites in it stayed literal and neither is a new family. The tech tree's
+   * graph card is a FLOOR conflict, the same shape as the 18px drag headers:
+   * its padding is one term of a fixed CARD_H the file already measures as
+   * flush, so every --inset-* name draws a box the card has no room for. The
+   * strategies screen inset is the (8,16) chrome band at (8,12): a gutter round
+   * a box with neither border nor fill, both halves resolving the same in every
+   * tier.
+   *
    * The cohort unit is the WIDGET, not the declaration. A half-migrated widget
    * can have a converted declaration and its unconverted sibling differ by up
    * to 4px, so a file goes from its seeded number to zero in one landing and
@@ -474,11 +494,9 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/stationIdentity/StationNameEditor.tsx": 2,
     "packages/components/src/AtmosphereProfile/index.tsx": 3,
     "packages/components/src/CommSignal/index.tsx": 3,
-    "packages/components/src/ContractManager/index.tsx": 11,
     "packages/components/src/CurrentOrbit/index.tsx": 1,
     "packages/components/src/DataSourceStatus/index.tsx": 2,
     "packages/components/src/EscapeProfile/index.tsx": 1,
-    "packages/components/src/FleetRoster/index.tsx": 3,
     "packages/components/src/FuelStatus/index.tsx": 4,
     "packages/components/src/Graph/index.tsx": 5,
     "packages/components/src/LandingStatus/index.tsx": 4,
@@ -490,26 +508,30 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/MapView/MapView.styles.ts": 6,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 1,
     "packages/components/src/Navball/index.tsx": 11,
-    "packages/components/src/Objectives/index.tsx": 3,
     "packages/components/src/OrbitView/index.tsx": 1,
     "packages/components/src/PerfBudgets/index.tsx": 5,
     "packages/components/src/Plots/PlotBoard.tsx": 3,
     "packages/components/src/PowerSystems/index.tsx": 9,
-    "packages/components/src/shared/KerbalInfoPopover.tsx": 2,
-    "packages/components/src/shared/KerbalStats.tsx": 1,
     "packages/components/src/shared/OrbitalEventChips.tsx": 1,
     "packages/components/src/ShipMap/index.tsx": 2,
     "packages/components/src/ShipMap/PartActionMenu.tsx": 1,
     "packages/components/src/ShipMap/ShipDiagram.tsx": 3,
-    "packages/components/src/SpaceCenterStatus/index.tsx": 7,
-    "packages/components/src/Strategies/index.tsx": 11,
+    /* A screen's own gutter at (8,12), the same shape as the (8,16) chrome
+       band and failing the earning test the same way: nothing is drawn there,
+       both halves resolve identically in every tier, and --inset-surface would
+       be a claim about a box that has neither border nor fill. */
+    "packages/components/src/Strategies/index.tsx": 1,
     "packages/components/src/SystemView/AlmanacPanel.tsx": 2,
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/SystemView/SystemDiagram.tsx": 4,
     "packages/components/src/SystemView/VesselInfoPanel.tsx": 2,
     "packages/components/src/Targeting/index.tsx": 1,
     "packages/components/src/TargetPicker/index.tsx": 11,
-    "packages/components/src/TechTree/index.tsx": 28,
+    /* The graph card, whose padding is one term of a fixed CARD_H of 48 that
+       the file already measures as flush. A floor conflict rather than a
+       missing name: every --inset-* name draws a taller box than the card has
+       room for, so the pair moves only when CARD_H does. */
+    "packages/components/src/TechTree/index.tsx": 1,
     "packages/components/src/ThermalStatus/index.tsx": 3,
     "packages/components/src/TransferWindow/index.tsx": 16,
     "packages/components/src/WarpControl/index.tsx": 5,
