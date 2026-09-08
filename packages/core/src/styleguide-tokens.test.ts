@@ -78,17 +78,18 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  * rather than the day someone remembers to add it.
  *
  * It counts only the declaration shapes the vocabulary can actually express: a
- * single-valued gap, a two-value `padding` whose halves are both rungs, and a
- * `margin-left`. That exclusion is load-bearing rather than a convenience. A
- * uniform `padding: var(--space-8)`, a three-value one, a single-side one, a
- * `margin-top` and an asymmetric `gap: A B` have NO semantic name to move to,
- * on purpose (tokens.css says why), so counting them would seed a shrink-only
- * debt over a population with nowhere to shrink to. Measured on the tree the
- * seed was taken from: 1,206 rung references sit in a spacing declaration, 680
- * of them in an expressible shape, 568 of those outside the two excluded roots.
- * Two were migrated in the same change, so the table below starts at 566.
- * Under half of the app's spacing will ever carry a semantic name, and a
- * ratchet that pretended otherwise would be permanently, unfixably red.
+ * single-valued gap on a rung other than `hair`, and a two-value `padding`
+ * whose halves are both rungs. That exclusion is load-bearing rather than a
+ * convenience. A uniform `padding: var(--space-8)`, a three-value one, a
+ * single-side one, any `margin` and an asymmetric `gap: A B` have NO semantic
+ * name to move to, on purpose (tokens.css says why), so counting them would
+ * seed a shrink-only debt over a population with nowhere to shrink to.
+ * Measured on the tree the seed was taken from: 1,206 rung references sit in a
+ * spacing declaration, 680 of them in an expressible shape, 568 of those
+ * outside the two excluded roots. Two were migrated in the same change, so the
+ * table below started at 566. Under half of the app's spacing will ever carry
+ * a semantic name, and a ratchet that pretended otherwise would be
+ * permanently, unfixably red.
  *
  * SHAPE is not the same as VALUE, and the first migration tranche found the
  * difference. Three value families sit in an expressible shape and still have
@@ -98,12 +99,20 @@ import { styleguideScanRoots } from "./styleguideScanRoots";
  *   - `gap: var(--space-10)`. 10 is the one rung with no gap name over it:
  *     --gap-related is 8 and --gap-section is 16, so aliasing it either
  *     tightens a cluster or opens a hole. 9 sites at the seed.
- *   - The BUTTON inset, `(6,12)`, which ui-kit's own Button declares and three
- *     app files copy. --inset-row is narrower and --inset-panel taller; the
- *     vocabulary has chip, row and panel and no control.
+ *   - The chrome band, `(10,16)`. There WAS a name for it and it was deleted:
+ *     it described banners, buttons, cards, list rows and coarse-pointer touch
+ *     targets alike, and `PanelBody` did not use it. The 16 is the
+ *     cross-package gutter lock the ladder documents, so a site that wants it
+ *     names that rung and says why.
  *   - Pairs whose horizontal half is not larger than the vertical, `(12,8)`
  *     and `(6,4)`. Every --inset-* widens faster than it grows, so naming one
  *     transposes it.
+ *
+ * TWO SHAPES WERE DROPPED FROM THIS FAMILY when the vocabulary went from eight
+ * names to five, and they are rule changes rather than debt edits: a shape with
+ * no name left is not an offence, and counting one would seed debt that cannot
+ * be paid. `rawRungHits` names both at the branch that skips it. Do not restore
+ * either without restoring a name for it first.
  */
 type Family =
   | "spacing"
@@ -381,13 +390,20 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/ui/src/SourceOfflineBanner.tsx": 2,
   },
   /**
-   * 566 across 107 keys, seeded at the whole tree the day the semantic names
-   * landed, less the one widget migrated to prove the mechanism.
+   * Seeded at 566 across 107 keys, at the whole tree the day the semantic
+   * names landed, less the one widget migrated to prove the mechanism.
    * Unlike every baseline above it, this one is not a list of sites
    * that legitimately stay literal: it is the MIGRATION, written down. Each
-   * entry is a file whose gaps, insets and indents still name a rung where
-   * they could name a job, and the number is how many. The widget spacing
-   * pass shrinks it a widget at a time.
+   * entry is a file whose gaps and insets still name a rung where they could
+   * name a job, and the number is how many. The widget spacing pass shrinks it
+   * a widget at a time.
+   *
+   * It fell 24 net when the vocabulary went from eight names to five, and
+   * neither half of that was a widget migrating: 28 declarations stopped being
+   * offences because the shape they sat in lost its name (a `hair` gap, and
+   * every `margin-left`), and four grew because the four call sites of the
+   * deleted --inset-panel went back to rungs rather than tighten. See the
+   * comment on those keys below, and the two branches in `rawRungHits`.
    *
    * The cohort unit is the WIDGET, not the declaration. A half-migrated widget
    * can have a converted declaration and its unconverted sibling differ by up
@@ -405,12 +421,12 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/alarms/StationAlarmBanner.tsx": 2,
     "packages/app/src/analytics/AnalyticsConsentModal.tsx": 2,
     "packages/app/src/backup/BackupManager.tsx": 4,
-    "packages/app/src/commcast/CommcastComponent.tsx": 13,
+    "packages/app/src/commcast/CommcastComponent.tsx": 12,
     "packages/app/src/commcast/radio/RadioIndicator.tsx": 1,
     "packages/app/src/commcast/radio/RadioPtt.tsx": 1,
     "packages/app/src/components/ComponentOverlay.tsx": 10,
-    "packages/app/src/components/Dashboard/MobileDashboard.tsx": 6,
-    "packages/app/src/components/Dashboard/shared.tsx": 6,
+    "packages/app/src/components/Dashboard/MobileDashboard.tsx": 5,
+    "packages/app/src/components/Dashboard/shared.tsx": 4,
     "packages/app/src/components/Dashboard/WidgetGearMenu.tsx": 1,
     "packages/app/src/components/FlightOutcomeBanner.tsx": 11,
     "packages/app/src/components/MissionBanner.tsx": 2,
@@ -423,16 +439,16 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/app/src/goNoGo/GoNoGoComponent.tsx": 11,
     "packages/app/src/logs/LogsManager.tsx": 13,
     "packages/app/src/missionProfiles/MissionProfilesModal.tsx": 10,
-    "packages/app/src/notes/NotesComponent.tsx": 8,
+    "packages/app/src/notes/NotesComponent.tsx": 7,
     "packages/app/src/notes/TagAutocomplete.tsx": 2,
     "packages/app/src/pushToMain/PushedDashboardOverlay.tsx": 3,
     "packages/app/src/screens/MainScreen.tsx": 1,
     "packages/app/src/screens/PilotScreen.tsx": 2,
     "packages/app/src/screens/StationScreen.tsx": 1,
-    "packages/app/src/settings/SettingsModal.tsx": 7,
+    "packages/app/src/settings/SettingsModal.tsx": 6,
     "packages/app/src/settings/SitrepConnection.tsx": 4,
     "packages/app/src/stationIdentity/StationNameEditor.tsx": 3,
-    "packages/components/src/AtmosphereProfile/index.tsx": 4,
+    "packages/components/src/AtmosphereProfile/index.tsx": 3,
     "packages/components/src/CommSignal/index.tsx": 3,
     "packages/components/src/ContractManager/index.tsx": 11,
     "packages/components/src/CurrentOrbit/index.tsx": 1,
@@ -442,7 +458,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/FuelStatus/index.tsx": 4,
     "packages/components/src/Graph/index.tsx": 5,
     "packages/components/src/LandingStatus/index.tsx": 4,
-    "packages/components/src/LaunchDirector/index.tsx": 31,
+    "packages/components/src/LaunchDirector/index.tsx": 27,
     "packages/components/src/LibrationPoints/index.tsx": 1,
     "packages/components/src/ManeuverPlanner/NodeRow.tsx": 2,
     "packages/components/src/ManeuverPlanner/styles.ts": 1,
@@ -450,42 +466,52 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/MapView/MapView.styles.ts": 6,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 1,
     "packages/components/src/Navball/index.tsx": 11,
-    "packages/components/src/Objectives/index.tsx": 4,
+    "packages/components/src/Objectives/index.tsx": 3,
     "packages/components/src/OrbitView/index.tsx": 1,
     "packages/components/src/PerfBudgets/index.tsx": 5,
     "packages/components/src/Plots/PlotBoard.tsx": 3,
-    "packages/components/src/PowerSystems/index.tsx": 11,
+    "packages/components/src/PowerSystems/index.tsx": 9,
     "packages/components/src/shared/KerbalInfoPopover.tsx": 2,
     "packages/components/src/shared/KerbalStats.tsx": 1,
     "packages/components/src/shared/OrbitalEventChips.tsx": 1,
     "packages/components/src/ShipMap/index.tsx": 2,
     "packages/components/src/ShipMap/PartActionMenu.tsx": 1,
     "packages/components/src/ShipMap/ShipDiagram.tsx": 3,
-    "packages/components/src/SpaceCenterStatus/index.tsx": 10,
+    "packages/components/src/SpaceCenterStatus/index.tsx": 7,
     "packages/components/src/Strategies/index.tsx": 11,
-    "packages/components/src/SystemView/AlmanacPanel.tsx": 3,
+    "packages/components/src/SystemView/AlmanacPanel.tsx": 2,
     "packages/components/src/SystemView/index.tsx": 1,
     "packages/components/src/SystemView/SystemDiagram.tsx": 4,
-    "packages/components/src/SystemView/VesselInfoPanel.tsx": 3,
-    "packages/components/src/Targeting/index.tsx": 2,
-    "packages/components/src/TargetPicker/index.tsx": 12,
-    "packages/components/src/TechTree/index.tsx": 31,
+    "packages/components/src/SystemView/VesselInfoPanel.tsx": 2,
+    "packages/components/src/Targeting/index.tsx": 1,
+    "packages/components/src/TargetPicker/index.tsx": 11,
+    "packages/components/src/TechTree/index.tsx": 28,
     "packages/components/src/ThermalStatus/index.tsx": 3,
     "packages/components/src/TransferWindow/index.tsx": 16,
     "packages/components/src/WarpControl/index.tsx": 5,
     "packages/data/src/FlightsManager/ChaptersEditor.tsx": 7,
     "packages/data/src/FlightsManager/FlightGraph.tsx": 5,
-    "packages/data/src/FlightsManager/index.tsx": 20,
-    "packages/data/src/replaySession/ReplaySessionBanner.tsx": 6,
+    "packages/data/src/FlightsManager/index.tsx": 19,
+    "packages/data/src/replaySession/ReplaySessionBanner.tsx": 5,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
-    "packages/serial/src/SerialDevicesMenu/index.tsx": 1,
-    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
+    // The two below and SourceOfflineBanner.tsx at the end GREW by four in
+    // total when the vocabulary went from eight names to five, which is the
+    // only growth in this table and is deliberate. They hold the four call
+    // sites of the deleted --inset-panel: a floating banner, a menu banner and
+    // a modal's header and body, all at (10,16). Nothing names that pair now,
+    // and the alternative was to take them to --inset-surface, which would have
+    // tightened four visible chrome surfaces by (-4,-8) to make a ratchet
+    // number smaller. Each site carries the reason at its own declaration, and
+    // the 16 is the cross-package gutter lock the ladder documents.
+    "packages/serial/src/SerialDevicesMenu/index.tsx": 2,
+    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 3,
     "packages/ui/src/BannerPill.tsx": 4,
-    "packages/ui/src/DataKeyMultiPicker.tsx": 2,
+    "packages/ui/src/DataKeyMultiPicker.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
     "packages/ui/src/Fab.tsx": 1,
-    "packages/ui/src/FileInput.tsx": 3,
+    "packages/ui/src/FileInput.tsx": 2,
+    "packages/ui/src/SourceOfflineBanner.tsx": 1,
   },
 };
 
@@ -552,14 +578,21 @@ function motionHits(value: string): string[] {
 }
 
 /**
- * The three axes the semantic names cover, keyed by the property that
- * declares each. `padding-inline` is deliberately absent from the inset axis:
- * an `--inset-*` is an ordered vertical/horizontal pair and `padding-inline`
+ * The two axes the semantic names cover, keyed by the property that declares
+ * each. `padding-inline` is deliberately absent from the inset axis: an
+ * `--inset-*` is an ordered vertical/horizontal pair and `padding-inline`
  * would read it transposed.
+ *
+ * There was a third, `margin-left`, against an `--indent-step` token. Both are
+ * gone. The token had zero call sites and the wrong value for 18 of its 19
+ * candidates: one real 16px hierarchy indent, and 18 nudges of 2 to 6px pushing
+ * a badge or a unit off the text beside it, which are gaps written as margins
+ * because the parent is not a flex box. Scanning the axis with no name to move
+ * to would have been debt that could not be paid, so the axis went with the
+ * name rather than the entries being edited down.
  */
 const GAP_PROPERTIES = ["gap", "row-gap", "column-gap", "rowGap", "columnGap"];
 const INSET_PROPERTIES = ["padding"];
-const INDENT_PROPERTIES = ["margin-left", "marginLeft"];
 
 /** A value that is a single `--space-*` reference and nothing else. */
 const LONE_RUNG = /^var\(\s*(--space-[a-z0-9]+)\s*(?:,[^()]*)?\)$/;
@@ -604,10 +637,10 @@ function topLevelValues(value: string): string[] {
  * A rung reference in a declaration shape a semantic name can express.
  *
  * Everything else returns nothing, which is the honest half of this family:
- * a `calc()` bleed, a uniform or three-value or single-side padding, a
- * `margin-top`, a two-value padding with a `0` half and an asymmetric
- * `gap: A B` all have no name to move to, so counting them would be seeding
- * debt that can never be paid.
+ * a `calc()` bleed, a uniform or three-value or single-side padding, any
+ * `margin`, a two-value padding with a `0` half and an asymmetric `gap: A B`
+ * all have no name to move to, so counting them would be seeding debt that can
+ * never be paid.
  */
 function rawRungHits(rawValue: string, property: string): string[] {
   const value = unquoteValue(rawValue);
@@ -617,6 +650,13 @@ function rawRungHits(rawValue: string, property: string): string[] {
 
   if (GAP_PROPERTIES.includes(property) && parts.length === 1) {
     const only = rung(parts[0]);
+    // A 1px gap is not an offence, and this is a rule rather than a debt
+    // entry: there was a --gap-hairline over this rung and it was deleted for
+    // resolving to 1px in every tier that will ever exist, which is a constant
+    // with two spellings rather than a semantic layer. Nothing names `hair`
+    // now, so nothing here can be migrated. Restoring the check means
+    // restoring a name first. See the SEMANTIC SPACING block in tokens.css.
+    if (only === "--space-hair") return [];
     return only ? [`${only} -> --gap-*`] : [];
   }
   if (INSET_PROPERTIES.includes(property) && parts.length === 2) {
@@ -624,10 +664,6 @@ function rawRungHits(rawValue: string, property: string): string[] {
     return vertical && horizontal
       ? [`${vertical} ${horizontal} -> --inset-*`]
       : [];
-  }
-  if (INDENT_PROPERTIES.includes(property) && parts.length === 1) {
-    const only = rung(parts[0]);
-    return only ? [`${only} -> --indent-step`] : [];
   }
   return [];
 }
@@ -755,9 +791,9 @@ const FAMILIES: Record<Family, FamilySpec> = {
   rawSpacingRung: {
     label: "raw spacing rung",
     offence: "raw spacing rung(s) in a shape a semantic name covers",
-    properties: [...GAP_PROPERTIES, ...INSET_PROPERTIES, ...INDENT_PROPERTIES],
+    properties: [...GAP_PROPERTIES, ...INSET_PROPERTIES],
     remedy:
-      "name the JOB instead: --gap-hairline/tight/related/section between siblings (related is the default), --inset-chip/row/panel inside an edge, --indent-step for hierarchy. The rungs stay right for every shape those names cannot express, which tokens.css lists",
+      "name the JOB instead: --gap-related between siblings of the same kind (the default) and --gap-section between groups of different kinds, --inset-chip/control/surface inside an edge. The rungs stay right for every shape those five names cannot express, which tokens.css lists",
     readsRaw: true,
     excludedRoots: [
       {
@@ -1030,7 +1066,7 @@ describe("design-system: hardcoded design-token values", () => {
     assertFamily("motion");
   });
 
-  it("holds the raw-spacing-rung baseline (gap, inset, indent)", () => {
+  it("holds the raw-spacing-rung baseline (gap, inset)", () => {
     assertFamily("rawSpacingRung");
   });
 
@@ -1095,17 +1131,21 @@ describe("design-system: the ratchet can see a violation", () => {
  * expands to two values on one edge, and in `padding-inline` it lands
  * transposed. That has no baseline because nothing in the tree does it and
  * nothing should start.
+ *
+ * The list is FIVE, down from eight, and the size is the point: a name earns
+ * this mechanism only by resolving differently in different contexts or by
+ * expressing a shape the ladder cannot. The three that went were a 1px
+ * constant, a size one rung below `related` in every tier, and a 16px indent
+ * with no call sites; tokens.css records each. Adding a sixth is a design
+ * decision, so this list is the place it has to be argued.
  */
 describe("design-system: the semantic spacing vocabulary", () => {
   const VOCABULARY = [
-    "--gap-hairline",
-    "--gap-tight",
     "--gap-related",
     "--gap-section",
     "--inset-chip",
-    "--inset-row",
-    "--inset-panel",
-    "--indent-step",
+    "--inset-control",
+    "--inset-surface",
   ];
 
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));

@@ -93,7 +93,7 @@ const NodeListUL = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 const ClearAllRow = styled.div`

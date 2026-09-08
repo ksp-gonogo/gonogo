@@ -392,7 +392,7 @@ const ParserHeader = styled.div`
 const DiscoveredList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 const DiscoveredRow = styled.div`
@@ -402,7 +402,7 @@ const DiscoveredRow = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-md);
-  padding: var(--inset-row);
+  padding: var(--inset-surface);
   font-size: var(--font-size-xs);
 `;
 
@@ -438,7 +438,7 @@ const InputRow = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  padding: var(--inset-row);
+  padding: var(--inset-surface);
 `;
 
 const SmallField = styled(Field)`

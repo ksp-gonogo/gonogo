@@ -93,7 +93,7 @@ const Editor = styled.div`
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);
-  padding: var(--inset-row);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xs);
@@ -110,7 +110,7 @@ const EditorTitle = styled.div`
 const EditorField = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
   flex: 1;
   min-width: 0;
 `;
@@ -125,7 +125,7 @@ const OpSelect = styled.select`
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xs);
-  padding: var(--inset-row);
+  padding: var(--inset-control);
   font-size: var(--font-size-sm);
 `;
 
@@ -134,7 +134,7 @@ const ValueInput = styled.input`
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-xs);
-  padding: var(--inset-row);
+  padding: var(--inset-control);
   font-size: var(--font-size-sm);
   font-family: inherit;
   width: 100%;

@@ -531,7 +531,7 @@ const Tabs__Button = styled.button<{
     $compact
       ? "padding: var(--space-4, 4px) var(--space-6, 6px);" +
         "letter-spacing: 0.04em;"
-      : "padding: var(--space-6, 6px) var(--space-12, 12px);" +
+      : "padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));" +
         "letter-spacing: 0.12em;"}
   /* Pushing: the label gives under the press and springs back, which is the
      only feedback a tab gets on a touch device where there is no hover. */

@@ -112,7 +112,7 @@ const SearchInput = styled.input`
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font-size: var(--font-size-base);
-  padding: var(--inset-row);
+  padding: var(--inset-control);
   width: 100%;
 
   &:focus {
@@ -172,7 +172,7 @@ const RowLabel = styled.label`
   display: flex;
   align-items: center;
   gap: var(--gap-related);
-  padding: var(--inset-row);
+  padding: var(--inset-surface);
   cursor: pointer;
   user-select: none;
 `;
@@ -201,10 +201,11 @@ const ItemLabel = styled.span`
 const ItemUnit = styled.span`
   font-size: var(--font-size-xs);
   color: var(--color-text-faint);
-  /* Not --indent-step. This margin separates a unit from the label it sits
-     BESIDE on one line; it is a gap wearing margin's clothes, and the indent
-     name means the step a nested row is pushed in by, which would push this
-     16px away from its own label. */
+  /* A gap wearing margin's clothes: this separates a unit from the label it
+     sits BESIDE on one line, and the parent is not a flex box. The vocabulary
+     has no name for it, deliberately: an --indent-step token existed for a
+     while at 16px and would have pushed this eight times further out, which is
+     what a hierarchy indent means and this is not one. */
   margin-left: var(--space-6);
 `;
 

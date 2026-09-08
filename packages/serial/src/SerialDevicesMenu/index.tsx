@@ -460,7 +460,11 @@ const WebSerialUnavailableBanner = styled.div`
   color: var(--color-status-warning-bg);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-body);
-  padding: var(--inset-panel);
+  /* The chrome band, in rungs. This banner spans the menu and carries prose
+     with an inline <code> run, so it takes the 16px gutter lock the ladder
+     documents rather than --inset-surface's 8, which is the inset for a record
+     inside a list. No --inset-* names this pair on purpose. */
+  padding: var(--space-10) var(--space-16);
 
   code {
     font-family: var(--font-mono, monospace);
@@ -475,9 +479,9 @@ const WebSerialUnavailableBanner = styled.div`
 // Same shape as InputMappingTab's: the kit's Card plus this menu's own
 // padding and the column it lays its head and body out in.
 const DeviceCard = styled(Card)`
-  /* Roomier than Card's own --inset-row, same as InputMappingTab's binding
-     card, and written in rungs for the same reason: --inset-row is what is
-     being overridden and --inset-panel would call a card a panel. */
+  /* Roomier than Card's own --inset-surface, same as InputMappingTab's binding
+     card, and written in rungs for the same reason: --inset-surface is the
+     value being overridden. */
   padding: var(--space-10) var(--space-12);
   display: flex;
   flex-direction: column;

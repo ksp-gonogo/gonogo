@@ -28,6 +28,6 @@ const PresetSelect = styled.select`
   border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
-  padding: var(--inset-row);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
 `;

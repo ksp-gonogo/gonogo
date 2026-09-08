@@ -92,9 +92,7 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   letter-spacing: 0.04em;
-  /* The button inset, shared with ui-kit's Button. Wider than --inset-row and
-     shorter than --inset-panel, so no --inset-* names it. */
-  padding: var(--space-6) var(--space-12);
+  padding: var(--inset-control);
   cursor: ${({ $disabled }) => ($disabled ? "not-allowed" : "pointer")};
   opacity: ${({ $disabled }) => ($disabled ? 0.5 : 1)};
   user-select: none;
@@ -112,13 +110,14 @@ const FileInputButton = styled.label<{ $disabled: boolean }>`
 
   @media (pointer: coarse) {
     min-height: 44px;
-    /* One rung wider than the base inset (--space-12), same as ui-kit Button.
+    /* One rung wider than --inset-control's horizontal, same as ui-kit Button.
        A 14px value would snap onto the base rung and erase the horizontal
        widening this block exists for.
 
-       It happens to equal --inset-panel, and is deliberately not written as
-       one: this pair is a 44px touch target, so it must move when the touch
-       guidance moves and must NOT move when the panel tier does. */
+       This pair used to equal a token called --inset-panel and was deliberately
+       not written as one, because a 44px touch target must move when the touch
+       guidance moves and must NOT move when a panel tier does. That refusal is
+       part of why the token was deleted; the pair stays in rungs either way. */
     padding: var(--space-10) var(--space-16);
   }
 `;

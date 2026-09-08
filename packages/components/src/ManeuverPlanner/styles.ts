@@ -30,11 +30,11 @@ export const FeasibilityChip = styled.span<{ $ok: boolean }>`
 export const FeasibilityBanner = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
-  /* No --inset-* names a full-width banner: --inset-row is the record inside a
-     list and --inset-panel is the surface a banner sits ON, and taking either
-     would either narrow the shortfall text or set it in from the panel edge
-     twice. */
+  gap: var(--gap-related);
+  /* Roomier than --inset-surface on purpose: this banner spans the panel and
+     its shortfall text is the widest thing in the widget, so the record inset
+     would crowd it. Written in rungs because it is a deliberate override of
+     the surface inset rather than a different class of box. */
   padding: var(--space-6) var(--space-10);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-nogo-bg);

@@ -821,7 +821,7 @@ const SIZE_STYLES = {
   `,
   md: css`
     font-size: var(--font-size-sm);
-    padding: var(--space-6, 6px) var(--space-12, 12px);
+    padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
   `,
 } as const;
 

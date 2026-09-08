@@ -49,7 +49,7 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 const ArmedRow = styled.li`
@@ -57,7 +57,7 @@ const ArmedRow = styled.li`
   align-items: center;
   justify-content: space-between;
   gap: var(--gap-related);
-  padding: var(--inset-row);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-status-warning-bg);
   border-radius: var(--radius-xs);
@@ -66,7 +66,10 @@ const ArmedRow = styled.li`
 const Main = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-hairline);
+  /* The seam between the two lines of one readout, and a rung rather than a
+     semantic name on purpose: 1px is the same 1px in every density tier, so a
+     name for it would be a constant with two spellings. tokens.css says so. */
+  gap: var(--space-hair);
   min-width: 0;
 `;
 
@@ -83,7 +86,7 @@ const Meta = styled.div`
   letter-spacing: 0.04em;
   display: inline-flex;
   align-items: center;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 const CancelButton = styled.button`
