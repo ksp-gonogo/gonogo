@@ -115,7 +115,10 @@ const Bar = styled.div`
   z-index: var(--z-sticky);
   display: flex;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--gap-section);
+  /* Rungs, not --inset-surface: this is the full-width chrome strip on the
+     16px gutter lock, the band the deleted --inset-panel used to hold and
+     which no name covers now. */
   padding: var(--space-8) var(--space-16);
   background: var(--color-tag-purple-bg, var(--color-surface-raised));
   border-bottom: 2px solid var(--color-tag-purple-fg);
@@ -164,7 +167,7 @@ const SeekArea = styled.div`
   flex: 1;
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   min-width: 0;
 `;
 
@@ -186,7 +189,7 @@ const RatePicker = styled.select`
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
 `;
 
@@ -196,7 +199,7 @@ const ExitButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-10);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
 `;

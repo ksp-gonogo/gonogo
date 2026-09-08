@@ -91,6 +91,9 @@ const Wrap = styled.div`
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
+  /* Rungs, not --inset-surface, and the same reason AlarmBanner gives: this is
+     the floating-chrome band on the 16px gutter lock, which no name covers
+     since --inset-panel went. */
   padding: var(--space-8) var(--space-16);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
@@ -146,7 +149,7 @@ const AckButton = styled.button`
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;

@@ -660,7 +660,7 @@ const Container = styled.div`
 const RowActions = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const GraphButton = styled.button<{ $open: boolean }>`
@@ -669,7 +669,7 @@ const GraphButton = styled.button<{ $open: boolean }>`
   color: ${({ $open }) => ($open ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 
@@ -687,7 +687,7 @@ const ExportButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 
@@ -705,7 +705,7 @@ const ReplayButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 
@@ -721,7 +721,7 @@ const RecordingToolbar = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   padding-bottom: var(--space-10);
   margin-bottom: var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
@@ -735,12 +735,12 @@ const MissionHint = styled.span`
 const RecordingBadge = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   background: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-on-bg);
   font-size: var(--font-size-xs);
-  padding: var(--space-4) var(--space-10);
+  padding: var(--inset-chip);
   border-radius: var(--radius-xs);
   letter-spacing: 0.06em;
 `;
@@ -754,7 +754,7 @@ const Table = styled.table`
 
 const Th = styled.th`
   text-align: left;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-surface);
   font-size: var(--font-size-xs);
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -769,8 +769,9 @@ const Tr = styled.tr<{ $current: boolean }>`
 `;
 
 const Td = styled.td`
-  /* 7px is computed, not chosen: it is Th's 6px plus the 1px that makes a body
-     row taller than the header row. It tracks Th, not a spacing rung. */
+  /* 7px is computed, not chosen: it is the 6px vertical half of the surface
+     inset Th carries, plus the 1px that makes a body row taller than the
+     header row. It tracks Th, not a spacing rung. */
   padding: 7px var(--space-8);
   color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-surface-raised);
@@ -781,12 +782,12 @@ const OutcomeBadge = styled.span<{ $tone: "go" | "nogo" }>`
   display: inline-block;
   margin-left: var(--space-6);
   font-size: var(--font-size-xs);
-  padding: var(--space-hair) var(--space-6);
+  padding: var(--inset-chip);
   /* A stadium, not a corner: the badge renders about 17px tall (11px x 1.2
      plus 1px padding and 1px border each side), so 8px was already at half
      the height. --radius-pill clamps to the same shape and keeps it there
-     when the --space-6 inset above widens the badge. The --radius-lg that
-     8px maps to by value would visibly square these GO/NO-GO pills. */
+     when the chip inset above widens the badge. The --radius-lg that 8px
+     maps to by value would visibly square these GO/NO-GO pills. */
   border-radius: var(--radius-pill);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -819,7 +820,7 @@ const DeleteButton = styled.button`
 const ConfirmRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const DangerButton = styled.button`
@@ -828,7 +829,7 @@ const DangerButton = styled.button`
   color: var(--color-tag-red-fg);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   &:hover { background: var(--color-status-alert-muted); }
 `;
@@ -839,7 +840,7 @@ const CancelButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   &:hover { color: var(--color-text-primary); }
 `;
@@ -848,7 +849,7 @@ const Footer = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   padding: var(--space-10) var(--space-8) var(--space-4);
   border-top: 1px solid var(--color-border-subtle);
 `;
@@ -856,7 +857,7 @@ const Footer = styled.div`
 const BulkActions = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   min-height: 24px;
 `;
 
@@ -869,7 +870,7 @@ const SelectionCount = styled.span`
 
 const ThCheckbox = styled.th`
   width: 28px;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-surface);
   border-bottom: 1px solid var(--color-border-subtle);
 `;
 
@@ -880,6 +881,10 @@ const SelectCheckbox = styled.input.attrs({ type: "checkbox" })`
 
 const ThStar = styled.th`
   width: 24px;
+  /* Rungs, and the one cell that cannot take --inset-surface beside Th and
+     ThCheckbox: every inset name puts horizontal at or above vertical, and a
+     24px column carrying a star glyph needs the opposite. At (6,8) the content
+     box is 8px and the glyph clips. */
   padding: var(--space-6) var(--space-4);
   font-size: var(--font-size-sm);
   color: var(--color-text-faint);
@@ -908,13 +913,13 @@ const StarButton = styled.button<{ $on: boolean }>`
 const RightControls = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 `;
 
 const AutoDeleteLabel = styled.label`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   cursor: pointer;
@@ -931,7 +936,7 @@ const ClearAllButton = styled.button`
   color: var(--color-text-dim);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-4) var(--space-12);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   &:hover { color: var(--color-tag-red-fg); border-color: var(--color-status-alert-muted); }
 `;

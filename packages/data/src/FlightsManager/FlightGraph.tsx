@@ -277,8 +277,8 @@ function keyGroup(key: string): string {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
-  padding: var(--space-10) var(--space-12);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border-top: 1px solid var(--color-surface-raised);
 `;
@@ -286,7 +286,7 @@ const Wrap = styled.div`
 const Toolbar = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const PickerLabel = styled.span`
@@ -315,7 +315,7 @@ const LoadingBadge = styled.div`
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   background: rgba(0, 0, 0, 0.6);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-chip);
   border-radius: var(--radius-xs);
   /* Local sibling ordering inside ChartWrap only: this badge just has to sit
      over the chart canvas beside it. The absolute number is meaningless
@@ -328,6 +328,6 @@ const ErrorLine = styled.div`
   color: var(--color-status-nogo-fg);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-status-alert-muted);
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-surface);
   border-radius: var(--radius-xs);
 `;

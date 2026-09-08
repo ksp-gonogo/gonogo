@@ -943,7 +943,7 @@ function OnFireEditor({
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   min-width: 480px;
   max-width: 640px;
 `;
@@ -959,7 +959,7 @@ const KIND_OPTIONS: readonly { kind: DraftKind; label: string }[] = [
 
 const KindRow = styled.div`
   display: flex;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-2);
@@ -971,7 +971,7 @@ const KindButton = styled.button<{ $active: boolean }>`
   background: ${(p) => (p.$active ? "var(--color-status-go-bg)" : "transparent")};
   color: ${(p) => (p.$active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   border: none;
-  padding: var(--space-4) var(--space-12);
+  padding: var(--inset-control);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   cursor: pointer;
@@ -986,7 +986,7 @@ const KindButton = styled.button<{ $active: boolean }>`
 
 const SideBySide = styled.div`
   display: flex;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   & > * {
     flex: 1;
   }
@@ -994,7 +994,7 @@ const SideBySide = styled.div`
 
 const OpSelect = styled.select`
   font-size: var(--font-size-sm);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
@@ -1009,13 +1009,13 @@ const WaitingNote = styled.div`
 const PresetSection = styled.section`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const PresetSummary = styled.button`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   background: transparent;
   border: none;
   padding: 0;
@@ -1042,16 +1042,16 @@ const PresetCaret = styled.span`
 const PresetList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const PresetButton = styled.button`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   text-align: left;
-  padding: var(--space-8) var(--space-10);
+  padding: var(--inset-control);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-sm);
@@ -1092,7 +1092,7 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 /** Alarm states, mapped onto the kit's tone vocabulary. */
@@ -1109,14 +1109,16 @@ const ALARM_TONE: Record<Alarm["state"], ReadoutTone> = {
 const AlarmListItem = styled(Card).attrs({ as: "li" as const })`
   display: flex;
   align-items: center;
-  gap: var(--space-12);
-  padding: var(--space-8) var(--space-10);
+  /* Section, not related: the info column, the state tag and the buttons are
+     three different kinds of thing. Inside a card that resolves to the 12 this
+     used to spell. The inset is Card's own, so it is not restated here. */
+  gap: var(--gap-section);
 `;
 
 const RowInfo = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   flex: 1;
   min-width: 0;
 `;
@@ -1124,7 +1126,7 @@ const RowInfo = styled.div`
 const AlarmListName = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   font-size: var(--font-size-sm);
   color: var(--color-status-go-fg);
 `;
@@ -1153,7 +1155,7 @@ const StateTag = styled.span<{ $state: Alarm["state"] }>`
 
 const RowActions = styled.div`
   display: flex;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex-shrink: 0;
 `;
 
@@ -1161,7 +1163,7 @@ const DangerButton = styled.button`
   background: var(--color-status-alert-muted);
   color: var(--color-status-nogo-bg);
   border: 1px solid var(--color-status-alert-muted);
-  padding: var(--space-2) var(--space-10);
+  padding: var(--inset-control);
   border-radius: var(--radius-sm);
   font-size: var(--font-size-xs);
   cursor: pointer;
@@ -1177,14 +1179,14 @@ const DangerButton = styled.button`
 const FireList = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const FireChip = styled.span`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-6);
-  padding: var(--space-2) var(--space-6);
+  gap: var(--gap-related);
+  padding: var(--inset-chip);
   background: var(--color-surface-sunken);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
@@ -1221,14 +1223,14 @@ const FireRemoveButton = styled.button`
 
 const PickerRow = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   align-items: stretch;
 `;
 
 const PickerSelect = styled.select`
   flex: 1;
   font-size: var(--font-size-sm);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-status-go-fg);
   border: 1px solid var(--color-border-subtle);
