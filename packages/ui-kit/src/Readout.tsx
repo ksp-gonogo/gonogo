@@ -77,6 +77,10 @@ export const StatusPill = styled.div<{ $tone: ReadoutTone }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* --inset-control's value, not its class: a status pill is read, never
+     pressed, so it must not follow the control token when that widens for a
+     touch target. --inset-chip would halve it, which is right for a badge in
+     the text flow and wrong for a tiny-mode widget's whole state readout. */
   padding: var(--space-6, 6px) var(--space-12, 12px);
   border-radius: var(--radius-pill, 999px);
   font-size: var(--font-size-sm);

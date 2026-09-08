@@ -93,13 +93,14 @@ const Banner = styled.div`
   background: var(--color-surface-overlay, rgba(20, 22, 26, 0.92));
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-sm);
-  /* The button inset, shared with ui-kit's Button and FileInput's own. It is
-     wider than --inset-row and shorter than --inset-panel, so no --inset-*
-     names it; see the note on the pills in BannerPill. */
+  /* Shares --inset-control's value and not its class: this is a message you
+     read, not a box you press, and the token names the pressable family so
+     that its coarse-pointer widening has somewhere to live. Same call as the
+     pills in BannerPill; see the note there. */
   padding: var(--space-6) var(--space-12);
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
   align-items: center;
   text-align: center;
   max-width: 80%;

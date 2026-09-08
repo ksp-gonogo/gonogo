@@ -743,7 +743,7 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
 
 /**
  * A panel body is the app's DEFAULT density tier, and it says so by
- * re-declaring the three steppable gap names at the values `tokens.css`
+ * re-declaring both steppable gap names at the values `tokens.css`
  * already gives them at `:root`.
  *
  * Numerically that is a no-op on a panel sitting at the top level, and it is
@@ -760,13 +760,11 @@ export const PanelToolbar = styled.div<{ $overlay?: boolean }>`
  * today; declaring the default is what keeps it from being a latent bug when
  * something does.
  *
- * `--gap-hairline` does not appear because it does not step, and the insets do
- * not appear because the body's own three-value padding is one of the shapes
- * the inset names deliberately cannot express (`tokens.css` says which, and
- * why).
+ * The insets do not appear because the body's own three-value padding is one
+ * of the shapes the inset names deliberately cannot express (`tokens.css` says
+ * which, and why).
  */
 const PanelBody__Box = styled.div<{ $fitToSize?: boolean; $bleed?: boolean }>`
-  --gap-tight: var(--space-4, 4px);
   --gap-related: var(--space-8, 8px);
   --gap-section: var(--space-16, 16px);
 

@@ -226,7 +226,11 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--inset-panel);
+  /* The modal chrome band, in rungs, and it has to match Body's below or the
+     title and the prose under it do not line up. 16 is the cross-package
+     gutter lock the ladder documents. No --inset-* names this pair on purpose:
+     the token that once did described banners, buttons, cards and rows alike. */
+  padding: var(--space-10) var(--space-16);
   border-bottom: 1px solid var(--color-surface-raised);
   background: var(--color-surface-panel);
 `;
@@ -253,7 +257,9 @@ const Close = styled.button`
 
 const Body = styled.div`
   overflow-y: auto;
-  padding: var(--inset-panel);
+  /* Matches Header's band above; see the note there. The list gutter below is
+     measured against this 16, so the two move together or not at all. */
+  padding: var(--space-10) var(--space-16);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-prose);
@@ -282,10 +288,9 @@ const Body = styled.div`
   pre {
     background: var(--color-surface-sunken);
     color: var(--color-status-go-fg);
-    /* A code block is not a chip, a list row or a panel, so no --inset-*
-       names it. --inset-panel would add 6px each side on top of the Body inset
-       this sits inside, indenting the sample further than the prose it
-       illustrates. */
+    /* A code block is not a chip, a control or a surface, so no --inset-*
+       names it. Anything wider would set the sample in further than the prose
+       it illustrates, because this already sits inside the Body inset. */
     padding: var(--space-8) var(--space-10);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-xs);

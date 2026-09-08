@@ -403,7 +403,7 @@ const Header = styled.h4`
 const SampleViewer = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
   padding: var(--space-8);
   background: var(--color-surface-app);
   border-radius: var(--radius-md);
@@ -469,7 +469,7 @@ const InputsList = styled.div`
 const InputRow = styled.div<{ $active: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
   padding: var(--space-8);
   border-radius: var(--radius-sm);
   border: 1px solid

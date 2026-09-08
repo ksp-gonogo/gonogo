@@ -190,9 +190,8 @@ const NodeLi = styled.li<{ $completed: boolean }>`
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: center;
-  column-gap: var(--gap-related);
-  row-gap: var(--gap-tight);
-  padding: var(--inset-row);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: ${({ $completed }) =>
     $completed ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   border: 1px solid
@@ -204,7 +203,10 @@ const NodeLi = styled.li<{ $completed: boolean }>`
 const NodeMain = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-hairline);
+  /* The seam between the two lines of one readout, and a rung rather than a
+     semantic name on purpose: 1px is the same 1px in every density tier, so a
+     name for it would be a constant with two spellings. tokens.css says so. */
+  gap: var(--space-hair);
   min-width: 0;
 `;
 
@@ -227,7 +229,7 @@ const NodeMeta = styled.div`
 const RowActions = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 // The cursor, hover and colour transition come from the kit's IconButton;
@@ -277,7 +279,7 @@ const EditPanel = styled.div`
 const EditGrid = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 const EditHint = styled.div`
@@ -299,10 +301,10 @@ const EditActions = styled.div`
 const CompactPrimaryButton = styled(PrimaryButton)`
   align-self: auto;
   font-size: var(--font-size-xs);
-  /* The compact-button inset, shared with SecondaryButton below. No --inset-*
-     names it: --inset-row is narrower than the label needs and --inset-panel
-     would make these two footer buttons taller than the 22px row controls
-     above them. */
+  /* The compact-button inset, shared with SecondaryButton below. A control by
+     class, but not on the control inset: --inset-control's 6px vertical would
+     make these two footer buttons taller than the 22px row controls above
+     them, so this is the compact step and it stays in rungs. */
   padding: var(--space-4) var(--space-10);
 `;
 

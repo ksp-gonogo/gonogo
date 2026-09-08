@@ -1131,16 +1131,17 @@ const List = styled.ul`
 /**
  * The identity column: takes the row's width and lets the name ellipsise.
  *
- * Its name over its role is one readout in two lines, so it asks for the tight
- * gap. It sits inside a `Card`, which declares the compact tier, so tight is
- * 2px here and would be 4px on a panel; this file names neither number.
+ * Its name over its role is two lines of one readout, which the vocabulary no
+ * longer separates from siblings of one kind, so both take the related gap. It
+ * sits inside a `Card`, which declares the compact tier, so related is 6px here
+ * and would be 8px on a panel; this file names neither number.
  */
 const Who = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 0;
   flex: 1;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 const Empty = styled.div`

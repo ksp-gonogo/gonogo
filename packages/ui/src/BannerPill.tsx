@@ -103,9 +103,11 @@ const FixedPill = styled.div<{
   /* Both rungs stay literal, for two different reasons.
      10 is the one rung with no gap name over it: --gap-related is 8 and
      --gap-section is 16.
-     (6,12) is the BUTTON inset, the same pair ui-kit's Button, FileInput and
-     DimmedOverlay use, and no --inset-* names it. A pill by shape is not a
-     chip by inset: --inset-chip is (1,6), which would halve this. */
+     (6,12) is --inset-control's value, and this pill is emphatically not a
+     control: pointer-events is none, four lines down. It borrows the button
+     inset because it reads as a button-sized announcement, so it must not
+     follow the control token when that token moves for touch targets. Nor is
+     it a chip by inset: --inset-chip is (1,6), which would halve this. */
   gap: var(--space-10);
   padding: var(--space-6) var(--space-12);
   background: rgba(0, 0, 0, 0.82);

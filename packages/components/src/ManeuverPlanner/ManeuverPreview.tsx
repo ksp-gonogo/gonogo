@@ -567,7 +567,7 @@ const ErrorLine = styled.div`
   color: var(--color-status-nogo-fg);
   background: var(--color-tag-dark-brown-bg);
   border: 1px solid var(--color-border-strong);
-  padding: var(--inset-row);
+  padding: var(--inset-surface);
   border-radius: var(--radius-xs);
 `;
 

@@ -227,13 +227,13 @@ const PresetDesc = styled.div`
 const CustomInputs = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
   padding-top: var(--space-4);
 `;
 
 const UTModeRow = styled.div`
   display: flex;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
 `;
 
 const UTModeButton = styled.button<{ $active: boolean }>`
@@ -241,7 +241,7 @@ const UTModeButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${({ $active }) => ($active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)")};
   color: ${({ $active }) => ($active ? "var(--color-status-go-fg)" : "var(--color-text-muted)")};
   font-size: var(--font-size-xs);
-  padding: var(--inset-row);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;

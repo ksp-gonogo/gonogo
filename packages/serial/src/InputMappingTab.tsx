@@ -322,10 +322,10 @@ const List = styled.div`
 const BindingCard = styled(Card)<{ $listening: boolean }>`
   border-color: ${({ $listening }) =>
     $listening ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
-  /* Deliberately roomier than Card's own --inset-row: a binding card holds a
-     select and a Bind button, and it is the only card on the screen. Written
-     in rungs because neither --inset-row (too tight, it is what is being
-     overridden) nor --inset-panel (this is not a panel) is an honest name. */
+  /* Deliberately roomier than Card's own --inset-surface: a binding card holds
+     a select and a Bind button, and it is the only card on the screen. Written
+     in rungs because --inset-surface is the value being overridden, so naming
+     it here would say the opposite of what this line does. */
   padding: var(--space-10) var(--space-12);
   transition: border-color var(--duration-instant) var(--ease-linear);
 `;

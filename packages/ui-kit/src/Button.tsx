@@ -35,7 +35,7 @@ export const Button = styled.button`
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
   font-weight: 600;
-  padding: var(--space-6, 6px) var(--space-12, 12px);
+  padding: var(--inset-control, var(--space-6, 6px) var(--space-12, 12px));
   /* The kit's one control height, so a button lines up with the toggles and
      readouts it shares a bar with. Flush line height with it: left at the
      browser's "normal" the box is sized by descender headroom this chrome text

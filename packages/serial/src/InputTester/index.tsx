@@ -376,11 +376,12 @@ const ButtonGrid = styled.div`
 const ButtonPill = styled.div<{ $pressed: boolean }>`
   display: flex;
   align-items: center;
-  /* Tighter than the grid gap above on purpose: the dot, the glyph and the
-     name are three parts of one readout, and they have to read as one thing
-     against the space between pills. */
-  gap: var(--gap-tight);
-  padding: var(--inset-row);
+  /* Same gap as the grid above, which is the whole design: the pill's own
+     border and fill are what separate it from its neighbours, so the dot, the
+     glyph and the name inside it can sit on the default without the row
+     reading as one run of text. */
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   border-radius: var(--radius-sm);
   border: 1px solid
     ${({ $pressed }) =>

@@ -283,12 +283,26 @@
    * declaration is dropped, which for a gap is a silently collapsed
    * layout rather than a visible error.
    *
+   * A NAME EARNS THIS MECHANISM ONLY IF IT ANSWERS ONE OF TWO
+   * QUESTIONS WITH SOMETHING A RUNG CANNOT SAY.
+   *
+   *   1. Does it RESOLVE DIFFERENTLY BY CONTEXT? A tier steps it, and
+   *      the stepping is a statement about the container. Both gap
+   *      names qualify.
+   *   2. Does it express a SHAPE the ladder cannot? An ordered
+   *      vertical/horizontal pair is not a rung and no rung reference
+   *      can be one. All three insets qualify.
+   *
+   * A name with neither is a number wearing a word, and it costs more
+   * than the rung it replaces: two spellings of one constant, and an
+   * author who has to guess which of two sizes their list is. Five
+   * names passed that test; three did not, and the record of what went
+   * and why is below, because a deleted name comes back otherwise.
+   *
    * GAPS, between siblings. Single-valued, and they round UPWARD from
    * the rungs they absorb:
-   *   hairline  The seam between two lines of ONE readout. Absorbs hair.
-   *   tight     Rows of a dense readout, a label-over-value stack.
-   *             Absorbs 2 and 4.
-   *   related   THE DEFAULT. Items of the same kind. Absorbs 6 and 8.
+   *   related   THE DEFAULT. Items of the same kind. Absorbs 2, 4, 6
+   *             and 8.
    *   section   Between groups of different kinds. Absorbs 12 and 16.
    *
    * INSETS, inside an edge. Two-value shorthands, because 199 of the
@@ -296,33 +310,70 @@
    * pairs across 26 distinct combinations and a single value cannot
    * express `1px 6px`. Write them in the `padding` shorthand and
    * nowhere else; `padding-inline` would silently transpose the pair.
-   *   chip   A pill or a chip. Vertical is `hair`, NOT 2: the ladder
-   *          comment above exists to stop exactly that rounding, which
-   *          visibly inflates every chip.
-   *   row    A record in a list, and `Card`'s own inset.
-   *   panel  A whole panel or a modal body.
+   *   chip     A label that sits in the text flow and is sized by its
+   *            text: a badge, a pill, an inline code span. Vertical is
+   *            `hair`, NOT 2: the ladder comment above exists to stop
+   *            exactly that rounding, which visibly inflates every chip.
+   *   control  A box you press or type into, on the `--control-height`
+   *            floor. The other half of that token's own definition: a
+   *            default `Button` is 12 inset + 2 border + a 14px glyph
+   *            = 28. It is the PRESSABLE class, not the value: three
+   *            boxes in the tree share (6,12) and are not controls
+   *            (`BannerPill` says `pointer-events: none` outright),
+   *            and they keep the rungs with that written beside them.
+   *   surface  A bordered or filled box that holds content: a card, a
+   *            record in a list, a banner, a popover. `Card`'s own
+   *            inset, which is why this is not called `row`.
    *
-   * INDENT, hierarchy. Neither an edge nor a seam: the step a nested
-   * row is pushed in by, from `margin-left`.
+   * NOT NAMED, and each absence is a decision:
+   *   hair gaps           `gap: var(--space-hair)`. A name for this
+   *                       resolved to 1px in every context that will
+   *                       ever exist (`Card.tsx` says so in writing:
+   *                       the bottom of the ladder does not step), so
+   *                       it failed test 1 and had no shape to plead
+   *                       under test 2. 1px is not a spacing decision,
+   *                       it is the smallest value that stops two
+   *                       glyph boxes touching.
+   *   a 4px gap           There was a `--gap-tight` and it was a size.
+   *                       Nothing separated it from `related`: the
+   *                       same styled-component nouns sat on both, one
+   *                       element used both on adjacent lines to mean
+   *                       AXIS, and both tiers defined it as exactly
+   *                       one rung below `related`, which is a size
+   *                       relation written down. Density belongs on
+   *                       the container, where it composes, not on a
+   *                       second name for each seam.
+   *   hierarchy indent    There was an `--indent-step` at 16px, with
+   *                       zero call sites and the wrong value for 18
+   *                       of its 19 candidates: one real indent, and
+   *                       18 2-to-6px nudges pushing a badge or a unit
+   *                       off the text beside it. A margin standing in
+   *                       for a gap is a layout problem, not a
+   *                       vocabulary one. Both keep their rungs.
+   *   the (10,16) band    There was an `--inset-panel` and `PanelBody`
+   *                       did not use it. Its population was banners,
+   *                       buttons, cards, rows, modal chrome and
+   *                       coarse-pointer touch targets, and
+   *                       `FileInput.tsx` carries a written refusal to
+   *                       write a 44px touch target as one. The 16 is
+   *                       the cross-package gutter lock the ladder
+   *                       above documents, so the sites that want it
+   *                       name that rung and say why.
    *
    * What these names do NOT cover, stated because a vocabulary that
    * claims everything is not usable: uniform, three-value, single-side
-   * and mixed paddings, `margin-top` rhythm, the asymmetric `gap: A B`
+   * and mixed paddings, every `margin`, the asymmetric `gap: A B`
    * declarations that carry their own written rationale, and the
    * negative `calc()` bleeds. Measured over the app's ~1,200 rung
    * references in a spacing property, these names reach a little under
    * half. The rest stay on the ladder above, on purpose and for good.
    */
-  --gap-hairline: var(--space-hair);
-  --gap-tight: var(--space-4);
   --gap-related: var(--space-8);
   --gap-section: var(--space-16);
 
   --inset-chip: var(--space-hair) var(--space-6);
-  --inset-row: var(--space-6) var(--space-8);
-  --inset-panel: var(--space-10) var(--space-16);
-
-  --indent-step: var(--space-16);
+  --inset-control: var(--space-6) var(--space-12);
+  --inset-surface: var(--space-6) var(--space-8);
 
   /*
    * RADIUS. Four numeric rungs plus two shape sentinels.

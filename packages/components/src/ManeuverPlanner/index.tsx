@@ -1046,8 +1046,8 @@ const RefBodyCaption = styled.div`
 const WaitingPanel = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
-  padding: var(--inset-row);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-xs);
@@ -1056,7 +1056,7 @@ const WaitingPanel = styled.div`
 const StatusList = styled.ul`
   display: flex;
   flex-direction: column;
-  gap: var(--gap-tight);
+  gap: var(--gap-related);
   list-style: none;
   margin: 0;
   padding: 0;

@@ -82,7 +82,7 @@ const FabLabel = styled.span<{ $visible: boolean }>`
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-lg);
-  padding: var(--inset-row);
+  padding: var(--inset-surface);
   font-family: var(--font-family-mono);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-tight);
