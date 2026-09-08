@@ -251,7 +251,14 @@ public class RealAntennasTargetArgs
     [SitrepUnit(Units.Degrees)]
     public double? Longitude { get; set; }
 
-    /// <summary>Altitude above the surface (metres), for <c>BodyLatLonAlt</c>.</summary>
+    /// <summary>
+    /// Altitude above the surface (metres), for <c>BodyLatLonAlt</c>. Omitted
+    /// means the surface, altitude 0: the aim point is a three-component vector
+    /// with no spelling for a missing component, and a lat/lon with no altitude
+    /// is not an ambiguous request. <see cref="Latitude"/> and
+    /// <see cref="Longitude"/> have no such default and are REFUSED when absent,
+    /// because 0, 0 is a specific place nobody asked for.
+    /// </summary>
     [SitrepUnit(Units.Metres)]
     public double? Altitude { get; set; }
 

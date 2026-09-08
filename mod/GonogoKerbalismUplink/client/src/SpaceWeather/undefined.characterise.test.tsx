@@ -31,13 +31,20 @@ import "./index";
  * preserve, which is exactly the risk: nothing will look different afterwards
  * either.
  *
- * It does look different afterwards. Three of the cases below now record the
+ * It does look different afterwards. Three of the cases below record the
  * migrated behaviour instead, each keeping the sentence it replaced: the board is
  * withheld when the weather record cannot be judged, and the belt diagram's
- * "you are here" dot is withheld when nothing can place it. The two cases about
- * a FIELD missing from a delivered record still record the old coercions, because
- * a `Reading` says how current the record is and says nothing about which fields
- * the subject filled in.
+ * "you are here" dot is withheld when nothing can place it.
+ *
+ * The cases about a FIELD missing from a delivered record went the same way
+ * later, and separately: a `Reading` says how current the record is and says
+ * nothing about which fields the subject filled in, so per-field absence needed
+ * its own pass. The dose rate, the shielding pair and the storm flags now say so
+ * rather than reading as a clean, quiet, fully-shielded craft. Two things had to
+ * move together for that, which is why it took a second pass: the mod fed those
+ * fields a substituted zero, so the honest half could never fire, and Ship
+ * Systems' RadiationSection and the kit's `Meter` were both already written for
+ * an absence that could not arrive.
  */
 
 /**
@@ -160,12 +167,22 @@ describe("SpaceWeather: what undefined means today", () => {
     expect(screen.getByRole("status")).toHaveTextContent("Sheltered");
   });
 
-  it("reports a zero dose rate when the weather record arrives without a radiation field", async () => {
+  /**
+   * Recorded prior behaviour: "reports a zero dose rate when the weather record
+   * arrives without a radiation field".
+   *
+   * `magnitudeOr(t.radiationRadPerSecond, 0)` made a record with no dose in it
+   * identical on screen to a genuinely quiet vessel: "0.000 rad/h" in the go
+   * tone, under a live caption reading "habitat dose rate", with a "Sheltered"
+   * badge over it. Ship Systems' own RadiationSection had already refused to do
+   * that with the same field; this widget was the one still coercing, and the
+   * mod fed it a fabricated zero so the honest half could never fire.
+   */
+  it("withholds the dose readout when the weather record arrives without a radiation field", async () => {
     const { container } = mount();
 
     act(() => {
-      // The topic delivered, the field did not. `magnitudeOr(undefined, 0)`
-      // makes this identical to a genuinely quiet vessel.
+      // The topic delivered, the field did not.
       stream.emit(TOPIC, {
         magnetosphere: true,
         innerBelt: false,
@@ -179,19 +196,38 @@ describe("SpaceWeather: what undefined means today", () => {
       });
     });
 
-    await waitFor(() => expect(screen.getByText("Sheltered")).toBeTruthy());
-    // The dose readout reads a hard zero in the "go" tone, the same as a real
-    // 0 rad/h observation would.
-    expect(visibleText(container)).toContain("0.000 rad/h");
+    // A clause only `statusFor` produces, so this cannot pass on some other
+    // component's wording for the same absence.
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "Storm watch unread",
+      ),
+    );
+    // No dose number anywhere: the readout is the only "rad/h" on the board.
+    expect(visibleText(container)).not.toContain("rad/h");
+    expect(visibleText(container)).not.toContain("0.000");
+    // The rest of the board is live and stays live: only the dose depended on
+    // the field.
+    expect(visibleText(container)).toContain("habitat dose rate");
+    // ...including the flux trace, whose amplitude IS the dose rate.
+    expect(visibleText(container)).toContain("Flux needs a dose rate");
   });
 
-  it("drives the shielding meter over full when the capacity field is missing", async () => {
+  /**
+   * Recorded prior behaviour: "drives the shielding meter over full when the
+   * capacity field is missing".
+   *
+   * `magnitudeOr(t.shieldingCapacity, 1)` read the amount against a unit nobody
+   * measured, so 3.308 units of shielding clamped the bar at 100% and coloured
+   * it as the healthiest possible state. The kit's `Meter` has taken
+   * `value: null` and drawn absence for it all along, and its doc comment gives
+   * this exact reason; nothing could reach it while the field arrived filled.
+   */
+  it("withholds the shielding meter when the capacity field is missing", async () => {
     const { container } = mount();
 
     act(() => {
-      // `shieldingAmount` present, `shieldingCapacity` absent, so the capacity
-      // falls back to 1 and the ratio is read against a unit that was never
-      // measured.
+      // `shieldingAmount` present, `shieldingCapacity` absent.
       stream.emit(TOPIC, {
         radiationRadPerSecond: 0.0143 / 3600,
         magnetosphere: true,
@@ -205,11 +241,47 @@ describe("SpaceWeather: what undefined means today", () => {
       });
     });
 
-    await waitFor(() => expect(visibleText(container)).toContain("3.3 / 1.0"));
-    // Clamped at the top of the meter and coloured as fully shielded: an absent
-    // capacity reads as the healthiest possible state.
-    const meter = screen.getByRole("meter", { name: "Shielding" });
-    expect(meter).toHaveAttribute("aria-valuenow", "100");
+    // Wait for the BOARD first. Asserting the meter is gone straight after the
+    // emit would pass on the absence board that precedes it, which has no meter
+    // because it has nothing at all.
+    await waitFor(() =>
+      expect(visibleText(container)).toContain("0.014 rad/h"),
+    );
+    // `role="meter"` goes with the fraction: a meter asserts an
+    // `aria-valuenow`, and there is none to assert. The Shielding meter is this
+    // widget's only one, so nothing else can satisfy this.
+    expect(screen.queryByRole("meter", { name: "Shielding" })).toBeNull();
+    // No ratio built from the one number that did arrive.
+    expect(visibleText(container)).not.toContain("3.3 /");
+  });
+
+  /**
+   * The storm flags are the one bool pair where the coercion reassured: false
+   * is what the board says when it is telling an operator no CME is inbound.
+   */
+  it("does not promise a quiet forecast when the storm flags are missing", async () => {
+    const { container } = mount();
+
+    act(() => {
+      stream.emit(TOPIC, {
+        radiationRadPerSecond: 0.0143 / 3600,
+        magnetosphere: true,
+        innerBelt: false,
+        outerBelt: false,
+        blackout: false,
+        inSunlight: true,
+        shieldingAmount: 3.308,
+        shieldingCapacity: 3.308,
+      });
+    });
+
+    // The timeline's own wording, distinct from the badge's, so neither
+    // assertion can be satisfied by the other surface.
+    await waitFor(() =>
+      expect(visibleText(container)).toContain("Storm state unread"),
+    );
+    expect(visibleText(container)).not.toContain("No storm activity");
+    expect(screen.getByRole("status")).toHaveTextContent("Storm watch unread");
   });
 
   /**

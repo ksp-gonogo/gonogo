@@ -133,6 +133,14 @@ namespace Gonogo.RealAntennasUplink
         /// RealAntennas' own window clamps them silently, but a window shows the
         /// operator the clamped number back; a command that clamped would report
         /// success for an aim point nobody asked for, minutes after they asked.</para>
+        ///
+        /// <para>An ABSENT angle is refused on the same ground, and it is the
+        /// likelier case: the client's form starts every coordinate box empty and
+        /// parses an empty or unreadable one to absent, so an operator who picks
+        /// a mode and presses AIM without typing arrives here with nothing.
+        /// Substituting zero aimed the dish at 0N 0E, or due north on the
+        /// horizon, and reported success. <see cref="RealAntennasTargetArgs.Altitude"/>
+        /// is the single exception: its default is a stated one.</para>
         /// </summary>
         public static bool TryBuild(
             RealAntennasTargetArgs args,
@@ -191,8 +199,16 @@ namespace Gonogo.RealAntennasUplink
                         detail = "No body named '" + (args.BodyName ?? "") + "'.";
                         return false;
                     }
-                    var latitude = args.Latitude ?? 0.0;
-                    var longitude = args.Longitude ?? 0.0;
+                    if (args.Latitude == null || args.Longitude == null)
+                    {
+                        error = CommandErrorCode.Range;
+                        detail = "A surface point needs both a latitude and a longitude"
+                            + Missing(("latitude", args.Latitude), ("longitude", args.Longitude))
+                            + ". Aiming at 0, 0 instead would slew the dish off whatever it is currently hearing.";
+                        return false;
+                    }
+                    var latitude = args.Latitude.Value;
+                    var longitude = args.Longitude.Value;
                     if (!InRange(latitude, -90.0, 90.0))
                     {
                         error = CommandErrorCode.Range;
@@ -206,6 +222,12 @@ namespace Gonogo.RealAntennasUplink
                         return false;
                     }
                     values["bodyName"] = resolvedBodyName!;
+                    // Altitude is the one coordinate with a default, and the
+                    // contract field states it: a lat/lon with no altitude is a
+                    // point on the surface. RealAntennas stores three components
+                    // and has no spelling for a missing one, so the choice is
+                    // between a stated default and refusing a request whose
+                    // meaning is not in doubt.
                     values["latLonAlt"] = VectorText(latitude, longitude, args.Altitude ?? 0.0);
                     return true;
                 }
@@ -218,8 +240,16 @@ namespace Gonogo.RealAntennasUplink
                         detail = "Azimuth/elevation is measured from the antenna's own craft, which could not be identified.";
                         return false;
                     }
-                    var azimuth = args.Azimuth ?? 0.0;
-                    var elevation = args.Elevation ?? 0.0;
+                    if (args.Azimuth == null || args.Elevation == null)
+                    {
+                        error = CommandErrorCode.Range;
+                        detail = "An azimuth/elevation aim needs both angles"
+                            + Missing(("azimuth", args.Azimuth), ("elevation", args.Elevation))
+                            + ". Aiming at 0, 0 instead would put the dish due north on the horizon.";
+                        return false;
+                    }
+                    var azimuth = args.Azimuth.Value;
+                    var elevation = args.Elevation.Value;
                     if (!InRange(azimuth, 0.0, 360.0))
                     {
                         error = CommandErrorCode.Range;
@@ -246,8 +276,16 @@ namespace Gonogo.RealAntennasUplink
                         detail = "Orbit-relative aim is measured from the antenna's own craft, which could not be identified.";
                         return false;
                     }
-                    var forward = args.Forward ?? 0.0;
-                    var elevation = args.Elevation ?? 0.0;
+                    if (args.Forward == null || args.Elevation == null)
+                    {
+                        error = CommandErrorCode.Range;
+                        detail = "An orbit-relative aim needs both angles"
+                            + Missing(("deflection", args.Forward), ("elevation", args.Elevation))
+                            + ". Aiming at 0, 0 instead would put the dish straight down the prograde vector.";
+                        return false;
+                    }
+                    var forward = args.Forward.Value;
+                    var elevation = args.Elevation.Value;
                     if (!InRange(forward, -180.0, 180.0))
                     {
                         error = CommandErrorCode.Range;
@@ -270,6 +308,24 @@ namespace Gonogo.RealAntennasUplink
             error = CommandErrorCode.Range;
             detail = "Unhandled target mode '" + mode + "'.";
             return false;
+        }
+
+        /// <summary>
+        /// Names which of the mode's angles were absent, as " (no azimuth)" or
+        /// " (no azimuth, no elevation)". Empty when both arrived, so the caller
+        /// can concatenate it unconditionally.
+        /// </summary>
+        private static string Missing(params (string Name, double? Value)[] fields)
+        {
+            var absent = new List<string>(fields.Length);
+            foreach (var field in fields)
+            {
+                if (field.Value == null)
+                {
+                    absent.Add("no " + field.Name);
+                }
+            }
+            return absent.Count == 0 ? "" : " (" + string.Join(", ", absent) + ")";
         }
 
         /// <summary>Rejects NaN and the infinities as well as anything outside the bounds.</summary>

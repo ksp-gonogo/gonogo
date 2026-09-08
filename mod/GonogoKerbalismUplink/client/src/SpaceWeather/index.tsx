@@ -21,6 +21,7 @@ import {
   MissionDate,
   magnitudeOf,
   magnitudeOr,
+  NULL_DISPLAY,
   Panel,
   ProgressBar,
   ReadoutCaption,
@@ -56,17 +57,37 @@ type SpaceWeatherConfig = Record<string, never>;
 // This hook is the only data boundary.
 // ---------------------------------------------------------------------------
 
-type StormState = "none" | "incoming" | "inprogress";
+/**
+ * `unknown` is a record that arrived without the storm flags, and it is a
+ * separate arm because `none` is a promise: it is what the board says when it
+ * is telling an operator no CME is inbound. Coercing an unreported flag to
+ * false made that promise from nothing.
+ */
+type StormState = "none" | "incoming" | "inprogress" | "unknown";
 
 interface SpaceWeatherData {
-  radiationRadPerHour: number;
+  /**
+   * Null when the record arrived without a dose rate. Not zero: "0.000 rad/h"
+   * next to a live board says the environment is clean, which is the reading an
+   * operator would act on least safely. `ShipSystems`' RadiationSection already
+   * carries the same field the same way; this widget was the one coercing it.
+   */
+  radiationRadPerHour: number | null;
   stormState: StormState;
+  /**
+   * The three environment flags are the diagram's own state and keep a STATED
+   * default of false at the point of use: a ring the mod did not report is a
+   * ring not drawn, and the coercion escalates rather than reassures
+   * (an unreported magnetosphere reads as "Unshielded"). {@link stormState}
+   * is the one flag pair where false reassured, so it has an unknown arm.
+   */
   innerBelt: boolean;
   outerBelt: boolean;
   magnetosphere: boolean;
   blackout: boolean;
-  shieldingValue: number;
-  shieldingCapacity: number;
+  /** Null when unreported: the pair is a FRACTION, and a fabricated denominator invents one. */
+  shieldingValue: number | null;
+  shieldingCapacity: number | null;
   /** null when the vessel's altitude is not current: the rings then draw no "you are here" dot */
   altitudeKm: number | null;
   seed: number;
@@ -154,11 +175,16 @@ function useSpaceWeather(): SpaceWeatherRead {
     };
   }
 
+  // Order matters and the unknown arm goes LAST of the four: a flag that is
+  // positively true is a storm whatever its neighbour did, so this only takes
+  // cases off "none", which is the arm that was making a promise.
   const stormState: StormState = t.stormInProgress
     ? "inprogress"
     : t.stormIncoming
       ? "incoming"
-      : "none";
+      : t.stormInProgress == null || t.stormIncoming == null
+        ? "unknown"
+        : "none";
   /**
    * The timeline renders the storm phase without a numeric countdown, because
    * the mod emits storm PRESENCE only: `stormIncoming` and `stormInProgress`
@@ -168,10 +194,11 @@ function useSpaceWeather(): SpaceWeatherRead {
    */
   // Reported per second, read per hour: a scale change the registry knows,
   // rather than a bare 3600 sitting next to a comment saying which end it is.
-  const radiationRadPerHour = value(
-    "rad/s",
-    magnitudeOr(t.radiationRadPerSecond, 0),
-  ).in("rad/h").magnitude;
+  const radiationRadPerSecond = magnitudeOf(t.radiationRadPerSecond);
+  const radiationRadPerHour =
+    radiationRadPerSecond === null
+      ? null
+      : value("rad/s", radiationRadPerSecond).in("rad/h").magnitude;
   const innerBelt = t.innerBelt ?? false;
   const outerBelt = t.outerBelt ?? false;
   const magnetosphere = t.magnetosphere ?? false;
@@ -187,17 +214,19 @@ function useSpaceWeather(): SpaceWeatherRead {
       outerBelt,
       magnetosphere,
       blackout: t.blackout ?? false,
-      shieldingValue: magnitudeOr(t.shieldingAmount, 0),
+      shieldingValue: magnitudeOf(t.shieldingAmount),
       // (stormTimeSec removed: see the FUTURE note above.)
-      shieldingCapacity: magnitudeOr(t.shieldingCapacity, 1),
+      shieldingCapacity: magnitudeOf(t.shieldingCapacity),
       altitudeKm: altitudeM === null ? null : altitudeM / 1000,
       stars: t.stars ?? [],
       storms: t.storms ?? [],
       stormEjectionSpeedMps: magnitudeOf(t.stormEjectionSpeed),
       // Deterministic noise seed derived from the weather state itself (stable
       // across renders for snapshots; no Math.random, no clock/provider needed).
+      // A seed, not a reading, so an unreported dose contributes nothing here
+      // rather than propagating an absence into the chart's PRNG.
       seed:
-        Math.round(radiationRadPerHour * 1000) +
+        Math.round((radiationRadPerHour ?? 0) * 1000) +
         (magnetosphere ? 7 : 0) +
         (innerBelt ? 13 : 0) +
         (outerBelt ? 29 : 0) +
@@ -236,7 +265,9 @@ function doseFraction(radPerHour: number): number {
 
 type Tone = "go" | "info" | "warn" | "nogo";
 
-function doseTone(radPerHour: number): Tone {
+/** An unmeasured dose is toned as a gap, never as the green end of the scale. */
+function doseTone(radPerHour: number | null): Tone {
+  if (radPerHour === null) return "info";
   if (radPerHour >= 3) return "nogo";
   if (radPerHour >= 0.5) return "warn";
   if (radPerHour >= 0.05) return "info";
@@ -250,12 +281,24 @@ const TONE_HEX: Record<Tone, string> = {
   nogo: "var(--color-status-nogo-bg)",
 };
 
+/**
+ * The verdict badge. The first three arms are unchanged and none of them needs
+ * a dose to fire, so the unread arm goes fourth, immediately above the one it
+ * takes cases from: "Sheltered" is the only claim here that a missing reading
+ * could make falsely, and it is the reassuring one. A craft sitting in a storm
+ * or a belt is still reported as such with no dose rate at all.
+ */
 function statusFor(d: SpaceWeatherData): { label: string; tone: Tone } {
-  if (d.stormState === "inprogress" || d.radiationRadPerHour >= 3)
+  if (
+    d.stormState === "inprogress" ||
+    (d.radiationRadPerHour !== null && d.radiationRadPerHour >= 3)
+  )
     return { label: "Storm in progress", tone: "nogo" };
   if (d.stormState === "incoming" || d.innerBelt || d.outerBelt)
     return { label: "Exposed", tone: "warn" };
   if (!d.magnetosphere) return { label: "Unshielded", tone: "info" };
+  if (d.radiationRadPerHour === null || d.stormState === "unknown")
+    return { label: "Storm watch unread", tone: "info" };
   return { label: "Sheltered", tone: "go" };
 }
 
@@ -685,8 +728,17 @@ function StormTimeline({ state }: { state: StormState }) {
     { key: "inprogress", label: "Storm", tone: "nogo" as Tone, w: 22 },
     { key: "passed", label: "Passed", tone: "go" as Tone, w: 22 },
   ];
-  // "now" marker position (0..100) by state.
-  const nowPct = state === "none" ? 17 : state === "incoming" ? 45 : 67;
+  // "now" marker position (0..100) by state. `unknown` places no marker at all:
+  // every position on this axis is a claim about which phase the craft is in,
+  // and the quiet end is the one an absent flag used to land on.
+  const nowPct =
+    state === "unknown"
+      ? null
+      : state === "none"
+        ? 17
+        : state === "incoming"
+          ? 45
+          : 67;
   // Phase only: no numeric countdown (the mod emits storm presence, not a
   // clock; see the FUTURE note in useSpaceWeather).
   const headline =
@@ -694,13 +746,19 @@ function StormTimeline({ state }: { state: StormState }) {
       ? "Storm in progress"
       : state === "incoming"
         ? "CME inbound"
-        : "No storm activity";
+        : state === "unknown"
+          ? "Storm state unread"
+          : "No storm activity";
   let acc = 0;
   return (
     <Section style={STAT_SECTION}>
       <div style={SECTION_HEAD}>
         <span style={SECTION_LABEL}>Storm forecast</span>
-        <span style={sectionValueStyle(state === "none" ? "go" : "warn")}>
+        <span
+          style={sectionValueStyle(
+            state === "none" ? "go" : state === "unknown" ? "info" : "warn",
+          )}
+        >
           {headline}
         </span>
       </div>
@@ -728,15 +786,24 @@ function StormTimeline({ state }: { state: StormState }) {
             />
           );
         })}
-        <line
-          x1={nowPct}
-          y1={0}
-          x2={nowPct}
-          y2={14}
-          stroke="var(--color-text-primary)"
-          strokeWidth={0.8}
-        />
-        <circle cx={nowPct} cy={1.6} r={1.6} fill="var(--color-text-primary)" />
+        {nowPct !== null && (
+          <>
+            <line
+              x1={nowPct}
+              y1={0}
+              x2={nowPct}
+              y2={14}
+              stroke="var(--color-text-primary)"
+              strokeWidth={0.8}
+            />
+            <circle
+              cx={nowPct}
+              cy={1.6}
+              r={1.6}
+              fill="var(--color-text-primary)"
+            />
+          </>
+        )}
       </svg>
     </Section>
   );
@@ -944,9 +1011,28 @@ function SpaceWeatherComponent({
   // compact sheds the solar-wind chart + env tags and shrinks the readout.
   const compact = cols < 7 || rows < 6;
 
-  const doseText = `${d.radiationRadPerHour.toFixed(d.radiationRadPerHour < 1 ? 3 : 2)} rad/h`;
-  const shieldFrac =
-    d.shieldingCapacity > 0 ? d.shieldingValue / d.shieldingCapacity : 0;
+  // The placeholder, not "0.000 rad/h": the readout sits under a live caption
+  // saying "habitat dose rate", and a number there is the one an operator acts
+  // on. RadiationSection in ShipSystems reads the same field the same way.
+  const doseText =
+    d.radiationRadPerHour === null
+      ? NULL_DISPLAY
+      : `${d.radiationRadPerHour.toFixed(d.radiationRadPerHour < 1 ? 3 : 2)} rad/h`;
+  // Null, never 0, when either half is unreported: the meter draws absence
+  // rather than an empty tank, and a bar assembled from one number we have and
+  // one we do not is a verdict about a habitat (see useSpaceWeather's header).
+  // The fraction and its label are narrowed together so neither can be built
+  // from half a pair.
+  const shielding =
+    d.shieldingValue !== null &&
+    d.shieldingCapacity !== null &&
+    d.shieldingCapacity > 0
+      ? {
+          fraction: d.shieldingValue / d.shieldingCapacity,
+          label: `${d.shieldingValue.toFixed(1)} / ${d.shieldingCapacity.toFixed(1)}`,
+        }
+      : null;
+  const shieldFrac = shielding?.fraction ?? null;
 
   const allStorms = d.storms.map((s, i) =>
     deriveStorm(s, i, nowUt, d.stormEjectionSpeedMps),
@@ -1071,11 +1157,21 @@ function SpaceWeatherComponent({
                 Solar-wind flux
               </ReadoutCaption>
               <div style={CHART_SLOT}>
-                <SolarWindChart
-                  radiation={d.radiationRadPerHour}
-                  storm={d.stormState === "inprogress"}
-                  seed={d.seed}
-                />
+                {/* The trace's amplitude IS the dose rate, so with no dose to
+                    draw from it would render a calm solar wind: the same claim
+                    the numeric readout above refuses to make, as a picture. */}
+                {/* No live region: the verdict badge above is this board's one
+                    `role="status"`, and a second one announces the same absence
+                    twice. */}
+                {d.radiationRadPerHour === null ? (
+                  <EmptyState>Flux needs a dose rate</EmptyState>
+                ) : (
+                  <SolarWindChart
+                    radiation={d.radiationRadPerHour}
+                    storm={d.stormState === "inprogress"}
+                    seed={d.seed}
+                  />
+                )}
               </div>
             </div>
           </Section>
@@ -1084,11 +1180,21 @@ function SpaceWeatherComponent({
           <div style={FOOTER_ROW}>
             <Meter
               label="Shielding"
+              // A null fraction is drawn as absence by the kit: placeholder in
+              // the header, empty track, and no `role="meter"`, because a meter
+              // asserts an `aria-valuenow` and there is none to assert. `tone`
+              // and `valueLabel` are both unread on that path.
               value={shieldFrac}
               tone={
-                shieldFrac >= 0.6 ? "go" : shieldFrac >= 0.3 ? "warn" : "nogo"
+                shieldFrac === null
+                  ? "info"
+                  : shieldFrac >= 0.6
+                    ? "go"
+                    : shieldFrac >= 0.3
+                      ? "warn"
+                      : "nogo"
               }
-              valueLabel={`${d.shieldingValue.toFixed(1)} / ${d.shieldingCapacity.toFixed(1)}`}
+              valueLabel={shielding?.label}
               size={compact ? "sm" : "md"}
             />
             {!compact && (

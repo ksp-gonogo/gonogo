@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
@@ -353,6 +354,125 @@ namespace GonogoRealAntennasUplink.Tests
             Assert.Equal(CommandErrorCode.Range, error);
         }
 
+        // ── Missing angles: refused rather than substituted ──────────────────
+        //
+        // The widget starts every one of these fields EMPTY and parses a blank
+        // or unparseable box to "absent", so an operator who picks a mode and
+        // presses AIM without typing is the ordinary case rather than a
+        // malformed request. Substituting zero aimed the dish at 0N 0E, or due
+        // north on the horizon, and reported success for it: the same objection
+        // TryBuild already records against clamping, one step earlier.
+
+        [Fact]
+        public void BodyLatLonAltRefusesAMissingLatitude()
+        {
+            var args = new RealAntennasTargetArgs
+            {
+                Mode = "BodyLatLonAlt",
+                BodyName = "Kerbin",
+                Longitude = -74.5577,
+            };
+            Assert.False(Build(args, out _, out var error, out var detail, bodyName: "Kerbin"));
+            Assert.Equal(CommandErrorCode.Range, error);
+            Assert.Contains("latitude", detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void BodyLatLonAltRefusesAMissingLongitude()
+        {
+            var args = new RealAntennasTargetArgs
+            {
+                Mode = "BodyLatLonAlt",
+                BodyName = "Kerbin",
+                Latitude = -0.0972,
+            };
+            Assert.False(Build(args, out _, out var error, out var detail, bodyName: "Kerbin"));
+            Assert.Equal(CommandErrorCode.Range, error);
+            Assert.Contains("longitude", detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// The one coordinate with a default, and it is stated on the contract
+        /// field rather than left in this file: a surface point is what a lat/lon
+        /// with no altitude means, and RealAntennas has no way to store "no
+        /// altitude" in a three-component vector.
+        /// </summary>
+        [Fact]
+        public void BodyLatLonAltTakesAMissingAltitudeAsTheSurface()
+        {
+            var args = new RealAntennasTargetArgs
+            {
+                Mode = "BodyLatLonAlt",
+                BodyName = "Kerbin",
+                Latitude = 10.0,
+                Longitude = 20.0,
+            };
+            Assert.True(Build(args, out var values, out _, bodyName: "Kerbin"));
+            Assert.Equal("10,20,0", values["latLonAlt"]);
+        }
+
+        [Fact]
+        public void AzElRefusesAMissingAzimuth()
+        {
+            var args = new RealAntennasTargetArgs { Mode = "AzEl", Elevation = 30.0 };
+            Assert.False(Build(args, out _, out var error, out var detail));
+            Assert.Equal(CommandErrorCode.Range, error);
+            Assert.Contains("azimuth", detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void AzElRefusesAMissingElevation()
+        {
+            var args = new RealAntennasTargetArgs { Mode = "AzEl", Azimuth = 135.0 };
+            Assert.False(Build(args, out _, out var error, out var detail));
+            Assert.Equal(CommandErrorCode.Range, error);
+            Assert.Contains("elevation", detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void OrbitRelativeRefusesAMissingDeflection()
+        {
+            var args = new RealAntennasTargetArgs { Mode = "OrbitRelative", Elevation = 5.0 };
+            Assert.False(Build(args, out _, out var error, out var detail));
+            Assert.Equal(CommandErrorCode.Range, error);
+            Assert.Contains("deflection", detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void OrbitRelativeRefusesAMissingElevation()
+        {
+            var args = new RealAntennasTargetArgs { Mode = "OrbitRelative", Forward = -30.0 };
+            Assert.False(Build(args, out _, out var error, out var detail));
+            Assert.Equal(CommandErrorCode.Range, error);
+            Assert.Contains("elevation", detail!, StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
+        /// The craft the angles are measured from is still reported first: an
+        /// AzEl request with neither the craft nor the angles has a problem no
+        /// amount of typing in the boxes would fix, and the presence check must
+        /// not take that case off the earlier branch.
+        /// </summary>
+        [Fact]
+        public void MissingAnglesDoNotHideAnUnknownOwnCraft()
+        {
+            var args = new RealAntennasTargetArgs { Mode = "AzEl" };
+            Assert.False(Build(args, out _, out var error, ownVesselId: null));
+            Assert.Equal(CommandErrorCode.NoVessel, error);
+        }
+
+        /// <summary>
+        /// Same ordering question on the other side: a surface point on a body
+        /// nobody could resolve reports the body, not the empty boxes.
+        /// </summary>
+        [Fact]
+        public void MissingCoordinatesDoNotHideAnUnresolvedBody()
+        {
+            var args = new RealAntennasTargetArgs { Mode = "BodyLatLonAlt", BodyName = "Krypton" };
+            Assert.False(Build(args, out _, out var error, bodyName: null));
+            Assert.Equal(CommandErrorCode.NotFound, error);
+        }
+
         [Fact]
         public void AnUnknownModeIsRefusedBeforeAnythingElseIsRead()
         {
@@ -370,6 +490,16 @@ namespace GonogoRealAntennasUplink.Tests
             string? ownVesselId = "aaaaaaaa-1111-2222-3333-444444444444",
             string? bodyName = "Kerbin",
             double bodyRadius = 600000.0) =>
-            RaTargetPlan.TryBuild(args, ownVesselId, bodyName, bodyRadius, out values, out error, out _);
+            Build(args, out values, out error, out _, ownVesselId, bodyName, bodyRadius);
+
+        private static bool Build(
+            RealAntennasTargetArgs args,
+            out Dictionary<string, string> values,
+            out CommandErrorCode error,
+            out string? detail,
+            string? ownVesselId = "aaaaaaaa-1111-2222-3333-444444444444",
+            string? bodyName = "Kerbin",
+            double bodyRadius = 600000.0) =>
+            RaTargetPlan.TryBuild(args, ownVesselId, bodyName, bodyRadius, out values, out error, out detail);
     }
 }
