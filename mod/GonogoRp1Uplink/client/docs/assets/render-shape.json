@@ -213,87 +213,87 @@
       "text": "b6c63acd"
     },
     "catalogue-picker--default.png": {
-      "hash": "0203b7f061eb0abd",
+      "hash": "a77dbb811ab24fca",
       "elements": 260,
       "text": "29c62494"
     },
     "catalogue-picker--landscape-18x5.png": {
-      "hash": "bada2979386c1b30",
+      "hash": "36159801242f364d",
       "elements": 275,
       "text": "341555b0"
     },
     "catalogue-picker--mobile-9x8.png": {
-      "hash": "570b5966eb5a3fcf",
+      "hash": "28772c97777025ab",
       "elements": 275,
       "text": "341555b0"
     },
     "catalogue-picker--portrait-5x18.png": {
-      "hash": "27c342b0982ab439",
+      "hash": "fd4f5199fee66081",
       "elements": 260,
       "text": "29c62494"
     },
     "completed-program--default.png": {
-      "hash": "29b3f2ad0efa9bcd",
+      "hash": "b5bf98fe30ae3f11",
       "elements": 280,
       "text": "1ecaf521"
     },
     "complexes-add-pad--default.png": {
-      "hash": "91483a598c3a4a08",
+      "hash": "a428bb58f93d5574",
       "elements": 265,
       "text": "34a60c07"
     },
     "complexes-dismantle-warnings--default.png": {
-      "hash": "a4fa7c39246a251e",
+      "hash": "9f5774302c757682",
       "elements": 209,
       "text": "510a6444"
     },
     "complexes-last-pad--default.png": {
-      "hash": "9b811cdfae69d7df",
+      "hash": "8d997fbf789a63da",
       "elements": 248,
       "text": "2c4db57f"
     },
     "complexes-new--default.png": {
-      "hash": "3c75586049e78f2e",
+      "hash": "808d3c86d9fbb154",
       "elements": 236,
       "text": "7331e7db"
     },
     "complexes-rename--default.png": {
-      "hash": "1a05efb079d1c236",
+      "hash": "89140ec850c3d0a6",
       "elements": 266,
       "text": "46a7048d"
     },
     "complexes-renovate--default.png": {
-      "hash": "3dc4744a3b174ddd",
+      "hash": "75b0fcd069b53b40",
       "elements": 244,
       "text": "24b7797f"
     },
     "complexes-rushing--default.png": {
-      "hash": "0710f8f08b3160ba",
+      "hash": "200d7055d8805cfb",
       "elements": 266,
       "text": "130a706c"
     },
     "construction-complex-modify--default.png": {
-      "hash": "50013437a584d95f",
+      "hash": "3cfab1a64608e24c",
       "elements": 166,
       "text": "46d02683"
     },
     "construction-empty--default.png": {
-      "hash": "211a196f56aac214",
+      "hash": "72561fbeef7214e8",
       "elements": 148,
       "text": "984aa56a"
     },
     "construction-full-queue--default.png": {
-      "hash": "d182bde6c86aac23",
+      "hash": "9cf9aefc69b255e6",
       "elements": 207,
       "text": "4b2083e8"
     },
     "construction-not-costed--default.png": {
-      "hash": "097b060ab2399ba1",
+      "hash": "5e650949c90f7884",
       "elements": 156,
       "text": "4664f431"
     },
     "construction-rushing-and-stalled--default.png": {
-      "hash": "129381c2ae6e7bfe",
+      "hash": "caa723149a84334a",
       "elements": 174,
       "text": "8e6707ec"
     },
@@ -303,12 +303,12 @@
       "text": "3b941eca"
     },
     "crew-core-stats--default.png": {
-      "hash": "64197f8536898f6b",
+      "hash": "61e48688f98100fe",
       "elements": 75,
       "text": "8348fe0e"
     },
     "crew-enrolment-blocked--default.png": {
-      "hash": "c9335d093062ed71",
+      "hash": "40e71bfb20645408",
       "elements": 34,
       "text": "206699b0"
     },
@@ -318,12 +318,12 @@
       "text": "a8239cff"
     },
     "crew-schedule-three-states--default.png": {
-      "hash": "9b6840460dd5375f",
+      "hash": "c511bceceeb3d67a",
       "elements": 172,
       "text": "c9870da3"
     },
     "crew-settings-honoured--default.png": {
-      "hash": "25b3e50fbdc9eb9b",
+      "hash": "8efb63decc17e8cf",
       "elements": 155,
       "text": "394663f0"
     },
@@ -333,7 +333,7 @@
       "text": "97e2f0a5"
     },
     "crew-training-corner--default.png": {
-      "hash": "9c861c8807801455",
+      "hash": "f267fbaf0b1b0e7a",
       "elements": 189,
       "text": "2a11e22e"
     },
@@ -348,42 +348,42 @@
       "text": "9f625d5b"
     },
     "facility-tiers-in-flight--default.png": {
-      "hash": "c095e91d49ea3db9",
+      "hash": "4c722add3762ed3c",
       "elements": 117,
       "text": "0d547105"
     },
     "facility-upgrades-at-centre--default.png": {
-      "hash": "39e621a5554b29df",
+      "hash": "4c2f0b072758e8b2",
       "elements": 165,
       "text": "ff786031"
     },
     "facility-upgrades-away--default.png": {
-      "hash": "c84918e68b3fc38f",
+      "hash": "53640d724b86ae71",
       "elements": 48,
       "text": "cccad8e3"
     },
     "facility-upgrades-away-rp1-answers--default.png": {
-      "hash": "111f0bd09ed3c429",
+      "hash": "69756bdb787f4c4a",
       "elements": 104,
       "text": "a7fed400"
     },
     "hire-target-standing--default.png": {
-      "hash": "065e7e92b5d124e5",
+      "hash": "09bc6026b8ad87d9",
       "elements": 147,
       "text": "6d930dce"
     },
     "hire-target-standing-order--default.png": {
-      "hash": "868b9c1b7487ccaa",
+      "hash": "c63f6c462af3c1d4",
       "elements": 176,
       "text": "3fad0c42"
     },
     "no-curve-table--default.png": {
-      "hash": "e192a62ceda4d7dd",
+      "hash": "ef6e6378a71392c2",
       "elements": 268,
       "text": "159033c0"
     },
     "offer-frontloaded--default.png": {
-      "hash": "5ea122a4c32f15db",
+      "hash": "9003dc15d7c8063c",
       "elements": 271,
       "text": "ea3a6efd"
     },
@@ -398,12 +398,12 @@
       "text": "141b257d"
     },
     "personnel-staffed--default.png": {
-      "hash": "eb4c213f38c181ce",
+      "hash": "874ca9bf4f928652",
       "elements": 178,
       "text": "8e375793"
     },
     "personnel-unanswered--default.png": {
-      "hash": "597ed9034f68c158",
+      "hash": "d47f386ff046ae14",
       "elements": 72,
       "text": "7061a871"
     },
@@ -413,7 +413,7 @@
       "text": "d7a45714"
     },
     "programs-screen--default.png": {
-      "hash": "45ce296e1fea9d71",
+      "hash": "d09bca3321269a1e",
       "elements": 138,
       "text": "0dc12c0e"
     },
@@ -423,17 +423,17 @@
       "text": "a8b3e662"
     },
     "running-backloaded--default.png": {
-      "hash": "f5c8651256b4f1d5",
+      "hash": "0784712b03b08bb7",
       "elements": 282,
       "text": "392202c3"
     },
     "start-research-affordable--default.png": {
-      "hash": "3a8fbee52e8f4e4e",
+      "hash": "70e7f261c92cbf7d",
       "elements": 137,
       "text": "563fbf97"
     },
     "start-research-short--default.png": {
-      "hash": "ba4bd059d133773c",
+      "hash": "a8f38104d7bf61cb",
       "elements": 138,
       "text": "bad0110d"
     },
@@ -488,7 +488,7 @@
       "text": "e91f2657"
     },
     "two-centres-unstaffed--default.png": {
-      "hash": "b8c2b57902d64ae0",
+      "hash": "360ff5169a31199c",
       "elements": 202,
       "text": "21d9408b"
     },
