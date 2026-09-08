@@ -245,6 +245,23 @@ export {
   getRuntimeRegisteredTopicIds,
   subscribeRuntimeTopicRegistry,
 } from "./runtime-topic-registry";
+// THE AIR: the other half of an altitude, for the regime the conic hands over
+// to. Published from the ROOT barrel for the same reason the conic is: an
+// author who cannot reach `withinAtmosphere` cannot write a model that hands
+// over at the same instant core's does, and two models drawing their own
+// boundary is the disagreement no widget could report.
+export {
+  type AtmosphericDescentFit,
+  type AtmosphericFlightInput,
+  atmosphericAdmissibility,
+  atmosphericAltitudeAt,
+  DESCENT_WINDOW,
+  horizonSecondsFor,
+  localGravity,
+  type SlopeFit,
+  verticalAccelerationOver,
+  withinAtmosphere,
+} from "./spine/atmospheric-reckoning";
 // ---------------------------------------------------------------------------
 // SHARED PROCESSORS: the handles, their result types, and the pure derivations
 // behind them.
@@ -303,6 +320,7 @@ export {
 // ---------------------------------------------------------------------------
 export {
   advanceByVelocity,
+  atmosphereDepthOf,
   buildElements,
   type ConicBodiesInput,
   type ConicOrbitInput,

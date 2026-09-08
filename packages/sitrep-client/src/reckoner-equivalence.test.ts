@@ -200,7 +200,14 @@ function scene(encounterUt?: number) {
           }),
     }),
   );
-  store.ingest("vessel.flight", point(0, { altitudeAsl: value("m", 0) }));
+  /*
+   * ABOVE Kerbin's atmosphere, and it has to be: core's `vessel.flight` model
+   * selects between the conic and a descent integration on the OBSERVED
+   * altitude, so a stand-in of zero would put this fixture inside the air and
+   * hand every frame to the model this file is not about. The probe registers
+   * only the conic, so this is the altitude that makes the two comparable.
+   */
+  store.ingest("vessel.flight", point(0, { altitudeAsl: value("m", 200_000) }));
   return { store, at };
 }
 

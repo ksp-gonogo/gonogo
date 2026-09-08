@@ -62,8 +62,14 @@ const BY_TOPIC: ReadonlyMap<string, readonly GeneratedReckonableValue[]> =
   }, new Map<string, GeneratedReckonableValue[]>());
 
 /**
- * Every value the contract declares reckonable on `topic`, in the generated
- * order (ordinal by field), or an empty array for an undeclared Topic.
+ * Every declared MODEL on `topic`, in the generated order (ordinal by field,
+ * then by basis), or an empty array for an undeclared Topic.
+ *
+ * One row per (field, model), so a value served by two models appears TWICE with
+ * a different `basis` and a different input list each time. That is the shape
+ * the marks have: `vessel.flight.altitudeAsl` is a conic above the atmosphere
+ * interface and a rate integration below it, and the two do not run on the same
+ * published inputs.
  *
  * Empty rather than `undefined` so a caller iterating never has to branch first:
  * "no declared model" and "a declared model for none of these fields" are the
@@ -76,19 +82,38 @@ export function reckonableValuesOf(
 }
 
 /**
- * The declared inputs for one marked value, or `undefined` when that value
- * carries no mark.
+ * Every input any declared model of one value needs, or `undefined` when that
+ * value carries no mark.
  *
  * `undefined` here, unlike {@link reckonableValuesOf}'s empty array, because a
  * mark's input list is NEVER empty (the gate rejects one that is), so an empty
  * answer could only mean the value is unmarked and saying so with a different
  * shape costs nothing.
+ *
+ * The UNION across a value's models, deduped, and it has to be a union rather
+ * than one model's list: a value with two models has no single "the inputs", and
+ * this answers the question a consumer asks of it, which is what it may have to
+ * subscribe to in order to carry the value forward at all. It used to take the
+ * FIRST matching row, which was the same answer while every value had one model
+ * and would silently have become the conic's half of `altitudeAsl`. A caller
+ * that needs to know which inputs buy which model reaches
+ * {@link reckonableValuesOf} and reads the rows.
  */
 export function reckonableInputsOf(
   topic: string,
   field: string,
 ): readonly GeneratedReckonableInput[] | undefined {
-  return reckonableValuesOf(topic).find((row) => row.field === field)?.inputs;
+  const rows = reckonableValuesOf(topic).filter((row) => row.field === field);
+  if (rows.length === 0) return undefined;
+  const seen = new Set<string>();
+  const inputs: GeneratedReckonableInput[] = [];
+  for (const input of rows.flatMap((row) => row.inputs)) {
+    const key = reckonableInputSpelling(input);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    inputs.push(input);
+  }
+  return inputs;
 }
 
 /**

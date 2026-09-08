@@ -31,9 +31,19 @@ public class VesselFlight
 
     /// <summary>Altitude above sea level, metres (KSP's <c>Vessel.altitude</c>).</summary>
     [SitrepUnit(Units.Metres)]
-    // The conic gives the orbital radius; system.bodies is what turns that into an altitude,
-    // because the reference body's radius is the only place sea level is published.
+    // TWO models, one per regime, because the conic stops describing what happens at the
+    // atmosphere interface and that is exactly where a descent is watched.
+    //
+    // Above it: the conic gives the orbital radius; system.bodies is what turns that into an
+    // altitude, because the reference body's radius is the only place sea level is published.
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "@vessel.orbit", "@system.bodies")]
+    // Below it: the altitude advanced by the observed descent rate. verticalSpeed IS that rate,
+    // measured, so it already carries whatever the installed aerodynamics did and no drag model
+    // is needed or wanted. gForce bounds how far the rate may be carried, being the sensed
+    // non-gravitational magnitude and so a direct read on how fast the regime is changing.
+    // system.bodies again, for the atmosphere depth: that depth is the boundary between the two
+    // models, and without it neither knows which regime it is in.
+    [SitrepReckonable(ReckoningBases.RateIntegration, "verticalSpeed", "gForce", "@system.bodies")]
     public double AltitudeAsl { get; set; }
 
     /// <summary>Height above terrain (AGL, radar altitude), metres, NOT derivable from orbital elements, hence streamed raw.</summary>

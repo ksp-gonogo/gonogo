@@ -1275,11 +1275,14 @@ public static class RtConfig
     /// Writes the generated reckonable-value map
     /// (<c>GENERATED_RECKONABLE_VALUES</c> + <c>GENERATED_RECKONABLE_FIELDS</c> +
     /// the <c>GeneratedReckoningBasis</c> vocabulary) consumed by
-    /// <c>mod/sitrep-sdk/src/reckonability.ts</c>. Every property carrying
-    /// <see cref="SitrepReckonableAttribute"/> contributes one row: the owning
-    /// type's <c>[SitrepTopic]</c> is the topic, the camelCased property name is
-    /// the field, and the declared inputs are split into their topic and path
-    /// halves so a consumer never re-parses the <c>@topic#path</c> spelling.
+    /// <c>mod/sitrep-sdk/src/reckonability.ts</c>. Every
+    /// <see cref="SitrepReckonableAttribute"/> contributes one row, so a property
+    /// served by two models contributes two: the owning type's
+    /// <c>[SitrepTopic]</c> is the topic, the camelCased property name is the
+    /// field, and the declared inputs are split into their topic and path halves
+    /// so a consumer never re-parses the <c>@topic#path</c> spelling. The FIELDS
+    /// view below keeps that property once, because two models of one value are
+    /// still one field of the projection.
     ///
     /// <para>The FIELDS view is the one the SDK's type layer needs, because
     /// <c>ReckonableReading&lt;T, K&gt;</c> takes a key union and rtcli cannot
@@ -1322,8 +1325,8 @@ public static class RtConfig
             var topic = type.GetCustomAttribute<SitrepTopicAttribute>();
             foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
             {
-                var attr = prop.GetCustomAttribute<SitrepReckonableAttribute>();
-                if (attr == null)
+                var attrs = prop.GetCustomAttributes<SitrepReckonableAttribute>().ToList();
+                if (attrs.Count == 0)
                 {
                     continue;
                 }
@@ -1343,20 +1346,32 @@ public static class RtConfig
                         "\". A projection of an array element carries no identity fields, so nothing could join it back to its element.");
                 }
 
-                var inputs = new List<(string Topic, string Path)>();
-                foreach (var input in attr.Inputs)
+                foreach (var attr in attrs)
                 {
-                    inputs.Add(SplitReckonableInput(input));
-                }
+                    var inputs = new List<(string Topic, string Path)>();
+                    foreach (var input in attr.Inputs)
+                    {
+                        inputs.Add(SplitReckonableInput(input));
+                    }
 
-                rows.Add((topic.TopicId, UnitDescriptor.CamelCase(prop.Name), attr.Basis, inputs));
+                    rows.Add((topic.TopicId, UnitDescriptor.CamelCase(prop.Name), attr.Basis, inputs));
+                }
             }
         }
 
+        // (topic, field, BASIS). The third key is what a value served by two models
+        // needs: without it the two rows of one field sort equal and their order is
+        // reflection order, which is the whole thing this sort exists to remove.
         rows.Sort((a, b) =>
         {
             var byTopic = string.CompareOrdinal(a.Topic, b.Topic);
-            return byTopic != 0 ? byTopic : string.CompareOrdinal(a.Field, b.Field);
+            if (byTopic != 0)
+            {
+                return byTopic;
+            }
+
+            var byField = string.CompareOrdinal(a.Field, b.Field);
+            return byField != 0 ? byField : string.CompareOrdinal(a.Basis, b.Basis);
         });
 
         var sb = new StringBuilder();
@@ -1434,7 +1449,15 @@ public static class RtConfig
                 currentTopic = r.Topic;
                 fieldsByTopic.Add((r.Topic, new List<string>()));
             }
-            fieldsByTopic[fieldsByTopic.Count - 1].Fields.Add(r.Field);
+            // DISTINCT, because a value served by two models contributes two VALUES
+            // rows and is still one field of the projection. Repeating it would put a
+            // duplicate in the tuple the SDK turns into a key union, which resolves to
+            // the same union and reads as a codegen fault to everyone who sees it.
+            var fields = fieldsByTopic[fieldsByTopic.Count - 1].Fields;
+            if (!fields.Contains(r.Field))
+            {
+                fields.Add(r.Field);
+            }
         }
         foreach (var entry in fieldsByTopic)
         {

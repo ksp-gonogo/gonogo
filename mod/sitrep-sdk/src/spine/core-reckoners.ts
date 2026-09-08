@@ -5,6 +5,13 @@ import type { Vector3 } from "../unit-system";
 import { value } from "../unit-system/value";
 import type { Vec3Of } from "../value";
 import {
+  atmosphericAdmissibility,
+  atmosphericAltitudeAt,
+  DESCENT_WINDOW,
+  localGravity,
+  withinAtmosphere,
+} from "./atmospheric-reckoning";
+import {
   advanceByVelocity,
   keplerAdmissibility,
   magnitude,
@@ -225,30 +232,100 @@ function registerDockReckoner(): void {
 }
 
 /**
- * `vessel.flight.altitudeAsl` and `.orbitalSpeed`, off the conic.
+ * `vessel.flight.altitudeAsl` and `.orbitalSpeed`, off the conic ABOVE the air
+ * and off the observed descent rates below it.
  *
  * The declared inputs are `@vessel.orbit` (the elements and their epoch) and
  * `@system.bodies` (the reference body's radius, which is the only place sea
- * level is published), so the store has both before this runs. The arithmetic is
- * `propagateVesselOrbit` and one subtraction, which is what `deriveVesselState`
- * does on its OnRails branch for the same two fields.
+ * level is published), so the store has both before this runs. Above the
+ * atmosphere the arithmetic is `propagateVesselOrbit` and one subtraction, which
+ * is what `deriveVesselState` does on its OnRails branch for the same two
+ * fields.
+ *
+ * ## Two models, one selector
+ *
+ * `keplerAdmissibility` withdraws at the atmosphere interface, which left the
+ * altitude unreckonable during exactly the descent that motivated reckoning it.
+ * `withinAtmosphere` is the selector between the two, and it is asked FIRST:
+ * were the conic asked first, a craft under physics inside the air would be
+ * refused on quality before the interface was ever consulted, and the operator
+ * would hear "the craft is under physics" during a re-entry. Each branch then
+ * declines in its own vocabulary, and neither is a fall-through from the other.
+ *
+ * ## The two branches move different field sets
+ *
+ * The conic advances both marked fields. The descent advances the ALTITUDE only
+ * and copies `orbitalSpeed` verbatim off the observation, because it has no
+ * observed rate for a speed and will not invent one. One reading carries one
+ * projection over every marked field of a topic, so the field has to be
+ * present; `Reckoning.modelled` is what says it was not MOVED, and it names the
+ * altitude alone on this branch. A consumer overlaying `reckoned.value` on
+ * `value` (which is what `LandingStatus` does) therefore sees the last observed
+ * orbital speed rather than a modelled one, which is the truth.
+ *
+ * The window is declared on the reckoner and so is handed to the conic too,
+ * which ignores it: a conic is a cause and needs one point. That costs a range
+ * query on a topic already in the buffer, and the alternative would be two
+ * registrations for one topic, which the registry resolves by clobbering.
  */
 function registerFlightReckoner(): void {
   registerReckoner("vessel.flight", CORE_RECKONER_OWNER, {
     deps: ["vessel.orbit", "system.bodies"],
-    reckon(_point, [orbitPoint, bodiesPoint], { viewUt }) {
+    window: DESCENT_WINDOW,
+    reckon(point, [orbitPoint, bodiesPoint], { grade, viewUt, history }) {
       const bodies = bodiesPoint?.payload ?? undefined;
-      const admissible = keplerAdmissibility(orbitPoint, bodies, viewUt);
-      if ("declined" in admissible || orbitPoint?.payload == null) {
-        return "declined" in admissible
-          ? admissible
-          : { declined: { reason: "input-absent", input: "@vessel.orbit" } };
+      /*
+       * The conic asks this too, and identically. It is asked here as well
+       * because the SELECTOR below needs the reference body index, so the frame
+       * cannot be classified before the elements are known to have arrived.
+       */
+      if (orbitPoint?.payload == null) {
+        return { declined: { reason: "input-absent", input: "@vessel.orbit" } };
       }
       const orbit = orbitPoint.payload;
-      const radius = bodies?.bodies.find(
-        (b) => b.index === orbit.referenceBodyIndex,
-      )?.radius;
-      const seaLevel = magnitudeOr(radius, Number.NaN);
+      const seaLevel = magnitudeOr(
+        bodies?.bodies.find((b) => b.index === orbit.referenceBodyIndex)
+          ?.radius,
+        Number.NaN,
+      );
+      const observed = point.payload;
+      if (
+        observed != null &&
+        withinAtmosphere(bodies, orbit.referenceBodyIndex, observed.altitudeAsl)
+      ) {
+        const fit = atmosphericAdmissibility(
+          point,
+          history,
+          bodies,
+          orbit.referenceBodyIndex,
+          /*
+           * Both halves can be absent and neither is fatal here: the descent
+           * works in altitude ASL, so it needs no sea level, and `localGravity`
+           * answers `undefined` rather than NaN so the envelope is skipped
+           * rather than compared against nothing.
+           */
+          localGravity(
+            orbit.mu,
+            seaLevel + magnitudeOr(observed.altitudeAsl, Number.NaN),
+          ),
+          grade,
+          viewUt,
+        );
+        if ("declined" in fit) return fit;
+        return {
+          modelled: movedFields("rate-integration", "altitudeAsl"),
+          reckon: (at) => ({
+            altitudeAsl: value("m", atmosphericAltitudeAt(fit, at)),
+            // Verbatim, absence included. A copy of the last observation is what
+            // `Reckoning.modelled` promises for a path it does not name, and a
+            // number substituted here would be a placeholder wearing a
+            // measurement's clothes.
+            orbitalSpeed: observed.orbitalSpeed,
+          }),
+        };
+      }
+      const admissible = keplerAdmissibility(orbitPoint, bodies, viewUt);
+      if ("declined" in admissible) return admissible;
       if (!Number.isFinite(seaLevel)) {
         return {
           declined: {

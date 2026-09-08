@@ -42,6 +42,7 @@
 // TS2305s in a downstream package. The whole of each module belongs here.
 // ---------------------------------------------------------------------------
 
+export * from "./atmospheric-reckoning";
 export * from "./body-derivations";
 export * from "./celestial-facts";
 export * from "./channel-error-warning";
