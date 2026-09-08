@@ -194,6 +194,7 @@ namespace Gonogo.KerbalismUplink
             foreach (var f in _featuresType.GetFields(BindingFlags.Public | BindingFlags.Static))
             {
                 if (f.FieldType != typeof(bool)) continue;
+                // The ?? is unreachable and substitutes for nothing: the line above admits only bool fields, and a bool always boxes to a value. It exists to satisfy the unbox cast.
                 try { result[f.Name] = (bool)(f.GetValue(null) ?? false); } catch { }
             }
             return result;
@@ -255,6 +256,12 @@ namespace Gonogo.KerbalismUplink
                     string? name = null;
                     try { name = t.GetField("name")?.GetValue(rule) as string; } catch { }
                     if (string.IsNullOrEmpty(name)) continue;
+                    // Zero here IS the absence signal, not a substituted fact.
+                    // Kerbalism's own defaults are non-zero on both (a fatal
+                    // threshold of 1.0, a degeneration rate that has to be
+                    // positive to count down at all), so KerbalismDeathClock
+                    // reads a zero threshold as this read having failed and a
+                    // zero degeneration as a rule that is not closing in.
                     double degen = 0, fatal = 0;
                     try { degen = AsDouble(t.GetField("degeneration")?.GetValue(rule)) ?? 0; } catch { }
                     try { fatal = AsDouble(t.GetField("fatal_threshold")?.GetValue(rule)) ?? 0; } catch { }
@@ -376,7 +383,7 @@ namespace Gonogo.KerbalismUplink
                     Interval = FieldDouble(rule, t, "interval"),
                     Degeneration = FieldDouble(rule, t, "degeneration"),
                     FatalThreshold = FieldDouble(rule, t, "fatal_threshold"),
-                    Breakdown = Field<bool?>(rule, t, "breakdown") ?? false,
+                    Breakdown = Field<bool?>(rule, t, "breakdown"),
                     Variance = FieldDouble(rule, t, "variance"),
                     Modifiers = StringList(rule, t, "modifiers"),
                 });
@@ -464,6 +471,13 @@ namespace Gonogo.KerbalismUplink
             catch { return default; }
         }
 
+        /// <summary>
+        /// A static-profile double, an unread field read as 0. Every caller is a
+        /// <c>Profile</c> field loaded once from config, where zero is already
+        /// Kerbalism's own "not configured": interval 0 is continuous, variance 0
+        /// is no randomisation, and <c>KerbalismDeathClock</c> counts no deadline
+        /// from either a zero degeneration or a zero fatal threshold.
+        /// </summary>
         private static double FieldDouble(object obj, Type t, string name)
         {
             try { return AsDouble(t.GetField(name)?.GetValue(obj)) ?? 0; } catch { return 0; }
@@ -484,6 +498,12 @@ namespace Gonogo.KerbalismUplink
         /// A Process's inputs/outputs: Kerbalism holds these as
         /// <c>Dictionary&lt;string, double&gt;</c> of resource name -> rate per unit
         /// of process capacity, per second.
+        ///
+        /// <para>An unread rate lands as 0 rather than absent: the wire shape is a
+        /// map of plain doubles with no slot to carry the absence, and these are
+        /// NOMINAL config ratios in the first place. A term that came out wrong is
+        /// already visible client-side, where the ledger's <c>residual</c> is the
+        /// gap between the terms and Kerbalism's own reported net.</para>
         /// </summary>
         private static Dictionary<string, double> RateMap(object obj, Type t, string name)
         {
@@ -1460,6 +1480,11 @@ namespace Gonogo.KerbalismUplink
 
         private static ScienceExperimentRaw ExperimentOf(PartModule pm, string partId, string partName)
         {
+            // An unread sample_amount lands as 0, which is inert rather than a
+            // claim: it feeds only TakesSample, whose sole consumer (the science
+            // map's "depleted" flag) also needs a RemainingSampleMass gated on
+            // this same read, so an unread module comes out not-depleted whichever
+            // way the substitution goes.
             var sampleAmount = MemberDouble(pm, "sample_amount") ?? 0;
             return new ScienceExperimentRaw
             {
@@ -1764,14 +1789,14 @@ namespace Gonogo.KerbalismUplink
         /// <summary>A <c>SubjectData</c>'s internal <c>Id</c>, the key <c>Drive.Send</c>/<c>GetFileSend</c> want (never the stock-format id carried on the wire).</summary>
         public string? SubjectInternalId(object subjectData) => MemberString(subjectData, "Id");
 
-        /// <summary>A <c>Sample</c> blob's stored size in MB.</summary>
-        public double SampleSize(object sample) => MemberDouble(sample, "size") ?? 0;
+        /// <summary>A <c>Sample</c> blob's stored size in MB, or null when the field went unread.</summary>
+        public double? SampleSize(object sample) => MemberDouble(sample, "size");
 
-        /// <summary>A <c>Sample</c> blob's physical mass.</summary>
-        public double SampleMass(object sample) => MemberDouble(sample, "mass") ?? 0;
+        /// <summary>A <c>Sample</c> blob's physical mass, or null when the field went unread.</summary>
+        public double? SampleMass(object sample) => MemberDouble(sample, "mass");
 
-        /// <summary>Whether a <c>Sample</c> blob was created by the Hijacker and must keep the stock crediting formula on recovery (see Sample.cs).</summary>
-        public bool SampleUsesStockCrediting(object sample) => MemberBool(sample, "useStockCrediting") ?? false;
+        /// <summary>Whether a <c>Sample</c> blob was created by the Hijacker and must keep the stock crediting formula on recovery (see Sample.cs), or null when the field went unread.</summary>
+        public bool? SampleUsesStockCrediting(object sample) => MemberBool(sample, "useStockCrediting");
 
         /// <summary>Set (or clear) a file's queued-for-transmission flag: <c>Drive.Send(string subjectId, bool)</c>.</summary>
         public bool DriveSend(object drive, string internalSubjectId, bool flag)
