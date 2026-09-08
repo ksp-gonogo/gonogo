@@ -364,11 +364,21 @@ namespace Sitrep.Host
         /// The horizon and shape these elements carry, asked of whoever propagates
         /// them.
         ///
-        /// <para>With no resolver installed, or with one that faults: <c>Analytic</c>
-        /// and <c>Unbounded</c>, which is what an install with no n-body backend has
-        /// anyway. Both stated rather than defaulted, because <c>Unspecified</c> is
-        /// what a producer that forgot would send and that has to stay
-        /// distinguishable.</para>
+        /// <para>With no resolver installed: <c>Analytic</c> and <c>Unbounded</c>,
+        /// which is what an install with no n-body backend has anyway. Both stated
+        /// rather than defaulted, because <c>Unspecified</c> is what a producer that
+        /// forgot would send and that has to stay distinguishable.</para>
+        ///
+        /// <para><b>A resolver that FAULTS or answers null is a different install and
+        /// gets a different answer</b>, and the two used to share the arm above. The
+        /// no-resolver case can fairly claim stock physics because nothing was there
+        /// to say otherwise. This case HAS a backend, installed unconditionally at
+        /// Register, and it broke: answering <c>Analytic</c> there is a positive claim
+        /// that the save runs two-body physics, made on the strength of an exception,
+        /// and every consumer deciding whether a conic is the right renderer would
+        /// believe it. <c>Unspecified</c> on both halves is the honest answer, because
+        /// a fault tells us neither the reach nor the shape, and both enums number it
+        /// zero so that the answer nobody stated withholds rather than permits.</para>
         /// </summary>
         private static PropagationHorizon ElementHorizon(PropagationTarget target, double sampleUt)
         {
@@ -380,14 +390,23 @@ namespace Sitrep.Host
 
             try
             {
-                return source(target, sampleUt) ?? AnalyticHorizon();
+                return source(target, sampleUt) ?? UnknownHorizon();
             }
             catch (Exception)
             {
-                // A resolver fault must not cost the whole orbit payload.
-                return AnalyticHorizon();
+                // A resolver fault must not cost the whole orbit payload, and must
+                // not be paid for with a claim about the physics either.
+                return UnknownHorizon();
             }
         }
+
+        /// <summary>Neither half known: what a faulted or silent resolver leaves us with.</summary>
+        private static PropagationHorizon UnknownHorizon() =>
+            new PropagationHorizon
+            {
+                Kind = PropagationHorizonKind.Unspecified,
+                TrajectoryKind = TrajectoryKind.Unspecified,
+            };
 
         private static PropagationHorizon AnalyticHorizon() =>
             new PropagationHorizon
