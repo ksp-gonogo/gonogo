@@ -274,7 +274,7 @@ namespace Gonogo.KerbalismUplink
                     ["dataStored"] = null,
                     ["dataStorage"] = null,
                     ["storedScience"] = null,
-                    ["processingData"] = Same(l.Status, "RUNNING") || l.Running,
+                    ["processingData"] = ProcessingDataOf(l),
                     // Kerbalism's status IS the status text a stock lab would show,
                     // just typed: forwarded to both, so a widget that only reads the
                     // shared field still says something true.
@@ -283,7 +283,11 @@ namespace Gonogo.KerbalismUplink
                     // than exposing a headcount, so there is no count to report.
                     ["scientistCount"] = null,
                     ["scienceRate"] = null,
-                    ["isOperational"] = !Same(l.Status, "DISABLED"),
+                    // Derived from the status word alone, so an unread status
+                    // cannot answer it: "operational" is the reassuring half.
+                    ["isOperational"] = l.Status.Length == 0
+                        ? (bool?)null
+                        : !Same(l.Status, "DISABLED"),
                     ["valueModel"] = ValueModel,
                     ["extensions"] = new Dictionary<string, object?>
                     {
@@ -297,6 +301,21 @@ namespace Gonogo.KerbalismUplink
                 });
             }
             return list;
+        }
+
+        /// <summary>
+        /// Whether the lab is working, off its two independent witnesses: the
+        /// status word and the module's own running flag.
+        ///
+        /// <para>Either one saying yes is enough. Null when NEITHER could be
+        /// read, because false here is "the lab is idle", and the backlog moving
+        /// or not is what an operator opens this channel to find out.</para>
+        /// </summary>
+        private static bool? ProcessingDataOf(ScienceLabRaw l)
+        {
+            if (Same(l.Status, "RUNNING") || l.Running == true) return true;
+            if (l.Status.Length == 0 && l.Running == null) return null;
+            return false;
         }
 
         /// <summary>
@@ -314,17 +333,12 @@ namespace Gonogo.KerbalismUplink
             // read as a change on every tick and never be suppressed.
             var order = new List<string>();
             var bySubject = new Dictionary<string, ScienceStoredRaw>();
-            var sizes = new Dictionary<string, double>();
             foreach (var s in raw.Stored)
             {
                 var key = s.SubjectId ?? "";
-                if (!bySubject.ContainsKey(key))
-                {
-                    order.Add(key);
-                    bySubject[key] = s;
-                    sizes[key] = 0;
-                }
-                sizes[key] += s.SizeMB;
+                if (bySubject.ContainsKey(key)) continue;
+                order.Add(key);
+                bySubject[key] = s;
             }
 
             var list = new List<object?>();

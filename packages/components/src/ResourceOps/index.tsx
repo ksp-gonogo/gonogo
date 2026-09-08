@@ -237,6 +237,25 @@ function ResourceCells({
   );
 }
 
+/**
+ * The run-state chip for a rig whose channel is CURRENT, shared by both card
+ * kinds because both fields are the same three-valued flag.
+ *
+ * "stopped" is a diagnosis: an operator reads it as a rig they can start. The
+ * truthiness form this replaced gave that answer for a field the provider never
+ * filled, so a harvester whose module could not be read looked switched off.
+ */
+function RunStateBadge({ running }: Readonly<{ running?: boolean | null }>) {
+  if (running === null || running === undefined) {
+    return <Badge severity="warning">run state unread</Badge>;
+  }
+  return (
+    <Badge severity={running ? "nominal" : "info"}>
+      {running ? "running" : "stopped"}
+    </Badge>
+  );
+}
+
 function DrillCard({
   drill,
   highlighted,
@@ -276,9 +295,7 @@ function DrillCard({
           {drillNotCurrent ? (
             <Badge severity="info">run state held</Badge>
           ) : (
-            <Badge severity={drill.running ? "nominal" : "info"}>
-              {drill.running ? "running" : "stopped"}
-            </Badge>
+            <RunStateBadge running={drill.running} />
           )}
         </Cluster>
         <Grid cols={RESOURCE_TABLE_COLS} gap="sm" rowGap="xs" align="baseline">
@@ -362,9 +379,7 @@ function ConverterCard({
           {converterNotCurrent ? (
             <Badge severity="info">run state held</Badge>
           ) : (
-            <Badge severity={converter.running ? "nominal" : "info"}>
-              {converter.running ? "running" : "stopped"}
-            </Badge>
+            <RunStateBadge running={converter.running} />
           )}
           {starved && <Badge severity="warning">no output</Badge>}
         </Cluster>

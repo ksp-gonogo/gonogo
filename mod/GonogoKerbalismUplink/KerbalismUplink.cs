@@ -420,9 +420,15 @@ namespace Gonogo.KerbalismUplink
             if (captured is ScienceRaw raw) _science.Stash(raw);
         }
 
-        /// <summary>MAIN-THREAD capture: read live Kerbalism into a plain bundle (no KSP handles cross threads).</summary>
+        /// <summary>
+        /// MAIN-THREAD capture: read live Kerbalism into a plain bundle (no KSP
+        /// handles cross threads). No snapshot means no capture: every reading in
+        /// the bundle is published AT the snapshot's UT, and a substituted zero
+        /// stamps the whole thing at the epoch, which dates a live reading to
+        /// before the save began.
+        /// </summary>
         private object? CaptureOnMain(KspSnapshot? snapshot) =>
-            CaptureVessel(ScopedVessel(), snapshot?.Ut ?? 0.0);
+            snapshot == null ? null : CaptureVessel(ScopedVessel(), snapshot.Ut);
 
         /// <summary>
         /// MAIN-THREAD capture of ONE craft, active or not. Every read here

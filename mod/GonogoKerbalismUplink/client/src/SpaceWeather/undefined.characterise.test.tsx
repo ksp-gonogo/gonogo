@@ -285,6 +285,44 @@ describe("SpaceWeather: what undefined means today", () => {
   });
 
   /**
+   * The CME tracker's own version of the same coercion, one level down.
+   *
+   * `stormState` is 0/1/2 and ZERO IS THE ALL-CLEAR, so every reader here
+   * filters state-0 slots out. `magnitudeOf(...) ?? 0` (and the mod-side
+   * `Convert.ToInt32(... ?? 0)` feeding it) therefore did not merely mislabel an
+   * unread slot, it DELETED it: the card vanished, the star's ring stayed calm,
+   * and the board read exactly as it does when Kerbalism has positively said
+   * there is no CME on that slot.
+   */
+  it("draws an unread CME slot rather than filtering it out as no storm", async () => {
+    const { container } = mount();
+
+    act(() => {
+      stream.emit(TOPIC, {
+        radiationRadPerSecond: 0.0143 / 3600,
+        magnetosphere: true,
+        innerBelt: false,
+        outerBelt: false,
+        stormIncoming: false,
+        stormInProgress: false,
+        blackout: false,
+        inSunlight: true,
+        shieldingAmount: 3.308,
+        shieldingCapacity: 3.308,
+        stars: [{ star: "Kerbol", inSunlight: true }],
+        // The slot was read; its state was not.
+        storms: [{ star: "Kerbol", targetKind: "body", targetName: "Kerbin" }],
+      });
+    });
+
+    await waitFor(() => expect(visibleText(container)).toContain("Unread"));
+    expect(visibleText(container)).toContain("CME state unread for Kerbin");
+    // Not promoted to a threat either: an unread slot is no evidence of one.
+    expect(visibleText(container)).not.toContain("Impacting");
+    expect(visibleText(container)).not.toContain("Inbound to");
+  });
+
+  /**
    * Recorded prior behaviour: "collapses the whole board to its zero state on a
    * confirmed weather tombstone".
    *

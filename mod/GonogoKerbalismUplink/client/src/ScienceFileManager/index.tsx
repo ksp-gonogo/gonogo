@@ -75,10 +75,11 @@ function findDriveEntries(
  *  whichever entry carries the fields (file and sample on the same subject
  *  normally share one drive, so either suffices). */
 function DriveCapacity({ ext }: { ext: KerbalismScienceExperimentExt }) {
-  const hasStorage =
-    ext.storageCapacityMB !== undefined && ext.storageUsedMB !== undefined;
-  const hasSlots =
-    ext.sampleSlotsTotal !== undefined && ext.sampleSlotsUsed !== undefined;
+  /* `!= null`, not `!== undefined`: the mod writes an unread figure as JSON
+     null and the key stays on the wire, so the strict-undefined form let a null
+     through and rendered "Drive  / " with two empty readouts. */
+  const hasStorage = ext.storageCapacityMB != null && ext.storageUsedMB != null;
+  const hasSlots = ext.sampleSlotsTotal != null && ext.sampleSlotsUsed != null;
   if (!hasStorage && !hasSlots) return null;
   return (
     <Text size="xs" tone="muted">
@@ -157,7 +158,7 @@ function ScienceDataAboardRowAugment({
       {file && (
         <Stack gap="xs">
           <Cluster gap="xs" wrap justify="start">
-            {file.dataSizeMB !== undefined && (
+            {file.dataSizeMB != null && (
               <Text size="xs">
                 <Unit value={file.dataSizeMB} />
               </Text>
@@ -210,7 +211,7 @@ function ScienceDataAboardRowAugment({
       {sample && (
         <Stack gap="xs">
           <Cluster gap="xs" wrap justify="start">
-            {sample.sampleMass !== undefined && (
+            {sample.sampleMass != null && (
               <Text size="xs">
                 <Unit value={sample.sampleMass} />
               </Text>

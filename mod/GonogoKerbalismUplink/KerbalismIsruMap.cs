@@ -54,7 +54,7 @@ namespace Gonogo.KerbalismUplink
                     // rather than "": a reader should not have to know that one
                     // particular empty string is the all-clear.
                     ["issue"] = string.IsNullOrEmpty(h.Issue) ? null : h.Issue,
-                    ["harvestType"] = h.Type.ToString(CultureInfo.InvariantCulture),
+                    ["harvestType"] = h.Type?.ToString(CultureInfo.InvariantCulture),
                     ["ecRate"] = h.EcRate,
                     ["sourceMassRemaining"] = h.SourceMassRemaining,
                     ["sourceMassThreshold"] = h.SourceMassThreshold,
@@ -72,8 +72,11 @@ namespace Gonogo.KerbalismUplink
                     Running = h.Running,
                     Abundance = h.Abundance,
                     // Not running means extracting nothing, a real zero rather than an
-                    // absence, the same rule the stock backend follows.
-                    Rate = h.Running ? h.AdjustedRate ?? 0.0 : 0.0,
+                    // absence, the same rule the stock backend follows. A drill whose
+                    // run state could not be read gets no rate at all: zero there is
+                    // the same "producing nothing" claim, made about a drill nobody
+                    // asked. Same for a running drill whose adjusted rate is missing.
+                    Rate = h.Running == false ? 0.0 : h.Running == true ? h.AdjustedRate : null,
                     Extensions = new Dictionary<string, object?> { [ProviderId] = ext },
                 });
             }
@@ -138,7 +141,11 @@ namespace Gonogo.KerbalismUplink
                 {
                     // Every rate is scaled by the part's capacity and, where the live
                     // environment product was resolved, by that too: the shared shape
-                    // promises what is actually moving, not the config ratio.
+                    // promises what is actually moving, not the config ratio. A null
+                    // modifier is the contract's own stated "no correction available"
+                    // (KerbalismProcessEntry.EnvModifier), so it is 1; a null capacity
+                    // is a failed read, and the recipe then names its resources with
+                    // no rate rather than reporting the unscaled config ratio as live.
                     var scale = p.Capacity * (p.EnvModifier ?? 1.0);
                     AddFlows(entry.Inputs, def.Inputs, scale);
                     AddFlows(entry.Outputs, def.Outputs, scale);
@@ -168,7 +175,7 @@ namespace Gonogo.KerbalismUplink
             return null;
         }
 
-        private static void AddFlows(List<IsruResourceFlow> into, Dictionary<string, double>? rates, double scale)
+        private static void AddFlows(List<IsruResourceFlow> into, Dictionary<string, double>? rates, double? scale)
         {
             if (rates == null)
             {
@@ -180,7 +187,7 @@ namespace Gonogo.KerbalismUplink
                 into.Add(new IsruResourceFlow
                 {
                     Resource = pair.Key,
-                    Rate = pair.Value * scale,
+                    Rate = scale.HasValue ? pair.Value * scale.Value : (double?)null,
                 });
             }
         }

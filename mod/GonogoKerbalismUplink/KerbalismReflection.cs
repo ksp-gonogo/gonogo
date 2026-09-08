@@ -284,11 +284,11 @@ namespace Gonogo.KerbalismUplink
                     {
                         Resource = MemberString(pm, "resource") ?? "",
                         Title = MemberString(pm, "title") ?? "",
-                        Capacity = MemberDouble(pm, "capacity") ?? 0,
-                        Running = MemberBool(pm, "running") ?? MemberBool(pm, "toggle") ?? false,
-                        Broken = MemberBool(pm, "broken") ?? false,
+                        Capacity = MemberDouble(pm, "capacity"),
+                        Running = MemberBool(pm, "running") ?? MemberBool(pm, "toggle"),
+                        Broken = MemberBool(pm, "broken"),
                         FlightId = part.flightID,
-                        ValveIndex = (int)(MemberDouble(pm, "valve_i") ?? 0),
+                        ValveIndex = AsIndex(MemberDouble(pm, "valve_i")),
                     };
                 }
             }
@@ -325,13 +325,13 @@ namespace Gonogo.KerbalismUplink
                     {
                         FlightId = part.flightID,
                         Resource = MemberString(pm, "resource") ?? "",
-                        Deployed = MemberBool(pm, "deployed") ?? false,
-                        Running = MemberBool(pm, "running") ?? false,
+                        Deployed = MemberBool(pm, "deployed"),
+                        Running = MemberBool(pm, "running"),
                         Issue = MemberString(pm, "issue") ?? "",
-                        Type = (int)(MemberDouble(pm, "type") ?? 0),
+                        Type = AsIndex(MemberDouble(pm, "type")),
                         Rate = MemberDouble(pm, "rate") ?? 0,
                         AbundanceRate = MemberDouble(pm, "abundance_rate") ?? 0,
-                        EcRate = MemberDouble(pm, "ec_rate") ?? 0,
+                        EcRate = MemberDouble(pm, "ec_rate"),
                         Abundance = MemberDouble(pm, "abundance"),
                         AdjustedRate = MemberDouble(pm, "AdjustedRate") ?? InvokeDoubleMethod(pm, "AdjustedRate"),
                     };
@@ -449,6 +449,14 @@ namespace Gonogo.KerbalismUplink
             foreach (var item in items)
                 if (item != null) yield return item;
         }
+
+        /// <summary>
+        /// A reflected enum-ish or index field, absence kept. Zero is a real
+        /// index on both of the fields this reads (harvest type 0 is a surface
+        /// drill, valve combination 0 is the first one), so it cannot also be
+        /// this reader's way of saying it could not find the field.
+        /// </summary>
+        private static int? AsIndex(double? value) => value.HasValue ? (int)value.Value : (int?)null;
 
         private static T? Field<T>(object obj, Type t, string name)
         {
@@ -598,10 +606,10 @@ namespace Gonogo.KerbalismUplink
                     PartId = partId,
                     Title = title,
                     Group = MemberString(e, "group") ?? "",
-                    Broken = MemberBool(e, "broken") ?? false,
-                    Critical = MemberBool(e, "critical") ?? false,
+                    Broken = MemberBool(e, "broken"),
+                    Critical = MemberBool(e, "critical"),
                     MtbfSeconds = MemberDouble(e, "mtbf"),
-                    NeedsService = InvokeBoolMethod(e, "NeedsMaintenance") ?? false,
+                    NeedsService = InvokeBoolMethod(e, "NeedsMaintenance"),
                     LastInspection = paired?.LastInspection,
                     Quality = paired?.Quality,
                     RepairTrait = paired?.RepairSpec?.Trait,
@@ -1120,8 +1128,15 @@ namespace Gonogo.KerbalismUplink
                 var storm = perVessel ? PerVesselStorm(vd, star) : BodyStorm(mainBody, star);
                 if (storm == null) continue;
 
-                int state = 0;
-                try { state = Convert.ToInt32(Member(storm, "storm_state") ?? 0); } catch { }
+                // Null, not zero, when the field is gone: zero is Kerbalism's
+                // positive all-clear, and a tracker filters those slots out, so
+                // an unread slot would vanish reading as "no storm here".
+                int? state = null;
+                var rawState = Member(storm, "storm_state");
+                if (rawState != null)
+                {
+                    try { state = Convert.ToInt32(rawState); } catch { }
+                }
 
                 var entry = new StormEntryRaw
                 {
@@ -1412,10 +1427,10 @@ namespace Gonogo.KerbalismUplink
                         {
                             PartId = partId,
                             PartName = partName,
-                            AnalysisRate = MemberDouble(pm, "analysis_rate") ?? 0,
-                            EffectiveRate = InvokeDoubleMethod(pm, "EffectiveRate") ?? MemberDouble(pm, "analysis_rate") ?? 0,
+                            AnalysisRate = MemberDouble(pm, "analysis_rate"),
+                            EffectiveRate = InvokeDoubleMethod(pm, "EffectiveRate") ?? MemberDouble(pm, "analysis_rate"),
                             Status = MemberEnumName(pm, "Status") ?? MemberString(pm, "status") ?? "",
-                            Running = MemberBool(pm, "running") ?? false,
+                            Running = MemberBool(pm, "running"),
                         });
                         continue;
                     }
@@ -1435,7 +1450,7 @@ namespace Gonogo.KerbalismUplink
                             // it through rather than re-deriving a number it would
                             // then have to unit-label without knowing the sensor type.
                             Readout = MemberString(pm, "Status") ?? MemberString(pm, "status") ?? "",
-                            Active = MemberBool(pm, "active") ?? true,
+                            Active = MemberBool(pm, "active"),
                         });
                     }
                 }
@@ -1458,8 +1473,8 @@ namespace Gonogo.KerbalismUplink
                 // (Modules/Experiment.cs's two-layer RunningState -> ExpStatus).
                 RunningState = MemberEnumName(pm, "State") ?? MemberEnumName(pm, "RunningState") ?? "",
                 ExpStatus = MemberEnumName(pm, "Status") ?? MemberEnumName(pm, "ExpStatus") ?? "",
-                DataRate = MemberDouble(pm, "data_rate") ?? 0,
-                ProdFactor = MemberDouble(pm, "prodFactor") ?? 0,
+                DataRate = MemberDouble(pm, "data_rate"),
+                ProdFactor = MemberDouble(pm, "prodFactor"),
                 TakesSample = sampleAmount > 0,
                 // Only meaningful for a finite-sample experiment: for a
                 // sample-less one the field is a zero that would read as
@@ -1545,10 +1560,14 @@ namespace Gonogo.KerbalismUplink
 
             var files = Pairs(Member(drive, "files") as IEnumerable);
             var samples = Pairs(Member(drive, "samples") as IEnumerable);
-            var usedMB = 0.0;
+            // One unreadable file makes the whole total unknown rather than
+            // short: "1.2 of 4 MB used" assembled from two files out of three
+            // understates how full the drive is, and the operator acts on it.
+            double? usedMB = 0.0;
             foreach (var entry in files)
             {
-                usedMB += MemberDouble(entry.Value, "size") ?? 0;
+                var size = MemberDouble(entry.Value, "size");
+                usedMB = size.HasValue && usedMB.HasValue ? usedMB + size : null;
             }
             // Kerbalism quantises sample capacity in SLOTS, one per stored sample,
             // not by mass or size.
@@ -1557,8 +1576,8 @@ namespace Gonogo.KerbalismUplink
             foreach (var entry in files)
             {
                 var row = StoredRow(entry.Key, entry.Value, partId, partName, "file");
-                row.TransmitRate = MemberDouble(entry.Value, "transmitRate") ?? 0;
-                row.Transmitting = row.TransmitRate > 0;
+                row.TransmitRate = MemberDouble(entry.Value, "transmitRate");
+                row.Transmitting = row.TransmitRate.HasValue ? row.TransmitRate > 0 : (bool?)null;
                 // GetFileSend wants the SubjectData's internal Id, not the
                 // StockSubjectId already carried on the row: Drive keys its
                 // fileSendFlags dictionary by the former.
@@ -1577,7 +1596,7 @@ namespace Gonogo.KerbalismUplink
             }
         }
 
-        private static void Fill(ScienceStoredRaw row, double? dataCapacity, double usedMB, double? sampleCapacity, int slotsUsed)
+        private static void Fill(ScienceStoredRaw row, double? dataCapacity, double? usedMB, double? sampleCapacity, int slotsUsed)
         {
             row.DriveCapacityMB = dataCapacity.HasValue && dataCapacity.Value >= 0 ? dataCapacity : null;
             row.DriveUsedMB = usedMB;
@@ -1597,7 +1616,7 @@ namespace Gonogo.KerbalismUplink
                 PartId = partId,
                 PartName = partName,
                 Kind = kind,
-                SizeMB = blob != null ? MemberDouble(blob, "size") ?? 0 : 0,
+                SizeMB = blob != null ? MemberDouble(blob, "size") : null,
             };
             if (subject == null) return row;
 
@@ -1605,12 +1624,16 @@ namespace Gonogo.KerbalismUplink
             // join against anything else, and it is what Kerbalism maintains for
             // exactly that interop reason.
             row.SubjectId = MemberString(subject, "StockSubjectId") ?? MemberString(subject, "Id") ?? "";
-            row.SciencePerMB = MemberDouble(subject, "SciencePerMB") ?? 0;
-            row.ScienceMaxValue = MemberDouble(subject, "ScienceMaxValue") ?? 0;
-            row.ScienceRemainingTotal = MemberDouble(subject, "ScienceRemainingTotal") ?? 0;
-            row.PercentCollectedTotal = MemberDouble(subject, "PercentCollectedTotal") ?? 0;
-            row.ScienceCollectedInFlight = MemberDouble(subject, "ScienceCollectedInFlight") ?? 0;
-            row.TimesCompleted = (int)(MemberDouble(subject, "TimesCompleted") ?? 0);
+            // Every one of these is a science-ledger figure an operator reads as
+            // a fact about the subject. Zero says "worth nothing", "none of it
+            // collected", "never completed"; absence says none of those things.
+            row.SciencePerMB = MemberDouble(subject, "SciencePerMB");
+            row.ScienceMaxValue = MemberDouble(subject, "ScienceMaxValue");
+            row.ScienceRemainingTotal = MemberDouble(subject, "ScienceRemainingTotal");
+            row.PercentCollectedTotal = MemberDouble(subject, "PercentCollectedTotal");
+            row.ScienceCollectedInFlight = MemberDouble(subject, "ScienceCollectedInFlight");
+            var timesCompleted = MemberDouble(subject, "TimesCompleted");
+            row.TimesCompleted = timesCompleted.HasValue ? (int)timesCompleted.Value : (int?)null;
 
             var expInfo = Member(subject, "ExpInfo");
             if (expInfo != null)
