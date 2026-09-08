@@ -269,3 +269,76 @@ describe("the antenna targeting section", () => {
     await expectNoA11yViolations(stream.container);
   });
 });
+
+/**
+ * `steerable` and `targeted` are three-valued: null is the mod saying it could
+ * not read the antenna, which the card used to draw as the reassuring half of a
+ * two-valued flag. An antenna nobody could read was badged "Omni" and had its
+ * targeting controls hidden, both of them claims about hardware nobody had
+ * looked at.
+ */
+describe("an antenna whose flags could not be read", () => {
+  /** The unreadable case as the mod publishes it: the flags absent, the rest present. */
+  function unread(overrides: Record<string, unknown> = {}) {
+    return antenna({
+      antennaId: "4040/0",
+      name: "HG-5 High Gain Antenna",
+      steerable: null,
+      targeted: null,
+      targetKind: null,
+      targetLabel: null,
+      availableTargetModes: [],
+      ...overrides,
+    });
+  }
+
+  it("is not called an omni", async () => {
+    const stream = mount();
+    await emit(stream, [unread()]);
+
+    expect(screen.getByText("HG-5 High Gain Antenna")).toBeTruthy();
+    expect(screen.queryByText("Omni")).toBeNull();
+  });
+
+  /**
+   * No controls, because the mod refuses both commands for this antenna too, so
+   * a live AIM would be a press that provably goes nowhere. What it must not do
+   * is hide them silently: that is the omni's presentation, and it reads as a
+   * settled fact about the hardware.
+   */
+  it("has no targeting controls, and says why not", async () => {
+    const stream = mount();
+    await emit(stream, [unread()]);
+
+    expect(screen.queryByLabelText("Mode")).toBeNull();
+    expect(screen.queryByRole("button", { name: /AIM/ })).toBeNull();
+    expect(
+      screen.getByText(/would not say whether this antenna can be aimed/),
+    ).toBeTruthy();
+  });
+
+  /** "Not aimed" is a statement about the dish, reserved for a dish that said so. */
+  it("does not report an unread target as not aimed", async () => {
+    const stream = mount();
+    await emit(stream, [antenna({ targeted: null, targetLabel: null })]);
+
+    expect(screen.queryByText("Not aimed")).toBeNull();
+    expect(screen.getByText("Could not be read")).toBeTruthy();
+  });
+
+  /** The dish keeps its controls: only the unread flag holds them. */
+  it("leaves a readable dish beside it untouched", async () => {
+    const stream = mount();
+    await emit(stream, [antenna(), unread()]);
+
+    expect(screen.getAllByLabelText("Mode")).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /AIM/ })).toHaveLength(1);
+  });
+
+  it("has no accessibility violations", async () => {
+    const stream = mount();
+    await emit(stream, [unread()]);
+
+    await expectNoA11yViolations(stream.container);
+  });
+});

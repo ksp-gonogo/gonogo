@@ -68,9 +68,22 @@ public class RealAntennasAntennaState
     /// from gain alone (a dish is an antenna with more than 5 dBi; there is no
     /// stored "steerable" flag), and an antenna that is not steerable refuses
     /// both commands.
+    ///
+    /// <para><c>null</c> means the antenna is here and nobody could read its
+    /// shape: NOT that it is an omni. Collapsing the two badges a dish as an
+    /// omni and hides its targeting controls on the strength of a read that
+    /// never happened. Both commands refuse an unreadable antenna as well, but
+    /// they say which of the two refusals it is.</para>
+    /// <internal>
+    /// Three-valued because RaReflection.Steerable answers null when
+    /// RealAntennas' own <c>Shape</c> member will not resolve on the loaded
+    /// assembly, the fail-soft posture every read in that class takes. It was
+    /// flattened with <c>?? false</c> in RaTargeting.ReadAntennas, which
+    /// published a failed read as a definite omni.
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Flag)]
-    public bool Steerable { get; set; }
+    public bool? Steerable { get; set; }
 
     /// <summary>
     /// Whether this antenna currently holds a target. The fields below describe
@@ -80,9 +93,20 @@ public class RealAntennasAntennaState
     /// is the state a dish leaves the editor in. There is no command that returns
     /// one to it: both targeting commands move an antenna between targets, and
     /// RealAntennas itself never puts a vessel dish back.</para>
+    ///
+    /// <para><c>null</c> means nobody could read whether it holds one, which is
+    /// a third answer and not a quieter "no". The target fields below are all
+    /// null in that case too, for want of a target to describe rather than
+    /// because there is none.</para>
+    /// <internal>
+    /// Three-valued for the same reason as <see cref="Steerable"/>:
+    /// RaReflection.Targeted answers null when RealAntennas' <c>CanTarget</c>
+    /// will not resolve, and RaTargeting.ReadAntennas used to <c>?? false</c>
+    /// it into a definite "not aimed".
+    /// </internal>
     /// </summary>
     [SitrepUnit(Units.Flag)]
-    public bool Targeted { get; set; }
+    public bool? Targeted { get; set; }
 
     /// <summary>Antenna gain (dBi), the quantity beamwidth and steerability both come off.</summary>
     [SitrepUnit(Units.Decibels)]

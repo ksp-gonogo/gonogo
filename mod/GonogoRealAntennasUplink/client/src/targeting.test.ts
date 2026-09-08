@@ -95,6 +95,52 @@ describe("the realantennas.antennas targeting channel", () => {
     // so it has to survive decode as an array of plain strings.
     expect(antenna?.availableTargetModes).toEqual(["BodyCenter", "AzEl"]);
   });
+
+  /**
+   * `steerable` and `targeted` are three-valued: the mod publishes null when it
+   * could not read the antenna. The decode path must carry that through as
+   * null, because every step that turns it into `false` on the way to a widget
+   * makes a claim about the hardware out of a read that never happened.
+   */
+  it("carries an unread flag through decode as null, not false", async () => {
+    const fixture = setupStreamFixture({
+      carriedChannels: [REALANTENNAS_ANTENNAS_TOPIC],
+    });
+    const { result } = renderHook(
+      () => {
+        const reading = useTelemetry(REALANTENNAS_ANTENNAS_TOPIC);
+        return reading.state === "observed" ? reading.value : undefined;
+      },
+      { wrapper: fixture.Provider },
+    );
+
+    fixture.emit(REALANTENNAS_ANTENNAS_TOPIC, [
+      {
+        antennaId: "4040/0",
+        index: 0,
+        name: "HG-5 High Gain Antenna",
+        steerable: null,
+        targeted: null,
+        availableTargetModes: [],
+        meta: { source: "vessel:1", quality: 1 },
+      },
+    ]);
+
+    await waitFor(() => {
+      expect(result.current?.length).toBe(1);
+    });
+
+    const unread = result.current?.[0];
+    /*
+      Stated as "not false" as well as "nullish", because false is the
+      substitution being guarded against and a nullish assertion alone would
+      still pass if the field were dropped on the way through.
+    */
+    expect(unread?.steerable).not.toBe(false);
+    expect(unread?.targeted).not.toBe(false);
+    expect(unread?.steerable ?? null).toBeNull();
+    expect(unread?.targeted ?? null).toBeNull();
+  });
 });
 
 describe("the two antenna-targeting commands", () => {

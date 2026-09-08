@@ -99,21 +99,35 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
   const modeIsUnlocked = (id: ModeId): boolean => unlocked.includes(id);
   const antennaName = antenna.name ?? antenna.antennaId;
 
+  /**
+   * Both flags carry three answers, and every branch below tests for the one it
+   * means rather than for truthiness. `steerable` is null when RealAntennas
+   * would not say what shape this antenna is: that is neither a dish nor an
+   * omni, and `antenna.steerable ? ... : "Omni"` called it an omni. `targeted`
+   * is null on the same terms.
+   */
+  const isOmni = antenna.steerable === false;
+  const steerableUnread = antenna.steerable == null;
+
   return (
     <Card>
       <Stack gap="sm">
         {/*
           Only the omni is labelled. The targeting controls below already mark
           a dish as one, so a badge saying so repeated what the card shows; the
-          omni has no controls, and nothing else on it says why.
+          omni has no controls, and nothing else on it says why. An antenna
+          whose shape could not be read has no controls either, and gets no
+          badge for the same reason the dish gets none: the line that replaces
+          its controls already says what happened, and saying it twice makes
+          two facts out of one.
         */}
         <SubjectHeading
           status={
-            antenna.steerable ? null : (
+            isOmni ? (
               <Text size="xs" tone="muted" style={LABEL_STYLE}>
                 Omni
               </Text>
-            )
+            ) : null
           }
         >
           <Text size="sm" tone="default">
@@ -135,17 +149,29 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
               </Text>
             </>
           ) : null}
-          {antenna.steerable ? (
+          {!isOmni ? (
             <>
               <Text size="xs" tone="muted" style={LABEL_STYLE}>
                 Aimed at
               </Text>
-              <Text size="sm" tone={antenna.targeted ? "default" : "muted"}>
-                {antenna.targeted ? antenna.targetLabel : "Not aimed"}
+              {/*
+                Three readings off one field. "Not aimed" is a statement about
+                the dish and is reserved for the antenna that actually said so;
+                an unread flag gets its own line rather than borrowing that one.
+              */}
+              <Text
+                size="sm"
+                tone={antenna.targeted === true ? "default" : "muted"}
+              >
+                {antenna.targeted === true
+                  ? antenna.targetLabel
+                  : antenna.targeted === false
+                    ? "Not aimed"
+                    : "Could not be read"}
               </Text>
             </>
           ) : null}
-          {antenna.steerable && magnitudeOf(antenna.cone10Db) !== null ? (
+          {!isOmni && magnitudeOf(antenna.cone10Db) !== null ? (
             <>
               <Text size="xs" tone="muted" style={LABEL_STYLE}>
                 Beam
@@ -157,7 +183,21 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
           ) : null}
         </Grid>
 
-        {antenna.steerable ? (
+        {steerableUnread ? (
+          /*
+            No controls, and a line saying why there are none. The mod refuses
+            both commands for this antenna on the same grounds, so a live AIM
+            button would be a press that provably goes nowhere; an inert-looking
+            card beside a stated reason is honest where a live-looking one that
+            swallows the press is not.
+          */
+          <Text size="xs" tone="muted">
+            RealAntennas would not say whether this antenna can be aimed, so the
+            targeting controls are held.
+          </Text>
+        ) : null}
+
+        {antenna.steerable === true ? (
           /*
             Two groups, not one run: the fields sit tight to each other and the
             actions a step further out. A press that lands as close to the last
