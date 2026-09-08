@@ -143,6 +143,16 @@ export {
   useScienceCredit,
   useStickyVesselGuids,
 } from "./currency-events";
+// The silence the gate's own diagnostic cannot see: a legacy-shaped read that
+// reaches neither a stream channel nor a registered source.
+export {
+  classifyDeadRead,
+  DEAD_READ_SETTLE_MS,
+  type DeadReadCause,
+  deadReadMessage,
+  resetDeadReadWarnings,
+  warnDeadRead,
+} from "./dead-read-warning";
 export {
   COMMS_DELAY_TOPIC,
   DelayAuthority,

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { getDataSource } from "../api/registry";
 import type { DataSource } from "../api/types";
 import { isTopicCarried } from "../carried-channels";
@@ -10,6 +10,11 @@ import {
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
 } from "./context";
+import {
+  classifyDeadRead,
+  DEAD_READ_SETTLE_MS,
+  warnDeadRead,
+} from "./dead-read-warning";
 import { warnGatedRead } from "./gated-read-warning";
 import { resolveValueTopic } from "./map-topic";
 import type { NeverReckonable } from "./never-reckonable";
@@ -394,6 +399,39 @@ export function useTelemetry(dataSourceId: string, key?: string): unknown {
       );
     }
   }, [gatedRescue, hasLegacySource, dataSourceId, legacyKey, topic, store]);
+
+  // The report above can only fire for a read that resolved to SOMETHING: it
+  // demands a streamed value in hand, so the one case it can never reach is the
+  // read that resolves to NOTHING, which is exactly the one that ships silent.
+  // That case is reported here. See `dead-read-warning.ts` for why the verdict
+  // is deferred and then re-derived from the registries rather than taken from
+  // the render that scheduled it.
+  //
+  // A ref rather than state: this only ever latches from false to true, and it
+  // must not itself cause a render. Every path that could set it already
+  // re-renders through `useSyncExternalStore`, so the effect below sees the
+  // change and cancels.
+  //
+  // `streamMounted` rather than `streamable` is what the verdict is given:
+  // whether a provider is there is a fact about the tree, whereas `streamable`
+  // folds in this render's `topic`, which the classifier is about to work out
+  // again for itself. Handing it the stale one lets a key that resolved late
+  // (the Uplink race, cancelled below) be reported as a missing provider.
+  const everObserved = useRef(false);
+  if (legacyValue !== undefined || streamedValue !== undefined) {
+    everObserved.current = true;
+  }
+  const streamMounted = client !== undefined && store !== undefined;
+  const deadCandidate = !canonical && !everObserved.current && !streamable;
+  useEffect(() => {
+    if (!deadCandidate) return;
+    const timer = setTimeout(() => {
+      if (everObserved.current) return;
+      const cause = classifyDeadRead(dataSourceId, legacyKey, streamMounted);
+      if (cause) warnDeadRead("useTelemetry", dataSourceId, legacyKey, cause);
+    }, DEAD_READ_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [deadCandidate, dataSourceId, legacyKey, streamMounted]);
 
   // A canonical read with no provider mounted is `pending`, never `undefined`: a
   // widget on a disconnected dashboard has observed nothing, so it has no
