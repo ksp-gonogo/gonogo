@@ -43,6 +43,7 @@ export const GENERATED_RECKONABLE_VALUES = [
   { topic: "vessel.dock", field: "distance", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativePosition" }, { topic: "", path: "relativeVelocity" } ] },
   { topic: "vessel.dock", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
   { topic: "vessel.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
+  { topic: "vessel.flight", field: "altitudeAsl", basis: "rate-integration", inputs: [ { topic: "", path: "verticalSpeed" }, { topic: "", path: "gForce" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.flight", field: "orbitalSpeed", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" } ] },
   { topic: "vessel.orbit.truth", field: "position", basis: "kepler-propagation", inputs: [ { topic: "", path: "velocity" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" } ] },
   { topic: "vessel.orbit.truth", field: "velocity", basis: "kepler-propagation", inputs: [ { topic: "", path: "position" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" } ] },

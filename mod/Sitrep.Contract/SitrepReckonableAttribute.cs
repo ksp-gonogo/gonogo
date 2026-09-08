@@ -42,6 +42,26 @@ namespace Sitrep.Contract
     /// fields, so the SDK type says which fields a model moves and refuses a read
     /// of the others.</para>
     ///
+    /// <para><b>One mark PER MODEL, and a value may carry several.</b> A quantity
+    /// is not always served by one kind of arithmetic across its whole range:
+    /// <see cref="Sitrep.Contract.VesselFlight.AltitudeAsl"/> is a conic above the
+    /// atmosphere interface and a rate integration below it, and the two do not
+    /// share inputs (the conic wants the elements, the integration wants the
+    /// descent rate and the sensed deceleration). So each model declares itself,
+    /// with its OWN basis and its OWN input list, and the same property carries as
+    /// many marks as it has models.</para>
+    ///
+    /// <para>The alternative considered and rejected was one mark whose
+    /// <see cref="Basis"/> was a SET. It reads shorter and it cannot be honest: one
+    /// mark has one input list, so two models with different dependencies would
+    /// have to merge theirs into a single claim, and a consumer holding the stream
+    /// could no longer tell which inputs buy which model. That is a new falsehood
+    /// in place of the old one (a value whose second model could not be declared at
+    /// all), which is not a trade worth making.</para>
+    ///
+    /// <para>Two marks with the SAME basis on one property is a duplicate rather
+    /// than a second model, and the gate rejects it.</para>
+    ///
     /// <para><b>Input spelling.</b> Each entry is one of:</para>
     /// <list type="bullet">
     /// <item>a bare path (<c>relativeVelocity</c>, <c>orbit.mu</c>): a camelCased
@@ -76,7 +96,11 @@ namespace Sitrep.Contract
     /// <see cref="Sitrep.Contract.VesselFlight.OrbitalSpeed"/> declares only
     /// <c>@vessel.orbit</c> and goes quiet when <c>@system.bodies</c>, which
     /// <c>AltitudeAsl</c> needs, has not arrived. So declaring an input a model
-    /// does not use costs the marked value's siblings as well as itself.</para>
+    /// does not use costs the marked value's siblings as well as itself, and that
+    /// is the reason an input a model can RUN WITHOUT stays undeclared: the local
+    /// gravity <c>AltitudeAsl</c>'s rate integration uses to sanity-check its own
+    /// fit is a refinement it skips when the elements are absent, so it is a
+    /// registered reckoner's dep and not a mark's input.</para>
     ///
     /// <para><b>Composition, and the rule is the NEGATIVE one.</b> A derived value
     /// can never be reckonable BEYOND what its inputs support. Inputs being
@@ -97,7 +121,7 @@ namespace Sitrep.Contract
     /// putting the declaration in the contract was meant to kill.
     /// </internal>
     /// </summary>
-    [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Property, Inherited = false, AllowMultiple = true)]
     public sealed class SitrepReckonableAttribute : Attribute
     {
         /// <summary>One of the <see cref="ReckoningBases"/> tokens.</summary>

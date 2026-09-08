@@ -89,35 +89,52 @@ namespace Sitrep.Contract.Tests
 
             var marks = ReckonabilityAssertion.Marks(types);
             Assert.True(
-                marks.Count >= 7,
+                marks.Count >= 8,
                 "Only " + marks.Count + " reckonability declarations found. The contract carried seven "
-                    + "when the gate landed, and a gate over an empty surface reports the same zero "
-                    + "problems as a fully declared one.");
+                    + "when the gate landed and eight once AltitudeAsl declared its second model, and a "
+                    + "gate over an empty surface reports the same zero problems as a fully declared one.");
 
-            var found = marks.ToDictionary(m => m.Where, m => m.Declaration.Basis, StringComparer.Ordinal);
+            // Grouped, not a dictionary keyed on Where: AltitudeAsl carries two marks
+            // and ToDictionary throws on the second. The bases are what is spot-checked,
+            // so the value is the SET of them.
+            var found = marks
+                .GroupBy(m => m.Where, StringComparer.Ordinal)
+                .ToDictionary(
+                    g => g.Key,
+                    g => new HashSet<string>(g.Select(m => m.Declaration.Basis), StringComparer.Ordinal),
+                    StringComparer.Ordinal);
 
             // Spot-checks across both bases and all four marked Topics, so a discovery
             // change that drops a whole family is red here rather than a quiet loss of
             // coverage.
-            var expected = new Dictionary<string, string>(StringComparer.Ordinal)
+            var expected = new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
-                ["VesselTarget.RelativePosition"] = ReckoningBases.LinearDeadReckoning,
-                ["DockAlignment.RelativePosition"] = ReckoningBases.LinearDeadReckoning,
-                ["DockAlignment.Distance"] = ReckoningBases.LinearDeadReckoning,
-                ["VesselFlight.AltitudeAsl"] = ReckoningBases.KeplerPropagation,
-                ["VesselFlight.OrbitalSpeed"] = ReckoningBases.KeplerPropagation,
-                ["VesselOrbitTruth.Position"] = ReckoningBases.KeplerPropagation,
-                ["VesselOrbitTruth.Velocity"] = ReckoningBases.KeplerPropagation,
+                ["VesselTarget.RelativePosition"] = new[] { ReckoningBases.LinearDeadReckoning },
+                ["DockAlignment.RelativePosition"] = new[] { ReckoningBases.LinearDeadReckoning },
+                ["DockAlignment.Distance"] = new[] { ReckoningBases.LinearDeadReckoning },
+                // The one value served by two models, one per regime: the conic above
+                // the atmosphere interface and a rate integration below it. Named here
+                // as a PAIR so dropping either mark is red.
+                ["VesselFlight.AltitudeAsl"] = new[]
+                {
+                    ReckoningBases.KeplerPropagation,
+                    ReckoningBases.RateIntegration,
+                },
+                ["VesselFlight.OrbitalSpeed"] = new[] { ReckoningBases.KeplerPropagation },
+                ["VesselOrbitTruth.Position"] = new[] { ReckoningBases.KeplerPropagation },
+                ["VesselOrbitTruth.Velocity"] = new[] { ReckoningBases.KeplerPropagation },
             };
 
             foreach (var pair in expected)
             {
                 Assert.True(
-                    found.TryGetValue(pair.Key, out var basis),
+                    found.TryGetValue(pair.Key, out var bases2),
                     pair.Key + " is no longer declared reckonable. If the mark was removed on purpose, "
                         + "remove it here too and say why in the commit; if it vanished, the sweep has "
                         + "stopped reaching it.");
-                Assert.Equal(pair.Value, basis);
+                Assert.Equal(
+                    pair.Value.OrderBy(b => b, StringComparer.Ordinal).ToList(),
+                    bases2!.OrderBy(b => b, StringComparer.Ordinal).ToList());
             }
         }
 
@@ -156,14 +173,21 @@ namespace Sitrep.Contract.Tests
         }
 
         /// <summary>
-        /// The marked set is ordered and each value is marked once, so the generated
-        /// artifact's row order never depends on reflection order.
+        /// The marked set is ordered and each value is marked once PER MODEL, so the
+        /// generated artifact's row order never depends on reflection order.
+        ///
+        /// <para>The key is <c>(topic, field, basis)</c> rather than
+        /// <c>(topic, field)</c>. A value served by two models contributes two rows
+        /// legitimately, and on the shorter key those two sort equal, so a
+        /// distinctness assertion on it would forbid the second model and an ordering
+        /// assertion on it would pass whichever way reflection happened to return
+        /// them.</para>
         /// </summary>
         [Fact]
         public void MarkedValuesAreSortedAndFreeOfDuplicates()
         {
             var keys = ReckonabilityAssertion.Marks(ContractTypes())
-                .Select(m => m.Topic + "/" + m.Field)
+                .Select(m => m.Topic + "/" + m.Field + "/" + m.Declaration.Basis)
                 .ToList();
 
             Assert.Equal(keys.OrderBy(k => k, StringComparer.Ordinal).ToList(), keys);
@@ -185,7 +209,7 @@ namespace Sitrep.Contract.Tests
         {
             var fakes = FakeTypes();
             Assert.True(
-                fakes.Count >= 10,
+                fakes.Count >= 12,
                 "The planted fixtures are gone or unreachable (" + fakes.Count + " found). With no "
                     + "fixture to fail on, this test proves nothing about the gate.");
 
@@ -194,6 +218,11 @@ namespace Sitrep.Contract.Tests
             Assert.Contains(ReckoningBases.KeplerPropagation, bases);
 
             Assert.Empty(ProblemsFor(typeof(ReckonabilityFakes.Resolvable), payloads, bases));
+            // The second clean arm, and it is the one that matters for this shape: two
+            // marks on one property, each with its own basis and its own resolvable
+            // inputs, is what AltitudeAsl ships. A gate that reported a problem here
+            // would make a second model undeclarable.
+            Assert.Empty(ProblemsFor(typeof(ReckonabilityFakes.TwoModels), payloads, bases));
 
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.DanglingSameTopicInput), "noSuchField", payloads, bases);
@@ -215,6 +244,9 @@ namespace Sitrep.Contract.Tests
                 typeof(ReckonabilityFakes.NoInputs), "no declared inputs", payloads, bases);
             AssertOneProblemMentioning(
                 typeof(ReckonabilityFakes.DuplicateInput), "declared 2 times", payloads, bases);
+            AssertOneProblemMentioning(
+                typeof(ReckonabilityFakes.DuplicateBasis), "the same basis is declared 2 times",
+                payloads, bases);
         }
 
         private static IReadOnlyList<string> ProblemsFor(

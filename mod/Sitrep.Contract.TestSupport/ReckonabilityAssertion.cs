@@ -69,6 +69,14 @@ namespace Sitrep.Contract.TestSupport
 
             /// <summary>What a failure message and a sort order both want: <c>Type.Property</c>.</summary>
             public string Where => DeclaringType.Name + "." + Property.Name;
+
+            /// <summary>
+            /// <see cref="Where"/> plus the basis, for a property carrying more than
+            /// one mark: two problems reported under the same <c>Type.Property</c>
+            /// cannot be told apart, and which MODEL is unresolved is the whole
+            /// question.
+            /// </summary>
+            public string WhereModel => Where + " [" + Declaration.Basis + "]";
         }
 
         /// <summary>
@@ -79,6 +87,13 @@ namespace Sitrep.Contract.TestSupport
         /// <para>DECLARED properties only. A mark inherited onto a Topic payload would
         /// generate a projection field the payload's own interface does not declare,
         /// and <c>Pick&lt;T, K&gt;</c> would stop being exact.</para>
+        ///
+        /// <para>EVERY mark on a property, not the first: the attribute is
+        /// <c>AllowMultiple</c> because a value can be served by two models with
+        /// different inputs, and <c>GetCustomAttribute</c> (singular) does not merely
+        /// miss the second, it THROWS on a property carrying both. So the ordering
+        /// key is <c>(topic, field, basis)</c>, since two marks on one field are equal
+        /// on the first two and would otherwise fall back to reflection order.</para>
         /// </summary>
         public static IReadOnlyList<ReckonableMark> Marks(IEnumerable<Type> candidateTypes)
         {
@@ -93,8 +108,7 @@ namespace Sitrep.Contract.TestSupport
 
                 foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly))
                 {
-                    var declaration = prop.GetCustomAttribute<SitrepReckonableAttribute>(false);
-                    if (declaration is not null)
+                    foreach (var declaration in prop.GetCustomAttributes<SitrepReckonableAttribute>(false))
                     {
                         marks.Add(new ReckonableMark(type, prop, declaration));
                     }
@@ -104,6 +118,7 @@ namespace Sitrep.Contract.TestSupport
             return marks
                 .OrderBy(m => m.Topic, StringComparer.Ordinal)
                 .ThenBy(m => m.Field, StringComparer.Ordinal)
+                .ThenBy(m => m.Declaration.Basis, StringComparer.Ordinal)
                 .ToList();
         }
 
@@ -157,12 +172,33 @@ namespace Sitrep.Contract.TestSupport
         {
             var problems = new List<string>();
 
-            foreach (var mark in Marks(candidateTypes))
+            var marks = Marks(candidateTypes);
+            var multiplyMarked = new HashSet<string>(
+                marks.GroupBy(m => m.Where, StringComparer.Ordinal)
+                    .Where(g => g.Count() > 1)
+                    .Select(g => g.Key),
+                StringComparer.Ordinal);
+
+            foreach (var mark in marks)
             {
+                // Only where it is needed: naming the basis on a singly-marked value
+                // would put a model name in every message on the reasoning that one
+                // value somewhere has two.
+                var where = multiplyMarked.Contains(mark.Where) ? mark.WhereModel : mark.Where;
                 foreach (var problem in ProblemsWith(mark, topicPayloads, knownBases))
                 {
-                    problems.Add(mark.Where + " -> " + problem);
+                    problems.Add(where + " -> " + problem);
                 }
+            }
+
+            foreach (var duplicate in marks
+                .GroupBy(m => m.Where + " [" + m.Declaration.Basis + "]", StringComparer.Ordinal)
+                .Where(g => g.Count() > 1))
+            {
+                problems.Add(duplicate.Key + " -> the same basis is declared "
+                    + duplicate.Count() + " times. A second mark is a second MODEL, so two "
+                    + "sharing a basis are a duplicate declaration rather than a value served "
+                    + "twice, and the generated artifact would carry both rows.");
             }
 
             return problems;

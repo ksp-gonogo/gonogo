@@ -131,5 +131,39 @@ namespace Sitrep.Contract.Tests
 
             public double Epoch { get; set; }
         }
+
+        /// <summary>
+        /// Two marks on one property naming the SAME basis. A second mark is a second
+        /// MODEL, so this is a duplicate declaration rather than a value served twice,
+        /// and both rows would reach the generated artifact.
+        /// </summary>
+        [SitrepContract]
+        [SitrepTopic("fake.duplicate-basis")]
+        public class DuplicateBasis
+        {
+            [SitrepReckonable(ReckoningBases.KeplerPropagation, "epoch")]
+            [SitrepReckonable(ReckoningBases.KeplerPropagation, "epoch")]
+            public double Range { get; set; }
+
+            public double Epoch { get; set; }
+        }
+
+        /// <summary>
+        /// Two marks on one property, each a real model with its own basis and its own
+        /// inputs. The shape <c>VesselFlight.AltitudeAsl</c> ships, and the CLEAN arm
+        /// for it: a gate that rejected this would make the second model undeclarable.
+        /// </summary>
+        [SitrepContract]
+        [SitrepTopic("fake.two-models")]
+        public class TwoModels
+        {
+            [SitrepReckonable(ReckoningBases.KeplerPropagation, "epoch")]
+            [SitrepReckonable(ReckoningBases.RateIntegration, "rate")]
+            public double Range { get; set; }
+
+            public double Epoch { get; set; }
+
+            public double Rate { get; set; }
+        }
     }
 }
