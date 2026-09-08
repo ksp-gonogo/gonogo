@@ -6089,8 +6089,14 @@ export interface ActionGroupState
 	* player's own names instead.
 	*/
 	name: string;
-	/** Whether the group is currently engaged. */
-	state: boolean;
+	/**
+	* Whether the group is currently engaged. `null` means the backend knows this
+	* group exists (it has an index and a name) but could not read whether it is
+	* engaged: NOT that the group is disengaged. A client that collapses the two
+	* draws an OFF toggle for a group whose state nobody knows, and inverting that
+	* reading commands the wrong way.
+	*/
+	state?: boolean;
 }
 /**
 * The `vessel.control` channel payload: the READ half of what the legacy

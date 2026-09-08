@@ -39,6 +39,13 @@ namespace Gonogo.KSP
         /// <see cref="ActionGroupState.Index"/>: the same 1-based number
         /// <c>vessel.control.setActionGroup</c> takes, so an index read off a
         /// sample can be handed straight back in a command.
+        ///
+        /// <para><see cref="ActionGroupState.State"/> is three-valued for
+        /// backends that can fail per-group, and this one never does: once
+        /// <c>Vessel.ActionGroups</c> is non-null its indexer answers for every
+        /// member of the stock enum, so a stock reading is never unknown and a
+        /// null here would be its own lie. Every entry below carries a real
+        /// bool.</para>
         /// </summary>
         private static readonly KSPActionGroup[] Customs =
         {

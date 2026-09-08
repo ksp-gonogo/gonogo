@@ -73,9 +73,24 @@ public class ActionGroupState
     [SitrepUnit(Units.Text)]
     public string Name { get; set; } = "";
 
-    /// <summary>Whether the group is currently engaged.</summary>
+    /// <summary>
+    /// Whether the group is currently engaged. <c>null</c> means the backend
+    /// knows this group exists (it has an index and a name) but could not read
+    /// whether it is engaged: NOT that the group is disengaged. A client that
+    /// collapses the two draws an OFF toggle for a group whose state nobody
+    /// knows, and inverting that reading commands the wrong way.
+    /// <internal>
+    /// Three-valued because a backend can fail per-group. AGX reads each
+    /// group's state through reflection into its own scenario module, so one
+    /// group can fail while the rest answer; the whole-tick null on
+    /// <see cref="VesselControl.ActionGroups"/> cannot express that, and a
+    /// plain bool forced the failure to publish as <c>false</c>. Stock has no
+    /// such failure mode and keeps publishing a real bool: see
+    /// Gonogo.KSP.StockActionGroupsBackend.
+    /// </internal>
+    /// </summary>
     [SitrepUnit(Units.Flag)]
-    public bool State { get; set; }
+    public bool? State { get; set; }
 }
 
 /// <summary>

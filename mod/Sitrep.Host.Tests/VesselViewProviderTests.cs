@@ -979,13 +979,22 @@ namespace Sitrep.Host.Tests
         }
 
         /// <summary>
-        /// A malformed entry (no index, or no state) is skipped rather than
-        /// defaulted: same discipline as BuildManeuver's missing-Ut rule. A
-        /// group with an index but no name still renders, falling back to the
-        /// stock-style label.
+        /// An entry with no INDEX is skipped rather than defaulted (the index
+        /// is the identity a setActionGroup command names, so an entry without
+        /// one is not a group): same discipline as BuildManeuver's missing-Ut
+        /// rule. A group with an index but no name still renders, falling back
+        /// to the stock-style label.
+        ///
+        /// <para>A group with an index but no STATE is a different case and is
+        /// KEPT, carrying a null <c>State</c>. It used to be skipped, back when
+        /// <c>State</c> was a plain bool and there was nowhere to put "the
+        /// backend knows this group and could not read it": dropping the entry
+        /// folded that into the whole-tick null, which a client cannot tell
+        /// from "this vessel has no such group". The three answers are now
+        /// three values.</para>
         /// </summary>
         [Fact]
-        public void BuildControlSkipsGroupsMissingIdentityOrStateAndNamesTheUnnamed()
+        public void BuildControlSkipsGroupsMissingIdentityButKeepsAnUnreadableStateAsNull()
         {
             var control = new Dictionary<string, object?>
             {
@@ -1001,10 +1010,47 @@ namespace Sitrep.Host.Tests
 
             var vesselControl = VesselViewProvider.BuildControl(snapshot);
 
-            var group = Assert.Single(vesselControl!.ActionGroups!);
+            Assert.Equal(2, vesselControl!.ActionGroups!.Length);
+
+            var unreadable = vesselControl.ActionGroups[0];
+            Assert.Equal(5, unreadable.Index);
+            Assert.Equal("no state", unreadable.Name);
+            // Null, NOT false: false would claim the group is disengaged.
+            Assert.Null(unreadable.State);
+
+            var group = vesselControl.ActionGroups[1];
             Assert.Equal(7, group.Index);
             Assert.Equal("AG7", group.Name);
             Assert.True(group.State);
+        }
+
+        /// <summary>
+        /// An explicit <c>null</c> state on the wire is the same answer as an
+        /// absent one and reaches the contract as a null, never as false. This
+        /// is the shape a per-group backend (AGX) actually emits: it enumerates
+        /// every group and fails to READ one of them.
+        /// </summary>
+        [Fact]
+        public void BuildControlCarriesAnExplicitlyNullGroupStateThroughRatherThanDefaultingItFalse()
+        {
+            var control = new Dictionary<string, object?>
+            {
+                ["actionGroups"] = new List<object?>
+                {
+                    new Dictionary<string, object?> { ["index"] = 3, ["name"] = "Solar Panels", ["state"] = null },
+                    new Dictionary<string, object?> { ["index"] = 4, ["name"] = "Science Bay", ["state"] = false },
+                },
+            };
+
+            var snapshot = SnapshotWith(identity: new Dictionary<string, object?> { ["id"] = VesselGuid }, control: control);
+
+            var vesselControl = VesselViewProvider.BuildControl(snapshot);
+
+            Assert.Equal(2, vesselControl!.ActionGroups!.Length);
+            Assert.Null(vesselControl.ActionGroups[0].State);
+            Assert.Equal("Solar Panels", vesselControl.ActionGroups[0].Name);
+            // The neighbour proves the distinction is carried, not collapsed.
+            Assert.False(vesselControl.ActionGroups[1].State);
         }
 
         [Fact]

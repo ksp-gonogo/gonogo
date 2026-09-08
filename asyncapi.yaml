@@ -7598,7 +7598,6 @@ components:
       required:
         - index
         - name
-        - state
       properties:
         index:
           type: number
@@ -7617,9 +7616,16 @@ components:
             from the mod rather than hardcoded client-side. An AGX backend reports the
             player's own names instead.
         state:
-          type: boolean
+          type:
+            - boolean
+            - "null"
           x-sitrep-unit: flag
-          description: Whether the group is currently engaged.
+          description: |-
+            Whether the group is currently engaged. `null` means the backend knows this
+            group exists (it has an index and a name) but could not read whether it is
+            engaged: NOT that the group is disengaged. A client that collapses the two
+            draws an OFF toggle for a group whose state nobody knows, and inverting that
+            reading commands the wrong way.
     ActivateStrategyArgs:
       type: object
       description: |-
