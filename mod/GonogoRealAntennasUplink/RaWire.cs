@@ -87,7 +87,10 @@ namespace Gonogo.RealAntennasUplink
         ///
         /// <para>Every nullable stays null rather than collapsing to a zero: a
         /// beamwidth that could not be read and a beamwidth of zero are
-        /// different facts, and only one of them is true of any antenna.</para>
+        /// different facts, and only one of them is true of any antenna. The
+        /// same holds for the two FLAGS, which are nullable for the same
+        /// reason: <c>steerable</c> null is not <c>false</c>, and writing it as
+        /// false would name a dish an omni.</para>
         /// </summary>
         public static List<Dictionary<string, object?>> Antennas(IReadOnlyList<RealAntennasAntennaState> antennas)
         {

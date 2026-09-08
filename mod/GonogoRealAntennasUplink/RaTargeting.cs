@@ -77,13 +77,17 @@ namespace Gonogo.RealAntennasUplink
                 var antenna = antennas[i];
                 var techLevel = _ra.TechLevel(antenna);
                 var beamwidth = _ra.Beamwidth(antenna);
-                var targeted = _ra.Targeted(antenna) ?? false;
+                // Both flags travel as they were read. A `?? false` here used to
+                // publish an antenna nobody could read as a definite omni that
+                // is definitely not aimed, which is a claim about the hardware
+                // made out of a failed reflection call.
+                var targeted = _ra.Targeted(antenna);
                 var state = new RealAntennasAntennaState
                 {
                     AntennaId = ids[i],
                     Index = i,
                     Name = _ra.AntennaName(antenna),
-                    Steerable = _ra.Steerable(antenna) ?? false,
+                    Steerable = _ra.Steerable(antenna),
                     Targeted = targeted,
                     Gain = _ra.Gain(antenna),
                     TechLevel = techLevel,
@@ -102,8 +106,9 @@ namespace Gonogo.RealAntennasUplink
                 // `Targeted` is the authority on whether there IS a target, not a
                 // null check on the handle: a target is a Unity component, and a
                 // destroyed one is non-null to C# while RealAntennas itself reads
-                // it as absent.
-                if (targeted)
+                // it as absent. An unread `Targeted` describes nothing for want
+                // of a target to describe, not because there is none.
+                if (targeted is true)
                 {
                     DescribeTarget(state, _ra.Target(antenna));
                 }
@@ -283,6 +288,12 @@ namespace Gonogo.RealAntennasUplink
         /// <summary>
         /// Resolves an antenna id to a steerable antenna on the reported craft,
         /// or the refusal that says why not.
+        ///
+        /// <para>Three outcomes, not two, because <c>Steerable</c> has three
+        /// answers: a dish proceeds, an omni is refused as an omni, and an
+        /// antenna whose shape could not be read is refused as unread. Folding
+        /// the third into the second told an operator their dish was an omni on
+        /// the strength of a reflection call that failed.</para>
         /// </summary>
         private bool TryResolveSteerable(
             Vessel? vessel, string? antennaId, out object? antenna, out CommandResult? refusal)
@@ -307,11 +318,29 @@ namespace Gonogo.RealAntennasUplink
             }
 
             antenna = antennas[index];
-            if (_ra.Steerable(antenna) is not true)
+            var steerable = _ra.Steerable(antenna);
+            var name = _ra.AntennaName(antenna) ?? antennaId;
+            if (steerable == false)
             {
                 refusal = CommandResult.Fail(
                     CommandErrorCode.CapabilityMismatch,
-                    "'" + (_ra.AntennaName(antenna) ?? antennaId) + "' is an omni antenna and cannot be aimed.");
+                    "'" + name + "' is an omni antenna and cannot be aimed.");
+                antenna = null;
+                return false;
+            }
+            if (steerable == null)
+            {
+                // Deliberately NOT the omni sentence, and deliberately not
+                // CapabilityMismatch. Both say the craft would have to be
+                // different for this to work, and neither was established: the
+                // read of RealAntennas' `Shape` failed, so the one thing known
+                // is that nothing is known. ModeUnavailable is the coarse arm
+                // for exactly that, and its general wording ("the game would
+                // not say why") stays true if this Detail is ever dropped.
+                refusal = CommandResult.Fail(
+                    CommandErrorCode.ModeUnavailable,
+                    "Could not read whether '" + name
+                        + "' can be aimed, so nothing was sent. It may or may not be an omni.");
                 antenna = null;
                 return false;
             }

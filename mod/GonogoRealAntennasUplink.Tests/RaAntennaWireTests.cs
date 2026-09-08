@@ -130,6 +130,47 @@ namespace GonogoRealAntennasUplink.Tests
         }
 
         /// <summary>
+        /// The two FLAGS keep the same discipline, and it is the one they were
+        /// added for. A <c>steerable</c> nobody could read is null, never false:
+        /// false names a dish an omni, and a client with no third state to draw
+        /// hides its targeting controls on the strength of a read that failed.
+        /// </summary>
+        [Fact]
+        public void UnreadableFlagsStayNullRatherThanBecomingFalse()
+        {
+            var el = Write(RaWire.Antennas(new[]
+            {
+                new RealAntennasAntennaState { AntennaId = "index/0", Meta = new PayloadMeta() },
+            }))[0];
+
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("steerable").ValueKind);
+            Assert.Equal(JsonValueKind.Null, el.GetProperty("targeted").ValueKind);
+        }
+
+        /// <summary>
+        /// The other half of the same rule: a read that SUCCEEDED and came back
+        /// false still travels as false. Nullability is a third answer, not a
+        /// reason to stop asserting the second one.
+        /// </summary>
+        [Fact]
+        public void AnOmniThatWasReadIsStillFalseOnTheWire()
+        {
+            var el = Write(RaWire.Antennas(new[]
+            {
+                new RealAntennasAntennaState
+                {
+                    AntennaId = "4030/0",
+                    Steerable = false,
+                    Targeted = false,
+                    Meta = new PayloadMeta(),
+                },
+            }))[0];
+
+            Assert.Equal(JsonValueKind.False, el.GetProperty("steerable").ValueKind);
+            Assert.Equal(JsonValueKind.False, el.GetProperty("targeted").ValueKind);
+        }
+
+        /// <summary>
         /// An empty list is a real answer, not typed absence: the channel is
         /// LossyLatest, so withholding it on a craft with no antennas would leave
         /// the PREVIOUS craft's antennas standing on the wire.

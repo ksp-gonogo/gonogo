@@ -153,8 +153,14 @@ export interface RealAntennasAntennaState
 	* gain alone (a dish is an antenna with more than 5 dBi; there is no stored
 	* "steerable" flag), and an antenna that is not steerable refuses both
 	* commands.
+	*
+	* `null` means the antenna is here and nobody could read its shape: NOT that
+	* it is an omni. Collapsing the two badges a dish as an omni and hides its
+	* targeting controls on the strength of a read that never happened. Both
+	* commands refuse an unreadable antenna as well, but they say which of the two
+	* refusals it is.
 	*/
-	steerable: boolean;
+	steerable?: boolean;
 	/**
 	* Whether this antenna currently holds a target. The fields below describe it
 	* when true and are all null when false.
@@ -163,8 +169,12 @@ export interface RealAntennasAntennaState
 	* state a dish leaves the editor in. There is no command that returns one to
 	* it: both targeting commands move an antenna between targets, and
 	* RealAntennas itself never puts a vessel dish back.
+	*
+	* `null` means nobody could read whether it holds one, which is a third answer
+	* and not a quieter "no". The target fields below are all null in that case
+	* too, for want of a target to describe rather than because there is none.
 	*/
-	targeted: boolean;
+	targeted?: boolean;
 	/** Antenna gain (dBi), the quantity beamwidth and steerability both come off. */
 	gain?: Value<"dB">;
 	/** Antenna tech level (0..9): the level the mode gate compares against. */
