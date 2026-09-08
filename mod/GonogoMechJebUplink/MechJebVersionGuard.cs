@@ -61,12 +61,10 @@ namespace Gonogo.MechJebUplink
                 return MechJebGuardResult.Fail("MechJeb2.dll not loaded");
             }
 
-            Version? asmVersion = mechJebAssembly.GetName().Version;
-            if (asmVersion != null &&
-                (asmVersion.Major < MinKnownGoodMajor || asmVersion.Major > MaxKnownGoodMajor))
+            MechJebGuardResult versionCheck = CheckAssemblyVersion(mechJebAssembly.GetName().Version);
+            if (!versionCheck.IsAvailable)
             {
-                return MechJebGuardResult.Fail(
-                    $"MechJeb2 {asmVersion} outside known-good range {MinKnownGoodMajor}.x-{MaxKnownGoodMajor}.x");
+                return versionCheck;
             }
 
             Type[] allTypes;
@@ -80,6 +78,38 @@ namespace Gonogo.MechJebUplink
             }
 
             return ProbeTypes(allTypes);
+        }
+
+        /// <summary>
+        /// The version half of <see cref="Probe"/>, split out for the same
+        /// reason <see cref="ProbeTypes"/> is: an assembly whose name carries
+        /// no version cannot be manufactured in a headless test, and this is
+        /// the branch that most needs one.
+        ///
+        /// <para><b>A version we could not read is a refusal, not a pass.</b>
+        /// <c>AssemblyName.Version</c> is null only when the identity does not
+        /// carry one, which is a statement about our read rather than about
+        /// MechJeb2, and treating it as in-range asserts a major the assembly
+        /// never claimed. A fork or a repack that kept the member names this
+        /// guard probes but moved their semantics would then arm three
+        /// autopilot commands against it. The risk is one-way: refusing costs
+        /// an inert uplink carrying a stated reason, with MechJeb still
+        /// drivable from its own GUI.</para>
+        /// </summary>
+        public static MechJebGuardResult CheckAssemblyVersion(Version? asmVersion)
+        {
+            if (asmVersion == null)
+            {
+                return MechJebGuardResult.Fail("MechJeb2 assembly version unreadable");
+            }
+
+            if (asmVersion.Major < MinKnownGoodMajor || asmVersion.Major > MaxKnownGoodMajor)
+            {
+                return MechJebGuardResult.Fail(
+                    $"MechJeb2 {asmVersion} outside known-good range {MinKnownGoodMajor}.x-{MaxKnownGoodMajor}.x");
+            }
+
+            return MechJebGuardResult.Ok;
         }
 
         /// <summary>

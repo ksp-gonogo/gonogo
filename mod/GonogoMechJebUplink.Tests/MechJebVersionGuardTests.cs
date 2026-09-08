@@ -27,6 +27,38 @@ namespace GonogoMechJebUplink.Tests
         }
 
         [Fact]
+        public void CheckAssemblyVersion_Unreadable_FailsRatherThanPasses()
+        {
+            // The absence-substitution case: `asmVersion != null && out-of-range`
+            // let a null straight through, so a version we could not read
+            // asserted a known-good major the assembly never claimed and armed
+            // three autopilot commands on it. Not manufacturable from a real
+            // Assembly in a headless test, which is why the check is split out.
+            var result = MechJebVersionGuard.CheckAssemblyVersion(null);
+
+            Assert.False(result.IsAvailable);
+            Assert.Contains("unreadable", result.Reason);
+        }
+
+        [Fact]
+        public void CheckAssemblyVersion_InRange_Passes()
+        {
+            var result = MechJebVersionGuard.CheckAssemblyVersion(new System.Version(2, 15, 3, 0));
+
+            Assert.True(result.IsAvailable, result.Reason);
+            Assert.Null(result.Reason);
+        }
+
+        [Fact]
+        public void CheckAssemblyVersion_OutOfRange_Fails()
+        {
+            var result = MechJebVersionGuard.CheckAssemblyVersion(new System.Version(3, 0, 0, 0));
+
+            Assert.False(result.IsAvailable);
+            Assert.Contains("outside known-good range", result.Reason);
+        }
+
+        [Fact]
         public void ProbeTypes_AllMembersPresent_Succeeds()
         {
             var result = MechJebVersionGuard.ProbeTypes(GoodTypes);

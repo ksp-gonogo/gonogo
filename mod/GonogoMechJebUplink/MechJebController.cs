@@ -127,6 +127,16 @@ namespace Gonogo.MechJebUplink
 
         public CommandResult EngageAscent(MechJebAscentArgs args)
         {
+            // Before anything reads the vessel: an altitude we cannot fly to is
+            // refused rather than written, because writing it engages the
+            // autopilot and the craft starts moving. See MechJebAscentGuard for
+            // why a zero here is a client's failed read rather than a request.
+            var refusal = MechJebAscentGuard.Refuse(args);
+            if (refusal != null)
+            {
+                return refusal;
+            }
+
             var vessel = FlightGlobals.ActiveVessel;
             var core = vessel == null ? null : vessel.GetMasterMechJeb();
             if (core == null)
