@@ -213,6 +213,43 @@ public class KerbalismAbsenceIsNotZeroTests
             resourceRates: new Dictionary<string, double> { ["Oxygen"] = -0.5 }));
     }
 
+    /// <summary>
+    /// The star card draws this through <c>&lt;Unit&gt;</c>, which has an
+    /// absence placeholder of its own and could never reach it: a substituted
+    /// zero read as a craft sitting on the star's surface.
+    /// </summary>
+    [Fact]
+    public void A_star_whose_distance_could_not_be_read_carries_null_to_the_wire()
+    {
+        var weather = KerbalismCapture.BuildSpaceWeather(
+            Snapshot(),
+            stars: new[] { new StarInfoRaw { Star = "Kerbol", Distance = null } });
+
+        var stars = Assert.IsType<List<object>>(weather["stars"]);
+        var star = Assert.IsType<Dictionary<string, object?>>(Assert.Single(stars));
+        Assert.True(star.ContainsKey("distance"));
+        Assert.Null(star["distance"]);
+    }
+
+    /// <summary>
+    /// Zero is a real density (a massless resource has one), so it cannot also
+    /// mean "the profile carries no definition for this resource".
+    /// </summary>
+    [Fact]
+    public void A_resource_the_profile_defines_no_density_for_carries_null()
+    {
+        var profile = new ProfileRaw
+        {
+            Rules = { new RuleDefRaw { Name = "eating", Input = "Food" } },
+        };
+
+        var built = KerbalismCapture.BuildProfile(profile);
+        var resources = Assert.IsType<Dictionary<string, object?>>(built["resources"]);
+        var food = Assert.IsType<Dictionary<string, object?>>(resources["Food"]);
+        Assert.True(food.ContainsKey("density"));
+        Assert.Null(food["density"]);
+    }
+
     private static KerbalRulesRaw Kerbal() =>
         new KerbalRulesRaw { Name = "Jebediah Kerman", Rules = { ["breathing"] = 0.0 } };
 

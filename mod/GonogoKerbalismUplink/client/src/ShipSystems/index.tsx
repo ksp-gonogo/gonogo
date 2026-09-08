@@ -407,7 +407,11 @@ function ShipSystemsBody({
         ecRow && (
           <Meter
             label="Power"
-            value={ecRow.fraction ?? 0}
+            // Null, not 0: `fraction` is null when the craft carries no tank
+            // for the resource, and a Power bar sitting at zero is the one
+            // readout on this widget an operator would act on immediately. The
+            // kit draws the absence and drops `role="meter"` with it.
+            value={ecRow.fraction}
             tone={toneForRow(ecRow)}
             valueLabel={rowValueLabel(ecRow)}
             valueLabelNode={<RowValueDisplay row={ecRow} />}
@@ -518,7 +522,7 @@ function ShipSystemsBody({
                 <Meter
                   key={w.name}
                   label={w.process}
-                  value={w.fraction ?? 0}
+                  value={w.fraction}
                   tone={wearTone(w)}
                   valueLabel={wearValueLabel(w)}
                   size="sm"
@@ -676,7 +680,9 @@ function ResourceLedgerRow({
       <Stack gap="sm">
         <Meter
           label={row.displayName}
-          value={row.fraction ?? 0}
+          // See the Power footer: a resource the craft has no tank for has no
+          // fill fraction, and drawing one at zero says the tank is empty.
+          value={row.fraction}
           tone={toneForRow(row)}
           valueLabel={rowValueLabel(row)}
           valueLabelNode={<RowValueDisplay row={row} />}

@@ -215,7 +215,12 @@ namespace Gonogo.KerbalismUplink
                     ["flowMode"] = def?.FlowMode ?? "",
                     ["flowModeOrdinal"] = def?.FlowModeOrdinal,
                     ["displayName"] = def?.DisplayName ?? name,
-                    ["density"] = def?.Density ?? 0,
+                    // Null, not 0, for a resource the profile mentions but has
+                    // no definition for: a density of zero says the resource is
+                    // massless, which is a real property some resources have.
+                    // `flowModeOrdinal` beside it already rides through the same
+                    // way, and the contract field is nullable.
+                    ["density"] = def?.Density,
                     ["isSupply"] = isSupply,
                     ["lowThreshold"] = isSupply ? low : (double?)null,
                 };

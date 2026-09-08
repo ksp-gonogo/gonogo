@@ -166,8 +166,14 @@ namespace Gonogo.KerbalismUplink
         public string Star = "";
         /// <summary>Normalized vessel-to-sun direction components (VesselData.SunInfo.Direction).</summary>
         public double DirX, DirY, DirZ;
-        /// <summary>Vessel-to-sun-surface distance, metres (VesselData.SunInfo.Distance).</summary>
-        public double Distance;
+        /// <summary>
+        /// Vessel-to-sun-surface distance, metres (VesselData.SunInfo.Distance).
+        /// Null when the member could not be read, and it rides to the wire as
+        /// null: the star card draws it through <c>&lt;Unit&gt;</c>, which has an
+        /// absence placeholder, and a substituted zero read as a craft sitting
+        /// on the star's surface.
+        /// </summary>
+        public double? Distance;
     }
 
     /// <summary>
