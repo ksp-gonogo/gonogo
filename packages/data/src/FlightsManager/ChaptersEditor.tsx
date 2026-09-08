@@ -279,7 +279,7 @@ const Hint = styled.div`
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   margin-bottom: var(--space-8);
 `;
 
@@ -314,7 +314,7 @@ const DurationText = styled.span`
 
 const Actions = styled.span`
   display: inline-flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   align-items: center;
   justify-self: end;
 `;
@@ -325,7 +325,7 @@ const EditButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }
 `;
@@ -336,7 +336,7 @@ const SaveButton = styled.button`
   color: var(--color-status-go-fg);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
 `;
 
@@ -346,7 +346,7 @@ const CancelButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   &:hover { color: var(--color-text-primary); }
 `;
@@ -364,7 +364,7 @@ const RemoveButton = styled.button`
 const AddRow = styled.div`
   display: grid;
   grid-template-columns: minmax(120px, 1fr) 80px 80px auto;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   align-items: center;
   margin-top: var(--space-4);
 `;
@@ -375,7 +375,7 @@ const AddButton = styled.button`
   color: var(--color-text-muted);
   cursor: pointer;
   font-size: var(--font-size-xs);
-  padding: var(--space-4) var(--space-10);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   white-space: nowrap;
   &:hover { color: var(--color-text-primary); border-color: var(--color-text-dim); }

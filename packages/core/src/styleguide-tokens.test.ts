@@ -405,6 +405,23 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * deleted --inset-panel went back to rungs rather than tighten. See the
    * comment on those keys below, and the two branches in `rawRungHits`.
    *
+   * It then fell 63 when the alarm directory and the whole of `packages/data`
+   * went over, which WAS widgets migrating: 63 declarations changed spelling,
+   * and 53 of those changed pixel value, 46 up, 6 down and one trading 2px of
+   * height for 2px of width. Those are chromium's numbers off the real
+   * tokens.css, not arithmetic: jsdom resolves an unknown custom property to
+   * 0px and would have reported a collapse as a clean pass. The growth is
+   * concentrated in one place and is the point of the exercise: 22 buttons,
+   * selects and inputs sat at a 2px or 4px vertical inset and are now on
+   * --inset-control, which is the --control-height floor.
+   *
+   * What those files could NOT say is the (8,16) band: a floating or
+   * full-width chrome strip on the 16px gutter lock. That is the same hole the
+   * deleted --inset-panel left at (10,16), and it now has seven sites rather
+   * than four. Seven is still not a name, because both halves resolve the same
+   * in every tier and the pair is a shape the ladder writes fine, so they stay
+   * rungs and say why at the declaration.
+   *
    * The cohort unit is the WIDGET, not the declaration. A half-migrated widget
    * can have a converted declaration and its unconverted sibling differ by up
    * to 4px, so a file goes from its seeded number to zero in one landing and
@@ -416,9 +433,12 @@ const BASELINES: Record<Family, Record<string, number>> = {
    */
   rawSpacingRung: {
     "mod/": 21,
-    "packages/app/src/alarms/AlarmBanner.tsx": 7,
-    "packages/app/src/alarms/AlarmsModal.tsx": 22,
-    "packages/app/src/alarms/StationAlarmBanner.tsx": 2,
+    // Both alarm banners hold their one remaining site on purpose: a floating
+    // banner pill at (8,16), which is the same wide-chrome band the four
+    // ex-panel sites below hold and which no name covers. Each says so at the
+    // declaration.
+    "packages/app/src/alarms/AlarmBanner.tsx": 1,
+    "packages/app/src/alarms/StationAlarmBanner.tsx": 1,
     "packages/app/src/analytics/AnalyticsConsentModal.tsx": 2,
     "packages/app/src/backup/BackupManager.tsx": 4,
     "packages/app/src/commcast/CommcastComponent.tsx": 12,
@@ -489,10 +509,10 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/ThermalStatus/index.tsx": 3,
     "packages/components/src/TransferWindow/index.tsx": 16,
     "packages/components/src/WarpControl/index.tsx": 5,
-    "packages/data/src/FlightsManager/ChaptersEditor.tsx": 7,
-    "packages/data/src/FlightsManager/FlightGraph.tsx": 5,
-    "packages/data/src/FlightsManager/index.tsx": 19,
-    "packages/data/src/replaySession/ReplaySessionBanner.tsx": 5,
+    // One site each, both written up at the declaration. ThStar wants
+    // horizontal BELOW vertical, and the replay strip is on the (8,16) band.
+    "packages/data/src/FlightsManager/index.tsx": 1,
+    "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
     // The two below and SourceOfflineBanner.tsx at the end GREW by four in

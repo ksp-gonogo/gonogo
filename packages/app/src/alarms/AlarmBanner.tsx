@@ -453,6 +453,10 @@ const Wrap = styled.div<{ $tone: Tone }>`
   border-radius: var(--radius-pill);
   color: var(--color-text-primary);
   font-size: var(--font-size-sm);
+  /* Rungs, not --inset-surface. This is the floating-chrome band on the 16px
+     gutter lock, the band the deleted --inset-panel used to hold, and nothing
+     names it now: taking a banner that overlays the dashboard to (6,8) would
+     halve its gutter to make a ratchet number smaller. */
   padding: var(--space-8) var(--space-16);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.55);
   pointer-events: auto;
@@ -531,7 +535,7 @@ const AckButton = styled.button`
   border: 1px solid var(--color-status-nogo-bg);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
@@ -560,7 +564,7 @@ const WarpToButton = styled.button`
   border: 1px solid var(--color-status-go-bg);
   color: var(--color-status-go-fg);
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
@@ -568,7 +572,7 @@ const WarpToButton = styled.button`
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   @media (hover: hover) {
     &:hover {
       filter: brightness(1.15);
@@ -585,7 +589,7 @@ const StopWarpButton = styled.button`
   border: 1px solid var(--color-status-warning-bg);
   color: var(--color-text-primary);
   font-size: var(--font-size-xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   cursor: pointer;
   letter-spacing: 0.06em;
@@ -593,7 +597,7 @@ const StopWarpButton = styled.button`
   font-weight: 700;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   @media (hover: hover) {
     &:hover {
       filter: brightness(1.15);
@@ -606,9 +610,12 @@ const StopWarpButton = styled.button`
 `;
 
 const SafetyInput = styled.input`
-  width: 4em;
+  /* 6em, not the 4em this carried on a 4px inset: the field holds three digits
+     plus the number spinner, and the control inset takes 24px of a border-box
+     width before any of them get a look in. */
+  width: 6em;
   font-size: var(--font-size-sm);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--inset-control);
   background: var(--color-surface-panel);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
