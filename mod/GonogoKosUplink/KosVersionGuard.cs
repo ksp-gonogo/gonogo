@@ -70,17 +70,47 @@ namespace Gonogo.KosUplink
                 return KosGuardResult.Fail("kOS.dll / kOS.Safe.dll not loaded");
             }
 
-            Version? asmVersion = kosAssembly.GetName().Version;
-            if (asmVersion != null &&
-                (asmVersion.Major < MinKnownGoodMajor || asmVersion.Major > MaxKnownGoodMajor))
+            var versionVerdict = CheckVersion(kosAssembly.GetName().Version);
+            if (versionVerdict != null)
             {
-                return KosGuardResult.Fail(
-                    $"kOS {asmVersion} outside known-good range {MinKnownGoodMajor}.x-{MaxKnownGoodMajor}.x");
+                return versionVerdict.Value;
             }
 
             Type[] kosTypes = SafeGetTypes(kosAssembly);
             Type[] safeTypes = SafeGetTypes(kosSafeAssembly);
             return ProbeTypes(kosTypes.Concat(safeTypes).ToList());
+        }
+
+        /// <summary>
+        /// The version-pin half, split out for the same reason
+        /// <see cref="ProbeTypes"/> is: a test can hand it a
+        /// <see cref="Version"/> directly, where reaching it through
+        /// <see cref="Probe"/> would need a real assembly built to order.
+        /// Returns null when the version clears the pin, otherwise the
+        /// <see cref="KosGuardResult.Fail"/> the caller should return.
+        ///
+        /// <para>A NULL <paramref name="asmVersion"/> is a failure, not a
+        /// pass. <c>AssemblyName.Version</c> is nullable, so null means the
+        /// loaded kOS.dll carries no version we can read, and the whole point
+        /// of a version pin is to refuse an unknown kOS rather than bind
+        /// against it. Reading null as in-range made this check unreachable
+        /// for the one assembly it can say least about, which is the opposite
+        /// of the fail-soft contract in this class's own summary.</para>
+        /// </summary>
+        public static KosGuardResult? CheckVersion(Version? asmVersion)
+        {
+            if (asmVersion == null)
+            {
+                return KosGuardResult.Fail(
+                    "kOS.dll carries no readable assembly version, so the known-good range " +
+                    $"{MinKnownGoodMajor}.x-{MaxKnownGoodMajor}.x cannot be confirmed");
+            }
+            if (asmVersion.Major < MinKnownGoodMajor || asmVersion.Major > MaxKnownGoodMajor)
+            {
+                return KosGuardResult.Fail(
+                    $"kOS {asmVersion} outside known-good range {MinKnownGoodMajor}.x-{MaxKnownGoodMajor}.x");
+            }
+            return null;
         }
 
         /// <summary>

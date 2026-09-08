@@ -88,9 +88,19 @@ function errorMessage(err: unknown): string {
 function KosScriptTriggerComponent({
   config,
 }: Readonly<ComponentProps<KosScriptTriggerConfig>>) {
-  // Only CPUs that carry a tagname are dispatchable: `executeScript` resolves
-  // its target by tag, so an untagged CPU has no address to run on.
-  const processors = useStream<KosProcessorInfo[]>("kos.processors") ?? [];
+  /*
+   * Only CPUs that carry a tagname are dispatchable: `executeScript` resolves
+   * its target by tag, so an untagged CPU has no address to run on.
+   *
+   * Absent is a THIRD state, not an empty list. `useStream` yields nothing
+   * until a push lands, while the mod publishes an explicit EMPTY list when
+   * it knows there is no kOS, and only the second of those is evidence about
+   * the vessel. `?? []` alone told the operator to go boot a processor on the
+   * strength of a channel that had not spoken.
+   */
+  const reportedProcessors = useStream<KosProcessorInfo[]>("kos.processors");
+  const reported = reportedProcessors != null;
+  const processors = reportedProcessors ?? [];
   const runnable = useMemo(
     () =>
       processors.filter((p): p is KosProcessorInfo & { tag: string } =>
@@ -174,8 +184,9 @@ function KosScriptTriggerComponent({
             <FieldLabel htmlFor={cpuId}>CPU</FieldLabel>
             {noCpu ? (
               <NoCpuNotice id={cpuId} role="status" aria-live="polite">
-                No kOS CPU available. Boot a kOS processor in flight, and check
-                the telemetry stream is connected.
+                {reported
+                  ? "No kOS CPU available. Boot a kOS processor in flight."
+                  : "Waiting on kos.processors: the CPU list has not been reported yet. Check the telemetry stream is connected."}
               </NoCpuNotice>
             ) : config?.cpuName || runnable.length === 1 ? (
               <StaticCpu id={cpuId}>{selectedTag}</StaticCpu>

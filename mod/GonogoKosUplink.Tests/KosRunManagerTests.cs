@@ -98,6 +98,52 @@ namespace GonogoKosUplink.Tests
             Assert.Equal("engine flameout", result.Error);
         }
 
+        /// <summary>
+        /// <c>KosRunResult</c>'s own doc states the R7 invariant: exactly one
+        /// of Fields/Error is non-null. An error block whose message we never
+        /// managed to read (the public ctor takes isError and errorMessage
+        /// independently, and defaults the message to null) published BOTH as
+        /// null, which the client's `payload.fields ?? {}` then resolved as a
+        /// successful run that returned no fields: a green OK for a script
+        /// that failed.
+        /// </summary>
+        [Fact]
+        public void Complete_ForAnErrorBlockWithNoMessage_StillPublishesAnError()
+        {
+            var mgr = new KosRunManager();
+            var published = new List<KosRunResult>();
+            mgr.SetPublisher((_, result) => published.Add(result));
+            mgr.TryArm(7, "req-1");
+
+            mgr.Complete(7, new KosComputeBlock("t", new Dictionary<string, object>(), isError: true));
+
+            var result = Assert.Single(published);
+            Assert.Null(result.Fields);
+            Assert.False(string.IsNullOrWhiteSpace(result.Error));
+        }
+
+        /// <summary>
+        /// An empty <c>[KOSERROR][/KOSERROR]</c> body is the same absence
+        /// arriving by the sanctioned route: the script signalled a failure
+        /// and told us nothing about it. The widget renders <c>Error</c> as
+        /// the whole explanation, so an empty string draws a "Script error"
+        /// badge over blank space.
+        /// </summary>
+        [Fact]
+        public void Complete_ForAnEmptyKoserrorBody_PublishesAReadableError()
+        {
+            var mgr = new KosRunManager();
+            var published = new List<KosRunResult>();
+            mgr.SetPublisher((_, result) => published.Add(result));
+            mgr.TryArm(7, "req-1");
+
+            mgr.Complete(7, KosComputeBlock.ForError("   "));
+
+            var result = Assert.Single(published);
+            Assert.Null(result.Fields);
+            Assert.False(string.IsNullOrWhiteSpace(result.Error));
+        }
+
         [Fact]
         public void Complete_WhenNotArmed_IsANoOp()
         {

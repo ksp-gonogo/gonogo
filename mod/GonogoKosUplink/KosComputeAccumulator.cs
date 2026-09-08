@@ -38,12 +38,37 @@ namespace Gonogo.KosUplink
         /// </summary>
         public bool IsError { get; }
 
-        /// <summary>The <c>[KOSERROR]</c> body, trimmed: null unless <see cref="IsError"/>.</summary>
+        /// <summary>
+        /// The <c>[KOSERROR]</c> body, trimmed. Null when
+        /// <see cref="IsError"/> is false, and NEVER null or blank when it is
+        /// true: see the constructor for why the message has to survive.
+        /// </summary>
         public string? ErrorMessage { get; }
+
+        /// <summary>
+        /// Stands in for an error body the script did not give us. Not a
+        /// substituted value: it describes the absence rather than hiding it,
+        /// which is the only thing a reader of a blank error can act on.
+        /// </summary>
+        public const string UnstatedErrorMessage =
+            "the script signalled a failure but printed no message";
 
         private static readonly IReadOnlyDictionary<string, object> EmptyFields =
             new Dictionary<string, object>();
 
+        /// <summary>
+        /// <paramref name="isError"/> and <paramref name="errorMessage"/>
+        /// arrive independently, so an error block could be built with no
+        /// message at all. That absence propagated:
+        /// <c>KosRunManager.Complete</c> copies both straight onto a
+        /// <see cref="Sitrep.Contract.KosRunResult"/>, whose contract is that
+        /// exactly one of Fields/Error is non-null, and both ended up null.
+        /// The client resolves a Fields-less non-error result as an empty
+        /// SUCCESS, so a failed script drew a green OK. An error therefore
+        /// always keeps a readable message here, falling back to
+        /// <see cref="UnstatedErrorMessage"/>, and a non-error block never
+        /// carries one.
+        /// </summary>
         public KosComputeBlock(
             string topic,
             IReadOnlyDictionary<string, object> fields,
@@ -53,12 +78,14 @@ namespace Gonogo.KosUplink
             Topic = topic;
             Fields = fields;
             IsError = isError;
-            ErrorMessage = errorMessage;
+            ErrorMessage = isError
+                ? (string.IsNullOrWhiteSpace(errorMessage) ? UnstatedErrorMessage : errorMessage)
+                : null;
         }
 
         /// <summary>Convenience factory for an explicit <c>[KOSERROR]</c> block, mirrors the TS <c>parseKosExplicitError</c> shape (message only, no topic).</summary>
         public static KosComputeBlock ForError(string message) =>
-            new KosComputeBlock(KosDataParser.DefaultTopic, EmptyFields, isError: true, errorMessage: message.Trim());
+            new KosComputeBlock(KosDataParser.DefaultTopic, EmptyFields, isError: true, errorMessage: message?.Trim());
     }
 
     /// <summary>

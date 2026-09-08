@@ -266,7 +266,19 @@ namespace Gonogo.KosUplink
             // keyframe cadence and the server reveal gate both work; a fixed 0.0
             // froze the emitter's keyframe clock and made a "Delayed" channel
             // reveal as if TrueNow.
-            return new ProcessorsCapture { Ut = snapshot?.Ut ?? 0.0, List = list };
+            //
+            // No snapshot means no game clock to stamp, and there is no
+            // honest substitute: a 0.0 would re-arm exactly the frozen
+            // keyframe clock described above, on a fallback nothing
+            // downstream can see. Return null instead, which HandleProcessors
+            // already ignores (its `is ProcessorsCapture` pattern), so the
+            // tick publishes nothing and the last good frame stands rather
+            // than a real list arriving under a fabricated timestamp.
+            if (snapshot == null)
+            {
+                return null;
+            }
+            return new ProcessorsCapture { Ut = snapshot.Ut, List = list };
         }
 
         /// <summary>

@@ -195,15 +195,40 @@ describe("KosTerminal: streamed over the Uplink (no proxy)", () => {
     clearRegistry();
   });
 
-  it("shows a waiting state when no kOS CPUs are present", () => {
+  it("says the channel has not reported yet when kos.processors has pushed nothing", () => {
+    // Nothing emitted: the channel is SILENT, which is not the same claim as
+    // "this vessel carries no kOS CPU". The mod publishes an explicit empty
+    // list for the latter (see the next test), so the two are distinguishable
+    // on the wire and must not render the same sentence.
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
         <KosTerminalComponent id="kos-terminal" config={{}} />
       </fixture.Provider>,
     );
-    expect(screen.getByRole("status")).toHaveTextContent(
+    expect(screen.getByRole("status")).toHaveTextContent(/kos\.processors/i);
+    expect(screen.getByRole("status")).not.toHaveTextContent(
       /No kOS CPUs detected/i,
+    );
+  });
+
+  it("shows the definite no-CPU state once kos.processors reports an empty list", async () => {
+    // KosExtension.Ksp.cs publishes an empty list on its kOS-unavailable
+    // path specifically so the client can draw a definite "no kOS" rather
+    // than hang. This is that render.
+    const fixture = terminalFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent id="kos-terminal" config={{}} />
+      </fixture.Provider>,
+    );
+
+    act(() => fixture.emit("kos.processors", []));
+
+    await waitFor(() =>
+      expect(screen.getByRole("status")).toHaveTextContent(
+        /No kOS CPUs detected/i,
+      ),
     );
   });
 
@@ -1519,7 +1544,10 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
     expect(screen.getByText("1:")).toBeInTheDocument();
   });
 
-  it("shows a 'No scripts found' hint when no scriptPaths are configured (increment (a) has no live data yet)", async () => {
+  it("says it is still reading the drives while the live listing is in flight, not that there are no scripts", async () => {
+    // No configured scriptPaths, so the live listing dispatches and this
+    // fixture never answers it. The picker is looking, and used to claim
+    // "No scripts found" for the whole 30-second dispatch window.
     const fixture = terminalFixture();
     render(
       <fixture.Provider>
@@ -1531,7 +1559,8 @@ describe("kOS terminal: `/` script-run composer (RUNPATH injection)", () => {
 
     act(() => getOnData()("/"));
 
-    expect(screen.getByText("No scripts found")).toBeInTheDocument();
+    expect(screen.getByText(/Reading the CPU's drives/i)).toBeInTheDocument();
+    expect(screen.queryByText("No scripts found")).toBeNull();
   });
 
   it("typing / mid-line (non-empty composition) types a literal slash instead of opening the picker", async () => {
@@ -1870,6 +1899,52 @@ describe("kOS terminal: live drive listing + copy-local (RUNPATH injection incre
     // Non-.ks files and directories never make it into the picker.
     expect(screen.queryByText(/notascript\.txt/)).not.toBeInTheDocument();
     expect(screen.queryByText("subdir")).not.toBeInTheDocument();
+  });
+
+  it("tells the operator the listing could not be read rather than claiming the drives are empty", async () => {
+    // Both volumes answer, and neither answer parses. `scriptListingScript`
+    // interpolates `f:NAME` raw into its JSON, so one filename carrying a
+    // quote does this for real. The picker used to draw "No scripts found".
+    const fixture = scriptListingFixture();
+    render(
+      <fixture.Provider>
+        <KosTerminalComponent id="kos-terminal" config={{ lineMode: true }} />
+      </fixture.Provider>,
+    );
+    act(() => {
+      kosSource.attachTelemetryClient(fixture.client);
+      fixture.emit("kos.processors", ONE_CPU);
+    });
+    await waitFor(() => expect(termSpies.onData).toHaveBeenCalled());
+
+    act(() => getOnData()("/"));
+
+    for (const volume of ["0:", "1:"]) {
+      const index = volume === "0:" ? 0 : 1;
+      await waitFor(() => {
+        expect(
+          fixture.commands.filter((c) => c.command === "kos.run"),
+        ).toHaveLength(index + 1);
+      });
+      act(() => {
+        fixture.emit("kos.run.7", {
+          coreId: 7,
+          requestId: kosRunRequestId(fixture.commands, index),
+          fields: {
+            op: "list",
+            path: volume,
+            listing: '[{"name":"quote"inside.ks"}]',
+          },
+        });
+      });
+    }
+
+    await waitFor(() => {
+      expect(screen.getByRole("listbox")).toHaveTextContent(
+        /could not be read/i,
+      );
+    });
+    expect(screen.queryByText("No scripts found")).toBeNull();
   });
 
   it("gracefully shows a hint (never crashes) when the resolved CPU has no tagname to dispatch the live listing to", async () => {
