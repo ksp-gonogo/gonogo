@@ -189,7 +189,7 @@ describe("KosUplinkExecutor", () => {
       coreId: 5,
       requestId: commands[0].args.requestId,
       fields,
-    } as unknown as KosRunResult);
+    });
 
     await expect(pending).rejects.toThrow(/neither an error nor a field map/i);
     // A transport/protocol fault, NOT a script-author fault: the widget

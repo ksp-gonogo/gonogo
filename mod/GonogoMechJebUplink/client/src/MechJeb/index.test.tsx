@@ -58,6 +58,17 @@ function renderMechJeb(defaultAscentAltitudeKm = 100) {
   return { fixture, view };
 }
 
+/**
+ * Reads the one arg these tests assert on, out of the `unknown` a dispatched
+ * command carries. Narrowing here rather than at each read keeps the shape
+ * check in one place, so a wire change fails once and legibly.
+ */
+function targetAltitudeKmOf(args: unknown): unknown {
+  return typeof args === "object" && args !== null && "targetAltitudeKm" in args
+    ? args.targetAltitudeKm
+    : undefined;
+}
+
 describe("MechJeb command widget", () => {
   it("renders the three autopilot command buttons and the ascent-altitude input", () => {
     renderMechJeb();
@@ -116,9 +127,7 @@ describe("MechJeb command widget", () => {
         (c) => c.command === "mechjeb.engageAscentAutopilot",
       );
       expect(cmd).toBeDefined();
-      expect(
-        (cmd?.args as { targetAltitudeKm?: number }).targetAltitudeKm,
-      ).toBe(180);
+      expect(targetAltitudeKmOf(cmd?.args)).toBe(180);
     });
   });
 
@@ -134,9 +143,11 @@ describe("MechJeb command widget", () => {
     ).toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "true");
 
-    // And the engage is not merely visually discouraged: nothing reaches the
-    // wire, by click or by a bound serial/keyboard input, because MechJeb
-    // would fly whatever number arrives.
+    /*
+     * And the engage is not merely visually discouraged: nothing reaches the
+     * wire, by click or by a bound serial/keyboard input, because MechJeb would
+     * fly whatever number arrives.
+     */
     const button = screen.getByRole("button", {
       name: /engage ascent autopilot/i,
     });
@@ -184,9 +195,7 @@ describe("MechJeb command widget", () => {
         (c) => c.command === "mechjeb.engageAscentAutopilot",
       );
       expect(cmd).toBeDefined();
-      expect(
-        (cmd?.args as { targetAltitudeKm?: number }).targetAltitudeKm,
-      ).toBe(180);
+      expect(targetAltitudeKmOf(cmd?.args)).toBe(180);
     });
   });
 
