@@ -49,6 +49,7 @@
          them. -->
     <Compile Include="..\GonogoMechJebUplink\MechJebChannels.cs" />
     <Compile Include="..\GonogoMechJebUplink\MechJebVersionGuard.cs" />
+    <Compile Include="..\GonogoMechJebUplink\MechJebAscentGuard.cs" />
     <Compile Include="..\GonogoMechJebUplink\MainThreadDispatcher.cs" />
     <Compile Include="..\GonogoMechJebUplink\MechJebUplink.cs" />
     <Compile Include="..\GonogoMechJebUplink\ExpectedClientHash.g.cs" />

@@ -31,7 +31,7 @@ const COMMANDS = [
   "mechjeb.executeNextNode",
   "mechjeb.landAtTarget",
 ];
-const CARRIED = ["comms.delay", ...COMMANDS];
+const CARRIED = ["comms.delay", "system.uplinks", ...COMMANDS];
 
 const renderedTrees: Array<() => void> = [];
 function render(ui: ReactElement) {
@@ -122,6 +122,74 @@ describe("MechJeb command widget", () => {
     });
   });
 
+  it('refuses to engage on a blank altitude rather than flying the 0 that Number("") gives', async () => {
+    const { fixture } = renderMechJeb(100);
+    const input = screen.getByLabelText(/target altitude \(km\)/i);
+    await userEvent.clear(input);
+
+    // The absence render: the widget SAYS it has no altitude rather than
+    // drawing the confident 0 a numeric state would have held.
+    expect(
+      screen.getByText(/no target altitude read from the field/i),
+    ).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+
+    // And the engage is not merely visually discouraged: nothing reaches the
+    // wire, by click or by a bound serial/keyboard input, because MechJeb
+    // would fly whatever number arrives.
+    const button = screen.getByRole("button", {
+      name: /engage ascent autopilot/i,
+    });
+    expect(button).toBeDisabled();
+    await userEvent.click(button);
+    await act(async () => {});
+    expect(
+      fixture.transport.sentCommands.some(
+        (c) => c.command === "mechjeb.engageAscentAutopilot",
+      ),
+    ).toBe(false);
+  });
+
+  it("refuses an explicit zero, which is not an orbit", async () => {
+    const { fixture } = renderMechJeb(100);
+    const input = screen.getByLabelText(/target altitude \(km\)/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "0");
+
+    expect(
+      screen.getByRole("button", { name: /engage ascent autopilot/i }),
+    ).toBeDisabled();
+    await act(async () => {});
+    expect(
+      fixture.transport.sentCommands.some(
+        (c) => c.command === "mechjeb.engageAscentAutopilot",
+      ),
+    ).toBe(false);
+  });
+
+  it("recovers once a real altitude is typed back in", async () => {
+    const { fixture } = renderMechJeb(100);
+    const input = screen.getByLabelText(/target altitude \(km\)/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "180");
+
+    expect(
+      screen.queryByText(/no target altitude read from the field/i),
+    ).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: /engage ascent autopilot/i }),
+    );
+    await waitFor(() => {
+      const cmd = fixture.transport.sentCommands.find(
+        (c) => c.command === "mechjeb.engageAscentAutopilot",
+      );
+      expect(cmd).toBeDefined();
+      expect(
+        (cmd?.args as { targetAltitudeKm?: number }).targetAltitudeKm,
+      ).toBe(180);
+    });
+  });
+
   it("surfaces the command lifecycle on the row (confirmed after the stub answers)", async () => {
     renderMechJeb();
     await userEvent.click(
@@ -135,6 +203,94 @@ describe("MechJeb command widget", () => {
   it("has no axe violations", async () => {
     const { view } = renderMechJeb();
     await expectNoA11yViolations(view.container);
+  });
+});
+
+/**
+ * The mod side goes inert whenever MechJeb2 is absent or the version guard
+ * finds its API drifted (including a version it could not read at all), and
+ * registers no command handlers in that state. These emissions are the raw
+ * roster the engine builds; the widget reads the derived `system.uplinkHealth`
+ * over it, so each of them also proves the fixture's store derives that
+ * channel at all.
+ */
+describe("MechJeb2 not reachable", () => {
+  /** Matches the C# `UplinkHealthState` arms by value, not by name. */
+  const HEALTHY = 0;
+  const UNAVAILABLE = 2;
+
+  function emitRoster(
+    fixture: ReturnType<typeof renderMechJeb>["fixture"],
+    state: number,
+    detail: string | null = null,
+  ) {
+    act(() => {
+      fixture.emit("system.uplinks", {
+        uplinks: [
+          {
+            id: "mechjeb",
+            version: "0.1.0",
+            available: state !== UNAVAILABLE,
+            reason: detail,
+            ownedPrefixes: [],
+            health: { state, detail, facts: [] },
+          },
+        ],
+      });
+    });
+  }
+
+  it("says so, with the guard's own reason, and takes all three commands dead", async () => {
+    const { fixture } = renderMechJeb();
+    emitRoster(fixture, UNAVAILABLE, "MechJeb2 assembly version unreadable");
+
+    expect(
+      await screen.findByText(/MECHJEB NOT REACHABLE/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/MechJeb2 assembly version unreadable/),
+    ).toBeInTheDocument();
+
+    for (const name of [
+      /engage ascent autopilot/i,
+      /execute next node/i,
+      /land at target/i,
+    ]) {
+      expect(screen.getByRole("button", { name })).toBeDisabled();
+    }
+
+    // Not merely greyed: a bound serial or keyboard input calls the same fire
+    // path and never sees `disabled`, so nothing reaches the wire either way.
+    await userEvent.click(
+      screen.getByRole("button", { name: /land at target/i }),
+    );
+    await act(async () => {});
+    expect(fixture.transport.sentCommands).toHaveLength(0);
+  });
+
+  it("stays quiet and live on a healthy roster", async () => {
+    const { fixture } = renderMechJeb();
+    emitRoster(fixture, HEALTHY);
+
+    await act(async () => {});
+    expect(
+      screen.queryByText(/MECHJEB NOT REACHABLE/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /land at target/i }),
+    ).not.toBeDisabled();
+  });
+
+  it("stays quiet and live before the roster arrives, because not knowing is not unavailable", async () => {
+    renderMechJeb();
+
+    await act(async () => {});
+    expect(
+      screen.queryByText(/MECHJEB NOT REACHABLE/i),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /execute next node/i }),
+    ).not.toBeDisabled();
   });
 });
 
