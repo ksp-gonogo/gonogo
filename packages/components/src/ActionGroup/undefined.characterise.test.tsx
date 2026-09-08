@@ -25,8 +25,9 @@ import { ActionGroupComponent } from "./index";
  * They do NOT agree on what absence means. The value read treats `undefined` as
  * "unknown" and renders NULL_DISPLAY. The two badge reads treat it as "fine, no
  * reason to warn" (each needs a CONFIRMED `true`/`false` to fire). `null` inside
- * a payload is a third thing again: a confident "OFF". Each test below names
- * which of those it pins.
+ * a payload used to be a third thing again, a confident "OFF", and is now the
+ * same unknown as `undefined`: see the "null versus undefined" describe for why
+ * that changed. Each test below names which of those it pins.
  */
 
 const renderedTrees: Array<() => void> = [];
@@ -284,14 +285,19 @@ describe("ActionGroup: a partial payload", () => {
 });
 
 describe("ActionGroup: null versus undefined", () => {
-  it("a NULL field reads as a confident OFF while the command path still refuses it", async () => {
-    // The site that distinguishes them is `isUnknown = value === undefined`,
-    // which is `undefined`-only. So a tombstoned FIELD (`sas: null`) skips the
-    // unknown branch entirely and falls through `value === true` to "OFF": the
-    // widget states the vessel's SAS is off on the strength of a null. The
-    // command path disagrees with the readout, because `buildToggleArgs`
-    // demands a real boolean, so the pill says OFF and pressing it does
-    // nothing.
+  it("a NULL field reads as unknown, matching the command path that already refused it", async () => {
+    /*
+     * This USED to read as a confident OFF, because the unknown test was
+     * `value === undefined` and a null field skipped it, falling through
+     * `value === true` to "OFF": the widget stated the vessel's SAS was off on
+     * the strength of a null, while `buildToggleArgs` demanded a real boolean
+     * and refused the press. The readout and the command path disagreed, and
+     * the readout was the one lying.
+     *
+     * `isUnknown` is `value == null` now, so both halves say the same thing:
+     * nobody knows, the toggle is held, and the widget names which kind of
+     * unknown it is.
+     */
     const { fixture, commandHandler } = mount("SAS");
 
     act(() => {
@@ -301,8 +307,9 @@ describe("ActionGroup: null versus undefined", () => {
     await waitFor(() =>
       expect(
         screen.getByRole("button", { name: "Toggle SAS" }).textContent,
-      ).toBe("OFF"),
+      ).toBe(NULL_DISPLAY),
     );
+    expect(screen.getByRole("button", { name: "Toggle SAS" })).toBeDisabled();
 
     act(() => {
       screen.getByRole("button", { name: "Toggle SAS" }).click();

@@ -71,6 +71,14 @@ namespace Sitrep.Contract
         /// report this tick (no active vessel / no action-group data), a null
         /// is the contract's documented "not available this tick", NOT an
         /// empty list, which would wrongly assert "this vessel has no groups".
+        ///
+        /// <para>A backend that can enumerate a group but not READ it reports
+        /// the entry with a null <see cref="ActionGroupState.State"/> rather
+        /// than dropping it or defaulting it to false. Those are three
+        /// different answers and the operator is owed the right one: dropping
+        /// the entry hides a group the vessel has, and false claims it is
+        /// disengaged. Whole-tick failure is still the list-level null above,
+        /// per-group failure is this.</para>
         /// </summary>
         IList<ActionGroupState>? Groups();
 

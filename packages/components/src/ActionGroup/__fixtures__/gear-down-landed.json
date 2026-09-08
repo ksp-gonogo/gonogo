@@ -15,13 +15,13 @@
       {
         "channel": "vessel.control",
         "value": {
-          "sas": null,
-          "rcs": null,
+          "sas": false,
+          "rcs": false,
           "gear": true,
-          "brakes": null,
-          "lights": null,
-          "abort": null,
-          "precisionControl": null,
+          "brakes": true,
+          "lights": true,
+          "abort": false,
+          "precisionControl": false,
           "actionGroups": [
             {
               "index": 1,

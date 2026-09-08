@@ -767,13 +767,19 @@ namespace Sitrep.Host
 
                     var index = GetInt(group, "index");
                     var state = GetBool(group, "state");
-                    if (!index.HasValue || !state.HasValue)
+                    if (!index.HasValue)
                     {
                         // Index is the identity (it's what a setActionGroup
-                        // command names) and State is the whole point of the
-                        // read -- a group missing either is not a group. Skip
-                        // it rather than inventing a default, same discipline
-                        // as BuildManeuver's missing-Ut rule.
+                        // command names), so an entry without one is not a
+                        // group. Skip it rather than inventing a default, same
+                        // discipline as BuildManeuver's missing-Ut rule.
+                        //
+                        // A missing STATE is not the same case and is no longer
+                        // skipped: State is nullable precisely so a backend that
+                        // enumerated a group but could not read it can say so,
+                        // and dropping the entry here would swallow that back
+                        // into the whole-tick null the client cannot tell from
+                        // "this vessel has no such group".
                         continue;
                     }
 
@@ -784,7 +790,7 @@ namespace Sitrep.Host
                         // backend that reported an index but no name still
                         // renders as something a human can read.
                         Name = GetString(group, "name") ?? ("AG" + index.Value),
-                        State = state.Value,
+                        State = state,
                     });
                 }
                 actionGroups = groups.ToArray();

@@ -367,6 +367,12 @@ export function buildToggleArgs(
  * A STOCK singleton has no `index` and reads its own typed field. `Stage` is
  * the odd one out: it isn't a control input at all, so it comes off
  * `vessel.structure.currentStage` and is the only NUMERIC readout here.
+ *
+ * `null` is a real answer and is passed through as one: a custom group's
+ * `state` is three-valued, and `null` means the backend reported the group but
+ * could not read it. A caller must not fold that into `false` (that is the
+ * substitution the nullable state exists to prevent) nor into `undefined` (a
+ * caller cannot then tell it from a group nobody reported at all).
  */
 export function resolveGroupValue(
   group: ActionGroup | undefined,

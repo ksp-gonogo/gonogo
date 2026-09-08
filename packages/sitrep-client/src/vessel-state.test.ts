@@ -1694,6 +1694,35 @@ describe("R6 action groups: vessel.state.actionGroups map + actionGroup{n} (v.ag
     expect(state?.actionGroupsNamed).toEqual(groups);
   });
 
+  /**
+   * A group the backend could not READ is a third answer, and this derivation
+   * used to have exactly two: `!!group.state` turned it into `false`, which
+   * says the group is disengaged. Absence of a group (`undefined`) and a group
+   * whose state nobody read (`null`) are also different facts, so both survive
+   * the split.
+   */
+  it("carries an unread group's null through rather than flattening it to false", () => {
+    const get = getFrom({
+      "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),
+      "vessel.control": pt<VesselControlPayload>({
+        sasMode: 0,
+        actionGroups: [
+          { index: 1, name: "Solar Panels", state: null },
+          { index: 2, name: "Radiators", state: false },
+          { index: 3, name: "Science Bay", state: true },
+        ],
+      }),
+    });
+    const state = deriveVesselState(get, 0);
+    expect(state?.actionGroups).toEqual({ "1": null, "2": false, "3": true });
+    expect(state?.actionGroup1).toBeNull();
+    // The neighbours prove the null is carried rather than the whole map
+    // having gone unknown.
+    expect(state?.actionGroup2).toBe(false);
+    // A group nobody reported stays `undefined`: a different fact again.
+    expect(state?.actionGroup4).toBeUndefined();
+  });
+
   it("undefined (all) when the array is absent; keys still present", () => {
     const get = getFrom({
       "vessel.orbit": orbitPoint(CIRCULAR_ORBIT, ONRAILS),

@@ -206,15 +206,34 @@ function ActionGroupComponent(
    * ever fills the pill and a held reading is exactly the empty case.
    */
   const valueNotCurrent = notCurrent(controlReading);
+  const observed =
+    controlReading.state === "observed" ? controlReading.value : undefined;
+  const value = resolveGroupValue(group, observed);
+  /**
+   * A current payload that still cannot say whether this group is engaged.
+   * `ActionGroupState.state` is three-valued for exactly this: a backend that
+   * reads each group separately (AGX does, through reflection) can fail on one
+   * group while the rest answer, and the whole-tick null on `actionGroups`
+   * cannot express that. The same holds for a stock singleton whose typed
+   * field arrived empty.
+   *
+   * A group the backend never reported at all is deliberately NOT this case:
+   * it is `provenance: "assumed"`, the registry invented it out of the saved
+   * config, and it has its own reason line downstream. Including it here would
+   * take those cases off that line and explain them with the wrong sentence.
+   */
+  const stateUnreadable =
+    observed !== undefined &&
+    group !== undefined &&
+    group.provenance !== "assumed" &&
+    value == null;
   return (
     <ActionGroupView
       {...props}
       group={group}
-      value={resolveGroupValue(
-        group,
-        controlReading.state === "observed" ? controlReading.value : undefined,
-      )}
+      value={value}
       valueNotCurrent={valueNotCurrent}
+      stateUnreadable={stateUnreadable}
     />
   );
 }
@@ -239,6 +258,9 @@ function StageActionGroup({
       group={group}
       value={stillTrue(structure, undefined)?.currentStage}
       valueNotCurrent={false}
+      // Stage reads a NUMBER off another topic, so the three-valued
+      // action-group state this flag reports on does not reach it.
+      stateUnreadable={false}
     />
   );
 }
@@ -251,11 +273,14 @@ function ActionGroupView({
   group,
   value,
   valueNotCurrent,
+  stateUnreadable,
 }: Readonly<ComponentProps<ActionGroupConfig>> & {
   group: ActionGroup | undefined;
   value: unknown;
   /** The state was withheld because it went stale, not because it never came. */
   valueNotCurrent: boolean;
+  /** A current payload named this group and could not say whether it is engaged. */
+  stateUnreadable: boolean;
 }) {
   const currentLabel = config?.label ?? group?.name ?? "";
 
@@ -336,7 +361,13 @@ function ActionGroupView({
   // genuine booleans.
   const isNumeric = typeof value === "number";
   const isOn = isNumeric ? value > 0 : value === true;
-  const isUnknown = value === undefined;
+  /**
+   * `== null` on purpose. A group's state arrives as `null` when the backend
+   * reported the group and could not read it, and as `undefined` when nothing
+   * has arrived for it at all. Neither one is OFF, and testing `undefined`
+   * alone drew an OFF toggle for the first of them.
+   */
+  const isUnknown = value == null;
   const stateLabel = isUnknown
     ? NULL_DISPLAY
     : isNumeric
@@ -366,6 +397,13 @@ function ActionGroupView({
   // from a broken widget: the operator sees an empty pill on a dashboard that
   // was showing ON a moment ago and has nothing to read the difference off.
   if (valueNotCurrent) unavailableReason = "State not current";
+  /*
+   * Immediately below staleness and ABOVE the two link/game conditions, because
+   * those are the arms it takes cases from. A group whose state nobody could
+   * read is the reason the pill above is empty; "Paused" is a confident
+   * sentence about a different screen. Staleness stays first: it is the broader
+   * answer and already covers this one.
+   */ else if (stateUnreadable) unavailableReason = "State unreadable";
   else if (isPaused === true) unavailableReason = "Paused";
   else if (commConnected === false) unavailableReason = "No signal";
   // Last, because unlike the three above this one does not stop the press:
@@ -378,9 +416,11 @@ function ActionGroupView({
   const unavailableTitle =
     unavailableReason === "State not current"
       ? "The last known state is too old to invert, so the toggle is held"
-      : unavailableReason === "Not reported"
-        ? "Configured, but no backend has reported this group, so its state is unknown"
-        : "The action group can't fire right now";
+      : unavailableReason === "State unreadable"
+        ? "The backend reported this group but could not read whether it is engaged, so the toggle is held"
+        : unavailableReason === "Not reported"
+          ? "Configured, but no backend has reported this group, so its state is unknown"
+          : "The action group can't fire right now";
 
   // Selective rendering: drop the secondary "official name" line when the
   // widget is narrow. The state pill is itself the toggle control, so it is
@@ -392,7 +432,14 @@ function ActionGroupView({
   // disables it for the same reason: `buildToggleArgs` refuses a non-boolean, so
   // the press is provably inert, and an inert-looking control beside a stated
   // reason is honest where a live-looking one that swallows the click is not.
-  const canToggle = Boolean(group.toggle) && !valueNotCurrent;
+  /**
+   * An unreadable state disables it on the same argument. There is nothing to
+   * invert, so the press is provably inert, and the reason line beside it says
+   * why. An "assumed" group stays live: the registry keeps a configured group
+   * operable on purpose.
+   */
+  const canToggle =
+    Boolean(group.toggle) && !valueNotCurrent && !stateUnreadable;
   // Bell is reachable from the alarms menu, at tiny size it just crowds the
   // pill and the size-locked button style breaks the layout.
   const showBell = getSizeBucket(w, h) !== "tiny" && Boolean(openAlarms);

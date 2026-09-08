@@ -403,8 +403,28 @@ namespace Sitrep.Contract
         /// mod is still pre-release with NO external Uplinks, and the app and mod
         /// ship together, so no artifact exists that was built against the old
         /// shape.</para>
+        ///
+        /// <para><b>Bumped 15 -&gt; 16: an action group can say its state is
+        /// unknown.</b> <see cref="ActionGroupState.State"/> retyped
+        /// <c>bool</c> -&gt; <c>bool?</c>. One <c>member-removed</c>, and the
+        /// same shape of break as the Major-4 line's <c>CommsDelay</c> nullable
+        /// retype.</para>
+        ///
+        /// <para>A plain bool structurally could not say "I could not read this
+        /// group", so it said the reassuring thing: disengaged. Whole-tick
+        /// failure already had a home (<see cref="VesselControl.ActionGroups"/>
+        /// is nullable), per-group failure had none, and a backend that reads
+        /// each group separately fails per-group. Stock cannot, and keeps
+        /// publishing a real bool; AGX reads each group through reflection and
+        /// can, which is where a swallowed failure was drawing an OFF toggle for
+        /// a group nobody had read.</para>
+        ///
+        /// <para>Sanctioned on the same standing grounds as every Major above: the
+        /// mod is still pre-release with NO external Uplinks, and the app and mod
+        /// ship together, so no artifact exists that was built against the old
+        /// shape.</para>
         /// </remarks>
-        public const int Major = 15;
+        public const int Major = 16;
 
         /// <summary>
         /// Reset to 0 alongside the Major 3 -&gt; 4 bump (see <see cref="Major"/>),

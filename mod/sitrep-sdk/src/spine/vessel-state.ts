@@ -181,7 +181,14 @@ export interface ActionGroupStatePayload {
   index: number;
   /** Display name. Stock: `"AG1".."AG10"`. AGX: the player's own names. */
   name: string;
-  state: boolean;
+  /**
+   * Whether the group is engaged. `null`/absent means the backend knows the
+   * group exists but could not read it, which is NOT the same as disengaged:
+   * collapsing the two draws an OFF toggle for a state nobody has read, and
+   * inverting it commands the wrong way. Stock never reports one (its indexer
+   * always answers); a per-group backend like AGX can.
+   */
+  state?: boolean | null;
 }
 
 export interface VesselControlPayload {
@@ -656,8 +663,13 @@ export interface VesselState {
    * 1-based group ids as strings. Populated in BOTH bases. `undefined` while
    * `vessel.control` hasn't arrived or the array is absent this tick; `null`
    * on a confirmed tombstone.
+   *
+   * A single entry's VALUE is `null` when the backend reported that group but
+   * could not read it (`ActionGroupStatePayload.state`). That is a third
+   * answer, not a falsy second one: `false` here means the operator can rely
+   * on the group being disengaged.
    */
-  actionGroups: Record<string, boolean> | null | undefined;
+  actionGroups: Record<string, boolean | null> | null | undefined;
   /**
    * The NAMED custom action groups as reported by whichever backend the mod
    * elected: `{ index, name, state }[]`, straight off
@@ -670,7 +682,13 @@ export interface VesselState {
    * tombstone.
    */
   actionGroupsNamed: ActionGroupStatePayload[] | null | undefined;
-  /** Action group 1 engaged: the entry whose `index` is 1 (old `v.ag1Value`). Same discipline as `actionGroups`. */
+  /**
+   * Action group 1 engaged: the entry whose `index` is 1 (old `v.ag1Value`).
+   * Same discipline as `actionGroups`, and `null` carries the same widened
+   * meaning: a confirmed tombstone, OR the backend reported this group and
+   * could not read it. Either way nobody knows, which is the answer a reader
+   * acts on; `undefined` still means no such group in the list.
+   */
   actionGroup1: boolean | null | undefined;
   /** Action group 2 engaged (old `v.ag2Value`). */
   actionGroup2: boolean | null | undefined;
@@ -1417,7 +1435,7 @@ function deriveIdentityFlags(get: DerivedGet): {
  * absent this tick; `null` (all) on a confirmed tombstone.
  */
 function deriveActionGroups(get: DerivedGet): {
-  actionGroups: Record<string, boolean> | null | undefined;
+  actionGroups: Record<string, boolean | null> | null | undefined;
   actionGroupsNamed: ActionGroupStatePayload[] | null | undefined;
   actionGroup1: boolean | null | undefined;
   actionGroup2: boolean | null | undefined;
@@ -1457,9 +1475,13 @@ function deriveActionGroups(get: DerivedGet): {
   // Key by each entry's OWN `index`, never by array position, position stopped
   // carrying identity when the wire shape became a named list, and an AGX
   // backend may report a sparse/unsorted range (e.g. 3, 42, 250).
-  const map: Record<string, boolean> = {};
-  for (const group of arr) map[String(group.index)] = !!group.state;
-  const at = (n: number): boolean | undefined => map[String(n)];
+  // An entry's own `state` is three-valued, so it is carried across rather
+  // than coerced: `!!group.state` used to turn "the backend could not read
+  // this group" into "this group is off", which is the exact substitution the
+  // nullable state exists to stop. Null in, null out; a reader branches.
+  const map: Record<string, boolean | null> = {};
+  for (const group of arr) map[String(group.index)] = group.state ?? null;
+  const at = (n: number): boolean | null | undefined => map[String(n)];
   return {
     actionGroups: map,
     // The named list, passed through verbatim so the client's ACTION_GROUPS registry can derive its custom half (labels included) straight from telemetry rather than hardcoding "AG1".."AG10".
