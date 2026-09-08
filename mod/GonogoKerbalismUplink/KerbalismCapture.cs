@@ -13,6 +13,90 @@ namespace Gonogo.KerbalismUplink
     /// </summary>
     public static class KerbalismCapture
     {
+        /// <summary>
+        /// The scalar snapshot, assembled from Kerbalism's API reads and nothing
+        /// else. Every delegate is one of <c>KerbalismReflection</c>'s entry
+        /// points with the vessel already bound, so the whole of the
+        /// absence-versus-zero decision lives here rather than in the
+        /// KSP-bound caller, where nothing headless could reach it.
+        ///
+        /// <para>NOTHING is substituted. An unanswered read stays null and rides
+        /// to the wire as null, which every field it maps to already declares;
+        /// an unanswered RATE has its key omitted, which
+        /// <c>KerbalismLifeSupport.Rates</c> already declares as its spelling for
+        /// "no rate reported". Both were fabricated zeros, and both had a
+        /// consumer-side guard standing unreachable behind them: see
+        /// <see cref="KerbalismDeathClock.SoonestFatalSeconds"/>, which answers
+        /// "not derivable" on a missing rate and read a zero as a rule in
+        /// balance.</para>
+        /// </summary>
+        public static KerbalismSnapshot BuildSnapshot(
+            Func<string, double?> api,
+            Func<string, bool?> apiBool,
+            Func<string, double?> amount,
+            Func<string, double?> capacity,
+            IEnumerable<string> rateResources,
+            Func<string, double?> rate)
+        {
+            var rates = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var name in rateResources)
+            {
+                var reading = rate(name);
+                if (reading.HasValue) rates[name] = reading.Value;
+            }
+
+            return new KerbalismSnapshot
+            {
+                Radiation = api("Radiation"),
+                HabitatRadiation = api("HabitatRadiation"),
+                Magnetosphere = apiBool("Magnetosphere"),
+                InnerBelt = apiBool("InnerBelt"),
+                OuterBelt = apiBool("OuterBelt"),
+                StormIncoming = apiBool("StormIncoming"),
+                StormInProgress = apiBool("StormInProgress"),
+                Blackout = apiBool("Blackout"),
+                InSunlight = apiBool("InSunlight"),
+                ShieldingAmount = amount("Shielding"),
+                ShieldingCapacity = capacity("Shielding"),
+                Rates = rates,
+                Pressure = api("Pressure"),
+                Poisoning = api("Poisoning"),
+                Shielding = api("Shielding"),
+                LivingSpace = api("LivingSpace"),
+                Comfort = api("Comfort"),
+                Volume = api("Volume"),
+                Surface = api("Surface"),
+            };
+        }
+
+        /// <summary>
+        /// The amount held of each resource a RULE consumes, which is what the
+        /// death clock's first stage needs (how long until degeneration starts)
+        /// and the only reason amounts are read at all: the life-support channel
+        /// deliberately carries rates only, because <c>vessel.resources</c>
+        /// already carries amounts for the active craft. Rule inputs rather than
+        /// every profile resource, so the read stays a handful of lookups.
+        ///
+        /// <para>A resource whose amount could not be read is OMITTED rather than
+        /// carried at zero, because
+        /// <see cref="KerbalismDeathClock.SoonestFatalSeconds"/> reads a missing
+        /// key as "not derivable" and a zero as an EMPTY TANK, which brings every
+        /// deadline that rule feeds forward to now.</para>
+        /// </summary>
+        public static Dictionary<string, double> RuleInputAmounts(
+            ProfileRaw profile,
+            Func<string, double?> amount)
+        {
+            var map = new Dictionary<string, double>(StringComparer.Ordinal);
+            foreach (var rule in profile.Rules)
+            {
+                if (rule == null || rule.Input.Length == 0 || map.ContainsKey(rule.Input)) continue;
+                var held = amount(rule.Input);
+                if (held.HasValue) map[rule.Input] = held.Value;
+            }
+            return map;
+        }
+
         public static Dictionary<string, object?> BuildSpaceWeather(
             KerbalismSnapshot s,
             IEnumerable<StarInfoRaw>? stars = null,
@@ -331,12 +415,24 @@ namespace Gonogo.KerbalismUplink
         }
     }
 
-    /// <summary>Plain scalar snapshot of one vessel's Kerbalism state (KSP-free).</summary>
+    /// <summary>
+    /// Plain scalar snapshot of one vessel's Kerbalism state (KSP-free).
+    ///
+    /// <para>Every scalar is NULLABLE, and null means Kerbalism's API did not
+    /// answer for that reading rather than that the reading is zero. The
+    /// distinction is the whole point on this struct: these are claims about
+    /// whether a crew can breathe, and each of the payload fields they map to is
+    /// already declared nullable. Kerbalism's API is reached per method name, so
+    /// one reading going unreadable while its neighbours answer is the ordinary
+    /// case (a version that moved or dropped that one method), not an
+    /// install-wide failure. A substituted zero then said "no radiation", "no
+    /// CO2 build-up" or "cabin at vacuum" with everything beside it live.</para>
+    /// </summary>
     public struct KerbalismSnapshot
     {
-        public double Radiation, HabitatRadiation, ShieldingAmount, ShieldingCapacity;
-        public bool Magnetosphere, InnerBelt, OuterBelt, StormIncoming, StormInProgress, Blackout, InSunlight;
-        public double Pressure, Poisoning, Shielding, LivingSpace, Comfort, Volume, Surface;
+        public double? Radiation, HabitatRadiation, ShieldingAmount, ShieldingCapacity;
+        public bool? Magnetosphere, InnerBelt, OuterBelt, StormIncoming, StormInProgress, Blackout, InSunlight;
+        public double? Pressure, Poisoning, Shielding, LivingSpace, Comfort, Volume, Surface;
         /// <summary>
         /// Signed net rate per resource (units/s), keyed by KSP resource name.
         /// Replaced the Food/Water/Oxygen/ElectricCharge triples: those were four
@@ -344,6 +440,12 @@ namespace Gonogo.KerbalismUplink
         /// three separate files. The names here come from
         /// <see cref="KerbalismCapture.ResourceNames"/> reading the loaded
         /// profile, never from a list in gonogo.
+        ///
+        /// <para>A resource Kerbalism reports no rate for is OMITTED, never
+        /// carried at zero: <c>KerbalismLifeSupport.Rates</c> declares a present
+        /// zero to be a measured balance, and <see cref="KerbalismDeathClock"/>
+        /// reads one as "this rule is not closing in on anyone" and skips the
+        /// rule.</para>
         /// </summary>
         public Dictionary<string, double> Rates;
     }

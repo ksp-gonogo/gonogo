@@ -272,7 +272,14 @@ export interface RealAntennasTargetArgs
 	latitude?: number;
 	/** Longitude (degrees, -180..360), for `BodyLatLonAlt`. */
 	longitude?: number;
-	/** Altitude above the surface (metres), for `BodyLatLonAlt`. */
+	/**
+	* Altitude above the surface (metres), for `BodyLatLonAlt`. Omitted means the
+	* surface, altitude 0: the aim point is a three-component vector with no
+	* spelling for a missing component, and a lat/lon with no altitude is not an
+	* ambiguous request. `RealAntennasTargetArgs.latitude` and
+	* `RealAntennasTargetArgs.longitude` have no such default and are REFUSED when
+	* absent, because 0, 0 is a specific place nobody asked for.
+	*/
 	altitude?: number;
 	/** Azimuth (degrees, 0..360), for `AzEl`. */
 	azimuth?: number;
