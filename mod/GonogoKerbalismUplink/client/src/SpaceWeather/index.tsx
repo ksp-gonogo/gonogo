@@ -84,6 +84,12 @@ interface SpaceWeatherData {
   innerBelt: boolean;
   outerBelt: boolean;
   magnetosphere: boolean;
+  /**
+   * Also a stated false, for a different reason from the three above: this is
+   * the GROUND's prediction off the star, never the vessel's own report (a
+   * blackout kills the downlink that would carry one). False draws no tag, which
+   * is "no blackout predicted" and not "the link is up".
+   */
   blackout: boolean;
   /** Null when unreported: the pair is a FRACTION, and a fabricated denominator invents one. */
   shieldingValue: number | null;

@@ -18,7 +18,7 @@ public class KerbalismDeathClockTests
     private static RuleDefRaw Breathing() => new()
     {
         Name = "breathing", Input = "Oxygen", Rate = 0.00172379825,
-        Degeneration = 0.005555555555555556, FatalThreshold = 1.0,
+        Degeneration = 0.005555555555555556, FatalThreshold = 1.0, Breakdown = false,
     };
 
     private static KerbalRulesRaw Kerbal(params (string Rule, double Value)[] problems)
@@ -84,7 +84,7 @@ public class KerbalismDeathClockTests
         // the first tick: no stage one at all.
         var radiation = new RuleDefRaw
         {
-            Name = "radiation", Input = "", Degeneration = 1.0, FatalThreshold = 50.0,
+            Name = "radiation", Input = "", Degeneration = 1.0, FatalThreshold = 50.0, Breakdown = false,
         };
 
         var deadline = KerbalismDeathClock.SoonestFatalSeconds(
@@ -107,7 +107,7 @@ public class KerbalismDeathClockTests
         var eating = new RuleDefRaw
         {
             Name = "eating", Input = "Food", Interval = 10_800.0,
-            Degeneration = 0.0025, FatalThreshold = 1.0,
+            Degeneration = 0.0025, FatalThreshold = 1.0, Breakdown = false,
         };
 
         var deadline = KerbalismDeathClock.SoonestFatalSeconds(
@@ -137,11 +137,26 @@ public class KerbalismDeathClockTests
     }
 
     [Fact]
+    public void ARuleWhoseBreakdownFlagWentUnreadMakesTheAnswerUnknown()
+    {
+        // The flag is the whole difference between a rule that kills and one
+        // that resets the accumulator, so an unread one cannot be assumed
+        // either way: false puts a deadline on stress, true drops a real one.
+        var unread = new RuleDefRaw
+        {
+            Name = "stress", Input = "", Degeneration = 1.0, FatalThreshold = 1.0, Breakdown = null,
+        };
+
+        Assert.Null(KerbalismDeathClock.SoonestFatalSeconds(
+            Kerbal(("stress", 0.99)), new[] { unread }, null, null, null));
+    }
+
+    [Fact]
     public void TheSoonestOfSeveralRulesWins()
     {
         var radiation = new RuleDefRaw
         {
-            Name = "radiation", Input = "", Degeneration = 1.0, FatalThreshold = 100.0,
+            Name = "radiation", Input = "", Degeneration = 1.0, FatalThreshold = 100.0, Breakdown = false,
         };
 
         var deadline = KerbalismDeathClock.SoonestFatalSeconds(
@@ -177,6 +192,7 @@ public class KerbalismDeathClockTests
         var varying = new RuleDefRaw
         {
             Name = "breathing", Input = "", Degeneration = 1.0, FatalThreshold = 1.0, Variance = 0.1,
+            Breakdown = false,
         };
 
         Assert.Null(KerbalismDeathClock.SoonestFatalSeconds(

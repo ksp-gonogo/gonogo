@@ -239,6 +239,9 @@ function toGreenhouseRow(g: KerbalismGreenhouseEntry): GreenhouseRow {
     cropResource: g.cropResource || "Food",
     natural: magnitudeOf(g.natural),
     artificial: magnitudeOf(g.artificial),
+    // Unreachable today rather than justified: no producer fills `greenhouses`
+    // at all (the contract says so on the field), so this coerces nothing. It
+    // needs revisiting the day the capture starts emitting them.
     active: g.active ?? false,
     issue: g.issue ?? "",
     radiationToleranceRadPerSec: magnitudeOr(g.radiationToleranceRadPerSec, 0),

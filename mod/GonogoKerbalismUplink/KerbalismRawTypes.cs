@@ -109,7 +109,13 @@ namespace Gonogo.KerbalismUplink
         public double Interval;
         public double Degeneration;
         public double FatalThreshold;
-        public bool Breakdown;
+        /// <summary>
+        /// Whether reaching fatal triggers a recoverable breakdown instead of
+        /// killing. Null when the flag went unread, which is not false: false is
+        /// what <c>KerbalismDeathClock</c> and the client's "no fatal rule
+        /// exists on this install" test both read as "this rule kills".
+        /// </summary>
+        public bool? Breakdown;
 
         /// <summary>
         /// Per-kerbal randomisation of the degeneration rate, +/- this fraction

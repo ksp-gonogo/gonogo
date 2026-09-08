@@ -121,6 +121,11 @@ namespace Gonogo.KerbalismUplink
         /// lab-adjacent drive (other than the source) has room for the FULL
         /// sample; a partial move would leave the sample split across two
         /// drives, a worse state than refusing.</para>
+        ///
+        /// <para>Fails <see cref="CommandErrorCode.NotFound"/> when the sample's
+        /// size, mass or crediting flag cannot be read: those three are what the
+        /// destination copy is written FROM, so a substituted one would be
+        /// recorded into the save rather than merely displayed wrong.</para>
         /// </summary>
         public CommandResult MoveToLab(string subjectId)
         {
@@ -155,13 +160,21 @@ namespace Gonogo.KerbalismUplink
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
 
-            var size = _k.SampleSize(sample);
-            var mass = _k.SampleMass(sample);
-            var useStockCrediting = _k.SampleUsesStockCrediting(sample);
-            if (size <= 0)
+            // A move REWRITES the sample onto the destination drive from these
+            // three reads, so a substituted one is not a display error, it is
+            // recorded into the save: a mass of 0 makes the sample weightless,
+            // and a fabricated crediting flag changes what recovery pays. Refuse
+            // rather than write a sample nobody described.
+            var sizeRead = _k.SampleSize(sample);
+            var massRead = _k.SampleMass(sample);
+            var creditingRead = _k.SampleUsesStockCrediting(sample);
+            if (sizeRead is not > 0 || !massRead.HasValue || !creditingRead.HasValue)
             {
                 return CommandResult.Fail(CommandErrorCode.NotFound);
             }
+            var size = sizeRead.Value;
+            var mass = massRead.Value;
+            var useStockCrediting = creditingRead.Value;
 
             var candidates = new List<MoveDestinationCandidate>(drives.Count);
             foreach (var candidate in drives)

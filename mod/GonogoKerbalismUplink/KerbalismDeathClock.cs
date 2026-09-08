@@ -65,9 +65,17 @@ namespace Gonogo.KerbalismUplink
             double? soonest = null;
             foreach (var rule in rules)
             {
-                if (rule == null || rule.Breakdown || rule.Degeneration <= Epsilon)
+                if (rule == null || rule.Degeneration <= Epsilon || rule.Breakdown == true)
                 {
                     continue;
+                }
+                // Whether a degenerating rule kills or resets is the only thing
+                // that decides if it belongs in this clock, so an unread flag
+                // makes the whole answer unknown: guessing "kills" puts a
+                // deadline on stress, guessing "resets" drops a real one.
+                if (rule.Breakdown == null)
+                {
+                    return null;
                 }
                 // A threshold of zero is our read failing, not a rule that kills
                 // on contact: Kerbalism's own default is 1.0.

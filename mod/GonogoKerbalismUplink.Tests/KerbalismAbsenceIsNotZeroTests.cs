@@ -263,6 +263,7 @@ public class KerbalismAbsenceIsNotZeroTests
                 Input = "Oxygen",
                 Degeneration = 0.002,
                 FatalThreshold = 1.0,
+                Breakdown = false,
             },
         };
 }
