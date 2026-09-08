@@ -128,6 +128,37 @@ describe("what an operator reads when the game says no", () => {
     expect(sentence).not.toContain("0");
   });
 
+  it("says nothing about the craft when the mod could not read the answer", () => {
+    // `Unreadable` means the provider was asked and could not answer, so the
+    // one thing this sentence must not do is describe the vehicle. Both arms
+    // this was split out of do exactly that: `CapabilityMismatch` renders "this
+    // craft cannot do it" and `ModeUnavailable` renders "the game would not say
+    // why", which reads as a reason that was withheld rather than an answer
+    // that never arrived.
+    const sentence = commandRefusalSentence({
+      errorCode: CommandErrorCode.Unreadable,
+      command: "vessel.control.stage",
+    });
+    expect(sentence).toBe("Stage refused: the game would not answer.");
+    expect(sentence).not.toContain("craft");
+    expect(sentence).not.toContain("cannot");
+  });
+
+  it("prefers what the mod named over the general unreadable sentence", () => {
+    // The general row is the floor. A producer that knows WHICH read failed
+    // says so, and that clause wins the same way it does for every other arm.
+    expect(
+      commandRefusalSentence({
+        errorCode: CommandErrorCode.Unreadable,
+        command: "vessel.control.stage",
+        detail:
+          "The stage count could not be read, so nothing was sent. It may or may not have staged already",
+      }),
+    ).toBe(
+      "Stage refused: The stage count could not be read, so nothing was sent. It may or may not have staged already.",
+    );
+  });
+
   it("falls back to the reason's own name for an arm it has no sentence for", () => {
     // Only `Unknown` and `None` get here now: every arm the mod actually
     // refuses with has prose. The fallback stays because a NEWER mod can send

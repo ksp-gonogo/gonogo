@@ -98,6 +98,45 @@ namespace Gonogo.RealAntennasUplink
         }
 
         /// <summary>
+        /// Whether an antenna of this SHAPE can be aimed, and the refusal when it
+        /// cannot. Three answers rather than two, because
+        /// <c>RaReflection.Steerable</c> has three: a dish proceeds, an omni is
+        /// refused as an omni, and an antenna whose shape did not read is refused
+        /// as unread.
+        ///
+        /// <para>The third arm is <see cref="CommandErrorCode.Unreadable"/> and
+        /// deliberately not <see cref="CommandErrorCode.CapabilityMismatch"/>,
+        /// which the omni arm above it earns by having been told so. A failed
+        /// read establishes nothing about the hardware, and folding it into the
+        /// omni arm reported a dish as an omni on the strength of a reflection
+        /// call that failed.</para>
+        /// </summary>
+        public static bool TrySteerable(
+            bool? steerable,
+            string? antennaName,
+            out CommandErrorCode error,
+            out string? detail)
+        {
+            error = CommandErrorCode.None;
+            detail = null;
+            var name = antennaName ?? "";
+            if (steerable == true)
+            {
+                return true;
+            }
+            if (steerable == false)
+            {
+                error = CommandErrorCode.CapabilityMismatch;
+                detail = "'" + name + "' is an omni antenna and cannot be aimed.";
+                return false;
+            }
+            error = CommandErrorCode.Unreadable;
+            detail = "Could not read whether '" + name
+                + "' can be aimed, so nothing was sent. It may or may not be an omni.";
+            return false;
+        }
+
+        /// <summary>
         /// The mode names an antenna at <paramref name="antennaTechLevel"/> has
         /// earned, for <c>RealAntennasAntennaState.AvailableTargetModes</c>.
         /// Ordered as <see cref="AllModes"/> is, so a client's picker does not

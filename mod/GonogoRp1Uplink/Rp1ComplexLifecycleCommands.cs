@@ -312,7 +312,7 @@ namespace GonogoRp1Uplink
             if (canDismantle == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say whether " + name + " can be dismantled, so nothing was changed"));
             }
             if (canDismantle != true)
@@ -353,7 +353,7 @@ namespace GonogoRp1Uplink
             if (padConstructions == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say whether a pad at " + name + " is under construction, so nothing was changed"));
             }
             if (padConstructions.Value > 0)
@@ -552,7 +552,7 @@ namespace GonogoRp1Uplink
             if (operationalPads == null)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say how many working pads " + complexName + " has, so nothing was changed");
             }
 
@@ -641,7 +641,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable)
             {
                 refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's launch-complex model could not be resolved, so nothing was changed");
                 return false;
             }

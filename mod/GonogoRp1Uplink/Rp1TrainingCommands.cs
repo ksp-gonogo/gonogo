@@ -150,7 +150,7 @@ namespace GonogoRp1Uplink
                 var roster = Roster();
                 if (roster == null)
                 {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable, "The crew roster could not be read.");
+                    return CommandResult.Fail(CommandErrorCode.Unreadable, "The crew roster could not be read.");
                 }
 
                 var students = new List<object>();
@@ -384,7 +384,7 @@ namespace GonogoRp1Uplink
             if (required == null || current == null)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's Astronaut Complex requirement could not be read, and enrolling past it would start a course RP-1's own screen would not offer.");
             }
             if (required.Value > current.Value)

@@ -9172,6 +9172,27 @@ components:
 
             Deliberately NOT `CommandErrorCode.LimitReached`, which is a capacity that
             is FULL. This is a store that is empty, and the two read as opposites.
+        - const: 23
+          title: Unreadable
+          description: |-
+            The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the
+            save or the moment was established, so the one fact this refusal carries is
+            that the question went unanswered.
+
+            None of its three neighbours, and folding it into any of them states
+            something that was never established rather than merely stating it coarsely.
+            "The answer is no" (a genuine omni antenna asked to aim) is a FACT about the
+            craft, and that is `CommandErrorCode.CapabilityMismatch`. "Not applicable"
+            (asked of a craft that carries nothing this command could act on) is a
+            refusal about what is there at all, and that is `CommandErrorCode.NotFound`.
+            "Not yet" resolves by waiting, which is
+            `CommandErrorCode.NotClearToProceed`; this does not resolve by waiting, and
+            a retry is a second attempt at the same question rather than a later one.
+
+            `CommandResult.detail` names WHAT could not be read when the producer had a
+            name for it, and never says what the answer would have been. A surface has
+            nothing to tell the operator about their vehicle here, because nothing was
+            learned about it; offering the command again is the only honest next move.
     CommandRequest:
       type: object
       description: |-

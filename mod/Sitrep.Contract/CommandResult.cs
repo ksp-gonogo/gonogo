@@ -303,6 +303,52 @@ public enum CommandErrorCode
     /// opposites.</para>
     /// </summary>
     InsufficientResource = 22,
+
+    /// <summary>
+    /// The provider was ASKED and COULD NOT ANSWER. Nothing about the craft, the
+    /// save or the moment was established, so the one fact this refusal carries
+    /// is that the question went unanswered.
+    ///
+    /// <para>None of its three neighbours, and folding it into any of them
+    /// states something that was never established rather than merely stating it
+    /// coarsely. "The answer is no" (a genuine omni antenna asked to aim) is a
+    /// FACT about the craft, and that is
+    /// <see cref="CapabilityMismatch"/>. "Not applicable" (asked of a craft that
+    /// carries nothing this command could act on) is a refusal about what is
+    /// there at all, and that is <see cref="NotFound"/>. "Not yet" resolves by
+    /// waiting, which is <see cref="NotClearToProceed"/>; this does not resolve
+    /// by waiting, and a retry is a second attempt at the same question rather
+    /// than a later one.</para>
+    ///
+    /// <para><see cref="CommandResult.Detail"/> names WHAT could not be read
+    /// when the producer had a name for it, and never says what the answer would
+    /// have been. A surface has nothing to tell the operator about their vehicle
+    /// here, because nothing was learned about it; offering the command again is
+    /// the only honest next move.
+    /// <internal>
+    /// In practice a reflection read whose member does not resolve on the loaded
+    /// assembly, or resolves and throws: the fail-soft posture every Uplink
+    /// takes towards a third-party mod it cannot compile against, and the same
+    /// posture a nullable read carries through the capture layers.
+    ///
+    /// Split out because both arms that were carrying it assert something the
+    /// read never established. <see cref="CapabilityMismatch"/> is documented as
+    /// "the craft would have to be different for this to work" and renders as
+    /// "this craft cannot do it", which is the original defect one layer down.
+    /// <see cref="ModeUnavailable"/> renders as "the game would not say why",
+    /// which describes the SHAPE of the answer rather than a cause and leaves a
+    /// client structurally unable to tell a failed read from a real mode
+    /// refusal: the whole reason this enum is typed.
+    ///
+    /// First caller: an unread antenna shape in the elected comms Uplink, which
+    /// had to settle for <see cref="ModeUnavailable"/> for want of this arm
+    /// after the same read had been publishing an unread dish as an omni. The
+    /// career Uplink's command surface holds by far the most of them, every one
+    /// already carrying a Detail that said the read failed while the code said
+    /// otherwise.
+    /// </internal></para>
+    /// </summary>
+    Unreadable = 23,
 }
 
 /// <summary>

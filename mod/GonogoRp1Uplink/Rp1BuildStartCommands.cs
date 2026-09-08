@@ -252,7 +252,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's build model could not be resolved, so nothing was started");
             }
 

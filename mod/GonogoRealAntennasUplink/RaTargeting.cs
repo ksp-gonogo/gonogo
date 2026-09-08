@@ -289,11 +289,10 @@ namespace Gonogo.RealAntennasUplink
         /// Resolves an antenna id to a steerable antenna on the reported craft,
         /// or the refusal that says why not.
         ///
-        /// <para>Three outcomes, not two, because <c>Steerable</c> has three
-        /// answers: a dish proceeds, an omni is refused as an omni, and an
-        /// antenna whose shape could not be read is refused as unread. Folding
-        /// the third into the second told an operator their dish was an omni on
-        /// the strength of a reflection call that failed.</para>
+        /// <para>The shape half of that decision is
+        /// <see cref="RaTargetPlan.TrySteerable"/>: three outcomes rather than
+        /// two, and KSP-free so every arm of it is reachable headlessly. This
+        /// method supplies the two reads it judges.</para>
         /// </summary>
         private bool TryResolveSteerable(
             Vessel? vessel, string? antennaId, out object? antenna, out CommandResult? refusal)
@@ -318,29 +317,13 @@ namespace Gonogo.RealAntennasUplink
             }
 
             antenna = antennas[index];
-            var steerable = _ra.Steerable(antenna);
-            var name = _ra.AntennaName(antenna) ?? antennaId;
-            if (steerable == false)
+            if (!RaTargetPlan.TrySteerable(
+                    _ra.Steerable(antenna),
+                    _ra.AntennaName(antenna) ?? antennaId,
+                    out var error,
+                    out var detail))
             {
-                refusal = CommandResult.Fail(
-                    CommandErrorCode.CapabilityMismatch,
-                    "'" + name + "' is an omni antenna and cannot be aimed.");
-                antenna = null;
-                return false;
-            }
-            if (steerable == null)
-            {
-                // Deliberately NOT the omni sentence, and deliberately not
-                // CapabilityMismatch. Both say the craft would have to be
-                // different for this to work, and neither was established: the
-                // read of RealAntennas' `Shape` failed, so the one thing known
-                // is that nothing is known. ModeUnavailable is the coarse arm
-                // for exactly that, and its general wording ("the game would
-                // not say why") stays true if this Detail is ever dropped.
-                refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
-                    "Could not read whether '" + name
-                        + "' can be aimed, so nothing was sent. It may or may not be an omni.");
+                refusal = CommandResult.Fail(error, detail);
                 antenna = null;
                 return false;
             }

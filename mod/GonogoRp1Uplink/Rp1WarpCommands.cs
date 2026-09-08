@@ -295,7 +295,7 @@ namespace GonogoRp1Uplink
             if (target == null)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say whether a fund target is standing, so nothing was warped");
             }
 
@@ -324,7 +324,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable)
             {
                 refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's warp model could not be resolved, so nothing was warped");
                 return false;
             }

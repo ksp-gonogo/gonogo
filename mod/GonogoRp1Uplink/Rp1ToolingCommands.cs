@@ -127,7 +127,7 @@ namespace GonogoRp1Uplink
                 if (cost == null)
                 {
                     return CommandResult.Fail(
-                        CommandErrorCode.ModeUnavailable,
+                        CommandErrorCode.Unreadable,
                         "RP-1's tooling price for this vehicle could not be read.");
                 }
 

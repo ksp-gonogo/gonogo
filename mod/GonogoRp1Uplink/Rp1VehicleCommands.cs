@@ -180,7 +180,7 @@ namespace GonogoRp1Uplink
         ///
         /// <para>The gate belongs where <see cref="Rp1BuildCommands.IsAvailable"/>
         /// puts it: on the types, with the method lookups done at the press and
-        /// refused with a typed <see cref="CommandErrorCode.ModeUnavailable"/> and
+        /// refused with a typed <see cref="CommandErrorCode.Unreadable"/> and
         /// a sentence naming what was not recognised. Every handler here already
         /// did that, so nothing was gained by refusing to declare the command as
         /// well, and an operator lost the reason. A control that says "this RP-1
@@ -680,7 +680,7 @@ namespace GonogoRp1Uplink
             if (moving ? !IsMoveAvailable : !IsAvailable)
             {
                 refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's build model could not be resolved, so nothing was changed");
                 return false;
             }

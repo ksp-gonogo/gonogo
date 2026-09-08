@@ -123,7 +123,7 @@ namespace GonogoRp1Uplink
                     : Count(instance, "Researchers");
                 if (current == null)
                 {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable, "The current staff count could not be read.");
+                    return CommandResult.Fail(CommandErrorCode.Unreadable, "The current staff count could not be read.");
                 }
 
                 if (args.TargetCount.Value <= current.Value)
@@ -198,7 +198,7 @@ namespace GonogoRp1Uplink
                 var funds = Rp1Types.ReadDouble(fundingInstance, "Funds");
                 if (funds == null)
                 {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable, "The career's balance could not be read.");
+                    return CommandResult.Fail(CommandErrorCode.Unreadable, "The career's balance could not be read.");
                 }
 
                 if (args.TargetFunds.Value == funds.Value)
@@ -276,7 +276,7 @@ namespace GonogoRp1Uplink
                 var project = Rp1Types.Member(instance, field);
                 if (project == null)
                 {
-                    return CommandResult.Fail(CommandErrorCode.ModeUnavailable, $"RP-1's {what} could not be read.");
+                    return CommandResult.Fail(CommandErrorCode.Unreadable, $"RP-1's {what} could not be read.");
                 }
 
                 // Asked before clearing, so a cancel with nothing to cancel says

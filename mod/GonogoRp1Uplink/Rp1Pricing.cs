@@ -129,7 +129,7 @@ namespace GonogoRp1Uplink
         /// how a career ends up in negative funds with nothing to show for it.
         /// </summary>
         private static CommandResult Unreadable(Exception? ex) => CommandResult.Fail(
-            CommandErrorCode.ModeUnavailable,
+            CommandErrorCode.Unreadable,
             "RP-1's own price for this vehicle could not be read, so the build was not started"
             + (ex == null ? "" : ": " + Rp1Types.ExceptionReason(ex)));
 
