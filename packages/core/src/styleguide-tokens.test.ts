@@ -469,6 +469,28 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * transfer table's two cells are neither chip, control nor surface. The warp
    * buttons are the transposed pair.
    *
+   * It then fell 10 when the compact control tier landed. That tranche is not a
+   * widget going over: it is the one shape this table had been calling a FLOOR
+   * CONFLICT since the first pass, given a name. Ten pressable boxes across six
+   * files would OVERFLOW what holds them at --control-height (three tile-header
+   * glyph trays inside an 18px handle, a note's stacked action column beside a
+   * body about that tall, and the station-name chip's two states inside an
+   * overlay logged swallowing the clicks underneath), so they all kept rungs
+   * with that written beside them. --inset-control-compact
+   * is (hair,4): the same class, at `control`'s own arithmetic a tier down,
+   * 2 inset + 2 border + a 14px glyph = 18, which is the drag header exactly.
+   * Three of the ten do not move, four grow 4px wider, two lose 2px of height
+   * and 4px of width, and one loses 2px of height. Arithmetic at `:root`, not a
+   * rendered measurement, and it is the same at every tier: `Card` steps the
+   * two gap names and says in writing that insets do not step.
+   *
+   * The target picker's three did NOT take it, and the reason is class rather
+   * than size. Two of the three are pressable and the third is the <div>
+   * heading they align with, so a control name cannot reach it, and moving the
+   * two toggles alone to the compact 1px vertical breaks the left-edge
+   * agreement that is the whole reason all three are held together. It stays
+   * the floor conflict wearing a list-header hat, named below.
+   *
    * The cohort unit is the WIDGET, not the declaration. A half-migrated widget
    * can have a converted declaration and its unconverted sibling differ by up
    * to 4px, so a file goes from its seeded number to zero in one landing and
@@ -494,31 +516,20 @@ const BASELINES: Record<Family, Record<string, number>> = {
      */
     "packages/app/src/components/ComponentOverlay.tsx": 5,
     /*
-     * A tile's drag header is 18px on the desktop branch and its glyph buttons
-     * are sized to fit it, so --inset-control, which is the other half of
-     * --control-height at 28, cannot describe them. The tray gap goes with
-     * them: five glyphs ride it and the widget's name has the rest of the row.
+     * What remains here is the tray GAP, not an inset: five glyphs ride it and
+     * the widget's name has the rest of the row, so the default gap would take
+     * 32px of that name away. The glyph buttons that used to sit beside it in
+     * this entry are on --inset-control-compact now, along with the drag-header
+     * trays in shared.tsx, WidgetGearMenu.tsx and PushedDashboardOverlay.tsx
+     * that cross-referenced them.
      */
-    "packages/app/src/components/Dashboard/MobileDashboard.tsx": 2,
-    "packages/app/src/components/Dashboard/shared.tsx": 2,
-    "packages/app/src/components/Dashboard/WidgetGearMenu.tsx": 1,
+    "packages/app/src/components/Dashboard/MobileDashboard.tsx": 1,
     "packages/app/src/components/FlightOutcomeBanner.tsx": 1,
     "packages/app/src/components/SceneChangeBanner.tsx": 1,
     /* The screenshot preview's 10px gap: the one gap rung with no name over
        it, --gap-related being 8 and --gap-section 16. */
     "packages/app/src/logs/LogsManager.tsx": 1,
-    /* Three glyphs stacked in PAIRS down the side of a note whose one-line
-       body is about as tall as one control inset would make them. */
-    "packages/app/src/notes/NotesComponent.tsx": 3,
-    "packages/app/src/pushToMain/PushedDashboardOverlay.tsx": 2,
-    /*
-     * The only real controls in this package still on rungs, and the file says
-     * why at length: they are the two states of one chip inside a fixed
-     * overlay with a logged history of swallowing clicks meant for the
-     * dashboard under it, so the control inset's 8px of height and 12px of
-     * width are not free.
-     */
-    "packages/app/src/stationIdentity/StationNameEditor.tsx": 2,
+    "packages/app/src/pushToMain/PushedDashboardOverlay.tsx": 1,
     /* The kerf between the four bars of the signal-strength icon, which is
        glyph geometry rather than a seam between siblings: a gap name would put
        8px between them and the icon would stop reading as one glyph. */
@@ -857,7 +868,7 @@ const FAMILIES: Record<Family, FamilySpec> = {
     offence: "raw spacing rung(s) in a shape a semantic name covers",
     properties: [...GAP_PROPERTIES, ...INSET_PROPERTIES],
     remedy:
-      "name the JOB instead: --gap-related between siblings of the same kind (the default) and --gap-section between groups of different kinds, --inset-chip/control/surface inside an edge. The rungs stay right for every shape those five names cannot express, which tokens.css lists",
+      "name the JOB instead: --gap-related between siblings of the same kind (the default) and --gap-section between groups of different kinds, --inset-chip/control/control-compact/surface inside an edge. The rungs stay right for every shape those six names cannot express, which tokens.css lists",
     readsRaw: true,
     excludedRoots: [
       {
@@ -1196,12 +1207,20 @@ describe("design-system: the ratchet can see a violation", () => {
  * transposed. That has no baseline because nothing in the tree does it and
  * nothing should start.
  *
- * The list is FIVE, down from eight, and the size is the point: a name earns
+ * The list is SIX, down from eight, and the size is the point: a name earns
  * this mechanism only by resolving differently in different contexts or by
  * expressing a shape the ladder cannot. The three that went were a 1px
  * constant, a size one rung below `related` in every tier, and a 16px indent
- * with no call sites; tokens.css records each. Adding a sixth is a design
+ * with no call sites; tokens.css records each. Adding a seventh is a design
  * decision, so this list is the place it has to be argued.
+ *
+ * `--inset-control-compact` is the one addition since the cut to five, and it
+ * is argued on the second limb, the same one the other three insets stand on:
+ * an ordered vertical/horizontal pair is a shape no rung reference can be. Its
+ * population is the pressable boxes that physically cannot hold
+ * --control-height, ten of them across six files, and it is a NAME rather than
+ * a tier stepped on --inset-control because a container that stepped the inset
+ * alone would leave a kit `Button` at 28px with a 1px inset inside it.
  */
 describe("design-system: the semantic spacing vocabulary", () => {
   const VOCABULARY = [
@@ -1209,6 +1228,7 @@ describe("design-system: the semantic spacing vocabulary", () => {
     "--gap-section",
     "--inset-chip",
     "--inset-control",
+    "--inset-control-compact",
     "--inset-surface",
   ];
 

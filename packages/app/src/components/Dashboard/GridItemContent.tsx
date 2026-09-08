@@ -247,10 +247,12 @@ function WidgetBadges({ children }: { children: ReactNode }) {
 const CellHeader = styled.div`
   /* Off the spacing ladder: this is the drag-handle height, and the 18 -> 16
      snap would compound with the font tokens on its children. The tallest is
-     PushBtn (shared.tsx): --font-size-sm + line-height 1 + 1px 4px padding is
-     14px of box on a desktop but 15px on a coarse pointer, which is the tier-1
-     Steam Deck. 15px inside 18px is fine; inside 16px it leaves 0.5px per side
-     on the primary drag affordance. Grow this before shrinking it. */
+     PushBtn (shared.tsx): --font-size-sm + line-height 1 + the 1px 4px of
+     --inset-control-compact is 14px of box on a desktop but 15px on a coarse
+     pointer, which is the tier-1 Steam Deck. 15px inside 18px is fine; inside
+     16px it leaves 0.5px per side on the primary drag affordance, which is
+     also why that inset's vertical is the hair rung and not 2. Grow this before
+     shrinking it. */
   height: 18px;
   background: var(--color-surface-panel);
   cursor: grab;
