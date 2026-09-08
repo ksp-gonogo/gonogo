@@ -734,7 +734,7 @@ function PowerSystemsConfigComponent({
 const RESOURCE_SELECT: CSSProperties = {
   maxWidth: "50%",
   fontSize: "var(--font-size-xs)",
-  padding: "var(--space-2) var(--space-6)",
+  padding: "var(--inset-control)",
 };
 
 const TOTALS: CSSProperties = {
@@ -744,7 +744,7 @@ const TOTALS: CSSProperties = {
   // the smaller CellValue font (13px + nowrap) so the "2900 / 4050"-shape value
   // stays on one line.
   gridTemplateColumns: "repeat(auto-fit, minmax(64px, 1fr))",
-  gap: "var(--space-6)",
+  gap: "var(--gap-related)",
   marginTop: "var(--space-8)",
   marginBottom: "var(--space-8)",
 };
@@ -752,8 +752,8 @@ const TOTALS: CSSProperties = {
 const TOTALS_CELL: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-2)",
-  padding: "var(--space-4) var(--space-6)",
+  gap: "var(--gap-related)",
+  padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-surface-raised)",
   borderRadius: "var(--radius-xs)",
@@ -823,9 +823,9 @@ const STORED_VALUE: CSSProperties = {
 const SPARKLINE_ROW: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
   marginBottom: "var(--space-8)",
-  padding: "var(--space-6) var(--space-8)",
+  padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-surface-raised)",
   borderRadius: "var(--radius-xs)",
@@ -838,7 +838,7 @@ const SPARKLINE_LABEL: CSSProperties = {
   color: "var(--color-text-faint)",
   display: "inline-flex",
   alignItems: "baseline",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
   flexShrink: 0,
 };
 
@@ -901,8 +901,8 @@ const IDLE_LIST: CSSProperties = { ...CONTRIB_LIST, opacity: 0.55 };
 const PowerRow = styled.div`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: var(--space-6);
-  padding: var(--space-2) var(--space-6);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   font-size: var(--font-size-xs);
   background: var(--color-surface-app);
   border-radius: var(--radius-xs);

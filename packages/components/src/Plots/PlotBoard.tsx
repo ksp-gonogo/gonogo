@@ -71,7 +71,7 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "var(--space-6)",
+        gap: "var(--gap-related)",
       }}
     >
       {title && <SectionTitle>{title}</SectionTitle>}
@@ -79,7 +79,7 @@ export function PlotBoard({ title }: Readonly<PlotBoardProps>) {
         style={{
           display: "flex",
           flexWrap: "wrap",
-          gap: "var(--space-6)",
+          gap: "var(--gap-related)",
         }}
       >
         {plots.map((plot) => (
@@ -106,7 +106,7 @@ function Plot({ plot }: { plot: MergedPlot }) {
         minWidth: PLOT_SIZE_PX,
         display: "flex",
         flexDirection: "column",
-        gap: "var(--space-4)",
+        gap: "var(--gap-related)",
       }}
     >
       <SectionTitle>{plot.title}</SectionTitle>

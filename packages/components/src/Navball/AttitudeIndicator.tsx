@@ -251,7 +251,7 @@ const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "stretch",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
   // Fill the column beside the throttle bar rather than shrinking to the dial's
   // own width. The dial is sized to the SHORTER axis, so on a tall narrow tile
   // it is much narrower than the space available, and a tape sized to it holds

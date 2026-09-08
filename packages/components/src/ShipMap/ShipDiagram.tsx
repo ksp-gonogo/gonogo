@@ -397,7 +397,7 @@ const RESET_BUTTON: CSSProperties = {
   // Tooltip's 20 below. Only the relative order matters.
   zIndex: 10,
   fontSize: "var(--font-size-xs)",
-  padding: "var(--space-2) var(--space-8)",
+  padding: "var(--inset-control)",
   background: "var(--color-surface-raised)",
   color: "var(--color-status-go-fg)",
   border: "1px solid var(--color-border-strong)",
@@ -428,7 +428,7 @@ const TOOLTIP: CSSProperties = {
   background: "var(--color-surface-sunken)",
   color: "var(--color-text-primary)",
   fontSize: "var(--font-size-xs)",
-  padding: "var(--space-6) var(--space-8)",
+  padding: "var(--inset-surface)",
   border: "1px solid var(--color-border-strong)",
   borderRadius: "var(--radius-xs)",
   pointerEvents: "none",
@@ -448,7 +448,7 @@ const TOOLTIP_TITLE: CSSProperties = {
 const TOOLTIP_ROW: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "var(--space-12)",
+  gap: "var(--gap-section)",
   color: "var(--color-text-muted)",
 };
 

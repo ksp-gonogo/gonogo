@@ -491,8 +491,8 @@ const PLACEHOLDER: CSSProperties = {
 const META: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "var(--space-6)",
-  padding: "var(--space-4) var(--space-10)",
+  gap: "var(--gap-related)",
+  padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   borderBottom: "1px solid var(--color-surface-raised)",
   fontSize: "var(--font-size-xs)",

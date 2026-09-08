@@ -138,7 +138,7 @@ const PoiHoverCard = styled.div`
   pointer-events: auto;
   min-width: 160px;
   max-width: 240px;
-  padding: var(--space-8) var(--space-10);
+  padding: var(--inset-surface);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-strong);
   background: var(--color-surface-raised);
@@ -168,13 +168,13 @@ const PoiHoverCoords = styled.div`
 const PoiHoverMetaRow = styled.div`
   display: flex;
   justify-content: space-between;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const PoiHoverActions = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-6);
 `;
 

@@ -1166,14 +1166,14 @@ const AXIS_WARNING: CSSProperties = {
   fontSize: "var(--font-size-xs)",
   color: "var(--color-status-warning-bg)",
   background: "rgba(0, 0, 0, 0.7)",
-  padding: "var(--space-2) var(--space-6)",
+  padding: "var(--inset-chip)",
   borderRadius: "var(--radius-xs)",
   pointerEvents: "none",
 };
 
 const SERIES_ROW: CSSProperties = {
   display: "flex",
-  gap: "var(--space-6)",
+  gap: "var(--gap-related)",
   alignItems: "center",
   marginBottom: "var(--space-6)",
 };
@@ -1181,11 +1181,14 @@ const SERIES_ROW: CSSProperties = {
 const SERIES_GROUP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-2)",
+  gap: "var(--gap-related)",
   marginBottom: "var(--space-4)",
 };
 
-const DOMAIN_ROW: CSSProperties = { display: "flex", gap: "var(--space-6)" };
+const DOMAIN_ROW: CSSProperties = {
+  display: "flex",
+  gap: "var(--gap-related)",
+};
 
 // GhostButton override: a full-width dashed "add" affordance, not uppercase.
 // GhostButton supplies the hover (colour lift) `:hover` inline can't; the rest
@@ -1200,7 +1203,7 @@ const ADD_BUTTON: CSSProperties = {
   fontWeight: 400,
   letterSpacing: "normal",
   textTransform: "none",
-  padding: "var(--space-4) var(--space-8)",
+  padding: "var(--inset-control)",
   marginTop: "var(--space-4)",
 };
 

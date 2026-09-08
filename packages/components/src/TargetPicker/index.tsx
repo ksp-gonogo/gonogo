@@ -730,14 +730,14 @@ const CurrentSummary = styled.div`
   margin-top: var(--space-6);
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
 `;
 
 const CurrentSummaryTop = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const CurrentSummaryName = styled.span`
@@ -760,6 +760,9 @@ const CurrentSummaryDistance = styled.span`
 const CurrentSummaryMeta = styled.div`
   display: flex;
   align-items: center;
+  /* 10 is the one gap rung with no name over it: --gap-related is 8 and
+     --gap-section is 16, so either alias resizes this meta row rather than
+     renaming what its seam is for. */
   gap: var(--space-10);
   font-size: var(--font-size-2xs);
   color: var(--color-text-muted);
@@ -769,7 +772,7 @@ const CurrentSummaryMeta = styled.div`
 const FilterInput = styled.input`
   margin-top: var(--space-6);
   font-size: var(--font-size-sm);
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-control);
   background: var(--color-surface-app);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-xs);
@@ -786,7 +789,7 @@ const ListScroll = styled(ScrollArea)`
   [data-scroll-area-inner] {
     display: flex;
     flex-direction: column;
-    gap: var(--space-8);
+    gap: var(--gap-related);
   }
 `;
 
@@ -795,23 +798,30 @@ const SuggestedHeading = styled.div`
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
+  /* One of three insets in this list header that have to agree: this heading,
+     SectionToggle and SpaceObjectToggle below all start their text on the same
+     left edge, and the two toggles are the only pressable things among them.
+     --inset-control is the --control-height floor at (6,12), so naming the
+     toggles would push them out of line with the heading beside them. All three
+     stay on the rungs. */
   padding: var(--space-2) var(--space-4);
 `;
 
 const SectionHeaderRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const SectionToggle = styled.button`
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex: 1;
   min-width: 0;
   background: none;
   border: none;
+  /* Held on the rungs with SuggestedHeading above; see the reason there. */
   padding: var(--space-2) var(--space-4);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
@@ -881,6 +891,7 @@ const RowTag = styled.span`
 const SpaceObjectToggle = styled.button`
   margin-left: auto;
   font-size: var(--font-size-2xs);
+  /* The third of the list-header insets held together; see SuggestedHeading. */
   padding: var(--space-2) var(--space-8);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);
@@ -915,7 +926,7 @@ const CompactCurrent = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   text-align: center;
 `;
 

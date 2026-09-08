@@ -342,11 +342,11 @@ const RETRY_BUTTON_STYLE = {
   fontSize: "var(--font-size-xs)",
   letterSpacing: "0.05em",
   whiteSpace: "nowrap",
-  padding: "var(--space-2) var(--space-6)",
+  padding: "var(--inset-control)",
 } as const;
 
 const SETUP_INSTRUCTIONS_STYLE = {
-  padding: "var(--space-8) var(--space-10)",
+  padding: "var(--inset-surface)",
   fontSize: "var(--font-size-xs)",
   color: "var(--color-text-faint)",
   whiteSpace: "pre-wrap",

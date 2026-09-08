@@ -263,7 +263,7 @@ function CurrentOrbitComponent({
               minHeight: 0,
               display: "flex",
               flexDirection: isLandscape ? "row" : "column",
-              gap: "var(--space-8)",
+              gap: "var(--gap-related)",
             }}
           >
             <Grid

@@ -1323,7 +1323,7 @@ const COMPACT_BODY: CSSProperties = {
   flexDirection: "column",
   alignItems: "center",
   justifyContent: "center",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
 };
 
 const COMPACT_VALUE: CSSProperties = {

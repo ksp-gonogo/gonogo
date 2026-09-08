@@ -227,7 +227,7 @@ const LIST: CSSProperties = {
   padding: 0,
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
 };
 
 // The card and its accent rule are the kit's; only the column this budget lays
@@ -235,14 +235,14 @@ const LIST: CSSProperties = {
 const BUDGET_CARD: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
 };
 
 const ROW_HEADER: CSSProperties = {
   display: "flex",
   alignItems: "baseline",
   justifyContent: "space-between",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
 };
 
 const NAME: CSSProperties = {
@@ -286,7 +286,7 @@ const DOT_SUMMARY: CSSProperties = {
   flex: 1,
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-6)",
+  gap: "var(--gap-related)",
   justifyContent: "center",
 };
 
@@ -300,7 +300,7 @@ const DOT_HEADLINE: CSSProperties = {
 const DOT_ROW: CSSProperties = {
   display: "flex",
   flexWrap: "wrap",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
 };
 
 // Per-tone `background` is applied inline at the call site.

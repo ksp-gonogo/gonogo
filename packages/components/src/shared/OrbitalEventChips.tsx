@@ -124,7 +124,7 @@ function Chip({
       style={{
         display: "inline-flex",
         alignItems: "baseline",
-        gap: "var(--space-6)",
+        gap: "var(--gap-related)",
         border: `1px solid ${tone.border}`,
         background: tone.background,
         color: tone.color,

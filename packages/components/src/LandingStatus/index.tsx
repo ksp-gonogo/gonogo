@@ -1027,7 +1027,7 @@ function LandingStatusComponent({
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "var(--space-8)",
+            gap: "var(--gap-related)",
             width: "100%",
           }}
         >
@@ -1042,7 +1042,7 @@ function LandingStatusComponent({
               marginLeft: "auto",
               display: "flex",
               alignItems: "center",
-              gap: "var(--space-4)",
+              gap: "var(--gap-related)",
             }}
           >
             <StatusPill $tone={REGIME_TONE[clocks.regime]}>
@@ -1094,7 +1094,7 @@ function LandingStatusComponent({
                 alignItems: "stretch",
                 // One rung up from space-8. This widget reads tight at close
                 // quarters and the plots, rail and readouts all abut each other.
-                gap: "var(--space-12)",
+                gap: "var(--gap-section)",
               }}
             >
               {showRail && (
@@ -1144,7 +1144,7 @@ function LandingStatusComponent({
                       style={{
                         display: "flex",
                         flexDirection: "column",
-                        gap: "var(--space-12)",
+                        gap: "var(--gap-section)",
                       }}
                     >
                       {verdictBannerEl}

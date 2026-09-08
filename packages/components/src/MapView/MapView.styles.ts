@@ -5,7 +5,7 @@ export const Header = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 export const BodyLabel = styled.span`
@@ -19,13 +19,13 @@ export const BodyLabel = styled.span`
 export const CompactReadout = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 export const CompactRow = styled.div`
   display: flex;
   align-items: baseline;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 export const CompactLabel = styled.span`
@@ -59,7 +59,7 @@ export const MapBody = styled.div`
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 /**
@@ -101,7 +101,7 @@ export const MapSections = styled.div`
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 /**
@@ -162,7 +162,7 @@ export const NoSignal = styled.div`
 `;
 
 export const ImagingChip = styled.span<{ $variant: "on" | "off" | "warn" }>`
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-chip);
   font-size: var(--font-size-xs);
   letter-spacing: 0.1em;
   text-transform: uppercase;

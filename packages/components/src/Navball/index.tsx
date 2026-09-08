@@ -1280,7 +1280,7 @@ function NavballConfigComponent({
 // they stay grouped under the SAS badge.
 const MODE_BADGE_ROW: CSSProperties = {
   display: "flex",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
   flexWrap: "wrap",
   justifyContent: "flex-end",
   minWidth: 0,
@@ -1291,7 +1291,7 @@ function modeBadgeStyle(on: boolean): CSSProperties {
     fontSize: "var(--font-size-2xs)",
     fontWeight: 700,
     letterSpacing: "0.08em",
-    padding: "var(--space-hair) var(--space-6)",
+    padding: "var(--inset-chip)",
     borderRadius: "var(--radius-xs)",
     background: on
       ? "var(--color-status-go-bg)"
@@ -1318,7 +1318,7 @@ const DIAL_WRAP: CSSProperties = {
 const NUMERIC_READOUT: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
   flex: 1,
   justifyContent: "center",
 };
@@ -1326,7 +1326,7 @@ const NUMERIC_READOUT: CSSProperties = {
 const READOUT_ROW: CSSProperties = {
   display: "flex",
   alignItems: "baseline",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
 };
 
 const READOUT_LABEL: CSSProperties = {
@@ -1350,7 +1350,7 @@ const THROTTLE_COLUMN: CSSProperties = {
   display: "flex",
   flexDirection: "column",
   alignItems: "center",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
   minWidth: "32px",
 };
 
@@ -1390,7 +1390,7 @@ const THROTTLE_VAL: CSSProperties = {
 const CONTROL_WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
   paddingTop: "var(--space-6)",
   borderTop: "1px solid var(--color-surface-raised)",
 };
@@ -1398,7 +1398,7 @@ const CONTROL_WRAP: CSSProperties = {
 const BANNER: CSSProperties = {
   fontSize: "var(--font-size-xs)",
   color: "var(--color-status-warning-bg)",
-  padding: "var(--space-4) var(--space-6)",
+  padding: "var(--inset-surface)",
   background: "var(--color-surface-panel)",
   border: "1px solid var(--color-status-warning-bg)",
   borderRadius: "var(--radius-xs)",
@@ -1407,7 +1407,7 @@ const BANNER: CSSProperties = {
 const GROUP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
 };
 
 const GROUP_LABEL: CSSProperties = {
@@ -1432,13 +1432,13 @@ const GROUP_LABEL: CSSProperties = {
 const BUTTON_GRID: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
 };
 
 const SLIDER_ROW: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
 };
 
 const SLIDER: CSSProperties = { flex: 1 };
@@ -1454,7 +1454,7 @@ const SLIDER_VAL: CSSProperties = {
 const FBW_ROW: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
 };
 
 const FBW_HINT: CSSProperties = {

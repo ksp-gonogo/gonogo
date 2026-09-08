@@ -571,7 +571,7 @@ const OverlayLayer = styled.div`
 const LandscapeChrome = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   justify-content: center;
   min-width: 0;
   min-height: 0;

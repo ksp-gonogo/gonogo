@@ -116,7 +116,7 @@ export function PartActionMenu({
 const ROW: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
-  gap: "var(--space-12)",
+  gap: "var(--gap-section)",
   color: "var(--color-text-muted)",
 };
 

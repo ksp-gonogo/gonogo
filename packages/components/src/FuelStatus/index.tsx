@@ -636,8 +636,8 @@ function FuelStatusComponent({
               radius="xs"
               style={{
                 display: "flex",
-                gap: "var(--space-16)",
-                padding: "var(--space-6) var(--space-8)",
+                gap: "var(--gap-section)",
+                padding: "var(--inset-surface)",
               }}
             >
               <Stack gap="xs">
@@ -655,7 +655,7 @@ function FuelStatusComponent({
                   style={{
                     display: "inline-flex",
                     alignItems: "baseline",
-                    gap: "var(--space-6)",
+                    gap: "var(--gap-related)",
                     flexWrap: "wrap",
                     fontWeight: 700,
                     color: "var(--color-status-nogo-fg)",
@@ -692,7 +692,7 @@ function FuelStatusComponent({
                   style={{
                     display: "inline-flex",
                     alignItems: "baseline",
-                    gap: "var(--space-6)",
+                    gap: "var(--gap-related)",
                     flexWrap: "wrap",
                     fontWeight: 700,
                     color: "var(--color-status-nogo-fg)",
