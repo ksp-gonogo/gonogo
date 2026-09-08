@@ -802,8 +802,12 @@ const SuggestedHeading = styled.div`
      SectionToggle and SpaceObjectToggle below all start their text on the same
      left edge, and the two toggles are the only pressable things among them.
      --inset-control is the --control-height floor at (6,12), so naming the
-     toggles would push them out of line with the heading beside them. All three
-     stay on the rungs. */
+     toggles would push them out of line with the heading beside them. Neither
+     does --inset-control-compact fit, and the reason is the same one: this
+     heading is a <div> and not the pressable class the name describes, so a
+     control name cannot reach it, and moving only the two toggles to the
+     compact 1px vertical breaks the very agreement that holds all three here.
+     All three stay on the rungs. */
   padding: var(--space-2) var(--space-4);
 `;
 

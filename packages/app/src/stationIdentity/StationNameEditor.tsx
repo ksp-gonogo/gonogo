@@ -20,12 +20,14 @@ import {
  * which has a logged incident of intercepting clicks on the widgets beneath
  * it. Growing it is not free.
  *
- * The same measurement holds the chip's inset off --inset-control, and that is
- * the one place in this package where a real control keeps a rung. NameSpan
+ * The same measurement holds the chip's inset off --inset-control. NameSpan
  * and NameInput ARE the pressable class the name describes, but the control
  * inset would add 8px of height and 12px of width to a fixed overlay that has
  * already been logged swallowing clicks meant for the dashboard underneath.
- * Move both together with the type, once that overlay is re-measured.
+ * They take --inset-control-compact instead, which is the same class at a
+ * floor this box can hold: 2px off the height and 4px off the width rather
+ * than 8 and 12 on. That direction is the safe one for this overlay, so the
+ * two states move together now instead of waiting for it to be re-measured.
  */
 const Wrap = styled.div<{ $compact: boolean }>`
   display: inline-flex;
@@ -46,7 +48,7 @@ const NameSpan = styled.button<{ $compact: boolean }>`
   background: none;
   border: 1px dashed transparent;
   border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-control-compact);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   color: var(--color-status-info-fg);
   cursor: text;
@@ -62,7 +64,7 @@ const NameInput = styled.input<{ $compact: boolean }>`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-text-faint);
   border-radius: var(--radius-sm);
-  padding: var(--space-2) var(--space-6);
+  padding: var(--inset-control-compact);
   color: var(--color-status-info-fg);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   letter-spacing: 0.05em;

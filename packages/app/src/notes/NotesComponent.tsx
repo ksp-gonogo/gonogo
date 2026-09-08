@@ -377,18 +377,20 @@ const ReorderColumn = styled.div`
 `;
 
 /*
- * This glyph and the two in RowActions keep their rungs rather than taking
- * --inset-control. That name is defined against --control-height at 28, and
- * these are stacked in PAIRS down the side of a note whose one-line body is
- * about that tall on its own: a control inset would make the arrows and the
- * tick taller than the note they act on.
+ * This glyph and the two in RowActions take --inset-control-compact rather
+ * than --inset-control. That name is defined against --control-height at 28,
+ * and these are stacked in PAIRS down the side of a note whose one-line body
+ * is about that tall on its own: a control inset would make the arrows and the
+ * tick taller than the note they act on. The compact name keeps the 1px
+ * vertical they already had and widens them a rung, 2 to 4, which is the
+ * horizontal every other glyph tray in this package now draws.
  */
 const ReorderBtn = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  padding: var(--space-hair) var(--space-2);
+  padding: var(--inset-control-compact);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -430,7 +432,7 @@ const DoneBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  padding: var(--space-hair) var(--space-2);
+  padding: var(--inset-control-compact);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -446,7 +448,7 @@ const DeleteBtn = styled.button`
   border: none;
   color: var(--color-text-faint);
   cursor: pointer;
-  padding: var(--space-hair) var(--space-2);
+  padding: var(--inset-control-compact);
   display: inline-flex;
   align-items: center;
   justify-content: center;

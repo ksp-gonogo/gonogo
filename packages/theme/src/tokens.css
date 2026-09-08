@@ -291,11 +291,11 @@
    *      names qualify.
    *   2. Does it express a SHAPE the ladder cannot? An ordered
    *      vertical/horizontal pair is not a rung and no rung reference
-   *      can be one. All three insets qualify.
+   *      can be one. All four insets qualify.
    *
    * A name with neither is a number wearing a word, and it costs more
    * than the rung it replaces: two spellings of one constant, and an
-   * author who has to guess which of two sizes their list is. Five
+   * author who has to guess which of two sizes their list is. Six
    * names passed that test; three did not, and the record of what went
    * and why is below, because a deleted name comes back otherwise.
    *
@@ -321,6 +321,27 @@
    *            boxes in the tree share (6,12) and are not controls
    *            (`BannerPill` says `pointer-events: none` outright),
    *            and they keep the rungs with that written beside them.
+   *   control-compact
+   *            The same PRESSABLE class in a box that physically cannot
+   *            reach that floor, which is a real population rather than
+   *            a preference: `GridItemContent`'s drag header is 18px and
+   *            its glyphs are sized to fit it, so `control` would draw a
+   *            24px box inside an 18px handle. The arithmetic is
+   *            `control`'s own, a tier down: 2 inset + 2 border + a 14px
+   *            glyph = 18, which is that header exactly. The vertical is
+   *            `hair` and not 2 for the reason the header comment gives
+   *            at length, that a `--font-size-sm` glyph on a coarse
+   *            pointer is 15px of box, so at 2 it leaves half a pixel per
+   *            side on the primary drag affordance.
+   *
+   *            A fourth NAME and not a tier declared on `control`,
+   *            because the two halves of a control are its inset and its
+   *            HEIGHT. A container that stepped the inset alone would
+   *            leave a kit `Button` inside it at `--control-height`'s 28
+   *            with a 1px inset rattling in it, and stepping both means
+   *            every control in that subtree becomes compact whether or
+   *            not it fits. These ten sites are compact because of what
+   *            each one is, so each one says so.
    *   surface  A bordered or filled box that holds content: a card, a
    *            record in a list, a banner, a popover. `Card`'s own
    *            inset, which is why this is not called `row`.
@@ -373,6 +394,7 @@
 
   --inset-chip: var(--space-hair) var(--space-6);
   --inset-control: var(--space-6) var(--space-12);
+  --inset-control-compact: var(--space-hair) var(--space-4);
   --inset-surface: var(--space-6) var(--space-8);
 
   /*
@@ -426,6 +448,13 @@
    * Every one of them lands on the floor. The indicator is why its own inset
    * came down a rung; at the old one it cleared 28 and stayed the odd box out.
    * Coarse pointers ignore all of this and take the 44px touch target.
+   *
+   * A box that cannot reach this floor at all is a different case from one
+   * that undershoots it. Ten pressable glyphs and chips would OVERFLOW what
+   * holds them at 28: an 18px drag header, a note whose whole one-line body is
+   * about that tall, a fixed overlay with a logged history of swallowing the
+   * clicks underneath it. They take `--inset-control-compact` above, and each
+   * names the box it is stuck inside.
    */
   --control-height: 28px;
 

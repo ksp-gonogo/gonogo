@@ -299,17 +299,18 @@ const StationChip = styled.span`
   color: var(--color-status-info-fg);
 `;
 
-/* Rungs, not --inset-control: a glyph in a tile header, the same class as the
-   dashboard's own remove and gear buttons, and well under the
-   --control-height the inset name is defined against. See RemoveBtn in
-   components/Dashboard/shared.tsx. */
+/* --inset-control-compact, not --inset-control: a glyph in a tile header, the
+   same class as the dashboard's own remove and gear buttons, and well under
+   the --control-height the full inset name is defined against. It loses 1px
+   of vertical joining them, which is the compact name's own floor arithmetic.
+   See RemoveBtn in components/Dashboard/shared.tsx. */
 const DismissBtn = styled.button`
   background: none;
   border: none;
   color: var(--color-text-faint);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-flush);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--inset-control-compact);
   cursor: pointer;
   &:hover {
     color: var(--color-tag-red-fg);

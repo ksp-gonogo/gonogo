@@ -174,12 +174,14 @@ export const ComponentWrapper = styled.div`
 `;
 
 /*
- * The three glyph buttons in a tile's drag header keep their rungs rather than
- * taking --inset-control, and the reason is a height rather than a preference:
- * `GridItemContent`'s CellHeader is 18px, and the inset name is the other half
- * of --control-height's own definition at 28. A control inset here would draw
- * a 24px box inside an 18px handle. Grow the header first if these should be
- * real targets; the tray in MobileDashboard follows this for the same reason.
+ * The three glyph buttons in a tile's drag header take --inset-control-compact
+ * rather than --inset-control, and the reason is a height rather than a
+ * preference: `GridItemContent`'s CellHeader is 18px, and --inset-control is
+ * the other half of --control-height's own definition at 28, so it would draw
+ * a 24px box inside an 18px handle. The compact name is that arithmetic one
+ * tier down, 2 inset + 2 border + a 14px glyph = 18. Grow the header first if
+ * these should be real targets; the tray in MobileDashboard follows this for
+ * the same reason.
  */
 const RemoveBtn = styled.button<{ $confirming: boolean }>`
   pointer-events: all;
@@ -189,7 +191,7 @@ const RemoveBtn = styled.button<{ $confirming: boolean }>`
   cursor: pointer;
   font-size: var(--font-size-xs);
   line-height: var(--line-height-flush);
-  padding: var(--space-hair) var(--space-4);
+  padding: var(--inset-control-compact);
   margin-left: var(--space-2);
 
   &:hover {
@@ -205,7 +207,7 @@ const PushBtn = styled.button<{ $pushed: boolean }>`
   cursor: pointer;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-flush);
-  padding: var(--space-hair) var(--space-4);
+  padding: var(--inset-control-compact);
   margin-left: var(--space-2);
 
   &:hover {

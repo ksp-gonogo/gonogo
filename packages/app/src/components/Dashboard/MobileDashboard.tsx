@@ -348,7 +348,8 @@ const MobileCellName = styled.span`
 `;
 
 /* Same sub-floor glyph chrome as the remove and push buttons it sits beside;
-   see the note over RemoveBtn in shared.tsx for why the inset stays a rung. */
+   see the note over RemoveBtn in shared.tsx for why the inset is the compact
+   name rather than --inset-control. */
 const WidthToggleBtn = styled.button`
   pointer-events: all;
   background: none;
@@ -357,7 +358,7 @@ const WidthToggleBtn = styled.button`
   cursor: pointer;
   font-size: var(--font-size-sm);
   line-height: var(--line-height-flush);
-  padding: var(--space-hair) var(--space-4);
+  padding: var(--inset-control-compact);
   margin-left: var(--space-2);
   display: inline-flex;
   align-items: center;

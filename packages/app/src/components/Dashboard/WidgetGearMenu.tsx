@@ -162,9 +162,11 @@ function GearModalContent({
 
 export const GearWrapper = styled.div``;
 
-/* Rungs, not --inset-control: this sits in the 18px drag header alongside the
-   remove and push glyphs, which is well under the --control-height the inset
-   name is defined against. See the note over RemoveBtn in shared.tsx. */
+/* --inset-control-compact, not --inset-control: this sits in the 18px drag
+   header alongside the remove and push glyphs, which is well under the
+   --control-height the full inset name is defined against. Its horizontal
+   grows a rung to join them, 2 to 4, so the tray reads as one set. See the
+   note over RemoveBtn in shared.tsx. */
 const GearBtn = styled.button`
   pointer-events: all;
   background: none;
@@ -173,7 +175,7 @@ const GearBtn = styled.button`
   cursor: pointer;
   font-size: var(--font-size-xs);
   line-height: var(--line-height-flush);
-  padding: var(--space-hair) var(--space-2);
+  padding: var(--inset-control-compact);
 
   &:hover {
     color: var(--color-text-muted);
