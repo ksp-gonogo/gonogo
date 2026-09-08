@@ -642,6 +642,17 @@ describe("the magnitude budget only shrinks", () => {
           "`min`/`max` take a bare operand so `x.max(0)` replaces " +
           "`Math.max(0, x.magnitude)`. See 'A budget entry is often a missing " +
           "API' in docs/ratchets.md.\n\n" +
+          "RATIOS AND PRODUCTS ARE ALGEBRA TOO, and this is the family most " +
+          "often missed: `a.per(b)` / `a.dividedBy(b)` return " +
+          "`Value<Quotient<U, W>>` with the dimension checked at TYPE level, " +
+          "and `.times()`, `.plus()`, `.greaterThan()` compare and combine " +
+          "without unwrapping. A length over a length is NOT untyped: " +
+          'definitions.ts declares `"1"` as dimensionless, so `m.per(m)` is a ' +
+          'real `Value<"1">`. Four unwraps in one function were removed on ' +
+          "exactly this ground. ASSOCIATION MATTERS: " +
+          "`delay.times(hop.per(total))` types, while " +
+          "`hop.times(delay).per(total)` degrades because `m*s` is not a " +
+          "declared dimension.\n\n" +
           "Only a genuine boundary earns an entry: a plain-number return type, " +
           "a third-party call, a wire shape you do not own. Raise the count " +
           "here only then, and say which boundary it is:\n" +
