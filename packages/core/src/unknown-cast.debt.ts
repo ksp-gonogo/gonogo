@@ -310,7 +310,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "mod/GonogoKosUplink/client/src/KosTerminal/lineMode.headless.test.tsx": 6,
   "mod/GonogoKosUplink/client/src/test/widgetDomSnapshot.tsx": 3,
   // mod/GonogoMechJebUplink/client: 1 in 1 files (0 out of `any`, 1 in tests), walked 11 files
-  "mod/GonogoMechJebUplink/client/src/MechJeb/index.test.tsx": 1,
   // mod/GonogoPrincipiaUplink/client: 4 in 4 files (0 out of `any`, 3 in tests), walked 35 files
   "mod/GonogoPrincipiaUplink/client/src/BurnEditor/index.test.tsx": 1,
   "mod/GonogoPrincipiaUplink/client/src/PlanComposer/index.test.tsx": 1,

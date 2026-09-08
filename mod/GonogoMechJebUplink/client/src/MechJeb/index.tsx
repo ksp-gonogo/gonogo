@@ -74,9 +74,11 @@ const mechjebActions = [
 ] as const satisfies readonly ActionDefinition[];
 export type MechJebActions = typeof mechjebActions;
 
-// CommandStatus.phase → operator-facing chip, in the delayed-command
-// vocabulary. `in-flight` is the dispatched-but-unconfirmed window: from the
-// operator's seat the command is in transit / awaiting reply across the delay.
+/*
+ * CommandStatus.phase to an operator-facing chip, in the delayed-command
+ * vocabulary. `in-flight` is the dispatched-but-unconfirmed window: from the
+ * operator's seat the command is in transit, awaiting reply across the delay.
+ */
 function commandChip(
   phase: CommandStatus["phase"],
 ): { severity: Severity; text: string } | undefined {

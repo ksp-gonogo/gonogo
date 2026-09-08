@@ -32,6 +32,22 @@ interface Dispatched {
 }
 
 /**
+ * A command handler is handed `unknown`, and a test that asserts its way out of
+ * that would stop noticing the day the wire shape changes underneath it. The
+ * `in` operator narrows without an assertion, so a frame missing any of the
+ * three is dropped rather than pushed as a `Dispatched` it is not.
+ */
+function isDispatched(value: unknown): value is Dispatched {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "coreId" in value &&
+    "requestId" in value &&
+    "command" in value
+  );
+}
+
+/**
  * Stands up a live client, primes `kos.processors` (a push channel delivers
  * nothing until something subscribes, and `kosSource` is what subscribes),
  * and answers each `kos.run` dispatch in turn with `reply(index)`. Returns
@@ -42,7 +58,7 @@ function harness() {
   const client = createTestTelemetryClient(transport);
   const dispatches: Dispatched[] = [];
   transport.setCommandHandler((_command, args) => {
-    dispatches.push(args as Dispatched);
+    if (isDispatched(args)) dispatches.push(args);
     return { success: true, errorCode: 0 };
   });
   setActiveTelemetryClientForTests(client);

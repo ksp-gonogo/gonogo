@@ -135,9 +135,11 @@ export function useKosScriptListing(
       setResult({
         paths,
         loading: false,
-        // An unreadable reply is the sharper signal and is preferred over a
-        // volume that simply is not there: `1:` rejecting is the ordinary
-        // case for a CPU with no local drive, and it lands last.
+        /*
+         * An unreadable reply is the sharper signal and is preferred over a
+         * volume that simply is not there: `1:` rejecting is the ordinary case
+         * for a CPU with no local drive, and it lands last.
+         */
         hint: anyReadable
           ? null
           : (unreadableProblem ??

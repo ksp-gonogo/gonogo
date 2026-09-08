@@ -80,9 +80,7 @@ namespace Sitrep.Core.Tests
             public string? SelectedBy { get; set; }
         }
 
-        // ---------------------------------------------------------------
         // What needs a frame.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// True when a property carries a <see cref="Vec3"/>, directly or as the
@@ -148,9 +146,7 @@ namespace Sitrep.Core.Tests
                 // UnitCoverageTests.ContractTypes for the incident behind that.
                 .Where(t => t.IsDefined(typeof(SitrepContractAttribute), false));
 
-        // ---------------------------------------------------------------
         // What is declared, read out of metadata.
-        // ---------------------------------------------------------------
 
         /// <summary>
         /// `TypeName.PropertyName` -&gt; the frame it declares, for every property
@@ -334,9 +330,7 @@ namespace Sitrep.Core.Tests
         private static string CamelCase(string name) =>
             string.IsNullOrEmpty(name) ? name : char.ToLowerInvariant(name[0]) + name.Substring(1);
 
-        // ---------------------------------------------------------------
         // The gate.
-        // ---------------------------------------------------------------
 
         [Fact]
         public void EveryVec3WirePropertyDeclaresAFrame()
