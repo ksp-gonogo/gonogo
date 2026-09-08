@@ -40,13 +40,16 @@ namespace Gonogo.KerbalismUplink
     {
         public string Resource = "";
         public string Title = "";
-        public double Capacity;
-        public bool Running;
-        public bool Broken;
+        /// <summary>Null when the field could not be read. Not zero: a capacity of zero scales every rate in the matched process to nothing, which reads as a fitted-and-idle plant rather than an unread one.</summary>
+        public double? Capacity;
+        /// <summary>Null when neither <c>running</c> nor <c>toggle</c> could be read.</summary>
+        public bool? Running;
+        /// <summary>Null when the field could not be read. False is "intact", which is the reassuring half of this pair.</summary>
+        public bool? Broken;
         /// <summary>Host part's KSP flightID. 0 when the part could not be read.</summary>
         public double FlightId;
-        /// <summary>ProcessController.valve_i: which dump-valve combination is active.</summary>
-        public int ValveIndex;
+        /// <summary>ProcessController.valve_i: which dump-valve combination is active. Null when unread; 0 is the FIRST combination, not an absence.</summary>
+        public int? ValveIndex;
         /// <summary>
         /// Live Modifiers.Evaluate product over the matched profile Process's
         /// modifiers minus the capacity join token (this.Resource). Filled by
@@ -67,18 +70,20 @@ namespace Gonogo.KerbalismUplink
         /// <summary>Host part's KSP flightID. 0 when the part could not be read.</summary>
         public double FlightId;
         public string Resource = "";
-        public bool Deployed;
-        public bool Running;
+        /// <summary>Null when the field could not be read: a drill nobody could ask is not a stowed one.</summary>
+        public bool? Deployed;
+        /// <summary>Null when the field could not be read. Gates <c>Rate</c>, so false here publishes a confident zero extraction.</summary>
+        public bool? Running;
         /// <summary>The live blocking-reason string. Empty when nothing is wrong, which is the normal case.</summary>
         public string Issue = "";
-        /// <summary>0-3 are the stock-equivalent harvest situations, 4 is asteroid/comet.</summary>
-        public int Type;
+        /// <summary>0-3 are the stock-equivalent harvest situations, 4 is asteroid/comet. Null when unread; 0 is SURFACE, not an absence.</summary>
+        public int? Type;
         /// <summary>Static config rate, calibrated against <see cref="AbundanceRate"/>. Not what is actually being extracted.</summary>
         public double Rate;
         /// <summary>The abundance level <see cref="Rate"/> is calibrated against.</summary>
         public double AbundanceRate;
-        /// <summary>EC drawn per second, independent of abundance.</summary>
-        public double EcRate;
+        /// <summary>EC drawn per second, independent of abundance. Null when unread: zero reads as a drill that costs nothing to leave running, which is the case the field exists to expose.</summary>
+        public double? EcRate;
         /// <summary>Live sampled abundance at the drill's position, 0..1. Null when unreadable.</summary>
         public double? Abundance;
         /// <summary>Rate after the abundance and crew adjustments: what is actually being extracted.</summary>
@@ -187,8 +192,8 @@ namespace Gonogo.KerbalismUplink
     public sealed class StormEntryRaw
     {
         public string Star = "";
-        /// <summary>StormData.storm_state: 0 none, 1 inbound, 2 in progress.</summary>
-        public int StormState;
+        /// <summary>StormData.storm_state: 0 none, 1 inbound, 2 in progress. Null when the field could not be read: 0 is a positive all-clear, and a card built from it disappears from the tracker without saying why.</summary>
+        public int? StormState;
         public double? StormTime;
         public double? StormDuration;
         public double? Dist;
@@ -256,12 +261,14 @@ namespace Gonogo.KerbalismUplink
         public string Title = "";
         /// <summary>ReliabilityInfo.group, which is the part's REDUNDANCY-SET name (module.redundancy), not a category. Empty on most parts.</summary>
         public string Group = "";
-        public bool Broken;
-        public bool Critical;
+        /// <summary>Null when the field could not be read, which is the "unknown" condition rather than a healthy part.</summary>
+        public bool? Broken;
+        /// <summary>Null when the field could not be read. Also decides the repair kit count, so false understates a critical failure's cost.</summary>
+        public bool? Critical;
         /// <summary>ReliabilityInfo.mtbf, already EffectiveMTBF(quality, mtbf). SECONDS, despite every previous field name that carried it.</summary>
         public double? MtbfSeconds;
-        /// <summary>NeedsMaintenance(): Kerbalism's NEEDS-SERVICE state, which is preventive and distinct from its needs-repair (broken and not critical).</summary>
-        public bool NeedsService;
+        /// <summary>NeedsMaintenance(): Kerbalism's NEEDS-SERVICE state, which is preventive and distinct from its needs-repair (broken and not critical). Null when the call could not be made.</summary>
+        public bool? NeedsService;
         /// <summary>KSPField last_inspection on the Reliability module: a UT. Null when the module could not be paired to this entry.</summary>
         public double? LastInspection;
         /// <summary>KSPField quality: an editor build choice (a bool), scaling effective MTBF by Settings.QualityScale. Null when unpaired.</summary>
@@ -325,8 +332,8 @@ namespace Gonogo.KerbalismUplink
         public string RunningState = "";
         /// <summary>Stopped | Running | Forced | Waiting | Issue | Broken (the derived display state).</summary>
         public string ExpStatus = "";
-        public double DataRate;
-        public double ProdFactor;
+        public double? DataRate;
+        public double? ProdFactor;
         public double? RemainingSampleMass;
         /// <summary>Whether the module takes a finite sample at all (drives whether RemainingSampleMass means anything).</summary>
         public bool TakesSample;
@@ -350,17 +357,19 @@ namespace Gonogo.KerbalismUplink
         public string Biome = "";
         /// <summary>"file" or "sample".</summary>
         public string Kind = "";
-        public double SizeMB;
+        /// <summary>Null when the blob's size could not be read: a stored result of unknown size is not a zero-byte one.</summary>
+        public double? SizeMB;
         public double? SampleMass;
         public bool? Analyze;
-        public double SciencePerMB;
-        public double ScienceMaxValue;
-        public double ScienceRemainingTotal;
-        public double PercentCollectedTotal;
-        public double ScienceCollectedInFlight;
-        public int TimesCompleted;
-        public double TransmitRate;
-        public bool Transmitting;
+        public double? SciencePerMB;
+        public double? ScienceMaxValue;
+        public double? ScienceRemainingTotal;
+        public double? PercentCollectedTotal;
+        public double? ScienceCollectedInFlight;
+        public int? TimesCompleted;
+        public double? TransmitRate;
+        /// <summary>Derived from <see cref="TransmitRate"/>, so null with it: "not transmitting" is a claim about a downlink nobody read.</summary>
+        public bool? Transmitting;
         /// <summary>
         /// Whether Kerbalism has this file flagged for transmission
         /// (<c>Drive.GetFileSend</c>), independent of whether it is actively
@@ -369,7 +378,8 @@ namespace Gonogo.KerbalismUplink
         public bool? SendFlagged;
         /// <summary>Null when the drive is unlimited (Kerbalism's -1 sentinel), never a negative number.</summary>
         public double? DriveCapacityMB;
-        public double DriveUsedMB;
+        /// <summary>Sum over the drive's files. Null when ANY file's size could not be read, because a total that quietly omits a file understates how full the drive is.</summary>
+        public double? DriveUsedMB;
         /// <summary>Null when sample slots are unlimited.</summary>
         public int? SampleSlotsTotal;
         public int SampleSlotsUsed;
@@ -380,11 +390,12 @@ namespace Gonogo.KerbalismUplink
     {
         public string PartId = "";
         public string PartName = "";
-        public double AnalysisRate;
-        public double EffectiveRate;
-        /// <summary>DISABLED | NO_EC | NO_STORAGE | NO_SAMPLE | NO_RESEARCHER | RUNNING.</summary>
+        public double? AnalysisRate;
+        public double? EffectiveRate;
+        /// <summary>DISABLED | NO_EC | NO_STORAGE | NO_SAMPLE | NO_RESEARCHER | RUNNING. Empty when it could not be read.</summary>
         public string Status = "";
-        public bool Running;
+        /// <summary>Null when the field could not be read, which with an unreadable <see cref="Status"/> leaves "is it processing" unanswerable rather than answered no.</summary>
+        public bool? Running;
     }
 
     /// <summary>One Kerbalism <c>Sensor</c> PartModule: pure live readout, no storage.</summary>
@@ -394,6 +405,7 @@ namespace Gonogo.KerbalismUplink
         public string PartName = "";
         public string Type = "";
         public string Readout = "";
-        public bool Active;
+        /// <summary>Null when the field could not be read. It defaulted to TRUE, which claimed a sensor was live on the strength of a failed read.</summary>
+        public bool? Active;
     }
 }

@@ -173,11 +173,22 @@ export interface LabStatus {
   dataStored: number | null;
   dataStorage: number | null;
   storedScience: number | null;
-  processingData: boolean;
+  /** Null when the provider could not read it. Not false: a lab that is not
+   *  known to be processing and one known to be idle are different rows. */
+  processingData: boolean | null;
   statusText: string | null;
   scientistCount: number | null;
   scienceRate: number | null;
-  isOperational: boolean;
+  /** Null when the provider could not read it. OFFLINE is a diagnosis, and it
+   *  was the answer a failed read gave. */
+  isOperational: boolean | null;
+}
+
+/** A wire bool with its absence kept: `=== true` reported the reassuring answer
+ *  for a field the provider never filled, which is what the three-valued
+ *  contract shape exists to prevent. */
+function asFlag(value: unknown): boolean | null {
+  return typeof value === "boolean" ? value : null;
 }
 
 /**
@@ -202,11 +213,11 @@ export function parseLab(raw: unknown): LabStatus[] | null {
       dataStored: magnitudeOf(e.dataStored as Quantityish),
       dataStorage: magnitudeOf(e.dataStorage as Quantityish),
       storedScience: magnitudeOf(e.storedScience as Quantityish),
-      processingData: e.processingData === true,
+      processingData: asFlag(e.processingData),
       statusText: typeof e.statusText === "string" ? e.statusText : null,
       scientistCount: magnitudeOf(e.scientistCount as Quantityish),
       scienceRate: magnitudeOf(e.scienceRate as Quantityish),
-      isOperational: e.isOperational === true,
+      isOperational: asFlag(e.isOperational),
     });
   }
   return out;
@@ -454,10 +465,22 @@ function LabSection({ labs }: { labs: LabStatus[] | null }) {
             <Cluster gap="md">
               <RowName>{lab.partName}</RowName>
               <Inline gap="sm">
-                <Badge severity={lab.isOperational ? "nominal" : "critical"}>
-                  {lab.isOperational ? "OPERATIONAL" : "OFFLINE"}
+                <Badge
+                  severity={
+                    lab.isOperational === null
+                      ? "warning"
+                      : lab.isOperational
+                        ? "nominal"
+                        : "critical"
+                  }
+                >
+                  {lab.isOperational === null
+                    ? "UNREAD"
+                    : lab.isOperational
+                      ? "OPERATIONAL"
+                      : "OFFLINE"}
                 </Badge>
-                {lab.processingData && <Badge>PROCESSING</Badge>}
+                {lab.processingData === true && <Badge>PROCESSING</Badge>}
               </Inline>
             </Cluster>
             <Inline gap="md">

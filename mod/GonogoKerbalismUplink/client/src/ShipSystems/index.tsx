@@ -179,7 +179,7 @@ function wearValueLabel(w: WearRow): string {
   return `${fmtAmt(w.amount)} / ${fmtAmt(w.capacity)} · ${formatTimeToEmpty(w.secondsRemaining)}`;
 }
 
-type ProcessRunState = "idle" | "running" | "broken";
+type ProcessRunState = "idle" | "running" | "broken" | "unknown";
 
 interface ProcessRow {
   id: string;
@@ -187,19 +187,36 @@ interface ProcessRow {
   state: ProcessRunState;
 }
 
+/**
+ * Both flags are three-valued on the wire, and the truthiness ladder this
+ * replaced collapsed the third value into "idle": a scrubber whose module
+ * could not be read reported as fitted and switched off, which is a state an
+ * operator fixes by pressing a button rather than by looking closer.
+ *
+ * Positive readings win over the unknown arm, on the same order SpaceWeather's
+ * storm pair uses: broken is broken whatever its neighbour did.
+ */
 function toProcessRow(p: KerbalismProcessEntry, index: number): ProcessRow {
   return {
     id: p.resource || p.title || `process-${index}`,
     name: p.title || p.resource || "Process",
-    state: p.broken ? "broken" : p.running ? "running" : "idle",
+    state:
+      p.broken === true
+        ? "broken"
+        : p.running === true
+          ? "running"
+          : p.broken == null || p.running == null
+            ? "unknown"
+            : "idle",
   };
 }
 
-/** Only a BROKEN process carries a severity; running and idle are both
- *  ordinary operating states and render as decorative grey chips (severity
- *  omitted), so a healthy process list adds no colour at all. */
+/** A BROKEN process is critical and an UNREAD one is a warning; running and
+ *  idle are both ordinary operating states and render as decorative grey chips
+ *  (severity omitted), so a healthy process list adds no colour at all. */
 function processSeverity(state: ProcessRunState): Severity | undefined {
-  return state === "broken" ? "critical" : undefined;
+  if (state === "broken") return "critical";
+  return state === "unknown" ? "warning" : undefined;
 }
 
 /** Mirrors GreenhouseSection's own `GreenhouseRow`, ported field-for-field so
@@ -355,10 +372,15 @@ function ShipSystemsBody({
 
   const runningCount = processes.filter((p) => p.state === "running").length;
   const brokenCount = processes.filter((p) => p.state === "broken").length;
+  const unknownCount = processes.filter((p) => p.state === "unknown").length;
+  // An unread row is called out in the header rather than folded into the
+  // running fraction, where "3 / 5 running" would report it as switched off.
   const processSummary =
     brokenCount > 0
       ? `${runningCount} running · ${brokenCount} broken`
-      : `${runningCount} / ${processes.length} running`;
+      : unknownCount > 0
+        ? `${runningCount} running · ${unknownCount} unread`
+        : `${runningCount} / ${processes.length} running`;
 
   // Null, not false: an unreported pressure is neither pressurised nor
   // unpressurised, and a LIFE SUPPORT panel that answers "Unpressurized"
@@ -575,7 +597,7 @@ function ShipSystemsBody({
           <SectionHead
             label="Processes"
             value={processSummary}
-            tone={brokenCount > 0 ? "nogo" : "go"}
+            tone={brokenCount > 0 ? "nogo" : unknownCount > 0 ? "warn" : "go"}
           />
           <Stack gap="xs">
             {processes.map((p) => (

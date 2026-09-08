@@ -73,12 +73,14 @@ namespace Gonogo.KerbalismUplink
         internal object? CaptureOnMain(KspSnapshot? snapshot)
         {
             var all = FlightGlobals.Vessels;
-            if (all == null || _host == null || !_k.IsAvailable)
+            // No snapshot means no capture: every craft in the bundle is published
+            // AT this UT, and a substituted zero dates the whole fleet to the epoch.
+            if (all == null || _host == null || snapshot == null || !_k.IsAvailable)
             {
                 return null;
             }
 
-            var ut = snapshot?.Ut ?? 0.0;
+            var ut = snapshot.Ut;
             var captures = new List<VesselCapture>();
             foreach (var vessel in all)
             {

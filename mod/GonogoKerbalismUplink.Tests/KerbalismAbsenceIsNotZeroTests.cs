@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Gonogo.KerbalismUplink;
+using Sitrep.Contract;
 using Xunit;
 
 /// <summary>
@@ -264,4 +265,139 @@ public class KerbalismAbsenceIsNotZeroTests
                 FatalThreshold = 1.0,
             },
         };
+}
+
+/// <summary>
+/// The same rule on the three mappers that report hardware CONDITION, where the
+/// substitution was a bool rather than a number.
+///
+/// <para>Every flag here comes off a reflected member that answers null when
+/// Kerbalism moved it, and every one of them had a <c>?? false</c> at the read.
+/// The damage is not a wrong pill: each false took the mapper down a branch that
+/// already had the right answer written in it. The reliability contract has
+/// declared "unknown" a first-class condition since it replaced the
+/// <c>IsModeled</c> bool, with a note that it must never be substituted with
+/// "nominal", and it could not be reached from this provider at all.</para>
+/// </summary>
+public class KerbalismConditionAbsenceTests
+{
+    private static readonly ReliabilityPreferencesRaw Prefs = new()
+    {
+        MtbfFailures = true,
+        RequireRepairKits = true,
+    };
+
+    private static ReliabilityRaw Captured(params ReliabilityPartRaw[] parts)
+    {
+        var raw = new ReliabilityRaw { Ut = 1_000_000 };
+        raw.Parts.AddRange(parts);
+        return raw;
+    }
+
+    [Fact]
+    public void A_part_whose_broken_flag_is_unread_is_unknown_rather_than_nominal()
+    {
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(new ReliabilityPartRaw { PartId = "7", Title = "LV-909" }),
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
+
+        Assert.Equal("unknown", parts[0].Condition);
+        // No provider word either: "needs repair" would be gonogo's phrasing.
+        Assert.Null(parts[0].ConditionDetail);
+    }
+
+    /// <summary>
+    /// NeedsMaintenance() is a METHOD call, so it fails independently of the two
+    /// fields beside it: an intact part whose service state went unread is still
+    /// not a part anyone can call nominal.
+    /// </summary>
+    [Fact]
+    public void An_intact_part_whose_service_state_is_unread_is_unknown()
+    {
+        var parts = KerbalismReliabilityMap.Parts(
+            Captured(new ReliabilityPartRaw { PartId = "7", Broken = false }),
+            ReliabilityCoverage.Modeled,
+            Prefs.RequireRepairKits);
+
+        Assert.Equal("unknown", parts[0].Condition);
+    }
+
+    /// <summary>
+    /// A tally is a claim about the WHOLE vessel. One unreadable part makes it
+    /// unanswerable rather than one smaller, because the smaller number is the
+    /// one an operator would act on.
+    /// </summary>
+    [Fact]
+    public void A_rollup_over_an_unreadable_part_reports_no_count()
+    {
+        var summary = KerbalismReliabilityMap.Summary(
+            Captured(
+                new ReliabilityPartRaw { PartId = "7", Broken = true, Critical = false },
+                new ReliabilityPartRaw { PartId = "8" }),
+            Prefs,
+            ReliabilityCoverage.Modeled);
+
+        var bag = Assert.IsType<Dictionary<string, object?>>(
+            summary.Extensions!["kerbalism"]);
+        Assert.Null(bag["brokenPartCount"]);
+        Assert.Null(bag["serviceDuePartCount"]);
+    }
+
+    /// <summary>
+    /// Not running is a real zero, and stays one. Not KNOWING whether it runs is
+    /// not: the shared shape's rate is the drill's output, and zero there is
+    /// "this drill is producing nothing", which is a diagnosis.
+    /// </summary>
+    [Fact]
+    public void A_drill_whose_run_state_is_unread_reports_no_rate()
+    {
+        var drills = KerbalismIsruMap.Drills(new[]
+        {
+            new HarvesterRaw { FlightId = 3, Resource = "Ore", AdjustedRate = 0.4 },
+        });
+
+        Assert.Null(drills[0].Deployed);
+        Assert.Null(drills[0].Running);
+        Assert.Null(drills[0].Rate);
+    }
+
+    [Fact]
+    public void A_stopped_drill_still_reports_a_real_zero()
+    {
+        var drills = KerbalismIsruMap.Drills(new[]
+        {
+            new HarvesterRaw { FlightId = 3, Resource = "Ore", Running = false, AdjustedRate = 0.4 },
+        });
+
+        Assert.Equal(0.0, drills[0].Rate);
+    }
+
+    /// <summary>
+    /// Kerbalism scales every rate in a process definition by the controller's
+    /// capacity, so an unread capacity leaves the recipe's resources known and
+    /// its rates unmeasured. Publishing the unscaled config ratio would report a
+    /// nominal figure as a live one.
+    /// </summary>
+    [Fact]
+    public void A_converter_whose_capacity_is_unread_names_its_recipe_without_rates()
+    {
+        var converters = KerbalismIsruMap.Converters(
+            new[] { new ProcessRaw { FlightId = 3, Resource = "_Scrubber" } },
+            new[]
+            {
+                new ProcessDefRaw
+                {
+                    Name = "scrubber",
+                    Modifiers = { "_Scrubber" },
+                    Inputs = { ["CarbonDioxide"] = 1.0 },
+                    Outputs = { ["Oxygen"] = 1.0 },
+                },
+            });
+
+        Assert.Null(converters[0].Running);
+        Assert.Equal("CarbonDioxide", converters[0].Inputs[0].Resource);
+        Assert.Null(converters[0].Inputs[0].Rate);
+        Assert.Null(converters[0].Outputs[0].Rate);
+    }
 }

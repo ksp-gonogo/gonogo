@@ -507,7 +507,10 @@ public class KerbalismReliabilityMapTests
     public void Parts_call_the_preventive_state_service_rather_than_repair()
     {
         var parts = KerbalismReliabilityMap.Parts(
-            Captured(new ReliabilityPartRaw { PartId = "7", Title = "Antenna", NeedsService = true }),
+            Captured(new ReliabilityPartRaw
+            {
+                PartId = "7", Title = "Antenna", Broken = false, NeedsService = true,
+            }),
             ReliabilityCoverage.Modeled,
             Prefs.RequireRepairKits);
 
@@ -562,7 +565,10 @@ public class KerbalismReliabilityMapTests
     public void Parts_omit_the_service_budget_when_either_input_is_missing()
     {
         var parts = KerbalismReliabilityMap.Parts(
-            Captured(new ReliabilityPartRaw { PartId = "7", NeedsService = true, MtbfSeconds = 1_000_000 }),
+            Captured(new ReliabilityPartRaw
+            {
+                PartId = "7", Broken = false, NeedsService = true, MtbfSeconds = 1_000_000,
+            }),
             ReliabilityCoverage.Modeled,
             Prefs.RequireRepairKits);
 

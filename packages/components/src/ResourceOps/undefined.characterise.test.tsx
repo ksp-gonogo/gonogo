@@ -279,4 +279,35 @@ describe("ResourceOps: what undefined means today", () => {
     expect(within(header).queryByText("at")).not.toBeInTheDocument();
     expect(within(header).queryByText(/Duna/)).not.toBeInTheDocument();
   });
+
+  /**
+   * `running` is `bool?` on the shared shape, and every provider fills it by
+   * reading a module field that can go missing. "stopped" is a DIAGNOSIS: it
+   * tells an operator the rig is there, intact, and waiting to be started. The
+   * truthiness chip this pins gave that answer for a rig nobody could read,
+   * which is the same class of claim `deployed` was already spared (its chip is
+   * omitted rather than shown as a false "retracted").
+   */
+  it("says the run state is unread rather than calling an unreadable rig stopped", async () => {
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", [
+        {
+          partId: "103",
+          partTitle: "Drill-O-Matic Senior",
+          resource: "Ore",
+          deployed: true,
+          // Read as far as the module and no further.
+          running: null,
+          abundance: 0.075,
+          rate: null,
+        },
+      ]);
+      fixture.emit("isru.converters", []);
+    });
+
+    await screen.findByText("Drill-O-Matic Senior");
+    expect(screen.getByText("run state unread")).toBeInTheDocument();
+    expect(screen.queryByText("stopped")).not.toBeInTheDocument();
+  });
 });

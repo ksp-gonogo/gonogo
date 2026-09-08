@@ -71,13 +71,20 @@ namespace Gonogo.KerbalismUplink
             }
 
             var worstMtbf = double.MaxValue;
-            var broken = 0;
-            var serviceDue = 0;
+            // Null the moment one part's flag is unreadable. A tally is only a
+            // tally of the whole vessel: "1 broken" over a list where a second
+            // part could not be read is a smaller number than the truth, and it
+            // is the number an operator decides on.
+            int? broken = 0;
+            int? serviceDue = 0;
             foreach (var p in raw.Parts)
             {
                 if (p.MtbfSeconds is > 0 && p.MtbfSeconds.Value < worstMtbf) worstMtbf = p.MtbfSeconds.Value;
-                if (p.Broken) broken++;
-                if (!p.Broken && p.NeedsService) serviceDue++;
+
+                if (p.Broken == null) broken = serviceDue = null;
+                else if (p.Broken == true) broken++;
+                else if (p.NeedsService == null) serviceDue = null;
+                else if (p.NeedsService == true) serviceDue++;
             }
 
             return new Dictionary<string, object?>
@@ -115,7 +122,7 @@ namespace Gonogo.KerbalismUplink
         /// of <c>critical ? 2 : 1</c> is how the number a console shows comes to
         /// disagree with the number a repair takes.</para>
         /// </summary>
-        public static int KitsForRepair(bool critical) => critical ? 2 : 1;
+        public static int KitsForRepair(bool? critical) => critical == true ? 2 : 1;
 
         /// <summary>
         /// What repairing this part consumes, for <c>ReliabilityPartEntry.RepairCost</c>.
@@ -125,6 +132,10 @@ namespace Gonogo.KerbalismUplink
         /// service-due part is cleared by the same <c>Repair()</c> and costs no
         /// kits), kits are switched off in the install's reliability preferences,
         /// or that preference could not be read at all.</para>
+        ///
+        /// <para>A part whose broken flag could not be read joins the first case
+        /// and states no cost, on the same understate-rather-than-block
+        /// reasoning.</para>
         ///
         /// <para>The last two collapse deliberately, and into the same expression
         /// <c>AttemptRepair</c> uses (<c>RequireRepairKits == true</c>), so the
@@ -138,7 +149,7 @@ namespace Gonogo.KerbalismUplink
             ReliabilityPartRaw p,
             bool? requireRepairKits)
         {
-            if (!p.Broken) return null;
+            if (p.Broken != true) return null;
             if (requireRepairKits != true) return null;
             return new List<RepairCostItem>
             {
@@ -218,16 +229,36 @@ namespace Gonogo.KerbalismUplink
             ReliabilityPreferencesRaw prefs) =>
             ComputeCoverage(features, prefs) != ReliabilityCoverage.Disabled;
 
+        /// <summary>
+        /// The contract's five-value condition, including its "unknown" arm.
+        ///
+        /// <para>That arm was written and then unreachable: the reflected flags
+        /// substituted <c>false</c> for a failed read, so a part nobody could
+        /// ask about reported "nominal", which is the one answer here an
+        /// operator acts on by doing nothing.</para>
+        ///
+        /// <para>A broken part whose criticality is unreadable is still
+        /// <c>failed</c>, because <c>failed-critical</c> is a claim about the
+        /// severity class and the base failure is the one we actually read.</para>
+        /// </summary>
         private static string ConditionOf(ReliabilityPartRaw p)
         {
-            if (p.Broken) return p.Critical ? "failed-critical" : "failed";
-            return p.NeedsService ? "service-due" : "nominal";
+            if (p.Broken == null) return "unknown";
+            if (p.Broken == true) return p.Critical == true ? "failed-critical" : "failed";
+            if (p.NeedsService == null) return "unknown";
+            return p.NeedsService == true ? "service-due" : "nominal";
         }
 
+        /// <summary>
+        /// Kerbalism's own word for the condition, or null when there is no word
+        /// to quote: an unread flag has no vocabulary, and "needs repair" would
+        /// be gonogo's phrasing rather than the provider's.
+        /// </summary>
         private static string? ConditionDetailOf(ReliabilityPartRaw p)
         {
-            if (p.Broken) return p.Critical ? Busted : NeedsRepair;
-            return p.NeedsService ? NeedsService : null;
+            if (p.Broken == null) return null;
+            if (p.Broken == true) return p.Critical == true ? Busted : p.Critical == null ? null : NeedsRepair;
+            return p.NeedsService == true ? NeedsService : null;
         }
 
         /// <summary>

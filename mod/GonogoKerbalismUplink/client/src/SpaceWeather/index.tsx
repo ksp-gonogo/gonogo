@@ -327,7 +327,13 @@ function statusFor(d: SpaceWeatherData): { label: string; tone: Tone } {
 interface StormDerived {
   key: string;
   star: string;
-  state: number;
+  /**
+   * 0 none, 1 inbound, 2 in progress. Null when the mod could not read the
+   * slot's state: 0 is Kerbalism's positive all-clear and the tracker drops
+   * those slots, so coercing to it made an unread slot disappear reading as
+   * "no CME here".
+   */
+  state: number | null;
   /** UT the CME departed the star; null when dist or the ejection speed is uncaptured. */
   departureUt: number | null;
   /** 0..100, transit progress toward `dist`. Only meaningful when departureUt is set. */
@@ -346,7 +352,7 @@ function deriveStorm(
   nowUt: number,
   stormEjectionSpeedMps: number | null,
 ): StormDerived {
-  const state = magnitudeOf(entry.stormState) ?? 0;
+  const state = magnitudeOf(entry.stormState);
   const stormTime = magnitudeOf(entry.stormTime);
   const dist = magnitudeOf(entry.dist);
   const impactEtaSec = stormTime !== null ? stormTime - nowUt : null;
@@ -379,11 +385,15 @@ function deriveStorm(
   };
 }
 
-function stormSeverity(state: number): Severity {
+/** An unread slot is surfaced, not alarmed: nothing about it says a CME is out
+ *  there, only that the slot could not be asked. */
+function stormSeverity(state: number | null): Severity {
+  if (state === null) return "info";
   return state >= 2 ? "critical" : "warning";
 }
 
-function stormLabel(state: number): string {
+function stormLabel(state: number | null): string {
+  if (state === null) return "Unread";
   return state >= 2 ? "Impact" : "Inbound";
 }
 
@@ -461,12 +471,17 @@ function starActivity(
 ): StarActivity {
   const mine = allStorms.filter((s) => s.star === starName && s.state !== 0);
   if (mine.length === 0) return { level: 0, severity: "nominal", storms: [] };
-  const severity: Severity = mine.some((s) => s.state >= 2)
+  /* An unread slot is carried into `storms` so its card is drawn, but it never
+     drives the ring: not knowing is not evidence the star is active, and a lit
+     ring would be this widget inventing a CME from a failed read. */
+  const read = mine.filter((s) => s.state !== null);
+  if (read.length === 0) return { level: 0, severity: "info", storms: mine };
+  const severity: Severity = read.some((s) => (s.state ?? 0) >= 2)
     ? "critical"
     : "warning";
   const level = Math.max(
-    ...mine.map((s) => {
-      if (s.state >= 2) return 1;
+    ...read.map((s) => {
+      if ((s.state ?? 0) >= 2) return 1;
       // Active, but transit has not been captured: half, so it never reads calm.
       if (s.departureUt === null) return 0.5;
       return Math.max(0.15, Math.min(1, s.progressPct / 100));
@@ -606,7 +621,8 @@ function StarDiagram({
  * pinned to red the instant it has arrived whatever the percentage says.
  */
 function transitThreatColor(storm: StormDerived): string {
-  if (storm.state >= 2) return "var(--color-status-nogo-bg)";
+  if (storm.state !== null && storm.state >= 2)
+    return "var(--color-status-nogo-bg)";
   if (storm.progressPct >= 66) return "var(--color-status-nogo-bg)";
   if (storm.progressPct >= 33) return "var(--color-status-warning-bg)";
   return "var(--color-status-info-fg)";
@@ -640,7 +656,12 @@ function StormCard({
 }) {
   const severity = stormSeverity(storm.state);
   const target = storm.targetName ?? fallbackBodyName ?? "current body";
-  const verb = storm.state >= 2 ? "Impacting" : "Inbound to";
+  const verb =
+    storm.state === null
+      ? "CME state unread for"
+      : storm.state >= 2
+        ? "Impacting"
+        : "Inbound to";
   // Only the per-vessel case gets a qualifier: a body target reads plainly.
   const qualifier =
     storm.targetKind === STORM_TARGET_VESSEL ? " (current vessel)" : "";
@@ -690,7 +711,7 @@ function StormCard({
             Impact
           </Text>
           <Text
-            tone={storm.state >= 2 ? "nogo" : "warn"}
+            tone={storm.state !== null && storm.state >= 2 ? "nogo" : "warn"}
             size="xs"
             weight="semibold"
             // `warn` alone renders --color-status-warning-fg, a near-black
@@ -699,7 +720,7 @@ function StormCard({
             // functionally invisible. The `-fg-muted` override is the fix.
             // `nogo`'s own `-fg` is a light pink and needs none.
             style={
-              storm.state < 2
+              storm.state === null || storm.state < 2
                 ? { color: "var(--color-status-warning-fg-muted)" }
                 : undefined
             }
