@@ -1104,7 +1104,7 @@ namespace Gonogo.KerbalismUplink
                     DirX = dx,
                     DirY = dy,
                     DirZ = dz,
-                    Distance = MemberDouble(sunInfo, "Distance") ?? 0,
+                    Distance = MemberDouble(sunInfo, "Distance"),
                 });
                 stars.Add(new KeyValuePair<object, CelestialBody>(sunInfo, star));
             }
