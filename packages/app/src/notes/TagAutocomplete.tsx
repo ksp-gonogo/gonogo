@@ -273,7 +273,7 @@ const inputStyles = `
   border: 1px solid var(--color-border-strong);
   color: var(--color-text-primary);
   font: inherit;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   width: 100%;
   outline: none;
@@ -314,7 +314,7 @@ const PopoverItem = styled.button<{ $selected: boolean }>`
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
   gap: var(--space-hair) var(--space-12);
-  padding: var(--space-6) var(--space-10);
+  padding: var(--inset-surface);
   background: ${(p) =>
     p.$selected ? "var(--color-surface-raised)" : "transparent"};
   border: none;

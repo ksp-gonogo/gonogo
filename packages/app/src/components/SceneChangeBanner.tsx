@@ -127,7 +127,11 @@ export function SceneChangeBanner() {
 const Banner = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
+  /* Rungs, not --inset-surface: the floating-chrome band on the 16px gutter
+     lock, shared with the alarm and flight-outcome banners this one slides in
+     beside. A surface inset would halve the gutter on chrome that overlays the
+     dashboard. */
   padding: var(--space-8) var(--space-16);
   background: rgba(0, 0, 0, 0.88);
   border: 1px solid var(--color-accent-fg);

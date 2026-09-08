@@ -483,7 +483,7 @@ const OverlaySurface = styled(Box).attrs({
 const SearchRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   /* Horizontal inset goes UP to the panel column, not down to --space-12 that
      14px maps to: ResultsHeader, ChipRow and ListItem below all sit at
      --space-16, so 14px is already 2px off that edge and snapping down would
@@ -499,7 +499,7 @@ const CloseBtn = styled.button`
   color: var(--color-text-faint);
   font-size: var(--font-size-base);
   cursor: pointer;
-  padding: var(--space-4) var(--space-6);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   &:hover {
     color: var(--color-text-primary);
@@ -533,6 +533,10 @@ const SearchInput = styled.input`
 `;
 
 const ResultsHeader = styled.div`
+  /* Rungs, not --inset-surface: every band down this picker (SearchRow above,
+     ChipRow, ListItem and Empty below) hangs off the same 16px gutter, and a
+     name that took this one to 8 would step the header out of that column on
+     its own. */
   padding: var(--space-6) var(--space-16);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.1em;
@@ -544,7 +548,8 @@ const ResultsHeader = styled.div`
 const ChipRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-6);
+  gap: var(--gap-related);
+  /* Same gutter column as the rows above and below; see ResultsHeader. */
   padding: var(--space-10) var(--space-16);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
@@ -558,12 +563,15 @@ const List = styled.div`
 const ListItem = styled.button<{ $active?: boolean }>`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   width: 100%;
   text-align: left;
   background: ${(p) => (p.$active ? "var(--color-surface-raised)" : "none")};
   border: none;
   border-bottom: 1px solid var(--color-surface-panel);
+  /* A full-width record on the picker's gutter, not a control, whatever the
+     element is: --inset-control would pull a row that spans the whole overlay
+     in to a button's width and off the column the header above it sits on. */
   padding: var(--space-12) var(--space-16);
   cursor: pointer;
   /* The roving highlight is the keyboard cursor; mirror it with an inset
@@ -609,11 +617,14 @@ const UplinkAddLine = styled.span`
 
 const TagRow = styled.div`
   display: flex;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
 const Empty = styled.div`
+  /* Deliberately taller than it is wide: an empty picker needs the vertical
+     room to sit where the first result would have been, and every --inset-*
+     name puts horizontal at or above vertical, so none of them can say it. */
   padding: var(--space-24) var(--space-16);
   font-size: var(--font-size-sm);
   color: var(--color-text-faint);

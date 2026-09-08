@@ -109,6 +109,6 @@ export function RadioIndicator({
 const Radio__Indicator = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   min-width: 0;
 `;

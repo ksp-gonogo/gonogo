@@ -566,7 +566,11 @@ function CrashDetail({ summary }: { summary: CrashSummary }) {
 const bannerBase = `
   display: inline-flex;
   align-items: center;
-  gap: var(--space-12);
+  gap: var(--gap-section);
+  /* Rungs, not --inset-surface. The floating-chrome band on the 16px gutter
+     lock, the same one the alarm banners hold: this pill overlays the
+     dashboard, and taking it to (6,8) would halve the gutter its text reads
+     against to make a ratchet number smaller. */
   padding: var(--space-8) var(--space-16);
   background: rgba(0, 0, 0, 0.88);
   border-radius: var(--radius-pill);
@@ -644,7 +648,7 @@ const BannerVessel = styled.span`
 
 const BannerStats = styled.span`
   display: inline-flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const BannerStat = styled.span`
@@ -663,7 +667,7 @@ const BannerHint = styled.span`
 const DetailWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   min-width: 480px;
   max-width: 640px;
   max-height: 70vh;
@@ -673,7 +677,7 @@ const DetailWrap = styled.div`
 const DetailHeader = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const DetailTitle = styled.h2`
@@ -690,8 +694,8 @@ const DetailMeta = styled.span`
 const Totals = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-8) var(--space-12);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: var(--color-surface-raised);
   border-radius: var(--radius-sm);
 `;
@@ -705,8 +709,8 @@ const TotalRow = styled.div`
 const TotalsTable = styled.div`
   display: grid;
   grid-template-columns: minmax(80px, auto) 1fr 1fr;
-  column-gap: var(--space-16);
-  row-gap: var(--space-4);
+  column-gap: var(--gap-section);
+  row-gap: var(--gap-related);
   align-items: baseline;
 `;
 
@@ -756,14 +760,14 @@ const TotalValue = styled.span`
 const DetailSection = styled.section`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const DetailRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-12);
+  gap: var(--gap-related);
   padding: var(--space-4) 0;
   font-size: var(--font-size-sm);
 `;

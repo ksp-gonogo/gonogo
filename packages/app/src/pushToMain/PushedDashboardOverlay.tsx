@@ -238,6 +238,9 @@ const Header = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  /* Rungs, not --inset-surface: this bar spans a full-surface overlay that
+     replaces the dashboard, so its horizontal inset is the 16px page gutter
+     rather than a box's own edge, and a surface inset would halve it. */
   padding: var(--space-12) var(--space-16);
   border-bottom: 1px solid var(--color-surface-raised);
   background: var(--color-surface-panel);
@@ -283,7 +286,7 @@ const ItemHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border-bottom: 1px solid var(--color-surface-raised);
   flex-shrink: 0;
@@ -296,6 +299,10 @@ const StationChip = styled.span`
   color: var(--color-status-info-fg);
 `;
 
+/* Rungs, not --inset-control: a glyph in a tile header, the same class as the
+   dashboard's own remove and gear buttons, and well under the
+   --control-height the inset name is defined against. See RemoveBtn in
+   components/Dashboard/shared.tsx. */
 const DismissBtn = styled.button`
   background: none;
   border: none;

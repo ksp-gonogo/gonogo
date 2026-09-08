@@ -162,6 +162,9 @@ function GearModalContent({
 
 export const GearWrapper = styled.div``;
 
+/* Rungs, not --inset-control: this sits in the 18px drag header alongside the
+   remove and push glyphs, which is well under the --control-height the inset
+   name is defined against. See the note over RemoveBtn in shared.tsx. */
 const GearBtn = styled.button`
   pointer-events: all;
   background: none;

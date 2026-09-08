@@ -173,6 +173,14 @@ export const ComponentWrapper = styled.div`
   overflow: hidden;
 `;
 
+/*
+ * The three glyph buttons in a tile's drag header keep their rungs rather than
+ * taking --inset-control, and the reason is a height rather than a preference:
+ * `GridItemContent`'s CellHeader is 18px, and the inset name is the other half
+ * of --control-height's own definition at 28. A control inset here would draw
+ * a 24px box inside an 18px handle. Grow the header first if these should be
+ * real targets; the tray in MobileDashboard follows this for the same reason.
+ */
 const RemoveBtn = styled.button<{ $confirming: boolean }>`
   pointer-events: all;
   background: none;
@@ -211,7 +219,7 @@ const WidgetErrorPanel = styled.div`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   padding: var(--space-12);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
@@ -238,7 +246,7 @@ const WidgetErrorHint = styled.div`
 
 const WidgetErrorRetry = styled.button`
   margin-top: var(--space-4);
-  padding: var(--space-4) var(--space-10);
+  padding: var(--inset-control);
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);

@@ -18,13 +18,19 @@ import {
  * 11px under `@media (pointer: coarse)`, i.e. 2px of growth on a Steam Deck.
  * This chip renders inside StationScreen's position: fixed StationNameChip,
  * which has a logged incident of intercepting clicks on the widgets beneath
- * it. Growing it is not free. Padding, radius and gap are exact rungs and
- * have migrated; the type moves when someone re-measures that overlay.
+ * it. Growing it is not free.
+ *
+ * The same measurement holds the chip's inset off --inset-control, and that is
+ * the one place in this package where a real control keeps a rung. NameSpan
+ * and NameInput ARE the pressable class the name describes, but the control
+ * inset would add 8px of height and 12px of width to a fixed overlay that has
+ * already been logged swallowing clicks meant for the dashboard underneath.
+ * Move both together with the type, once that overlay is re-measured.
  */
 const Wrap = styled.div<{ $compact: boolean }>`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   font-size: ${({ $compact }) => ($compact ? "11px" : "14px")};
   color: var(--color-text-primary);
 `;

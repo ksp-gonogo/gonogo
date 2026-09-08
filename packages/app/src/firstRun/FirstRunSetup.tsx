@@ -95,5 +95,5 @@ const StepHeading = styled.h3`
 const Nav = styled.div`
   display: flex;
   justify-content: flex-end;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;

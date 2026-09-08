@@ -734,7 +734,7 @@ const Wrap = styled.div`
 const SectionStack = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   overflow-y: auto;
   min-height: 0;
 `;
@@ -775,7 +775,7 @@ const SettingInput = styled(Input)`
 const RowText = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   min-width: 0;
 `;
 
@@ -807,27 +807,27 @@ const UplinkList = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const HealthySummaryItem = styled.li`
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const HealthySummaryRow = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   padding: var(--space-6) 0;
 `;
 
 const UplinkItem = styled.li`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const UplinkVersion = styled.span`

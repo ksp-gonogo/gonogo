@@ -49,7 +49,7 @@ export function MissionBanner() {
 const Banner = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   height: 30px;
   flex-shrink: 0;
   margin-bottom: var(--space-8);
@@ -61,7 +61,7 @@ const Banner = styled.div`
 const InlinePair = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const FieldValue = styled.span`

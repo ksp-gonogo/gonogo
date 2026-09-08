@@ -341,13 +341,13 @@ function ageSeconds(ts: number): number {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   min-width: 420px;
 `;
 
 const SaveRow = styled.div`
   display: flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   align-items: stretch;
 `;
 
@@ -366,24 +366,24 @@ const Empty = styled.div`
 const List = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const ProfileRow = styled.div`
   background: var(--color-surface-raised);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
-  padding: var(--space-10) var(--space-12);
+  padding: var(--inset-surface);
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: var(--gap-related);
 `;
 
 const ProfileHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: var(--space-12);
+  gap: var(--gap-related);
 `;
 
 const ProfileName = styled.span`
@@ -399,7 +399,7 @@ const ProfileMeta = styled.span`
 
 const ProfileActions = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
@@ -413,7 +413,7 @@ const Warning = styled.div`
   background: var(--color-status-alert-muted);
   border: 1px solid var(--color-status-alert-muted);
   border-radius: var(--radius-xs);
-  padding: var(--space-6) var(--space-10);
+  padding: var(--inset-surface);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-sm);
 `;
@@ -421,7 +421,7 @@ const Warning = styled.div`
 const BindingsField = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const BindingsLabel = styled.span`
@@ -432,7 +432,7 @@ const BindingsLabel = styled.span`
 const BindingsRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const AutoSwitchRow = styled.div<{ $disabled: boolean }>`

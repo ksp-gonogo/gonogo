@@ -140,7 +140,7 @@ function statusLabel(status: ConnStatus): string {
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   min-width: 260px;
   color: var(--color-text-primary);
 `;
@@ -154,7 +154,7 @@ const SeparatedSection = styled(Stack).attrs({ gap: "md" as const })`
 const SwitchRow = styled.div`
   display: flex;
   align-items: stretch;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 
   & > input {
     flex: 1;

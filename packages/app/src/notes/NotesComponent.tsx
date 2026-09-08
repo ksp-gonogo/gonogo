@@ -362,9 +362,9 @@ export function useTagValues(tags: readonly string[]): Map<string, unknown> {
 const Item = styled.div`
   display: grid;
   grid-template-columns: auto 1fr auto;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   align-items: start;
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-surface);
   background: var(--color-surface-panel);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
@@ -376,6 +376,13 @@ const ReorderColumn = styled.div`
   gap: var(--space-hair);
 `;
 
+/*
+ * This glyph and the two in RowActions keep their rungs rather than taking
+ * --inset-control. That name is defined against --control-height at 28, and
+ * these are stacked in PAIRS down the side of a note whose one-line body is
+ * about that tall on its own: a control inset would make the arrows and the
+ * tick taller than the note they act on.
+ */
 const ReorderBtn = styled.button`
   background: none;
   border: none;
@@ -414,7 +421,7 @@ const RenderedBody = styled.div`
 const RowActions = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   align-items: center;
 `;
 
@@ -452,7 +459,7 @@ const DeleteBtn = styled.button`
 
 const AddRow = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex-shrink: 0;
 `;
 

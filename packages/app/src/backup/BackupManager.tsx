@@ -152,7 +152,7 @@ export function BackupManager() {
 const Container = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   min-width: 420px;
 `;
 
@@ -164,19 +164,19 @@ const Foot = styled.div`
 const IdentityRow = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const ActionRow = styled.div`
   display: flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const ConfirmRow = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   padding: var(--space-10);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
