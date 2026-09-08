@@ -2,7 +2,9 @@ import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import { PerfBudget } from "../perf/PerfBudget";
 import type {
+  DepWindow,
   ModelledField,
+  ReckonerWindow,
   ReckoningBasis,
   ReckoningDecline,
   StaleGrade,
@@ -221,6 +223,77 @@ function normaliseReckoningClaim(
 ): readonly ModelledField[] | undefined {
   if (claim === undefined) return undefined;
   return typeof claim === "string" ? [{ path: "", basis: claim }] : claim;
+}
+
+/**
+ * The newest run of `points` with no break in the record inside it.
+ *
+ * A window that spans a blackout must not be handed over whole: a model given
+ * samples from either side of one draws a trend through an outage it has no
+ * readings for, which is the same falsehood as a chart joining a line across
+ * it. So the run is cut at the newest break and whatever survives goes to the
+ * model, where the reckoner's own `minSamples` decides whether it is still
+ * enough. That is why there is no separate "the window hit a gap" rejection:
+ * truncating feeds the floor that already exists.
+ *
+ * Two things count as a break, and BOTH are positive claims. `meta.gapSinceUt`
+ * is the producer saying data existed before this sample and is gone, set only
+ * on the first sample after the break, so that sample is kept and everything
+ * older is dropped. A tombstone (`payload === null`) is the value confirmed
+ * ABSENT and later back, which is a change of regime and not a reading, so it
+ * goes too.
+ *
+ * Nothing here looks at the interval between samples, and nothing here may. The
+ * stream is change-gated: a topic carries a point only when its value actually
+ * changed, so a quiet minute and a minute of blackout are the same shape in the
+ * buffer and opposite facts about the world. Only a claim can tell them apart.
+ */
+function contiguousTail<T>(
+  points: readonly TimelinePoint<T>[],
+): TimelinePoint<T>[] {
+  for (let i = points.length - 1; i >= 0; i--) {
+    const point = points[i];
+    if (point.payload === null) return points.slice(i + 1);
+    if (point.meta.gapSinceUt != null) return points.slice(i);
+  }
+  return [...points];
+}
+
+/**
+ * A window as the store resolved it, plus whether a break is what shortened it.
+ *
+ * The flag exists for the decline sentence and nothing else. "The window holds
+ * two samples" and "the window holds two samples because the other four are on
+ * the far side of a blackout" send an operator to different places, and only
+ * the store is in a position to tell them apart.
+ */
+interface ResolvedWindow<T> {
+  readonly points: TimelinePoint<T>[];
+  readonly truncatedAtBreak: boolean;
+}
+
+/**
+ * `points` reduced to at most `max`, keeping both ends and spreading the rest
+ * evenly by INDEX.
+ *
+ * `maxSamples` is a cost cap, not a rejection, so a fuller window thins and the
+ * model runs. Spreading by index rather than by UT is deliberate: an even
+ * spread in time would need an expected interval, and the change-gated stream
+ * does not have one.
+ */
+function thinTo<T>(
+  points: TimelinePoint<T>[],
+  max: number,
+): TimelinePoint<T>[] {
+  if (max <= 0) return [];
+  if (points.length <= max) return points;
+  if (max === 1) return [points[points.length - 1]];
+  const last = points.length - 1;
+  const out: TimelinePoint<T>[] = [];
+  for (let i = 0; i < max; i++) {
+    out.push(points[Math.round((i * last) / (max - 1))]);
+  }
+  return out;
 }
 
 interface ReckonedWalk {
@@ -1600,6 +1673,19 @@ export class TimelineStore {
    * A `ReadingDep` never resolves to nothing (`sampleReading` always answers,
    * `pending` included), so declaring one is a way to say "hand me this Topic's
    * currency and let me judge it" rather than "refuse without it".
+   *
+   * ## The window is resolved BEFORE the deps, and it is the other refusal
+   *
+   * A `minSamples` the record cannot meet means the model has nothing to take a
+   * trend from, so it is settled first and the deps are never read: there is no
+   * point resolving four inputs for a model that is not going to run. It is the
+   * only rejection the window has. `maxSamples` thins and the model runs, and a
+   * window truncated at a gap simply arrives shorter, where the same floor
+   * judges it.
+   *
+   * A dep that opted into a window resolving to NO points is the same answer as
+   * an un-windowed dep resolving to `undefined`, and gets the same decline: the
+   * input the contract named did not arrive.
    */
   private registeredReckoning<T>(
     topic: string,
@@ -1614,20 +1700,117 @@ export class TimelineStore {
     const elected = getReckoner(topic);
     if (!elected) return undefined;
     if (!point || point.payload === null) return undefined;
+    const definition = elected.definition;
+
+    const own = this.windowedHistory(topic, token, point, definition.window);
+    const floor = definition.window?.minSamples ?? 1;
+    if (own.points.length < floor) {
+      return { declined: TimelineStore.tooLittleHistory(own, floor) };
+    }
+
     const resolved: unknown[] = [];
-    for (const dep of elected.definition.deps) {
+    for (const dep of definition.deps) {
+      if (typeof dep === "string") {
+        const depWindow = definition.depWindows?.[dep];
+        if (depWindow) {
+          const anchor = this.sample<unknown>(dep, token);
+          const { points } = this.windowedHistory(
+            dep,
+            token,
+            anchor,
+            depWindow,
+          );
+          if (points.length === 0) {
+            return { declined: TimelineStore.absentInput(topic, dep) };
+          }
+          resolved.push(points);
+          continue;
+        }
+      }
       const value = this.resolveReckonerDep(dep, token);
       if (value === undefined) {
         return { declined: TimelineStore.absentInput(topic, dep) };
       }
       resolved.push(value);
     }
-    const answer = elected.definition.reckon(point, resolved, {
+    const answer = definition.reckon(point, resolved, {
       grade,
       viewUt,
+      history: own.points,
     });
     if ("declined" in answer) return { declined: answer.declined };
     return { owner: elected.owner, model: answer };
+  }
+
+  /**
+   * The decline the store raises on a reckoner's behalf when its own topic
+   * carried fewer samples than the model said it needed.
+   *
+   * No `input`: the topic being read is not one of the model's declared inputs,
+   * and naming it there would put a topic id where every other decline puts the
+   * CONTRACT's spelling of a declared input. The note carries the numbers
+   * instead, which is what an operator can act on.
+   */
+  private static tooLittleHistory(
+    window: ResolvedWindow<unknown>,
+    needed: number,
+  ): ReckoningDecline {
+    const because = window.truncatedAtBreak
+      ? ", the rest of the window being on the far side of a break in the record"
+      : "";
+    return {
+      reason: "insufficient-history",
+      note: `the model needs ${needed} samples of its own topic and the window holds ${window.points.length}${because}`,
+    };
+  }
+
+  /**
+   * One topic's own record across a declared window, gap-truncated and thinned,
+   * memoised for the frame.
+   *
+   * Anchored on `anchor`, the newest point at-or-before the frame's view time,
+   * and NOT on the view time itself. A reckoner physically cannot see past its
+   * confirmed edge, which is what makes reckoning honest, and a window measured
+   * back from the view time would empty out during exactly the blackout a model
+   * exists to carry a value across: the last minute of contact is the minute a
+   * rate estimate wants.
+   *
+   * With no window declared the answer is `[anchor]`. The single point a
+   * reckoner used to get is a one-sample window, so it is served by the same
+   * path rather than by a branch that skips all of this.
+   *
+   * Memoised per `(topic, span, cap, token)` because the reckoned tail re-asks
+   * the model at every instant it draws, and a range read per instant would put
+   * the whole buffer through a filter dozens of times for one unchanging answer.
+   */
+  private windowedHistory<T>(
+    topic: string,
+    token: FrameToken,
+    anchor: TimelinePoint<T> | undefined,
+    window: ReckonerWindow | DepWindow | undefined,
+  ): ResolvedWindow<T> {
+    if (!anchor || anchor.payload === null) {
+      return { points: [], truncatedAtBreak: false };
+    }
+    if (!window) return { points: [anchor], truncatedAtBreak: false };
+    const key = `reckon-window:${topic}:${window.spanUt}:${window.maxSamples}`;
+    return this.memoize(token, key, () => {
+      const raw = this.sampleRange<T>(
+        topic,
+        anchor.validAt - window.spanUt,
+        anchor.validAt,
+      );
+      // A derived topic has no stored history to range over (`sampleRange`
+      // answers `undefined` for one), so its window is the point it computed.
+      if (!raw || raw.length === 0) {
+        return { points: [anchor], truncatedAtBreak: false };
+      }
+      const contiguous = contiguousTail(raw);
+      return {
+        points: thinTo(contiguous, window.maxSamples),
+        truncatedAtBreak: contiguous.length < raw.length,
+      };
+    });
   }
 
   /**

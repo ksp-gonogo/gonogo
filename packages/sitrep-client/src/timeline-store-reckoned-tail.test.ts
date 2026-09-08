@@ -1,3 +1,4 @@
+import "./reckoner-test-topics";
 import { afterEach, describe, expect, it } from "vitest";
 import type { ReckonerDefinition } from "./reading";
 import { clearReckoners, registerReckoner } from "./reckoners";
@@ -15,6 +16,11 @@ import { ViewClock } from "./view-clock";
  * full `vessel.state` path runs end to end in `@ksp-gonogo/data`'s
  * `useDataSeries.reckoned.test.tsx` and on a rendered chart in
  * `@ksp-gonogo/components`' `Graph/stream.test.tsx`.
+ *
+ * The synthetic channel is `test.temperature`, declared in
+ * `reckoner-test-topics.ts`: `registerReckoner` takes `TopicId` now, so a topic
+ * a suite invents has to be declared like any other rather than passed as a
+ * bare string.
  */
 
 function newStore(viewUt: number): TimelineStore {
@@ -251,7 +257,7 @@ function disconnectedStore(nowSeconds: number): TimelineStore {
 describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
   it("carries a raw topic forward on the model its owner registered", () => {
     const store = disconnectedStore(50);
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -259,13 +265,13 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
           (point.payload as number) + (at - point.validAt),
       }),
     });
-    ingestPoint(store, "temperature", 10, 0);
-    ingestPoint(store, "temperature", 20, 0);
-    ingestPoint(store, "temperature", 30, 0);
+    ingestPoint(store, "test.temperature", 10, 0);
+    ingestPoint(store, "test.temperature", 20, 0);
+    ingestPoint(store, "test.temperature", 30, 0);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const tail = store.sampleReckonedTail<number>("temperature", 0, 50);
+    const tail = store.sampleReckonedTail<number>("test.temperature", 0, 50);
     expect(tail.map((s) => s.atUt)).toEqual([40, 50]);
     expect(tail.map((s) => s.value)).toEqual([10, 20]);
     expect(tail.every((s) => s.basis === "rate-integration")).toBe(true);
@@ -285,9 +291,9 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
         };
       },
     };
-    registerReckoner("temperature", "test", reckoner);
-    ingestPoint(store, "temperature", 10, 5);
-    ingestPoint(store, "temperature", 20, 5);
+    registerReckoner("test.temperature", "test", reckoner);
+    ingestPoint(store, "test.temperature", 10, 5);
+    ingestPoint(store, "test.temperature", 20, 5);
     store.setTransportConnected(false);
     store.beginFrame();
 
@@ -295,38 +301,38 @@ describe("TimelineStore.sampleReckonedTail: a registered reckoner", () => {
     // observation, which is beyond the horizon this model claims.
     expect(
       store
-        .sampleReckonedTail<number>("temperature", 0, 100)
+        .sampleReckonedTail<number>("test.temperature", 0, 100)
         .map((s) => s.atUt),
     ).toEqual([30]);
   });
 
   it("draws nothing for a model that declines outright", () => {
     const store = disconnectedStore(50);
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: () => ({ declined: { reason: "model-inapplicable" } }),
     });
-    ingestPoint(store, "temperature", 10, 5);
-    ingestPoint(store, "temperature", 20, 5);
+    ingestPoint(store, "test.temperature", 10, 5);
+    ingestPoint(store, "test.temperature", 20, 5);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReckonedTail("temperature", 0, 50)).toEqual([]);
+    expect(store.sampleReckonedTail("test.temperature", 0, 50)).toEqual([]);
   });
 
   it("draws nothing while the topic is live, where there is no silence", () => {
     const store = disconnectedStore(50);
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
         reckon: () => point.payload as number,
       }),
     });
-    ingestPoint(store, "temperature", 10, 5);
-    ingestPoint(store, "temperature", 20, 5);
+    ingestPoint(store, "test.temperature", 10, 5);
+    ingestPoint(store, "test.temperature", 20, 5);
     store.beginFrame();
 
-    expect(store.sampleReckonedTail("temperature", 0, 50)).toEqual([]);
+    expect(store.sampleReckonedTail("test.temperature", 0, 50)).toEqual([]);
   });
 });

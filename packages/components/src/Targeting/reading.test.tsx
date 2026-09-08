@@ -1,6 +1,6 @@
 import { clearActionHandlers, DashboardItemContext } from "@ksp-gonogo/core";
 import { clearReckoners, registerReckoner } from "@ksp-gonogo/sitrep-client";
-import { type TopicPayload, value } from "@ksp-gonogo/sitrep-sdk";
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, describe, expect, it } from "vitest";
@@ -175,10 +175,7 @@ describe("Targeting: stale renders the last observation as an observation", () =
     // so the modelled range is a number the test chose, and the point is that
     // the widget renders BOTH figures, the observation with its age and the
     // model with its basis, rather than substituting one for the other.
-    registerReckoner<
-      TopicPayload<"vessel.target">,
-      Pick<TopicPayload<"vessel.target">, "relativePosition">
-    >(
+    registerReckoner(
       "vessel.target",
       // A non-core owner, so the election prefers it over core's vanilla and the
       // figures below are the ones on screen. Core's own conic is still
@@ -197,17 +194,15 @@ describe("Targeting: stale renders the last observation as an observation", () =
           // rather than bare numbers because a reckoner returns the SAME payload
           // shape the decode produces, and the widget reads `.magnitude` off each
           // component.
-          reckon: () =>
-            ({
-              relativePosition: {
-                x: value("m", 7200),
-                y: value("m", 0),
-                z: value("m", 9600),
-              },
-            }) as unknown as Pick<
-              TopicPayload<"vessel.target">,
-              "relativePosition"
-            >,
+          // No cast: `R` is inferred from what this returns, and the topic
+          // string is what carries the payload type now.
+          reckon: () => ({
+            relativePosition: {
+              x: value("m", 7200),
+              y: value("m", 0),
+              z: value("m", 9600),
+            },
+          }),
         }),
       },
     );

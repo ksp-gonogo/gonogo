@@ -1,3 +1,4 @@
+import "./reckoner-test-topics";
 import { Quality, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { ReckonerDefinition } from "./reading";
@@ -36,6 +37,12 @@ import { ViewClock } from "./view-clock";
  * topic can read `observed` with `reckoning: "available"`. Nothing here exercises
  * that path: every case takes the transport down first, because the gaps this
  * file pins are about carrying a value across a loss of contact.
+ *
+ * `test.temperature` and `test.contact` are declared in
+ * `reckoner-test-topics.ts`. `registerReckoner` takes `TopicId` now and resolves
+ * the payload from it, so a bare `"temperature"` and a hand-rolled stand-in
+ * against `vessel.target` are both compile errors; the topics these cases want
+ * are declared through the same `declare module` augmentation an Uplink uses.
  */
 
 function fakeWall(start = 0) {
@@ -175,13 +182,13 @@ describe("a reckoner can see the UT it is reckoning for", () => {
         };
       },
     };
-    registerReckoner("temperature", "test", reckoner);
+    registerReckoner("test.temperature", "test", reckoner);
 
-    store.ingest("temperature", numberPoint(100, 5));
+    store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
-    store.sampleReading<number>("temperature");
+    store.sampleReading<number>("test.temperature");
 
     expect(seen).toEqual([store.currentFrame().viewUt]);
   });
@@ -190,7 +197,7 @@ describe("a reckoner can see the UT it is reckoning for", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -198,12 +205,12 @@ describe("a reckoner can see the UT it is reckoning for", () => {
       }),
     });
 
-    store.ingest("temperature", numberPoint(100, 5));
+    store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const reading = store.sampleReading<number>("temperature");
+    const reading = store.sampleReading<number>("test.temperature");
     expect(reading.reckoning).toBe("available");
     if (reading.reckoning !== "available") return;
     const reckoning = reading.reckoned;
@@ -222,7 +229,7 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     const { store } = predictedStore(wall);
 
     const HORIZON_SECONDS = 120;
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point, _deps, { viewUt }) => {
         if (viewUt - point.validAt > HORIZON_SECONDS)
@@ -234,11 +241,11 @@ describe("a reckoning withdraws when its model stops being offered", () => {
       },
     });
 
-    store.ingest("temperature", numberPoint(100, 5));
+    store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(10);
     store.setTransportConnected(false);
     store.beginFrame();
-    expect(store.sampleReading<number>("temperature").reckoning).toBe(
+    expect(store.sampleReading<number>("test.temperature").reckoning).toBe(
       "available",
     );
 
@@ -246,7 +253,7 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     // and the topic keeps the staleness it honestly has with nothing on offer.
     wall.advanceBy(600);
     store.beginFrame();
-    const expired = store.sampleReading<number>("temperature");
+    const expired = store.sampleReading<number>("test.temperature");
     expect(expired.reckoning).toBe("none");
     expect(expired.state).toBe("stale");
   });
@@ -259,18 +266,18 @@ describe("a reckoning withdraws when its model stops being offered", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    store.ingest("temperature", numberPoint(100, 5));
+    store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
-    const first = store.sampleReading<number>("temperature");
+    const first = store.sampleReading<number>("test.temperature");
     expect(first.state).toBe("stale");
 
     for (let i = 0; i < 10; i++) {
       wall.advanceBy(1);
       store.beginFrame();
     }
-    expect(store.sampleReading<number>("temperature")).toBe(first);
+    expect(store.sampleReading<number>("test.temperature")).toBe(first);
   });
 });
 
@@ -287,7 +294,7 @@ describe("a reckoning says which fields it actually modelled", () => {
     const { store } = predictedStore(wall);
 
     type Target = { relativePosition: number; name: string };
-    registerReckoner<Target>("vessel.target", "test", {
+    registerReckoner("test.contact", "test", {
       deps: [],
       reckon: (point) => ({
         // Covers ONE field, never the root: the model has nothing to say about
@@ -299,7 +306,7 @@ describe("a reckoning says which fields it actually modelled", () => {
       }),
     });
 
-    store.ingest("vessel.target", {
+    store.ingest("test.contact", {
       validAt: 100,
       payload: { relativePosition: 1, name: "Mun Station" },
       meta: makeMeta({ validAt: 100, deliveredAt: 100 }),
@@ -314,7 +321,7 @@ describe("a reckoning says which fields it actually modelled", () => {
      * longer says it: a model that DID cover the root would leave the reading
      * stale too, and only differ here.
      */
-    const reading = store.sampleReading<Target>("vessel.target");
+    const reading = store.sampleReading<Target>("test.contact");
     expect(reading.reckoning).toBe("none");
     expect(reading.state).toBe("stale");
   });
@@ -336,7 +343,7 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -344,12 +351,12 @@ describe("a reckoning advances with the clock, not only with the post", () => {
       }),
     });
 
-    store.ingest("temperature", numberPoint(100, 0));
+    store.ingest("test.temperature", numberPoint(100, 0));
     wall.advanceBy(10);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const first = store.sampleReading<number>("temperature");
+    const first = store.sampleReading<number>("test.temperature");
     if (first.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
     expect(first.reckoned.value).toBe(10);
@@ -358,7 +365,7 @@ describe("a reckoning advances with the clock, not only with the post", () => {
     wall.advanceBy(10);
     store.beginFrame();
 
-    const second = store.sampleReading<number>("temperature");
+    const second = store.sampleReading<number>("test.temperature");
     if (second.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
     expect(second.reckoned.value).toBe(20);
@@ -376,7 +383,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -384,12 +391,12 @@ describe("a reckoning is computed once per arm, not once per read", () => {
       }),
     });
 
-    store.ingest("temperature", numberPoint(100, 5));
+    store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const reading = store.sampleReading<number>("temperature");
+    const reading = store.sampleReading<number>("test.temperature");
     if (reading.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
     expect(reading.reckoned).toBe(reading.reckoned);
@@ -403,7 +410,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const { store } = predictedStore(wall);
 
     let runs = 0;
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -414,12 +421,12 @@ describe("a reckoning is computed once per arm, not once per read", () => {
       }),
     });
 
-    store.ingest("temperature", numberPoint(100, 5));
+    store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const reading = store.sampleReading<number>("temperature");
+    const reading = store.sampleReading<number>("test.temperature");
     if (reading.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
     expect(runs).toBe(1);
@@ -436,7 +443,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -444,18 +451,18 @@ describe("a reckoning is computed once per arm, not once per read", () => {
       }),
     });
 
-    store.ingest("temperature", numberPoint(100, 0));
+    store.ingest("test.temperature", numberPoint(100, 0));
     wall.advanceBy(10);
     store.setTransportConnected(false);
     store.beginFrame();
-    const first = store.sampleReading<number>("temperature");
+    const first = store.sampleReading<number>("test.temperature");
     if (first.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
     expect(first.reckoned.value).toBe(10);
 
     wall.advanceBy(10);
     store.beginFrame();
-    const second = store.sampleReading<number>("temperature");
+    const second = store.sampleReading<number>("test.temperature");
     if (second.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
     expect(second.reckoned).not.toBe(first.reckoned);
@@ -470,7 +477,7 @@ describe("a reckoning is computed once per arm, not once per read", () => {
     const wall = fakeWall();
     const { store } = predictedStore(wall);
 
-    registerReckoner<number>("temperature", "test", {
+    registerReckoner("test.temperature", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [{ path: "", basis: "rate-integration" }],
@@ -478,12 +485,12 @@ describe("a reckoning is computed once per arm, not once per read", () => {
       }),
     });
 
-    store.ingest("temperature", numberPoint(100, 5));
+    store.ingest("test.temperature", numberPoint(100, 5));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const reading = store.sampleReading<number>("temperature");
+    const reading = store.sampleReading<number>("test.temperature");
     if (reading.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
     const copied = { ...reading };

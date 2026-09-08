@@ -144,13 +144,22 @@ export interface TopicModel<T, R = T> {
  * spelled exactly as the contract declares it (`relativeVelocity`,
  * `@vessel.orbit`, `@vessel.orbit#mu`), so the string a widget shows and the
  * string the contract carries are the same string.
+ *
+ * `"insufficient-history"` is the one the STORE raises on the reckoner's behalf
+ * without consulting it, and the only rejection {@link ReckonerWindow} has: the
+ * declared window held fewer than `minSamples` points of the reckoner's own
+ * topic, so a model that needs a trend has nothing to take one from. It carries
+ * no `input`, because the topic being read is not one of its own declared
+ * inputs; the `note` says how many samples were found and whether a gap is what
+ * cut them down.
  */
 export interface ReckoningDecline {
   readonly reason:
     | "input-absent"
     | "beyond-horizon"
     | "model-inapplicable"
-    | "contested";
+    | "contested"
+    | "insufficient-history";
   /** The declared input responsible, where the reason has one. */
   readonly input?: string;
   /** One sentence for an operator. Never a stack, never a code. */
@@ -856,17 +865,158 @@ type ResolvedReckonerDep<D extends Dep> =
         ? TimelinePoint<TopicPayload<D>> | undefined
         : never;
 
-/** Positionally-mapped tuple of a reckoner's resolved inputs, in `deps` order. */
-export type ResolvedReckonerDeps<Deps extends readonly Dep[]> = {
-  [K in keyof Deps]: Deps[K] extends Dep ? ResolvedReckonerDep<Deps[K]> : never;
+/**
+ * How much of its OWN topic's record a reckoner is handed, bounded both ways.
+ *
+ * A reckoner used to get exactly one point, which is why so little was
+ * reckonable: a model that wants a trend (a rate, a drift, a slope) could not
+ * take one, so every changing quantity needed a companion rate field published
+ * beside it before anything could carry it forward. The window replaces that
+ * narrowing with a declaration.
+ *
+ * ## The two bounds do different jobs, and only one of them refuses
+ *
+ * `spanUt` and `maxSamples` are a COST CAP. A window that catches more points
+ * than `maxSamples` is thinned to that many and the model runs anyway: the
+ * reckoner asked for a lookback, not for every sample inside it, and dropping
+ * points from a dense stretch costs a rate estimate nothing.
+ *
+ * `minSamples` is the SUFFICIENCY FLOOR and the only rejection here. Below it
+ * the model never runs and the store answers
+ * `declined: { reason: "insufficient-history" }` on its behalf, because a slope
+ * taken from one point is not a slope, and a model given one anyway would
+ * invent the very confidence {@link Reading} exists to withhold.
+ *
+ * ## It applies to the reckoner's OWN topic, and to nothing else
+ *
+ * There is no `minSamples` on {@link DepWindow}, and that is the whole reason
+ * the two are separate types rather than one with a flag. A floor applied to
+ * dependencies would refuse to model anything whose input is a slow-moving
+ * constant, which is most of them: `system.bodies` changes once a session, so a
+ * two-sample floor on it would decline forever on a fact that was never
+ * missing.
+ *
+ * ## What a span does NOT mean
+ *
+ * `spanUt` is game seconds of LOOKBACK from the newest observation, never a
+ * count of expected samples. The stream is change-gated, so a topic only
+ * carries a point when its value actually changed: "changes every twenty
+ * seconds" and "is sampled every twenty seconds" are the same thing in the
+ * buffer and different things in the world. Nothing here divides a span by an
+ * interval, and nothing written against it should.
+ */
+export interface ReckonerWindow {
+  /**
+   * Lookback in game seconds, measured back from the newest observation the
+   * reckoner can see, NOT from the frame's view time. A model carrying a value
+   * across a blackout still wants the last minute of contact, and a window
+   * anchored on the view time would empty out exactly when the model was
+   * needed.
+   */
+  readonly spanUt: number;
+  /** Cost cap: a fuller window is thinned to this many points, ends kept. */
+  readonly maxSamples: number;
+  /** Sufficiency floor. Below it the model does not run. Defaults to 1. */
+  readonly minSamples?: number;
+}
+
+/**
+ * A window one DEPENDENCY opts into, turning its resolution from a single point
+ * into an array.
+ *
+ * By default a dep still resolves to one point by hold-last, and that is
+ * correct rather than a shortcut: a change-gated timeline only carries a point
+ * when the value changed, so a dep that last changed an hour ago has not gone
+ * missing, its value now IS that value. `sampleDerivedRange` already leans on
+ * exactly this to replay a derived channel over its inputs' change points.
+ *
+ * No `minSamples`: see {@link ReckonerWindow}.
+ */
+export interface DepWindow {
+  /** As {@link ReckonerWindow.spanUt}, measured back from this dep's own newest point. */
+  readonly spanUt: number;
+  /** As {@link ReckonerWindow.maxSamples}. */
+  readonly maxSamples: number;
+  /**
+   * Declared as `never` rather than left out, so writing one is an error the
+   * compiler gives rather than a key that is quietly ignored. `depWindows` is
+   * inferred as a whole object before its constraint is checked, and a
+   * constraint check does no excess-property check, so an omitted field would
+   * have been accepted here and dropped.
+   */
+  readonly minSamples?: never;
+}
+
+/**
+ * The deps a window can be declared for: the Topic ids among them.
+ *
+ * A `ReadingDep` and a `ProcessorHandle` are excluded because neither is a
+ * stored timeline to range over. A reading is one topic's currency AT a view
+ * time, and a processor is recomputed per frame and never buffered, so there is
+ * no history to hand back for either.
+ */
+export type WindowableDep<Deps extends readonly Dep[]> = Extract<
+  Deps[number],
+  TopicId
+>;
+
+/**
+ * The opt-in map, keyed by the reckoner's OWN declared deps.
+ *
+ * Keyed by `WindowableDep<Deps>` rather than by `string` so a window declared
+ * for a topic this reckoner does not depend on is a compile error rather than a
+ * silently ignored key, which is the same failure the bare-string `topic`
+ * parameter used to allow one level up.
+ */
+export type DepWindows<Deps extends readonly Dep[]> = {
+  readonly [K in WindowableDep<Deps>]?: DepWindow;
+};
+
+/**
+ * What one declared dependency resolves to, given which deps opted into a
+ * window.
+ *
+ * `Windowed` is the set of dep ids carrying a {@link DepWindow}, and it is a
+ * type parameter rather than a runtime flag so the difference shows up where it
+ * matters: a dep that opted in destructures as an ARRAY and one that did not as
+ * a single point, with no cast at either call site and no `Array.isArray` check
+ * inside a model to find out which it got.
+ */
+export type ResolvedReckonerDeps<
+  Deps extends readonly Dep[],
+  Windowed extends TopicId = never,
+> = {
+  [K in keyof Deps]: Deps[K] extends Dep
+    ? Deps[K] extends Windowed
+      ? readonly TimelinePoint<TopicPayload<Extract<Deps[K], TopicId>>>[]
+      : ResolvedReckonerDep<Deps[K]>
+    : never;
 };
 
 /** What a reckoner is told about the frame it is running for, beyond its inputs. */
-export interface ReckonerFrame {
+export interface ReckonerFrame<T = unknown> {
   /** `undefined` when the reading is LIVE; see {@link ReckonerFor}. */
   readonly grade: StaleGrade | undefined;
   /** The frame's frozen view time: what the model is being asked to reach. */
   readonly viewUt: number;
+  /**
+   * The reckoner's own topic across its declared {@link ReckonerWindow},
+   * oldest first, the last entry being the same point `reckon` is handed
+   * separately.
+   *
+   * Never empty, and exactly `[point]` when no window is declared: a reckoner
+   * that asked for no history is one whose window is a single sample, which is
+   * the old behaviour stated as a window rather than a second code path.
+   *
+   * It stops at the newest break in the record and never spans one. Two things
+   * count as a break and both are POSITIVE claims rather than an interval
+   * anyone guessed at: a point carrying `meta.gapSinceUt` (the producer saying
+   * data existed before it and is gone) and a tombstone (`payload === null`,
+   * the value confirmed absent and later back). Samples either side of a
+   * blackout are not the same regime, and a model handed both would draw a
+   * trend through an outage it has no readings for.
+   */
+  readonly history: readonly TimelinePoint<T>[];
 }
 
 /**
@@ -903,17 +1053,29 @@ export interface ReckonerDefinition<
   T,
   R = T,
   Deps extends readonly Dep[] = readonly Dep[],
+  Windows extends DepWindows<Deps> = Record<never, never>,
 > {
   /** Declared inputs, in the same notation a Processor's `deps` uses. */
   readonly deps: Deps;
+  /**
+   * How much of this topic's own record to hand the model, and the floor below
+   * which it should not run at all. Omitted means one point: see
+   * {@link ReckonerWindow} for why the bounds are shaped the way they are.
+   */
+  readonly window?: ReckonerWindow;
+  /**
+   * The deps that want their own history rather than one hold-last point,
+   * each with its own span and cap. Keyed by the ids in `deps`.
+   */
+  readonly depWindows?: Windows;
   /**
    * Offer a model for `point` at `frame.viewUt`, or decline and say why. Cheap:
    * it is asked whether a model exists and what it covers.
    */
   reckon(
     point: TimelinePoint<T>,
-    resolved: ResolvedReckonerDeps<Deps>,
-    frame: ReckonerFrame,
+    resolved: ResolvedReckonerDeps<Deps, Extract<keyof Windows, TopicId>>,
+    frame: ReckonerFrame<T>,
   ): ReckonerAnswer<T, R>;
 }
 
@@ -932,10 +1094,19 @@ export interface ReckonerDefinition<
 export interface AnyReckonerDefinition {
   /** Declared inputs, in the same notation a Processor's `deps` uses. */
   readonly deps: readonly Dep[];
+  /** See {@link ReckonerDefinition.window}. */
+  readonly window?: ReckonerWindow;
+  /**
+   * See {@link ReckonerDefinition.depWindows}. Erased to a string key here
+   * for the same reason the rest of this interface is: the store looks a
+   * window up by the dep it is already iterating, and holds no `Deps` to key
+   * against.
+   */
+  readonly depWindows?: { readonly [dep: string]: DepWindow | undefined };
   /** See {@link ReckonerDefinition.reckon}; the store resolves `deps` in order. */
   reckon(
     point: TimelinePoint<unknown>,
     resolved: readonly unknown[],
-    frame: ReckonerFrame,
+    frame: ReckonerFrame<unknown>,
   ): ReckonerAnswer<unknown, unknown>;
 }

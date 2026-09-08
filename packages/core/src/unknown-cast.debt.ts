@@ -191,7 +191,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/components/src/Strategies/screens.test.tsx": 1,
   "packages/components/src/SystemView/fixtureFeeds.test.ts": 1,
   "packages/components/src/SystemView/integratedVsAnalytic.integration.test.tsx": 1,
-  "packages/components/src/Targeting/reading.test.tsx": 1,
   "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
   "packages/components/src/TechTree/index.tsx": 2,
   "packages/components/src/test/topologyToVesselPartsWire.ts": 2,
@@ -449,7 +448,6 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/components/src/shared/useZoomPan.test.tsx": 4,
   "packages/components/src/ShipMap/partMetersContribution.test.ts": 1,
   "packages/components/src/ShipMap/ShipDiagram.tsx": 1,
-  "packages/components/src/Targeting/reading.test.tsx": 1,
   "packages/components/src/TargetPicker/enumLabelDrift.test.ts": 2,
   "packages/components/src/test/widgetDomSnapshot.tsx": 3,
   // packages/core: 7 in 5 files (0 out of `any`, 4 in tests), walked 206 files

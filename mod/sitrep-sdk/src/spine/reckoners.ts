@@ -1,4 +1,9 @@
-import type { AnyReckonerDefinition, ReckonerDefinition } from "../reading";
+import type {
+  AnyReckonerDefinition,
+  DepWindows,
+  ReckonerDefinition,
+} from "../reading";
+import type { TopicId, TopicPayload } from "../topics";
 import type { Dep } from "./processors";
 
 /**
@@ -51,19 +56,38 @@ export const CORE_RECKONER_OWNER = "core";
  *
  * `owner` is a required argument rather than a convention because ownership has
  * to be readable by something other than a person: the boundary ratchet and any
- * health surface both want to know which Uplink is modelling what, and this was
- * the one registration seam in the repo taking neither an owner nor a topic
- * type. An Uplink client should call its handle's bound `registerReckoner`
- * instead of naming itself here.
+ * health surface both want to know which Uplink is modelling what. An Uplink
+ * client should call its handle's bound `registerReckoner` instead of naming
+ * itself here.
+ *
+ * ## The topic is the typed union, so the payload type falls out of it
+ *
+ * `topic` was a bare `string`, and it cost twice. A name with a typo was not a
+ * compile error at all: it registered a model under a topic nothing would ever
+ * read, and the only symptom was a value that stayed unreckoned forever. And
+ * `T` could not be inferred from it, so every author annotated the payload by
+ * hand and the annotation was free to disagree with the topic it was registered
+ * against.
+ *
+ * Taking `TopicId` and resolving `TopicPayload<Topic>` fixes both at once,
+ * through the map `useTelemetry` and `Dep` already resolve through. `Deps` and
+ * `R` were already inferable and are simply left to infer: a definition that
+ * annotates neither is the shorter one AND the one that cannot drift.
+ *
+ * An Uplink-owned Topic reaches the union the same way it reaches
+ * `useTelemetry`: the Uplink's client augments `TopicPayloadMap` through
+ * `declare module "@ksp-gonogo/sitrep-sdk"`, and any program that statically
+ * imports that module can register a model for it.
  */
 export function registerReckoner<
-  T,
-  R = T,
+  const Topic extends TopicId,
+  R = TopicPayload<Topic>,
   const Deps extends readonly Dep[] = readonly Dep[],
+  const Windows extends DepWindows<Deps> = Record<never, never>,
 >(
-  topic: string,
+  topic: Topic,
   owner: string,
-  reckoner: ReckonerDefinition<T, R, Deps>,
+  reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
 ): void {
   const byOwner =
     reckoners.get(topic) ?? new Map<string, AnyReckonerDefinition>();
