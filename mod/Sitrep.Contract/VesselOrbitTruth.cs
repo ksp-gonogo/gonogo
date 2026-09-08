@@ -39,11 +39,13 @@ public class VesselOrbitTruth
      * diffing element->position math must read `value`: `reckoned` there compares the propagator
      * against itself and agrees perfectly by construction.
      */
+    [SitrepFrame(Frames.BodyCentredInertial, WhenSet = Frames.BodyCentredRotating, SelectedBy = "frameRotating")]
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "velocity", "frameRotating", "@vessel.orbit#mu")]
     public Vec3 Position { get; set; } = new();
 
     [SitrepUnit(Units.MetresPerSecond)]
     // The same conic seen from the other half of the state vector; see Position.
+    [SitrepFrame(Frames.BodyCentredInertial, WhenSet = Frames.BodyCentredRotating, SelectedBy = "frameRotating")]
     [SitrepReckonable(ReckoningBases.KeplerPropagation, "position", "frameRotating", "@vessel.orbit#mu")]
     public Vec3 Velocity { get; set; } = new();
 

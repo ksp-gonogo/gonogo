@@ -26,6 +26,7 @@
     <None Include="../golden-fixtures/kernel.json" Link="golden-fixtures/kernel.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../golden-fixtures/serialization.json" Link="golden-fixtures/serialization.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../Sitrep.Contract/unit-coverage.baseline.json" Link="golden-fixtures/unit-coverage.baseline.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../Sitrep.Contract/frame-coverage.baseline.json" Link="golden-fixtures/frame-coverage.baseline.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <!-- NO Reinforced.Typings reference. There was one, because the shipped
        contract used to compile RtConfig and the RT attributes, so

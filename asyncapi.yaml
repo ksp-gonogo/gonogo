@@ -13274,9 +13274,15 @@ components:
         A `VesselPart`'s local bounding box: `PartBounds.size` is the part's
         `prefabSize` (a cheap, per-part-constant proxy for the renderer bounds
         ShipMap could refine later), `PartBounds.center` the mesh-centre offset from
-        `VesselPart.position` (`Part.boundsCentroidOffset`, vessel-local). Fuel-line
-        parts report a whole-conduit-wrapping bounds, a carried-forward KSP quirk
-        the consumer handles, not this capture.
+        the part's own origin (`Part.boundsCentroidOffset`). Fuel-line parts report
+        a whole-conduit-wrapping bounds, a carried-forward KSP quirk the consumer
+        handles, not this capture.
+
+        Both are in the PART's own frame (`part-local`), never the vessel's: they
+        are authored fields of the part's config node, so one value has to serve
+        every instance of that part however it was assembled. A consumer placing the
+        box on a ship rotates both by that part's `orgRot` before adding
+        `VesselPart.position`, which is `vessel-local`.
       required:
         - size
       properties:
@@ -13298,8 +13304,14 @@ components:
             - object
             - "null"
           description: |-
-            `Part.boundsCentroidOffset`: mesh-centre offset from `VesselPart.position`
-            (metres, vessel-local); `null` when absent.
+            `Part.boundsCentroidOffset`: mesh-centre offset from the part's own origin
+            (metres, PART-local); `null` when absent.
+
+            Part-local, not vessel-local: an authored per-part-type constant like
+            `PartBounds.size` beside it, so one value serves every instance of the part
+            at whatever attitude it was assembled at. `VesselPart.position` is
+            `vessel-local`, so adding the two raw mixes frames and lands the box
+            somewhere the part is not; rotate this one by the part's `orgRot` first.
           required:
             - x
             - y

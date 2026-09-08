@@ -87,10 +87,14 @@ public class VesselPart
 
     /// <summary><c>Part.orgPos</c>: the part's original vessel-local position (metres, vessel frame).</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepFrame(Frames.VesselLocal)]
     public Vec3 Position { get; set; } = new();
 
     /// <summary>The part's local up axis (<c>Part.orgRot * Vector3.up</c>), for orienting flow/thrust glyphs. <c>null</c> on a snapshot recorded before this field existed.</summary>
     [SitrepUnit(Units.Dimensionless)]
+    // orgRot is the part's rotation within the construction frame, so the rotated axis lands in
+    // the vessel's frame and not the part's own.
+    [SitrepFrame(Frames.VesselLocal)]
     public Vec3? Up { get; set; }
 
     public PartBounds Bounds { get; set; } = new();
@@ -315,9 +319,19 @@ public class PartModuleState
 /// A <see cref="VesselPart"/>'s local bounding box: <see cref="Size"/> is the
 /// part's <c>prefabSize</c> (a cheap, per-part-constant proxy for the renderer
 /// bounds ShipMap could refine later), <see cref="Center"/> the mesh-centre
-/// offset from <see cref="VesselPart.Position"/> (<c>Part.boundsCentroidOffset</c>,
-/// vessel-local). Fuel-line parts report a whole-conduit-wrapping bounds, a
-/// carried-forward KSP quirk the consumer handles, not this capture.
+/// offset from the part's own origin (<c>Part.boundsCentroidOffset</c>).
+/// Fuel-line parts report a whole-conduit-wrapping bounds, a carried-forward
+/// KSP quirk the consumer handles, not this capture.
+///
+/// <para>Both are in the PART's own frame (<c>part-local</c>), never the
+/// vessel's: they are authored fields of the part's config node, so one value
+/// has to serve every instance of that part however it was assembled. A
+/// consumer placing the box on a ship rotates both by that part's <c>orgRot</c>
+/// before adding <see cref="VesselPart.Position"/>, which is <c>vessel-local</c>.
+/// <internal>
+/// <see cref="Center"/> was documented as vessel-local until the frame rule
+/// landed; the config-node reading is what settled it.
+/// </internal></para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -327,9 +341,20 @@ public class PartBounds
 {
     /// <summary><c>Part.prefabSize</c>: the part's untransformed bounding-box extents (metres).</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepFrame(Frames.PartLocal)]
     public Vec3 Size { get; set; } = new();
 
-    /// <summary><c>Part.boundsCentroidOffset</c>: mesh-centre offset from <see cref="VesselPart.Position"/> (metres, vessel-local); <c>null</c> when absent.</summary>
+    /// <summary>
+    /// <c>Part.boundsCentroidOffset</c>: mesh-centre offset from the part's own origin
+    /// (metres, PART-local); <c>null</c> when absent.
+    ///
+    /// <para>Part-local, not vessel-local: an authored per-part-type constant like
+    /// <see cref="Size"/> beside it, so one value serves every instance of the part at whatever
+    /// attitude it was assembled at. <see cref="VesselPart.Position"/> is <c>vessel-local</c>,
+    /// so adding the two raw mixes frames and lands the box somewhere the part is not; rotate
+    /// this one by the part's <c>orgRot</c> first.</para>
+    /// </summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepFrame(Frames.PartLocal)]
     public Vec3? Center { get; set; }
 }

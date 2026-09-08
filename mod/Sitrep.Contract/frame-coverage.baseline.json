@@ -1,0 +1,4 @@
+{
+  "Note": "EMPTY, and it must stay that way. Every Vec3-valued wire property declares a frame. This list may only SHRINK: FrameCoverageTests.BaselineOnlyShrinks fails on a stale entry, and EveryVec3WirePropertyDeclaresAFrame fails on a new bare one. It was seeded empty because the whole Vec3 surface was ten properties across five types and every one already stated its frame in prose, so annotating them was transcription rather than research. An entry is {Property, Reason}, and the Reason says which fact about the PRODUCER could not be established, not that the work is pending: PendingEntriesAreSortedUniqueAndGiveAReason rejects a bare name. There is deliberately no seeding utility, because a machine cannot write that sentence.",
+  "Pending": []
+}
