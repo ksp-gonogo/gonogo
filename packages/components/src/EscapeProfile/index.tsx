@@ -176,7 +176,7 @@ const NOTICE_STYLE: CSSProperties = {
   fontSize: "var(--font-size-xs)",
   color: "var(--color-text-faint)",
   background: "rgba(0, 0, 0, 0.7)",
-  padding: "var(--space-2) var(--space-6)",
+  padding: "var(--inset-chip)",
   pointerEvents: "none",
   alignSelf: "flex-start",
   maxWidth: "100%",

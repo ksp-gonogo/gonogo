@@ -348,7 +348,7 @@ const NOTICE_STYLE = {
   fontSize: "var(--font-size-xs)",
   color: "var(--color-text-faint)",
   background: "rgba(0, 0, 0, 0.7)",
-  padding: "var(--space-2) var(--space-6)",
+  padding: "var(--inset-chip)",
   borderRadius: "var(--radius-xs)",
   pointerEvents: "none",
   alignSelf: "flex-start",
@@ -368,7 +368,7 @@ const LIVE_CHIP_STYLE = {
   display: "flex",
   flexDirection: "column",
   gap: "var(--space-hair)",
-  padding: "var(--space-4) var(--space-8)",
+  padding: "var(--inset-surface)",
   background: "rgba(0, 0, 0, 0.75)",
   border: "1px solid var(--color-surface-raised)",
   borderRadius: "var(--radius-xs)",
@@ -380,7 +380,7 @@ const LIVE_CHIP_STYLE = {
 const CHIP_ROW_STYLE = {
   display: "grid",
   gridTemplateColumns: "28px auto",
-  gap: "var(--space-6)",
+  gap: "var(--gap-related)",
   alignItems: "baseline",
 } as const;
 

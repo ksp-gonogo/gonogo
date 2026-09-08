@@ -63,7 +63,10 @@ function Wrap({ children }: { children: ReactNode }) {
 const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
+  /* Same gutter as AlmanacPanel's WRAP and held for the same reason: the two
+     panels occupy one slot and have to line up, and neither draws a box, so
+     neither is a surface. */
   padding: "var(--space-8) var(--space-10)",
   minWidth: 0,
   minHeight: 0,

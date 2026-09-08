@@ -406,7 +406,7 @@ function formatRate(rate: number | null): string {
 const Body = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   align-items: center;
   justify-content: center;
   min-width: 0;
@@ -418,7 +418,7 @@ const Rate = styled.div<{ $tone: "physics" | "high" }>`
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   min-width: 0;
   /* Physics warp (≤4×) tints amber: operator at speed in atmosphere
      needs to know it's NOT on-rails. High warp (≥5×) stays green. */
@@ -445,7 +445,7 @@ const FullLadder = styled.div`
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(40px, 1fr));
-  gap: var(--space-4);
+  gap: var(--gap-related);
   align-content: center;
 `;
 
@@ -456,7 +456,7 @@ const StepLadder = styled.div`
   min-width: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(28px, 1fr));
-  gap: var(--space-4);
+  gap: var(--gap-related);
   align-content: center;
 `;
 
@@ -468,6 +468,10 @@ const WarpButton = styled.button<{ $active: boolean }>`
     ${({ $active }) =>
       $active ? "var(--color-status-go-bg)" : "var(--color-border-subtle)"};
   border-radius: var(--radius-sm);
+  /* A control by class, but it wants horizontal BELOW vertical: these buttons
+     are a dense grid of warp-rate glyphs, so the pair is taller than it is wide.
+     Every --inset-* widens faster than it grows, so naming this one would
+     transpose it. Stays on the rungs. */
   padding: var(--space-6) var(--space-4);
   font-size: var(--font-size-sm);
   font-weight: ${({ $active }) => ($active ? 700 : 500)};

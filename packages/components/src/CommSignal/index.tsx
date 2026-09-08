@@ -478,7 +478,7 @@ function CommsPathStop({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "var(--space-8)",
+        gap: "var(--gap-related)",
       }}
     >
       <RailSlot stop />
@@ -527,7 +527,7 @@ function CommsPathLeg({
       style={{
         display: "flex",
         alignItems: "center",
-        gap: "var(--space-8)",
+        gap: "var(--gap-related)",
         minHeight: hasDetail ? undefined : "var(--space-16)",
       }}
     >
@@ -684,6 +684,10 @@ function SignalBars({ bars, tone }: { bars: number; tone: Tone }) {
       style={{
         display: "flex",
         alignItems: "flex-end",
+        /* Glyph geometry, not a seam between siblings: this is the kerf between
+           the four bars of a signal-strength icon inside a 24px box. A gap name
+           would put 8px between them and the icon would stop reading as one
+           glyph, so the rung stays. */
         gap: "var(--space-2)",
         height: 24,
       }}

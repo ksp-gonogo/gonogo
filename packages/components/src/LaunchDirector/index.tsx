@@ -1595,21 +1595,21 @@ const SectionLabel = styled.div`
 const PadList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const PadCard = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const PadRowButton = styled.button<{ $selected: boolean }>`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: var(--space-8);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: ${(p) =>
     p.$selected ? "var(--color-surface-raised)" : "var(--color-surface-panel)"};
   border: 1px solid
@@ -1671,7 +1671,7 @@ const PadAside = styled.div`
 const PadDetail = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   padding-left: var(--space-8);
   border-left: 2px solid var(--color-surface-raised);
 `;
@@ -1692,13 +1692,13 @@ const CraftAndCrew = styled.div<{ $sideBySide: boolean }>`
   grid-template-columns: ${(p) =>
     p.$sideBySide ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)"};
   align-items: start;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const PadColumn = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   min-width: 0;
 `;
 
@@ -1714,7 +1714,7 @@ const EmptyNote = styled.div`
 const ShipList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
@@ -1726,8 +1726,8 @@ const ShipRow = styled.button<{ $selected: boolean; $blocked: boolean }>`
      the cost tag mid-block (beside "VAB · N parts" instead of the
      name). flex-start keeps it pinned to the first line. */
   align-items: flex-start;
-  gap: var(--space-8);
-  padding: var(--space-6) var(--space-8);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: ${(p) =>
     p.$selected ? "var(--color-surface-raised)" : "var(--color-surface-panel)"};
   border: 1px solid
@@ -1761,7 +1761,7 @@ const ShipDetails = styled.span`
 
 const ShipCost = styled.span`
   display: inline-flex;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex-shrink: 0;
 `;
 
@@ -1802,7 +1802,7 @@ const CrewGrid = styled.div<{ $compact: boolean }>`
     auto-fit,
     minmax(${(p) => (p.$compact ? "170px" : "120px")}, 1fr)
   );
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 /* Compact lays the name and the reason on ONE line instead of two, which is
@@ -1821,7 +1821,7 @@ const CrewChip = styled.button<{
   flex-wrap: wrap;
   align-items: ${(p) => (p.$compact ? "baseline" : "flex-start")};
   gap: ${(p) => (p.$compact ? "var(--space-6)" : "var(--space-hair)")};
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-surface);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   color: ${(p) =>
@@ -1850,7 +1850,7 @@ const CrewTrait = styled.span`
 const SiteList = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const SiteChip = styled.button<{ $selected: boolean }>`
@@ -1858,7 +1858,7 @@ const SiteChip = styled.button<{ $selected: boolean }>`
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-hair);
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-surface);
   background: ${(p) =>
     p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
   color: ${(p) =>
@@ -1885,27 +1885,27 @@ const SiteMeta = styled.span`
 
 const LaunchControls = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   margin-top: var(--space-4);
 `;
 
 const PadActions = styled.div`
   display: flex;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
 const InFlightWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const FlightStats = styled.dl`
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const FlightStatRow = styled.div`
@@ -1917,7 +1917,7 @@ const FlightStatRow = styled.div`
      drop the value onto its own line (right-aligned) instead of
      clipping the digits off the edge. */
   flex-wrap: wrap;
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-surface);
   border-radius: var(--radius-xs);
   background: var(--color-surface-panel);
 `;
@@ -1947,7 +1947,7 @@ const CrashChip = styled.div`
   background: var(--color-status-alert-muted);
   color: var(--color-status-nogo-fg);
   font-size: var(--font-size-xs);
-  padding: var(--space-4) var(--space-8);
+  padding: var(--inset-chip);
   border-radius: var(--radius-xs);
   letter-spacing: 0.04em;
 `;
@@ -1972,14 +1972,14 @@ const armButtonBase = `
   font-size: var(--font-size-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
-  padding: var(--space-4) var(--space-12);
+  padding: var(--inset-control);
   border-radius: var(--radius-xs);
   cursor: pointer;
   font-family: inherit;
   border: 1px solid var(--color-surface-raised);
   display: inline-flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   justify-content: center;
 
   &:disabled {
@@ -2044,8 +2044,8 @@ const VesselSwitchRow = styled.button`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-8);
-  padding: var(--space-4) var(--space-8);
+  gap: var(--gap-related);
+  padding: var(--inset-surface);
   background: transparent;
   color: var(--color-text-primary);
   border: none;
@@ -2096,7 +2096,7 @@ const VesselSwitchDistance = styled.span`
 `;
 
 const VesselSwitchHint = styled.div`
-  padding: var(--space-6) var(--space-8);
+  padding: var(--inset-surface);
   font-size: var(--font-size-2xs);
   color: var(--color-text-faint);
   line-height: var(--line-height-body);
@@ -2108,7 +2108,7 @@ const SpaceObjectToggle = styled.button`
   align-self: flex-start;
   margin: var(--space-2) var(--space-2) var(--space-4);
   font-size: var(--font-size-2xs);
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-control);
   border-radius: var(--radius-pill);
   border: 1px solid var(--color-surface-raised);
   background: transparent;

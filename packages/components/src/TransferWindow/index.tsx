@@ -1221,7 +1221,7 @@ const Body = styled.div`
   flex-direction: column;
   /* Reach is its own answer and the dial/windows block is another; without a gap
      they ran together as one dense column. */
-  gap: var(--space-8);
+  gap: var(--gap-related);
   container-type: inline-size;
 `;
 
@@ -1233,7 +1233,7 @@ const ContentGrid = styled.div`
   min-height: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 
   @container (min-width: ${WIDE_AT}) {
     flex-direction: row;
@@ -1244,7 +1244,7 @@ const ContentGrid = styled.div`
 const LeftCol = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   min-width: 0;
 
   @container (min-width: ${WIDE_AT}) {
@@ -1271,7 +1271,7 @@ const RouteSelect = styled(Select)`
 
 const NowRow = styled.div`
   display: flex;
-  gap: var(--space-16);
+  gap: var(--gap-section);
   align-items: center;
 `;
 
@@ -1305,7 +1305,7 @@ const NowFacts = styled.div`
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   min-width: 0;
 `;
 
@@ -1330,7 +1330,7 @@ const Muted = styled.span`
 const ListWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const ListTitle = styled.div`
@@ -1343,7 +1343,7 @@ const ListTitle = styled.div`
 const SectionHead = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   /* The heading and its select are one phrase, so they wrap together rather than
      being pushed to opposite ends, and they wrap onto two lines before they overflow. */
   flex-wrap: wrap;
@@ -1376,14 +1376,14 @@ const ReachHead = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   flex-wrap: wrap;
 `;
 
 const BudgetReadout = styled.span`
   display: inline-flex;
   align-items: baseline;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   font-size: var(--font-size-sm);
   font-variant-numeric: tabular-nums;
 `;
@@ -1410,6 +1410,9 @@ const ReachTable = styled.table`
 
 const ReachTh = styled.th`
   text-align: left;
+  /* A table cell, which is none of the three inset classes: it is not a chip,
+     nothing here is pressable, and the box the operator sees is the table, not
+     the cell. Held on the rungs with ReachTd below, which has to match it. */
   padding: var(--space-2) var(--space-4);
   color: var(--color-text-muted);
   font-weight: normal;
@@ -1424,6 +1427,7 @@ const ReachTh = styled.th`
 `;
 
 const ReachTd = styled.td`
+  /* Matches ReachTh above, and held for the same reason. */
   padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--color-border-subtle);
   white-space: nowrap;
@@ -1445,7 +1449,7 @@ const List = styled.ul`
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const ListItem = styled.li`
@@ -1456,7 +1460,7 @@ const ListItem = styled.li`
 const WindowRow = styled.button<{ $selected: boolean }>`
   display: grid;
   grid-template-columns: 1fr auto auto;
-  gap: var(--space-12);
+  gap: var(--gap-section);
   align-items: center;
   width: 100%;
   text-align: left;
@@ -1496,14 +1500,14 @@ const ColTof = styled.span`
 const Expander = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
   padding: var(--space-8) ${TEXT_PAD} var(--space-4);
 `;
 
 const ExpRow = styled.div`
   display: flex;
   justify-content: space-between;
-  gap: var(--space-12);
+  gap: var(--gap-section);
 `;
 
 const ExpLabel = styled.span`
@@ -1522,7 +1526,7 @@ const ExpValue = styled.span`
 const PorkchopWrap = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
   min-width: 0;
   flex: 1 1 auto;
   min-height: 260px;

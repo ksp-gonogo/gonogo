@@ -421,7 +421,7 @@ const PillRow = styled.div`
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 // The shared StatusPill sizes itself to its label at a fixed padding,
@@ -473,7 +473,7 @@ const RowHeader = styled.div`
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const RowLabel = styled.div`
@@ -490,7 +490,7 @@ const RowLabel = styled.div`
 const RowBody = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--gap-related);
 `;
 
 const PartName = styled.div`

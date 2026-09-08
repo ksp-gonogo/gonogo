@@ -498,7 +498,7 @@ function LibrationPointsConfigComponent({
 const PAIR_LABEL: CSSProperties = {
   display: "flex",
   alignItems: "center",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
 };
 
 const PAIR_LABEL_TEXT: CSSProperties = {

@@ -283,7 +283,11 @@ function normalizeAngle(deg: number): number {
 const WRAP: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
+  /* The inset stays on the rungs: this is the panel's gutter inside the
+     FramedDisplay named above, not a box of its own, and it draws no border and
+     no fill. --inset-surface would be a claim about a box that is not here, and
+     it would tighten the gutter to a card's inset. */
   padding: "var(--space-8) var(--space-10)",
   minWidth: 0,
   // min-height:0 is load-bearing: the panel sidebar this sits in is a grid

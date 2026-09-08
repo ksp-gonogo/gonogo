@@ -442,6 +442,33 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * a box with neither border nor fill, both halves resolving the same in every
    * tier.
    *
+   * It then fell 131 when the rest of `packages/components` went over: every
+   * widget in that package except the two the space-centre pass left behind.
+   * 131 declarations changed spelling and 94 of them changed pixel value, 85 up,
+   * 8 down and one trading 2px of height for 2px of width. Those are arithmetic
+   * at `:root` rather than a rendered measurement, so read them as the size of
+   * the change and not as what every site draws: a converted gap inside a `Card`
+   * resolves one tier down, which makes a 4 -> related +2 rather than +4 and a
+   * 6 -> related a no-op.
+   *
+   * The growth is again concentrated where the vocabulary rounds upward: 34 gaps
+   * at 4, 19 at 6 and 7 at 2 all became --gap-related, which the ladder comment
+   * says absorbs every one of them, and 9 at 12 became --gap-section. The eight
+   * that shrank are five chips whose vertical was 2 where `chip` is `hair`, and
+   * three boxes that sat ABOVE --inset-surface at (8,10) and (6,10).
+   *
+   * Six sites stayed literal and one of them is a family this table had not seen
+   * before: an UNBORDERED GUTTER. The almanac and vessel-info panels share a slot
+   * inside a FramedDisplay and pad themselves at (8,10) with neither border nor
+   * fill, which is the strategies screen inset one level down: the box an
+   * --inset-* would name belongs to the frame, not to them. The other four are
+   * known shapes. A signal-strength icon's 2px bar kerf is glyph geometry, not a
+   * seam. The target picker holds a 10px gap and a three-inset list header whose
+   * two pressable members have to stay level with the heading beside them, which
+   * is the 18px drag header's floor conflict wearing a list-header hat. The
+   * transfer table's two cells are neither chip, control nor surface. The warp
+   * buttons are the transposed pair.
+   *
    * The cohort unit is the WIDGET, not the declaration. A half-migrated widget
    * can have a converted declaration and its unconverted sibling differ by up
    * to 4px, so a file goes from its seeded number to zero in one landing and
@@ -492,49 +519,40 @@ const BASELINES: Record<Family, Record<string, number>> = {
      * width are not free.
      */
     "packages/app/src/stationIdentity/StationNameEditor.tsx": 2,
-    "packages/components/src/AtmosphereProfile/index.tsx": 3,
-    "packages/components/src/CommSignal/index.tsx": 3,
-    "packages/components/src/CurrentOrbit/index.tsx": 1,
-    "packages/components/src/DataSourceStatus/index.tsx": 2,
-    "packages/components/src/EscapeProfile/index.tsx": 1,
-    "packages/components/src/FuelStatus/index.tsx": 4,
-    "packages/components/src/Graph/index.tsx": 5,
-    "packages/components/src/LandingStatus/index.tsx": 4,
-    "packages/components/src/LaunchDirector/index.tsx": 27,
-    "packages/components/src/LibrationPoints/index.tsx": 1,
+    /* The kerf between the four bars of the signal-strength icon, which is
+       glyph geometry rather than a seam between siblings: a gap name would put
+       8px between them and the icon would stop reading as one glyph. */
+    "packages/components/src/CommSignal/index.tsx": 1,
     "packages/components/src/ManeuverPlanner/NodeRow.tsx": 2,
     "packages/components/src/ManeuverPlanner/styles.ts": 1,
-    "packages/components/src/MapView/MapPoiLayer.tsx": 3,
-    "packages/components/src/MapView/MapView.styles.ts": 6,
-    "packages/components/src/Navball/AttitudeIndicator.tsx": 1,
-    "packages/components/src/Navball/index.tsx": 11,
-    "packages/components/src/OrbitView/index.tsx": 1,
-    "packages/components/src/PerfBudgets/index.tsx": 5,
-    "packages/components/src/Plots/PlotBoard.tsx": 3,
-    "packages/components/src/PowerSystems/index.tsx": 9,
-    "packages/components/src/shared/OrbitalEventChips.tsx": 1,
-    "packages/components/src/ShipMap/index.tsx": 2,
-    "packages/components/src/ShipMap/PartActionMenu.tsx": 1,
-    "packages/components/src/ShipMap/ShipDiagram.tsx": 3,
     /* A screen's own gutter at (8,12), the same shape as the (8,16) chrome
        band and failing the earning test the same way: nothing is drawn there,
        both halves resolve identically in every tier, and --inset-surface would
        be a claim about a box that has neither border nor fill. */
     "packages/components/src/Strategies/index.tsx": 1,
-    "packages/components/src/SystemView/AlmanacPanel.tsx": 2,
-    "packages/components/src/SystemView/index.tsx": 1,
-    "packages/components/src/SystemView/SystemDiagram.tsx": 4,
-    "packages/components/src/SystemView/VesselInfoPanel.tsx": 2,
+    /* One gutter each, and the same one: the two panels share a slot, so they
+       have to line up, and neither draws a border or a fill. The box an
+       --inset-* would be naming is the FramedDisplay they sit in, not them. */
+    "packages/components/src/SystemView/AlmanacPanel.tsx": 1,
+    "packages/components/src/SystemView/VesselInfoPanel.tsx": 1,
     "packages/components/src/Targeting/index.tsx": 1,
-    "packages/components/src/TargetPicker/index.tsx": 11,
+    /* Four: the meta row's 10px gap, the one gap rung with no name over it, and
+       the three insets in the list header that have to agree. Two of those three
+       are pressable and the third is the heading they align with, so naming the
+       pair --inset-control would push the toggles out of line with it. */
+    "packages/components/src/TargetPicker/index.tsx": 4,
     /* The graph card, whose padding is one term of a fixed CARD_H of 48 that
        the file already measures as flush. A floor conflict rather than a
        missing name: every --inset-* name draws a taller box than the card has
        room for, so the pair moves only when CARD_H does. */
     "packages/components/src/TechTree/index.tsx": 1,
-    "packages/components/src/ThermalStatus/index.tsx": 3,
-    "packages/components/src/TransferWindow/index.tsx": 16,
-    "packages/components/src/WarpControl/index.tsx": 5,
+    /* A table's header cell and its body cell, which have to match each other
+       and are none of the three inset classes: neither is a chip, neither is
+       pressable, and the box the operator sees is the table, not the cell. */
+    "packages/components/src/TransferWindow/index.tsx": 2,
+    /* A warp-rate button that wants horizontal BELOW vertical. Every --inset-*
+       widens faster than it grows, so naming this one transposes it. */
+    "packages/components/src/WarpControl/index.tsx": 1,
     // One site each, both written up at the declaration. ThStar wants
     // horizontal BELOW vertical, and the replay strip is on the (8,16) band.
     "packages/data/src/FlightsManager/index.tsx": 1,
