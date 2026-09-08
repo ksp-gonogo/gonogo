@@ -33,9 +33,9 @@
  * caller the knowledge that a branch they might write can never be taken.
  *
  * Command-echo topics belong here too, which is a consistency check rather than
- * a special case: a commanded state is not a forward model of anything and lives
- * on its own expectation channel (`control-expectation.ts`), so as far as
- * `Reading` is concerned `vessel.control` has no model.
+ * a special case: a commanded state is not a forward model of anything and
+ * belongs on its own channel, composed beside a reading rather than inside it,
+ * so as far as `Reading` is concerned `vessel.control` has no model.
  *
  * ## Why a list here rather than a registry, and why it cannot rot
  *
@@ -79,9 +79,9 @@ export const NEVER_RECKONABLE = [
   // response to a non-observed reading is to draw something else.
   "vessel.attitude",
 
-  // -- Command echo. Not a forward model at all: a commanded state lives on the
-  // expectation channel, and folding it into a reading would put two clocks in
-  // one type. See `control-expectation.ts`.
+  // -- Command echo. Not a forward model at all: a commanded state belongs
+  // beside a reading rather than inside it, and folding it in would put two
+  // clocks in one type.
   "vessel.control",
   "time.warp",
   "robotics.servos",

@@ -288,7 +288,6 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/data/src/hooks/vesselPartsAdapter.ts": 22,
   "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
   "packages/sitrep-client/src/auto-command.ts": 1,
-  "packages/sitrep-client/src/control-expectation.ts": 2,
   // `numOrNull`, the one funnel where a body's wire quantities become the plain
   // numbers the system diagram scales into SVG coordinates. One place,
   // deliberately, and it is why re-pointing that file at the unit system was a
