@@ -151,6 +151,7 @@ public class VesselTarget
 
     /// <summary>Metres, self-relative. Null only when the transform data needed to compute it wasn't available this tick.</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepFrame(Frames.SubjectRelative)]
     // Both the position and the velocity that advances it ride this one payload, so a consumer
     // holding nothing but the stream carries it forward with one multiply-add.
     [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativeVelocity")]
@@ -158,6 +159,7 @@ public class VesselTarget
 
     /// <summary>m/s, self-relative. R7 Fix 3: nullable for consistency with <see cref="RelativePosition"/>, null (never a sentinel <c>(0,0,0)</c>, the V-10 ambiguity) when the transform data needed to compute it wasn't available this tick.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
+    [SitrepFrame(Frames.SubjectRelative)]
     // Deliberately NOT [SitrepReckonable]: advancing a velocity needs an acceleration, and the
     // wire publishes none for the relative pair. Both craft's conics would give one, but only
     // when both orbits exist and share a reference body, and a mark is a floor that always holds.

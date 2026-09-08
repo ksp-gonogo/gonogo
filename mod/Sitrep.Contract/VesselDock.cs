@@ -33,12 +33,14 @@ public class DockAlignment
 {
     /// <summary>Metres, own-port-relative (target port minus own port).</summary>
     [SitrepUnit(Units.Metres)]
+    [SitrepFrame(Frames.SubjectRelative)]
     // Same one-payload dead reckoning as vessel.target: the closing velocity is right here.
     [SitrepReckonable(ReckoningBases.LinearDeadReckoning, "relativeVelocity")]
     public Vec3 RelativePosition { get; set; } = new();
 
     /// <summary>m/s, own-port-relative.</summary>
     [SitrepUnit(Units.MetresPerSecond)]
+    [SitrepFrame(Frames.SubjectRelative)]
     public Vec3 RelativeVelocity { get; set; } = new();
 
     /// <summary>Metres: <see cref="RelativePosition"/>'s magnitude, provided directly so a widget doesn't have to re-derive it every frame.</summary>
