@@ -1,5 +1,5 @@
 import type { DataKey, StreamStatusValue } from "../api/types";
-import type { ReckoningBasis } from "../reading";
+import type { BandKind, ReckoningBasis } from "../reading";
 import type { SitrepUnit } from "../units";
 
 // ---------------------------------------------------------------------------
@@ -132,6 +132,26 @@ export interface SeriesReckonedSpan {
   /** Last point of the run, inclusive. */
   to: number;
   basis: ReckoningBasis;
+  /**
+   * How well the model knew each point of this run, lower and upper bound, in
+   * the same units `v` carries and one entry per point from `from` to `to`.
+   *
+   * On the RUN rather than as two series-length arrays beside `t` and `v`,
+   * because a band only exists where a model answered: two parallel arrays
+   * would be null for every measured point, which on a chart showing a long
+   * observed history and a short tail is nearly all of them. Keeping them here
+   * also keeps them with `bandKind`, which is what says what the two numbers
+   * mean, and makes the reindexing rule fall out for free: a run that loses
+   * points loses exactly the band entries that went with them.
+   *
+   * All three band fields move together. A run with `bandLo` and no `bandHi`,
+   * or with either and no `bandKind`, is malformed and must be read as having
+   * no band rather than half of one.
+   */
+  bandLo?: number[];
+  bandHi?: number[];
+  /** What `bandLo`/`bandHi` claim. See `UncertaintyBand`. */
+  bandKind?: BandKind;
 }
 
 /**

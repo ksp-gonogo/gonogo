@@ -1,4 +1,5 @@
 import type {
+  BandKind,
   PlotLayer,
   ReckoningBasis,
   SeriesStatusSpan,
@@ -9,6 +10,7 @@ import {
   buildPath,
   buildSegmentedPath,
   buildStepPath,
+  buildUncertaintyRegions,
   formatTimeLabel,
   makeLogScale,
   makeScale,
@@ -54,6 +56,11 @@ import {
  *   miss on a dark ground, and together they say lower confidence without
  *   inventing a hue that would collide with the semantic good/warning/critical
  *   set. Same three-way applicability as `breaks`
+ *
+ * A reckoned run may also carry a BAND (`SeriesReckonedSpan.bandLo`/`bandHi`),
+ * which is shaded behind the stroke. That is a fourth mark and not a fourth
+ * state: the run is reckoned either way, and the region says how well, so a
+ * run without one is a model that would not say rather than one that is sure.
  */
 export interface ChartSeriesData {
   x: number[];
@@ -269,6 +276,22 @@ const DEFAULT_BAND_OPACITY = 0.2;
  */
 const RECKONED_STROKE_OPACITY = 0.6;
 const RECKONED_DASHARRAY = "5 3";
+/**
+ * The fill an uncertainty region is drawn with, and the edge a HARD BOUND
+ * gets on top of it.
+ *
+ * The series' own colour rather than a hue of its own, for the reason the mute
+ * and the dash are not colours either: a region belongs to one trace, and on a
+ * two-series chart a shared uncertainty hue would stop saying whose it was.
+ *
+ * 0.15 keeps a region readable against the dark surface while leaving the
+ * stroke through the middle of it clearly the stronger mark. It is decoration
+ * over a trace that is already muted and dashed, not a channel of its own:
+ * every region also names its kind in the chart's accessible description, so a
+ * reader who sees none of this still gets told.
+ */
+const RECKONED_BAND_OPACITY = 0.15;
+const RECKONED_BAND_EDGE_OPACITY = 0.45;
 
 /**
  * What each model did, in words, for the chart's accessible name. An operator
@@ -281,6 +304,18 @@ const RECKONING_BASIS_PHRASE: Record<ReckoningBasis, string> = {
   "kepler-propagation": "propagated forward on two-body motion",
   "linear-dead-reckoning": "carried forward at the last observed velocity",
   "rate-integration": "integrated forward at the last observed rate",
+};
+
+/**
+ * What the shaded region around a reckoned run claims, in words. A hard bound
+ * and a one-sigma estimate are drawn differently and are worth different
+ * amounts, and a reader who sees neither the fill nor its edge needs the
+ * distinction spelled out rather than implied.
+ */
+const BAND_KIND_PHRASE: Record<BandKind, string> = {
+  bound: "the shaded region is the range the model says the value is inside",
+  sigma1:
+    "the shaded region is one standard deviation, so the value is outside it about a third of the time",
 };
 
 /** Pull every plottable Y value out of a series, including band upper bounds. */
@@ -568,6 +603,12 @@ export function LineChart({
           kind: "stroked" as const,
           color: s.color,
           dashed: s.dashed ?? false,
+          uncertainty: buildUncertaintyRegions(
+            s.data.x,
+            s.data.reckoned ?? [],
+            scaleX,
+            scaleY,
+          ),
           segments: buildSegmentedPath(
             s.data.x,
             s.data.y,
@@ -607,14 +648,28 @@ export function LineChart({
   // one, and a clause naming it would hand one reader a caveat the chart does
   // not put in front of the other. Named per series, because "some of this
   // chart is reckoned" is not answerable if two traces are drawn.
+  //
+  // A band gets its own clause rather than a phrase inside the basis one. The
+  // two answer different questions (which model, and how well it knows), a run
+  // can have either without the other, and the shaded region is a mark a
+  // sighted reader sees separately from the dash.
   const reckonedClauses = series.flatMap((s) => {
     const runs = s.data.reckoned;
     if (!runs || runs.length === 0) return [];
     const bases = new Set(runs.map((run) => run.basis));
-    return [...bases].map(
+    const clauses = [...bases].map(
       (basis) =>
         `${s.label}: part of this trace is reckoned, ${RECKONING_BASIS_PHRASE[basis]}, not measured`,
     );
+    const kinds = new Set(
+      runs
+        .map((run) => (run.bandLo && run.bandHi ? run.bandKind : undefined))
+        .filter((kind): kind is BandKind => kind !== undefined),
+    );
+    for (const kind of kinds) {
+      clauses.push(`${s.label}: ${BAND_KIND_PHRASE[kind]}`);
+    }
+    return clauses;
   });
 
   const chartLabel = [
@@ -846,6 +901,34 @@ export function LineChart({
             stroke="none"
           />
         ))}
+
+      {/* How well each reckoned run was known, filled BEHIND its stroke so the
+          line stays the thing being read and the region is the caveat around
+          it. A hard bound carries a hairline edge because its edge is a real
+          limit; a one-sigma region has none, because drawing an edge on it
+          would assert a boundary the model never claimed. */}
+      {drawables
+        .filter(
+          (d): d is Extract<typeof d, { kind: "stroked" }> =>
+            d.kind === "stroked",
+        )
+        .flatMap((d) =>
+          d.uncertainty.map((region, i) => (
+            <path
+              // biome-ignore lint/suspicious/noArrayIndexKey: a region has no identity beyond its run's position
+              key={`${d.id}-band-${i}`}
+              d={region.d}
+              data-band-kind={region.kind}
+              fill={d.color}
+              fillOpacity={RECKONED_BAND_OPACITY}
+              stroke={region.kind === "bound" ? d.color : "none"}
+              strokeOpacity={
+                region.kind === "bound" ? RECKONED_BAND_EDGE_OPACITY : undefined
+              }
+              strokeWidth={region.kind === "bound" ? 1 : undefined}
+            />
+          )),
+        )}
 
       {/* Stroked series (line + step), one path per run of shared provenance.
           A series with nothing but observed samples is one path, exactly as it

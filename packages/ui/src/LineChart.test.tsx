@@ -287,3 +287,149 @@ describe("LineChart provenance", () => {
     expect(name).toMatch(/last observed rate/i);
   });
 });
+
+/**
+ * The shaded region behind a reckoned run: how well the model knew each point
+ * it answered for. A fourth MARK, not a fourth state, so every case here also
+ * checks the stroke is still drawn the way a reckoned run has always been.
+ */
+describe("LineChart uncertainty band", () => {
+  const banded = (kind: "bound" | "sigma1"): ChartSeries[] => [
+    {
+      id: "alt",
+      label: "Altitude",
+      axis: "primary",
+      color: "#00ff88",
+      data: {
+        x: [0, 1000, 2000, 3000],
+        y: [0, 100, 200, 300],
+        reckoned: [
+          {
+            from: 2,
+            to: 3,
+            basis: "kepler-propagation",
+            bandLo: [180, 240],
+            bandHi: [230, 400],
+            bandKind: kind,
+          },
+        ],
+      },
+    },
+  ];
+
+  const regions = (container: HTMLElement): SVGPathElement[] =>
+    Array.from(
+      container.querySelectorAll<SVGPathElement>("path[data-band-kind]"),
+    );
+
+  it("fills one region for the banded run, in the series' own colour", () => {
+    const { container } = render(
+      <LineChart
+        series={banded("sigma1")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const drawn = regions(container);
+    expect(drawn).toHaveLength(1);
+    expect(drawn[0].getAttribute("fill")).toBe("#00ff88");
+    expect(Number(drawn[0].getAttribute("fill-opacity"))).toBeLessThan(1);
+  });
+
+  it("draws no region for a reckoned run whose model would not say", () => {
+    const bandless: ChartSeries[] = [
+      {
+        id: "alt",
+        label: "Altitude",
+        axis: "primary",
+        color: "#00ff88",
+        data: {
+          x: [0, 1000, 2000],
+          y: [0, 100, 200],
+          reckoned: [{ from: 1, to: 2, basis: "kepler-propagation" }],
+        },
+      },
+    ];
+    const { container } = render(
+      <LineChart
+        series={bandless}
+        xDomain={[0, 2000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(regions(container)).toHaveLength(0);
+  });
+
+  /*
+   * A hard bound's edge is a real limit and gets a hairline; a one-sigma
+   * region's edge is not a boundary the model claimed, so drawing one would
+   * assert exactly what `kind` exists to keep apart.
+   */
+  it("edges a hard bound and leaves a one-sigma region unedged", () => {
+    const { container: bound } = render(
+      <LineChart
+        series={banded("bound")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(regions(bound)[0].getAttribute("stroke")).toBe("#00ff88");
+
+    const { container: sigma } = render(
+      <LineChart
+        series={banded("sigma1")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    expect(regions(sigma)[0].getAttribute("stroke")).toBe("none");
+  });
+
+  it("leaves the reckoned stroke muted and dashed as it always was", () => {
+    const { container } = render(
+      <LineChart
+        series={banded("bound")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const reckoned = strokedPaths(container, "#00ff88").filter(
+      (p) => p.getAttribute("data-reckoning-basis") === "kepler-propagation",
+    );
+    expect(reckoned).toHaveLength(1);
+    expect(reckoned[0].getAttribute("stroke-dasharray")).not.toBeNull();
+  });
+
+  it("says what a one-sigma region means, since neither fill nor edge is a channel a reader has", () => {
+    const { container } = render(
+      <LineChart
+        series={banded("sigma1")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const name = chartName(container);
+    expect(name).toMatch(/one standard deviation/i);
+    expect(name).toMatch(/about a third of the time/i);
+  });
+
+  it("says a hard bound is a range the value is inside, which is a different claim", () => {
+    const { container } = render(
+      <LineChart
+        series={banded("bound")}
+        xDomain={[0, 3000]}
+        width={400}
+        height={200}
+      />,
+    );
+    const name = chartName(container);
+    expect(name).toMatch(/the value is inside/i);
+    expect(name).not.toMatch(/standard deviation/i);
+  });
+});

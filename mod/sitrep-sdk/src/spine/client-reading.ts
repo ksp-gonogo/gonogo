@@ -22,11 +22,13 @@ import { value } from "../unit-system/value";
  */
 
 export type {
+  BandKind,
   ModelledField,
   Reading,
   ReadingReckoning,
   ReadingState,
   ReckonableReading,
+  ReckonedBands,
   ReckonerAnswer,
   ReckonerDefinition,
   ReckonerFor,
@@ -36,9 +38,14 @@ export type {
   ReckoningDecline,
   StaleGrade,
   TopicModel,
+  UncertaintyBand,
   UnmodelledReading,
 } from "../reading";
 export {
+  bandFor,
+  bandIn,
+  bandIsWellFormed,
+  bandSide,
   hasAnswered,
   observedAt,
   observedValue,
@@ -179,6 +186,12 @@ export function readingFrom<T>(
         basis: root.basis,
         modelled: model.modelled,
         owner,
+        /*
+         * Asked only where the model was actually used, and at the same
+         * `viewUt` it was reckoned for, so a model sharing work between the
+         * two can cache on the argument.
+         */
+        bands: model.bandAt?.(viewUt),
       },
     };
   }
@@ -195,6 +208,12 @@ export function readingFrom<T>(
         basis: root.basis,
         modelled: model.modelled,
         owner,
+        /*
+         * Asked only where the model was actually used, and at the same
+         * `viewUt` it was reckoned for, so a model sharing work between the
+         * two can cache on the argument.
+         */
+        bands: model.bandAt?.(viewUt),
       },
     };
   }

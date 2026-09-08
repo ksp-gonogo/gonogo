@@ -1,4 +1,5 @@
-import { Quality, Staleness } from "@ksp-gonogo/sitrep-sdk";
+import { clearReckoners, registerReckoner } from "@ksp-gonogo/sitrep-client";
+import { Quality, Staleness, value } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, waitFor } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
@@ -20,30 +21,37 @@ import { GraphComponent } from "./index";
  * registered anywhere in this file, so a rendered curve can only have come from
  * the stream.
  */
+/**
+ * A `ResizeObserver` that reports one fixed box on observe, so the chart has a
+ * plot area in jsdom. Shared by every describe in this file: two copies of it
+ * meant two copies of the `as unknown as` the callback's second argument needs.
+ */
+function stubSizedResizeObserver(): void {
+  vi.stubGlobal(
+    "ResizeObserver",
+    class FakeResizeObserver {
+      private cb: ResizeObserverCallback;
+      constructor(cb: ResizeObserverCallback) {
+        this.cb = cb;
+      }
+      observe(_el: Element) {
+        this.cb(
+          [
+            {
+              contentRect: { width: 400, height: 300 },
+            } as ResizeObserverEntry,
+          ],
+          this as unknown as ResizeObserver,
+        );
+      }
+      unobserve() {}
+      disconnect() {}
+    },
+  );
+}
+
 describe("Graph: genuinely runs off the stream", () => {
-  beforeEach(() => {
-    vi.stubGlobal(
-      "ResizeObserver",
-      class FakeResizeObserver {
-        private cb: ResizeObserverCallback;
-        constructor(cb: ResizeObserverCallback) {
-          this.cb = cb;
-        }
-        observe(_el: Element) {
-          this.cb(
-            [
-              {
-                contentRect: { width: 400, height: 300 },
-              } as ResizeObserverEntry,
-            ],
-            this as unknown as ResizeObserver,
-          );
-        }
-        unobserve() {}
-        disconnect() {}
-      },
-    );
-  });
+  beforeEach(stubSizedResizeObserver);
 
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -644,3 +652,136 @@ const ECCENTRIC_KERBIN_ORBIT = {
    */
   horizon: { kind: 1, trajectoryKind: 1 },
 };
+
+/**
+ * The shaded region behind a modelled trace, end to end off the stream.
+ *
+ * Nothing here hands the chart a band either. A reckoner is registered for
+ * `vessel.orbit` and the plotted key is a FIELD of it, so the band travels the
+ * path a real plot travels: the model's per-path map, narrowed by
+ * `fieldScopedReckoner` to the field being read, onto the reckoned tail,
+ * through `useDataSeries`'s run building, through `GraphSeries`'s reindexing,
+ * and out as a filled path. Every one of those was a place it could have been
+ * dropped silently, because a lost band looks exactly like a model that would
+ * not say.
+ */
+describe("Graph: the region behind a modelled trace", () => {
+  beforeEach(stubSizedResizeObserver);
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearReckoners();
+  });
+
+  /** A drift model on the semi-major axis that admits it gets vaguer. */
+  function registerDriftingSma(banded: boolean): void {
+    registerReckoner("vessel.orbit", "test", {
+      deps: [],
+      reckon: (point) => {
+        const sma = Number(
+          (point.payload as { sma: number | { magnitude: number } }).sma,
+        );
+        return {
+          modelled: [{ path: "sma", basis: "kepler-propagation" }],
+          reckon: (at: number) => ({
+            ...(point.payload as object),
+            sma: sma + (at - point.validAt),
+          }),
+          bandAt: banded
+            ? (at: number) => {
+                const carried = at - point.validAt;
+                const v = sma + carried;
+                return {
+                  sma: {
+                    value: value("m", v),
+                    lo: value("m", v - carried * 2),
+                    hi: value("m", v + carried * 5),
+                    kind: "bound" as const,
+                  },
+                };
+              }
+            : undefined,
+        };
+      },
+    });
+  }
+
+  function renderPlot(fixture: ReturnType<typeof setupStreamFixture>) {
+    const config = {
+      series: [{ id: "sma", key: "vessel.orbit.sma", axis: "auto" as const }],
+      windowSec: 900,
+    };
+    return render(
+      <fixture.Provider>
+        <GraphComponent config={config} id="graph-stream-band" w={10} h={8} />
+      </fixture.Provider>,
+    );
+  }
+
+  /*
+   * Fed, then the link dropped. A tail FILLS a silence and there is no silence
+   * while the topic is live, so a plot of a raw channel needs the link actually
+   * down before the model has a gap to answer for.
+   */
+  function feedThenGoQuiet(
+    fixture: ReturnType<typeof setupStreamFixture>,
+  ): void {
+    act(() => {
+      for (const validAt of [0, 100, 200]) {
+        fixture.emit("vessel.orbit", ECCENTRIC_KERBIN_ORBIT, {
+          validAt,
+          quality: Quality.OnRails,
+        });
+      }
+      fixture.store.setTransportConnected(false);
+      fixture.emitFrame();
+    });
+  }
+
+  it("shades what the model would not pin down, beside the trace it drew", async () => {
+    registerDriftingSma(true);
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 600,
+      suspendFrames: true,
+    });
+    const { container } = renderPlot(fixture);
+    feedThenGoQuiet(fixture);
+
+    await waitFor(() => {
+      const regions = Array.from(
+        container.querySelectorAll<SVGPathElement>("path[data-band-kind]"),
+      );
+      expect(regions).toHaveLength(1);
+      expect(regions[0].getAttribute("data-band-kind")).toBe("bound");
+      expect(regions[0].getAttribute("d")).not.toBe("");
+      // The stroke is still there and still marked: a region is a fourth MARK,
+      // never a replacement for the dash that says nobody measured this.
+      const reckonedStroke = container.querySelector(
+        'path[data-reckoning-basis="kepler-propagation"]',
+      );
+      expect(reckonedStroke).not.toBeNull();
+    });
+  });
+
+  it("draws no region at all where the same model offers no band", async () => {
+    registerDriftingSma(false);
+    const fixture = setupStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 600,
+      suspendFrames: true,
+    });
+    const { container } = renderPlot(fixture);
+    feedThenGoQuiet(fixture);
+
+    await waitFor(() => {
+      // The modelled trace still draws; only the shading is withheld.
+      expect(
+        container.querySelector(
+          'path[data-reckoning-basis="kepler-propagation"]',
+        ),
+      ).not.toBeNull();
+    });
+    expect(container.querySelectorAll("path[data-band-kind]")).toHaveLength(0);
+  });
+});

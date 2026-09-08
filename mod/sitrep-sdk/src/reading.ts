@@ -1,7 +1,7 @@
 import type { Dep, ProcessorHandle, ReadingDep } from "./spine/processors";
 import type { TimelinePoint } from "./timeline";
 import type { TopicId, TopicPayload } from "./topics";
-import type { Value } from "./unit-system/value";
+import { type Value, value } from "./unit-system/value";
 
 /**
  * What a telemetry read answers with, and how a widget may use it.
@@ -90,6 +90,15 @@ export interface Reckoning<T> {
    * reading the numbers and guessing.
    */
   owner: string;
+  /**
+   * How well the model knows what it just said, per path, where it is prepared
+   * to say. Absent from most reckonings and that is the honest majority.
+   *
+   * Keyed the same way `modelled` names paths, so the two line up without a
+   * join: `modelled` says a path moved and by which model, `bands` says how
+   * far that model would defend the number. See {@link ReckonedBands}.
+   */
+  readonly bands?: ReckonedBands;
 }
 
 /** One path a model moved, and what moved it. See {@link Reckoning.modelled}. */
@@ -98,6 +107,86 @@ export interface ModelledField {
   readonly path: string;
   readonly basis: ReckoningBasis;
 }
+
+/**
+ * What an {@link UncertaintyBand}'s two ends CLAIM.
+ *
+ * A hard bound and a one-sigma estimate are different statements about the
+ * same two numbers, and without this field two producers would mean different
+ * things by an identical interval with nothing able to notice. A consumer
+ * comparing a band against a threshold is entitled to a different answer for
+ * each: crossing a hard bound is impossible, crossing one sigma happens about
+ * a third of the time.
+ *
+ * - `bound`: the model asserts the true value is INSIDE `[lo, hi]`. Only
+ *   honest where the model's error is genuinely capped (a quantisation, an
+ *   interval arithmetic, an integrator with a proven residual)
+ * - `sigma1`: one standard deviation either side of `value`. The true value is
+ *   outside it roughly a third of the time, and a widget must not draw or
+ *   phrase it as a limit
+ */
+export type BandKind = "bound" | "sigma1";
+
+/**
+ * How well a model knows the number it just produced: an ASYMMETRIC interval
+ * in the value's own unit.
+ *
+ * ## In the unit, never a percentage
+ *
+ * A percentage dies at a zero crossing, and reckoned quantities cross zero
+ * constantly: vertical speed at apoapsis, relative position at closest
+ * approach, a rendezvous drift rate as it nulls. "±5%" of zero is zero, so the
+ * band would collapse to nothing at exactly the instant an operator most needs
+ * it. Absolute bounds also compose with the unit algebra, so `hi.minus(lo)` is
+ * a width in the same unit, and a band over a derived unit divides and
+ * multiplies exactly as the value it describes does.
+ *
+ * ## Asymmetric, because the real error is
+ *
+ * `lo` and `hi` are given separately rather than as one `±`. A Kepler altitude
+ * near periapsis is wrong in one direction far more than the other, and a burn
+ * being late is not as recoverable as it being early. A single half-width
+ * would have to take the worse side and would then overstate the better one,
+ * which for a decision-shaped consumer is the difference between "cannot yet
+ * say" and a usable verdict.
+ *
+ * ## `value` is here as well as on the reckoning, deliberately
+ *
+ * It duplicates {@link Reckoning.value} at the same path. Asymmetry is why:
+ * `lo` and `hi` alone do not say where the estimate sits between them, so
+ * every consumer needs all three at once and a band without its own value is
+ * never usable alone. Carrying it makes a band the single argument to a
+ * threshold comparison, a marker sizer or a chart, with no path walk at the
+ * call site. A producer must keep it equal to the value it reckoned for that
+ * path; `bandIsWellFormed` is the check, and the store's own suite asserts it.
+ */
+export interface UncertaintyBand<U extends string = string> {
+  /** The model's point estimate: the same number `reckon` produced here. */
+  readonly value: Value<U>;
+  /** The low end. Never above `value`. */
+  readonly lo: Value<U>;
+  /** The high end. Never below `value`. */
+  readonly hi: Value<U>;
+  readonly kind: BandKind;
+}
+
+/**
+ * The bands a model offers for one frame, keyed by the same dotted paths
+ * {@link ModelledField.path} uses. `""` is the payload root.
+ *
+ * Sparse on purpose, and a model that bands nothing returns `undefined` rather
+ * than an empty map. Most models cannot produce a band honestly, and a
+ * fabricated one is worse than none: it is a claim about how well a number is
+ * known, made by something that does not know.
+ *
+ * A path here that no {@link ModelledField} names is a producer bug rather
+ * than a second way to claim coverage. Nothing rejects it, because the
+ * consumer reads bands BY path and never enumerates them, so an orphan is
+ * simply never asked for.
+ */
+export type ReckonedBands = {
+  readonly [path: string]: UncertaintyBand | undefined;
+};
 
 /**
  * What a reckoner offers: the coverage it claims, and the pull that produces
@@ -119,6 +208,25 @@ export interface TopicModel<T, R = T> {
   readonly modelled: readonly ModelledField[];
   /** Run the model for `viewUt`. Pure: same inputs, same answer. */
   reckon(viewUt: number): R;
+  /**
+   * How well the model knows its answer for `viewUt`, per path. Optional, and
+   * `undefined` is the honest answer for a model that cannot bound its own
+   * error: see {@link ReckonedBands}.
+   *
+   * ## Why this is a second PULL and not a field on `modelled`
+   *
+   * `{ path, basis, band? }` on {@link ModelledField} reads better and cannot
+   * work. Coverage sits outside the thunk precisely so the store can choose an
+   * arm without running the model, and a band is a function of how far the
+   * value has been carried, so it is not knowable until `viewUt` is. Putting
+   * one on the coverage claim would either force the model to run before the
+   * arm was chosen, or freeze one frame's interval and report it forever.
+   *
+   * Called at the same `viewUt` as `reckon`, immediately after it and only
+   * when the model was actually used, so a model that shares work between the
+   * two can cache on the argument. Pure on the same terms `reckon` is.
+   */
+  bandAt?(viewUt: number): ReckonedBands | undefined;
 }
 
 /**
@@ -335,22 +443,42 @@ export type ReckonerAnswer<T, R = T> =
  * only want a number and a staleness caption). That has to be a WRITTEN choice:
  * see `withoutReckoning`.
  *
- * ## No horizon field, and no way to over-extrapolate
+ * ## Trust is two questions, and only one of them is a boolean
  *
- * Nothing here says how far a reckoning may be trusted, and `reckoned` is never
- * absent on a reading that carries it. Both fall out of the reading being
- * rebuilt every frame: once the provider's horizon is exceeded it stops offering
- * a model, and the topic simply reads `reckoning: "none"` from that frame on,
- * keeping whatever `state` it honestly has. So `reckoning: "available"` IS the
- * statement of trust, structurally rather than by convention, and there is no
- * horizon for a caller to compare against and reckon anyway.
+ * WHETHER a model still stands is boolean, and it is answered structurally.
+ * The reading is rebuilt every frame, so once the provider's horizon is
+ * exceeded it stops offering a model and the topic reads `reckoning: "none"`
+ * from that frame on, keeping whatever `state` it honestly has. There is no
+ * horizon field for a caller to compare against, because there is nothing for
+ * one to do: `reckoning: "available"` IS the statement that a model stands
+ * right now, and it cannot be held past the moment it stopped being true.
  *
- * **Do not make `reckoned` able to answer "unavailable".** `reckoning: "none"`
- * already says it, at the only moment it can be said honestly. A failure return
- * would mean a caller could hold a capability that has since gone bad and
- * discover it at call time, which puts an error path in thirty-nine widgets to
- * represent something the discriminant already carries. If a model needs to
- * withdraw, it withdraws by not being offered on the next frame.
+ * **That much is unchanged, and the rule it implies still holds. Do not make
+ * `reckoned` able to answer "unavailable".** `reckoning: "none"` already says
+ * it, at the only moment it can be said honestly. A failure return would mean
+ * a caller could hold a capability that has since gone bad and discover it at
+ * call time, which puts an error path in thirty-nine widgets to represent
+ * something the discriminant already carries. If a model needs to withdraw, it
+ * withdraws by not being offered on the next frame.
+ *
+ * HOW WELL it knows the number is a QUANTITY, and the discriminant cannot
+ * carry it. This file used to argue that it did not need to: a model that no
+ * longer held simply withdrew, so a reckoning that was offered was one to be
+ * trusted, full stop. That argument settles the withdrawal question and
+ * quietly answers a different one it was never entitled to. A conic thirty
+ * seconds past the last contact and the same conic six minutes past it are
+ * both standing, both `"available"`, and are not the same claim; an operator
+ * reading a single number off either cannot tell which one they have. The
+ * boolean was doing the work of a scalar because there was no scalar.
+ *
+ * {@link Reckoning.bands} is that scalar, per path, in the value's own unit
+ * (see {@link UncertaintyBand}). It is OPTIONAL and stays optional: most
+ * models cannot bound their own error honestly, and a made-up interval is a
+ * confident-looking lie about precision, which is worse than the silence it
+ * replaced. So the two axes read together as: `"available"` says a model
+ * stands, and a band, where there is one, says how far it would defend itself.
+ * Neither substitutes for the other, and an absent band is never evidence that
+ * a value is well known.
  *
  * ## The three-channel rule, and why this is its exception
  *
@@ -723,6 +851,119 @@ export function observedValue<T>(
   reading: Reading<T> | ReckonableReading<T, keyof T>,
 ): T | undefined {
   return reading.state === "observed" ? reading.value : undefined;
+}
+
+/**
+ * The band a reckoning offers for one path, or `undefined` where it offers
+ * none. `""` is the payload root, which is what a scalar topic's band is under.
+ *
+ * A one-line lookup, exported because the alternative is thirty-nine widgets
+ * writing `reading.reckoned.bands?.[""]` and each deciding for itself what an
+ * absent map means. It is also the only place the default path is written
+ * down: a caller that forgets `""` and passes the field name of a scalar topic
+ * gets `undefined` and draws no band, which is a silent downgrade rather than
+ * an error.
+ */
+export function bandFor(
+  reckoning: { readonly bands?: ReckonedBands },
+  path = "",
+): UncertaintyBand | undefined {
+  return reckoning.bands?.[path];
+}
+
+/**
+ * A band narrowed to the unit a caller expects, or `undefined` where it is in
+ * some other unit or is malformed.
+ *
+ * {@link ReckonedBands} is keyed by a runtime path string, so nothing in the
+ * type system knows what unit the band at `"verticalSpeed"` is in and every
+ * consumer would otherwise reach its typed band through a cast. This CHECKS
+ * instead: the narrowing is real, and a producer that banded a field in the
+ * wrong unit hands the consumer nothing rather than a number it will read as
+ * metres per second.
+ *
+ * Answering `undefined` rather than throwing is the same judgement the rest of
+ * this file makes about a bad band: the reckoned value is still good, and a
+ * consumer with no band behaves exactly as one whose model offered none.
+ */
+export function bandIn<U extends string, V extends string = string>(
+  band: UncertaintyBand<V> | undefined,
+  unit: U,
+): UncertaintyBand<U> | undefined {
+  /*
+   * Widened to `string` for the comparison: the two parameters are what this
+   * function exists to tell apart, so TypeScript is right that they do not
+   * overlap and wrong that the check is therefore pointless.
+   */
+  if (!band || (band.value.unit as string) !== (unit as string))
+    return undefined;
+  if (!bandIsWellFormed(band)) return undefined;
+  /*
+   * REBUILT rather than asserted. A cast from `Value<V>` to `Value<U>` has to
+   * go through `unknown`, which is an escape the compiler cannot check and
+   * would still be there if someone later removed the unit test above.
+   * Minting three values off magnitudes the check has already proved are in
+   * `unit` costs one allocation and is sound by construction.
+   */
+  return {
+    value: value(unit, band.value.magnitude),
+    lo: value(unit, band.lo.magnitude),
+    hi: value(unit, band.hi.magnitude),
+    kind: band.kind,
+  };
+}
+
+/**
+ * Whether a band says something coherent: the ends bracket the value, all
+ * three are finite, and all three are in one unit.
+ *
+ * A producer-facing check rather than a gate. Nothing rejects a malformed band
+ * at runtime, because the store cannot tell a model's bug from a model's
+ * opinion and refusing the whole reckoning over a bad interval would lose the
+ * value too. What this is for is the producer's OWN test: a model that offers
+ * a band asserts this over its output, and the store's suite asserts it over
+ * every band a built-in model mints.
+ *
+ * `lo === value === hi` passes. A model claiming it knows a value exactly is
+ * making a strong claim, not an ill-formed one, and a quantised or
+ * integer-valued quantity is the honest case for it.
+ */
+export function bandIsWellFormed<U extends string>(
+  band: UncertaintyBand<U>,
+): boolean {
+  const { value: v, lo, hi } = band;
+  if (lo.unit !== v.unit || hi.unit !== v.unit) return false;
+  if (!lo.isFinite() || !v.isFinite() || !hi.isFinite()) return false;
+  return lo.magnitude <= v.magnitude && v.magnitude <= hi.magnitude;
+}
+
+/**
+ * Where a band sits relative to a threshold: wholly under it, wholly over it,
+ * or across it.
+ *
+ * The DECISION primitive, and the reason a band is worth carrying at all for a
+ * consumer that renders no picture. A widget comparing a bare reckoned number
+ * against a limit gets a verdict on every frame and has no way to say the one
+ * true thing, which is that the model does not yet know. `"straddles"` is that
+ * third answer, and a widget that acts on it says so rather than guessing.
+ *
+ * The boundary is INCLUSIVE at both ends: a band whose `hi` lands exactly on
+ * the threshold reads `"below"`, not `"straddles"`. An interval touching a
+ * limit has not crossed it, and treating equality as unresolved would make
+ * every band that happens to close on a round number unresolvable.
+ *
+ * Both arguments share `U`, so the two units are the same string and the
+ * magnitudes compare directly. That is why there is no conversion here and no
+ * cast: a mismatch is not representable in the signature.
+ */
+export function bandSide<U extends string>(
+  band: UncertaintyBand<U>,
+  threshold: Value<U>,
+): "below" | "above" | "straddles" {
+  const t = threshold.magnitude;
+  if (band.hi.magnitude <= t) return "below";
+  if (band.lo.magnitude >= t) return "above";
+  return "straddles";
 }
 
 /**

@@ -103,6 +103,23 @@ function spansEqual(
   );
 }
 
+function numbersEqual(
+  a: readonly number[] | undefined,
+  b: readonly number[] | undefined,
+): boolean {
+  if (a === undefined || b === undefined) return a === b;
+  return a.length === b.length && a.every((n, i) => Object.is(n, b[i]));
+}
+
+/*
+ * The BAND is compared point by point, and it is the one part of a run that
+ * can move while every index stays put. A model whose uncertainty widens as
+ * the view time runs away from the last contact re-answers the same instants
+ * with a wider interval every frame: `from`, `to` and `basis` all hold, so a
+ * run-shape comparison would call the snapshot unchanged and the shading would
+ * freeze at whatever width it had when the tail first appeared. Exactly the
+ * failure `windowEndAt` is in this check for.
+ */
 function reckonedEqual(
   a: readonly SeriesReckonedSpan[],
   b: readonly SeriesReckonedSpan[],
@@ -113,7 +130,10 @@ function reckonedEqual(
       (run, i) =>
         run.from === b[i].from &&
         run.to === b[i].to &&
-        run.basis === b[i].basis,
+        run.basis === b[i].basis &&
+        run.bandKind === b[i].bandKind &&
+        numbersEqual(run.bandLo, b[i].bandLo) &&
+        numbersEqual(run.bandHi, b[i].bandHi),
     )
   );
 }
@@ -416,14 +436,43 @@ export function useDataSeries(
       const i = nextT.length;
       nextT.push(sample.atUt);
       nextV.push(sample.value);
+      /*
+       * A banded instant and an unbanded one do not share a run even under one
+       * basis, and neither do two kinds. A run carries ONE `bandKind` over a
+       * DENSE `bandLo`/`bandHi`, so folding a bandless instant into a banded
+       * run would leave the arrays shorter than the indices they answer for.
+       *
+       * `kind` is read through the two numbers rather than off `bandKind`
+       * alone, so a sample carrying half a band joins the unbanded runs
+       * instead of opening a banded one it cannot fill.
+       */
+      const { bandLo: lo, bandHi: hi } = sample;
+      const kind =
+        lo !== undefined && hi !== undefined ? sample.bandKind : undefined;
       const open = nextReckoned[nextReckoned.length - 1];
-      if (
+      const continues =
         open !== undefined &&
         open.basis === sample.basis &&
-        open.to === i - 1
-      )
+        open.to === i - 1 &&
+        open.bandKind === kind;
+      if (open !== undefined && continues) {
         open.to = i;
-      else nextReckoned.push({ from: i, to: i, basis: sample.basis });
+        if (lo !== undefined && hi !== undefined && kind !== undefined) {
+          open.bandLo?.push(lo);
+          open.bandHi?.push(hi);
+        }
+      } else if (lo !== undefined && hi !== undefined && kind !== undefined) {
+        nextReckoned.push({
+          from: i,
+          to: i,
+          basis: sample.basis,
+          bandLo: [lo],
+          bandHi: [hi],
+          bandKind: kind,
+        });
+      } else {
+        nextReckoned.push({ from: i, to: i, basis: sample.basis });
+      }
     }
 
     // `sampleRange` builds a fresh filtered array (and, for a raw
