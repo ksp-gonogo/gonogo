@@ -331,7 +331,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's research model could not be resolved, so nothing was queued");
             }
 
@@ -358,7 +358,7 @@ namespace GonogoRp1Uplink
                 // decides whether RP-1 models research at all, and getting it
                 // wrong charges a career for a project nothing will work through.
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say whether it queues research in this save, so nothing was queued");
             }
             if (queues == false)
@@ -393,7 +393,7 @@ namespace GonogoRp1Uplink
             if (scienceCost == null)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "the tech tree would not say what \"" + techId + "\" costs, so nothing was queued");
             }
 
@@ -446,7 +446,7 @@ namespace GonogoRp1Uplink
             if (ceiling == null)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "the science cost limit this save's R&D complex imposes could not be read, so nothing was queued");
             }
             if (scienceCost.Value > ceiling.Value)
@@ -545,7 +545,7 @@ namespace GonogoRp1Uplink
             catch (Exception ex)
             {
                 failure = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "this save's tech tree could not be read, so nothing was queued: " + Rp1Types.ExceptionReason(ex));
                 return null;
             }
@@ -565,7 +565,7 @@ namespace GonogoRp1Uplink
                 if (getState == null)
                 {
                     failure = CommandResult.Fail(
-                        CommandErrorCode.ModeUnavailable,
+                        CommandErrorCode.Unreadable,
                         "this KSP build has no tech-node state read this Uplink recognises, so nothing was queued");
                     return null;
                 }
@@ -573,7 +573,7 @@ namespace GonogoRp1Uplink
                 if (state == null)
                 {
                     failure = CommandResult.Fail(
-                        CommandErrorCode.ModeUnavailable,
+                        CommandErrorCode.Unreadable,
                         "the game would not say whether \"" + techId + "\" is already researched, so nothing was queued");
                     return null;
                 }
@@ -582,7 +582,7 @@ namespace GonogoRp1Uplink
             catch (Exception ex)
             {
                 failure = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "whether \"" + techId + "\" is already researched could not be read, so nothing was queued: "
                     + Rp1Types.ExceptionReason(ex));
                 return null;
@@ -608,7 +608,7 @@ namespace GonogoRp1Uplink
             catch (Exception ex)
             {
                 failure = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "whether \"" + techId + "\" is already queued could not be read, so nothing was queued: "
                     + Rp1Types.ExceptionReason(ex));
                 return null;
@@ -680,7 +680,7 @@ namespace GonogoRp1Uplink
         /// queued.
         /// </summary>
         private static CommandResult Unpriceable(Exception? ex) => CommandResult.Fail(
-            CommandErrorCode.ModeUnavailable,
+            CommandErrorCode.Unreadable,
             "RP-1's own price for this node could not be read, so nothing was queued"
             + (ex == null ? "" : ": " + Rp1Types.ExceptionReason(ex)));
 

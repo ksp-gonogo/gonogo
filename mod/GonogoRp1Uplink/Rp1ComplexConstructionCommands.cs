@@ -474,7 +474,7 @@ namespace GonogoRp1Uplink
             if (canModify == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say whether " + name + " can be renovated, so nothing was queued"));
             }
             if (canModify != true)
@@ -490,7 +490,7 @@ namespace GonogoRp1Uplink
             if (currentMass == null || currentOrig == null || currentHumanRated == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say what " + name + " is built to, so nothing was queued"));
             }
 
@@ -574,7 +574,7 @@ namespace GonogoRp1Uplink
             if (currentSpec == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say what " + name + " is specified as, so nothing was queued"));
             }
 
@@ -582,7 +582,7 @@ namespace GonogoRp1Uplink
             if (padCount == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say how many working pads " + name + " has, so nothing was queued"));
             }
 
@@ -644,7 +644,7 @@ namespace GonogoRp1Uplink
             if (staff == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say how many engineers are at " + name
                     + ", and they have to come off it before it is renovated, so nothing was queued"));
             }
@@ -757,7 +757,7 @@ namespace GonogoRp1Uplink
             if (!IsPadAvailable)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's launch-pad model could not be resolved, so nothing was queued"));
             }
 
@@ -815,7 +815,7 @@ namespace GonogoRp1Uplink
             if (spec == null)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say what " + complexName + " is specified as, so nothing was queued"));
             }
 
@@ -825,7 +825,7 @@ namespace GonogoRp1Uplink
                 // -1 is RP-1's "no band", which happens when its tonnage table is
                 // absent. A pad built at that level would be unusable.
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say what tonnage band a pad at " + complexName
                     + " builds at, so nothing was queued"));
             }
@@ -907,7 +907,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable && !IsPadAvailable)
             {
                 refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's launch-complex model could not be resolved, so nothing was queued");
                 return false;
             }
@@ -964,7 +964,7 @@ namespace GonogoRp1Uplink
                 if (test.Invoke(null, Array.Empty<object>()) is not bool answer)
                 {
                     refusal = CommandResult.Fail(
-                        CommandErrorCode.ModeUnavailable,
+                        CommandErrorCode.Unreadable,
                         "RP-1 would not say whether this save is a career, so nothing was queued");
                     return false;
                 }
@@ -1126,7 +1126,7 @@ namespace GonogoRp1Uplink
             if (handled == null)
             {
                 refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's resource catalogue could not be read, so the complex's fluids could not be checked");
                 return false;
             }
@@ -1199,7 +1199,7 @@ namespace GonogoRp1Uplink
             if (within == null)
             {
                 refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say whether that tonnage is inside the complex's renovation limits");
                 return false;
             }
@@ -1395,7 +1395,7 @@ namespace GonogoRp1Uplink
             if (list == null)
             {
                 refusal = CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's " + listName + " could not be read, so nothing was queued");
                 return false;
             }

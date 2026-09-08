@@ -628,7 +628,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable)
             {
                 return Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's facility-construction model could not be resolved, so nothing was queued");
             }
 
@@ -655,7 +655,7 @@ namespace GonogoRp1Uplink
             if (centre == null)
             {
                 return Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say which space centre is active, so there is no queue to add to");
             }
 
@@ -826,7 +826,7 @@ namespace GonogoRp1Uplink
                 if (researched == null)
                 {
                     return Fail(
-                        CommandErrorCode.ModeUnavailable,
+                        CommandErrorCode.Unreadable,
                         "whether the tech node \"" + techGate + "\" has been researched could not be read, so "
                         + leaf + " tier " + Number(targetLevel) + " was not queued");
                 }
@@ -940,7 +940,7 @@ namespace GonogoRp1Uplink
             if (buildPoints == null)
             {
                 return Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say how much work " + leaf + "'s upgrade takes, which is its whole "
                     + "duration, so nothing was queued");
             }

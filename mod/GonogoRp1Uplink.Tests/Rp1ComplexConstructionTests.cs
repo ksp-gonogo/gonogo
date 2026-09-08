@@ -421,7 +421,7 @@ namespace GonogoRp1Uplink.Tests
             var result = Modify(lc, mass: 150, assignOnComplete: true);
 
             Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
             Assert.Contains("how many engineers", result.Detail);
             // Nothing queued and nothing written: the complex is still in service
             // with its crew on it.

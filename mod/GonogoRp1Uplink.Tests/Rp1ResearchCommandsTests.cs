@@ -329,7 +329,7 @@ namespace GonogoRp1Uplink.Tests
             var result = Research();
 
             Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
             Assert.Empty(ResearchAndDevelopment.Instance!.Charges);
             Assert.Empty(SpaceCenterManagement.Instance!.TechList);
         }
@@ -562,7 +562,7 @@ namespace GonogoRp1Uplink.Tests
             var result = Research();
 
             Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
             Assert.Empty(ResearchAndDevelopment.Instance!.Charges);
         }
 
@@ -607,7 +607,7 @@ namespace GonogoRp1Uplink.Tests
             var result = Research();
 
             Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
             Assert.Empty(SpaceCenterManagement.Instance!.TechList);
         }
 

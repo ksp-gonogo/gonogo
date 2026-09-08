@@ -273,7 +273,7 @@ namespace GonogoRp1Uplink.Tests
 
             var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
 
-            Refused(result, CommandErrorCode.ModeUnavailable);
+            Refused(result, CommandErrorCode.Unreadable);
             Assert.Empty(centre.FacilityUpgrades);
             Assert.Empty(SCMEvents.OnFacilityUpgradeQueued.Fired);
         }
@@ -726,7 +726,7 @@ namespace GonogoRp1Uplink.Tests
 
             var result = _commands.Upgrade(new Rp1FacilityUpgradeArgs { Facility = "LaunchPad" });
 
-            Refused(result, CommandErrorCode.ModeUnavailable);
+            Refused(result, CommandErrorCode.Unreadable);
         }
 
         /// <summary>

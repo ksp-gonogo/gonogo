@@ -154,7 +154,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's space-centre model could not be resolved, so nothing was changed");
             }
 
@@ -197,7 +197,7 @@ namespace GonogoRp1Uplink
             if (current == null || max == null)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say how many engineers " + name + " has or can hold");
             }
 
@@ -222,7 +222,7 @@ namespace GonogoRp1Uplink
                 if (unassigned == null)
                 {
                     return CommandResult.Fail(
-                        CommandErrorCode.ModeUnavailable,
+                        CommandErrorCode.Unreadable,
                         "RP-1 would not say how many engineers are unassigned at " + CentreName(centre));
                 }
                 if (delta > unassigned.Value)
@@ -243,7 +243,7 @@ namespace GonogoRp1Uplink
             catch (Exception ex)
             {
                 return CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "this RP-1 build's engineer assignment could not be resolved: " + Rp1Types.ExceptionReason(ex));
             }
 

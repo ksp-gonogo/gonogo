@@ -1274,12 +1274,25 @@ namespace GonogoPrincipiaUplink
                     PrincipiaWriteRefusal.OptimisationRunning => CommandErrorCode.NotClearToProceed,
                     PrincipiaWriteRefusal.ValueNotFinite => CommandErrorCode.Range,
                     PrincipiaWriteRefusal.ThrustNotPositive => CommandErrorCode.Range,
+                    // The read SUCCEEDED and came back with a pair outside the
+                    // vocabulary this build knows, so it is neither
+                    // Unreadable (the provider answered) nor
+                    // CapabilityMismatch (nothing was established about the
+                    // craft). ModeUnavailable claims neither, which is the most
+                    // this enum can currently say: a value the producer
+                    // answered with and we do not recognise has no arm of its
+                    // own yet.
                     PrincipiaWriteRefusal.IntegratorKindUnexpected =>
-                        CommandErrorCode.CapabilityMismatch,
+                        CommandErrorCode.ModeUnavailable,
                     PrincipiaWriteRefusal.IntegratorBoundsExceeded => CommandErrorCode.Range,
                     PrincipiaWriteRefusal.FinalTimeInPast => CommandErrorCode.Range,
                     PrincipiaWriteRefusal.ComposedBurnIncomplete => CommandErrorCode.Range,
-                    PrincipiaWriteRefusal.PluginShapeChanged => CommandErrorCode.CapabilityMismatch,
+                    // A field this write must set is not on the producer's struct,
+                    // so the read of its shape failed. NOT CapabilityMismatch,
+                    // which renders as "this craft cannot do it": nothing about
+                    // the vessel was established here, and the operator's own
+                    // craft is the last place they should be sent looking.
+                    PrincipiaWriteRefusal.PluginShapeChanged => CommandErrorCode.Unreadable,
                     _ => CommandErrorCode.Unknown,
                 };
 

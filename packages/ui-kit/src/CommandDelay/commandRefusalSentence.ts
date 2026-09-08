@@ -124,6 +124,12 @@ const GENERAL_REASON: Partial<Record<CommandErrorCode, string>> = {
   [CommandErrorCode.PlanNotOwned]: "another planner owns the flight plan",
   [CommandErrorCode.Timeout]: "the game did not get to it in time",
   [CommandErrorCode.ModeUnavailable]: "the game would not say why",
+  // Says only that the answer never arrived. Nothing about the craft, because
+  // nothing about the craft was established: the neighbouring
+  // `CapabilityMismatch` row is the one that may claim "this craft cannot do
+  // it", and it earns that by having been told so. Distinct from
+  // `ModeUnavailable` above, which is missing a REASON for an answer it got.
+  [CommandErrorCode.Unreadable]: "the game would not answer",
 };
 
 /**

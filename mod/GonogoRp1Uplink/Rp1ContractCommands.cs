@@ -179,7 +179,7 @@ namespace GonogoRp1Uplink
             if (!IsAvailable)
             {
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1's contract settings could not be resolved, so nothing was changed"));
             }
 
@@ -200,7 +200,7 @@ namespace GonogoRp1Uplink
                 // a balance decision and a command that invented one would let an
                 // operator require a payload the contract generator cannot serve.
                 return Refuse(CommandResult.Fail(
-                    CommandErrorCode.ModeUnavailable,
+                    CommandErrorCode.Unreadable,
                     "RP-1 would not say what payload range its contracts accept, so nothing was changed"));
             }
 

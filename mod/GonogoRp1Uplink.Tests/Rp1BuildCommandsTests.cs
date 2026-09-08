@@ -151,7 +151,7 @@ namespace GonogoRp1Uplink.Tests
             var result = Repeat(original.KCTPersistentID);
 
             Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
             Assert.Empty(lc.BuildList);
             Assert.Equal(1_000_000.0, Funding.Instance!.Funds);
         }
@@ -179,7 +179,7 @@ namespace GonogoRp1Uplink.Tests
             var result = Repeat(original.KCTPersistentID);
 
             Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
             Assert.Contains("price", result.Detail, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(lc.BuildList);
             Assert.Equal(1_000_000.0, Funding.Instance!.Funds);

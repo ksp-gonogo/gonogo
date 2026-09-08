@@ -296,7 +296,7 @@ namespace GonogoRp1Uplink.Tests
             var result = Start("Atlas", lc);
 
             Assert.False(result.Success);
-            Assert.Equal(CommandErrorCode.ModeUnavailable, result.ErrorCode);
+            Assert.Equal(CommandErrorCode.Unreadable, result.ErrorCode);
             Assert.Empty(lc.BuildList);
             Assert.Equal(1_000_000.0, Funding.Instance!.Funds);
         }

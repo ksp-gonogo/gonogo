@@ -94,6 +94,41 @@ namespace GonogoRealAntennasUplink.Tests
         public void GatePassesWhenTheAntennaTechLevelCouldNotBeRead() =>
             Assert.True(RaTargetPlan.ModeIsUnlocked("OrbitRelative", null, StockModes, out _));
 
+        // ── the antenna's shape, which has three answers ──────────────────────
+
+        [Fact]
+        public void ADishProceeds()
+        {
+            Assert.True(RaTargetPlan.TrySteerable(true, "HG-55", out var error, out var detail));
+            Assert.Equal(CommandErrorCode.None, error);
+            Assert.Null(detail);
+        }
+
+        [Fact]
+        public void AnOmniIsRefusedForWhatItIs()
+        {
+            Assert.False(RaTargetPlan.TrySteerable(false, "Communotron 16", out var error, out var detail));
+            Assert.Equal(CommandErrorCode.CapabilityMismatch, error);
+            Assert.Equal("'Communotron 16' is an omni antenna and cannot be aimed.", detail);
+        }
+
+        /// <summary>
+        /// The arm this whole code exists for. An unread <c>Shape</c> must not be
+        /// refused as an omni and must not be refused as a capability the craft
+        /// lacks: both state something the failed read never established, and
+        /// <see cref="CommandErrorCode.CapabilityMismatch"/> renders to the
+        /// operator as "this craft cannot do it".
+        /// </summary>
+        [Fact]
+        public void AnUnreadShapeIsRefusedAsUnreadAndClaimsNothingAboutTheAntenna()
+        {
+            Assert.False(RaTargetPlan.TrySteerable(null, "HG-55", out var error, out var detail));
+            Assert.Equal(CommandErrorCode.Unreadable, error);
+            Assert.NotEqual(CommandErrorCode.CapabilityMismatch, error);
+            Assert.Contains("Could not read whether 'HG-55' can be aimed", detail);
+            Assert.DoesNotContain("is an omni antenna", detail);
+        }
+
         [Fact]
         public void UnlockedModesGrowWithTechLevelAndKeepDeclarationOrder()
         {
