@@ -29,7 +29,7 @@ export const EXTENSION_API_VERSION = "1.0.0";
  * `mod/Sitrep.Contract/ContractVersion.cs`. A mismatch REFUSES an Uplink: the
  * payload shapes it was built against are not the ones on the wire.
  */
-export const CONTRACT_MAJOR = 15;
+export const CONTRACT_MAJOR = 16;
 
 /**
  * The wire contract's minor, mirroring `ContractVersion.Minor`. An Uplink built
