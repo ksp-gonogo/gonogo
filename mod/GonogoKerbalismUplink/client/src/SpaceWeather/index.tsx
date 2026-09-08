@@ -175,9 +175,9 @@ function useSpaceWeather(): SpaceWeatherRead {
     };
   }
 
-  // Order matters and the unknown arm goes LAST of the four: a flag that is
-  // positively true is a storm whatever its neighbour did, so this only takes
-  // cases off "none", which is the arm that was making a promise.
+  /* Order matters and the unknown arm goes LAST of the four: a flag that is
+     positively true is a storm whatever its neighbour did, so this only takes
+     cases off "none", which is the arm that was making a promise. */
   const stormState: StormState = t.stormInProgress
     ? "inprogress"
     : t.stormIncoming
@@ -728,9 +728,9 @@ function StormTimeline({ state }: { state: StormState }) {
     { key: "inprogress", label: "Storm", tone: "nogo" as Tone, w: 22 },
     { key: "passed", label: "Passed", tone: "go" as Tone, w: 22 },
   ];
-  // "now" marker position (0..100) by state. `unknown` places no marker at all:
-  // every position on this axis is a claim about which phase the craft is in,
-  // and the quiet end is the one an absent flag used to land on.
+  /* "now" marker position (0..100) by state. `unknown` places no marker at
+     all: every position on this axis is a claim about which phase the craft is
+     in, and the quiet end is the one an absent flag used to land on. */
   const nowPct =
     state === "unknown"
       ? null
@@ -1011,18 +1011,18 @@ function SpaceWeatherComponent({
   // compact sheds the solar-wind chart + env tags and shrinks the readout.
   const compact = cols < 7 || rows < 6;
 
-  // The placeholder, not "0.000 rad/h": the readout sits under a live caption
-  // saying "habitat dose rate", and a number there is the one an operator acts
-  // on. RadiationSection in ShipSystems reads the same field the same way.
+  /* The placeholder, not "0.000 rad/h": the readout sits under a live caption
+     saying "habitat dose rate", and a number there is the one an operator acts
+     on. RadiationSection in ShipSystems reads the same field the same way. */
   const doseText =
     d.radiationRadPerHour === null
       ? NULL_DISPLAY
       : `${d.radiationRadPerHour.toFixed(d.radiationRadPerHour < 1 ? 3 : 2)} rad/h`;
-  // Null, never 0, when either half is unreported: the meter draws absence
-  // rather than an empty tank, and a bar assembled from one number we have and
-  // one we do not is a verdict about a habitat (see useSpaceWeather's header).
-  // The fraction and its label are narrowed together so neither can be built
-  // from half a pair.
+  /* Null, never 0, when either half is unreported: the meter draws absence
+     rather than an empty tank, and a bar assembled from one number we have and
+     one we do not is a verdict about a habitat (see useSpaceWeather's header).
+     The fraction and its label are narrowed together so neither can be built
+     from half a pair. */
   const shielding =
     d.shieldingValue !== null &&
     d.shieldingCapacity !== null &&
