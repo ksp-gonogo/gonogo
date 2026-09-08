@@ -35,7 +35,6 @@ export interface PendingEntry {
    * The scalar the dispatch asked for, when its command is a declared control
    * channel's write half. Absent otherwise, and absent rather than zero when
    * unknown: a zero throttle and an unknown value must never read the same.
-   * `control-expectation.ts` is what consumes it.
    */
   commandedValue?: number;
 }
