@@ -45,8 +45,8 @@ export const GENERATED_RECKONABLE_VALUES = [
   { topic: "vessel.flight", field: "altitudeAsl", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.flight", field: "altitudeAsl", basis: "rate-integration", inputs: [ { topic: "", path: "verticalSpeed" }, { topic: "", path: "gForce" }, { topic: "system.bodies", path: "" } ] },
   { topic: "vessel.flight", field: "orbitalSpeed", basis: "kepler-propagation", inputs: [ { topic: "vessel.orbit", path: "" } ] },
-  { topic: "vessel.orbit.truth", field: "position", basis: "kepler-propagation", inputs: [ { topic: "", path: "velocity" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" } ] },
-  { topic: "vessel.orbit.truth", field: "velocity", basis: "kepler-propagation", inputs: [ { topic: "", path: "position" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" } ] },
+  { topic: "vessel.orbit.truth", field: "position", basis: "kepler-propagation", inputs: [ { topic: "", path: "velocity" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
+  { topic: "vessel.orbit.truth", field: "velocity", basis: "kepler-propagation", inputs: [ { topic: "", path: "position" }, { topic: "", path: "frameRotating" }, { topic: "vessel.orbit", path: "mu" }, { topic: "vessel.orbit", path: "horizon" } ] },
   { topic: "vessel.target", field: "relativePosition", basis: "linear-dead-reckoning", inputs: [ { topic: "", path: "relativeVelocity" } ] },
 ] as const satisfies readonly GeneratedReckonableValue[];
 

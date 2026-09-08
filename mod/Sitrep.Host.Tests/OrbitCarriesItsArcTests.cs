@@ -498,6 +498,60 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void WithNoHorizonResolverTheStockClaimStillStands()
+        {
+            // The other half of the fault arm, and it is here because without it the
+            // fix above can over-correct silently: making the no-resolver case
+            // withhold too was planted and every test in this file still passed. An
+            // install nobody asked has no backend to have broken, so Analytic is the
+            // fact rather than a fallback, and the headless suites depend on it.
+            VesselViewProvider.SetHorizonSource(null);
+
+            var orbit = VesselViewProvider.BuildOrbit(Snapshot());
+
+            Assert.NotNull(orbit);
+            Assert.Equal(TrajectoryKind.Analytic, orbit!.Horizon.TrajectoryKind);
+            Assert.Equal(PropagationHorizonKind.Unbounded, orbit.Horizon.Kind);
+        }
+
+        [Fact]
+        public void AThrowingHorizonResolverPublishesNoClaimRatherThanAnAnalyticOne()
+        {
+            // A resolver that FAULTED is not the same install as one that was never
+            // asked. The no-resolver arm may fairly answer Analytic/Unbounded, since
+            // an install with no n-body backend has exactly that anyway. This arm
+            // has a backend, and it broke. Answering Analytic there is a positive
+            // claim that the save runs stock two-body physics, made on the strength
+            // of an exception, and every client that reads the shape to decide
+            // whether a conic is the right renderer would believe it.
+            VesselViewProvider.SetHorizonSource(
+                (_, _) => throw new InvalidOperationException("boom"));
+
+            var orbit = VesselViewProvider.BuildOrbit(Snapshot());
+
+            Assert.NotNull(orbit);
+            // The payload still publishes: a resolver fault must not cost the elements.
+            Assert.Equal(700_000.0, orbit!.Sma);
+            Assert.Equal(TrajectoryKind.Unspecified, orbit.Horizon.TrajectoryKind);
+            Assert.Equal(PropagationHorizonKind.Unspecified, orbit.Horizon.Kind);
+            Assert.Null(orbit.Horizon.UntilUt);
+        }
+
+        [Fact]
+        public void ANullReturningHorizonResolverPublishesNoClaimEither()
+        {
+            // Same reasoning one arm over. A resolver installed and answering null
+            // has said nothing, and nothing is not "stock".
+            VesselViewProvider.SetHorizonSource((_, _) => null!);
+
+            var orbit = VesselViewProvider.BuildOrbit(Snapshot());
+
+            Assert.NotNull(orbit);
+            Assert.Equal(TrajectoryKind.Unspecified, orbit!.Horizon.TrajectoryKind);
+            Assert.Equal(PropagationHorizonKind.Unspecified, orbit.Horizon.Kind);
+        }
+
+        [Fact]
         public void WithNoResolverInstalledTheElementsStillPublish()
         {
             // An integrating install whose arc source was never installed: the

@@ -34,19 +34,26 @@ public class VesselOrbitTruth
      * because the model is INAPPLICABLE when it is true: an input a reckoner uses to DECLINE is
      * still an input, and declaring it is what lets the decline name what ruled the model out.
      *
+     * @vessel.orbit#horizon is declared on the same footing, and it is the input a consumer is
+     * likeliest not to think of. The horizon states what KIND of answer the elements are, and only
+     * a provider claiming Analytic is claiming they are a conic at all; under a backend that
+     * integrates, advancing them two-body is a different physics rather than a coarser one. A
+     * consumer holding nothing but the stream cannot infer that from mu, so the mark has to name
+     * it or the declaration promises a model the wire does not support.
+     *
      * The modelled arm is for a debug overlay, NOT for the diff harness this channel exists to
      * feed. Reckoning it applies the very propagator the harness is measuring, so a consumer
      * diffing element->position math must read `value`: `reckoned` there compares the propagator
      * against itself and agrees perfectly by construction.
      */
     [SitrepFrame(Frames.BodyCentredInertial, WhenSet = Frames.BodyCentredRotating, SelectedBy = "frameRotating")]
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "velocity", "frameRotating", "@vessel.orbit#mu")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "velocity", "frameRotating", "@vessel.orbit#mu", "@vessel.orbit#horizon")]
     public Vec3 Position { get; set; } = new();
 
     [SitrepUnit(Units.MetresPerSecond)]
     // The same conic seen from the other half of the state vector; see Position.
     [SitrepFrame(Frames.BodyCentredInertial, WhenSet = Frames.BodyCentredRotating, SelectedBy = "frameRotating")]
-    [SitrepReckonable(ReckoningBases.KeplerPropagation, "position", "frameRotating", "@vessel.orbit#mu")]
+    [SitrepReckonable(ReckoningBases.KeplerPropagation, "position", "frameRotating", "@vessel.orbit#mu", "@vessel.orbit#horizon")]
     public Vec3 Velocity { get; set; } = new();
 
     [SitrepUnit(Units.Flag)]

@@ -9,7 +9,13 @@ import type {
   StateVector,
   Vector3,
 } from "./kepler";
-import { canPropagate, solve, solveAnomalies } from "./kepler";
+import {
+  canPropagate,
+  PropagationHorizonKindLike,
+  solve,
+  solveAnomalies,
+  TrajectoryKindLike,
+} from "./kepler";
 
 /**
  * The conic, in ONE place, for both paths that reach it.
@@ -219,11 +225,72 @@ export function atmosphereDepthOf(
 }
 
 /**
+ * Whether an UNBOUNDED reach is one a conic may be carried across, or the
+ * refusal that says nobody vouched for it.
+ *
+ * The question is a CAPABILITY's, not a mod's. `PropagationElection` runs one
+ * exclusive `propagation` capability whose vanilla factory is the two-body
+ * solver, because stock KSP physics genuinely is two-body; an n-body backend
+ * registers a higher-priority provider only when its own probe finds the
+ * physics loaded, and `HorizonFor` then stamps every element set that provider
+ * publishes with `TrajectoryKind.Integrated`. So the answer a reckoner needs is
+ * already on the wire, on a field that names no vendor and that every provider
+ * can state, stock included. That is also why this reads the horizon rather
+ * than a planner or a provider id: `VesselManeuver.Planner`'s doc forbids a
+ * consumer special-casing an elected implementation by name, and
+ * `TrajectoryKind` exists precisely because an earlier draft of this field
+ * carried the provider's id and answered "who computed this" where a client
+ * needed "what is this like".
+ *
+ * **Only `Unbounded` is asked about, and the narrowness is the whole design.**
+ * An `Until` bound is not a producer admitting a limit, it is a MEASUREMENT:
+ * `IntegratedHorizon.UntilUt` recovers it by bisecting the integrating
+ * provider's own `CanPropagate`, and its subject is "how far a two-body
+ * extrapolation of an integrated trajectory stays trustworthy". A provider that
+ * publishes one has vouched for a conic across exactly that window, per craft,
+ * and the reach gate below already enforces it. Declining there would discard
+ * the measurement and leave that machinery answering nobody. `Unspecified`
+ * reach is already refused by the same gate. So the one case left over is an
+ * unbounded reach with nothing vouching for its shape, which is the failure
+ * `IIntegratedTrajectorySource`'s own doc names: an integrating provider in a
+ * low-perturbation regime can honestly report no limit, and a client reasoning
+ * "unbounded, therefore analytic, therefore an ellipse is fine" draws a path
+ * the craft will not fly.
+ *
+ * `null` when a conic is vouched for. An absent `horizon` is left alone: the
+ * reach gate owns that case and refuses it in its own words.
+ */
+function trajectoryAuthority(
+  horizon: PropagationHorizonLike | undefined,
+): ReckoningDecline | null {
+  if (horizon == null) return null;
+  if (horizon.kind !== PropagationHorizonKindLike.Unbounded) return null;
+  if (horizon.trajectoryKind === TrajectoryKindLike.Analytic) return null;
+  if (horizon.trajectoryKind === TrajectoryKindLike.Integrated) {
+    return {
+      reason: "model-inapplicable",
+      input: "@vessel.orbit#horizon",
+      note: "the provider integrates these elements and bounded nothing, so there is no window in which they are a conic to advance",
+    };
+  }
+  return {
+    reason: "model-inapplicable",
+    input: "@vessel.orbit#horizon",
+    note: "no provider stated what kind of answer these elements are, so nothing vouches for carrying them forever as a conic",
+  };
+}
+
+/**
  * Whether a two-body advance of these elements to `viewUt` is admissible, and
  * which published input says it is not.
  *
- * Four withdrawal conditions, in the order they cost least to ask:
+ * Five withdrawal conditions, in the order they cost least to ask:
  *
+ * - **who owns the trajectory, where nothing bounds it.** The elected
+ *   propagation provider states, on every element set it publishes, what KIND
+ *   of answer it is. An `Unbounded` reach paired with a shape that is not
+ *   `Analytic` is a licence to carry an integrated path forever as an ellipse,
+ *   which is not a degraded conic but a different physics
  * - **not on rails.** The elements describe a coast; a craft under physics is
  *   being pushed by something the conic does not model
  * - **the SOI transition.** A patched conic is only the CURRENT patch, so a
@@ -244,6 +311,15 @@ export function atmosphereDepthOf(
  * channel lands would be a withdrawal asserted on the LACK of a fact. Same
  * posture the SOI condition takes on an absent `encounter`.
  *
+ * **The authority condition is the exception, and deliberately.** Under an
+ * unbounded reach an unstated shape is not a missing fact to be generous about,
+ * it is the permissive default `TrajectoryKind.Unspecified = 0` was numbered to
+ * remove: a producer that forgets gets the withholding answer rather than
+ * "conic, obviously". The fixtures wrote this rule down before anything
+ * enforced it, in `UNBOUNDED_HORIZON`'s own doc: a consumer deciding whether a
+ * conic is the right renderer "must read that as 'unknown' rather than
+ * 'conic'".
+ *
  * What is still unbounded, and cannot be bounded here: a BURN. A craft out of
  * contact is exactly one whose burns we cannot see, so nothing inside this
  * function can bound it, and the `kepler-propagation` basis carries that caveat
@@ -259,6 +335,8 @@ export function keplerAdmissibility(
       declined: { reason: "input-absent", input: "@vessel.orbit" },
     };
   }
+  const authority = trajectoryAuthority(orbitPoint.payload.horizon);
+  if (authority !== null) return { declined: authority };
   if (orbitPoint.meta.quality !== Quality.OnRails) {
     return {
       declined: {
