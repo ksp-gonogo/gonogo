@@ -1,16 +1,5 @@
-import type {
-  DockAlignment,
-  VesselFlight,
-  VesselOrbitTruth,
-  VesselTarget,
-} from "../__generated__/contract";
 import { magnitudeOr } from "../magnitude";
-import type {
-  ModelledField,
-  ReckonerDefinition,
-  ReckoningDecline,
-  StaleGrade,
-} from "../reading";
+import type { ModelledField, ReckoningDecline, StaleGrade } from "../reading";
 import type { TimelinePoint } from "../timeline";
 import type { Vector3 } from "../unit-system";
 import { value } from "../unit-system/value";
@@ -147,50 +136,48 @@ function movedFields(
  * consumer holding nothing but the stream carries it forward with one
  * multiply-add.
  */
-const reckonTarget: ReckonerDefinition<
-  VesselTarget,
-  Pick<VesselTarget, "relativePosition">,
-  readonly []
-> = {
-  deps: [],
-  reckon(point, _resolved, { grade, viewUt }) {
-    const payload = point.payload;
-    /*
-     * The DECLARED input first, and the anchor second. Both can be absent at
-     * once, and when they are the operator is better served by the contract's
-     * own word for what is missing than by a sentence about this model's
-     * internals: the mark is the promise that was not kept.
-     */
-    if (payload?.relativeVelocity == null) {
+function registerTargetReckoner(): void {
+  registerReckoner("vessel.target", CORE_RECKONER_OWNER, {
+    deps: [],
+    reckon(point, _resolved, { grade, viewUt }) {
+      const payload = point.payload;
+      /*
+       * The DECLARED input first, and the anchor second. Both can be absent at
+       * once, and when they are the operator is better served by the contract's
+       * own word for what is missing than by a sentence about this model's
+       * internals: the mark is the promise that was not kept.
+       */
+      if (payload?.relativeVelocity == null) {
+        return {
+          declined: { reason: "input-absent", input: "relativeVelocity" },
+        };
+      }
+      if (payload.relativePosition == null) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            note: "no relative position was observed, so there is nothing to advance",
+          },
+        };
+      }
+      const dt = elapsedOrDecline(point, grade, viewUt);
+      if (typeof dt !== "number") return { declined: dt };
+      const p = components(payload.relativePosition);
+      const v = components(payload.relativeVelocity);
+      if (!finite(p) || !finite(v)) {
+        return {
+          declined: { reason: "input-absent", input: "relativeVelocity" },
+        };
+      }
       return {
-        declined: { reason: "input-absent", input: "relativeVelocity" },
+        modelled: movedFields("linear-dead-reckoning", "relativePosition"),
+        reckon: (at) => ({
+          relativePosition: metres(advanceByVelocity(p, v, at - point.validAt)),
+        }),
       };
-    }
-    if (payload.relativePosition == null) {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          note: "no relative position was observed, so there is nothing to advance",
-        },
-      };
-    }
-    const dt = elapsedOrDecline(point, grade, viewUt);
-    if (typeof dt !== "number") return { declined: dt };
-    const p = components(payload.relativePosition);
-    const v = components(payload.relativeVelocity);
-    if (!finite(p) || !finite(v)) {
-      return {
-        declined: { reason: "input-absent", input: "relativeVelocity" },
-      };
-    }
-    return {
-      modelled: movedFields("linear-dead-reckoning", "relativePosition"),
-      reckon: (at) => ({
-        relativePosition: metres(advanceByVelocity(p, v, at - point.validAt)),
-      }),
-    };
-  },
-};
+    },
+  });
+}
 
 /**
  * `vessel.dock.relativePosition` and the `distance` that is its magnitude.
@@ -200,44 +187,42 @@ const reckonTarget: ReckonerDefinition<
  * separation carried by a closing rate is only a straight-line approximation of
  * a distance, and the vector is right there.
  */
-const reckonDock: ReckonerDefinition<
-  DockAlignment,
-  Pick<DockAlignment, "relativePosition" | "distance">,
-  readonly []
-> = {
-  deps: [],
-  reckon(point, _resolved, { grade, viewUt }) {
-    const payload = point.payload;
-    if (payload == null) {
-      return {
-        declined: { reason: "input-absent", input: "relativePosition" },
-      };
-    }
-    const dt = elapsedOrDecline(point, grade, viewUt);
-    if (typeof dt !== "number") return { declined: dt };
-    const p = components(payload.relativePosition);
-    const v = components(payload.relativeVelocity);
-    if (!finite(p) || !finite(v)) {
-      return {
-        declined: { reason: "input-absent", input: "relativeVelocity" },
-      };
-    }
-    return {
-      modelled: movedFields(
-        "linear-dead-reckoning",
-        "relativePosition",
-        "distance",
-      ),
-      reckon: (at) => {
-        const advanced = advanceByVelocity(p, v, at - point.validAt);
+function registerDockReckoner(): void {
+  registerReckoner("vessel.dock", CORE_RECKONER_OWNER, {
+    deps: [],
+    reckon(point, _resolved, { grade, viewUt }) {
+      const payload = point.payload;
+      if (payload == null) {
         return {
-          relativePosition: metres(advanced),
-          distance: value("m", magnitude(advanced)),
+          declined: { reason: "input-absent", input: "relativePosition" },
         };
-      },
-    };
-  },
-};
+      }
+      const dt = elapsedOrDecline(point, grade, viewUt);
+      if (typeof dt !== "number") return { declined: dt };
+      const p = components(payload.relativePosition);
+      const v = components(payload.relativeVelocity);
+      if (!finite(p) || !finite(v)) {
+        return {
+          declined: { reason: "input-absent", input: "relativeVelocity" },
+        };
+      }
+      return {
+        modelled: movedFields(
+          "linear-dead-reckoning",
+          "relativePosition",
+          "distance",
+        ),
+        reckon: (at) => {
+          const advanced = advanceByVelocity(p, v, at - point.validAt);
+          return {
+            relativePosition: metres(advanced),
+            distance: value("m", magnitude(advanced)),
+          };
+        },
+      };
+    },
+  });
+}
 
 /**
  * `vessel.flight.altitudeAsl` and `.orbitalSpeed`, off the conic.
@@ -248,62 +233,60 @@ const reckonDock: ReckonerDefinition<
  * `propagateVesselOrbit` and one subtraction, which is what `deriveVesselState`
  * does on its OnRails branch for the same two fields.
  */
-const reckonFlight: ReckonerDefinition<
-  VesselFlight,
-  Pick<VesselFlight, "altitudeAsl" | "orbitalSpeed">,
-  readonly ["vessel.orbit", "system.bodies"]
-> = {
-  deps: ["vessel.orbit", "system.bodies"],
-  reckon(_point, [orbitPoint, bodiesPoint], { viewUt }) {
-    const bodies = bodiesPoint?.payload ?? undefined;
-    const admissible = keplerAdmissibility(orbitPoint, bodies, viewUt);
-    if ("declined" in admissible || orbitPoint?.payload == null) {
-      return "declined" in admissible
-        ? admissible
-        : { declined: { reason: "input-absent", input: "@vessel.orbit" } };
-    }
-    const orbit = orbitPoint.payload;
-    const radius = bodies?.bodies.find(
-      (b) => b.index === orbit.referenceBodyIndex,
-    )?.radius;
-    const seaLevel = magnitudeOr(radius, Number.NaN);
-    if (!Number.isFinite(seaLevel)) {
-      return {
-        declined: {
-          reason: "input-absent",
-          input: "@system.bodies",
-          note: "the reference body publishes no radius, so there is no sea level to measure from",
-        },
-      };
-    }
-    const solved = propagateVesselOrbit(orbit, viewUt);
-    if (solved == null) {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          input: "@vessel.orbit",
-          note: "hyperbolic elements: the elliptical solver has no answer for them",
-        },
-      };
-    }
-    return {
-      modelled: movedFields(
-        "kepler-propagation",
-        "altitudeAsl",
-        "orbitalSpeed",
-      ),
-      reckon: (at) => {
-        const state = propagateVesselOrbit(orbit, at);
-        const r = state == null ? Number.NaN : magnitude(state.position);
-        const speed = state == null ? Number.NaN : magnitude(state.velocity);
+function registerFlightReckoner(): void {
+  registerReckoner("vessel.flight", CORE_RECKONER_OWNER, {
+    deps: ["vessel.orbit", "system.bodies"],
+    reckon(_point, [orbitPoint, bodiesPoint], { viewUt }) {
+      const bodies = bodiesPoint?.payload ?? undefined;
+      const admissible = keplerAdmissibility(orbitPoint, bodies, viewUt);
+      if ("declined" in admissible || orbitPoint?.payload == null) {
+        return "declined" in admissible
+          ? admissible
+          : { declined: { reason: "input-absent", input: "@vessel.orbit" } };
+      }
+      const orbit = orbitPoint.payload;
+      const radius = bodies?.bodies.find(
+        (b) => b.index === orbit.referenceBodyIndex,
+      )?.radius;
+      const seaLevel = magnitudeOr(radius, Number.NaN);
+      if (!Number.isFinite(seaLevel)) {
         return {
-          altitudeAsl: value("m", r - seaLevel),
-          orbitalSpeed: value("m/s", speed),
+          declined: {
+            reason: "input-absent",
+            input: "@system.bodies",
+            note: "the reference body publishes no radius, so there is no sea level to measure from",
+          },
         };
-      },
-    };
-  },
-};
+      }
+      const solved = propagateVesselOrbit(orbit, viewUt);
+      if (solved == null) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            input: "@vessel.orbit",
+            note: "hyperbolic elements: the elliptical solver has no answer for them",
+          },
+        };
+      }
+      return {
+        modelled: movedFields(
+          "kepler-propagation",
+          "altitudeAsl",
+          "orbitalSpeed",
+        ),
+        reckon: (at) => {
+          const state = propagateVesselOrbit(orbit, at);
+          const r = state == null ? Number.NaN : magnitude(state.position);
+          const speed = state == null ? Number.NaN : magnitude(state.velocity);
+          return {
+            altitudeAsl: value("m", r - seaLevel),
+            orbitalSpeed: value("m/s", speed),
+          };
+        },
+      };
+    },
+  });
+}
 
 /**
  * `vessel.orbit.truth.position` and `.velocity`: the state vector the same conic
@@ -323,62 +306,60 @@ const reckonFlight: ReckonerDefinition<
  * once-a-second body channel lands costs nothing, and the alternative is a conic
  * drawn through air with no way to know it.
  */
-const reckonOrbitTruth: ReckonerDefinition<
-  VesselOrbitTruth,
-  Pick<VesselOrbitTruth, "position" | "velocity">,
-  readonly ["vessel.orbit", "system.bodies"]
-> = {
-  deps: ["vessel.orbit", "system.bodies"],
-  reckon(point, [orbitPoint, bodiesPoint], { viewUt }) {
-    if (point.payload?.frameRotating === true) {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          input: "frameRotating",
-          note: "these vectors are in a frame co-rotating with the body, not the fixed frame a conic solves in",
-        },
-      };
-    }
-    const admissible = keplerAdmissibility(
-      orbitPoint,
-      bodiesPoint?.payload ?? undefined,
-      viewUt,
-    );
-    if ("declined" in admissible || orbitPoint?.payload == null) {
-      return "declined" in admissible
-        ? admissible
-        : { declined: { reason: "input-absent", input: "@vessel.orbit" } };
-    }
-    const orbit = orbitPoint.payload;
-    if (propagateVesselOrbit(orbit, viewUt) == null) {
-      return {
-        declined: {
-          reason: "model-inapplicable",
-          input: "@vessel.orbit",
-          note: "hyperbolic elements: the elliptical solver has no answer for them",
-        },
-      };
-    }
-    return {
-      modelled: movedFields("kepler-propagation", "position", "velocity"),
-      reckon: (at) => {
-        const state = propagateVesselOrbit(orbit, at);
-        const p =
-          state?.position ?? ([Number.NaN, Number.NaN, Number.NaN] as const);
-        const v =
-          state?.velocity ?? ([Number.NaN, Number.NaN, Number.NaN] as const);
+function registerOrbitTruthReckoner(): void {
+  registerReckoner("vessel.orbit.truth", CORE_RECKONER_OWNER, {
+    deps: ["vessel.orbit", "system.bodies"],
+    reckon(point, [orbitPoint, bodiesPoint], { viewUt }) {
+      if (point.payload?.frameRotating === true) {
         return {
-          position: metres(p as readonly [number, number, number]),
-          velocity: {
-            x: value("m/s", v[0]),
-            y: value("m/s", v[1]),
-            z: value("m/s", v[2]),
+          declined: {
+            reason: "model-inapplicable",
+            input: "frameRotating",
+            note: "these vectors are in a frame co-rotating with the body, not the fixed frame a conic solves in",
           },
         };
-      },
-    };
-  },
-};
+      }
+      const admissible = keplerAdmissibility(
+        orbitPoint,
+        bodiesPoint?.payload ?? undefined,
+        viewUt,
+      );
+      if ("declined" in admissible || orbitPoint?.payload == null) {
+        return "declined" in admissible
+          ? admissible
+          : { declined: { reason: "input-absent", input: "@vessel.orbit" } };
+      }
+      const orbit = orbitPoint.payload;
+      if (propagateVesselOrbit(orbit, viewUt) == null) {
+        return {
+          declined: {
+            reason: "model-inapplicable",
+            input: "@vessel.orbit",
+            note: "hyperbolic elements: the elliptical solver has no answer for them",
+          },
+        };
+      }
+      return {
+        modelled: movedFields("kepler-propagation", "position", "velocity"),
+        reckon: (at) => {
+          const state = propagateVesselOrbit(orbit, at);
+          const p =
+            state?.position ?? ([Number.NaN, Number.NaN, Number.NaN] as const);
+          const v =
+            state?.velocity ?? ([Number.NaN, Number.NaN, Number.NaN] as const);
+          return {
+            position: metres(p as readonly [number, number, number]),
+            velocity: {
+              x: value("m/s", v[0]),
+              y: value("m/s", v[1]),
+              z: value("m/s", v[2]),
+            },
+          };
+        },
+      };
+    },
+  });
+}
 
 /**
  * Register core's vanilla for every marked Topic. Idempotent: the registry is
@@ -389,12 +370,26 @@ const reckonOrbitTruth: ReckonerDefinition<
  * Called at module load, the way a bundled Uplink's client registers its own,
  * and again from `TelemetryProvider` when it builds a store, so a suite that
  * cleared the registry between tests still gets the vanilla back.
+ *
+ * ## Why it is still a batch, and why each model is now a function
+ *
+ * The batch stays: being callable a second time is the whole reason it exists,
+ * and it is what puts the vanilla back after `clearReckoners`. What went was the
+ * shape it used to hold, a module `const` annotated
+ * `ReckonerDefinition<VesselFlight, Pick<...>, readonly [...]>` and registered
+ * here by name. That annotation defeated every inference `registerReckoner`
+ * offers: the payload the topic already names, the deps the array already
+ * names, the projection the model already returns. Wrapping each registration
+ * in a function of its own moves the definition into the call, where all three
+ * infer, without collapsing four models into one 250-line body. The visible
+ * result is at the top of this file: it no longer imports a single payload type
+ * from the contract, because the topic string carries them.
  */
 export function registerCoreReckoners(): void {
-  registerReckoner("vessel.target", CORE_RECKONER_OWNER, reckonTarget);
-  registerReckoner("vessel.dock", CORE_RECKONER_OWNER, reckonDock);
-  registerReckoner("vessel.flight", CORE_RECKONER_OWNER, reckonFlight);
-  registerReckoner("vessel.orbit.truth", CORE_RECKONER_OWNER, reckonOrbitTruth);
+  registerTargetReckoner();
+  registerDockReckoner();
+  registerFlightReckoner();
+  registerOrbitTruthReckoner();
 }
 
 registerCoreReckoners();

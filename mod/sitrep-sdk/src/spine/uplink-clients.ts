@@ -7,8 +7,9 @@ import {
   registerRootProvider,
 } from "../api/root-providers";
 import type { ContributionDefinition, ContributionDep } from "../api/types";
-import type { ReckonerDefinition } from "../reading";
+import type { DepWindows, ReckonerDefinition } from "../reading";
 import type { DerivedChannelDefinition } from "../timeline";
+import type { TopicId, TopicPayload } from "../topics";
 import { contributeDerivedChannel } from "./contributed-channels";
 import { registerContribution } from "./contributions";
 import type {
@@ -143,10 +144,14 @@ export interface UplinkClientHandle {
    * the store resolves them and declines by name when one is absent.
    */
   registerReckoner<
-    T,
-    R = T,
+    const Topic extends TopicId,
+    R = TopicPayload<Topic>,
     const Deps extends readonly Dep[] = readonly Dep[],
-  >(topic: string, reckoner: ReckonerDefinition<T, R, Deps>): void;
+    const Windows extends DepWindows<Deps> = Record<never, never>,
+  >(
+    topic: Topic,
+    reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
+  ): void;
   /**
    * Contribute a derived channel owned by this client.
    *
@@ -154,8 +159,9 @@ export interface UplinkClientHandle {
    * what a model needs whenever its inputs are split across them: projecting a
    * consumable wants an amount and a capacity from the generic resource Topic
    * and a rate from whichever Uplink models the consumption, a split the
-   * contract makes deliberately. A per-Topic reckoner is handed one point and
-   * cannot see across it.
+   * contract makes deliberately. A per-Topic reckoner reaches another Topic only
+   * as a declared dep, one point at a time unless it windows it, and its answer
+   * is still that one Topic's.
    *
    * Registered after core's own, so an Uplink cannot take over a Topic core
    * already derives, and per (topic, owner), so two Uplinks claiming one Topic
@@ -233,10 +239,14 @@ export function defineUplinkClient(cfg: {
       return defineProcessor({ ...def, owner: cfg.id });
     },
     registerReckoner<
-      T,
-      R = T,
+      const Topic extends TopicId,
+      R = TopicPayload<Topic>,
       const Deps extends readonly Dep[] = readonly Dep[],
-    >(topic: string, reckoner: ReckonerDefinition<T, R, Deps>): void {
+      const Windows extends DepWindows<Deps> = Record<never, never>,
+    >(
+      topic: Topic,
+      reckoner: ReckonerDefinition<TopicPayload<Topic>, R, Deps, Windows>,
+    ): void {
       registerReckoner(topic, cfg.id, reckoner);
     },
     registerDerivedChannel<T>(def: DerivedChannelDefinition<T>): void {

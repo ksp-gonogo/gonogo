@@ -1,3 +1,4 @@
+import "./reckoner-test-topics";
 import { type ReckonerDefinition, value } from "@ksp-gonogo/sitrep-sdk";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
@@ -29,6 +30,16 @@ import { ViewClock } from "./view-clock";
  * metadata. A widget reading the relative position should get a model; a widget
  * reading the vessel's NAME should get a stale observation; and both should
  * happen in one frame off one model.
+ *
+ * ## The topics here are test-owned, and the prose above is about the real ones
+ *
+ * `registerReckoner` takes `TopicId` and resolves the payload from it, so a
+ * suite can no longer register a two-field stand-in called `Target` against
+ * `vessel.target`, which has forty-seven paths. `test.target` and `test.dock`
+ * are declared in `reckoner-test-topics.ts` through the same `declare module`
+ * augmentation an Uplink uses, with exactly the shapes these cases need. What
+ * is under test is unchanged: `vessel.target` is still what the reasoning above
+ * is drawn from, and these stand in for it.
  */
 
 interface Target {
@@ -70,7 +81,7 @@ function predictedStore(wall: { now: () => number }) {
 
 /** Dead-reckons the relative position only; every other field is a copy. */
 function registerPositionOnlyModel() {
-  registerReckoner<Target>("vessel.target", "test", {
+  registerReckoner("test.target", "test", {
     deps: [],
     reckon: (point, _deps, { viewUt }) => ({
       modelled: [{ path: "relativePosition", basis: "linear-dead-reckoning" }],
@@ -90,13 +101,13 @@ describe("a per-topic model, expressed per field", () => {
     const store = predictedStore(wall);
     registerPositionOnlyModel();
 
-    store.ingest("vessel.target", targetPoint(100));
+    store.ingest("test.target", targetPoint(100));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
     const position = store.sampleReading<{ x: number }>(
-      "vessel.target.relativePosition",
+      "test.target.relativePosition",
     );
     expect(position.reckoning).toBe("available");
     if (position.reckoning !== "available") return;
@@ -108,7 +119,7 @@ describe("a per-topic model, expressed per field", () => {
     // Same frame, same model, same topic. Nothing dead-reckons a name, so the
     // sibling is offered no model at all: it is the reckoning axis that says
     // so, both fields being equally stale.
-    const name = store.sampleReading<string>("vessel.target.name");
+    const name = store.sampleReading<string>("test.target.name");
     expect(name.reckoning).toBe("none");
     expect(name.state).toBe("stale");
   });
@@ -120,12 +131,12 @@ describe("a per-topic model, expressed per field", () => {
     const store = predictedStore(wall);
     registerPositionOnlyModel();
 
-    store.ingest("vessel.target", targetPoint(100));
+    store.ingest("test.target", targetPoint(100));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    expect(store.sampleReading<Target>("vessel.target").reckoning).toBe("none");
+    expect(store.sampleReading<Target>("test.target").reckoning).toBe("none");
   });
 
   it("carries the OBSERVED field value beside the reckoning, not the modelled one", () => {
@@ -136,13 +147,13 @@ describe("a per-topic model, expressed per field", () => {
     const store = predictedStore(wall);
     registerPositionOnlyModel();
 
-    store.ingest("vessel.target", targetPoint(100));
+    store.ingest("test.target", targetPoint(100));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
     const position = store.sampleReading<{ x: number }>(
-      "vessel.target.relativePosition",
+      "test.target.relativePosition",
     );
     if (position.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
@@ -159,12 +170,12 @@ describe("a per-topic model, expressed per field", () => {
     const store = predictedStore(wall);
     registerPositionOnlyModel();
 
-    store.ingest("vessel.target", targetPoint(100));
+    store.ingest("test.target", targetPoint(100));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const x = store.sampleReading<number>("vessel.target.relativePosition.x");
+    const x = store.sampleReading<number>("test.target.relativePosition.x");
     expect(x.reckoning).toBe("available");
     if (x.reckoning !== "available") return;
     expect(x.reckoned.value).toBe(1600);
@@ -176,10 +187,7 @@ describe("a per-topic model, expressed per field", () => {
     // silently answers for fields nobody claimed.
     const wall = fakeWall();
     const store = predictedStore(wall);
-    registerReckoner<{
-      relativePosition: number;
-      relativePositionError: number;
-    }>("vessel.dock", "test", {
+    registerReckoner("test.dock", "test", {
       deps: [],
       reckon: (point) => ({
         modelled: [
@@ -189,7 +197,7 @@ describe("a per-topic model, expressed per field", () => {
       }),
     });
 
-    store.ingest("vessel.dock", {
+    store.ingest("test.dock", {
       validAt: 100,
       payload: { relativePosition: 5, relativePositionError: 1 },
       meta: makeMeta({ validAt: 100, deliveredAt: 100 }),
@@ -200,8 +208,7 @@ describe("a per-topic model, expressed per field", () => {
     store.beginFrame();
 
     expect(
-      store.sampleReading<number>("vessel.dock.relativePositionError")
-        .reckoning,
+      store.sampleReading<number>("test.dock.relativePositionError").reckoning,
     ).toBe("none");
   });
 });
@@ -222,14 +229,14 @@ describe("a topic two owners both model is served with neither", () => {
     // with no model says "nothing trustworthy can be said", which is true; one
     // carrying whichever model loaded second is a confident picture assembled
     // by accident, and a wrong reckoner is worse than none.
-    registerReckoner<Target>("vessel.target", "two-body-model", {
+    registerReckoner("test.target", "two-body-model", {
       deps: [],
       reckon: () => ({
         modelled: [{ path: "", basis: "linear-dead-reckoning" }],
         reckon: () => OBSERVED,
       }),
     });
-    registerReckoner<Target>("vessel.target", "n-body-model", {
+    registerReckoner("test.target", "n-body-model", {
       deps: [],
       reckon: () => ({
         modelled: [{ path: "", basis: "kepler-propagation" }],
@@ -239,16 +246,16 @@ describe("a topic two owners both model is served with neither", () => {
 
     const wall = fakeWall();
     const store = predictedStore(wall);
-    store.ingest("vessel.target", targetPoint(100));
+    store.ingest("test.target", targetPoint(100));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const reading = store.sampleReading<Target>("vessel.target");
+    const reading = store.sampleReading<Target>("test.target");
     expect(reading.reckoning).toBe("none");
     expect(reading.state).toBe("stale");
     expect(getReckonerConflicts()).toEqual([
-      { topic: "vessel.target", owners: ["n-body-model", "two-body-model"] },
+      { topic: "test.target", owners: ["n-body-model", "two-body-model"] },
     ]);
   });
 
@@ -259,22 +266,22 @@ describe("a topic two owners both model is served with neither", () => {
      * owner on it. Counting core would report the intended arrangement as a
      * disagreement on every install that has an Uplink at all.
      */
-    registerReckoner<Target>("vessel.target", CORE_RECKONER_OWNER, declines);
-    registerReckoner<Target>("vessel.target", "n-body-model", declines);
+    registerReckoner("test.target", CORE_RECKONER_OWNER, declines);
+    registerReckoner("test.target", "n-body-model", declines);
 
     expect(getReckonerConflicts()).toEqual([]);
-    expect(getReckoner("vessel.target")?.owner).toBe("n-body-model");
+    expect(getReckoner("test.target")?.owner).toBe("n-body-model");
   });
 
   it("reports no conflict when one owner re-registers", () => {
     // A module re-evaluating under HMR, or a test re-importing after
     // resetModules, is a benign single-owner case and must not look like two
     // Uplinks disagreeing.
-    registerReckoner<Target>("vessel.target", "two-body-model", declines);
-    registerReckoner<Target>("vessel.target", "two-body-model", declines);
+    registerReckoner("test.target", "two-body-model", declines);
+    registerReckoner("test.target", "two-body-model", declines);
 
     expect(getReckonerConflicts()).toEqual([]);
-    expect(getReckoner("vessel.target")?.definition).toBe(declines);
+    expect(getReckoner("test.target")?.definition).toBe(declines);
   });
 });
 
@@ -291,7 +298,7 @@ describe("every path to a reckoning shares the one cache", () => {
     const store = predictedStore(wall);
 
     let runs = 0;
-    registerReckoner<Target>("vessel.target", "test", {
+    registerReckoner("test.target", "test", {
       deps: [],
       reckon: (point, _deps, { viewUt }) => ({
         modelled: [
@@ -307,13 +314,13 @@ describe("every path to a reckoning shares the one cache", () => {
       }),
     });
 
-    store.ingest("vessel.target", targetPoint(100));
+    store.ingest("test.target", targetPoint(100));
     wall.advanceBy(60);
     store.setTransportConnected(false);
     store.beginFrame();
 
     const position = store.sampleReading<{ x: number }>(
-      "vessel.target.relativePosition",
+      "test.target.relativePosition",
     );
     if (position.reckoning !== "available")
       throw new Error("expected a reckoning on offer");
