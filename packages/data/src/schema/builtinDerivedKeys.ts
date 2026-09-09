@@ -59,34 +59,8 @@ export function registerBuiltinDerivedKeys(): void {
     },
   });
 
-  // ── Delta-V & mass, projected out of the complex dv.stages array ──────
-  // `dv.stages` is a StageInfo[], great for the FuelStatus widget but
-  // unusable as a Graph series. These derived keys expose the scalar
-  // rollups most often wanted for plotting: vessel-total ΔV, active-stage
-  // ΔV / fuel mass / TWR, and current total vessel mass.
-
-  registerDerivedKey({
-    id: "dv.total",
-    inputs: ["dv.stages"],
-    meta: { label: "Total delta-V", unit: "m/s", group: "Stages" },
-    fn: ([stages]) => {
-      const arr = asStageArray(stages.v);
-      if (!arr) return undefined;
-      return arr.reduce((sum, s) => sum + (s.deltaVActual ?? 0), 0);
-    },
-  });
-
-  registerDerivedKey({
-    id: "dv.current",
-    inputs: ["dv.stages", "v.currentStage"],
-    meta: { label: "Current stage delta-V", unit: "m/s", group: "Stages" },
-    fn: ([stages, current]) => {
-      const arr = asStageArray(stages.v);
-      if (!arr) return undefined;
-      return pickCurrentStage(arr, current.v)?.deltaVActual;
-    },
-  });
-
+  // `dv.stages` is a StageInfo[], great for the FuelStatus widget but unusable
+  // as a Graph series, so the active stage's TWR is projected out of it here.
   registerDerivedKey({
     id: "dv.currentTWR",
     inputs: ["dv.stages", "v.currentStage"],
@@ -98,28 +72,6 @@ export function registerBuiltinDerivedKeys(): void {
       const arr = asStageArray(stages.v);
       if (!arr) return undefined;
       return pickCurrentStage(arr, current.v)?.TWRActual;
-    },
-  });
-
-  registerDerivedKey({
-    id: "dv.currentFuelMass",
-    inputs: ["dv.stages", "v.currentStage"],
-    meta: { label: "Current stage fuel mass", unit: "kg", group: "Stages" },
-    fn: ([stages, current]) => {
-      const arr = asStageArray(stages.v);
-      if (!arr) return undefined;
-      return pickCurrentStage(arr, current.v)?.fuelMass;
-    },
-  });
-
-  registerDerivedKey({
-    id: "dv.totalMass",
-    inputs: ["dv.stages"],
-    meta: { label: "Total vessel mass", unit: "kg", group: "Stages" },
-    fn: ([stages]) => {
-      const arr = asStageArray(stages.v);
-      if (!arr) return undefined;
-      return arr.reduce((sum, s) => sum + (s.stageMass ?? 0), 0);
     },
   });
 }

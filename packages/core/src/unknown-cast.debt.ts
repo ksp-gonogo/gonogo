@@ -252,10 +252,9 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/serial/src/SerialDevicesMenu/DeviceEditor.test.tsx": 3,
   "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.test.tsx": 4,
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 28 in 17 files (5 out of `any`, 26 in tests), walked 148 files
+  // packages/sitrep-client: 25 in 16 files (5 out of `any`, 23 in tests), walked 148 files
   "packages/sitrep-client/src/client.test.ts": 2,
   "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/dv-legacy-scalars.test.ts": 3,
   "packages/sitrep-client/src/dv-stage-resources.test.ts": 2,
   "packages/sitrep-client/src/full-history-replay.ts": 1,
   "packages/sitrep-client/src/processorEvaluator.test.ts": 1,
@@ -463,9 +462,8 @@ export const DOUBLE_ASSERTION_DEBT: Record<string, number> = {
   "packages/serial/src/mocks/mockWebSerial.ts": 4,
   "packages/serial/src/SerialDeviceService.test.ts": 1,
   "packages/serial/src/typedListeners.ts": 2,
-  // packages/sitrep-client: 21 in 11 files (0 out of `any`, 20 in tests), walked 148 files
+  // packages/sitrep-client: 18 in 10 files (0 out of `any`, 17 in tests), walked 148 files
   "packages/sitrep-client/src/currency-events.test.tsx": 1,
-  "packages/sitrep-client/src/dv-legacy-scalars.test.ts": 3,
   "packages/sitrep-client/src/dv-stage-resources.test.ts": 2,
   "packages/sitrep-client/src/silence-state-exhaustive.test.ts": 2,
   "packages/sitrep-client/src/space-center-state.test.ts": 1,
