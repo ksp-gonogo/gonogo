@@ -171,29 +171,39 @@ function rateDecimals(rate: Quantityish, base: number): number {
 /**
  * Net ElectricCharge draw across every RUNNING converter (inputs minus
  * outputs), the one cheap power aggregate the shared shape supports: drills
- * carry no EC field of their own. `null` (not 0) when nothing on the vessel
- * touches ElectricCharge at all, so the header omits the stat rather than
- * claiming a known zero draw. A positive number draws power; negative means
- * the fleet is a net generator (e.g. a running fuel cell).
+ * carry no EC field of their own. A positive number draws power; negative
+ * means the fleet is a net generator (e.g. a running fuel cell).
+ *
+ * The two halves of the answer are separate because they fail separately.
+ * `moves` is whether anything aboard touches ElectricCharge, which is a
+ * property of the RECIPES and so stays a fact whatever the rates do; `net` is
+ * the figure, and it is `null` the moment one contributing rate cannot be
+ * read. A total assembled from the rates it happened to get understates the
+ * draw, and an operator sizes a battery off that number.
  */
-function netElectricChargeDraw(
-  converters: readonly IsruConverterEntry[],
-): number | null {
-  let touched = false;
-  let net = 0;
+function netElectricChargeDraw(converters: readonly IsruConverterEntry[]): {
+  moves: boolean;
+  net: number | null;
+} {
+  let moves = false;
+  let net: number | null = 0;
   for (const converter of converters) {
     for (const flow of converter.inputs) {
       if (flow.resource !== "ElectricCharge") continue;
-      touched = true;
-      if (converter.running === true) net += magnitudeOf(flow.rate) ?? 0;
+      moves = true;
+      if (converter.running !== true) continue;
+      const rate = magnitudeOf(flow.rate);
+      net = rate === null || net === null ? null : net + rate;
     }
     for (const flow of converter.outputs) {
       if (flow.resource !== "ElectricCharge") continue;
-      touched = true;
-      if (converter.running === true) net -= magnitudeOf(flow.rate) ?? 0;
+      moves = true;
+      if (converter.running !== true) continue;
+      const rate = magnitudeOf(flow.rate);
+      net = rate === null || net === null ? null : net - rate;
     }
   }
-  return touched ? net : null;
+  return { moves, net };
 }
 
 /**
@@ -345,11 +355,18 @@ function ConverterCard({
   //
   // A stall is diagnosed from rates and a run flag, so a stale record cannot
   // support it: the fault it names would be one the vessel had some seconds ago.
+  // Neither can an ABSENT rate, for the same reason one step earlier: a backend
+  // whose part capacity failed to resolve reports the recipe with its resources
+  // named and no rates at all (KerbalismIsruMap.AddFlows), so every output
+  // reading as an unread rate is a failed read of a converter that may be
+  // running perfectly. The card's own rate cells print "unknown" for those very
+  // values; a warning tone and a "no output" badge in the same render would
+  // contradict them. Only a rate that arrived AS zero is a stall.
   const starved =
     !converterNotCurrent &&
     converter.running === true &&
     converter.outputs.length > 0 &&
-    converter.outputs.every((flow) => flow.rate?.isZero() ?? true);
+    converter.outputs.every((flow) => flow.rate?.isZero() === true);
 
   // The card's identity colour: what it MAKES if it makes anything, else what
   // it consumes. Purely a "what kind of thing is this" mark (Card's top tab),
@@ -451,8 +468,8 @@ function ResourceOpsStats({
   total: number;
   /** Withheld (`undefined`) while either channel's run flags are stale. */
   activeCount: number | undefined;
-  netEc: number | null;
-  /** Whether `netEc` is a held figure rather than the vessel's current draw. */
+  netEc: { moves: boolean; net: number | null };
+  /** Whether `netEc.net` is a held figure rather than the vessel's current draw. */
   netEcNotCurrent: boolean;
   location: string | undefined;
   /** Which channels stopped being current, named for the operator. */
@@ -481,15 +498,18 @@ function ResourceOpsStats({
       {/* The stat stays mounted while the figure is withheld: WHETHER the vessel
           moves ElectricCharge is a property of the recipes, which is a fact, so
           dropping the row would say "nothing here draws power". */}
-      {netEc !== null && (
+      {netEc.moves && (
         <Inline gap="xs">
           <ReadoutCaption>net EC</ReadoutCaption>
-          {netEcNotCurrent ? (
+          {/* Withheld for either reason, and they read the same to an operator:
+              the channel stopped being current, or one rate in the sum never
+              arrived. Both mean the draw is unknown right now, not zero. */}
+          {netEcNotCurrent || netEc.net === null ? (
             <Text tone="muted">{NULL_DISPLAY}</Text>
           ) : (
             <Unit
-              value={value("units/s", netEc)}
-              decimals={rateDecimals(netEc, 2)}
+              value={value("units/s", netEc.net)}
+              decimals={rateDecimals(netEc.net, 2)}
             />
           )}
         </Inline>

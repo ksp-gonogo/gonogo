@@ -141,11 +141,11 @@ describe("ResourceOps: what undefined means today", () => {
   });
 
   it("omits the net EC stat when the converter channel never arrived, the same as when nothing draws power", async () => {
-    // `netElectricChargeDraw([])` returns null because nothing "touched"
-    // ElectricCharge, and the header reads that as not-applicable. With
-    // `isru.converters` never delivered, that null is produced by the absence
-    // of the channel rather than by the vessel's hardware: the widget omits a
-    // power stat it cannot know is inapplicable.
+    // `netElectricChargeDraw([])` reports that nothing MOVES ElectricCharge,
+    // and the header reads that as not-applicable. With `isru.converters` never
+    // delivered, that verdict comes from the absence of the channel rather than
+    // from the vessel's hardware: the widget omits a power stat it cannot know
+    // is inapplicable.
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", DRILLS);
@@ -159,12 +159,17 @@ describe("ResourceOps: what undefined means today", () => {
     expect(within(header).queryByText("net EC")).not.toBeInTheDocument();
   });
 
-  it("flags a running converter as producing nothing when its output rates never arrived", async () => {
-    // Partial payload, inside a row. `(flow.rate?.magnitude ?? 0) === 0`
-    // coerces an absent rate to a known zero, so a converter whose recipe
-    // arrived without rates is diagnosed "no output" and toned as a WARNING,
-    // a derived fault claimed from missing data. The same row's rate cell
-    // does the opposite in the same render: it prints "unknown".
+  /**
+   * NOT a characterisation: the behaviour this pins is the corrected one.
+   *
+   * An absent rate is the producer's own way of saying it could not read one
+   * (`KerbalismIsruMap.AddFlows` writes `Rate = null` whenever the part's
+   * capacity failed to resolve, and says so in its comment), so a stall
+   * diagnosed from it is a fault claimed from missing data. The card's own
+   * rate cells already print "unknown" for the very same values in the very
+   * same render, which is what the diagnosis has to agree with.
+   */
+  it("does not flag a running converter as starved when its output rates never arrived", async () => {
     const { fixture } = renderWidget();
     act(() => {
       fixture.emit("isru.drills", []);
@@ -180,10 +185,91 @@ describe("ResourceOps: what undefined means today", () => {
     });
 
     expect(await screen.findByText("Rateless Converter")).toBeInTheDocument();
-    expect(screen.getByText("no output")).toBeInTheDocument();
-    // Two rate cells, one per recipe side, both reading as unknown rather than
-    // as the zero the starved diagnostic above just assumed.
+    expect(screen.queryByText("no output")).not.toBeInTheDocument();
+    // Two rate cells, one per recipe side, both reading as unknown, which is
+    // the reading the starved diagnostic now agrees with rather than overrides.
     expect(screen.getAllByText("unknown")).toHaveLength(2);
+  });
+
+  /** A READ zero is a real stall, and the diagnosis still has to make it. */
+  it("still flags a running converter whose output rates arrived as zero", async () => {
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", []);
+      fixture.emit("isru.converters", [
+        {
+          partId: "402",
+          partTitle: "Stalled Converter",
+          running: true,
+          inputs: [{ resource: "Ore", rate: 0.5 }],
+          outputs: [{ resource: "LiquidFuel", rate: 0 }],
+        },
+      ]);
+    });
+
+    expect(await screen.findByText("Stalled Converter")).toBeInTheDocument();
+    expect(screen.getByText("no output")).toBeInTheDocument();
+  });
+
+  /**
+   * NOT a characterisation either: the corrected behaviour for the net EC sum.
+   *
+   * A total assembled from every rate it COULD read understates the draw, and
+   * the operator sizes a battery off it. Withheld instead, with the stat kept
+   * mounted, because whether the vessel moves ElectricCharge is a property of
+   * the recipes and remains a fact.
+   */
+  it("withholds the net EC figure when one contributing rate never arrived", async () => {
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", []);
+      fixture.emit("isru.converters", [
+        {
+          partId: "501",
+          partTitle: "Readable Converter",
+          running: true,
+          inputs: [{ resource: "ElectricCharge", rate: 4 }],
+          outputs: [{ resource: "LiquidFuel", rate: 0.1 }],
+        },
+        {
+          partId: "502",
+          partTitle: "Rateless Converter",
+          running: true,
+          inputs: [{ resource: "ElectricCharge" }],
+          outputs: [{ resource: "Oxidizer", rate: 0.1 }],
+        },
+      ]);
+    });
+
+    await screen.findByText("Readable Converter");
+    const header = statsHeader();
+    // The stat stays: these recipes DO move ElectricCharge.
+    expect(within(header).getByText("net EC")).toBeInTheDocument();
+    // But not as "4", which is the readable converter's draw alone.
+    expect(within(header).queryByText(/^4/)).not.toBeInTheDocument();
+    expect(within(header).getByText("\u2014")).toBeInTheDocument();
+  });
+
+  /** With every contributing rate readable, the sum is stated as before. */
+  it("states the net EC figure when every contributing rate arrived", async () => {
+    const { fixture } = renderWidget();
+    act(() => {
+      fixture.emit("isru.drills", []);
+      fixture.emit("isru.converters", [
+        {
+          partId: "501",
+          partTitle: "Readable Converter",
+          running: true,
+          inputs: [{ resource: "ElectricCharge", rate: 4 }],
+          outputs: [{ resource: "LiquidFuel", rate: 0.1 }],
+        },
+      ]);
+    });
+
+    await screen.findByText("Readable Converter");
+    const header = statsHeader();
+    expect(within(header).getByText("net EC")).toBeInTheDocument();
+    expect(within(header).getByText(/4/)).toBeInTheDocument();
   });
 
   it("drops the location line while vessel.identity has not arrived", async () => {

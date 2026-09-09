@@ -1,9 +1,12 @@
 import {
+  DEAD_READ_SETTLE_MS,
+  resetDeadReadWarnings,
   resetGatedReadWarnings,
   StubTransport,
   TelemetryClient,
   TelemetryProvider,
 } from "@ksp-gonogo/sitrep-client";
+import { registerTopicUnits } from "@ksp-gonogo/sitrep-sdk";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import {
   act,
@@ -302,5 +305,179 @@ describe("useDataStreamStatus gate: a rescued status reports itself", () => {
 
     await waitFor(() => expect(screen.getByText("status:live")).toBeTruthy());
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The silence the gate's own report cannot see.
+ *
+ * `warnGatedRead` above needs both candidate reads in hand, so the read it can
+ * never speak about is the one that resolves to NOTHING: no channel to grade
+ * and no source to ask. On this hook that is the worse of the two silences,
+ * because it does not go blank. It returns the unregistered floor,
+ * `"disconnected"`, so a perfectly connected screen wears a link-down badge
+ * for the rest of the session and nothing anywhere fails.
+ *
+ * Both directions are pinned, and the last one matters most: the verdict is
+ * deferred by `DEAD_READ_SETTLE_MS` and re-derived at the moment it fires, so
+ * an Uplink that registers its Topics after the dashboard has rendered cancels
+ * the report rather than being accused by it.
+ */
+describe("useDataStreamStatus: a status read that resolves to nothing says so", () => {
+  const warn = vi.fn();
+  let uninstall = () => {};
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    warn.mockClear();
+    resetDeadReadWarnings();
+    uninstall = installTestHost({ logger: { warn } as never });
+  });
+  afterEach(() => {
+    uninstall();
+    vi.useRealTimers();
+  });
+
+  function Probe({ dataKey }: { dataKey: string }) {
+    const status = useDataStreamStatus("data", dataKey);
+    return <div>status:{status}</div>;
+  }
+
+  function settle() {
+    act(() => {
+      vi.advanceTimersByTime(DEAD_READ_SETTLE_MS + 1);
+    });
+  }
+
+  /**
+   * Scoped to this diagnostic rather than `warn` as a whole: a status the
+   * stream rescues raises the GATED-read line, which is correct and is that
+   * diagnostic's business.
+   */
+  function deadReadLines(): string[] {
+    return warn.mock.calls
+      .map((call) => String(call[0]))
+      .filter((message) => message.startsWith("[dead read]"));
+  }
+
+  it("names the call, the reason it can never resolve, and what to write instead", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control.thruttle" />
+      </TelemetryProvider>,
+    );
+
+    expect(deadReadLines()).toEqual([]);
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
+    const message = deadReadLines()[0] ?? "";
+    expect(message).toContain(
+      'useDataStreamStatus("data", "vessel.control.thruttle")',
+    );
+    expect(message).toContain("will never resolve");
+    expect(message).toContain("No data source is registered");
+  });
+
+  /** A carried channel is grading this status, so there is nothing to report. */
+  it("says nothing about a status the stream resolves", () => {
+    const transport = new StubTransport();
+    const client = new TelemetryClient(transport);
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control" />
+      </TelemetryProvider>,
+    );
+
+    act(() => transport.emit("vessel.control", { throttle: 0.75 }));
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * A registered source is a source that could still answer, and its status is
+   * a real status rather than the floor.
+   */
+  it("says nothing when a registered source could still answer", () => {
+    const client = new TelemetryClient(new StubTransport());
+    registerDataSource(makeLegacySource());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control.thruttle" />
+      </TelemetryProvider>,
+    );
+
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * The startup race, and the reason the report is deferred at all. An Uplink
+   * registers its Topics when its BUNDLE loads, which is after the app has
+   * rendered, so this read is genuinely dead on the first frame and healthy a
+   * moment later.
+   */
+  it("says nothing when an Uplink registers the Topic after the read first ran", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="latestatus.reactor.coreTempK" />
+      </TelemetryProvider>,
+    );
+
+    // Half the window in, still dead, and nothing said yet.
+    act(() => {
+      vi.advanceTimersByTime(DEAD_READ_SETTLE_MS / 2);
+    });
+    expect(deadReadLines()).toEqual([]);
+
+    act(() => registerTopicUnits("latestatus.reactor", { coreTempK: "K" }));
+
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * A status is keyed by a WHOLE Topic as readily as by a field path within
+   * one, and `science.experimentBreakdown` (the one such call the app ships)
+   * is a bare Topic id. Resolved against the field-path vocabulary alone it
+   * names nothing, so the diagnostic would reach for the wrong arm and tell
+   * the author their Topic declares no such field. The screen's actual defect
+   * is that nothing is streaming, and that is what has to be said.
+   */
+  it("names the missing provider, not a missing field, for a key that IS a whole Topic", () => {
+    render(<Probe dataKey="science.experimentBreakdown" />);
+
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
+    const message = deadReadLines()[0] ?? "";
+    expect(message).toContain("no TelemetryProvider is mounted");
+    expect(message).toContain('"science.experimentBreakdown"');
+    expect(message).not.toContain("names no field");
+  });
+
+  /** Once per distinct read: two widgets holding the same bad call is one line. */
+  it("reports a given bad read once however many widgets hold it", () => {
+    const client = new TelemetryClient(new StubTransport());
+
+    render(
+      <TelemetryProvider client={client}>
+        <Probe dataKey="vessel.control.thruttle" />
+        <Probe dataKey="vessel.control.thruttle" />
+      </TelemetryProvider>,
+    );
+
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
   });
 });

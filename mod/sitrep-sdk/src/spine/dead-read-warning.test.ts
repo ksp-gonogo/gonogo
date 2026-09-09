@@ -134,6 +134,62 @@ describe("classifying a read that resolves to nothing", () => {
   });
 });
 
+/**
+ * Which key vocabulary the verdict is resolved against, which is a property of
+ * the calling HOOK and not of the moment.
+ *
+ * A value read reaches a field WITHIN a Topic, so a bare Topic id is not a key
+ * it can serve and the narrow question is the right one. A status read and a
+ * plotted window are keyed by the whole Topic and hand the key through
+ * untranslated for `isTopicCarried` to answer, so on those a bare Topic id
+ * reaches a real channel. Asking the narrow question there accuses a read that
+ * works, and accuses it with a false sentence about the contract.
+ */
+describe("classifying against the whole-Topic key vocabulary", () => {
+  /** `useDataStreamStatus("data", "science.experimentBreakdown")` ships today. */
+  it("resolves a bare Topic id, so the verdict is about the provider", () => {
+    expect(
+      classifyDeadRead("data", "science.experimentBreakdown", false, true),
+    ).toEqual({
+      kind: "no-provider-no-source",
+      topic: "science.experimentBreakdown",
+    });
+  });
+
+  it("stands aside for that Topic entirely once a stream is mounted", () => {
+    expect(
+      classifyDeadRead("data", "science.experimentBreakdown", true, true),
+    ).toBeUndefined();
+  });
+
+  /**
+   * The narrow vocabulary is what `useTelemetry`'s two-arg form reads with, and
+   * there a bare Topic id genuinely resolves to nothing: the hook's own
+   * `resolveValueTopic` returns `undefined`, its subscribe is a no-op and it
+   * returns `undefined` for ever. Pinned so the parameter's default cannot
+   * drift into silencing that leg.
+   */
+  it("still calls a bare Topic id dead under the field-path vocabulary", () => {
+    expect(
+      classifyDeadRead("data", "science.experimentBreakdown", true),
+    ).toEqual(NO_SOURCE);
+  });
+
+  /** Widening the vocabulary does not make a key that names nothing resolve. */
+  it("reports a key that names neither a Topic nor a field of one", () => {
+    expect(classifyDeadRead("data", "vessel.orbit.smaa", true, true)).toEqual(
+      NO_SOURCE,
+    );
+  });
+
+  /** A field path is a field path under either vocabulary. */
+  it("still resolves a field path when a whole Topic would also be accepted", () => {
+    expect(
+      classifyDeadRead("data", "vessel.control.throttle", true, true),
+    ).toBeUndefined();
+  });
+});
+
 describe("the dead-read message", () => {
   it("names the call that was written and says the wait was deliberate", () => {
     const message = deadReadMessage(

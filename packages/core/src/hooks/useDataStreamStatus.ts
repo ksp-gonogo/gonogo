@@ -1,13 +1,16 @@
 import {
+  classifyDeadRead,
+  DEAD_READ_SETTLE_MS,
   isTopicCarried,
   mapTopic,
   type StreamStatusValue,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
+  warnDeadRead,
   warnGatedRead,
 } from "@ksp-gonogo/sitrep-client";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useSyncExternalStore } from "react";
 import { getDataSource } from "../registry";
 import type { DataSource, DataSourceStatus } from "../types";
 import { useDataSourceSubscription } from "./useDataSourceSubscription";
@@ -129,6 +132,41 @@ export function useDataStreamStatus(
       );
     }
   }, [gatedRescue, dataSourceId, key, topic, store]);
+
+  // The report above needs both candidate reads in hand, so it can never speak
+  // about the read that resolves to NOTHING: no channel to grade and no source
+  // to ask. This hook does not return `undefined` for that, which is what makes
+  // it the worse silence of the two: it returns the unregistered floor,
+  // `"disconnected"`, and a screen that is perfectly connected shows a
+  // link-down badge for ever with nothing failing. See `dead-read-warning.ts`
+  // for why the verdict is deferred and then re-derived from the registries
+  // rather than taken from the render that scheduled it.
+  //
+  // The latch is `routable || hasLegacySource`, deliberately NOT this hook's
+  // `streamed`. `gatedRescue` above fires on "a provider is mounted and no
+  // source is registered" and asks nothing about whether the key names a
+  // channel, so a key that names none would latch as observed on the first
+  // frame and this report could never fire at all. What counts as having
+  // reached something is a carried channel, or a registered source that could
+  // still answer.
+  //
+  // The final argument is the key VOCABULARY: a status is keyed by a whole
+  // Topic as readily as by a field path within one, and the classifier has to
+  // resolve both or it accuses the reads that work. The one such call the app
+  // ships, `("data", "science.experimentBreakdown")`, is a bare Topic id.
+  const everObserved = useRef(false);
+  if (routable || hasLegacySource) everObserved.current = true;
+  const streamMounted = client !== undefined && store !== undefined;
+  const deadCandidate = !everObserved.current;
+  useEffect(() => {
+    if (!deadCandidate) return;
+    const timer = setTimeout(() => {
+      if (everObserved.current) return;
+      const cause = classifyDeadRead(dataSourceId, key, streamMounted, true);
+      if (cause) warnDeadRead("useDataStreamStatus", dataSourceId, key, cause);
+    }, DEAD_READ_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [deadCandidate, dataSourceId, key, streamMounted]);
 
   const subscribe = useCallback(
     (onStoreChange: () => void) => {
