@@ -71,11 +71,14 @@ export const COMPOSING_MARGIN_SECONDS = 600;
 export function seededIgnitionUt(
   previous: Value<"ut"> | null,
   viewUt: Value<"ut">,
-  oneWaySeconds: number,
+  oneWaySeconds: number | null,
 ): Value<"ut"> {
-  const flyable = viewUt.plus(
-    value("s", 2 * Math.max(oneWaySeconds, 0) + COMPOSING_MARGIN_SECONDS),
-  );
+  // A null one-way leaves the margin alone to do the work. There is no round
+  // trip to clear when nobody knows what the round trip is, and a seed is a
+  // starting instant the operator edits rather than a claim about arrival, so
+  // this is the one place the absence and a zero can honestly land together.
+  const roundTrip = oneWaySeconds === null ? 0 : 2 * Math.max(oneWaySeconds, 0);
+  const flyable = viewUt.plus(value("s", roundTrip + COMPOSING_MARGIN_SECONDS));
   if (previous === null) return flyable;
   // Whichever is later. A burn seeded after one the operator has already dragged
   // past the window keeps the order; a burn after one dragged into the past is
@@ -87,9 +90,15 @@ export function seededIgnitionUt(
 export function commandWindow(
   targetUt: number | null,
   viewUt: number | null,
-  oneWaySeconds: number,
+  oneWaySeconds: number | null,
 ): CommandWindow | null {
-  if (targetUt === null || viewUt === null || oneWaySeconds <= 0) return null;
+  if (targetUt === null || viewUt === null) return null;
+  // A null one-way is not a zero one: the handle reports it when there is no
+  // measurable path home, or no `comms.delay` reading at all. Either way there
+  // is no light time to subtract, so there is no deadline to state and this
+  // says nothing rather than stating the target instant as if a command could
+  // reach it.
+  if (oneWaySeconds === null || oneWaySeconds <= 0) return null;
   const deadlineUt = targetUt - 2 * oneWaySeconds;
   const remainingSeconds = deadlineUt - viewUt;
   return {

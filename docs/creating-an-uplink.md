@@ -1119,7 +1119,8 @@ The handle carries more than `send`:
 | `inFlight` | the dispatches still travelling, each with its reach and reply ETAs |
 | `refusals` | dispatches the GAME refused, until dismissed. Different from a rejection: a refusal never left |
 | `gate` | what the mod says about this command in ADVANCE, or `undefined` when nothing is known |
-| `effectiveDelaySeconds` | the one-way delay under the current vantage, 0 for instant |
+| `effectiveDelaySeconds` | the one-way delay under the current vantage. 0 for a command that is instant by construction, and `null` when there is no measurable one, never 0 for that |
+| `delayMode` | what the link is doing: `live`, `staged`, `no-path`, or `null` when no `comms.delay` reading has arrived |
 | `shape` | which delay display this command uses; hand it straight to `<CommandDelay>` |
 | `dismiss(id)` | clear a dead dispatch or a refusal, the manual out for anything that would sit forever |
 

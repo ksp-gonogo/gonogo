@@ -32,9 +32,8 @@ import { RailCrossing } from "./RailCrossing";
  */
 function handleHasContent(handle: CommandHandle): boolean {
   if (handle.shape === "stream") {
-    return (
-      handle.effectiveDelaySeconds > 0 && (handle.streams?.length ?? 0) > 0
-    );
+    const delay = handle.effectiveDelaySeconds;
+    return delay !== null && delay > 0 && (handle.streams?.length ?? 0) > 0;
   }
   return handle.inFlight.length > 0;
 }

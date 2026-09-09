@@ -555,8 +555,8 @@ export function useViewUt(): Value<"ut"> | undefined {
  *
  * Every command is DELAYED unless it is sim-meta, so a dispatch is not an event
  * that has happened, it is one that is travelling. The handle carries the whole
- * delay surface for that (`inFlight`, `effectiveDelaySeconds`, `gate`,
- * `refusals`), and `<CommandDelay handle={cmd}>` renders it; in development the
+ * delay surface for that (`inFlight`, `effectiveDelaySeconds`, `delayMode`,
+ * `gate`, `refusals`), and `<CommandDelay handle={cmd}>` renders it; in development the
  * hook throws on a dispatch made without one, so a delayed command cannot ship
  * with no delay UX.
  *

@@ -23,6 +23,8 @@ import type {
 import {
   type CommsDelayLike,
   classifyRetained,
+  currentMode,
+  type DelayMode,
   type InFlightCommand,
   type PathConnectedDuring,
   type PendingEntry,
@@ -153,10 +155,33 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
   shape: "discrete" | "stream";
   /**
    * The command's effective one-way delay under its vantage: `0` for a
-   * never-delayed sim-meta command (`time.*`), `0` at the meta-vantage, and the
-   * live `comms.delay` one-way otherwise. `<CommandDelay>` renders nothing at 0.
+   * never-delayed sim-meta command (`time.*`) and `0` at the meta-vantage, both
+   * instant by construction, and the live `comms.delay` one-way otherwise.
+   * `<CommandDelay>` renders nothing at 0.
+   *
+   * `null` when there is no live one-way delay to have: no measurable path
+   * home, a malformed reading, or no `comms.delay` reading at all. It is never
+   * 0 for those. A 0 says the command arrives now, which for a craft nothing
+   * can reach is the one wrong answer that reads as everything being fine.
+   * {@link delayMode} says which of them it is.
    */
-  effectiveDelaySeconds: number;
+  effectiveDelaySeconds: number | null;
+  /**
+   * What the link is doing, from `comms.delay` and nothing else: `"live"` under
+   * the staged threshold, `"staged"` above it, `"no-path"` when the payload
+   * reports nothing measurable.
+   *
+   * `null` when no `comms.delay` reading has arrived, which most widgets will
+   * see because most do not carry the topic. That is "we have not heard", not
+   * "there is no path", and the two are kept apart here for the same reason the
+   * contract keeps a null one-way apart from a zero one.
+   *
+   * A readout, not a gate. It does not decide whether {@link send} dispatches:
+   * the mod drops a delayed command for an unreachable subject on arrival
+   * (`ChannelEngine`'s comms-loss uplink gate), and this hook learns that the
+   * way it learns about any unanswered dispatch, through {@link losses}.
+   */
+  delayMode: DelayMode | null;
   /**
    * Clear a dead command from this hook's `inFlight`. `overdue`/`lost` entries
    * are retained on purpose (they can't silently vanish), but a `lost` command
@@ -479,16 +504,41 @@ export function useCommand(
   const connectivity = useLatestValue<CommsLinkLike>("comms.link");
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
 
-  // The delay display + effective delay this command hands to `<CommandDelay>`.
-  // `shape` is a pure function of the command id. `effectiveDelaySeconds` is 0
-  // for a never-delayed sim-meta command (`time.*`) and for a meta-vantage
-  // dispatch (both are instant server-side), else the live one-way delay. A
-  // `null` one-way (no path) is treated as 0 here: there is no positive delay
-  // to visualise, `<CommandDelay>` draws nothing.
+  /*
+   * The delay display + effective delay this command hands to `<CommandDelay>`.
+   * `shape` is a pure function of the command id.
+   *
+   * `effectiveDelaySeconds` is 0 for a never-delayed sim-meta command
+   * (`time.*`) and for a meta-vantage dispatch, both of which are instant
+   * server-side and so are knowably zero. Otherwise it is the live one-way
+   * delay, and `null` whenever there is no live one-way delay to have: a
+   * `comms.delay` reporting no measurable path home, a malformed or non-finite
+   * one, or no `comms.delay` reading at all because the widget does not carry
+   * the topic.
+   *
+   * A zero is NOT the fallback for any of those. `comms.delay.oneWaySeconds`
+   * splits "no path home" from "the delay feature is off and the craft is
+   * connected" by that value alone (`Sitrep.Contract/Comms.cs:CommsDelay`), and
+   * collapsing the first onto the second clocked a craft nothing could reach as
+   * if it were on the LAN. `delay-authority.ts` reads the same payload the same
+   * value-first way and names zero the one direction this must never fail in.
+   */
   const shape = commandShape(command);
-  const liveOneWaySeconds = commsDelay?.oneWaySeconds?.magnitude ?? 0;
+  const rawOneWaySeconds = commsDelay?.oneWaySeconds?.magnitude;
+  const liveOneWaySeconds =
+    typeof rawOneWaySeconds === "number" && Number.isFinite(rawOneWaySeconds)
+      ? Math.max(0, rawOneWaySeconds)
+      : null;
   const isInstant = !commandDelayed(command) || vantage === META_VANTAGE;
-  const effectiveDelaySeconds = isInstant ? 0 : Math.max(0, liveOneWaySeconds);
+  const effectiveDelaySeconds = isInstant ? 0 : liveOneWaySeconds;
+  /*
+   * The three-valued answer the package already computes, passed through rather
+   * than re-derived, so a widget can SAY "no path" instead of inferring it from
+   * a number that cannot express it. `null` is the fourth state and the one
+   * `DelayMode` deliberately has no token for: nothing has been read, which is
+   * not the same claim as "there is no path" and must not be dressed up as one.
+   */
+  const delayMode = commsDelay ? currentMode(commsDelay) : null;
   // A synchronous, NON-subscribing read of the same undelayed clock
   // `useUtNow` tracks (`ViewClock.utNowEstimate()`): deliberately NOT
   // `useUtNow()` itself, which subscribes to a real-wall-clock ~16ms tick
@@ -887,6 +937,7 @@ export function useCommand(
     undelivered,
     shape,
     effectiveDelaySeconds,
+    delayMode,
     dismiss,
     gate,
     _output: outputRef.current,

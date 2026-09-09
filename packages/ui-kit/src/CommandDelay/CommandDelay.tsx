@@ -67,8 +67,13 @@ export interface CommandDelayHandle {
    * (meta-vantage / a direct LAN link) means there is nothing to visualise, so
    * `<CommandDelay>` renders nothing: there is no exemption path, an instant
    * command still mounts `<CommandDelay>`, it just draws null.
+   *
+   * `null` means there is no delay to KNOW, rather than none to draw: no
+   * measurable path home, or no `comms.delay` reading at all. It draws nothing
+   * either, for now, but it is kept apart from `0` because a zero is a claim
+   * that the command arrives instantly and this is the absence of one.
    */
-  effectiveDelaySeconds: number;
+  effectiveDelaySeconds: number | null;
   /**
    * Stream buffers for `shape === "stream"` (the in-transit + confirmed-echo
    * samples `ControlDelayStream` draws). Ignored for a discrete handle.
@@ -233,7 +238,10 @@ export function CommandDelay({
   // applies here first.
   if (all.length === 1 && all[0].shape === "stream") {
     const streamHandle = all[0];
-    if (streamHandle.effectiveDelaySeconds <= 0) return null;
+    // An unknown delay (`null`) falls the same way an instant one does: there
+    // is no positive light-time to draw a strip from either way.
+    const delay = streamHandle.effectiveDelaySeconds;
+    if (delay === null || delay <= 0) return null;
     return (
       <ControlDelayStream
         streams={streamHandle.streams ?? []}

@@ -207,6 +207,7 @@ function setupFixture() {
   const store = new TimelineStore(clock);
   const carriedChannels = [
     "comms.link",
+    "comms.delay",
     "system.uplink.pending",
     "system.uplink.gates",
   ];
@@ -1287,5 +1288,97 @@ describe("useCommand gate", () => {
     expect(handle).not.toBeNull();
     // biome-ignore lint/style/noNonNullAssertion: asserted non-null on the line above
     await expect(handle!.send(1)).rejects.toMatchObject({ code: "E_LOST" });
+  });
+});
+
+/**
+ * `comms.delay.oneWaySeconds` carries a null that is NOT a zero: the contract
+ * (`Sitrep.Contract/Comms.cs:CommsDelay`) splits "no measurable path home" from
+ * "the delay feature is off and the craft is connected" by that value alone,
+ * and `delay-authority.ts` names zero the one direction the read must never
+ * fail in. So the handle reports what it knows and no more: `null` when there
+ * is nothing to measure, `0` only when a zero was actually measured or the
+ * command is instant by construction.
+ */
+describe("useCommand delay reading", () => {
+  function DelayReadout() {
+    const cmd = useCommand("deploy");
+    return (
+      <div>
+        <span>delay:{String(cmd.effectiveDelaySeconds)}</span>
+        <span>mode:{String(cmd.delayMode)}</span>
+        <CommandDelay handle={cmd} />
+      </div>
+    );
+  }
+
+  function renderReadout() {
+    const fixture = setupFixture();
+    render(
+      <fixture.Provider>
+        <DelayReadout />
+      </fixture.Provider>,
+    );
+    return fixture;
+  }
+
+  it("reports a null one-way as no-path, never as zero delay", async () => {
+    const fixture = renderReadout();
+    act(() => {
+      fixture.transport.emit(
+        "comms.delay",
+        { source: 0, oneWaySeconds: null },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("mode:no-path")).toBeTruthy();
+    });
+    expect(screen.getByText("delay:null")).toBeTruthy();
+  });
+
+  it("reports a measured zero as a live zero, which is a different answer", async () => {
+    const fixture = renderReadout();
+    act(() => {
+      fixture.transport.emit(
+        "comms.delay",
+        { source: 0, oneWaySeconds: 0 },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("mode:live")).toBeTruthy();
+    });
+    expect(screen.getByText("delay:0")).toBeTruthy();
+  });
+
+  it("reports a measured light-time as itself", async () => {
+    const fixture = renderReadout();
+    act(() => {
+      fixture.transport.emit(
+        "comms.delay",
+        { source: 1, oneWaySeconds: 240 },
+        { validAt: 0, deliveredAt: 0 },
+      );
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText("mode:staged")).toBeTruthy();
+    });
+    expect(screen.getByText("delay:240")).toBeTruthy();
+  });
+
+  /**
+   * No reading at all is its own answer, and it is not "no path": a widget that
+   * does not carry `comms.delay` has heard nothing about the link, which is why
+   * `delayMode` is null here rather than `"no-path"`. What it must not do is
+   * claim a zero, for the same reason the no-path case must not.
+   */
+  it("reports no delay reading at all as unknown, not as zero and not as no-path", () => {
+    renderReadout();
+    expect(screen.getByText("delay:null")).toBeTruthy();
+    expect(screen.getByText("mode:null")).toBeTruthy();
   });
 });
