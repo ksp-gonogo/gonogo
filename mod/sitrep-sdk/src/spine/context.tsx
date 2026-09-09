@@ -29,7 +29,6 @@ import {
 } from "./contributed-channels";
 import { registerCoreReckoners } from "./core-reckoners";
 import { DelayAuthority } from "./delay-authority";
-import { dvLegacyScalarsChannel } from "./dv-legacy-scalars";
 import {
   dvCurrentStageResourceChannel,
   dvCurrentStageResourceMaxChannel,
@@ -463,7 +462,6 @@ export const PRODUCTION_DERIVED_CHANNELS: DerivedChannelDefinition<unknown>[] =
     spaceCenterStateChannel as DerivedChannelDefinition<unknown>,
     dvCurrentStageResourceChannel as DerivedChannelDefinition<unknown>,
     dvCurrentStageResourceMaxChannel as DerivedChannelDefinition<unknown>,
-    dvLegacyScalarsChannel as DerivedChannelDefinition<unknown>,
   ];
 
 /** Reads the `TelemetryClient` supplied by the nearest `TelemetryProvider`. */
