@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.0.0
+  version: 16.1.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 74 telemetry
     channels a client subscribes to, and 51 commands it dispatches, with the payload
