@@ -1228,8 +1228,8 @@ export class TimelineStore {
        * interval would turn a shading bug into a hole in the trace.
        */
       if (answer.band && bandIsWellFormed(answer.band)) {
-        sample.bandLo = answer.band.lo.magnitude;
-        sample.bandHi = answer.band.hi.magnitude;
+        sample.bandLo = answer.band.lo.toWire();
+        sample.bandHi = answer.band.hi.toWire();
         sample.bandKind = answer.band.kind;
       }
       out.push(sample);

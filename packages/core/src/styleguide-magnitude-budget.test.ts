@@ -34,6 +34,26 @@ import { describe, expect, it } from "vitest";
  *
  * Counts are per FILE rather than per line, because line numbers churn on every
  * edit above them and a ratchet that fails for unrelated reasons gets disabled.
+ *
+ * ## Two acts, two counts
+ *
+ * This budget spent a long time unable to tell apart two things that look
+ * identical in source: DISCARDING dimension in order to compute on bare
+ * numbers, which is the defect it exists for, and SERIALISING at a numeric
+ * boundary, which is unavoidable and is not. One spelling covered both, so the
+ * only way out of the type system looked exactly like the mistake and a real
+ * boundary cost the same as a lazy one.
+ *
+ * `Value.toWire()` is the second act, named. It is counted HERE, by
+ * {@link WIRE_BUDGET}, on the same shrink-only terms: a separate ceiling, not
+ * an exemption. An uncounted exit would just be `.magnitude` with a better
+ * name, and `magnitudeOf` is the standing demonstration of that: it is a
+ * perfectly honest funnel that this scan cannot see, and it has grown to
+ * several hundred call sites nobody has ever had to justify.
+ *
+ * A name is not a guard, so there is also
+ * {@link WIRE_ARITHMETIC_PATTERNS}, which has no debt list at all and fails on
+ * a wire number appearing as an operand of `+ - * / %`.
  */
 
 /**
@@ -332,6 +352,34 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
 };
 
 /**
+ * Per-file `Value.toWire()` budget, on exactly the same terms as
+ * {@link MAGNITUDE_BUDGET}: each entry EQUALS what its file uses, a file
+ * absent from this map may not use any, and both arms below fail.
+ *
+ * Separate from the magnitude budget rather than folded into it, because the
+ * two numbers answer different questions. A file's magnitude count is "how
+ * much arithmetic escapes the algebra here"; its wire count is "how many
+ * numeric slots does this file fill". Summing them would hide a rise in the
+ * first behind a fall in the second, which is the confusion the split exists
+ * to end.
+ *
+ * Budgeted rather than ignored on purpose. The point of naming the boundary
+ * was to price it differently, not to stop pricing it: an exit that costs
+ * nothing is the default path within a week, and this list is what makes a new
+ * one get a sentence explaining itself.
+ */
+const WIRE_BUDGET: Record<string, number> = {
+  // 2: the band ends, written into `TimelineSample`'s `bandLo`/`bandHi`, which
+  // are declared `number` because the sample buffer crosses to the chart and
+  // then over PeerJS to a station. Nothing computes with them here; the shading
+  // path in `lineChartMath` scales them into SVG coordinates. This is the pair
+  // the named exit was added for, and they read as `.magnitude` until then,
+  // which put this file two over a budget whose comment described only the
+  // interpolator pair it still spends.
+  "mod/sitrep-sdk/src/spine/timeline-store.ts": 2,
+};
+
+/**
  * Used as a guard on the guard. If the search silently stops matching (a bad
  * regex, a moved root, a renamed extension) every count reads as zero and the
  * budget reports success while checking nothing.
@@ -357,6 +405,53 @@ const SEARCH_GLOBS = ["*.ts", "*.tsx"];
  * whole pattern then silently matches nothing.
  */
 const PROPERTY_ACCESS = String.raw`[]A-Za-z0-9_$)?]\.magnitude`;
+
+/**
+ * The named serialisation exit, {@link WIRE_BUDGET}'s subject.
+ *
+ * No leading character class is needed as `PROPERTY_ACCESS` needs one: the
+ * call parentheses are what tell a use from prose, and a comment writing
+ * `` `toWire()` `` in backticks does not carry them. The `\(\)` is therefore
+ * load-bearing rather than decoration.
+ */
+const WIRE_ACCESS = String.raw`\.toWire\(\)`;
+
+/**
+ * The guard that makes the named exit a boundary rather than a laundering
+ * route, and the reason `toWire()` could be introduced at all.
+ *
+ * `a.toWire() - b.toWire()` is the ORIGINAL defect in a better-sounding
+ * spelling. Naming the act does nothing to stop it: it reads as deliberate,
+ * which is worse than `.magnitude`, because `.magnitude` at least looks like
+ * what it is. So a wire number may not be an operand of `+ - * / %`, and
+ * unlike every other list in this file **this arm has no debt list**. There is
+ * no honest instance of it. A number being computed with has not left the
+ * algebra at a boundary; it is being computed with, and the algebra is what it
+ * wants.
+ *
+ * Two patterns because the result can sit on either side of the operator, and
+ * both are shaped to stay off BLOCK-COMMENT syntax, which a naive version does
+ * not. A comment delimiter contains an asterisk and a slash, so both halves of
+ * a comment wrapped around a mention of the exit look like multiplication and
+ * division to a regex:
+ *
+ *  - the LEFT form requires a value-like character AFTER the operator. A
+ *    comment CLOSER puts a slash there, and a slash is not value-like, so the
+ *    asterisk that precedes it is not read as a multiplication
+ *  - the RIGHT form requires one BEFORE it. A comment OPENER puts a slash
+ *    there, so its asterisk is not read as one either. Its `.` in the trailing
+ *    class is separately load-bearing: it is what lets the pattern see a
+ *    dotted path, and without it `total + band.lo.toWire()` reads as clean,
+ *    which was the first version's miss
+ *
+ * A unary `-a.toWire()` is deliberately NOT matched. It needs a value-like
+ * character before the operator that a `= -` cannot supply, and a lone sign
+ * flip is not the laundering shape; the per-file budget is what prices that.
+ */
+const WIRE_ARITHMETIC_PATTERNS = [
+  String.raw`\.toWire\(\)[[:space:]]*[-+*/%][[:space:]]*[A-Za-z0-9_$(]`,
+  String.raw`[]A-Za-z0-9_$)][[:space:]]*[-+*/%][[:space:]]*[A-Za-z0-9_$.]*\.toWire\(\)`,
+];
 
 /**
  * `-o` is what makes this scan count OCCURRENCES. Without it `git grep` emits
@@ -393,7 +488,32 @@ function repoRoot(startDir: string): string {
   }).trim();
 }
 
-function countsByFile(root: string): Map<string, number> {
+/**
+ * Whether a `git grep` failure is its "nothing matched" exit rather than a
+ * real one.
+ *
+ * Both scans below need this and neither may swallow the other case: exit 1 is
+ * an answer, and anything else is a broken search that must not be reported as
+ * a clean tree.
+ *
+ * Narrowed by asking, not asserted. A caught value is `unknown`, and `in`
+ * narrowing is what lets `status` be read off it without an `as` that would
+ * also compile if the shape were something else entirely. See the remedy text
+ * in `unknown-cast.test.ts`, which names exactly this route first.
+ */
+function isNoMatchExit(err: unknown): boolean {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "status" in err &&
+    err.status === 1
+  );
+}
+
+function countsByFile(
+  root: string,
+  pattern: string = PROPERTY_ACCESS,
+): Map<string, number> {
   let out: string;
   try {
     out = execFileSync(
@@ -405,21 +525,14 @@ function countsByFile(root: string): Map<string, number> {
       // still honours .gitignore, so build output stays out. `GREP_FLAGS`
       // carries the `-o` that makes the tally below count occurrences rather
       // than matching lines; see its own note.
-      [
-        "grep",
-        "--untracked",
-        GREP_FLAGS,
-        PROPERTY_ACCESS,
-        "--",
-        ...SEARCH_GLOBS,
-      ],
+      ["grep", "--untracked", GREP_FLAGS, pattern, "--", ...SEARCH_GLOBS],
       { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
     );
   } catch (err) {
     // git grep exits 1 when nothing matches. That is not a pass here: the whole
     // repo losing every magnitude at once is a broken search, and the file
     // floor below is what says so.
-    if ((err as { status?: number }).status === 1) return new Map();
+    if (isNoMatchExit(err)) return new Map();
     throw err;
   }
   const counts = new Map<string, number>();
@@ -453,6 +566,38 @@ function staleEntries(
     }
   }
   return stale;
+}
+
+/**
+ * Every line where a wire number is an operand of arithmetic, `file:line:text`.
+ *
+ * Unioned into ONE `git grep` rather than run per pattern, so a line matching
+ * both forms (`a.toWire() - b.toWire()`, the canonical laundering shape) is
+ * reported once. `-n` without `-o` is deliberate here: this arm reports lines
+ * for a human to go and fix rather than counting occurrences, and the whole
+ * line is what makes the report actionable.
+ */
+function wireArithmeticHits(root: string): string[] {
+  try {
+    return execFileSync(
+      "git",
+      [
+        "grep",
+        "--untracked",
+        "-nE",
+        WIRE_ARITHMETIC_PATTERNS.join("|"),
+        "--",
+        ...SEARCH_GLOBS,
+      ],
+      { cwd: root, encoding: "utf8", maxBuffer: 1024 * 1024 * 16 },
+    )
+      .split("\n")
+      .filter((line) => line && !EXCLUDED.test(line));
+  } catch (err) {
+    // Exit 1 is "nothing matched", which for this arm is the goal state.
+    if (isNoMatchExit(err)) return [];
+    throw err;
+  }
 }
 
 const root = repoRoot(dirname(fileURLToPath(import.meta.url)));
@@ -659,5 +804,172 @@ describe("the magnitude budget only shrinks", () => {
       );
     }
     expect(over).toEqual([]);
+  });
+});
+
+describe("the named wire exit is priced, not exempt", () => {
+  const counts = countsByFile(root, WIRE_ACCESS);
+
+  it("can see a use, and does not charge prose for the word (planted)", () => {
+    /*
+     * The same guard-on-the-guard the magnitude scan carries, for the same
+     * reason: a pattern that stops matching reports every file at zero, and a
+     * budget of zeroes passes while checking nothing. This one has a second
+     * job. `WIRE_ACCESS` has no leading character class, so the `\(\)` is the
+     * ONLY thing separating a call from a mention, and a version that dropped
+     * it would charge this very file for its own documentation.
+     */
+    const planted = join(mkdtempSync(join(tmpdir(), "wire-ratchet-")), "p.ts");
+    try {
+      writeFileSync(
+        planted,
+        [
+          "sample.bandLo = band.lo.toWire();",
+          "sample.bandHi = band.hi.toWire();",
+          "const both = [a.toWire(), b.toWire()];", // TWO on one line
+          "// prose about `toWire` is not a use of it",
+          "// nor is a bare mention of toWire without its parentheses",
+        ].join("\n"),
+      );
+      const hits = execFileSync(
+        "git",
+        ["grep", "--no-index", GREP_FLAGS, WIRE_ACCESS, "--", "p.ts"],
+        { cwd: dirname(planted), encoding: "utf8" },
+      )
+        .trim()
+        .split("\n");
+      // Four uses across three lines, and neither prose line charged.
+      expect(hits).toHaveLength(4);
+    } finally {
+      rmSync(dirname(planted), { recursive: true, force: true });
+    }
+  });
+
+  it("has no entry for a path that no longer exists", () => {
+    const missing = Object.keys(WIRE_BUDGET)
+      .filter((rel) => !existsSync(join(root, rel)))
+      .sort();
+    expect(missing, "budgeted paths that no longer exist, delete them").toEqual(
+      [],
+    );
+  });
+
+  it("has no entry above what its file actually uses", () => {
+    const stale = staleEntries(WIRE_BUDGET, counts);
+    if (stale.length > 0) {
+      throw new Error(
+        "These `toWire()` entries sit above what their file uses, and the gap " +
+          "is permission for that many new exits which the over-budget check " +
+          "cannot see. Lower each one, or delete it where the file now uses " +
+          "none:\n" +
+          stale.join("\n"),
+      );
+    }
+    expect(stale).toEqual([]);
+  });
+
+  it("has no file over its budget, and no unbudgeted file using one", () => {
+    const over: string[] = [];
+    for (const [file, used] of [...counts].sort()) {
+      const budget = WIRE_BUDGET[file];
+      if (budget === undefined) {
+        over.push(`  ${file}: ${used} (not on the list)`);
+      } else if (used > budget) {
+        over.push(`  ${file}: ${used}, budget ${budget}`);
+      }
+    }
+    if (over.length > 0) {
+      throw new Error(
+        "`Value.toWire()` is the SERIALISATION exit and these files reach for " +
+          "it more than the budget allows.\n\n" +
+          "It is named so that filling a numeric slot can be told apart from " +
+          "discarding a dimension to compute, NOT so that leaving the type " +
+          "system is free. Before raising a count, check which act this is. " +
+          "If the number is about to be computed with, `toWire()` is the wrong " +
+          "method however plainly the slot is typed `number`: reach for the " +
+          "algebra (a.minus(b), a.per(b), a.lessThanOrEqual(b)) instead.\n\n" +
+          "Only a genuine numeric SLOT earns an entry: a declared `number` " +
+          "field of a serialisable shape, a typed sample buffer, a wire " +
+          "payload read by code you do not own. Raise the count here only " +
+          "then, and say which slot it is:\n" +
+          over.join("\n"),
+      );
+    }
+    expect(over).toEqual([]);
+  });
+
+  it("can see arithmetic on a wire number, both ways round (planted)", () => {
+    /*
+     * The load-bearing plant. Every other arm here counts, and a count can be
+     * argued up; this one refuses a SHAPE and has no debt list, so it is the
+     * only thing standing between a named exit and an uncounted one.
+     *
+     * A regex that silently stopped matching would report a clean tree
+     * forever, which is precisely how the exit becomes the escape. Both
+     * directions are planted, and so are the comment forms that the first
+     * version of these patterns matched by accident: a scan that fires on
+     * a comment wrapped around a mention of it gets deleted rather than fixed.
+     */
+    const dir = mkdtempSync(join(tmpdir(), "wire-arith-"));
+    const planted = join(dir, "p.ts");
+    try {
+      writeFileSync(
+        planted,
+        [
+          "const w1 = a.toWire() - b.toWire();", // the canonical laundering shape
+          "const w2 = 5 - b.toWire();", // right operand, bare left
+          "const w3 = a.toWire() * 2;", // left operand
+          "const w4 = a.toWire()/n;", // no surrounding space
+          "const w5 = total + band.lo.toWire();", // right operand, DOTTED path
+          "const w6 = span[0] % other.hi.toWire();", // `]` before the operator
+          "sample.bandLo = band.lo.toWire();", // the honest use
+          "const xs = [a.toWire(), b.toWire()];", // a comma is not an operator
+          "const f = () => a.toWire();", // nor is an arrow
+          "return band.hi.toWire();",
+        ].join("\n"),
+      );
+      const hits = execFileSync(
+        "git",
+        [
+          "grep",
+          "--no-index",
+          "-nE",
+          WIRE_ARITHMETIC_PATTERNS.join("|"),
+          "--",
+          "p.ts",
+        ],
+        { cwd: dir, encoding: "utf8" },
+      )
+        .trim()
+        .split("\n");
+      /*
+       * Six, which pins BOTH halves. Fewer means a form stopped being seen
+       * (the dotted path and the `]` are the two that have actually gone
+       * missing); more means the patterns have started charging the four
+       * honest lines below them, and a guard that fires on
+       * `sample.bandLo = band.lo.toWire()` is one nobody will keep.
+       */
+      expect(hits).toHaveLength(6);
+      expect(hits.every((h) => /w[1-6]/.test(h))).toBe(true);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("has no arithmetic on a wire number anywhere in the tree", () => {
+    const hits = wireArithmeticHits(root);
+    if (hits.length > 0) {
+      throw new Error(
+        "A `toWire()` result is an operand of arithmetic here, and there is " +
+          "no budget entry to raise: this is the defect the magnitude budget " +
+          "exists for, wearing the name of the exit that was added to get " +
+          "AROUND looking like it.\n\n" +
+          "A number being computed with has not crossed a boundary. Do the " +
+          "arithmetic in the algebra (a.minus(b), a.times(n), a.per(b)) and " +
+          "cross the boundary once, at the end, with the result:\n" +
+          hits.join("\n"),
+      );
+    }
+    expect(hits).toEqual([]);
   });
 });

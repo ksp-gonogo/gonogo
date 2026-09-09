@@ -35,7 +35,12 @@
  * fuzzy would make the fourth verdict noise rather than information.
  */
 
-import { bandSide, type UncertaintyBand, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  bandSide,
+  type UncertaintyBand,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   type RoughnessBadge,
@@ -44,19 +49,27 @@ import {
 
 export type Hazard = "SAFE" | "MARGINAL" | "DIVERT" | "UNRESOLVED";
 
+/**
+ * `[safeMax, marginalMax]` per axis, each end carrying its own unit.
+ *
+ * Quantities rather than bare numbers because the ladder is COMPARED against
+ * a reading and, on a banded axis, against the ends of an interval. A bare
+ * threshold makes the comparison numeric, and a numeric comparison here is
+ * what put four unwraps in this file: the band arrives as `Value`s and had to
+ * be flattened to meet a plain ladder. Typing the ladder instead means the
+ * comparison happens in the algebra, and the unit is checked rather than
+ * assumed to match the comment beside it.
+ */
 export interface HazardThresholds {
-  /** [safeMax, marginalMax] slope degrees. */
-  slope: readonly [number, number];
-  /** [safeMax, marginalMax] descent speed m/s. */
-  vertical: readonly [number, number];
-  /** [safeMax, marginalMax] lateral speed m/s. */
-  lateral: readonly [number, number];
+  slope: readonly [Value<"°">, Value<"°">];
+  vertical: readonly [Value<"m/s">, Value<"m/s">];
+  lateral: readonly [Value<"m/s">, Value<"m/s">];
 }
 
 export const DEFAULT_HAZARD_THRESHOLDS: HazardThresholds = {
-  slope: [5, 15],
-  vertical: [2, 6],
-  lateral: [1, 3],
+  slope: [value("°", 5), value("°", 15)],
+  vertical: [value("m/s", 2), value("m/s", 6)],
+  lateral: [value("m/s", 1), value("m/s", 3)],
 };
 
 export interface HazardInputs {
@@ -111,12 +124,12 @@ export interface HazardResult {
   axes: HazardAxis[];
 }
 
-function bandOf(
-  value: number,
-  [safeMax, marginalMax]: readonly [number, number],
+function bandOf<U extends string>(
+  reading: Value<U>,
+  [safeMax, marginalMax]: readonly [Value<U>, Value<U>],
 ): Hazard {
-  if (value <= safeMax) return "SAFE";
-  if (value <= marginalMax) return "MARGINAL";
+  if (reading.lessThanOrEqual(safeMax)) return "SAFE";
+  if (reading.lessThanOrEqual(marginalMax)) return "MARGINAL";
   return "DIVERT";
 }
 
@@ -133,12 +146,14 @@ function bandOf(
  */
 function absExtent<U extends string>(
   band: UncertaintyBand<U>,
-): readonly [number, number] {
-  const lo = band.lo.magnitude;
-  const hi = band.hi.magnitude;
-  if (lo >= 0) return [lo, hi];
-  if (hi <= 0) return [-hi, -lo];
-  return [0, Math.max(-lo, hi)];
+): readonly [Value<U>, Value<U>] {
+  const { lo, hi } = band;
+  if (!lo.isNegative()) return [lo, hi];
+  // Both ends are at or below zero, so taking the magnitude of each also
+  // swaps which one is nearer zero.
+  if (!hi.isPositive()) return [hi.abs(), lo.abs()];
+  const reach = lo.abs();
+  return [value(lo.unit, 0), reach.greaterThan(hi) ? reach : hi];
 }
 
 /**
@@ -150,26 +165,25 @@ function absExtent<U extends string>(
  * job here is to withhold that answer when it is not yet earned.
  */
 function bandedVerdict<U extends string>(
-  magnitude: number,
-  unit: U,
-  thresholds: readonly [number, number],
+  reading: Value<U>,
+  thresholds: readonly [Value<U>, Value<U>],
   band: UncertaintyBand<U> | null | undefined,
   absolute: boolean,
-): { band: Hazard; worstPossible: Hazard; extent?: readonly [number, number] } {
-  const plain = bandOf(magnitude, thresholds);
+): {
+  band: Hazard;
+  worstPossible: Hazard;
+  extent?: readonly [Value<U>, Value<U>];
+} {
+  const plain = bandOf(reading, thresholds);
   if (!band) return { band: plain, worstPossible: plain };
-  const [lo, hi] = absolute
-    ? absExtent(band)
-    : ([band.lo.magnitude, band.hi.magnitude] as const);
+  const [lo, hi] = absolute ? absExtent(band) : ([band.lo, band.hi] as const);
   const asBand: UncertaintyBand<U> = {
-    value: value(unit, absolute ? Math.abs(magnitude) : magnitude),
-    lo: value(unit, lo),
-    hi: value(unit, hi),
+    value: absolute ? reading.abs() : reading,
+    lo,
+    hi,
     kind: band.kind,
   };
-  const spans = thresholds.some(
-    (t) => bandSide(asBand, value(unit, t)) === "straddles",
-  );
+  const spans = thresholds.some((t) => bandSide(asBand, t) === "straddles");
   const worstPossible = bandOf(hi, thresholds);
   return spans
     ? { band: "UNRESOLVED", worstPossible, extent: [lo, hi] }
@@ -199,14 +213,13 @@ function roughnessBand(badge: RoughnessBadge): Hazard {
  * resolve. The reading alone would read as a settled figure the board happened
  * not to grade, so the numbers that stopped it are what the line has to carry.
  */
-function extentNote(
-  extent: readonly [number, number] | undefined,
-  unit: "m/s" | "°",
+function extentNote<U extends string>(
+  extent: readonly [Value<U>, Value<U>] | undefined,
   decimals: number,
 ): string {
   if (!extent) return "";
-  const lo = writeQuantity(value(unit, extent[0]), { decimals });
-  const hi = writeQuantity(value(unit, extent[1]), { decimals });
+  const lo = writeQuantity(extent[0], { decimals });
+  const hi = writeQuantity(extent[1], { decimals });
   return `, could be ${lo} to ${hi}`;
 }
 
@@ -223,9 +236,9 @@ export function deriveHazardVerdict(
   const axes: HazardAxis[] = [];
 
   if (inputs.slopeDeg != null && Number.isFinite(inputs.slopeDeg)) {
+    const slope = value("°", inputs.slopeDeg);
     const graded = bandedVerdict(
-      inputs.slopeDeg,
-      "°",
+      slope,
       thresholds.slope,
       inputs.slopeBand,
       false,
@@ -234,7 +247,7 @@ export function deriveHazardVerdict(
       axis: "slope",
       band: graded.band,
       worstPossible: graded.worstPossible,
-      detail: `slope ${writeQuantity(value("°", inputs.slopeDeg), { decimals: 0 })}${extentNote(graded.extent, "°", 0)}`,
+      detail: `slope ${writeQuantity(slope, { decimals: 0 })}${extentNote(graded.extent, 0)}`,
     });
   }
   if (inputs.roughnessSigma != null && Number.isFinite(inputs.roughnessSigma)) {
@@ -247,9 +260,9 @@ export function deriveHazardVerdict(
     });
   }
   if (inputs.verticalSpeed != null && Number.isFinite(inputs.verticalSpeed)) {
+    const descent = value("m/s", inputs.verticalSpeed);
     const graded = bandedVerdict(
-      inputs.verticalSpeed,
-      "m/s",
+      descent,
       thresholds.vertical,
       inputs.verticalSpeedBand,
       true,
@@ -258,13 +271,13 @@ export function deriveHazardVerdict(
       axis: "vertical",
       band: graded.band,
       worstPossible: graded.worstPossible,
-      detail: `descent ${writeQuantity(value("m/s", Math.abs(inputs.verticalSpeed)), { decimals: 1 })}${extentNote(graded.extent, "m/s", 1)}`,
+      detail: `descent ${writeQuantity(descent.abs(), { decimals: 1 })}${extentNote(graded.extent, 1)}`,
     });
   }
   if (inputs.lateralSpeed != null && Number.isFinite(inputs.lateralSpeed)) {
+    const lateral = value("m/s", inputs.lateralSpeed);
     const graded = bandedVerdict(
-      inputs.lateralSpeed,
-      "m/s",
+      lateral,
       thresholds.lateral,
       inputs.lateralSpeedBand,
       true,
@@ -273,7 +286,7 @@ export function deriveHazardVerdict(
       axis: "lateral",
       band: graded.band,
       worstPossible: graded.worstPossible,
-      detail: `lateral ${writeQuantity(value("m/s", Math.abs(inputs.lateralSpeed)), { decimals: 1 })}${extentNote(graded.extent, "m/s", 1)}`,
+      detail: `lateral ${writeQuantity(lateral.abs(), { decimals: 1 })}${extentNote(graded.extent, 1)}`,
     });
   }
   // Hard override: a liquid surface is DIVERT regardless of the numbers.
