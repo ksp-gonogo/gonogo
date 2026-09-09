@@ -955,6 +955,12 @@ export function bandIsWellFormed<U extends string>(
  * Both arguments share `U`, so the two units are the same string and the
  * magnitudes compare directly. That is why there is no conversion here and no
  * cast: a mismatch is not representable in the signature.
+ *
+ * `Value`'s own comparators do NOT work here: `Comparand<U>` resolves to
+ * `U extends "ut" ? PointCounterpart<U> : Exclude<CombinableWith<U>, "ut">`,
+ * which an unconstrained `Value<U>` is not assignable to. They typecheck for a
+ * concrete unit and not for a generic one, so the unwrap stays until the unit
+ * system grows a comparison that admits a bare type parameter.
  */
 export function bandSide<U extends string>(
   band: UncertaintyBand<U>,

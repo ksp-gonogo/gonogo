@@ -144,9 +144,9 @@ export function mapTopic(
 function walksContractMetadata(topic: string, segments: string[]): boolean {
   if (segments.length === 0) return false;
 
+  if (!isKnownTopic(topic)) return false;
   let units: Readonly<Record<string, string>> = unitsForTopic(topic as never);
   let shapes: Readonly<Record<string, string>> = shapesForTopic(topic as never);
-  if (isEmpty(units) && isEmpty(shapes)) return false;
 
   for (let i = 0; i < segments.length; i++) {
     const segment = segments[i];
@@ -187,6 +187,26 @@ function isEmpty(record: Readonly<Record<string, unknown>>): boolean {
 }
 
 /**
+ * Whether the contract declares `topic` as a Topic at all.
+ *
+ * Read off the generated metadata through `unitsForTopic`/`shapesForTopic` for
+ * the same reason {@link isKnownFieldPath} does: that indirection is what sees
+ * a Topic registered at module load, which an Uplink's own payload type and
+ * every client-derived channel only ever are.
+ *
+ * Distinct from {@link isKnownFieldPath}, and the distinction is a real one for
+ * a caller: the reads keyed by a whole Topic (a status, a plotted window) and
+ * the reads keyed by a field path within one are different vocabularies, and a
+ * key valid in one is not valid in the other.
+ */
+export function isKnownTopic(topic: string): boolean {
+  return !(
+    isEmpty(unitsForTopic(topic as never)) &&
+    isEmpty(shapesForTopic(topic as never))
+  );
+}
+
+/**
  * Whether `path` names a field the contract declares under one of its Topics.
  *
  * Read entirely off the contract's own generated metadata, through
@@ -203,12 +223,7 @@ export function isKnownFieldPath(path: string): boolean {
   const segments = path.split(".");
   for (let cut = segments.length - 1; cut >= 1; cut--) {
     const topic = segments.slice(0, cut).join(".");
-    if (
-      isEmpty(unitsForTopic(topic as never)) &&
-      isEmpty(shapesForTopic(topic as never))
-    ) {
-      continue;
-    }
+    if (!isKnownTopic(topic)) continue;
     if (walksContractMetadata(topic, segments.slice(cut))) return true;
   }
   return false;

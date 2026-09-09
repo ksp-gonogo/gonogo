@@ -5,6 +5,8 @@ import {
 } from "@ksp-gonogo/core";
 import {
   createFakeWallClock,
+  DEAD_READ_SETTLE_MS,
+  resetDeadReadWarnings,
   resetGatedReadWarnings,
   StubTransport,
   TelemetryClient,
@@ -17,6 +19,7 @@ import {
   BufferedDataSource,
   MemoryStore,
   Quality,
+  registerTopicUnits,
 } from "@ksp-gonogo/sitrep-sdk";
 import { installTestHost } from "@ksp-gonogo/sitrep-sdk/testing";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
@@ -573,5 +576,183 @@ describe("useDataSeries gate: a rescued plot reports itself", () => {
 
     await waitFor(() => expect(readProbe()).toContain("679400"));
     expect(warn).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * The silence the gate's own report cannot see.
+ *
+ * `warnGatedRead` above needs a streamed window with points in it, so the read
+ * it can never speak about is the one that resolves to NOTHING: no channel to
+ * plot and no source to ask. That chart is empty for the life of the screen
+ * and nothing anywhere fails.
+ *
+ * Both directions are pinned, and the last two matter most: the verdict is
+ * deferred by `DEAD_READ_SETTLE_MS` and re-derived at the moment it fires, so
+ * an Uplink that registers its Topics after the dashboard has rendered cancels
+ * the report rather than being accused by it; and a plotted window is keyed by
+ * a whole Topic as readily as by a field path within one, so both spellings
+ * have to resolve.
+ */
+describe("useDataSeries: a plotted read that resolves to nothing says so", () => {
+  const warn = vi.fn();
+  let uninstall = () => {};
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    warn.mockClear();
+    resetDeadReadWarnings();
+    uninstall = installTestHost({ logger: { warn } as never });
+  });
+  afterEach(() => {
+    uninstall();
+    vi.useRealTimers();
+  });
+
+  function settle() {
+    act(() => {
+      vi.advanceTimersByTime(DEAD_READ_SETTLE_MS + 1);
+    });
+  }
+
+  /**
+   * Scoped to this diagnostic rather than `warn` as a whole: a plot the stream
+   * rescues raises the GATED-read line, which is correct and is that
+   * diagnostic's business.
+   */
+  function deadReadLines(): string[] {
+    return warn.mock.calls
+      .map((call) => String(call[0]))
+      .filter((message) => message.startsWith("[dead read]"));
+  }
+
+  it("names the call, the reason it can never resolve, and what to write instead", () => {
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.smaa" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    expect(deadReadLines()).toEqual([]);
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
+    const message = deadReadLines()[0] ?? "";
+    expect(message).toContain('useDataSeries("data", "vessel.orbit.smaa")');
+    expect(message).toContain("will never resolve");
+    expect(message).toContain("No data source is registered");
+    // The nearest-keys hint belongs to the schema arm, and no source is
+    // registered here, so the line has to reach for the field path instead.
+    expect(message).toContain("Check the field path");
+  });
+
+  /** A chart with points in it is not a chart to complain about. */
+  it("says nothing about a plot the stream resolves", () => {
+    const fixture = buildStreamFixture({
+      carriedChannels: ["vessel.orbit"],
+      pinnedUt: 100,
+    });
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.sma" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    act(() => {
+      fixture.transport.emit("vessel.orbit", { sma: 679_400 }, { validAt: 60 });
+    });
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * A registered source that declares the key has simply not filled its window
+   * yet, which is the ordinary state of a screen that has just connected.
+   */
+  it("says nothing when a registered source declares the key", async () => {
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+    await buildLegacySource("vessel.orbit.smaa");
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.smaa" windowSec={60} />
+      </fixture.Provider>,
+    );
+    // The registered source is a real `BufferedDataSource`, so its `queryRange`
+    // backfill answers on a microtask AFTER this body's synchronous part. Held
+    // open here rather than left to land in teardown, where the re-render it
+    // causes would be outside `act`.
+    await act(async () => {});
+
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * The startup race, and the reason the report is deferred at all. An Uplink
+   * registers its Topics when its BUNDLE loads, which is after the app has
+   * rendered, so this read is genuinely dead on the first frame and healthy a
+   * moment later.
+   */
+  it("says nothing when an Uplink registers the Topic after the read first ran", () => {
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="lateseries.reactor.coreTempK" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    // Half the window in, still dead, and nothing said yet.
+    act(() => {
+      vi.advanceTimersByTime(DEAD_READ_SETTLE_MS / 2);
+    });
+    expect(deadReadLines()).toEqual([]);
+
+    act(() => registerTopicUnits("lateseries.reactor", { coreTempK: "K" }));
+
+    settle();
+
+    expect(deadReadLines()).toEqual([]);
+  });
+
+  /**
+   * A plotted window is keyed by a WHOLE Topic as readily as by a field path
+   * within one. Resolved against the field-path vocabulary alone a bare Topic
+   * id names nothing, so the diagnostic would reach for the wrong arm and tell
+   * the author their Topic declares no such field. The screen's actual defect
+   * is that nothing is streaming, and that is what has to be said.
+   */
+  it("names the missing provider, not a missing field, for a key that IS a whole Topic", () => {
+    render(<Probe dataKey="vessel.orbit" windowSec={60} />);
+
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
+    const message = deadReadLines()[0] ?? "";
+    expect(message).toContain("no TelemetryProvider is mounted");
+    expect(message).toContain('"vessel.orbit"');
+    expect(message).not.toContain("names no field");
+  });
+
+  /** Once per distinct read: two charts holding the same bad call is one line. */
+  it("reports a given bad read once however many charts hold it", () => {
+    const fixture = buildStreamFixture({ carriedChannels: [], pinnedUt: 100 });
+
+    render(
+      <fixture.Provider>
+        <Probe dataKey="vessel.orbit.smaa" windowSec={60} />
+        <Probe dataKey="vessel.orbit.smaa" windowSec={60} />
+      </fixture.Provider>,
+    );
+
+    settle();
+
+    expect(deadReadLines()).toHaveLength(1);
   });
 });

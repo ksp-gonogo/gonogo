@@ -4,11 +4,14 @@ import {
   useDataSourceSubscription,
 } from "@ksp-gonogo/core";
 import {
+  classifyDeadRead,
+  DEAD_READ_SETTLE_MS,
   isTopicCarried,
   mapTopic,
   useCarriedChannelsOptional,
   useTelemetryClientOptional,
   useTelemetryStoreOptional,
+  warnDeadRead,
   warnGatedRead,
 } from "@ksp-gonogo/sitrep-client";
 import type {
@@ -574,6 +577,45 @@ export function useDataSeries(
       );
     }
   }, [gatedRescue, hasLegacySource, sourceId, key, topic, store]);
+
+  // The report above demands a streamed window with points in it, so the one
+  // read it can never speak about is the read that resolves to NOTHING: no
+  // channel to plot and no source to ask, an empty chart for the life of the
+  // screen. That case is reported here. See `dead-read-warning.ts` for why the
+  // verdict is deferred and then re-derived from the registries rather than
+  // taken from the render that scheduled it.
+  //
+  // A ref rather than state: it only ever latches from false to true, and it
+  // must not itself cause a render. Both series already re-render this hook
+  // through `useSyncExternalStore` the moment either fills, so the effect below
+  // sees the change and cancels.
+  //
+  // The candidate gate deliberately resolves no topic of its own. This hook's
+  // `topic` is `mapTopic(...) ?? key` and so is never `undefined`, which cannot
+  // answer "does this key name a channel at all", and resolving it a second way
+  // here would be a second spelling of the rule the classifier already owns.
+  // `!routable` is conservative instead: a routable read reached a carried
+  // channel and is nobody's defect, and everything else is handed to the
+  // classifier, which returns `undefined` for the healthy shapes.
+  //
+  // The final argument is the key VOCABULARY: a plotted window is keyed by a
+  // whole Topic as readily as by a field path within one, and the classifier
+  // has to resolve both or it accuses the reads that work.
+  const everObserved = useRef(false);
+  if (legacySeries.t.length > 0 || streamedSeries.t.length > 0) {
+    everObserved.current = true;
+  }
+  const streamMounted = client !== undefined && store !== undefined;
+  const deadCandidate = !everObserved.current && !routable;
+  useEffect(() => {
+    if (!deadCandidate) return;
+    const timer = setTimeout(() => {
+      if (everObserved.current) return;
+      const cause = classifyDeadRead(sourceId, key, streamMounted, true);
+      if (cause) warnDeadRead("useDataSeries", sourceId, key, cause);
+    }, DEAD_READ_SETTLE_MS);
+    return () => clearTimeout(timer);
+  }, [deadCandidate, sourceId, key, streamMounted]);
 
   return routable || gatedRescue ? streamedSeries : legacySeries;
 }
