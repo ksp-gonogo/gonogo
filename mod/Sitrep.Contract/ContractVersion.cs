@@ -1490,6 +1490,6 @@ namespace Sitrep.Contract
         /// that prices command dispatch, and threw them away after writing them
         /// into engine state no client can read.</para>
         /// </remarks>
-        public const int Minor = 0;
+        public const int Minor = 1;
     }
 }
