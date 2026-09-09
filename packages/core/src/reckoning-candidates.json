@@ -114,8 +114,8 @@
   },
   "KerbalismCrewRule.value": {
     "rates": ["degenPerSec"],
-    "reason": "No model claims it.",
-    "verdict": "coincidence"
+    "reason": "Claimed, and NOT by integrating the sibling the rule offered. `degenPerSec` is a config constant off `Profile.rules[].degeneration` that applies only once the rule\u0027s input resource is gone, so integrating it would advance a supplied kerbal towards their fatal threshold on schedule. GonogoKerbalismUplink\u0027s `reckonCrewAccumulators` fits the OBSERVED slope over a declared window instead, against each entry\u0027s own `asOfUt`, and a flat pair is positive evidence the rule is not degenerating at all. So the pairing is real, the offered rate is the wrong one, and the window is what made the honest version possible.",
+    "verdict": "modelled"
   },
   "KerbalismLifeSupport.asOfUt": {
     "rates": ["ruleEnvModifiers"],
@@ -129,8 +129,8 @@
   },
   "KerbalismResource.amount": {
     "rates": ["rate"],
-    "reason": "`rate` is the rate of `amount`. The integrand and the rate are on ONE type here, but the topic that publishes amounts (`vessel.resources`) is not the topic that publishes Kerbalism's rates, so a model for the live pair is cross-topic and belongs in a derived channel, not a per-topic reckoner.",
-    "verdict": "real-but-unmodelled"
+    "reason": "`rate` is the rate of `amount`, and the model now exists. This entry read \"a model for the live pair is cross-topic and belongs in a derived channel, not a per-topic reckoner\" until a reckoner stopped being handed one point, which was the whole reason the split disqualified it: GonogoKerbalismUplink's `reckonResourceLevels` carries a consumable level forward on `vessel.resources` and reaches Kerbalism's rate as a declared dep. It integrates the ledger's own `asOfUt` rather than the sample's `validAt`, because Kerbalism steps one unloaded vessel per physics tick, so a payload can be live on the wire and minutes old as a model.",
+    "verdict": "modelled"
   },
   "KerbalismResource.capacity": {
     "rates": ["rate"],
