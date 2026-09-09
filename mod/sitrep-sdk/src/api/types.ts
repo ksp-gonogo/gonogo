@@ -1164,8 +1164,14 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
   inFlight: InFlightCommand[];
   /** Delay display this command uses; hand straight to `<CommandDelay>`. */
   shape: "discrete" | "stream";
-  /** Effective one-way delay under this command's vantage (0 = instant). */
-  effectiveDelaySeconds: number;
+  /** Effective one-way delay under this command's vantage (0 = instant by
+   *  construction, `null` = no measurable one, never 0 for that). See the
+   *  spine's `UseCommandResult.effectiveDelaySeconds`. */
+  effectiveDelaySeconds: number | null;
+  /** What `comms.delay` says the link is doing; `null` when no reading has
+   *  arrived, which is not the same as `"no-path"`. See the spine's
+   *  `UseCommandResult.delayMode`. */
+  delayMode: DelayMode | null;
   /** Clear a dead (`overdue`/`lost`) command from `inFlight`, or a refusal from
    *  `refusals`; the manual out for anything that would otherwise sit forever.
    *  See the spine's own doc. */

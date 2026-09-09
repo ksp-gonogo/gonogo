@@ -297,7 +297,8 @@ function ReadyPlan({
   viewUt: number | null;
   /** The send's own dispatch, for the delay state the armed control renders. */
   command: UseCommandResult;
-  oneWaySeconds: number;
+  /** Null when there is no measurable one, which is not a zero: see the sdk handle's `effectiveDelaySeconds`. */
+  oneWaySeconds: number | null;
   pending: boolean;
   outcome: { accepted: boolean; refusal?: string } | null;
   onSend: () => Promise<{ accepted: boolean; refusal?: string }>;

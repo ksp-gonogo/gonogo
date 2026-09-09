@@ -28,7 +28,7 @@ function Probe() {
       {active.length === 0
         ? "none"
         : active
-            .map((a) => a.effectiveDelaySeconds)
+            .map((a) => a.effectiveDelaySeconds ?? Number.NaN)
             .sort((x, y) => x - y)
             .join(",")}
     </output>

@@ -154,10 +154,15 @@ export function PlanSlots() {
    * algebra rather than on bare numbers, because it is an instant plus an
    * interval and the units say which is which.
    */
+  /*
+   * A null one-way (no measurable path home, or no reading at all) leaves no
+   * round trip to add, the same call `seededIgnitionUt` makes and for the same
+   * reason: this seeds where a plan WOULD land, and a light time nobody knows
+   * cannot be added to it.
+   */
+  const roundTrip = oneWaySeconds === null ? 0 : 2 * Math.max(oneWaySeconds, 0);
   const arrival =
-    viewUt === undefined
-      ? null
-      : viewUt.plus(value("s", 2 * Math.max(oneWaySeconds, 0)));
+    viewUt === undefined ? null : viewUt.plus(value("s", roundTrip));
   const arrivalUt = magnitudeOf(arrival);
   const seededEndUt = magnitudeOf(
     arrival?.plus(value("s", DEFAULT_PLAN_LENGTH_SECONDS)),
@@ -439,7 +444,8 @@ function ExistingPlan({
   /** The next burn still ahead of the reading, when the plan names one. */
   nextIgnitionUt: number | null;
   viewUt: number | null;
-  oneWaySeconds: number;
+  /** Null when there is no measurable one, which is not a zero: see the sdk handle's `effectiveDelaySeconds`. */
+  oneWaySeconds: number | null;
   duplicateCmd: PrincipiaPlanWriteHandle;
   deleteCmd: PrincipiaPlanWriteHandle;
   onWrite: (receipt: PrincipiaPlanWriteReceipt | null) => void;
@@ -551,7 +557,8 @@ function InstallDrafts({
   endUt: number | null;
   arrivalUt: number | null;
   viewUt: number | null;
-  oneWaySeconds: number;
+  /** Null when there is no measurable one, which is not a zero: see the sdk handle's `effectiveDelaySeconds`. */
+  oneWaySeconds: number | null;
   frozen: boolean;
   burnCount: number;
   sendCmd: PrincipiaPlanWriteHandle;
@@ -609,7 +616,8 @@ function InstallRow({
   endUt: number | null;
   arrivalUt: number | null;
   viewUt: number | null;
-  oneWaySeconds: number;
+  /** Null when there is no measurable one, which is not a zero: see the sdk handle's `effectiveDelaySeconds`. */
+  oneWaySeconds: number | null;
   frozen: boolean;
   burnCount: number;
   sendCmd: PrincipiaPlanWriteHandle;
