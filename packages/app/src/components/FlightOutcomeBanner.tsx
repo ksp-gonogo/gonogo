@@ -1,10 +1,15 @@
 import { useTelemetry } from "@ksp-gonogo/core";
 import { useFlight } from "@ksp-gonogo/data";
 import { useStream } from "@ksp-gonogo/sitrep-client";
-import { value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  type CrashReport,
+  isValue,
+  type RecoveryReport,
+  type Value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useModal } from "@ksp-gonogo/ui";
-import { SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { magnitudeOf, SectionTitle, Unit } from "@ksp-gonogo/ui-kit";
+import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
 
 /**
@@ -22,178 +27,78 @@ import styled from "styled-components";
 
 const VISIBLE_MS = 10_000;
 
-// ── Recovery summary ─────────────────────────────────────────────────────
+// ── Reading the two payloads ─────────────────────────────────────────────
 
-interface RecoverySummary {
-  kind: "recovered";
-  ut: number;
-  vesselName: string;
-  recoveryLocation: string;
-  recoveryFactor: string;
-  scienceEarned: number;
-  totalScience: number;
-  fundsEarned: number;
-  totalFunds: number;
-  reputationEarned: number;
-  totalReputation: number;
-  displayReputation: boolean;
-  scienceBreakdown: ScienceEntry[];
-  partBreakdown: PartEntry[];
-  resourceBreakdown: ResourceEntry[];
-  crewBreakdown: CrewEntry[];
-}
+/**
+ * `recovery.lastSummary` and `crash.lastCrash` are typed by the generated
+ * contract (`RecoveryReport`, `CrashReport`), and `useTelemetry` hands each
+ * one back under its own type. This file therefore names no field shapes of
+ * its own, and reads the reports directly.
+ *
+ * It used to. Two local interfaces of plain numbers restated both payloads
+ * field-for-field, and a pair of `(raw: unknown)` parsers rebuilt each report
+ * into them through `num(v) = typeof v === "number" ? v : 0`. That threw the
+ * topic's type away at the door, so nothing could check the mirror against the
+ * contract, and the two disagreed: every quantity on both payloads is a
+ * `Value` by the time the banner reads it, because the wire carries a bare
+ * number and `wrapUnits` wraps it on decode from the generated unit maps.
+ * `typeof v === "number"` saw an object and substituted zero for all of them.
+ * Recoveries paid 0 funds, 0 science and 0 rep, crashes flew to 0 m at 0 m/s,
+ * every breakdown row read 0, part groups collapsed to "×1", and both UTs read
+ * 0, which is what made the newest-outcome pick below compare 0 with 0 and
+ * announce a recovery for a flight that ended in a crater.
+ *
+ * A hand-maintained mirror of a contract type is a second authority for the
+ * wire's shape. Do not reintroduce one.
+ */
 
-interface ScienceEntry {
-  subjectId: string;
-  subjectTitle: string;
-  dataGathered: number;
-  scienceAmount: number;
-}
-interface PartEntry {
-  partName: string;
-  partTitle: string;
-  count: number;
-  partValue: number;
-  resourcesValue: number;
-  totalValue: number;
-}
-interface ResourceEntry {
-  resourceName: string;
-  amount: number;
-  unitValue: number;
-  totalValue: number;
-}
-interface CrewEntry {
-  name: string;
-  trait: string;
-  isTourist: boolean;
-  xpGained: number;
-  levelsGained: number;
-  newLevel: number;
+/**
+ * A declared quantity as the operator should see it: the `Value` itself when
+ * it arrived, and `null` when it did not.
+ *
+ * Never a zero. "Recovered, 0 funds" and "recovered, funds unknown" are
+ * different news, and `Unit` renders the second as the null token rather than
+ * as a measurement nobody took.
+ *
+ * `magnitudeOf` is the same rule for the few reads that compare or count
+ * rather than display.
+ */
+function q(v: unknown): Value | null {
+  return isValue(v) ? v : null;
 }
 
-function parseRecovery(raw: unknown): RecoverySummary | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const e = raw as Record<string, unknown>;
-  return {
-    kind: "recovered",
-    ut: num(e.capturedAtUT),
-    vesselName: str(e.vesselName),
-    recoveryLocation: str(e.recoveryLocation),
-    recoveryFactor: str(e.recoveryFactor),
-    scienceEarned: num(e.scienceEarned),
-    totalScience: num(e.totalScience),
-    fundsEarned: num(e.fundsEarned),
-    totalFunds: num(e.totalFunds),
-    reputationEarned: num(e.reputationEarned),
-    totalReputation: num(e.totalReputation),
-    displayReputation: e.displayReputation === true,
-    scienceBreakdown: parseArray(e.scienceBreakdown, (x) => ({
-      subjectId: str(x.subjectId),
-      subjectTitle: str(x.subjectTitle),
-      dataGathered: num(x.dataGathered),
-      scienceAmount: num(x.scienceAmount),
-    })),
-    partBreakdown: parseArray(e.partBreakdown, (x) => ({
-      partName: str(x.partName),
-      partTitle: str(x.partTitle),
-      count: num(x.count) || 1,
-      partValue: num(x.partValue),
-      resourcesValue: num(x.resourcesValue),
-      totalValue: num(x.totalValue),
-    })),
-    resourceBreakdown: parseArray(e.resourceBreakdown, (x) => ({
-      resourceName: str(x.resourceName),
-      amount: num(x.amount),
-      unitValue: num(x.unitValue),
-      totalValue: num(x.totalValue),
-    })),
-    crewBreakdown: parseArray(e.crewBreakdown, (x) => ({
-      name: str(x.name),
-      trait: str(x.trait),
-      isTourist: x.isTourist === true,
-      xpGained: num(x.xpGained),
-      levelsGained: num(x.levelsGained),
-      newLevel: num(x.newLevel),
-    })),
-  };
+function str(v: unknown): string {
+  return typeof v === "string" ? v : "";
 }
 
-// ── Crash summary ────────────────────────────────────────────────────────
+/** A producer that omitted a list sent nothing, not an empty list, and the
+ * two read the same to everything downstream. */
+function list<T>(v: readonly T[] | undefined): readonly T[] {
+  return Array.isArray(v) ? v : [];
+}
 
-interface CrashSummary {
-  kind: "crashed";
-  ut: number;
-  vesselName: string;
-  body: string;
-  situation: string;
-  what: string;
-  partsLostCount: number;
-  crewAboard: string[];
-  kerbalsKilled: string[];
-  flightEndMode: string;
-  highestAltitude: number;
-  highestSpeed: number;
-  highestGee: number;
-  groundDistance: number;
+function stringList(v: unknown): string[] {
+  if (!Array.isArray(v)) return [];
+  return v.filter((entry): entry is string => typeof entry === "string");
+}
+
+/** A gain, signed only when there is one to sign. An absent reading reaches
+ * `Unit` as the null token, which a leading "+" would misdescribe. */
+function Gain({ value }: { value: Value | null }): ReactNode {
+  return (
+    <>
+      {value ? "+" : null}
+      <Unit value={value} />
+    </>
+  );
 }
 
 // crash.lastCrash only ever carries notable-vessel crashes: the mod
 // filters debris / flags / non-vessels at the source, so the banner
 // trusts whatever it receives and never second-guesses by name or type.
-function parseCrash(raw: unknown): CrashSummary | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const e = raw as Record<string, unknown>;
-  const stats =
-    e.flightStats &&
-    typeof e.flightStats === "object" &&
-    !Array.isArray(e.flightStats)
-      ? (e.flightStats as Record<string, unknown>)
-      : {};
-  return {
-    kind: "crashed",
-    ut: num(e.ut),
-    vesselName: str(e.vesselName),
-    body: str(e.body),
-    situation: str(e.situation),
-    what: str(e.what),
-    partsLostCount: Array.isArray(e.partsLost) ? e.partsLost.length : 0,
-    crewAboard: parseStringArray(e.crewAboard),
-    kerbalsKilled: parseStringArray(e.kerbalsKilled),
-    flightEndMode: str(e.flightEndMode),
-    highestAltitude: num(stats.highestAltitude),
-    highestSpeed: num(stats.highestSpeed),
-    highestGee: num(stats.highestGee),
-    groundDistance: num(stats.groundDistance),
-  };
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────
-
-type Outcome = RecoverySummary | CrashSummary;
-
-function str(v: unknown): string {
-  return typeof v === "string" ? v : "";
-}
-function num(v: unknown): number {
-  return typeof v === "number" ? v : 0;
-}
-function parseArray<T>(
-  raw: unknown,
-  map: (x: Record<string, unknown>) => T,
-): T[] {
-  if (!Array.isArray(raw)) return [];
-  const out: T[] = [];
-  for (const entry of raw) {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
-    out.push(map(entry as Record<string, unknown>));
-  }
-  return out;
-}
-function parseStringArray(raw: unknown): string[] {
-  if (!Array.isArray(raw)) return [];
-  return raw.filter((v): v is string => typeof v === "string");
-}
+type Outcome =
+  | { kind: "recovered"; ut: number | null; report: RecoveryReport }
+  | { kind: "crashed"; ut: number | null; report: CrashReport };
 
 // ── Component ────────────────────────────────────────────────────────────
 
@@ -203,11 +108,12 @@ export function FlightOutcomeBanner() {
   const crashHasRecent = useStream<boolean>("crash.hasRecent") === true;
   const crashReading = useTelemetry("crash.lastCrash");
   /**
-   * Both feed parsers typed `(raw: unknown)`, so handing them a `Reading` produced
-   * no type error: the parse simply failed its shape checks and the banner stopped
-   * appearing. Branched explicitly here rather than through a helper, because this
-   * package cannot reach `@ksp-gonogo/components`' internals and two sites do not
-   * justify moving that file.
+   * A `Reading` is not its payload, and the deleted parsers took `unknown`, so
+   * handing them the whole reading produced no type error at all: the parse failed
+   * its shape checks and the banner stopped appearing. Branched explicitly here
+   * rather than through a helper, because this package cannot reach
+   * `@ksp-gonogo/components`' internals and two sites do not justify moving that
+   * file.
    *
    * Both are records of an event that already happened, so the last one received is
    * still true: a recovery does not un-happen because the link went quiet. The
@@ -233,26 +139,39 @@ export function FlightOutcomeBanner() {
       : crashReading.value;
   const currentFlight = useFlight();
 
-  const recovery = useMemo(
-    () => (recoveryHasRecent ? parseRecovery(recoveryRaw) : null),
-    [recoveryHasRecent, recoveryRaw],
-  );
-  const crash = useMemo(
-    () => (crashHasRecent ? parseCrash(crashRaw) : null),
-    [crashHasRecent, crashRaw],
-  );
+  const recovery: Outcome | null = useMemo(() => {
+    if (!recoveryHasRecent || !recoveryRaw) return null;
+    return {
+      kind: "recovered",
+      ut: magnitudeOf(recoveryRaw.capturedAtUT),
+      report: recoveryRaw,
+    };
+  }, [recoveryHasRecent, recoveryRaw]);
+  const crash: Outcome | null = useMemo(() => {
+    if (!crashHasRecent || !crashRaw) return null;
+    return { kind: "crashed", ut: magnitudeOf(crashRaw.ut), report: crashRaw };
+  }, [crashHasRecent, crashRaw]);
 
-  // Pick the most recent outcome. Recovery and crash are both reported in
-  // KSP universal time, so a direct numeric compare works.
+  // Pick the most recent outcome. Both UTs come off the same KSP clock, so
+  // where both arrived the later one is the flight that just ended.
+  //
+  // A UT that did not arrive cannot be ordered against one that did.
+  // The crash wins that case: announcing a recovery for a vessel that
+  // cratered is the worse of the two ways to be wrong.
   const outcome: Outcome | null = useMemo(() => {
-    if (recovery && crash) return crash.ut > recovery.ut ? crash : recovery;
+    if (recovery && crash) {
+      if (crash.ut === null || recovery.ut === null) return crash;
+      return crash.ut > recovery.ut ? crash : recovery;
+    }
     return recovery ?? crash ?? null;
   }, [recovery, crash]);
 
   // Banner state. lastAnnouncedRef is the (kind, ut) we last fired the
   // banner for; on a new-flight transition we baseline it to the current
   // sticky outcome so the previous flight's outcome doesn't re-fire.
-  const lastAnnouncedRef = useRef<{ kind: string; ut: number } | null>(null);
+  const lastAnnouncedRef = useRef<{ kind: string; ut: number | null } | null>(
+    null,
+  );
   const flightIdRef = useRef<string | null>(null);
   const [bannerExpiresAt, setBannerExpiresAt] = useState<number | null>(null);
   const modal = useModal();
@@ -306,6 +225,7 @@ export function FlightOutcomeBanner() {
   if (!outcome || bannerExpiresAt === null) return null;
 
   if (outcome.kind === "recovered") {
+    const summary = outcome.report;
     return (
       <RecoveryBanner
         type="button"
@@ -313,26 +233,24 @@ export function FlightOutcomeBanner() {
         aria-live="polite"
         onClick={() => {
           setBannerExpiresAt(null);
-          modal.open(<RecoveryDetail summary={outcome} />, {
-            title: `${outcome.vesselName || "Vessel"} recovered`,
+          modal.open(<RecoveryDetail summary={summary} />, {
+            title: `${str(summary.vesselName) || "Vessel"} recovered`,
             width: "640px",
           });
         }}
       >
         <BannerLabel $variant="recovered">VESSEL RECOVERED</BannerLabel>
-        <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
+        <BannerVessel>{str(summary.vesselName) || "Untitled"}</BannerVessel>
         <BannerStats>
           <BannerStat>
-            +<Unit value={value("funds", outcome.fundsEarned)} />
+            <Gain value={q(summary.fundsEarned)} />
           </BannerStat>
           <BannerStat>
-            +{outcome.scienceEarned.toFixed(1)}
-            <Unit>science</Unit>
+            <Gain value={q(summary.scienceEarned)} />
           </BannerStat>
-          {outcome.displayReputation && (
+          {summary.displayReputation === true && (
             <BannerStat>
-              +{outcome.reputationEarned.toFixed(1)}
-              <Unit>rep</Unit>
+              <Gain value={q(summary.reputationEarned)} />
             </BannerStat>
           )}
         </BannerStats>
@@ -341,6 +259,9 @@ export function FlightOutcomeBanner() {
     );
   }
 
+  const summary = outcome.report;
+  const partsLostCount = list(summary.partsLost).length;
+  const kerbalsKilled = stringList(summary.kerbalsKilled);
   return (
     <CrashBanner
       type="button"
@@ -348,20 +269,18 @@ export function FlightOutcomeBanner() {
       aria-live="polite"
       onClick={() => {
         setBannerExpiresAt(null);
-        modal.open(<CrashDetail summary={outcome} />, {
-          title: `${outcome.vesselName || "Vessel"} destroyed`,
+        modal.open(<CrashDetail summary={summary} />, {
+          title: `${str(summary.vesselName) || "Vessel"} destroyed`,
           width: "560px",
         });
       }}
     >
       <BannerLabel $variant="crashed">VESSEL DESTROYED</BannerLabel>
-      <BannerVessel>{outcome.vesselName || "Untitled"}</BannerVessel>
+      <BannerVessel>{str(summary.vesselName) || "Untitled"}</BannerVessel>
       <BannerStats>
-        {outcome.partsLostCount > 0 && (
-          <BannerStat>-{outcome.partsLostCount} parts</BannerStat>
-        )}
-        {outcome.kerbalsKilled.length > 0 && (
-          <BannerStat>{outcome.kerbalsKilled.length} KIA</BannerStat>
+        {partsLostCount > 0 && <BannerStat>-{partsLostCount} parts</BannerStat>}
+        {kerbalsKilled.length > 0 && (
+          <BannerStat>{kerbalsKilled.length} KIA</BannerStat>
         )}
       </BannerStats>
       <BannerHint>Tap for breakdown</BannerHint>
@@ -371,13 +290,19 @@ export function FlightOutcomeBanner() {
 
 // ── Recovery detail modal ─────────────────────────────────────────────────
 
-function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
+function RecoveryDetail({ summary }: { summary: RecoveryReport }) {
+  const scienceBreakdown = list(summary.scienceBreakdown);
+  const crewBreakdown = list(summary.crewBreakdown);
+  const partBreakdown = list(summary.partBreakdown);
+  const resourceBreakdown = list(summary.resourceBreakdown);
   return (
     <DetailWrap>
       <DetailHeader>
-        <DetailTitle>{summary.vesselName || "Untitled Vessel"}</DetailTitle>
+        <DetailTitle>
+          {str(summary.vesselName) || "Untitled Vessel"}
+        </DetailTitle>
         <DetailMeta>
-          {summary.recoveryLocation} · {summary.recoveryFactor}
+          {str(summary.recoveryLocation)} · {str(summary.recoveryFactor)}
         </DetailMeta>
       </DetailHeader>
 
@@ -391,97 +316,114 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
           <TotalsRow>
             <TotalLabel>Funds</TotalLabel>
             <TotalGained>
-              +<Unit value={value("funds", summary.fundsEarned)} />
+              <Gain value={q(summary.fundsEarned)} />
             </TotalGained>
             <TotalAbsolute>
-              <Unit value={value("funds", summary.totalFunds)} />
+              <Unit value={q(summary.totalFunds)} />
             </TotalAbsolute>
           </TotalsRow>
           <TotalsRow>
             <TotalLabel>Science</TotalLabel>
-            <TotalGained>+{summary.scienceEarned.toFixed(1)}</TotalGained>
-            <TotalAbsolute>{summary.totalScience.toFixed(1)}</TotalAbsolute>
+            <TotalGained>
+              <Gain value={q(summary.scienceEarned)} />
+            </TotalGained>
+            <TotalAbsolute>
+              <Unit value={q(summary.totalScience)} />
+            </TotalAbsolute>
           </TotalsRow>
-          {summary.displayReputation && (
+          {summary.displayReputation === true && (
             <TotalsRow>
               <TotalLabel>Reputation</TotalLabel>
-              <TotalGained>+{summary.reputationEarned.toFixed(1)}</TotalGained>
+              <TotalGained>
+                <Gain value={q(summary.reputationEarned)} />
+              </TotalGained>
               <TotalAbsolute>
-                {summary.totalReputation.toFixed(1)}
+                <Unit value={q(summary.totalReputation)} />
               </TotalAbsolute>
             </TotalsRow>
           )}
         </TotalsTable>
       </Totals>
 
-      {summary.scienceBreakdown.length > 0 && (
+      {scienceBreakdown.length > 0 && (
         <DetailSection>
           <SectionTitle as="h3" $rule>
             Science gathered
           </SectionTitle>
-          {summary.scienceBreakdown.map((s) => (
+          {scienceBreakdown.map((s) => (
             <DetailRow key={s.subjectId}>
-              <DetailRowTitle>{s.subjectTitle || s.subjectId}</DetailRowTitle>
+              <DetailRowTitle>
+                {str(s.subjectTitle) || str(s.subjectId)}
+              </DetailRowTitle>
               <DetailRowValue>
-                +{s.scienceAmount.toFixed(1)}
-                <Unit>science</Unit>
+                <Gain value={q(s.scienceAmount)} />
               </DetailRowValue>
             </DetailRow>
           ))}
         </DetailSection>
       )}
 
-      {summary.crewBreakdown.length > 0 && (
+      {crewBreakdown.length > 0 && (
         <DetailSection>
           <SectionTitle as="h3" $rule>
             Crew
           </SectionTitle>
-          {summary.crewBreakdown.map((c) => (
-            <DetailRow key={c.name}>
-              <DetailRowTitle>
-                {c.name}
-                {c.isTourist ? " (tourist)" : ` · ${c.trait}`}
-              </DetailRowTitle>
-              <DetailRowValue>
-                +{c.xpGained.toFixed(1)} XP
-                {c.levelsGained > 0 && ` · L${c.newLevel}`}
-              </DetailRowValue>
-            </DetailRow>
-          ))}
+          {crewBreakdown.map((c) => {
+            const levelsGained = magnitudeOf(c.levelsGained);
+            const newLevel = magnitudeOf(c.newLevel);
+            return (
+              <DetailRow key={str(c.name)}>
+                <DetailRowTitle>
+                  {str(c.name)}
+                  {c.isTourist === true ? " (tourist)" : ` · ${str(c.trait)}`}
+                </DetailRowTitle>
+                <DetailRowValue>
+                  <Gain value={q(c.xpGained)} /> XP
+                  {levelsGained !== null &&
+                    levelsGained > 0 &&
+                    newLevel !== null &&
+                    ` · L${newLevel}`}
+                </DetailRowValue>
+              </DetailRow>
+            );
+          })}
         </DetailSection>
       )}
 
-      {summary.partBreakdown.length > 0 && (
+      {partBreakdown.length > 0 && (
         <DetailSection>
           <SectionTitle as="h3" $rule>
-            Parts ({summary.partBreakdown.length})
+            Parts ({partBreakdown.length})
           </SectionTitle>
-          {summary.partBreakdown.map((p) => (
-            <DetailRow key={p.partName}>
-              <DetailRowTitle>
-                {p.partTitle || p.partName}
-                {p.count > 1 && ` ×${p.count}`}
-              </DetailRowTitle>
-              <DetailRowValue>
-                <Unit value={value("funds", p.totalValue)} />
-              </DetailRowValue>
-            </DetailRow>
-          ))}
+          {partBreakdown.map((p) => {
+            const count = magnitudeOf(p.count);
+            return (
+              <DetailRow key={str(p.partName)}>
+                <DetailRowTitle>
+                  {str(p.partTitle) || str(p.partName)}
+                  {count !== null && count > 1 && ` ×${count}`}
+                </DetailRowTitle>
+                <DetailRowValue>
+                  <Unit value={q(p.totalValue)} />
+                </DetailRowValue>
+              </DetailRow>
+            );
+          })}
         </DetailSection>
       )}
 
-      {summary.resourceBreakdown.length > 0 && (
+      {resourceBreakdown.length > 0 && (
         <DetailSection>
           <SectionTitle as="h3" $rule>
             Resources
           </SectionTitle>
-          {summary.resourceBreakdown.map((r) => (
-            <DetailRow key={r.resourceName}>
+          {resourceBreakdown.map((r) => (
+            <DetailRow key={str(r.resourceName)}>
               <DetailRowTitle>
-                {r.resourceName} · {r.amount.toFixed(1)}u
+                {str(r.resourceName)} · <Unit value={q(r.amount)} />
               </DetailRowTitle>
               <DetailRowValue>
-                <Unit value={value("funds", r.totalValue)} />
+                <Unit value={q(r.totalValue)} />
               </DetailRowValue>
             </DetailRow>
           ))}
@@ -493,65 +435,73 @@ function RecoveryDetail({ summary }: { summary: RecoverySummary }) {
 
 // ── Crash detail modal ────────────────────────────────────────────────────
 
-function CrashDetail({ summary }: { summary: CrashSummary }) {
+function CrashDetail({ summary }: { summary: CrashReport }) {
+  const stats = summary.flightStats;
+  const crewAboard = stringList(summary.crewAboard);
+  const kerbalsKilled = stringList(summary.kerbalsKilled);
   return (
     <DetailWrap>
       <DetailHeader>
-        <DetailTitle>{summary.vesselName || "Untitled Vessel"}</DetailTitle>
+        <DetailTitle>
+          {str(summary.vesselName) || "Untitled Vessel"}
+        </DetailTitle>
         <DetailMeta>
-          {summary.what || summary.flightEndMode || "destroyed"}
-          {summary.body && ` · ${summary.body}`}
-          {summary.situation && ` · ${summary.situation}`}
+          {str(summary.what) || str(stats?.flightEndMode) || "destroyed"}
+          {summary.body && ` · ${str(summary.body)}`}
+          {summary.situation && ` · ${str(summary.situation)}`}
         </DetailMeta>
       </DetailHeader>
 
       <Totals>
         <TotalRow>
           <TotalLabel>Parts lost</TotalLabel>
-          <TotalValue>{summary.partsLostCount}</TotalValue>
+          <TotalValue>{list(summary.partsLost).length}</TotalValue>
         </TotalRow>
         <TotalRow>
           <TotalLabel>Highest altitude</TotalLabel>
           <TotalValue>
-            <Unit value={value("m", summary.highestAltitude)} />
+            <Unit value={q(stats?.highestAltitude)} />
           </TotalValue>
         </TotalRow>
         <TotalRow>
           <TotalLabel>Highest speed</TotalLabel>
           <TotalValue>
-            <Unit value={value("m/s", summary.highestSpeed)} />
+            <Unit value={q(stats?.highestSpeed)} />
           </TotalValue>
         </TotalRow>
         <TotalRow>
           <TotalLabel>Highest G</TotalLabel>
-          <TotalValue>{summary.highestGee.toFixed(2)}</TotalValue>
+          <TotalValue>
+            <Unit value={q(stats?.highestGee)} />
+          </TotalValue>
         </TotalRow>
-        {summary.groundDistance > 0 && (
-          <TotalRow>
-            <TotalLabel>Ground distance</TotalLabel>
-            <TotalValue>
-              <Unit value={value("m", summary.groundDistance)} />
-            </TotalValue>
-          </TotalRow>
-        )}
+        {/* Rendered whether or not the vessel travelled: a ground distance of
+            zero is a reading (it came down where it went up), and it is the
+            absent case, not the zero, that this row now hides nothing about. */}
+        <TotalRow>
+          <TotalLabel>Ground distance</TotalLabel>
+          <TotalValue>
+            <Unit value={q(stats?.groundDistance)} />
+          </TotalValue>
+        </TotalRow>
       </Totals>
 
-      {summary.crewAboard.length > 0 && (
+      {crewAboard.length > 0 && (
         <DetailSection>
           <SectionTitle as="h3" $rule>
-            Crew aboard ({summary.crewAboard.length})
+            Crew aboard ({crewAboard.length})
           </SectionTitle>
-          {summary.crewAboard.map((name) => (
+          {crewAboard.map((name) => (
             <DetailRow key={name}>
               <DetailRowTitle>{name}</DetailRowTitle>
               <DetailRowValue
                 style={{
-                  color: summary.kerbalsKilled.includes(name)
+                  color: kerbalsKilled.includes(name)
                     ? "var(--color-status-nogo-fg)"
                     : "var(--color-text-muted)",
                 }}
               >
-                {summary.kerbalsKilled.includes(name) ? "KIA" : "survived"}
+                {kerbalsKilled.includes(name) ? "KIA" : "survived"}
               </DetailRowValue>
             </DetailRow>
           ))}
