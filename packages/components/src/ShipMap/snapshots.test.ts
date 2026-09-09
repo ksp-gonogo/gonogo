@@ -10,6 +10,7 @@ import fuellinePostStage2 from "./__fixtures__/fuelline-tester-poststage2.json";
 import oxstatRing from "./__fixtures__/oxstat-ring-17parts.json";
 import roverBAlone from "./__fixtures__/rover-b-alone-28parts.json";
 import roverMerged from "./__fixtures__/rover-merged-56parts.json";
+import syntheticRadialOffsets from "./__fixtures__/synthetic-radial-offsets-16parts.json";
 import wingedLander from "./__fixtures__/winged-lander-31parts.json";
 import { renderShipMapToSvg } from "./render";
 import {
@@ -34,6 +35,13 @@ import {
 
 interface Fixture {
   "v.topology": VesselTopology;
+  /**
+   * Some fixtures carry a provenance note: what was captured, or why a field
+   * holds what it does. Declared because a JSON module's inferred type is
+   * exact, so an undeclared extra key fails the `as Fixture` cast in BOTH
+   * directions and the error names `orgPos`, which has nothing to do with it.
+   */
+  _comment?: string;
 }
 
 type PartStateSidecar = Record<string, PartStateModule[]>;
@@ -131,6 +139,16 @@ describe("Ship Map SVG snapshots", () => {
     // mounted to non-root parents, so it also guards the parent-relative
     // radial basis.
     expect(renderFixture(wingedLander as Fixture)).toMatchSnapshot();
+  });
+
+  it("renders synthetic-radial-offsets (part-local mesh-centre offsets)", () => {
+    // The only fixture whose `bounds.center` carries what the mod actually
+    // emits: `Part.boundsCentroidOffset`, a PART-local authored constant. Every
+    // real capture beside it predates that and carries the old fork's
+    // vessel-frame mesh centroid under the same name, so none of them can tell
+    // a rotated offset from an unrotated one. Without this file the frame
+    // conversion in `buildShipMapPart` has no rendered regression home at all.
+    expect(renderFixture(syntheticRadialOffsets as Fixture)).toMatchSnapshot();
   });
 
   it("renders an empty parts list as a placeholder", () => {

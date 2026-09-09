@@ -1,0 +1,489 @@
+{
+  "_comment": "SYNTHETIC, not a capture. Every bounds.center here is a PART-LOCAL authored value,\nwhich is what Part.boundsCentroidOffset is and what the mod puts on the wire today.\nThe real captures beside this file predate that: they carry the old fork's\nvessel-frame mesh centroid under the same field name, so none of them can exercise\nthe frame conversion in buildShipMapPart.\n\nThe two RV-105 blocks are the clearest case: one authored offset (0, 0.34, 0) serving\nboth instances, because boundsCentroidOffset is per PART. Added raw it runs up the\nspine for both and leaves them sunk in the hull; rotated by each mount it pushes them\nout to their own sides. The four radial decouplers carry a smaller, physically\nplausible 0.12 m offset. The two tilted panels carry an offset perpendicular to their\nown up, the case where the roll about up is not on the wire and only the offset's\nlength and its up-aligned component stay exact.",
+  "v.topology": {
+    "topologySeq": 1,
+    "rootFlightId": 101,
+    "parts": [
+      {
+        "flightId": 101,
+        "persistentId": 101,
+        "parentFlightId": null,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.8,
+        "inverseStage": 0,
+        "modules": ["ModuleCommand"],
+        "up": [0, 1, 0],
+        "name": "mk1pod.v2",
+        "title": "Command Pod Mk1",
+        "category": "Pods",
+        "categoryOrdinal": 6,
+        "orgPos": [0, 2.2, 0],
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.2,
+            "z": 1.25
+          },
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 102,
+        "persistentId": 102,
+        "parentFlightId": 101,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.25,
+        "inverseStage": 0,
+        "modules": [],
+        "up": [0, 1, 0],
+        "name": "fuelTank",
+        "title": "FL-T400 Fuel Tank",
+        "category": "FuelTank",
+        "categoryOrdinal": 7,
+        "orgPos": [0, 1, 0],
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.9,
+            "z": 1.25
+          },
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 103,
+        "persistentId": 103,
+        "parentFlightId": 102,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.25,
+        "inverseStage": 0,
+        "modules": [],
+        "up": [0, 1, 0],
+        "name": "fuelTank",
+        "title": "FL-T400 Fuel Tank",
+        "category": "FuelTank",
+        "categoryOrdinal": 7,
+        "orgPos": [0, -0.9, 0],
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.9,
+            "z": 1.25
+          },
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 104,
+        "persistentId": 104,
+        "parentFlightId": 103,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.5,
+        "inverseStage": 0,
+        "modules": ["ModuleEngines"],
+        "up": [0, 1, 0],
+        "name": "liquidEngine3.v2",
+        "title": "LV-909 Terrier",
+        "category": "Engine",
+        "categoryOrdinal": 8,
+        "orgPos": [0, -2.2, 0],
+        "bounds": {
+          "size": {
+            "x": 1.25,
+            "y": 1.5,
+            "z": 1.25
+          },
+          "center": {
+            "x": 0,
+            "y": -0.4,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 105,
+        "persistentId": 105,
+        "parentFlightId": 102,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.05,
+        "inverseStage": 0,
+        "modules": ["ModuleAnchoredDecoupler"],
+        "up": [1, 0, 0],
+        "name": "radialDecoupler2",
+        "title": "TT-70 Radial Decoupler",
+        "category": "Coupling",
+        "categoryOrdinal": 14,
+        "orgPos": [0.64, 0.55, 0],
+        "bounds": {
+          "size": {
+            "x": 0.24,
+            "y": 0.62,
+            "z": 0.24
+          },
+          "center": {
+            "x": 0,
+            "y": 0.12,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 106,
+        "persistentId": 106,
+        "parentFlightId": 105,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 1.5,
+        "inverseStage": 1,
+        "modules": ["ModuleEngines"],
+        "up": [0, 1, 0],
+        "name": "solidBooster1-1",
+        "title": "RT-5 Flea",
+        "category": "Engine",
+        "categoryOrdinal": 8,
+        "orgPos": [1.3312000000000002, 0.4, 0],
+        "bounds": {
+          "size": {
+            "x": 0.9,
+            "y": 2,
+            "z": 0.9
+          },
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 107,
+        "persistentId": 107,
+        "parentFlightId": 102,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.05,
+        "inverseStage": 0,
+        "modules": ["ModuleAnchoredDecoupler"],
+        "up": [-1, 0, 0],
+        "name": "radialDecoupler2",
+        "title": "TT-70 Radial Decoupler",
+        "category": "Coupling",
+        "categoryOrdinal": 14,
+        "orgPos": [-0.64, 0.55, 0],
+        "bounds": {
+          "size": {
+            "x": 0.24,
+            "y": 0.62,
+            "z": 0.24
+          },
+          "center": {
+            "x": 0,
+            "y": 0.12,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 108,
+        "persistentId": 108,
+        "parentFlightId": 107,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 1.5,
+        "inverseStage": 1,
+        "modules": ["ModuleEngines"],
+        "up": [0, 1, 0],
+        "name": "solidBooster1-1",
+        "title": "RT-5 Flea",
+        "category": "Engine",
+        "categoryOrdinal": 8,
+        "orgPos": [-1.3312000000000002, 0.4, 0],
+        "bounds": {
+          "size": {
+            "x": 0.9,
+            "y": 2,
+            "z": 0.9
+          },
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 109,
+        "persistentId": 109,
+        "parentFlightId": 103,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.05,
+        "inverseStage": 0,
+        "modules": ["ModuleAnchoredDecoupler"],
+        "up": [1, 0, 0],
+        "name": "radialDecoupler2",
+        "title": "TT-70 Radial Decoupler",
+        "category": "Coupling",
+        "categoryOrdinal": 14,
+        "orgPos": [0.64, -1.35, 0],
+        "bounds": {
+          "size": {
+            "x": 0.24,
+            "y": 0.62,
+            "z": 0.24
+          },
+          "center": {
+            "x": 0,
+            "y": 0.12,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 110,
+        "persistentId": 110,
+        "parentFlightId": 109,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 1.5,
+        "inverseStage": 1,
+        "modules": ["ModuleEngines"],
+        "up": [0, 1, 0],
+        "name": "solidBooster1-1",
+        "title": "RT-5 Flea",
+        "category": "Engine",
+        "categoryOrdinal": 8,
+        "orgPos": [1.3312000000000002, -1.5, 0],
+        "bounds": {
+          "size": {
+            "x": 0.9,
+            "y": 2,
+            "z": 0.9
+          },
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 111,
+        "persistentId": 111,
+        "parentFlightId": 103,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.05,
+        "inverseStage": 0,
+        "modules": ["ModuleAnchoredDecoupler"],
+        "up": [-1, 0, 0],
+        "name": "radialDecoupler2",
+        "title": "TT-70 Radial Decoupler",
+        "category": "Coupling",
+        "categoryOrdinal": 14,
+        "orgPos": [-0.64, -1.35, 0],
+        "bounds": {
+          "size": {
+            "x": 0.24,
+            "y": 0.62,
+            "z": 0.24
+          },
+          "center": {
+            "x": 0,
+            "y": 0.12,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 112,
+        "persistentId": 112,
+        "parentFlightId": 111,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 1.5,
+        "inverseStage": 1,
+        "modules": ["ModuleEngines"],
+        "up": [0, 1, 0],
+        "name": "solidBooster1-1",
+        "title": "RT-5 Flea",
+        "category": "Engine",
+        "categoryOrdinal": 8,
+        "orgPos": [-1.3312000000000002, -1.5, 0],
+        "bounds": {
+          "size": {
+            "x": 0.9,
+            "y": 2,
+            "z": 0.9
+          },
+          "center": {
+            "x": 0,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 113,
+        "persistentId": 113,
+        "parentFlightId": 101,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.04,
+        "inverseStage": 0,
+        "modules": ["ModuleRCSFX"],
+        "up": [1, 0, 0],
+        "name": "RCSBlock.v2",
+        "title": "RV-105 RCS Thruster Block",
+        "category": "Control",
+        "categoryOrdinal": 4,
+        "orgPos": [0.66, 1.55, 0],
+        "bounds": {
+          "size": {
+            "x": 0.3,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "center": {
+            "x": 0,
+            "y": 0.34,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 114,
+        "persistentId": 114,
+        "parentFlightId": 101,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.04,
+        "inverseStage": 0,
+        "modules": ["ModuleRCSFX"],
+        "up": [-1, 0, 0],
+        "name": "RCSBlock.v2",
+        "title": "RV-105 RCS Thruster Block",
+        "category": "Control",
+        "categoryOrdinal": 4,
+        "orgPos": [-0.66, 1.55, 0],
+        "bounds": {
+          "size": {
+            "x": 0.3,
+            "y": 0.3,
+            "z": 0.3
+          },
+          "center": {
+            "x": 0,
+            "y": 0.34,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 115,
+        "persistentId": 115,
+        "parentFlightId": 101,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.005,
+        "inverseStage": 0,
+        "modules": ["ModuleDeployableSolarPanel"],
+        "up": [0.27684477, 0.96091467, 0],
+        "name": "solarPanels5",
+        "title": "OX-STAT Photovoltaic Panels",
+        "category": "Electrical",
+        "categoryOrdinal": 10,
+        "orgPos": [0.7, 2.45, 0],
+        "bounds": {
+          "size": {
+            "x": 0.35,
+            "y": 0.47,
+            "z": 0.07
+          },
+          "center": {
+            "x": -0.16,
+            "y": 0,
+            "z": 0
+          }
+        }
+      },
+      {
+        "flightId": 116,
+        "persistentId": 116,
+        "parentFlightId": 101,
+        "manufacturer": "",
+        "crewCapacity": 0,
+        "crashTolerance": 8,
+        "maxTemp": 2000,
+        "dryMass": 0.005,
+        "inverseStage": 0,
+        "modules": ["ModuleDeployableSolarPanel"],
+        "up": [-0.27684477, 0.96091467, 0],
+        "name": "solarPanels5",
+        "title": "OX-STAT Photovoltaic Panels",
+        "category": "Electrical",
+        "categoryOrdinal": 10,
+        "orgPos": [-0.7, 2.45, 0],
+        "bounds": {
+          "size": {
+            "x": 0.35,
+            "y": 0.47,
+            "z": 0.07
+          },
+          "center": {
+            "x": 0.16,
+            "y": 0,
+            "z": 0
+          }
+        }
+      }
+    ]
+  }
+}
