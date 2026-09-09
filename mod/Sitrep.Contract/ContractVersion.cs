@@ -1489,7 +1489,23 @@ namespace Sitrep.Contract
         /// already computed every one of those numbers, for the delay ledger
         /// that prices command dispatch, and threw them away after writing them
         /// into engine state no client can read.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 1 -&gt; 2: a deployed cluster's power
+        /// balance.</b> Two new nullable members on <see cref="DeployedEntry"/>,
+        /// <see cref="DeployedEntry.PowerAvailable"/> and
+        /// <see cref="DeployedEntry.PowerRequired"/>. Additive, nothing removed
+        /// or retyped, so an Uplink built against 16.1 is unaffected and the
+        /// frozen Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>They exist because the client was drawing the balance anyway.
+        /// The Deployed Base Monitor rendered <c>EC 0/0</c> on every base under
+        /// a comment stating the wire had no numbers to give, and the wire had
+        /// them all along: <c>DeployedScienceCluster.PowerAvailable</c> and
+        /// <c>.PowerRequired</c>, off the cluster object the host already
+        /// resolves to derive <see cref="DeployedEntry.Power"/>. They are
+        /// Breaking Ground's own integral power units rather than electric
+        /// charge, so the label was wrong as well as the number.</para>
         /// </remarks>
-        public const int Minor = 1;
+        public const int Minor = 2;
     }
 }

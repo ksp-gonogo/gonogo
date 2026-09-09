@@ -17,11 +17,12 @@ import "./index";
  * so these scenarios are streamed through a genuine `TelemetryProvider` in the
  * NEW flat `deployed.bases` wire shape (one entry per deployed experiment,
  * grouped client-side by `vesselName`: `groupFlatDeployedEntries`, index.tsx)
- * rather than the retired grouped-base `deployed.bases` shape. Two fields
- * degrade off the new wire and so read differently than the old fixtures did:
- * `powerAvailable`/`powerRequired` -> `0`/`0` (no EC numbers, only the coarse
- * `powerState` enum), and `collecting` is derived (`scienceCompletedPercentage
- * < 100`) rather than declared.
+ * rather than the retired grouped-base `deployed.bases` shape. One field still
+ * reads differently than the old fixtures did: `collecting` is derived
+ * (`scienceCompletedPercentage < 100`) rather than declared. The power balance
+ * is on the new wire as well, as the cluster's own POWER UNITS rather than an
+ * EC figure, so the Minmus scenario carries a shortfall and the Mun one a
+ * surplus.
  */
 const CARRIED = ["deployed.bases", "game.dlc"];
 
@@ -49,6 +50,8 @@ const flatEntry = (
   // above are display labels only.
   power: DeployedPowerState.Powered,
   controllerConnected: true,
+  powerAvailable: 4,
+  powerRequired: 3,
   deployedOnGround: true,
   ...over,
 });
@@ -92,6 +95,10 @@ const SCENARIOS: Record<string, Scenario> = {
         // string comparison it rendered as a brownout instead.
         powerState: "Unpowered",
         power: DeployedPowerState.Unpowered,
+        // A genuine shortfall, which is what unpowered looks like on the
+        // cluster's own scale: demand met by nothing at all.
+        powerAvailable: 0,
+        powerRequired: 3,
       }),
     ],
   },

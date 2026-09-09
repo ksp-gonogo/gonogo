@@ -1,0 +1,101 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The same one-subject file+sample drive as `file-and-sample-on-one-subject`, with the three reflection-sourced booleans arriving as JSON null: `sendFlagged` (`Drive.GetFileSend` returned null), `analyze` (`MemberBool` returned null) and `transmitting` (derived from an unread `transmitRate`). Exercises the three-valued treatment: Send and Analyze read \"Unknown\" and are DISABLED rather than labelling themselves for a direction they cannot know, and the transmit state says \"Transmit unknown\" rather than drawing nothing. Everything else on the drive still reads, so the render shows the unknown arm beside live numbers rather than an all-blank panel."
+  },
+  "_scene": {
+    "augment": "science-data-aboard-row-file-manager",
+    "host": "science-data",
+    "caption": "File Manager with all three Kerbalism flags unread: the two reversible controls disable themselves instead of guessing a direction, and the transmit state says so",
+    "modes": ["default"],
+    "size": { "w": 10, "h": 12 },
+    "paints": ["Unknown", "Transmit unknown"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "science.experimentBreakdown",
+        "payload": [
+          {
+            "subjectId": "mysteryGoo@KerbinInSpaceLow",
+            "biome": "",
+            "situation": "InSpaceLow",
+            "expTitle": "Mystery Goo Observation in space low over Kerbin",
+            "dataMits": 20,
+            "remainingPotential": 4.4
+          }
+        ]
+      },
+      { "topic": "kerbalism.available", "payload": true },
+      {
+        "topic": "science.experiments",
+        "payload": [
+          {
+            "partName": "Hard Drive",
+            "location": "container",
+            "experimentId": "mysteryGoo",
+            "subjectId": "mysteryGoo@KerbinInSpaceLow",
+            "title": "Mystery Goo Observation in space low over Kerbin",
+            "situation": "InSpaceLow",
+            "valueModel": "kerbalism-linear",
+            "extensions": {
+              "kerbalism": {
+                "dataSizeMB": 12.5,
+                "sciencePerMB": 1.6,
+                "kind": "file",
+                "storageCapacityMB": 512,
+                "storageUsedMB": 90,
+                "sampleSlotsTotal": 2,
+                "sampleSlotsUsed": 1,
+                "transmitRateMBps": null,
+                "transmitting": null,
+                "sendFlagged": null
+              }
+            }
+          },
+          {
+            "partName": "Hard Drive",
+            "location": "container",
+            "experimentId": "mysteryGoo",
+            "subjectId": "mysteryGoo@KerbinInSpaceLow",
+            "title": "Mystery Goo Observation in space low over Kerbin",
+            "situation": "InSpaceLow",
+            "valueModel": "kerbalism-linear",
+            "extensions": {
+              "kerbalism": {
+                "dataSizeMB": 7.5,
+                "sciencePerMB": 0.8,
+                "kind": "sample",
+                "sampleMass": 0.0125,
+                "analyze": null,
+                "storageCapacityMB": 512,
+                "storageUsedMB": 90,
+                "sampleSlotsTotal": 2,
+                "sampleSlotsUsed": 1,
+                "transmitRateMBps": 0,
+                "transmitting": false
+              }
+            }
+          }
+        ]
+      },
+      {
+        "topic": "science.lab",
+        "payload": [
+          {
+            "partName": "Mobile Processing Lab MPL-LG-2",
+            "dataStored": 0,
+            "dataStorage": 0,
+            "storedScience": 0,
+            "processingData": false,
+            "statusText": "Idle",
+            "scientistCount": 1,
+            "scienceRate": 0,
+            "isOperational": true
+          }
+        ]
+      }
+    ]
+  }
+}

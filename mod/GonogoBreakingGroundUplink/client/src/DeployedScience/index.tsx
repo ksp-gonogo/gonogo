@@ -10,7 +10,7 @@ import {
   Box,
   Cluster,
   EmptyState,
-  magnitudeOr,
+  magnitudeOf,
   Panel,
   type Quantityish,
   Section,
@@ -32,7 +32,7 @@ import { BREAKING_GROUND } from "../uplink";
  * Reads `deployed.bases` + `deployed.available`; degrades to a muted empty
  * state without Breaking Ground or when no base is deployed.
  *
- * `deployed.bases` comes off `ScienceViewProvider.BuildDeployed`, itself fed by
+ * `deployed.bases` comes off `BreakingGroundViewProvider.BuildDeployed`, itself fed by
  * `Gonogo.KSP.KspHost.BuildDeployedScience`'s GLOBAL `FlightGlobals.Vessels`
  * walk, because a Breaking Ground cluster is its own vessel and never the active
  * one. `parseBases` below accepts both wire shapes; see its own doc comment for
@@ -65,8 +65,11 @@ export interface DeployedBase {
   body: string;
   powered: boolean;
   partialPower: boolean;
-  powerAvailable: number;
-  powerRequired: number;
+  /** Breaking Ground's own integral power units, not electric charge. `null`
+   *  when the cluster could not be read: a live cluster with dark panels
+   *  genuinely reports 0, so a zero cannot stand in for absence. */
+  powerAvailable: number | null;
+  powerRequired: number | null;
   controllerEnabled: boolean;
   experimentCount: number;
   experiments: DeployedExperiment[];
@@ -96,7 +99,19 @@ function stillTrue<T, A>(
  * reading" for every one of them, which is silent and total.
  */
 function num(v: unknown, fallback = 0): number {
-  return magnitudeOr(v as Quantityish, fallback);
+  return numOrNull(v) ?? fallback;
+}
+
+/**
+ * The same read for a field where ZERO IS A READING, so absence has to survive
+ * as its own answer: a deployed cluster with dark panels genuinely reports
+ * `0/0` power units, and a cluster we could not reach reports nothing.
+ *
+ * {@link num} defers to this rather than casting a second time, so the one
+ * assertion out of `unknown` in this file stays one.
+ */
+function numOrNull(v: unknown): number | null {
+  return magnitudeOf(v as Quantityish);
 }
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
@@ -141,6 +156,10 @@ interface FlatDeployedEntry {
   power: DeployedPowerState | null;
   /** The mod's derived controller-attachment fact. */
   controllerConnected: boolean | null;
+  /** The cluster's power balance in Breaking Ground's own power units. Null
+   *  when the cluster could not be read; see {@link DeployedBase.powerAvailable}. */
+  powerAvailable: number | null;
+  powerRequired: number | null;
 }
 
 function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
@@ -162,6 +181,8 @@ function parseFlatDeployedEntry(entry: unknown): FlatDeployedEntry | null {
     power: typeof e.power === "number" ? (e.power as DeployedPowerState) : null,
     controllerConnected:
       typeof e.controllerConnected === "boolean" ? e.controllerConnected : null,
+    powerAvailable: numOrNull(e.powerAvailable),
+    powerRequired: numOrNull(e.powerRequired),
   };
 }
 
@@ -202,8 +223,11 @@ function powerFromState(power: DeployedPowerState | null | undefined): {
  * (`Gonogo.KSP.KspHost.BuildDeployedScience`'s doc comment), so grouping by
  * vessel reproduces the legacy "one card per base" layout. Fields with no
  * new-wire equivalent degrade explicitly:
- * - `powerAvailable`/`powerRequired` -> `0`/`0` (only the coarse
- *   `powerState` enum exists, no EC numbers).
+ * - `powerAvailable`/`powerRequired` -> the cluster's own power-unit balance,
+ *   or `null` when it could not be read. This used to be hardcoded `0`/`0`
+ *   under a comment claiming the wire had no numbers to give; it did, off the
+ *   cluster the mod was already holding, and they are Breaking Ground power
+ *   units rather than electric charge.
  * - `controllerEnabled` -> the mod's derived `controllerConnected` boolean.
  * - `id`/`partId` -> synthesized indices (stable within one payload, and
  *   never rendered as text: only used as React list keys).
@@ -248,8 +272,8 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
       body: first?.body ?? "",
       powered,
       partialPower,
-      powerAvailable: 0,
-      powerRequired: 0,
+      powerAvailable: first?.powerAvailable ?? null,
+      powerRequired: first?.powerRequired ?? null,
       // The mod's derived boolean, not `connectionState === "Connected"`: that
       // compared against the English rendering of a localised sentence, so a
       // connected controller read as disconnected in every other language.
@@ -266,7 +290,7 @@ function groupFlatDeployedEntries(raw: unknown[]): DeployedBase[] {
  * shapes land here:
  *
  * - **Legacy GonogoTelemetry shape**: grouped per-base objects, a numeric
- *   `id`, an EC `powerAvailable`/`powerRequired` balance, and a nested
+ *   `id`, a `powerAvailable`/`powerRequired` balance, and a nested
  *   `experiments` list already keyed by numeric `partId`.
  * - **New SDK `deployed.bases`** (routed onto this key by
  *   `map-topic.ts`): a FLAT array of individual deployed
@@ -307,8 +331,8 @@ export function parseBases(raw: unknown): DeployedBase[] | null {
       body: typeof e.body === "string" ? e.body : "",
       powered: e.powered === true,
       partialPower: e.partialPower === true,
-      powerAvailable: num(e.powerAvailable),
-      powerRequired: num(e.powerRequired),
+      powerAvailable: numOrNull(e.powerAvailable),
+      powerRequired: numOrNull(e.powerRequired),
       controllerEnabled: e.controllerEnabled === true,
       experimentCount: num(e.experimentCount),
       experiments: parseExperiments(e.experiments),
@@ -337,6 +361,20 @@ const POWER_TONE: Record<PowerState, StatusTone> = {
 };
 
 const XS2_STYLE = { fontSize: "var(--font-size-2xs)" } as const;
+
+/**
+ * The cluster's produced-over-required power balance, or null when either side
+ * did not arrive. Both or neither: half a ratio is not a balance, and the
+ * missing half would have to be drawn as something.
+ *
+ * `Units.Count` renders an empty display symbol, so the number carries no
+ * suffix and the label has to say what scale it is on.
+ */
+function powerBalance(base: DeployedBase): string | null {
+  const { powerAvailable, powerRequired } = base;
+  if (powerAvailable === null || powerRequired === null) return null;
+  return `Power ${Math.round(powerAvailable)}/${Math.round(powerRequired)}`;
+}
 
 function DeployedScienceComponent(
   _: Readonly<ComponentProps<DeployedScienceConfig>>,
@@ -396,8 +434,13 @@ function DeployedScienceComponent(
                   </StatusIndicator>
                 </Cluster>
                 <Text tone="muted" style={XS2_STYLE}>
-                  EC {Math.round(base.powerAvailable)}/
-                  {Math.round(base.powerRequired)}
+                  {/* Breaking Ground POWER UNITS, produced over required, not
+                      electric charge: the label said "EC" over two hardcoded
+                      zeros that no wire ever carried, so every base read
+                      "Powered · EC 0/0". A cluster the mod could not read draws
+                      no balance at all rather than a zero one, because zero is
+                      what a live cluster reports with its panels dark. */}
+                  {powerBalance(base) ?? "Power unknown"}
                   {base.experiments.length > 0 && (
                     <Text tone="faint" style={XS2_STYLE}>
                       {" "}

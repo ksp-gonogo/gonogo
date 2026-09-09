@@ -6,8 +6,9 @@ import { KERBALISM } from "../uplink";
 // ---------------------------------------------------------------------------
 // The Kerbalism `ship-map.part-meta` contribution: per-part status rows for
 // things that aren't a fill-level meter. Today the ONLY real per-part
-// granularity on the wire is a fitted process's running/broken/idle state
-// (`KerbalismLifeSupport.processes[].flightId`), so that's all this emits.
+// granularity on the wire is a fitted process's running/broken/idle/unknown
+// state (`KerbalismLifeSupport.processes[].flightId`), so that's all this
+// emits.
 //
 // Habitat pressure, radiation dose, and reliability MTBF are named in the
 // design plan as the eventual `ship-map.part-meta` payload, but NONE of them
@@ -41,14 +42,28 @@ export function computeKerbalismPartMeta(
     const flightId = magnitudeOf(entry.flightId);
     if (flightId === null) continue;
     const label = entry.title || entry.resource || "process";
+    /* Both flags are three-valued on the wire (`KerbalismPayloads.cs:308,310`),
+       and the truthiness ladder this replaced collapsed the third value into
+       "idle": a process whose module could not be read reported as fitted and
+       switched off, which is a state an operator fixes by pressing a button
+       rather than by looking closer. Same treatment, same branch order, as
+       `ShipSystems`' `toProcessRow`: a positive reading wins over the unknown
+       arm, because broken is broken whatever its neighbour did. */
     const running = entry.running === true;
     const broken = entry.broken === true;
+    const unread = entry.broken == null || entry.running == null;
     entries.push({
       partId: String(flightId),
       label,
-      tone: broken ? "nogo" : running ? "go" : "neutral",
+      tone: broken ? "nogo" : running ? "go" : unread ? "warn" : "neutral",
       kind: "text",
-      text: broken ? "broken" : running ? "running" : "idle",
+      text: broken
+        ? "broken"
+        : running
+          ? "running"
+          : unread
+            ? "unknown"
+            : "idle",
     });
   }
   return entries;

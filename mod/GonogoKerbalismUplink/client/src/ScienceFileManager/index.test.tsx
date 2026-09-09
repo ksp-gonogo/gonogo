@@ -213,6 +213,84 @@ describe("ScienceDataAboardRowAugment", () => {
     expect(sent?.args).toEqual({ subjectId: SUBJECT_ID, flag: true });
   });
 
+  it("disables Send and dispatches nothing when sendFlagged could not be read", async () => {
+    const user = userEvent.setup();
+    const fixture = newFixture();
+    renderAugment(fixture);
+    act(() => {
+      fixture.emit("science.experiments", [
+        {
+          ...FILE_ENTRY,
+          extensions: {
+            kerbalism: {
+              ...FILE_ENTRY.extensions.kerbalism,
+              sendFlagged: null,
+            },
+          },
+        },
+      ]);
+    });
+    const sendToggle = await screen.findByRole("button", {
+      name: /send flag could not be read/i,
+    });
+    expect(sendToggle).toBeDisabled();
+    expect(sendToggle).toHaveTextContent("Unknown");
+    await user.click(sendToggle);
+    expect(
+      fixture.transport.sentCommands.find(
+        (c) => c.command === "kerbalism.file.send",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("disables Analyze and dispatches nothing when the analyze flag could not be read", async () => {
+    const user = userEvent.setup();
+    const fixture = newFixture();
+    renderAugment(fixture);
+    act(() => {
+      fixture.emit("science.experiments", [
+        {
+          ...SAMPLE_ENTRY,
+          extensions: {
+            kerbalism: { ...SAMPLE_ENTRY.extensions.kerbalism, analyze: null },
+          },
+        },
+      ]);
+    });
+    const analyzeToggle = await screen.findByRole("button", {
+      name: /analyze flag could not be read/i,
+    });
+    expect(analyzeToggle).toBeDisabled();
+    expect(analyzeToggle).toHaveTextContent("Unknown");
+    await user.click(analyzeToggle);
+    expect(
+      fixture.transport.sentCommands.find(
+        (c) => c.command === "kerbalism.sample.analyze",
+      ),
+    ).toBeUndefined();
+  });
+
+  it("says so rather than staying silent when the transmitting flag is unread", async () => {
+    const fixture = newFixture();
+    renderAugment(fixture);
+    act(() => {
+      fixture.emit("science.experiments", [
+        {
+          ...FILE_ENTRY,
+          extensions: {
+            kerbalism: {
+              ...FILE_ENTRY.extensions.kerbalism,
+              transmitting: null,
+            },
+          },
+        },
+      ]);
+    });
+    await screen.findByLabelText("Kerbalism file manager");
+    expect(visibleText()).toMatch(/Transmit unknown/);
+    expect(visibleText()).not.toMatch(/Transmitting/);
+  });
+
   it("dispatches kerbalism.file.delete only after arm-then-confirm", async () => {
     const user = userEvent.setup();
     const fixture = newFixture();
