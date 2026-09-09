@@ -14,7 +14,7 @@ export {
   type UnitDefinition,
 } from "./definitions";
 export * as Dimension from "./dimension";
-export { assertGuardsRegistered, unitGuard } from "./guards";
+export { assertGuardsRegistered, isUnit, unitGuard } from "./guards";
 export {
   affineVectorUnitFor,
   declaredUnitFor,

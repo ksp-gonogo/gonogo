@@ -298,6 +298,40 @@ export interface Value<U extends string = string> {
   toString(): string;
 
   /**
+   * The magnitude, where a quantity is being WRITTEN INTO a numeric slot that
+   * cannot hold a unit: a declared `number` field of a serialisable shape, a
+   * typed sample buffer, a wire payload someone else's code will read.
+   *
+   * Identical to `.magnitude` at runtime. What it changes is the reading, and
+   * the reading is the reason it exists. The magnitude budget counts unwraps
+   * because unwrapping is how the arithmetic surface came to have no callers,
+   * and it could not tell two different acts apart: DISCARDING dimension to
+   * compute on bare numbers, which is that defect, and SERIALISING at a
+   * boundary, which is unavoidable and is not. One spelling for both meant the
+   * only way out of the type system looked exactly like the mistake, so a real
+   * boundary and a lazy one cost the same and were argued about the same way.
+   * This is the second act, named, so the budget can price it separately.
+   *
+   * ## It is not a way around the budget
+   *
+   * `a.toWire() - b.toWire()` is the same defect in a better-sounding
+   * spelling, and a name does not stop anybody writing it. Two things do.
+   * Occurrences are BUDGETED per file exactly as `.magnitude` is, so a new one
+   * has to be written down and explained; and a separate scan arm with NO debt
+   * list at all fails on this result appearing as an operand of `+ - * / %`.
+   * Both live in `styleguide-magnitude-budget.test.ts`.
+   *
+   * So: if the number is about to be computed with, this is the wrong method
+   * and the algebra is what you want. If it is about to be ASSIGNED to a
+   * numeric field and never touched again, this is the honest spelling.
+   *
+   * Showing the value is neither. That is `<Unit>`, and reaching for a bare
+   * number to build a string is how one readout ends up in kilometres under a
+   * metres label. See `magnitudeOf` for the same warning on the same subject.
+   */
+  toWire(): number;
+
+  /**
    * Same dimension only. Operands are converted to base before combining, so
    * seconds and hours add correctly with no manual conversion, and the result
    * carries the LEFT operand's unit: it reads as "a, but more", the type needs
@@ -380,11 +414,30 @@ export interface Value<U extends string = string> {
    * A bare number is accepted and is IN BASE UNITS, so `ecc.lessThan(1)` reads
    * as written and `altitude.lessThan(1000)` is a thousand METRES whatever rung
    * `altitude` happens to be on. See {@link BareOperand}.
+   *
+   * `Value<U>` sits in the union beside `Value<Comparand<U>>` so that a GENERIC
+   * `U` can be compared against itself. It admits nothing new for a concrete
+   * unit, because `U` is already a member of `Comparand<U>` for every one of
+   * them: `Comparand<"ut">` is `"ut"`, and `Comparand<"m">` contains `"m"`.
+   * What it unblocks is `<U extends string>(a: Value<U>, b: Value<U>)`, where
+   * the conditional cannot resolve and `Value<U>` is therefore not assignable
+   * to `Value<Comparand<U>>` even though the two units are the same string by
+   * construction. Code holding a band and a threshold in one unbound unit had
+   * to unwrap both to compare them, which is the shape `bandSide` and
+   * `bandIsWellFormed` carried until this was added.
+   *
+   * It widens what may be compared, never what a comparison MEANS: the
+   * cross-dimension and point-versus-vector refusals are `Comparand`'s and are
+   * untouched, each pinned as a `@ts-expect-error` in `value.test-d.ts`.
    */
-  lessThan(other: Value<Comparand<U>> | BareOperand<U>): boolean;
-  lessThanOrEqual(other: Value<Comparand<U>> | BareOperand<U>): boolean;
-  greaterThan(other: Value<Comparand<U>> | BareOperand<U>): boolean;
-  greaterThanOrEqual(other: Value<Comparand<U>> | BareOperand<U>): boolean;
+  lessThan(other: Value<Comparand<U>> | Value<U> | BareOperand<U>): boolean;
+  lessThanOrEqual(
+    other: Value<Comparand<U>> | Value<U> | BareOperand<U>,
+  ): boolean;
+  greaterThan(other: Value<Comparand<U>> | Value<U> | BareOperand<U>): boolean;
+  greaterThanOrEqual(
+    other: Value<Comparand<U>> | Value<U> | BareOperand<U>,
+  ): boolean;
 
   /**
    * Negative, zero or positive. For `Array.prototype.sort`, which wants that
@@ -689,6 +742,9 @@ const prototype = {
   },
   isFinite(this: Value): boolean {
     return Number.isFinite(this.magnitude);
+  },
+  toWire(this: Value): number {
+    return this.magnitude;
   },
   isPositive(this: Value): boolean {
     return this.magnitude > 0;

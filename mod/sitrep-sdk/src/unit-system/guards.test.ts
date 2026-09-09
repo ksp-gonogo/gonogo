@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { assertGuardsRegistered, unitGuard } from "./guards";
+import { assertGuardsRegistered, isUnit, unitGuard } from "./guards";
 import { registerUnit, resetUnitRegistry } from "./registry";
 import { value } from "./value";
 
@@ -50,6 +50,34 @@ describe("unitGuard", () => {
 
     const mass = value("kg", 500);
     expect(mass.plus(value("t", 1)).magnitude).toBe(1500);
+  });
+});
+
+describe("isUnit", () => {
+  it("matches the unit it is asked about and nothing else", () => {
+    expect(isUnit(value("m/s", 4), "m/s")).toBe(true);
+    expect(isUnit(value("m/s", 4), "km/h")).toBe(false);
+  });
+
+  it("takes the unit as an argument, which is what unitGuard cannot do", () => {
+    // The whole reason this exists beside `unitGuard`: the symbol is a
+    // parameter here, so a caller handed a unit at runtime can ask about it.
+    const ask = (unit: string) => isUnit(value("°", 12), unit);
+
+    expect(ask("°")).toBe(true);
+    expect(ask("rad")).toBe(false);
+  });
+
+  it("checks identity, so a compatible unit is still not a match", () => {
+    // Same rule as `unitGuard`, and for the same reason: kilograms and tonnes
+    // go on combining after a narrow, but neither IS the other.
+    expect(isUnit(value("t", 2), "kg")).toBe(false);
+  });
+
+  it("is false for an unregistered symbol rather than throwing", () => {
+    // A guard's typo and a resource the player's profile lacks are the same
+    // observation from here, exactly as for `unitGuard`.
+    expect(isUnit(value("Oxygen:u", 1), "Oxgyen:u")).toBe(false);
   });
 });
 

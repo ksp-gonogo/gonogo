@@ -417,6 +417,7 @@ export {
   displaySymbol,
   hydrate,
   isCalendarUnit,
+  isUnit,
   isValue,
   type KnownUnit,
   type KspCalendar,

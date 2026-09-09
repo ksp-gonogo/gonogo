@@ -218,7 +218,6 @@ export const UNKNOWN_CAST_DEBT: Record<string, number> = {
   "packages/core/src/styleguide-ellipsis.test.ts": 1,
   "packages/core/src/styleguide-emdash.test.ts": 1,
   "packages/core/src/styleguide-fire-and-forget-commands.test.ts": 1,
-  "packages/core/src/styleguide-magnitude-budget.test.ts": 1,
   "packages/core/src/styleguide-magnitude-canonical.test.ts": 1,
   "packages/core/src/styleguide-optional-magnitude.test.ts": 1,
   "packages/core/src/styleguide-panel-body.test.ts": 2,

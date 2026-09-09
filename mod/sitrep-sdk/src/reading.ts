@@ -1,7 +1,8 @@
 import type { Dep, ProcessorHandle, ReadingDep } from "./spine/processors";
 import type { TimelinePoint } from "./timeline";
 import type { TopicId, TopicPayload } from "./topics";
-import { type Value, value } from "./unit-system/value";
+import { isUnit } from "./unit-system/guards";
+import type { Value } from "./unit-system/value";
 
 /**
  * What a telemetry read answers with, and how a widget may use it.
@@ -890,27 +891,27 @@ export function bandIn<U extends string, V extends string = string>(
   band: UncertaintyBand<V> | undefined,
   unit: U,
 ): UncertaintyBand<U> | undefined {
+  if (!band || !bandIsWellFormed(band)) return undefined;
   /*
-   * Widened to `string` for the comparison: the two parameters are what this
-   * function exists to tell apart, so TypeScript is right that they do not
-   * overlap and wrong that the check is therefore pointless.
+   * NARROWED, not rebuilt and not cast. `isUnit` is a type predicate over the
+   * check this function already performed by hand, so the three components
+   * come back out as the ones that went in.
+   *
+   * Three questions rather than one because a predicate narrows the value it
+   * is handed and says nothing about its siblings. That reads as redundant
+   * against `bandIsWellFormed`, which has already established all three share
+   * a unit, and it is not: what it establishes is that they agree with EACH
+   * OTHER, and the runtime knows nothing of `U`. Asking about each is what
+   * lets the three be returned as an `UncertaintyBand<U>` with no assertion
+   * anywhere.
    */
-  if (!band || (band.value.unit as string) !== (unit as string))
+  if (
+    !isUnit(band.value, unit) ||
+    !isUnit(band.lo, unit) ||
+    !isUnit(band.hi, unit)
+  )
     return undefined;
-  if (!bandIsWellFormed(band)) return undefined;
-  /*
-   * REBUILT rather than asserted. A cast from `Value<V>` to `Value<U>` has to
-   * go through `unknown`, which is an escape the compiler cannot check and
-   * would still be there if someone later removed the unit test above.
-   * Minting three values off magnitudes the check has already proved are in
-   * `unit` costs one allocation and is sound by construction.
-   */
-  return {
-    value: value(unit, band.value.magnitude),
-    lo: value(unit, band.lo.magnitude),
-    hi: value(unit, band.hi.magnitude),
-    kind: band.kind,
-  };
+  return { value: band.value, lo: band.lo, hi: band.hi, kind: band.kind };
 }
 
 /**
@@ -934,7 +935,7 @@ export function bandIsWellFormed<U extends string>(
   const { value: v, lo, hi } = band;
   if (lo.unit !== v.unit || hi.unit !== v.unit) return false;
   if (!lo.isFinite() || !v.isFinite() || !hi.isFinite()) return false;
-  return lo.magnitude <= v.magnitude && v.magnitude <= hi.magnitude;
+  return lo.lessThanOrEqual(v) && v.lessThanOrEqual(hi);
 }
 
 /**
@@ -952,23 +953,16 @@ export function bandIsWellFormed<U extends string>(
  * limit has not crossed it, and treating equality as unresolved would make
  * every band that happens to close on a round number unresolvable.
  *
- * Both arguments share `U`, so the two units are the same string and the
- * magnitudes compare directly. That is why there is no conversion here and no
- * cast: a mismatch is not representable in the signature.
- *
- * `Value`'s own comparators do NOT work here: `Comparand<U>` resolves to
- * `U extends "ut" ? PointCounterpart<U> : Exclude<CombinableWith<U>, "ut">`,
- * which an unconstrained `Value<U>` is not assignable to. They typecheck for a
- * concrete unit and not for a generic one, so the unwrap stays until the unit
- * system grows a comparison that admits a bare type parameter.
+ * Both arguments share `U`, so the two units are the same string and compare
+ * directly. That is why there is no conversion here and no cast: a mismatch is
+ * not representable in the signature.
  */
 export function bandSide<U extends string>(
   band: UncertaintyBand<U>,
   threshold: Value<U>,
 ): "below" | "above" | "straddles" {
-  const t = threshold.magnitude;
-  if (band.hi.magnitude <= t) return "below";
-  if (band.lo.magnitude >= t) return "above";
+  if (band.hi.lessThanOrEqual(threshold)) return "below";
+  if (band.lo.greaterThanOrEqual(threshold)) return "above";
   return "straddles";
 }
 

@@ -40,6 +40,49 @@ export function unitGuard<const S extends string>(symbol: S) {
 }
 
 /**
+ * Whether a value is in exactly `unit`, narrowing it where it is.
+ *
+ * The direct form of {@link unitGuard}, for the case currying cannot reach: a
+ * unit that arrives as a PARAMETER rather than as a literal. `unitGuard` takes
+ * `const S extends string` and hands back a predicate, which is the right
+ * shape for a module-scope `const isOxygen = unitGuard("Oxygen:u")` and the
+ * wrong one for `bandIn(band, unit)`, where the symbol to check against is
+ * whatever the caller passed.
+ *
+ * ## Why a predicate rather than a cast or a rebuild
+ *
+ * Code holding a `Value<V>` and a runtime `U` had two ways across before this,
+ * and both are worse:
+ *
+ * - **Assert.** `Value<V>` to `Value<U>` for two unrelated parameters has to go
+ *   through `unknown`, which the compiler cannot check and which SURVIVES
+ *   someone later deleting the runtime check above it. `.in(unit)` is not the
+ *   escape either: `in<T extends CombinableWith<U>>` refuses an unrelated
+ *   parameter outright, because nothing knows the two share a dimension
+ * - **Rebuild.** Mint fresh values off the magnitudes the check just proved.
+ *   Sound, and it costs an unwrap and an allocation per component, which is how
+ *   `bandIn` came to spend three
+ *
+ * This is the third way: the check the code already performs becomes the one
+ * the type system reads, so there is nothing left to keep in step.
+ *
+ * ## Identity, not compatibility
+ *
+ * On the TOKEN, exactly as {@link unitGuard} is, and see its note for why that
+ * is the right test. `isUnit(v, "kg")` is false for a value in tonnes.
+ *
+ * Each value needs its own proof. Narrowing one component of a compound and
+ * not its siblings leaves them different types, so a caller that wants the
+ * whole thing narrowed asks about each part.
+ */
+export function isUnit<U extends string>(
+  candidate: Value,
+  unit: U,
+): candidate is Value<U> {
+  return candidate.unit === unit;
+}
+
+/**
  * Catches the one way {@link unitGuard} fails silently: a typo.
  *
  * A guard for a symbol that does not exist is always false. The branch never

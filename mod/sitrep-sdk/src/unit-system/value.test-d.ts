@@ -121,6 +121,51 @@ export const _sortable: number = hours.compare(seconds);
 // @ts-expect-error: ordering across dimensions is as wrong as adding across them
 export const _orderedAcross = metres.lessThan(seconds);
 
+// ── Ordering a GENERIC unit against itself ─────────────────────────────────
+// `Comparand<U>` is a conditional, so for an unbound `U` it never resolves and
+// `Value<U>` is not assignable to `Value<Comparand<U>>` even though the two
+// units are the same string by construction. That made every same-unit
+// comparison under a type parameter unwrap both sides to numbers.
+//
+// These four are the pin. Without `Value<U>` in the comparators' union each is
+// a TS2345, and `bandSide` and `bandIsWellFormed` go back to spending seven
+// `.magnitude` unwraps between them.
+export function _orderGenericLt<U extends string>(
+  a: Value<U>,
+  b: Value<U>,
+): boolean {
+  return a.lessThan(b);
+}
+export function _orderGenericLte<U extends string>(
+  a: Value<U>,
+  b: Value<U>,
+): boolean {
+  return a.lessThanOrEqual(b);
+}
+export function _orderGenericGt<U extends string>(
+  a: Value<U>,
+  b: Value<U>,
+): boolean {
+  return a.greaterThan(b);
+}
+export function _orderGenericGte<U extends string>(
+  a: Value<U>,
+  b: Value<U>,
+): boolean {
+  return a.greaterThanOrEqual(b);
+}
+
+// Widened for the SAME unit only. Two unrelated parameters stay refused, which
+// is what stops the union above being read as "a generic comparison is free":
+// nothing knows these share a dimension.
+export function _orderTwoGenerics<U extends string, W extends string>(
+  a: Value<U>,
+  b: Value<W>,
+): boolean {
+  // @ts-expect-error: two unrelated unit parameters are not comparable
+  return a.lessThan(b);
+}
+
 // ── Sign, magnitude and selection ───────────────────────────────────────────
 export const _draining: boolean = value("units/s", -0.3).isNegative();
 export const _drift = metres.abs();

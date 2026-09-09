@@ -59,11 +59,29 @@ describe("deriveHazardVerdict", () => {
     expect(deriveHazardVerdict({}).verdict).toBeNull();
   });
 
+  it("grades a reading landing exactly on a threshold as the safer band", () => {
+    // The table in this module's header reads `<=5` for SAFE and `5-15` for
+    // MARGINAL, so 5 is SAFE and only something above it is not. Pinned
+    // because the ladder is three comparisons and nothing else here lands on
+    // a boundary: flipping one of them to strict leaves every other case in
+    // this file passing.
+    expect(deriveHazardVerdict({ slopeDeg: 5 }).verdict).toBe("SAFE");
+    expect(deriveHazardVerdict({ slopeDeg: 15 }).verdict).toBe("MARGINAL");
+    expect(deriveHazardVerdict({ verticalSpeed: 2 }).verdict).toBe("SAFE");
+    expect(deriveHazardVerdict({ verticalSpeed: 6 }).verdict).toBe("MARGINAL");
+    expect(deriveHazardVerdict({ lateralSpeed: 1 }).verdict).toBe("SAFE");
+    expect(deriveHazardVerdict({ lateralSpeed: 3 }).verdict).toBe("MARGINAL");
+  });
+
   it("honours per-instance tuned slope thresholds", () => {
     // A wide-base rover: raise the slope tolerance so 12° reads SAFE.
     const r = deriveHazardVerdict(
       { slopeDeg: 12 },
-      { slope: [20, 30], vertical: [2, 6], lateral: [1, 3] },
+      {
+        slope: [value("°", 20), value("°", 30)],
+        vertical: [value("m/s", 2), value("m/s", 6)],
+        lateral: [value("m/s", 1), value("m/s", 3)],
+      },
     );
     expect(r.verdict).toBe("SAFE");
   });
