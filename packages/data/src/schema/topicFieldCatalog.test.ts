@@ -95,11 +95,10 @@ describe("getUndescribedCarriedTopics()", () => {
     // described once an app that loads the Uplink builds the catalogue.
     expect([...getUndescribedCarriedTopics()].sort()).toEqual(
       [
-        // The three dv.* channels key their fields by RESOURCE NAME, so there is
+        // Both dv.* channels key their fields by RESOURCE NAME, so there is
         // no fixed field set for a declaration to enumerate.
         "dv.currentStageResource",
         "dv.currentStageResourceMax",
-        "dv.legacyScalars",
         // Bare primitive channels: the Topic IS the value, so it has no fields.
         "crash.hasRecent",
         "recovery.hasRecent",

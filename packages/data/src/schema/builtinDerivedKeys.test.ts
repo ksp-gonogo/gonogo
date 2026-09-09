@@ -39,7 +39,7 @@ function findDef(id: string) {
   return def;
 }
 
-describe("builtin derived keys: delta-V / mass", () => {
+describe("builtin derived keys: velocity rollups and stage TWR", () => {
   beforeEach(() => {
     clearDerivedKeys();
     registerBuiltinDerivedKeys();
@@ -55,11 +55,7 @@ describe("builtin derived keys: delta-V / mass", () => {
         "v.missionTimeHours",
         "v.altitudeRate",
         "v.horizontalVelocity",
-        "dv.total",
-        "dv.current",
         "dv.currentTWR",
-        "dv.currentFuelMass",
-        "dv.totalMass",
       ]),
     );
   });
@@ -82,36 +78,15 @@ describe("builtin derived keys: delta-V / mass", () => {
     expect(def.fn([sample(100), sample(NaN)], null)).toBeUndefined();
   });
 
-  it("dv.total sums deltaVActual across stages", () => {
-    const def = findDef("dv.total");
-    const stages = [
-      stage({ stage: 3, deltaVActual: 1200 }),
-      stage({ stage: 2, deltaVActual: 800 }),
-      stage({ stage: 1, deltaVActual: 500 }),
-    ];
-    expect(def.fn([sample(stages)], null)).toBe(2500);
+  it("dv.currentTWR returns undefined when input isn't an array (no telemetry yet)", () => {
+    const def = findDef("dv.currentTWR");
+    expect(def.fn([sample(undefined), sample(1)], null)).toBeUndefined();
+    expect(def.fn([sample(null), sample(1)], null)).toBeUndefined();
   });
 
-  it("dv.total returns undefined when input isn't an array (no telemetry yet)", () => {
-    const def = findDef("dv.total");
-    expect(def.fn([sample(undefined)], null)).toBeUndefined();
-    expect(def.fn([sample(null)], null)).toBeUndefined();
-  });
-
-  it("dv.current picks the stage matching v.currentStage", () => {
-    const def = findDef("dv.current");
-    const stages = [
-      stage({ stage: 3, deltaVActual: 1200 }),
-      stage({ stage: 2, deltaVActual: 800 }),
-      stage({ stage: 1, deltaVActual: 500 }),
-    ];
-    expect(def.fn([sample(stages), sample(2)], null)).toBe(800);
-    expect(def.fn([sample(stages), sample(1)], null)).toBe(500);
-  });
-
-  it("dv.current returns undefined when no stage matches", () => {
-    const def = findDef("dv.current");
-    const stages = [stage({ stage: 2, deltaVActual: 800 })];
+  it("dv.currentTWR returns undefined when no stage matches", () => {
+    const def = findDef("dv.currentTWR");
+    const stages = [stage({ stage: 2, TWRActual: 1.8 })];
     expect(def.fn([sample(stages), sample(5)], null)).toBeUndefined();
     expect(def.fn([sample(stages), sample(undefined)], null)).toBeUndefined();
   });
@@ -123,24 +98,6 @@ describe("builtin derived keys: delta-V / mass", () => {
       stage({ stage: 1, TWRActual: 2.4 }),
     ];
     expect(def.fn([sample(stages), sample(1)], null)).toBe(2.4);
-  });
-
-  it("dv.currentFuelMass pulls fuelMass from the active stage", () => {
-    const def = findDef("dv.currentFuelMass");
-    const stages = [
-      stage({ stage: 2, fuelMass: 3200 }),
-      stage({ stage: 1, fuelMass: 1450 }),
-    ];
-    expect(def.fn([sample(stages), sample(2)], null)).toBe(3200);
-  });
-
-  it("dv.totalMass sums stageMass across all stages", () => {
-    const def = findDef("dv.totalMass");
-    const stages = [
-      stage({ stage: 2, stageMass: 8000 }),
-      stage({ stage: 1, stageMass: 2500 }),
-    ];
-    expect(def.fn([sample(stages)], null)).toBe(10500);
   });
 });
 
