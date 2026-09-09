@@ -159,11 +159,6 @@ export {
   deriveDeltaVBudget,
   normaliseStage,
 } from "./delta-v-budget";
-export type { DvLegacyScalars } from "./dv-legacy-scalars";
-export {
-  deriveDvLegacyScalars,
-  dvLegacyScalarsChannel,
-} from "./dv-legacy-scalars";
 export type { ResourceAmountMap } from "./dv-stage-resources";
 export {
   deriveCurrentStageResourceCurrent,

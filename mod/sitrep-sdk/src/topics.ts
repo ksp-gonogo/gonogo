@@ -361,7 +361,6 @@ export const DERIVED_CHANNEL_IDS = [
   "spaceCenter.state",
   "dv.currentStageResource",
   "dv.currentStageResourceMax",
-  "dv.legacyScalars",
 ] as const;
 
 /** One of the client-side derived channels. See {@link DERIVED_CHANNEL_IDS}. */
