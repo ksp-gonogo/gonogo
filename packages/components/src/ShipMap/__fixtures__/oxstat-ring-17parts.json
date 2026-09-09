@@ -1,4 +1,5 @@
 {
+  "_comment": "bounds.center is zero throughout ON PURPOSE, and this is not a lossy capture. It is Part.boundsCentroidOffset, an authored per-PART config value, and none of the parts on this craft author one: across the whole GameData exactly 8 files set it, all EVA kerbal prebuilts, and ModuleManager.ConfigCache agrees post-patch. So {0,0,0} is what the mod puts on the wire for every part here. This file previously carried the OLD FORK's quantity under the same name: a per-instance mesh centroid already expressed in the VESSEL frame. Two different quantities, one field name. Those values agreed with buildShipMapPart's old unrotated arithmetic, which is how that frame bug survived. Do not restore them; see synthetic-radial-offsets-16parts.json for a fixture that exercises the conversion with the quantity the wire actually carries.",
   "v.topology": {
     "topologySeq": 113,
     "rootFlightId": 1965735475,
@@ -34,7 +35,7 @@
         "bounds": {
           "center": {
             "x": 0,
-            "y": 0.0914880037307739,
+            "y": 0,
             "z": 0
           },
           "size": {
@@ -71,9 +72,9 @@
         "categoryOrdinal": 4,
         "bounds": {
           "center": {
-            "x": 6.73532485961914e-6,
-            "y": 0.103433951735497,
-            "z": 0.0184769332408905
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.630669236183167,
@@ -102,9 +103,9 @@
         "categoryOrdinal": 1,
         "bounds": {
           "center": {
-            "x": -0.0821265429258347,
-            "y": 0.021364837884903,
-            "z": 1.23778178817702e-8
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.289516389369965,
@@ -139,9 +140,9 @@
         "categoryOrdinal": 1,
         "bounds": {
           "center": {
-            "x": -0.00643050717189908,
-            "y": 0.0103480769321322,
-            "z": -0.00289312563836575
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.0192123018205166,
@@ -174,9 +175,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": -0.0318589396774769,
-            "y": 0.00917873531579971,
-            "z": 2.14472581916425e-8
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -209,9 +210,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": -0.0225276574492455,
-            "y": 0.00917873531579971,
-            "z": 0.022527689114213
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -244,9 +245,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": 2.03380849939094e-8,
-            "y": 0.00917873531579971,
-            "z": 0.0318589396774769
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -279,9 +280,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": 0.0225276872515678,
-            "y": 0.00917873624712229,
-            "z": 0.0225276593118906
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -314,9 +315,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": 0.0318589396774769,
-            "y": 0.00917873531579971,
-            "z": -2.58936658781295e-8
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -349,9 +350,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": 0.0225276555866003,
-            "y": 0.00917873438447714,
-            "z": -0.022527689114213
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -386,9 +387,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": -2.03380849939094e-8,
-            "y": 0.00917873531579971,
-            "z": -0.0318589396774769
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -421,9 +422,9 @@
         "categoryOrdinal": 10,
         "bounds": {
           "center": {
-            "x": -0.0225276947021484,
-            "y": 0.00917873624712229,
-            "z": -0.02252765186131
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.346590518951416,
@@ -457,9 +458,9 @@
         "categoryOrdinal": 14,
         "bounds": {
           "center": {
-            "x": -0.00860993936657906,
-            "y": -0.00252678105607629,
-            "z": -1.34236621818218e-9
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.685115158557892,
@@ -492,9 +493,9 @@
         "categoryOrdinal": 4,
         "bounds": {
           "center": {
-            "x": 0.000140003234264441,
-            "y": 0.016920467838645,
-            "z": -0.0728177726268768
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.150004506111145,
@@ -562,9 +563,9 @@
         "categoryOrdinal": 4,
         "bounds": {
           "center": {
-            "x": -0.0450428798794746,
-            "y": 0.0129770934581757,
-            "z": -0.0312499962747097
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.312500059604645,
@@ -598,9 +599,9 @@
         "categoryOrdinal": 4,
         "bounds": {
           "center": {
-            "x": -0.0150143019855022,
-            "y": 0.00865140091627836,
-            "z": -0.0260055176913738
+            "x": 0,
+            "y": 0,
+            "z": 0
           },
           "size": {
             "x": 0.1875,

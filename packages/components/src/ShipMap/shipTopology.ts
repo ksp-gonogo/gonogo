@@ -388,6 +388,60 @@ export function pickLateralAxis(parts: readonly TopologyPart[]): {
 }
 
 /**
+ * Rotate a part-local vector into the vessel frame using the only piece of
+ * the part's rotation that reaches the client: `up`, which the mod emits as
+ * `orgRot * Vector3.up`.
+ *
+ * The rotation applied is the minimal swing taking vessel +Y onto `up`,
+ * built with the trig-free `v + k x v + (k x (k x v)) / (1 + cos)` form
+ * where `k` is the (unnormalised) cross product. `up` is treated as a
+ * direction, so a non-unit vector off the wire is normalised first.
+ *
+ * Two degenerate inputs, both real:
+ *
+ * - No `up`, or a zero-length one, is the identity. An axially-mounted part
+ *   and a fixture recorded before the field existed both land here, and
+ *   both want the vector through unchanged.
+ * - An exactly inverted part makes `1 + cos` zero and the closed form
+ *   divide by it, so the half-turn is applied directly. There is no unique
+ *   swing for that case (any axis in the plane will do); the half-turn
+ *   about the vessel X axis is the one chosen, and picking a convention is
+ *   the point, since the alternative reaching the SVG is `NaN`.
+ */
+function rotateIntoVesselFrame(
+  v: { x: number; y: number; z: number },
+  up: readonly [number, number, number] | undefined,
+): { x: number; y: number; z: number } {
+  if (!up) return v;
+  const len = Math.hypot(up[0], up[1], up[2]);
+  if (len < 1e-9) return v;
+  const bx = up[0] / len;
+  const by = up[1] / len;
+  const bz = up[2] / len;
+  // cos of the swing angle: dot((0,1,0), up).
+  const cos = by;
+  if (cos > 1 - 1e-12) return v;
+  if (cos < -1 + 1e-12) return { x: v.x, y: -v.y, z: -v.z };
+  // k = (0,1,0) x up.
+  const kx = bz;
+  const kz = -bx;
+  // k x v, with k.y identically zero.
+  const c1x = -kz * v.y;
+  const c1y = kz * v.x - kx * v.z;
+  const c1z = kx * v.y;
+  // k x (k x v), same shortcut.
+  const c2x = -kz * c1y;
+  const c2y = kz * c1x - kx * c1z;
+  const c2z = kx * c1y;
+  const s = 1 / (1 + cos);
+  return {
+    x: v.x + c1x + c2x * s,
+    y: v.y + c1y + c2y * s,
+    z: v.z + c1z + c2z * s,
+  };
+}
+
+/**
  * Build a `ShipMapPart` from one topology entry + the live slice. Live
  * temperature uses `therm.part`'s Kelvin reading; resources are
  * normalised to the diagram's `{n, a, c}` triple. The caller picks the
@@ -427,22 +481,41 @@ export function buildShipMapPart(
   const upAxial = up ? up[1] : 1;
   const projectedMagSq = upLat * upLat + upAxial * upAxial;
   const rotationRad = projectedMagSq < 0.01 ? 0 : Math.atan2(upLat, upAxial);
-  // Mesh-centre offset (pre-rotated to vessel frame on the fork side).
-  // orgPos is the attach-node anchor; for radial-mount parts the mesh
-  // centre sits some distance away. The diagram positions the body box
-  // on the mesh centre, not the anchor, so radial decouplers don't
-  // appear to sink into the parent stack. Defaults to zero so fixtures
-  // captured before the fork started emitting bounds.center still
-  // render identically (correct for axially-stacked parts where mesh
-  // centre = anchor).
+  /**
+   * Mesh-centre offset, rotated out of the part's own frame and into the
+   * vessel's before it can be added to `orgPos`.
+   *
+   * `orgPos` is the attach-node anchor; for a radial-mount part the mesh
+   * centre sits some distance away, and the diagram draws the body box on
+   * the mesh centre so radial decouplers don't appear to sink into the
+   * parent stack. But `bounds.center` is `Part.boundsCentroidOffset`, which
+   * is PART-local: KSP's own two readers of it both spell
+   * `partTransform.rotation * boundsCentroidOffset`, and nothing anywhere
+   * writes the field, so no load step transforms it for us. Adding it raw
+   * put a radial part's offset in the wrong direction, which is precisely
+   * the case the offset exists to fix.
+   *
+   * `orgRot` itself is not on the wire, only `up = orgRot * Vector3.up`,
+   * so the recoverable rotation is the minimal swing carrying vessel +Y
+   * onto `up`. That is exact for an offset lying along the part's own up
+   * axis and leaves the twist about `up` unrecovered for one that doesn't;
+   * a lateral offset can still land on the wrong side of its own mount.
+   * Emitting the quaternion is the only thing that would close that, and
+   * it is a mod-side change.
+   *
+   * No `up` means either an axial part or a fixture recorded before the
+   * field existed, and both want the identity, so an absent offset or an
+   * absent rotation leaves the anchor exactly where it was.
+   */
   const center = part.bounds.center;
+  const meshOffset = center
+    ? rotateIntoVesselFrame(center, up)
+    : { x: 0, y: 0, z: 0 };
   const meshLat =
-    (useX ? orgPos[0] : orgPos[2]) +
-    (center ? (useX ? center.x : center.z) : 0);
+    (useX ? orgPos[0] : orgPos[2]) + (useX ? meshOffset.x : meshOffset.z);
   const meshDepth =
-    (useX ? orgPos[2] : orgPos[0]) +
-    (center ? (useX ? center.z : center.x) : 0);
-  const meshAxial = orgPos[1] + (center?.y ?? 0);
+    (useX ? orgPos[2] : orgPos[0]) + (useX ? meshOffset.z : meshOffset.x);
+  const meshAxial = orgPos[1] + meshOffset.y;
   const type = classifyPart(part, resources);
   // Lateral half-extent along the picked axis: normally just the picked-
   // axis half of the prefab bounds. Flat radial plates (solar panels and
