@@ -357,7 +357,7 @@ function ConverterCard({
   // support it: the fault it names would be one the vessel had some seconds ago.
   // Neither can an ABSENT rate, for the same reason one step earlier: a backend
   // whose part capacity failed to resolve reports the recipe with its resources
-  // named and no rates at all (KerbalismIsruMap.AddFlows), so every output
+  // named and no rates at all, so every output
   // reading as an unread rate is a failed read of a converter that may be
   // running perfectly. The card's own rate cells print "unknown" for those very
   // values; a warning tone and a "no output" badge in the same render would

@@ -163,8 +163,8 @@ describe("ResourceOps: what undefined means today", () => {
    * NOT a characterisation: the behaviour this pins is the corrected one.
    *
    * An absent rate is the producer's own way of saying it could not read one
-   * (`KerbalismIsruMap.AddFlows` writes `Rate = null` whenever the part's
-   * capacity failed to resolve, and says so in its comment), so a stall
+   * (a backend writes a null rate when the part's capacity failed to
+   * resolve, and says so at that site), so a stall
    * diagnosed from it is a fault claimed from missing data. The card's own
    * rate cells already print "unknown" for the very same values in the very
    * same render, which is what the diagnosis has to agree with.
