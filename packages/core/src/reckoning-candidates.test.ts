@@ -41,10 +41,13 @@ import VERDICTS from "./reckoning-candidates.json";
 interface Verdict {
   /**
    * `real-but-unmodelled`: the sibling genuinely IS this quantity's rate, and
-   * nobody has written the model. `coincidence`: the pairing is an artefact of
-   * the dimensions and integrating it would invent motion.
+   * nobody has written the model. `modelled`: a registered reckoner now claims
+   * it, which is not the same as saying it integrates the offered sibling (see
+   * `KerbalismCrewRule.value`, where the offered rate is the wrong one and the
+   * model fits an observed slope instead). `coincidence`: the pairing is an
+   * artefact of the dimensions and integrating it would invent motion.
    */
-  verdict: "real-but-unmodelled" | "coincidence";
+  verdict: "real-but-unmodelled" | "modelled" | "coincidence";
   /** The siblings the rule offered, because "which of these is the rate" is the question it cannot answer. */
   rates: string[];
   reason: string;
@@ -203,12 +206,16 @@ describe("rate-integration candidates carry a written verdict", () => {
     // ratchet rather than a classifier is that the pairing is USUALLY an
     // artefact, so if that ever stopped being true the case for deriving a
     // class by default would need revisiting.
+    //
+    // Both real classes count on the left. `modelled` is a real derivative that
+    // somebody went and modelled, so counting only `real-but-unmodelled` would
+    // make writing the models read as the scan going blind, and the last one
+    // getting written would fail this outright.
     const kinds = Object.values(verdicts).map((v) => v.verdict);
-    expect(
-      kinds.filter((k) => k === "real-but-unmodelled").length,
-    ).toBeGreaterThan(0);
+    const real = kinds.filter((k) => k !== "coincidence").length;
+    expect(real).toBeGreaterThan(0);
     expect(kinds.filter((k) => k === "coincidence").length).toBeGreaterThan(
-      kinds.filter((k) => k === "real-but-unmodelled").length,
+      real,
     );
   });
 
