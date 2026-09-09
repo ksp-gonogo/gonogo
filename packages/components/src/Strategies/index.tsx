@@ -76,7 +76,12 @@ export interface Strategy {
   hasFactorSlider: boolean;
   factorSliderDefault: number;
   factorSliderSteps: number;
-  canActivate: boolean;
+  /**
+   * Null when the career model could not put the question to the game at all,
+   * which is a different answer from a refusal and must not collapse into one.
+   * `activateBlockedReason` carries the account either way.
+   */
+  canActivate: boolean | null;
   activateBlockedReason: string;
   canDeactivate: boolean;
   deactivateBlockedReason: string;
@@ -149,7 +154,9 @@ export function parseStrategies(raw: unknown): Strategy[] | null {
       hasFactorSlider: e.hasFactorSlider === true,
       factorSliderDefault: magnitudeOr(e.factorSliderDefault as Quantityish, 0),
       factorSliderSteps: magnitudeOr(e.factorSliderSteps as Quantityish, 1),
-      canActivate: e.canActivate === true,
+      /* Three states, and only a real boolean is an answer. An absent field and
+         an explicit null both mean the question went unasked. */
+      canActivate: typeof e.canActivate === "boolean" ? e.canActivate : null,
       activateBlockedReason:
         typeof e.activateBlockedReason === "string"
           ? e.activateBlockedReason
@@ -192,38 +199,61 @@ export function parseEffectLines(raw: string): string[] {
 }
 
 /**
- * The four lists one screenful of strategies is drawn as. Split out of the
- * component so a tab can be partitioned on its own share of the list while the
- * header keeps partitioning the whole of it.
+ * The lists one screenful of strategies is drawn as. Split out of the component
+ * so a tab can be partitioned on its own share of the list while the header
+ * keeps partitioning the whole of it.
  */
 function partition(strategies: readonly Strategy[]): {
   active: Strategy[];
   available: Strategy[];
   softBlocked: Strategy[];
   ineligible: Strategy[];
+  unknown: Strategy[];
 } {
   const inactive = strategies.filter((s) => !s.isActive);
+  // Every other bucket is a reading of an ANSWER, so it is taken off the ones
+  // that got one. A strategy nobody could judge belongs to neither the yeses
+  // nor the noes, and filing it with the noes is the operator being told a
+  // refusal that never happened.
+  const answered = inactive.filter((s) => s.canActivate !== null);
   return {
     active: strategies.filter((s) => s.isActive),
-    available: inactive.filter(
+    available: answered.filter(
       (s) => s.canActivate || s.activateBlockedReason === "",
     ),
     // "more than 1 active strategies at this level" is the soft cap, the
     // strategy IS eligible, just blocked by the active count. Keep those
     // visible in the Available list so the operator sees them as options once
     // they deactivate the running strategy.
-    softBlocked: inactive.filter(
+    softBlocked: answered.filter(
       (s) =>
         !s.canActivate &&
         /active strategies at this level/i.test(s.activateBlockedReason),
     ),
-    ineligible: inactive.filter(
+    ineligible: answered.filter(
       (s) =>
         !s.canActivate &&
         s.activateBlockedReason !== "" &&
         !/active strategies at this level/i.test(s.activateBlockedReason),
     ),
+    unknown: inactive.filter((s) => s.canActivate === null),
   };
+}
+
+/**
+ * The one account a whole bucket shares, or null when they differ.
+ *
+ * The facility answers eligibility for the entire roster or for none of it, so
+ * the per-card spelling of an unanswered list is one sentence repeated down the
+ * screen. Said once above the list it is a statement about the facility, which
+ * is what it actually is.
+ */
+function sharedReason(strategies: readonly Strategy[]): string | null {
+  const first = strategies[0]?.activateBlockedReason ?? "";
+  if (first === "") return null;
+  return strategies.every((s) => s.activateBlockedReason === first)
+    ? first
+    : null;
 }
 
 /**
@@ -569,11 +599,35 @@ function ScreenSections({
   expandedId,
   setExpandedId,
 }: Readonly<ScreenSectionsProps>) {
-  const { active, available, softBlocked, ineligible } = partition(strategies);
+  const { active, available, softBlocked, ineligible, unknown } =
+    partition(strategies);
+  /* Said once above the unanswered list when they all share it, and on each
+     card when they do not. */
+  const unknownReason = sharedReason(unknown);
   /* Whether anything is bound to the body slot at all, so the rule that
      separates the widget's lists from an Uplink's body is not drawn across a
      stock career where there is nothing on the other side of it. */
   const bodyBound = useSlotBound("strategies.screen-body");
+  /* The available card and the unanswered one are the same card: same price,
+     same factor, same refusable control. Only the note above the price and the
+     list it sits in differ. */
+  const strategyRow = (s: Strategy, note?: string) => (
+    <AvailableRow
+      key={s.id}
+      strategy={s}
+      showDepartment={showDepartment}
+      funds={magnitudeOf(funds)}
+      reputation={magnitudeOf(reputation)}
+      science={magnitudeOf(science)}
+      balancesNotCurrent={balancesNotCurrent}
+      factor={factorById[s.id] ?? s.factorSliderDefault}
+      onFactorChange={(v) => setFactorById((prev) => ({ ...prev, [s.id]: v }))}
+      activateCmd={activateCmd}
+      expanded={expandedId === s.id}
+      onToggleExpanded={() => setExpandedId(expandedId === s.id ? null : s.id)}
+      note={note}
+    />
+  );
   return (
     <ScrollArea>
       {/* ONE box owns the screen's inset, and everything on the screen is in
@@ -647,26 +701,7 @@ function ScreenSections({
               <Empty>No strategies available right now.</Empty>
             ) : (
               <>
-                {available.map((s) => (
-                  <AvailableRow
-                    key={s.id}
-                    strategy={s}
-                    showDepartment={showDepartment}
-                    funds={magnitudeOf(funds)}
-                    reputation={magnitudeOf(reputation)}
-                    science={magnitudeOf(science)}
-                    balancesNotCurrent={balancesNotCurrent}
-                    factor={factorById[s.id] ?? s.factorSliderDefault}
-                    onFactorChange={(v) =>
-                      setFactorById((prev) => ({ ...prev, [s.id]: v }))
-                    }
-                    activateCmd={activateCmd}
-                    expanded={expandedId === s.id}
-                    onToggleExpanded={() =>
-                      setExpandedId(expandedId === s.id ? null : s.id)
-                    }
-                  />
-                ))}
+                {available.map((s) => strategyRow(s))}
                 {softBlocked.map((s) => (
                   <StrategyCard key={s.id}>
                     <CardHeader>
@@ -695,6 +730,33 @@ function ScreenSections({
                   <BlockedNote>{s.activateBlockedReason}</BlockedNote>
                 </StrategyCard>
               ))}
+            </Section>
+          )}
+
+          {/* Its own list, not a badge in Locked. What the career refuses and
+              what nobody could ask are different KINDS of statement: the first
+              is a fact about the save the operator has to go and change, the
+              second is a fact about which screen is open. Filing them together
+              is what put a whole roster under a heading reading LOCKED while
+              every card under it said the state was unknown. The cards are the
+              same cards as Available, price included, because the operator's
+              next move is to open the facility and spend. */}
+          {unknown.length > 0 && (
+            <Section
+              as="section"
+              aria-label="Eligibility unknown"
+              title="Eligibility unknown"
+              gap="md"
+            >
+              {unknownReason !== null && (
+                <BlockedNote>{unknownReason}</BlockedNote>
+              )}
+              {unknown.map((s) =>
+                strategyRow(
+                  s,
+                  unknownReason === null ? s.activateBlockedReason : undefined,
+                ),
+              )}
             </Section>
           )}
         </Grid>
@@ -728,6 +790,7 @@ function AvailableRow({
   activateCmd,
   expanded,
   onToggleExpanded,
+  note,
 }: {
   strategy: Strategy;
   /** See `ScreenSections`'s own derivation of this. */
@@ -746,6 +809,12 @@ function AvailableRow({
   activateCmd: CommandButtonHandle;
   expanded: boolean;
   onToggleExpanded: () => void;
+  /**
+   * A standing account of this card's own state, on screen above the price. The
+   * button's `title` says the same thing to a pointer that rests on it, which
+   * is neither a keyboard nor a glance.
+   */
+  note?: string;
 }) {
   // Scale the cost displays by the factor slider, KSP costs scale
   // linearly with the commitment factor inside the slider range. A
@@ -805,6 +874,7 @@ function AvailableRow({
           ))}
         </EffectList>
       )}
+      {note && <BlockedNote>{note}</BlockedNote>}
       <CostRow>
         {s.initialCostFunds > 0 && (
           <CostChip $insufficient={overBudget(scaledFunds, funds)}>
@@ -874,13 +944,16 @@ function AvailableRow({
           label="Activate"
           confirmLabel="Confirm activate"
           pendingLabel="Activating..."
-          disabled={!s.canActivate || cantAfford}
+          /* An unread eligibility refuses on the same terms as a refusal: the
+             actuator will not dispatch one either, and arming a control that
+             cannot land is the same falsehood pointing the other way. */
+          disabled={s.canActivate !== true || cantAfford}
           /* A stale balance and a short one both refuse, and the operator does
              something different about each: top up the treasury, or find out
              why the link stopped. So the refusal names which it is rather than
              calling a career it cannot see insufficient. */
           title={
-            !s.canActivate
+            s.canActivate !== true
               ? s.activateBlockedReason || "Cannot activate"
               : balancesNotCurrent
                 ? "Career balances are no longer current, so affordability cannot be checked"
