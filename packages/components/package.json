@@ -35,7 +35,11 @@
     "render-chart-provenance": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-chart-provenance.ts",
     "render-reckoned-tail": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-reckoned-tail.ts",
     "render-drag-horizon": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-drag-horizon.ts",
-    "render-targeting-hud": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-targeting-hud.ts"
+    "render-targeting-hud": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-targeting-hud.ts",
+    "gen-eligibility-fixtures": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-eligibility-fixtures.ts",
+    "gen-handover-fixtures": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/gen-handover-fixtures.ts",
+    "render-eligibility-unknown": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-eligibility-unknown.ts",
+    "render-atmospheric-handover": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-atmospheric-handover.ts"
   },
   "dependencies": {
     "@ksp-gonogo/core": "workspace:*",
