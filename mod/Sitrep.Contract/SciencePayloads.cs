@@ -380,6 +380,34 @@ public class DeployedEntry
     [SitrepUnit(Units.Flag)]
     public bool? ControllerConnected { get; set; }
 
+    /// <summary>
+    /// Power units the cluster's parts PRODUCE
+    /// (<c>DeployedScienceCluster.PowerAvailable</c>), against
+    /// <see cref="PowerRequired"/>. Breaking Ground's own integral power scale
+    /// summed over the cluster's parts: NOT electric charge, and not a rate.
+    /// Available at or above required is what makes the cluster powered.
+    ///
+    /// <para><c>null</c> when the cluster could not be read, on the same terms
+    /// as <see cref="Power"/>. Zero is a real reading a live cluster holds
+    /// while its panels are dark, so it must not stand in for absence.</para>
+    /// <internal>
+    /// Read off the same cluster object <c>DerivePowerState</c> already
+    /// resolves through <c>ScienceClusterData</c>, so this costs no extra
+    /// reflection hop. Both were reachable all along; the client was showing
+    /// a hardcoded "EC 0/0" instead, under a unit name the scale never had.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? PowerAvailable { get; set; }
+
+    /// <summary>
+    /// Power units the cluster's parts REQUIRE
+    /// (<c>DeployedScienceCluster.PowerRequired</c>). Same scale and same null
+    /// rule as <see cref="PowerAvailable"/>, the demand side of the balance.
+    /// </summary>
+    [SitrepUnit(Units.Count)]
+    public int? PowerRequired { get; set; }
+
     [SitrepUnit(Units.Flag)]
     public bool? DeployedOnGround { get; set; }
 }

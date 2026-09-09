@@ -34,6 +34,11 @@ const flatEntry = (
   // above are display labels only.
   power: DeployedPowerState.Powered,
   controllerConnected: true,
+  // The cluster's own power-unit balance, off `DeployedScienceCluster`. A
+  // surplus, so the default entry renders a balance rather than the shortfall
+  // case, and the two sides differ so a transposition would show.
+  powerAvailable: 3,
+  powerRequired: 2,
   deployedOnGround: true,
   ...over,
 });
@@ -104,10 +109,39 @@ describe("DeployedScienceComponent", () => {
     });
     await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
     expect(screen.getByText(/Powered/i)).toBeInTheDocument();
-    // No EC numbers on the new wire, powerAvailable/powerRequired degrade to 0/0.
-    expect(visibleText()).toMatch(/EC 0\/0/);
+    // The cluster's produced-over-required power units. This asserted
+    // `/EC 0\/0/` until 2026-09-09: two hardcoded zeros under a unit name the
+    // scale never had, which is what the mod now actually publishes off
+    // `DeployedScienceCluster.PowerAvailable`/`.PowerRequired`.
+    expect(visibleText()).toMatch(/Power 3\/2/);
     expect(screen.getByText("Seismometer")).toBeInTheDocument();
     expect(visibleText()).toContain("50 %");
+  });
+
+  it("says the power balance is unknown rather than drawing a zero one", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    act(() => {
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("deployed.bases", [
+        flatEntry({ powerAvailable: null, powerRequired: null }),
+      ]);
+    });
+    await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
+    expect(visibleText()).toMatch(/Power unknown/);
+    expect(visibleText()).not.toMatch(/Power \d/);
+  });
+
+  it("draws no balance when only one side of it arrived", async () => {
+    const fixture = newFixture();
+    renderDeployed(fixture);
+    act(() => {
+      fixture.emit("game.dlc", { breakingGround: true });
+      fixture.emit("deployed.bases", [flatEntry({ powerRequired: null })]);
+    });
+    await waitFor(() => expect(screen.getByText("Mun")).toBeInTheDocument());
+    expect(visibleText()).toMatch(/Power unknown/);
+    expect(visibleText()).not.toMatch(/Power 3/);
   });
 
   /**

@@ -4947,7 +4947,11 @@ namespace Gonogo.KSP
         /// "has power / has comms" readout) and <c>DeployedOnGround</c>
         /// (bool get-property). <c>Type.GetField(Public|Instance)</c> reaches
         /// inherited public fields/properties, so all are read straight off
-        /// the concrete module instance.</para>
+        /// the concrete module instance. Off the CLUSTER
+        /// (<c>ScienceClusterData</c> -> <c>DeployedScienceCluster</c>):
+        /// <c>PowerAvailable</c>/<c>PowerRequired</c> (int get-properties,
+        /// Breaking Ground's own power units) alongside the booleans
+        /// <see cref="DerivePowerState"/> reads.</para>
         /// </summary>
         private static List<object?>? BuildDeployedScience()
         {
@@ -5001,6 +5005,11 @@ namespace Gonogo.KSP
                         }
 
                         var type = module.GetType();
+                        // Resolved once and shared: the derived power state, the
+                        // controller-attachment fact and the power balance are all
+                        // facts about the CLUSTER, not the module.
+                        var cluster = ReflectMemberValue(type, module, "ScienceClusterData");
+                        var clusterType = cluster?.GetType();
                         list ??= new List<object?>();
                         list.Add(new Dictionary<string, object?>
                         {
@@ -5018,8 +5027,17 @@ namespace Gonogo.KSP
                             // derived fields below are what a client branches on.
                             ["powerState"] = ReflectString(type, module, "PowerState"),
                             ["connectionState"] = ReflectString(type, module, "ConnectionState"),
-                            ["power"] = (int?)DerivePowerState(type, module),
-                            ["controllerConnected"] = ReflectMemberValue(type, module, "ScienceClusterData") != null,
+                            ["power"] = (int?)DerivePowerState(type, module, cluster),
+                            ["controllerConnected"] = cluster != null,
+                            // Breaking Ground's own integral power units, summed
+                            // over the cluster's parts. Null with no cluster to
+                            // read: a zero here is a dark cluster, not an absent one.
+                            ["powerAvailable"] = clusterType != null && cluster != null
+                                ? ReflectInt(clusterType, cluster, "PowerAvailable")
+                                : null,
+                            ["powerRequired"] = clusterType != null && cluster != null
+                                ? ReflectInt(clusterType, cluster, "PowerRequired")
+                                : null,
                             ["deployedOnGround"] = ReflectBool(type, module, "DeployedOnGround"),
                         });
                     }
@@ -5046,9 +5064,8 @@ namespace Gonogo.KSP
         /// unpowered - so this reports what the game's own readout would say,
         /// in a form that survives translation.</para>
         /// </summary>
-        private static DeployedPowerState? DerivePowerState(Type type, object module)
+        private static DeployedPowerState? DerivePowerState(Type type, object module, object? cluster)
         {
-            var cluster = ReflectMemberValue(type, module, "ScienceClusterData");
             if (cluster == null)
             {
                 return DeployedPowerState.NotConnected;
@@ -5206,6 +5223,15 @@ namespace Gonogo.KSP
 
         private static bool? ReflectBool(Type type, object instance, string name) =>
             ReflectMemberValue(type, instance, name) as bool?;
+
+        /// <summary>
+        /// Integral sibling of <see cref="ReflectDouble"/>. Only a reflected
+        /// <c>int</c> satisfies it: a member that comes back as a float is not an
+        /// integral tally, and truncating one here would publish a different
+        /// quantity under the same name.
+        /// </summary>
+        private static int? ReflectInt(Type type, object instance, string name) =>
+            ReflectMemberValue(type, instance, name) as int?;
 
         /// <summary>
         /// Numeric-aware sibling of <see cref="ReflectMemberValue"/> - widens

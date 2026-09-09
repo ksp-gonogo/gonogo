@@ -185,6 +185,8 @@ namespace Sitrep.Host
             ["powerState"] = SnapshotDict.GetString(raw, "powerState"),
             ["power"] = SnapshotDict.GetInt(raw, "power"),
             ["controllerConnected"] = SnapshotDict.GetBool(raw, "controllerConnected"),
+            ["powerAvailable"] = SnapshotDict.GetInt(raw, "powerAvailable"),
+            ["powerRequired"] = SnapshotDict.GetInt(raw, "powerRequired"),
             ["connectionState"] = SnapshotDict.GetString(raw, "connectionState"),
             ["deployedOnGround"] = SnapshotDict.GetBool(raw, "deployedOnGround"),
         };

@@ -3,6 +3,26 @@ import { describe, expect, it } from "vitest";
 import type { KerbalismLifeSupport } from "../__generated__/contract";
 import { computeKerbalismPartMeta } from "./partMeta";
 
+/**
+ * One fitted process with the given running/broken pair, taken through a JSON
+ * round-trip rather than handed over as a typed object.
+ *
+ * That is the whole point of the unread cases below. Codegen types a `bool?` as
+ * `boolean | undefined`, but the mod writes an unread flag as JSON NULL with the
+ * key still on the wire, so a null is what actually reaches the contribution and
+ * the generated type says it cannot happen (the same trap `ScienceFileManager`'s
+ * `DriveCapacity` records). Parsing the frame reproduces exactly that: a null
+ * survives, an omitted key stays omitted, and no assertion is needed to get
+ * there.
+ */
+function processFixture(flags: Record<string, unknown>): KerbalismLifeSupport {
+  return JSON.parse(
+    JSON.stringify({
+      processes: [{ title: "Greenhouse", flightId: 7, ...flags }],
+    }),
+  );
+}
+
 describe("computeKerbalismPartMeta", () => {
   it("emits a running-process row, keyed by its host part", () => {
     const lifeSupport: KerbalismLifeSupport = {
@@ -47,11 +67,36 @@ describe("computeKerbalismPartMeta", () => {
 
   it("labels a fitted-but-idle process idle, neutral tone", () => {
     const lifeSupport: KerbalismLifeSupport = {
-      processes: [{ title: "Greenhouse", running: false, flightId: 7 }],
+      processes: [
+        { title: "Greenhouse", running: false, broken: false, flightId: 7 },
+      ],
     };
     expect(computeKerbalismPartMeta(lifeSupport)[0]).toMatchObject({
       tone: "neutral",
       text: "idle",
+    });
+  });
+
+  it.each([
+    ["the broken flag arrives null", { running: false, broken: null }],
+    ["the running flag arrives null", { running: null, broken: false }],
+    ["both arrive null", { running: null, broken: null }],
+    ["neither key is on the wire", {}],
+  ])("says unknown, not idle, when %s", (_which, flags) => {
+    expect(computeKerbalismPartMeta(processFixture(flags))[0]).toMatchObject({
+      tone: "warn",
+      text: "unknown",
+    });
+  });
+
+  it("lets a positive running read win over an unread broken flag", () => {
+    expect(
+      computeKerbalismPartMeta(
+        processFixture({ running: true, broken: null }),
+      )[0],
+    ).toMatchObject({
+      tone: "go",
+      text: "running",
     });
   });
 

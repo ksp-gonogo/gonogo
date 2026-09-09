@@ -21,9 +21,9 @@ import "./index";
  * the widget renders the full two-experiment Mun cluster correctly off the
  * real stream pipeline, from the flat `deployed.bases` wire shape grouped by
  * `vesselName` (`groupFlatDeployedEntries`, index.tsx):
- * `powerAvailable`/`powerRequired` degrade to `0`/`0` (no EC numeric on the
- * new wire, only the coarse `powerState` enum), progress derived straight from
- * `scienceCompletedPercentage`.
+ * the cluster's own power-unit balance drawn as produced-over-required (NOT an
+ * EC figure, and hardcoded `0`/`0` until 2026-09-09), progress derived straight
+ * from `scienceCompletedPercentage`.
  */
 describe("DeployedScience: stream render golden (delay=0)", () => {
   it("renders the full deployed-cluster state off the stream pipeline", async () => {
@@ -55,6 +55,8 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           scienceLimit: 60,
           powerState: "Powered",
           connectionState: "Connected",
+          powerAvailable: 5,
+          powerRequired: 4,
           deployedOnGround: true,
         },
         {
@@ -70,6 +72,8 @@ describe("DeployedScience: stream render golden (delay=0)", () => {
           scienceLimit: 12,
           powerState: "Powered",
           connectionState: "Connected",
+          powerAvailable: 5,
+          powerRequired: 4,
           deployedOnGround: true,
         },
       ]);

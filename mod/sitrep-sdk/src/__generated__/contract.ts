@@ -4023,6 +4023,24 @@ export interface DeployedEntry
 	* when it could not be determined.
 	*/
 	controllerConnected?: boolean;
+	/**
+	* Power units the cluster's parts PRODUCE
+	* (`DeployedScienceCluster.PowerAvailable`), against
+	* `DeployedEntry.powerRequired`. Breaking Ground's own integral power scale
+	* summed over the cluster's parts: NOT electric charge, and not a rate.
+	* Available at or above required is what makes the cluster powered.
+	*
+	* `null` when the cluster could not be read, on the same terms as
+	* `DeployedEntry.power`. Zero is a real reading a live cluster holds while its
+	* panels are dark, so it must not stand in for absence.
+	*/
+	powerAvailable?: Value<"count">;
+	/**
+	* Power units the cluster's parts REQUIRE
+	* (`DeployedScienceCluster.PowerRequired`). Same scale and same null rule as
+	* `DeployedEntry.powerAvailable`, the demand side of the balance.
+	*/
+	powerRequired?: Value<"count">;
 	deployedOnGround?: boolean;
 }
 /**
