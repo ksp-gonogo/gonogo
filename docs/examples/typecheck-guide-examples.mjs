@@ -79,11 +79,22 @@ mkdirSync(join(work, "src"), { recursive: true });
 
 // One tsconfig, resolving through a real Uplink client's node_modules so the
 // blocks are checked against exactly what an installed client sees.
-const modules = join(repo, "mod/GonogoAvionicsUplink/client/node_modules");
-if (!existsSync(modules)) {
-  console.error(`missing ${modules}: run pnpm install first`);
+//
+// DISCOVERED, not named. This pointed at GonogoAvionicsUplink until that
+// Uplink moved out to the gonogo-uplinks repo, and the hardcoded path then
+// named a directory no `pnpm install` could ever create: the step failed on
+// every run with "run pnpm install first", which is the one instruction that
+// could not help. Any installed client serves equally, so take the first in
+// sorted order and stay reproducible while the set churns.
+const clients = readdirSync(join(repo, "mod"))
+  .sort()
+  .map((d) => join(repo, "mod", d, "client/node_modules"))
+  .filter((d) => existsSync(d));
+if (clients.length === 0) {
+  console.error("no mod/*/client/node_modules found: run pnpm install first");
   process.exit(1);
 }
+const modules = clients[0];
 if (!existsSync(join(repo, "packages/ui-kit/dist/index.d.ts"))) {
   console.error(
     "missing packages/ui-kit/dist: run pnpm turbo build --filter=@ksp-gonogo/ui-kit",
