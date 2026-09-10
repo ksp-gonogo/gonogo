@@ -1,20 +1,5 @@
-import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
-import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
-import { crossingBoundaryX, RailCrossing, waveformPath } from "./RailCrossing";
-import { DEFAULT_RAIL_TAGS, type RailTags, VOICE_RAIL_TAGS } from "./railTags";
-
-const SCIENCE_HOME: RailTags = {
-  direction: "telemetry",
-  continuity: "discrete",
-  delivery: "fire-and-forget",
-};
-
-const FLY_BY_WIRE: RailTags = {
-  direction: "command",
-  continuity: "continuous",
-  delivery: "acked",
-};
+import { WAVE_HALF_H, WAVE_MID_Y, waveformPath } from "./waveformPath";
 
 /** Every "x.xx,y.yy" vertex of a path, in order. */
 function vertices(d: string): { x: number; y: number }[] {
@@ -24,7 +9,7 @@ function vertices(d: string): { x: number; y: number }[] {
   }));
 }
 
-const MID_Y = 8;
+const MID_Y = WAVE_MID_Y;
 
 describe("waveformPath", () => {
   it("puts the newest sample at this end and older ones further out", () => {
@@ -68,8 +53,8 @@ describe("waveformPath", () => {
 
   it("is symmetric about the mid-line, so the peaks read either way", () => {
     const d = waveformPath(new Array(64).fill(1), 63, 100);
-    expect(d).toContain(",2.50");
-    expect(d).toContain(",13.50");
+    expect(d).toContain(`,${(MID_Y - WAVE_HALF_H).toFixed(2)}`);
+    expect(d).toContain(`,${(MID_Y + WAVE_HALF_H).toFixed(2)}`);
   });
 
   it("drops samples that have already arrived rather than piling them up", () => {
@@ -92,164 +77,6 @@ describe("waveformPath", () => {
   it("survives a non-finite sample rather than emitting NaN geometry", () => {
     const d = waveformPath([Number.NaN, 0.5], 1, 100);
     expect(d).not.toContain("NaN");
-  });
-});
-
-describe("the boundary is where the drawn journey ends", () => {
-  it("sits halfway when there is a leg back", () => {
-    expect(crossingBoundaryX(true)).toBe(50);
-  });
-
-  it("sits at the far end when nothing comes back", () => {
-    expect(crossingBoundaryX(false)).toBeGreaterThan(90);
-  });
-});
-
-describe("RailCrossing", () => {
-  it("draws the operator's voice as a ribbon with no return leg", () => {
-    const { container } = render(
-      <RailCrossing
-        tags={VOICE_RAIL_TAGS}
-        amplitudes={[0.2, 0.6, 0.4]}
-        spanSamples={3}
-        label="Your transmission crossing to Odyssey"
-      />,
-    );
-    const svg = container.querySelector("[data-rail-crossing]");
-    expect(svg?.getAttribute("data-mark")).toBe("ribbon");
-    expect(svg?.getAttribute("data-return-leg")).toBe("false");
-    expect(container.querySelector('[data-role="ribbon"]')).not.toBeNull();
-    // The lie the tagging exists to remove: nothing is drawn coming back.
-    expect(container.querySelector('[data-role="dot"]')).toBeNull();
-  });
-
-  it("strokes the voice as a trace rather than filling it as a blob", () => {
-    const { container } = render(
-      <RailCrossing
-        tags={VOICE_RAIL_TAGS}
-        amplitudes={[0.2, 0.6, 0.4]}
-        spanSamples={3}
-        label="Your transmission crossing to Odyssey"
-      />,
-    );
-    const trace = container.querySelector('[data-role="ribbon"]');
-    expect(trace?.getAttribute("fill")).toBe("none");
-    expect(trace?.getAttribute("stroke")).toMatch(/^url\(#/);
-    /*
-     * The box is stretched to the widget's width (preserveAspectRatio="none"),
-     * so a scaled stroke would come out several times thicker across than it is
-     * tall: the pen the operator already objected to, back by another route.
-     */
-    expect(trace?.getAttribute("vector-effect")).toBe("non-scaling-stroke");
-  });
-
-  it("puts the boundary at the far end for a fire-and-forget entry", () => {
-    const { container } = render(
-      <RailCrossing
-        tags={VOICE_RAIL_TAGS}
-        amplitudes={[0.5]}
-        label="Transmission"
-      />,
-    );
-    const boundary = container.querySelector('[data-role="boundary"]');
-    expect(Number(boundary?.getAttribute("x1"))).toBe(crossingBoundaryX(false));
-  });
-
-  it("puts the boundary halfway when an ack is expected", () => {
-    const { container } = render(
-      <RailCrossing
-        tags={DEFAULT_RAIL_TAGS}
-        progress={0.5}
-        label="Launch in flight"
-      />,
-    );
-    const boundary = container.querySelector('[data-role="boundary"]');
-    expect(Number(boundary?.getAttribute("x1"))).toBe(crossingBoundaryX(true));
-  });
-
-  it("draws a discrete entry as a dot that stops at the boundary", () => {
-    const { container } = render(
-      <RailCrossing
-        tags={SCIENCE_HOME}
-        progress={1}
-        label="Science result on its way home"
-      />,
-    );
-    const dot = container.querySelector('[data-role="dot"]');
-    expect(dot).not.toBeNull();
-    expect(Number(dot?.getAttribute("cx"))).toBe(crossingBoundaryX(false));
-    expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
-  });
-
-  it("lets an acked dot travel the whole track, out and back", () => {
-    const { container } = render(
-      <RailCrossing tags={DEFAULT_RAIL_TAGS} progress={1} label="Launch" />,
-    );
-    const dot = container.querySelector('[data-role="dot"]');
-    expect(Number(dot?.getAttribute("cx"))).toBeGreaterThan(
-      crossingBoundaryX(true),
-    );
-  });
-
-  it("runs the fade the way the entry does", () => {
-    const samples = [0.5, 0.5, 0.5, 0.5];
-    const { container: out } = render(
-      <RailCrossing tags={FLY_BY_WIRE} amplitudes={samples} label="Pitch" />,
-    );
-    const { container: inbound } = render(
-      <RailCrossing
-        tags={VOICE_RAIL_TAGS}
-        amplitudes={samples}
-        label="Voice"
-      />,
-    );
-    const span = (c: HTMLElement): [number, number] => {
-      const g = c.querySelector("linearGradient");
-      return [Number(g?.getAttribute("x1")), Number(g?.getAttribute("x2"))];
-    };
-    // A command leaves this end clear and dissolves toward the target; what
-    // arrives is clearest where it lands.
-    const [outX1, outX2] = span(out);
-    expect(outX1).toBeLessThan(outX2);
-    const [inX1, inX2] = span(inbound);
-    expect(inX1).toBeGreaterThan(inX2);
-  });
-
-  it("gives two mounted crossings their own gradient id", () => {
-    const { container } = render(
-      <>
-        <RailCrossing tags={VOICE_RAIL_TAGS} amplitudes={[0.5]} label="One" />
-        <RailCrossing tags={FLY_BY_WIRE} amplitudes={[0.5]} label="Two" />
-      </>,
-    );
-    const ids = Array.from(container.querySelectorAll("linearGradient")).map(
-      (g) => g.id,
-    );
-    expect(ids).toHaveLength(2);
-    expect(new Set(ids).size).toBe(2);
-  });
-
-  it("draws nothing for a ribbon with no samples", () => {
-    const { container } = render(
-      <RailCrossing tags={VOICE_RAIL_TAGS} amplitudes={[]} label="Silent" />,
-    );
-    expect(container.querySelector("[data-rail-crossing]")).toBeNull();
-  });
-
-  it("names itself for assistive tech rather than sitting there unlabelled", async () => {
-    const { container } = render(
-      <RailCrossing
-        tags={VOICE_RAIL_TAGS}
-        amplitudes={[0.3, 0.7]}
-        label="Your transmission crossing to Odyssey"
-      />,
-    );
-    expect(
-      screen.getByRole("img", {
-        name: "Your transmission crossing to Odyssey",
-      }),
-    ).toBeInTheDocument();
-    await expectNoA11yViolations(container);
   });
 });
 
@@ -372,6 +199,6 @@ describe("the trace never draws more detail than it has", () => {
     const heights = vertices(waveformPath(ring, 0.035, 100)).map((v) =>
       Math.abs(v.y - MID_Y),
     );
-    for (const h of heights) expect(h).toBeCloseTo(0.9 * 5.5, 5);
+    for (const h of heights) expect(h).toBeCloseTo(0.9 * WAVE_HALF_H, 5);
   });
 });

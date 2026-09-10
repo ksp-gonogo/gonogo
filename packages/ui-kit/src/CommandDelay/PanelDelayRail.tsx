@@ -8,12 +8,8 @@ import {
   CommandUndeliveredList,
   type RailUndelivered,
 } from "./CommandUndeliveredList";
-import {
-  type CommandHandle,
-  useActiveCrossings,
-  useActiveHandles,
-} from "./DelayRailContext";
-import { RailCrossing } from "./RailCrossing";
+import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
+import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
 
 /**
  * Whether a handle's `CommandDelay` would draw anything: a stream with real
@@ -24,8 +20,8 @@ import { RailCrossing } from "./RailCrossing";
  * goes in flight, but it contributes no rail chrome meanwhile.
  *
  * A stream handle also needs BUFFERS, not just delay. `ControlDelayStream`
- * returns null on an empty `streams` array, so a stream-shaped command whose
- * delay UX is drawn elsewhere (the Navball's trim command shares
+ * returns null with neither streams nor ribbons, so a stream-shaped command
+ * whose delay UX is drawn elsewhere (the Navball's trim command shares
  * `vessel.control.setAxes` with the axes, but has no readback channel to build
  * a strip from) would otherwise mount the rail permanently to draw nothing
  * inside it, an empty band on every delayed link.
@@ -33,7 +29,11 @@ import { RailCrossing } from "./RailCrossing";
 function handleHasContent(handle: CommandHandle): boolean {
   if (handle.shape === "stream") {
     const delay = handle.effectiveDelaySeconds;
-    return delay !== null && delay > 0 && (handle.streams?.length ?? 0) > 0;
+    const marks = (handle.streams?.length ?? 0) + (handle.ribbons?.length ?? 0);
+    /* The graph's OWN floor, not a positive-delay test. Below it the graph
+       draws nothing, and a rail button standing open around nothing is a
+       zero-height control the operator can neither see nor click. */
+    return delay !== null && delay >= STREAM_MIN_DELAY_SECONDS && marks > 0;
   }
   return handle.inFlight.length > 0;
 }
@@ -98,7 +98,6 @@ function handleHasContent(handle: CommandHandle): boolean {
  */
 export function PanelDelayRail() {
   const handles = useActiveHandles();
-  const crossings = useActiveCrossings();
   const visible = handles.filter(handleHasContent);
   // Refusals come from EVERY registered handle, not just the ones with delay
   // content: a refused command has nothing in flight by definition (it settled),
@@ -135,11 +134,7 @@ export function PanelDelayRail() {
     (h.undelivered ?? []).map((u) => ({ ...u, shape: h.shape })),
   );
   const deadCount = refusals.length + losses.length + undelivered.length;
-  const hasContent =
-    visible.length > 0 ||
-    deadCount > 0 ||
-    founds.length > 0 ||
-    crossings.length > 0;
+  const hasContent = visible.length > 0 || deadCount > 0 || founds.length > 0;
   const [pinned, setPinned] = useState(false);
   /**
    * The transient hover preview, held in React rather than left to a CSS
@@ -273,21 +268,11 @@ export function PanelDelayRail() {
               key={h.id}
               handle={h}
               variant={grown ? "expanded" : "rail"}
-              ariaLabel={grown ? "Delay detail" : undefined}
-            />
-          ))}
-          {/* Tagged crossings share the band with the commands, the same way two
-            commands do: every rail child sits in the one grid cell collapsed,
-            and stacks when the rail grows. */}
-          {crossings.map((c) => (
-            <RailCrossing
-              key={c.id}
-              tags={c.tags}
-              label={c.label}
-              amplitudes={c.amplitudes}
-              spanSamples={c.spanSamples}
-              progress={c.progress}
-              variant={grown ? "expanded" : "rail"}
+              /* A handle that names its own graph keeps that name at both
+                 heights: a voice ribbon says which transmission it is drawing,
+                 and only a handle with nothing better to say is "Delay
+                 detail". */
+              ariaLabel={h.ariaLabel ?? (grown ? "Delay detail" : undefined)}
             />
           ))}
           {!grown && (deadCount > 0 || founds.length > 0) && (
