@@ -293,14 +293,57 @@ describe("the frames the C# writer actually produces", () => {
     segmentsBase64: string[];
   }
 
-  const fixture = JSON.parse(
-    readFileSync(
-      fileURLToPath(
-        new URL("../../golden-fixtures/binary-frame.json", import.meta.url),
+  /* Narrowed rather than asserted: a golden fixture that has drifted out of
+     shape fails here, naming the case, instead of surfacing as an unrelated
+     assertion inside whichever test reads the missing field. */
+  function isFixtureCase(value: unknown): value is FixtureCase {
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      "name" in value &&
+      typeof value.name === "string" &&
+      "topic" in value &&
+      typeof value.topic === "string" &&
+      "frameBase64" in value &&
+      typeof value.frameBase64 === "string" &&
+      "segmentsBase64" in value &&
+      Array.isArray(value.segmentsBase64) &&
+      value.segmentsBase64.every((entry) => typeof entry === "string")
+    );
+  }
+
+  function readCases(json: unknown): FixtureCase[] {
+    if (typeof json !== "object" || json === null || !("cases" in json)) {
+      throw new Error('golden-fixtures/binary-frame.json: no "cases" key');
+    }
+    const { cases } = json;
+    if (!Array.isArray(cases)) {
+      throw new Error(
+        'golden-fixtures/binary-frame.json: "cases" is not an array',
+      );
+    }
+    return cases.map((entry, index) => {
+      if (!isFixtureCase(entry)) {
+        throw new Error(
+          `golden-fixtures/binary-frame.json: case ${index} is not a FixtureCase`,
+        );
+      }
+      return entry;
+    });
+  }
+
+  const fixture = {
+    cases: readCases(
+      JSON.parse(
+        readFileSync(
+          fileURLToPath(
+            new URL("../../golden-fixtures/binary-frame.json", import.meta.url),
+          ),
+          "utf8",
+        ),
       ),
-      "utf8",
     ),
-  ) as { cases: FixtureCase[] };
+  };
 
   const fromBase64 = (value: string): Uint8Array =>
     Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
