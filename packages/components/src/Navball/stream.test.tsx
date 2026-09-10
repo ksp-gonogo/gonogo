@@ -65,7 +65,12 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
     );
 
     // Nothing arrived yet: the numeric readouts show the loading placeholder.
-    expect(screen.getByText("HDG").nextSibling?.textContent).toBe(NULL_DISPLAY);
+    // Read off the CELL rather than the label's next sibling: the reading and
+    // its label swap places between the readout's two presentations, so a
+    // sibling walk pins the layout rather than the value.
+    expect(screen.getByText("HDG").parentElement?.textContent).toContain(
+      NULL_DISPLAY,
+    );
 
     // A real subscription must have happened for this to deliver at all,
     // StubTransport.emit is subscription-gated (see its own doc comment).

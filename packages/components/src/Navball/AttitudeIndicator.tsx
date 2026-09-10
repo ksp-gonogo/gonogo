@@ -190,9 +190,13 @@ export function AttitudeIndicator({
         <div style={HEADING_POINTER} />
       </div>
 
+      {/* Reading first, label under it, matching the numeric readout the widget
+          degrades to: the same three readings should not swap places with their
+          own captions when the ball goes away. A reorder only, so the two
+          rendered heights this row contributes to `ATTITUDE_CHROME_PX` are
+          unchanged. */}
       <Grid cols="repeat(3, 1fr)" gap="md">
         <div style={CELL}>
-          <span style={LAB}>HDG</span>
           <span style={VAL}>
             {ready ? (
               <Unit value={value("°", safeHeading)} decimals={0} />
@@ -200,9 +204,9 @@ export function AttitudeIndicator({
               NULL_DISPLAY
             )}
           </span>
+          <span style={LAB}>HDG</span>
         </div>
         <div style={CELL}>
-          <span style={LAB}>PIT</span>
           <span style={VAL}>
             {ready ? (
               <Unit value={value("°", safePitch)} decimals={0} />
@@ -210,9 +214,9 @@ export function AttitudeIndicator({
               NULL_DISPLAY
             )}
           </span>
+          <span style={LAB}>PIT</span>
         </div>
         <div style={CELL}>
-          <span style={LAB}>ROL</span>
           <span style={VAL}>
             {ready ? (
               <Unit value={value("°", safeRoll)} decimals={0} />
@@ -220,6 +224,7 @@ export function AttitudeIndicator({
               NULL_DISPLAY
             )}
           </span>
+          <span style={LAB}>ROL</span>
         </div>
       </Grid>
     </div>
