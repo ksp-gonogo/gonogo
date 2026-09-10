@@ -1,4 +1,4 @@
-import { act, renderHook } from "@ksp-gonogo/test-utils";
+import { act, render, renderHook } from "@ksp-gonogo/test-utils";
 import type { MutableRefObject } from "react";
 import { describe, expect, it } from "vitest";
 import { useCamera } from "./useCamera";
@@ -148,5 +148,53 @@ describe("useCamera", () => {
     const after = hook.result.current.camera;
     expect(after.zoom).toBe(afterLift.zoom);
     expect(after.panX).not.toBe(afterLift.panX);
+  });
+});
+
+/**
+ * A real DOM element carrying `interactionRef`, the way MapView's
+ * CanvasContainer does, so the native wheel listener the hook attaches is
+ * actually on the node the test dispatches to. The fake element the pointer
+ * tests use has a no-op `addEventListener`, so it cannot see this path.
+ */
+function WheelHarness() {
+  const { interactionRef, camera } = useCamera({ w: 200, h: 100 });
+  return <div ref={interactionRef} data-zoom={camera.zoom} />;
+}
+
+function wheelOn(el: Element, init: WheelEventInit): WheelEvent {
+  const ev = new WheelEvent("wheel", {
+    deltaY: -100,
+    cancelable: true,
+    bubbles: true,
+    ...init,
+  });
+  act(() => {
+    el.dispatchEvent(ev);
+  });
+  return ev;
+}
+
+describe("useCamera wheel handling", () => {
+  it("leaves a plain wheel to the page so a dashboard taller than the viewport still scrolls", () => {
+    const { container } = render(<WheelHarness />);
+    const surface = container.firstElementChild as HTMLElement;
+    const before = surface.dataset.zoom;
+
+    const ev = wheelOn(surface, {});
+
+    expect(ev.defaultPrevented).toBe(false);
+    expect(surface.dataset.zoom).toBe(before);
+  });
+
+  it("zooms on ctrl+wheel, the gesture a trackpad pinch sends, and keeps that one off the page", () => {
+    const { container } = render(<WheelHarness />);
+    const surface = container.firstElementChild as HTMLElement;
+    const before = Number(surface.dataset.zoom);
+
+    const ev = wheelOn(surface, { ctrlKey: true });
+
+    expect(ev.defaultPrevented).toBe(true);
+    expect(Number(surface.dataset.zoom)).toBeGreaterThan(before);
   });
 });

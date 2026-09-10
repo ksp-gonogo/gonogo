@@ -1,4 +1,4 @@
-import { act, renderHook } from "@ksp-gonogo/test-utils";
+import { act, render, renderHook } from "@ksp-gonogo/test-utils";
 import type { MutableRefObject } from "react";
 import { describe, expect, it } from "vitest";
 import { useZoomPan } from "./useZoomPan";
@@ -172,5 +172,52 @@ describe("useZoomPan", () => {
       hook.result.current.zoomAbout(0.001, 0, 0);
     });
     expect(hook.result.current.cam.zoom).toBe(0.5);
+  });
+});
+
+/**
+ * A real DOM element carrying the hook's ref, the way ShipDiagram does, so the
+ * native wheel listener is on the node the test dispatches to. `makeEl` above
+ * has a no-op `addEventListener` and cannot see this path.
+ */
+function WheelHarness() {
+  const { ref, cam } = useZoomPan<HTMLDivElement>();
+  return <div ref={ref} data-zoom={cam.zoom} />;
+}
+
+function wheelOn(el: Element, init: WheelEventInit): WheelEvent {
+  const ev = new WheelEvent("wheel", {
+    deltaY: -100,
+    cancelable: true,
+    bubbles: true,
+    ...init,
+  });
+  act(() => {
+    el.dispatchEvent(ev);
+  });
+  return ev;
+}
+
+describe("useZoomPan wheel handling", () => {
+  it("leaves a plain wheel to the page so a dashboard taller than the viewport still scrolls", () => {
+    const { container } = render(<WheelHarness />);
+    const surface = container.firstElementChild as HTMLElement;
+    const before = surface.dataset.zoom;
+
+    const ev = wheelOn(surface, {});
+
+    expect(ev.defaultPrevented).toBe(false);
+    expect(surface.dataset.zoom).toBe(before);
+  });
+
+  it("zooms on ctrl+wheel, the gesture a trackpad pinch sends, and keeps that one off the page", () => {
+    const { container } = render(<WheelHarness />);
+    const surface = container.firstElementChild as HTMLElement;
+    const before = Number(surface.dataset.zoom);
+
+    const ev = wheelOn(surface, { ctrlKey: true });
+
+    expect(ev.defaultPrevented).toBe(true);
+    expect(Number(surface.dataset.zoom)).toBeGreaterThan(before);
   });
 });

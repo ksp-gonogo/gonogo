@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useWheelZoom } from "../shared/useWheelZoom";
 import {
   type Camera,
   fitCamera,
@@ -42,38 +43,38 @@ export function useCamera(containerSize: { w: number; h: number } | null) {
     if (containerSize) setCamera(fitCamera(containerSize.w, containerSize.h));
   }, [containerSize?.w, containerSize?.h]);
 
-  // Wheel zoom: addEventListener required so we can call preventDefault
-  // (React's onWheel is passive in some setups and cannot prevent page scroll)
-  useEffect(() => {
-    const el = interactionRef.current;
-    if (!el || !containerSize) return;
-
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const { w, h } = containerSize;
-
-      setViewMode("global"); // any manual interaction exits follow mode
-      setCamera((prev) => {
-        const { min, max } = zoomBounds(baseZoom);
-        const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-        const newZoom = Math.max(min, Math.min(max, prev.zoom * factor));
-        // Keep the world point under the cursor fixed during zoom
-        const wx = (mx - w / 2) / prev.zoom + prev.panX;
-        const wy = (my - h / 2) / prev.zoom + prev.panY;
-        return {
-          zoom: newZoom,
-          panX: wx - (mx - w / 2) / newZoom,
-          panY: wy - (my - h / 2) / newZoom,
-        };
-      });
-    };
-
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [containerSize, baseZoom]);
+  // Wheel zoom, on the pinch gesture only: see `useWheelZoom` for why a plain
+  // wheel has to reach the page. Unbound until the container has been
+  // measured, since the zoom is about a point in that box.
+  useWheelZoom(
+    interactionRef,
+    useMemo(
+      () =>
+        containerSize
+          ? (deltaY: number, mx: number, my: number) => {
+              const { w, h } = containerSize;
+              setViewMode("global"); // any manual interaction exits follow mode
+              setCamera((prev) => {
+                const { min, max } = zoomBounds(baseZoom);
+                const factor = deltaY < 0 ? 1.15 : 1 / 1.15;
+                const newZoom = Math.max(
+                  min,
+                  Math.min(max, prev.zoom * factor),
+                );
+                // Keep the world point under the cursor fixed during zoom
+                const wx = (mx - w / 2) / prev.zoom + prev.panX;
+                const wy = (my - h / 2) / prev.zoom + prev.panY;
+                return {
+                  zoom: newZoom,
+                  panX: wx - (mx - w / 2) / newZoom,
+                  panY: wy - (my - h / 2) / newZoom,
+                };
+              });
+            }
+          : null,
+      [containerSize, baseZoom],
+    ),
+  );
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     e.currentTarget.setPointerCapture?.(e.pointerId);
