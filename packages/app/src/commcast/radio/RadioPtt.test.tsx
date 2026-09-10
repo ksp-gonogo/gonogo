@@ -185,9 +185,9 @@ describe("the voice crossing it publishes", () => {
     expect(crossing).toBeDefined();
     expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);
     expect(crossing?.label).toContain("Odyssey");
-    // One second of light-time is fifty 20 ms chunks: how far along the rail
-    // the ribbon reaches, and the one number the render harness reads back
-    // through `crossingSpanSamples` rather than restating.
+    /* One second of light-time is fifty 20 ms chunks: how far along the rail
+       the ribbon reaches, and the one number the render harness reads back
+       through `crossingSpanSamples` rather than restating. */
     expect(crossing?.spanSamples).toBe(50);
     // Telemetry, continuous, fire-and-forget: a ribbon with no return leg.
     expect(crossing?.tags.delivery).toBe("fire-and-forget");

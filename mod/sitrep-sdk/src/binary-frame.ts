@@ -182,9 +182,9 @@ export function decodeBinaryFrame(bytes: Uint8Array): BinaryFrameResult {
 
   let declared = 0;
   for (const length of header.segments) {
-    // A byte count, so a fractional or negative one is not a short frame: it
-    // is a producer that has lost track of its own buffer, and computing an
-    // offset from it would read whatever the next frame's bytes happen to be.
+    /* A byte count, so a fractional or negative one is not a short frame: it
+       is a producer that has lost track of its own buffer, and computing an
+       offset from it would read whatever the next frame's bytes happen to be. */
     if (typeof length !== "number" || !Number.isInteger(length) || length < 0) {
       return {
         ok: false,

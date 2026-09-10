@@ -133,9 +133,9 @@ function CrossingRegistrar({
   amplitudes: readonly number[];
   spanSamples: number;
 }) {
-  // Memoised so the crossing the rail holds is one stable value: `RadioPtt`'s
-  // is a fresh literal per render only because a live ring changes every 20 ms,
-  // and here nothing changes at all.
+  /* Memoised so the crossing the rail holds is one stable value: `RadioPtt`'s
+     is a fresh literal per render only because a live ring changes every 20 ms,
+     and here nothing changes at all. */
   const crossing = useMemo(
     () => ({
       tags: VOICE_RAIL_TAGS,

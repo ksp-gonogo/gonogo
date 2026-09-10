@@ -150,8 +150,6 @@ namespace Sitrep.Core.Serialization
             };
         }
 
-        // ----- StreamBinary (the binary lane's JSON header) -----
-
         /// <summary>
         /// The JSON half of a <see cref="BinaryLane"/> frame. Field order
         /// matches <see cref="StreamBinary"/>'s declaration order, and
