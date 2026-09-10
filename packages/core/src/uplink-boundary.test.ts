@@ -216,15 +216,22 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
     // pattern covers AvionicsStatus/AvionicsUplink/avionics.status/
     // avionics.available/gonogo-avionics-uplink alike.
     patterns: [/avionics/i],
+    /*
+     * RP-1's dirs, not an avionics Uplink's. Avionics is not a separate mod: it
+     * is RP-1, and the standalone GonogoAvionicsUplink that read it was deleted
+     * on 2026-09-10 with its capture folded into GonogoRp1Uplink as
+     * `rp1.avionics`. The two had read the SAME assembly by the same reflection
+     * against two different RP-1 versions.
+     *
+     * The token is kept rather than retired, and re-owned rather than widened:
+     * an avionics reference outside RP-1's three dirs is still a boundary
+     * failure, which is what the check is for. Retiring the token would have
+     * been the loosening, because then nothing would be watched at all.
+     */
     ownedDirs: [
-      "mod/GonogoAvionicsUplink",
-      "mod/GonogoAvionicsUplink.Tests",
-      /*
-       * GonogoAvionicsUplink's own contract slice (uplink-types-out-of-core
-       * plan, second relocation, 2026-08-10): AvionicsStatus lives here now,
-       * not in Sitrep.Contract.
-       */
-      "mod/GonogoAvionicsUplink.Contract",
+      "mod/GonogoRp1Uplink",
+      "mod/GonogoRp1Uplink.Tests",
+      "mod/GonogoRp1Uplink.Contract",
     ],
   },
   kerbalism: {

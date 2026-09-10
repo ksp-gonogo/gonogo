@@ -46,6 +46,9 @@
     <Compile Include="..\GonogoRp1Uplink\Rp1CareerCostRaw.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1CareerCostCapture.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1CareerCostReflection.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1AvionicsRaw.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1AvionicsCapture.cs" />
+    <Compile Include="..\GonogoRp1Uplink\Rp1AvionicsReflection.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1ScUplink.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyBackend.cs" />
     <Compile Include="..\GonogoRp1Uplink\Rp1EconomyUpkeepQuery.cs" />

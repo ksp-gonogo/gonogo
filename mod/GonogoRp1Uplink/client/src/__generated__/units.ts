@@ -85,6 +85,12 @@ export type UnitsByField = Readonly<Record<string, SitrepUnit>>;
  * payload shapes that no Topic names directly.
  */
 export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "Rp1Avionics": {
+    limitedByNonInterplanetary: "flag",
+    lockLevel: "enum",
+    supportedMassTons: "t",
+    vesselMassTons: "t",
+  },
   "Rp1BuildCost": {
     rolloutCost: "funds",
     toolingCost: "funds",
@@ -563,6 +569,12 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "rp1.avionics": {
+    limitedByNonInterplanetary: "flag",
+    lockLevel: "enum",
+    supportedMassTons: "t",
+    vesselMassTons: "t",
+  },
   "rp1.buildCost": {
     rolloutCost: "funds",
     toolingCost: "funds",

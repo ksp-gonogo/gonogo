@@ -26,15 +26,27 @@ public class Rp1ScUplinkTests : IDisposable
     }
 
     [Fact]
-    public void Every_channel_is_a_ground_fact_delivered_now()
+    public void Every_ground_channel_is_delivered_now_and_only_the_avionics_verdict_is_delayed()
     {
         // Space-centre state has no analogue in flight, so none of it rides the
         // light-time delay clock. Asserted rather than assumed: a channel that
         // drifted to Delayed would go quiet on a disconnect for no reason.
+        //
+        // rp1.avionics is the deliberate exception and is named here rather than
+        // exempted by a predicate, so the exception cannot spread by copy-paste.
+        // Its subject is a craft rather than a building, so it MUST ride the
+        // reveal gate: an operator on a delayed link reading a live control state
+        // is the failure the gate exists to prevent, and this one is a
+        // launch-safety readout.
         var manifest = new Rp1ScUplink().Manifest;
         Assert.Equal("rp1", manifest.Id);
-        Assert.All(manifest.Channels, c => Assert.Equal(DelayRole.TrueNow, c.Delay));
         Assert.All(manifest.Channels, c => Assert.StartsWith("rp1.", c.Topic));
+        Assert.All(
+            manifest.Channels.Where(c => c.Topic != Rp1ScUplink.AvionicsTopic),
+            c => Assert.Equal(DelayRole.TrueNow, c.Delay));
+        Assert.Equal(
+            DelayRole.Delayed,
+            manifest.Channels.Single(c => c.Topic == Rp1ScUplink.AvionicsTopic).Delay);
     }
 
     [Fact]

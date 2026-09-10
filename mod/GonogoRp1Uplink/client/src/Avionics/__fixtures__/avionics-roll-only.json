@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The state a boolean could not express: RP-1 answers Axial, which zeroes pitch and yaw and LEAVES roll. A 30 t craft on avionics rating 12 t, and the rating is short because one unit is interplanetary-rated and held to its near-Earth limit, which is the second lock reason RP-1 raises its own reminder for. Caution tone rather than alert, because the operator still has an axis."
+  },
+  "_scene": {
+    "contribution": "rp1:rp1-avionics-badge",
+    "host": "navball",
+    "caption": "AFTER: roll authority survives the tonnage check, in a caution tone and its own words",
+    "modes": ["default"],
+    "size": { "w": 8, "h": 11 },
+    "paints": ["ATTITUDE", "Roll only"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.avionics",
+        "payload": {
+          "lockLevel": "Axial",
+          "supportedMassTons": 12,
+          "vesselMassTons": 30,
+          "limitedByNonInterplanetary": true
+        }
+      },
+      {
+        "topic": "vessel.attitude",
+        "payload": {
+          "heading": 90,
+          "pitch": 45,
+          "roll": 0,
+          "headingRootFrame": 90,
+          "pitchRootFrame": 45,
+          "rollRootFrame": 0
+        }
+      },
+      {
+        "topic": "vessel.control",
+        "payload": {
+          "sas": true,
+          "sasMode": 1,
+          "rcs": true,
+          "gear": false,
+          "brakes": false,
+          "lights": false,
+          "abort": false,
+          "precisionControl": false,
+          "throttle": 0.8
+        }
+      },
+      {
+        "topic": "vessel.comms",
+        "payload": {
+          "connected": true,
+          "signalStrength": 1.0,
+          "controlState": 4
+        }
+      },
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "v1",
+          "name": "Vostok 1",
+          "vesselType": 0,
+          "situation": 8,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      }
+    ]
+  }
+}

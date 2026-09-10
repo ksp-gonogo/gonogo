@@ -3119,3 +3119,82 @@ public sealed class Rp1FacilityEntry
     [SitrepUnit(Units.Flag)]
     public bool? UpgradedByRp1 { get; set; }
 }
+
+/// <summary>
+/// Whether RP-1 will let this vessel be steered: its avionics verdict, and the
+/// three facts it decides on.
+///
+/// <para>RP-1 gates vehicle control on avionics tonnage. A vessel heavier than
+/// the mass its fitted avionics support has its controls taken away, in flight,
+/// by an input lock. <b>Nothing stock says this has happened.</b> The lock is an
+/// <c>InputLockManager</c> control lock plus a per-frame zeroing of the flight
+/// control state, and neither touches the vessel's control LEVEL, so
+/// <c>vessel.state.isControllable</c> stays true throughout. RP-1's only flight
+/// signal is a screen message posted once, for eight seconds, on the transition.
+/// This channel is the persistent readout that gap leaves missing.</para>
+///
+/// <para><b>Three states, not two.</b> <c>Axial</c> keeps roll authority and
+/// loses steering, which a controllable/not-controllable boolean cannot say and
+/// which changes what an operator can do about it.</para>
+///
+/// <para>Absent whenever nothing was weighed: on a stock install, at the space
+/// centre and the tracking station (RP-1 does not evaluate the rule outside
+/// flight and the editor), and when there is no reported vessel. Absent is never
+/// a verdict of <c>Unlocked</c>.</para>
+///
+/// <internal>
+/// Produced by GonogoRp1Uplink, which reflect-invokes
+/// RP0.ControlLockerUtils.ShouldLock and publishes what comes back rather than
+/// re-deriving it. Rp1AvionicsReflection's header lists the five rules in that
+/// method's IL a tonnage compare cannot reach, and why the scene is guarded
+/// before the call is made. This absorbed the standalone GonogoAvionicsUplink
+/// (deleted 2026-09-10), which was locked against RP-1 v4.5.0.0 and did
+/// re-derive the verdict.
+/// </internal>
+/// </summary>
+[SitrepContract]
+[SitrepTopic("rp1.avionics")]
+#if SITREP_CODEGEN
+[TsInterface]
+#endif
+public sealed class Rp1Avionics
+{
+    /// <summary>
+    /// RP-1's own lock level: <c>"Locked"</c> (no control at all),
+    /// <c>"Axial"</c> (roll only, no steering) or <c>"Unlocked"</c> (full
+    /// control). Absent for a level this build does not recognise, which is not
+    /// a level to draw a go/no-go from.
+    /// </summary>
+    [SitrepUnit(Units.Enumeration)]
+    public string? LockLevel { get; set; }
+
+    /// <summary>
+    /// The mass the fitted avionics support, in tonnes. RP-1's own
+    /// <c>maxMass</c>: the largest single part's summed avionics rating, counting
+    /// only units electricity actually reaches. Two small units on separate parts
+    /// do not add up.
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? SupportedMassTons { get; set; }
+
+    /// <summary>
+    /// The mass RP-1 weighed against that limit, in tonnes.
+    ///
+    /// <para><b>Not the vessel's total mass.</b> In the editor and at PRELAUNCH
+    /// RP-1 discounts launch clamps and anything hanging off pad infrastructure,
+    /// which are heavy, so this is the smaller figure and it is the one the
+    /// verdict was reached on. A readout showing total mass beside this limit
+    /// would draw NO-GO on the pad for a vessel RP-1 has already cleared.</para>
+    /// </summary>
+    [SitrepUnit(Units.Tonnes)]
+    public double? VesselMassTons { get; set; }
+
+    /// <summary>
+    /// An interplanetary-rated unit is being held to its near-Earth limit. A
+    /// SECOND lock reason alongside the tonnage: RP-1 raises its own reminder for
+    /// this one, and a vessel comfortably inside its supported mass can still be
+    /// limited by it.
+    /// </summary>
+    [SitrepUnit(Units.Flag)]
+    public bool? LimitedByNonInterplanetary { get; set; }
+}

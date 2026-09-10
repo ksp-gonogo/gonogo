@@ -213,8 +213,8 @@ A Topic is declared in C#, published by the host, and typed into TypeScript by c
 1. **Declare the payload type** in `mod/Sitrep.Contract/` for a core topic, or in that Uplink's own `mod/<Uplink>.Contract/` slice, never in `Sitrep.Contract` for an Uplink. Tag it with the Topic id:
 
    ```csharp
-   [SitrepTopic("avionics.status")]        // or [SitrepTopic("science.experiments", isArray: true)]
-   public sealed class AvionicsStatus { /* ... */ }
+   [SitrepTopic("rp1.avionics")]           // or [SitrepTopic("science.experiments", isArray: true)]
+   public sealed class Rp1Avionics { /* ... */ }
    ```
 
    The tag is a **typing marker only**; it does not change the wire. The bytes are written by `Sitrep.Core.Serialization.JsonWriter` walking the provider's live value tree, and this type mirrors that shape so codegen has something concrete to name. Untagged, the Topic resolves to `unknown` in the SDK.

@@ -1,0 +1,73 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The same vessel and attitude as the not-installed scene, now on an RP-1 career where the avionics fitted support 1.5 t and the craft weighs 2.3 t. RP-1's own ControlLockerUtils.ShouldLock answers Locked for that pair, the input lock goes on, and NOTHING stock changes: `vessel.comms.controlState` is still 4, so the Navball's own control reading stays true. The badge is the only thing on the screen that knows. The overage rides the topic and not the pill: a second badge collapses the whole header row behind a chevron at this width, alert included."
+  },
+  "_scene": {
+    "contribution": "rp1:rp1-avionics-badge",
+    "host": "navball",
+    "caption": "AFTER: RP-1 has taken the controls, and the badge is the only thing on screen that says so",
+    "modes": ["default"],
+    "size": { "w": 8, "h": 11 },
+    "paints": ["ATTITUDE", "No control"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      { "topic": "rp1.available", "payload": true },
+      {
+        "topic": "rp1.avionics",
+        "payload": {
+          "lockLevel": "Locked",
+          "supportedMassTons": 1.5,
+          "vesselMassTons": 2.3,
+          "limitedByNonInterplanetary": false
+        }
+      },
+      {
+        "topic": "vessel.attitude",
+        "payload": {
+          "heading": 90,
+          "pitch": 45,
+          "roll": 0,
+          "headingRootFrame": 90,
+          "pitchRootFrame": 45,
+          "rollRootFrame": 0
+        }
+      },
+      {
+        "topic": "vessel.control",
+        "payload": {
+          "sas": true,
+          "sasMode": 1,
+          "rcs": true,
+          "gear": false,
+          "brakes": false,
+          "lights": false,
+          "abort": false,
+          "precisionControl": false,
+          "throttle": 0.8
+        }
+      },
+      {
+        "topic": "vessel.comms",
+        "payload": {
+          "connected": true,
+          "signalStrength": 1.0,
+          "controlState": 4
+        }
+      },
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "v1",
+          "name": "Sputnik 1",
+          "vesselType": 0,
+          "situation": 8,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      }
+    ]
+  }
+}

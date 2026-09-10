@@ -101,6 +101,7 @@ interface Gate {
     },
   ) => { verdict: string; detail: string };
   productionSources: (root?: string) => { path: string; text: string }[];
+  isProductionSourcePath: (path: string) => boolean;
   contractSlices: (root?: string) => {
     id: string;
     core: boolean;
@@ -221,6 +222,12 @@ describe("wire payload reachability", () => {
     // to it, so the gate reads green over the very file introducing the bug.
     // That is not hypothetical, it is what the planted violation that validated
     // this gate did on its first run.
+    //
+    // Narrowed through the gate's OWN predicate rather than by a second copy of
+    // its exclusions. It compared against every untracked `.cs` under `mod/`,
+    // test projects included, which the scan drops on purpose: an uncommitted
+    // test class beside a new producer therefore failed this self-check with a
+    // message about a missing producer, and the file it named was a test.
     const listed = gate.productionSources(REPO_ROOT).map((file) => file.path);
     const untracked = execFileSync(
       "git",
@@ -228,7 +235,7 @@ describe("wire payload reachability", () => {
       { cwd: REPO_ROOT, encoding: "utf8" },
     )
       .split("\n")
-      .filter((path) => path.endsWith(".cs"));
+      .filter(gate.isProductionSourcePath);
     for (const path of untracked) expect(listed).toContain(path);
   });
 

@@ -51,6 +51,12 @@
     "°"
   ],
   "types": {
+    "Rp1Avionics": {
+      "limitedByNonInterplanetary": "flag",
+      "lockLevel": "enum",
+      "supportedMassTons": "t",
+      "vesselMassTons": "t"
+    },
     "Rp1BuildCost": {
       "rolloutCost": "funds",
       "toolingCost": "funds",
@@ -524,6 +530,12 @@
     }
   },
   "topics": {
+    "rp1.avionics": {
+      "limitedByNonInterplanetary": "flag",
+      "lockLevel": "enum",
+      "supportedMassTons": "t",
+      "vesselMassTons": "t"
+    },
     "rp1.buildCost": {
       "rolloutCost": "funds",
       "toolingCost": "funds",
