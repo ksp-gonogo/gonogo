@@ -1,12 +1,13 @@
 // Reflection-only bridge to RP-1's space-centre model. No compile-time reference
 // to the RP-0 plugin (RP0.dll, CC-BY-NC-SA-4.0): every member is reached by
-// runtime reflection, the same arm's-length pattern as AvionicsReflection.
+// runtime reflection, the same arm's-length pattern as Rp1AvionicsReflection.
 //
 // PROVENANCE. Member names are RESOLVED, not guessed: every one below was read
 // out of an ilspycmd disassembly of the SHIPPED RP-1 v4.6.0.0 RP0.dll
 // (GameData/RP-1/Plugins/RP0.dll from the published RP-1-v4.6.0.0.zip, whose
-// source tag is c96fda7). Note the version: GonogoAvionicsUplink is locked
-// against v4.5.0.0, and the two are free to disagree. Nothing here has been seen
+// source tag is c96fda7). One version across the Uplink now: the standalone
+// GonogoAvionicsUplink was locked against v4.5.0.0 and the two were free to
+// disagree, which is part of why it was folded in. Nothing here has been seen
 // in a running game, because there is no RP-1 install on this machine or the
 // test rig; the disassembly verifies SHAPE and never VALUE, so every lookup is
 // null-safe per hop and degrades to absent rather than to a default that looks
