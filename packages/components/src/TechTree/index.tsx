@@ -14,6 +14,7 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   CommandButton,
   type CommandButtonHandle,
+  ExpandableText,
   Panel,
   Section,
   Unit,
@@ -863,7 +864,13 @@ function DetailPanel({
           ✕
         </CloseBtn>
       </DetailHead>
-      {node.description && <Description>{node.description}</Description>}
+      {node.description && (
+        <Description>
+          <ExpandableText subject={node.title}>
+            {node.description}
+          </ExpandableText>
+        </Description>
+      )}
       <DetailMeta>
         {node.state !== "Available" && (
           <Cost>
@@ -994,7 +1001,13 @@ function NodeRow({
       </NodeHeader>
       {expanded && (
         <NodeBody>
-          {node.description && <Description>{node.description}</Description>}
+          {node.description && (
+            <Description>
+              <ExpandableText subject={node.title}>
+                {node.description}
+              </ExpandableText>
+            </Description>
+          )}
           {node.parents.length > 0 && (
             <Parents>
               <ParentsLabel>Requires</ParentsLabel>

@@ -11,6 +11,7 @@ import {
   CommandButton,
   DataTable,
   EmptyState,
+  ExpandableText,
   GraphNotice,
   Grid,
   LineGraph,
@@ -393,10 +394,20 @@ function ChosenProgram({
           </Stack>
         </Section>
 
+        {/* Both blocks are RP-1's own authored prose, at whatever length its
+            author chose, in a column this pane shares with five other
+            sections. `ExpandableText` bounds what either can take before the
+            operator asks for the rest. Measured against the shipped RP-1
+            configs the longest of them is 157 characters and neither cuts;
+            they cut for a career whose Programs came from somewhere else. */}
         {present(program.objectivesText) !== undefined && (
           <Section>
             <SectionTitle>OBJECTIVES</SectionTitle>
-            <Text>{program.objectivesText}</Text>
+            <Text>
+              <ExpandableText subject="Objectives">
+                {program.objectivesText ?? ""}
+              </ExpandableText>
+            </Text>
           </Section>
         )}
 
@@ -406,7 +417,11 @@ function ChosenProgram({
               because on a running one they are history. The row follows: the
               Uplink leaves the field absent once a Program is accepted. */}
             <SectionTitle>REQUIREMENTS</SectionTitle>
-            <Text>{program.requirementsText}</Text>
+            <Text>
+              <ExpandableText subject="Requirements">
+                {program.requirementsText ?? ""}
+              </ExpandableText>
+            </Text>
           </Section>
         )}
 

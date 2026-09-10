@@ -16,6 +16,7 @@ import {
   CommandButton,
   type CommandButtonHandle,
   Divider,
+  ExpandableText,
   Grid,
   NULL_DISPLAY,
   Panel,
@@ -655,7 +656,7 @@ function ScreenSections({
                     <CardTitle>{s.title}</CardTitle>
                     {showDepartment && <CardDept>{s.departmentName}</CardDept>}
                   </CardHeader>
-                  {s.description && <Description>{s.description}</Description>}
+                  <StrategyDescription of={s} />
                   <EffectList>
                     {parseEffectLines(s.effect).map((line, i) => (
                       // Effect lines are static, non-reorderable text; index keeps
@@ -778,6 +779,27 @@ function ScreenSections({
   );
 }
 
+/**
+ * A strategy's own blurb, cut to a couple of lines with the rest a press away.
+ *
+ * <para>Whatever the game's authors wrote, at whatever length: KSP's own
+ * strategies are one sentence, RP-1's Programs run past 1,500 characters of
+ * marked-up prose, and this widget draws one under every card in the list. On
+ * the Administration Building's Programs screen that was a 5×9 tile rendering
+ * 104,000 pixels tall.</para>
+ *
+ * <para>Both card shapes use this rather than a `Description` each, so the two
+ * lists cut identically and the cut is one decision rather than two.</para>
+ */
+function StrategyDescription({ of: s }: Readonly<{ of: Strategy }>) {
+  if (!s.description) return null;
+  return (
+    <Description>
+      <ExpandableText subject={s.title}>{s.description}</ExpandableText>
+    </Description>
+  );
+}
+
 function AvailableRow({
   strategy: s,
   showDepartment,
@@ -860,10 +882,10 @@ function AvailableRow({
         </ExpandToggle>
         {showDepartment && <CardDept>{s.departmentName}</CardDept>}
       </CardHeader>
-      {/* Always show the short description so the operator can pick a
-          strategy without clicking expand; expand still reveals the full
-          effect breakdown. */}
-      {s.description && <Description>{s.description}</Description>}
+      {/* The description stands without expanding the card, so the operator
+          can pick a strategy from the list; expanding the card is what
+          reveals the full effect breakdown. */}
+      <StrategyDescription of={s} />
       {expanded && (
         <EffectList>
           {parseEffectLines(s.effect).map((line, i) => (

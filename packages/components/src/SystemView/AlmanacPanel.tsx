@@ -1,5 +1,5 @@
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import { Grid, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
+import { ExpandableText, Grid, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties, ReactNode } from "react";
 import type { CelestialBody } from "./useCelestialBodies";
 
@@ -253,8 +253,15 @@ export function AlmanacPanel({
           ))
         )}
       </div>
+      {/* KSP's own body blurbs run to a few hundred characters and this panel
+          sits beside the diagram rather than owning the tile, so the blurb is
+          cut to a couple of lines and the rest is a press away. */}
       {body.description && !/^#autoLOC/i.test(body.description.trim()) && (
-        <p style={DESCRIPTION}>{body.description}</p>
+        <p style={DESCRIPTION}>
+          <ExpandableText subject={body.name ?? undefined}>
+            {body.description}
+          </ExpandableText>
+        </p>
       )}
     </Wrap>
   );

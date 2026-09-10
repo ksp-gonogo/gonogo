@@ -953,6 +953,17 @@ const WIDGETS: WidgetRenderConfig[] = [
       // wide: exercises the horizontal layout at normal bucket; header meta
       // bar (funds / rep / sci readouts) has more room to spread.
       { name: "wide-9x12", w: 9, h: 12 },
+      // The RP-1 career is the one whose strategy blurbs run to a thousand
+      // marked-up characters, so it is the only fixture where a description
+      // is cut and there is anything to expand. Presses the first card's
+      // control so the shot shows the whole blurb rather than the cut.
+      {
+        name: "description-expanded-6x16",
+        w: 6,
+        h: 16,
+        forFixtures: ["rp1-full-admin-building"],
+        clicks: [{ selector: "[data-expandable-toggle]" }],
+      },
     ],
   },
   // ── Wave 2 (2026-05-29): widgets fixtured from a live career capture

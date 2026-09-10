@@ -32,7 +32,16 @@ if (!config) throw new Error("strategies missing from widgets.ts");
 
 describe("Strategies DOM snapshots", () => {
   for (const [name, fixture] of Object.entries(FIXTURES)) {
-    for (const mode of config.modes) {
+    /*
+     * A mode narrowed to certain fixtures is narrowed here too. Without this
+     * a mode added for one scenario snapshots against every other, and since
+     * this harness never dispatches a mode's `clicks` those extra snapshots
+     * are byte-identical to the mode they were copied from.
+     */
+    const modes = config.modes.filter(
+      (m) => m.forFixtures === undefined || m.forFixtures.includes(name),
+    );
+    for (const mode of modes) {
       it(`${name} @ ${mode.name}`, async () => {
         const html = await snapshotWidgetMode({
           Widget: StrategiesComponent,
