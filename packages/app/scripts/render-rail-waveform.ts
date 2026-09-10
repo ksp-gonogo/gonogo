@@ -7,17 +7,31 @@
  * which is what a worktree wants).
  *
  * The ribbon draws only while an operator holds the Talk key in a radio session
- * with a peer, so it has never appeared in a render, a baseline or a doc. The
- * scenes here are the separations that decide whether it is legible: the trace
- * reaches one light-time along the rail and no further, and the transmitter's
- * ring holds 128 chunks (2.56 s), so the fraction of the rail it can occupy is
- * 2.56 s over the separation. That ratio is the whole subject, and each scene
- * is shot collapsed (`variant="rail"`, the 16 px band) and pinned open
- * (`variant="expanded"`), because they are the same geometry at two heights.
+ * with a peer, so it has never appeared in a render, a baseline or a doc. This
+ * is the instrument for it. Each scene is shot collapsed (`variant="rail"`, the
+ * 16 px band) and pinned open (`variant="expanded"`), because they are the same
+ * geometry at two heights.
+ *
+ * **The scenes come in two families, and the split is the subject.** The trace
+ * draws each sample at its own AGE, so how far it reaches measures how much of
+ * the gap the transmitter can still account for, and that depends on two
+ * things: how long the operator has been keyed, and how long a ring the
+ * transmitter kept. So `01`-`09` hold the key down for 160 chunks (3.2 s) at
+ * separations from a millisecond to a minute, where a short trace is simply the
+ * truth; and `10`-`14` hold it down long enough to fill the gap, where a short
+ * trace means audio was discarded.
+ *
+ * The second family is what the fix is for. The ring was a flat 128 chunks
+ * (2.56 s), so a full minute of talking across a light-minute drew 4% of the
+ * rail and read as barely having started; `amplitudeHistoryFor` now sizes it to
+ * the separation, and the trace reaches the boundary without the drawing
+ * touching where any sample sits. Stretching the kept samples across the rail
+ * was proposed and rejected: it would place recent audio where older audio
+ * actually is.
  *
  * Every shot prints the reading the page measured off `waveformPath` beside it.
- * A picture of a waveform is easy to misread at 380 px; the extent and the
- * turning-point count are not.
+ * A picture of a waveform is easy to misread at 380 px; the extent, the
+ * turning-point count and the height of the drawn peaks are not.
  */
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -53,10 +67,22 @@ const VIEWPORT_H = 240;
  */
 const FULL_RING_CHUNKS = 160;
 
+/**
+ * Chunks to hold the key down for so that a gap of `seconds` is full end to
+ * end: one chunk per 20 ms of light-time. This is where the second family of
+ * scenes gets its length, and it is the operator's own case, "I have been
+ * talking across this gap for a while", which no scene could photograph
+ * usefully while the ring stopped at 2.56 s.
+ */
+function chunksToFill(seconds: number): number {
+  return Math.ceil(seconds / 0.02);
+}
+
 interface Scene {
   name: string;
   voice: RailWaveformProbePayload["voice"];
   separationSeconds: number;
+  /** Chunks the key is held down for. Defaults to `FULL_RING_CHUNKS`. */
   chunkCount?: number;
   /** What the scene is for, printed with its reading. */
   note: string;
@@ -90,13 +116,15 @@ const SCENES: readonly Scene[] = [
   },
   /*
    * Low Kerbin orbit: a few hundred kilometres is well under a millisecond, so
-   * `crossingSpanSamples` floors at 1 and the whole rail is one sample's trip.
+   * the gap holds a fraction of one 20 ms chunk. `crossingSpanSamples` used to
+   * floor that at 1 and the rail drew a confident full-width sawtooth off two
+   * samples, identical for every transmission at low orbit.
    */
   {
     name: "04-lko-subsecond-speech",
     voice: "speech",
     separationSeconds: 0.0007,
-    note: "sub-millisecond light-time: spanSamples collapses to 1",
+    note: "sub-chunk light-time: the gap holds a fraction of one sample",
   },
   /* Silence has to be tellable from speech at every one of those extents. */
   {
@@ -127,7 +155,7 @@ const SCENES: readonly Scene[] = [
     name: "08-lko-subsecond-silence",
     voice: "silence",
     separationSeconds: 0.0007,
-    note: "open key, nobody talking, at spanSamples 1",
+    note: "open key, nobody talking, at a sub-chunk light-time",
   },
   /*
    * The library clip as `clips.ts` builds it, so the flat-ribbon hazard that
@@ -138,6 +166,59 @@ const SCENES: readonly Scene[] = [
     voice: "stock",
     separationSeconds: 2.56,
     note: "makeClip's single raised cosine, measured: most chunks clamp at full scale",
+  },
+  /*
+   * The second family: the operator has been keyed long enough to fill the gap,
+   * which is the case they described and the case no scene above can reach. The
+   * ring is sized to the separation now, so these are the pictures of a trace
+   * that spans the gap at TRUE age scale, and 11 against 12 is the shape test
+   * at the far end of the stated range: 3001 samples read at the drawing's
+   * fixed ~49 turning points still has to look like a sentence and not a hum.
+   */
+  {
+    name: "10-10s-speech-gap-full",
+    voice: "speech",
+    separationSeconds: 10,
+    chunkCount: chunksToFill(10),
+    note: "10 s separation, keyed for the full 10 s: the gap is full of voice",
+  },
+  {
+    name: "11-60s-speech-gap-full",
+    voice: "speech",
+    separationSeconds: 60,
+    chunkCount: chunksToFill(60),
+    note: "60 s separation, keyed for the full minute: the ceiling of the ring, spanning the rail",
+  },
+  {
+    name: "12-60s-silence-gap-full",
+    voice: "silence",
+    separationSeconds: 60,
+    chunkCount: chunksToFill(60),
+    note: "a full minute of open dead key: the shape test against 11",
+  },
+  /*
+   * Part-filled, because the extent is a MEASUREMENT and not a flag: a third of
+   * the way through filling a minute-wide gap is a third of the rail, and the
+   * old cap could say nothing between 4.2% and 4.2%.
+   */
+  {
+    name: "13-60s-speech-third-full",
+    voice: "speech",
+    separationSeconds: 60,
+    chunkCount: chunksToFill(20),
+    note: "60 s separation, keyed for 20 s: a third of the gap has voice, so a third of the rail",
+  },
+  /*
+   * The second defect, with the key held long enough that only the light-time
+   * limits it: a gap that holds a fraction of one 20 ms sample has a fraction
+   * of one turning point's worth of evidence behind it, whatever else is true.
+   */
+  {
+    name: "14-lko-subsecond-speech-gap-full",
+    voice: "speech",
+    separationSeconds: 0.0007,
+    chunkCount: FULL_RING_CHUNKS,
+    note: "sub-chunk light-time: full extent, and no more turning points than samples in flight",
   },
 ];
 
@@ -257,8 +338,11 @@ async function main(): Promise<void> {
     "(`-rail.png`, the 16px band) and pinned open (`-expanded.png`).",
     "",
     "`extent` is the fraction of the rail's journey the drawn trace covers,",
-    "read off `waveformPath` in the page. `turning points` is how many",
-    "up/down peaks the reader has to see a wave in.",
+    "read off `waveformPath` in the page: how much of the gap this",
+    "transmission occupies. `turning points` is how many up/down peaks the",
+    "reader has to see a wave in, and `drawn peaks` is how high they reached,",
+    "which is what separates a sentence from an open dead key after the stretch",
+    "has decimated the ring. A dead key draws every peak at 0%.",
     "",
     ...readings,
     "",
@@ -273,8 +357,9 @@ function describe(scene: Scene, r: RailWaveformProbeReading): string {
   return [
     `## ${scene.name}`,
     `- ${scene.note}`,
-    `- separation ${scene.separationSeconds}s -> spanSamples ${r.spanSamples}, ring held ${r.sampleCount} samples`,
+    `- separation ${scene.separationSeconds}s -> spanSamples ${r.spanSamples.toFixed(3)}, keyed ${r.emittedSamples} chunks, ring held ${r.sampleCount}`,
     `- extent ${(r.extentFraction * 100).toFixed(1)}% of the rail (~${px}px at ${VIEWPORT_W}px wide), ${r.turningPoints} turning points`,
+    `- drawn peaks reach ${(r.drawnPeakMin * 100).toFixed(1)}%..${(r.drawnPeakMax * 100).toFixed(1)}% of full scale, ${r.drawnDistinctHeights} distinct heights`,
     `- fixture amplitudes ${r.minAmplitude.toFixed(3)}..${r.maxAmplitude.toFixed(3)}, ${r.distinctAmplitudes} distinct values`,
   ].join("\n");
 }

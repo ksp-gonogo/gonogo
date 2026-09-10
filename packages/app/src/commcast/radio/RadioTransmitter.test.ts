@@ -9,7 +9,12 @@
 import { PerfBudget } from "@ksp-gonogo/core";
 import { afterEach, describe, expect, it } from "vitest";
 import type { RadioCapture, StartRadioCapture } from "./RadioTransmitter";
-import { AMPLITUDE_HISTORY, RadioTransmitter } from "./RadioTransmitter";
+import {
+  AMPLITUDE_HISTORY,
+  AMPLITUDE_HISTORY_MAX,
+  amplitudeHistoryFor,
+  RadioTransmitter,
+} from "./RadioTransmitter";
 import type { RadioFrame } from "./wire";
 
 const ARES = "vessel:ares";
@@ -245,15 +250,110 @@ describe("radio transmit, the waveform it keeps for its own rail", () => {
     expect(transmitter.snapshot().amplitudes).toEqual([]);
   });
 
-  it("stays bounded however long the operator leans on the key", async () => {
+  /**
+   * How long the ring is decides how much of the rail the trace can claim,
+   * because the rail draws each sample at its own age and so reaches only as
+   * far as the oldest one held. A ring shorter than the gap does not make the
+   * drawing coarse; it makes it say the operator has barely started talking
+   * when the gap is full of voice.
+   */
+  it("keeps enough to cover the separation it was keyed at", async () => {
     const { mic, transmitter } = scene();
-    const keying = transmitter.keyDown(JEB);
+    /*
+     * Four seconds of light-time is two hundred 20 ms chunks, and the oldest
+     * sample sits one behind the newest, so two hundred and one cover it. Four
+     * rather than two, because the floor already covers 2.56 s and would
+     * otherwise be the number under test.
+     */
+    const keying = transmitter.keyDown({ ...JEB, separationSeconds: 4 });
+    mic.open();
+    await keying;
+    for (let i = 0; i < 600; i++) mic.speak(new Uint8Array([1]), 0.5);
+    expect(transmitter.snapshot().amplitudes).toHaveLength(201);
+  });
+
+  it("falls back to the floor when there is no separation to size against", async () => {
+    const { mic, transmitter } = scene();
+    const keying = transmitter.keyDown({ ...JEB, separationSeconds: null });
     mic.open();
     await keying;
     for (let i = 0; i < AMPLITUDE_HISTORY * 2; i++) {
       mic.speak(new Uint8Array([1]), 0.5);
     }
     expect(transmitter.snapshot().amplitudes).toHaveLength(AMPLITUDE_HISTORY);
+  });
+
+  it("stays bounded at the ceiling however far away the far end is", async () => {
+    /*
+     * `JEB` is keyed at 240 s, which would want 12001 samples. The ring is
+     * rebuilt per chunk to change its identity, so its length is a per-chunk
+     * spend, and past the ceiling the rail's trace is truncated instead: it
+     * stops short of the boundary, which is what "we did not keep that audio"
+     * looks like.
+     */
+    const { mic, transmitter } = scene();
+    const keying = transmitter.keyDown(JEB);
+    mic.open();
+    await keying;
+    for (let i = 0; i < AMPLITUDE_HISTORY_MAX + 200; i++) {
+      mic.speak(new Uint8Array([1]), 0.5);
+    }
+    expect(transmitter.snapshot().amplitudes).toHaveLength(
+      AMPLITUDE_HISTORY_MAX,
+    );
+    // Which is 60 s of light-time covered exactly, plus the one sample the
+    // reach measurement sits on.
+    expect(AMPLITUDE_HISTORY_MAX).toBe(3001);
+  });
+
+  it("resizes the ring per transmission rather than keeping the first one's", async () => {
+    const { mic, transmitter } = scene();
+    const first = transmitter.keyDown({ ...JEB, separationSeconds: null });
+    mic.open();
+    await first;
+    for (let i = 0; i < 300; i++) mic.speak(new Uint8Array([1]), 0.5);
+    expect(transmitter.snapshot().amplitudes).toHaveLength(AMPLITUDE_HISTORY);
+    transmitter.keyUp();
+
+    const second = transmitter.keyDown({ ...JEB, separationSeconds: 4 });
+    mic.open();
+    await second;
+    for (let i = 0; i < 600; i++) mic.speak(new Uint8Array([1]), 0.5);
+    expect(transmitter.snapshot().amplitudes).toHaveLength(201);
+  });
+});
+
+describe("amplitudeHistoryFor", () => {
+  it("covers the light-time, one sample past it", () => {
+    // The rail measures the trace's reach off the OLDEST sample's age, so
+    // covering a span of n samples takes n + 1 of them.
+    expect(amplitudeHistoryFor(10)).toBe(501);
+    // The top of the operator's stated range, covered exactly rather than one
+    // sample short: that is what sets the ceiling where it is.
+    expect(amplitudeHistoryFor(60)).toBe(AMPLITUDE_HISTORY_MAX);
+  });
+
+  it("never drops below the floor for a very near far end", () => {
+    expect(amplitudeHistoryFor(0.0007)).toBe(AMPLITUDE_HISTORY);
+    expect(amplitudeHistoryFor(1)).toBe(AMPLITUDE_HISTORY);
+  });
+
+  it("never exceeds the ceiling, however far the far end is", () => {
+    expect(amplitudeHistoryFor(240)).toBe(AMPLITUDE_HISTORY_MAX);
+    expect(amplitudeHistoryFor(3600)).toBe(AMPLITUDE_HISTORY_MAX);
+  });
+
+  it("takes the floor for a separation it cannot use", () => {
+    for (const bad of [
+      null,
+      undefined,
+      0,
+      -1,
+      Number.NaN,
+      Number.POSITIVE_INFINITY,
+    ]) {
+      expect(amplitudeHistoryFor(bad)).toBe(AMPLITUDE_HISTORY);
+    }
   });
 
   it("refuses to pass on a broken reading as geometry", async () => {
