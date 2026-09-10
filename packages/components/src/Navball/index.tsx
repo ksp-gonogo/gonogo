@@ -23,6 +23,7 @@ import {
 import { SasMode as SasModeEnum, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
+  BigReadout,
   Button,
   ConfigForm,
   ControlDelayStream,
@@ -44,7 +45,7 @@ import {
   useModalSaveBar,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   magnitudeOf,
@@ -110,6 +111,35 @@ const MIN_DIAL_PX = 80;
  * `MIN_DIAL_PX + ATTITUDE_CHROME_PX` holds no dial at all.
  */
 const ATTITUDE_CHROME_PX = 74;
+
+/**
+ * The width the numeric readout needs to put HDG, PCH and RLL on one line.
+ *
+ * Three times the widest CELL plus two `--gap-related` gaps, because the three
+ * columns are equal: 58px is what a cell measures at the widest reading any of
+ * the three can carry (roll's `-180°`; heading's `359°` and pitch's `-90°` are
+ * 47), so the sum of three different readings is not the number, and no fixture
+ * puts all three at their own maximum at once. Sized to a fixture instead, the
+ * row would change shape as the vessel rolled, which is what the wrap it
+ * replaces did.
+ *
+ * 190 does not fit a 5-column tile's 158px column, and no template makes it:
+ * three readings at this size need 190 and the tile has 158. That tier gets
+ * {@link READOUT_STACK}.
+ *
+ * Stable against the coarse-pointer type bump, deliberately: the cell's width
+ * is governed by its reading, and that is a literal 18px, not a token. The
+ * caption under it is the token half and is narrower than the reading.
+ *
+ * The alternative to a number here is a container query, which an inline style
+ * object cannot carry, and a uniform column minimum, which cannot express
+ * "three or one" at all: every minimum wide enough to refuse a cramped
+ * three-across leaves a band of widths where exactly two fit. See
+ * {@link READOUT_TRIPLE}. Below this the grid OVERFLOWS rather than clipping,
+ * so a cell that outgrows the number shows up in the harness's overlap gate
+ * instead of quietly truncating a reading.
+ */
+const READOUT_TRIPLE_PX = 190;
 
 /**
  * Dispatch-rate budget for the throttle axis's delayed control-stream
@@ -755,6 +785,15 @@ function NavballComponent({
    * whose box nothing can measure.
    */
   const [dialFit, setDialFit] = useState(180);
+  /**
+   * Whether the numeric readout's three cells fit on one line, off the same
+   * observation as {@link dialFit} and against {@link READOUT_TRIPLE_PX}.
+   *
+   * `true` until the first observation, for the same reason the fit starts at
+   * 180: a row we know is always three is the right default for a widget whose
+   * box nothing can measure.
+   */
+  const [readoutAcross, setReadoutAcross] = useState(true);
   const throttleReservedRef = useRef(false);
   const controlModeRef = useRef(false);
   const dialObserverRef = useRef<ResizeObserver | null>(null);
@@ -813,6 +852,10 @@ function NavballComponent({
         // big-navball widget still fills its slot.
         const cap = controlModeRef.current ? 200 : 600;
         setDialFit(Math.min(cap, Math.floor(fit)));
+        // The readout draws into this same column, so its own width is `w`
+        // undiminished: the throttle reserve above is the dial's business and
+        // the column carries no throttle bar when the readout is what renders.
+        setReadoutAcross(w >= READOUT_TRIPLE_PX);
       }
     });
     ro.observe(el);
@@ -922,43 +965,20 @@ function NavballComponent({
               </div>
             ) : (
               <div style={NUMERIC_READOUT}>
-                <div style={READOUT_ROWS}>
-                  <div style={READOUT_ROW}>
-                    <span style={READOUT_LABEL}>HDG</span>
-                    <span style={READOUT_VALUE}>
-                      {heading === null ? (
-                        NULL_DISPLAY
-                      ) : (
-                        <Unit value={value("°", heading)} decimals={0} />
-                      )}
-                    </span>
-                  </div>
-                  <div style={READOUT_ROW}>
-                    <span style={READOUT_LABEL}>PCH</span>
-                    <span style={READOUT_VALUE}>
-                      {pitch === null ? (
-                        NULL_DISPLAY
-                      ) : (
-                        <>
-                          {pitch >= 0 ? "+" : ""}
-                          <Unit value={value("°", pitch)} decimals={0} />
-                        </>
-                      )}
-                    </span>
-                  </div>
-                  <div style={READOUT_ROW}>
-                    <span style={READOUT_LABEL}>RLL</span>
-                    <span style={READOUT_VALUE}>
-                      {roll === null ? (
-                        NULL_DISPLAY
-                      ) : (
-                        <>
-                          {roll >= 0 ? "+" : ""}
-                          <Unit value={value("°", roll)} decimals={0} />
-                        </>
-                      )}
-                    </span>
-                  </div>
+                <div style={readoutAcross ? READOUT_TRIPLE : READOUT_STACK}>
+                  {attitudeCells(heading, pitch, roll).map((cell) =>
+                    readoutAcross ? (
+                      <BigReadout key={cell.label} style={READOUT_CELL}>
+                        {cell.value}
+                        <ReadoutCaption>{cell.label}</ReadoutCaption>
+                      </BigReadout>
+                    ) : (
+                      <div key={cell.label} style={READOUT_PAIR}>
+                        <span style={READOUT_LABEL}>{cell.label}</span>
+                        <span style={READOUT_VALUE}>{cell.value}</span>
+                      </div>
+                    ),
+                  )}
                 </div>
                 <AttitudeCurrency
                   dialSuppressed={dialWanted}
@@ -1018,6 +1038,58 @@ function NavballComponent({
   );
 }
 
+/**
+ * The numeric readout's three cells, as data rather than three copies of the
+ * same JSX.
+ *
+ * The row is ALWAYS these three, which is the whole reason it should never lay
+ * out as two-then-one. Built as a list so the count is stated once and both
+ * presentations ({@link READOUT_TRIPLE} and {@link READOUT_STACK}) render the
+ * same three from it.
+ *
+ * Pitch and roll carry an explicit `+`: they are signed about a level attitude,
+ * so an unsigned `45` reads as a magnitude rather than a nose-up 45 degrees.
+ * Heading is a bearing and takes no sign.
+ */
+function attitudeCells(
+  heading: number | null,
+  pitch: number | null,
+  roll: number | null,
+): ReadonlyArray<{ label: string; value: ReactNode }> {
+  // One element, never a fragment. Three across, the cell is a column flex box
+  // and a sign beside its `Unit` would be a second FLEX ITEM: the `+` laid out
+  // on a line of its own above the number it belongs to, which `white-space`
+  // cannot reach because nothing had wrapped.
+  const signed = (v: number | null): ReactNode => (
+    <span>
+      {v === null ? (
+        NULL_DISPLAY
+      ) : (
+        <>
+          {v >= 0 ? "+" : ""}
+          <Unit value={value("°", v)} decimals={0} />
+        </>
+      )}
+    </span>
+  );
+  return [
+    {
+      label: "HDG",
+      value: (
+        <span>
+          {heading === null ? (
+            NULL_DISPLAY
+          ) : (
+            <Unit value={value("°", heading)} decimals={0} />
+          )}
+        </span>
+      ),
+    },
+    { label: "PCH", value: signed(pitch) },
+    { label: "RLL", value: signed(roll) },
+  ];
+}
+
 interface ControlTogglesProps {
   disabled: boolean;
   /** SAS as read, UNCOERCED: absent is a third state here, not a false. See {@link armLabel}. */
@@ -1071,10 +1143,11 @@ function ControlToggles({
           Vessel not controllable: buttons disabled.
         </div>
       )}
-      <div style={TOGGLE_GRID}>
+      <div style={TOGGLE_ROW}>
         <ToggleButton
           type="button"
           size="sm"
+          style={TOGGLE_CELL}
           active={sas === true}
           onClick={onToggleSas}
           disabled={disabled}
@@ -1084,6 +1157,7 @@ function ControlToggles({
         <ToggleButton
           type="button"
           size="sm"
+          style={TOGGLE_CELL}
           active={rcs === true}
           onClick={onToggleRcs}
           disabled={disabled}
@@ -1094,7 +1168,13 @@ function ControlToggles({
             dim chip for an unread precision state would be a confirmed-off
             that nothing confirmed. Absent, the row is two toggles wide. */}
         {typeof precision === "boolean" && (
-          <ToggleButton type="button" size="sm" active={precision} disabled>
+          <ToggleButton
+            type="button"
+            size="sm"
+            style={TOGGLE_CELL}
+            active={precision}
+            disabled
+          >
             PRECISION
           </ToggleButton>
         )}
@@ -1494,30 +1574,92 @@ const NUMERIC_READOUT: CSSProperties = {
 };
 
 /**
- * The three HDG/PCH/RLL pairs, wrapping rather than always stacking.
+ * HDG, PCH and RLL on one line, three equal columns.
  *
- * A stack is what a narrow tile gets, because a pair is wider than half of one
- * and wrapping puts each on its own line: identical to the column this
- * replaces at the 3x4 minimum. A WIDE-AND-SHORT tile is the case a column
- * cannot serve, and it is the one where the dial is suppressed by rows while
- * the tile has width to spare: at 18x5 three stacked pairs plus the control
- * row below them needed more height than the tile has, and the readout painted
- * straight over the toggles (caught by the harness's overlap gate, not by
- * eye). One line of three pairs uses the width the tier actually has.
+ * Never `auto-fit`, and never a wrap. Both let the row decide its own arity
+ * from whatever happens to fit, and the row is ALWAYS three: what they
+ * produced was two cells with the third slung underneath, and, because a
+ * cell's width follows its digit count, which shape you got depended on the
+ * vessel's attitude. A level craft laid out two-then-one and a climbing one
+ * stacked all three, in the same tile, on the same tier.
+ *
+ * The cells here are label-over-value rather than label-beside-value, which is
+ * what makes three across affordable: measured at the widest readings, three
+ * pairs side by side need 290px and three stacked cells need 168, so the tier
+ * where the complaint was seen (7 columns, a 238px column) goes from
+ * two-then-one to three across. It is also the shape `AttitudeIndicator` gives
+ * the same three readings under its own dial.
+ *
+ * Under {@link READOUT_TRIPLE_PX} three genuinely will not fit, and what that
+ * width gets is {@link READOUT_STACK}: all three on their own lines, which is
+ * what the 3x4 minimum has always shown. One shape or the other, never a
+ * mixture.
  */
-const READOUT_ROWS: CSSProperties = {
-  display: "flex",
-  flexWrap: "wrap",
-  columnGap: "var(--gap-section)",
-  rowGap: "var(--gap-related)",
+const READOUT_TRIPLE: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "var(--gap-related)",
 };
 
-const READOUT_ROW: CSSProperties = {
+/**
+ * The too-narrow answer: one reading per line, in the compact
+ * label-beside-value shape.
+ *
+ * The pairs stay horizontal here on purpose. Stacked cells in a single column
+ * are 136px tall against the pairs' 85, and this is the presentation a column
+ * of 78px gets: at the 3x4 minimum that height does not exist, and the readout
+ * painted over the section below it the last time something in this widget
+ * assumed it did.
+ */
+const READOUT_STACK: CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "var(--gap-related)",
+};
+
+/**
+ * The two overrides a `BigReadout` needs to be one of three in a row rather
+ * than one hero filling a panel.
+ *
+ * `font-size` because its own is `clamp(20px, 6vw, 38px)`, and a dashboard
+ * tile's width has no fixed relationship to the viewport: three readings on a
+ * 5-column tile would be typeset off the browser window. Fixed rather than a
+ * narrower clamp, and off the type scale for the reason the readout it replaces
+ * was, the scale stopping at 16px. `CrewStatus` overrides the same clamp for
+ * the same kind of reason.
+ *
+ * `min-width` because `BigReadout` sets it to 0 and the `1fr` columns are
+ * `minmax(auto, 1fr)`: with the cells' own minimum zeroed, all three collapse
+ * and the readings overflow silently at every width. That minimum is what
+ * {@link READOUT_TRIPLE_PX} is measured against.
+ *
+ * `tabular-nums` and `nowrap` are not overrides, they are the two things the
+ * kit does not carry and a live reading needs. Tabular figures stop a changing
+ * heading from jittering the row. `nowrap` stops the reading reflowing inside
+ * its own cell: pitch and roll are a sign followed by a `Unit`, which are
+ * separate inline boxes, so the cell's min-content is the number with the sign
+ * broken onto a line of its own, and that is the width the grid would otherwise
+ * be free to squeeze it to.
+ */
+const READOUT_CELL: CSSProperties = {
+  fontSize: "18px",
+  minWidth: "auto",
+  fontVariantNumeric: "tabular-nums",
+  whiteSpace: "nowrap",
+};
+
+const READOUT_PAIR: CSSProperties = {
   display: "flex",
   alignItems: "baseline",
   gap: "var(--gap-related)",
 };
 
+/**
+ * The label in {@link READOUT_STACK}, beside its value rather than under it.
+ * The 28px floor is what lines the three values up when they sit above each
+ * other; three-across the label is a `ReadoutCaption` under its own reading and
+ * needs no floor.
+ */
 const READOUT_LABEL: CSSProperties = {
   fontSize: "var(--font-size-2xs)",
   letterSpacing: "0.12em",
@@ -1625,26 +1767,39 @@ const BUTTON_GRID: CSSProperties = {
 };
 
 /**
- * The SAS/RCS/precision row's own column, wider than {@link BUTTON_GRID}'s
- * because these labels are words rather than a marker plus a three-letter
- * token, and narrower than the words would need at the mode grid's type size.
+ * The SAS/RCS/precision row, packed by the width each control actually needs.
  *
- * A `ToggleButton` is an `inline-flex`, so a label wider than its column
- * shrinks to min-content and breaks at the space ("SAS:" / "PRO") while a
- * single word ("PRECISION") simply overflows the border box instead. Both were
- * happening: on the mode grid's 68px the row was ragged at 7 columns and
- * PRECISION spilled 4px at 8. The three carry `size="sm"`, which drops the
- * inset and the type rung while keeping the kit's shared control height, and
- * that is what makes the widest of them 78px rather than 91px.
+ * A uniform column minimum could not do this, and that is what it was: measured
+ * on the live buttons at `size="sm"`, the three need 71px ("SAS: PRO"), 65px
+ * ("RCS OFF") and 78px ("PRECISION"), so `repeat(auto-fit, minmax(76px, 1fr))`
+ * charged all three the widest one's width and refused a three-across line
+ * until 244px and a two-across line until 160. The body at 5 columns is 158,
+ * two pixels short, so the row stacked one toggle per line and took 100px of a
+ * 191px body: the same height the dial needs, spent on three buttons that
+ * measure 214px laid end to end.
  *
- * Measured at every tier the widget renders, the widest label now fits its
- * column on one line: 3 across at 8 columns and wider, 2 at 7, 1 at 5.
+ * Sized by their own content instead, they share a line from 230px and SAS and
+ * RCS share one from 144. Three across is not reachable at 5 columns whatever
+ * the template, because 214 does not fit in 158; what that tier gets is SAS and
+ * RCS side by side with precision under them, 64px rather than 100.
  */
-const TOGGLE_GRID: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(76px, 1fr))",
+const TOGGLE_ROW: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
   gap: "var(--gap-related)",
 };
+
+/**
+ * Grow to share the line, never shrink below the label.
+ *
+ * The no-shrink half is load-bearing. A `ToggleButton` is an `inline-flex`, so
+ * its automatic minimum size is its widest WORD, not its label: allowed to
+ * shrink, "SAS: PRO" breaks across two lines inside its own border box and
+ * "PRECISION" overflows the box outright, both before the row agrees to wrap.
+ * That was already happening at the mode grid's 68px, ragged at 7 columns and
+ * spilling 4px at 8.
+ */
+const TOGGLE_CELL: CSSProperties = { flex: "1 0 auto" };
 
 const SLIDER_ROW: CSSProperties = {
   display: "flex",
