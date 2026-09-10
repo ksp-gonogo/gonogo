@@ -16,7 +16,6 @@ import {
   actionGroupNames,
   KSP_ENUM_NAME_TABLES,
   KSP_PART_CATEGORY_NAMES,
-  KSP_SPACE_CENTER_FACILITY_NAMES,
 } from "../ksp-enum-names";
 import { TRANSITION_TYPE_NAMES } from "./orbit-patches";
 import { HEALTH_STATE_NAMES } from "./uplink-health";

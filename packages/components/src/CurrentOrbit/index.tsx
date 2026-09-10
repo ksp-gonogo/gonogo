@@ -132,7 +132,6 @@ function CurrentOrbitComponent({
       : orbitReading.state === "observed"
         ? orbitReading.value
         : undefined;
-  const orbitStale = orbitReading.state === "stale";
   const vesselState = useStream<VesselState>("vessel.state");
   const sma = orbit?.sma;
   const eccentricity = orbit?.ecc;

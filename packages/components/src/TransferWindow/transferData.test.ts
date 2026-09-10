@@ -10,6 +10,7 @@ import {
   phaseAngleDeg,
   porkchopGridQuantum,
   quantiseGridUt,
+  type ReachEntry,
   reachEntries,
   reachVerdict,
   transferDestinations,
@@ -344,10 +345,31 @@ describe("reachEntries: what this craft can get to, and on what", () => {
       nowUt: 0,
     });
 
+  /**
+   * The row this fixture guarantees. A `find` that misses is a broken fixture,
+   * so it says which destination went missing rather than failing later as a
+   * property read on undefined.
+   */
+  const rowFor = (rows: readonly ReachEntry[], name: string): ReachEntry => {
+    const row = rows.find((r) => r.body.name === name);
+    if (!row) throw new Error(`no reach entry for ${name}`);
+    return row;
+  };
+
+  /**
+   * A cost these fixtures are chosen to produce. `null` means the derivation
+   * declined, which is a failure of the fixture and not a figure to compare, so
+   * it is named here rather than coerced into a comparison.
+   */
+  const cost = (v: number | null): number => {
+    if (v === null) throw new Error("expected a delta-v figure, got null");
+    return v;
+  };
+
   it("covers every sibling destination, cheapest first", () => {
     const rows = entries();
     expect(rows.map((r) => r.body.name).sort()).toEqual(["Mars", "Venus"]);
-    expect(rows[0].totalDeltaV).toBeLessThan(rows[1].totalDeltaV!);
+    expect(cost(rows[0].totalDeltaV)).toBeLessThan(cost(rows[1].totalDeltaV));
   });
 
   /*
@@ -359,24 +381,28 @@ describe("reachEntries: what this craft can get to, and on what", () => {
    */
   it("ranks on the whole trip, which reverses the departure-only order here", () => {
     const rows = entries();
-    const mars_ = rows.find((r) => r.body.name === "Mars")!;
-    const venus_ = rows.find((r) => r.body.name === "Venus")!;
+    const mars_ = rowFor(rows, "Mars");
+    const venus_ = rowFor(rows, "Venus");
 
-    expect(venus_.ejectionDeltaV!).toBeLessThan(mars_.ejectionDeltaV!);
-    expect(venus_.captureDeltaV!).toBeGreaterThan(mars_.captureDeltaV!);
-    expect(venus_.totalDeltaV!).toBeGreaterThan(mars_.totalDeltaV!);
+    expect(cost(venus_.ejectionDeltaV)).toBeLessThan(
+      cost(mars_.ejectionDeltaV),
+    );
+    expect(cost(venus_.captureDeltaV)).toBeGreaterThan(
+      cost(mars_.captureDeltaV),
+    );
+    expect(cost(venus_.totalDeltaV)).toBeGreaterThan(cost(mars_.totalDeltaV));
     expect(rows[0].body.name).toBe("Mars");
   });
 
   it("quotes ejection + capture, not the porkchop's characteristic figure", () => {
-    const mars_ = entries().find((r) => r.body.name === "Mars")!;
+    const mars_ = rowFor(entries(), "Mars");
     expect(mars_.ejectionDeltaV).toBeCloseTo(3613, -2);
     expect(mars_.captureDeltaV).toBeCloseTo(2081, -2);
     expect(mars_.totalDeltaV).toBeCloseTo(3613 + 2081, -2);
   });
 
   it("carries the window timing alongside the cost", () => {
-    const mars_ = entries().find((r) => r.body.name === "Mars")!;
+    const mars_ = rowFor(entries(), "Mars");
     expect(mars_.departureUt).toBeGreaterThanOrEqual(0);
     expect(mars_.transferTimeSec).toBeCloseTo(258.9 * DAY, -4);
   });
@@ -400,10 +426,9 @@ describe("reachEntries: what this craft can get to, and on what", () => {
       parkingRadius: R_LEO,
       nowUt: 0,
     });
-    const row = rows.find((r) => r.body.name === "Halfsynced");
-    expect(row).toBeDefined();
-    expect(row!.totalDeltaV).toBeNull();
-    expect(row!.captureDeltaV).toBeNull();
+    const row = rowFor(rows, "Halfsynced");
+    expect(row.totalDeltaV).toBeNull();
+    expect(row.captureDeltaV).toBeNull();
   });
 
   it("rows with no cost sort last, so the affordable list reads top-down", () => {

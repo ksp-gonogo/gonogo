@@ -11,11 +11,9 @@ import {
 } from "@ksp-gonogo/core";
 import {
   CELESTIAL_FACTS,
-  type CelestialFacts,
   canPropagate,
   type OrbitElements,
   type OrbitTrajectory,
-  type OrbitTrajectoryInput,
   solveAnomalies,
   useFleetVesselSilence,
   useLatestValue,
@@ -679,10 +677,9 @@ function SystemViewComponent({
     encounter?.bodyIndex != null
       ? (nameByIndex.get(encounter.bodyIndex) ?? null)
       : null;
-  const encounterTimeUt =
-    encounter && encounter.transitionUt.isFinite()
-      ? encounter.transitionUt.magnitude
-      : null;
+  const encounterTimeUt = encounter?.transitionUt.isFinite()
+    ? encounter.transitionUt.magnitude
+    : null;
 
   const parentName = resolveFrame(bodies, frameSetting, vesselBody);
 
@@ -715,7 +712,7 @@ function SystemViewComponent({
   // matches its parent body.
   const vSma = orbit?.sma?.magnitude;
   const vesselOrbit =
-    vesselBody != null && orbit && orbit.sma.isFinite()
+    vesselBody != null && orbit?.sma.isFinite()
       ? {
           parentName: vesselBody,
           sma: orbit.sma.magnitude,

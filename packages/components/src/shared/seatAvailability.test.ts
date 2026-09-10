@@ -1,8 +1,4 @@
-import {
-  clearRegistry,
-  getComponents,
-  registerComponent,
-} from "@ksp-gonogo/core";
+import { getComponents } from "@ksp-gonogo/core";
 import { beforeAll, describe, expect, it } from "vitest";
 import {
   availableAtSeat,

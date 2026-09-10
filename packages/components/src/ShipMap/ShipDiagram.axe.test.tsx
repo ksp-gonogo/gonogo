@@ -1,6 +1,6 @@
 import { render } from "@ksp-gonogo/test-utils";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
+import { describe, it } from "vitest";
 import { ShipDiagram } from "./ShipDiagram";
 import type { ShipMapPart } from "./shipTopology";
 

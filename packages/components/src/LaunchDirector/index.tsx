@@ -8,7 +8,6 @@ import {
 import {
   META_VANTAGE,
   type Reading,
-  type SpaceCenterState,
   useCommand,
   useStream,
   useViewUt,
@@ -639,11 +638,6 @@ function LaunchDirectorComponent({
   const activePad = pads.find((p) => p.name === pickedPad) ?? pads[0];
   const selectedSite = activePad?.name ?? "";
   const scene = sceneRecord?.scene;
-
-  const ship = useMemo(
-    () => (selectedShip ? ships?.find((s) => s.name === selectedShip) : null),
-    [ships, selectedShip],
-  );
 
   // Absent funds are insufficient funds: this gate guards a control that spends
   // career funds, and "no balance ever arrived" is not evidence that the
@@ -1841,42 +1835,6 @@ const CrewName = styled.span`
 `;
 
 const CrewTrait = styled.span`
-  font-size: var(--font-size-2xs);
-  color: inherit;
-  opacity: 0.7;
-  letter-spacing: 0.04em;
-`;
-
-const SiteList = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: var(--gap-related);
-`;
-
-const SiteChip = styled.button<{ $selected: boolean }>`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-hair);
-  padding: var(--inset-surface);
-  background: ${(p) =>
-    p.$selected ? "var(--color-status-go-bg)" : "var(--color-surface-panel)"};
-  color: ${(p) =>
-    p.$selected ? "var(--color-status-go-fg)" : "var(--color-text-primary)"};
-  border: 1px solid
-    ${(p) => (p.$selected ? "transparent" : "var(--color-surface-raised)")};
-  border-radius: var(--radius-xs);
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-`;
-
-const SiteName = styled.span`
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-`;
-
-const SiteMeta = styled.span`
   font-size: var(--font-size-2xs);
   color: inherit;
   opacity: 0.7;

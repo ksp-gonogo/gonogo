@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
-import { act, renderHook, setupStreamFixture } from "../testing";
+import { renderHook, setupStreamFixture } from "../testing";
 import {
   refusalFromError,
   useVantageTrajectory,

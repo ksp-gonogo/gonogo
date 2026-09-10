@@ -1,6 +1,5 @@
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import { useViewClockOptional } from "@ksp-gonogo/sitrep-client";
-import type { VesselControl } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import { describe, expect, it } from "vitest";
 import { renderWidgetMode, snapshotWidgetMode } from "./widgetDomSnapshot";

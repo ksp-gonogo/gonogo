@@ -10,10 +10,7 @@ import {
 } from "@ksp-gonogo/core";
 import {
   type Reading,
-  type StreamStatusValue,
   useCommand,
-  useTelemetryClientOptional,
-  useTelemetryStoreOptional,
   withoutReckoning,
 } from "@ksp-gonogo/sitrep-client";
 import {
@@ -38,13 +35,7 @@ import {
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import type { ReactNode } from "react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import {
   bare,
@@ -201,33 +192,6 @@ function sortByDistance(list: readonly TargetListEntry[]): TargetListEntry[] {
     const db = magnitudeOf(b.distance) ?? Number.POSITIVE_INFINITY;
     return da - db;
   });
-}
-
-/** Native per-topic stream status (copy of Targeting/OrbitView's
- * helper): `"disconnected"` when no `TelemetryProvider` is mounted. */
-function useStreamStatusOptional(topic: string): StreamStatusValue {
-  const client = useTelemetryClientOptional();
-  const store = useTelemetryStoreOptional();
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => {
-      if (!client || !store) return () => {};
-      const inputTopics = store.resolveSubscriptionTopics(topic);
-      const unsubscribeInputs = inputTopics.map((inputTopic) =>
-        client.subscribe(inputTopic, () => {}),
-      );
-      const unsubscribeFrame = store.subscribeFrame(onStoreChange);
-      return () => {
-        unsubscribeFrame();
-        for (const unsubscribe of unsubscribeInputs) unsubscribe();
-      };
-    },
-    [client, store, topic],
-  );
-  const getSnapshot = useCallback((): StreamStatusValue => {
-    if (!store) return "disconnected";
-    return store.sampleStatus(topic, store.currentFrame());
-  }, [store, topic]);
-  return useSyncExternalStore(subscribe, getSnapshot);
 }
 
 /** What a confirmed-no-targets tombstone means: a roster, and it is empty. */

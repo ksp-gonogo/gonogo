@@ -32,19 +32,8 @@ import {
 import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { HttpResponse, http } from "msw";
-import { setupServer } from "msw/node";
 import type { ReactNode } from "react";
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveUplinkIdentity } from "../uplinks/identity";
 import {
   __resetUplinkOutcomes,

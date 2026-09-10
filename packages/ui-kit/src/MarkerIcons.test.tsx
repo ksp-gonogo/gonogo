@@ -78,6 +78,7 @@ describe("MarkerIcons", () => {
 
   it("every marker has a distinct silhouette once colour is stripped", () => {
     const { container } = render(
+      // biome-ignore lint/complexity/noUselessFragments: load-bearing, not decorative: render() takes a ReactElement and this map yields Element[], which is TS2345 without it
       <>
         {MARKER_IDS.map((id) => {
           const Icon = MARKER_ICONS[id];

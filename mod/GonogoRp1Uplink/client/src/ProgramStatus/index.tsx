@@ -144,7 +144,7 @@ function ActiveProgram({ program }: Readonly<{ program: Rp1ProgramEntry }>) {
             ) : overrun ? (
               <Badge severity="caution">OVERRUN</Badge>
             ) : (
-              <>{program.speed ?? NULL_DISPLAY}</>
+              (program.speed ?? NULL_DISPLAY)
             )}
           </Text>
         </Row>

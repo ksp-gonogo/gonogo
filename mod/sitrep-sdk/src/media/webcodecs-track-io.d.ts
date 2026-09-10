@@ -73,9 +73,21 @@ declare var VideoTrackGenerator: {
  * `lib.dom.d.ts`: this only adds the `transform` member that lib is
  * missing, via interface merging.
  *
+ * The body is empty because the spec interface genuinely has no members:
+ * everything a transform does happens worker-side, and the handle is opaque.
+ * An interface rather than a `= {}` alias for two reasons: it matches this
+ * file's three siblings, and it MERGES with lib.dom's own declaration when a
+ * TS release finally carries one, where a type alias would collide.
+ *
+ * The two rules disagree with each other here, so one of them has to be told
+ * no: noBannedTypes rejects the `= {}` alias and noEmptyInterface rewrites
+ * the interface straight back into it. Suppressed on the side that keeps the
+ * merge working.
+ *
  * https://w3c.github.io/webrtc-encoded-transform/
  */
-type RTCRtpScriptTransform = {};
+// biome-ignore lint/suspicious/noEmptyInterface: the spec interface has no members, and it must stay an interface to merge with lib.dom rather than collide with it
+interface RTCRtpScriptTransform {}
 
 declare var RTCRtpScriptTransform: {
   prototype: RTCRtpScriptTransform;

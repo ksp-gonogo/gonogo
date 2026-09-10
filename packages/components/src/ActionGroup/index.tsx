@@ -29,7 +29,6 @@ export {
   toggleCommandFor,
 } from "@ksp-gonogo/core";
 
-import type { VesselControl, VesselStructure } from "@ksp-gonogo/sitrep-sdk";
 import {
   BellIcon,
   ConfigForm,

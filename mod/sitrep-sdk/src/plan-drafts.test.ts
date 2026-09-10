@@ -125,8 +125,10 @@ describe("the command centre's own plans", () => {
     const created = store.create(draft());
 
     const again = store.get(created.id);
+    expect(again).toBeDefined();
+    if (!again) return;
 
-    expect(draftAsPlan(again!).requestId).toBe(draftAsPlan(created).requestId);
+    expect(draftAsPlan(again).requestId).toBe(draftAsPlan(created).requestId);
   });
 
   it("gives an EDITED draft a request id the old receipt cannot answer", () => {
@@ -143,8 +145,10 @@ describe("the command centre's own plans", () => {
       burns: [burn(5000)],
       observedAt: value("ut", 950),
     });
+    expect(edited).toBeDefined();
+    if (!edited) return;
 
-    expect(draftAsPlan(edited!).requestId).not.toBe(before);
+    expect(draftAsPlan(edited).requestId).not.toBe(before);
   });
 
   it("does not move the request id when only the saved flag changes", () => {
@@ -156,8 +160,10 @@ describe("the command centre's own plans", () => {
     const before = draftAsPlan(created).requestId;
 
     const saved = store.update(created.id, { saved: true });
+    expect(saved).toBeDefined();
+    if (!saved) return;
 
-    expect(draftAsPlan(saved!).requestId).toBe(before);
+    expect(draftAsPlan(saved).requestId).toBe(before);
   });
 
   it("does not send the name", () => {

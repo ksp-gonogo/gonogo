@@ -82,10 +82,7 @@ import { useTelemetry } from "./useTelemetry";
  * to the whole payload here would let a widget read a field off `reckoned` that
  * no declared model moves, in the one call shape most built-in widgets use.
  */
-export type WidgetTopicValue<
-  T extends TopicId,
-  Required extends readonly TopicId[],
-> = T extends ReckonableTopic
+export type WidgetTopicValue<T extends TopicId> = T extends ReckonableTopic
   ? ReckonableReading<
       TopicPayload<T>,
       ReckonableFields<T> & keyof TopicPayload<T>
@@ -113,7 +110,7 @@ export type BoundTelemetryHook<
   Optional extends readonly WidgetChannelId[],
 > = <T extends Extract<Required[number] | Optional[number], TopicId>>(
   topic: T,
-) => WidgetTopicValue<T, Extract<Required[number], TopicId>[]>;
+) => WidgetTopicValue<T>;
 
 /**
  * The value returned by {@link defineTopicManifest}: the three declared arrays

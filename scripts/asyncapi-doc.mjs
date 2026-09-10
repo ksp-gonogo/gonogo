@@ -730,7 +730,7 @@ function assertUnitsSurvived(document, units) {
         : undefined;
     for (const [field, unit] of Object.entries(fields)) {
       const at = target && propertyAt(target, field.split("."), schemas);
-      const carried = at && at.map(unitAt).find((found) => found !== undefined);
+      const carried = at?.map(unitAt).find((found) => found !== undefined);
       if (at && carried !== unit) {
         throw new Error(
           `asyncapi: the unit map's topic half says ${topic}.${field} is ${unit} ` +

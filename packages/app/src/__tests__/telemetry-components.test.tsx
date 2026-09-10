@@ -281,7 +281,7 @@ describe("TargetingComponent", () => {
     // with no `relativePosition`, so `tarDistance` stays undefined and the
     // distance readout falls back to the dash.
     const stream = setupTelemetryStream(["vessel.target"]);
-    const { container } = render(
+    render(
       <stream.Provider>
         <TargetingComponent config={{}} id="tar" />
       </stream.Provider>,

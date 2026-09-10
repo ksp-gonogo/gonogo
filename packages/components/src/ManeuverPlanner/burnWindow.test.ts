@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { burnAxis, burnDurationSeconds, burnInstantRows } from "./burnWindow";
+import {
+  type BurnAxis,
+  burnAxis,
+  burnDurationSeconds,
+  burnInstantRows,
+} from "./burnWindow";
 
 describe("burnInstantRows", () => {
   it("always returns all three, in the order they occur", () => {
@@ -62,14 +67,25 @@ describe("burnDurationSeconds", () => {
 });
 
 describe("burnAxis", () => {
+  /**
+   * `burnAxis` returns null for an impulsive plan, which is its own test below.
+   * Every fixture here describes a real burn, so a null is the derivation
+   * having stopped drawing one and is named as that rather than read through.
+   */
+  const mustAxis = (axis: BurnAxis | null): BurnAxis => {
+    if (axis === null) throw new Error("burnAxis drew nothing for a real burn");
+    return axis;
+  };
+
   it("plots the three on one scale, ordered", () => {
-    const axis = burnAxis(
-      burnInstantRows({ ut: 1000, ignitionUt: 980, cutoffUt: 1025 }),
-      970,
+    const axis = mustAxis(
+      burnAxis(
+        burnInstantRows({ ut: 1000, ignitionUt: 980, cutoffUt: 1025 }),
+        970,
+      ),
     );
 
-    expect(axis).not.toBeNull();
-    const fractions = axis!.marks.map((m) => m.fraction);
+    const fractions = axis.marks.map((m) => m.fraction);
     expect(fractions).toEqual([...fractions].sort((a, b) => a - b));
     // The span is the burn, so the outer two marks pin the ends and the whole
     // width is spent on the thing being compared.
@@ -81,29 +97,35 @@ describe("burnAxis", () => {
   // four minutes out inside the last tenth of the axis, so the picture whose
   // job is to show ordering showed one blob.
   it("does not let a distant clock compress the marks together", () => {
-    const axis = burnAxis(
-      burnInstantRows({ ut: 1000, ignitionUt: 976, cutoffUt: 1021 }),
-      760,
+    const axis = mustAxis(
+      burnAxis(
+        burnInstantRows({ ut: 1000, ignitionUt: 976, cutoffUt: 1021 }),
+        760,
+      ),
     );
 
-    const fractions = axis!.marks.map((m) => m.fraction);
+    const fractions = axis.marks.map((m) => m.fraction);
     expect(Math.max(...fractions) - Math.min(...fractions)).toBe(1);
   });
 
   // Out of range rather than clamped, so a renderer can omit it. Clamping would
   // draw the clock at ignition while the burn is minutes away.
   it("reports a clock outside the burn as outside the axis", () => {
-    const before = burnAxis(
-      burnInstantRows({ ut: 1000, ignitionUt: 976, cutoffUt: 1021 }),
-      760,
+    const before = mustAxis(
+      burnAxis(
+        burnInstantRows({ ut: 1000, ignitionUt: 976, cutoffUt: 1021 }),
+        760,
+      ),
     );
-    expect(before!.nowFraction).toBeLessThan(0);
+    expect(before.nowFraction).toBeLessThan(0);
 
-    const after = burnAxis(
-      burnInstantRows({ ut: 1000, ignitionUt: 976, cutoffUt: 1021 }),
-      2000,
+    const after = mustAxis(
+      burnAxis(
+        burnInstantRows({ ut: 1000, ignitionUt: 976, cutoffUt: 1021 }),
+        2000,
+      ),
     );
-    expect(after!.nowFraction).toBeGreaterThan(1);
+    expect(after.nowFraction).toBeGreaterThan(1);
   });
 
   // A single mark shows no ordering, so an axis drawn for it is decoration
@@ -113,14 +135,16 @@ describe("burnAxis", () => {
   });
 
   it("places a clock already inside the burn along the axis", () => {
-    const axis = burnAxis(
-      burnInstantRows({ ut: 1000, ignitionUt: 980, cutoffUt: 1025 }),
-      990,
+    const axis = mustAxis(
+      burnAxis(
+        burnInstantRows({ ut: 1000, ignitionUt: 980, cutoffUt: 1025 }),
+        990,
+      ),
     );
 
-    expect(axis!.fromUt).toBe(980);
-    expect(axis!.nowFraction).toBeGreaterThan(0);
-    expect(axis!.nowFraction).toBeLessThan(1);
+    expect(axis.fromUt).toBe(980);
+    expect(axis.nowFraction).toBeGreaterThan(0);
+    expect(axis.nowFraction).toBeLessThan(1);
   });
 });
 

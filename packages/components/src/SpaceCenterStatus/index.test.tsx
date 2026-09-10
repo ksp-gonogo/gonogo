@@ -12,7 +12,7 @@ import {
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ContributionHost } from "../test/contributionHost";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {

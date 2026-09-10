@@ -30,7 +30,7 @@ import {
   usePanelDelay,
   WidgetSections,
 } from "@ksp-gonogo/ui-kit";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { magnitudeOf } from "../shared/magnitude";
 import { bodyFromStream } from "../shared/streamBody";
@@ -1051,35 +1051,6 @@ const WaitingPanel = styled.div`
   background: var(--color-surface-panel);
   border: 1px solid var(--color-surface-raised);
   border-radius: var(--radius-xs);
-`;
-
-const StatusList = styled.ul`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-related);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-`;
-
-const StatusRow = styled.li`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-related);
-`;
-
-const StatusDot = styled.span<{ $ok: boolean }>`
-  width: 12px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  color: ${({ $ok }) => ($ok ? "var(--color-accent-fg)" : "var(--color-text-muted)")};
-  font-size: var(--font-size-xs);
-`;
-
-const StatusLabel = styled.span`
-  font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
 `;
 
 const HyperbolicNotice = styled.p`

@@ -63,13 +63,7 @@
  * stopped matching reports the same clean tree as a clean tree, it first plants
  * a specifier it knows to be broken and fails as BLIND if it cannot see it.
  */
-import {
-  readdirSync,
-  readFileSync,
-  statSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
 
