@@ -13,6 +13,22 @@ export * from "./api";
 // invisible to Axiom, so the one place an Uplink author's broken `compute` gets
 // reported would have been the place nobody can read after the fact.
 export { logger } from "./api/logger";
+// The BINARY LANE's read side. Published on the root barrel rather than behind
+// a subpath: it pulls nothing (no WebCodecs, no worker, no React), and an
+// Uplink that publishes an opaque channel needs to read one back on any screen.
+export type {
+  BinaryFrameFailure,
+  BinaryFrameResult,
+  StreamBinaryMessage,
+} from "./binary-frame";
+export {
+  BINARY_LANE_MAGIC,
+  BINARY_LANE_PREFIX_BYTES,
+  BINARY_LANE_STREAM_BINARY,
+  decodeBinaryFrame,
+  frameBytes,
+  isBinaryFrame,
+} from "./binary-frame";
 // Carried-topic POLICY: which topics the stream carries, and whether a given
 // topic resolves entirely to carried inputs. Published because it decides where
 // an Uplink's data actually routes, which is runtime behaviour rather than a

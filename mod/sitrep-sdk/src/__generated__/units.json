@@ -1049,6 +1049,11 @@
       "totalDvAsl": "m/s",
       "totalDvVac": "m/s"
     },
+    "StreamBinary": {
+      "segments": "count",
+      "topic": "id",
+      "type": "id"
+    },
     "StreamData": {
       "topic": "id",
       "type": "id"
@@ -2087,6 +2092,9 @@
     },
     "StageDeltaVEntry": {
       "resources": "*ResourceAmount"
+    },
+    "StreamBinary": {
+      "meta": "Meta"
     },
     "StreamData": {
       "meta": "Meta"

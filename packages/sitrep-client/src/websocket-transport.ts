@@ -1,5 +1,14 @@
-import type { ClientMessage, ServerMessage } from "@ksp-gonogo/sitrep-sdk";
-import { parseServerMessage } from "@ksp-gonogo/sitrep-sdk";
+import type {
+  ClientMessage,
+  ServerMessage,
+  StreamBinaryMessage,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  decodeBinaryFrame,
+  frameBytes,
+  isBinaryFrame,
+  parseServerMessage,
+} from "@ksp-gonogo/sitrep-sdk";
 import type {
   Transport,
   TransportStatus,
@@ -48,6 +57,15 @@ export interface StreamFrameInfo {
   byteLength: number;
 }
 
+/** Reported to the caller for each delivered BINARY-LANE frame (see `onBinaryFrame`). */
+export interface BinaryFrameInfo {
+  topic: string;
+  /** How many segments this frame batched. The lane exists so this is usually well above 1. */
+  segments: number;
+  /** Total payload bytes across every segment: a real byte count, unlike `StreamFrameInfo.byteLength`. */
+  byteLength: number;
+}
+
 export interface WebSocketTransportOptions {
   /** Full `ws://host:port/...` URL to connect to. Mutually exclusive with `host`/`port`. */
   url?: string;
@@ -66,6 +84,17 @@ export interface WebSocketTransportOptions {
    * itself lives in the app layer and records from this callback.
    */
   onStreamFrame?: (info: StreamFrameInfo) => void;
+  /**
+   * Called once per delivered BINARY-LANE frame: that lane's own perf-budget
+   * seam, deliberately NOT `onStreamFrame`.
+   *
+   * A media lane and a ~1 Hz state stream do not belong on one counter. Mixed,
+   * the combined rate describes neither, and the media traffic spends headroom
+   * that was sized for state. Same layering as `onStreamFrame`: the `PerfBudget`
+   * lives in the app, because `@ksp-gonogo/sitrep-client` must not depend on
+   * `@ksp-gonogo/core`.
+   */
+  onBinaryFrame?: (info: BinaryFrameInfo) => void;
   /** Inject a `WebSocket` constructor (default: the ambient global). Tests that don't use MSW can pass a fake. */
   WebSocketImpl?: WebSocketCtor;
   /** Wall-clock source for the retry-timeout budget (default `Date.now`). Injectable for deterministic tests. */
@@ -76,19 +105,47 @@ export interface WebSocketTransportOptions {
 const FRAME_TEXT_DECODER = new TextDecoder();
 
 /**
- * Normalise a WebSocket message payload to its JSON text. Handles the string
- * frames the test harnesses (MSW/stub) send AND the binary (`ArrayBuffer` /
- * typed-array) frames the real mod server sends. Returns `null` for anything
- * else (e.g. a `Blob`, only reachable if an injected socket ignores
- * `binaryType`) so the caller drops it rather than reading it asynchronously.
+ * Which lane a frame arrived on, and what came off it.
+ *
+ * `unreadable` is the arm that keeps absence honest: it is NOT the same as a
+ * frame the transport chose to ignore. It carries the reason so the drop can be
+ * said out loud, because the failures it covers (an unknown lane, a truncated
+ * frame) all look exactly like silence from a widget's point of view.
  */
-function decodeFrame(data: unknown): string | null {
-  if (typeof data === "string") return data;
-  if (data instanceof ArrayBuffer) return FRAME_TEXT_DECODER.decode(data);
-  if (ArrayBuffer.isView(data)) {
-    return FRAME_TEXT_DECODER.decode(data as ArrayBufferView);
+type DecodedFrame =
+  | { lane: "text"; text: string }
+  | { lane: "binary"; message: StreamBinaryMessage }
+  | { lane: "unreadable"; reason: string };
+
+/**
+ * Split a WebSocket message onto its lane.
+ *
+ * Handles the string frames the test harnesses (MSW/stub) send AND the binary
+ * (`ArrayBuffer` / typed-array) frames the real mod server sends. Note both
+ * lanes arrive as WebSocket BINARY frames in production: the discriminator is
+ * the first BYTE, not the frame's own type, because the mod has always written
+ * its JSON as binary (`Fleck.Send(byte[])`).
+ *
+ * A `Blob` (only reachable if an injected socket ignores `binaryType`) is
+ * dropped rather than read asynchronously, which would reorder the stream.
+ */
+function decodeFrame(data: unknown): DecodedFrame | null {
+  if (typeof data === "string") return { lane: "text", text: data };
+
+  let bytes: Uint8Array | null = null;
+  if (data instanceof ArrayBuffer) bytes = frameBytes(data);
+  else if (ArrayBuffer.isView(data))
+    bytes = frameBytes(data as ArrayBufferView);
+  if (bytes === null) return null;
+
+  if (!isBinaryFrame(bytes)) {
+    return { lane: "text", text: FRAME_TEXT_DECODER.decode(bytes) };
   }
-  return null;
+
+  const decoded = decodeBinaryFrame(bytes);
+  if (decoded.ok) return { lane: "binary", message: decoded.message };
+  /* `not-binary` cannot reach here: `isBinaryFrame` just said otherwise. */
+  return { lane: "unreadable", reason: decoded.reason };
 }
 
 const DEFAULT_PORT = 8090;
@@ -167,6 +224,7 @@ export class WebSocketTransport implements Transport {
   private readonly retryIntervalMs: number;
   private readonly retryTimeoutMs: number;
   private readonly onStreamFrame?: (info: StreamFrameInfo) => void;
+  private readonly onBinaryFrame?: (info: BinaryFrameInfo) => void;
   private readonly WebSocketImpl: WebSocketCtor;
   private readonly now: () => number;
 
@@ -216,6 +274,7 @@ export class WebSocketTransport implements Transport {
     this.retryIntervalMs = options.retryIntervalMs ?? DEFAULT_RETRY_INTERVAL_MS;
     this.retryTimeoutMs = options.retryTimeoutMs ?? DEFAULT_RETRY_TIMEOUT_MS;
     this.onStreamFrame = options.onStreamFrame;
+    this.onBinaryFrame = options.onBinaryFrame;
     this.WebSocketImpl =
       options.WebSocketImpl ??
       (globalThis.WebSocket as unknown as WebSocketCtor);
@@ -498,15 +557,33 @@ export class WebSocketTransport implements Transport {
   }
 
   private handleMessage(data: unknown): void {
-    // The server frames JSON as either text or (in production, via Fleck)
-    // BINARY. Decode both to a string before parsing; a `Blob` (only reachable
-    // if an injected socket ignores `binaryType`) is dropped rather than read
-    // async, which would reorder the stream.
-    const text = decodeFrame(data);
-    if (text === null) return;
+    const frame = decodeFrame(data);
+    if (frame === null) return;
+
+    if (frame.lane === "unreadable") {
+      /*
+       * SAID, not swallowed. Every other drop on this path is a malformed
+       * JSON envelope, which a client cannot do anything about and which the
+       * mod would already have logged. These are different: an unknown lane
+       * means this client is older than the mod, and a truncated frame means
+       * the transmission genuinely lost bytes. Both are indistinguishable
+       * from a quiet channel at every layer above, so the console line is the
+       * only place the difference is ever visible.
+       */
+      console.warn(
+        `WebSocketTransport: unreadable frame dropped, ${frame.reason}`,
+      );
+      return;
+    }
+
+    if (frame.lane === "binary") {
+      this.handleBinaryFrame(frame.message);
+      return;
+    }
+
     let message: ServerMessage;
     try {
-      message = parseServerMessage(text);
+      message = parseServerMessage(frame.text);
     } catch {
       // Malformed / unknown envelope: drop it, same posture as the
       // legacy data source's own JSON guard.
@@ -515,9 +592,38 @@ export class WebSocketTransport implements Transport {
 
     if (message.type === "stream-data") {
       this.carried.add(message.topic);
-      this.onStreamFrame?.({ topic: message.topic, byteLength: text.length });
+      this.onStreamFrame?.({
+        topic: message.topic,
+        byteLength: frame.text.length,
+      });
     }
 
+    this.deliver(message);
+  }
+
+  /**
+   * A delivery off the binary lane.
+   *
+   * Marks the topic carried exactly as a JSON delivery does (a topic is
+   * carried because data arrived on it, whatever shape the data was), and
+   * reports it on {@link WebSocketTransportOptions.onBinaryFrame} rather than
+   * `onStreamFrame`.
+   *
+   * **The separate seam is the point, not a tidiness.** `onStreamFrame` feeds a
+   * budget sized against a roughly-1 Hz state stream; folding a media lane into
+   * the same counter makes the combined number mean nothing, and the media
+   * traffic eats headroom that was measured for something else. Two seams, two
+   * budgets, two numbers that each still describe one thing.
+   */
+  private handleBinaryFrame(message: StreamBinaryMessage): void {
+    this.carried.add(message.topic);
+    let byteLength = 0;
+    for (const segment of message.segments) byteLength += segment.byteLength;
+    this.onBinaryFrame?.({
+      topic: message.topic,
+      segments: message.segments.length,
+      byteLength,
+    });
     this.deliver(message);
   }
 

@@ -150,6 +150,94 @@ namespace Sitrep.Core.Serialization
             };
         }
 
+        // ----- StreamBinary (the binary lane's JSON header) -----
+
+        /// <summary>
+        /// The JSON half of a <see cref="BinaryLane"/> frame. Field order
+        /// matches <see cref="StreamBinary"/>'s declaration order, and
+        /// therefore the generated TS interface's, on the same rule the rest of
+        /// this class follows.
+        ///
+        /// <para>Written here rather than in <c>BinaryFrameCodec</c> next door
+        /// so it can reuse <see cref="AppendMeta"/>: the whole point of the
+        /// header is that a binary delivery carries the SAME <see cref="Meta"/>
+        /// a JSON one does, byte for byte, and a second hand-written copy of
+        /// that block is how the two would drift.</para>
+        /// </summary>
+        public static string WriteStreamBinaryHeader(StreamBinary msg)
+        {
+            var sb = new StringBuilder();
+            sb.Append('{');
+            AppendField(sb, "type", first: true);
+            JsonWriter.AppendString(sb, msg.Type);
+
+            AppendField(sb, "topic");
+            JsonWriter.AppendString(sb, msg.Topic);
+
+            AppendField(sb, "segments");
+            sb.Append('[');
+            for (var i = 0; i < msg.Segments.Length; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(',');
+                }
+
+                JsonWriter.AppendInteger(sb, msg.Segments[i]);
+            }
+
+            sb.Append(']');
+
+            AppendField(sb, "meta");
+            AppendMeta(sb, msg.Meta);
+            sb.Append('}');
+            return sb.ToString();
+        }
+
+        public static StreamBinary ParseStreamBinaryHeader(string json)
+        {
+            var raw = ExpectObject(JsonReader.Parse(json));
+            RequireType(raw, "stream-binary");
+            return new StreamBinary
+            {
+                Type = "stream-binary",
+                Topic = RequireString(raw, "topic"),
+                Segments = RequireIntArray(raw, "segments"),
+                Meta = ParseMetaRaw(RequireObject(raw, "meta")),
+            };
+        }
+
+        private static int[] RequireIntArray(Dictionary<string, object?> raw, string key)
+        {
+            if (!raw.TryGetValue(key, out var value) || value is not List<object?> list)
+            {
+                throw new FormatException("expected array field '" + key + "'");
+            }
+
+            var result = new int[list.Count];
+            for (var i = 0; i < list.Count; i++)
+            {
+                if (list[i] is not double number)
+                {
+                    throw new FormatException("expected a number in '" + key + "' at index " + i);
+                }
+
+                // A segment length is a byte count: a fractional or negative
+                // one is not a short frame, it is a producer that has lost
+                // track of its own buffer, and reading past it would be reading
+                // whatever the next frame's bytes happen to be.
+                var length = (int)number;
+                if (length != number || length < 0)
+                {
+                    throw new FormatException("segment length must be a non-negative integer, got " + number);
+                }
+
+                result[i] = length;
+            }
+
+            return result;
+        }
+
         // ----- EventMsg -----
 
         public static string WriteEventMsg(EventMsg msg)

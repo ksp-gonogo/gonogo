@@ -116,6 +116,31 @@ namespace Sitrep.Contract
         public bool NullIsUnreadable { get; set; } = false;
 
         /// <summary>
+        /// Opt in to the BINARY LANE (<see cref="BinaryLane"/>): this channel's
+        /// payload is opaque bytes, and the engine puts it on the wire as a
+        /// <see cref="StreamBinary"/> frame instead of JSON-encoding it into a
+        /// <c>stream-data</c> envelope.
+        ///
+        /// <para>The mapper must then return either a single <c>byte[]</c> or an
+        /// ordered collection of them (the BATCH form, and the one to prefer:
+        /// the per-frame envelope is what costs, not the bytes). Anything else
+        /// fail-softs the owning uplink the same way an unserializable JSON
+        /// payload does.</para>
+        ///
+        /// <para><b>Declared, never inferred.</b> Nothing sniffs the payload's
+        /// CLR type to decide this, and nothing reads the topic name. A
+        /// <c>byte[]</c> is a perfectly ordinary thing for a JSON channel to
+        /// publish as a number array, and a rule that guessed would silently
+        /// change the wire shape of one that meant it. The producer says so
+        /// here, beside <see cref="Delivery"/> and <see cref="Delay"/>, or it
+        /// does not happen.</para>
+        ///
+        /// <para>Defaults to <c>false</c>: every existing channel keeps the JSON
+        /// envelope it has always had.</para>
+        /// </summary>
+        public bool OpaquePayload { get; set; } = false;
+
+        /// <summary>
         /// Opt-in predicate for a <see cref="Delivery.ReliableOrdered"/>
         /// channel whose samples are a CURSOR-RELATIVE DIFF STREAM (e.g. the
         /// kOS terminal's full-repaint-or-incremental-diff frames) rather

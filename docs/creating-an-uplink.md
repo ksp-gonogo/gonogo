@@ -303,6 +303,11 @@ typeof(ReactorReadout))]`, see "Register your commands"), handle it as
 - two optional constructor arguments tune the rest: `minSampleIntervalUt` refuses to even look more
   often than that, and `maxRateIntervalUt` clamps how often a re-tripping deadband may fire. Both
   default to 0, which disables them
+- `OpaquePayload = true` is the third member of this group and the one nobody needs until they do:
+  it puts the channel on the **[binary lane](./binary-lane.md)**, where the payload is carried as raw
+  byte segments instead of being JSON-encoded. It is for media and other opaque blobs, and it is
+  opt-in rather than inferred: a `byte[]` on an ordinary channel still goes out as a JSON number
+  array, because that is a legitimate thing for a channel to send
 
 Key points:
 

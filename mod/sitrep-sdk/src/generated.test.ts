@@ -119,6 +119,12 @@ const TRANSPORT_ONLY = new Set([
   "Subscribe",
   "Unsubscribe",
   "StreamData",
+  // The binary lane's header, and its `segments` length table is the clearest
+  // case this exemption was written for: a byte count consumed by the decoder
+  // to compute an offset, never rendered, on a path that decodes a frame every
+  // few milliseconds. A `Value<"count">` there would be an allocation standing
+  // between the header and the arithmetic that reads it.
+  "StreamBinary",
   "CommandRequest",
   "CommandResponse",
   "CommandResultOf",

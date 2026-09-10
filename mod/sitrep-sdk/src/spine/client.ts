@@ -1,4 +1,8 @@
-import { CommandErrorCode, type LimitBreach } from "../__generated__/contract";
+import {
+  CommandErrorCode,
+  type LimitBreach,
+  type Meta,
+} from "../__generated__/contract";
 import {
   COMMAND_LOST,
   COMMAND_REFUSED,
@@ -789,19 +793,43 @@ export class TelemetryClient {
       if (message.name === "subscribed") this.ownership?.noteAck(message.topic);
       return;
     }
+    /*
+     * A BINARY-LANE delivery is routed exactly as a `stream-data` one, with
+     * the segment array standing where the payload would: same subscribers,
+     * same stores, same `Meta`, so a widget reads it through `useTelemetry`
+     * like anything else and gets the same staleness and vantage answers.
+     *
+     * What it deliberately does NOT get is `wrapTopicPayload`, which is
+     * applied in `parseServerMessage` and never runs on this lane. There is
+     * nothing to wrap: an opaque payload declares no quantities, so walking it
+     * would be walking a megabyte of audio looking for fields that cannot be
+     * there.
+     */
+    if (message.type === "stream-binary") {
+      this.ingestTopicPayload(message.topic, message.segments, message.meta);
+      return;
+    }
     if (message.type !== "stream-data") return;
-    this.noteObservedVantage(message.meta.vantage);
-    this.lastValues.set(message.topic, message.payload);
-    const subs = this.subscribers.get(message.topic);
+    this.ingestTopicPayload(message.topic, message.payload, message.meta);
+  }
+
+  private ingestTopicPayload(
+    topic: string,
+    payload: unknown,
+    meta: Meta,
+  ): void {
+    this.noteObservedVantage(meta.vantage);
+    this.lastValues.set(topic, payload);
+    const subs = this.subscribers.get(topic);
     if (subs) {
-      for (const sub of subs) this.invokeCallback(sub.cb, message.payload);
+      for (const sub of subs) this.invokeCallback(sub.cb, payload);
     }
     for (const store of this.stores) {
-      store.ingest(message.topic, {
-        validAt: message.meta.validAt,
-        payload: message.payload,
-        meta: message.meta,
-        epoch: message.meta.timelineEpoch,
+      store.ingest(topic, {
+        validAt: meta.validAt,
+        payload,
+        meta,
+        epoch: meta.timelineEpoch,
       });
     }
     this.notifyStore();

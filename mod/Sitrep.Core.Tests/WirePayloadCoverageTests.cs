@@ -66,6 +66,12 @@ namespace Sitrep.Core.Tests
             // NOT here any more, it has a real flattener (VesselViewProvider.
             // ToWire(PayloadMeta)) and the scan grades it.
             "Meta", "ErrorMsg", "EventMsg", "Subscribe", "Unsubscribe", "SetVantage",
+            // The binary lane's header, on the same footing: BinaryFrameCodec
+            // frames it and EnvelopeCodec.WriteStreamBinaryHeader writes the
+            // JSON half field-by-field, so it never reaches the payload switch
+            // either. Its own payload is bytes, which by construction is what
+            // the lane exists to keep OUT of JsonWriter.
+            "StreamBinary",
             // Inbound only, and the one args type with no [SitrepCommand] of its
             // own: ComposedBurn is an element of SendManeuverPlanArgs.Burns and
             // carries the tag through its parent.
