@@ -10,11 +10,12 @@
 // several commands, which is why the reflection is over ATTRIBUTES rather
 // than over types.
 //
-// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the two
-// questions the delay rail asks of a command: whether it is a point in time
-// or a span of one (declared on the attribute), and whether anything answers
-// it. Both are DATA a client reads, so no consumer holds its own list of
-// which commands are which.
+// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the one
+// question the delay rail still asks of a command: whether anything answers
+// it. It is DATA a client reads, so no consumer holds its own list of which
+// commands are which. What a command IS on the rail's other two axes is
+// derived: a dispatch is a point, and the direction is which map it came out
+// of.
 //
 // WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per
 // [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries
@@ -203,8 +204,6 @@ export interface GeneratedCommandReplyMap {
  * this table rather than carrying a list of ids it recognises.
  */
 export interface GeneratedCommandRail {
-  /** Declared on `[SitrepCommand(..., Continuity = ...)]` by the assembly that owns the command. */
-  readonly continuity: "discrete" | "continuous";
   /** Whether the dispatch resolves with anything, i.e. whether an ack comes back. */
   readonly replies: boolean;
 }
@@ -212,11 +211,8 @@ export interface GeneratedCommandRail {
 /**
  * The rail columns for every command above, keyed the same way.
  *
- * `continuity` is DECLARED, never inferred: it is a property of the producing
- * mod rather than of the command's name, so a transmission that is one event
- * under stock and a metered flow under another mod is whatever the assembly
- * serving it says. An Uplink's own commands come out of ITS map, and its
- * client feeds them to the SDK through `registerUplinkCommand`.
+ * An Uplink's own commands come out of ITS map, and its client feeds them to
+ * the SDK through `registerUplinkCommand`.
  *
  * `replies` reads `true` on every row here, and that is a finding rather than
  * a placeholder: `Sitrep.Contract/CommandResult.cs` rules that results are
@@ -226,57 +222,57 @@ export interface GeneratedCommandRail {
  * this is where it says so.
  */
 export const GENERATED_COMMAND_RAIL = {
-  "career.contract.accept": { continuity: "discrete", replies: true },
-  "career.contract.cancel": { continuity: "discrete", replies: true },
-  "career.contract.decline": { continuity: "discrete", replies: true },
-  "career.crew.fire": { continuity: "discrete", replies: true },
-  "career.crew.hire": { continuity: "discrete", replies: true },
-  "career.facility.upgrade": { continuity: "discrete", replies: true },
-  "career.strategy.activate": { continuity: "discrete", replies: true },
-  "career.strategy.deactivate": { continuity: "discrete", replies: true },
-  "career.tech.unlock": { continuity: "discrete", replies: true },
-  "comms.setSimulationDelayPolicy": { continuity: "discrete", replies: true },
-  "ksp.launch": { continuity: "discrete", replies: true },
-  "ksp.recover": { continuity: "discrete", replies: true },
-  "ksp.revertToEditor": { continuity: "discrete", replies: true },
-  "ksp.revertToLaunch": { continuity: "discrete", replies: true },
-  "ksp.switchVessel": { continuity: "discrete", replies: true },
-  "ksp.toTrackingStation": { continuity: "discrete", replies: true },
-  "robotics.rotor.reverse": { continuity: "discrete", replies: true },
-  "robotics.rotor.setBrake": { continuity: "discrete", replies: true },
-  "robotics.rotor.setLock": { continuity: "discrete", replies: true },
-  "robotics.rotor.setMotor": { continuity: "discrete", replies: true },
-  "robotics.rotor.setRpmLimit": { continuity: "discrete", replies: true },
-  "robotics.rotor.setTorqueLimit": { continuity: "discrete", replies: true },
-  "robotics.servo.setLock": { continuity: "discrete", replies: true },
-  "robotics.servo.setMotor": { continuity: "discrete", replies: true },
-  "robotics.servo.setTarget": { continuity: "discrete", replies: true },
-  "science.experiment.deploy": { continuity: "discrete", replies: true },
-  "science.experiment.transmit": { continuity: "discrete", replies: true },
-  "system.frame.set": { continuity: "discrete", replies: true },
-  "time.setPaused": { continuity: "discrete", replies: true },
-  "time.setWarpIndex": { continuity: "discrete", replies: true },
-  "vessel.control.setAbort": { continuity: "discrete", replies: true },
-  "vessel.control.setActionGroup": { continuity: "discrete", replies: true },
-  "vessel.control.setAxes": { continuity: "continuous", replies: true },
-  "vessel.control.setBrakes": { continuity: "discrete", replies: true },
-  "vessel.control.setFlyByWire": { continuity: "discrete", replies: true },
-  "vessel.control.setGear": { continuity: "discrete", replies: true },
-  "vessel.control.setLights": { continuity: "discrete", replies: true },
-  "vessel.control.setRcs": { continuity: "discrete", replies: true },
-  "vessel.control.setSas": { continuity: "discrete", replies: true },
-  "vessel.control.setSasMode": { continuity: "discrete", replies: true },
-  "vessel.control.setThrottle": { continuity: "discrete", replies: true },
-  "vessel.control.stage": { continuity: "discrete", replies: true },
-  "vessel.invokePartAction": { continuity: "discrete", replies: true },
-  "vessel.maneuver.add": { continuity: "discrete", replies: true },
-  "vessel.maneuver.plan.send": { continuity: "discrete", replies: true },
-  "vessel.maneuver.remove": { continuity: "discrete", replies: true },
-  "vessel.maneuver.update": { continuity: "discrete", replies: true },
-  "vessel.repair": { continuity: "discrete", replies: true },
-  "vessel.target.clear": { continuity: "discrete", replies: true },
-  "vessel.target.set": { continuity: "discrete", replies: true },
-  "vessel.trajectory.forVantage": { continuity: "discrete", replies: true },
+  "career.contract.accept": { replies: true },
+  "career.contract.cancel": { replies: true },
+  "career.contract.decline": { replies: true },
+  "career.crew.fire": { replies: true },
+  "career.crew.hire": { replies: true },
+  "career.facility.upgrade": { replies: true },
+  "career.strategy.activate": { replies: true },
+  "career.strategy.deactivate": { replies: true },
+  "career.tech.unlock": { replies: true },
+  "comms.setSimulationDelayPolicy": { replies: true },
+  "ksp.launch": { replies: true },
+  "ksp.recover": { replies: true },
+  "ksp.revertToEditor": { replies: true },
+  "ksp.revertToLaunch": { replies: true },
+  "ksp.switchVessel": { replies: true },
+  "ksp.toTrackingStation": { replies: true },
+  "robotics.rotor.reverse": { replies: true },
+  "robotics.rotor.setBrake": { replies: true },
+  "robotics.rotor.setLock": { replies: true },
+  "robotics.rotor.setMotor": { replies: true },
+  "robotics.rotor.setRpmLimit": { replies: true },
+  "robotics.rotor.setTorqueLimit": { replies: true },
+  "robotics.servo.setLock": { replies: true },
+  "robotics.servo.setMotor": { replies: true },
+  "robotics.servo.setTarget": { replies: true },
+  "science.experiment.deploy": { replies: true },
+  "science.experiment.transmit": { replies: true },
+  "system.frame.set": { replies: true },
+  "time.setPaused": { replies: true },
+  "time.setWarpIndex": { replies: true },
+  "vessel.control.setAbort": { replies: true },
+  "vessel.control.setActionGroup": { replies: true },
+  "vessel.control.setAxes": { replies: true },
+  "vessel.control.setBrakes": { replies: true },
+  "vessel.control.setFlyByWire": { replies: true },
+  "vessel.control.setGear": { replies: true },
+  "vessel.control.setLights": { replies: true },
+  "vessel.control.setRcs": { replies: true },
+  "vessel.control.setSas": { replies: true },
+  "vessel.control.setSasMode": { replies: true },
+  "vessel.control.setThrottle": { replies: true },
+  "vessel.control.stage": { replies: true },
+  "vessel.invokePartAction": { replies: true },
+  "vessel.maneuver.add": { replies: true },
+  "vessel.maneuver.plan.send": { replies: true },
+  "vessel.maneuver.remove": { replies: true },
+  "vessel.maneuver.update": { replies: true },
+  "vessel.repair": { replies: true },
+  "vessel.target.clear": { replies: true },
+  "vessel.target.set": { replies: true },
+  "vessel.trajectory.forVantage": { replies: true },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [

@@ -21,11 +21,16 @@ import { railMark } from "./railTags";
  * goes in flight, but it contributes no rail chrome meanwhile.
  *
  * A continuous handle also needs BUFFERS, not just delay. `ControlDelayStream`
- * returns null with neither streams nor ribbons, so a continuous command
- * whose delay UX is drawn elsewhere (the Navball's trim command shares
- * `vessel.control.setAxes` with the axes, but has no readback channel to build
- * a strip from) would otherwise mount the rail permanently to draw nothing
- * inside it, an empty band on every delayed link.
+ * returns null with neither streams nor ribbons, so a held axis registered
+ * before its first sample lands, or a microphone keyed with nothing recorded
+ * yet, would otherwise mount the rail to draw nothing inside it.
+ *
+ * It used to catch a third case that no longer exists: `vessel.control.setAxes`
+ * declared itself continuous, so the Navball's TRIM press, which is one
+ * dispatch of that same id with a queue row and no readback to build a strip
+ * from, came through here as a ribbon with no marks and was suppressed
+ * entirely. The press now reads discrete like every other command and takes the
+ * branch below, which is what it always was.
  */
 function handleHasContent(handle: CommandHandle): boolean {
   if (railMark(handle.tags) === "ribbon") {

@@ -6,7 +6,8 @@
  * time it could only draw one of them: a command, a point in time, waiting for
  * an ack. Everything else was emulated. Voice was a ribbon because a widget put
  * it in the `ribbons` array; fly-by-wire was continuous because one command id
- * sat in a hardcoded `Set`; nothing had ever said `direction` or `delivery` out
+ * sat in a hardcoded `Set`, and then because that same id sat in a declaration
+ * saying the same thing; nothing had ever said `direction` or `delivery` out
  * loud at all. This file is the vocabulary, and the three derivations that fill
  * it in from what the mod already declares and from what a producer knows.
  *
@@ -34,13 +35,13 @@
  * - DELIVERY comes off the generated rail table's `replies`, which codegen fills
  *   in from what the command answers. Telemetry has no reply channel at all, so
  *   nothing answers a push
- * - CONTINUITY is DECLARED, on `[SitrepCommand(..., Continuity = ...)]` in the
- *   assembly that owns the command, and reaches here through the generated
- *   table. It cannot be derived: a science transmission is one event under stock
- *   and a metered flow under a resource-simulation mod that meters it by data
- *   rate, and the id is the same either way, so only the mod serving it knows. A telemetry entry and a held control axis
- *   each state it at the producer for the same reason, which is what
- *   {@link railTagsForTelemetry} and {@link railTagsForControlAxis} are
+ * - CONTINUITY is a property of the PRODUCER, and each of the three derivations
+ *   below answers it from what the producer is doing rather than from a
+ *   declaration. One dispatch of a command is a point, always: what is a span is
+ *   the AXIS a widget holds, which is {@link railTagsForControlAxis}, or the
+ *   stream a producer is pushing, which is {@link railTagsForTelemetry}. The
+ *   command's own id cannot say which, because the same id is both depending on
+ *   whether the operator pressed it or is holding it
  */
 
 import { commandRail } from "./commands";
@@ -69,13 +70,12 @@ export interface RailTags {
 }
 
 /**
- * The two rail facts about one command, as the generated command map emits them.
- * Declared structurally here rather than imported from that map so an Uplink can
- * hand over a row out of its OWN generated one, which is a different declaration
- * of the same shape.
+ * The one rail fact about one command that is not structural, as the generated
+ * command map emits it. Declared structurally here rather than imported from
+ * that map so an Uplink can hand over a row out of its OWN generated one, which
+ * is a different declaration of the same shape.
  */
 export interface CommandRail {
-  readonly continuity: RailContinuity;
   readonly replies: boolean;
 }
 
@@ -116,12 +116,16 @@ function railTags(
  * `useCommand`'s untyped overload, a dynamic dispatch, an Uplink whose client
  * has not loaded yet.
  *
- * Discrete because continuity has to be declared to be anything else, and ACKED
- * because `Sitrep.Contract/CommandResult.cs` rules that results are always
- * delivered, never a fire-and-forget void, and that holds for a command this
- * package has never heard of just as much as for one it has. Reading an absent
- * row as `replies: false` instead would drop the return leg for every ordinary
- * command dispatched by name, which is the opposite of the truth.
+ * Discrete because one dispatch of any command is a point, and ACKED because
+ * `Sitrep.Contract/CommandResult.cs` rules that results are always delivered,
+ * never a fire-and-forget void, and that holds for a command this package has
+ * never heard of just as much as for one it has. Reading an absent row as
+ * `replies: false` instead would drop the return leg for every ordinary command
+ * dispatched by name, which is the opposite of the truth.
+ *
+ * So this is what EVERY declared command reads as too, unless something other
+ * than the command says otherwise. It stays its own name because the two
+ * statements are different: this one is about an id nothing has declared.
  */
 export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
   "command",
@@ -141,7 +145,7 @@ export const UNDECLARED_COMMAND_RAIL_TAGS: RailTags = railTags(
 export function railTagsFromCommandRail(rail: CommandRail): RailTags {
   return railTags(
     "command",
-    rail.continuity,
+    "discrete",
     rail.replies ? "acked" : "fire-and-forget",
   );
 }
@@ -163,16 +167,12 @@ export function railTagsForCommand(command: string): RailTags {
  * on, dispatched as a coalesced stream of absolute sets and echoed back by the
  * craft.
  *
- * CONTINUITY is `continuous` here regardless of what the write command declares,
- * and that is a derivation rather than an override: what crosses the gap is the
- * axis, not one press of it. The command's own declaration answers a different
- * question, whether ONE dispatch of it is a point or a span, and for most
- * held axes the answer is "a point": `vessel.control.setThrottle` sets a held
- * global once and is not re-applied per frame (`KspVesselActuator.SetThrottle`;
- * the fly-by-wire override "writes every axis except this one"), so it is
- * declared discrete and correctly so. A widget that PRESSES it gets a queue
- * row; a widget that HOLDS it gets a strip. Those are two entries, and the
- * producer is what tells them apart.
+ * CONTINUITY is `continuous` here and nowhere else on the command side, because
+ * what crosses the gap is the axis, not one press of it. One dispatch of the
+ * write command is a point whichever axis it drives, `vessel.control.setAxes`
+ * included: the Navball presses that same id to send a trim and gets a queue
+ * row, and holds it to fly and gets a strip. Those are two entries about one
+ * command, which is why the command cannot be the thing that says.
  *
  * This is the same argument {@link railTagsForTelemetry} makes for a microphone,
  * and it is the reason continuity is declared at the producer at all: the thing

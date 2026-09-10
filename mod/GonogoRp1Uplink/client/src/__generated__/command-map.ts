@@ -10,11 +10,12 @@
 // several commands, which is why the reflection is over ATTRIBUTES rather
 // than over types.
 //
-// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the two
-// questions the delay rail asks of a command: whether it is a point in time
-// or a span of one (declared on the attribute), and whether anything answers
-// it. Both are DATA a client reads, so no consumer holds its own list of
-// which commands are which.
+// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the one
+// question the delay rail still asks of a command: whether anything answers
+// it. It is DATA a client reads, so no consumer holds its own list of which
+// commands are which. What a command IS on the rail's other two axes is
+// derived: a dispatch is a point, and the direction is which map it came out
+// of.
 //
 // WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per
 // [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries
@@ -150,8 +151,6 @@ export interface GeneratedCommandReplyMap {
  * this table rather than carrying a list of ids it recognises.
  */
 export interface GeneratedCommandRail {
-  /** Declared on `[SitrepCommand(..., Continuity = ...)]` by the assembly that owns the command. */
-  readonly continuity: "discrete" | "continuous";
   /** Whether the dispatch resolves with anything, i.e. whether an ack comes back. */
   readonly replies: boolean;
 }
@@ -159,11 +158,8 @@ export interface GeneratedCommandRail {
 /**
  * The rail columns for every command above, keyed the same way.
  *
- * `continuity` is DECLARED, never inferred: it is a property of the producing
- * mod rather than of the command's name, so a transmission that is one event
- * under stock and a metered flow under another mod is whatever the assembly
- * serving it says. An Uplink's own commands come out of ITS map, and its
- * client feeds them to the SDK through `registerUplinkCommand`.
+ * An Uplink's own commands come out of ITS map, and its client feeds them to
+ * the SDK through `registerUplinkCommand`.
  *
  * `replies` reads `true` on every row here, and that is a finding rather than
  * a placeholder: `Sitrep.Contract/CommandResult.cs` rules that results are
@@ -173,35 +169,35 @@ export interface GeneratedCommandRail {
  * this is where it says so.
  */
 export const GENERATED_COMMAND_RAIL = {
-  "rp1.build.repeat": { continuity: "discrete", replies: true },
-  "rp1.build.start": { continuity: "discrete", replies: true },
-  "rp1.complex.dismantle": { continuity: "discrete", replies: true },
-  "rp1.complex.modify": { continuity: "discrete", replies: true },
-  "rp1.complex.new": { continuity: "discrete", replies: true },
-  "rp1.complex.rename": { continuity: "discrete", replies: true },
-  "rp1.complex.rush": { continuity: "discrete", replies: true },
-  "rp1.contracts.setPayload": { continuity: "discrete", replies: true },
-  "rp1.facility.upgrade": { continuity: "discrete", replies: true },
-  "rp1.fundTarget.cancel": { continuity: "discrete", replies: true },
-  "rp1.fundTarget.set": { continuity: "discrete", replies: true },
-  "rp1.hireTarget.cancel": { continuity: "discrete", replies: true },
-  "rp1.hireTarget.set": { continuity: "discrete", replies: true },
-  "rp1.pad.dismantle": { continuity: "discrete", replies: true },
-  "rp1.pad.new": { continuity: "discrete", replies: true },
-  "rp1.pad.rename": { continuity: "discrete", replies: true },
-  "rp1.personnel.assign": { continuity: "discrete", replies: true },
-  "rp1.strategy.activate": { continuity: "discrete", replies: true },
-  "rp1.tech.research": { continuity: "discrete", replies: true },
-  "rp1.tooling.refit": { continuity: "discrete", replies: true },
-  "rp1.tooling.toolAll": { continuity: "discrete", replies: true },
-  "rp1.training.cancel": { continuity: "discrete", replies: true },
-  "rp1.training.enrol": { continuity: "discrete", replies: true },
-  "rp1.training.remove": { continuity: "discrete", replies: true },
-  "rp1.vehicle.rollback": { continuity: "discrete", replies: true },
-  "rp1.vehicle.rollout": { continuity: "discrete", replies: true },
-  "rp1.vehicle.scrap": { continuity: "discrete", replies: true },
-  "rp1.warp.toComplete": { continuity: "discrete", replies: true },
-  "rp1.warp.toFundTarget": { continuity: "discrete", replies: true },
+  "rp1.build.repeat": { replies: true },
+  "rp1.build.start": { replies: true },
+  "rp1.complex.dismantle": { replies: true },
+  "rp1.complex.modify": { replies: true },
+  "rp1.complex.new": { replies: true },
+  "rp1.complex.rename": { replies: true },
+  "rp1.complex.rush": { replies: true },
+  "rp1.contracts.setPayload": { replies: true },
+  "rp1.facility.upgrade": { replies: true },
+  "rp1.fundTarget.cancel": { replies: true },
+  "rp1.fundTarget.set": { replies: true },
+  "rp1.hireTarget.cancel": { replies: true },
+  "rp1.hireTarget.set": { replies: true },
+  "rp1.pad.dismantle": { replies: true },
+  "rp1.pad.new": { replies: true },
+  "rp1.pad.rename": { replies: true },
+  "rp1.personnel.assign": { replies: true },
+  "rp1.strategy.activate": { replies: true },
+  "rp1.tech.research": { replies: true },
+  "rp1.tooling.refit": { replies: true },
+  "rp1.tooling.toolAll": { replies: true },
+  "rp1.training.cancel": { replies: true },
+  "rp1.training.enrol": { replies: true },
+  "rp1.training.remove": { replies: true },
+  "rp1.vehicle.rollback": { replies: true },
+  "rp1.vehicle.rollout": { replies: true },
+  "rp1.vehicle.scrap": { replies: true },
+  "rp1.warp.toComplete": { replies: true },
+  "rp1.warp.toFundTarget": { replies: true },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [

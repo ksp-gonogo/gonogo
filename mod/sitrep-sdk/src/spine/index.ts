@@ -45,7 +45,7 @@
 /*
  * The rail's axis vocabulary lives a level up, since it is an author surface on
  * the root barrel. Re-exported here so the spine's own consumers reach it the
- * same way they reach `commandShape`.
+ * same way they reach `commandDelayed`.
  */
 export * from "../rail-tags";
 export * from "./atmospheric-reckoning";

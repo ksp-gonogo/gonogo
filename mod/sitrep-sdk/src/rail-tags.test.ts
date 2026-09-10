@@ -12,12 +12,13 @@ import {
   railTagsFromCommandRail,
   UNDECLARED_COMMAND_RAIL_TAGS,
 } from "./rail-tags";
-import { commandShape } from "./spine/map-command";
 
 /**
- * The generated table is the whole point of the exercise: continuity used to be
- * a `Set` written in `spine/map-command.ts` holding one id, and this is the
- * check that it is now DATA off the contract rather than a list in the client.
+ * The generated table carries what a client must READ about a command rather
+ * than assume, which is now one column. Continuity left it: it was a `Set` in
+ * `spine/map-command.ts` holding one id, then a declaration on that same id
+ * saying the same thing, and both were answering the wrong question. See
+ * `railTagsForControlAxis` below for the one the producer answers instead.
  */
 describe("the generated rail table", () => {
   it("carries a row for every declared command", () => {
@@ -28,15 +29,6 @@ describe("the generated rail table", () => {
     // A count, because an empty `missing` over an empty id list would read as a
     // clean pass while the table said nothing at all.
     expect(GENERATED_COMMAND_IDS.length).toBeGreaterThan(40);
-  });
-
-  it("declares the fly-by-wire override continuous, and it alone", () => {
-    const continuous = Object.entries(GENERATED_COMMAND_RAIL)
-      .filter(([, rail]) => rail.continuity === "continuous")
-      .map(([id]) => id);
-    // Named exactly rather than counted: a table that had lost every
-    // declaration would satisfy "at least one is discrete" forever.
-    expect(continuous).toEqual(["vessel.control.setAxes"]);
   });
 
   /*
@@ -76,10 +68,18 @@ describe("the two namespaces the two derivations read", () => {
 });
 
 describe("railTagsForCommand", () => {
-  it("reads the DECLARED continuity of the fly-by-wire override", () => {
+  /*
+   * The fly-by-wire override reads DISCRETE, like every other command, and it
+   * is the one worth naming: it used to declare itself continuous, and the
+   * Navball presses that same id to send a trim. A press is a point, so the
+   * press got a ribbon it had no stream for and the rail drew nothing at all
+   * (`PanelDelayRail.handleHasContent`). What is continuous is the axis, which
+   * `railTagsForControlAxis` says and the command cannot.
+   */
+  it("reads the fly-by-wire override as a point, like every other command", () => {
     expect(railTagsForCommand("vessel.control.setAxes")).toEqual({
       direction: "command",
-      continuity: "continuous",
+      continuity: "discrete",
       delivery: "acked",
     });
   });
@@ -107,6 +107,19 @@ describe("railTagsForCommand", () => {
     );
   });
 
+  /*
+   * The derivation is now the SAME answer for every declared command, so assert
+   * it over the whole table rather than on a sample: a row that somehow read
+   * otherwise would be a column that came back.
+   */
+  it("reads every declared command the same way", () => {
+    const odd = GENERATED_COMMAND_IDS.filter(
+      (id) => railTagsForCommand(id) !== UNDECLARED_COMMAND_RAIL_TAGS,
+    );
+    expect(odd).toEqual([]);
+    expect(GENERATED_COMMAND_IDS.length).toBeGreaterThan(40);
+  });
+
   it("falls back to what the contract guarantees for an undeclared command", () => {
     expect(railTagsForCommand("nobody.declared.this")).toEqual(
       UNDECLARED_COMMAND_RAIL_TAGS,
@@ -125,9 +138,7 @@ describe("railTagsForCommand", () => {
    * rather than assumed.
    */
   it("derives fire-and-forget from a row that answers nothing", () => {
-    expect(
-      railTagsFromCommandRail({ continuity: "discrete", replies: false }),
-    ).toEqual({
+    expect(railTagsFromCommandRail({ replies: false })).toEqual({
       direction: "command",
       continuity: "discrete",
       delivery: "fire-and-forget",
@@ -141,24 +152,21 @@ describe("railTagsForCommand", () => {
  * package can name its commands. It registers its own generated row at load and
  * the derivation reads it, with nothing in the SDK naming a token of that mod's.
  */
-describe("an Uplink declaring its own continuous command", () => {
-  it("gets a continuous rail from its own registration", () => {
+describe("an Uplink registering its own command", () => {
+  it("gets a rail row from its own registration", () => {
     const id = "testuplink.science.transmit";
     // Before registration nothing is known about it, and the answer says so
     // rather than guessing.
     expect(commandRail(id)).toBeNull();
-    expect(railTagsForCommand(id)).toEqual(UNDECLARED_COMMAND_RAIL_TAGS);
 
-    registerUplinkCommand(id, { continuity: "continuous", replies: true });
+    registerUplinkCommand(id, { replies: true });
 
+    expect(commandRail(id)).toEqual({ replies: true });
     expect(railTagsForCommand(id)).toEqual({
       direction: "command",
-      continuity: "continuous",
+      continuity: "discrete",
       delivery: "acked",
     });
-    // And the delay machinery's own spelling follows, with no second source to
-    // keep in step.
-    expect(commandShape(id)).toBe("stream");
   });
 });
 
@@ -181,12 +189,13 @@ describe("the axis triples are interned", () => {
       railTagsForTelemetry("continuous"),
     );
     /*
-     * Across two different derivations that land on the same combination: a
-     * held throttle axis and the declared fly-by-wire command are both
-     * command/continuous/acked.
+     * Two held axes reached through the same derivation but keyed off different
+     * write commands: both land on command/continuous/acked and must be the one
+     * instance, since a widget holding several axes registers one handle per
+     * axis and the store compares them shallowly.
      */
     expect(railTagsForControlAxis("vessel.control.setThrottle")).toBe(
-      railTagsForCommand("vessel.control.setAxes"),
+      railTagsForControlAxis("vessel.control.setAxes"),
     );
   });
 
@@ -226,8 +235,8 @@ describe("railTagsForTelemetry", () => {
 });
 
 describe("railTagsForControlAxis", () => {
-  it("is continuous whatever the write command declares", () => {
-    // The command is discrete (asserted above); the held axis is not.
+  it("is continuous, and the write command never says otherwise", () => {
+    // Every command is discrete (asserted above); the held axis is not.
     expect(railTagsForControlAxis("vessel.control.setThrottle")).toEqual({
       direction: "command",
       continuity: "continuous",

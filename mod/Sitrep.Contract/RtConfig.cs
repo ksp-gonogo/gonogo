@@ -1554,7 +1554,7 @@ public static class RtConfig
         var localNames = new HashSet<string>(
             target.GetTypes().Select(t => t.Name), StringComparer.Ordinal);
 
-        var rows = new List<(string Id, string Args, string Reply, string Continuity, bool Replies)>();
+        var rows = new List<(string Id, string Args, string Reply, bool Replies)>();
         var argsNames = new SortedSet<string>(StringComparer.Ordinal);
         var replyNames = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var type in target.GetTypes())
@@ -1593,19 +1593,13 @@ public static class RtConfig
                     reply = "CommandResult";
                 }
 
-                // The rail columns. Continuity is DECLARED on the attribute by
-                // whichever assembly owns the command; `replies` is derived from
-                // what it answers, and is true for every command the contract has
-                // ever declared because `CommandResult` rules that results are
-                // always delivered. It is read rather than assumed so that a
-                // command answering nothing would land as fire-and-forget without
-                // a new branch anywhere downstream.
-                rows.Add((
-                    attr.CommandId,
-                    type.Name,
-                    reply,
-                    attr.Continuity == CommandContinuity.Continuous ? "continuous" : "discrete",
-                    reply != null));
+                // The rail column. `replies` is derived from what the command
+                // answers, and is true for every command the contract has ever
+                // declared because `CommandResult` rules that results are always
+                // delivered. It is read rather than assumed so that a command
+                // answering nothing would land as fire-and-forget without a new
+                // branch anywhere downstream.
+                rows.Add((attr.CommandId, type.Name, reply, reply != null));
                 argsNames.Add(type.Name);
             }
         }
@@ -1635,11 +1629,12 @@ public static class RtConfig
         sb.Append("// several commands, which is why the reflection is over ATTRIBUTES rather\n");
         sb.Append("// than over types.\n");
         sb.Append("//\n");
-        sb.Append("// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the two\n");
-        sb.Append("// questions the delay rail asks of a command: whether it is a point in time\n");
-        sb.Append("// or a span of one (declared on the attribute), and whether anything answers\n");
-        sb.Append("// it. Both are DATA a client reads, so no consumer holds its own list of\n");
-        sb.Append("// which commands are which.\n");
+        sb.Append("// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the one\n");
+        sb.Append("// question the delay rail still asks of a command: whether anything answers\n");
+        sb.Append("// it. It is DATA a client reads, so no consumer holds its own list of which\n");
+        sb.Append("// commands are which. What a command IS on the rail's other two axes is\n");
+        sb.Append("// derived: a dispatch is a point, and the direction is which map it came out\n");
+        sb.Append("// of.\n");
         sb.Append("//\n");
         sb.Append("// WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per\n");
         sb.Append("// [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries\n");
@@ -1735,8 +1730,6 @@ public static class RtConfig
         sb.Append(" * this table rather than carrying a list of ids it recognises.\n");
         sb.Append(" */\n");
         sb.Append("export interface GeneratedCommandRail {\n");
-        sb.Append("  /** Declared on `[SitrepCommand(..., Continuity = ...)]` by the assembly that owns the command. */\n");
-        sb.Append("  readonly continuity: \"discrete\" | \"continuous\";\n");
         sb.Append("  /** Whether the dispatch resolves with anything, i.e. whether an ack comes back. */\n");
         sb.Append("  readonly replies: boolean;\n");
         sb.Append("}\n\n");
@@ -1744,11 +1737,8 @@ public static class RtConfig
         sb.Append("/**\n");
         sb.Append(" * The rail columns for every command above, keyed the same way.\n");
         sb.Append(" *\n");
-        sb.Append(" * `continuity` is DECLARED, never inferred: it is a property of the producing\n");
-        sb.Append(" * mod rather than of the command's name, so a transmission that is one event\n");
-        sb.Append(" * under stock and a metered flow under another mod is whatever the assembly\n");
-        sb.Append(" * serving it says. An Uplink's own commands come out of ITS map, and its\n");
-        sb.Append(" * client feeds them to the SDK through `registerUplinkCommand`.\n");
+        sb.Append(" * An Uplink's own commands come out of ITS map, and its client feeds them to\n");
+        sb.Append(" * the SDK through `registerUplinkCommand`.\n");
         sb.Append(" *\n");
         sb.Append(" * `replies` reads `true` on every row here, and that is a finding rather than\n");
         sb.Append(" * a placeholder: `Sitrep.Contract/CommandResult.cs` rules that results are\n");
@@ -1760,8 +1750,7 @@ public static class RtConfig
         sb.Append("export const GENERATED_COMMAND_RAIL = {\n");
         foreach (var row in rows)
         {
-            sb.Append("  \"").Append(row.Id).Append("\": { continuity: \"")
-              .Append(row.Continuity).Append("\", replies: ")
+            sb.Append("  \"").Append(row.Id).Append("\": { replies: ")
               .Append(row.Replies ? "true" : "false").Append(" },\n");
         }
         sb.Append("} as const satisfies Record<string, GeneratedCommandRail>;\n\n");
