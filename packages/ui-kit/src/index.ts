@@ -316,6 +316,10 @@ export {
   type EmptyStateLayout,
   type EmptyStateProps,
 } from "./EmptyState";
+export {
+  ExpandableText,
+  type ExpandableTextProps,
+} from "./ExpandableText";
 export { Fill, type FillProps } from "./Fill";
 export {
   FilterChip,

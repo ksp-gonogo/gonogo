@@ -331,4 +331,56 @@ describe("StrategiesComponent", () => {
       await screen.findByRole("button", { name: /^Activate$/i }),
     ).toBeInTheDocument();
   });
+
+  /**
+   * Seen live 2026-09-09 on the Administration Building's Programs screen: an
+   * RP-1 Program's description runs past a thousand marked-up characters, this
+   * widget drew one under every card in the list, and a 5x9 tile rendered
+   * 104,000 pixels tall. Long prose is cut here; only the press reveals it.
+   */
+  it("cuts a long strategy description down and reveals it on press", async () => {
+    const user = userEvent.setup();
+    const long = [
+      SAMPLE_ACTIVE.description,
+      ...Array(6).fill(
+        "Deals are struck over months of correspondence and a great deal of travel.",
+      ),
+    ].join(" ");
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [{ ...SAMPLE_ACTIVE, description: long }], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+
+    await screen.findByText("Aggressive Negotiations");
+    expect(screen.queryByText(long)).toBeNull();
+
+    const more = screen.getByRole("button", {
+      name: "Show more of Aggressive Negotiations",
+    });
+    await user.click(more);
+
+    // Verbatim, once asked for: the cut hides text, it never edits it.
+    expect(screen.getByText(long)).toBeInTheDocument();
+    expect(more).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("leaves a one-line strategy description alone, control and all", async () => {
+    renderWidget();
+    act(() => {
+      emitCareer(stream, [SAMPLE_ACTIVE], {
+        funds: 289848,
+        reputation: 976,
+        science: 0,
+      });
+    });
+
+    expect(
+      await screen.findByText("Push harder on every deal."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /^Show more/ })).toBeNull();
+  });
 });
