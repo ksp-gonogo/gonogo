@@ -10,11 +10,12 @@
 // several commands, which is why the reflection is over ATTRIBUTES rather
 // than over types.
 //
-// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the two
-// questions the delay rail asks of a command: whether it is a point in time
-// or a span of one (declared on the attribute), and whether anything answers
-// it. Both are DATA a client reads, so no consumer holds its own list of
-// which commands are which.
+// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the one
+// question the delay rail still asks of a command: whether anything answers
+// it. It is DATA a client reads, so no consumer holds its own list of which
+// commands are which. What a command IS on the rail's other two axes is
+// derived: a dispatch is a point, and the direction is which map it came out
+// of.
 //
 // WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per
 // [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries
@@ -74,8 +75,6 @@ export interface GeneratedCommandReplyMap {
  * this table rather than carrying a list of ids it recognises.
  */
 export interface GeneratedCommandRail {
-  /** Declared on `[SitrepCommand(..., Continuity = ...)]` by the assembly that owns the command. */
-  readonly continuity: "discrete" | "continuous";
   /** Whether the dispatch resolves with anything, i.e. whether an ack comes back. */
   readonly replies: boolean;
 }
@@ -83,11 +82,8 @@ export interface GeneratedCommandRail {
 /**
  * The rail columns for every command above, keyed the same way.
  *
- * `continuity` is DECLARED, never inferred: it is a property of the producing
- * mod rather than of the command's name, so a transmission that is one event
- * under stock and a metered flow under another mod is whatever the assembly
- * serving it says. An Uplink's own commands come out of ITS map, and its
- * client feeds them to the SDK through `registerUplinkCommand`.
+ * An Uplink's own commands come out of ITS map, and its client feeds them to
+ * the SDK through `registerUplinkCommand`.
  *
  * `replies` reads `true` on every row here, and that is a finding rather than
  * a placeholder: `Sitrep.Contract/CommandResult.cs` rules that results are
@@ -97,9 +93,9 @@ export interface GeneratedCommandRail {
  * this is where it says so.
  */
 export const GENERATED_COMMAND_RAIL = {
-  "mechjeb.engageAscentAutopilot": { continuity: "discrete", replies: true },
-  "mechjeb.executeNextNode": { continuity: "discrete", replies: true },
-  "mechjeb.landAtTarget": { continuity: "discrete", replies: true },
+  "mechjeb.engageAscentAutopilot": { replies: true },
+  "mechjeb.executeNextNode": { replies: true },
+  "mechjeb.landAtTarget": { replies: true },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [

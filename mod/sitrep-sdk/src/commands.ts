@@ -139,17 +139,14 @@ const COMMAND_ID_SET: ReadonlySet<string> = new Set(COMMAND_IDS);
 const uplinkCommandIds = new Set<string>();
 
 /**
- * The rail rows of Uplink-owned commands: whether each is a point in time or a
- * span of one, and whether anything answers it. Populated by the same
- * `registerUplinkCommand` call that enrols the id, out of the Uplink's own
- * generated map.
+ * The rail rows of Uplink-owned commands: whether anything answers each.
+ * Populated by the same `registerUplinkCommand` call that enrols the id, out of
+ * the Uplink's own generated map.
  *
  * It has to be a runtime registry rather than a table in this package for the
  * reason the whole Uplink model exists: an Uplink ships on its own schedule and
  * this build has never heard of it, so a list written here could only ever
- * describe core's commands and would answer "discrete" about everyone else's.
- * That is exactly what the hardcoded `STREAM_COMMANDS` set in
- * `spine/map-command.ts` did until this replaced it.
+ * describe core's commands and would answer for everyone else's by guessing.
  */
 const uplinkCommandRails = new Map<string, CommandRail>();
 
@@ -165,11 +162,11 @@ const uplinkCommandRails = new Map<string, CommandRail>();
  * `getAllKnownCommandIds()` and `isCommandId` says no about a command that works.
  *
  * `rail` is that command's row out of the Uplink's own generated command map,
- * and it is how a continuous Uplink command gets a continuous rail. Omitted, the
- * command reads as whatever the contract guarantees about any command
- * (`UNDECLARED_COMMAND_RAIL_TAGS`): discrete, acked. An Uplink that drives the
- * registration off its generated map, as every bundled one does, passes it
- * without writing a line per command.
+ * and it is how an Uplink command that answers NOTHING would get a rail with no
+ * return leg. Omitted, the command reads as whatever the contract guarantees
+ * about any command (`UNDECLARED_COMMAND_RAIL_TAGS`): discrete, acked. An
+ * Uplink that drives the registration off its generated map, as every bundled
+ * one does, passes it without writing a line per command.
  */
 export function registerUplinkCommand(id: string, rail?: CommandRail): void {
   uplinkCommandIds.add(id);

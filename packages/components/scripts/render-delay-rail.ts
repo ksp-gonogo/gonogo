@@ -42,6 +42,10 @@ const VIEWPORT_H = 360;
 const DISCRETE_TAGS = railTagsForCommand("vessel.control.setSasMode");
 const THROTTLE_AXIS_TAGS = railTagsForControlAxis("vessel.control.setThrottle");
 const FBW_AXIS_TAGS = railTagsForControlAxis("vessel.control.setAxes");
+/* The SAME command as `FBW_AXIS_TAGS`, asked the other question: what one press
+   of it is, rather than what holding it is. The two derivations disagreeing on
+   the same id is the point of keeping both shots. */
+const PRESSED_AXIS_TAGS = railTagsForCommand("vessel.control.setAxes");
 
 // Hand-built CommandDelayHandle scenarios. Plain data (no spine), the same
 // shape `useCommand(...)` returns, so the rail draws exactly as it would for a
@@ -313,6 +317,37 @@ const SCENARIOS: ReadonlyArray<{
             outcome: "ran",
           },
         ],
+      },
+    ],
+  },
+  {
+    name: "08-pressed-axis-command",
+    panelTitle: "NAVBALL",
+    /*
+     * The Navball's TRIM press: `useCommand("vessel.control.setAxes")` handed
+     * straight to `usePanelDelay`, with a queue row and no readback stream,
+     * because trim is the one fly-by-wire input with no `[SitrepControlChannel]`
+     * to echo it (`Navball/index.tsx`).
+     *
+     * Tagged through `railTagsForCommand`, the derivation under test, not
+     * through the control-axis one the held axes use: a widget that PRESSES a
+     * command gets a queue row, and this shot is what proves it does.
+     */
+    handles: [
+      {
+        inFlight: [
+          {
+            id: "t1",
+            label: "Pitch trim",
+            command: "vessel.control.setAxes",
+            glyph: "TRM",
+            reachEtaSeconds: 2,
+            replyEtaSeconds: 8,
+            predictedPhase: "in-transit",
+          },
+        ],
+        tags: PRESSED_AXIS_TAGS,
+        effectiveDelaySeconds: 6,
       },
     ],
   },

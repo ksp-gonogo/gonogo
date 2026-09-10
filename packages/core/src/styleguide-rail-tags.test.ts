@@ -9,11 +9,11 @@ import { describe, expect, it } from "vitest";
  * spelled out.
  *
  * There are exactly three derivations, all in `mod/sitrep-sdk/src/rail-tags.ts`:
- * `railTagsForCommand` (off what the command's owning assembly declared),
- * `railTagsForControlAxis` (a held axis is a span, delivery off the command),
- * and `railTagsForTelemetry` (direction and delivery are what telemetry
- * structurally is, continuity stated by the producer). A production site reaches
- * one of them or it is wrong.
+ * `railTagsForCommand` (a dispatch is a point, delivery off what the command
+ * answers), `railTagsForControlAxis` (a held axis is a span, delivery off the
+ * command), and `railTagsForTelemetry` (direction and delivery are what
+ * telemetry structurally is, continuity stated by the producer). A production
+ * site reaches one of them or it is wrong.
  *
  * ## Why this is a ban rather than a budget
  *
@@ -34,7 +34,8 @@ import { describe, expect, it } from "vitest";
  * on deciding it after the derivation moves. That is what "emulating the table"
  * meant: the rail drew voice as a ribbon because a widget put it in the
  * `ribbons` array, and fly-by-wire as continuous because one command id sat in a
- * hardcoded `Set`.
+ * hardcoded `Set`, and then because that same id carried a declaration saying
+ * the same thing.
  *
  * ## What is deliberately allowed
  *
