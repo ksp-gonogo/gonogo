@@ -4,6 +4,7 @@ import {
   PerfBudget,
 } from "@ksp-gonogo/core";
 import { act, render, screen, waitFor } from "@ksp-gonogo/test-utils";
+import { NULL_DISPLAY } from "@ksp-gonogo/ui-kit";
 import { visibleText } from "@ksp-gonogo/ui-kit/testing";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
@@ -124,16 +125,25 @@ function sentNamed(command: string): unknown[] {
 }
 
 describe("Navball display: what undefined means today", () => {
-  it("shows an unnamed SAS badge and both modes dark when nothing has arrived", () => {
+  it("shows unnamed SAS and RCS toggles and no precision chip when nothing has arrived", () => {
     mount("nb-undef-nothing");
 
-    // `sasMode = vesselState?.sasModeName ?? undefined`: absence renders the
-    // bare word, so "SAS mode unknown" and "SAS mode not reported" look the same
-    // as each other and are only distinguishable from a NAMED mode.
-    expect(screen.getByText("SAS")).toBeInTheDocument();
+    // `armLabel` renders the bare name for an arm nothing has read, so
+    // "SAS mode unknown" and "SAS mode not reported" look the same as each
+    // other and are only distinguishable from a NAMED mode. Notably NOT
+    // "SAS OFF": an unread arm is not a confirmed-off one, and not a bare
+    // "SAS" either, which is the mode grid's stability-assist button.
+    expect(
+      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: `RCS ${NULL_DISPLAY}` }),
+    ).toBeInTheDocument();
     expect(visibleText()).not.toContain("SAS:");
-    // `precisionOn = control?.precisionControl === true`: absence renders the
-    // badge not at all, which is the same as a confirmed-off precision mode.
+    expect(visibleText()).not.toContain("SAS OFF");
+    // Precision has no unread rendering of its own (the chip's only states are
+    // lit and dim, and dim IS off), so it renders not at all until a reading
+    // lands. Distinguishable from a confirmed-off precision mode, which is dim.
     expect(screen.queryByText("PRECISION")).toBeNull();
     // No FBW delay badge, since FBW is unarmed. Pinned so the delay-warning
     // tests below are about `delaySeconds`, not about this row being empty.
@@ -191,13 +201,15 @@ describe("Navball control surface: what undefined means today", () => {
     expect(
       screen.queryByText("Vessel not controllable: buttons disabled."),
     ).toBeNull();
-    const sas = screen.getByRole("button", { name: "SAS OFF" });
-    const rcs = screen.getByRole("button", { name: "RCS OFF" });
+    const sas = screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` });
+    const rcs = screen.getByRole("button", { name: `RCS ${NULL_DISPLAY}` });
     expect(sas).not.toBeDisabled();
     expect(rcs).not.toBeDisabled();
-    // Coerced-to-off display: an unread SAS button is labelled exactly as a
-    // confirmed-off one.
+    // No coercion in the DISPLAY: an unread arm is labelled with its bare name,
+    // distinguishable from both a confirmed-on and a confirmed-off one. The
+    // dispatch gate below is what still treats absence as "do nothing".
     expect(screen.queryByRole("button", { name: "SAS ON" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "SAS OFF" })).toBeNull();
     // And the slider states a commanded zero.
     expect(screen.getByRole("slider", { name: "Throttle" })).toHaveValue("0");
   });
@@ -222,15 +234,17 @@ describe("Navball control surface: what undefined means today", () => {
         screen.getByText("Vessel not controllable: buttons disabled."),
       ).toBeInTheDocument(),
     );
-    expect(screen.getByRole("button", { name: "SAS OFF" })).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),
+    ).toBeDisabled();
   });
 
   it("refuses to dispatch a SAS or RCS toggle when vessel.control has never arrived", async () => {
     mount("nb-undef-toggle-refused", { w: 10, h: 20, controlMode: true });
 
     act(() => {
-      screen.getByRole("button", { name: "SAS OFF" }).click();
-      screen.getByRole("button", { name: "RCS OFF" }).click();
+      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }).click();
+      screen.getByRole("button", { name: `RCS ${NULL_DISPLAY}` }).click();
       // A SAS-MODE click, which has no absence gate at all: its dispatch is the
       // control proving this render's command path is live, so the two empty
       // lists below are the gate firing rather than a fixture that cannot send.
@@ -250,7 +264,9 @@ describe("Navball control surface: what undefined means today", () => {
     expect(sentNamed("vessel.control.setRcs")).toEqual([]);
     // The button is not disabled, so the refusal is invisible to the operator:
     // it reads as a control that did nothing.
-    expect(screen.getByRole("button", { name: "SAS OFF" })).not.toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),
+    ).not.toBeDisabled();
   });
 
   it("dispatches that same click once a real boolean has arrived", async () => {
@@ -288,11 +304,13 @@ describe("Navball control surface: what undefined means today", () => {
     );
 
     // The widget does not distinguish them: `control?.sas` short-circuits on
-    // `null`, so the display coercion and the dispatch refusal both behave
-    // exactly as in the never-arrived case.
-    expect(screen.getByRole("button", { name: "SAS OFF" })).toBeInTheDocument();
+    // `null`, so the unread label and the dispatch refusal both behave exactly
+    // as in the never-arrived case.
+    expect(
+      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }),
+    ).toBeInTheDocument();
     act(() => {
-      screen.getByRole("button", { name: "SAS OFF" }).click();
+      screen.getByRole("button", { name: `SAS ${NULL_DISPLAY}` }).click();
       // Same ungated control as in the never-arrived test: its dispatch proves
       // the command path is live under a tombstone too.
       screen.getByRole("button", { name: "PRO" }).click();

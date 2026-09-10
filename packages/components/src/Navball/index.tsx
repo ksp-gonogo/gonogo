@@ -360,9 +360,6 @@ function NavballComponent({
   const vesselState = useStream<VesselState>("vessel.state");
   const sasMode = vesselState?.sasModeName ?? undefined;
   const sasBadgeMode = sasMode ? badgeSasMode(sasMode) : "";
-  const sasOn = control?.sas === true;
-  const rcsOn = control?.rcs === true;
-  const precisionOn = control?.precisionControl === true;
   // Magnitudes at the read: throttle drives a slider position and the delay
   // drives a threshold comparison, both of which are arithmetic. Left wrapped,
   // the `typeof === "number"` guards below answer "no reading" for every live
@@ -528,11 +525,11 @@ function NavballComponent({
     void trimCmd.send({ [field]: clamp(raw, -1, 1) });
   };
 
-  // Raw (uncoerced) current values for the toggle-invert guard: `sasOn`/
-  // `rcsOn` above already collapse "unknown" to `false` for DISPLAY, but
-  // inverting an unresolved value would be a blind guess (never dispatch an
-  // ambiguous toggle as a blind set, same contract map-command.ts's
-  // `toggleHome` documents).
+  // Uncoerced, and they reach the buttons that way: inverting an unresolved
+  // value would be a blind guess (never dispatch an ambiguous toggle as a
+  // blind set, same contract map-command.ts's `toggleHome` documents), and
+  // `armLabel` needs the same three states to avoid rendering an unread arm as
+  // a confirmed OFF.
   const sasRaw = control?.sas;
   const rcsRaw = control?.rcs;
 
@@ -803,7 +800,22 @@ function NavballComponent({
   // reading here. That is why no reckoner is registered for `vessel.attitude`.
   const showDial = rows >= 6 && cols >= 4 && attitudeObserved;
   const showThrottleColumn = showDial && cols >= 5;
-  const showModeBadges = cols >= 5;
+  // SAS / RCS / precision, in the BODY rather than the header aside.
+  //
+  // They were three hand-styled chips in `panelAside` until 2026-09-10, which
+  // put two of the vessel's live control states next to the panel's status pill
+  // and made the pill look like one more chip in a row of them. They are also
+  // the widest thing the aside ever carried, and the aside collapses on a
+  // MEASURED fit (usePanelAsideSize): title and aside stop fitting side by
+  // side and the WHOLE aside goes behind a disclosure chevron, taking any
+  // contributed alert with it. An Uplink badging a loss of control on the
+  // `navball.badges` slot therefore had room for one short pill and no detail
+  // beside it, measured, so the width the chips were using was not free.
+  //
+  // The same `cols >= 5` the badges used, so no tile that showed SAS and RCS
+  // before loses them, and no tile that was too narrow for them gains a row it
+  // has no width for.
+  const showControlRow = cols >= 5;
   const showControlSurface = controlMode && rows >= 18 && cols >= 7;
   controlModeRef.current = showControlSurface;
   // Sync refs the ResizeObserver reads inside its closure, the observer
@@ -844,41 +856,43 @@ function NavballComponent({
             </div>
           ) : (
             <div style={NUMERIC_READOUT}>
-              <div style={READOUT_ROW}>
-                <span style={READOUT_LABEL}>HDG</span>
-                <span style={READOUT_VALUE}>
-                  {heading === null ? (
-                    NULL_DISPLAY
-                  ) : (
-                    <Unit value={value("°", heading)} decimals={0} />
-                  )}
-                </span>
-              </div>
-              <div style={READOUT_ROW}>
-                <span style={READOUT_LABEL}>PCH</span>
-                <span style={READOUT_VALUE}>
-                  {pitch === null ? (
-                    NULL_DISPLAY
-                  ) : (
-                    <>
-                      {pitch >= 0 ? "+" : ""}
-                      <Unit value={value("°", pitch)} decimals={0} />
-                    </>
-                  )}
-                </span>
-              </div>
-              <div style={READOUT_ROW}>
-                <span style={READOUT_LABEL}>RLL</span>
-                <span style={READOUT_VALUE}>
-                  {roll === null ? (
-                    NULL_DISPLAY
-                  ) : (
-                    <>
-                      {roll >= 0 ? "+" : ""}
-                      <Unit value={value("°", roll)} decimals={0} />
-                    </>
-                  )}
-                </span>
+              <div style={READOUT_ROWS}>
+                <div style={READOUT_ROW}>
+                  <span style={READOUT_LABEL}>HDG</span>
+                  <span style={READOUT_VALUE}>
+                    {heading === null ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <Unit value={value("°", heading)} decimals={0} />
+                    )}
+                  </span>
+                </div>
+                <div style={READOUT_ROW}>
+                  <span style={READOUT_LABEL}>PCH</span>
+                  <span style={READOUT_VALUE}>
+                    {pitch === null ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <>
+                        {pitch >= 0 ? "+" : ""}
+                        <Unit value={value("°", pitch)} decimals={0} />
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div style={READOUT_ROW}>
+                  <span style={READOUT_LABEL}>RLL</span>
+                  <span style={READOUT_VALUE}>
+                    {roll === null ? (
+                      NULL_DISPLAY
+                    ) : (
+                      <>
+                        {roll >= 0 ? "+" : ""}
+                        <Unit value={value("°", roll)} decimals={0} />
+                      </>
+                    )}
+                  </span>
+                </div>
               </div>
               <AttitudeCurrency
                 dialSuppressed={rows >= 6 && cols >= 4}
@@ -887,14 +901,26 @@ function NavballComponent({
             </div>
           )}
         </Section>,
+        /* Full-width: a control strip the surface below it belongs to, never a
+           column beside it. */
+        showControlRow ? (
+          <Section key="controls" full>
+            <ControlToggles
+              disabled={!isControllable}
+              sas={sasRaw}
+              sasBadgeMode={sasBadgeMode}
+              rcs={rcsRaw}
+              precision={control?.precisionControl}
+              onToggleSas={toggleSas}
+              onToggleRcs={toggleRcs}
+            />
+          </Section>
+        ) : null,
         showControlSurface ? (
           <Section key="control">
             <ControlSurface
               disabled={!isControllable}
               sasMode={sasMode ?? null}
-              sasOn={sasOn}
-              rcsOn={rcsOn}
-              precisionOn={precisionOn}
               throttleCmd={throttleStream.current}
               onSetThrottleCmd={setThrottleCmd}
               throttleStream={throttleStream}
@@ -902,8 +928,6 @@ function NavballComponent({
               fbwArmed={fbwArmed}
               onArmFbw={armFbw}
               onDisarmFbw={disarmFbw}
-              onToggleSas={toggleSas}
-              onToggleRcs={toggleRcs}
               onSetSasMode={setSasMode}
               failedSasModes={failedSasModes}
               onDismissSasFailure={sasFailures.dismiss}
@@ -913,32 +937,138 @@ function NavballComponent({
           </Section>
         ) : null,
       ]}
+      /* The aside carries alerts and nothing else now: this warning, whatever
+         an Uplink contributes to `navball.badges`, and the panel's own status
+         pill. Control STATE moved to the body (see `showControlRow`). */
       panelAside={
-        showModeBadges ? (
-          <div style={MODE_BADGE_ROW}>
-            <span style={modeBadgeStyle(sasOn)}>
-              SAS{sasBadgeMode && `: ${sasBadgeMode}`}
-            </span>
-            <span style={modeBadgeStyle(rcsOn)}>RCS</span>
-            {precisionOn && <span style={modeBadgeStyle(true)}>PRECISION</span>}
-            {showFbwDelayWarning && delaySeconds !== null && (
-              <Badge severity="warning" size="sm">
-                FBW · <Countdown value={delaySeconds} precise /> DELAY
-              </Badge>
-            )}
-          </div>
+        showFbwDelayWarning && delaySeconds !== null ? (
+          <Badge severity="warning" size="sm">
+            FBW · <Countdown value={delaySeconds} precise /> DELAY
+          </Badge>
         ) : undefined
       }
     />
   );
 }
 
+interface ControlTogglesProps {
+  disabled: boolean;
+  /** SAS as read, UNCOERCED: absent is a third state here, not a false. See {@link armLabel}. */
+  sas: boolean | null | undefined;
+  /** The active SAS mode's three-letter token, or `""` when no mode is on the wire. See {@link badgeSasMode}. */
+  sasBadgeMode: string;
+  /** RCS as read, uncoerced. */
+  rcs: boolean | null | undefined;
+  /** Precision control as read, uncoerced; the chip is absent until a reading lands. */
+  precision: boolean | null | undefined;
+  onToggleSas: () => void;
+  onToggleRcs: () => void;
+}
+
+/**
+ * SAS, RCS and precision control: two delay-aware toggles and one readout,
+ * present at every tile wide enough to hold them rather than only in control
+ * mode.
+ *
+ * Both toggles ride the same `useCommand` handles they always did
+ * (`vessel.control.setSas` / `setRcs`, registered with the panel's delay rail
+ * through `usePanelDelay`), so a command in flight still shows in the
+ * Panel-top queue and a failed one still surfaces there. What changed is that
+ * an operator on a display-sized tile can now press them: the header chips
+ * they replace were `<span>`s, so SAS and RCS were readouts everywhere below
+ * the control surface's rows>=18, cols>=7 threshold.
+ *
+ * The SAS toggle carries the active mode, because with the header chip gone
+ * this is the only place the mode appears on a tile too small for the mode
+ * grid. Same token the grid puts on its buttons, stutter included: see
+ * {@link badgeSasMode}.
+ *
+ * Precision control is a readout among the toggles rather than a chip of its
+ * own: it is a state of the same control surface, and the contract carries no
+ * command to set it (`ActionDefinition` "toggle-precision" is declared and
+ * deliberately inert).
+ */
+function ControlToggles({
+  disabled,
+  sas,
+  sasBadgeMode,
+  rcs,
+  precision,
+  onToggleSas,
+  onToggleRcs,
+}: ControlTogglesProps) {
+  return (
+    <>
+      {disabled && (
+        <div style={BANNER} role="status" aria-live="polite">
+          Vessel not controllable: buttons disabled.
+        </div>
+      )}
+      <div style={TOGGLE_GRID}>
+        <ToggleButton
+          type="button"
+          size="sm"
+          active={sas === true}
+          onClick={onToggleSas}
+          disabled={disabled}
+        >
+          {armLabel("SAS", sas, sasBadgeMode)}
+        </ToggleButton>
+        <ToggleButton
+          type="button"
+          size="sm"
+          active={rcs === true}
+          onClick={onToggleRcs}
+          disabled={disabled}
+        >
+          {armLabel("RCS", rcs)}
+        </ToggleButton>
+        {/* Only once a reading has arrived: a dim chip is how OFF looks, so a
+            dim chip for an unread precision state would be a confirmed-off
+            that nothing confirmed. Absent, the row is two toggles wide. */}
+        {typeof precision === "boolean" && (
+          <ToggleButton type="button" size="sm" active={precision} disabled>
+            PRECISION
+          </ToggleButton>
+        )}
+      </div>
+    </>
+  );
+}
+
+/**
+ * One arm's toggle label: `SAS: PRO` / `RCS ON` when the arm is on, `SAS OFF`
+ * when it is confirmed off, and the name plus the kit's no-reading mark when
+ * nothing has been read.
+ *
+ * The third case is the one worth spelling out. `vessel.control` is declared
+ * unmodellable, so before the first reading lands there is no state to report,
+ * and "SAS OFF" would be a claim about the vessel that no telemetry supports.
+ * The header chip this label replaces never made it: absent, it rendered the
+ * bare word dark, and the widget's own characterisation test pins that
+ * ("SAS mode unknown and SAS mode not reported look the same as each other").
+ * The control surface's copy of these buttons DID make it, on the reasoning
+ * that a tile showing the surface is a tile being flown; putting them on every
+ * tile takes that reasoning away.
+ *
+ * `NULL_DISPLAY` rather than the bare name, because the bare name is not free:
+ * the mode grid's `StabilityAssist` button is also labelled "SAS", so an unread
+ * SAS arm and the button that engages stability assist had the same accessible
+ * name, two rows apart, in control mode.
+ */
+function armLabel(
+  name: string,
+  on: boolean | null | undefined,
+  mode?: string,
+): string {
+  if (on !== true && on !== false) return `${name} ${NULL_DISPLAY}`;
+  if (!on) return `${name} OFF`;
+  return mode ? `${name}: ${mode}` : `${name} ON`;
+}
+
 interface ControlSurfaceProps {
   disabled: boolean;
   sasMode: string | null;
-  sasOn: boolean;
-  rcsOn: boolean;
-  precisionOn: boolean;
   /** Commanded throttle value (0..1): local operator intent, tracks the live readback until touched. Same value as `throttleStream.current`. */
   throttleCmd: number;
   onSetThrottleCmd: (next: number | ((v: number) => number)) => void;
@@ -951,8 +1081,6 @@ interface ControlSurfaceProps {
   fbwArmed: boolean;
   onArmFbw: () => void;
   onDisarmFbw: () => void;
-  onToggleSas: () => void;
-  onToggleRcs: () => void;
   onSetSasMode: (mode: SasMode) => void;
   /** SAS modes whose issued command is currently failed (overdue or lost), mapped to that command's id so the button can dismiss it. */
   failedSasModes: Map<SasMode, string>;
@@ -965,9 +1093,6 @@ interface ControlSurfaceProps {
 function ControlSurface({
   disabled,
   sasMode,
-  sasOn,
-  rcsOn,
-  precisionOn,
   throttleCmd,
   onSetThrottleCmd,
   throttleStream,
@@ -975,8 +1100,6 @@ function ControlSurface({
   fbwArmed,
   onArmFbw,
   onDisarmFbw,
-  onToggleSas,
-  onToggleRcs,
   onSetSasMode,
   failedSasModes,
   onDismissSasFailure,
@@ -985,36 +1108,9 @@ function ControlSurface({
 }: ControlSurfaceProps) {
   return (
     <div style={CONTROL_WRAP}>
-      {disabled && (
-        <div style={BANNER} role="status" aria-live="polite">
-          Vessel not controllable: buttons disabled.
-        </div>
-      )}
-      <div style={GROUP}>
-        <div style={GROUP_LABEL}>SAS</div>
-        <div style={BUTTON_GRID}>
-          <ToggleButton
-            type="button"
-            active={sasOn}
-            onClick={onToggleSas}
-            disabled={disabled}
-          >
-            {sasOn ? "SAS ON" : "SAS OFF"}
-          </ToggleButton>
-          <ToggleButton
-            type="button"
-            active={rcsOn}
-            onClick={onToggleRcs}
-            disabled={disabled}
-          >
-            {rcsOn ? "RCS ON" : "RCS OFF"}
-          </ToggleButton>
-          <ToggleButton type="button" active={precisionOn} disabled>
-            PRECISION
-          </ToggleButton>
-        </div>
-      </div>
-
+      {/* SAS, RCS, precision and the not-controllable banner all sit in
+          `ControlToggles`, one section above: this surface is only ever
+          rendered on a tile that also shows that row. */}
       <div style={GROUP}>
         <div style={GROUP_LABEL}>SAS Mode</div>
         <div style={BUTTON_GRID}>
@@ -1167,22 +1263,22 @@ function modeShort(mode: SasMode): string {
 }
 
 /**
- * The header badge's mode token: the same three letters the SAS MODE grid puts
- * on its buttons.
+ * The SAS toggle's mode token: the same three letters the SAS MODE grid puts on
+ * its buttons.
  *
- * The full member name is what pushed the badge row wide enough that the Panel
- * ellipsised its OWN title down to "GNC CO...". The panel header is one row by
- * design (title left, aside right, no wrap, the aside collapsing to dots rather
- * than dropping a line), so the aside taking more width can only cost the title
- * letters, and the grid directly below already spells the active mode out in
- * full behind its lit button.
+ * The full member name is what makes it a token rather than a name. It was in
+ * the header aside until 2026-09-10 and pushed the badge row wide enough that
+ * the Panel ellipsised its OWN title down to "GNC CO..."; on the toggle it has
+ * a whole grid cell, but the cell still competes with two more toggles in the
+ * same row, and the grid directly below spells the active mode out in full
+ * behind its lit button anyway.
  *
- * `StabilityAssist` gets its token like every other mode, so the badge reads
+ * `StabilityAssist` gets its token like every other mode, so the toggle reads
  * "SAS: SAS". It stutters, and it is still the right rendering: dropping the
- * suffix there instead makes the badge identical to the one shown when the mode
- * is not on the wire at all, and at display sizes the badge is the ONLY place
- * the mode appears (the mode grid needs rows>=18 and cols>=7). Consistency with
- * the button an operator actually presses beats reading well.
+ * suffix there instead makes it identical to the label shown when the mode is
+ * not on the wire at all, and on a tile too small for the mode grid (which
+ * needs rows>=18 and cols>=7) the toggle is the ONLY place the mode appears.
+ * Consistency with the button an operator actually presses beats reading well.
  *
  * `Unknown` keeps its own name rather than becoming a symbol: it is the
  * contract's fallback for a mode this build cannot name, and a "?" would leave
@@ -1275,31 +1371,6 @@ function NavballConfigComponent({
 // term) and the 80ms throttle chase are deliberately literal (see each note)
 // and were already literal in the styled blocks this replaces.
 
-// Wrap badges onto a second line at narrow widths instead of pushing the
-// trailing badge (RCS / PRECISION) past the clipped panel edge. Align right so
-// they stay grouped under the SAS badge.
-const MODE_BADGE_ROW: CSSProperties = {
-  display: "flex",
-  gap: "var(--gap-related)",
-  flexWrap: "wrap",
-  justifyContent: "flex-end",
-  minWidth: 0,
-};
-
-function modeBadgeStyle(on: boolean): CSSProperties {
-  return {
-    fontSize: "var(--font-size-2xs)",
-    fontWeight: 700,
-    letterSpacing: "0.08em",
-    padding: "var(--inset-chip)",
-    borderRadius: "var(--radius-xs)",
-    background: on
-      ? "var(--color-status-go-bg)"
-      : "var(--color-surface-raised)",
-    color: on ? "var(--color-status-go-fg)" : "var(--color-text-faint)",
-  };
-}
-
 const DIAL_WRAP: CSSProperties = {
   // Fill the available column so the ResizeObserver sees real dimensions,
   // without flex:1 the wrap collapses to its content and the dial gets stuck at
@@ -1321,6 +1392,25 @@ const NUMERIC_READOUT: CSSProperties = {
   gap: "var(--gap-related)",
   flex: 1,
   justifyContent: "center",
+};
+
+/**
+ * The three HDG/PCH/RLL pairs, wrapping rather than always stacking.
+ *
+ * A stack is what a narrow tile gets, because a pair is wider than half of one
+ * and wrapping puts each on its own line: identical to the column this
+ * replaces at the 3x4 minimum. A WIDE-AND-SHORT tile is the case a column
+ * cannot serve, and it is the one where the dial is suppressed by rows while
+ * the tile has width to spare: at 18x5 three stacked pairs plus the control
+ * row below them needed more height than the tile has, and the readout painted
+ * straight over the toggles (caught by the harness's overlap gate, not by
+ * eye). One line of three pairs uses the width the tier actually has.
+ */
+const READOUT_ROWS: CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  columnGap: "var(--gap-section)",
+  rowGap: "var(--gap-related)",
 };
 
 const READOUT_ROW: CSSProperties = {
@@ -1432,6 +1522,28 @@ const GROUP_LABEL: CSSProperties = {
 const BUTTON_GRID: CSSProperties = {
   display: "grid",
   gridTemplateColumns: "repeat(auto-fit, minmax(68px, 1fr))",
+  gap: "var(--gap-related)",
+};
+
+/**
+ * The SAS/RCS/precision row's own column, wider than {@link BUTTON_GRID}'s
+ * because these labels are words rather than a marker plus a three-letter
+ * token, and narrower than the words would need at the mode grid's type size.
+ *
+ * A `ToggleButton` is an `inline-flex`, so a label wider than its column
+ * shrinks to min-content and breaks at the space ("SAS:" / "PRO") while a
+ * single word ("PRECISION") simply overflows the border box instead. Both were
+ * happening: on the mode grid's 68px the row was ragged at 7 columns and
+ * PRECISION spilled 4px at 8. The three carry `size="sm"`, which drops the
+ * inset and the type rung while keeping the kit's shared control height, and
+ * that is what makes the widest of them 78px rather than 91px.
+ *
+ * Measured at every tier the widget renders, the widest label now fits its
+ * column on one line: 3 across at 8 columns and wider, 2 at 7, 1 at 5.
+ */
+const TOGGLE_GRID: CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "repeat(auto-fit, minmax(76px, 1fr))",
   gap: "var(--gap-related)",
 };
 

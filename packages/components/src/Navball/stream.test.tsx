@@ -100,13 +100,13 @@ describe("Navball: genuinely runs off the stream (M3 batch 1)", () => {
     await waitFor(() => expect(visibleText()).toContain("87°"));
     expect(visibleText()).toContain("+12°");
     expect(visibleText()).toContain("-5°");
-    // f.sasEnabled -> vessel.control.sas: SAS badge lights up. f.sasMode is
-    // gapped (no legacy source in this stream-only file), so the mode
-    // caption stays absent: "SAS" alone, not "SAS: Prograde".
-    expect(screen.getByText("SAS")).toBeTruthy();
+    // f.sasEnabled -> vessel.control.sas: the SAS toggle reads ON. f.sasMode is
+    // gapped (no legacy source in this stream-only file), so the mode token
+    // stays absent: "SAS ON", not "SAS: PRO".
+    expect(screen.getByRole("button", { name: "SAS ON" })).toBeTruthy();
     // f.precisionControl -> vessel.control.precisionControl (un-gapped):
-    // the PRECISION badge lights up off the stream alone, no legacy source
+    // the PRECISION chip lights up off the stream alone, no legacy source
     // registered in this file.
-    expect(screen.getByText("PRECISION")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "PRECISION" })).toBeTruthy();
   });
 });

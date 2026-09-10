@@ -359,7 +359,7 @@ export const COMMENT_STACK_DEBT: Record<string, number> = {
   "packages/components/src/Navball/index.tsx": 6,
   "packages/components/src/Navball/reading.test.tsx": 1,
   "packages/components/src/Navball/stream.test.tsx": 3,
-  "packages/components/src/Navball/undefined.characterise.test.tsx": 5,
+  "packages/components/src/Navball/undefined.characterise.test.tsx": 4,
   "packages/components/src/Objectives/index.tsx": 4,
   "packages/components/src/Objectives/slot-contract.test-d.ts": 1,
   "packages/components/src/Objectives/stale.test.tsx": 2,

@@ -163,12 +163,16 @@ describe("NavballComponent", () => {
     expect(screen.queryByText("999°")).not.toBeInTheDocument();
   });
 
-  it("surfaces SAS mode in the badge", async () => {
+  it("surfaces SAS mode on the SAS toggle", async () => {
     const { fixture } = renderNavball();
     // sasMode -> vessel.state.sasModeName, derived from vessel.control.sasMode
-    // (1 = Prograde), rendered as the grid's own three-letter token.
+    // (1 = Prograde), rendered as the grid's own three-letter token. On the
+    // toggle rather than a header chip, and on a display-sized tile that is
+    // still the only place the mode appears.
     emitReads(fixture, { control: { sas: true, sasMode: 1 } });
-    expect(await screen.findByText("SAS: PRO")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "SAS: PRO" }),
+    ).toBeInTheDocument();
   });
 
   it("displays the control surface and dispatches vessel.control.setSasMode", async () => {
@@ -401,13 +405,16 @@ describe("Navball: navball.badges augment slot (spec §4)", () => {
     return { ...result, fixture };
   }
 
-  it("renders the header badge row without an augment (empty slot is fine)", async () => {
-    // No augment bound → the slot composes to nothing; the stock SAS/RCS
-    // badges still render and the widget doesn't crash.
+  it("renders without an augment (empty slot is fine)", async () => {
+    // No augment bound → the slot composes to nothing and the widget doesn't
+    // crash. The stock SAS/RCS state is in the BODY now, on the two toggles,
+    // so the header aside is free for whatever an Uplink contributes here.
     const { fixture } = renderNavball();
     emitReads(fixture, { control: { sas: true, sasMode: 1, rcs: false } });
-    expect(await screen.findByText("SAS: PRO")).toBeInTheDocument();
-    expect(screen.getByText("RCS")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("button", { name: "SAS: PRO" }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "RCS OFF" })).toBeInTheDocument();
     expect(screen.queryByTestId("autopilot-badge")).toBeNull();
   });
 });
