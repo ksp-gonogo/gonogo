@@ -443,9 +443,9 @@ function RibbonMark({
   ribbon: ControlRibbonDatum;
   padX: number;
 }) {
-  // Per-instance, never a literal: two mounted ribbons would both emit the same
-  // `id`, and the SVG spec resolves `url(#...)` to whichever element comes FIRST
-  // in document order, so one instance's fade silently wins for both.
+  /* Per-instance, never a literal: two mounted ribbons would both emit the same
+     `id`, and the SVG spec resolves `url(#...)` to whichever element comes FIRST
+     in document order, so one instance's fade silently wins for both. */
   const fadeId = `cds-ribbon-fade-${useId()}`;
   const tags = railTagsOf({ tags: { ...VOICE_RAIL_TAGS, ...ribbon.tags } });
   if (railMark(tags) !== "ribbon") return null;
@@ -457,9 +457,9 @@ function RibbonMark({
   // A ribbon with nothing in it is not a crossing.
   if (path === "") return null;
 
-  // Where the fade runs from and to: the trace's OWN length, so a short one
-  // fades over itself rather than over a journey it has not made. At least a
-  // unit wide, since a gradient with no extent paints one flat colour.
+  /* Where the fade runs from and to: the trace's OWN length, so a short one
+     fades over itself rather than over a journey it has not made. At least a
+     unit wide, since a gradient with no extent paints one flat colour. */
   const fadeX = Math.max(waveformExtentX(samples, span, boundaryX), 1);
   const tone = `var(${railToneToken(tags)})`;
   const outbound = railFlow(tags) === "outbound";
