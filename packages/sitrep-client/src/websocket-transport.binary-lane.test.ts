@@ -6,6 +6,7 @@ import { makeMeta } from "./stub-transport";
 import {
   type BinaryFrameInfo,
   type StreamFrameInfo,
+  type WebSocketLike,
   WebSocketTransport,
 } from "./websocket-transport";
 
@@ -56,8 +57,44 @@ function fixturePath(): string {
   }
 }
 
-const FIXTURE = JSON.parse(readFileSync(fixturePath(), "utf8")) as {
-  cases: FixtureCase[];
+/* Narrowed rather than asserted: a golden fixture that has drifted out of shape
+   fails HERE, naming the case, instead of surfacing as an unrelated assertion
+   failure inside whichever test happens to read the missing field. `in` on an
+   object-narrowed unknown is what lets this be written without an assertion. */
+function isFixtureCase(value: unknown): value is FixtureCase {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    typeof value.name === "string" &&
+    "topic" in value &&
+    typeof value.topic === "string" &&
+    "frameBase64" in value &&
+    typeof value.frameBase64 === "string" &&
+    "segmentsBase64" in value &&
+    Array.isArray(value.segmentsBase64) &&
+    value.segmentsBase64.every((s) => typeof s === "string")
+  );
+}
+
+function readFixtureCases(json: unknown): FixtureCase[] {
+  if (typeof json !== "object" || json === null || !("cases" in json)) {
+    throw new Error(`${fixturePath()}: no "cases" key`);
+  }
+  const { cases } = json;
+  if (!Array.isArray(cases)) {
+    throw new Error(`${fixturePath()}: "cases" is not an array`);
+  }
+  return cases.map((entry, i) => {
+    if (!isFixtureCase(entry)) {
+      throw new Error(`${fixturePath()}: case ${i} is not a FixtureCase`);
+    }
+    return entry;
+  });
+}
+
+const FIXTURE = {
+  cases: readFixtureCases(JSON.parse(readFileSync(fixturePath(), "utf8"))),
 };
 
 function caseNamed(name: string): FixtureCase {
@@ -89,10 +126,13 @@ function utf8(text: string): Uint8Array {
 
 /** A socket the test drives directly, so `event.data` can be exactly what a real one delivers. */
 function makeDrivableSocket() {
-  const listeners = new Map<string, Array<(event?: unknown) => void>>();
+  const listeners = new Map<
+    string,
+    Array<(event: { data: unknown }) => void>
+  >();
   let deliver: (data: unknown) => void = () => {};
 
-  class DrivableSocket {
+  class DrivableSocket implements WebSocketLike {
     static readonly OPEN = 1;
     readyState = 1;
     binaryType = "blob";
@@ -108,20 +148,30 @@ function makeDrivableSocket() {
     close(): void {
       this.readyState = 3;
     }
-    addEventListener(type: string, listener: (event?: unknown) => void): void {
+    /* The real overloads, not one widened signature: `WebSocketLike` promises a
+       "message" listener an `{ data }` event, and a handler typed to accept
+       `unknown` cannot stand in for that. The open/close/error listeners take
+       nothing, so the event handed to them is ignored. */
+    addEventListener(type: "open", listener: () => void): void;
+    addEventListener(type: "close", listener: () => void): void;
+    addEventListener(type: "error", listener: () => void): void;
+    addEventListener(
+      type: "message",
+      listener: (event: { data: unknown }) => void,
+    ): void;
+    addEventListener(
+      type: string,
+      listener: (event: { data: unknown }) => void,
+    ): void {
       const bucket = listeners.get(type) ?? [];
       bucket.push(listener);
       listeners.set(type, bucket);
-      if (type === "open") listener();
+      if (type === "open") listener({ data: undefined });
     }
   }
 
   return {
-    ctor: DrivableSocket as unknown as ConstructorParameters<
-      typeof WebSocketTransport
-    >[0] extends { WebSocketImpl?: infer C }
-      ? NonNullable<C>
-      : never,
+    ctor: DrivableSocket,
     deliver: (data: unknown) => deliver(data),
   };
 }
