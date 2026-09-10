@@ -1,5 +1,6 @@
 import type React from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { useWheelZoom } from "./useWheelZoom";
 
 interface PointerPos {
   x: number;
@@ -78,22 +79,15 @@ export function useZoomPan<E extends HTMLElement = HTMLDivElement>(
     [minScale, maxScale],
   );
 
-  // Native wheel listener: React's onWheel is passive in some setups, so
-  // preventDefault would silently fail. Attach with { passive: false }.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const rect = el.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const factor = e.deltaY < 0 ? wheelStep : 1 / wheelStep;
-      zoomAbout(factor, mx, my);
-    };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
-  }, [zoomAbout, wheelStep]);
+  useWheelZoom(
+    ref,
+    useCallback(
+      (deltaY: number, x: number, y: number) => {
+        zoomAbout(deltaY < 0 ? wheelStep : 1 / wheelStep, x, y);
+      },
+      [zoomAbout, wheelStep],
+    ),
+  );
 
   const onPointerDown = useCallback((e: React.PointerEvent<E>) => {
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
