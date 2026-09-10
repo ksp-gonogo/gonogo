@@ -150,8 +150,8 @@ describe("Navball dial fit", () => {
   });
 
   it("lays the numeric readout three across once the column can hold three", () => {
-    // full 7x20's column on the control-delay scene, measured: 238x146. Over
-    // the 190px three-across minimum on width, and 8px short of a ball on
+    // full 7x20's column on the control-delay scene, measured: 238x146. Well
+    // over the 158px three-across minimum on width, and 8px short of a ball on
     // height, so the readout is what draws and it draws on one line.
     installSizedObserver(238, 146);
     renderAt({ w: 7, h: 20 }, emitAttitude);
@@ -159,18 +159,42 @@ describe("Navball dial fit", () => {
     expect(readoutShape()).toBe("three-across");
   });
 
+  it("lays it three across on the 5-column tier the complaint came from", () => {
+    // wide 5x8's column, measured: 158x91. Too short for a ball by 63px, and
+    // this is the tier that was stacking: 158 did not clear the 190 the
+    // threshold used to carry, so all three went on their own lines in a column
+    // that had room for one row of them the whole time.
+    installSizedObserver(158, 91);
+    renderAt({ w: 5, h: 8 }, emitAttitude);
+    expect(dial()).not.toBeInTheDocument();
+    expect(readoutShape()).toBe("three-across");
+  });
+
+  it("holds the three-across minimum where the measurement put it", () => {
+    /* The number is measured, so pin both sides of it rather than one: 158 is
+       three readings at their widest (`359`, `-90`, `-180`) plus two
+       `--gap-related` gaps, with the coarse-pointer type bump applied, and a
+       threshold nobody can see the far side of is one that can drift up for
+       free. */
+    installSizedObserver(158, 91);
+    renderAt({ w: 5, h: 8 }, emitAttitude);
+    expect(readoutShape()).toBe("three-across");
+    reportSize(157, 91);
+    expect(readoutShape()).toBe("stacked");
+  });
+
   it("stacks all three rather than two-and-one on a column too narrow for three", () => {
-    // wide 5x8's column, measured: 158px, against a 190px minimum. This is the
-    // tier the complaint came from: three readings do not fit at this width and
-    // no template makes them, so what it gets is one per line.
+    // tiny 3x4's column, measured: 78px, against a 158px minimum. Half the
+    // width three readings need at any legible size, so this tier keeps the
+    // one-per-line fallback and is the only one that does.
     //
     // Three lines and not two is the whole assertion. The wrap this replaces
     // fitted whatever the width allowed, so the same tile laid out two cells
     // with the third slung underneath or all three stacked depending on how
     // many digits the vessel's attitude happened to have: `north-level` got
     // two-and-one and `gravity-turn-east`, one degree of pitch later, got three.
-    installSizedObserver(158, 91);
-    renderAt({ w: 5, h: 8 }, emitAttitude);
+    installSizedObserver(78, 85);
+    renderAt({ w: 3, h: 4 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
   });
 
