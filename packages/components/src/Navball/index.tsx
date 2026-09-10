@@ -832,13 +832,13 @@ function NavballComponent({
         const w = e.contentRect.width;
         const h = e.contentRect.height;
         if (w <= 0 || h <= 0) continue;
-        // Reserve space for the throttle column at every tile wide enough to
-        // carry one (~32 px bar + 10 px gap), whether or not one is on screen
-        // right now. The column rides `showDial`, so a reserve read off its
-        // visibility would be the second way the fit could depend on its own
-        // verdict: a width that fits a dial without the column and not with it
-        // would add the column, lose the dial, drop the reserve, and fit
-        // again.
+        /* Reserve space for the throttle column at every tile wide enough to
+           carry one (~32 px bar + 10 px gap), whether or not one is on screen
+           right now. The column rides `showDial`, so a reserve read off its
+           visibility would be the second way the fit could depend on its own
+           verdict: a width that fits a dial without the column and not with it
+           would add the column, lose the dial, drop the reserve, and fit
+           again. */
         const throttleReserve = throttleReservedRef.current ? 42 : 0;
         // The AttitudeIndicator renders its own heading strip and HDG/PIT/ROL
         // readout row *below* the SVG in the same column. Reserve that
@@ -852,9 +852,10 @@ function NavballComponent({
         // big-navball widget still fills its slot.
         const cap = controlModeRef.current ? 200 : 600;
         setDialFit(Math.min(cap, Math.floor(fit)));
-        // The readout draws into this same column, so its own width is `w`
-        // undiminished: the throttle reserve above is the dial's business and
-        // the column carries no throttle bar when the readout is what renders.
+        /* The readout draws into this same column, so its own width is `w`
+           undiminished: the throttle reserve above is the dial's business and
+           the column carries no throttle bar when the readout is what
+           renders. */
         setReadoutAcross(w >= READOUT_TRIPLE_PX);
       }
     });
@@ -1668,9 +1669,10 @@ const READOUT_LABEL: CSSProperties = {
 };
 
 const READOUT_VALUE: CSSProperties = {
-  // Off the type scale: the scale stops at --font-size-lg (16px) and this is a
-  // display-tier readout.
-  fontSize: "18px",
+  /* The top of the type scale. A display tier above it would want a token
+     rather than a bare px here, and the scale does not carry one; 16px is the
+     largest size this readout can take while staying inside the system. */
+  fontSize: "var(--font-size-lg)",
   fontWeight: 700,
   color: "var(--color-text-primary)",
   fontVariantNumeric: "tabular-nums",
