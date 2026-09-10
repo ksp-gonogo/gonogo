@@ -6,7 +6,7 @@ import {
   registerStockBodies,
 } from "@ksp-gonogo/core";
 import type { ReckonableReading, VesselFlight } from "@ksp-gonogo/sitrep-sdk";
-import { render } from "@ksp-gonogo/test-utils";
+import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { setupStreamFixture } from "../test/setupStreamFixture";
 import {
@@ -184,9 +184,17 @@ describe("the handover render set reaches the models it says it does", () => {
         </DashboardItemContext.Provider>
       </stream.Provider>,
     );
-    for (const emit of fixture._stream.emits) {
-      stream.emit(emit.channel, emit.value, emit.meta);
-    }
+    /*
+     * Inside `act`, because the widget is MOUNTED and every emit is a real
+     * store push: a fixture's hundred frames delivered bare are a hundred
+     * `useSyncExternalStore` re-renders outside React's own scope, and the
+     * seven scenarios here were emitting 743 act warnings between them.
+     */
+    act(() => {
+      for (const emit of fixture._stream.emits) {
+        stream.emit(emit.channel, emit.value, emit.meta);
+      }
+    });
     /*
      * Read as the READING the contract declares, not as a plain `Reading`:
      * `vessel.flight.altitudeAsl` carries a `[SitrepReckonable]` mark, so its
@@ -197,7 +205,9 @@ describe("the handover render set reaches the models it says it does", () => {
     const reading = stream.store.sampleReading<VesselFlight>(
       "vessel.flight",
     ) as FlightReading;
-    tree.unmount();
+    act(() => {
+      tree.unmount();
+    });
     return reading;
   }
 
