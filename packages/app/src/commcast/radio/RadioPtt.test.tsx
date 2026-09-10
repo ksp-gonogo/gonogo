@@ -185,9 +185,9 @@ describe("the voice crossing it publishes", () => {
     expect(crossing).toBeDefined();
     expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);
     expect(crossing?.label).toContain("Odyssey");
-    /* One second of light-time is fifty 20 ms chunks: how far along the rail
-       the ribbon reaches, and the one number the render harness reads back
-       through `crossingSpanSamples` rather than restating. */
+    /* One second of light-time is fifty 20 ms chunks: how many samples fit in
+       the gap, and the one number the render harness reads back through
+       `crossingSpanSamples` rather than restating. */
     expect(crossing?.spanSamples).toBe(50);
     // Telemetry, continuous, fire-and-forget: a ribbon with no return leg.
     expect(crossing?.tags.delivery).toBe("fire-and-forget");
@@ -195,12 +195,15 @@ describe("the voice crossing it publishes", () => {
   });
 
   /**
-   * A vessel in low orbit is under a millisecond away, which rounds to no
-   * chunks at all. The floor keeps the span a positive number so the trace has
-   * a journey to lie along instead of dividing by zero, and what it draws at
-   * that span is a picture worth having: see the render harness.
+   * A vessel in low orbit is under a millisecond away, so the gap holds a
+   * FRACTION of one 20 ms chunk. That fraction is what goes to the rail.
+   *
+   * It used to be floored at 1, and the floor was the second defect: the rail
+   * limits its turning points to the samples actually behind them, and told the
+   * gap held a whole sample it drew a confident full-width sawtooth off two of
+   * them, identical for every transmission at low orbit and saying nothing.
    */
-  it("floors the span at one chunk for a sub-millisecond separation", () => {
+  it("passes the real fraction of a chunk for a sub-millisecond separation", () => {
     const store = createDelayRailStore();
 
     render(
@@ -213,7 +216,29 @@ describe("the voice crossing it publishes", () => {
       </DelayRailContext.Provider>,
     );
 
-    expect(store.getActiveCrossings()[0]?.spanSamples).toBe(1);
+    expect(store.getActiveCrossings()[0]?.spanSamples).toBeCloseTo(0.035, 6);
+  });
+
+  /**
+   * No separation to convert is not a separation of zero. The prop's documented
+   * fallback is the retained ring's own length, which the rail applies for
+   * itself when the span is absent, so the widget passes nothing rather than
+   * scaling the trace against a gap it cannot measure.
+   */
+  it("passes no span at all when there is no separation to convert", () => {
+    const store = createDelayRailStore();
+
+    render(
+      <DelayRailContext.Provider value={store}>
+        <RadioPtt
+          radio={control({ transmitting: true, amplitudes: [0.2, 0.6] })}
+          targetName="Odyssey"
+          separationSeconds={null}
+        />
+      </DelayRailContext.Provider>,
+    );
+
+    expect(store.getActiveCrossings()[0]?.spanSamples).toBeUndefined();
   });
 
   it("registers nothing while idle, so the rail draws no ribbon", () => {

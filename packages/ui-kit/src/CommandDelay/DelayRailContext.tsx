@@ -35,9 +35,9 @@ export interface CrossingHandle {
   tags: RailTags;
   /** The graphic's accessible name, e.g. "Your transmission crossing to Odyssey". */
   label: string;
-  /** Waveform samples, 0..1 each, NEWEST LAST. Read only for a continuous entry. */
+  /** Waveform samples RETAINED, 0..1 each, NEWEST LAST. Read only for a continuous entry. */
   amplitudes?: readonly number[];
-  /** How many samples span the trip to the boundary (one light-time). */
+  /** How many samples span the trip to the boundary (one light-time), fractional below one. */
   spanSamples?: number;
   /** For a discrete entry: 0 at this end, 1 at the far end of the drawn journey. */
   progress?: number;

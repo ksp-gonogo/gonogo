@@ -39,7 +39,21 @@ const CHUNK_SECONDS = 0.02;
 
 /**
  * The light-time to the far end, in captured chunks: how many samples of the
- * ribbon are still in flight, and so how far along the rail the trace reaches.
+ * ribbon fit in the gap, and so what fraction of it the trace has filled.
+ *
+ * **Fractional, and never rounded or floored.** It used to be
+ * `max(1, round(...))`, and both halves of that were wrong below one chunk: a
+ * few hundred kilometres of low orbit is well under a millisecond, so the gap
+ * holds a twentieth of a single 20 ms sample, and a span of 1 told the rail the
+ * gap held a whole one. Drawn against a fixed pitch that came back out as a
+ * full-width sawtooth from two samples: confident, legible, identical for every
+ * transmission at low orbit, and saying nothing. `RailCrossing` limits its
+ * turning points to the samples actually behind them, and it can only do that
+ * if it is handed the real number.
+ *
+ * `undefined` when there is no separation to convert, which is the prop's
+ * documented "caller does not know" reading: the trace falls back to the
+ * retained ring's own length rather than scaling against a gap of zero.
  *
  * Exported so the render harness can ask the same question the key asks rather
  * than restate the arithmetic. A restated copy agrees with itself forever, and
@@ -47,8 +61,12 @@ const CHUNK_SECONDS = 0.02;
  */
 export function crossingSpanSamples(
   separationSeconds: number | null | undefined,
-): number {
-  return Math.max(1, Math.round((separationSeconds ?? 0) / CHUNK_SECONDS));
+): number | undefined {
+  if (separationSeconds == null || !Number.isFinite(separationSeconds)) {
+    return undefined;
+  }
+  if (separationSeconds <= 0) return undefined;
+  return separationSeconds / CHUNK_SECONDS;
 }
 
 export function RadioPtt({
