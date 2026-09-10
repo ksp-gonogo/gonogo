@@ -42,15 +42,16 @@ const observers: Array<{ el: Element; cb: ResizeObserverCallback }> = [];
 const pristineObserver = globalThis.ResizeObserver;
 
 function installSizedObserver(width: number, height: number): void {
-  globalThis.ResizeObserver = class SizedObserver {
+  class SizedObserver implements ResizeObserver {
     constructor(private readonly cb: ResizeObserverCallback) {}
-    observe(el: Element) {
+    observe(el: Element): void {
       observers.push({ el, cb: this.cb });
-      this.cb([entryFor(el, width, height)], this as unknown as ResizeObserver);
+      this.cb([entryFor(el, width, height)], this);
     }
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof ResizeObserver;
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  globalThis.ResizeObserver = SizedObserver;
 }
 
 /** Re-report a new size to every live observer, as a resize would. */
@@ -177,18 +178,18 @@ describe("Navball dial fit", () => {
     installSizedObserver(78, 85);
     renderAt({ w: 3, h: 4 }, emitAttitude);
     expect(readoutShape()).toBe("stacked");
-    // Same reasoning as the dial coming back: the measured box is the attitude
-    // column, which renders either way, so the decision is not sealed by
-    // having been taken.
+    /* Same reasoning as the dial coming back: the measured box is the attitude
+       column, which renders either way, so the decision is not sealed by
+       having been taken. */
     reportSize(300, 85);
     expect(readoutShape()).toBe("three-across");
   });
 
   it("reserves the throttle column's width wherever a tile is wide enough for one", () => {
-    // 5 columns is where the throttle column appears, so its 42px comes off the
-    // width whether or not one is on screen: read off `showDial` instead, a
-    // width that fits a dial without the column and not with it would add the
-    // column, lose the dial, drop the reserve and fit again.
+    /* 5 columns is where the throttle column appears, so its 42px comes off the
+       width whether or not one is on screen: read off `showDial` instead, a
+       width that fits a dial without the column and not with it would add the
+       column, lose the dial, drop the reserve and fit again. */
     installSizedObserver(150, 400);
     renderAt({ w: 5, h: 20 }, emitAttitude);
     expect(dial()).toHaveAttribute("width", "108");
