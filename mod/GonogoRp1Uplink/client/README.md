@@ -15,6 +15,7 @@ Brings RP-1's career layer to the dashboard: Programs with their objectives, dea
 
 | Topic | Payload | Delivery | Delay |
 | --- | --- | --- | --- |
+| `rp1.avionics` | `Rp1Avionics` | lossy-latest | delayed |
 | `rp1.buildCost` | `Rp1BuildCost` | lossy-latest | true-now |
 | `rp1.buildQueue` | `Rp1BuildItemEntry[]` | lossy-latest | true-now |
 | `rp1.buildable` | `Rp1BuildableCraftEntry[]` | lossy-latest | true-now |
@@ -359,9 +360,16 @@ Every craft RP-1 is integrating, holding or could start, across every launch com
 
 | Contribution | Into | Computed from | Presence |
 | --- | --- | --- | --- |
+| `rp1:rp1-avionics-badge` | `navball.badges` | `rp1.avionics` | only while `rp1` |
 | `rp1:programs-screen` | `strategies.screens` | – | only while `rp1` |
 | `rp1:crew-core-stats` | `astronaut-complex.readouts` | `rp1.crew`, `rp1.crewProgram` | only while `rp1` |
 | `rp1:facility-tiers` | `space-center-status.facilities` | `rp1.facilities` | only while `rp1` |
+
+![AFTER: RP-1 has taken the controls, and the badge is the only thing on screen that says so](docs/assets/avionics-controls-locked--default.png)
+
+![BEFORE: no RP-1 on the game, so the Navball header carries only its own SAS and RCS badges](docs/assets/avionics-not-installed--default.png)
+
+![AFTER: roll authority survives the tonnage check, in a caution tone and its own words](docs/assets/avionics-roll-only--default.png)
 
 ![The tab strip this Uplink's contribution puts on the Administration Building: Programs is the screen it names, the host draws the strip and lists the Programs department under it with its own Activate and Deactivate controls, and the Leaders no screen has claimed stay reachable on Other rather than disappearing. The Program Detail body below the list is a separate augment, photographed fed in its own scenes: a contribution scene carries only the contribution's OWN topics, so the catalogue it reads does not reach it here](docs/assets/programs-screen--default.png)
 
