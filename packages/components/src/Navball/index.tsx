@@ -115,21 +115,26 @@ const ATTITUDE_CHROME_PX = 74;
 /**
  * The width the numeric readout needs to put HDG, PCH and RLL on one line.
  *
- * Three times the widest CELL plus two `--gap-related` gaps, because the three
- * columns are equal: 58px is what a cell measures at the widest reading any of
- * the three can carry (roll's `-180°`; heading's `359°` and pitch's `-90°` are
- * 47), so the sum of three different readings is not the number, and no fixture
- * puts all three at their own maximum at once. Sized to a fixture instead, the
- * row would change shape as the vessel rolled, which is what the wrap it
- * replaces did.
+ * Measured in chromium off the rendered cells, not derived from the template:
+ * one glyph of the reading is 10.24px at `--font-size-lg`, the widest each cell
+ * can ever carry is `359°`, `-90°` and `-180°` (a bearing, then two signed
+ * angles), and 13 glyphs plus two `--gap-related` gaps is 149. A coarse pointer
+ * takes `lg` to 17px, and that is the number that binds: 157.5, so 158.
  *
- * 190 does not fit a 5-column tile's 158px column, and no template makes it:
- * three readings at this size need 190 and the tile has 158. That tier gets
- * {@link READOUT_STACK}.
+ * Not three times the widest cell. That was the previous derivation and it read
+ * 190, because `repeat(3, 1fr)` LOOKS like it forces equal columns. `1fr` is
+ * `minmax(auto, 1fr)`, and {@link READOUT_CELL} restores the `auto` minimum
+ * `BigReadout` zeroes, so each column's floor is its own content: the row packs
+ * to the SUM at the squeeze and only equalises once there is spare width to
+ * distribute. 190 is where the three become equal, which is a nicety; 158 is
+ * where they fit, which is the question. The 32px between the two numbers is a
+ * whole tier: a 5-column tile's 158px column sits in it.
  *
- * Stable against the coarse-pointer type bump, deliberately: the cell's width
- * is governed by its reading, and that is a literal 18px, not a token. The
- * caption under it is the token half and is narrower than the reading.
+ * That tier clears this by 8.8px on a fine pointer and by half of one on a
+ * coarse pointer, and stating the second number is the point of measuring at
+ * all: a column that comes back a hair under stacks, which is the presentation
+ * one rung down, not an overflow. The failure is graceful in the direction the
+ * margin is thin.
  *
  * The alternative to a number here is a container query, which an inline style
  * object cannot carry, and a uniform column minimum, which cannot express
@@ -139,7 +144,7 @@ const ATTITUDE_CHROME_PX = 74;
  * so a cell that outgrows the number shows up in the harness's overlap gate
  * instead of quietly truncating a reading.
  */
-const READOUT_TRIPLE_PX = 190;
+const READOUT_TRIPLE_PX = 158;
 
 /**
  * Dispatch-rate budget for the throttle axis's delayed control-stream
@@ -1575,7 +1580,7 @@ const NUMERIC_READOUT: CSSProperties = {
 };
 
 /**
- * HDG, PCH and RLL on one line, three equal columns.
+ * HDG, PCH and RLL on one line, each reading over its own caption.
  *
  * Never `auto-fit`, and never a wrap. Both let the row decide its own arity
  * from whatever happens to fit, and the row is ALWAYS three: what they
@@ -1584,12 +1589,16 @@ const NUMERIC_READOUT: CSSProperties = {
  * vessel's attitude. A level craft laid out two-then-one and a climbing one
  * stacked all three, in the same tile, on the same tier.
  *
- * The cells here are label-over-value rather than label-beside-value, which is
- * what makes three across affordable: measured at the widest readings, three
- * pairs side by side need 290px and three stacked cells need 168, so the tier
- * where the complaint was seen (7 columns, a 238px column) goes from
- * two-then-one to three across. It is also the shape `AttitudeIndicator` gives
- * the same three readings under its own dial.
+ * The cells are reading-over-caption rather than label-beside-value, which is
+ * what makes three across affordable at all: a cell is as wide as its reading,
+ * where a pair is that plus a caption and the gap between them, and three of
+ * these come to 149px. It is also the shape `AttitudeIndicator` gives the same
+ * three readings under its own dial, so the readout the widget degrades to is
+ * the one it was already showing.
+ *
+ * `1fr` columns rather than `auto` ones so the three share the spare width and
+ * stay aligned on a wide tile, and each one's `auto` minimum (restored in
+ * {@link READOUT_CELL}) lets the row pack down to its content at a narrow one.
  *
  * Under {@link READOUT_TRIPLE_PX} three genuinely will not fit, and what that
  * width gets is {@link READOUT_STACK}: all three on their own lines, which is
@@ -1624,10 +1633,11 @@ const READOUT_STACK: CSSProperties = {
  *
  * `font-size` because its own is `clamp(20px, 6vw, 38px)`, and a dashboard
  * tile's width has no fixed relationship to the viewport: three readings on a
- * 5-column tile would be typeset off the browser window. Fixed rather than a
- * narrower clamp, and off the type scale for the reason the readout it replaces
- * was, the scale stopping at 16px. `CrewStatus` overrides the same clamp for
- * the same kind of reason.
+ * 5-column tile would be typeset off the browser window. `--font-size-lg` is
+ * the top of the scale and the size {@link READOUT_VALUE} already gives these
+ * same three readings when they stack, so the two presentations of one readout
+ * are typeset alike and a tile that crosses {@link READOUT_TRIPLE_PX} changes
+ * its layout without changing its type.
  *
  * `min-width` because `BigReadout` sets it to 0 and the `1fr` columns are
  * `minmax(auto, 1fr)`: with the cells' own minimum zeroed, all three collapse
@@ -1643,7 +1653,7 @@ const READOUT_STACK: CSSProperties = {
  * be free to squeeze it to.
  */
 const READOUT_CELL: CSSProperties = {
-  fontSize: "18px",
+  fontSize: "var(--font-size-lg)",
   minWidth: "auto",
   fontVariantNumeric: "tabular-nums",
   whiteSpace: "nowrap",
