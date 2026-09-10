@@ -3,7 +3,9 @@ import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, expect, it } from "vitest";
 import {
   ControlDelayStream,
+  type ControlRibbonDatum,
   type ControlStreamDatum,
+  ribbonBoundaryX,
 } from "./ControlDelayStream";
 
 function stream(over: Partial<ControlStreamDatum> = {}): ControlStreamDatum {
@@ -317,5 +319,238 @@ describe("ControlDelayStream", () => {
   it("has no axe violations", async () => {
     const { container } = render(<ControlDelayStream streams={[stream()]} />);
     await expectNoA11yViolations(container);
+  });
+});
+
+function ribbon(over: Partial<ControlRibbonDatum> = {}): ControlRibbonDatum {
+  return {
+    id: "radio.voice",
+    label: "Your transmission crossing to Odyssey",
+    oneWaySeconds: 1.6,
+    amplitudes: [0.2, 0.6, 0.4, 0.8],
+    spanSamples: 3,
+    ...over,
+  };
+}
+
+/** Every "x.xx,y.yy" vertex of a path, in order. */
+function vertices(d: string): { x: number; y: number }[] {
+  return [...d.matchAll(/(-?\d+\.\d\d),(-?\d+\.\d\d)/g)].map((m) => ({
+    x: Number(m[1]),
+    y: Number(m[2]),
+  }));
+}
+
+/**
+ * The RIBBON mark, on the one rail. What used to be a second component handed
+ * the fire-and-forget row, with its own boundary at 98% of the widget; the
+ * regression the operator named was that the second rail REPLACED the strip
+ * they had asked to grow, and these are the ratchets on it not coming back.
+ */
+describe("the ribbon mark", () => {
+  it("draws a continuous entry with no readback on the ONE graph", () => {
+    const { container } = render(
+      <ControlDelayStream streams={[]} ribbons={[ribbon()]} />,
+    );
+    // The graph itself, dividers and all: not a different picture.
+    expect(container.querySelectorAll("[data-divider]")).toHaveLength(2);
+    expect(container.querySelector('[data-role="ribbon"]')).not.toBeNull();
+    // And nothing an ack would have drawn.
+    expect(container.querySelector('[data-role="echo"]')).toBeNull();
+    expect(
+      container.querySelector('[data-role="deviation-actual"]'),
+    ).toBeNull();
+  });
+
+  it("keeps the trace inside the OUTGOING zone, the boundary staying on the T divider", () => {
+    /*
+     * The whole of the operator's complaint about the second rail: voice belongs
+     * to the leg out, and the divider sits a third of the way across whether or
+     * not anything comes back. A full ring at this separation therefore reaches
+     * the T divider and stops there, never 98% of the widget.
+     */
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[
+          ribbon({ amplitudes: new Array(129).fill(0.6), spanSamples: 128 }),
+        ]}
+        variant="rail"
+      />,
+    );
+    const d =
+      container.querySelector('[data-role="ribbon"]')?.getAttribute("d") ?? "";
+    const pts = vertices(d);
+    const boundary = ribbonBoundaryX("rail");
+    expect(pts[pts.length - 1].x).toBeCloseTo(boundary, 1);
+    const divider = container.querySelector('[data-divider="t"]');
+    expect(Number(divider?.getAttribute("x1"))).toBeCloseTo(boundary, 5);
+  });
+
+  it("strokes the voice as a trace rather than filling it as a blob", () => {
+    const { container } = render(
+      <ControlDelayStream streams={[]} ribbons={[ribbon()]} />,
+    );
+    const trace = container.querySelector('[data-role="ribbon"]');
+    expect(trace?.getAttribute("fill")).toBe("none");
+    expect(trace?.getAttribute("stroke")).toMatch(/^url\(#/);
+    /*
+     * The box is stretched to the widget's width AND scaled vertically into the
+     * plot band, so a scaled stroke would come out several times thicker across
+     * than it is tall: the pen the operator already objected to, back by another
+     * route.
+     */
+    expect(trace?.getAttribute("vector-effect")).toBe("non-scaling-stroke");
+  });
+
+  it("draws nothing for a ribbon with no samples", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[ribbon({ amplitudes: [] })]}
+      />,
+    );
+    expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
+  });
+
+  it("draws no ribbon for an entry tagged DISCRETE, the continuity axis deciding the mark", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[ribbon({ tags: { continuity: "discrete" } })]}
+      />,
+    );
+    expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
+  });
+
+  it("runs the fade the way the entry does, the direction axis deciding", () => {
+    const span = (c: HTMLElement): [number, number] => {
+      const g = c.querySelector("[data-ribbon-group] linearGradient");
+      return [Number(g?.getAttribute("x1")), Number(g?.getAttribute("x2"))];
+    };
+    // Telemetry arrives, so it is clearest where it lands.
+    const { container: inbound } = render(
+      <ControlDelayStream streams={[]} ribbons={[ribbon()]} />,
+    );
+    const [inX1, inX2] = span(inbound);
+    expect(inX1).toBeGreaterThan(inX2);
+    // A command leaves this end clear and dissolves toward its target.
+    const { container: out } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[ribbon({ tags: { direction: "command" } })]}
+      />,
+    );
+    const [outX1, outX2] = span(out);
+    expect(outX1).toBeLessThan(outX2);
+  });
+
+  it("gives two mounted ribbons their own gradient id", () => {
+    const { container } = render(
+      <>
+        <ControlDelayStream streams={[]} ribbons={[ribbon()]} />
+        <ControlDelayStream streams={[]} ribbons={[ribbon()]} />
+      </>,
+    );
+    const ids = Array.from(
+      container.querySelectorAll("[data-ribbon-group] linearGradient"),
+    ).map((g) => g.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
+
+  it("shares one graph with a control axis rather than replacing it", () => {
+    const { container } = render(
+      <ControlDelayStream streams={[stream()]} ribbons={[ribbon()]} />,
+    );
+    expect(container.querySelectorAll("svg")).toHaveLength(1);
+    expect(container.querySelector('[data-role="commanded"]')).not.toBeNull();
+    expect(container.querySelector('[data-role="ribbon"]')).not.toBeNull();
+  });
+
+  it("carries the ribbon's own name for assistive tech", async () => {
+    const { container, getByRole } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[ribbon()]}
+        ariaLabel="Your transmission crossing to Odyssey"
+      />,
+    );
+    expect(
+      getByRole("img", { name: "Your transmission crossing to Odyssey" }),
+    ).toBeInTheDocument();
+    await expectNoA11yViolations(container);
+  });
+
+  it("draws nothing when there is no light-time to cross", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[ribbon({ oneWaySeconds: 0.01 })]}
+      />,
+    );
+    expect(container.querySelector("svg")).toBeNull();
+  });
+});
+
+/**
+ * DELIVERY decides whether a return leg is drawn, and nothing else. It does not
+ * move a boundary and it does not pick a different component: that was the
+ * regression, and `railTags.test.ts` has always said so in prose.
+ */
+describe("delivery decides the return leg and nothing else", () => {
+  it("gives a fire-and-forget stream the leg out and stops it on the T divider", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[stream({ tags: { delivery: "fire-and-forget" } })]}
+      />,
+    );
+    const group = container.querySelector("[data-stream-group]");
+    expect(group?.getAttribute("data-return-leg")).toBe("false");
+    expect(container.querySelector('[data-role="echo"]')).toBeNull();
+    const d =
+      container.querySelector('[data-role="commanded"]')?.getAttribute("d") ??
+      "";
+    const pts = vertices(d);
+    const divider = Number(
+      container.querySelector('[data-divider="t"]')?.getAttribute("x1"),
+    );
+    expect(pts[pts.length - 1].x).toBeCloseTo(divider, 1);
+  });
+
+  it("leaves the zones exactly where they were, delivery or no", () => {
+    const at = (tags?: Partial<ControlStreamDatum["tags"]>): string[] => {
+      const { container } = render(
+        <ControlDelayStream streams={[stream({ tags })]} variant="rail" />,
+      );
+      return Array.from(container.querySelectorAll("[data-divider]")).map(
+        (l) => l.getAttribute("x1") ?? "",
+      );
+    };
+    expect(at({ delivery: "fire-and-forget" })).toEqual(at(undefined));
+  });
+
+  it("keeps an acked stream's echo and deviation untouched", () => {
+    const { container } = render(
+      <ControlDelayStream
+        streams={[
+          stream({
+            echo: [
+              { age: 3.2, value: 0.6 },
+              { age: 4.8, value: 0.1 },
+            ],
+          }),
+        ]}
+      />,
+    );
+    expect(
+      container
+        .querySelector("[data-stream-group]")
+        ?.getAttribute("data-return-leg"),
+    ).toBe("true");
+    expect(container.querySelector('[data-role="echo"]')).not.toBeNull();
+    expect(
+      container.querySelector('[data-role="deviation-actual"]'),
+    ).not.toBeNull();
   });
 });

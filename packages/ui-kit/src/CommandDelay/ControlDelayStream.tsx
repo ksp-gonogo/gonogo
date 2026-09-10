@@ -2,6 +2,16 @@ import { value } from "@ksp-gonogo/sitrep-sdk";
 import { useId } from "react";
 import styled from "styled-components";
 import { Unit } from "../Unit";
+import {
+  type RailTags,
+  railDrawsReturnLeg,
+  railFlow,
+  railMark,
+  railTagsOf,
+  railToneToken,
+  VOICE_RAIL_TAGS,
+} from "./railTags";
+import { WAVE_VB_H, waveformExtentX, waveformPath } from "./waveformPath";
 
 /**
  * Vanilla-safe display shapes, a deliberate LOCAL redeclaration (not an import
@@ -25,11 +35,76 @@ export interface ControlStreamDatum {
   inTransit: ControlStreamSample[];
   echo: ControlStreamSample[];
   current: number;
+  /**
+   * The three axes for this entry, for anything the default gets wrong.
+   * Omitted, it reads as a continuous ACKED command, which is what every stream
+   * datum is: the ack is the confirmed readback and the deviance is expected
+   * against actual. `railTagsOf({ shape: "stream" })` says the same thing.
+   *
+   * The DELIVERY axis is the one that changes what is drawn here: a
+   * `fire-and-forget` entry gets the outgoing zone and stops at the first
+   * boundary, because nothing is coming back to draw. See `railTags.ts`.
+   */
+  tags?: Partial<RailTags>;
 }
+
+/**
+ * A continuous entry with amplitude history and no readback: the operator's
+ * voice crossing the gap, drawn as the RIBBON mark in the outgoing zone.
+ *
+ * Kept apart from `ControlStreamDatum` because the DATA is a different shape,
+ * not because the entry is a different kind of thing. A control axis reports a
+ * commanded value and a confirmed echo of it; a microphone reports how loud
+ * each 20 ms chunk was and nothing else, so there is no value to plot against
+ * and no echo to plot it beside. The axes are the same three either way.
+ */
+export interface ControlRibbonDatum {
+  id: string;
+  /** What the ribbon IS, in a sentence, e.g. "Your transmission crossing to Odyssey". */
+  label: string;
+  /** One-way delay seconds, read the same way a stream datum's is. */
+  oneWaySeconds: number | null;
+  /**
+   * The amplitude history, one scalar per sample in 0..1, NEWEST LAST.
+   *
+   * How far the trace reaches follows from how many of these there are, and
+   * that is a measurement rather than a drawing choice: `x` is AGE, so a sample
+   * lands where that audio genuinely is in the gap. A caller holding less
+   * history than the gap is wide therefore draws a trace that stops short of
+   * the first boundary, which is the honest picture of holding part of the
+   * audio in flight. The fix for a short trace is a longer ring at the caller,
+   * never a wider drawing.
+   */
+  amplitudes: readonly number[];
+  /**
+   * How many samples span the trip to one light-time. Defaults to the whole
+   * array, the honest reading when the caller does not know the separation.
+   *
+   * FRACTIONAL below one, and deliberately not floored: a low-orbit light-time
+   * is a small part of a single 20 ms sample, and a span floored to 1 claims
+   * the gap holds a whole sample when it holds a twentieth of one.
+   */
+  spanSamples?: number;
+  /**
+   * Per-axis overrides over `VOICE_RAIL_TAGS` (telemetry, continuous,
+   * fire-and-forget). DIRECTION is the one worth stating: it picks the tone and
+   * which way the fade runs, so an outbound unacked stream fades the other way.
+   */
+  tags?: Partial<RailTags>;
+}
+
+export type ControlDelayStreamVariant = "inline" | "rail" | "expanded";
 
 export interface ControlDelayStreamProps {
   /** All of a widget's local control axes on ONE graph. */
   streams: ControlStreamDatum[];
+  /**
+   * Continuous entries with no readback, drawn as ribbons in the outgoing zone
+   * of the SAME graph. There is one rail: a thing crossing the gap without an
+   * ack is not a different picture, it is this picture with nothing past the
+   * first boundary.
+   */
+  ribbons?: ControlRibbonDatum[];
   /** Accessible label for the graph. Defaults to "Controls in flight". */
   ariaLabel?: string;
   /**
@@ -38,11 +113,21 @@ export interface ControlDelayStreamProps {
    * `"expanded"` (the grown/pinned view) is the full-width, taller graph with
    * NO box (full-bleed) plus always-visible zone labels, a legend, and a readout.
    */
-  variant?: "inline" | "rail" | "expanded";
+  variant?: ControlDelayStreamVariant;
 }
 
-/** Local redeclaration of the model's floor (ui-kit imports nothing from sitrep-client). */
-const MIN_DELAY_SECONDS = 0.05;
+/**
+ * The rail's own delay floor, a local redeclaration of the model's (ui-kit
+ * imports nothing from sitrep-client). Under it there is no light-time worth a
+ * strip and nothing is drawn, for a control axis and a microphone alike.
+ *
+ * Exported so the Panel rail can decide whether a handle has anything to draw
+ * from the same number the drawing uses. It read `delay > 0` instead, and a
+ * sub-floor entry therefore mounted a rail button with nothing inside it: a
+ * zero-height control, invisible and unclickable, which is worse than the empty
+ * band it was meant to avoid.
+ */
+export const STREAM_MIN_DELAY_SECONDS = 0.05;
 const DEVIATION_EPSILON = 0.02;
 
 /** Soft distinct hues, in axis order (throttle, pitch, yaw, roll, ...). Wraps past four. */
@@ -68,6 +153,31 @@ const xAt = (age: number, span: number, padX: number): number =>
   padX + (span <= 0 ? 0 : Math.min(1, age / span)) * (VB_W - padX * 2);
 const yAt = (value: number): number =>
   PAD_T + (1 - Math.max(0, Math.min(1, value))) * PLOT_H;
+
+/** The stroke inset, which only the in-widget inline variant keeps. */
+const padXFor = (variant: ControlDelayStreamVariant): number =>
+  variant === "inline" ? PAD_X : 0;
+
+/**
+ * Where one light-time sits for a ribbon: the OUTGOING zone's own width, i.e.
+ * the T divider measured from the graph's left edge.
+ *
+ * **This does not move with delivery, and that is the point.** The zones are the
+ * rail's frame, so the far end of the outgoing leg is at a third of the graph
+ * whether or not anything is coming back; what DELIVERY changes is only whether
+ * anything is drawn past it. A boundary that migrated to the far edge for a
+ * fire-and-forget entry put the operator's voice across 98% of the widget and
+ * the divider somewhere it is not.
+ *
+ * Exported so a render harness can read the trace's extent against the same
+ * number the drawing used, rather than restating the arithmetic.
+ */
+export function ribbonBoundaryX(
+  variant: ControlDelayStreamVariant = "inline",
+): number {
+  const padX = padXFor(variant);
+  return (VB_W - padX * 2) / 3;
+}
 
 function polyline(points: { x: number; y: number }[]): string {
   return points
@@ -98,6 +208,38 @@ function clipToConfirmed(
   return [{ age: boundaryAge, value }, ...echo.slice(after)];
 }
 
+/**
+ * Clip a line so it ENDS exactly at the outgoing-stage boundary (`oneWay`, the
+ * same value the T divider is drawn from), the mirror of `clipToConfirmed`.
+ *
+ * What a `fire-and-forget` entry gets: the leg out, and then it stops. A sample
+ * past the boundary has arrived and nothing answered it, so there is nothing
+ * there to draw, and an interpolated vertex is placed on the boundary itself so
+ * the line's end lands ON the divider rather than short of or past it.
+ */
+function clipToOutgoing(
+  samples: ControlStreamSample[],
+  boundaryAge: number,
+): ControlStreamSample[] {
+  if (samples.length === 0) return samples;
+  const last = samples[samples.length - 1];
+  if (last.age <= boundaryAge) return samples;
+  const after = samples.findIndex((s) => s.age > boundaryAge);
+  const kept = samples.slice(0, after);
+  const first = samples[after];
+  const before = kept[kept.length - 1];
+  if (!before) return [{ age: boundaryAge, value: first.value }];
+  const span = first.age - before.age || 1;
+  const t = (boundaryAge - before.age) / span;
+  return [
+    ...kept,
+    {
+      age: boundaryAge,
+      value: before.value + t * (first.value - before.value),
+    },
+  ];
+}
+
 /** Commanded value interpolated at `age` (local copy; ui-kit imports no model). */
 function commandedAt(
   inTransit: ControlStreamSample[],
@@ -124,12 +266,15 @@ function StreamPaths({
   span,
   index,
   padX,
+  oneT,
   twoT,
 }: {
   stream: ControlStreamDatum;
   span: number;
   index: number;
   padX: number;
+  /** The T stage boundary AGE, where a fire-and-forget entry's leg out ends. */
+  oneT: number;
   /** The 2T stage boundary AGE, the exact value the 2T divider is drawn from,
    *  so the confirmed line and the divider share one boundary (no drift). */
   twoT: number;
@@ -144,7 +289,20 @@ function StreamPaths({
   const uid = useId();
   const gradId = `cds-ramp-${uid}-${index}`;
   const fillId = `cds-fill-${uid}-${index}`;
-  const cmd = stream.inTransit.map((s) => ({
+  /*
+   * The DELIVERY axis, and only it. Acked, the line runs the whole strip and
+   * the confirmed echo is drawn against it; fire-and-forget, it gets the leg
+   * out and stops on the T divider, because nothing is coming back to draw and
+   * a return leg would be the lie the axes exist to remove. The dividers stay
+   * where they are either way: the zones are the rail's frame, not the entry's.
+   */
+  const returnLeg = railDrawsReturnLeg(
+    railTagsOf({ shape: "stream", tags: stream.tags }),
+  );
+  const outgoing = returnLeg
+    ? stream.inTransit
+    : clipToOutgoing(stream.inTransit, oneT);
+  const cmd = outgoing.map((s) => ({
     x: xAt(s.age, span, padX),
     y: yAt(s.value),
   }));
@@ -158,7 +316,7 @@ function StreamPaths({
   // The confirmed-echo line is clipped to begin at the 2T stage boundary (the
   // exact `twoT` the 2T divider is drawn from), so its stage transition lands
   // exactly on the divider, never before it.
-  const confirmedEcho = clipToConfirmed(stream.echo, twoT);
+  const confirmedEcho = returnLeg ? clipToConfirmed(stream.echo, twoT) : [];
   const echoPts = confirmedEcho.map((s) => ({
     x: xAt(s.age, span, padX),
     y: yAt(s.value),
@@ -187,7 +345,7 @@ function StreamPaths({
   const hasConfirmedPrefix = !diverged || divergeIndex > 0;
 
   return (
-    <g>
+    <g data-stream-group={stream.id} data-return-leg={returnLeg}>
       <defs>
         {/* Confidence ramp: muted left (least known) -> clear right (confirmed).
             v3 alpha budget 0.10 -> 0.40 (v2 was 0.30 -> 0.95): the rail is
@@ -258,6 +416,103 @@ function StreamPaths({
 }
 
 /**
+ * The RIBBON mark: one continuous entry's amplitude history, lying along the
+ * OUTGOING zone and fading there.
+ *
+ * The axes each land on exactly one property, same as everywhere else:
+ *
+ * - CONTINUITY picks this mark at all. A discrete entry is a dot or a row in
+ *   `InFlightList`, not a trace lying along the rail, so a datum tagged
+ *   discrete draws nothing here
+ * - DELIVERY is why it lives in the outgoing zone and ends there. Nothing is
+ *   coming back, so nothing is drawn past the first boundary. The boundary
+ *   itself does not move: `ribbonBoundaryX` is the T divider, always
+ * - DIRECTION picks the tone and which way the fade runs: a command leaves from
+ *   this end and dissolves toward the target, telemetry is clearest where it
+ *   lands
+ *
+ * The trace is drawn in the waveform's own 16-unit box and scaled into the plot
+ * band, so it keeps the same share of the graph's vertical range that it had of
+ * its old band, and the geometry function stays the one the renders were
+ * verified against.
+ */
+function RibbonMark({
+  ribbon,
+  padX,
+}: {
+  ribbon: ControlRibbonDatum;
+  padX: number;
+}) {
+  // Per-instance, never a literal: two mounted ribbons would both emit the same
+  // `id`, and the SVG spec resolves `url(#...)` to whichever element comes FIRST
+  // in document order, so one instance's fade silently wins for both.
+  const fadeId = `cds-ribbon-fade-${useId()}`;
+  const tags = railTagsOf({ tags: { ...VOICE_RAIL_TAGS, ...ribbon.tags } });
+  if (railMark(tags) !== "ribbon") return null;
+
+  const boundaryX = (VB_W - padX * 2) / 3;
+  const samples = ribbon.amplitudes;
+  const span = ribbon.spanSamples ?? samples.length;
+  const path = waveformPath(samples, span, boundaryX);
+  // A ribbon with nothing in it is not a crossing.
+  if (path === "") return null;
+
+  // Where the fade runs from and to: the trace's OWN length, so a short one
+  // fades over itself rather than over a journey it has not made. At least a
+  // unit wide, since a gradient with no extent paints one flat colour.
+  const fadeX = Math.max(waveformExtentX(samples, span, boundaryX), 1);
+  const tone = `var(${railToneToken(tags)})`;
+  const outbound = railFlow(tags) === "outbound";
+
+  return (
+    <g
+      data-ribbon-group={ribbon.id}
+      /* The waveform's 16-unit box mapped onto the plot band: same centre line,
+         same share of the vertical range it had when it was drawn alone. */
+      transform={`translate(${padX} ${PAD_T}) scale(1 ${PLOT_H / WAVE_VB_H})`}
+    >
+      <defs>
+        {/*
+          The fade, running the way the entry does. In USER SPACE across the
+          trace's own length rather than across its bounding box: the trace is
+          stroked, and a quiet passage is a flat line whose box has no height at
+          all, which an objectBoundingBox ramp declines to paint.
+        */}
+        <linearGradient
+          id={fadeId}
+          gradientUnits="userSpaceOnUse"
+          x1={outbound ? 0 : fadeX}
+          y1="0"
+          x2={outbound ? fadeX : 0}
+          y2="0"
+        >
+          {/* Nearer full strength than a filled ribbon would carry: a hairline
+              trace at 0.55 is most of the way to invisible where a broad fill at
+              the same value still read. */}
+          <stop offset="0" stopColor={tone} stopOpacity="0.9" />
+          <stop offset="1" stopColor={tone} stopOpacity="0.1" />
+        </linearGradient>
+      </defs>
+      {/* Stroked in SCREEN units: the box is stretched to the widget's width
+          AND scaled vertically into the band, so a scaled stroke would come out
+          several times thicker across than it is tall and the near-vertical
+          parts of the trace would fatten into a blob. */}
+      <path
+        data-role="ribbon"
+        data-ribbon={ribbon.id}
+        d={path}
+        fill="none"
+        stroke={`url(#${fadeId})`}
+        strokeWidth="1"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
+    </g>
+  );
+}
+
+/**
  * The continuous sibling of `InFlightList`: one gentle three-zone sparkline for
  * ALL of a widget's control axes. now-left / age-right; outgoing -> echo ->
  * confirmed split by hairline dividers at the one-way delay boundaries (T, 2T);
@@ -268,18 +523,31 @@ function StreamPaths({
  * drag-bar strip; `"inline"` (default) keeps the 40px in-widget size. Renders
  * `null` when the one-way delay is near zero, so a widget on a direct link pays
  * nothing. Props-only, no data hooks.
+ *
+ * **This is the ONE rail, and the axes decide what it draws rather than which
+ * component draws it.** A continuous entry with no readback (the operator's
+ * voice) arrives as a `ribbon` and is drawn as the ribbon mark in the outgoing
+ * zone, on the same graph, under the same dividers. Delivery decides whether
+ * anything is drawn past the first boundary and nothing else: it never moves a
+ * boundary and it never picks a different picture. The rail that grew a second
+ * component for the fire-and-forget row put the divider at 98% of the widget
+ * for voice and replaced the strip the operator had asked to GROW.
  */
 export function ControlDelayStream({
   streams,
+  ribbons = [],
   ariaLabel = "Controls in flight",
   variant = "inline",
 }: ControlDelayStreamProps) {
   // Before the early return (hooks run unconditionally): the divider-fade
   // gradient id.
   const dividerFadeId = `cds-divfade-${useId()}`;
-  const first = streams[0];
+  // Whichever kind of entry the graph has, they all cross the same gap, so the
+  // first one to state a light-time states it for the strip.
+  const first = streams[0] ?? ribbons[0];
   const oneWay = first?.oneWaySeconds ?? null;
-  if (!first || oneWay === null || oneWay < MIN_DELAY_SECONDS) return null;
+  if (!first || oneWay === null || oneWay < STREAM_MIN_DELAY_SECONDS)
+    return null;
 
   const span = 3 * oneWay;
   // The two stage boundaries, computed ONCE and shared by the dividers AND the
@@ -289,7 +557,7 @@ export function ControlDelayStream({
   const twoT = 2 * oneWay;
   // Full-bleed for the rail AND the expanded view: the graph reaches both widget
   // edges. Only the in-widget inline variant keeps the small stroke inset.
-  const padX = variant === "inline" ? PAD_X : 0;
+  const padX = padXFor(variant);
   const divX1 = xAt(oneT, span, padX);
   const divX2 = xAt(twoT, span, padX);
   /**
@@ -304,9 +572,9 @@ export function ControlDelayStream({
    * wrong trade: it would appear and vanish under the operator's hands as
    * commands come and go, on a surface where the buttons must not move.
    */
-  const quiet = streams.every(
-    (s) => s.inTransit.length === 0 && s.echo.length === 0,
-  );
+  const quiet =
+    streams.every((s) => s.inTransit.length === 0 && s.echo.length === 0) &&
+    ribbons.every((r) => r.amplitudes.length === 0);
 
   return (
     <ControlDelayStream__Root
@@ -354,8 +622,12 @@ export function ControlDelayStream({
             span={span}
             index={i}
             padX={padX}
+            oneT={oneT}
             twoT={twoT}
           />
+        ))}
+        {ribbons.map((r) => (
+          <RibbonMark key={r.id} ribbon={r} padX={padX} />
         ))}
         <line
           data-divider="t"
@@ -449,10 +721,27 @@ export function ControlDelayStream({
                 {s.label}
               </span>
             ))}
-            <span data-role="legend-deviation">
-              <i style={{ background: "var(--color-status-warning-bg)" }} />
-              off-command
-            </span>
+            {ribbons.map((r) => (
+              <span key={r.id} data-role="legend-ribbon">
+                <i
+                  style={{
+                    background: `var(${railToneToken(
+                      railTagsOf({ tags: { ...VOICE_RAIL_TAGS, ...r.tags } }),
+                    )})`,
+                  }}
+                />
+                {r.label}
+              </span>
+            ))}
+            {/* Only where there is a command to be off. A graph holding nothing
+                but ribbons has no commanded path for anything to deviate from,
+                and a key nobody can use is a key that misreads the picture. */}
+            {streams.length > 0 && (
+              <span data-role="legend-deviation">
+                <i style={{ background: "var(--color-status-warning-bg)" }} />
+                off-command
+              </span>
+            )}
           </ControlDelayStream__Legend>
         </>
       )}

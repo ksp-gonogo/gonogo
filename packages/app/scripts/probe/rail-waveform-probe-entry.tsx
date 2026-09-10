@@ -1,6 +1,6 @@
 /**
- * Standalone probe for the delay rail's voice ribbon (`RailCrossing`, the
- * `mark === "ribbon"` half).
+ * Standalone probe for the delay rail's voice ribbon: the `ribbon` mark inside
+ * `ControlDelayStream`, the one rail.
  *
  * The ribbon has exactly one production caller, `RadioPtt`, and it registers
  * its crossing only while the operator is holding the key in a radio session
@@ -11,9 +11,10 @@
  * It reproduces that caller rather than standing in for it: a real
  * `RadioTransmitter` is keyed with a `clipMic`, every chunk is spoken, and the
  * amplitude ring the transmitter accumulates (`RadioTransmitState.amplitudes`,
- * measured chunk by chunk through `chunkAmplitude` over real PCM) is handed to
- * `usePanelCrossing` with `VOICE_RAIL_TAGS` and the span `RadioPtt` would have
- * computed. What the rail draws here is what the rail draws on air.
+ * measured chunk by chunk through `chunkAmplitude` over real PCM) is registered
+ * through `usePanelDelay` as a ribbon on a stream handle, with the span
+ * `RadioPtt` would have computed. What the rail draws here is what the rail
+ * draws on air.
  *
  * The measurement the driver prints beside each shot comes from `waveformPath`
  * itself, not from a description of it: how far along the rail the trace
@@ -22,11 +23,14 @@
  */
 import { safeRandomUuid } from "@ksp-gonogo/core";
 import {
-  crossingBoundaryX,
+  type ControlRibbonDatum,
   DelayRailProvider,
   Panel,
-  usePanelCrossing,
-  VOICE_RAIL_TAGS,
+  ribbonBoundaryX,
+  STREAM_MIN_DELAY_SECONDS,
+  usePanelDelay,
+  WAVE_HALF_H,
+  WAVE_MID_Y,
   waveformPath,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -101,6 +105,21 @@ export interface RailWaveformProbeReading {
   drawnPeakMin: number;
   drawnPeakMax: number;
   drawnDistinctHeights: number;
+  /**
+   * The rail's own delay floor, read off the component rather than restated by
+   * the driver. Under it nothing is drawn at all, and the driver needs the real
+   * number to tell a predicted empty band from a ribbon that silently failed to
+   * draw: a transcribed copy of a threshold agrees with itself forever.
+   */
+  railMinDelaySeconds: number;
+  /**
+   * The outgoing zone's width in viewBox units, i.e. what `extentFraction` is a
+   * fraction OF. Reported so the driver can turn the fraction into pixels
+   * without knowing where the T divider sits: the trace lives in the outgoing
+   * third now, so a fraction against the widget's full width would overstate
+   * every scene by three.
+   */
+  boundaryX: number;
 }
 
 let activeRoot: Root | null = null;
@@ -179,42 +198,66 @@ async function amplitudesOf(
   return spoken;
 }
 
-function CrossingRegistrar({
+const RIBBON_LABEL = "Your transmission crossing to Ares 4";
+
+function RibbonRegistrar({
   amplitudes,
   spanSamples,
+  separationSeconds,
 }: {
   amplitudes: readonly number[];
   spanSamples: number;
+  separationSeconds: number;
 }) {
-  /* Memoised so the crossing the rail holds is one stable value: `RadioPtt`'s
-     is a fresh literal per render only because a live ring changes every 20 ms,
+  /* Memoised so the handle the rail holds is one stable value: `RadioPtt`'s is
+     a fresh literal per render only because a live ring changes every 20 ms,
      and here nothing changes at all. */
-  const crossing = useMemo(
-    () => ({
-      tags: VOICE_RAIL_TAGS,
-      label: "Your transmission crossing to Ares 4",
-      amplitudes,
-      spanSamples,
-    }),
-    [amplitudes, spanSamples],
+  const ribbons: ControlRibbonDatum[] = useMemo(
+    () => [
+      {
+        id: "radio.voice",
+        label: RIBBON_LABEL,
+        oneWaySeconds: separationSeconds,
+        amplitudes,
+        spanSamples,
+      },
+    ],
+    [amplitudes, spanSamples, separationSeconds],
   );
-  usePanelCrossing(crossing);
+  usePanelDelay(
+    useMemo(
+      () => ({
+        inFlight: [],
+        shape: "stream" as const,
+        effectiveDelaySeconds: separationSeconds,
+        ariaLabel: RIBBON_LABEL,
+        ribbons,
+      }),
+      [ribbons, separationSeconds],
+    ),
+  );
   return null;
 }
 
 function Harness({
   amplitudes,
   spanSamples,
+  separationSeconds,
   panelTitle,
 }: {
   amplitudes: readonly number[];
   spanSamples: number;
+  separationSeconds: number;
   panelTitle: string;
 }) {
   return (
     <DelayRailProvider>
       <Panel panelTitle={panelTitle}>
-        <CrossingRegistrar amplitudes={amplitudes} spanSamples={spanSamples} />
+        <RibbonRegistrar
+          amplitudes={amplitudes}
+          spanSamples={spanSamples}
+          separationSeconds={separationSeconds}
+        />
         <div
           style={{
             padding: "var(--space-8, 8px)",
@@ -230,11 +273,6 @@ function Harness({
   );
 }
 
-/** Half the band, in viewBox units: `RailCrossing`'s own `WAVE_HALF_H`. */
-const BAND_HALF_H = 5.5;
-/** The band's centre line, `RailCrossing`'s `MID_Y`. */
-const BAND_MID_Y = 8;
-
 /** What the component's own geometry function makes of this scene. */
 function measure(
   amplitudes: readonly number[],
@@ -242,11 +280,19 @@ function measure(
   emittedSamples: number,
 ): Omit<
   RailWaveformProbeReading,
-  "minAmplitude" | "maxAmplitude" | "distinctAmplitudes"
+  | "minAmplitude"
+  | "maxAmplitude"
+  | "distinctAmplitudes"
+  | "railMinDelaySeconds"
+  | "boundaryX"
 > {
-  // Voice is fire-and-forget, so the journey ends at the boundary rather than
-  // running out and back.
-  const boundaryX = crossingBoundaryX(false);
+  /*
+   * One light-time is the OUTGOING zone's own width, wherever delivery lands:
+   * the boundary the drawing uses, asked of the drawing rather than restated.
+   * The rail variant is the one the collapsed shot photographs, and the
+   * expanded one shares its padding, so both shots are measured by this number.
+   */
+  const boundaryX = ribbonBoundaryX("rail");
   const path = waveformPath(amplitudes, spanSamples, boundaryX);
   const points = path === "" ? [] : path.slice(1).split(" L");
   const lastX =
@@ -257,7 +303,7 @@ function measure(
    * them is the reading that separates voice from silence.
    */
   const peaks = points.map(
-    (pt) => Math.abs(Number(pt.split(",")[1]) - BAND_MID_Y) / BAND_HALF_H,
+    (pt) => Math.abs(Number(pt.split(",")[1]) - WAVE_MID_Y) / WAVE_HALF_H,
   );
   return {
     sampleCount: amplitudes.length,
@@ -286,7 +332,7 @@ async function renderRailWaveform(
   );
   /*
    * The prop's documented fallback when there is no separation to scale
-   * against, which is what `RailCrossing` would apply for itself. Spelt out
+   * against, which is what the ribbon mark would apply for itself. Spelt out
    * here so the printed reading names the number the drawing actually used.
    */
   const spanSamples =
@@ -301,6 +347,7 @@ async function renderRailWaveform(
     <Harness
       amplitudes={amplitudes}
       spanSamples={spanSamples}
+      separationSeconds={payload.separationSeconds}
       panelTitle={payload.panelTitle}
     />,
   );
@@ -310,6 +357,8 @@ async function renderRailWaveform(
 
   return {
     ...measure(amplitudes, spanSamples, emittedSamples),
+    railMinDelaySeconds: STREAM_MIN_DELAY_SECONDS,
+    boundaryX: ribbonBoundaryX("rail"),
     minAmplitude: amplitudes.length === 0 ? 0 : Math.min(...amplitudes),
     maxAmplitude: amplitudes.length === 0 ? 0 : Math.max(...amplitudes),
     distinctAmplitudes: new Set(amplitudes.map((a) => a.toFixed(3))).size,

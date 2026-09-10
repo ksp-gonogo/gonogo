@@ -162,7 +162,11 @@ describe("the push-to-talk key", () => {
   });
 });
 
-describe("the voice crossing it publishes", () => {
+describe("the voice ribbon it publishes", () => {
+  /** The single ribbon on the panel's one registered handle. */
+  const ribbon = (store: ReturnType<typeof createDelayRailStore>) =>
+    store.getActiveHandles()[0]?.ribbons?.[0];
+
   /**
    * The rail draws the operator's own voice from what this widget registers, so
    * a keyed transmitter that publishes nothing leaves the ribbon with no
@@ -181,7 +185,17 @@ describe("the voice crossing it publishes", () => {
       </DelayRailContext.Provider>,
     );
 
-    const crossing = store.getActiveCrossings()[0];
+    const handle = store.getActiveHandles()[0];
+    expect(handle).toBeDefined();
+    /* A stream handle, which is the one claim a transmission can honestly make:
+       everything a command carries is omitted rather than sent as an empty. */
+    expect(handle?.shape).toBe("stream");
+    expect(handle?.inFlight).toEqual([]);
+    expect(handle?._output).toBeUndefined();
+    /* And it names its own graph, so the rail does not call the operator's
+       voice "Delay detail". */
+    expect(handle?.ariaLabel).toContain("Odyssey");
+    const crossing = ribbon(store);
     expect(crossing).toBeDefined();
     expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);
     expect(crossing?.label).toContain("Odyssey");
@@ -189,9 +203,10 @@ describe("the voice crossing it publishes", () => {
        the gap, and the one number the render harness reads back through
        `crossingSpanSamples` rather than restating. */
     expect(crossing?.spanSamples).toBe(50);
-    // Telemetry, continuous, fire-and-forget: a ribbon with no return leg.
-    expect(crossing?.tags.delivery).toBe("fire-and-forget");
-    expect(crossing?.tags.continuity).toBe("continuous");
+    /* Telemetry, continuous, fire-and-forget: a ribbon with no return leg, and
+       the rail's own default for a ribbon, so the widget states none of it. */
+    expect(crossing?.tags).toBeUndefined();
+    expect(crossing?.oneWaySeconds).toBe(1);
   });
 
   /**
@@ -216,7 +231,7 @@ describe("the voice crossing it publishes", () => {
       </DelayRailContext.Provider>,
     );
 
-    expect(store.getActiveCrossings()[0]?.spanSamples).toBeCloseTo(0.035, 6);
+    expect(ribbon(store)?.spanSamples).toBeCloseTo(0.035, 6);
   });
 
   /**
@@ -238,7 +253,7 @@ describe("the voice crossing it publishes", () => {
       </DelayRailContext.Provider>,
     );
 
-    expect(store.getActiveCrossings()[0]?.spanSamples).toBeUndefined();
+    expect(ribbon(store)?.spanSamples).toBeUndefined();
   });
 
   it("registers nothing while idle, so the rail draws no ribbon", () => {
@@ -254,6 +269,6 @@ describe("the voice crossing it publishes", () => {
       </DelayRailContext.Provider>,
     );
 
-    expect(store.getActiveCrossings()).toHaveLength(0);
+    expect(store.getActiveHandles()).toHaveLength(0);
   });
 });

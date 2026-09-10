@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import {
   ControlDelayStream,
+  type ControlRibbonDatum,
   type ControlStreamDatum,
 } from "./ControlDelayStream";
 import {
@@ -8,8 +9,7 @@ import {
   type InFlightListDensity,
   type InFlightListMode,
 } from "./InFlightList";
-import { RailCrossing } from "./RailCrossing";
-import { type RailTags, railDrawsReturnLeg, railTagsOf } from "./railTags";
+import type { RailTags } from "./railTags";
 import {
   type InFlightCommandLike,
   toInFlightListItems,
@@ -79,6 +79,19 @@ export interface CommandDelayHandle {
    * samples `ControlDelayStream` draws). Ignored for a discrete handle.
    */
   streams?: ControlStreamDatum[];
+  /**
+   * Ribbon buffers for `shape === "stream"`: a continuous entry with amplitude
+   * history and no readback, which the one rail draws in its outgoing zone.
+   * Carried alongside `streams` rather than instead of them, so a widget with
+   * both a control axis and an open microphone gets one graph.
+   */
+  ribbons?: ControlRibbonDatum[];
+  /**
+   * What the rail should call this handle's graph, when "Delay detail" is not
+   * what it is. A voice ribbon names the transmission it is drawing; a control
+   * axis is happy with the default.
+   */
+  ariaLabel?: string;
   /**
    * The dev-only must-consume token (absent in production). `<CommandDelay>`
    * marks it consumed on mount so `useCommand`'s dispatch-time assertion
@@ -203,39 +216,19 @@ export function CommandDelay({
   });
 
   /*
-   * The DELIVERY axis, before either ack-shaped renderer gets a look in.
-   * `InFlightList` is a wait for a reply and `ControlDelayStream`'s last two
-   * zones ARE one, so both are the wrong picture for an entry nothing answers:
-   * they would draw a return leg that does not exist, which is the lie the
-   * axes were named to remove. It crosses to the boundary and ends.
+   * A lone stream handle draws the continuous strip, whichever marks it carries:
+   * control axes as lines, an amplitude history as a ribbon in the outgoing
+   * zone, both on the one graph.
+   *
+   * There is no branch on DELIVERY here, and there must not be one. Delivery
+   * decides whether a return leg is DRAWN, which is a decision inside the graph
+   * and belongs to it; handing a fire-and-forget entry to a different component
+   * put the operator's voice on a second rail that replaced the first, with its
+   * boundary at 98% of the widget instead of on the T divider.
+   *
+   * A stream's own delay is gated inside ControlDelayStream, but the shared
+   * instant short-circuit still applies here first.
    */
-  const tags = all.length > 0 ? railTagsOf(all[0]) : null;
-  /*
-   * EVERY handle, not just the first: a merged render of one acked command and
-   * one fire-and-forget one has no single honest picture, so the ack-shaped
-   * path keeps it rather than one handle's tag speaking for its siblings.
-   */
-  if (
-    tags &&
-    !railDrawsReturnLeg(tags) &&
-    all.every((h) => !railDrawsReturnLeg(railTagsOf(h)))
-  ) {
-    const items = toInFlightListItems(all.flatMap((h) => h.inFlight));
-    const leading = items[0];
-    if (!leading) return null;
-    return (
-      <RailCrossing
-        tags={tags}
-        label={ariaLabel ?? "In flight, no reply expected"}
-        progress={leading.progress}
-        variant={variant}
-      />
-    );
-  }
-
-  // A lone stream handle draws the continuous strip; a stream's own delay is
-  // gated inside ControlDelayStream, but the shared instant short-circuit still
-  // applies here first.
   if (all.length === 1 && all[0].shape === "stream") {
     const streamHandle = all[0];
     // An unknown delay (`null`) falls the same way an instant one does: there
@@ -245,7 +238,8 @@ export function CommandDelay({
     return (
       <ControlDelayStream
         streams={streamHandle.streams ?? []}
-        ariaLabel={ariaLabel}
+        ribbons={streamHandle.ribbons ?? []}
+        ariaLabel={ariaLabel ?? streamHandle.ariaLabel}
         variant={variant}
       />
     );

@@ -2,9 +2,8 @@ import {
   BroadcastIcon,
   Text,
   ToggleButton,
-  usePanelCrossing,
+  usePanelDelay,
   VisuallyHidden,
-  VOICE_RAIL_TAGS,
 } from "@ksp-gonogo/ui-kit";
 import { useId } from "react";
 import styled from "styled-components";
@@ -84,14 +83,32 @@ export function RadioPtt({
    * The operator's own voice, handed to the rail to draw crossing the gap.
    * Registered only while keyed: an idle transmitter publishes nothing, so the
    * rail has no ribbon rather than an empty one.
+   *
+   * **Through `usePanelDelay`, the seam the one rail reads.** The ribbon is a
+   * mark inside `ControlDelayStream` now rather than a component of its own, and
+   * that component is reached from a registered handle, so voice arrives the way
+   * every other continuous entry does. The handle is honest by OMISSION: there
+   * is nothing discrete in flight, nothing to refuse, lose or dismiss, and no
+   * must-consume token to mark, because none of those are a transmission's. What
+   * it does claim is the one thing that is true, that this is a stream.
    */
-  usePanelCrossing(
+  const label = `Your transmission crossing to ${targetName ?? "the far end"}`;
+  usePanelDelay(
     radio.transmitting
       ? {
-          tags: VOICE_RAIL_TAGS,
-          label: `Your transmission crossing to ${targetName ?? "the far end"}`,
-          amplitudes: radio.amplitudes,
-          spanSamples: crossingSpanSamples(separationSeconds),
+          inFlight: [],
+          shape: "stream",
+          effectiveDelaySeconds: separationSeconds ?? null,
+          ariaLabel: label,
+          ribbons: [
+            {
+              id: "radio.voice",
+              label,
+              oneWaySeconds: separationSeconds ?? null,
+              amplitudes: radio.amplitudes,
+              spanSamples: crossingSpanSamples(separationSeconds),
+            },
+          ],
         }
       : null,
   );

@@ -8,7 +8,9 @@
  *
  * The ribbon draws only while an operator holds the Talk key in a radio session
  * with a peer, so it has never appeared in a render, a baseline or a doc. This
- * is the instrument for it. Each scene is shot collapsed (`variant="rail"`, the
+ * is the instrument for it. It is a MARK inside `ControlDelayStream` now, drawn
+ * in the outgoing zone of the one rail, so the extent below is measured against
+ * the T divider rather than against the widget's far edge. Each scene is shot collapsed (`variant="rail"`, the
  * 16 px band) and pinned open (`variant="expanded"`), because they are the same
  * geometry at two heights.
  *
@@ -86,6 +88,16 @@ interface Scene {
   chunkCount?: number;
   /** What the scene is for, printed with its reading. */
   note: string;
+}
+
+/**
+ * Whether this separation clears the rail's own floor, i.e. whether anything is
+ * drawn at all. The floor comes back from the PAGE (`railMinDelaySeconds`, read
+ * off the component), never restated here: a blank shot is a finding where the
+ * component says it is predicted, and a failure everywhere else.
+ */
+function drawsARail(scene: Scene, r: RailWaveformProbeReading): boolean {
+  return scene.separationSeconds >= r.railMinDelaySeconds;
 }
 
 const SCENES: readonly Scene[] = [
@@ -310,21 +322,36 @@ async function main(): Promise<void> {
       });
 
       const railBtn = await page.$("[data-panel-rail]");
+      /*
+       * A scene below the rail's own delay floor has no strip to open, and the
+       * empty reserved band IS the picture. Everywhere above the floor a missing
+       * rail is the failure this harness exists to catch rather than pass over,
+       * so the two cases are told apart by the prediction and not by what
+       * turned up.
+       */
       if (!railBtn) {
-        throw new Error(
-          `${scene.name}: no rail rendered. A crossing that registers but draws ` +
-            "nothing leaves the band empty, which is exactly the failure this " +
-            "harness exists to photograph rather than pass over.",
-        );
+        if (drawsARail(scene, reading)) {
+          throw new Error(
+            `${scene.name}: no rail rendered at ${scene.separationSeconds}s, ` +
+              "which clears the rail's delay floor. A ribbon that registers but " +
+              "draws nothing leaves the band empty, which is exactly the " +
+              "failure this harness exists to photograph rather than pass over.",
+          );
+        }
+        await page.screenshot({
+          path: join(OUT_DIR, `${scene.name}-expanded.png`),
+          fullPage: false,
+        });
+      } else {
+        await railBtn.click();
+        await page.waitForTimeout(600);
+        await page.screenshot({
+          path: join(OUT_DIR, `${scene.name}-expanded.png`),
+          fullPage: false,
+        });
       }
-      await railBtn.click();
-      await page.waitForTimeout(600);
-      await page.screenshot({
-        path: join(OUT_DIR, `${scene.name}-expanded.png`),
-        fullPage: false,
-      });
 
-      readings.push(describe(scene, reading));
+      readings.push(describe(scene, reading, railBtn !== null));
       console.log(`  ${scene.name}`);
     }
   } finally {
@@ -337,9 +364,10 @@ async function main(): Promise<void> {
     `Panel width ${VIEWPORT_W}px, ${SCENES.length} scenes, each shot collapsed`,
     "(`-rail.png`, the 16px band) and pinned open (`-expanded.png`).",
     "",
-    "`extent` is the fraction of the rail's journey the drawn trace covers,",
-    "read off `waveformPath` in the page: how much of the gap this",
-    "transmission occupies. `turning points` is how many up/down peaks the",
+    "`extent` is the fraction of the OUTGOING ZONE the drawn trace covers,",
+    "read off `waveformPath` in the page against `ribbonBoundaryX`: how much",
+    "of the gap this transmission occupies. The zone is a THIRD of the graph,",
+    "so the pixel figure beside it is against the zone, not the panel. `turning points` is how many up/down peaks the",
     "reader has to see a wave in, and `drawn peaks` is how high they reached,",
     "which is what separates a sentence from an open dead key after the stretch",
     "has decimated the ring. A dead key draws every peak at 0%.",
@@ -352,13 +380,29 @@ async function main(): Promise<void> {
   console.log(`\n${report}`);
 }
 
-function describe(scene: Scene, r: RailWaveformProbeReading): string {
-  const px = (r.extentFraction * VIEWPORT_W).toFixed(0);
+function describe(
+  scene: Scene,
+  r: RailWaveformProbeReading,
+  railDrawn: boolean,
+): string {
+  /* Against the OUTGOING ZONE, which is what the fraction is a fraction of.
+     The zone is a third of the graph, so measuring against the full viewport
+     would treble every reading. */
+  const zonePx = (r.boundaryX / 100) * VIEWPORT_W;
+  const px = (r.extentFraction * zonePx).toFixed(0);
+  if (!railDrawn) {
+    return [
+      `## ${scene.name}`,
+      `- ${scene.note}`,
+      `- separation ${scene.separationSeconds}s is under the rail's ${r.railMinDelaySeconds}s floor: NO RAIL, the band stands empty`,
+      `- the geometry it would have drawn: spanSamples ${r.spanSamples.toFixed(3)}, extent ${(r.extentFraction * 100).toFixed(1)}%, ${r.turningPoints} turning points`,
+    ].join("\n");
+  }
   return [
     `## ${scene.name}`,
     `- ${scene.note}`,
     `- separation ${scene.separationSeconds}s -> spanSamples ${r.spanSamples.toFixed(3)}, keyed ${r.emittedSamples} chunks, ring held ${r.sampleCount}`,
-    `- extent ${(r.extentFraction * 100).toFixed(1)}% of the rail (~${px}px at ${VIEWPORT_W}px wide), ${r.turningPoints} turning points`,
+    `- extent ${(r.extentFraction * 100).toFixed(1)}% of the outgoing zone (~${px}px of the zone's ${zonePx.toFixed(0)}px, in a ${VIEWPORT_W}px panel), ${r.turningPoints} turning points`,
     `- drawn peaks reach ${(r.drawnPeakMin * 100).toFixed(1)}%..${(r.drawnPeakMax * 100).toFixed(1)}% of full scale, ${r.drawnDistinctHeights} distinct heights`,
     `- fixture amplitudes ${r.minAmplitude.toFixed(3)}..${r.maxAmplitude.toFixed(3)}, ${r.distinctAmplitudes} distinct values`,
   ].join("\n");

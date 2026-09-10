@@ -192,8 +192,12 @@ export {
 export {
   ControlDelayStream,
   type ControlDelayStreamProps,
+  type ControlDelayStreamVariant,
+  type ControlRibbonDatum,
   type ControlStreamDatum,
   type ControlStreamSample,
+  ribbonBoundaryX,
+  STREAM_MIN_DELAY_SECONDS,
 } from "./CommandDelay/ControlDelayStream";
 export {
   type CommandRefusalEntry,
@@ -203,12 +207,10 @@ export {
 } from "./CommandDelay/commandRefusalSentence";
 export {
   type CommandHandle,
-  type CrossingHandle,
   createDelayRailStore,
   DelayRailContext,
   DelayRailProvider,
   type DelayRailStore,
-  useActiveCrossings,
   useActiveHandles,
   useDelayRailStore,
 } from "./CommandDelay/DelayRailContext";
@@ -220,12 +222,6 @@ export {
   type InFlightListProps,
   useCountdown,
 } from "./CommandDelay/InFlightList";
-export {
-  crossingBoundaryX,
-  RailCrossing,
-  type RailCrossingProps,
-  waveformPath,
-} from "./CommandDelay/RailCrossing";
 export {
   DEFAULT_RAIL_TAGS,
   type RailContinuity,
@@ -248,8 +244,14 @@ export {
   type CommandFailures,
   useCommandFailures,
 } from "./CommandDelay/useCommandFailures";
-export { usePanelCrossing } from "./CommandDelay/usePanelCrossing";
 export { usePanelDelay } from "./CommandDelay/usePanelDelay";
+export {
+  WAVE_HALF_H,
+  WAVE_MID_Y,
+  WAVE_VB_H,
+  waveformExtentX,
+  waveformPath,
+} from "./CommandDelay/waveformPath";
 export { ComposerBar, type ComposerBarProps } from "./ComposerBar";
 /*
  * The COMPOSITION, and the only door to the console's parts: the frame it draws
