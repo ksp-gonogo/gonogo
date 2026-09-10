@@ -8,7 +8,6 @@ import { NULL_DISPLAY, TextButton, writeQuantity } from "@ksp-gonogo/ui-kit";
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
-  type WheelEvent as ReactWheelEvent,
   useCallback,
   useEffect,
   useId,
@@ -16,6 +15,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useWheelZoom } from "../shared/useWheelZoom";
 import {
   type PatchPoint,
   type PredictedTrajectory,
@@ -234,14 +234,13 @@ export function SystemDiagram({
   const placed = useMemo(
     () =>
       placeDiagram({
-        parent,
         children,
         vessel,
         parentName,
         placement,
         plotScale,
       }),
-    [parent, children, vessel, parentName, placement, plotScale],
+    [children, vessel, parentName, placement, plotScale],
   );
 
   // Predicted multi-SOI trajectory. Same memo discipline, and the child offsets
@@ -350,14 +349,32 @@ export function SystemDiagram({
     onFocusBodyChange?.(focusedBody);
   }, [focusedBody, onFocusBodyChange]);
 
-  const handleWheel = useCallback((e: ReactWheelEvent) => {
-    // Don't preventDefault: React's passive listener can't, and
-    // letting the page scroll while the cursor is elsewhere is the
-    // expected behaviour. We only zoom when the cursor is over the
-    // diagram (this handler only fires then).
-    const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-    setZoom((z) => Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * factor)));
-  }, []);
+  // Wheel zoom, on the pinch gesture only: see `useWheelZoom` for why a plain
+  // wheel has to reach the page. The React `onWheel` this replaces was passive
+  // and so never blocked the page, but it did zoom the diagram out from under
+  // anyone scrolling past it.
+  //
+  // Unbound while the diagram is empty: that branch returns before the element
+  // carrying `containerRef` is rendered, so the callback has to change identity
+  // when bodies arrive or the listener would never bind to it.
+  const emptyDiagram = !parent || children.length === 0;
+  useWheelZoom(
+    containerRef,
+    useMemo(
+      () =>
+        emptyDiagram
+          ? null
+          : // Zoom is about the diagram's centre, not the pointer, so the
+            // position the hook offers is not used here.
+            (deltaY: number) => {
+              const factor = deltaY < 0 ? 1.15 : 1 / 1.15;
+              setZoom((z) =>
+                Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, z * factor)),
+              );
+            },
+      [emptyDiagram],
+    ),
+  );
 
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent) => {
@@ -378,7 +395,7 @@ export function SystemDiagram({
     setPan({ x: 0, y: 0 });
   }, []);
 
-  if (!parent || children.length === 0) {
+  if (emptyDiagram) {
     // Diagnostic: list distinct referenceBody values across the whole
     // body set so the user can see whether the parent names arriving
     // actually match `parentName`. A common cause
@@ -419,7 +436,6 @@ export function SystemDiagram({
   return (
     <div
       ref={containerRef}
-      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerLeave={() => setHover(null)}
       style={{ ...CONTAINER, cursor: isDragging ? "grabbing" : "grab" }}
@@ -775,14 +791,12 @@ interface PlacedDiagram {
  * frame nobody had selected.
  */
 function placeDiagram({
-  parent,
   children,
   vessel,
   parentName,
   placement,
   plotScale,
 }: {
-  parent: CelestialBody | null;
   children: readonly CelestialBody[];
   vessel: VesselOrbit | null | undefined;
   parentName: string;
