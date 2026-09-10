@@ -37,6 +37,20 @@ import type { RadioControl } from "./useRadio";
 /** One captured chunk is 20 ms, so a light-time converts to that many samples. */
 const CHUNK_SECONDS = 0.02;
 
+/**
+ * The light-time to the far end, in captured chunks: how many samples of the
+ * ribbon are still in flight, and so how far along the rail the trace reaches.
+ *
+ * Exported so the render harness can ask the same question the key asks rather
+ * than restate the arithmetic. A restated copy agrees with itself forever, and
+ * a picture drawn from one is a picture of the harness.
+ */
+export function crossingSpanSamples(
+  separationSeconds: number | null | undefined,
+): number {
+  return Math.max(1, Math.round((separationSeconds ?? 0) / CHUNK_SECONDS));
+}
+
 export function RadioPtt({
   radio,
   targetName,
@@ -59,10 +73,7 @@ export function RadioPtt({
           tags: VOICE_RAIL_TAGS,
           label: `Your transmission crossing to ${targetName ?? "the far end"}`,
           amplitudes: radio.amplitudes,
-          spanSamples: Math.max(
-            1,
-            Math.round((separationSeconds ?? 0) / CHUNK_SECONDS),
-          ),
+          spanSamples: crossingSpanSamples(separationSeconds),
         }
       : null,
   );

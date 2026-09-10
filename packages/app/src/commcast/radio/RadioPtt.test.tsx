@@ -185,9 +185,35 @@ describe("the voice crossing it publishes", () => {
     expect(crossing).toBeDefined();
     expect(crossing?.amplitudes).toEqual([0.2, 0.6, 0.4]);
     expect(crossing?.label).toContain("Odyssey");
+    // One second of light-time is fifty 20 ms chunks: how far along the rail
+    // the ribbon reaches, and the one number the render harness reads back
+    // through `crossingSpanSamples` rather than restating.
+    expect(crossing?.spanSamples).toBe(50);
     // Telemetry, continuous, fire-and-forget: a ribbon with no return leg.
     expect(crossing?.tags.delivery).toBe("fire-and-forget");
     expect(crossing?.tags.continuity).toBe("continuous");
+  });
+
+  /**
+   * A vessel in low orbit is under a millisecond away, which rounds to no
+   * chunks at all. The floor keeps the span a positive number so the trace has
+   * a journey to lie along instead of dividing by zero, and what it draws at
+   * that span is a picture worth having: see the render harness.
+   */
+  it("floors the span at one chunk for a sub-millisecond separation", () => {
+    const store = createDelayRailStore();
+
+    render(
+      <DelayRailContext.Provider value={store}>
+        <RadioPtt
+          radio={control({ transmitting: true, amplitudes: [0.2, 0.6] })}
+          targetName="Odyssey"
+          separationSeconds={0.0007}
+        />
+      </DelayRailContext.Provider>,
+    );
+
+    expect(store.getActiveCrossings()[0]?.spanSamples).toBe(1);
   });
 
   it("registers nothing while idle, so the rail draws no ribbon", () => {

@@ -15,7 +15,8 @@
     "render-commcast": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-commcast.ts",
     "render-flight-outcome": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-flight-outcome.ts",
     "minsize-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/minsize-gate.ts",
-    "bake-uplink-hash": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/bake-uplink-hash.ts"
+    "bake-uplink-hash": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/bake-uplink-hash.ts",
+    "render-rail-waveform": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-rail-waveform.ts"
   },
   "dependencies": {
     "@fontsource/jetbrains-mono": "^5.2.8",
