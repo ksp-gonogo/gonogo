@@ -677,7 +677,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
   }
 
   // Two more frames: the first lets React commit the value-driven re-render,
-  // the second lets the ResizeObserver-driven dialSize land and re-render.
+  // the second lets the ResizeObserver-driven dialFit land and re-render.
   await rafTick();
   await rafTick();
   // CSS transitions on transform / opacity can keep moving for a few
