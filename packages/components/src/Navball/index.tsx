@@ -90,6 +90,28 @@ const topics = defineTopicManifest({
 const FBW_DELAY_WARN_SECONDS = 1.0;
 
 /**
+ * The smallest dial worth drawing. Below it the ball is illegible and the
+ * numeric readout is the better rendering of the same three angles, which is
+ * why the widget has one at all.
+ *
+ * A floor on WHETHER to draw, never on what size to draw at. As a size clamp it
+ * did the opposite of what it reads like: a column of 91px still got an 80px
+ * dial, and the indicator overflowed it by 63.
+ */
+const MIN_DIAL_PX = 80;
+
+/**
+ * What `AttitudeIndicator` puts BELOW the dial in the same column: the heading
+ * strip, the HDG/PIT/ROL readout row, and the two gaps between the three.
+ *
+ * A measured constant rather than a chosen one, so it moves when that column
+ * does. It is also the reason a dial cannot simply shrink to whatever height
+ * is left: the indicator is never shorter than this, so a column under
+ * `MIN_DIAL_PX + ATTITUDE_CHROME_PX` holds no dial at all.
+ */
+const ATTITUDE_CHROME_PX = 74;
+
+/**
  * Dispatch-rate budget for the throttle axis's delayed control-stream
  * (`useControlStream`'s coalesced write half, `COALESCE_MS` in
  * `use-control-stream.tsx`, currently 10 Hz). `@ksp-gonogo/sitrep-client`
@@ -710,34 +732,59 @@ function NavballComponent({
   });
 
   /**
-   * Measure the dial's available box and pick a square size that fits both
+   * Measure the attitude column and pick a square dial size that fits both
    * axes. Reading only the width leaves the dial stuck small on a tall widget
    * and too big to leave room for the throttle column on a small one, so both
    * dimensions bind.
    *
    * The 600 ceiling is where the indicator's tick text starts to look blurry on
-   * a standard-DPI screen. Below 80 the dial is illegible and the numeric
-   * readout is the better rendering, which the rows-based gate above already
-   * switches to.
+   * a standard-DPI screen. `MIN_DIAL_PX` is the other end: below it the dial is
+   * illegible and the numeric readout is the better rendering.
+   *
+   * The value is the FIT, not a size clamped up to the floor, and that is the
+   * whole point. Clamped up, a column too short for a legible dial got one
+   * anyway: `AttitudeIndicator` is `MIN_DIAL_PX + ATTITUDE_CHROME_PX` tall at
+   * the floor, and `DIAL_WRAP` centres it, so it painted equally far past both
+   * ends of its box and the heading tape landed on the section below. Kept as
+   * the fit, a column that cannot hold a dial reports so (see {@link
+   * MIN_DIAL_PX}) and the widget renders the readout it degrades to at small
+   * tile sizes anyway.
+   *
+   * 180 until the first observation, which is what a tree with no
+   * `ResizeObserver` (jsdom) keeps: the dial is the right default for a widget
+   * whose box nothing can measure.
    */
-  const [dialSize, setDialSize] = useState(180);
-  const showThrottleColumnRef = useRef(false);
+  const [dialFit, setDialFit] = useState(180);
+  const throttleReservedRef = useRef(false);
   const controlModeRef = useRef(false);
   const dialObserverRef = useRef<ResizeObserver | null>(null);
   /**
    * Attaches the observer as a CALLBACK ref rather than reading a `useRef` from
    * a mount effect, so it follows the element instead of a moment in time.
    *
-   * The dial box only exists once an attitude has been OBSERVED, and a reading
-   * starts out pending, so on the first commit the numeric readout is what
-   * renders and there is no box. A `[]`-dep effect reads null there and never
-   * runs again, which left the dial pinned to its initial size for the whole
+   * The box it measures is the attitude column itself, which renders whichever
+   * branch the widget is showing. Measuring the DIAL's box instead made the
+   * measurement depend on its own verdict: the dial box only exists once an
+   * attitude has been OBSERVED, and a reading starts out pending, so on the
+   * first commit there was no box. A `[]`-dep effect read null there and never
+   * ran again, which left the dial pinned to its initial size for the whole
    * session: 180px in every widget, including a 4-column tile 152px wide, where
    * it painted over the heading strip and the readout row below it and, in
-   * control mode, over the SAS section as well. Measured on every render the
-   * harness produces, the observer had never once been given an element.
+   * control mode, over the SAS section as well. A callback ref fixed that half,
+   * and the column fixes the rest: with the fit now deciding WHETHER to draw a
+   * dial, a ref on the dial would stop observing the moment it said no, and the
+   * dial could never come back when the tile grew.
+   *
+   * Measuring the column is also what keeps the decision from flip-flopping.
+   * The attitude section is the body's only filling section, so with a dial
+   * drawing it measures exactly the height the rest of the body leaves it. With
+   * the readout drawing it measures that or the readout's own height, whichever
+   * is larger (see {@link READOUT_FLOOR}), and the readout is far shorter than
+   * the `MIN_DIAL_PX + ATTITUDE_CHROME_PX` a dial needs. So the fit crosses back
+   * over that threshold only when the tile really has grown, never as a
+   * consequence of having acted on it.
    */
-  const attachDial = useCallback((el: HTMLDivElement | null) => {
+  const attachAttitude = useCallback((el: HTMLDivElement | null) => {
     dialObserverRef.current?.disconnect();
     dialObserverRef.current = null;
     if (!el || typeof ResizeObserver === "undefined") return;
@@ -746,24 +793,26 @@ function NavballComponent({
         const w = e.contentRect.width;
         const h = e.contentRect.height;
         if (w <= 0 || h <= 0) continue;
-        // Reserve space for the throttle column when it's visible: ~32 px
-        // bar + 10 px gap.
-        const throttleReserve = showThrottleColumnRef.current ? 42 : 0;
-        // The AttitudeIndicator renders its own heading strip (~22 px) and
-        // HDG/PIT/ROL readout row (~40 px) *below* the SVG in the same
-        // column. Reserve that vertical space so a wide-and-short box (e.g.
-        // mobile 9×8, where h is the limiting dimension) doesn't size the
-        // dial to the full column height and push the strip + readout past
-        // the Panel's bottom edge.
-        const verticalReserve = 74;
-        const fit = Math.min(w - throttleReserve, h - verticalReserve);
+        // Reserve space for the throttle column at every tile wide enough to
+        // carry one (~32 px bar + 10 px gap), whether or not one is on screen
+        // right now. The column rides `showDial`, so a reserve read off its
+        // visibility would be the second way the fit could depend on its own
+        // verdict: a width that fits a dial without the column and not with it
+        // would add the column, lose the dial, drop the reserve, and fit
+        // again.
+        const throttleReserve = throttleReservedRef.current ? 42 : 0;
+        // The AttitudeIndicator renders its own heading strip and HDG/PIT/ROL
+        // readout row *below* the SVG in the same column. Reserve that
+        // vertical space so a wide-and-short box (e.g. mobile 9×8, where h is
+        // the limiting dimension) doesn't size the dial to the full column
+        // height and push the strip + readout past the Panel's bottom edge.
+        const fit = Math.min(w - throttleReserve, h - ATTITUDE_CHROME_PX);
         // In control mode the dial competes with the SAS / throttle / FBW
         // surface for vertical space: cap it so the buttons stay readable.
         // The display-only path keeps the full 600px ceiling so a dedicated
         // big-navball widget still fills its slot.
         const cap = controlModeRef.current ? 200 : 600;
-        const next = Math.max(80, Math.min(cap, Math.floor(fit)));
-        setDialSize(next);
+        setDialFit(Math.min(cap, Math.floor(fit)));
       }
     });
     ro.observe(el);
@@ -798,7 +847,16 @@ function NavballComponent({
   // still be in flight, so the last known angles plus elapsed time say nothing
   // about the current ones. A craft tumbling and a craft holding are the same
   // reading here. That is why no reckoner is registered for `vessel.attitude`.
-  const showDial = rows >= 6 && cols >= 4 && attitudeObserved;
+
+  // Grid units say whether a dial is WANTED here; the measured fit says
+  // whether one will go. Both are needed and neither substitutes for the
+  // other: rows and cols are known before layout and are what the tiny-tile
+  // presentations key off, while the pixels a tile hands the attitude column
+  // depend on everything else in the body. `rows >= 6` alone was the whole
+  // gate until the SAS/RCS row moved into the body below, and a 5x8 tile that
+  // cleared it by two rows had 91px of column for a 154px indicator.
+  const dialWanted = rows >= 6 && cols >= 4 && dialFit >= MIN_DIAL_PX;
+  const showDial = dialWanted && attitudeObserved;
   const showThrottleColumn = showDial && cols >= 5;
   // SAS / RCS / precision, in the BODY rather than the header aside.
   //
@@ -822,7 +880,7 @@ function NavballComponent({
   // was created on mount with the initial values closed over, so updates
   // to either flag need to propagate via refs the callback re-reads on
   // each observation.
-  showThrottleColumnRef.current = showThrottleColumn;
+  throttleReservedRef.current = cols >= 5;
 
   return (
     <Panel
@@ -831,75 +889,84 @@ function NavballComponent({
         /* The attitude readout is the drawing: at any tile size worth showing a
            dial at, the dial should be as large as the tile allows rather than
            as large as its own minimum. */
-        <Section key="attitude" fill>
-          {showDial ? (
-            <div ref={attachDial} style={DIAL_WRAP}>
-              <AttitudeIndicator
-                heading={heading}
-                pitch={pitch}
-                roll={roll}
-                size={dialSize}
-              />
-              {showThrottleColumn && (
-                <div style={THROTTLE_COLUMN}>
-                  <span style={THROTTLE_LABEL}>THR</span>
-                  <div style={THROTTLE_BAR}>
-                    <div
-                      style={{ ...THROTTLE_FILL, height: `${throttle * 100}%` }}
-                    />
+        <Section
+          key="attitude"
+          fill
+          {...(showDial ? {} : { style: READOUT_FLOOR })}
+        >
+          <div ref={attachAttitude} style={ATTITUDE_COLUMN}>
+            {showDial ? (
+              <div style={DIAL_WRAP}>
+                <AttitudeIndicator
+                  heading={heading}
+                  pitch={pitch}
+                  roll={roll}
+                  size={dialFit}
+                />
+                {showThrottleColumn && (
+                  <div style={THROTTLE_COLUMN}>
+                    <span style={THROTTLE_LABEL}>THR</span>
+                    <div style={THROTTLE_BAR}>
+                      <div
+                        style={{
+                          ...THROTTLE_FILL,
+                          height: `${throttle * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span style={THROTTLE_VAL}>
+                      <Unit value={value("%", throttle * 100)} decimals={0} />
+                    </span>
                   </div>
-                  <span style={THROTTLE_VAL}>
-                    <Unit value={value("%", throttle * 100)} decimals={0} />
-                  </span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={NUMERIC_READOUT}>
-              <div style={READOUT_ROWS}>
-                <div style={READOUT_ROW}>
-                  <span style={READOUT_LABEL}>HDG</span>
-                  <span style={READOUT_VALUE}>
-                    {heading === null ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <Unit value={value("°", heading)} decimals={0} />
-                    )}
-                  </span>
-                </div>
-                <div style={READOUT_ROW}>
-                  <span style={READOUT_LABEL}>PCH</span>
-                  <span style={READOUT_VALUE}>
-                    {pitch === null ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <>
-                        {pitch >= 0 ? "+" : ""}
-                        <Unit value={value("°", pitch)} decimals={0} />
-                      </>
-                    )}
-                  </span>
-                </div>
-                <div style={READOUT_ROW}>
-                  <span style={READOUT_LABEL}>RLL</span>
-                  <span style={READOUT_VALUE}>
-                    {roll === null ? (
-                      NULL_DISPLAY
-                    ) : (
-                      <>
-                        {roll >= 0 ? "+" : ""}
-                        <Unit value={value("°", roll)} decimals={0} />
-                      </>
-                    )}
-                  </span>
-                </div>
+                )}
               </div>
-              <AttitudeCurrency
-                dialSuppressed={rows >= 6 && cols >= 4}
-                reading={attitudeReading}
-              />
-            </div>
-          )}
+            ) : (
+              <div style={NUMERIC_READOUT}>
+                <div style={READOUT_ROWS}>
+                  <div style={READOUT_ROW}>
+                    <span style={READOUT_LABEL}>HDG</span>
+                    <span style={READOUT_VALUE}>
+                      {heading === null ? (
+                        NULL_DISPLAY
+                      ) : (
+                        <Unit value={value("°", heading)} decimals={0} />
+                      )}
+                    </span>
+                  </div>
+                  <div style={READOUT_ROW}>
+                    <span style={READOUT_LABEL}>PCH</span>
+                    <span style={READOUT_VALUE}>
+                      {pitch === null ? (
+                        NULL_DISPLAY
+                      ) : (
+                        <>
+                          {pitch >= 0 ? "+" : ""}
+                          <Unit value={value("°", pitch)} decimals={0} />
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <div style={READOUT_ROW}>
+                    <span style={READOUT_LABEL}>RLL</span>
+                    <span style={READOUT_VALUE}>
+                      {roll === null ? (
+                        NULL_DISPLAY
+                      ) : (
+                        <>
+                          {roll >= 0 ? "+" : ""}
+                          <Unit value={value("°", roll)} decimals={0} />
+                        </>
+                      )}
+                    </span>
+                  </div>
+                </div>
+                <AttitudeCurrency
+                  dialSuppressed={dialWanted}
+                  reading={attitudeReading}
+                />
+              </div>
+            )}
+          </div>
         </Section>,
         /* Full-width: a control strip the surface below it belongs to, never a
            column beside it. */
@@ -1370,6 +1437,38 @@ function NavballConfigComponent({
 // readout font (18px), the off-ladder dial gap (10px, a ResizeObserver-reserve
 // term) and the 80ms throttle chase are deliberately literal (see each note)
 // and were already literal in the styled blocks this replaces.
+
+/**
+ * Stops the attitude section shrinking under the numeric readout, which has a
+ * height and cannot resize itself the way the dial can.
+ *
+ * A filling section takes the height the rest of the body leaves it, `min-height:0`
+ * and all, so a body that outgrows its tile crushes this one and nothing else.
+ * That is right while the dial is drawing, which is why the shrink is there:
+ * the dial is measured and redrawn at whatever it is given. It is wrong for the
+ * readout, which keeps painting at its own height wherever the box ends, and at
+ * a 33px section on an uncontrollable 5x8 tile that put three angles across the
+ * "vessel not controllable" banner below.
+ *
+ * Refusing to shrink hands the overflow to the panel body, which is the
+ * scroller, so the crushed tile scrolls instead of stacking two readings in one
+ * place. `flex-shrink` only, so the section still GROWS into whatever the tile
+ * has spare, which is what lets a growing tile measure its way back to a dial.
+ */
+const READOUT_FLOOR: CSSProperties = { flexShrink: 0 };
+
+/**
+ * The measured box, and the one thing in the attitude section that renders
+ * whichever way the fit goes. It carries the fill so the dial wrap and the
+ * numeric readout below it can go on carrying theirs, and it holds no visual
+ * treatment of its own: what it is for is being the same box in both branches.
+ */
+const ATTITUDE_COLUMN: CSSProperties = {
+  flex: 1,
+  minHeight: 0,
+  display: "flex",
+  flexDirection: "column",
+};
 
 const DIAL_WRAP: CSSProperties = {
   // Fill the available column so the ResizeObserver sees real dimensions,
