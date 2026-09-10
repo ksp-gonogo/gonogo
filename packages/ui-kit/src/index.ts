@@ -223,18 +223,21 @@ export {
   useCountdown,
 } from "./CommandDelay/InFlightList";
 export {
-  DEFAULT_RAIL_TAGS,
+  allRailTags,
   type RailContinuity,
   type RailDelivery,
   type RailDirection,
-  type RailTagSource,
+  type RailRenderer,
+  type RailTagKey,
   type RailTags,
   railDrawsReturnLeg,
   railFlow,
   railMark,
-  railTagsOf,
+  railRendererFor,
+  railTagKey,
   railToneToken,
-  VOICE_RAIL_TAGS,
+  reportUnrepresentedRail,
+  unrepresentedRailTags,
 } from "./CommandDelay/railTags";
 export {
   type InFlightCommandLike,

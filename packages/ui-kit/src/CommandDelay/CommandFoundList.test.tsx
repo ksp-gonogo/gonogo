@@ -1,4 +1,8 @@
-import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  railTagsForCommand,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -8,6 +12,13 @@ import {
   commandFoundSentence,
   type RailFound,
 } from "./CommandFoundList";
+
+/*
+ * The rail axes these fixtures carry, from the same derivations production uses
+ * rather than written as literals: a fixture that spelled its own tags would go
+ * on asserting the old picture after a derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 describe("commandFoundSentence", () => {
   it("names the subject, the reversal, and that it RAN", () => {
@@ -111,7 +122,7 @@ describe("CommandFoundList", () => {
     args: { enabled: true },
     label: "",
     outcome: "ran",
-    shape: "discrete",
+    tags: RAIL_DISCRETE,
   };
 
   it("renders nothing for an empty set, like every other member of this family", () => {

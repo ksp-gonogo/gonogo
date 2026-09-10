@@ -1,3 +1,4 @@
+import { railTagsForTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   BroadcastIcon,
   Text,
@@ -35,6 +36,23 @@ import type { RadioControl } from "./useRadio";
  */
 /** One captured chunk is 20 ms, so a light-time converts to that many samples. */
 const CHUNK_SECONDS = 0.02;
+
+/**
+ * What the operator's voice IS on the rail's three axes.
+ *
+ * One axis is declared and two are read: CONTINUITY is `continuous` because an
+ * open microphone occupies a span of time rather than being an event, which is
+ * a fact about this producer and nothing else can know it. DIRECTION and
+ * DELIVERY come from `railTagsForTelemetry` itself: nothing is being asked of
+ * anyone, and there is no reply channel for an ack to arrive on.
+ *
+ * It is a DECLARATION, not an override. The rail used to draw this as a ribbon
+ * because the widget put it in the `ribbons` array, which is the same
+ * assumption the rail's own three-axis vocabulary exists to remove: the entry's
+ * properties decide its mark, so the same declaration would draw the same
+ * picture if it arrived by any other route.
+ */
+const VOICE_RAIL_TAGS = railTagsForTelemetry("continuous");
 
 /**
  * The light-time to the far end, in captured chunks: how many samples of the
@@ -90,14 +108,15 @@ export function RadioPtt({
    * every other continuous entry does. The handle is honest by OMISSION: there
    * is nothing discrete in flight, nothing to refuse, lose or dismiss, and no
    * must-consume token to mark, because none of those are a transmission's. What
-   * it does claim is the one thing that is true, that this is a stream.
+   * it does claim is what the transmission IS, on the three axes, and the rail
+   * picks its renderer from that.
    */
   const label = `Your transmission crossing to ${targetName ?? "the far end"}`;
   usePanelDelay(
     radio.transmitting
       ? {
           inFlight: [],
-          shape: "stream",
+          tags: VOICE_RAIL_TAGS,
           effectiveDelaySeconds: separationSeconds ?? null,
           ariaLabel: label,
           ribbons: [
@@ -107,6 +126,7 @@ export function RadioPtt({
               oneWaySeconds: separationSeconds ?? null,
               amplitudes: radio.amplitudes,
               spanSamples: crossingSpanSamples(separationSeconds),
+              tags: VOICE_RAIL_TAGS,
             },
           ],
         }

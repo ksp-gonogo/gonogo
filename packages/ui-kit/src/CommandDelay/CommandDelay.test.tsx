@@ -1,9 +1,23 @@
+import {
+  railTagsForCommand,
+  railTagsForControlAxis,
+  railTagsForTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { CommandDelay, type CommandDelayHandle } from "./CommandDelay";
 import type { ControlStreamDatum } from "./ControlDelayStream";
+import { resetUnrepresentedRailReports } from "./railTags";
 import type { InFlightCommandLike } from "./toInFlightListItems";
+
+/*
+ * The rail axes these fixtures carry, from the same derivations production uses
+ * rather than written as literals: a fixture that spelled its own tags would go
+ * on asserting the old picture after a derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
+const RAIL_CONTINUOUS = railTagsForControlAxis("vessel.control.setAxes");
 
 const IN_FLIGHT: InFlightCommandLike[] = [
   {
@@ -23,13 +37,14 @@ const STREAM: ControlStreamDatum = {
   inTransit: [{ age: 0, value: 0.5 }],
   echo: [{ age: 3.2, value: 0.4 }],
   current: 0.5,
+  tags: RAIL_CONTINUOUS,
 };
 
 describe("CommandDelay", () => {
   it("renders nothing at zero effective delay (meta-vantage / instant)", () => {
     const handle: CommandDelayHandle = {
       inFlight: [],
-      shape: "discrete",
+      tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 0,
     };
     const { container } = render(<CommandDelay handle={handle} />);
@@ -39,7 +54,7 @@ describe("CommandDelay", () => {
   it("renders nothing at zero delay even for a stream command", () => {
     const handle: CommandDelayHandle = {
       inFlight: [],
-      shape: "stream",
+      tags: RAIL_CONTINUOUS,
       effectiveDelaySeconds: 0,
       streams: [STREAM],
     };
@@ -50,7 +65,7 @@ describe("CommandDelay", () => {
   it("renders the discrete in-flight list for a delayed discrete command", () => {
     const handle: CommandDelayHandle = {
       inFlight: IN_FLIGHT,
-      shape: "discrete",
+      tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 5,
     };
     render(<CommandDelay handle={handle} ariaLabel="Launch: in flight" />);
@@ -60,7 +75,7 @@ describe("CommandDelay", () => {
   it("renders the control-delay stream for a delayed stream command", () => {
     const handle: CommandDelayHandle = {
       inFlight: [],
-      shape: "stream",
+      tags: RAIL_CONTINUOUS,
       effectiveDelaySeconds: 1.6,
       streams: [STREAM],
     };
@@ -73,7 +88,7 @@ describe("CommandDelay", () => {
   it('forwards variant="rail" to the stream branch; defaults to inline', () => {
     const handle: CommandDelayHandle = {
       inFlight: [],
-      shape: "stream",
+      tags: RAIL_CONTINUOUS,
       effectiveDelaySeconds: 1.6,
       streams: [STREAM],
     };
@@ -94,7 +109,7 @@ describe("CommandDelay", () => {
   it('forwards variant="rail" to the discrete branch (v3 height-graph strip)', () => {
     const handle: CommandDelayHandle = {
       inFlight: IN_FLIGHT,
-      shape: "discrete",
+      tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 5,
     };
     const { container } = render(
@@ -113,12 +128,12 @@ describe("CommandDelay", () => {
     const handles: CommandDelayHandle[] = [
       {
         inFlight: [{ ...IN_FLIGHT[0], id: "add", label: "Add node" }],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
       },
       {
         inFlight: [{ ...IN_FLIGHT[0], id: "remove", label: "Remove node" }],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
       },
     ];
@@ -130,10 +145,10 @@ describe("CommandDelay", () => {
 
   it("renders when only one of several handles has a delay", () => {
     const handles: CommandDelayHandle[] = [
-      { inFlight: [], shape: "discrete", effectiveDelaySeconds: 0 },
+      { inFlight: [], tags: RAIL_DISCRETE, effectiveDelaySeconds: 0 },
       {
         inFlight: [IN_FLIGHT[0]],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
       },
     ];
@@ -144,13 +159,13 @@ describe("CommandDelay", () => {
   it("marks every handle's must-consume token on mount (dev)", () => {
     const a: CommandDelayHandle = {
       inFlight: [],
-      shape: "discrete",
+      tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 0,
       _output: { consumed: false },
     };
     const b: CommandDelayHandle = {
       inFlight: [],
-      shape: "stream",
+      tags: RAIL_CONTINUOUS,
       effectiveDelaySeconds: 0,
       streams: [STREAM],
       _output: { consumed: false },
@@ -164,10 +179,44 @@ describe("CommandDelay", () => {
   it("has no accessibility violations when rendering the discrete list", async () => {
     const handle: CommandDelayHandle = {
       inFlight: IN_FLIGHT,
-      shape: "discrete",
+      tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 5,
     };
     const { container } = render(<CommandDelay handle={handle} />);
     await expectNoA11yViolations(container);
+  });
+});
+
+/**
+ * A handle whose combination nothing draws. It must NOT fall through to the
+ * discrete queue: drawing a science result sent home as a discrete acked
+ * command is the fallback the axes exist to remove, and it is worse than
+ * drawing nothing because it looks right.
+ */
+describe("a handle nothing can draw", () => {
+  afterEach(() => {
+    resetUnrepresentedRailReports();
+    vi.restoreAllMocks();
+  });
+
+  it("marks and reports it rather than drawing a discrete row", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const handle: CommandDelayHandle = {
+      inFlight: IN_FLIGHT,
+      tags: railTagsForTelemetry("discrete"),
+      effectiveDelaySeconds: 6,
+      ariaLabel: "Science result on its way home",
+    };
+    const { container } = render(<CommandDelay handle={handle} />);
+    expect(
+      container
+        .querySelector("[data-rail-unrepresented]")
+        ?.getAttribute("data-rail-unrepresented"),
+    ).toBe("telemetry/discrete/fire-and-forget");
+    // The rows it carries are NOT drawn as an in-flight queue. It has some, on
+    // purpose: an entry with content is exactly the case a fallback would have
+    // rendered wrongly.
+    expect(screen.queryByRole("list")).toBeNull();
+    expect(errors.mock.calls[0][0]).toContain("Science result on its way home");
   });
 });

@@ -1,4 +1,4 @@
-import { CommandErrorCode } from "@ksp-gonogo/sitrep-sdk";
+import { CommandErrorCode, railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -10,6 +10,13 @@ import {
   type CommandReplyLike,
   REFUSAL_TIMEOUT_MS,
 } from "./CommandButton";
+
+/*
+ * The rail axes this fixture's handle carries, from the derivation production
+ * uses rather than a literal: a fixture that spelled its own tags would go on
+ * asserting the old picture after the derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 /**
  * What a confirmed dispatch resolves with, as the wire actually answers it.
@@ -35,7 +42,7 @@ function makeHandle(
   return {
     send,
     inFlight: [],
-    shape: "discrete",
+    tags: RAIL_DISCRETE,
     effectiveDelaySeconds: 0,
     ...over,
   };

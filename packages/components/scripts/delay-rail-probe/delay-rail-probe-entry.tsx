@@ -15,6 +15,7 @@ import {
   type CommandDelayHandle,
   DelayRailProvider,
   Panel,
+  railTagKey,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -22,8 +23,8 @@ import { createRoot, type Root } from "react-dom/client";
 
 interface DelayRailProbePayload {
   /** The command handles the widget body contributes to the rail (one per
-   *  in-flight command; a combined scenario passes both a discrete and a stream
-   *  handle). */
+   *  in-flight command; a combined scenario passes both a discrete and a
+   *  continuous handle). */
   handles: CommandDelayHandle[];
   /** Panel title, so the rail is shown in real header context. */
   panelTitle: string;
@@ -64,7 +65,7 @@ function Harness({
       <Panel panelTitle={panelTitle}>
         {handles.map((h) => (
           <HandleRegistrar
-            key={`${h.shape}:${h.inFlight[0]?.id ?? h.streams?.[0]?.id ?? "x"}`}
+            key={`${railTagKey(h.tags)}:${h.inFlight[0]?.id ?? h.streams?.[0]?.id ?? "x"}`}
             handle={h}
           />
         ))}

@@ -187,9 +187,17 @@ describe("the voice ribbon it publishes", () => {
 
     const handle = store.getActiveHandles()[0];
     expect(handle).toBeDefined();
-    /* A stream handle, which is the one claim a transmission can honestly make:
-       everything a command carries is omitted rather than sent as an empty. */
-    expect(handle?.shape).toBe("stream");
+    /* Telemetry, continuous, fire-and-forget: what a transmission IS, all
+       three axes stated, and everything a command carries omitted rather than
+       sent as an empty. Asserted as the full triple rather than as one derived
+       word, because the whole point of the axes is that the rail reads all
+       three: a handle claiming only "continuous" is what let voice be drawn as
+       an outbound acked command. */
+    expect(handle?.tags).toEqual({
+      direction: "telemetry",
+      continuity: "continuous",
+      delivery: "fire-and-forget",
+    });
     expect(handle?.inFlight).toEqual([]);
     expect(handle?._output).toBeUndefined();
     /* And it names its own graph, so the rail does not call the operator's
@@ -203,9 +211,15 @@ describe("the voice ribbon it publishes", () => {
        the gap, and the one number the render harness reads back through
        `crossingSpanSamples` rather than restating. */
     expect(crossing?.spanSamples).toBe(50);
-    /* Telemetry, continuous, fire-and-forget: a ribbon with no return leg, and
-       the rail's own default for a ribbon, so the widget states none of it. */
-    expect(crossing?.tags).toBeUndefined();
+    /* The ribbon carries the SAME three axes the handle does, in full. It used
+       to carry none, and the rail drew it as a ribbon because the widget put it
+       in the `ribbons` array: which array a datum arrives in is now no part of
+       what it is. */
+    expect(crossing?.tags).toEqual({
+      direction: "telemetry",
+      continuity: "continuous",
+      delivery: "fire-and-forget",
+    });
     expect(crossing?.oneWaySeconds).toBe(1);
   });
 

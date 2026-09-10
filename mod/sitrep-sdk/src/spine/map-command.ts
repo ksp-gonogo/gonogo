@@ -9,18 +9,12 @@
  *
  * What remains is not translation. It is two facts about a command that no
  * caller should have to restate: whether its delay renders as one in-flight row
- * or as a persistent axis, and whether it rides signal delay at all.
+ * or as a persistent axis, and whether it rides signal delay at all. Neither is
+ * a list written here any more; the first is read off the generated rail table
+ * (see `../rail-tags`), and only the second is still a set of ids.
  */
 
-/**
- * Command topics whose delay UX is a PERSISTENT stream indicator (fly-by-wire),
- * not a one-shot in-flight row. `vessel.control.setAxes` is the mod's
- * per-frame-re-applied override (pitch/yaw/roll/translation/trim); every Navball
- * axis/translation action routes to that one topic, so classifying it covers them all.
- */
-const STREAM_COMMANDS: ReadonlySet<string> = new Set([
-  "vessel.control.setAxes",
-]);
+import { railTagsForCommand } from "../rail-tags";
 
 /**
  * Sim-meta command topics that never ride signal delay (instant, no delay UX):
@@ -33,10 +27,23 @@ const NEVER_DELAYED_COMMANDS: ReadonlySet<string> = new Set([
 
 /**
  * How a command's delay UX renders: a discrete in-flight row (the default), or a
- * persistent stream indicator (fly-by-wire). The unified `<CommandDelay>` reads this.
+ * persistent stream indicator (fly-by-wire).
+ *
+ * The CONTINUITY axis in the rail's own words (see `../rail-tags`), which is
+ * where the answer comes from: the command's owning assembly declares it on
+ * `[SitrepCommand(..., Continuity = ...)]` and codegen carries it into the
+ * generated rail table. This function used to consult a `Set` written in this
+ * file holding exactly one id, which could name core's commands and
+ * structurally could not name an Uplink's.
+ *
+ * Kept as its own spelling because the delay machinery still talks in
+ * discrete/stream, and it is now a view of the tags rather than a second source
+ * for them.
  */
 export function commandShape(command: string): "discrete" | "stream" {
-  return STREAM_COMMANDS.has(command) ? "stream" : "discrete";
+  return railTagsForCommand(command).continuity === "continuous"
+    ? "stream"
+    : "discrete";
 }
 
 /** Whether a command rides signal delay at all. Sim-meta controls (`time.*`) do not. */

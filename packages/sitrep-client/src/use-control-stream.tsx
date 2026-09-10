@@ -1,5 +1,8 @@
-import type { Value } from "@ksp-gonogo/sitrep-sdk";
-import { getControlChannel } from "@ksp-gonogo/sitrep-sdk";
+import type { RailTags, Value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  getControlChannel,
+  railTagsForControlAxis,
+} from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useMemo, useRef } from "react";
 import { useUtNow } from "./context";
 import {
@@ -68,6 +71,18 @@ export interface ControlStream {
   echo: ControlSample[];
   /** Current commanded value in the shared 0..1 band. */
   current: number;
+  /**
+   * What this entry IS on the rail's three axes:
+   * `railTagsForControlAxis(channel.writeCommand)`.
+   *
+   * Continuous because a held axis is a span, which is this hook's whole
+   * subject; acked off what the command answers. So the strip is drawn because
+   * the entry's properties say what it is, not because a widget handed the
+   * datum to a graph that only draws one picture, which is what decided it
+   * before, and which drew a discrete command as a continuous stream without
+   * anything having claimed it was one.
+   */
+  tags: RailTags;
 }
 
 interface CommsDelayLike {
@@ -109,6 +124,19 @@ export function useControlStream(
   // Hooks are called unconditionally with a stable order. When the channel is
   // unknown, writeCommand/readTopic fall back to inert strings and nothing sends.
   const command = useCommand(channel?.writeCommand ?? "");
+  /*
+   * The rail axes for this channel. Continuous because this hook is what makes
+   * an axis continuous (it rolls a ring against light-time and coalesces at
+   * 10 Hz; there is no way to use it for a one-shot), with delivery read off
+   * the command it writes. The empty string for an unresolved channel falls to
+   * the undeclared-command answer for that axis, which is the honest one:
+   * nothing has declared anything about it.
+   *
+   * Safe as a dependency of the returned stream's `useMemo` below without being
+   * memoised itself: the derivation hands back one interned instance per
+   * combination, so its identity is stable across renders. See `rail-tags.ts`.
+   */
+  const tags = railTagsForControlAxis(channel?.writeCommand ?? "");
   const commsDelay = useLatestValue<CommsDelayLike>("comms.delay");
   const readback = useLatestValue<Record<string, unknown>>(
     channel?.readTopic ?? "",
@@ -227,6 +255,7 @@ export function useControlStream(
         inTransit: [],
         echo: [],
         current: normalize01(value, range),
+        tags,
       };
     }
     const span = 3 * oneWaySeconds;
@@ -245,6 +274,7 @@ export function useControlStream(
       inTransit,
       echo,
       current: normalize01(value, range),
+      tags,
     };
-  }, [channelId, label, oneWaySeconds, nowUt, value, range]);
+  }, [channelId, label, oneWaySeconds, nowUt, value, range, tags]);
 }

@@ -23,6 +23,7 @@ import type {
   CommandId,
   CommandReply,
 } from "../commands";
+import type { RailTags } from "../rail-tags";
 import type { UplinkClientHandle } from "../spine/uplink-clients";
 import type {
   TopicId,
@@ -1162,8 +1163,10 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
   ): Promise<TReply>;
   status: CommandStatus;
   inFlight: InFlightCommand[];
-  /** Delay display this command uses; hand straight to `<CommandDelay>`. */
-  shape: "discrete" | "stream";
+  /** What this command IS on the rail's three axes, as its owning assembly
+   *  declared them; hand straight to `<CommandDelay>`, which picks a renderer
+   *  from them. See the spine's `UseCommandResult.tags`. */
+  tags: RailTags;
   /** Effective one-way delay under this command's vantage (0 = instant by
    *  construction, `null` = no measurable one, never 0 for that). See the
    *  spine's `UseCommandResult.effectiveDelaySeconds`. */

@@ -1,4 +1,9 @@
-import { CommandErrorCode, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommandErrorCode,
+  railTagsForCommand,
+  railTagsForControlAxis,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
@@ -10,6 +15,14 @@ import {
 } from "./DelayRailContext";
 import { PanelDelayRail } from "./PanelDelayRail";
 import type { InFlightCommandLike } from "./toInFlightListItems";
+
+/*
+ * The rail axes these fixtures carry, from the same derivations production uses
+ * rather than written as literals: a fixture that spelled its own tags would go
+ * on asserting the old picture after a derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
+const RAIL_CONTINUOUS = railTagsForControlAxis("vessel.control.setAxes");
 
 const IN_FLIGHT: InFlightCommandLike[] = [
   {
@@ -26,7 +39,7 @@ function handle(id: string): CommandHandle {
   return {
     id,
     inFlight: IN_FLIGHT,
-    shape: "discrete",
+    tags: RAIL_DISCRETE,
     effectiveDelaySeconds: 5,
   };
 }
@@ -84,7 +97,7 @@ describe("PanelDelayRail", () => {
     store.register({
       id: "instant",
       inFlight: [],
-      shape: "discrete",
+      tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 0,
     });
     const { container } = inPanel(<PanelDelayRail />, store);
@@ -100,7 +113,7 @@ describe("PanelDelayRail", () => {
     store.register({
       id: "bufferless-stream",
       inFlight: [],
-      shape: "stream",
+      tags: RAIL_CONTINUOUS,
       effectiveDelaySeconds: 1.6,
     });
     const { container } = inPanel(<PanelDelayRail />, store);
@@ -295,7 +308,7 @@ describe("PanelDelayRail", () => {
       store.register({
         id: "stream",
         inFlight: [],
-        shape: "stream",
+        tags: RAIL_CONTINUOUS,
         effectiveDelaySeconds: 1.6,
         streams: [
           {
@@ -305,6 +318,7 @@ describe("PanelDelayRail", () => {
             inTransit: [{ age: 0, value: 0.5 }],
             echo: [],
             current: 0.5,
+            tags: RAIL_CONTINUOUS,
           },
         ],
       });
@@ -314,7 +328,7 @@ describe("PanelDelayRail", () => {
           { ...IN_FLIGHT[0], id: "d1", label: "SAS Prograde" },
           { ...IN_FLIGHT[0], id: "d2", label: "Stage" },
         ],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 3,
       });
       const { container } = inPanel(<PanelDelayRail />, store);
@@ -355,7 +369,7 @@ describe("PanelDelayRail", () => {
       // Nothing in flight: a refusal is terminal, so it has already left the
       // pending queue. This is the case that used to render nothing at all.
       inFlight: [],
-      shape: "discrete",
+      tags: RAIL_DISCRETE,
       effectiveDelaySeconds: 5,
       refusals: Array.from({ length: count }, (_, i) => refusal(`${id}-r${i}`)),
       dismiss,
@@ -451,7 +465,7 @@ describe("PanelDelayRail", () => {
             predictedPhase: "lost",
           },
         ],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
       });
       inPanel(<PanelDelayRail />, store);
@@ -480,7 +494,7 @@ describe("PanelDelayRail", () => {
       return {
         id,
         inFlight: [],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
         losses: Array.from({ length: count }, (_, i) => ({
           id: `${id}-l${i}`,
@@ -561,7 +575,7 @@ describe("PanelDelayRail", () => {
       return {
         id,
         inFlight: [],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
         founds: [
           {
@@ -598,7 +612,7 @@ describe("PanelDelayRail", () => {
       store.register({
         id: "dropped",
         inFlight: [],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
         losses: [
           {
@@ -702,7 +716,7 @@ describe("PanelDelayRail", () => {
       return {
         id,
         inFlight: [],
-        shape: "discrete",
+        tags: RAIL_DISCRETE,
         effectiveDelaySeconds: 5,
         undelivered: Array.from({ length: count }, (_, i) => ({
           id: `${id}-u${i}`,

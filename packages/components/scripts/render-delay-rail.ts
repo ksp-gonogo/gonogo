@@ -11,6 +11,10 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  railTagsForCommand,
+  railTagsForControlAxis,
+} from "@ksp-gonogo/sitrep-sdk";
 import { build } from "esbuild";
 import { chromium } from "playwright";
 
@@ -23,6 +27,21 @@ const THEME_TOKENS_CSS = resolve(HERE, "../../theme/src/tokens.css");
 
 const VIEWPORT_W = 380;
 const VIEWPORT_H = 360;
+
+/*
+ * The rail axes each scenario's entries carry, asked of the SAME derivations
+ * production asks rather than written as literals here. A harness that spells
+ * its own tags is a harness that photographs itself: it would keep drawing the
+ * old picture after the derivation moved, which is the one thing these shots
+ * exist to catch.
+ *
+ * A discrete command's row is keyed off a real command the scenarios press; a
+ * held axis is keyed off the channel's write command through the control-axis
+ * derivation, which is what `useControlStream` does for the live Navball.
+ */
+const DISCRETE_TAGS = railTagsForCommand("vessel.control.setSasMode");
+const THROTTLE_AXIS_TAGS = railTagsForControlAxis("vessel.control.setThrottle");
+const FBW_AXIS_TAGS = railTagsForControlAxis("vessel.control.setAxes");
 
 // Hand-built CommandDelayHandle scenarios. Plain data (no spine), the same
 // shape `useCommand(...)` returns, so the rail draws exactly as it would for a
@@ -51,6 +70,7 @@ const THROTTLE_STREAM = {
     { age: 4.8, value: 0.64 },
   ],
   current: 0.44,
+  tags: THROTTLE_AXIS_TAGS,
 };
 const PITCH_STREAM = {
   id: "vessel.control.pitch",
@@ -73,6 +93,7 @@ const PITCH_STREAM = {
     { age: 4.8, value: 0.8 },
   ],
   current: 0.5,
+  tags: FBW_AXIS_TAGS,
 };
 
 const SCENARIOS: ReadonlyArray<{
@@ -88,7 +109,7 @@ const SCENARIOS: ReadonlyArray<{
     panelTitle: "NAVBALL",
     // Delay set but nothing in flight: the rail renders null (no motion when
     // the queue is empty). This is the resting baseline.
-    handles: [{ inFlight: [], shape: "discrete", effectiveDelaySeconds: 6 }],
+    handles: [{ inFlight: [], tags: DISCRETE_TAGS, effectiveDelaySeconds: 6 }],
   },
   {
     name: "02-discrete-single-in-flight",
@@ -106,7 +127,7 @@ const SCENARIOS: ReadonlyArray<{
             predictedPhase: "in-transit",
           },
         ],
-        shape: "discrete",
+        tags: DISCRETE_TAGS,
         effectiveDelaySeconds: 6,
       },
     ],
@@ -120,7 +141,7 @@ const SCENARIOS: ReadonlyArray<{
     handles: [
       {
         inFlight: [],
-        shape: "stream",
+        tags: FBW_AXIS_TAGS,
         effectiveDelaySeconds: 1.6,
         streams: [THROTTLE_STREAM, PITCH_STREAM],
       },
@@ -153,7 +174,7 @@ const SCENARIOS: ReadonlyArray<{
             predictedPhase: "awaiting-reply",
           },
         ],
-        shape: "discrete",
+        tags: DISCRETE_TAGS,
         effectiveDelaySeconds: 3,
       },
     ],
@@ -186,12 +207,12 @@ const SCENARIOS: ReadonlyArray<{
             predictedPhase: "in-transit",
           },
         ],
-        shape: "discrete",
+        tags: DISCRETE_TAGS,
         effectiveDelaySeconds: 3,
       },
       {
         inFlight: [],
-        shape: "stream",
+        tags: FBW_AXIS_TAGS,
         effectiveDelaySeconds: 1.6,
         streams: [THROTTLE_STREAM],
       },
@@ -233,7 +254,7 @@ const SCENARIOS: ReadonlyArray<{
             predictedPhase: "awaiting-reply",
           },
         ],
-        shape: "discrete",
+        tags: DISCRETE_TAGS,
         effectiveDelaySeconds: 3,
       },
     ],
@@ -254,7 +275,7 @@ const SCENARIOS: ReadonlyArray<{
       {
         id: "outcomes",
         inFlight: [],
-        shape: "discrete",
+        tags: DISCRETE_TAGS,
         effectiveDelaySeconds: 5,
         dismiss: undefined,
         refusals: [

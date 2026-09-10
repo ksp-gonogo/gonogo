@@ -10,24 +10,25 @@ import {
 } from "./CommandUndeliveredList";
 import { STREAM_MIN_DELAY_SECONDS } from "./ControlDelayStream";
 import { type CommandHandle, useActiveHandles } from "./DelayRailContext";
+import { railMark } from "./railTags";
 
 /**
- * Whether a handle's `CommandDelay` would draw anything: a stream with real
- * delay, or a discrete handle with in-flight rows. Mirrors `CommandDelay`'s own
+ * Whether a handle's `CommandDelay` would draw anything: a continuous handle
+ * with real delay, or a discrete one with in-flight rows. Mirrors `CommandDelay`'s own
  * null-decision so the rail shows a handle iff its `CommandDelay` renders. An
  * instant / idle command (a meta-vantage or not-yet-dispatched handle) is still
  * registered, so its must-consume token is marked and it appears the instant it
  * goes in flight, but it contributes no rail chrome meanwhile.
  *
- * A stream handle also needs BUFFERS, not just delay. `ControlDelayStream`
- * returns null with neither streams nor ribbons, so a stream-shaped command
+ * A continuous handle also needs BUFFERS, not just delay. `ControlDelayStream`
+ * returns null with neither streams nor ribbons, so a continuous command
  * whose delay UX is drawn elsewhere (the Navball's trim command shares
  * `vessel.control.setAxes` with the axes, but has no readback channel to build
  * a strip from) would otherwise mount the rail permanently to draw nothing
  * inside it, an empty band on every delayed link.
  */
 function handleHasContent(handle: CommandHandle): boolean {
-  if (handle.shape === "stream") {
+  if (railMark(handle.tags) === "ribbon") {
     const delay = handle.effectiveDelaySeconds;
     const marks = (handle.streams?.length ?? 0) + (handle.ribbons?.length ?? 0);
     /* The graph's OWN floor, not a positive-delay test. Below it the graph
@@ -102,9 +103,9 @@ export function PanelDelayRail() {
   // Refusals come from EVERY registered handle, not just the ones with delay
   // content: a refused command has nothing in flight by definition (it settled),
   // so gating on `handleHasContent` would hide exactly the case this exists for.
-  // Each carries its handle's shape, which decides glyph-tile vs. text label.
+  // Each carries its handle's tags, whose mark decides glyph-tile vs. text label.
   const refusals: RailRefusal[] = handles.flatMap((h) =>
-    (h.refusals ?? []).map((r) => ({ ...r, shape: h.shape })),
+    (h.refusals ?? []).map((r) => ({ ...r, tags: h.tags })),
   );
   /*
    * Same rule, and the case for it is stronger: a comms-loss drop is refused a
@@ -112,7 +113,7 @@ export function PanelDelayRail() {
    * of the command's life and the rail rendered nothing at all.
    */
   const losses: RailLoss[] = handles.flatMap((h) =>
-    (h.losses ?? []).map((l) => ({ ...l, shape: h.shape })),
+    (h.losses ?? []).map((l) => ({ ...l, tags: h.tags })),
   );
   /*
    * Same rule again, and counted apart from the two above rather than with
@@ -121,7 +122,7 @@ export function PanelDelayRail() {
    * reverses a failure inside the failure count.
    */
   const founds: RailFound[] = handles.flatMap((h) =>
-    (h.founds ?? []).map((f) => ({ ...f, shape: h.shape })),
+    (h.founds ?? []).map((f) => ({ ...f, tags: h.tags })),
   );
   /*
    * Counted WITH the failures rather than apart from them, which is the
@@ -131,7 +132,7 @@ export function PanelDelayRail() {
    * at the moment the news got worse.
    */
   const undelivered: RailUndelivered[] = handles.flatMap((h) =>
-    (h.undelivered ?? []).map((u) => ({ ...u, shape: h.shape })),
+    (h.undelivered ?? []).map((u) => ({ ...u, tags: h.tags })),
   );
   const deadCount = refusals.length + losses.length + undelivered.length;
   const hasContent = visible.length > 0 || deadCount > 0 || founds.length > 0;
@@ -171,11 +172,13 @@ export function PanelDelayRail() {
    * sticky header how far down to start. One element, no second offset.
    */
 
-  // Stream(s) on top, discrete underneath (operator's v3 ordering): a stable
-  // partition, streams keep their order, discrete keep theirs.
+  // Continuous on top, discrete underneath (operator's v3 ordering): a stable
+  // partition, each keeps its own order. The split reads the CONTINUITY axis
+  // through `railMark`, which is the same question the mark is picked by, rather
+  // than a second word for it.
   const ordered = [
-    ...visible.filter((h) => h.shape === "stream"),
-    ...visible.filter((h) => h.shape !== "stream"),
+    ...visible.filter((h) => railMark(h.tags) === "ribbon"),
+    ...visible.filter((h) => railMark(h.tags) !== "ribbon"),
   ];
 
   // Route a dismiss to the handle that owns the refusal, the same way

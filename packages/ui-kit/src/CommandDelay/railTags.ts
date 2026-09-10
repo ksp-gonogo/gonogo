@@ -1,100 +1,64 @@
 /**
- * What a rail entry IS, on three axes, so the rail stops assuming.
+ * How the rail DRAWS an entry, given what the entry says it is.
  *
- * Every entry the rail draws today is a command: a point event that expects an
- * ack, whose whole visual grammar is about waiting for one. That is one row of
- * a table with eight, and it was baked in as an assumption rather than stated.
- * Naming the axes is the same move as `CommsReachModels.Unknown`: it makes an
- * unstated default visible, and it lets the other rows exist.
+ * The three axes and the derivations that fill them in live in the SDK
+ * (`@ksp-gonogo/sitrep-sdk`'s `rail-tags.ts`), because they are read off what
+ * the mod declares. This file is the other half: one accessor per axis, and a
+ * TABLE saying which combination each renderer draws.
  *
- * | direction | continuity | delivery         | a real example                  |
- * |-----------|------------|------------------|---------------------------------|
- * | command   | discrete   | acked            | every rail entry today          |
- * | command   | continuous | acked            | fly-by-wire, ack = the readback |
- * | telemetry | continuous | fire-and-forget  | radio voice                     |
- * | telemetry | discrete   | fire-and-forget  | a science result sent home      |
+ * | direction | continuity | delivery         | a real example                  | drawn by           |
+ * |-----------|------------|------------------|---------------------------------|--------------------|
+ * | command   | discrete   | acked            | staging, an action group        | `in-flight-row`    |
+ * | command   | continuous | acked            | fly-by-wire, ack = the readback | `continuous-strip` |
+ * | telemetry | continuous | fire-and-forget  | radio voice                     | `continuous-strip` |
+ * | telemetry | discrete   | fire-and-forget  | a science result sent home      | NOTHING YET        |
  *
- * The axes are orthogonal, and each drives exactly ONE visual property. That
- * one-to-one is asserted in `railTags.test.ts` rather than left as prose: an
- * accessor that started reading a second axis would be a special case wearing
- * the vocabulary of a model.
- */
-
-/** Who is talking to whom. Drives the entry's flow direction and its tone. */
-export type RailDirection = "command" | "telemetry";
-
-/**
- * Whether the entry is a point in time or a span of it. Drives the MARK: a
- * discrete entry is a dot travelling the rail, a continuous one is a ribbon
- * lying along it.
- */
-export type RailContinuity = "discrete" | "continuous";
-
-/**
- * Whether anything answers. Drives whether a RETURN LEG is drawn at all: a
- * fire-and-forget entry reaches the far end and simply ends, and drawing it a
- * return leg would be the lie this vocabulary exists to remove.
- */
-export type RailDelivery = "acked" | "fire-and-forget";
-
-export interface RailTags {
-  direction: RailDirection;
-  continuity: RailContinuity;
-  delivery: RailDelivery;
-}
-
-/**
- * What the rail assumed before it could say so: a discrete command awaiting an
- * ack. Every existing entry lands here with no change at its call site, which
- * is the point of writing the assumption down rather than replacing it.
- */
-export const DEFAULT_RAIL_TAGS: RailTags = {
-  direction: "command",
-  continuity: "discrete",
-  delivery: "acked",
-};
-
-/**
- * The operator's voice crossing the gap: telemetry, because nothing is being
- * asked of anyone; continuous, because it occupies a span; fire-and-forget,
- * because there is no readback channel to carry an ack back.
- */
-export const VOICE_RAIL_TAGS: RailTags = {
-  direction: "telemetry",
-  continuity: "continuous",
-  delivery: "fire-and-forget",
-};
-
-/** What `railTagsOf` reads: a handle's stream/discrete shape and its own tags. */
-export interface RailTagSource {
-  /** `commandShape(topic)`'s answer, when the entry is a command handle. */
-  shape?: "discrete" | "stream";
-  /** Per-axis overrides. Any axis left out keeps its derived value. */
-  tags?: Partial<RailTags>;
-}
-
-/**
- * The three axes for one entry: the default assumption, then the handle's
- * `shape`, then whatever the entry states explicitly.
+ * The table names a RENDERER, which is a component, and stops there. WHICH MARK
+ * that component draws is `railMark`'s answer and the data's: two continuous
+ * entries share one strip, and a control axis reporting a value against a
+ * readback is drawn as lines while a microphone reporting how loud each 20 ms
+ * chunk was is drawn as a trace. That is a difference in the DATA and not in
+ * what the entry is, which is why both rows point at the same renderer. A table
+ * that gave them separate renderers would be back to a component per row, which
+ * is how the voice ribbon got its own strip.
  *
- * **`shape: "stream"` moves the CONTINUITY axis and nothing else.** A
- * continuous command is ACKED, the ack being the confirmed readback and the
- * deviance expected-against-actual, which is exactly what `ControlDelayStream`
- * has drawn since it shipped: outgoing, then echo, then confirmed, with the
- * expected path dashed against the actual in that last zone. Fire-and-forget
- * is not a consequence of being continuous; radio is fire-and-forget because it
- * is telemetry with no readback channel, which is the DIRECTION axis doing the
- * work, not this one.
+ * **The table is the whole point, and the fourth row is why.** Three of the four
+ * rows an operator can name have a renderer; the fourth is declarable today and
+ * nothing can draw it, so it reads as `null` here, `unrepresentedRailTags()`
+ * names it, and an entry that arrives carrying it is reported rather than
+ * silently omitted. A rail that grew a new component per row is how the voice
+ * ribbon ended up on a second strip with its boundary at 98% of the widget; a
+ * rail that quietly drew nothing is how a declared entry would vanish. The
+ * table's job is to make both impossible: a new row costs an entry here plus the
+ * renderer it names, and until it has one it is visibly missing rather than
+ * absent.
+ *
+ * Each axis drives exactly ONE visual property, and `railTags.test.ts` asserts
+ * that one-to-one rather than leaving it as prose: an accessor that started
+ * reading a second axis would be a special case wearing the vocabulary of a
+ * model.
  */
-export function railTagsOf(source: RailTagSource): RailTags {
-  return {
-    ...DEFAULT_RAIL_TAGS,
-    ...(source.shape === "stream"
-      ? { continuity: "continuous" as const }
-      : null),
-    ...source.tags,
-  };
-}
+
+import type {
+  RailContinuity,
+  RailDelivery,
+  RailDirection,
+  RailTags,
+} from "@ksp-gonogo/sitrep-sdk";
+import { hasHost, logger } from "@ksp-gonogo/sitrep-sdk";
+
+/*
+ * Re-exported, not re-declared. An identical copy of a published type in a
+ * second published package is the shape that drifts silently, and this one has
+ * two audiences that must agree: an Uplink declares a rail entry against the
+ * SDK's vocabulary and hands it to this kit to draw.
+ */
+export type {
+  RailContinuity,
+  RailDelivery,
+  RailDirection,
+  RailTags,
+} from "@ksp-gonogo/sitrep-sdk";
 
 /** The CONTINUITY axis, and only it: a point travelling, or a span lying along. */
 export function railMark(tags: RailTags): "dot" | "ribbon" {
@@ -123,4 +87,119 @@ export function railToneToken(tags: RailTags): string {
   return tags.direction === "command"
     ? "--color-accent-fg"
     : "--color-status-info-fg";
+}
+
+/** Every value of each axis, in the order the table above reads. */
+const DIRECTIONS: readonly RailDirection[] = ["command", "telemetry"];
+const CONTINUITIES: readonly RailContinuity[] = ["discrete", "continuous"];
+const DELIVERIES: readonly RailDelivery[] = ["acked", "fire-and-forget"];
+
+/**
+ * One combination, spelled as the table's key. A template-literal type rather
+ * than `string`, so the renderer table below cannot hold a key that is not a
+ * real combination and cannot miss one by a typo.
+ */
+export type RailTagKey = `${RailDirection}/${RailContinuity}/${RailDelivery}`;
+
+export function railTagKey(tags: RailTags): RailTagKey {
+  return `${tags.direction}/${tags.continuity}/${tags.delivery}`;
+}
+
+/**
+ * What actually draws an entry. Two components, and there are only two:
+ *
+ * - `in-flight-row`: a row in `InFlightList`, the discrete queue
+ * - `continuous-strip`: `ControlDelayStream`, the three-zone graph, whichever
+ *   mark the entry's data calls for inside it
+ */
+export type RailRenderer = "in-flight-row" | "continuous-strip";
+
+/**
+ * Which renderer draws which combination. `Partial`, deliberately: a
+ * combination absent here has NO renderer, which is a fact about the rail worth
+ * being able to state rather than a hole to be filled with a fallback.
+ *
+ * A fallback is what the rail had. Every entry was drawn as a discrete acked
+ * command because that was the only picture, so an entry that was something else
+ * was drawn wrongly instead of not at all.
+ */
+const RAIL_RENDERERS: Partial<Record<RailTagKey, RailRenderer>> = {
+  "command/discrete/acked": "in-flight-row",
+  "command/continuous/acked": "continuous-strip",
+  "telemetry/continuous/fire-and-forget": "continuous-strip",
+};
+
+/**
+ * The renderer for an entry, or `null` when nothing draws that combination.
+ *
+ * `null` is not an error to swallow. A caller handed one should say so
+ * ({@link reportUnrepresentedRail}) rather than render nothing quietly, because
+ * a declared entry that draws nothing looks exactly like a widget whose data
+ * went missing.
+ */
+export function railRendererFor(tags: RailTags): RailRenderer | null {
+  return RAIL_RENDERERS[railTagKey(tags)] ?? null;
+}
+
+/** Every combination of the three axes: the whole product, eight of them. */
+export function allRailTags(): RailTags[] {
+  const out: RailTags[] = [];
+  for (const direction of DIRECTIONS)
+    for (const continuity of CONTINUITIES)
+      for (const delivery of DELIVERIES)
+        out.push({ direction, continuity, delivery });
+  return out;
+}
+
+/**
+ * The combinations nothing can draw. Exists so the gap is a value the tree can
+ * assert on and print, rather than something a reader has to work out by
+ * subtracting a table from a product in their head.
+ */
+export function unrepresentedRailTags(): RailTags[] {
+  return allRailTags().filter((tags) => railRendererFor(tags) === null);
+}
+
+/**
+ * Combinations already reported, so an entry re-rendering at frame rate says it
+ * once. Keyed by combination and not by entry: the fact worth reporting is that
+ * the rail cannot draw this KIND of thing, and it does not become truer for
+ * being said about a second entry.
+ */
+const reportedUnrepresented = new Set<RailTagKey>();
+
+/**
+ * Say out loud that an entry declared something the rail cannot draw, naming the
+ * combination and who declared it.
+ *
+ * Reports and returns; it does not throw. The entry is already going to be
+ * missing from the picture, and taking the widget down with it would turn a
+ * declaration the rail has not caught up with into a blank panel.
+ *
+ * Via the host `logger` where there is one (so it reaches Axiom, which is the
+ * only place a report from a deployed session can be read) and `console.error`
+ * otherwise, the same fallback `augments.ts` uses and for the same reason: the
+ * sdk's `logger` throws with no host installed, which is exactly the setting an
+ * Uplink's own test runs in.
+ */
+export function reportUnrepresentedRail(tags: RailTags, who: string): void {
+  const key = railTagKey(tags);
+  if (reportedUnrepresented.has(key)) return;
+  reportedUnrepresented.add(key);
+  const message =
+    `Delay rail entry "${who}" is tagged ${key}, and no renderer draws that ` +
+    `combination, so it will not appear on the rail. Declare a renderer for it ` +
+    `in ui-kit's railTags.ts, or correct the entry's tags.`;
+  if (hasHost()) logger.error(message);
+  else console.error(message);
+}
+
+/**
+ * Test-only: forget what has been reported, so a case can be exercised twice.
+ * Deliberately NOT on the published barrel, unlike the reporter beside it: an
+ * Uplink drawing its own surface has reason to report a gap and none to reset
+ * the record of one.
+ */
+export function resetUnrepresentedRailReports(): void {
+  reportedUnrepresented.clear();
 }

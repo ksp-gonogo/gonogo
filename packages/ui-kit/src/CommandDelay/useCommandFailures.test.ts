@@ -1,7 +1,15 @@
+import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it, vi } from "vitest";
 import type { CommandDelayHandle } from "./CommandDelay";
 import type { InFlightCommandLike } from "./toInFlightListItems";
 import { useCommandFailures } from "./useCommandFailures";
+
+/*
+ * The rail axes this fixture's handle carries, from the derivation production
+ * uses rather than a literal: a fixture that spelled its own tags would go on
+ * asserting the old picture after the derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 function cmd(
   id: string,
@@ -23,7 +31,7 @@ function handle(
 ): CommandDelayHandle {
   return {
     inFlight,
-    shape: "discrete",
+    tags: RAIL_DISCRETE,
     effectiveDelaySeconds: 1,
     dismiss,
   };

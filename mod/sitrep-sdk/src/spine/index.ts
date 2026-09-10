@@ -42,6 +42,12 @@
 // TS2305s in a downstream package. The whole of each module belongs here.
 // ---------------------------------------------------------------------------
 
+/*
+ * The rail's axis vocabulary lives a level up, since it is an author surface on
+ * the root barrel. Re-exported here so the spine's own consumers reach it the
+ * same way they reach `commandShape`.
+ */
+export * from "../rail-tags";
 export * from "./atmospheric-reckoning";
 export * from "./body-derivations";
 export * from "./celestial-facts";

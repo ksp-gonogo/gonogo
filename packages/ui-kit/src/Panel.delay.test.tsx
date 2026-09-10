@@ -1,3 +1,4 @@
+import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { describe, expect, it } from "vitest";
 import type { CommandDelayHandle } from "./CommandDelay/CommandDelay";
@@ -8,6 +9,13 @@ import {
 import type { InFlightCommandLike } from "./CommandDelay/toInFlightListItems";
 import { usePanelDelay } from "./CommandDelay/usePanelDelay";
 import { Panel, PanelProviders } from "./Panel";
+
+/*
+ * The rail axes these fixtures carry, from the same derivations production uses
+ * rather than written as literals: a fixture that spelled its own tags would go
+ * on asserting the old picture after a derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 const IN_FLIGHT: InFlightCommandLike[] = [
   {
@@ -22,7 +30,7 @@ const IN_FLIGHT: InFlightCommandLike[] = [
 
 const HANDLE: CommandDelayHandle = {
   inFlight: IN_FLIGHT,
-  shape: "discrete",
+  tags: RAIL_DISCRETE,
   effectiveDelaySeconds: 5,
 };
 

@@ -34,8 +34,12 @@ import type {
   GeneratedCommandArgsMap,
   GeneratedCommandReplyMap,
 } from "./__generated__/command-map";
-import { GENERATED_COMMAND_IDS } from "./__generated__/command-map";
+import {
+  GENERATED_COMMAND_IDS,
+  GENERATED_COMMAND_RAIL,
+} from "./__generated__/command-map";
 import type { CommandResultOf } from "./__generated__/contract";
+import type { CommandRail } from "./rail-tags";
 
 /**
  * The command → args-type map. Keys are the wire command strings; values are the
@@ -135,6 +139,21 @@ const COMMAND_ID_SET: ReadonlySet<string> = new Set(COMMAND_IDS);
 const uplinkCommandIds = new Set<string>();
 
 /**
+ * The rail rows of Uplink-owned commands: whether each is a point in time or a
+ * span of one, and whether anything answers it. Populated by the same
+ * `registerUplinkCommand` call that enrols the id, out of the Uplink's own
+ * generated map.
+ *
+ * It has to be a runtime registry rather than a table in this package for the
+ * reason the whole Uplink model exists: an Uplink ships on its own schedule and
+ * this build has never heard of it, so a list written here could only ever
+ * describe core's commands and would answer "discrete" about everyone else's.
+ * That is exactly what the hardcoded `STREAM_COMMANDS` set in
+ * `spine/map-command.ts` did until this replaced it.
+ */
+const uplinkCommandRails = new Map<string, CommandRail>();
+
+/**
  * Self-register an Uplink-owned command id absent from this SDK's own generated
  * registry. Called at module load by the owning Uplink's client package alongside its
  * `declare module` augmentation of `CommandArgsMap` / `CommandReplyMap`. Idempotent
@@ -144,9 +163,30 @@ const uplinkCommandIds = new Set<string>();
  * are separate because they answer to different things. Without the augmentation an
  * author's `send` stays untyped; without this call the command is missing from
  * `getAllKnownCommandIds()` and `isCommandId` says no about a command that works.
+ *
+ * `rail` is that command's row out of the Uplink's own generated command map,
+ * and it is how a continuous Uplink command gets a continuous rail. Omitted, the
+ * command reads as whatever the contract guarantees about any command
+ * (`UNDECLARED_COMMAND_RAIL_TAGS`): discrete, acked. An Uplink that drives the
+ * registration off its generated map, as every bundled one does, passes it
+ * without writing a line per command.
  */
-export function registerUplinkCommand(id: string): void {
+export function registerUplinkCommand(id: string, rail?: CommandRail): void {
   uplinkCommandIds.add(id);
+  if (rail) uplinkCommandRails.set(id, rail);
+}
+
+/**
+ * One command's declared rail row, or `null` when nothing has declared it: the
+ * SDK's own generated table first, then whatever an Uplink registered at load.
+ *
+ * `null` is a real answer and not a failure. A dynamic dispatch and an Uplink
+ * whose client has not loaded both land here, so the caller decides what an
+ * undeclared command reads as. `railTagsForCommand` is that decision.
+ */
+export function commandRail(id: string): CommandRail | null {
+  const own = (GENERATED_COMMAND_RAIL as Record<string, CommandRail>)[id];
+  return own ?? uplinkCommandRails.get(id) ?? null;
 }
 
 /**

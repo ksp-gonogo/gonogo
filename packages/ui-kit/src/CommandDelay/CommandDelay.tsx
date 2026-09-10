@@ -9,7 +9,12 @@ import {
   type InFlightListDensity,
   type InFlightListMode,
 } from "./InFlightList";
-import type { RailTags } from "./railTags";
+import {
+  type RailTags,
+  railRendererFor,
+  railTagKey,
+  reportUnrepresentedRail,
+} from "./railTags";
 import {
   type InFlightCommandLike,
   toInFlightListItems,
@@ -45,23 +50,19 @@ export interface CommandDelayHandle {
    */
   inFlight: InFlightCommandLike[];
   /**
-   * Which delay display this command uses: a discrete `InFlightList` of
-   * one-shot dispatches, or the continuous `ControlDelayStream` strip for a
-   * persistent per-frame axis (fly-by-wire). Comes from `commandShape(topic)`.
-   */
-  shape: "discrete" | "stream";
-  /**
-   * What this entry IS on the rail's three axes, for anything the default
-   * assumption gets wrong. Omitted (the case for every command today) it reads
-   * as a discrete command awaiting an ack, which is exactly what the rail
-   * silently assumed before the axes had names.
+   * What this entry IS on the rail's three axes, in full. Which renderer draws
+   * it follows from these (`railRendererFor`), so nothing here says WHICH
+   * display to use and no consumer branches on what kind of command this is.
    *
-   * `shape` already answers the continuity axis, so a stream handle needs no
-   * tag to be drawn continuous, and does NOT become fire-and-forget by being
-   * continuous: a stream command's ack is the confirmed readback and its
-   * deviance is expected-against-actual. See `railTags.ts`.
+   * A command handle gets them from `useCommand`, which reads what the owning
+   * assembly declared; a producer that is not a command (an open microphone)
+   * states them with `railTagsForTelemetry`. There is no partial form: this
+   * replaced a `shape: "discrete" | "stream"` field that was the CONTINUITY
+   * axis under another name, plus a `Partial<RailTags>` override layered over
+   * it, and carrying a derived value and a patch for it is how the rail came to
+   * assume all three axes in the first place.
    */
-  tags?: Partial<RailTags>;
+  tags: RailTags;
   /**
    * The command's effective one-way delay under its selected vantage. `0`
    * (meta-vantage / a direct LAN link) means there is nothing to visualise, so
@@ -75,13 +76,13 @@ export interface CommandDelayHandle {
    */
   effectiveDelaySeconds: number | null;
   /**
-   * Stream buffers for `shape === "stream"` (the in-transit + confirmed-echo
-   * samples `ControlDelayStream` draws). Ignored for a discrete handle.
+   * Stream buffers for a CONTINUOUS handle (the in-transit + confirmed-echo
+   * samples `ControlDelayStream` draws). Ignored by the discrete queue.
    */
   streams?: ControlStreamDatum[];
   /**
-   * Ribbon buffers for `shape === "stream"`: a continuous entry with amplitude
-   * history and no readback, which the one rail draws in its outgoing zone.
+   * Ribbon buffers: a continuous entry with amplitude history and no readback,
+   * which the one rail draws in its outgoing zone.
    * Carried alongside `streams` rather than instead of them, so a widget with
    * both a control axis and an open microphone gets one graph.
    */
@@ -216,9 +217,10 @@ export function CommandDelay({
   });
 
   /*
-   * A lone stream handle draws the continuous strip, whichever marks it carries:
-   * control axes as lines, an amplitude history as a ribbon in the outgoing
-   * zone, both on the one graph.
+   * Which child draws a lone handle, asked of the renderer table rather than of
+   * the handle. Both continuous rows land on the ONE graph, whichever marks they
+   * carry: control axes as lines, an amplitude history as a ribbon in the
+   * outgoing zone.
    *
    * There is no branch on DELIVERY here, and there must not be one. Delivery
    * decides whether a return leg is DRAWN, which is a decision inside the graph
@@ -229,8 +231,13 @@ export function CommandDelay({
    * A stream's own delay is gated inside ControlDelayStream, but the shared
    * instant short-circuit still applies here first.
    */
-  if (all.length === 1 && all[0].shape === "stream") {
-    const streamHandle = all[0];
+  const lone = all.length === 1 ? all[0] : null;
+  const loneRenderer = lone ? railRendererFor(lone.tags) : null;
+  if (lone && loneRenderer === null) {
+    return <UnrepresentedRailHandle tags={lone.tags} who={lone.ariaLabel} />;
+  }
+  if (lone && loneRenderer !== "in-flight-row") {
+    const streamHandle = lone;
     // An unknown delay (`null`) falls the same way an instant one does: there
     // is no positive light-time to draw a strip from either way.
     const delay = streamHandle.effectiveDelaySeconds;
@@ -273,4 +280,27 @@ export function CommandDelay({
       onDismiss={onDismiss}
     />
   );
+}
+
+/**
+ * A handle whose declared combination nothing draws, reported and left as a
+ * marker where its display would have been.
+ *
+ * `hidden`, so it occupies no pixels and every render of a combination that IS
+ * drawn is unchanged, and addressable (`data-rail-unrepresented`) so a probe or
+ * a test can see the gap. The alternative was falling through to the discrete
+ * in-flight list, which would draw the entry as a discrete acked command: that
+ * is the exact fallback this vocabulary exists to remove, and it is worse than
+ * drawing nothing because it looks right.
+ */
+function UnrepresentedRailHandle({
+  tags,
+  who,
+}: {
+  tags: RailTags;
+  who?: string;
+}) {
+  const named = who ?? "unnamed handle";
+  reportUnrepresentedRail(tags, named);
+  return <span hidden data-rail-unrepresented={railTagKey(tags)} />;
 }

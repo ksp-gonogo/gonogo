@@ -6,10 +6,10 @@ import {
   type RailTags,
   railDrawsReturnLeg,
   railFlow,
-  railMark,
-  railTagsOf,
+  railRendererFor,
+  railTagKey,
   railToneToken,
-  VOICE_RAIL_TAGS,
+  reportUnrepresentedRail,
 } from "./railTags";
 import { WAVE_VB_H, waveformExtentX, waveformPath } from "./waveformPath";
 
@@ -36,16 +36,20 @@ export interface ControlStreamDatum {
   echo: ControlStreamSample[];
   current: number;
   /**
-   * The three axes for this entry, for anything the default gets wrong.
-   * Omitted, it reads as a continuous ACKED command, which is what every stream
-   * datum is: the ack is the confirmed readback and the deviance is expected
-   * against actual. `railTagsOf({ shape: "stream" })` says the same thing.
+   * What this entry IS on the three axes, in full, and NOT optional.
+   *
+   * A control axis gets them from the command it writes, through
+   * `railTagsForControlAxis(writeCommand)`, so a continuous acked command is
+   * drawn that way because the contract says it is, not because it arrived in
+   * this array. There is no partial form and no
+   * default to layer over: an entry stating one axis and inheriting two was how
+   * the rail came to assume all three.
    *
    * The DELIVERY axis is the one that changes what is drawn here: a
    * `fire-and-forget` entry gets the outgoing zone and stops at the first
    * boundary, because nothing is coming back to draw. See `railTags.ts`.
    */
-  tags?: Partial<RailTags>;
+  tags: RailTags;
 }
 
 /**
@@ -86,11 +90,15 @@ export interface ControlRibbonDatum {
    */
   spanSamples?: number;
   /**
-   * Per-axis overrides over `VOICE_RAIL_TAGS` (telemetry, continuous,
-   * fire-and-forget). DIRECTION is the one worth stating: it picks the tone and
-   * which way the fade runs, so an outbound unacked stream fades the other way.
+   * What this entry IS on the three axes, in full, and NOT optional.
+   *
+   * A producer builds them with `railTagsForTelemetry(continuity)`, which fixes
+   * direction and delivery from what telemetry structurally is and asks only for
+   * the one axis a producer knows. Voice is a ribbon because those axes say so;
+   * it used to be a ribbon because a widget put it in this array, which is the
+   * same assumption the rail was built on, one level down.
    */
-  tags?: Partial<RailTags>;
+  tags: RailTags;
 }
 
 export type ControlDelayStreamVariant = "inline" | "rail" | "expanded";
@@ -177,6 +185,33 @@ export function ribbonBoundaryX(
 ): number {
   const padX = padXFor(variant);
   return (VB_W - padX * 2) / 3;
+}
+
+/**
+ * An entry whose declared combination NOTHING draws, marked where it would have
+ * been drawn.
+ *
+ * Zero ink on purpose: it emits no geometry, so a graph holding one looks exactly
+ * as it did, and every render of a combination that IS drawn is byte-identical to
+ * before this existed. What it leaves behind is an addressable marker
+ * (`data-rail-unrepresented`) so a probe, a snapshot or a test can see the gap,
+ * plus one report per combination through {@link reportUnrepresentedRail}.
+ *
+ * The report is made in RENDER rather than in an effect, the same call
+ * `usePanelDelay` makes for the must-consume token and for the same reason: a
+ * static render (the harness, a probe shot) runs no effects, and the whole value
+ * of this is being told about the gap in exactly those places. It is idempotent,
+ * the combination being remembered by the reporter.
+ */
+function UnrepresentedRailEntry({
+  tags,
+  who,
+}: {
+  tags: RailTags;
+  who: string;
+}) {
+  reportUnrepresentedRail(tags, who);
+  return <g data-rail-unrepresented={railTagKey(tags)} data-rail-entry={who} />;
 }
 
 function polyline(points: { x: number; y: number }[]): string {
@@ -290,15 +325,30 @@ function StreamPaths({
   const gradId = `cds-ramp-${uid}-${index}`;
   const fillId = `cds-fill-${uid}-${index}`;
   /*
+   * Whether this strip draws the entry at all, asked of the one renderer table
+   * rather than assumed from which array it arrived in. A datum whose
+   * combination belongs to the discrete queue is that queue's to draw; one
+   * whose combination nothing draws is REPORTED, because a declared entry that
+   * renders nothing looks exactly like a widget whose data went missing.
+   *
+   * Ahead of the geometry, so an entry with an empty buffer is still reported:
+   * the gap is in what the entry IS, and it does not become less true for the
+   * entry having nothing to draw yet.
+   */
+  const renderer = railRendererFor(stream.tags);
+  if (renderer !== "continuous-strip") {
+    return renderer === null ? (
+      <UnrepresentedRailEntry tags={stream.tags} who={stream.id} />
+    ) : null;
+  }
+  /*
    * The DELIVERY axis, and only it. Acked, the line runs the whole strip and
    * the confirmed echo is drawn against it; fire-and-forget, it gets the leg
    * out and stops on the T divider, because nothing is coming back to draw and
    * a return leg would be the lie the axes exist to remove. The dividers stay
    * where they are either way: the zones are the rail's frame, not the entry's.
    */
-  const returnLeg = railDrawsReturnLeg(
-    railTagsOf({ shape: "stream", tags: stream.tags }),
-  );
+  const returnLeg = railDrawsReturnLeg(stream.tags);
   const outgoing = returnLeg
     ? stream.inTransit
     : clipToOutgoing(stream.inTransit, oneT);
@@ -421,9 +471,11 @@ function StreamPaths({
  *
  * The axes each land on exactly one property, same as everywhere else:
  *
- * - CONTINUITY picks this mark at all. A discrete entry is a dot or a row in
- *   `InFlightList`, not a trace lying along the rail, so a datum tagged
- *   discrete draws nothing here
+ * - CONTINUITY is why the entry is on this strip at all. A discrete one is a
+ *   dot or a row in `InFlightList`, not a trace lying along the rail, so a datum
+ *   tagged discrete draws nothing here. Which MARK the strip then draws is the
+ *   data's: samples against a readback become lines (`StreamPaths`), an
+ *   amplitude history becomes this trace
  * - DELIVERY is why it lives in the outgoing zone and ends there. Nothing is
  *   coming back, so nothing is drawn past the first boundary. The boundary
  *   itself does not move: `ribbonBoundaryX` is the T divider, always
@@ -447,8 +499,16 @@ function RibbonMark({
      `id`, and the SVG spec resolves `url(#...)` to whichever element comes FIRST
      in document order, so one instance's fade silently wins for both. */
   const fadeId = `cds-ribbon-fade-${useId()}`;
-  const tags = railTagsOf({ tags: { ...VOICE_RAIL_TAGS, ...ribbon.tags } });
-  if (railMark(tags) !== "ribbon") return null;
+  const tags = ribbon.tags;
+  /* The same one table `StreamPaths` asks, and the same reasons: a discrete
+     entry is the queue's, and a combination nothing draws is said out loud
+     rather than dropped. */
+  const renderer = railRendererFor(tags);
+  if (renderer !== "continuous-strip") {
+    return renderer === null ? (
+      <UnrepresentedRailEntry tags={tags} who={ribbon.id} />
+    ) : null;
+  }
 
   const boundaryX = (VB_W - padX * 2) / 3;
   const samples = ribbon.amplitudes;
@@ -725,9 +785,7 @@ export function ControlDelayStream({
               <span key={r.id} data-role="legend-ribbon">
                 <i
                   style={{
-                    background: `var(${railToneToken(
-                      railTagsOf({ tags: { ...VOICE_RAIL_TAGS, ...r.tags } }),
-                    )})`,
+                    background: `var(${railToneToken(r.tags)})`,
                   }}
                 />
                 {r.label}

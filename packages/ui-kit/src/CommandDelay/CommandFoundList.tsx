@@ -5,6 +5,7 @@ import {
 } from "@ksp-gonogo/sitrep-sdk";
 import { CommandOutcomeList } from "./CommandOutcomeList";
 import { commandRefusalSentence } from "./commandRefusalSentence";
+import type { RailTags } from "./railTags";
 
 /**
  * One dispatch that was called lost and then answered after all, as much of it
@@ -49,10 +50,10 @@ export interface CommandFoundEntry extends CommandFoundLike {
   id: string;
 }
 
-/** One found dispatch as the rail renders it, plus whether its command is
- *  discrete or a stream (which only the registering handle knows). */
+/** One found dispatch as the rail renders it, plus its command's rail axes:
+ *  a point in time or a span of one (which only the registering handle knows). */
 export interface RailFound extends CommandFoundEntry {
-  shape: "discrete" | "stream";
+  tags: RailTags;
 }
 
 /**
@@ -177,7 +178,7 @@ export function CommandFoundList({
           subject: subject || found.command || "",
           sentence: commandFoundSentence(found),
           dismissLabel: `Dismiss ${subject || "found command"}`,
-          shape: found.shape,
+          tags: found.tags,
         };
       })}
     />

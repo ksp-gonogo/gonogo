@@ -11,7 +11,10 @@
 //     any program that statically imports this module.
 //   • RUNTIME: `registerUplinkCommand` at module load feeds the SDK's runtime
 //     registry, so `isCommandId` / `getAllKnownCommandIds` enumerate them
-//     without the SDK ever naming a token of this mod's.
+//     without the SDK ever naming a token of this mod's. It carries each
+//     command's generated RAIL row with it, which is how a continuous command
+//     of this Uplink's gets a continuous delay rail: the axis is declared in
+//     this mod's own C# and nowhere else.
 //
 // Both halves are driven by the GENERATED maps rather than by a list written
 // here, so a command added to this Uplink's contract needs no new line in this
@@ -24,6 +27,7 @@
 import { registerUplinkCommand } from "@ksp-gonogo/sitrep-sdk";
 import {
   GENERATED_COMMAND_IDS,
+  GENERATED_COMMAND_RAIL,
   type GeneratedCommandArgsMap,
   type GeneratedCommandReplyMap,
 } from "./__generated__/command-map";
@@ -34,7 +38,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 }
 
 for (const id of GENERATED_COMMAND_IDS) {
-  registerUplinkCommand(id);
+  registerUplinkCommand(id, GENERATED_COMMAND_RAIL[id]);
 }
 
 /** This Uplink's own command ids, as the generated map declares them. */

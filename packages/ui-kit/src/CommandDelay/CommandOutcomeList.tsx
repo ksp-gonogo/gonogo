@@ -1,4 +1,5 @@
 import styled from "styled-components";
+import { type RailTags, railMark } from "./railTags";
 import { deriveGlyph } from "./toInFlightListItems";
 
 /**
@@ -20,11 +21,12 @@ export interface CommandOutcomeItem {
   /** The clear control's accessible name, so each outcome names its own gesture. */
   dismissLabel: string;
   /**
-   * `discrete` gets the same terse glyph tile its command carries in the
-   * in-flight queue; `stream` gets its text label, because a continuous command
-   * has no tile in that queue to match.
+   * The entry's three axes, of which only the MARK is read here: a `dot`
+   * (discrete) gets the same terse glyph tile its command carries in the
+   * in-flight queue, a `ribbon` (continuous) gets its text label, because a
+   * continuous command has no tile in that queue to match.
    */
-  shape: "discrete" | "stream";
+  tags: RailTags;
 }
 
 export interface CommandOutcomeListProps {
@@ -83,7 +85,7 @@ export function CommandOutcomeList({
           role={live ? undefined : "listitem"}
           $tone={tone}
         >
-          {item.shape === "stream" ? (
+          {railMark(item.tags) === "ribbon" ? (
             <CommandOutcomeList__Label $tone={tone}>
               {item.subject}
             </CommandOutcomeList__Label>

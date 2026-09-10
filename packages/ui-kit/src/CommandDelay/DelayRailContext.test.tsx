@@ -1,3 +1,4 @@
+import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { useEffect } from "react";
 import { describe, expect, it, vi } from "vitest";
@@ -9,8 +10,15 @@ import {
   useDelayRailStore,
 } from "./DelayRailContext";
 
+/*
+ * The rail axes these fixtures carry, from the same derivations production uses
+ * rather than written as literals: a fixture that spelled its own tags would go
+ * on asserting the old picture after a derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
+
 function makeHandle(id: string, effectiveDelaySeconds = 4): CommandHandle {
-  return { id, inFlight: [], shape: "discrete", effectiveDelaySeconds };
+  return { id, inFlight: [], tags: RAIL_DISCRETE, effectiveDelaySeconds };
 }
 
 // ── store mechanics (no React), same style as PanelStatusStore.test.ts ────

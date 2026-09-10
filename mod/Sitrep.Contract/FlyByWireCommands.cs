@@ -45,7 +45,11 @@ public class SetFlyByWireArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("vessel.control.setAxes")]
+// CONTINUOUS: the override is re-applied every frame while armed, so its delay
+// is a span the operator is inside rather than a queue row that clears. This is
+// the one command core declares that way, and it is where the rail's continuity
+// axis for it comes from now (it used to be a hardcoded set in the SDK).
+[SitrepCommand("vessel.control.setAxes", Continuity = CommandContinuity.Continuous)]
 public class SetControlAxesArgs
 {
     [SitrepUnit(Units.Dimensionless)]
