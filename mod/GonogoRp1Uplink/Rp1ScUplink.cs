@@ -12,22 +12,24 @@ namespace GonogoRp1Uplink
     /// the crew schedule: retirement dates, training courses and the training an
     /// operator is about to lose.
     ///
-    /// <para><b>A sibling of GonogoAvionicsUplink, never merged into it.</b> Both
-    /// read RP-1 by reflection, and one probe and one health row would be
-    /// tidier, but <c>AddSampledSource</c>'s contract is that a capture which
-    /// throws takes its OWNING Uplink inert from the next tick. Merged, a
-    /// null-deref in build-queue reflection against an RP-1 build nobody here has
-    /// seen would take the avionics controllable-mass go/no-go dark on the pad.
-    /// That readout is a launch-safety surface and must not depend on the health
-    /// of a build-queue reader. The duplicated probe and the second
-    /// NOTICE-RP1.txt are that rule working, not a lapse: an Uplink may reference
-    /// only Sitrep.Contract and its own contract slice, so a shared helper
-    /// assembly is no more available to us than to a third party.</para>
+    /// <para><b>It absorbed the standalone GonogoAvionicsUplink</b> (deleted
+    /// 2026-09-10), which read the same assembly by the same reflection and was
+    /// locked against RP-1 v4.5.0.0 while this one is locked against v4.6.0.0:
+    /// one mod, two Uplinks, two versions. Its channel is
+    /// <see cref="AvionicsTopic"/>. The argument for keeping the two apart was
+    /// fault isolation, and it is weaker than it reads: a capture that throws is
+    /// now RETRIED rather than permanently disabled (see
+    /// <c>ChannelEngine.RetrySampledSourceAfterCaptureThrow</c>), so the way a
+    /// build-queue fault could still take the avionics verdict dark is a throw in
+    /// a HANDLE, which on this Uplink is pure dictionary building on
+    /// already-captured data.</para>
     ///
-    /// <para>Every channel is <see cref="DelayRole.TrueNow"/>. This is state at a
-    /// space centre, read at KSC cadence, and it has no analogue in flight: the
-    /// same disposition the stock <c>spaceCenter.*</c> and <c>career.*</c>
-    /// channels take.</para>
+    /// <para>Every channel but one is <see cref="DelayRole.TrueNow"/>. That is
+    /// state at a space centre, read at KSC cadence, with no analogue in flight:
+    /// the same disposition the stock <c>spaceCenter.*</c> and <c>career.*</c>
+    /// channels take. <see cref="AvionicsTopic"/> is the exception and is
+    /// <see cref="DelayRole.Delayed"/>, because its subject is a craft rather
+    /// than a building.</para>
     ///
     /// <para>The capture/handle split is load-bearing rather than ceremony. The
     /// reflection walk reads a live object graph, which is only legal on the main
@@ -71,6 +73,13 @@ namespace GonogoRp1Uplink
         public const string ToolingTopic = "rp1.tooling";
         public const string BuildCostTopic = "rp1.buildCost";
         public const string CareerEventsTopic = "rp1.careerEvents";
+
+        /// <summary>
+        /// Whether RP-1 will let the reported vessel be steered. The one channel
+        /// here whose subject is a craft in flight rather than the space centre,
+        /// and the one that is <see cref="DelayRole.Delayed"/>.
+        /// </summary>
+        public const string AvionicsTopic = "rp1.avionics";
 
         /// <summary>
         /// Rows published per second across every rp1.* channel. One capture per
@@ -139,6 +148,14 @@ namespace GonogoRp1Uplink
         /// rather than at the cadence anything changes.
         /// </summary>
         private readonly Rp1CareerCostReflection _careerLog = new Rp1CareerCostReflection();
+
+        /// <summary>
+        /// RP-1's control locker, on its own reader because it is the only thing
+        /// here that reads a VESSEL. Everything else on this Uplink is space-centre
+        /// or editor state; this asks whether the craft an operator is flying can
+        /// be steered, and it shares no object with any of them.
+        /// </summary>
+        private readonly Rp1AvionicsReflection _avionics = new Rp1AvionicsReflection();
 
         /// <summary>
         /// RP-1's answer to whether a kerbal off the flight roster is dead, offered
@@ -368,6 +385,7 @@ namespace GonogoRp1Uplink
         private IChannelPublisher? _toolingPublisher;
         private IChannelPublisher? _buildCost;
         private IChannelPublisher? _careerEvents;
+        private IChannelPublisher? _avionicsStatus;
 
         /// <summary>
         /// Whether RP-1 is managing this save, asked fresh rather than remembered
@@ -513,6 +531,26 @@ namespace GonogoRp1Uplink
                 // and nothing has happened yet. A client shown only the rows could
                 // not tell a quiet career from an unrecorded one.
                 Ground(CareerEventsTopic, absenceIsData: true),
+                // The one channel here that is NOT ground state, and so the one
+                // that is not TrueNow. Its subject is a craft in flight and its
+                // verdict changes as that craft burns propellant and sheds
+                // stages, so it travels reveal-gated with every other per-vessel
+                // fact: an operator watching a delayed link must not read a
+                // control state the signal has not brought them yet.
+                //
+                // absenceIsData, because RP-1 does not evaluate the rule outside
+                // flight and the editor and there is no vessel to report on at
+                // the space centre. Silence there is the answer, and a client
+                // holding the last verdict from the last flight would be showing
+                // a go/no-go about a craft that is no longer there.
+                new ChannelDeclaration
+                {
+                    Topic = AvionicsTopic,
+                    Delivery = Delivery.LossyLatest,
+                    Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
+                    Delay = DelayRole.Delayed,
+                    AbsenceIsData = true,
+                },
             },
             // Delayed: false, the same disposition every ground-side career write
             // takes and for the same reason core's own nine give: light-time is
@@ -1148,6 +1186,7 @@ namespace GonogoRp1Uplink
             _toolingPublisher = host.Publisher(ToolingTopic);
             _buildCost = host.Publisher(BuildCostTopic);
             _careerEvents = host.Publisher(CareerEventsTopic);
+            _avionicsStatus = host.Publisher(AvionicsTopic);
 
             host.AddSampledSource(
                 CaptureOnMain,
@@ -1233,6 +1272,15 @@ namespace GonogoRp1Uplink
                 CaptureCareerEventsOnMain,
                 HandleCareerEventsOnCourier,
                 CareerEventsTopic);
+
+            // Gated on its own topic, and its own capture because it is the only
+            // read on this Uplink whose subject is a VESSEL. Whole effect is its
+            // return value: it asks RP-1 one question about the reported craft and
+            // keeps nothing, so a tick nobody is watching starves nothing.
+            host.AddSampledSource(
+                CaptureAvionicsOnMain,
+                HandleAvionicsOnCourier,
+                AvionicsTopic);
 
             // UNGATED, and the two captures above say why by contrast: their whole
             // effect is their return value, and this one's is not. It feeds the
@@ -1445,6 +1493,51 @@ namespace GonogoRp1Uplink
         }
 
         /// <summary>
+        /// MAIN-THREAD capture: asks RP-1's control locker about the reported
+        /// vessel. The reading inside may be null, and the capture is not: a
+        /// vessel with nothing to report has to reach the handle so the channel
+        /// can be told it is empty, and returning null here would leave the last
+        /// flight's verdict standing on the wire.
+        /// </summary>
+        /// <remarks>
+        /// A tick with no snapshot is the one case that returns null, and for the
+        /// reason every capture here does: the publish UT is what the reveal
+        /// buffer gates on, and a sample stamped 0 is older than every edge, so it
+        /// would go straight past the signal delay. This is the one Delayed
+        /// channel on this Uplink, so it is the one where that matters.
+        /// </remarks>
+        internal object? CaptureAvionicsOnMain(KspSnapshot? snapshot)
+        {
+            if (snapshot == null)
+            {
+                return null;
+            }
+            return new Rp1AvionicsCaptureData
+            {
+                Ut = snapshot.Ut,
+                Raw = _avionics.Read(_kernel.ReportedVessel()),
+            };
+        }
+
+        /// <summary>COURIER-THREAD handle: map to a wire dict and publish. No game API.</summary>
+        internal void HandleAvionicsOnCourier(object? captured)
+        {
+            if (captured is not Rp1AvionicsCaptureData cap)
+            {
+                return;
+            }
+            Rp1RowBudget.Record(1, cap.Ut);
+            _avionicsStatus?.Publish(Rp1AvionicsCapture.Build(cap.Raw), cap.Ut);
+        }
+
+        /// <summary>The avionics reading and the UT it was taken at, carried together to the Courier.</summary>
+        private sealed class Rp1AvionicsCaptureData
+        {
+            public double Ut;
+            public Rp1AvionicsRaw? Raw;
+        }
+
+        /// <summary>
         /// Health, and WHICH RP-1. The version caveat at the top of
         /// <see cref="Rp1ScReflection"/> is why these facts are load-bearing
         /// rather than decorative: RP-1 ships roughly monthly, this Uplink is
@@ -1460,6 +1553,11 @@ namespace GonogoRp1Uplink
                 new UplinkHealthFact("Confidence", _rp1.ConfidenceTypeResolved ? "present" : "absent"),
                 new UplinkHealthFact("ProgramHandler", _programs.IsAvailable ? "resolved" : "type not found"),
                 new UplinkHealthFact("CrewHandler", _crew.IsAvailable ? "resolved" : "type not found"),
+                new UplinkHealthFact(
+                    "control locker",
+                    _avionics.IsAvailable
+                        ? "ShouldLock resolved"
+                        : "ControlLockerUtils.ShouldLock not found"),
                 new UplinkHealthFact("save mode", EnabledForSave ? "enabled" : "not enabled for this save"),
                 new UplinkHealthFact("read against", "RP-1 v4.6.0.0"),
                 new UplinkHealthFact(

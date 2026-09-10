@@ -7,6 +7,7 @@ import "./uplink";
 import "./units";
 import "./topics";
 import "./settings/rp1SimulationSettings";
+import "./Avionics/badge";
 import "./AdminBuilding/programsScreen";
 import "./CrewSchedule";
 import "./CrewSchedule/badge";
@@ -26,6 +27,7 @@ import "./StartResearch";
 import "./VehicleAssembly";
 import "./WarpTargets";
 
+export { avionicsBadges } from "./Avionics/badge";
 export {
   ContractPayload,
   RP1_CONTRACT_PAYLOAD_COMMAND,
@@ -69,6 +71,7 @@ export {
 export { RP1_DELAY_IN_SIMULATION_SETTING } from "./settings/rp1SimulationSettings";
 export {
   RP1_AVAILABLE_TOPIC,
+  RP1_AVIONICS_TOPIC,
   RP1_BUILD_QUEUE_TOPIC,
   RP1_CENTRES_TOPIC,
   RP1_COMPLEXES_TOPIC,

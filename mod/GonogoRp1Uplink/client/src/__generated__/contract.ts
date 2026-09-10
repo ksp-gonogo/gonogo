@@ -3034,6 +3034,61 @@ export interface Rp1FacilityEntry
 	upgradedByRp1?: boolean;
 }
 /**
+* Whether RP-1 will let this vessel be steered: its avionics verdict, and the
+* three facts it decides on.
+*
+* RP-1 gates vehicle control on avionics tonnage. A vessel heavier than the
+* mass its fitted avionics support has its controls taken away, in flight, by
+* an input lock. **Nothing stock says this has happened.** The lock is an
+* `InputLockManager` control lock plus a per-frame zeroing of the flight
+* control state, and neither touches the vessel's control LEVEL, so
+* `vessel.state.isControllable` stays true throughout. RP-1's only flight
+* signal is a screen message posted once, for eight seconds, on the
+* transition. This channel is the persistent readout that gap leaves missing.
+*
+* **Three states, not two.** `Axial` keeps roll authority and loses steering,
+* which a controllable/not-controllable boolean cannot say and which changes
+* what an operator can do about it.
+*
+* Absent whenever nothing was weighed: on a stock install, at the space centre
+* and the tracking station (RP-1 does not evaluate the rule outside flight and
+* the editor), and when there is no reported vessel. Absent is never a verdict
+* of `Unlocked`.
+*/
+export interface Rp1Avionics
+{
+	/**
+	* RP-1's own lock level: `"Locked"` (no control at all), `"Axial"` (roll only,
+	* no steering) or `"Unlocked"` (full control). Absent for a level this build
+	* does not recognise, which is not a level to draw a go/no-go from.
+	*/
+	lockLevel?: string;
+	/**
+	* The mass the fitted avionics support, in tonnes. RP-1's own `maxMass`: the
+	* largest single part's summed avionics rating, counting only units
+	* electricity actually reaches. Two small units on separate parts do not add
+	* up.
+	*/
+	supportedMassTons?: Value<"t">;
+	/**
+	* The mass RP-1 weighed against that limit, in tonnes.
+	*
+	* **Not the vessel's total mass.** In the editor and at PRELAUNCH RP-1
+	* discounts launch clamps and anything hanging off pad infrastructure, which
+	* are heavy, so this is the smaller figure and it is the one the verdict was
+	* reached on. A readout showing total mass beside this limit would draw NO-GO
+	* on the pad for a vessel RP-1 has already cleared.
+	*/
+	vesselMassTons?: Value<"t">;
+	/**
+	* An interplanetary-rated unit is being held to its near-Earth limit. A SECOND
+	* lock reason alongside the tonnage: RP-1 raises its own reminder for this
+	* one, and a vessel comfortably inside its supported mass can still be limited
+	* by it.
+	*/
+	limitedByNonInterplanetary?: boolean;
+}
+/**
 * Which strategy to commit to, for `rp1.strategy.activate`.
 *
 * A leader AND a program, because RP-1 makes them one system: a "leader" is

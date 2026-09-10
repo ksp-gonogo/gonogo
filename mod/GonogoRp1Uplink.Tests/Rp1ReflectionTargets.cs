@@ -159,6 +159,11 @@ namespace GonogoRp1Uplink.Tests
             // instruction is those arguments, so a rename costs the command.
             new Rp1TypeTarget(Rp0, "RP0.HireStaffProject", "Rp1TargetCommands"),
             new Rp1TypeTarget(Rp0, "RP0.FundTargetProject", "Rp1TargetCommands"),
+            // The avionics rule itself. Reached rather than reproduced: its walk
+            // carries five conditions a tonnage compare cannot (see
+            // Rp1AvionicsReflection's header), and the standalone Uplink that
+            // reproduced it shipped four defects because of them.
+            new Rp1TypeTarget(Rp0, "RP0.ControlLockerUtils", "Rp1AvionicsReflection"),
             new Rp1TypeTarget(Rp0, "RP0.LCEfficiency", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.KSCSwitcherInterop", "Rp1ScReflection"),
             new Rp1TypeTarget(Rp0, "RP0.Database", "Rp1ScReflection, Rp1CrewReflection, Rp1EconomyBackend"),
@@ -299,6 +304,13 @@ namespace GonogoRp1Uplink.Tests
             // member name. Only RP-1's half is checkable from here.
             new Rp1EnumMemberTarget(Rp0, "RP0.TransactionReasonsRP0", "RnDTechResearch", "Rp1ResearchCommands"),
             new Rp1EnumMemberTarget(Rp0, "RP0.CurrencyRP0", "Science", "Rp1ResearchCommands"),
+            // The avionics verdict itself, matched by NAME rather than by ordinal
+            // so a reordered enum fails here instead of silently swapping Locked
+            // for Unlocked on a launch-safety readout. These three are the whole
+            // vocabulary: a name that is not one of them reads as no verdict.
+            new Rp1EnumMemberTarget(Rp0, "RP0.ControlLockerUtils+LockLevel", "Locked", "Rp1AvionicsReflection"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.ControlLockerUtils+LockLevel", "Axial", "Rp1AvionicsReflection"),
+            new Rp1EnumMemberTarget(Rp0, "RP0.ControlLockerUtils+LockLevel", "Unlocked", "Rp1AvionicsReflection"),
         };
 
         public static IReadOnlyList<Rp1ConstructorTarget> Constructors { get; } = new[]
@@ -344,6 +356,12 @@ namespace GonogoRp1Uplink.Tests
 
         public static IReadOnlyList<Rp1MethodTarget> Methods { get; } = new[]
         {
+            // The whole avionics verdict, and four of its five parameters are the
+            // reason it is called rather than copied: three `out`s carry the
+            // masses and the interplanetary flag back out of the same walk that
+            // reached the verdict, so there is no state in which the four can
+            // disagree with each other.
+            new Rp1MethodTarget(Rp0, "RP0.ControlLockerUtils", "ShouldLock", 5, true, "Rp1AvionicsReflection"),
             new Rp1MethodTarget(Rp0, "RP0.LCEfficiency", "PredictWeightedEfficiency", 5, false, "Rp1ScReflection"),
             // The whole fresh-activation procedure for a strategy, and the reason
             // a leader can be appointed with the Administration Building shut:
@@ -683,7 +701,11 @@ namespace GonogoRp1Uplink.Tests
             ["GetUpgradeCost"] = "KSP's UpgradeableFacility.GetUpgradeCost, the identical call ProcessUpgrade prices a facility upgrade with",
             ["HighLogic"] = "KSP's own game-state statics, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
             ["LoadedSceneIsGame"] = "KSP's HighLogic.LoadedSceneIsGame, the condition ProcessUpgrade puts on the funds multiplier",
-            ["LoadedSceneIsFlight"] = "KSP's HighLogic.LoadedSceneIsFlight, one of the three scenes RP-1's warp controller ticks in",
+            ["LoadedSceneIsFlight"] = "KSP's HighLogic.LoadedSceneIsFlight, one of the three scenes RP-1's warp controller ticks in, and half of the guard on the avionics read",
+            ["LoadedSceneIsEditor"] = "KSP's HighLogic.LoadedSceneIsEditor, the other half of that guard: outside these two ControlLockerUtils.ShouldLock short-circuits to Unlocked without weighing anything",
+            ["CheatOptions"] = "KSP's cheat table, resolved by the same Find as RP-1's types but belonging to Assembly-CSharp",
+            ["InfiniteElectricity"] = "KSP's CheatOptions.InfiniteElectricity, honoured because RP0.ControlLocker returns Unlocked outright under it and a verdict ignoring it would alert about a lock the game is not applying",
+            ["parts"] = "KSP's Vessel.parts, the live part list ShouldLock takes; read by name because this assembly has no KSP reference to type it with",
             ["LoadedScene"] = "KSP's HighLogic.LoadedScene, compared against the SPACECENTER and TRACKSTATION ordinals for the same reason",
             ["CustomParams"] = "KSP's GameParameters.CustomParams(Type), the NON-GENERIC overload: the generic sibling would need MakeGenericMethod and THROWS where this one returns",
             ["Invoke"] = "System.Func's own Invoke, called on the withdrawal delegate CC_RP0 supplies rather than on anything RP-1 declares",

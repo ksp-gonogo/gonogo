@@ -1,0 +1,63 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC, and it is the BEFORE picture. Same vessel and same attitude as the two locked scenes, with no `rp1.available`: the contribution's `requires` gate never opens, so it does not run and the Navball header is exactly the header it drew before this contribution existed. Rendered from the same build as the other two rather than kept as an older asset, so the only difference between the pictures is the input."
+  },
+  "_scene": {
+    "contribution": "rp1:rp1-avionics-badge",
+    "host": "navball",
+    "caption": "BEFORE: no RP-1 on the game, so the Navball header carries only its own SAS and RCS badges",
+    "modes": ["default"],
+    "size": { "w": 8, "h": 11 },
+    "paints": ["ATTITUDE", "SAS"]
+  },
+  "_stream": {
+    "pinnedUt": 1000000,
+    "emits": [
+      {
+        "topic": "vessel.attitude",
+        "payload": {
+          "heading": 90,
+          "pitch": 45,
+          "roll": 0,
+          "headingRootFrame": 90,
+          "pitchRootFrame": 45,
+          "rollRootFrame": 0
+        }
+      },
+      {
+        "topic": "vessel.control",
+        "payload": {
+          "sas": true,
+          "sasMode": 1,
+          "rcs": true,
+          "gear": false,
+          "brakes": false,
+          "lights": false,
+          "abort": false,
+          "precisionControl": false,
+          "throttle": 0.8
+        }
+      },
+      {
+        "topic": "vessel.comms",
+        "payload": {
+          "connected": true,
+          "signalStrength": 1.0,
+          "controlState": 4
+        }
+      },
+      {
+        "topic": "vessel.identity",
+        "payload": {
+          "vesselId": "v1",
+          "name": "Sputnik 1",
+          "vesselType": 0,
+          "situation": 8,
+          "parentBodyIndex": 1,
+          "launchUt": 0
+        }
+      }
+    ]
+  }
+}

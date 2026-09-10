@@ -384,6 +384,31 @@ export function classify(
  * A type built only by a test is not built by a producer, and counting one
  * would let a test fixture vouch for a type nothing publishes.
  */
+/**
+ * Whether a repo-relative path is production C# the scan reads, as opposed to a
+ * test project's.
+ *
+ * Exported so the self-test that proves an UNTRACKED producer is visible can
+ * narrow to the same set this function keeps. It used to spell the exclusion out
+ * a second time by not spelling it at all: it asserted over every untracked
+ * `.cs` under `mod/`, test files included, so adding an uncommitted test class
+ * beside a new producer failed the gate's own self-check with a message about a
+ * missing producer. One predicate, two callers, nothing to drift.
+ */
+export function isProductionSourcePath(path) {
+  return (
+    path.endsWith(".cs") &&
+    // Any project directory ENDING in Tests, not just `.Tests`:
+    // `Sitrep.Host.IntegrationTests` is one, and it slipped through the narrower
+    // spelling long enough to vouch for a type production builds nowhere.
+    // `GonogoTestFlightUplink` is production and correctly survives, TestFlight
+    // being the name of a KSP mod.
+    !/(^|\/)[A-Za-z0-9._]*Tests\//.test(path) &&
+    !/Tests?\.cs$/.test(path) &&
+    !/TestSupport/.test(path)
+  );
+}
+
 export function productionSources(root = REPO_ROOT) {
   // Tracked AND untracked-but-not-ignored, because `git ls-files` alone reads
   // the index: a producer added in the working tree and not yet staged is
@@ -403,16 +428,7 @@ export function productionSources(root = REPO_ROOT) {
         encoding: "utf8",
       },
     ).split("\n"),
-  ]
-    .filter((path) => path.endsWith(".cs"))
-    // Any project directory ENDING in Tests, not just `.Tests`:
-    // `Sitrep.Host.IntegrationTests` is one, and it slipped through the narrower
-    // spelling long enough to vouch for a type production builds nowhere.
-    // `GonogoTestFlightUplink` is production and correctly survives, TestFlight
-    // being the name of a KSP mod.
-    .filter((path) => !/(^|\/)[A-Za-z0-9._]*Tests\//.test(path))
-    .filter((path) => !/Tests?\.cs$/.test(path))
-    .filter((path) => !/TestSupport/.test(path));
+  ].filter(isProductionSourcePath);
   if (listed.length === 0) {
     throw new Error(
       "wire-payload-coverage: git ls-files matched no C# under mod/. The scan " +

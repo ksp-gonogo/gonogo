@@ -1731,12 +1731,19 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
     ],
   },
   /*
-   * === avionics: owning dirs mod/GonogoAvionicsUplink/ (incl. its client/),
-   * mod/GonogoAvionicsUplink.Tests, and mod/GonogoAvionicsUplink.Contract
-   * (the second uplink-types-out-of-core relocation, 2026-08-10). Every hit
-   * below is a comment/doc-mention, a sanctioned loader import, or a fixture
-   * topic-id string; there is no real code coupling outside the owning dirs,
-   * so domainDebt is empty.
+   * === avionics: owning dirs mod/GonogoRp1Uplink/ (incl. its client/),
+   * mod/GonogoRp1Uplink.Tests and mod/GonogoRp1Uplink.Contract.
+   *
+   * RP-1's, since 2026-09-10. Avionics was never a separate mod, only a
+   * separate Uplink reading the same RP-1 assembly, and the standalone
+   * GonogoAvionicsUplink was deleted with its capture folded into
+   * GonogoRp1Uplink as `rp1.avionics`. Five entries went with it: they were
+   * RP-1 files carrying doc prose about the OTHER Uplink, and prose about
+   * a sibling becomes prose about yourself once the two are one.
+   *
+   * Every hit below is a comment/doc-mention, a sanctioned loader import, or a
+   * fixture topic-id string; there is no real code coupling outside the owning
+   * dirs, so domainDebt is empty.
    */
   avionics: {
     domainDebt: [],
@@ -1757,26 +1764,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
       // first pass with the roots widened found. See PACKAGE_SCAN_SCOPE.
       // prose: the debt list's header names which Uplink owns the two worst bundles.
       "packages/app/scripts/minsize-debt.ts",
-      /*
-       * -- CARRIED CONTRACT PROSE (2026-09-01): the generated contract now
-       * carries the C# doc comments it is generated from, and a wire type
-       * describes what an ELECTED backend puts in it. Here, an RP-1 tooling
-       * field says one parameter of the avionics type comes off a private
-       * member. Text only, in a generated file, and naming the backend IS the
-       * fact being stated rather than a dependency on it, so this is the same
-       * class as the doc-mention citations already here.
-       */
-      "mod/GonogoRp1Uplink/client/src/__generated__/contract.ts",
-      /*
-       * RP-1's own type name, not this Uplink's concern. RP-1 declares
-       * ModuleToolingProcAvionics, one of its tooling subclasses, and both files
-       * name it in a doc comment explaining why a tooling's parameter tuple has no
-       * uniform accessor: that subclass is the one that adds a third parameter, and
-       * it reads it off a private member. Text only, no import, no coupling to the
-       * Avionics Uplink, and the explanation is worse without the name.
-       */
-      "mod/GonogoRp1Uplink/Rp1ToolingReflection.cs",
-      "mod/GonogoRp1Uplink.Contract/Rp1Payloads.cs",
       /**
        * The panel-body ratchet's own inventory: a path-keyed debt list over every
        * widget-side `.tsx` in the repo, so it names this Uplink's widgets by
@@ -1792,20 +1779,6 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        * case this bucket documents.
        */
       "packages/core/src/ci-test-project-coverage.test.ts",
-      /*
-       * -- The OTHER RP-1 Uplink's doc comments (2026-08-25). Two Uplinks read
-       * RP-1 by reflection, and the reason they are separate rather than merged
-       * is the whole argument: a capture that throws takes its owning Uplink
-       * inert, so a build-queue bug must not be able to darken the
-       * controllable-mass go/no-go on the pad. That argument cannot be made
-       * without naming the surface it protects, and the next person wondering
-       * why there are two RP-1 Uplinks will look for it in exactly these two
-       * headers. Text-only, no code coupling: neither file references a type,
-       * an assembly or a topic of the avionics Uplink's.
-       */
-      "mod/GonogoRp1Uplink/Rp1ScReflection.cs",
-      "mod/GonogoRp1Uplink/Rp1ScUplink.cs",
-
       /*
        * -- The mod-side ownership ratchet itself (§5a of the plan) --
        * UplinkContractOwnershipTests.cs necessarily names the token it is

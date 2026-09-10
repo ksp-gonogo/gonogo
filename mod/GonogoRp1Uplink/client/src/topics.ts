@@ -19,6 +19,7 @@ import {
   type TopicPayload,
 } from "@ksp-gonogo/sitrep-sdk";
 import type {
+  Rp1Avionics,
   Rp1BuildableCraftEntry,
   Rp1BuildCost,
   Rp1BuildItemEntry,
@@ -260,6 +261,23 @@ export const RP1_BUILD_COST_TOPIC = "rp1.buildCost";
  */
 export const RP1_CAREER_EVENTS_TOPIC = "rp1.careerEvents";
 
+/**
+ * Whether RP-1 will let the vessel be steered, and the two masses it decided on.
+ *
+ * The only channel on this Uplink whose subject is a CRAFT rather than the space
+ * centre, and so the only one that is delay-gated.
+ *
+ * It is here because nothing stock carries it. RP-1 takes control away with an
+ * input lock, which leaves `vessel.state.isControllable` true, so a dashboard
+ * reading only the stock flag shows an operator full control while the stick
+ * does nothing. RP-1's own flight signal is a screen message shown once for
+ * eight seconds on the transition; miss it and there is no way back to the fact.
+ *
+ * Absent is not `Unlocked`: outside flight and the editor RP-1 does not evaluate
+ * the rule at all, so nothing is claimed there.
+ */
+export const RP1_AVIONICS_TOPIC = "rp1.avionics";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "rp1.available": boolean;
@@ -288,6 +306,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "rp1.tooling": Rp1Tooling;
     "rp1.buildCost": Rp1BuildCost;
     "rp1.careerEvents": Rp1CareerEvents;
+    "rp1.avionics": Rp1Avionics;
   }
 }
 
@@ -317,6 +336,7 @@ registerBarePrimitiveTopic(RP1_TRAINING_CATALOGUE_TOPIC);
 registerBarePrimitiveTopic(RP1_TOOLING_TOPIC);
 registerBarePrimitiveTopic(RP1_BUILD_COST_TOPIC);
 registerBarePrimitiveTopic(RP1_CAREER_EVENTS_TOPIC);
+registerBarePrimitiveTopic(RP1_AVIONICS_TOPIC);
 
 // Driven by looping the generated maps rather than naming each entry, so a
 // Topic added to this Uplink's contract later needs no new call site. Both
@@ -418,4 +438,7 @@ export type _ResolvesRp1BuildCost = Expect<
 >;
 export type _ResolvesRp1CareerEvents = Expect<
   Equal<TopicPayload<"rp1.careerEvents">, Rp1CareerEvents>
+>;
+export type _ResolvesRp1Avionics = Expect<
+  Equal<TopicPayload<"rp1.avionics">, Rp1Avionics>
 >;
