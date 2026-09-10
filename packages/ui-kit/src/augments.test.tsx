@@ -396,6 +396,7 @@ describe("suppressesVanillaBase (mapview-stackable-layers spec)", () => {
 });
 
 describe("AugmentSlot segment mode", () => {
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: the test name quotes the slot-key format the runtime completes, it is not a botched template literal
   it("completes `${componentId}.${segment}` from widget meta and renders the augment", () => {
     registerAugment({
       id: "overlay-aug",

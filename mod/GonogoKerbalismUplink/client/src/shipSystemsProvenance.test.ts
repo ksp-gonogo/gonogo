@@ -80,7 +80,9 @@ afterEach(() => {
   setActiveTimelineStore(undefined);
 });
 
-function read(store: TimelineStore): ShipSystems | undefined {
+// Reads whatever store `setActiveTimelineStore` last made active, which is why
+// it takes no store: the one it used to accept was never looked at.
+function read(): ShipSystems | undefined {
   return getProcessorValue(SHIP_SYSTEMS.id) as ShipSystems | undefined;
 }
 
@@ -94,11 +96,11 @@ describe("a Ship Systems summary reports the currency of its levels", () => {
     store.ingest("vessel.resources", resourcesPoint(100, 80));
     store.beginFrame();
 
-    expect(read(store)?.levels.state).toBe("observed");
+    expect(read()?.levels.state).toBe("observed");
     // The instant, not a bare number: `asOfUt` carries `Value<"ut">` now, which is
     // what lets an age be a subtraction rather than a helper.
-    expect(read(store)?.levels.asOfUt).toEqual(value("ut", 100));
-    expect(read(store)?.levels.ageSec).toBe(0);
+    expect(read()?.levels.asOfUt).toEqual(value("ut", 100));
+    expect(read()?.levels.ageSec).toBe(0);
   });
 
   it("says STALE, and how old, once the levels stop arriving", () => {
@@ -112,13 +114,13 @@ describe("a Ship Systems summary reports the currency of its levels", () => {
 
     store.ingest("vessel.resources", resourcesPoint(100, 80));
     store.beginFrame();
-    expect(read(store)?.levels.state).toBe("observed");
+    expect(read()?.levels.state).toBe("observed");
 
     wall.advanceBy(1200);
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const levels = read(store)?.levels;
+    const levels = read()?.levels;
     expect(levels?.state).toBe("stale");
     // The OBSERVATION's UT, not the frame's: the whole point is that these two
     // have come apart.
@@ -141,9 +143,9 @@ describe("a Ship Systems summary reports the currency of its levels", () => {
     store.setTransportConnected(false);
     store.beginFrame();
 
-    const summary = read(store)?.summary;
+    const summary = read()?.summary;
     expect(summary).toBeDefined();
-    expect(read(store)?.levels.state).toBe("stale");
+    expect(read()?.levels.state).toBe("stale");
   });
 
   it("has no age before anything has arrived", () => {
@@ -156,7 +158,7 @@ describe("a Ship Systems summary reports the currency of its levels", () => {
 
     store.beginFrame();
 
-    const levels = read(store)?.levels;
+    const levels = read()?.levels;
     expect(levels?.state).toBe("pending");
     expect(levels?.asOfUt).toBeUndefined();
     expect(levels?.ageSec).toBeUndefined();

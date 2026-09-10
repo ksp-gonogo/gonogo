@@ -989,10 +989,10 @@ const PanelBody__FitOuter = styled.div<{ $fits?: boolean }>`
      24px readout needs and clipped it in half: the local box this replaces had
      no padding, and a tiny tile has no spare room to give away. The body's own
      inset is the inset. */
-  /* Plain concatenation, NOT a nested template literal: a backtick inside a
-     styled template breaks the parse and builds an empty dist. */
+  /* Two whole literal strings, NOT an interpolated one: a backtick nested
+     inside a styled template breaks the parse and builds an empty dist. */
   ${({ $fits }) =>
-    "justify-content: " + ($fits ? "center" : "flex-start") + ";"}
+    $fits ? "justify-content: center;" : "justify-content: flex-start;"}
 `;
 
 const PanelBody__FitContent = styled.div`
@@ -2107,9 +2107,9 @@ function PanelRoot({
   const hasActionAugments = useWidgetSegmentBound("actions");
   const badges = panelBadges ?? contextBadges ?? [];
   const badgePills =
-    badges.length === 0 ? null : (
-      <>
-        {badges.map((b) => (
+    badges.length === 0
+      ? null
+      : badges.map((b) => (
           /* An absent or `neutral` entry tone is a decorative kind-chip, so
              it gets NO severity rather than the nominal floor: a contributed
              label with nothing to report must not paint itself go-green. */
@@ -2123,9 +2123,7 @@ function PanelRoot({
           >
             {b.label}
           </Badge>
-        ))}
-      </>
-    );
+        ));
   const hasHeader =
     panelTitle !== undefined ||
     panelAside !== undefined ||

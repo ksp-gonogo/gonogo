@@ -8,6 +8,7 @@ import { useWidgetBadges } from "./useWidgetBadges";
 beforeEach(() => clearContributions());
 
 describe("useWidgetBadges", () => {
+  // biome-ignore lint/suspicious/noTemplateCurlyInString: the test name quotes the slot-key format the runtime completes, it is not a botched template literal
   it("reads contributions registered against `${componentId}.badges`, regardless of the widget's own declared contributionSlots", () => {
     registerContribution({
       id: "critical-badge",

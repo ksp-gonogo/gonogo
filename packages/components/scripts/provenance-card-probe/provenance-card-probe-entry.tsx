@@ -20,7 +20,6 @@ import {
   effectiveSearchTags,
   registerAugment,
   registerComponent,
-  registerContribution,
   uplinkAdditions,
 } from "@ksp-gonogo/core";
 import { createRoot, type Root } from "react-dom/client";

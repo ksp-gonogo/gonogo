@@ -650,8 +650,7 @@ function FundingCurveChart({
    * Falls back to cumulative when the sample could not state a rate, which is
    * when RP-1 published no duration and the axis is fractions of the term.
    */
-  const perYear =
-    sample !== null && sample.points.some((p) => p.fundsPerYear !== null);
+  const perYear = sample?.points.some((p) => p.fundsPerYear !== null);
 
   return (
     <Section>

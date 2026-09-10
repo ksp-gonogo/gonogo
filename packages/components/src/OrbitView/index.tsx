@@ -231,7 +231,6 @@ function OrbitViewComponent({
       : orbitReading.state === "observed"
         ? orbitReading.value
         : undefined;
-  const orbitStale = orbitReading.state === "stale";
   /**
    * Where the craft has been, drawn behind it. Five minutes: long enough to
    * read as a direction of travel on a low orbit, and short enough to stay

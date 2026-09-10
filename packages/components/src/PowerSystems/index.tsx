@@ -441,23 +441,21 @@ function PowerSystemsComponent({
         compactTitle={["POWER"]}
         panelSections={false}
         panelAside={
-          <>
-            <Select
-              style={RESOURCE_SELECT}
-              value={resource}
-              onChange={(e) => {
-                setResource(e.target.value);
-                setUserPicked(true);
-              }}
-              aria-label="Resource"
-            >
-              {pickerResources.map((name) => (
-                <option key={name} value={name}>
-                  {name}
-                </option>
-              ))}
-            </Select>
-          </>
+          <Select
+            style={RESOURCE_SELECT}
+            value={resource}
+            onChange={(e) => {
+              setResource(e.target.value);
+              setUserPicked(true);
+            }}
+            aria-label="Resource"
+          >
+            {pickerResources.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </Select>
         }
         sections={[
           <Section key="summary" full>

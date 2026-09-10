@@ -514,6 +514,7 @@ export class Kernel {
       return this.vanillaInstances.get(capability);
     }
 
+    // biome-ignore lint/style/noNonNullAssertion: assertKnownCapability on the line above throws when the key is absent, so the get cannot miss
     const descriptor = this.capabilities.get(capability)!;
     if (!descriptor.vanilla) {
       throw new Error(

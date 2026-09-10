@@ -134,9 +134,9 @@ export function deriveState(
   // continues to flow: the UI being quiet is more honest than flashing SIGNAL
   // LOSS while live samples arrive. 0% strength is equivalent to not-connected
   // (a link that decayed to nothing), so it trips the same "lost" state.
-  const zeroSignal =
-    signalStrength !== undefined &&
-    signalStrength.lessThanOrEqual(NO_SIGNAL_STRENGTH_EPSILON);
+  const zeroSignal = signalStrength?.lessThanOrEqual(
+    NO_SIGNAL_STRENGTH_EPSILON,
+  );
   if ((connected === false || zeroSignal) && hasConfirmedConnection) {
     return "lost";
   }

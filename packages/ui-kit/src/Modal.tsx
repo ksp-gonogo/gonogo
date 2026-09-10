@@ -13,11 +13,7 @@ import { createPortal } from "react-dom";
 import styled from "styled-components";
 import { GhostButton, PrimaryButton } from "./Button";
 import { CloseIcon } from "./Icons";
-import {
-  ModalChromeContext,
-  type ModalChromeValue,
-  useModalSaveBar,
-} from "./ModalSaveBar";
+import { ModalChromeContext, type ModalChromeValue } from "./ModalSaveBar";
 
 interface ModalEntry {
   id: string;

@@ -2,8 +2,6 @@ import { type CommsHop, value } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   buildCommsRouteNodes,
-  commsBottleneckHopId,
-  commsHopId,
   commsLegTime,
   commsRouteRelayCount,
 } from "./commsRoute";

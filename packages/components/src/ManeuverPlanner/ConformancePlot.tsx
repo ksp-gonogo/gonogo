@@ -1,12 +1,6 @@
 import type { OrbitTrajectory } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
-import {
-  Cluster,
-  NULL_DISPLAY,
-  Stack,
-  Truncate,
-  Unit,
-} from "@ksp-gonogo/ui-kit";
+import { NULL_DISPLAY, Stack, Unit } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { OrbitDiagram, type ProjectedOrbit } from "../shared/OrbitDiagram";
 import { TrajectoryWithheldNote } from "../shared/trajectoryWithheld";

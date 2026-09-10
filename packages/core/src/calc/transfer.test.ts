@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   angleDelta,
+  type CaptureResult,
   captureBurn,
   ejectionBurn,
   hohmannPhaseAngle,
@@ -84,26 +85,41 @@ describe("ejectionBurn (hyperbolic departure)", () => {
   });
 });
 
+/**
+ * `captureBurn` returns null on degenerate geometry, which every fixture below
+ * is chosen to avoid. Asserted once here rather than with a `!` at each read,
+ * so a fixture that starts declining fails saying so instead of failing as a
+ * property access on null several lines later.
+ */
+function mustCapture(result: CaptureResult | null): CaptureResult {
+  if (result === null) {
+    throw new Error("captureBurn declined a fixture that should be valid");
+  }
+  return result;
+}
+
 describe("captureBurn (hyperbolic arrival, the mirror of ejectionBurn)", () => {
   // Same Earth->Mars leg, read at the far end. MU/radius for Mars, and a 400 km
   // circular capture orbit (3389.5 km equatorial radius).
   const MU_MARS = 4.282837e13;
   const R_LOW_MARS = 3.7895e6;
 
-  const burn = captureBurn({
-    muParent: MU_SUN,
-    originRadius: R_EARTH_ORBIT,
-    destRadius: R_MARS_ORBIT,
-    muDestBody: MU_MARS,
-    captureRadius: R_LOW_MARS,
-  });
+  const burn = mustCapture(
+    captureBurn({
+      muParent: MU_SUN,
+      originRadius: R_EARTH_ORBIT,
+      destRadius: R_MARS_ORBIT,
+      muDestBody: MU_MARS,
+      captureRadius: R_LOW_MARS,
+    }),
+  );
 
   it("arrival v-infinity at Mars is about 2.65 km/s", () => {
-    expect(burn!.vInf).toBeCloseTo(2652, -2);
+    expect(burn.vInf).toBeCloseTo(2652, -2);
   });
 
   it("Mars orbit insertion from the transfer is about 2.1 km/s", () => {
-    expect(burn!.captureDeltaV).toBeCloseTo(2081, -2);
+    expect(burn.captureDeltaV).toBeCloseTo(2081, -2);
   });
 
   /*
@@ -114,7 +130,7 @@ describe("captureBurn (hyperbolic arrival, the mirror of ejectionBurn)", () => {
    * compared against a quantity nothing ever spends.
    */
   it("costs LESS than the arrival excess, where ejection costs MORE than its own", () => {
-    expect(burn!.captureDeltaV).toBeLessThan(burn!.vInf);
+    expect(burn.captureDeltaV).toBeLessThan(burn.vInf);
 
     const ejection = ejectionBurn({
       muParent: MU_SUN,
@@ -136,43 +152,49 @@ describe("captureBurn (hyperbolic arrival, the mirror of ejectionBurn)", () => {
    */
   it("has an interior minimum in the capture radius rather than falling with it", () => {
     const at = (radius: number) =>
-      captureBurn({
-        muParent: MU_SUN,
-        originRadius: R_EARTH_ORBIT,
-        destRadius: R_MARS_ORBIT,
-        muDestBody: MU_MARS,
-        captureRadius: radius,
-      })!.captureDeltaV;
+      mustCapture(
+        captureBurn({
+          muParent: MU_SUN,
+          originRadius: R_EARTH_ORBIT,
+          destRadius: R_MARS_ORBIT,
+          muDestBody: MU_MARS,
+          captureRadius: radius,
+        }),
+      ).captureDeltaV;
 
-    const cheapest = (2 * MU_MARS) / (burn!.vInf * burn!.vInf);
+    const cheapest = (2 * MU_MARS) / (burn.vInf * burn.vInf);
     expect(at(cheapest)).toBeLessThan(at(cheapest / 4));
     expect(at(cheapest)).toBeLessThan(at(cheapest * 4));
   });
 
   it("tends to the arrival excess as the capture orbit grows without bound", () => {
-    const veryHigh = captureBurn({
-      muParent: MU_SUN,
-      originRadius: R_EARTH_ORBIT,
-      destRadius: R_MARS_ORBIT,
-      muDestBody: MU_MARS,
-      captureRadius: 1e12,
-    });
+    const veryHigh = mustCapture(
+      captureBurn({
+        muParent: MU_SUN,
+        originRadius: R_EARTH_ORBIT,
+        destRadius: R_MARS_ORBIT,
+        muDestBody: MU_MARS,
+        captureRadius: 1e12,
+      }),
+    );
     // Approaches the excess FROM BELOW: at any finite radius there is still some
     // circular speed the craft keeps, so the burn is always the cheaper of the two.
-    expect(veryHigh!.captureDeltaV).toBeLessThan(burn!.vInf);
-    expect(veryHigh!.captureDeltaV / burn!.vInf).toBeGreaterThan(0.99);
+    expect(veryHigh.captureDeltaV).toBeLessThan(burn.vInf);
+    expect(veryHigh.captureDeltaV / burn.vInf).toBeGreaterThan(0.99);
   });
 
   it("is symmetric in the leg: an inward transfer arrives with a real excess too", () => {
-    const inward = captureBurn({
-      muParent: MU_SUN,
-      originRadius: R_MARS_ORBIT,
-      destRadius: R_EARTH_ORBIT,
-      muDestBody: MU_EARTH,
-      captureRadius: R_LEO,
-    });
-    expect(inward!.vInf).toBeGreaterThan(0);
-    expect(inward!.captureDeltaV).toBeGreaterThan(0);
+    const inward = mustCapture(
+      captureBurn({
+        muParent: MU_SUN,
+        originRadius: R_MARS_ORBIT,
+        destRadius: R_EARTH_ORBIT,
+        muDestBody: MU_EARTH,
+        captureRadius: R_LEO,
+      }),
+    );
+    expect(inward.vInf).toBeGreaterThan(0);
+    expect(inward.captureDeltaV).toBeGreaterThan(0);
   });
 
   it("declines rather than inventing a number when the geometry is degenerate", () => {

@@ -1,6 +1,5 @@
 import type { ReplayFixture } from "@ksp-gonogo/sitrep-client";
 import type { MissionMeta } from "@ksp-gonogo/sitrep-sdk";
-import type { FlightChapterRecord } from "../types";
 
 /**
  * Reserved for the video-recording fast-follow (synchronized `MediaRecorder`

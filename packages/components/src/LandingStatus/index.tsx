@@ -641,9 +641,7 @@ function LandingStatusComponent({
   // On a vacuum board a sample alone is enough (the burn solve is the site).
   const predictionStable =
     predictionMovement != null && predictionMovement < PREDICTION_STABLE_M;
-  const lowApproach =
-    heightFromTerrain != null &&
-    heightFromTerrain.lessThan(ATMO_PLOTS_ALT_GATE);
+  const lowApproach = heightFromTerrain?.lessThan(ATMO_PLOTS_ALT_GATE);
   const atmosphericPlotsShown =
     atmospheric &&
     landing?.sampleSource != null &&
@@ -860,8 +858,7 @@ function LandingStatusComponent({
           </GridCellPair>
         </Grid>
         <Text tone="muted" size="xs">
-          {flight?.atmDensity != null &&
-          flight.atmDensity.lessThan(NEGLIGIBLE_DENSITY)
+          {flight?.atmDensity?.lessThan(NEGLIGIBLE_DENSITY)
             ? "negligible drag · near free-fall, terminal velocity resolves as air thickens"
             : "above terminal · drag building, terminal velocity resolves as descent continues"}
         </Text>

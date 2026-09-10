@@ -5,7 +5,6 @@ import {
   Countdown,
   IconButton,
   LabeledInput,
-  NULL_DISPLAY,
   PrimaryButton,
   Unit,
 } from "@ksp-gonogo/ui-kit";

@@ -88,7 +88,7 @@ export function computeKerbalismPartMeters(
     for (const [name, flow] of Object.entries(part.resources)) {
       const fact = facts.get(name);
       // Supply-only, confirmed-not-pooled: see this file's header.
-      if (!fact || !fact.isSupply || fact.pooled !== false) continue;
+      if (!fact?.isSupply || fact.pooled !== false) continue;
       const capacity = magnitudeOr(flow.maxAmount, 0);
       if (capacity <= 0) continue;
       // No amount reported is not an empty tank: a meter drawn from it would

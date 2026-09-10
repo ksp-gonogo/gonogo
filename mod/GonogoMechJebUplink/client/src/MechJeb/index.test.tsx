@@ -1,7 +1,6 @@
 import {
   act,
   clearActionHandlers,
-  render as rtlRender,
   screen,
   setupStreamFixture,
   waitFor,
@@ -12,7 +11,6 @@ import {
   visibleText,
 } from "@ksp-gonogo/ui-kit/testing";
 import userEvent from "@testing-library/user-event";
-import type { ReactElement } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 // Side-effect import: the widget self-registers on module load, and
 // `renderWidget` looks it up by id rather than importing the component.
@@ -33,15 +31,7 @@ const COMMANDS = [
 ];
 const CARRIED = ["comms.delay", "system.uplinks", ...COMMANDS];
 
-const renderedTrees: Array<() => void> = [];
-function render(ui: ReactElement) {
-  const result = rtlRender(ui);
-  renderedTrees.push(result.unmount);
-  return result;
-}
 afterEach(() => {
-  for (const unmount of renderedTrees) unmount();
-  renderedTrees.length = 0;
   clearActionHandlers();
 });
 

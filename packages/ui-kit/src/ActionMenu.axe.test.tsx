@@ -1,6 +1,6 @@
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it, vi } from "vitest";
+import { describe, it, vi } from "vitest";
 import { ActionMenu } from "./ActionMenu";
 
 describe("ActionMenu a11y", () => {

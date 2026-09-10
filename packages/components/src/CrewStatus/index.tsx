@@ -5,7 +5,6 @@ import {
   getAugmentsForSlot,
   registerComponent,
   useContributions,
-  useTelemetry,
 } from "@ksp-gonogo/core";
 import {
   type Reading,

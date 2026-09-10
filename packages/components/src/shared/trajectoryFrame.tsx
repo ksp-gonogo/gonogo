@@ -1,7 +1,6 @@
 import {
   CELESTIAL_FACTS,
   drawnFrame,
-  frameCoordinatesArePulsating,
   type OrbitTrajectory,
   type TrajectoryFrame,
   trajectoryFrameLabel,
@@ -56,7 +55,6 @@ export function TrajectoryFrameCaption({
     : drawnFrame(trajectory, centreBodyIndex ?? named);
   if (frame == null) return null;
   const label = trajectoryFrameLabel(frame, facts);
-  const pulsating = frameCoordinatesArePulsating(frame);
   return (
     // The frame's name and nothing else. The caption says WHICH frame the curve
     // is in, because the same points are a different path in each; a frame's

@@ -1216,10 +1216,12 @@ describe("findGuardedSurfaceGrowth: app-side surface logic (synthetic fixtures)"
   });
 
   it("ignores generated code, ratchet inventories and tests", () => {
+    const scansatBase = base.scansat;
+    if (!scansatBase) throw new Error("the base allowlist carries no scansat");
     const current: Partial<Record<ModToken, ModAllowlist>> = {
       scansat: {
         permanent: [
-          ...base.scansat!.permanent,
+          ...scansatBase.permanent,
           "packages/core/src/__generated__/topic-map.ts",
           "packages/core/src/render-fixture-coverage.debt.ts",
           "packages/core/src/styleguide.test.ts",

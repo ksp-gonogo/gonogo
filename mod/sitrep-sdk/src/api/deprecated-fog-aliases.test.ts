@@ -28,7 +28,13 @@ const ALIASED: ReadonlyArray<[keyof typeof barrel, keyof typeof barrel]> = [
 
 describe("deprecated fog aliases", () => {
   it.each(ALIASED)("%s is still the same export as %s", (oldName, newName) => {
+    // Indexing the namespace IS the assertion: the table drives both names,
+    // and a static import of all 26 would not survive an alias being dropped,
+    // which is the thing being guarded. The rule's tree-shaking cost does not
+    // apply to a test, which is never bundled.
+    // biome-ignore lint/performance/noDynamicNamespaceImportAccess: the dynamic lookup is what proves the alias is still exported
     expect(barrel[oldName]).toBeDefined();
+    // biome-ignore lint/performance/noDynamicNamespaceImportAccess: same, and both sides must be looked up to compare identity
     expect(barrel[oldName]).toBe(barrel[newName]);
   });
 });

@@ -7,6 +7,8 @@
 // runtime half, the two interfaces are the type half, and every id must appear
 // in both maps or the guide's own `registerUplinkCommand` loop stops typing.
 
+import type { CommandResult } from "@ksp-gonogo/sitrep-sdk";
+
 export interface ExampleSetOutputArgs {
   /** Requested reactor output, in kW. */
   readonly targetPower: number;
@@ -17,7 +19,7 @@ export interface GeneratedCommandArgsMap {
 }
 
 export interface GeneratedCommandReplyMap {
-  "example.setOutput": void;
+  "example.setOutput": CommandResult;
 }
 
 export const GENERATED_COMMAND_IDS = ["example.setOutput"] as const;
