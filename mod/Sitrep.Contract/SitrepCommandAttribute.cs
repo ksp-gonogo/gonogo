@@ -67,9 +67,53 @@ namespace Sitrep.Contract
         /// </summary>
         public Type Result { get; set; }
 
+        /// <summary>
+        /// Whether this command is a point in time or a span of it. Defaults to
+        /// <see cref="CommandContinuity.Discrete"/>, which every command but the
+        /// per-frame fly-by-wire override is. See <see cref="CommandContinuity"/>
+        /// for why the declaration lives here rather than being inferred.
+        /// </summary>
+        public CommandContinuity Continuity { get; set; } = CommandContinuity.Discrete;
+
         public SitrepCommandAttribute(string commandId)
         {
             CommandId = commandId;
         }
+    }
+
+    /// <summary>
+    /// Whether a command is a POINT in time or a SPAN of it: the delay rail's
+    /// continuity axis, declared where the command is.
+    ///
+    /// <para>It has to be declared rather than derived, because it is a property
+    /// of the PRODUCING MOD and not of the command's name or its args. A science
+    /// transmission is a discrete event under stock and a metered flow under a
+    /// mod that bills it by data rate, and the same id can mean either depending
+    /// on which Uplink is serving it. Nothing in this assembly can know which, so
+    /// the assembly that does know says so here.</para>
+    ///
+    /// <para>Metadata only, and deliberately NOT a <c>[SitrepContract]</c> type:
+    /// it never reaches the wire. A client reads the generated rail table rather
+    /// than this enum.</para>
+    ///
+    /// <internal>
+    /// This replaced a hardcoded set of command ids in the TypeScript SDK
+    /// (<c>STREAM_COMMANDS</c> in <c>spine/map-command.ts</c>), which held one
+    /// entry and structurally could not hold an Uplink's: an Uplink ships on its
+    /// own schedule and the first-party build has never heard of it, so a list
+    /// written in the app named core's commands and silently answered "discrete"
+    /// for everyone else's.
+    /// </internal>
+    /// </summary>
+    public enum CommandContinuity
+    {
+        /// <summary>A point event: one dispatch, one ack. Every command but one.</summary>
+        Discrete = 0,
+
+        /// <summary>
+        /// A span: a per-frame-reapplied override or a metered flow, whose delay
+        /// reads as a persistent strip rather than a queue row.
+        /// </summary>
+        Continuous = 1,
     }
 }

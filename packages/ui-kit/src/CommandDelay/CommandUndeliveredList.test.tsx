@@ -1,3 +1,4 @@
+import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
@@ -8,6 +9,13 @@ import {
   commandUndeliveredSentence,
   type RailUndelivered,
 } from "./CommandUndeliveredList";
+
+/*
+ * The rail axes these fixtures carry, from the same derivations production uses
+ * rather than written as literals: a fixture that spelled its own tags would go
+ * on asserting the old picture after a derivation moved.
+ */
+const RAIL_DISCRETE = railTagsForCommand("vessel.control.setSasMode");
 
 describe("commandUndeliveredSentence", () => {
   it("names the subject and says it was never sent", () => {
@@ -70,7 +78,7 @@ describe("CommandUndeliveredList", () => {
     command: "vessel.control.setSas",
     args: { enabled: true },
     label: "",
-    shape: "discrete",
+    tags: RAIL_DISCRETE,
   };
 
   it("renders nothing for an empty set, like every other member of this family", () => {
@@ -107,7 +115,7 @@ describe("CommandUndeliveredList", () => {
   it("names the gesture for a dispatch with no subject at all", () => {
     render(
       <CommandUndeliveredList
-        undelivered={[{ id: "c1", shape: "discrete" }]}
+        undelivered={[{ id: "c1", tags: RAIL_DISCRETE }]}
         onDismiss={() => {}}
       />,
     );

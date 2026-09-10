@@ -35,6 +35,8 @@ import type {
   CommandId,
   CommandReply,
 } from "../commands";
+import type { RailTags } from "../rail-tags";
+import { railTagsForCommand } from "../rail-tags";
 import { type CommandGateStatus, selectCommandGate } from "./command-gate";
 import {
   type CommsLinkLike,
@@ -45,7 +47,7 @@ import {
   useTelemetryStoreOptional,
 } from "./context";
 import { CommandError } from "./lifecycle";
-import { commandDelayed, commandShape } from "./map-command";
+import { commandDelayed } from "./map-command";
 import { useLatestValue } from "./use-stream";
 import { META_VANTAGE } from "./vantage";
 
@@ -148,11 +150,16 @@ export interface UseCommandResult<TArgs = unknown, TReply = AnyCommandReply> {
    */
   inFlight: InFlightCommand[];
   /**
-   * Which delay display this command uses (`commandShape(command)`): a discrete
-   * `InFlightList` of one-shot dispatches, or the continuous `ControlDelayStream`
-   * for a persistent per-frame axis. Handed straight to `<CommandDelay>`.
+   * What this command IS on the rail's three axes, from what its owning
+   * assembly declared (`railTagsForCommand(command)`). Handed straight to
+   * `<CommandDelay>`, which reads the axes to pick a renderer rather than
+   * asking what kind of command this is.
+   *
+   * It replaced a two-valued `shape` field. That field was the CONTINUITY axis
+   * under another name, and carrying both would have been two spellings of one
+   * property, which is the drift this vocabulary exists to end.
    */
-  shape: "discrete" | "stream";
+  tags: RailTags;
   /**
    * The command's effective one-way delay under its vantage: `0` for a
    * never-delayed sim-meta command (`time.*`) and `0` at the meta-vantage, both
@@ -506,7 +513,8 @@ export function useCommand(
 
   /*
    * The delay display + effective delay this command hands to `<CommandDelay>`.
-   * `shape` is a pure function of the command id.
+   * `tags` is a pure function of the command id: the three axes as the
+   * command's owning assembly declared them.
    *
    * `effectiveDelaySeconds` is 0 for a never-delayed sim-meta command
    * (`time.*`) and for a meta-vantage dispatch, both of which are instant
@@ -523,7 +531,7 @@ export function useCommand(
    * if it were on the LAN. `delay-authority.ts` reads the same payload the same
    * value-first way and names zero the one direction this must never fail in.
    */
-  const shape = commandShape(command);
+  const tags = railTagsForCommand(command);
   const rawOneWaySeconds = commsDelay?.oneWaySeconds?.magnitude;
   const liveOneWaySeconds =
     typeof rawOneWaySeconds === "number" && Number.isFinite(rawOneWaySeconds)
@@ -935,7 +943,7 @@ export function useCommand(
     losses,
     founds,
     undelivered,
-    shape,
+    tags,
     effectiveDelaySeconds,
     delayMode,
     dismiss,

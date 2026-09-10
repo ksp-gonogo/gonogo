@@ -1,3 +1,4 @@
+import { railTagsForCommand } from "@ksp-gonogo/sitrep-sdk";
 import { render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import type { CommandButtonHandle, CommandReplyLike } from "@ksp-gonogo/ui-kit";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
@@ -14,9 +15,17 @@ import { ScienceExperimentRow } from "./ScienceExperimentRow";
  */
 const OK: CommandReplyLike = { success: true };
 
+/*
+ * The rail axes the fixture handle carries, read off the command this row
+ * actually presses rather than written as a literal: the transmit command's own
+ * declaration is what decides whether the rail draws a queue row or a strip, so
+ * a fixture that spelled its own tags would stop tracking it.
+ */
+const TRANSMIT_TAGS = railTagsForCommand("science.experiment.transmit");
+
 /** A structural command handle, the shape `useCommand` returns. */
 function handle(send: CommandButtonHandle["send"]): CommandButtonHandle {
-  return { send, inFlight: [], shape: "discrete", effectiveDelaySeconds: 0 };
+  return { send, inFlight: [], tags: TRANSMIT_TAGS, effectiveDelaySeconds: 0 };
 }
 
 // Rows read `theme.space` (via the kit's `Inline`), so every render needs a

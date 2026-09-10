@@ -22,6 +22,7 @@
  * the component draws.
  */
 import { safeRandomUuid } from "@ksp-gonogo/core";
+import { railTagsForTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   type ControlRibbonDatum,
   DelayRailProvider,
@@ -200,6 +201,13 @@ async function amplitudesOf(
 
 const RIBBON_LABEL = "Your transmission crossing to Ares 4";
 
+/*
+ * The same derivation `RadioPtt` uses, asked here rather than restated: the
+ * probe reproduces the caller, and a harness that spells its own tags would go
+ * on drawing a ribbon after the production declaration stopped producing one.
+ */
+const VOICE_TAGS = railTagsForTelemetry("continuous");
+
 function RibbonRegistrar({
   amplitudes,
   spanSamples,
@@ -220,6 +228,7 @@ function RibbonRegistrar({
         oneWaySeconds: separationSeconds,
         amplitudes,
         spanSamples,
+        tags: VOICE_TAGS,
       },
     ],
     [amplitudes, spanSamples, separationSeconds],
@@ -228,7 +237,7 @@ function RibbonRegistrar({
     useMemo(
       () => ({
         inFlight: [],
-        shape: "stream" as const,
+        tags: VOICE_TAGS,
         effectiveDelaySeconds: separationSeconds,
         ariaLabel: RIBBON_LABEL,
         ribbons,

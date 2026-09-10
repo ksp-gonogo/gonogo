@@ -1126,7 +1126,7 @@ The handle carries more than `send`:
 | `gate` | what the mod says about this command in ADVANCE, or `undefined` when nothing is known |
 | `effectiveDelaySeconds` | the one-way delay under the current vantage. 0 for a command that is instant by construction, and `null` when there is no measurable one, never 0 for that |
 | `delayMode` | what the link is doing: `live`, `staged`, `no-path`, or `null` when no `comms.delay` reading has arrived |
-| `shape` | which delay display this command uses; hand it straight to `<CommandDelay>` |
+| `tags` | what this command IS on the rail's three axes, as you declared it; hand it straight to `<CommandDelay>` |
 | `dismiss(id)` | clear a dead dispatch or a refusal, the manual out for anything that would sit forever |
 
 ### Register your commands, and `send` gets typed
@@ -1140,6 +1140,7 @@ way you register your Topics, in a file beside `topics.ts`:
 import { registerUplinkCommand } from "@ksp-gonogo/sitrep-sdk";
 import {
   GENERATED_COMMAND_IDS,
+  GENERATED_COMMAND_RAIL,
   type GeneratedCommandArgsMap,
   type GeneratedCommandReplyMap,
 } from "./__generated__/command-map";
@@ -1151,9 +1152,10 @@ declare module "@ksp-gonogo/sitrep-sdk" {
 }
 
 // The RUNTIME half: which command ids exist, so `isCommandId` and
-// `getAllKnownCommandIds` can see them.
+// `getAllKnownCommandIds` can see them, plus each command's generated RAIL row
+// so the delay rail knows what it is drawing.
 for (const id of GENERATED_COMMAND_IDS) {
-  registerUplinkCommand(id);
+  registerUplinkCommand(id, GENERATED_COMMAND_RAIL[id]);
 }
 
 // Something NAMED for `index.ts` to re-export, so the augmentation above
@@ -1177,6 +1179,46 @@ command resolves a bare `CommandResult`, which is success or nothing more. `Resu
 the sibling that names the resolved type outright rather than wrapping it, and setting both throws.
 A command that takes no arguments carries its tag on an empty marker class of your own, the way a
 no-payload DTO already works.
+
+### Say whether your command is a point in time or a span of one
+
+The delay rail draws a command from what the command IS, on three axes: `direction` (an order going
+out, or something arriving), `continuity` (a point event, or a span the operator is inside), and
+`delivery` (whether anything answers). Two of the three it can work out on its own. A declared
+command is a command, and it is acked, because the contract rules that a result is always delivered.
+
+Continuity is yours to declare, and it is the only one, because it is a property of YOUR MOD and not
+of the command's name. A science transmission is one event under stock and a metered flow under
+Kerbalism; the id can be identical and the honest answer differs. Nothing in the app can know which,
+so you say so on the attribute:
+
+```csharp
+[SitrepCommand("mymod.science.transmit", Continuity = CommandContinuity.Continuous)]
+public class TransmitArgs { /* ... */ }
+```
+
+That is the whole declaration. It reaches your generated `GENERATED_COMMAND_RAIL`, the loop above
+hands it to the SDK, and `useCommand("mymod.science.transmit").tags` comes back continuous. A
+continuous command's delay reads as a persistent strip rather than a queue row that clears, and you
+write no branch anywhere to get it. Leave the property off (the default,
+`CommandContinuity.Discrete`) and one dispatch is one point event, which is what almost every
+command is.
+
+Two things worth knowing before you reach for `Continuous`:
+
+- ask it about ONE DISPATCH, not about how the operator uses the control. `vessel.control.setThrottle`
+  is declared discrete, because it sets a held value once and is not re-applied; what is continuous
+  is the AXIS a widget holds, and `railTagsForControlAxis(writeCommand)` is what a widget doing that
+  reaches for. The stock fly-by-wire override is declared continuous because the mod genuinely
+  re-applies it every frame
+- something that is not a command at all (an open microphone, a downlink, a result on its way home)
+  is declared with `railTagsForTelemetry(continuity)`, which fixes direction and delivery from what
+  telemetry structurally is and asks you only for the axis you know
+
+Not every combination has something to draw it yet. A discrete arrival
+(`railTagsForTelemetry("discrete")`, a science result sent home) is declarable today and the rail has
+no renderer for it: it is reported to the console and marked in the DOM rather than silently missing,
+so you find out rather than wondering where your entry went.
 
 A command id you have NOT registered still dispatches: it falls to `useCommand`'s untyped overload,
 where `args` is `unknown` unless you name it. The reply is not: it stays `AnyCommandReply`, the result

@@ -68,6 +68,7 @@ export {
   type CommandId,
   type CommandReply,
   type CommandReplyMap,
+  commandRail,
   getAllKnownCommandIds,
   isCommandId,
   registerUplinkCommand,
@@ -235,6 +236,24 @@ export {
 // `installTestGate`, so it has to be reachable from a published package or that
 // requirement only ever applied to code inside this repo.
 export { PerfBudget } from "./perf/PerfBudget";
+/*
+ * The delay rail's three axes, and the derivations that fill them in from what
+ * the mod declares. An author reaches for these when they put something on the
+ * rail that is not a discrete acked command: the vocabulary is here, and the kit
+ * that draws it decides which combinations it can render.
+ */
+export {
+  type CommandRail,
+  type RailContinuity,
+  type RailDelivery,
+  type RailDirection,
+  type RailTags,
+  railTagsForCommand,
+  railTagsForControlAxis,
+  railTagsForTelemetry,
+  railTagsFromCommandRail,
+  UNDECLARED_COMMAND_RAIL_TAGS,
+} from "./rail-tags";
 // The read contract: `useTelemetry` answers with a `Reading`, so the union and
 // its accessors ship on the author surface rather than app-side.
 export * from "./reading";

@@ -1,5 +1,6 @@
 import { commandRefusalSubject } from "@ksp-gonogo/sitrep-sdk";
 import { CommandOutcomeList } from "./CommandOutcomeList";
+import type { RailTags } from "./railTags";
 
 /**
  * One dispatch nothing answered, as much of it as this text needs.
@@ -24,10 +25,10 @@ export interface CommandLossEntry extends CommandLossLike {
   id: string;
 }
 
-/** One lost dispatch as the rail renders it, plus whether its command is
- *  discrete or a stream (which only the registering handle knows). */
+/** One lost dispatch as the rail renders it, plus its command's rail axes:
+ *  a point in time or a span of one (which only the registering handle knows). */
 export interface RailLoss extends CommandLossEntry {
-  shape: "discrete" | "stream";
+  tags: RailTags;
 }
 
 /**
@@ -88,7 +89,7 @@ export function CommandLossList({
           subject: subject || loss.command || "",
           sentence: commandLossSentence(loss),
           dismissLabel: `Dismiss ${subject || "loss"}`,
-          shape: loss.shape,
+          tags: loss.tags,
         };
       })}
     />

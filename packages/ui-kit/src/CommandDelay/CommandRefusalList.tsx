@@ -4,19 +4,20 @@ import {
   type CommandRefusalEntry,
   commandRefusalSentence,
 } from "./commandRefusalSentence";
+import type { RailTags } from "./railTags";
 
 /**
  * One refused dispatch as the rail renders it: the refusal itself, plus the two
- * things only the registering handle knows, its stable id and whether the
- * command is discrete or a stream.
+ * things only the registering handle knows, its stable id and the command's
+ * rail axes.
  */
 export interface RailRefusal extends CommandRefusalEntry {
   /**
-   * `discrete` gets the same terse glyph tile its command carries in the
-   * in-flight queue; `stream` gets its text label, because a continuous command
-   * has no tile in that queue to match.
+   * The command's three axes. Only the MARK is read: a discrete command gets
+   * the same terse glyph tile it carries in the in-flight queue, a continuous
+   * one gets its text label, having no tile in that queue to match.
    */
-  shape: "discrete" | "stream";
+  tags: RailTags;
 }
 
 export interface CommandRefusalListProps {
@@ -52,7 +53,7 @@ export function CommandRefusalList({
           subject: subject || refusal.command || "",
           sentence: commandRefusalSentence(refusal),
           dismissLabel: `Dismiss ${subject || "refusal"}`,
-          shape: refusal.shape,
+          tags: refusal.tags,
         };
       })}
     />

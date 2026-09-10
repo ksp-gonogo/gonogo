@@ -1,83 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
-  DEFAULT_RAIL_TAGS,
+  allRailTags,
   type RailContinuity,
   type RailDelivery,
   type RailDirection,
+  type RailRenderer,
+  type RailTagKey,
   type RailTags,
   railDrawsReturnLeg,
   railFlow,
   railMark,
-  railTagsOf,
+  railRendererFor,
+  railTagKey,
   railToneToken,
-  VOICE_RAIL_TAGS,
+  unrepresentedRailTags,
 } from "./railTags";
-
-const DIRECTIONS: RailDirection[] = ["command", "telemetry"];
-const CONTINUITIES: RailContinuity[] = ["discrete", "continuous"];
-const DELIVERIES: RailDelivery[] = ["acked", "fire-and-forget"];
-
-function everyCombination(): RailTags[] {
-  const out: RailTags[] = [];
-  for (const direction of DIRECTIONS)
-    for (const continuity of CONTINUITIES)
-      for (const delivery of DELIVERIES)
-        out.push({ direction, continuity, delivery });
-  return out;
-}
-
-describe("railTagsOf", () => {
-  it("gives an untagged handle the assumption the rail used to bake in", () => {
-    expect(railTagsOf({})).toEqual({
-      direction: "command",
-      continuity: "discrete",
-      delivery: "acked",
-    });
-    expect(railTagsOf({ shape: "discrete" })).toEqual(DEFAULT_RAIL_TAGS);
-  });
-
-  /*
-   * The row most easily got wrong, and the reason this file exists: a stream
-   * command's ack is the confirmed readback, and its deviance is expected
-   * against actual. `ControlDelayStream` has drawn that since it shipped.
-   */
-  it("keeps a CONTINUOUS command ACKED", () => {
-    expect(railTagsOf({ shape: "stream" })).toEqual({
-      direction: "command",
-      continuity: "continuous",
-      delivery: "acked",
-    });
-    expect(railDrawsReturnLeg(railTagsOf({ shape: "stream" }))).toBe(true);
-  });
-
-  it("moves only the continuity axis for a stream shape", () => {
-    const streamed = railTagsOf({ shape: "stream" });
-    expect(streamed.direction).toBe(DEFAULT_RAIL_TAGS.direction);
-    expect(streamed.delivery).toBe(DEFAULT_RAIL_TAGS.delivery);
-  });
-
-  it("lets an entry state one axis without restating the rest", () => {
-    expect(railTagsOf({ tags: { direction: "telemetry" } })).toEqual({
-      direction: "telemetry",
-      continuity: "discrete",
-      delivery: "acked",
-    });
-  });
-
-  it("lets an explicit tag win over the shape it was derived from", () => {
-    expect(
-      railTagsOf({ shape: "stream", tags: { continuity: "discrete" } })
-        .continuity,
-    ).toBe("discrete");
-  });
-
-  it("tags the operator's voice telemetry, continuous, fire-and-forget", () => {
-    expect(railTagsOf({ tags: VOICE_RAIL_TAGS })).toEqual(VOICE_RAIL_TAGS);
-    expect(railMark(VOICE_RAIL_TAGS)).toBe("ribbon");
-    expect(railDrawsReturnLeg(VOICE_RAIL_TAGS)).toBe(false);
-    expect(railFlow(VOICE_RAIL_TAGS)).toBe("inbound");
-  });
-});
 
 /**
  * The claim the model rests on: each accessor reads ONE axis. An accessor that
@@ -98,7 +35,7 @@ describe("each axis drives exactly one visual property", () => {
   for (const { axis, read } of cases) {
     it(`${read.name} reads ${axis} and nothing else`, () => {
       const byAxisValue = new Map<string, unknown>();
-      for (const tags of everyCombination()) {
+      for (const tags of allRailTags()) {
         const key = tags[axis];
         const answer = read(tags);
         if (byAxisValue.has(key)) {
@@ -112,4 +49,103 @@ describe("each axis drives exactly one visual property", () => {
       expect(new Set(Array.from(byAxisValue.values())).size).toBe(2);
     });
   }
+});
+
+describe("the axis product", () => {
+  it("enumerates every combination of the three axes, once each", () => {
+    const all = allRailTags();
+    expect(all).toHaveLength(8);
+    expect(new Set(all.map(railTagKey)).size).toBe(8);
+  });
+
+  it("spells a combination the way the renderer table is keyed", () => {
+    expect(
+      railTagKey({
+        direction: "telemetry",
+        continuity: "continuous",
+        delivery: "fire-and-forget",
+      }),
+    ).toBe("telemetry/continuous/fire-and-forget");
+  });
+});
+
+/**
+ * The renderer table, asked the question that is worth asking of it: not "do
+ * the four rows we know about work" but "which of the eight can nothing draw".
+ *
+ * A test that checked the known rows would pass forever while a declarable
+ * combination silently rendered nothing, which is the failure this whole
+ * vocabulary exists to make visible. So the assertion is on the WHOLE gap: the
+ * unrepresented set is named exactly, and adding a renderer or a new axis value
+ * fails here until the list is updated deliberately.
+ */
+describe("which combinations have a renderer", () => {
+  /**
+   * The three the rail can draw today, and the one renderer each maps to. Named
+   * rather than derived from the table, so this is an independent statement of
+   * the same fact and not a copy of it agreeing with itself.
+   */
+  const DRAWN: ReadonlyArray<[RailTagKey, RailRenderer]> = [
+    ["command/discrete/acked", "in-flight-row"],
+    ["command/continuous/acked", "continuous-strip"],
+    ["telemetry/continuous/fire-and-forget", "continuous-strip"],
+  ];
+
+  for (const [key, renderer] of DRAWN) {
+    it(`draws ${key} with ${renderer}`, () => {
+      const [direction, continuity, delivery] = key.split("/");
+      expect(
+        railRendererFor({
+          direction: direction as RailDirection,
+          continuity: continuity as RailContinuity,
+          delivery: delivery as RailDelivery,
+        }),
+      ).toBe(renderer);
+    });
+  }
+
+  /*
+   * The five nothing draws, named so the gap is a fact on the record rather
+   * than an accident. Four of them are combinations no producer can currently
+   * make either: `Sitrep.Contract/CommandResult.cs` rules that a command's
+   * result is always delivered, so `command/*​/fire-and-forget` has no way to
+   * arise, and telemetry has no reply channel at all, so
+   * `telemetry/*​/acked` has none either.
+   *
+   * The FIFTH is the one that matters, and it is the fourth row of the table in
+   * `railTags.ts`: `telemetry/discrete/fire-and-forget`, a science result sent
+   * home. That is declarable today (`railTagsForTelemetry("discrete")` returns
+   * exactly it) and nothing draws it. That is deliberate: the arrival rail it
+   * would need is separately queued work, and until it exists an entry carrying
+   * these tags is reported and marked rather than quietly missing.
+   */
+  const UNDRAWN: readonly RailTagKey[] = [
+    "command/discrete/fire-and-forget",
+    "command/continuous/fire-and-forget",
+    "telemetry/discrete/acked",
+    "telemetry/discrete/fire-and-forget",
+    "telemetry/continuous/acked",
+  ];
+
+  it("names exactly the combinations nothing draws", () => {
+    expect(unrepresentedRailTags().map(railTagKey).sort()).toEqual(
+      [...UNDRAWN].sort(),
+    );
+  });
+
+  it("accounts for all eight combinations either way", () => {
+    expect(DRAWN.length + UNDRAWN.length).toBe(allRailTags().length);
+  });
+
+  it("answers null rather than a fallback renderer for an undrawn row", () => {
+    const scienceHome: RailTags = {
+      direction: "telemetry",
+      continuity: "discrete",
+      delivery: "fire-and-forget",
+    };
+    // Emphatically not `in-flight-row`. Falling back to the discrete queue is
+    // what the rail did before the axes had names, and it drew the entry as a
+    // discrete acked command: wrong in a way that looks right.
+    expect(railRendererFor(scienceHome)).toBeNull();
+  });
 });

@@ -24,7 +24,7 @@ export type CommandUndeliveredLike = CommandLossLike;
 export type CommandUndeliveredEntry = CommandLossEntry;
 
 /** One undelivered dispatch as the rail renders it, plus whether its command is
- *  discrete or a stream (which only the registering handle knows). */
+ *  a point in time or a span of one (which only the registering handle knows). */
 export type RailUndelivered = RailLoss;
 
 /**
@@ -103,7 +103,7 @@ export function CommandUndeliveredList({
           subject: subject || entry.command || "",
           sentence: commandUndeliveredSentence(entry),
           dismissLabel: `Dismiss ${subject || "unsent command"}`,
-          shape: entry.shape,
+          tags: entry.tags,
         };
       })}
     />

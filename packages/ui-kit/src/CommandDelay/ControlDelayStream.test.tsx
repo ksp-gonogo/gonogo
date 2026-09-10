@@ -1,12 +1,28 @@
+import {
+  railTagsForCommand,
+  railTagsForControlAxis,
+  railTagsForTelemetry,
+} from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ControlDelayStream,
   type ControlRibbonDatum,
   type ControlStreamDatum,
   ribbonBoundaryX,
 } from "./ControlDelayStream";
+import { resetUnrepresentedRailReports } from "./railTags";
+
+/*
+ * The axes each fixture carries, asked of the same derivations production asks.
+ * A held control axis is continuous and acked; a transmission is continuous,
+ * telemetry and fire-and-forget. Written as calls rather than literals so a
+ * fixture cannot go on drawing a picture the derivation stopped producing.
+ */
+const AXIS_TAGS = railTagsForControlAxis("vessel.control.setThrottle");
+const VOICE_TAGS = railTagsForTelemetry("continuous");
+const DISCRETE_COMMAND_TAGS = railTagsForCommand("vessel.control.setSasMode");
 
 function stream(over: Partial<ControlStreamDatum> = {}): ControlStreamDatum {
   return {
@@ -20,6 +36,7 @@ function stream(over: Partial<ControlStreamDatum> = {}): ControlStreamDatum {
     ],
     echo: [{ age: 3.2, value: 0.6 }],
     current: 0.5,
+    tags: AXIS_TAGS,
     ...over,
   };
 }
@@ -329,6 +346,7 @@ function ribbon(over: Partial<ControlRibbonDatum> = {}): ControlRibbonDatum {
     oneWaySeconds: 1.6,
     amplitudes: [0.2, 0.6, 0.4, 0.8],
     spanSamples: 3,
+    tags: VOICE_TAGS,
     ...over,
   };
 }
@@ -417,10 +435,13 @@ describe("the ribbon mark", () => {
     const { container } = render(
       <ControlDelayStream
         streams={[]}
-        ribbons={[ribbon({ tags: { continuity: "discrete" } })]}
+        ribbons={[ribbon({ tags: DISCRETE_COMMAND_TAGS })]}
       />,
     );
     expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
+    /* And it is skipped as somebody else's to draw, not reported as a gap: a
+       discrete acked command HAS a renderer, it is just the queue's. */
+    expect(container.querySelector("[data-rail-unrepresented]")).toBeNull();
   });
 
   it("runs the fade the way the entry does, the direction axis deciding", () => {
@@ -434,11 +455,14 @@ describe("the ribbon mark", () => {
     );
     const [inX1, inX2] = span(inbound);
     expect(inX1).toBeGreaterThan(inX2);
-    // A command leaves this end clear and dissolves toward its target.
+    // A command leaves this end clear and dissolves toward its target. Held as
+    // an axis rather than tagged by hand: the same combination a fly-by-wire
+    // entry carries, handed over as amplitude history instead of samples, which
+    // is a difference in the DATA and not in what the entry is.
     const { container: out } = render(
       <ControlDelayStream
         streams={[]}
-        ribbons={[ribbon({ tags: { direction: "command" } })]}
+        ribbons={[ribbon({ tags: AXIS_TAGS })]}
       />,
     );
     const [outX1, outX2] = span(out);
@@ -501,9 +525,7 @@ describe("the ribbon mark", () => {
 describe("delivery decides the return leg and nothing else", () => {
   it("gives a fire-and-forget stream the leg out and stops it on the T divider", () => {
     const { container } = render(
-      <ControlDelayStream
-        streams={[stream({ tags: { delivery: "fire-and-forget" } })]}
-      />,
+      <ControlDelayStream streams={[stream({ tags: VOICE_TAGS })]} />,
     );
     const group = container.querySelector("[data-stream-group]");
     expect(group?.getAttribute("data-return-leg")).toBe("false");
@@ -519,7 +541,7 @@ describe("delivery decides the return leg and nothing else", () => {
   });
 
   it("leaves the zones exactly where they were, delivery or no", () => {
-    const at = (tags?: Partial<ControlStreamDatum["tags"]>): string[] => {
+    const at = (tags: ControlStreamDatum["tags"]): string[] => {
       const { container } = render(
         <ControlDelayStream streams={[stream({ tags })]} variant="rail" />,
       );
@@ -527,7 +549,7 @@ describe("delivery decides the return leg and nothing else", () => {
         (l) => l.getAttribute("x1") ?? "",
       );
     };
-    expect(at({ delivery: "fire-and-forget" })).toEqual(at(undefined));
+    expect(at(VOICE_TAGS)).toEqual(at(AXIS_TAGS));
   });
 
   it("keeps an acked stream's echo and deviation untouched", () => {
@@ -552,5 +574,74 @@ describe("delivery decides the return leg and nothing else", () => {
     expect(
       container.querySelector('[data-role="deviation-actual"]'),
     ).not.toBeNull();
+  });
+});
+
+/**
+ * A combination nothing draws, arriving anyway. The point of the renderer table
+ * is that this case is LOUD rather than blank: an Uplink can declare a science
+ * result sent home today (`railTagsForTelemetry("discrete")`) and the arrival
+ * rail that would draw it is separately queued work.
+ *
+ * Reported AND marked, because the two failures are different. An operator sees
+ * a widget with nothing on its rail; a developer needs to be told which
+ * combination went undrawn and who declared it.
+ */
+describe("an entry nothing can draw", () => {
+  afterEach(() => {
+    resetUnrepresentedRailReports();
+    vi.restoreAllMocks();
+  });
+
+  const SCIENCE_HOME = railTagsForTelemetry("discrete");
+
+  it("marks the gap in place of the trace, and draws no ink", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { container } = render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[ribbon({ id: "science.result", tags: SCIENCE_HOME })]}
+      />,
+    );
+    const mark = container.querySelector("[data-rail-unrepresented]");
+    expect(mark?.getAttribute("data-rail-unrepresented")).toBe(
+      "telemetry/discrete/fire-and-forget",
+    );
+    expect(mark?.getAttribute("data-rail-entry")).toBe("science.result");
+    // Zero ink: no trace, and nothing that would move a pixel of a graph
+    // holding a represented entry beside it.
+    expect(container.querySelector('[data-role="ribbon"]')).toBeNull();
+    expect(mark?.children).toHaveLength(0);
+    expect(errors).toHaveBeenCalledOnce();
+    expect(errors.mock.calls[0][0]).toContain(
+      "telemetry/discrete/fire-and-forget",
+    );
+    expect(errors.mock.calls[0][0]).toContain("science.result");
+  });
+
+  it("says it ONCE per combination, not once per frame", () => {
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <ControlDelayStream
+        streams={[]}
+        ribbons={[
+          ribbon({ id: "a", tags: SCIENCE_HOME }),
+          ribbon({ id: "b", tags: SCIENCE_HOME }),
+        ]}
+      />,
+    );
+    expect(errors).toHaveBeenCalledOnce();
+  });
+
+  it("still draws the represented entries beside it", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const { container } = render(
+      <ControlDelayStream
+        streams={[stream()]}
+        ribbons={[ribbon({ id: "science.result", tags: SCIENCE_HOME })]}
+      />,
+    );
+    expect(container.querySelector('[data-role="commanded"]')).not.toBeNull();
+    expect(container.querySelector("[data-rail-unrepresented]")).not.toBeNull();
   });
 });
