@@ -16,10 +16,11 @@ export const READING_GATE_DEBT: readonly string[] = [
    * Same site, thirty-three lines lower: the probe harness learned install
    * profiles above it, and later gave up three lines again when one Uplink
    * client's self-registration import left with the widget fixtures that were
-   * its only reason to be there.
+   * its only reason to be there. Two lower again since it learned to mount a
+   * scene's contributed header badges.
    * Renumbered, not fixed: the fix is `state !== "pending"`
    * (`AugmentAvailabilityFeeder` already made it), and making it here changes
    * which augments the probe renders, which moves the visual baselines.
    */
-  "packages/components/scripts/probe/probe-entry.tsx:335",
+  "packages/components/scripts/probe/probe-entry.tsx:337",
 ];

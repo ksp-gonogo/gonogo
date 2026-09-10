@@ -62,9 +62,11 @@ import "@ksp-gonogo/gonogo-kerbalism-uplink";
 // module load, same contract.
 import "@ksp-gonogo/gonogo-realantennas-uplink";
 import {
+  type BadgeEntry,
   DomainAvailabilityProvider,
   type DomainAvailabilityStore,
   defaultDarkTheme,
+  PanelBadgesProvider,
   PanelStatusStoreProvider,
   useDomainAvailabilityStore,
 } from "@ksp-gonogo/ui-kit";
@@ -549,7 +551,7 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
       componentId: def.id,
       contributionSlots: def.contributionSlots ?? [],
     };
-    return createElement(
+    const tree = createElement(
       WidgetMetaContext.Provider,
       { value: meta },
       createElement(
@@ -587,6 +589,23 @@ async function renderProbe(payload: ProbePayload): Promise<void> {
         ),
       ),
     );
+    /**
+     * A scene's `_badges` block, mounted the way the dashboard mounts the
+     * widget's automatic `<id>.badges` contribution slot: through
+     * `PanelBadgesProvider`, which is what `Panel` reads to render its header
+     * badge pills.
+     *
+     * Without it a contributed header badge reaches no PNG at all. `Panel`
+     * asks the context for its pills and the probe never supplied one, so
+     * every render pictured a header with the widget's own aside and nothing
+     * an Uplink had added beside it, which is exactly the competition for
+     * header width that the aside's measured-fit collapse turns on. Absent
+     * from the scene the provider is skipped entirely rather than mounted
+     * empty, so no existing render moves.
+     */
+    const badges = payload.fixture._badges as readonly BadgeEntry[] | undefined;
+    if (!badges || badges.length === 0) return tree;
+    return createElement(PanelBadgesProvider, { badges }, tree);
   }
 
   activeRoot = createRoot(root);
