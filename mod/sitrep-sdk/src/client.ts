@@ -2,17 +2,32 @@ import type { ServerMessage } from "./envelope";
 import type { TopicId } from "./topics";
 import { wrapTopicPayload } from "./wrap-units";
 
-// Guard: `satisfies Record<ServerMessage["type"], true>` forces this map to list
-// EVERY ServerMessage discriminant: adding a variant to the union without adding
-// its tag here is a compile error. Keeps this hand-owned seam in sync with envelope.ts.
+// Guard: `satisfies Record<ServerMessage["type"], boolean>` forces this map to
+// list EVERY ServerMessage discriminant: adding a variant to the union without
+// adding its tag here is a compile error. Keeps this hand-owned seam in sync
+// with envelope.ts.
+//
+// The VALUE is whether that variant can arrive as TEXT. Only `stream-binary` is
+// false, and it is false rather than absent for the reason the map exists: a
+// missing key would satisfy nothing and the guard would stop guarding, while an
+// absent-and-therefore-rejected tag would look like an oversight. It is
+// rejected deliberately. A JSON document claiming to be a binary frame is not
+// one, because the lane's whole content is bytes that a JSON string cannot
+// carry; a real one is decoded by `decodeBinaryFrame` and never comes past
+// here.
 const SERVER_TYPE_TAGS = {
   "stream-data": true,
   event: true,
   "command-response": true,
   error: true,
-} satisfies Record<ServerMessage["type"], true>;
+  "stream-binary": false,
+} satisfies Record<ServerMessage["type"], boolean>;
 
-const SERVER_TYPES = new Set<string>(Object.keys(SERVER_TYPE_TAGS));
+const SERVER_TYPES = new Set<string>(
+  Object.entries(SERVER_TYPE_TAGS)
+    .filter(([, arrivesAsText]) => arrivesAsText)
+    .map(([tag]) => tag),
+);
 
 /**
  * Decode one server frame, and give its quantities their units back.

@@ -1,0 +1,218 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Sitrep.Contract;
+using Sitrep.Core.Serialization;
+using Xunit;
+
+namespace Sitrep.Core.Tests
+{
+    /// <summary>
+    /// The cross-language pin for the binary lane: real frames, written by the
+    /// real C# writer, committed as bytes, and decoded by the TypeScript client
+    /// in <c>mod/sitrep-sdk/src/binary-frame.test.ts</c>.
+    ///
+    /// <para><b>Why a generated artefact and not two hand-written test
+    /// suites.</b> Both ends of this format were transcribed by hand from one
+    /// layout description. Two transcriptions of the same sentence agree with
+    /// each other forever, including when the sentence is wrong, so a C# test
+    /// that round-trips its own writer and a TS test that builds a frame from
+    /// the documented offsets can both be green while the client cannot read a
+    /// single frame the mod sends. The fixture removes the second
+    /// transcription: the TS side no longer builds anything, it decodes bytes
+    /// this writer actually produced.</para>
+    ///
+    /// <para><b>The direction is reversed from every other fixture in this
+    /// folder</b>, and deliberately. The rest are TS-reference to C#-port,
+    /// because the TS is the original. Here the C# IS the original: the client
+    /// never writes this lane at all, so pinning the client to TS-generated
+    /// bytes would pin it to a writer that does not exist in production.</para>
+    ///
+    /// <para>Regenerate with <c>SITREP_UPDATE_FIXTURES=1 dotnet test
+    /// mod/Sitrep.Core.Tests --filter BinaryFrameFixture</c>, and read the diff:
+    /// a changed byte here is a wire-format change, and every third-party
+    /// consumer of the lane is downstream of it.</para>
+    /// </summary>
+    public class BinaryFrameFixtureTests
+    {
+        private const string FixtureFile = "binary-frame.json";
+
+        private static readonly JsonSerializerOptions JsonOptions = new()
+        {
+            PropertyNameCaseInsensitive = true,
+            WriteIndented = true,
+        };
+
+        private sealed class Fixture
+        {
+            [JsonPropertyName("note")]
+            public string Note { get; set; } = string.Empty;
+
+            [JsonPropertyName("cases")]
+            public List<FixtureCase> Cases { get; set; } = new();
+        }
+
+        private sealed class FixtureCase
+        {
+            [JsonPropertyName("name")]
+            public string Name { get; set; } = string.Empty;
+
+            [JsonPropertyName("topic")]
+            public string Topic { get; set; } = string.Empty;
+
+            /// <summary>The whole frame, prefix included, exactly as it goes on the wire.</summary>
+            [JsonPropertyName("frameBase64")]
+            public string FrameBase64 { get; set; } = string.Empty;
+
+            /// <summary>What a decoder must get back out, one base64 string per segment.</summary>
+            [JsonPropertyName("segmentsBase64")]
+            public List<string> SegmentsBase64 { get; set; } = new();
+        }
+
+        private static Meta FixtureMeta() => new Meta
+        {
+            Source = "radio",
+            ValidAt = 1000.25,
+            Seq = 42,
+            DeliveredAt = 1030.25,
+            Vantage = "ksc",
+            Quality = Quality.Loaded,
+            Active = true,
+            Staleness = Staleness.Fresh,
+            TimelineEpoch = 3,
+        };
+
+        /// <summary>
+        /// The cases, chosen so a decoder cannot pass by accident: a batch (the
+        /// shape the lane exists for), a single segment, a frame whose payload
+        /// contains the magic and brace bytes (so an implementation that
+        /// re-scans for a delimiter instead of trusting the table is caught),
+        /// and the empty frame that must decode as a real delivery.
+        /// </summary>
+        private static IEnumerable<(string Name, string Topic, byte[][] Segments)> Cases()
+        {
+            yield return ("batch-of-three", "radio.rx.v-1", new[]
+            {
+                new byte[] { 0x00, 0x01, 0x02, 0xFF },
+                new byte[] { 0x9E, 0x7B, 0x00 },
+                new byte[] { 0xAA },
+            });
+            yield return ("single-segment", "opaque.payload", new[]
+            {
+                new byte[] { 0x01, 0x02, 0x03, 0xFE, 0xFF },
+            });
+            yield return ("payload-contains-framing-bytes", "radio.rx.v-2", new[]
+            {
+                new byte[] { 0x9E, 0x01, 0x00, 0x04, 0x7B, 0x7D },
+                new byte[] { 0x7B, 0x22, 0x74, 0x22, 0x7D },
+            });
+            yield return ("no-segments", "radio.rx.v-3", Array.Empty<byte[]>());
+        }
+
+        private static Fixture Build()
+        {
+            var fixture = new Fixture
+            {
+                Note =
+                    "Generated by Sitrep.Core.Tests.BinaryFrameFixtureTests from the real "
+                    + "BinaryFrameCodec writer. Never hand-edit: regenerate with "
+                    + "SITREP_UPDATE_FIXTURES=1. Read by mod/sitrep-sdk/src/binary-frame.test.ts.",
+            };
+
+            foreach (var (name, topic, segments) in Cases())
+            {
+                var frame = BinaryFrameCodec.WriteStreamBinary(
+                    new StreamBinary { Topic = topic, Meta = FixtureMeta() },
+                    segments);
+                fixture.Cases.Add(new FixtureCase
+                {
+                    Name = name,
+                    Topic = topic,
+                    FrameBase64 = Convert.ToBase64String(frame),
+                    SegmentsBase64 = segments.Select(Convert.ToBase64String).ToList(),
+                });
+            }
+
+            return fixture;
+        }
+
+        /// <summary>
+        /// Compared as DATA, never as text. The file is JSON in a repo whose
+        /// formatter reflows JSON, so a string comparison against this
+        /// serializer's own indentation goes red the first time anyone runs
+        /// `pnpm lint`, and the red says "the wire format changed" about a
+        /// whitespace edit. Round-tripping the committed file through the same
+        /// serializer normalises the formatting away and leaves exactly the
+        /// bytes and the field values, which is what the gate is actually for.
+        /// </summary>
+        [Fact]
+        public void CommittedFixtureMatchesWhatTheWriterProducesToday()
+        {
+            var built = Build();
+
+            if (Environment.GetEnvironmentVariable("SITREP_UPDATE_FIXTURES") == "1")
+            {
+                File.WriteAllText(SourcePath(), JsonSerializer.Serialize(built, JsonOptions) + "\n");
+                return;
+            }
+
+            var committed = JsonSerializer.Deserialize<Fixture>(
+                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "golden-fixtures", FixtureFile)),
+                JsonOptions)!;
+
+            Assert.Equal(
+                JsonSerializer.Serialize(built, JsonOptions),
+                JsonSerializer.Serialize(committed, JsonOptions));
+        }
+
+        /// <summary>
+        /// The committed bytes still parse, so the fixture cannot rot into an
+        /// artefact that only the writer agrees with. This is the C# half of
+        /// the pin; the TS half is the same file read by the client's decoder.
+        /// </summary>
+        [Fact]
+        public void EveryCommittedFrameParsesBackToItsSegments()
+        {
+            var fixture = JsonSerializer.Deserialize<Fixture>(
+                File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "golden-fixtures", FixtureFile)),
+                JsonOptions)!;
+
+            Assert.NotEmpty(fixture.Cases);
+            foreach (var testCase in fixture.Cases)
+            {
+                var frame = Convert.FromBase64String(testCase.FrameBase64);
+                Assert.True(BinaryFrameCodec.TryParseStreamBinary(
+                    frame, 0, frame.Length, out var header, out var segments, out var reason),
+                    testCase.Name + ": " + reason);
+                Assert.Equal(testCase.Topic, header.Topic);
+                Assert.Equal(testCase.SegmentsBase64.Count, segments.Count);
+                for (var i = 0; i < segments.Count; i++)
+                {
+                    Assert.Equal(testCase.SegmentsBase64[i], Convert.ToBase64String(segments[i]));
+                }
+            }
+        }
+
+        private static string SourcePath()
+        {
+            var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            while (directory is not null)
+            {
+                var candidate = Path.Combine(directory.FullName, "mod", "golden-fixtures", FixtureFile);
+                if (Directory.Exists(Path.GetDirectoryName(candidate)!))
+                {
+                    return candidate;
+                }
+
+                directory = directory.Parent;
+            }
+
+            throw new InvalidOperationException(
+                "could not locate mod/golden-fixtures walking up from " + AppContext.BaseDirectory);
+        }
+    }
+}

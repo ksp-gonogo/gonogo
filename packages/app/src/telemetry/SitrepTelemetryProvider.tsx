@@ -50,6 +50,59 @@ const SITREP_STREAM_BUDGET = new PerfBudget({
 });
 
 /**
+ * Soft cap on BINARY-LANE frames delivered off the same socket.
+ *
+ * **Its own budget, and that is the load-bearing decision.** Folding the lane
+ * into {@link SITREP_STREAM_BUDGET} would have cost nothing to write and made
+ * both numbers meaningless: that one is sized against a ~1 Hz state stream with
+ * ~150/sec of stated headroom, and media traffic would eat the headroom that
+ * was measured for a reconnect storm while making the combined rate describe
+ * neither population. Two lanes, two counters, two numbers that each still
+ * answer a question.
+ *
+ * **Threshold, derived the same way the mod side's twin is.** The shape the
+ * lane exists for is batched media: push-to-talk audio on the 20 ms Opus grid
+ * batched to 200 ms is 5 frames/sec per talker, and the worst case anyone has
+ * argued for is three talkers heard at once, so 15/sec. 250 is well clear of
+ * that and deliberately the same number as `RADIO_CHUNK_BUDGET` next door
+ * (`packages/app/src/commcast/radio/wire.ts`) so a reader comparing the PeerJS
+ * radio path against this one is comparing like with like.
+ *
+ * What it actually catches is a producer that forgot to batch: unbatched, those
+ * same three talkers are 150 frames/sec, still under this cap but ten times
+ * where they should be, which is why {@link SITREP_BINARY_BYTES_BUDGET} is
+ * counted alongside it rather than instead of it.
+ */
+const SITREP_BINARY_FRAME_BUDGET = new PerfBudget({
+  name: "Telemetry binary-lane frames/sec",
+  threshold: 250,
+  windowMs: 1000,
+  unit: "frames",
+});
+
+/**
+ * Payload bytes arriving on the binary lane, per second, summed across every
+ * segment of every frame.
+ *
+ * A REAL byte count, unlike `StreamFrameInfo.byteLength` next door, which is a
+ * UTF-16 string length. Sized identically to the shipped `RADIO_BYTES_BUDGET`
+ * and for its stated reason: loose enough to survive a codec that overshoots
+ * its bitrate hint (firefox does, measured at 4338 B/s against a 24 kbit hint),
+ * tight enough that raw PCM cannot hide behind it, since int16 at 16 kHz is
+ * 32 kB/s and trips this inside a second.
+ *
+ * The pair is what makes the frame budget diagnostic. Bytes high with frames
+ * low is a producer sending more than it should; frames high with bytes low is
+ * a producer that is not batching. Either alone reads as ambiguous load.
+ */
+const SITREP_BINARY_BYTES_BUDGET = new PerfBudget({
+  name: "Telemetry binary-lane bytes/sec",
+  threshold: 40_000,
+  windowMs: 1000,
+  unit: "bytes",
+});
+
+/**
  * Re-exported for backward compatibility: every existing call site
  * (`StationScreen`, `SitrepPeerRelay`, this file's own default prop, tests)
  * imports it from here. The list itself now lives in
@@ -156,6 +209,10 @@ export function SitrepTelemetryProvider({
           host: resolvedHost,
           port: resolvedPort,
           onStreamFrame: () => SITREP_STREAM_BUDGET.record(),
+          onBinaryFrame: (info) => {
+            SITREP_BINARY_FRAME_BUDGET.record();
+            SITREP_BINARY_BYTES_BUDGET.record(info.byteLength);
+          },
         })
       : undefined;
     // Mirror the OWNED transport's connection status into the "Sitrep

@@ -6,6 +6,37 @@ import { Value, Vec3Of } from '../value';
 import { ProviderExtensions } from '../extensions';
 
 /**
+* The JSON header of a BinaryLane frame: everything about the delivery except
+* the bytes themselves.
+*
+* Deliberately shaped as a sibling of `StreamData<T>`, carrying the SAME
+* `StreamBinary.meta` unchanged, so a binary delivery is subject to the reveal
+* gate, the vantage, the staleness verdict and the timeline epoch exactly as a
+* JSON channel is: the Courier does not know which lane a payload will leave
+* on, and nothing here lets a producer opt out of the delay. Where it differs
+* is that the payload is not in the document. `StreamBinary.segments` is the
+* length table for the bytes that follow the header.
+*
+* **Absence discipline.** A frame whose segment lengths do not sum to exactly
+* the bytes remaining after the header is UNREAD: a truncated or over-long
+* frame is dropped with a named reason and never substituted by an empty
+* payload, because a listener that is handed zero segments cannot tell "nobody
+* transmitted" from "the frame arrived broken".
+*/
+export interface StreamBinary
+{
+	type: "stream-binary";
+	topic: string;
+	/**
+	* Byte length of each segment, in the order they appear after the header. An
+	* EMPTY table is legal and means a delivery with no segments, which is a
+	* producer saying "nothing this frame" rather than a broken frame; it is
+	* distinguishable from a broken one precisely because the sum still matches.
+	*/
+	segments: number[];
+	meta: Meta;
+}
+/**
 * `career.strategy.activate`'s args: the strategy's stable id plus the slider
 * fraction to activate it at. `ActivateStrategyArgs.strategyId` is
 * `StrategyConfig.Name` (e.g. `"OutsourceRnDStrategy"`): the exact same id the

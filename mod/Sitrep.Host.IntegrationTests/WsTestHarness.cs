@@ -148,6 +148,20 @@ namespace Sitrep.Host.IntegrationTests
                     SingleWriter = true,
                     SingleReader = false,
                 });
+            /// <summary>
+            /// Binary-lane frames, kept OFF the string channel above rather
+            /// than shoved through it. The pump splits on the same magic byte
+            /// the real client's <c>decodeFrame</c> splits on, so a test
+            /// reading telemetry never has to step over a frame of audio, and a
+            /// binary frame is never handed to a UTF-8 decoder here either.
+            /// </summary>
+            private readonly Channel<byte[]> _incomingBinary = Channel.CreateUnbounded<byte[]>(
+                new UnboundedChannelOptions
+                {
+                    AllowSynchronousContinuations = true,
+                    SingleWriter = true,
+                    SingleReader = false,
+                });
             private readonly CancellationTokenSource _pumpCts = new CancellationTokenSource();
             private Thread? _pumpThread;
 
@@ -194,7 +208,15 @@ namespace Sitrep.Host.IntegrationTests
                             ms.Write(buffer, 0, result.Count);
                         } while (!result.EndOfMessage);
 
-                        _incoming.Writer.TryWrite(Encoding.UTF8.GetString(ms.ToArray()));
+                        var frame = ms.ToArray();
+                        if (BinaryLane.IsBinaryFrame(frame, 0, frame.Length))
+                        {
+                            _incomingBinary.Writer.TryWrite(frame);
+                        }
+                        else
+                        {
+                            _incoming.Writer.TryWrite(Encoding.UTF8.GetString(frame));
+                        }
                     }
                 }
                 catch (Exception)
@@ -213,10 +235,42 @@ namespace Sitrep.Host.IntegrationTests
                 return _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Text, true, CancellationToken.None);
             }
 
+            /// <summary>
+            /// Send RAW BYTES up the socket as a WebSocket binary frame, which
+            /// nothing in the protocol accepts. Exists so the inbound refusal
+            /// can be exercised as a client would trip it, rather than by
+            /// calling the guard directly.
+            /// </summary>
+            public Task SendBytesAsync(byte[] bytes)
+            {
+                return _socket.SendAsync(new ArraySegment<byte>(bytes), WebSocketMessageType.Binary, true, CancellationToken.None);
+            }
+
             public async Task<string> ReceiveAsync(TimeSpan timeout)
             {
                 using var cts = new CancellationTokenSource(timeout);
                 return await _incoming.Reader.ReadAsync(cts.Token);
+            }
+
+            /// <summary>The next binary-lane frame, still as bytes.</summary>
+            public async Task<byte[]> ReceiveBinaryAsync(TimeSpan timeout)
+            {
+                using var cts = new CancellationTokenSource(timeout);
+                return await _incomingBinary.Reader.ReadAsync(cts.Token);
+            }
+
+            /// <summary>
+            /// Assert nothing arrives on the BINARY channel in this window. The
+            /// twin of <see cref="AssertNoMessageArrivesAsync"/>, and the shape
+            /// the "declared, never inferred" test needs: a channel that did
+            /// not opt in must put nothing at all on this lane, which is not
+            /// the same as it putting something wrong on it.
+            /// </summary>
+            public async Task AssertNoBinaryFrameArrivesAsync(TimeSpan window)
+            {
+                using var cts = new CancellationTokenSource(window);
+                await Xunit.Assert.ThrowsAnyAsync<OperationCanceledException>(async () =>
+                    await _incomingBinary.Reader.ReadAsync(cts.Token));
             }
 
             public async Task AssertNoMessageArrivesAsync(TimeSpan window)

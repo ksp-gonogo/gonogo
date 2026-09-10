@@ -806,6 +806,32 @@ namespace Sitrep.Host
 
         private PerfBudget? _blackoutReplayBudget;
 
+        /// <summary>
+        /// Soft cap on BINARY-LANE frames this engine puts on the wire per
+        /// second, counted per frame rather than per segment, and summed across
+        /// every opaque topic and every subscriber.
+        ///
+        /// <para><b>Derived, not picked.</b> The lane exists for batched media,
+        /// and the shape it was sized against is push-to-talk audio on the 20 ms
+        /// Opus grid batched to 200 ms, which is 5 frames/sec per talker per
+        /// subscriber. The realistic worst case anyone has argued for is three
+        /// talkers heard by three screens: 9 combinations, 45 frames/sec.
+        /// 250 is ~5.5x that, deliberately the same multiple the app-side
+        /// <c>RADIO_CHUNK_BUDGET</c> already uses so the two numbers stay
+        /// comparable when read side by side.</para>
+        ///
+        /// <para>What it is really watching for is a producer that FORGOT to
+        /// batch. Unbatched, the same three-talkers-three-screens case is 450
+        /// frames/sec and trips this immediately, which is the intended
+        /// diagnosis: the per-frame envelope, not the payload, is what costs on
+        /// this lane, and a linear-scan delivery schedule ticked once per UT
+        /// second makes an unbatched grid expensive out of all proportion to
+        /// its bandwidth.</para>
+        /// </summary>
+        internal const double BinaryFrameBudget = 250;
+
+        private PerfBudget? _binaryFrameBudget;
+
         // Ground-side pending-uplink roster backing system.uplink.pending (see
         // UplinkPendingTopic's doc comment). Courier-thread-only, same
         // discipline as _signalDelaySeconds above: EVERY mutation/read happens
@@ -1251,6 +1277,13 @@ namespace Sitrep.Host
                 threshold: BlackoutReplayBudget,
                 windowSec: 1.0,
                 unit: "samples",
+                warn: LogHost);
+
+            _binaryFrameBudget = new PerfBudget(
+                "ChannelEngine binary-lane frames/sec",
+                threshold: BinaryFrameBudget,
+                windowSec: 1.0,
+                unit: "frames",
                 warn: LogHost);
         }
 
@@ -3383,6 +3416,49 @@ namespace Sitrep.Host
         /// (the mapper returned a perfectly good value), and an author sent to
         /// audit a mapper that never threw is being sent to the wrong file.
         /// </summary>
+        /// <summary>
+        /// What an <see cref="ChannelDeclaration.OpaquePayload"/> channel's
+        /// mapper is allowed to hand back, and the one place that is decided.
+        ///
+        /// <para>Two shapes: a single <c>byte[]</c>, and an ordered collection
+        /// of them. The collection is the form to prefer and the reason the
+        /// lane carries a segment table at all, because the per-frame envelope
+        /// and the per-sample delivery schedule are what cost, not the bytes.
+        /// A single array is accepted so a producer with genuinely one segment
+        /// this frame does not have to wrap it.</para>
+        ///
+        /// <para><b>A null is refused rather than sent as an empty frame.</b>
+        /// Zero segments is a legal frame and means "this producer had nothing
+        /// to say this tick"; a null mapper result on a lane that carries bytes
+        /// means the producer contradicted its own declaration, and spelling
+        /// the two the same way would leave a listener unable to tell a quiet
+        /// transmitter from a broken channel. So it throws, and the caller's
+        /// existing fail-soft says which uplink and why, on the host log AND to
+        /// the subscriber. A channel that wants a real absence tombstone wants
+        /// the JSON envelope, not this lane.</para>
+        /// </summary>
+        private static IReadOnlyList<byte[]> OpaqueSegments(string topic, object? payload)
+        {
+            switch (payload)
+            {
+                case byte[] single:
+                    return new[] { single };
+                case IReadOnlyList<byte[]> segments:
+                    return segments;
+                case IEnumerable<byte[]> segments:
+                    return new List<byte[]>(segments);
+                case null:
+                    throw new InvalidOperationException(
+                        "channel \"" + topic + "\" declares OpaquePayload and its mapper returned null. "
+                        + "A frame with zero segments says \"nothing this tick\"; null says nothing at all. "
+                        + "Return an empty segment list, or drop OpaquePayload and use the JSON envelope's tombstone.");
+                default:
+                    throw new InvalidOperationException(
+                        "channel \"" + topic + "\" declares OpaquePayload, so its mapper must return byte[] "
+                        + "or an ordered collection of byte[], not " + payload.GetType().FullName);
+            }
+        }
+
         private void FailSoftChannel(string topic, Exception ex, string what = "mapper threw")
         {
             // Same rationale as FailSoftCommand above: see its doc comment.
@@ -3425,6 +3501,37 @@ namespace Sitrep.Host
         /// <c>GetType()</c> is non-virtual, so unlike <c>ex.Message</c> it
         /// cannot be overridden to throw.</para>
         /// </summary>
+        /// <summary>
+        /// Answer a client that sent a binary-lane frame UP the socket, which
+        /// nothing accepts.
+        ///
+        /// <para>Refused by NAME, and the name distinguishes the two things it
+        /// could be: a lane byte this build does not know (a client newer than
+        /// the mod), or the one lane it does know arriving in the direction it
+        /// does not run. Both are the client's to fix and neither is guessable
+        /// from silence.</para>
+        /// </summary>
+        private void RefuseInboundBinaryFrame(ClientSession session, ArraySegment<byte> payload)
+        {
+            var lane = payload.Count >= 2 ? payload.Array![payload.Offset + 1] : (byte)0;
+            var message = lane == BinaryLane.LaneStreamBinary
+                ? "the stream-binary lane is server-to-client only; send bytes as a command's arguments instead"
+                : "unknown binary lane 0x" + lane.ToString("X2") + "; this build accepts no inbound binary frames";
+            var error = new ErrorMsg
+            {
+                Code = "binary-frame-not-accepted",
+                Message = message,
+            };
+            try
+            {
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }
+            catch (Exception publishEx)
+            {
+                LogHost("could not deliver the inbound-binary-frame refusal: " + SafeExceptionMessage(publishEx));
+            }
+        }
+
         private void PublishPayloadSerializationError(ClientSession session, string topic, object? payload, Exception ex)
         {
             var clrType = payload == null ? "null" : payload.GetType().FullName;
@@ -5525,6 +5632,7 @@ namespace Sitrep.Host
                 _network.SetDelay(MetaVantage, NodeFor(topic), 0.0);
             }
             var delivery = _channelDeclarations[topic].Delivery;
+            var opaque = _channelDeclarations[topic].OpaquePayload;
 
             Action unsubscribe;
             try
@@ -5544,14 +5652,31 @@ namespace Sitrep.Host
                     byte[] bytes;
                     try
                     {
-                        var json = EnvelopeCodec.WriteStreamData(streamData);
-                        bytes = Encoding.UTF8.GetBytes(json);
+                        // The binary lane is DECLARED, never inferred: a
+                        // channel that did not ask for it keeps the JSON
+                        // envelope even when its payload happens to be a
+                        // byte[], which is an ordinary thing to publish as a
+                        // number array. See ChannelDeclaration.OpaquePayload.
+                        bytes = opaque
+                            ? BinaryFrameCodec.WriteStreamBinary(
+                                new StreamBinary
+                                {
+                                    Topic = streamData.Topic,
+                                    Meta = streamData.Meta,
+                                },
+                                OpaqueSegments(topic, streamData.Payload))
+                            : Encoding.UTF8.GetBytes(EnvelopeCodec.WriteStreamData(streamData));
                     }
                     catch (Exception ex)
                     {
                         FailSoftChannel(topic, ex, "payload could not be serialized");
                         PublishPayloadSerializationError(session, topic, streamData.Payload, ex);
                         return;
+                    }
+
+                    if (opaque)
+                    {
+                        _binaryFrameBudget?.Record(1, streamData.Meta.DeliveredAt);
                     }
 
                     // A replayed sample rides the FIFO lane whatever the channel
@@ -5742,6 +5867,22 @@ namespace Sitrep.Host
 
         private void OnMessageReceived(ClientSession session, ArraySegment<byte> payload)
         {
+            // The binary lane runs SERVER -> CLIENT only. Inbound is still
+            // UTF-8 JSON, and a client with bytes to send sends a command.
+            //
+            // The guard is here rather than absent because the decode below is
+            // unconditional: a binary frame offered to it comes out as
+            // replacement characters and then fails JSON parsing, so the
+            // client is told its subscribe was malformed when what actually
+            // happened is that this build does not accept the lane it used.
+            // Naming the refusal is the difference between an author fixing it
+            // in a minute and reading a decoder's mind.
+            if (BinaryLane.IsBinaryFrame(payload.Array!, payload.Offset, payload.Count))
+            {
+                RefuseInboundBinaryFrame(session, payload);
+                return;
+            }
+
             var text = Encoding.UTF8.GetString(payload.Array!, payload.Offset, payload.Count);
             try
             {

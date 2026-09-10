@@ -1083,6 +1083,11 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     totalDvAsl: "m/s",
     totalDvVac: "m/s",
   },
+  "StreamBinary": {
+    segments: "count",
+    topic: "id",
+    type: "id",
+  },
   "StreamData": {
     topic: "id",
     type: "id",
@@ -2151,6 +2156,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   },
   "StageDeltaVEntry": {
     resources: "*ResourceAmount",
+  },
+  "StreamBinary": {
+    meta: "Meta",
   },
   "StreamData": {
     meta: "Meta",
