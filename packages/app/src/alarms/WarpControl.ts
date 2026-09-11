@@ -15,6 +15,13 @@ export interface WarpControlContext {
   /** Stamp called whenever WarpControl issues a warp command, lets the
    *  observer suppress the unscheduled-warp detector for this change. */
   registerOwnWarpIntent(): void;
+  /**
+   * One-way light time to the craft, seconds, or 0 where there is none.
+   *
+   * Injected rather than read here so the controller stays a plain class with
+   * no telemetry reach of its own, the same way it takes its clock.
+   */
+  getOwltSeconds(): number;
 }
 
 export interface WarpToTarget {
@@ -61,6 +68,19 @@ export class WarpControl {
 
   setMarginSeconds(seconds: number): void {
     this.warpSafetyMarginSeconds = seconds;
+  }
+
+  /**
+   * The light-time, when it is the thing actually deciding the ladder, and
+   * `undefined` when the operator's own setting still is.
+   *
+   * Only the overriding case, because the banner's job is to explain a control
+   * that is not in force: reporting the light-time while the setting is larger
+   * would put a number on screen that changes nothing.
+   */
+  getOverridingOwltSeconds(): number | undefined {
+    const effective = this.effectiveMarginSeconds();
+    return effective > this.warpSafetyMarginSeconds ? effective : undefined;
   }
 
   /** Begin a warp-to session. Returns true if a session actually started. */
@@ -128,12 +148,33 @@ export class WarpControl {
     this.commandWarp(0);
   }
 
+  /**
+   * The margin actually applied: the operator's setting, or the one-way light
+   * time when that is longer.
+   *
+   * The setting is a REAL-TIME buffer and knows nothing about delay, so on a
+   * craft four minutes away a 10-second margin let the ladder run until the
+   * alarm was ten seconds off on the VIEW clock, by which time the craft had
+   * been past the event for most of a light-time. A warp window cannot be
+   * aborted from inside, so the pessimistic side is the only safe side and the
+   * light-time is the size of the pessimism.
+   *
+   * `max` rather than a sum: the margin and the light-time are two answers to
+   * the same question (how much room to leave), not two costs to add up, and a
+   * LAN session keeps exactly the behaviour it had.
+   */
+  private effectiveMarginSeconds(): number {
+    const owlt = this.ctx.getOwltSeconds();
+    const safeOwlt = Number.isFinite(owlt) && owlt > 0 ? owlt : 0;
+    return Math.max(this.warpSafetyMarginSeconds, safeOwlt);
+  }
+
   private computeWarpToIndex(
     remainingGameSeconds: number,
     target: Alarm,
   ): number {
     if (remainingGameSeconds <= 0) return 0;
-    const maxRate = remainingGameSeconds / this.warpSafetyMarginSeconds;
+    const maxRate = remainingGameSeconds / this.effectiveMarginSeconds();
     const cap = this.stateMachine.hasUnmodelableThresholdOther(target)
       ? THRESHOLD_PRESENT_MAX_INDEX
       : HIGH_WARP_RATES.length - 1;

@@ -189,6 +189,15 @@ export function SafetyMarginPill() {
           title="Real seconds before arming: higher = step down earlier"
         />
         <Label>s</Label>
+        {/* Why the ladder is running slower than the box says. The controller
+            holds open at least one light-time on a delayed craft, because a
+            warp window cannot be aborted from inside and the operator's view
+            is that far behind the event. */}
+        {snap.owltSeconds !== undefined && (
+          <Label title="A delayed craft raises the margin to its own light-time">
+            (light-time {writeQuantity(value("s", snap.owltSeconds))} in force)
+          </Label>
+        )}
       </Cluster>
     </Wrap>
   );

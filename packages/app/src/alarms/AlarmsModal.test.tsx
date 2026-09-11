@@ -280,14 +280,18 @@ const PRESET_CARRIED = [
 // and the apoapsis/periapsis presets (derived
 // `vessel.state.timeToAp`/`timeToPe`) resolve off the stream. `pinnedUt` fixes
 // the view clock so an emitted orbit derives a deterministic time-to-apsis.
-function renderWithStream(modal: ReactElement, pinnedUt?: number) {
+function renderWithStream(
+  modal: ReactElement,
+  pinnedUt?: number,
+  delaySeconds = 0,
+) {
   const wall = createFakeWallClock();
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
   const clock = new ViewClock({
     nowWall: wall.now,
     warpRate: () => 1,
-    delaySeconds: () => 0,
+    delaySeconds: () => delaySeconds,
   });
   const store = new TimelineStore(clock);
   store.registerDerivedChannel(vesselStateChannel);
@@ -359,7 +363,7 @@ describe("AlarmsModal recommended presets", () => {
     );
     expect(screen.queryByRole("button", { name: /recommended/i })).toBeNull();
     expect(
-      screen.queryByRole("button", { name: /warp to apoapsis/i }),
+      screen.queryByRole("button", { name: /alarm at apoapsis/i }),
     ).toBeNull();
   });
 
@@ -382,7 +386,7 @@ describe("AlarmsModal recommended presets", () => {
       await screen.findByRole("button", { name: /recommended/i }),
     );
     expect(
-      await screen.findByRole("button", { name: /warp to apoapsis/i }),
+      await screen.findByRole("button", { name: /alarm at apoapsis/i }),
     ).toBeDefined();
 
     // At apoapsis (mean anomaly π) → timeToAp is 0. Scheduling ut+0 would fire
@@ -393,12 +397,12 @@ describe("AlarmsModal recommended presets", () => {
     emitOrbitAtApsis(emit, Math.PI);
     await waitFor(() =>
       expect(
-        screen.queryByRole("button", { name: /warp to apoapsis/i }),
+        screen.queryByRole("button", { name: /alarm at apoapsis/i }),
       ).toBeNull(),
     );
   });
 
-  it("offers and creates a 'Warp to apoapsis' time alarm once the orbit is live", async () => {
+  it("offers and creates an apoapsis time alarm once the orbit is live", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
     // Snapshot UT is 1000; the derived timeToAp (half period) anchors the
@@ -420,14 +424,14 @@ describe("AlarmsModal recommended presets", () => {
     await user.click(toggle);
 
     const apo = await screen.findByRole("button", {
-      name: /warp to apoapsis/i,
+      name: /alarm at apoapsis/i,
     });
     await user.click(apo);
 
     expect(onAdd).toHaveBeenCalledTimes(1);
     const alarm = onAdd.mock.calls[0][0];
     expect(alarm).toMatchObject({
-      name: "Warp to apoapsis",
+      name: "Apoapsis",
       trigger: { kind: "time", leadSeconds: DEFAULT_LEAD_SECONDS },
     });
     expect(alarm.trigger.ut).toBeCloseTo(1000 + TIME_TO_AP, 3);
@@ -435,7 +439,96 @@ describe("AlarmsModal recommended presets", () => {
     expect(alarm.onFire).toBeUndefined();
   });
 
-  it("offers a 'Warp to next maneuver' preset anchored to the node's absolute UT", async () => {
+  /*
+   * The defect this pair exists for. `timeToAp` is read off a Delayed channel
+   * at the view UT, so the sum is the true SCET of apoapsis, and the alarm
+   * pipeline then fires when the VIEW clock reaches it: one light-time after
+   * the craft went past. Invisible on LAN and four to twenty minutes wrong at
+   * Duna. The trigger now lands one light-time earlier, so the alarm goes off
+   * while the event is still ahead of the operator.
+   */
+  it("fires an apsis alarm AT the event on a delayed craft, not a light-time late", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    const owlt = 240;
+    const { emit } = renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={onAdd}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      owlt,
+    );
+
+    emitOrbitAtApsis(emit, 0);
+
+    await user.click(
+      await screen.findByRole("button", { name: /recommended/i }),
+    );
+    await user.click(
+      await screen.findByRole("button", { name: /alarm at apoapsis/i }),
+    );
+
+    expect(onAdd.mock.calls[0][0].trigger.ut).toBeCloseTo(
+      1000 + TIME_TO_AP - owlt,
+      3,
+    );
+  });
+
+  /* The SCET is what the button states, and it says which clock it is on: the
+     operator is being told when apoapsis happens out there, not when the alarm
+     will reach them. */
+  it("states the apsis time as a SCET while the craft is delayed", async () => {
+    const user = userEvent.setup();
+    const { emit } = renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      240,
+    );
+
+    emitOrbitAtApsis(emit, 0);
+    await user.click(
+      await screen.findByRole("button", { name: /recommended/i }),
+    );
+    const apo = await screen.findByRole("button", {
+      name: /alarm at apoapsis/i,
+    });
+    expect(within(apo).getByText("SCET")).toBeDefined();
+  });
+
+  /* The same button on a LAN session carries no qualifier at all: there is one
+     clock, and labelling it would put a word on every instant on the screen.
+     Without this the test above passes for a component that always labels. */
+  it("CONTROL: states no clock at all with no delay in force", async () => {
+    const user = userEvent.setup();
+    const { emit } = renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+    );
+
+    emitOrbitAtApsis(emit, 0);
+    await user.click(
+      await screen.findByRole("button", { name: /recommended/i }),
+    );
+    const apo = await screen.findByRole("button", {
+      name: /alarm at apoapsis/i,
+    });
+    expect(within(apo).queryByText("SCET")).toBeNull();
+  });
+
+  it("offers a next-maneuver preset anchored to the node's absolute UT", async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
     const { emitNodes } = renderWithStream(
@@ -455,13 +548,13 @@ describe("AlarmsModal recommended presets", () => {
     await user.click(toggle);
 
     const node = await screen.findByRole("button", {
-      name: /warp to next maneuver/i,
+      name: /alarm at next maneuver/i,
     });
     await user.click(node);
 
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(onAdd.mock.calls[0][0]).toMatchObject({
-      name: "Warp to next maneuver",
+      name: "Next maneuver",
       trigger: { kind: "time", ut: 2500, leadSeconds: DEFAULT_LEAD_SECONDS },
     });
   });
@@ -486,7 +579,7 @@ describe("AlarmsModal recommended presets", () => {
     const toggle = await screen.findByRole("button", { name: /recommended/i });
     await user.click(toggle);
     await user.click(
-      await screen.findByRole("button", { name: /warp to next maneuver/i }),
+      await screen.findByRole("button", { name: /alarm at next maneuver/i }),
     );
 
     expect(onAdd.mock.calls[0][0].trigger).toMatchObject({

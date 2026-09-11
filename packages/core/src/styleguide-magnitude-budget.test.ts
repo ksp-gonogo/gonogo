@@ -176,6 +176,17 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // construction share a unit.
   "mod/sitrep-sdk/src/spine/timeline-store.ts": 2,
   "mod/sitrep-sdk/src/testing/render.tsx": 1,
+  /*
+   * 1: the one-way delay, read out of the `comms.delay` wire payload so the
+   * warp-to controller can floor its safety margin at the light-time. The
+   * boundary is on the other side: what the controller does with it is
+   * `remainingGameSeconds / margin`, over a remaining-time number the alarm
+   * state machine produces bare and a margin the operator types into a plain
+   * `<input>`. Neither is a `Value`, so there is no algebra for the delay to
+   * stay inside. `auto-command.ts` spends its one on the same field for the
+   * same reason.
+   */
+  "packages/app/src/alarms/AlarmHostService.ts": 1,
   "packages/app/src/alarms/WarpObserver.ts": 1,
   /*
    * 1 each, and both are the wire boundary. A Commcast message crosses PeerJS
