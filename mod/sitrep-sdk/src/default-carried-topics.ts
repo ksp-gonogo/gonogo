@@ -37,6 +37,14 @@
  * entries still below it are first-party Uplinks whose Topics come through
  * codegen into this SDK; they are harmless duplicates of what registration now
  * promotes, and adding a new one here is never how an Uplink gets carried.
+ *
+ * CHANNELS only. A command id is not a channel and listing one buys nothing:
+ * this list decides whether a READ routes to the stream, and nothing reads a
+ * command. Three were listed for a day because `dispatchActiveCommandTopic`
+ * consulted this set before routing, so every command a plain class sent was
+ * refused unless someone had remembered to add it here. That gate is gone
+ * rather than fed: see its doc comment for why a promotion list was the wrong
+ * instrument for that question.
  */
 export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   "vessel.orbit",
@@ -255,24 +263,6 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // alarms and the notice that one fired and stopped the warp.
   "alarm.scet",
   "alarm.scet.fired",
-  // The two SCET alarm COMMANDS, and they are here for a different reason from
-  // every topic above. `dispatchActiveCommandTopic` refuses to route a command
-  // whose id is not in this carried set, and a command id never enters it by
-  // itself: the WebSocket transport grows its own set from arriving
-  // `stream-data` frames, and a command has none. So a non-hook caller's
-  // command routes only if it is listed here. `useCommand` has no such gate, so
-  // a widget is unaffected either way; `AlarmHostService` is a plain class and
-  // has no hook to dispatch from.
-  "alarm.scet.arm",
-  "alarm.scet.disarm",
-  // The warp command, here for the same reason the two above are, and for a
-  // path that has been dead the whole time: `WarpControl.commandWarp` is the
-  // alarm pipeline's step-down and ramp, it is a plain class dispatching
-  // through `dispatchActiveCommandTopic`, and with the id absent from this list
-  // every one of its commands was refused and logged as "warp command not
-  // routed". Nothing a widget does is affected, because `useCommand` has no
-  // such gate; it is the headless half that could not reach the game.
-  "time.setWarpIndex",
 ];
 
 /**

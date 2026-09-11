@@ -1,6 +1,7 @@
 import {
   COMMAND_IDS,
   DEFAULT_SITREP_CARRIED_TOPICS,
+  isCommandId,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -142,21 +143,25 @@ describe("getUndescribedCarriedTopics()", () => {
   });
 
   it("says nothing about a command, which is a control and not a reading", () => {
-    // A command id reaches the carried set for a reason of its own:
-    // `dispatchActiveCommandTopic` refuses to route an id that is not carried,
-    // and a command's id never arrives on a `stream-data` frame to be learned,
-    // so a non-hook caller's command has to be listed. It has no payload to
-    // enumerate and no declaration could give it one, so calling it
-    // undescribed would report a permanent gap that is not a gap.
-    const carried = new Set([...DEFAULT_SITREP_CARRIED_TOPICS, "alarm.scet"]);
+    /* The carried set is a promotion list of CHANNELS and the first-party one
+       holds no command ids, so this plants them: an app passing its own
+       `carriedChannels` prop, or an Uplink registering an id that is also a
+       command, can still put one in front of this walk. A command has no
+       payload to enumerate and no declaration could give it one, so calling it
+       undescribed would report a permanent gap that is not a gap. */
+    const planted = ["alarm.scet.arm", "time.setWarpIndex"];
+    const carried = new Set([
+      ...DEFAULT_SITREP_CARRIED_TOPICS,
+      "alarm.scet",
+      ...planted,
+    ]);
     const undescribed = new Set(getUndescribedCarriedTopics(carried));
     const catalogued = new Set(
       getTopicFieldCatalog(carried).map((k) => k.topic),
     );
     const commands = COMMAND_IDS.filter((id) => carried.has(id));
-    // Fails loudly if the carried list ever stops containing a command, which
-    // would leave this asserting over nothing.
-    expect(commands).toContain("alarm.scet.arm");
+    // The plant has to still BE a command, or this asserts over nothing.
+    expect(commands).toEqual(expect.arrayContaining(planted));
     for (const id of commands) {
       expect(undescribed.has(id)).toBe(false);
       expect(catalogued.has(id)).toBe(false);

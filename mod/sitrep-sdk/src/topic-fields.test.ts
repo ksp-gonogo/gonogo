@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { isCommandId } from "./commands";
 import { DEFAULT_SITREP_CARRIED_TOPICS } from "./default-carried-topics";
 import { isKnownFieldPath } from "./spine/map-topic";
 // Imported for the module-load side effect as much as for the value: this is
@@ -96,6 +97,19 @@ describe("enumerateTopicFields", () => {
     expect(described.length).toBeGreaterThan(
       DEFAULT_SITREP_CARRIED_TOPICS.length * 0.7,
     );
+  });
+});
+
+describe("DEFAULT_SITREP_CARRIED_TOPICS", () => {
+  it("promotes channels only, never a command", () => {
+    /* The list decides whether a READ routes to the stream, and nothing reads a
+       command. Three command ids sat on it for a day because
+       `dispatchActiveCommandTopic` consulted this set before routing, which
+       made a promotion list the gate on a control. That gate is gone; an entry
+       added back here would be promoting something no one can subscribe to,
+       and it would dilute the enumeration floor above with ids that can never
+       describe a field. */
+    expect(DEFAULT_SITREP_CARRIED_TOPICS.filter(isCommandId)).toEqual([]);
   });
 });
 
