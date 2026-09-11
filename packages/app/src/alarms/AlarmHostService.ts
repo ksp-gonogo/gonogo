@@ -21,11 +21,13 @@ import {
   AlarmStateMachine,
   type RevealedEventsReader,
 } from "./AlarmStateMachine";
+import { ScetAlarmBridge } from "./ScetAlarmBridge";
 import {
   type Alarm,
   type AlarmSnapshot,
   type AlarmTrigger,
   DEFAULT_WARP_SAFETY_MARGIN_SECONDS,
+  isScetTrigger,
   MAX_WARP_SAFETY_MARGIN_SECONDS,
   MIN_WARP_SAFETY_MARGIN_SECONDS,
   migrateAlarm,
@@ -43,7 +45,12 @@ function requiresMatchTracking(trigger: AlarmTrigger): boolean {
   return (
     trigger.kind === "threshold" ||
     trigger.kind === "contract-parameter" ||
-    trigger.kind === "event"
+    trigger.kind === "event" ||
+    // A SCET time alarm is latched from OUTSIDE, by the mod's fire notice, the
+    // same way an event alarm is latched by an occurrence. The client's own
+    // clock never decides it, so it needs the latch field a plain time alarm
+    // does not.
+    isScetTrigger(trigger)
   );
 }
 
@@ -160,6 +167,7 @@ export class AlarmHostService {
   private warp: WarpControl;
   private warpObserver: WarpObserver;
   private peerBridge: AlarmPeerBridge;
+  private scetBridge: ScetAlarmBridge;
 
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
     this.opts = {
@@ -178,6 +186,8 @@ export class AlarmHostService {
       () => this.alarms,
       () => this.observedUT,
       opts.getRevealedEvents,
+      undefined,
+      () => this.opts.getOwltSeconds(),
     );
 
     const initialMargin = this.loadMargin();
@@ -213,7 +223,16 @@ export class AlarmHostService {
       getSnapshot: () => this.snapshot(),
     });
 
+    /* AFTER the list is loaded, and that ordering is load-bearing: binding
+       subscribes to the fire notice, and `TelemetryClient.subscribe` replays
+       the sticky last value SYNCHRONOUSLY. Built first, the replayed notice for
+       an alarm that fired while this client was away would arrive before the
+       alarm it names had been read out of storage, and be dropped. */
     this.loadAlarms();
+    this.scetBridge = new ScetAlarmBridge({
+      getAlarms: () => this.alarms,
+      onFired: (id, firedAtUt) => this.onScetFired(id, firedAtUt),
+    });
     this.start();
   }
 
@@ -373,6 +392,45 @@ export class AlarmHostService {
       clearInterval(this.tickHandle);
       this.tickHandle = null;
     }
+    this.scetBridge.dispose();
+  }
+
+  /**
+   * The mod fired a SCET alarm and has already stopped the warp.
+   *
+   * Latches the alarm the way a revealed occurrence latches an `event` one, and
+   * records the instant the mod reported on `eventUT`, which is that field's
+   * whole purpose: the UT the thing HAPPENED on the craft's clock, as opposed
+   * to the reveal UT that opened the banner window.
+   *
+   * Idempotent, because the notice is deliberately replayed to a client that
+   * reconnects after the fire: an alarm that is not still pending has already
+   * been told.
+   */
+  private onScetFired(id: string, firedAtUt: number): void {
+    const alarm = this.alarms.find((a) => a.id === id);
+    if (!alarm || !isScetTrigger(alarm.trigger)) return;
+    if (alarm.state !== "pending" || alarm.matchSinceUT != null) return;
+    // The reveal UT, which is this client's own now: the banner window runs on
+    // the clock the operator is watching, while the instant it NAMES is the
+    // craft's. Read live rather than off `observedUT`, which is as of the last
+    // tick and would put the latch up to a tick in the past. Falling back to
+    // the mod's instant only matters before any frame has anchored the view
+    // clock, and an alarm cannot be armed before then.
+    alarm.matchSinceUT = getViewUt() ?? this.observedUT ?? firedAtUt;
+    alarm.eventUT = firedAtUt;
+    // Any warp-to session is over: the thing it was warping towards has
+    // happened and the game is already at zero. Left running it would keep
+    // reporting a target for the whole light-time it takes the stop to show up
+    // in `time.warp`.
+    this.warp.endOnExternalStop();
+    this.persist();
+    /* Straight to a tick so the transition to `firing` is this moment rather
+       than up to a second away: the whole argument for the notice being
+       TrueNow is that the operator learns WITH the stop. No warp command on
+       the way through, here or in the tick that follows: the mod already
+       stopped it, and a second authority for one piece of state is a race. */
+    this.tick();
   }
 
   // ── Tick loop ─────────────────────────────────────────────────────────
@@ -439,7 +497,12 @@ export class AlarmHostService {
             // Force warp to 0 again: in case the warp recovered between
             // `arming` and `firing`, or for threshold alarms where there
             // was no `arming` phase at all.
-            this.warp.stepWarpDown();
+            //
+            // Except for a SCET alarm, which the MOD fired, having already
+            // stopped the warp in the same frame it decided to. Commanding it
+            // again from here is a second authority for one piece of state, and
+            // it would be issued a light-time after the fact.
+            if (!isScetTrigger(alarm.trigger)) this.warp.stepWarpDown();
           }
           alarm.state = nextState;
           changed = true;
@@ -454,6 +517,10 @@ export class AlarmHostService {
 
     this.warp.reconcile(this.observedUT);
     this.warpObserver.detectUnscheduled();
+    // Every tick, not only on an edit: the mod's roster is what this reconciles
+    // against, and it moves for reasons this side never hears about (a
+    // quickload clears it, a fire retires a row).
+    this.scetBridge.reconcile();
     this.emit();
   }
 

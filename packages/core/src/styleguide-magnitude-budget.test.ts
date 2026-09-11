@@ -338,6 +338,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   // both has to accept either. Not arithmetic: the number is handed to the
   // caller and never computed with here.
   "packages/sitrep-client/src/wire-magnitude.ts": 1,
+  // The `alarm.scet.fired` notice, read straight off a raw arrival frame rather
+  // than through the store: the whole point of that channel is reaching the
+  // client with the warp stop rather than a light-time later, and the store
+  // samples at the frozen view time. So the payload is `unknown` off the wire
+  // and the instant arrives wrapped or bare depending on how the unit wrap
+  // keyed the topic, exactly the boundary `wire-magnitude.ts` above documents.
+  // Not arithmetic: the number is latched onto the alarm and never computed
+  // with here.
+  "packages/app/src/alarms/ScetAlarmBridge.ts": 1,
   // `canPropagate` accepts a horizon UT either wrapped (as the wire delivers it)
   // or already unwrapped, so one read normalises the two. Not arithmetic: the
   // number is compared against a window and never computed with.

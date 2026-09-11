@@ -11,6 +11,21 @@ export type AlarmState =
 
 export type ThresholdOp = ">" | ">=" | "<" | "<=" | "==" | "!=";
 
+/**
+ * Which clock an alarm's instant is on, and therefore who evaluates it.
+ *
+ * - `"command"`: the clock the operator is reading. The alarm fires when the
+ *   VIEW time reaches it, which is one light-time after the craft passed it.
+ *   Evaluated here, on the client, the way every alarm always has been.
+ * - `"scet"`: the craft's own clock. The alarm fires when the GAME's time
+ *   reaches it, and the mod stops the warp for everybody when it does.
+ *   Evaluated on the mod, because a client holds only delayed readings.
+ *
+ * Absent means `"command"`, so every persisted alarm and every LAN session
+ * keeps exactly the behaviour it had.
+ */
+export type AlarmVantage = "command" | "scet";
+
 export interface TimeTrigger {
   kind: "time";
   /** KSP Universal Time at which the alarm fires, seconds. */
@@ -21,6 +36,25 @@ export interface TimeTrigger {
    * waste when timing isn't critical.
    */
   leadSeconds: number;
+  /**
+   * Which clock {@link ut} is on. See {@link AlarmVantage}.
+   *
+   * A SCET time alarm is not a nicety a client could fake by subtracting the
+   * light-time itself. It would have to subtract it ONCE, when the operator set
+   * the alarm, and the craft's light-time keeps moving: an alarm armed ten
+   * minutes before a Duna apoapsis fires wrong by however far the geometry
+   * drifted in those ten minutes. Armed on the mod it is right by construction,
+   * because the comparison runs against the game's own clock every tick.
+   */
+  vantage?: AlarmVantage;
+}
+
+/**
+ * Whether this trigger is armed on the craft's clock, and therefore owned by
+ * the mod rather than by the client's own tick.
+ */
+export function isScetTrigger(trigger: AlarmTrigger): boolean {
+  return trigger.kind === "time" && trigger.vantage === "scet";
 }
 
 export interface ThresholdTrigger {
@@ -145,12 +179,17 @@ export interface Alarm {
    */
   matchSinceUT?: number | null;
   /**
-   * Event alarms only: the UT at which the occurrence that fired this alarm
-   * actually HAPPENED, as distinct from `matchSinceUT`, which is the UT it was
-   * revealed at. Under signal delay the two are far apart, and "when did it
-   * happen" is the number the operator wants; the reveal UT cannot stand in
-   * for it, and it has to keep being the reveal UT because that is what opens
-   * the firing window. Undefined until an occurrence latches.
+   * The UT at which the thing that fired this alarm actually HAPPENED, as
+   * distinct from `matchSinceUT`, which is the UT it was revealed at. Under
+   * signal delay the two are far apart, and "when did it happen" is the number
+   * the operator wants; the reveal UT cannot stand in for it, and it has to
+   * keep being the reveal UT because that is what opens the firing window.
+   * Undefined until something latches.
+   *
+   * Set by the two arms whose firing instant is not the client's own clock:
+   * an `event` trigger latches the occurrence's own UT, and a SCET time
+   * trigger latches the instant the mod reported stopping the warp at. Both
+   * are on the craft's clock, and both render with the SCET qualifier.
    */
   eventUT?: number;
   /**
@@ -250,6 +289,11 @@ export function migrateAlarm(raw: unknown): Alarm | null {
             typeof t.leadSeconds === "number"
               ? t.leadSeconds
               : DEFAULT_LEAD_SECONDS,
+          /* Anything that is not the literal "scet" is the command vantage,
+             which is what every alarm persisted before the SCET arm existed
+             is: the absent field has to mean the old behaviour or a reload
+             silently re-aims somebody's alarm onto another clock. */
+          vantage: t.vantage === "scet" ? "scet" : "command",
         },
         state: state ?? "pending",
         createdBy,

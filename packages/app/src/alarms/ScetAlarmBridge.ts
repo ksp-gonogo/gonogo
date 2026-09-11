@@ -4,23 +4,13 @@ import {
   getActiveTelemetryClient,
   subscribeActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
+import { ScetAlarmConditionKind } from "@ksp-gonogo/sitrep-sdk";
 import { type Alarm, isScetTrigger } from "./types";
 
 export const SCET_ROSTER_TOPIC = "alarm.scet";
 export const SCET_FIRED_TOPIC = "alarm.scet.fired";
 export const SCET_ARM_COMMAND = "alarm.scet.arm";
 export const SCET_DISARM_COMMAND = "alarm.scet.disarm";
-
-/** One row of the mod's `alarm.scet` roster, as much of it as this side reads. */
-interface RosterRow {
-  id?: unknown;
-}
-
-/** The `alarm.scet.fired` payload: an id and an instant, and deliberately nothing else. */
-interface FiredNotice {
-  id?: unknown;
-  firedAtUt?: unknown;
-}
 
 export interface ScetAlarmBridgeContext {
   /** The host's current alarm list, read live so the bridge never holds a stale copy. */
@@ -145,7 +135,7 @@ export class ScetAlarmBridge {
       // A time condition is about the game's own clock, so it names no craft.
       subject: "game",
       condition: {
-        kind: 0,
+        kind: ScetAlarmConditionKind.Time,
         ut: alarm.trigger.ut,
         leadSeconds: alarm.trigger.leadSeconds,
       },
@@ -184,14 +174,8 @@ export class ScetAlarmBridge {
       this.reconcile();
     });
     this.unsubscribeFired = client.subscribe(SCET_FIRED_TOPIC, (payload) => {
-      const notice = payload as FiredNotice | undefined;
-      if (!notice || typeof notice.id !== "string") return;
-      const firedAtUt =
-        typeof notice.firedAtUt === "number" && Number.isFinite(notice.firedAtUt)
-          ? notice.firedAtUt
-          : null;
-      if (firedAtUt === null) return;
-      this.ctx.onFired(notice.id, firedAtUt);
+      const notice = readFiredNotice(payload);
+      if (notice) this.ctx.onFired(notice.id, notice.firedAtUt);
     });
   }
 
@@ -213,8 +197,47 @@ export class ScetAlarmBridge {
 function readRosterIds(payload: unknown): readonly string[] {
   if (!Array.isArray(payload)) return [];
   const ids: string[] = [];
-  for (const row of payload as RosterRow[]) {
-    if (row && typeof row.id === "string" && row.id !== "") ids.push(row.id);
+  for (const row of payload) {
+    const id = readId(row);
+    if (id !== null) ids.push(id);
   }
   return ids;
+}
+
+/**
+ * The `alarm.scet.fired` payload as this side needs it, or null for anything
+ * that is not one.
+ *
+ * Checked field by field rather than asserted into a shape. The two fields ARE
+ * the whole channel, so there is nothing an assertion would buy that a check
+ * does not, and what arrives here is raw wire rather than anything this code
+ * constructed.
+ *
+ * Both shapes of the instant are accepted. `firedAtUt` is declared as a
+ * universal time on the contract, so the unit wrap applied in
+ * `parseServerMessage` delivers it as a `Value`; a topic outside the wrap's
+ * keying would deliver the bare number, and a reader of raw frames has to take
+ * either.
+ */
+function readFiredNotice(
+  payload: unknown,
+): { id: string; firedAtUt: number } | null {
+  const id = readId(payload);
+  if (id === null) return null;
+  if (typeof payload !== "object" || payload === null) return null;
+  if (!("firedAtUt" in payload)) return null;
+  const raw = payload.firedAtUt;
+  const magnitude =
+    typeof raw === "object" && raw !== null && "magnitude" in raw
+      ? raw.magnitude
+      : raw;
+  if (typeof magnitude !== "number" || !Number.isFinite(magnitude)) return null;
+  return { id, firedAtUt: magnitude };
+}
+
+/** A non-empty `id` off an arbitrary wire object, or null. */
+function readId(row: unknown): string | null {
+  if (typeof row !== "object" || row === null) return null;
+  if (!("id" in row)) return null;
+  return typeof row.id === "string" && row.id !== "" ? row.id : null;
 }
