@@ -1256,7 +1256,7 @@ const SECTION_HEAD: CSSProperties = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "baseline",
-  gap: "var(--space-8)",
+  gap: "var(--gap-related)",
 };
 
 const SECTION_LABEL: CSSProperties = {
@@ -1287,7 +1287,10 @@ function midRowStyle(compact: boolean): CSSProperties {
       ? "minmax(64px, 36%) 1fr"
       : "minmax(90px, 42%) 1fr",
     alignItems: "stretch",
-    gap: "var(--space-12)",
+    // A belt diagram beside a numeric dose readout: two different kinds of
+    // thing sharing a row, which is the section gap rather than the related
+    // one. It is the column gap only, the row being single.
+    gap: "var(--gap-section)",
     marginTop: compact ? "var(--space-4)" : "var(--space-10)",
     minHeight: 0,
     overflow: "hidden",
@@ -1298,7 +1301,7 @@ const FLUX_SECTION: CSSProperties = {
   flex: "0 0 auto",
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-4)",
+  gap: "var(--gap-related)",
   marginTop: "var(--space-10)",
   minHeight: 0,
 };
@@ -1327,7 +1330,7 @@ const BLACKOUT_TAG: CSSProperties = {
   color: "var(--color-status-nogo-on-bg)",
   background: "var(--color-status-nogo-bg)",
   borderRadius: "var(--radius-sm)",
-  padding: "var(--space-hair) var(--space-6)",
+  padding: "var(--inset-chip)",
   whiteSpace: "nowrap",
 };
 
@@ -1345,7 +1348,7 @@ const POSITION_UNKNOWN_TAG: CSSProperties = {
   color: "var(--color-text-muted)",
   border: "1px solid var(--color-border-subtle)",
   borderRadius: "var(--radius-sm)",
-  padding: "var(--space-hair) var(--space-6)",
+  padding: "var(--inset-chip)",
   whiteSpace: "nowrap",
 };
 
@@ -1400,14 +1403,14 @@ const CHART_SLOT: CSSProperties = {
 const FOOTER_ROW: CSSProperties = {
   display: "flex",
   flexDirection: "column",
-  gap: "var(--space-6)",
+  gap: "var(--gap-related)",
   marginTop: "auto",
   paddingTop: "var(--space-6)",
 };
 
 const ENV_ROW: CSSProperties = {
   display: "flex",
-  gap: "var(--space-6)",
+  gap: "var(--gap-related)",
   flexWrap: "wrap",
 };
 
@@ -1417,7 +1420,7 @@ function envTagStyle(on: boolean, tone?: Tone): CSSProperties {
     fontSize: "var(--font-size-2xs)",
     letterSpacing: "0.05em",
     textTransform: "uppercase",
-    padding: "var(--space-hair) var(--space-6)",
+    padding: "var(--inset-chip)",
     borderRadius: "var(--radius-sm)",
     border: `1px solid ${on ? active : "var(--color-border-subtle)"}`,
     color: on ? active : "var(--color-text-muted)",

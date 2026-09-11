@@ -420,12 +420,12 @@ function DeployedScienceComponent(
               bordered
               radius="xs"
               style={{
-                padding: "var(--space-6) var(--space-8)",
+                padding: "var(--inset-surface)",
                 borderColor: "var(--color-surface-raised)",
               }}
             >
               <Stack gap="sm">
-                <Cluster style={{ gap: "var(--space-6)" }}>
+                <Cluster style={{ gap: "var(--gap-related)" }}>
                   <Text tone="default" size="sm" style={{ fontWeight: 600 }}>
                     {base.body || "Surface base"}
                   </Text>
@@ -451,7 +451,10 @@ function DeployedScienceComponent(
 
                 {base.experiments.map((exp) => (
                   <Stack gap="xs" key={`${base.id}-${exp.partId}`}>
-                    <Cluster align="baseline" style={{ gap: "var(--space-6)" }}>
+                    <Cluster
+                      align="baseline"
+                      style={{ gap: "var(--gap-related)" }}
+                    >
                       <Truncate style={XS2_STYLE}>{exp.name}</Truncate>
                       <Text tone="muted" style={XS2_STYLE}>
                         <Unit
