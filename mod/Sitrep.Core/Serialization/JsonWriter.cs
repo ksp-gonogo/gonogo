@@ -1772,8 +1772,18 @@ namespace Sitrep.Core.Serialization
         }
 
         /// <summary>
-        /// A SCET alarm's condition as <c>{ kind, ut, leadSeconds }</c>.
+        /// A SCET alarm's condition as <c>{ kind, ut, leadSeconds, topic,
+        /// fieldPath, op, threshold, sustainSeconds }</c>.
         /// </summary>
+        ///
+        /// <remarks>
+        /// Every field every time, including the half <c>kind</c> says is
+        /// meaningless. The roster is a list of things the operator asked for,
+        /// and a reader that has to branch on <c>kind</c> before it can tell an
+        /// omitted field from an absent one is a reader that will get it wrong;
+        /// the unused half carries its type's zero, which is what the contract's
+        /// own defaults say it is.
+        /// </remarks>
         private static void AppendScetAlarmCondition(
             StringBuilder sb, Sitrep.Contract.ScetAlarmCondition c)
         {
@@ -1789,6 +1799,26 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "leadSeconds");
             sb.Append(':');
             AppendNumber(sb, c.LeadSeconds);
+            sb.Append(',');
+            AppendString(sb, "topic");
+            sb.Append(':');
+            AppendString(sb, c.Topic ?? "");
+            sb.Append(',');
+            AppendString(sb, "fieldPath");
+            sb.Append(':');
+            AppendString(sb, c.FieldPath ?? "");
+            sb.Append(',');
+            AppendString(sb, "op");
+            sb.Append(':');
+            AppendInteger(sb, (int)c.Op);
+            sb.Append(',');
+            AppendString(sb, "threshold");
+            sb.Append(':');
+            AppendNumber(sb, c.Threshold);
+            sb.Append(',');
+            AppendString(sb, "sustainSeconds");
+            sb.Append(':');
+            AppendNumber(sb, c.SustainSeconds);
             sb.Append('}');
         }
 

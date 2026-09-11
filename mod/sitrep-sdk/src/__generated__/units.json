@@ -905,8 +905,13 @@
       "subject": "id"
     },
     "ScetAlarmCondition": {
+      "fieldPath": "id",
       "kind": "enum",
       "leadSeconds": "s",
+      "op": "enum",
+      "sustainSeconds": "s",
+      "threshold": "n/a",
+      "topic": "id",
       "ut": "ut"
     },
     "ScetAlarmDisarmArgs": {

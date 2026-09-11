@@ -7,11 +7,10 @@ namespace Sitrep.Contract;
 /// <summary>
 /// Which kind of condition a SCET alarm watches for.
 ///
-/// <para>Only <see cref="Time"/> exists today. A SCET vantage is meaningful
-/// exactly where the craft's TRUE state and the state the ground has been told
-/// differ, which is why there is no member here for a contract parameter:
-/// career bookkeeping is known to the command centre without any link, so there
-/// is no gap for a vantage to straddle.</para>
+/// <para>A SCET vantage is meaningful exactly where the craft's TRUE state and
+/// the state the ground has been told differ, which is why there is no member
+/// here for a contract parameter: career bookkeeping is known to the command
+/// centre without any link, so there is no gap for a vantage to straddle.</para>
 /// </summary>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -21,6 +20,58 @@ public enum ScetAlarmConditionKind
 {
     /// <summary>An instant on the craft's own clock, as a universal time.</summary>
     Time,
+
+    /// <summary>
+    /// A value aboard the craft crossing a number the operator chose, compared
+    /// against the reading the simulation actually holds rather than against the
+    /// one the command centre has been told.
+    ///
+    /// <para>This is the kind that cannot be done anywhere else. A time alarm
+    /// needs only a clock, and a client has one; a threshold needs the craft's
+    /// true state, which reaches the ground a light-time late and by then is no
+    /// longer the answer to "is it above 100 km NOW".</para>
+    /// </summary>
+    Threshold,
+}
+
+/// <summary>
+/// How a threshold condition compares the reading to the operator's number.
+///
+/// <para>The same six the client's own alarm list offers, so an alarm armed on
+/// the command vantage and the same alarm armed on the craft's clock mean the
+/// same thing and can be checked against each other at zero delay.</para>
+/// </summary>
+#if SITREP_CODEGEN
+[TsEnum]
+#endif
+[SitrepContract]
+public enum ScetAlarmThresholdOp
+{
+    /// <summary>Reading is greater than the threshold.</summary>
+    GreaterThan,
+
+    /// <summary>Reading is greater than or equal to the threshold.</summary>
+    GreaterThanOrEqual,
+
+    /// <summary>Reading is less than the threshold.</summary>
+    LessThan,
+
+    /// <summary>Reading is less than or equal to the threshold.</summary>
+    LessThanOrEqual,
+
+    /// <summary>
+    /// Reading equals the threshold exactly.
+    ///
+    /// <para>Offered for parity with the client's list, and a knife edge on
+    /// anything continuous: the reading is a sample, and under warp the samples
+    /// are thousands of game-seconds apart, so a craft can pass straight through
+    /// the value without one landing on it. An inequality is almost always the
+    /// condition an operator actually means.</para>
+    /// </summary>
+    Equal,
+
+    /// <summary>Reading differs from the threshold. The inverse of <see cref="Equal"/>, and inherits its caveat.</summary>
+    NotEqual,
 }
 
 /// <summary>
@@ -29,13 +80,6 @@ public enum ScetAlarmConditionKind
 /// <para>A latch, not a level: <see cref="Fired"/> is reached once and stays,
 /// so a condition that keeps holding cannot stop the warp again on the next
 /// tick.</para>
-/// <internal>
-/// Deliberately two members rather than three. The spec sketched an
-/// <c>Unreachable</c> for a craft that was destroyed before its alarm could
-/// fire, which a time condition cannot be: a clock has no subject to lose. The
-/// member belongs with the threshold arm that gives an alarm a craft to watch,
-/// and adding it then is a free, additive contract change.
-/// </internal>
 /// </summary>
 #if SITREP_CODEGEN
 [TsEnum]
@@ -48,6 +92,18 @@ public enum ScetAlarmState
 
     /// <summary>The condition was met, warp was stopped, and the notice went out.</summary>
     Fired,
+
+    /// <summary>
+    /// The craft the condition watches no longer exists, so the alarm can never
+    /// come due.
+    ///
+    /// <para>Only a threshold reaches this: a time condition has no subject to
+    /// lose, because universal time belongs to the game. It is on the roster
+    /// because the simulation knows the craft is gone and the command centre
+    /// does not, and a row that will never fire must read as dead rather than as
+    /// pending forever.</para>
+    /// </summary>
+    Unreachable,
 }
 
 /// <summary>
@@ -55,7 +111,10 @@ public enum ScetAlarmState
 ///
 /// <para>A discriminated shape: <see cref="Kind"/> says which of the fields
 /// below carry meaning. For <see cref="ScetAlarmConditionKind.Time"/> that is
-/// <see cref="Ut"/> and <see cref="LeadSeconds"/>.</para>
+/// <see cref="Ut"/> and <see cref="LeadSeconds"/>; for
+/// <see cref="ScetAlarmConditionKind.Threshold"/> it is <see cref="Topic"/>,
+/// <see cref="FieldPath"/>, <see cref="Op"/>, <see cref="Threshold"/> and
+/// <see cref="SustainSeconds"/>.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
@@ -91,6 +150,60 @@ public class ScetAlarmCondition
     /// </summary>
     [SitrepUnit(Units.Seconds)]
     public double LeadSeconds { get; set; }
+
+    /// <summary>
+    /// Threshold only: the Topic whose payload carries the value to watch, as
+    /// the client spells a Topic (<c>"vessel.flight"</c>).
+    ///
+    /// <para>A Topic and a path into it, rather than one flat key. The flat key
+    /// space is the client's own and has no meaning to the simulation, which
+    /// holds Topics and the payloads it builds for them; addressing a reading
+    /// the way the wire addresses it is what lets an operator point at a value
+    /// they can already see on screen.</para>
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string Topic { get; set; } = "";
+
+    /// <summary>
+    /// Threshold only: the dotted path to the value inside
+    /// <see cref="Topic"/>'s payload (<c>"altitudeAsl"</c>,
+    /// <c>"relativePosition.x"</c>). Empty addresses the payload itself, which
+    /// is never a number, so it never matches.
+    /// </summary>
+    [SitrepUnit(Units.Id)]
+    public string FieldPath { get; set; } = "";
+
+    /// <summary>Threshold only: how the reading is compared to <see cref="Threshold"/>.</summary>
+    [SitrepUnit(Units.Enumeration)]
+    public ScetAlarmThresholdOp Op { get; set; } = ScetAlarmThresholdOp.GreaterThan;
+
+    /// <summary>
+    /// Threshold only: the number the operator chose, in whatever unit
+    /// <see cref="FieldPath"/> is published in.
+    ///
+    /// <para>Declared with no unit of its own because it genuinely has none
+    /// until the field beside it is resolved: the same field says metres for one
+    /// alarm and kilonewtons for the next. A consumer that wants to render it
+    /// looks up the unit of the addressed field.</para>
+    /// </summary>
+    [SitrepUnit(Units.NotApplicable)]
+    public double Threshold { get; set; }
+
+    /// <summary>
+    /// Threshold only: how long the condition must hold, in seconds, before the
+    /// alarm fires. Zero fires on the first reading that matches.
+    ///
+    /// <para><b>Warp is stopped at the first match, not at the fire.</b> A
+    /// sustain window is a span of the craft's time, and under warp one tick
+    /// covers thousands of seconds of it, so a window measured across warped
+    /// ticks would be satisfied by two samples and mean nothing. Stopping first
+    /// is what gives the window real ticks to be measured over. The cost is that
+    /// a condition that matches once and then stops matching has still stopped
+    /// the warp; that is the fail-safe side to err on, because the operator
+    /// keeps their game and loses only the time they were skipping.</para>
+    /// </summary>
+    [SitrepUnit(Units.Seconds)]
+    public double SustainSeconds { get; set; }
 }
 
 /// <summary>
@@ -153,9 +266,11 @@ public class ScetAlarm
     /// vocabulary <c>meta.source</c> uses.
     ///
     /// <para>A time condition is always <c>"game"</c>: universal time is the
-    /// game's, and a clock has no craft to belong to. The field is not therefore
-    /// decoration, it is what stops a condition that DOES name a craft from
-    /// silently re-aiming when the player switches vessels.</para>
+    /// game's, and a clock has no craft to belong to. A threshold names the
+    /// craft, and this is what stops it silently re-aiming when the player
+    /// switches vessels: the simulation compares this against the
+    /// <c>meta.source</c> stamped on the payload it read, and a reading about
+    /// somebody else's craft is not an answer to this alarm's question.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Subject { get; set; } = "game";

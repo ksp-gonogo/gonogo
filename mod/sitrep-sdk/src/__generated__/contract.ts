@@ -3823,15 +3823,57 @@ export interface RotorReverseArgs
 /**
 * Which kind of condition a SCET alarm watches for.
 *
-* Only `ScetAlarmConditionKind.Time` exists today. A SCET vantage is
-* meaningful exactly where the craft's TRUE state and the state the ground has
-* been told differ, which is why there is no member here for a contract
-* parameter: career bookkeeping is known to the command centre without any
-* link, so there is no gap for a vantage to straddle.
+* A SCET vantage is meaningful exactly where the craft's TRUE state and the
+* state the ground has been told differ, which is why there is no member here
+* for a contract parameter: career bookkeeping is known to the command centre
+* without any link, so there is no gap for a vantage to straddle.
 */
 export enum ScetAlarmConditionKind {
 	/** An instant on the craft's own clock, as a universal time. */
-	Time = 0
+	Time = 0,
+	/**
+	* A value aboard the craft crossing a number the operator chose, compared
+	* against the reading the simulation actually holds rather than against the
+	* one the command centre has been told.
+	*
+	* This is the kind that cannot be done anywhere else. A time alarm needs only
+	* a clock, and a client has one; a threshold needs the craft's true state,
+	* which reaches the ground a light-time late and by then is no longer the
+	* answer to "is it above 100 km NOW".
+	*/
+	Threshold = 1
+}
+/**
+* How a threshold condition compares the reading to the operator's number.
+*
+* The same six the client's own alarm list offers, so an alarm armed on the
+* command vantage and the same alarm armed on the craft's clock mean the same
+* thing and can be checked against each other at zero delay.
+*/
+export enum ScetAlarmThresholdOp {
+	/** Reading is greater than the threshold. */
+	GreaterThan = 0,
+	/** Reading is greater than or equal to the threshold. */
+	GreaterThanOrEqual = 1,
+	/** Reading is less than the threshold. */
+	LessThan = 2,
+	/** Reading is less than or equal to the threshold. */
+	LessThanOrEqual = 3,
+	/**
+	* Reading equals the threshold exactly.
+	*
+	* Offered for parity with the client's list, and a knife edge on anything
+	* continuous: the reading is a sample, and under warp the samples are
+	* thousands of game-seconds apart, so a craft can pass straight through the
+	* value without one landing on it. An inequality is almost always the
+	* condition an operator actually means.
+	*/
+	Equal = 4,
+	/**
+	* Reading differs from the threshold. The inverse of
+	* `ScetAlarmThresholdOp.Equal`, and inherits its caveat.
+	*/
+	NotEqual = 5
 }
 /**
 * Where an armed SCET alarm has got to.
@@ -3843,14 +3885,27 @@ export enum ScetAlarmState {
 	/** Watching. The condition has not been met. */
 	Armed = 0,
 	/** The condition was met, warp was stopped, and the notice went out. */
-	Fired = 1
+	Fired = 1,
+	/**
+	* The craft the condition watches no longer exists, so the alarm can never
+	* come due.
+	*
+	* Only a threshold reaches this: a time condition has no subject to lose,
+	* because universal time belongs to the game. It is on the roster because the
+	* simulation knows the craft is gone and the command centre does not, and a
+	* row that will never fire must read as dead rather than as pending forever.
+	*/
+	Unreachable = 2
 }
 /**
 * What a SCET alarm watches for, on the craft's own clock.
 *
 * A discriminated shape: `ScetAlarmCondition.kind` says which of the fields
 * below carry meaning. For `ScetAlarmConditionKind.Time` that is
-* `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`.
+* `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`; for
+* `ScetAlarmConditionKind.Threshold` it is `ScetAlarmCondition.topic`,
+* `ScetAlarmCondition.fieldPath`, `ScetAlarmCondition.op`,
+* `ScetAlarmCondition.threshold` and `ScetAlarmCondition.sustainSeconds`.
 */
 export interface ScetAlarmCondition
 {
@@ -3876,6 +3931,53 @@ export interface ScetAlarmCondition
 	* because the warp is already stopped.
 	*/
 	leadSeconds: Value<"s">;
+	/**
+	* Threshold only: the Topic whose payload carries the value to watch, as the
+	* client spells a Topic (`"vessel.flight"`).
+	*
+	* A Topic and a path into it, rather than one flat key. The flat key space is
+	* the client's own and has no meaning to the simulation, which holds Topics
+	* and the payloads it builds for them; addressing a reading the way the wire
+	* addresses it is what lets an operator point at a value they can already see
+	* on screen.
+	*/
+	topic: string;
+	/**
+	* Threshold only: the dotted path to the value inside
+	* `ScetAlarmCondition.topic`'s payload (`"altitudeAsl"`,
+	* `"relativePosition.x"`). Empty addresses the payload itself, which is never
+	* a number, so it never matches.
+	*/
+	fieldPath: string;
+	/**
+	* Threshold only: how the reading is compared to
+	* `ScetAlarmCondition.threshold`.
+	*/
+	op: ScetAlarmThresholdOp;
+	/**
+	* Threshold only: the number the operator chose, in whatever unit
+	* `ScetAlarmCondition.fieldPath` is published in.
+	*
+	* Declared with no unit of its own because it genuinely has none until the
+	* field beside it is resolved: the same field says metres for one alarm and
+	* kilonewtons for the next. A consumer that wants to render it looks up the
+	* unit of the addressed field.
+	*/
+	threshold: number;
+	/**
+	* Threshold only: how long the condition must hold, in seconds, before the
+	* alarm fires. Zero fires on the first reading that matches.
+	*
+	* **Warp is stopped at the first match, not at the fire.** A sustain window is
+	* a span of the craft's time, and under warp one tick covers thousands of
+	* seconds of it, so a window measured across warped ticks would be satisfied
+	* by two samples and mean nothing. Stopping first is what gives the window
+	* real ticks to be measured over. The cost is that a condition that matches
+	* once and then stops matching has still stopped the warp; that is the
+	* fail-safe side to err on, because the operator keeps their game and loses
+	* only the time they were skipping.
+	*/
+	sustainSeconds: Value<"s">;
 }
 /**
 * One armed SCET alarm as the simulation host holds it: the `alarm.scet`
@@ -3915,9 +4017,11 @@ export interface ScetAlarm
 	* uses.
 	*
 	* A time condition is always `"game"`: universal time is the game's, and a
-	* clock has no craft to belong to. The field is not therefore decoration, it
-	* is what stops a condition that DOES name a craft from silently re-aiming
-	* when the player switches vessels.
+	* clock has no craft to belong to. A threshold names the craft, and this is
+	* what stops it silently re-aiming when the player switches vessels: the
+	* simulation compares this against the `meta.source` stamped on the payload it
+	* read, and a reading about somebody else's craft is not an answer to this
+	* alarm's question.
 	*/
 	subject: string;
 	condition: ScetAlarmCondition;
