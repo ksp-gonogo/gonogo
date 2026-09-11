@@ -3,7 +3,7 @@
   "engine": "chromium",
   "assets": {
     "binary--default.png": {
-      "hash": "52d2641eda94c51a",
+      "hash": "92c21ddb4f5c155b",
       "elements": 103,
       "text": "52c0d842"
     },
@@ -28,12 +28,12 @@
       "text": "1a15f8e3"
     },
     "inner-belt--default.png": {
-      "hash": "b8daae4bf20eb301",
+      "hash": "30af6d995e9c8989",
       "elements": 78,
       "text": "2e0d06fc"
     },
     "interplanetary--default.png": {
-      "hash": "205ad852ab04715a",
+      "hash": "56f461f08f8c2573",
       "elements": 92,
       "text": "5db7f31e"
     },
@@ -43,12 +43,12 @@
       "text": "55062b4e"
     },
     "nominal--default.png": {
-      "hash": "d0c5b217b6b04ace",
+      "hash": "231939a28c2e09ab",
       "elements": 77,
       "text": "62b67fb2"
     },
     "nominal--min.png": {
-      "hash": "a989911daad5c185",
+      "hash": "979f1836072d8a45",
       "elements": 66,
       "text": "970d0f26"
     },
@@ -58,12 +58,12 @@
       "text": "806f8490"
     },
     "storm-inbound--default.png": {
-      "hash": "43ebfc16de9375f6",
+      "hash": "c9a1443e8f7d4ee3",
       "elements": 92,
       "text": "e04b2f39"
     },
     "storm-peak--default.png": {
-      "hash": "311a621f834be9cf",
+      "hash": "04f2294c5639459a",
       "elements": 93,
       "text": "78bd6f8c"
     },

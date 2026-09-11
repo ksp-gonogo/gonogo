@@ -3,17 +3,17 @@
   "engine": "chromium",
   "assets": {
     "boot-then-run--default.gif": {
-      "hash": "4170cf1c45ebe4bf",
+      "hash": "841223b7bc854ec8",
       "elements": 58,
       "text": "a0774835"
     },
     "cpu-picker-untagged--default.png": {
-      "hash": "e5c559b2684fd6ec",
+      "hash": "1844f52c35caabd1",
       "elements": 31,
       "text": "54cb2e54"
     },
     "lander-cpu-attached--default.png": {
-      "hash": "978e102370283ef8",
+      "hash": "5529a695b6e14c63",
       "elements": 67,
       "text": "12f1d671"
     },
