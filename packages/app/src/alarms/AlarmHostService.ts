@@ -471,7 +471,13 @@ export class AlarmHostService {
         // condition is a discrete state-string match, not a numeric
         // approach.
         if (alarm.trigger.kind === "contract-parameter") {
-          if (this.stateMachine.updateContractParameterTracking(alarm, ut)) {
+          if (
+            this.stateMachine.updateContractParameterTracking(
+              alarm,
+              ut,
+              this.lastTickUt,
+            )
+          ) {
             changed = true;
           }
         }
