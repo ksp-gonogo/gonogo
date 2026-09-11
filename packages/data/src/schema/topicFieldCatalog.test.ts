@@ -1,3 +1,7 @@
+import {
+  COMMAND_IDS,
+  DEFAULT_SITREP_CARRIED_TOPICS,
+} from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
   getTopicFieldCatalog,
@@ -114,6 +118,15 @@ describe("getUndescribedCarriedTopics()", () => {
         // against a two-segment parent no channel publishes.
         "system.uplink.gates",
         "system.uplink.pending",
+        // Three segments too, and here for that reason ALONE: the contract
+        // annotates both its fields (`firedAtUt` as a `ut`, `id` as an id), so
+        // unlike every entry above this one is not waiting on a declaration.
+        // `alarm.scet.fired.firedAtUt` would split into `alarm.scet` plus a
+        // `fired.firedAtUt` path the roster has no such field for, so offering
+        // the key would put an instant in front of the operator that no read
+        // could ever fill. The topic ITSELF is read on arrival by
+        // `ScetAlarmBridge`, which never goes through this split.
+        "alarm.scet.fired",
         // A row per declared channel, keyed by TOPIC NAME, so there is no fixed
         // field set for a declaration to enumerate. Same shape as the `dv.*`
         // entries above rather than the awaiting-a-declaration ones below: this
@@ -126,6 +139,28 @@ describe("getUndescribedCarriedTopics()", () => {
         "system.uplinks",
       ].sort(),
     );
+  });
+
+  it("says nothing about a command, which is a control and not a reading", () => {
+    // A command id reaches the carried set for a reason of its own:
+    // `dispatchActiveCommandTopic` refuses to route an id that is not carried,
+    // and a command's id never arrives on a `stream-data` frame to be learned,
+    // so a non-hook caller's command has to be listed. It has no payload to
+    // enumerate and no declaration could give it one, so calling it
+    // undescribed would report a permanent gap that is not a gap.
+    const carried = new Set([...DEFAULT_SITREP_CARRIED_TOPICS, "alarm.scet"]);
+    const undescribed = new Set(getUndescribedCarriedTopics(carried));
+    const catalogued = new Set(
+      getTopicFieldCatalog(carried).map((k) => k.topic),
+    );
+    const commands = COMMAND_IDS.filter((id) => carried.has(id));
+    // Fails loudly if the carried list ever stops containing a command, which
+    // would leave this asserting over nothing.
+    expect(commands).toContain("alarm.scet.arm");
+    for (const id of commands) {
+      expect(undescribed.has(id)).toBe(false);
+      expect(catalogued.has(id)).toBe(false);
+    }
   });
 
   it("does not overlap the catalogue it excludes from", () => {
