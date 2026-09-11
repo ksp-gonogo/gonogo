@@ -198,13 +198,10 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * files plus a few mod widgets that no migration slice owned.
    */
   spacing: {
-    "mod/": 6,
     "packages/app/src/styles/global.css": 1,
-    "packages/components/src/CommSignal/index.tsx": 1,
     "packages/components/src/FleetRoster/index.tsx": 2,
     "packages/components/src/MapView/MapPoiLayer.tsx": 2,
     "packages/components/src/Navball/index.tsx": 1,
-    "packages/components/src/shared/OrbitalEventChips.tsx": 4,
     "packages/components/src/shared/RequiresGuard.tsx": 3,
     "packages/components/src/StationConnectView/index.tsx": 19,
     "packages/components/src/Strategies/index.tsx": 1,
@@ -212,10 +209,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/Twr/index.tsx": 1,
     "packages/data/src/FlightsManager/index.tsx": 2,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
-    "packages/ui-kit/src/Tabs.tsx": 1,
     "packages/ui/src/FileInput.tsx": 1,
-    "packages/ui/src/Tabs.tsx": 1,
-    "packages/ui/src/VisuallyHidden.tsx": 1,
   },
   /**
    * 9 across 5 files. Four in `StationConnectView` (exempt page), and five
@@ -224,9 +218,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * nested pair, OrbitalEventChips' chip.
    */
   radius: {
-    "packages/components/src/ActionGroup/index.tsx": 1,
     "packages/components/src/CommSignal/index.tsx": 1,
-    "packages/components/src/shared/OrbitalEventChips.tsx": 1,
     "packages/components/src/StationConnectView/index.tsx": 4,
     "packages/serial/src/InputTester/index.tsx": 2,
   },
@@ -241,13 +233,12 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * owned.
    */
   fontSize: {
-    "mod/": 2,
     "packages/app/src/components/ComponentOverlay.tsx": 2,
     "packages/app/src/components/StationConnectionFab.tsx": 1,
     "packages/app/src/components/StationLinkFab.tsx": 1,
     "packages/app/src/goNoGo/GoNoGoComponent.tsx": 5,
     "packages/components/src/CrewStatus/index.tsx": 2,
-    "packages/components/src/CurrentOrbit/index.tsx": 2,
+    "packages/components/src/CurrentOrbit/index.tsx": 1,
     "packages/components/src/FuelStatus/index.tsx": 2,
     "packages/components/src/MapView/MapView.styles.ts": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 3,
@@ -258,7 +249,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/components/src/SpaceCenterStatus/index.tsx": 3,
     "packages/components/src/StationConnectView/index.tsx": 7,
     "packages/components/src/SystemView/index.tsx": 1,
-    "packages/components/src/Targeting/index.tsx": 3,
     "packages/components/src/TechTree/index.tsx": 5,
     "packages/components/src/Twr/index.tsx": 1,
     "packages/components/src/WarpControl/index.tsx": 1,
@@ -277,7 +267,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * shares one bucket.
    */
   lineHeight: {
-    "mod/": 2,
+    "mod/": 1,
     "packages/components/src/SpaceCenterStatus/index.tsx": 1,
     "packages/components/src/TechTree/index.tsx": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
@@ -301,11 +291,11 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // 7 -> 6: the terminal's delay badge stopped pinning itself and took
     // `ConsoleFrame`'s corner slot, which carries that literal now (below), so
     // both consoles hang the reading in one place.
-    "mod/": 6,
+    "mod/": 2,
     "packages/app/src/components/Dashboard/GridItemContent.tsx": 1,
     "packages/components/src/AtmosphereProfile/index.tsx": 1,
     "packages/components/src/MapView/MapPoiLayer.tsx": 1,
-    "packages/components/src/ShipMap/index.tsx": 3,
+    "packages/components/src/ShipMap/index.tsx": 2,
     "packages/components/src/ShipMap/ShipDiagram.tsx": 2,
     "packages/components/src/SystemView/SystemDiagram.tsx": 1,
     "packages/data/src/FlightsManager/FlightGraph.tsx": 1,
@@ -342,14 +332,13 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // panel's own stacking context: it must sit above the sticky header
     // (Panel.tsx's z-index 2) and the scrolling body it overlays. Not
     // app-global chrome, so a named z rung would over-lift it.
-    "packages/ui-kit/src/CommandDelay/PanelDelayRail.tsx": 3,
+    "packages/ui-kit/src/CommandDelay/PanelDelayRail.tsx": 1,
     // The scroll-shadow edge fade over the tab bar, local sibling ordering
     // inside the tab bar's own stacking context. Not app-global chrome, so
     // no named z rung.
     "packages/ui-kit/src/Tabs.tsx": 1,
     "packages/ui/src/BannerStack.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
-    "packages/ui/src/Tabs.tsx": 1,
   },
   /**
    * 31 across 21 files, and every one is a duration or easing that carries
@@ -369,14 +358,12 @@ const BASELINES: Record<Family, Record<string, number>> = {
   motion: {
     "mod/": 2,
     "packages/app/src/styles/global.css": 2,
-    "packages/components/src/ContractManager/index.tsx": 2,
     "packages/components/src/LaunchDirector/index.tsx": 1,
     "packages/components/src/Navball/AttitudeIndicator.tsx": 2,
     "packages/components/src/Navball/index.tsx": 2,
     "packages/components/src/PerfBudgets/index.tsx": 2,
     "packages/components/src/ShipMap/index.tsx": 2,
     "packages/components/src/SpaceCenterStatus/index.tsx": 1,
-    "packages/components/src/Targeting/index.tsx": 2,
     "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/InputTester/index.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
