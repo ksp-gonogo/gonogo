@@ -486,6 +486,28 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * agreement that is the whole reason all three are held together. It stays
    * the floor conflict wearing a list-header hat, named below.
    *
+   * It then fell 4, and that is the last of it. Two names landed for the two
+   * shapes this table had been describing in words for six tranches, both of
+   * them an inset ABOVE an existing name's floor where nothing larger existed:
+   * --inset-control-prominent at (8,12) for an Uplink's oversized picker
+   * button and the inline banner pill, and
+   * --inset-surface-standalone at (10,12) for the serial
+   * menu's device card and the input tab's binding card. All four are an
+   * override of a KIT component that supplies the very token the floor name
+   * would be, which is why the floor name would have undone each line, and all
+   * four are names rather than `Card` tiers because `Card.tsx` says the insets
+   * do not step. No pixel moves in this tranche, which is new: every site keeps
+   * its exact pair and gains a word for it.
+   *
+   * `ChaptersEditor.tsx` has the standalone card's pair at (10,12,12) and did
+   * not join them. This table has never counted it, three-value paddings being
+   * outside what an ordered pair can say, and the site is not the role either:
+   * it is a full-width band with only a bottom border, and the extra 2px of
+   * bottom is that seam rather than a card's inset.
+   *
+   * What is left below is sites with written reasons, which is where this was
+   * always going to stop.
+   *
    * The cohort unit is the WIDGET, not the declaration. A half-migrated widget
    * can have a converted declaration and its unconverted sibling differ by up
    * to 4px, so a file goes from its seeded number to zero in one landing and
@@ -496,16 +518,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * outside its owning directory.
    */
   rawSpacingRung: {
-    /*
-     * One survivor: a button deliberately enlarged ABOVE the --control-height
-     * floor, at (8,12). --inset-control is the pressable class AT that floor
-     * and is the (6,12) the button already inherits from the kit, so naming it
-     * would undo the enlargement, and there is no larger control name. It says
-     * so at its own declaration, which is the only place this bucket can name
-     * a site: uplink-boundary.test.ts fails the build on a mention of an
-     * Uplink outside its own directory, which is why these share one key.
-     */
-    "mod/": 1,
     // Both alarm banners hold their one remaining site on purpose: a floating
     // banner pill at (8,16), which is the same wide-chrome band the four
     // ex-panel sites below hold and which no name covers. Each says so at the
@@ -572,7 +584,6 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // horizontal BELOW vertical, and the replay strip is on the (8,16) band.
     "packages/data/src/FlightsManager/index.tsx": 1,
     "packages/data/src/replaySession/ReplaySessionBanner.tsx": 1,
-    "packages/serial/src/InputMappingTab.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/GamepadLearnWizard.tsx": 1,
     // The two below and SourceOfflineBanner.tsx at the end GREW by four in
     // total when the vocabulary went from eight names to five, which is the
@@ -586,10 +597,16 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // entry is now exactly those two sites: its code block was the third and
     // was reading as none of the inset classes on the strength of being code,
     // when its fill and its radius are Card's recipe and only the inset
-    // differed. It is --inset-surface.
-    "packages/serial/src/SerialDevicesMenu/index.tsx": 2,
+    // differed. It is --inset-surface. The menu's entry is now exactly its
+    // banner: the device card that shared this key is on
+    // --inset-surface-standalone.
+    "packages/serial/src/SerialDevicesMenu/index.tsx": 1,
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 2,
-    "packages/ui/src/BannerPill.tsx": 4,
+    // Three: the fixed pill's gap and inset, which is (6,12) on a box that
+    // says pointer-events: none outright, and the inline pill's gap. The one
+    // that left is the inline pill's inset, which is the pressable tier above
+    // that floor and now names it.
+    "packages/ui/src/BannerPill.tsx": 3,
     "packages/ui/src/DataKeyMultiPicker.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,
     "packages/ui/src/Fab.tsx": 1,
@@ -876,7 +893,7 @@ const FAMILIES: Record<Family, FamilySpec> = {
     offence: "raw spacing rung(s) in a shape a semantic name covers",
     properties: [...GAP_PROPERTIES, ...INSET_PROPERTIES],
     remedy:
-      "name the JOB instead: --gap-related between siblings of the same kind (the default) and --gap-section between groups of different kinds, --inset-chip/control/control-compact/surface inside an edge. The rungs stay right for every shape those six names cannot express, which tokens.css lists",
+      "name the JOB instead: --gap-related between siblings of the same kind (the default) and --gap-section between groups of different kinds, --inset-chip/control/control-compact/control-prominent/surface/surface-standalone inside an edge. The rungs stay right for every shape those eight names cannot express, which tokens.css lists",
     readsRaw: true,
     excludedRoots: [
       {
@@ -1215,20 +1232,29 @@ describe("design-system: the ratchet can see a violation", () => {
  * transposed. That has no baseline because nothing in the tree does it and
  * nothing should start.
  *
- * The list is SIX, down from eight, and the size is the point: a name earns
- * this mechanism only by resolving differently in different contexts or by
- * expressing a shape the ladder cannot. The three that went were a 1px
- * constant, a size one rung below `related` in every tier, and a 16px indent
- * with no call sites; tokens.css records each. Adding a seventh is a design
- * decision, so this list is the place it has to be argued.
+ * The list is EIGHT, having been cut to five and grown by three, and the size
+ * is the point: a name earns this mechanism only by resolving differently in
+ * different contexts or by expressing a shape the ladder cannot. The three
+ * that went were a 1px constant, a size one rung below `related` in every
+ * tier, and a 16px indent with no call sites; tokens.css records each. Adding
+ * a ninth is a design decision, so this list is the place it has to be argued.
  *
- * `--inset-control-compact` is the one addition since the cut to five, and it
- * is argued on the second limb, the same one the other three insets stand on:
- * an ordered vertical/horizontal pair is a shape no rung reference can be. Its
- * population is the pressable boxes that physically cannot hold
- * --control-height, ten of them across six files, and it is a NAME rather than
- * a tier stepped on --inset-control because a container that stepped the inset
- * alone would leave a kit `Button` at 28px with a 1px inset inside it.
+ * All three additions since the cut are argued on the second limb, the same
+ * one the four original insets stand on: an ordered vertical/horizontal pair
+ * is a shape no rung reference can be. Each is also a NAME rather than a tier
+ * stepped on the inset it sits beside, because `Card.tsx` says in writing that
+ * the insets do not step, and a tier would move every box of that class in the
+ * subtree rather than the ones that asked.
+ *
+ * `--inset-control-compact`'s population is the pressable boxes that
+ * physically cannot hold --control-height, ten of them across six files; a
+ * tier there would leave a kit `Button` at 28px with a 1px inset inside it.
+ * `--inset-control-prominent` is its mirror one tier the other way, for the
+ * two pressable boxes deliberately enlarged ABOVE that floor because they are
+ * standalone affordances rather than controls in a form row.
+ * `--inset-surface-standalone` is the two `styled(Card)` sites whose panel
+ * holds nothing but cards of their own kind, which is a claim about the card's
+ * role and not about the density of anything containing it.
  */
 describe("design-system: the semantic spacing vocabulary", () => {
   const VOCABULARY = [
@@ -1237,7 +1263,9 @@ describe("design-system: the semantic spacing vocabulary", () => {
     "--inset-chip",
     "--inset-control",
     "--inset-control-compact",
+    "--inset-control-prominent",
     "--inset-surface",
+    "--inset-surface-standalone",
   ];
 
   const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));

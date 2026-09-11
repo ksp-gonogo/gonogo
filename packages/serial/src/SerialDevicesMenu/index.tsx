@@ -479,10 +479,9 @@ const WebSerialUnavailableBanner = styled.div`
 // Same shape as InputMappingTab's: the kit's Card plus this menu's own
 // padding and the column it lays its head and body out in.
 const DeviceCard = styled(Card)`
-  /* Roomier than Card's own --inset-surface, same as InputMappingTab's binding
-     card, and written in rungs for the same reason: --inset-surface is the
-     value being overridden. */
-  padding: var(--space-10) var(--space-12);
+  /* Roomier than Card's own --inset-surface, and standalone for the same reason
+     as InputMappingTab's binding card: this menu holds nothing but these. */
+  padding: var(--inset-surface-standalone);
   display: flex;
   flex-direction: column;
   gap: var(--gap-related);

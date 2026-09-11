@@ -1649,14 +1649,12 @@ const CpuPicker__Button = styled(GhostButton)`
   align-items: center;
   gap: var(--gap-related);
   /*
-   * Stays on the rungs. The --inset-control name is the PRESSABLE class AT the
-   * --control-height floor, which is the (6,12) this button already inherits
-   * from the kit and is deliberately above: the enlargement is the whole point
-   * of the override, and naming it would take the vertical back to 6 and undo
-   * it. There is no larger control name, and an oversized target is a shape the
-   * four inset names cannot say.
+   * --inset-control-prominent, not --inset-control: the latter is the pressable
+   * class AT the --control-height floor, which is the (6,12) this button already
+   * inherits from the kit and is deliberately above. The enlargement is the whole
+   * point of the override, so the floor name would undo it.
    */
-  padding: var(--space-8) var(--space-12);
+  padding: var(--inset-control-prominent);
   font-size: var(--font-size-lg);
 `;
 

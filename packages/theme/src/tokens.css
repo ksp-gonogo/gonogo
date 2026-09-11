@@ -291,12 +291,12 @@
    *      names qualify.
    *   2. Does it express a SHAPE the ladder cannot? An ordered
    *      vertical/horizontal pair is not a rung and no rung reference
-   *      can be one. All four insets qualify.
+   *      can be one. All six insets qualify.
    *
    * A name with neither is a number wearing a word, and it costs more
    * than the rung it replaces: two spellings of one constant, and an
-   * author who has to guess which of two sizes their list is. Six
-   * names passed that test; three did not, and the record of what went
+   * author who has to guess which of two sizes their list is. Eight
+   * names pass that test; three did not, and the record of what went
    * and why is below, because a deleted name comes back otherwise.
    *
    * GAPS, between siblings. Single-valued, and they round UPWARD from
@@ -342,9 +342,41 @@
    *            every control in that subtree becomes compact whether or
    *            not it fits. These ten sites are compact because of what
    *            each one is, so each one says so.
+   *   control-prominent
+   *            The same PRESSABLE class one tier ABOVE that floor, for a
+   *            control that stands on its own rather than sitting in a
+   *            row of form controls: an Uplink's processor picker, enlarged
+   *            after 2026-07-15 feedback that the bare picker read as drab,
+   *            and the banner pill you dismiss, which is a target the
+   *            operator hits at a glance rather than one they have
+   *            already travelled to. Both sites override a kit component
+   *            that already supplies `control`'s (6,12), and in both the
+   *            enlargement IS the override, so writing `control` there
+   *            would undo the line it replaced.
+   *
+   *            Vertical only. The horizontal is `control`'s 12 unchanged,
+   *            because what these boxes want is height to be hit, not
+   *            width to hold more text, and the ladder above requires
+   *            horizontal >= vertical of every inset.
+   *
+   *            A NAME and not a tier on `control`, which is
+   *            `control-compact`'s argument the other way up: `Card.tsx`
+   *            says the insets do not step, and a container that stepped
+   *            this one would enlarge every control in its subtree,
+   *            including kit `Button`s still sized by --control-height.
    *   surface  A bordered or filled box that holds content: a card, a
    *            record in a list, a banner, a popover. `Card`'s own
    *            inset, which is why this is not called `row`.
+   *   surface-standalone
+   *            A card that IS its screen: the serial menu's device cards
+   *            and the input tab's binding cards, whose panels hold
+   *            nothing but cards of that one kind, each holding its own
+   *            select and buttons. `surface` is what a record wears when
+   *            it is one item inside a page that has other content, so
+   *            the difference is the card's ROLE and not the density of
+   *            whatever contains it, which is exactly why a `Card` tier
+   *            cannot say it. Both sites reach this by doing
+   *            `styled(Card)` over the very token the name would be.
    *
    * NOT NAMED, and each absence is a decision:
    *   hair gaps           `gap: var(--space-hair)`. A name for this
@@ -395,7 +427,9 @@
   --inset-chip: var(--space-hair) var(--space-6);
   --inset-control: var(--space-6) var(--space-12);
   --inset-control-compact: var(--space-hair) var(--space-4);
+  --inset-control-prominent: var(--space-8) var(--space-12);
   --inset-surface: var(--space-6) var(--space-8);
+  --inset-surface-standalone: var(--space-10) var(--space-12);
 
   /*
    * RADIUS. Four numeric rungs plus two shape sentinels.

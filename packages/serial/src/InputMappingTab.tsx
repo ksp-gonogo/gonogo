@@ -323,10 +323,10 @@ const BindingCard = styled(Card)<{ $listening: boolean }>`
   border-color: ${({ $listening }) =>
     $listening ? "var(--color-status-info-fg)" : "var(--color-border-subtle)"};
   /* Deliberately roomier than Card's own --inset-surface: a binding card holds
-     a select and a Bind button, and it is the only card on the screen. Written
-     in rungs because --inset-surface is the value being overridden, so naming
-     it here would say the opposite of what this line does. */
-  padding: var(--space-10) var(--space-12);
+     a select and a Bind button, and this tab holds nothing but these cards, so
+     it is a screen rather than a record in a list. That role is what
+     --inset-surface-standalone names. */
+  padding: var(--inset-surface-standalone);
   transition: border-color var(--duration-instant) var(--ease-linear);
 `;
 
