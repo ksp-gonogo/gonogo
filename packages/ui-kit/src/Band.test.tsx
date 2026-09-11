@@ -19,6 +19,26 @@ describe("Band", () => {
     expect(container.textContent).toContain("Mm");
   });
 
+  /**
+   * The same failure from the other side, and the one a narrow reckoned band
+   * walks into. A one-sigma interval of 47.471 to 47.529 units prints `47.5`
+   * twice at the kind's default single decimal, and `47` and `48` at NO
+   * decimals, which separates. Taking the coarser count because it happened to
+   * separate would state an interval seventeen times the width the model was
+   * prepared to defend.
+   */
+  it("widens rather than coarsens when a coarser count would also separate", () => {
+    const { container } = render(
+      <Band
+        min={value("units", 47.471_132_486_540_52)}
+        max={value("units", 47.528_867_513_459_48)}
+      />,
+    );
+    expect(container.textContent).toContain("47.47");
+    expect(container.textContent).toContain("47.53");
+    expect(container.textContent).not.toContain("48 units");
+  });
+
   it("leaves the kind's own precision alone when the ends already differ", () => {
     const { container } = render(
       <Band min={value("m", 1200)} max={value("m", 8400)} />,

@@ -89,6 +89,15 @@ const MAX_SEPARATING_DECIMALS = 6;
  * <p>Undefined for a genuinely zero-width band: an element that did not move
  * over the window should print as one figure twice, not as six decimals of
  * noise.</p>
+ *
+ * <p><b>It only ever widens.</b> A COARSER digit count can separate two ends
+ * the default prints identically, by rounding them away from each other across
+ * a boundary the interval never reaches: a one-sigma band of 47.471 to 47.529
+ * reads as `47.5 – 47.5` at the default single decimal and as `47 – 48` at
+ * none, and the second is an interval seventeen times the width the producer
+ * offered. Both are wrong and the second is worse, because it looks like an
+ * answer. So the default is asked first and kept whenever it separates, and the
+ * search below starts at the default's own precision rather than at zero.</p>
  */
 function separatingDecimals(
   min: Value<string>,
@@ -100,14 +109,43 @@ function separatingDecimals(
   if (low === high) {
     return undefined;
   }
-  const lowUnit = min.unit;
-  const highUnit = max.unit;
+  /** One end, under a given precision, or under the kind's own default. */
+  const show = (magnitude: number, unit: string, decimals?: number) =>
+    formatQuantity(
+      magnitude,
+      unit,
+      decimals === undefined ? opts : { ...opts, decimals },
+    );
+  const separatesAt = (decimals?: number): boolean => {
+    const a = show(low, min.unit, decimals);
+    const b = show(high, max.unit, decimals);
+    return a.value !== b.value || a.rung !== b.rung;
+  };
+  if (separatesAt()) {
+    return undefined;
+  }
+
+  /*
+   * How many decimals the default is already printing, found by asking which
+   * fixed count reproduces it. Reproducing the string is the only way to ask:
+   * `formatQuantity` chooses the count from the kind and the rung and does not
+   * report it back, and counting the digits after a separator in the output
+   * cannot tell a decimal point from a grouping mark under an arbitrary
+   * locale. Zero when nothing reproduces it (a laddered or notated rendering),
+   * which falls back to the whole range and is the behaviour this had before.
+   */
+  const printedByDefault = show(low, min.unit).value;
+  let from = 0;
   for (let decimals = 0; decimals <= MAX_SEPARATING_DECIMALS; decimals++) {
-    const printed = { ...opts, decimals };
-    const a = formatQuantity(low, lowUnit, printed);
-    const b = formatQuantity(high, highUnit, printed);
-    if (a.value !== b.value || a.rung !== b.rung) {
-      return decimals === 0 ? undefined : decimals;
+    if (show(low, min.unit, decimals).value === printedByDefault) {
+      from = decimals;
+      break;
+    }
+  }
+
+  for (let decimals = from; decimals <= MAX_SEPARATING_DECIMALS; decimals++) {
+    if (separatesAt(decimals)) {
+      return decimals;
     }
   }
   return MAX_SEPARATING_DECIMALS;
