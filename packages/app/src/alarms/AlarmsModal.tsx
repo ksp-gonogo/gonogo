@@ -20,7 +20,6 @@ import {
 import {
   KSP_ACTION_GROUP_NAMES,
   KspActionGroup,
-  reckonableValuesOf,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -260,28 +259,6 @@ export function AlarmsModal({
     return { topic: selectedKey.topic, fieldPath: selectedKey.fieldPath };
   }, [selectedKey]);
   const scetAddressable = scetAddress !== null;
-  /**
-   * Whether the chosen field is one the client MODELS on screen while the mod
-   * compares the value it actually holds.
-   *
-   * Not a restriction, and not a correctness problem: reckoning runs here, over
-   * delayed readings, and the simulation never sees it. It is a UX one, and it
-   * is the operator's to know about. They set the number while LOOKING at a
-   * modelled readout, so the number they typed and the number the mod compares
-   * differ by the model's error.
-   *
-   * Read from the contract's declarations rather than a written-down list of
-   * three fields, so a path INTO a reckoned value (`relativePosition.x`) marks
-   * the same as the value itself, and a mark added or dropped by a future
-   * codegen lands here without anyone remembering to come back.
-   */
-  const selectedIsReckoned =
-    scetAddress !== null &&
-    reckonableValuesOf(scetAddress.topic).some(
-      (row) =>
-        scetAddress.fieldPath === row.field ||
-        scetAddress.fieldPath.startsWith(`${row.field}.`),
-    );
   const addDisabled =
     trimmedName === "" ||
     (kind === "time" &&
@@ -540,15 +517,6 @@ export function AlarmsModal({
                 <code>vessel.flight.altitudeAsl</code>,{" "}
                 <code>vessel.flight.verticalSpeed</code>.
               </FieldHint>
-              {effectiveVantage === "scet" && selectedIsReckoned && (
-                <FieldHint>
-                  Modelled on screen, measured on the craft:{" "}
-                  <code>{trimmedKey}</code> is carried forward here by a model
-                  over readings a light-time old, and the simulation compares
-                  the value it holds itself. The two differ by the model's
-                  error.
-                </FieldHint>
-              )}
               {effectiveVantage === "scet" &&
                 trimmedKey !== "" &&
                 !scetAddressable && (
