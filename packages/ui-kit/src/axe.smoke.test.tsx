@@ -16,7 +16,6 @@ import { Section, SectionTitle } from "./Section";
 import { StatusIndicator } from "./StatusIndicator";
 import { Tabs } from "./Tabs";
 import { Tape } from "./Tape";
-import { WidgetHeader } from "./WidgetHeader";
 
 describe("a11y smoke (jest-axe)", () => {
   it("ActionButton (both tones) has no axe violations", async () => {
@@ -212,20 +211,6 @@ describe("a11y smoke (jest-axe)", () => {
           Disconnected
         </StatusIndicator>
       </>,
-    );
-    await expectNoA11yViolations(container);
-  });
-
-  it("WidgetHeader has no axe violations", async () => {
-    const { container } = render(
-      <WidgetHeader
-        title="Mission clock"
-        actions={
-          <button type="button" aria-label="reset clock">
-            reset
-          </button>
-        }
-      />,
     );
     await expectNoA11yViolations(container);
   });

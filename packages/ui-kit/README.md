@@ -296,8 +296,7 @@ Also exported: `DefaultThemeProvider` (the default dark theme, mounted), `defaul
 
 **Layout**: `Box`, `Stack`, `Inline`, `Cluster`, `Grid`, `Section`, `Row`, `RowName`
 
-**Panels and chrome**: `Panel` (see below), `ScrollArea`, `Card`,
-`WidgetHeader`, `SectionTitle`
+**Panels and chrome**: `Panel` (see below), `ScrollArea`, `Card`, `SectionTitle`
 
 **Readouts**: `Readout`, `BigReadout`, `ReadoutCaption`, `Text`, `Unit`, `Badge`, `StatusPill`,
 `StatusIndicator`, `ProgressBar`, `Spinner`
