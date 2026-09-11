@@ -40,6 +40,10 @@ export class WarpControl {
   private warpToTargetIndex = 0;
   private lastStepDownAt = 0;
   private warpSafetyMarginSeconds: number;
+  /** The index the last dispatched `time.setWarpIndex` asked for, null before it has asked for anything. */
+  private commandedIndex: number | null = null;
+  /** The reading that was current when that command went out, so its arrival can be recognised. */
+  private observedAtCommand: number | null = null;
 
   constructor(
     private readonly stateMachine: AlarmStateMachine,
@@ -86,8 +90,8 @@ export class WarpControl {
   /** Begin a warp-to session. Returns true if a session actually started. */
   begin(): boolean {
     if (this.stateMachine.findEligiblePendingAlarm() === null) return false;
+    this.endSession();
     this.warpToActive = true;
-    this.warpToTargetIndex = 0;
     this.ctx.registerOwnWarpIntent();
     return true;
   }
@@ -95,9 +99,7 @@ export class WarpControl {
   /** End the session and drop warp to 1×. */
   cancel(): boolean {
     if (!this.warpToActive) return false;
-    this.warpToActive = false;
-    this.warpToAlarmId = null;
-    this.warpToTargetIndex = 0;
+    this.endSession();
     this.commandWarp(0);
     return true;
   }
@@ -110,19 +112,47 @@ export class WarpControl {
   reconcile(observedUT: number | null): void {
     if (!this.warpToActive) return;
     if (observedUT === null) return;
+
+    const observedIndex = this.ctx.getObservedIndex();
+    const stale = this.readingPredatesLastCommand(observedIndex);
+
+    /*
+     * A stop the controller did not ask for ends the session. The game halts
+     * warp for its own reasons (a SCET alarm on the mod, the operator at the
+     * keyboard, KSP itself), and the controller's job is to stop driving, not
+     * to argue: reconciling against that reading computes a target above zero
+     * and warps straight back up, undoing the stop from the operator's screen.
+     *
+     * No `commandWarp(0)` on the way out. The warp is already stopped, so a
+     * second command would be a second authority for one piece of state.
+     */
+    if (!stale && observedIndex === 0 && this.warpToTargetIndex > 0) {
+      this.endSession();
+      return;
+    }
+
+    /*
+     * What the game's warp index is believed to be right now. While the
+     * reading still predates the last command, that is the index the command
+     * asked for rather than the reading: at a non-zero delay `time.warp` is a
+     * light-time behind, and comparing a fresh target against a stale reading
+     * re-dispatches the same command on every tick for the whole light-time.
+     */
+    const currentIndex = stale
+      ? (this.commandedIndex as number)
+      : observedIndex;
+
     const target = this.stateMachine.findClosestPendingTrackableAlarm();
     if (target === null) {
       const eligible = this.stateMachine.findEligiblePendingAlarm();
       if (eligible === null) {
-        this.warpToActive = false;
-        this.warpToAlarmId = null;
-        this.warpToTargetIndex = 0;
+        this.endSession();
         return;
       }
       this.warpToAlarmId = eligible.id;
       const targetIndex = THRESHOLD_PRESENT_MAX_INDEX;
       this.warpToTargetIndex = targetIndex;
-      if (targetIndex !== this.ctx.getObservedIndex()) {
+      if (targetIndex !== currentIndex) {
         this.ctx.registerOwnWarpIntent();
         this.commandWarp(targetIndex);
       }
@@ -134,9 +164,33 @@ export class WarpControl {
       target.alarm,
     );
     this.warpToTargetIndex = targetIndex;
-    if (targetIndex === this.ctx.getObservedIndex()) return;
+    if (targetIndex === currentIndex) return;
     this.ctx.registerOwnWarpIntent();
     this.commandWarp(targetIndex);
+  }
+
+  /**
+   * Whether the observed warp index is still the one from BEFORE the last
+   * command this controller sent.
+   *
+   * True only while the reading is unchanged since the dispatch and has not
+   * reached the commanded value. Any change in the reading is a new fact and
+   * ends the blind window, whether or not the game settled where it was asked
+   * to, so a clamped or refused command cannot strand the controller.
+   */
+  private readingPredatesLastCommand(observedIndex: number): boolean {
+    if (this.commandedIndex === null) return false;
+    if (observedIndex === this.commandedIndex) return false;
+    return observedIndex === this.observedAtCommand;
+  }
+
+  /** Clear the session without touching the game's warp. */
+  private endSession(): void {
+    this.warpToActive = false;
+    this.warpToAlarmId = null;
+    this.warpToTargetIndex = 0;
+    this.commandedIndex = null;
+    this.observedAtCommand = null;
   }
 
   /** Drop warp to 0× when an alarm transitions to arming/firing.
@@ -200,6 +254,11 @@ export class WarpControl {
       logger.warn("alarm-host: warp command not routed", { index });
       return;
     }
+    /* Only once it is actually on the wire: an unrouted command never moves the
+       game's warp, so treating the reading as stale after one would leave the
+       controller waiting for an arrival that cannot come. */
+    this.observedAtCommand = this.ctx.getObservedIndex();
+    this.commandedIndex = index;
     void outcome.settled;
   }
 }
