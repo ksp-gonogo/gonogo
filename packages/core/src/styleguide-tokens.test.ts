@@ -223,7 +223,7 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/InputTester/index.tsx": 2,
   },
   /**
-   * 60 across 32 files. Two thirds are display-tier sizes above the
+   * 61 across 33 files. Two thirds are display-tier sizes above the
    * scale's `lg` ceiling (18/20/22/24/28px readouts) and fluid `clamp()`
    * readouts, both of which the scale stops short of on purpose. The rest
    * are sizes locked into a fixed box or a coarse-pointer calculation
@@ -256,6 +256,15 @@ const BASELINES: Record<Family, Record<string, number>> = {
     "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 1,
     "packages/serial/src/VirtualDevice/index.tsx": 1,
     "packages/ui-kit/src/Form.tsx": 1,
+    // The FLOOR under a relative size, not a size: a time-context qualifier is
+    // sized against the instant it qualifies (`0.72em`, the same rule `<Unit>`
+    // sizes a symbol by) so it composes into a 32px readout and an 11px table
+    // cell alike. A rung would pin it to one of those. 10px is where this UI
+    // stops being legible, which is a property of the display rather than of
+    // the scale. `<Unit>` escapes this scan only because its identical rule
+    // reaches CSS through an interpolation, which is the blind spot the header
+    // above names.
+    "packages/ui-kit/src/MissionDate.tsx": 1,
     "packages/ui-kit/src/Readout.tsx": 3,
     "packages/ui-kit/src/status/PanelStatusDot.tsx": 1,
     "packages/ui/src/FabPrompt.tsx": 1,

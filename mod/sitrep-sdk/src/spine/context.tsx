@@ -582,9 +582,17 @@ export function useTelemetryStoreOptional(): TimelineStore | undefined {
  * one-way utterance. `useUtNow` reads the same quantity reactively; this is the
  * callable form a `DelayClockLike` adapter needs.
  */
+/*
+ * `delaySeconds` is on the view for the SCET/received distinction: it is the
+ * gap between the two clocks this view exposes, so a surface that must say
+ * which one an instant is on reads it here rather than re-deriving it from
+ * `comms.delay`. A second derivation would have to re-implement
+ * `DelayAuthority`'s hold-through-a-blackout rule, and would report a craft as
+ * having come closer the moment it became unreachable.
+ */
 export type ViewClockView = Pick<
   ViewClock,
-  "viewUt" | "confirmedEdgeUt" | "onFrame" | "utNowEstimate"
+  "viewUt" | "confirmedEdgeUt" | "onFrame" | "utNowEstimate" | "delaySeconds"
 >;
 
 /**

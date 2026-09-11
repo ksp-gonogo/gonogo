@@ -474,7 +474,11 @@ export {
   MeterStack,
   type MeterTone,
 } from "./Meter";
-export { MissionDate, type MissionDateProps } from "./MissionDate";
+export {
+  MissionDate,
+  type MissionDateProps,
+  type TimeContext,
+} from "./MissionDate";
 export {
   MissionDateField,
   type MissionDateFieldProps,
