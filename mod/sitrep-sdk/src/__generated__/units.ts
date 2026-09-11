@@ -939,8 +939,13 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     subject: "id",
   },
   "ScetAlarmCondition": {
+    fieldPath: "id",
     kind: "enum",
     leadSeconds: "s",
+    op: "enum",
+    sustainSeconds: "s",
+    threshold: "n/a",
+    topic: "id",
     ut: "ut",
   },
   "ScetAlarmDisarmArgs": {
