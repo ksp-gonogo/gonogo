@@ -122,6 +122,12 @@ export class AlarmHostService {
   private fireListeners = new Set<FireListener>();
   private tickHandle: ReturnType<typeof setInterval> | null = null;
   private observedUT: number | null = null;
+  /**
+   * The UT of the PREVIOUS tick, so a time alarm can be fired on a CROSSING
+   * rather than on containment. Under warp one tick moves the clock by ~W
+   * seconds, which used to step clean over the firing window in silence.
+   */
+  private lastTickUt: number | null = null;
   private opts: Required<Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs">>;
   private storage: Storage;
   private alarmStore: LocalStorageStore<Alarm[]>;
@@ -383,7 +389,11 @@ export class AlarmHostService {
           }
         }
 
-        const nextState = this.stateMachine.deriveState(alarm, ut);
+        const nextState = this.stateMachine.deriveState(
+          alarm,
+          ut,
+          this.lastTickUt,
+        );
         if (nextState !== alarm.state) {
           if (alarm.state !== "arming" && nextState === "arming") {
             this.warp.stepWarpDown();
@@ -400,6 +410,10 @@ export class AlarmHostService {
         }
       }
       if (changed) this.persist();
+      /* AFTER the loop, so every alarm this tick compares against the same
+         previous clock: a mid-loop update would make the crossing test depend
+         on iteration order. */
+      this.lastTickUt = ut;
     }
 
     this.warp.reconcile(this.observedUT);

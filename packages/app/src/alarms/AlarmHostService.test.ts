@@ -235,6 +235,34 @@ describe("AlarmHostService", () => {
     expect(telemetry.calls).toContain("time.setWarpIndex[0]");
   });
 
+  it("fires a time alarm whose moment the warp step JUMPED CLEAN OVER", async () => {
+    /*
+     * The host ticks at 1 Hz while `viewUt` advances at the warp rate, so one
+     * tick moves the clock by ~W seconds. `deriveState`'s firing window is a
+     * 2-second CONTAINMENT test (`now >= ut && now - ut < 2`), and the host
+     * only fires on the TRANSITION into `firing`. Above ~1000x neither the
+     * arming window nor the firing window is ever observed: the alarm goes
+     * straight to `fired`, and nothing notifies, nothing broadcasts, no
+     * `onFire` action group runs and warp is never stepped down.
+     */
+    const { svc, telemetry } = makeService();
+    telemetry.set("t.universalTime", 1000);
+    telemetry.set("t.currentRateIndex", 7);
+    telemetry.set("t.currentRate", 10000);
+    svc.addAlarm({
+      name: "Burn",
+      trigger: { kind: "time", ut: 1500, leadSeconds: 10 },
+    });
+    telemetry.calls.length = 0;
+
+    // One tick at 10,000x: the clock lands far past both windows.
+    telemetry.set("t.universalTime", 11000);
+    await vi.advanceTimersByTimeAsync(1100);
+
+    expect(svc.snapshot().alarms[0].state).toBe("firing");
+    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
+  });
+
   it("flags unscheduled warp when none is set and the user didn't announce intent", async () => {
     const { svc, telemetry } = makeService();
     telemetry.set("t.universalTime", 1200);
