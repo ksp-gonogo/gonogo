@@ -2,15 +2,42 @@ import { logger } from "@ksp-gonogo/logger";
 import {
   dispatchActiveCommandTopic,
   getActiveTelemetryClient,
+  getVesselIdentity,
   subscribeActiveTelemetryClient,
 } from "@ksp-gonogo/sitrep-client";
-import { ScetAlarmConditionKind } from "@ksp-gonogo/sitrep-sdk";
-import { type Alarm, isScetTrigger } from "./types";
+import {
+  ScetAlarmConditionKind,
+  ScetAlarmThresholdOp,
+} from "@ksp-gonogo/sitrep-sdk";
+import {
+  type Alarm,
+  isScetTrigger,
+  scetThresholdAddress,
+  type ThresholdOp,
+} from "./types";
 
 export const SCET_ROSTER_TOPIC = "alarm.scet";
 export const SCET_FIRED_TOPIC = "alarm.scet.fired";
 export const SCET_ARM_COMMAND = "alarm.scet.arm";
 export const SCET_DISARM_COMMAND = "alarm.scet.disarm";
+
+/**
+ * The operator's comparison word as the contract's own member.
+ *
+ * The two lists are deliberately the same six, so an alarm armed on the command
+ * vantage and the same alarm armed on the craft's clock mean the same thing and
+ * can be checked against each other at zero delay. This is the one place they
+ * have to meet.
+ */
+const THRESHOLD_OP_MEMBER: Readonly<Record<ThresholdOp, ScetAlarmThresholdOp>> =
+  {
+    ">": ScetAlarmThresholdOp.GreaterThan,
+    ">=": ScetAlarmThresholdOp.GreaterThanOrEqual,
+    "<": ScetAlarmThresholdOp.LessThan,
+    "<=": ScetAlarmThresholdOp.LessThanOrEqual,
+    "==": ScetAlarmThresholdOp.Equal,
+    "!=": ScetAlarmThresholdOp.NotEqual,
+  };
 
 export interface ScetAlarmBridgeContext {
   /** The host's current alarm list, read live so the bridge never holds a stale copy. */
@@ -21,6 +48,18 @@ export interface ScetAlarmBridgeContext {
    * reconnecting client on purpose.
    */
   onFired(id: string, firedAtUt: number): void;
+  /**
+   * The simulation refused to arm this alarm, and said why in its own words.
+   *
+   * The refusal is the only way a client learns that a Topic is not addressable
+   * there: the table of what a threshold can be read from lives in the mod and
+   * is not published anywhere the picker could consult first. Carrying the
+   * message rather than a flag is deliberate: it names the Topic, and the
+   * operator picked the Topic.
+   */
+  onArmRefused(id: string, reason: string): void;
+  /** The arm went through, so any refusal recorded against this id is stale. */
+  onArmAccepted(id: string): void;
 }
 
 /**
@@ -128,23 +167,32 @@ export class ScetAlarmBridge {
    * already holds replaces it, so there is no disarm-then-arm to race.
    */
   arm(alarm: Alarm): void {
-    if (alarm.trigger.kind !== "time" || !isScetTrigger(alarm.trigger)) return;
-    const outcome = dispatchActiveCommandTopic(SCET_ARM_COMMAND, {
-      id: alarm.id,
-      name: alarm.name,
-      // A time condition is about the game's own clock, so it names no craft.
-      subject: "game",
-      condition: {
-        kind: ScetAlarmConditionKind.Time,
-        ut: alarm.trigger.ut,
-        leadSeconds: alarm.trigger.leadSeconds,
-      },
-    });
+    if (!isScetTrigger(alarm.trigger)) return;
+    const armed = this.buildArmArgs(alarm);
+    if (armed === null) return;
+    const outcome = dispatchActiveCommandTopic(SCET_ARM_COMMAND, armed);
     if (!outcome.routed) {
       logger.warn("alarm-host: SCET arm not routed", { id: alarm.id });
       return;
     }
-    void outcome.settled;
+    void outcome.settled.then((refusal) => {
+      if (this.disposed) return;
+      if (refusal === undefined) {
+        this.ctx.onArmAccepted(alarm.id);
+        return;
+      }
+      /* The mod is the authority on what it can read, and this is the first
+         moment this side could have known. Reported with the mod's own words
+         rather than a sentence of ours: the message names the Topic the
+         operator chose, and a paraphrase would have to keep a second copy of a
+         table we deliberately do not hold. */
+      logger.warn("alarm-host: SCET arm refused", {
+        id: alarm.id,
+        code: refusal.code,
+        reason: refusal.message,
+      });
+      this.ctx.onArmRefused(alarm.id, refusal.message);
+    });
   }
 
   /** Disarm one alarm on the mod. Harmless for an id it does not hold. */
@@ -155,6 +203,62 @@ export class ScetAlarmBridge {
       return;
     }
     void outcome.settled;
+  }
+
+  /**
+   * The `alarm.scet.arm` arguments for one alarm, or null when this side cannot
+   * state the condition honestly.
+   *
+   * Null is only ever reached by a threshold, and only for the two things the
+   * mod would have no way to interpret: a key with no Topic behind it (one from
+   * a live `DataSource` rather than from the contract's field catalogue), and a
+   * craft-scoped Topic at a moment when no vessel identity has arrived. Both
+   * are refusals to GUESS: an arm carrying the wrong subject is accepted and
+   * then never fires, which is the one outcome an alarm must not have.
+   */
+  private buildArmArgs(alarm: Alarm): Record<string, unknown> | null {
+    const trigger = alarm.trigger;
+    if (trigger.kind === "time") {
+      return {
+        id: alarm.id,
+        name: alarm.name,
+        // A time condition is about the game's own clock, so it names no craft.
+        subject: "game",
+        condition: {
+          kind: ScetAlarmConditionKind.Time,
+          ut: trigger.ut,
+          leadSeconds: trigger.leadSeconds,
+        },
+      };
+    }
+    const address = scetThresholdAddress(trigger);
+    if (address === null || trigger.kind !== "threshold") {
+      logger.warn("alarm-host: SCET threshold has no Topic to read", {
+        id: alarm.id,
+      });
+      return null;
+    }
+    const subject = subjectFor(address.topic);
+    if (subject === null) {
+      logger.warn("alarm-host: SCET threshold has no subject yet", {
+        id: alarm.id,
+        topic: address.topic,
+      });
+      return null;
+    }
+    return {
+      id: alarm.id,
+      name: alarm.name,
+      subject,
+      condition: {
+        kind: ScetAlarmConditionKind.Threshold,
+        topic: address.topic,
+        fieldPath: address.fieldPath,
+        op: THRESHOLD_OP_MEMBER[trigger.op],
+        threshold: trigger.value,
+        sustainSeconds: trigger.sustainSeconds,
+      },
+    };
   }
 
   /**
@@ -188,6 +292,27 @@ export class ScetAlarmBridge {
     this.rosterSeen = false;
     this.commandedSinceRoster.clear();
   }
+}
+
+/**
+ * What a threshold on `topic` is ABOUT, in the vocabulary `meta.source` uses:
+ * `"vessel:<guid>"` for a craft, `"game"` for the simulation as a whole. Null
+ * when it is about a craft and no identity has arrived to name one.
+ *
+ * Decided from the Topic's own namespace rather than from a list of which
+ * Topics are craft-scoped. A list would be a second copy of something the mod
+ * already knows, and the namespace is not a proxy for the answer: a Topic under
+ * `vessel.` is a reading OF a vessel, which is exactly what the stamp records.
+ * The guid is the one the contract points at for this. `VesselIdentity
+ * .vesselId` is documented as the currency of the `"vessel:<guid>"` stamp.
+ *
+ * The identity read is a light-time old, and that is right rather than a
+ * compromise: the craft the operator is looking at is the craft they mean.
+ */
+function subjectFor(topic: string): string | null {
+  if (!topic.startsWith("vessel.")) return "game";
+  const vesselId = getVesselIdentity()?.vesselId;
+  return vesselId ? `vessel:${vesselId}` : null;
 }
 
 /**

@@ -68,6 +68,7 @@ export type { CommsLinkLike } from "./connectivity-history";
 export { ConnectivityHistory } from "./connectivity-history";
 export {
   type DispatchActiveCommandResult,
+  type DispatchCommandRefusal,
   dispatchActiveCommandTopic,
   getActiveCarriedChannels,
   getActiveTelemetryClient,
@@ -280,6 +281,7 @@ export {
   mapTopic,
   redirectKinematicSubtopic,
   resolveValueTopic,
+  wireAddressBehindRedirect,
 } from "./map-topic";
 export type { NeverReckonable } from "./never-reckonable";
 export { isNeverReckonable, NEVER_RECKONABLE } from "./never-reckonable";

@@ -3,7 +3,51 @@ import {
   isKnownFieldPath,
   mapTopic,
   redirectKinematicSubtopic,
+  wireAddressBehindRedirect,
 } from "./map-topic";
+
+describe("wireAddressBehindRedirect", () => {
+  it("recovers the Topic and path a redirected reading was pointed away from", () => {
+    /* The redirect is right for a widget and wrong for anyone outside this
+       client: the mod publishes `vessel.flight`, and has never heard of
+       `vessel.state`, which this client computes. */
+    expect(wireAddressBehindRedirect("vessel.state.altitudeAsl")).toEqual({
+      topic: "vessel.flight",
+      fieldPath: "altitudeAsl",
+    });
+    expect(wireAddressBehindRedirect("vessel.state.orbitalSpeed")).toEqual({
+      topic: "vessel.flight",
+      fieldPath: "orbitalSpeed",
+    });
+  });
+
+  it("agrees with the redirect it is derived from, in both directions", () => {
+    // The ratchet. Either half moving without the other is what would put an address on the wire that names a field the contract does not declare.
+    for (const key of [
+      "vessel.state.altitudeAsl",
+      "vessel.state.orbitalSpeed",
+    ]) {
+      const address = wireAddressBehindRedirect(key);
+      expect(address).not.toBeNull();
+      if (address === null) continue;
+      expect(
+        redirectKinematicSubtopic(`${address.topic}.${address.fieldPath}`),
+      ).toBe(key);
+    }
+  });
+
+  it("answers null for a key that was never redirected", () => {
+    // A surface-frame measurement with no elements-derived twin: nothing was collapsed, so there is nothing behind it.
+    expect(wireAddressBehindRedirect("vessel.flight.mach")).toBeNull();
+  });
+
+  it("answers null for a derivation the wire has no twin for", () => {
+    /* `vessel.state` computes plenty the mod never sends. A guess here would
+       arm a SCET alarm against a Topic that cannot be read, which is exactly
+       the answer the refusal path exists to give instead. */
+    expect(wireAddressBehindRedirect("vessel.state.apoapsis")).toBeNull();
+  });
+});
 
 describe("isKnownFieldPath", () => {
   it("resolves a contract field that no legacy key ever named", () => {

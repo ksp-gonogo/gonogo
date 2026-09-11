@@ -70,6 +70,39 @@ export function redirectKinematicSubtopic(topic: string): string {
 }
 
 /**
+ * The WIRE address a redirected reading was pointed away from: the Topic the
+ * mod publishes and the path into its payload, or null for a key that was never
+ * redirected or whose source is a short semantic alias.
+ *
+ * The redirect exists so nothing binds to two names for one altitude, and for a
+ * widget that is the whole story. It stops being the whole story the moment
+ * something outside this client has to be told WHICH reading is meant: the
+ * simulation holds Topics and it has never heard of `vessel.state`, which is a
+ * channel this client computes. A SCET alarm armed on the derived name could
+ * not be read at all, and the case it would lose is the altitude threshold the
+ * feature was asked for.
+ *
+ * Derived from the redirect table rather than written beside it, so the two
+ * cannot disagree. The split at the last dot is a guess until the contract
+ * confirms it: a Topic that does not declare the field is not the address, and
+ * is skipped rather than returned.
+ */
+export function wireAddressBehindRedirect(
+  key: string,
+): { topic: string; fieldPath: string } | null {
+  for (const [from, to] of Object.entries(KINEMATIC_REDIRECTS)) {
+    if (to !== key) continue;
+    const cut = from.lastIndexOf(".");
+    if (cut <= 0) continue;
+    const topic = from.slice(0, cut);
+    const fieldPath = from.slice(cut + 1);
+    if (unitsForTopic(topic as never)[fieldPath] === undefined) continue;
+    return { topic, fieldPath };
+  }
+  return null;
+}
+
+/**
  * `kos.compute.<id>.<field>`: the dynamic centralised-compute namespace.
  * Identity-mapped so a future compute-feed slice reads straight off the
  * stream; `.status` sub-topics and `.dispatchNow`/`.reEnable` command keys
