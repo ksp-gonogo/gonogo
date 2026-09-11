@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Linq;
 using Sitrep.Contract;
 using Sitrep.Host.Alarms;
@@ -9,13 +10,56 @@ namespace Sitrep.Host.Tests
     /// The SCET alarm arm's decision-making, headlessly: when warp is stopped,
     /// when the notice goes out, and what survives a re-arm or a rewind.
     ///
-    /// <para>Every assertion here is about a clock the roster is TOLD, never one
-    /// it reads, which is what lets the feature be exercised without a game. The
-    /// KSP half is <c>Gonogo.KSP.ScetAlarmUplink</c> and is three calls long by
-    /// design.</para>
+    /// <para>Every assertion here is about a clock and a reading the roster is
+    /// TOLD, never ones it takes, which is what lets the feature be exercised
+    /// without a game. The KSP half is <c>Gonogo.KSP.ScetAlarmUplink</c> and is
+    /// three calls long by design.</para>
     /// </summary>
     public class ScetAlarmRosterTests
     {
+        /// <summary>
+        /// A reading the test decides. Stands in for the snapshot read the
+        /// uplink does on the main thread, so what is being asserted here is the
+        /// DECISION rather than the plumbing that fetches the number.
+        /// </summary>
+        private sealed class FakeReader : IScetStateReader
+        {
+            public ScetReading Next = ScetReading.NotObservable;
+
+            /// <summary>Every (subject, topic, path) the roster asked for, in order.</summary>
+            public readonly List<string> Asked = new List<string>();
+
+            public ScetReading Read(string subject, string topic, string fieldPath)
+            {
+                Asked.Add(subject + "|" + topic + "|" + fieldPath);
+                return Next;
+            }
+        }
+
+        private static ScetAlarmArmArgs ThresholdAlarm(
+            string id,
+            double threshold,
+            ScetAlarmThresholdOp op = ScetAlarmThresholdOp.GreaterThan,
+            double sustainSeconds = 0,
+            string subject = "vessel:abc",
+            string topic = "vessel.flight",
+            string fieldPath = "altitudeAsl") =>
+            new ScetAlarmArmArgs
+            {
+                Id = id,
+                Name = "Alarm",
+                Subject = subject,
+                Condition = new ScetAlarmCondition
+                {
+                    Kind = ScetAlarmConditionKind.Threshold,
+                    Topic = topic,
+                    FieldPath = fieldPath,
+                    Op = op,
+                    Threshold = threshold,
+                    SustainSeconds = sustainSeconds,
+                },
+            };
+
         private static ScetAlarmArmArgs TimeAlarm(
             string id, double ut, double leadSeconds = 0, string name = "Alarm") =>
             new ScetAlarmArmArgs
@@ -229,6 +273,245 @@ namespace Sitrep.Host.Tests
             Assert.False(roster.Arm(new ScetAlarmArmArgs { Id = "" }, "ksc"));
             Assert.False(roster.Arm(null, "ksc"));
             Assert.Empty(roster.Snapshot());
+        }
+
+        /// <summary>
+        /// A threshold asks for the reading the way the wire addresses it, and
+        /// for the craft the operator named rather than whichever one is active.
+        /// </summary>
+        [Fact]
+        public void AThresholdAsksForItsOwnSubjectTopicAndPath()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+            var reader = new FakeReader();
+
+            roster.Evaluate(1000, reader);
+
+            Assert.Equal(new[] { "vessel:abc|vessel.flight|altitudeAsl" }, reader.Asked.ToArray());
+        }
+
+        [Fact]
+        public void AThresholdFiresWhenTheReadingCrossesTheOperatorsNumber()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+            var reader = new FakeReader { Next = ScetReading.Observed(99_000) };
+
+            Assert.Empty(roster.Evaluate(1000, reader).Fired);
+
+            reader.Next = ScetReading.Observed(101_000);
+            var firing = roster.Evaluate(1010, reader);
+
+            var notice = Assert.Single(firing.Fired);
+            Assert.Equal("a", notice.Id);
+            Assert.Equal(1010, notice.FiredAtUt);
+            Assert.True(firing.StopWarp);
+            Assert.Equal(ScetAlarmState.Fired, roster.Snapshot()[0].State);
+        }
+
+        [Fact]
+        public void TheNoticeSaysNothingAboutTheReadingThatCausedIt()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+
+            // Well past the threshold, because one warp step is enough to carry a
+            // craft a long way beyond it. The operator accepted seeing the alarm
+            // fire while their readouts still show the craft minutes ago; they did
+            // not accept the reason travelling early. The notice has two fields and
+            // this is the test that keeps it at two.
+            var notice = Assert.Single(
+                roster.Evaluate(1000, new FakeReader { Next = ScetReading.Observed(412_345) }).Fired);
+
+            Assert.Equal("a", notice.Id);
+            Assert.Equal(1000, notice.FiredAtUt);
+            Assert.Equal(
+                new[] { "FiredAtUt", "Id" },
+                typeof(ScetAlarmFired).GetProperties().Select(p => p.Name).OrderBy(n => n).ToArray());
+        }
+
+        [Fact]
+        public void AThresholdIsLatchedSoAConditionThatKeepsHoldingCannotStopTheWarpAgain()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+            var reader = new FakeReader { Next = ScetReading.Observed(101_000) };
+
+            Assert.True(roster.Evaluate(1000, reader).StopWarp);
+
+            var after = roster.Evaluate(1001, reader);
+            Assert.False(after.StopWarp);
+            Assert.Empty(after.Fired);
+        }
+
+        [Theory]
+        [InlineData(ScetAlarmThresholdOp.GreaterThan, 100.0, 100.0, false)]
+        [InlineData(ScetAlarmThresholdOp.GreaterThan, 100.0, 100.1, true)]
+        [InlineData(ScetAlarmThresholdOp.GreaterThanOrEqual, 100.0, 100.0, true)]
+        [InlineData(ScetAlarmThresholdOp.LessThan, 100.0, 100.0, false)]
+        [InlineData(ScetAlarmThresholdOp.LessThan, 100.0, 99.9, true)]
+        [InlineData(ScetAlarmThresholdOp.LessThanOrEqual, 100.0, 100.0, true)]
+        [InlineData(ScetAlarmThresholdOp.Equal, 100.0, 100.0, true)]
+        [InlineData(ScetAlarmThresholdOp.Equal, 100.0, 100.1, false)]
+        [InlineData(ScetAlarmThresholdOp.NotEqual, 100.0, 100.1, true)]
+        [InlineData(ScetAlarmThresholdOp.NotEqual, 100.0, 100.0, false)]
+        public void EveryOperatorMeansWhatTheClientsOwnListMeansByIt(
+            ScetAlarmThresholdOp op, double threshold, double reading, bool fires)
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", threshold, op), "ksc");
+
+            var tick = roster.Evaluate(1000, new FakeReader { Next = ScetReading.Observed(reading) });
+
+            Assert.Equal(fires, tick.Fired.Count == 1);
+        }
+
+        [Fact]
+        public void TheWarpStopsAtTheFirstMatchSoTheSustainWindowHasRealTicksToRunIn()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000, sustainSeconds: 5), "ksc");
+            var reader = new FakeReader { Next = ScetReading.Observed(101_000) };
+
+            // Matching, not yet sustained. Under warp a 5-second window would be
+            // skipped clean over, so the stop comes first and the window is
+            // measured in the real ticks the stop buys.
+            var first = roster.Evaluate(1000, reader);
+            Assert.True(first.StopWarp);
+            Assert.Empty(first.Fired);
+
+            Assert.Empty(roster.Evaluate(1004, reader).Fired);
+            Assert.Single(roster.Evaluate(1005, reader).Fired);
+        }
+
+        [Fact]
+        public void ASustainWindowRestartsWhenTheConditionStopsHolding()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000, sustainSeconds: 5), "ksc");
+            var reader = new FakeReader { Next = ScetReading.Observed(101_000) };
+
+            roster.Evaluate(1000, reader);
+            reader.Next = ScetReading.Observed(99_000);
+            roster.Evaluate(1003, reader);
+            reader.Next = ScetReading.Observed(101_000);
+            roster.Evaluate(1004, reader);
+
+            // 1005 is five seconds after the FIRST match and one after the
+            // current one. A window that did not restart would fire here.
+            Assert.Empty(roster.Evaluate(1005, reader).Fired);
+            Assert.Single(roster.Evaluate(1009, reader).Fired);
+        }
+
+        [Fact]
+        public void AReadingThatCannotBeTakenLeavesTheAlarmPending()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+
+            // No vessel loaded, an unknown path, a payload about another craft:
+            // all of them mean "not now" and none of them may fire or disarm.
+            var tick = roster.Evaluate(1000, new FakeReader { Next = ScetReading.NotObservable });
+
+            Assert.Empty(tick.Fired);
+            Assert.False(tick.StopWarp);
+            Assert.Equal(ScetAlarmState.Armed, roster.Snapshot()[0].State);
+        }
+
+        [Fact]
+        public void AThresholdWithNoReaderAtAllStaysPending()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+
+            // The capture had no snapshot to read. Same fail-safe: an alarm that
+            // cannot be evaluated does not fire.
+            var tick = roster.Evaluate(1000);
+
+            Assert.Empty(tick.Fired);
+            Assert.False(tick.StopWarp);
+        }
+
+        [Fact]
+        public void ACraftThatHasLeftTheSimulationMakesItsAlarmUnreachable()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+
+            var tick = roster.Evaluate(1000, new FakeReader { Next = ScetReading.SubjectGone });
+
+            Assert.True(tick.RosterChanged);
+            Assert.Empty(tick.Fired);
+            Assert.False(tick.StopWarp);
+            Assert.Equal(ScetAlarmState.Unreachable, roster.Snapshot()[0].State);
+        }
+
+        [Fact]
+        public void AnUnreachableAlarmIsNotAskedAboutAgain()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000), "ksc");
+            var reader = new FakeReader { Next = ScetReading.SubjectGone };
+            roster.Evaluate(1000, reader);
+            reader.Asked.Clear();
+
+            // The craft is not coming back, and a row that will never fire must
+            // not keep costing a payload build every tick.
+            Assert.False(roster.Evaluate(1001, reader).RosterChanged);
+            Assert.Empty(reader.Asked);
+        }
+
+        [Fact]
+        public void ReArmingCarriesTheWholeThresholdCondition()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(
+                ThresholdAlarm("a", 100_000, ScetAlarmThresholdOp.LessThan, sustainSeconds: 3), "ksc");
+
+            var condition = Assert.Single(roster.Snapshot()).Condition;
+            Assert.Equal(ScetAlarmConditionKind.Threshold, condition.Kind);
+            Assert.Equal("vessel.flight", condition.Topic);
+            Assert.Equal("altitudeAsl", condition.FieldPath);
+            Assert.Equal(ScetAlarmThresholdOp.LessThan, condition.Op);
+            Assert.Equal(100_000, condition.Threshold);
+            Assert.Equal(3, condition.SustainSeconds);
+
+            // An identical re-arm on every reconnect must not churn the channel,
+            // and the comparison has to see the threshold half to know that.
+            Assert.False(roster.Arm(
+                ThresholdAlarm("a", 100_000, ScetAlarmThresholdOp.LessThan, sustainSeconds: 3), "ksc"));
+            Assert.True(roster.Arm(
+                ThresholdAlarm("a", 100_001, ScetAlarmThresholdOp.LessThan, sustainSeconds: 3), "ksc"));
+        }
+
+        [Fact]
+        public void ReArmingAThresholdDropsTheSustainWindowItWasHalfwayThrough()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(ThresholdAlarm("a", 100_000, sustainSeconds: 5), "ksc");
+            var reader = new FakeReader { Next = ScetReading.Observed(101_000) };
+            roster.Evaluate(1000, reader);
+
+            // The operator moved the number. The condition they are watching now
+            // has not held for anything yet.
+            roster.Arm(ThresholdAlarm("a", 50_000, sustainSeconds: 5), "ksc");
+
+            Assert.Empty(roster.Evaluate(1004, reader).Fired);
+            Assert.Single(roster.Evaluate(1009, reader).Fired);
+        }
+
+        [Fact]
+        public void ATimeAlarmAndAThresholdComingDueTogetherAreOneStopAndTwoNotices()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 1000), "ksc");
+            roster.Arm(ThresholdAlarm("b", 100_000), "ksc");
+
+            var tick = roster.Evaluate(1000, new FakeReader { Next = ScetReading.Observed(101_000) });
+
+            Assert.True(tick.StopWarp);
+            Assert.Equal(new[] { "a", "b" }, tick.Fired.Select(f => f.Id).ToArray());
         }
     }
 }
