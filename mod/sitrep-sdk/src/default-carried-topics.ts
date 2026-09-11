@@ -265,6 +265,14 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // has no hook to dispatch from.
   "alarm.scet.arm",
   "alarm.scet.disarm",
+  // The warp command, here for the same reason the two above are, and for a
+  // path that has been dead the whole time: `WarpControl.commandWarp` is the
+  // alarm pipeline's step-down and ramp, it is a plain class dispatching
+  // through `dispatchActiveCommandTopic`, and with the id absent from this list
+  // every one of its commands was refused and logged as "warp command not
+  // routed". Nothing a widget does is affected, because `useCommand` has no
+  // such gate; it is the headless half that could not reach the game.
+  "time.setWarpIndex",
 ];
 
 /**
