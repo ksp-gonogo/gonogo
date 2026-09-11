@@ -3821,6 +3821,169 @@ export interface RotorReverseArgs
 	partId: string;
 }
 /**
+* Which kind of condition a SCET alarm watches for.
+*
+* Only `ScetAlarmConditionKind.Time` exists today. A SCET vantage is
+* meaningful exactly where the craft's TRUE state and the state the ground has
+* been told differ, which is why there is no member here for a contract
+* parameter: career bookkeeping is known to the command centre without any
+* link, so there is no gap for a vantage to straddle.
+*/
+export enum ScetAlarmConditionKind {
+	/** An instant on the craft's own clock, as a universal time. */
+	Time = 0
+}
+/**
+* Where an armed SCET alarm has got to.
+*
+* A latch, not a level: `ScetAlarmState.Fired` is reached once and stays, so a
+* condition that keeps holding cannot stop the warp again on the next tick.
+*/
+export enum ScetAlarmState {
+	/** Watching. The condition has not been met. */
+	Armed = 0,
+	/** The condition was met, warp was stopped, and the notice went out. */
+	Fired = 1
+}
+/**
+* What a SCET alarm watches for, on the craft's own clock.
+*
+* A discriminated shape: `ScetAlarmCondition.kind` says which of the fields
+* below carry meaning. For `ScetAlarmConditionKind.Time` that is
+* `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`.
+*/
+export interface ScetAlarmCondition
+{
+	kind: ScetAlarmConditionKind;
+	/**
+	* The instant the alarm is set for, as a universal time on the CRAFT's clock
+	* rather than on the clock the command centre is reading.
+	*
+	* The difference between the two is the one-way light time, and it moves
+	* continuously as the craft does. A client that subtracts it once, at the
+	* moment the operator clicks, is right only for that instant; this field is
+	* the instant itself, compared against the game's own clock every tick, so the
+	* answer stays right however the geometry changes between arming and firing.
+	*/
+	ut: Value<"ut">;
+	/**
+	* How long before `ScetAlarmCondition.ut` warp is stopped, in seconds, so the
+	* operator has real time in hand before the instant they set the alarm for.
+	* Zero stops the warp at the instant itself.
+	*
+	* The stop and the notice are two separate moments: warp halts at `Ut -
+	* LeadSeconds`, and the alarm fires at `Ut`, which arrives in real time
+	* because the warp is already stopped.
+	*/
+	leadSeconds: Value<"s">;
+}
+/**
+* One armed SCET alarm as the simulation host holds it: the `alarm.scet`
+* channel is a bare array of these.
+*
+* The roster exists so an operator can see what is still armed after a
+* reconnect, and so a client can disarm an entry it no longer remembers. It is
+* ground-side bookkeeping, a list of things somebody asked for rather than a
+* reading of any craft, which is why the channel does not ride the reveal
+* clock.
+*/
+export interface ScetAlarm
+{
+	/**
+	* The client's own id for the alarm, minted where the alarm was created and
+	* carried unchanged. Arming an id that is already armed REPLACES it, so a
+	* re-arm is idempotent and a reconnect cannot duplicate a row.
+	*/
+	id: string;
+	/**
+	* What the operator called it. Echoed so a roster row a client no longer
+	* recognises can still be named on screen.
+	*/
+	name: string;
+	/**
+	* The command centre the arm command was sent from, as a
+	* `commandCentre.roster` id.
+	*
+	* Provenance only: a SCET alarm stops the warp for everybody, because warp is
+	* a property of the simulation rather than of any one vantage. This says who
+	* asked for it, never who it applies to.
+	*/
+	armedBy: string;
+	/**
+	* What the condition is about: `"vessel:<guid>"` for a craft, or `"game"` for
+	* something the whole simulation shares. The same vocabulary `meta.source`
+	* uses.
+	*
+	* A time condition is always `"game"`: universal time is the game's, and a
+	* clock has no craft to belong to. The field is not therefore decoration, it
+	* is what stops a condition that DOES name a craft from silently re-aiming
+	* when the player switches vessels.
+	*/
+	subject: string;
+	condition: ScetAlarmCondition;
+	state: ScetAlarmState;
+	/**
+	* The universal time the alarm fired at, or `null` while it is still armed. On
+	* the craft's clock, like `ScetAlarmCondition.ut`.
+	*/
+	firedAtUt?: Value<"ut">;
+}
+/**
+* The notice that a SCET alarm has fired and the warp has been stopped.
+*
+* **It says THAT one fired and WHEN, and deliberately nothing about the
+* craft.** The stop is universal, because warp is; the telemetry is not, and
+* stays a light-time behind. So an operator can be told their alarm went off
+* while every reading beside it still shows the craft as it was minutes ago,
+* and this payload carries nothing that would close that gap early. Whatever
+* the craft was doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
+*
+* The two fields are the honest minimum. The id is the operator's own handle,
+* which tells them nothing they did not already write down. The instant is
+* inseparable from the stop: without it a warp that halted at one universal
+* time is indistinguishable from one that halted at another, and the operator
+* cannot tell which of two armed alarms stopped them.
+*/
+export interface ScetAlarmFired
+{
+	/** Which alarm, as the `ScetAlarm.id` it was armed under. */
+	id: string;
+	/** The universal time it fired at, on the craft's clock. */
+	firedAtUt: Value<"ut">;
+}
+/**
+* `alarm.scet.arm`'s args: register an alarm with the simulation host, or
+* replace one already registered under the same `ScetAlarmArmArgs.id`.
+*
+* Never delayed. Arming changes nothing aboard the craft, so there is no
+* light-time fiction to honour, and the same reasoning `time.setWarpIndex` has
+* always carried applies: this is a control on the simulation, not a signal to
+* a spacecraft. Delayed it would also be unusable, because an alarm for an
+* event less than one light-time away could never be armed in time, and a
+* delayed command is dropped outright during a blackout, which is exactly when
+* a SCET alarm earns its keep.
+*/
+export interface ScetAlarmArmArgs
+{
+	id: string;
+	name: string;
+	/** See `ScetAlarm.subject`. Empty is read as `"game"`. */
+	subject: string;
+	condition: ScetAlarmCondition;
+}
+/**
+* `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds
+* for an id the host does not hold, so a client reconciling its list against
+* the roster never has to ask first.
+*
+* Never delayed, for the reason its opposite is not: the inverse of an instant
+* act must not be slower than the act.
+*/
+export interface ScetAlarmDisarmArgs
+{
+	id: string;
+}
+/**
 * Args shared by every science-experiment actuation command
 * (`science.experiment.deploy`/`science.experiment.transmit`): the experiment
 * is addressed by `ExperimentActionArgs.partId`, the part's

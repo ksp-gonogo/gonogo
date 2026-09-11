@@ -925,6 +925,31 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     requiresFunds: "funds",
     totalMass: "t",
   },
+  "ScetAlarm": {
+    armedBy: "id",
+    firedAtUt: "ut",
+    id: "id",
+    name: "text",
+    state: "enum",
+    subject: "id",
+  },
+  "ScetAlarmArmArgs": {
+    id: "id",
+    name: "text",
+    subject: "id",
+  },
+  "ScetAlarmCondition": {
+    kind: "enum",
+    leadSeconds: "s",
+    ut: "ut",
+  },
+  "ScetAlarmDisarmArgs": {
+    id: "id",
+  },
+  "ScetAlarmFired": {
+    firedAtUt: "ut",
+    id: "id",
+  },
   "ScienceCreditEvent": {
     amount: "science",
     subjectId: "id",
@@ -1384,6 +1409,18 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
  * fields, which is what a consumer indexes into.
  */
 export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
+  "alarm.scet": {
+    armedBy: "id",
+    firedAtUt: "ut",
+    id: "id",
+    name: "text",
+    state: "enum",
+    subject: "id",
+  },
+  "alarm.scet.fired": {
+    firedAtUt: "ut",
+    id: "id",
+  },
   "career.mode": {
     mode: "enum",
   },
@@ -2148,6 +2185,12 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "ResolveResult": {
     notices: "ResolutionNotice[]",
   },
+  "ScetAlarm": {
+    condition: "ScetAlarmCondition",
+  },
+  "ScetAlarmArmArgs": {
+    condition: "ScetAlarmCondition",
+  },
   "SeededTrajectory": {
     arc: "TrajectoryArc",
   },
@@ -2280,6 +2323,9 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "alarm.scet": {
+    condition: "ScetAlarmCondition",
+  },
   "career.facilities": {
     facilities: "*CareerFacility",
   },

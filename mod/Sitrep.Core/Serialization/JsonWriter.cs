@@ -261,6 +261,22 @@ namespace Sitrep.Core.Serialization
                 // producer-side in that Uplink's own builders, so JsonWriter
                 // never sees the raw POCO: see
                 // WirePayloadCoverageTests.FlattenedByProducer.
+                case Sitrep.Contract.ScetAlarm scetAlarm:
+                    // alarm.scet is a BARE ARRAY of these, published raw by
+                    // ScetAlarmUplink, so every element reaches here through the
+                    // IEnumerable case below. Same boundary CommandCentreEntry
+                    // met: an EMPTY roster serializes fine without a case and
+                    // every POPULATED one throws at the wire.
+                    AppendScetAlarm(sb, scetAlarm);
+                    break;
+                case Sitrep.Contract.ScetAlarmCondition scetAlarmCondition:
+                    // Reached nested inside a roster row, and on its own for
+                    // anything that publishes a condition without the row.
+                    AppendScetAlarmCondition(sb, scetAlarmCondition);
+                    break;
+                case Sitrep.Contract.ScetAlarmFired scetAlarmFired:
+                    AppendScetAlarmFired(sb, scetAlarmFired);
+                    break;
                 case Sitrep.Contract.GateVerdict verdict:
                     // A declared command gate's answer: the refusal payload, and
                     // the per-command entry of the addressability set. Flattened
@@ -1699,6 +1715,99 @@ namespace Sitrep.Core.Serialization
             AppendString(sb, "delayQuality");
             sb.Append(':');
             AppendNullableString(sb, e.DelayQuality);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// One armed SCET alarm as <c>{ id, name, armedBy, subject, condition,
+        /// state, firedAtUt }</c>, the element shape of the <c>alarm.scet</c>
+        /// array.
+        /// </summary>
+        ///
+        /// <remarks>
+        /// <c>state</c> goes as its ordinal, the wire form every other contract
+        /// enum takes. <c>firedAtUt</c> is JSON null while the alarm is armed
+        /// rather than 0, which is a real instant (the game's own epoch) and
+        /// would read to a client as an alarm that fired at the dawn of the save.
+        /// </remarks>
+        private static void AppendScetAlarm(
+            StringBuilder sb, Sitrep.Contract.ScetAlarm a)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, a.Id ?? "");
+            sb.Append(',');
+            AppendString(sb, "name");
+            sb.Append(':');
+            AppendString(sb, a.Name ?? "");
+            sb.Append(',');
+            AppendString(sb, "armedBy");
+            sb.Append(':');
+            AppendString(sb, a.ArmedBy ?? "");
+            sb.Append(',');
+            AppendString(sb, "subject");
+            sb.Append(':');
+            AppendString(sb, a.Subject ?? "");
+            sb.Append(',');
+            AppendString(sb, "condition");
+            sb.Append(':');
+            if (a.Condition == null)
+            {
+                AppendNull(sb);
+            }
+            else
+            {
+                AppendScetAlarmCondition(sb, a.Condition);
+            }
+            sb.Append(',');
+            AppendString(sb, "state");
+            sb.Append(':');
+            AppendInteger(sb, (int)a.State);
+            sb.Append(',');
+            AppendString(sb, "firedAtUt");
+            sb.Append(':');
+            AppendNullableNumber(sb, a.FiredAtUt);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// A SCET alarm's condition as <c>{ kind, ut, leadSeconds }</c>.
+        /// </summary>
+        private static void AppendScetAlarmCondition(
+            StringBuilder sb, Sitrep.Contract.ScetAlarmCondition c)
+        {
+            sb.Append('{');
+            AppendString(sb, "kind");
+            sb.Append(':');
+            AppendInteger(sb, (int)c.Kind);
+            sb.Append(',');
+            AppendString(sb, "ut");
+            sb.Append(':');
+            AppendNumber(sb, c.Ut);
+            sb.Append(',');
+            AppendString(sb, "leadSeconds");
+            sb.Append(':');
+            AppendNumber(sb, c.LeadSeconds);
+            sb.Append('}');
+        }
+
+        /// <summary>
+        /// The fire notice as <c>{ id, firedAtUt }</c>. Two fields, and the
+        /// shortness is the design: see <see cref="Sitrep.Contract.ScetAlarmFired"/>
+        /// for why nothing about the craft may travel on this channel.
+        /// </summary>
+        private static void AppendScetAlarmFired(
+            StringBuilder sb, Sitrep.Contract.ScetAlarmFired f)
+        {
+            sb.Append('{');
+            AppendString(sb, "id");
+            sb.Append(':');
+            AppendString(sb, f.Id ?? "");
+            sb.Append(',');
+            AppendString(sb, "firedAtUt");
+            sb.Append(':');
+            AppendNumber(sb, f.FiredAtUt);
             sb.Append('}');
         }
 

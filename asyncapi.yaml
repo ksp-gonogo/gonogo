@@ -3,8 +3,8 @@ info:
   title: Gonogo Sitrep contract
   version: 16.2.0
   description: |-
-    The wire contract of the Gonogo mod's telemetry socket: 74 telemetry
-    channels a client subscribes to, and 51 commands it dispatches, with the payload
+    The wire contract of the Gonogo mod's telemetry socket: 76 telemetry
+    channels a client subscribes to, and 53 commands it dispatches, with the payload
     schema and the contract's own prose for each.
 
     **Generated.** Emitted by `scripts/asyncapi-doc.mjs` from the committed
@@ -143,6 +143,8 @@ info:
   tags:
     - name: session
       description: Frames belonging to the connection rather than a channel
+    - name: alarm
+      description: 2 telemetry channels, 2 commands
     - name: career
       description: 3 telemetry channels, 9 commands
     - name: commandCentre
@@ -196,6 +198,104 @@ servers:
     title: The Gonogo mod's telemetry socket
     description: "Served by the mod inside the running game. The host and port are configurable per install; `localhost:8090` is the default the client falls back to when nothing else is configured. There is no path: the URL is `ws://<host>:<port>`."
 channels:
+  alarm.scet:
+    address: alarm.scet
+    description: |-
+      Carries an array of `ScetAlarm`.
+
+      One armed SCET alarm as the simulation host holds it: the `alarm.scet`
+      channel is a bare array of these.
+
+      The roster exists so an operator can see what is still armed after a
+      reconnect, and so a client can disarm an entry it no longer remembers. It is
+      ground-side bookkeeping, a list of things somebody asked for rather than a
+      reading of any craft, which is why the channel does not ride the reveal
+      clock.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: true-now
+    x-sitrep-keyframe-interval-ut: 3600
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.alarm.scet"
+      event:
+        $ref: "#/components/messages/event"
+  alarm.scet.arm:
+    address: alarm.scet.arm
+    description: |-
+      Takes `ScetAlarmArmArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `alarm.scet.arm`'s args: register an alarm with the simulation host, or
+      replace one already registered under the same `ScetAlarmArmArgs.id`.
+
+      Never delayed. Arming changes nothing aboard the craft, so there is no
+      light-time fiction to honour, and the same reasoning `time.setWarpIndex` has
+      always carried applies: this is a control on the simulation, not a signal to
+      a spacecraft. Delayed it would also be unusable, because an alarm for an
+      event less than one light-time away could never be armed in time, and a
+      delayed command is dropped outright during a blackout, which is exactly when
+      a SCET alarm earns its keep.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.alarm.scet.arm"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.alarm.scet.arm"
+  alarm.scet.disarm:
+    address: alarm.scet.disarm
+    description: |-
+      Takes `ScetAlarmDisarmArgs`.
+
+      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+
+      `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds
+      for an id the host does not hold, so a client reconciling its list against
+      the roster never has to ask first.
+
+      Never delayed, for the reason its opposite is not: the inverse of an instant
+      act must not be slower than the act.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delayed: false
+    messages:
+      commandRequest:
+        $ref: "#/components/messages/commandRequest.alarm.scet.disarm"
+      commandResponse:
+        $ref: "#/components/messages/commandResponse.alarm.scet.disarm"
+  alarm.scet.fired:
+    address: alarm.scet.fired
+    description: |-
+      Carries a `ScetAlarmFired`.
+
+      The notice that a SCET alarm has fired and the warp has been stopped.
+
+      **It says THAT one fired and WHEN, and deliberately nothing about the
+      craft.** The stop is universal, because warp is; the telemetry is not, and
+      stays a light-time behind. So an operator can be told their alarm went off
+      while every reading beside it still shows the craft as it was minutes ago,
+      and this payload carries nothing that would close that gap early. Whatever
+      the craft was doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
+
+      The two fields are the honest minimum. The id is the operator's own handle,
+      which tells them nothing they did not already write down. The instant is
+      inseparable from the stop: without it a warp that halted at one universal
+      time is indistinguishable from one that halted at another, and the operator
+      cannot tell which of two armed alarms stopped them.
+    servers:
+      - $ref: "#/servers/mod"
+    x-sitrep-delivery: reliable-ordered
+    x-sitrep-delay-role: true-now
+    x-sitrep-keyframe-interval-ut: 3600
+    messages:
+      streamData:
+        $ref: "#/components/messages/streamData.alarm.scet.fired"
+      event:
+        $ref: "#/components/messages/event"
   career.contract.accept:
     address: career.contract.accept
     description: |-
@@ -3479,6 +3579,34 @@ channels:
       commandResponse:
         $ref: "#/components/messages/commandResponse.vessel.trajectory.forVantage"
 operations:
+  dispatch:alarm.scet.arm:
+    action: send
+    channel:
+      $ref: "#/channels/alarm.scet.arm"
+    title: Dispatch alarm.scet.arm
+    tags:
+      - name: alarm
+    messages:
+      - $ref: "#/channels/alarm.scet.arm/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/alarm.scet.arm"
+      messages:
+        - $ref: "#/channels/alarm.scet.arm/messages/commandResponse"
+  dispatch:alarm.scet.disarm:
+    action: send
+    channel:
+      $ref: "#/channels/alarm.scet.disarm"
+    title: Dispatch alarm.scet.disarm
+    tags:
+      - name: alarm
+    messages:
+      - $ref: "#/channels/alarm.scet.disarm/messages/commandRequest"
+    reply:
+      channel:
+        $ref: "#/channels/alarm.scet.disarm"
+      messages:
+        - $ref: "#/channels/alarm.scet.disarm/messages/commandResponse"
   dispatch:career.contract.accept:
     action: send
     channel:
@@ -4193,6 +4321,28 @@ operations:
         $ref: "#/channels/vessel.trajectory.forVantage"
       messages:
         - $ref: "#/channels/vessel.trajectory.forVantage/messages/commandResponse"
+  read:alarm.scet:
+    action: receive
+    channel:
+      $ref: "#/channels/alarm.scet"
+    title: Read alarm.scet
+    description: Delivered only after `subscribe` names `alarm.scet` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: alarm
+    messages:
+      - $ref: "#/channels/alarm.scet/messages/streamData"
+      - $ref: "#/channels/alarm.scet/messages/event"
+  read:alarm.scet.fired:
+    action: receive
+    channel:
+      $ref: "#/channels/alarm.scet.fired"
+    title: Read alarm.scet.fired
+    description: Delivered only after `subscribe` names `alarm.scet.fired` on the session channel, which the mod answers here with an `event` named `subscribed`.
+    tags:
+      - name: alarm
+    messages:
+      - $ref: "#/channels/alarm.scet.fired/messages/streamData"
+      - $ref: "#/channels/alarm.scet.fired/messages/event"
   read:career.facilities:
     action: receive
     channel:
@@ -5034,6 +5184,36 @@ components:
       description: "A dispatch and its answer are correlated on `requestId`, never on order: responses may arrive out of the order the requests were sent, and a delayed command's answer can be minutes behind it."
       location: $message.payload#/requestId
   messages:
+    commandRequest.alarm.scet.arm:
+      name: command-request
+      title: Dispatch alarm.scet.arm
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `alarm.scet.arm`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: alarm.scet.arm
+              args:
+                $ref: "#/components/schemas/ScetAlarmArmArgs"
+    commandRequest.alarm.scet.disarm:
+      name: command-request
+      title: Dispatch alarm.scet.disarm
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-request` envelope for `alarm.scet.disarm`, with its typed `args`.
+        allOf:
+          - $ref: "#/components/schemas/CommandRequest"
+          - properties:
+              command:
+                const: alarm.scet.disarm
+              args:
+                $ref: "#/components/schemas/ScetAlarmDisarmArgs"
     commandRequest.career.contract.accept:
       name: command-request
       title: Dispatch career.contract.accept
@@ -5799,6 +5979,32 @@ components:
                 const: vessel.trajectory.forVantage
               args:
                 $ref: "#/components/schemas/VantagePlanRequest"
+    commandResponse.alarm.scet.arm:
+      name: command-response
+      title: Reply to alarm.scet.arm
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `alarm.scet.arm`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
+    commandResponse.alarm.scet.disarm:
+      name: command-response
+      title: Reply to alarm.scet.disarm
+      contentType: application/json
+      correlationId:
+        $ref: "#/components/correlationIds/requestId"
+      payload:
+        description: The `command-response` envelope for `alarm.scet.disarm`, with its typed `result`.
+        allOf:
+          - $ref: "#/components/schemas/CommandResponse"
+          - properties:
+              result:
+                $ref: "#/components/schemas/CommandResult"
     commandResponse.career.contract.accept:
       name: command-response
       title: Reply to career.contract.accept
@@ -6522,6 +6728,34 @@ components:
       title: Select this connection's command centre
       payload:
         $ref: "#/components/schemas/SetVantage"
+    streamData.alarm.scet:
+      name: stream-data
+      title: A frame on alarm.scet
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `alarm.scet`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: alarm.scet
+              payload:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScetAlarm"
+    streamData.alarm.scet.fired:
+      name: stream-data
+      title: A frame on alarm.scet.fired
+      contentType: application/json
+      payload:
+        description: The `stream-data` envelope carrying `alarm.scet.fired`.
+        allOf:
+          - $ref: "#/components/schemas/StreamData"
+          - properties:
+              topic:
+                const: alarm.scet.fired
+              payload:
+                $ref: "#/components/schemas/ScetAlarmFired"
     streamData.career.facilities:
       name: stream-data
       title: A frame on career.facilities
@@ -14519,6 +14753,217 @@ components:
             Parts referenced by the craft that are not yet unlocked/purchased
             (`CraftProfileInfo.UnavailableShipParts`); an empty array when the craft is
             buildable as-is.
+    ScetAlarm:
+      type: object
+      description: |-
+        One armed SCET alarm as the simulation host holds it: the `alarm.scet`
+        channel is a bare array of these.
+
+        The roster exists so an operator can see what is still armed after a
+        reconnect, and so a client can disarm an entry it no longer remembers. It is
+        ground-side bookkeeping, a list of things somebody asked for rather than a
+        reading of any craft, which is why the channel does not ride the reveal
+        clock.
+      required:
+        - id
+        - name
+        - armedBy
+        - subject
+        - condition
+        - state
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The client's own id for the alarm, minted where the alarm was created and
+            carried unchanged. Arming an id that is already armed REPLACES it, so a
+            re-arm is idempotent and a reconnect cannot duplicate a row.
+        name:
+          type: string
+          x-sitrep-unit: text
+          description: |-
+            What the operator called it. Echoed so a roster row a client no longer
+            recognises can still be named on screen.
+        armedBy:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            The command centre the arm command was sent from, as a
+            `commandCentre.roster` id.
+
+            Provenance only: a SCET alarm stops the warp for everybody, because warp is
+            a property of the simulation rather than of any one vantage. This says who
+            asked for it, never who it applies to.
+        subject:
+          type: string
+          x-sitrep-unit: id
+          description: |-
+            What the condition is about: `"vessel:<guid>"` for a craft, or `"game"` for
+            something the whole simulation shares. The same vocabulary `meta.source`
+            uses.
+
+            A time condition is always `"game"`: universal time is the game's, and a
+            clock has no craft to belong to. The field is not therefore decoration, it
+            is what stops a condition that DOES name a craft from silently re-aiming
+            when the player switches vessels.
+        condition:
+          $ref: "#/components/schemas/ScetAlarmCondition"
+        state:
+          $ref: "#/components/schemas/ScetAlarmState"
+          x-sitrep-unit: enum
+        firedAtUt:
+          type:
+            - number
+            - "null"
+          x-sitrep-unit: ut
+          description: |-
+            The universal time the alarm fired at, or `null` while it is still armed. On
+            the craft's clock, like `ScetAlarmCondition.ut`.
+    ScetAlarmArmArgs:
+      type: object
+      description: |-
+        `alarm.scet.arm`'s args: register an alarm with the simulation host, or
+        replace one already registered under the same `ScetAlarmArmArgs.id`.
+
+        Never delayed. Arming changes nothing aboard the craft, so there is no
+        light-time fiction to honour, and the same reasoning `time.setWarpIndex` has
+        always carried applies: this is a control on the simulation, not a signal to
+        a spacecraft. Delayed it would also be unusable, because an alarm for an
+        event less than one light-time away could never be armed in time, and a
+        delayed command is dropped outright during a blackout, which is exactly when
+        a SCET alarm earns its keep.
+      required:
+        - id
+        - name
+        - subject
+        - condition
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+        name:
+          type: string
+          x-sitrep-unit: text
+        subject:
+          type: string
+          x-sitrep-unit: id
+          description: See `ScetAlarm.subject`. Empty is read as `"game"`.
+        condition:
+          $ref: "#/components/schemas/ScetAlarmCondition"
+    ScetAlarmCondition:
+      type: object
+      description: |-
+        What a SCET alarm watches for, on the craft's own clock.
+
+        A discriminated shape: `ScetAlarmCondition.kind` says which of the fields
+        below carry meaning. For `ScetAlarmConditionKind.Time` that is
+        `ScetAlarmCondition.ut` and `ScetAlarmCondition.leadSeconds`.
+      required:
+        - kind
+        - ut
+        - leadSeconds
+      properties:
+        kind:
+          $ref: "#/components/schemas/ScetAlarmConditionKind"
+          x-sitrep-unit: enum
+        ut:
+          type: number
+          x-sitrep-unit: ut
+          description: |-
+            The instant the alarm is set for, as a universal time on the CRAFT's clock
+            rather than on the clock the command centre is reading.
+
+            The difference between the two is the one-way light time, and it moves
+            continuously as the craft does. A client that subtracts it once, at the
+            moment the operator clicks, is right only for that instant; this field is
+            the instant itself, compared against the game's own clock every tick, so the
+            answer stays right however the geometry changes between arming and firing.
+        leadSeconds:
+          type: number
+          x-sitrep-unit: s
+          description: |-
+            How long before `ScetAlarmCondition.ut` warp is stopped, in seconds, so the
+            operator has real time in hand before the instant they set the alarm for.
+            Zero stops the warp at the instant itself.
+
+            The stop and the notice are two separate moments: warp halts at `Ut -
+            LeadSeconds`, and the alarm fires at `Ut`, which arrives in real time
+            because the warp is already stopped.
+    ScetAlarmConditionKind:
+      type: integer
+      description: |-
+        Which kind of condition a SCET alarm watches for.
+
+        Only `ScetAlarmConditionKind.Time` exists today. A SCET vantage is
+        meaningful exactly where the craft's TRUE state and the state the ground has
+        been told differ, which is why there is no member here for a contract
+        parameter: career bookkeeping is known to the command centre without any
+        link, so there is no gap for a vantage to straddle.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Time
+          description: An instant on the craft's own clock, as a universal time.
+    ScetAlarmDisarmArgs:
+      type: object
+      description: |-
+        `alarm.scet.disarm`'s args: forget the alarm with this id. Silently succeeds
+        for an id the host does not hold, so a client reconciling its list against
+        the roster never has to ask first.
+
+        Never delayed, for the reason its opposite is not: the inverse of an instant
+        act must not be slower than the act.
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+    ScetAlarmFired:
+      type: object
+      description: |-
+        The notice that a SCET alarm has fired and the warp has been stopped.
+
+        **It says THAT one fired and WHEN, and deliberately nothing about the
+        craft.** The stop is universal, because warp is; the telemetry is not, and
+        stays a light-time behind. So an operator can be told their alarm went off
+        while every reading beside it still shows the craft as it was minutes ago,
+        and this payload carries nothing that would close that gap early. Whatever
+        the craft was doing at `ScetAlarmFired.firedAtUt` arrives when it arrives.
+
+        The two fields are the honest minimum. The id is the operator's own handle,
+        which tells them nothing they did not already write down. The instant is
+        inseparable from the stop: without it a warp that halted at one universal
+        time is indistinguishable from one that halted at another, and the operator
+        cannot tell which of two armed alarms stopped them.
+      required:
+        - id
+        - firedAtUt
+      properties:
+        id:
+          type: string
+          x-sitrep-unit: id
+          description: Which alarm, as the `ScetAlarm.id` it was armed under.
+        firedAtUt:
+          type: number
+          x-sitrep-unit: ut
+          description: The universal time it fired at, on the craft's clock.
+    ScetAlarmState:
+      type: integer
+      description: |-
+        Where an armed SCET alarm has got to.
+
+        A latch, not a level: `ScetAlarmState.Fired` is reached once and stays, so a
+        condition that keeps holding cannot stop the warp again on the next tick.
+      x-sitrep-enum-kind: ordinal
+      oneOf:
+        - const: 0
+          title: Armed
+          description: Watching. The condition has not been met.
+        - const: 1
+          title: Fired
+          description: The condition was met, warp was stopped, and the notice went out.
     SendManeuverPlanArgs:
       type: object
       description: |-
