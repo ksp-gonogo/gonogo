@@ -111,9 +111,14 @@ Sun vantage plus vessel exposure: a per-star activity diagram for every star thi
 | `life-support-greenhouse` | `ship-systems.life-support` | – |  | 1 |  |
 | `crew-status-radiation-summary` | `crew-status.summary` | – | only while `kerbalism` | 0 |  |
 | `crew-status-survival-badge` | `crew-status.row-badges` | – | only while `kerbalism` | 0 |  |
+| `crew-survival-reckoned-band` | `crew-status.row-badges` | `kerbalism.crew` | only while `kerbalism` | 2 |  |
 | `science-data-aboard-row-file-manager` | `science-data.aboard-row` | – | only while `kerbalism` | 2 |  |
 
 ![Greenhouse halted in shadow: the growth rate stops and the row names the reason, while the reason named underneath rather than left to a stopped rate](docs/assets/greenhouse-halted-in-the-dark--default.png)
+
+![A reckoned one-sigma band beside each accumulator the model watched move, on the roster row of the kerbal it is about](docs/assets/dose-band-from-a-fitted-rate--default.png)
+
+![The same roster over a two-sample window: the model still carries the accumulators, offers no interval, and the rows draw none](docs/assets/dose-band-the-model-declines--default.png)
 
 ![File Manager controls under a Science Data Aboard row: one subject carrying a file and a sample, so every verb the augment knows renders at once](docs/assets/file-and-sample-on-one-subject--default.png)
 
