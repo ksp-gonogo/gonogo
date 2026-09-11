@@ -18,9 +18,10 @@ import { AlarmHostService } from "./AlarmHostService";
  * What a warp STOP does to a command centre a light-minute away, measured
  * rather than reasoned about.
  *
- * Two facts are pinned here, and both of them are defects. They are written as
+ * Two facts are pinned here. The first is still a defect, written as
  * characterisation so the tree stays honest about what it does today: the day
- * either one is fixed, this file goes red and is the place the fix is recorded.
+ * it is fixed, this file goes red and is the place the fix is recorded. The
+ * second WAS one and is now the assertion that it stays fixed.
  *
  * ## 1. The channel's `DelayRole` does not decide when the client can READ it
  *
@@ -45,18 +46,23 @@ import { AlarmHostService } from "./AlarmHostService";
  * for the same structural reason. It has never been visible because a craft in
  * Kerbin orbit has a light-time of milliseconds.
  *
- * ## 2. A warp-to session undoes the stop, one light-time late
+ * ## 2. A warp-to session ENDS on a stop it did not ask for (fixed)
  *
- * `WarpControl.reconcile` re-commands the ladder whenever the observed index
- * differs from the computed target. While the client still believes warp is
- * elevated the two agree and it commands nothing; the moment the stop finally
- * surfaces they disagree, and the client warps back up. The stop is undone by
- * the operator's own screen at exactly `t0 + owlt`, so warp is NOT 0 at
- * `t0 + 2 x owlt`.
+ * `WarpControl.reconcile` used to re-command the ladder whenever the observed
+ * index differed from the computed target. While the client still believed warp
+ * was elevated the two agreed and it commanded nothing; the moment the stop
+ * surfaced they disagreed and the client warped back up, undoing the stop from
+ * the operator's own screen at exactly `t0 + owlt`.
  *
- * Fixing (1) alone would only make the undoing PROMPT rather than late: the
- * controller has to learn that a stop it did not ask for ends the session. That
- * is a controller change and it is not made here.
+ * Fixing (1) would only have made that PROMPT rather than late, so the fix is in
+ * the controller: it remembers the index it asked for and the reading that was
+ * current when it asked, and a reading that has moved to 0 on its own ends the
+ * session rather than being reconciled against. It ends WITHOUT a second
+ * `SetWarp(0)`, because the warp is already stopped.
+ *
+ * The same memory is what stops the controller re-dispatching while it is blind.
+ * Measured on this fixture before the fix: 120 and 122 `time.setWarpIndex`
+ * dispatches across one session, where one is correct.
  */
 
 /** One-way light time, seconds. A craft four minutes out. */
@@ -101,6 +107,15 @@ interface WarpSession {
   forceIndex(ut: number, index: number): void;
   /** The true UTs at which the client's commands actually changed the game's warp. */
   commandedAt: readonly number[];
+  /**
+   * The true UT of every `time.setWarpIndex` the client dispatched, including
+   * the ones that asked for the index the game was already at.
+   *
+   * Separate from `commandedAt` because the game silently absorbs a redundant
+   * command, so counting only the ones that moved the warp hides a controller
+   * re-sending the same index on every tick for a whole light-time.
+   */
+  dispatchedAt: readonly number[];
 }
 
 /**
@@ -122,6 +137,7 @@ function startSession(shape: WireShape): WarpSession {
     { ut: UT_START - OWLT - 1, index: 0 },
   ];
   const commandedAt: number[] = [];
+  const dispatchedAt: number[] = [];
 
   const transport = new StubTransport();
   const client = new TelemetryClient(transport);
@@ -129,6 +145,7 @@ function startSession(shape: WireShape): WarpSession {
   transport.setCommandHandler((command, args) => {
     if (command === "time.setWarpIndex") {
       const commanded = commandedIndex(args);
+      if (commanded !== null) dispatchedAt.push(trueUt);
       if (commanded !== null && commanded !== index) {
         commandedAt.push(trueUt);
         index = commanded;
@@ -160,6 +177,7 @@ function startSession(shape: WireShape): WarpSession {
 
   return {
     commandedAt,
+    dispatchedAt,
     gameIndex: () => index,
     forceIndex: (ut, next) => {
       index = next;
@@ -239,7 +257,7 @@ describe("warp at a light-minute", () => {
       expect(firstReadAsStopped).toBe(UT_STOP + OWLT);
     });
 
-    it(`lets a warp-to session undo the stop at t0 + owlt (${shape} wire shape)`, async () => {
+    it(`ends the warp-to session on a stop it did not ask for (${shape} wire shape)`, async () => {
       const session = startSession(shape);
       session.emitAt(UT_START);
 
@@ -275,12 +293,16 @@ describe("warp at a light-minute", () => {
       }
       svc.dispose();
 
-      // Nothing while the client still believes warp is elevated, then one
-      // command the moment the stop surfaces, which is the stop undone.
-      expect(session.commandedAt).toEqual([UT_START, UT_STOP + OWLT]);
-      // The assertion the operator asked for, and it does not hold: warp is
-      // back at 1000x two light-times after the game stopped it.
-      expect(session.gameIndex()).toBe(5);
+      // One command, the one that started the session. The stop that follows
+      // is not one the controller asked for, so it ends the session instead of
+      // reconciling against it.
+      expect(session.commandedAt).toEqual([UT_START]);
+      // And it ends it WITHOUT a second `SetWarp(0)`: the warp is already
+      // stopped, and re-commanding it is a second authority for one state.
+      expect(session.dispatchedAt).toEqual([UT_START]);
+      // The assertion the operator asked for: warp is still 0 two light-times
+      // after the game stopped it.
+      expect(session.gameIndex()).toBe(0);
     });
   }
 });
