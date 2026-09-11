@@ -152,25 +152,23 @@ namespace Gonogo.KSP
                 // Nothing aboard carrying cargo is a real answer, not a gap.
                 Channel(VesselViewProvider.InventoryTopic, absenceIsData: true),
                 Channel(VesselViewProvider.StructureTopic),
-                // time.warp -- see WarpState's doc comment for why this
-                // vessel-gated channel is still declared/registered here
-                // alongside the genuinely vessel-scoped ones.
-                //
-                // NOT recordable, and the only two channels on this uplink that
-                // are not: warp rate and the calendar are stamped
-                // Source = "game" by BuildGameMeta, so neither was ever a
-                // reading taken aboard the craft, and a blackout recorder that
-                // dumped them would have the vessel report the player's own
-                // time-acceleration back to the player, hours late. They ride
-                // the delay clock because they arrive on the vessel snapshot,
-                // which is a routing fact, not a provenance one.
-                Channel(VesselViewProvider.WarpTopic, recordable: false),
+                // time.warp -- see WarpState's doc comment for why this channel
+                // is declared/registered here alongside the genuinely
+                // vessel-scoped ones, and WarpChannel below for why it is the
+                // one channel on this uplink that does not ride the delay clock.
+                WarpChannel(),
                 // time.calendar -- the game's own day/year lengths, registered
                 // by this uplink for the same reason time.warp is: it rides the
                 // vessel snapshot. It MUST be declared here, not just wired in
                 // Register: AddChannelSource throws for an undeclared topic, and
                 // that throw takes the WHOLE uplink Unavailable, which is how
                 // every vessel.* channel once went silent on one missing line.
+                //
+                // NOT recordable, the only channel besides time.warp on this
+                // uplink that is not: BuildGameMeta stamps it Source = "game",
+                // so it was never a reading taken aboard the craft, and a
+                // blackout recorder that dumped it would have the vessel report
+                // the game's own calendar back to the player, hours late.
                 Channel(VesselViewProvider.CalendarTopic, recordable: false),
                 // ---- M3 R3 capture-adds -- same cadence/deadband posture
                 // as every other structured vessel.* channel above.
@@ -575,9 +573,41 @@ namespace Gonogo.KSP
             // (delay-architecture-resolution.md §3). Stated explicitly here
             // rather than relying on the default so this is provable, not
             // inferred from silence: see ChannelDeclaration.Delay's doc comment.
+            // WarpChannel overrides it, and is the only caller that does.
             Delay = DelayRole.Delayed,
             AbsenceIsData = absenceIsData,
         };
+
+        /// <summary>
+        /// <c>time.warp</c>: this uplink's cadence and delivery, and the one
+        /// channel on it that does not ride the delay clock.
+        ///
+        /// <para>Warp is a meta-state of the simulation, effectively the scene
+        /// changing. <c>BuildGameMeta</c> stamps it <c>Source = "game"</c>, it
+        /// is read with or without an active vessel, and it was never a reading
+        /// taken aboard a craft, which is also why it is not recordable. A fact
+        /// the whole simulation shares is vantage-independent by construction,
+        /// so there is no light-time for it to cross, and this is the READ side
+        /// finally agreeing with the write side: <c>time.setWarpIndex</c> is
+        /// already <c>Delayed = false</c> on exactly that reasoning
+        /// (<see cref="VesselCommandProvider.SetWarpIndexCommand"/>).</para>
+        ///
+        /// <para>It used to be <see cref="DelayRole.Delayed"/> because it
+        /// arrives on the vessel snapshot. That is a routing fact, not a
+        /// provenance one, and routing is not what decides this.</para>
+        ///
+        /// <para>Named for the one topic it builds rather than generalised to a
+        /// topic-taking factory on purpose: a helper the truenow-allowlist scan
+        /// does not recognise by name contributes one match no matter how many
+        /// channels ride it (see that file's KNOWN BLIND SPOT note), so a second
+        /// delay-bypassing channel here has to declare itself and be counted.</para>
+        /// </summary>
+        private static ChannelDeclaration WarpChannel()
+        {
+            var declaration = Channel(VesselViewProvider.WarpTopic, recordable: false);
+            declaration.Delay = DelayRole.TrueNow;
+            return declaration;
+        }
 
         private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
         {
