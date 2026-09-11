@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "synthetic": true,
+    "notes": "SYNTHETIC. The state in which `crewReckoning.ts` is prepared to say how well it knows a number. Jebediah's radiation and stress accumulators are both observed CLIMBING across three unevenly spaced samples, which is what gives the fit a residual and therefore a standard error; Bob's one rule is flat, which is positive evidence that its input resource is still aboard, so his row carries no band at all and the two states can be read side by side in one picture. The two bands on Jeb are deliberately different widths: the radiation interval is about 1.7 units wide and reads at the kind's own single decimal, while the stress interval is about 0.003 units wide and only reads as an interval because `Band` widens its digits. The samples' x-axis is each entry's own `asOfUt`, never the wire time, so every sample states both."
+  },
+  "_scene": {
+    "augment": "crew-survival-reckoned-band",
+    "host": "crew-status",
+    "caption": "A reckoned one-sigma band beside each accumulator the model watched move, on the roster row of the kerbal it is about",
+    "modes": ["default"],
+    "size": { "w": 14, "h": 10 },
+    "paints": ["CREW", "Jebediah Kerman", "Radiation dose", "Bob Kerman"]
+  },
+  "_stream": {
+    "pinnedUt": 1600,
+    "emits": [
+      { "topic": "kerbalism.available", "payload": true },
+      {
+        "topic": "vessel.crew",
+        "payload": {
+          "count": 2,
+          "capacity": 3,
+          "crew": [
+            { "name": "Jebediah Kerman", "trait": "Pilot" },
+            { "name": "Bob Kerman", "trait": "Scientist" }
+          ],
+          "meta": { "source": "vessel:4", "quality": 1 }
+        }
+      },
+      {
+        "topic": "kerbalism.crew",
+        "validAt": 1000,
+        "payload": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "asOfUt": 1000,
+            "rules": [
+              { "name": "radiation", "value": 21.0, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.3, "fatalThreshold": 1 }
+            ]
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "asOfUt": 1000,
+            "rules": [{ "name": "stress", "value": 0.08, "fatalThreshold": 1 }]
+          }
+        ]
+      },
+      {
+        "topic": "kerbalism.crew",
+        "validAt": 1120,
+        "payload": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "asOfUt": 1120,
+            "rules": [
+              { "name": "radiation", "value": 23.4, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.312, "fatalThreshold": 1 }
+            ]
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "asOfUt": 1120,
+            "rules": [{ "name": "stress", "value": 0.08, "fatalThreshold": 1 }]
+          }
+        ]
+      },
+      {
+        "topic": "kerbalism.crew",
+        "validAt": 1240,
+        "payload": [
+          {
+            "name": "Jebediah Kerman",
+            "trait": "Pilot",
+            "asOfUt": 1240,
+            "rules": [
+              { "name": "radiation", "value": 24.8, "fatalThreshold": 50 },
+              { "name": "stress", "value": 0.322, "fatalThreshold": 1 }
+            ]
+          },
+          {
+            "name": "Bob Kerman",
+            "trait": "Scientist",
+            "asOfUt": 1240,
+            "rules": [{ "name": "stress", "value": 0.08, "fatalThreshold": 1 }]
+          }
+        ]
+      }
+    ]
+  }
+}

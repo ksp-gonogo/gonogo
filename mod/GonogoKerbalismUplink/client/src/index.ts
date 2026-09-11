@@ -128,6 +128,12 @@ import "./ShipSystems/badge";
 import "./CrewSurvival";
 import "./CrewSurvival/badge";
 import "./CrewSurvival/rowTone";
+// The one surface that reads `kerbalism.crew` DIRECTLY rather than through the
+// Processor: `crewReckoning.ts`'s model is the only one in the tree that mints
+// a real uncertainty interval, and a Processor flattening each rule to a
+// fraction has nowhere to put the second end. Same per-row slot as the badge
+// above, drawn after it.
+import "./CrewSurvival/reckonedBand";
 // The whole-widget `crew-status.summary` slot: a vessel radiation-environment
 // reading off `kerbalism.spaceweather`, distinct from the per-kerbal survival
 // above (a storm affects the whole crew together, not one kerbal at a time).

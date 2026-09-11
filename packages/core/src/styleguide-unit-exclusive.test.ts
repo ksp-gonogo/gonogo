@@ -85,7 +85,7 @@ const FORMATTER_REACH_DEBT: Record<string, { count: number; why: string }> = {
   // Removing this needs `formatQuantity`'s structured half exposed under a
   // name that is about comparison rather than about formatting.
   "packages/ui-kit/src/Band.tsx": {
-    count: 3,
+    count: 2,
     why: "precision search over the structured result, not a render",
   },
 
