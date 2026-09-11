@@ -125,6 +125,28 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // on that uplink has to declare itself. 1 explicit declaration.
   "mod/Gonogo.KSP/VesselUplink.cs": 1,
 
+  // alarm.scet and alarm.scet.fired: the SCET alarm arm.
+  //
+  // The ROSTER is ground-side in the plainest sense: a list of things the
+  // operator asked the simulation to watch for, which never described a craft
+  // and never travelled down a link. Same class as commandCentre.roster below.
+  //
+  // The FIRE NOTICE is the deliberate exception, and the only one this feature
+  // makes. Operator ruling, 2026-09-11: a SCET alarm stops the warp universally,
+  // because warp is a meta-game concept, and the operator accepted in writing
+  // that their readings will still show the craft a light-time ago when it does
+  // ("an alarm for SCET 100km altitude could trigger and show the command centre
+  // altitude as 82km"). For them to observe that mismatch at all the notice has
+  // to arrive WITH the stop; delayed, the warp would halt and nothing on screen
+  // would say why for minutes.
+  //
+  // What keeps that from being a telemetry leak is the PAYLOAD, not the role:
+  // ScetAlarmFired carries the alarm's own id and the instant it fired, and
+  // nothing else. No measured value, no restatement of the condition. The same
+  // ruling: "we have to show the alarm going off truenow, even for SCET. What we
+  // don't have to show is WHY it triggered." 2 explicit declarations.
+  "mod/Gonogo.KSP/ScetAlarmUplink.cs": 2,
+
   // commandCentre.roster: the LIST of command centres a dashboard can select as
   // its vantage. Correct as TrueNow for the KSC-only present: KSC + stock Extra
   // Ground Stations + Kerbal Konstructs sites are FIXED ground-registry facts

@@ -891,6 +891,31 @@
       "requiresFunds": "funds",
       "totalMass": "t"
     },
+    "ScetAlarm": {
+      "armedBy": "id",
+      "firedAtUt": "ut",
+      "id": "id",
+      "name": "text",
+      "state": "enum",
+      "subject": "id"
+    },
+    "ScetAlarmArmArgs": {
+      "id": "id",
+      "name": "text",
+      "subject": "id"
+    },
+    "ScetAlarmCondition": {
+      "kind": "enum",
+      "leadSeconds": "s",
+      "ut": "ut"
+    },
+    "ScetAlarmDisarmArgs": {
+      "id": "id"
+    },
+    "ScetAlarmFired": {
+      "firedAtUt": "ut",
+      "id": "id"
+    },
     "ScienceCreditEvent": {
       "amount": "science",
       "subjectId": "id",
@@ -1345,6 +1370,18 @@
     }
   },
   "topics": {
+    "alarm.scet": {
+      "armedBy": "id",
+      "firedAtUt": "ut",
+      "id": "id",
+      "name": "text",
+      "state": "enum",
+      "subject": "id"
+    },
+    "alarm.scet.fired": {
+      "firedAtUt": "ut",
+      "id": "id"
+    },
     "career.mode": {
       "mode": "enum"
     },
@@ -2084,6 +2121,12 @@
     "ResolveResult": {
       "notices": "ResolutionNotice[]"
     },
+    "ScetAlarm": {
+      "condition": "ScetAlarmCondition"
+    },
+    "ScetAlarmArmArgs": {
+      "condition": "ScetAlarmCondition"
+    },
     "SeededTrajectory": {
       "arc": "TrajectoryArc"
     },
@@ -2214,6 +2257,9 @@
     }
   },
   "topicShapes": {
+    "alarm.scet": {
+      "condition": "ScetAlarmCondition"
+    },
     "career.facilities": {
       "facilities": "*CareerFacility"
     },

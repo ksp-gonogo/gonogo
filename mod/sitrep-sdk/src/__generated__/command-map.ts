@@ -69,6 +69,8 @@ import type {
   RevertToEditorArgs,
   RotorReverseArgs,
   RotorSetValueArgs,
+  ScetAlarmArmArgs,
+  ScetAlarmDisarmArgs,
   SendManeuverPlanArgs,
   ServoSetEnabledArgs,
   ServoSetTargetArgs,
@@ -92,6 +94,8 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedCommandArgsMap {
+  "alarm.scet.arm": ScetAlarmArmArgs;
+  "alarm.scet.disarm": ScetAlarmDisarmArgs;
   "career.contract.accept": ContractActionArgs;
   "career.contract.cancel": ContractActionArgs;
   "career.contract.decline": ContractActionArgs;
@@ -146,6 +150,8 @@ export interface GeneratedCommandArgsMap {
 }
 
 export interface GeneratedCommandReplyMap {
+  "alarm.scet.arm": CommandResult;
+  "alarm.scet.disarm": CommandResult;
   "career.contract.accept": CommandResult;
   "career.contract.cancel": CommandResult;
   "career.contract.decline": CommandResult;
@@ -222,6 +228,8 @@ export interface GeneratedCommandRail {
  * this is where it says so.
  */
 export const GENERATED_COMMAND_RAIL = {
+  "alarm.scet.arm": { replies: true },
+  "alarm.scet.disarm": { replies: true },
   "career.contract.accept": { replies: true },
   "career.contract.cancel": { replies: true },
   "career.contract.decline": { replies: true },
@@ -276,6 +284,8 @@ export const GENERATED_COMMAND_RAIL = {
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [
+  "alarm.scet.arm",
+  "alarm.scet.disarm",
   "career.contract.accept",
   "career.contract.cancel",
   "career.contract.decline",

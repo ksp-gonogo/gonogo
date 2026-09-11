@@ -251,6 +251,20 @@ export const DEFAULT_SITREP_CARRIED_TOPICS: readonly string[] = [
   // here rather than left to a widget's own promotion because a board that
   // silently omits it reports a simulation as a mission.
   "flight.simulation",
+  // The SCET alarm arm (ScetAlarmUplink, both TrueNow): the roster of armed
+  // alarms and the notice that one fired and stopped the warp.
+  "alarm.scet",
+  "alarm.scet.fired",
+  // The two SCET alarm COMMANDS, and they are here for a different reason from
+  // every topic above. `dispatchActiveCommandTopic` refuses to route a command
+  // whose id is not in this carried set, and a command id never enters it by
+  // itself: the WebSocket transport grows its own set from arriving
+  // `stream-data` frames, and a command has none. So a non-hook caller's
+  // command routes only if it is listed here. `useCommand` has no such gate, so
+  // a widget is unaffected either way; `AlarmHostService` is a plain class and
+  // has no hook to dispatch from.
+  "alarm.scet.arm",
+  "alarm.scet.disarm",
 ];
 
 /**

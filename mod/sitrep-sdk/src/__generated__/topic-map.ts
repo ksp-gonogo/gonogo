@@ -71,6 +71,8 @@ import type {
   RevertAvailability,
   RoboticsAvailability,
   SavedShipEntry,
+  ScetAlarm,
+  ScetAlarmFired,
   SensorEntry,
   ServoEntry,
   SpaceCenterPartsAvailable,
@@ -105,6 +107,8 @@ import type {
 } from "./contract.js";
 
 export interface GeneratedTopicPayloadMap {
+  "alarm.scet": ScetAlarm[];
+  "alarm.scet.fired": ScetAlarmFired;
   "career.facilities": CareerFacilities;
   "career.mode": CareerMode;
   "career.status": CareerStatus;
@@ -182,6 +186,8 @@ export interface GeneratedTopicPayloadMap {
 }
 
 export const GENERATED_TOPIC_IDS = [
+  "alarm.scet",
+  "alarm.scet.fired",
   "career.facilities",
   "career.mode",
   "career.status",

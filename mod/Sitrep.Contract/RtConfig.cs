@@ -222,6 +222,18 @@ public static class RtConfig
                 typeof(SetTargetArgs),
                 typeof(SetThrottleArgs),
                 typeof(SetWarpIndexArgs),
+                // alarm.scet / alarm.scet.fired: the SCET alarm arm's roster
+                // rows, its condition shape and its fire notice, plus the two
+                // arm/disarm command args. Registered for AutoI(false) so the
+                // generated interfaces stay I-prefix-free like every other
+                // payload; the topic map names ScetAlarm and ScetAlarmFired, and
+                // an I-prefixed emission would leave it naming types that do not
+                // exist.
+                typeof(ScetAlarm),
+                typeof(ScetAlarmCondition),
+                typeof(ScetAlarmFired),
+                typeof(ScetAlarmArmArgs),
+                typeof(ScetAlarmDisarmArgs),
                 // career-write / flight-ops / robotics / science command args
                 typeof(ActivateStrategyArgs),
                 typeof(DeactivateStrategyArgs),
