@@ -175,10 +175,34 @@ export class AlarmStateMachine {
    * `updateThresholdTracking` minus the slope-fit sample buffer (no
    * numeric value to model). Mutates `alarm.matchSinceUT`; returns true
    * iff it changed.
+   *
+   * `previously` is the UT of the last tick, and it does the same job here as
+   * it does there: an UNREADABLE contract list leaves the latch alone and
+   * slides it forward by the gap, so seconds nobody watched cannot pay into
+   * `sustainSeconds`. Pass `null` where there is no previous tick.
    */
-  updateContractParameterTracking(alarm: Alarm, ut: number): boolean {
+  updateContractParameterTracking(
+    alarm: Alarm,
+    ut: number,
+    previously: number | null = null,
+  ): boolean {
     if (alarm.trigger.kind !== "contract-parameter") return false;
     const matched = this.evalContractParameter(alarm.trigger);
+    if (matched === null) {
+      // See `updateThresholdTracking`: the read failed, so the condition
+      // neither held nor ended. Hold the latch, slide it past the unobserved
+      // gap. Clearing restarts the sustain on every dropout; holding without
+      // the slide fires on a blackout nobody saw through.
+      if (
+        alarm.matchSinceUT != null &&
+        previously !== null &&
+        ut > previously
+      ) {
+        alarm.matchSinceUT += ut - previously;
+        return true;
+      }
+      return false;
+    }
     if (matched) {
       if (alarm.matchSinceUT == null) {
         alarm.matchSinceUT = ut;
@@ -413,9 +437,19 @@ export class AlarmStateMachine {
     return compare(observed, t.op, t.value);
   }
 
-  private evalContractParameter(t: ContractParameterTrigger): boolean {
+  /**
+   * Three answers, not two, for the same reason `evalThreshold` gives them.
+   *
+   * `getContractsActive` answers a non-array whenever nothing has arrived on
+   * `contracts.active` yet or the link is down, and that is a different claim
+   * from an EMPTY list: empty says the contract is no longer active, non-array
+   * says nobody could ask. Both used to come back `false`, which published a
+   * failed read as the confident fact "the condition just ended" and cleared
+   * the sustain latch.
+   */
+  private evalContractParameter(t: ContractParameterTrigger): boolean | null {
     const active = this.getContracts();
-    if (!Array.isArray(active)) return false;
+    if (!Array.isArray(active)) return null;
     for (const c of active) {
       if (!c || typeof c !== "object") continue;
       // `CareerContract.id` is a wire string; `ContractParameterTrigger

@@ -44,6 +44,7 @@ function contracts(parameter: {
 
 function contractAlarm(
   targetState: ContractParameterTrigger["targetState"],
+  sustainSeconds = 0,
 ): Alarm {
   return {
     id: "a1",
@@ -53,7 +54,7 @@ function contractAlarm(
       contractId: 42,
       parameterTitle: "Reach orbit around Kerbin",
       targetState,
-      sustainSeconds: 0,
+      sustainSeconds,
     },
     state: "pending",
     createdBy: "main",
@@ -136,5 +137,95 @@ describe("contract-parameter alarm trigger", () => {
   /** No contract list at all, and no contract matching the id. */
   it("stays pending when the contract is not in the active list", () => {
     expect(tick(contractAlarm("Complete"), [])).toBe("pending");
+  });
+
+  /**
+   * A read we could not make at all, held apart from a read that says no.
+   *
+   * `getContractsActive` answers a non-array whenever nothing has arrived on
+   * `contracts.active` yet or the link is down, which is not the same claim as
+   * an empty list: an empty list says the contract is gone, a non-array says
+   * nobody asked. Collapsing the two published a failed read as the confident
+   * fact "the condition just ended" and cleared the sustain latch, so a link
+   * flapping faster than `sustainSeconds` never let the alarm fire at all.
+   */
+  describe("an unreadable contract list", () => {
+    /**
+     * A host-style tick loop over one alarm, with the contract list and the
+     * clock both movable between ticks: the defect only shows across ticks,
+     * so the single-tick helper above cannot reach it.
+     */
+    function machine(alarm: Alarm, source: () => unknown) {
+      let ut = 0;
+      const sm = new AlarmStateMachine(
+        () => [alarm],
+        () => ut,
+        () => [],
+        source as () => readonly CareerContract[] | undefined,
+      );
+      return {
+        tick(at: number): Alarm["state"] {
+          const previously = ut === 0 ? null : ut;
+          ut = at;
+          sm.updateContractParameterTracking(alarm, at, previously);
+          return sm.deriveState(alarm, at, previously);
+        },
+      };
+    }
+
+    const matching = () => contracts({ state: "Complete", stateOrdinal: 1 });
+
+    it("keeps the latch, and does not let the dark seconds pay into the sustain", () => {
+      const alarm = contractAlarm("Complete", 10);
+      let active: unknown = matching();
+      const sm = machine(alarm, () => active);
+
+      sm.tick(1000);
+      expect(alarm.matchSinceUT).toBe(1000);
+
+      // The stream goes dark. Nothing said the objective left the state, so
+      // the latch survives; the seconds nobody watched slide it forward.
+      active = undefined;
+      expect(sm.tick(1004)).toBe("pending");
+      expect(alarm.matchSinceUT).toBe(1004);
+
+      // Back, still matching: the sustain resumes rather than restarting, and
+      // the four dark seconds bought nothing.
+      active = matching();
+      expect(sm.tick(1008)).toBe("pending");
+      expect(alarm.matchSinceUT).toBe(1004);
+
+      expect(sm.tick(1014)).toBe("firing");
+    });
+
+    /**
+     * The other half, and why a naive hold is not the fix either: an alarm
+     * must not come due on a sustain window nobody could see through.
+     */
+    it("does not fire on a blackout that spans the whole sustain window", () => {
+      const alarm = contractAlarm("Complete", 10);
+      let active: unknown = matching();
+      const sm = machine(alarm, () => active);
+
+      sm.tick(1000);
+      active = undefined;
+      expect(sm.tick(1100)).toBe("pending");
+      expect(alarm.matchSinceUT).toBe(1100);
+    });
+
+    /**
+     * An empty list is a real answer, not a failed read: the contract is no
+     * longer active, so the condition genuinely ended and the latch clears.
+     */
+    it("still clears the latch when the contract leaves the active list", () => {
+      const alarm = contractAlarm("Complete", 10);
+      let active: unknown = matching();
+      const sm = machine(alarm, () => active);
+
+      sm.tick(1000);
+      active = [];
+      expect(sm.tick(1004)).toBe("pending");
+      expect(alarm.matchSinceUT).toBeNull();
+    });
   });
 });
