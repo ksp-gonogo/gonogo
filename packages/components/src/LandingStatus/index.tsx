@@ -657,12 +657,24 @@ function LandingStatusComponent({
     landing?.sampleSource != null &&
     (!atmospheric || atmosphericPlotsShown);
   /*
-   * The descent rate is the one hazard axis fed straight from a reckoned
-   * field, so it is the one whose band the board can honestly use: the model
-   * banded `vessel.flight.verticalSpeed` and the solver passes that magnitude
-   * through untouched. The lateral rate is composed from two of them by
-   * `solveSuicideBurn` and the slope comes off `vessel.landing`, which no
-   * model bands, so neither gets one and both grade as they always did.
+   * The band-aware arm of the hazard grading, and NOTHING FEEDS IT. This is
+   * `undefined` on every frame, and the paragraph that used to sit here said
+   * the opposite: that "the model banded `vessel.flight.verticalSpeed`".
+   *
+   * No model in this tree implements `TopicModel.bandAt` for `vessel.flight`,
+   * which is the only source `Reckoning.bands` has. The core reckoner moves
+   * `altitudeAsl` alone below the air and `altitudeAsl` + `orbitalSpeed` above
+   * it, and offers no interval for either. `verticalSpeed` is not among the
+   * topic's declared reckonable fields at all: the atmospheric branch copies it
+   * verbatim off the observation, and a measured rate the wire carries once has
+   * neither residuals to take a sigma from nor a bound to claim, so it is not a
+   * field a band is coming for. The lateral rate is composed from two of them by
+   * `solveSuicideBurn` and the slope comes off `vessel.landing`, so every axis
+   * here grades on its point estimate.
+   *
+   * Kept wired rather than deleted because the arm is correct and costs a
+   * lookup: the day something bands the descent rate the grading widens on its
+   * own. What it is not is evidence that a reckoned band reaches this widget.
    */
   const verticalSpeedBand =
     flightReading.reckoning === "available"
