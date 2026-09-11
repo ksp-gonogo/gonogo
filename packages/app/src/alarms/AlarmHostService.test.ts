@@ -161,7 +161,7 @@ describe("AlarmHostService", () => {
     setActiveCarriedChannelsForTests(undefined);
   });
 
-  function makeService(): {
+  function makeService(owltSeconds = 0): {
     svc: AlarmHostService;
     telemetry: FakeTelemetry;
   } {
@@ -173,6 +173,7 @@ describe("AlarmHostService", () => {
       nowMs: () => nowMs,
       tickIntervalMs: 1000,
       storage: memoryStorage(),
+      getOwltSeconds: () => owltSeconds,
     });
     return { svc, telemetry };
   }
@@ -770,6 +771,30 @@ describe("AlarmHostService", () => {
         targetIndex: 5,
       });
       expect(telemetry.calls).toContain("time.setWarpIndex[5]");
+    });
+
+    /*
+     * The margin is a REAL-TIME buffer and knew nothing about light-time, so a
+     * craft four minutes away kept warping until the alarm was ten seconds off
+     * the VIEW clock, by which point the craft had been past the event for
+     * most of a light-time. A warp window cannot be aborted from inside, so
+     * the light-time becomes the floor on how much room to leave.
+     */
+    it("leaves a light-time of room on a delayed craft, not the configured margin", async () => {
+      const owlt = 240;
+      const { svc, telemetry } = makeService(owlt);
+      // Same alarm as the test above: remaining=98_990. At the default margin
+      // of 10 that allowed 1000× (idx 5); against the 240s light-time the
+      // ladder tops out at 100× (idx 4).
+      svc.addAlarm({
+        name: "Far",
+        trigger: { kind: "time", ut: 100_000, leadSeconds: 10 },
+      });
+      svc.beginWarpTo();
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(svc.snapshot().warpTo?.targetIndex).toBe(4);
+      expect(telemetry.calls).toContain("time.setWarpIndex[4]");
     });
 
     it("steps the rate down as remaining time shrinks", async () => {

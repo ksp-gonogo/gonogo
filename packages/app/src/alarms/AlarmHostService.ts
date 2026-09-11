@@ -14,7 +14,7 @@ import {
   getViewUt,
   sampleActiveTopic,
 } from "@ksp-gonogo/sitrep-client";
-import type { VesselControl } from "@ksp-gonogo/sitrep-sdk";
+import type { CommsDelay, VesselControl } from "@ksp-gonogo/sitrep-sdk";
 import type { PeerHostService } from "../peer/PeerHostService";
 import { AlarmPeerBridge } from "./AlarmPeerBridge";
 import {
@@ -85,6 +85,29 @@ export interface AlarmHostOptions {
    * the main screen passes one wired to the kerbcast Uplink's producer.
    */
   getRevealedEvents?: RevealedEventsReader;
+  /**
+   * One-way light time to the craft, seconds. Defaults to the live
+   * `comms.delay` reading; a test injects its own.
+   */
+  getOwltSeconds?: () => number;
+}
+
+/**
+ * The current one-way delay off the wire, or 0 where there is none.
+ *
+ * Read through `sampleActiveTopic` because this is a headless service with no
+ * widget to hang a hook on, the same way it reads `vessel.control` to resolve
+ * an action group. A null `oneWaySeconds` means NO PATH rather than a measured
+ * zero, but for the one thing this feeds (how much room to leave at the end of
+ * a warp) an unmeasurable link and a LAN link both come back to the operator's
+ * own configured margin, so both collapse to 0 here.
+ */
+function readOwltSeconds(): number {
+  const seconds =
+    sampleActiveTopic<CommsDelay>("comms.delay")?.oneWaySeconds?.magnitude;
+  return typeof seconds === "number" && Number.isFinite(seconds) && seconds > 0
+    ? seconds
+    : 0;
 }
 
 /**
@@ -128,7 +151,9 @@ export class AlarmHostService {
    * seconds, which used to step clean over the firing window in silence.
    */
   private lastTickUt: number | null = null;
-  private opts: Required<Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs">>;
+  private opts: Required<
+    Pick<AlarmHostOptions, "nowMs" | "tickIntervalMs" | "getOwltSeconds">
+  >;
   private storage: Storage;
   private alarmStore: LocalStorageStore<Alarm[]>;
   private stateMachine: AlarmStateMachine;
@@ -140,6 +165,7 @@ export class AlarmHostService {
     this.opts = {
       nowMs: opts.nowMs ?? (() => Date.now()),
       tickIntervalMs: opts.tickIntervalMs ?? 1000,
+      getOwltSeconds: opts.getOwltSeconds ?? readOwltSeconds,
     };
     this.storage = opts.storage ?? globalThis.localStorage;
     this.alarmStore = new LocalStorageStore<Alarm[]>({
@@ -169,6 +195,7 @@ export class AlarmHostService {
       {
         getObservedIndex: () => this.warpObserver.getWarp().index,
         registerOwnWarpIntent: () => this.warpObserver.registerIntent(),
+        getOwltSeconds: () => this.opts.getOwltSeconds(),
       },
       this.opts.nowMs,
       initialMargin,
@@ -200,6 +227,7 @@ export class AlarmHostService {
       unscheduledWarp: this.warpObserver.getUnscheduled(),
       warpTo: this.warp.snapshot(),
       warpSafetyMarginSeconds: this.warp.getMarginSeconds(),
+      owltSeconds: this.warp.getOverridingOwltSeconds(),
     };
   }
 

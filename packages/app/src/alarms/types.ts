@@ -197,8 +197,23 @@ export interface AlarmSnapshot {
    * Real-time buffer (seconds) the warp-to controller leaves between the
    * current rate and the alarm's lead window. Higher = more pessimistic /
    * earlier step-down. Configurable from the banner.
+   *
+   * The FLOOR, not the whole margin: on a delayed craft the controller uses
+   * `max(this, owlt)`, because the operator's view is one light-time behind
+   * and a warp window cannot be aborted from inside. See
+   * `WarpControl.computeWarpToIndex`.
    */
   warpSafetyMarginSeconds: number;
+  /**
+   * One-way light time to the craft, seconds, when the controller is holding
+   * open more room than the setting above asks for. Absent on a LAN session,
+   * and absent from a snapshot minted by a host that predates it.
+   *
+   * Reported so the banner can say why the ladder is running slower than the
+   * number in the operator's own box: a control that is silently overridden
+   * reads as a broken control.
+   */
+  owltSeconds?: number;
 }
 
 export const DEFAULT_LEAD_SECONDS = 10;

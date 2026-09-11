@@ -1,6 +1,6 @@
 import { render, screen } from "@ksp-gonogo/test-utils";
 import { describe, expect, it } from "vitest";
-import { AlarmBanner } from "./AlarmBanner";
+import { AlarmBanner, SafetyMarginPill } from "./AlarmBanner";
 import { AlarmHostProvider } from "./AlarmHostContext";
 import { AlarmHostService } from "./AlarmHostService";
 import type { Alarm, AlarmSnapshot } from "./types";
@@ -72,5 +72,36 @@ describe("AlarmBanner T-minus", () => {
   it("shows T−? while the game clock is unknown", () => {
     const { container } = renderBanner(snapshotOf([timeAlarm(8100)], null));
     expect(container.textContent).toContain("T−?");
+  });
+});
+
+/* The margin box is the operator's, and on a delayed craft the controller
+   holds open more room than it asks for. A control silently overridden reads
+   as a broken control, so the pill says what is actually in force. */
+describe("AlarmBanner safety margin", () => {
+  function warpingSnapshot(owltSeconds?: number): AlarmSnapshot {
+    return {
+      ...snapshotOf([timeAlarm(8100)], 0),
+      warpTo: { alarmId: "a1", targetIndex: 4 },
+      owltSeconds,
+    };
+  }
+
+  it("names the light-time when it is the margin actually in force", () => {
+    const { container } = render(
+      <AlarmHostProvider service={fakeHost(warpingSnapshot(240))}>
+        <SafetyMarginPill />
+      </AlarmHostProvider>,
+    );
+    expect(container.textContent).toContain("light-time 4min in force");
+  });
+
+  it("CONTROL: says nothing about light-time when the setting is in force", () => {
+    const { container } = render(
+      <AlarmHostProvider service={fakeHost(warpingSnapshot())}>
+        <SafetyMarginPill />
+      </AlarmHostProvider>,
+    );
+    expect(container.textContent).not.toContain("light-time");
   });
 });

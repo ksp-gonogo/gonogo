@@ -1,9 +1,11 @@
 import {
   type ActionGroup,
   actionGroupIdOf,
+  type TimeContexts,
   toggleCommandFor,
   useActionGroups,
   useTelemetry,
+  useTimeContexts,
 } from "@ksp-gonogo/core";
 import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
 import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
@@ -120,6 +122,9 @@ export function AlarmsModal({
   prefill,
 }: AlarmsModalProps) {
   const snapshot = useSnapshot();
+  // Which clock the instants in this modal are on. Undefined qualifiers on a
+  // LAN session, where there is only one clock to be on.
+  const timeContexts = useTimeContexts();
   // Value-restricted keys: threshold alarms compare against a scalar Value
   // (per the Uplink Domain/Topic/Value/Stream/Asset vocab), so this hides
   // enums, booleans, opaque structs, untyped raws, AND any legacy key with
@@ -312,10 +317,15 @@ export function AlarmsModal({
               {snapshot.ut !== null && (
                 <FieldHint>
                   UT at trigger:{" "}
+                  {/* An offset from the view clock lands on the view clock, so
+                      this is an arrival time and says so. The operator asked
+                      for "n seconds from now", and their now is the delayed
+                      one they are reading. */}
                   <MissionDate
                     value={
                       snapshot.ut + Number.parseFloat(offsetSeconds || "0")
                     }
+                    context={timeContexts.received}
                   />
                 </FieldHint>
               )}
@@ -469,7 +479,9 @@ export function AlarmsModal({
                         )}
                       </AlarmListName>
                     )}
-                    <RowMeta>{describeTrigger(a, snapshot.ut)}</RowMeta>
+                    <RowMeta>
+                      {describeTrigger(a, snapshot.ut, timeContexts)}
+                    </RowMeta>
                     {a.onFire && a.onFire.length > 0 && (
                       <RowMeta>
                         <FireList>
@@ -549,26 +561,59 @@ export function AlarmsModal({
 
 /**
  * A single quick-alarm preset: a label, the live value that determines
- * both visibility and the resulting UT, and how to derive the trigger UT.
+ * both visibility and the resulting SCET, and how to derive it.
  */
 interface PresetSpec {
   id: string;
+  /** What the button says. */
   label: string;
+  /** What the alarm it creates is called. */
+  alarmName: string;
   /**
-   * Compute the absolute trigger UT from the freshest snapshot UT, or
-   * null when the underlying data isn't usable (off / on the pad / no
-   * node). A null result hides the preset entirely.
+   * Compute the SCET of the event from the freshest view UT, or null when the
+   * underlying data isn't usable (off / on the pad / no node). A null result
+   * hides the preset entirely.
+   *
+   * SCET rather than a trigger UT, because those are two different instants
+   * once the craft is more than a second away. See `presetTriggerUt`.
    */
-  computeUt: (utNow: number) => number | null;
+  computeScet: (viewUt: number) => number | null;
 }
 
 /**
- * "Recommended" quick-time-alarm presets backed only by telemetry the app
- * already subscribes to (`o.timeToAp`, `o.timeToPe`, `o.maneuverNodes`).
- * Each preset appears only when its data is live and yields a future UT;
- * clicking it creates a notify-only time alarm via the same `onAdd` path
- * the manual form uses. It deliberately does NOT start a warp-to session,
- * the operator drives that from the banner's existing affordance.
+ * The view-clock instant an alarm must hold to fire AT the event, from the
+ * event's SCET.
+ *
+ * The alarm pipeline ticks on the view clock (`AlarmHostService` reads
+ * `getViewUt`), which runs one light-time behind the craft. So an alarm
+ * holding a SCET fires one light-time AFTER the thing happened: a "warp to
+ * apoapsis" alarm at Duna went off four to twenty minutes past apoapsis, and
+ * nothing in the UI or the type system noticed. Subtracting the light-time
+ * puts the alarm where the operator asked for it, at the cost of firing
+ * BEFORE they can see the event, which is the whole point of a warp target:
+ * you want to arrive with the event still ahead of you.
+ *
+ * At `owlt` 0 this is the identity, so a LAN session is untouched.
+ */
+function presetTriggerUt(scetUt: number, owltSeconds: number): number {
+  return scetUt - owltSeconds;
+}
+
+/**
+ * Quick-alarm presets backed only by telemetry the app already subscribes to
+ * (`vessel.state.timeToAp` / `timeToPe`, `vessel.maneuver`). Each preset
+ * appears only when its data is live and still yields a future trigger;
+ * clicking it creates a notify-only time alarm via the same `onAdd` path the
+ * manual form uses.
+ *
+ * They are labelled "Alarm at ...", which is what they do. They said "Warp
+ * to ..." for a year while deliberately not starting a warp-to session (the
+ * operator drives that from the banner's existing affordance), and a button
+ * that names an action it does not take is worth fixing on its own terms.
+ *
+ * Every instant here is a SCET: an apsis time is `timeToAp` added to the UT of
+ * the frame that reported it, and a maneuver node's UT is a plan held on the
+ * craft. Both are stated as SCET on screen and converted once, at the trigger.
  */
 function RecommendedPresets({
   snapshotRef,
@@ -585,44 +630,53 @@ function RecommendedPresets({
   const timeToAp = vesselState?.timeToAp ?? undefined;
   const timeToPe = vesselState?.timeToPe ?? undefined;
   const nodes = useManeuverNodes();
+  const { owltSeconds, scet } = useTimeContexts();
   const [open, setOpen] = useState(false);
 
   const utNow = snapshotRef.current.ut;
-  // Soonest still-future maneuver node. A lingering past node is ignored so
-  // the preset never schedules an alarm in the past.
-  const nextNodeUt =
+  /*
+   * Soonest maneuver node still ahead of the CRAFT. The bound is one
+   * light-time past the view clock because that is where the craft is now: a
+   * node inside that window is already behind it, and offering an alarm for
+   * one would schedule a trigger in the past. A lingering node already flown
+   * is ignored the same way.
+   */
+  const nextNodeScet =
     utNow !== null
       ? (nodes
           .map((n) => n.UT)
-          .filter((u) => Number.isFinite(u) && u > utNow)
+          .filter((u) => Number.isFinite(u) && u > utNow + owltSeconds)
           .sort((a, b) => a - b)[0] ?? null)
       : null;
 
   const presets: PresetSpec[] = [
     {
       id: "apoapsis",
-      label: "Warp to apoapsis",
-      computeUt: (now) =>
+      label: "Alarm at apoapsis",
+      alarmName: "Apoapsis",
+      computeScet: (viewUt) =>
         typeof timeToAp === "number" &&
         Number.isFinite(timeToAp) &&
         timeToAp > 0
-          ? now + timeToAp
+          ? viewUt + timeToAp
           : null,
     },
     {
       id: "periapsis",
-      label: "Warp to periapsis",
-      computeUt: (now) =>
+      label: "Alarm at periapsis",
+      alarmName: "Periapsis",
+      computeScet: (viewUt) =>
         typeof timeToPe === "number" &&
         Number.isFinite(timeToPe) &&
         timeToPe > 0
-          ? now + timeToPe
+          ? viewUt + timeToPe
           : null,
     },
     {
       id: "maneuver",
-      label: "Warp to next maneuver",
-      computeUt: () => nextNodeUt,
+      label: "Alarm at next maneuver",
+      alarmName: "Next maneuver",
+      computeScet: () => nextNodeScet,
     },
   ];
 
@@ -633,23 +687,36 @@ function RecommendedPresets({
   const createPreset = (preset: PresetSpec) => {
     const liveUt = snapshotRef.current.ut;
     if (liveUt === null) return;
-    const ut = preset.computeUt(liveUt);
-    if (ut === null || !Number.isFinite(ut) || ut <= liveUt) return;
+    const scetUt = preset.computeScet(liveUt);
+    if (scetUt === null || !Number.isFinite(scetUt)) return;
+    const ut = presetTriggerUt(scetUt, owltSeconds);
+    if (ut <= liveUt) return;
     onAdd({
-      name: preset.label,
+      name: preset.alarmName,
       trigger: { kind: "time", ut, leadSeconds: DEFAULT_LEAD_SECONDS },
     });
   };
 
-  // Only presets whose data is live (and yield a future UT) are offered.
-  // Pair each with its render-time UT so the button can show a T−countdown.
+  /*
+   * Only presets whose data is live and whose trigger is still ahead of the
+   * view clock are offered. Under delay that gate is stricter than it looks: a
+   * craft four minutes away that is three minutes from apoapsis has already
+   * passed it, and there is no honest alarm left to offer for that pass.
+   *
+   * Each is paired with its SCET so the button can show WHEN, and the
+   * countdown is taken from the trigger so it says how long until the alarm.
+   * The two are the same number, because the trigger lags the SCET by exactly
+   * the light-time the view clock does.
+   */
   const available =
     utNow === null
       ? []
       : presets.flatMap((p) => {
-          const ut = p.computeUt(utNow);
-          if (ut === null || !Number.isFinite(ut) || ut <= utNow) return [];
-          return [{ preset: p, ut }];
+          const scetUt = p.computeScet(utNow);
+          if (scetUt === null || !Number.isFinite(scetUt)) return [];
+          const ut = presetTriggerUt(scetUt, owltSeconds);
+          if (ut <= utNow) return [];
+          return [{ preset: p, scetUt, ut }];
         });
 
   if (available.length === 0) return null;
@@ -666,7 +733,7 @@ function RecommendedPresets({
       </PresetSummary>
       {open && (
         <PresetList>
-          {available.map(({ preset, ut }) => (
+          {available.map(({ preset, scetUt, ut }) => (
             <PresetButton
               key={preset.id}
               type="button"
@@ -675,7 +742,7 @@ function RecommendedPresets({
               <PresetButtonLabel>{preset.label}</PresetButtonLabel>
               {utNow !== null && (
                 <PresetButtonHint>
-                  <MissionDate value={ut} /> · T−
+                  <MissionDate value={scetUt} context={scet} /> · T−
                   <Unit value={value("s", ut - utNow)} />
                 </PresetButtonHint>
               )}
@@ -694,12 +761,26 @@ function sortKey(a: Alarm): number {
   return a.trigger.kind === "time" ? a.trigger.ut : Number.POSITIVE_INFINITY;
 }
 
-function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
+/**
+ * The one-line trigger summary under an alarm's name.
+ *
+ * `contexts` says which clock each instant here belongs to, and the two
+ * genuinely differ within one row: an alarm's own UT is a view-clock instant
+ * (the pipeline ticks on the view clock, so that is when the operator will be
+ * told), while an event alarm's `eventUT` is the occurrence's own SCET, which
+ * under delay is long before. Labelling them lets the row carry both without
+ * the reader having to know which is which.
+ */
+function describeTrigger(
+  a: Alarm,
+  utNow: number | null,
+  contexts: TimeContexts,
+): React.ReactNode {
   if (a.trigger.kind === "time") {
     const delta = utNow !== null ? a.trigger.ut - utNow : null;
     return (
       <>
-        <MissionDate value={a.trigger.ut} />
+        <MissionDate value={a.trigger.ut} context={contexts.received} />
         {delta !== null && (
           <>
             {" · "}
@@ -740,7 +821,7 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
         {a.eventUT != null && (
           <>
             {" · "}
-            <MissionDate value={a.eventUT} />
+            <MissionDate value={a.eventUT} context={contexts.scet} />
           </>
         )}
       </>
