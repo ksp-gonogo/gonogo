@@ -20,6 +20,7 @@ import {
   type ModAllowlist,
   type ModToken,
   PACKAGE_SCAN_SCOPE,
+  SCAN_EXTENSIONS,
   SURVIVES_COMMENT_STRIP,
 } from "./uplink-boundary.allowlist";
 
@@ -36,8 +37,9 @@ import {
  * permanent vs shrink-only domainDebt.
  *
  * How the ratchet works:
- *   1. Scan every `packages/*` and `mod/*` (.ts/.tsx/.cs) for each mod
- *      token, excluding that mod's own owning directory.
+ *   1. Scan every `packages/*` and `mod/*` (the extensions in
+ *      `SCAN_EXTENSIONS`) for each mod token, excluding that mod's own owning
+ *      directory.
  *   2. Every file found is checked against
  *      `[...ALLOWLIST[token].permanent, ...ALLOWLIST[token].domainDebt]`.
  *   3. A file found but NOT allowlisted = a NEW violation -> fail, named.
@@ -340,6 +342,10 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
  * strings as well, correctly for ITS question: a number inside a string is not
  * arithmetic.)
  *
+ * Three routes: CSS to its own walker (a stylesheet has no line comment and
+ * must not be stripped as if it did), TS/TSX to esbuild, everything else to the
+ * approximate fallback.
+ *
  * TS/TSX goes through esbuild, which is already a dependency of this file,
  * rather than through the hand-rolled fallback below. A character-state machine
  * cannot tell an apostrophe in JSX text (`don't`) from an opening quote, so it
@@ -349,6 +355,7 @@ const MOD_OWNERSHIP: Record<ModToken, ModOwnership> = {
  * hand-rolled. A parser has no such failure mode.
  */
 function stripCommentsKeepingStrings(source: string, path: string): string {
+  if (path.endsWith(".css")) return stripCssComments(source);
   if (/\.tsx?$/.test(path)) {
     try {
       const js = transformSync(source, {
@@ -381,6 +388,67 @@ function stripCommentsKeepingStrings(source: string, path: string): string {
     }
   }
   return stripCommentsApproximately(source);
+}
+
+/**
+ * The CSS sibling, because a stylesheet is not TypeScript and must not be
+ * stripped as if it were.
+ *
+ * CSS has exactly one comment form, the slash-star block, and NO line comment:
+ * `//` is ordinary text there, and it really does occur, inside a
+ * `url(http://...)`. The approximate stripper below would read that as the start
+ * of a line comment and blank the rest of the line, which is a gate quietly
+ * deciding to stop looking. So this walks for block comments only.
+ *
+ * Strings are tracked for the same reason they are kept everywhere else in this
+ * file, and one more: a `content` declaration holding a slash-star would
+ * otherwise open a comment that never closes and swallow the rest of the file.
+ *
+ * What "survives the strip" MEANS for CSS: everything that is not prose. A
+ * custom-property name, a selector, a class, an `@import` specifier and a
+ * `url()` target are all real coupling of a shared stylesheet to one Uplink's
+ * widget, and are exactly what should have to be declared rather than excused.
+ */
+function stripCssComments(source: string): string {
+  let out = "";
+  let i = 0;
+  let state: "code" | "block" | "'" | '"' = "code";
+  while (i < source.length) {
+    const char = source[i];
+    const next = source[i + 1];
+    if (state === "code") {
+      if (char === "/" && next === "*") {
+        state = "block";
+        out += "  ";
+        i += 2;
+        continue;
+      }
+      if (char === "'" || char === '"') state = char;
+      out += char;
+      i += 1;
+      continue;
+    }
+    if (state === "block") {
+      if (char === "*" && next === "/") {
+        state = "code";
+        out += "  ";
+        i += 2;
+      } else {
+        out += char === "\n" ? char : " ";
+        i += 1;
+      }
+      continue;
+    }
+    if (char === "\\") {
+      out += source.slice(i, i + 2);
+      i += 2;
+      continue;
+    }
+    if (char === state) state = "code";
+    out += char;
+    i += 1;
+  }
+  return out;
 }
 
 /**
@@ -452,7 +520,9 @@ function stripCommentsApproximately(source: string): string {
   return out;
 }
 
-const SCAN_EXTENSIONS = /\.(tsx?|cs)$/;
+/** Built from the data module's list so the walk cannot disagree with what the
+ *  shrink-only checks read at their base ref. */
+const SCANNED_FILE = new RegExp(`\\.(${SCAN_EXTENSIONS.join("|")})$`);
 const SKIP_DIRS = new Set([
   "node_modules",
   "dist",
@@ -486,7 +556,7 @@ function* walk(dir: string): Generator<string> {
     const path = join(dir, name);
     const stat = statSync(path);
     if (stat.isDirectory()) yield* walk(path);
-    else if (SCAN_EXTENSIONS.test(name)) yield path;
+    else if (SCANNED_FILE.test(name)) yield path;
   }
 }
 
@@ -506,9 +576,9 @@ function* walk(dir: string): Generator<string> {
  * line in `packages/components/src/index.ts` failed it and named the file.
  *
  * The mod half was always the whole directory, so this makes the two halves
- * agree rather than inventing a rule. `SKIP_DIRS` already drops build output
- * and `SCAN_EXTENSIONS` is `.ts`/`.tsx`/`.cs`, so widening costs a manifest
- * scan nothing and picks up a package's tests and root-level config too.
+ * agree rather than inventing a rule. `SKIP_DIRS` already drops build output,
+ * so widening costs a manifest scan nothing and picks up a package's tests and
+ * root-level config too.
  */
 function scanRoots(root: string): string[] {
   const roots: string[] = [];
@@ -826,6 +896,44 @@ describe("the code-only scan can still see", () => {
     expect(codeOnly(source, "probe.tsx")).toMatch(/widgetron/i);
   });
 
+  it("drops a CSS block comment but keeps the declaration under it", () => {
+    const css = codeOnly(
+      "/* the Widgetron terminal's picker sits in this box */\n" +
+        "--panel-gap: 8px;\n",
+      "probe.css",
+    );
+    expect(css).not.toMatch(/widgetron/i);
+    expect(css).toMatch(/--panel-gap/);
+  });
+
+  it("KEEPS a mod name that is CSS rather than prose", () => {
+    // A token name, a selector and an import are all coupling of a shared
+    // stylesheet to one Uplink's widget, and are what the survives-the-strip
+    // check exists to make somebody look at.
+    expect(codeOnly("--widgetron-terminal-bg: #000;\n", "probe.css")).toMatch(
+      /widgetron/i,
+    );
+    expect(
+      codeOnly('@import "./widgetron-terminal.css";\n', "probe.css"),
+    ).toMatch(/widgetron/i);
+  });
+
+  it("does not read CSS's `//` as a line comment", () => {
+    // The TS/C# stripper would blank the rest of this line, and a gate that
+    // blanks what it is meant to read reports a clean file forever.
+    expect(
+      codeOnly("background: url(https://x.test/widgetron.png);\n", "probe.css"),
+    ).toMatch(/widgetron/i);
+  });
+
+  it("does not let a slash-star inside a CSS string open a comment", () => {
+    const css = codeOnly(
+      'a::before { content: "/*"; }\n--widgetron-gap: 4px;\n',
+      "probe.css",
+    );
+    expect(css).toMatch(/widgetron/i);
+  });
+
   it("still finds real references in the repo, so a blind scan cannot pass", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
     // Not a specific file: naming one would fail the day its debt is paid,
@@ -845,14 +953,29 @@ async function loadAllowlistAt(
   relPath: string,
 ): Promise<{
   allowlist: Partial<Record<ModToken, ModAllowlist | string[]>>;
-  /** `undefined` on a base that predates the constant, i.e. the `"src"` era. */
-  scope: string | undefined;
+  scan: BaseScan;
 } | null> {
   const source = sourceAtRatchetBase(base, relPath);
   if (source === null) return null; // file didn't exist at the base, bootstrap case
   const { code } = transformSync(source, { loader: "ts", format: "esm" });
   const mod = await import(`data:text/javascript,${encodeURIComponent(code)}`);
-  return { allowlist: mod.ALLOWLIST, scope: mod.PACKAGE_SCAN_SCOPE };
+  return {
+    allowlist: mod.ALLOWLIST,
+    scan: {
+      scope: mod.PACKAGE_SCAN_SCOPE,
+      extensions: mod.SCAN_EXTENSIONS,
+    },
+  };
+}
+
+/**
+ * What the scan reached at the BASE ref: how deep into a package it walked, and
+ * which file kinds it picked up. Both dimensions are read off the base's copy of
+ * the data module, which is why both constants live there.
+ */
+interface BaseScan {
+  scope: string | undefined;
+  extensions: string[] | undefined;
 }
 
 /**
@@ -874,10 +997,22 @@ async function loadAllowlistAt(
  * An entry for a file no walk visited is not a violation someone introduced, it
  * is one the gate could never have reported. Grading it as growth is what makes
  * a shrink-only list impossible to widen the scan of, so the two checks below
- * exclude it exactly once: on the commit that changes `PACKAGE_SCAN_SCOPE`.
- * After that the base carries the new value, `baseScope` and the current scope
- * agree, and every path is graded again.
+ * exclude it exactly once: on the commit that widens the walk. After that the
+ * base carries the new value, base and current agree, and every path is graded
+ * again.
  *
+ * There are two independent ways for the base's walk to have missed a path, and
+ * a miss on EITHER is a reseed: the directory was out of scope, or the file kind
+ * was not scanned.
+ */
+function reachableAtBase(base: BaseScan, path: string): boolean {
+  return (
+    reachableAtBaseScope(base.scope, path) &&
+    reachableAtBaseExtensions(base.extensions, path)
+  );
+}
+
+/**
  * `mod/` was always walked whole and is unaffected. Only the `packages/` half
  * ever narrowed to `src`.
  */
@@ -895,10 +1030,32 @@ function reachableAtBaseScope(
   return /^packages\/[^/]+\/src\//.test(path);
 }
 
+/**
+ * The extension half, added when `.css` joined the walk on 2026-09-11.
+ *
+ * A list needs no interpretation, unlike `PACKAGE_SCAN_SCOPE`'s opaque marker:
+ * the base states outright which extensions it reached, so there is no
+ * unrecognised-value case to be conservative about. Only ABSENCE has to be
+ * guessed at, and an allowlist with no list predates the constant, which is the
+ * `ts`/`tsx`/`cs` era.
+ *
+ * A path with no recognised extension at all is treated as reachable, so a
+ * malformed entry is graded rather than excused.
+ */
+function reachableAtBaseExtensions(
+  baseExtensions: string[] | undefined,
+  path: string,
+): boolean {
+  const extensions = baseExtensions ?? ["ts", "tsx", "cs"];
+  const ext = path.split(".").pop();
+  if (ext === undefined || ext === path) return true;
+  return extensions.includes(ext);
+}
+
 function findDomainDebtGrowth(
   previous: Partial<Record<ModToken, ModAllowlist | string[]>>,
   current: Partial<Record<ModToken, ModAllowlist>>,
-  baseScope?: string,
+  base: BaseScan = { scope: undefined, extensions: undefined },
 ): Array<{ token: ModToken; added: string[] }> {
   const growth: Array<{ token: ModToken; added: string[] }> = [];
   for (const [token, entry] of Object.entries(current) as Array<
@@ -910,7 +1067,7 @@ function findDomainDebtGrowth(
     );
     const added = entry.domainDebt
       .filter((f) => !oldDomainDebt.has(f))
-      .filter((f) => reachableAtBaseScope(baseScope, f));
+      .filter((f) => reachableAtBase(base, f));
     if (added.length > 0) growth.push({ token, added });
   }
   return growth;
@@ -991,6 +1148,71 @@ describe("the reseed seam is exactly as wide as the scan change", () => {
       ).toEqual([]);
     }
   });
+
+  /**
+   * The same seam, graded on the extension half. `.css` joined the walk on
+   * 2026-09-11 and the `packages/<pkg>/src` case is again the one that matters:
+   * excusing a `.ts` path here would turn the shrink gates off for every file
+   * kind the base already scanned.
+   */
+  it("excuses only a file kind the base's walk could not reach", () => {
+    const tsEra = ["ts", "tsx", "cs"];
+    // Already scanned at the base: graded as growth, exactly as before.
+    expect(reachableAtBaseExtensions(tsEra, "packages/app/src/main.tsx")).toBe(
+      true,
+    );
+    expect(reachableAtBaseExtensions(tsEra, "mod/Sitrep.Host/Engine.cs")).toBe(
+      true,
+    );
+    // Not scanned at the base: the reseed this widening admits.
+    expect(
+      reachableAtBaseExtensions(tsEra, "packages/theme/src/tokens.css"),
+    ).toBe(false);
+    // Absent means an allowlist predating the constant, which IS the ts/tsx/cs
+    // era, so it has to grade the same way.
+    expect(
+      reachableAtBaseExtensions(undefined, "packages/theme/src/tokens.css"),
+    ).toBe(false);
+    expect(
+      reachableAtBaseExtensions(undefined, "packages/app/src/main.tsx"),
+    ).toBe(true);
+  });
+
+  it("is inert once the base carries the current extensions", () => {
+    // The commit after this one: base and current agree, so a `.css` path is
+    // graded like everything else and the seam has closed behind itself.
+    expect(
+      reachableAtBaseExtensions(
+        SCAN_EXTENSIONS,
+        "packages/theme/src/tokens.css",
+      ),
+    ).toBe(true);
+  });
+
+  /**
+   * The list records what the walk picks up, and nothing made the two agree.
+   * Asking the WALK, rather than re-deriving the regex, is the point: a
+   * constant that named `.css` while no `.css` file was ever visited would
+   * excuse every stylesheet forever for a reason that is not true.
+   */
+  it("matches what the walk actually yields", () => {
+    const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
+    const seen = new Set(
+      scanCorpus(root).map((f) => f.rel.split(".").pop() ?? ""),
+    );
+    for (const ext of SCAN_EXTENSIONS) {
+      expect(
+        seen.has(ext),
+        `SCAN_EXTENSIONS names "${ext}" but the walk yielded no such file. While the two disagree the reseed seam excuses paths for a reason that is not true.`,
+      ).toBe(true);
+    }
+    expect(
+      [...seen].filter((ext) => !SCAN_EXTENSIONS.includes(ext)),
+      "the walk yielded a file kind SCAN_EXTENSIONS does not name",
+    ).toEqual([]);
+    // Its own budget: the corpus is cached module-scope, but this describe has
+    // no `beforeAll`, so when it runs first it pays the whole walk.
+  }, 120_000);
 });
 
 describe("findDomainDebtGrowth: shrink-only comparison logic (synthetic fixtures)", () => {
@@ -1094,7 +1316,7 @@ describe("uplink boundary: domain-debt allowlist entries only ever shrink", () =
     const growth = findDomainDebtGrowth(
       previous.allowlist,
       ALLOWLIST,
-      previous.scope,
+      previous.scan,
     );
     if (growth.length > 0) {
       throw new Error(
@@ -1172,12 +1394,12 @@ function guardedSurface(
 function findGuardedSurfaceGrowth(
   previous: Partial<Record<ModToken, ModAllowlist | string[]>>,
   current: Partial<Record<ModToken, ModAllowlist>>,
-  baseScope?: string,
+  base: BaseScan = { scope: undefined, extensions: undefined },
 ): string[] {
   const before = guardedSurface(previous);
   return [...guardedSurface(current)]
     .filter((f) => !before.has(f))
-    .filter((f) => reachableAtBaseScope(baseScope, f))
+    .filter((f) => reachableAtBase(base, f))
     .sort();
 }
 
@@ -1259,7 +1481,7 @@ describe("uplink boundary: the app-side surface only ever shrinks", () => {
     const added = findGuardedSurfaceGrowth(
       previous.allowlist,
       ALLOWLIST,
-      previous.scope,
+      previous.scan,
     );
     if (added.length > 0) {
       throw new Error(

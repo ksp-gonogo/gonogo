@@ -87,6 +87,30 @@ export type ModToken =
  */
 export const PACKAGE_SCAN_SCOPE = "package";
 
+/**
+ * Which file extensions the scan walks. Recorded HERE, beside
+ * `PACKAGE_SCAN_SCOPE` and for the identical reason: an extension the walk did
+ * not visit is a path no allowlist line could ever have named, so the
+ * shrink-only checks have to be able to read the set at their base ref to tell a
+ * reseed from growth.
+ *
+ * It was `ts`/`tsx`/`cs` until 2026-09-11, and a stylesheet is the one file kind
+ * in this tree whose whole job is arguing in prose about boxes that belong to
+ * specific widgets. `packages/theme/src/tokens.css` could have named an Uplink
+ * and passed. That is not hypothetical: on 2026-09-11 the same phrase ("the kOS
+ * terminal's CPU picker") was written into a `packages/core` comment, where the
+ * gate fired correctly, and was nearly written into `tokens.css`, where nothing
+ * would have caught it.
+ *
+ * The reseed seam this opens is narrower than the scope one, because a LIST
+ * needs no interpretation: `PACKAGE_SCAN_SCOPE` is an opaque marker, so a value
+ * the checks do not recognise has to be read as "it saw everything", whereas a
+ * base's extension list says outright what it reached. Only an ABSENT list has
+ * to be guessed at, and absent means a base predating this constant, which is
+ * the `ts`/`tsx`/`cs` era.
+ */
+export const SCAN_EXTENSIONS = ["ts", "tsx", "cs", "css"];
+
 export interface ModAllowlist {
   /** Wire/contract/generated-code files, cross-Uplink ratchet/inventory
    *  files, sanctioned self-registration imports, and text-only doc/
