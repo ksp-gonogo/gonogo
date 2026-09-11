@@ -730,10 +730,20 @@ function describeTrigger(a: Alarm, utNow: number | null): React.ReactNode {
   if (a.trigger.kind === "event") {
     const t = a.trigger;
     return (
-      <code>
-        {t.topic}
-        {t.eventKind != null && ` · ${t.eventKind}`}
-      </code>
+      <>
+        <code>
+          {t.topic}
+          {t.eventKind != null && ` · ${t.eventKind}`}
+        </code>
+        {/* When it HAPPENED, not when it reached us: under delay the row
+            otherwise said only that something had, and never when. */}
+        {a.eventUT != null && (
+          <>
+            {" · "}
+            <MissionDate value={a.eventUT} />
+          </>
+        )}
+      </>
     );
   }
   // Threshold: narrow exhausted by the three `kind` checks above.

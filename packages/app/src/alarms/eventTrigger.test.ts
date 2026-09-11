@@ -81,6 +81,35 @@ describe("event alarm trigger", () => {
     expect(alarm.state).toBe("fired");
   });
 
+  it("keeps the occurrence's own UT, which reveal UT cannot stand in for", () => {
+    /*
+     * `matchSinceUT` is the REVEAL UT and has to stay that way (it opens the
+     * firing window). The occurrence's own `ut` is the number the operator
+     * actually asked for, "when did it happen", and under delay the two are
+     * far apart: the matcher had it in hand and threw it away.
+     */
+    const alarm = eventAlarm();
+    alarms.push(alarm);
+    tick(alarm); // baseline = 100
+    revealed.push(occ(105, "storm-arrived"));
+    now = 140; // revealed 35s after it happened
+    tick(alarm);
+    expect(alarm.matchSinceUT).toBe(140);
+    expect(alarm.eventUT).toBe(105);
+  });
+
+  it("keeps the FIRST matching occurrence's UT when several reveal together", () => {
+    const alarm = eventAlarm({ eventKind: "storm-arrived" });
+    alarms.push(alarm);
+    tick(alarm); // baseline = 100
+    revealed.push(occ(104, "storm-ended"));
+    revealed.push(occ(106, "storm-arrived"));
+    revealed.push(occ(108, "storm-arrived"));
+    now = 120;
+    tick(alarm);
+    expect(alarm.eventUT).toBe(106);
+  });
+
   it("honours the eventKind filter", () => {
     const alarm = eventAlarm({ eventKind: "storm-arrived" });
     alarms.push(alarm);
@@ -151,6 +180,20 @@ describe("migrateAlarm: event trigger", () => {
       topic: "spaceweather.storm",
       eventKind: "storm-arrived",
     });
+  });
+
+  it("carries the latched occurrence UT across a reload", () => {
+    const migrated = migrateAlarm({
+      id: "e3",
+      name: "Storm",
+      state: "fired",
+      createdBy: "main",
+      createdAt: 123,
+      matchSinceUT: 900,
+      eventUT: 460,
+      trigger: { kind: "event", topic: "spaceweather.storm" },
+    });
+    expect(migrated?.eventUT).toBe(460);
   });
 
   it("rejects an event trigger with no topic", () => {

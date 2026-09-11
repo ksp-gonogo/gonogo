@@ -101,15 +101,43 @@ export class AlarmStateMachine {
    * sample if the alarm is still in the pending pre-match phase. Mutates
    * `alarm.matchSinceUT`. Returns true if `matchSinceUT` changed.
    *
+   * `previously` is the UT of the last tick, and it is what lets an
+   * UNREADABLE read be held apart from a read that says no: see
+   * `evalThreshold`. Pass `null` where there is no previous tick, and an
+   * unreadable read simply leaves the latch untouched.
+   *
    * IMPORTANT: must run *before* `deriveState` for the same tick, it
    * inspects `alarm.state` from the previous tick to decide whether to
    * keep the rolling buffer.
    */
-  updateThresholdTracking(alarm: Alarm, ut: number): boolean {
+  updateThresholdTracking(
+    alarm: Alarm,
+    ut: number,
+    previously: number | null = null,
+  ): boolean {
     if (alarm.trigger.kind !== "threshold") return false;
     let changed = false;
     const matched = this.evalThreshold(alarm.trigger);
-    if (matched) {
+    if (matched === null) {
+      /*
+       * The read failed, so the condition neither held nor ended and the
+       * latch stays. What the seconds since the last tick DID do is go
+       * unobserved, so they must not pay into `sustainSeconds`: slide the
+       * latch forward by the gap instead, and the sustain keeps measuring
+       * time we actually watched the condition hold. Clearing the latch (what
+       * this did) restarts the sustain on every dropout, so a link flapping
+       * faster than `sustainSeconds` never lets the alarm fire; holding it
+       * without the slide fires on a blackout nobody saw through.
+       */
+      if (
+        alarm.matchSinceUT != null &&
+        previously !== null &&
+        ut > previously
+      ) {
+        alarm.matchSinceUT += ut - previously;
+        changed = true;
+      }
+    } else if (matched) {
       if (alarm.matchSinceUT == null) {
         alarm.matchSinceUT = ut;
         changed = true;
@@ -152,6 +180,10 @@ export class AlarmStateMachine {
    * reveals long after it happened, and the firing window must start from
    * reveal so the `firing` transition isn't skipped). Once latched it never
    * clears; an occurrence is a fact of the past. Returns true iff it changed.
+   *
+   * The occurrence's own `ut` is kept separately on `alarm.eventUT`: it is
+   * when the thing HAPPENED, which under delay is long before it was revealed,
+   * and it is the number an operator reads first.
    */
   updateEventTracking(alarm: Alarm, ut: number): boolean {
     if (alarm.trigger.kind !== "event") return false;
@@ -162,8 +194,10 @@ export class AlarmStateMachine {
       this.eventWatchFrom.set(alarm.id, ut);
       return false;
     }
-    if (this.hasEventMatch(alarm.trigger, from, ut)) {
+    const match = this.findEventMatch(alarm.trigger, from, ut);
+    if (match !== null) {
       alarm.matchSinceUT = ut;
+      alarm.eventUT = match.ut;
       return true;
     }
     return false;
@@ -179,7 +213,11 @@ export class AlarmStateMachine {
    * Compute the next state for an alarm given the current observed UT.
    *
    * `previously` is the UT this same alarm was last evaluated at, and it is
-   * what makes a time alarm survive warp. The firing test used to be pure
+   * what makes a time alarm (and a sustained threshold or contract-parameter
+   * alarm, which come due at `matchSinceUT + sustainSeconds`) survive warp.
+   * An `event` alarm needs no such companion: it latches `matchSinceUT` at
+   * reveal, so its window opens on the deriving tick itself. The firing test
+   * used to be pure
    * CONTAINMENT (`now - ut < 2`), and the host fires only on the TRANSITION
    * into `firing`; but the host ticks at 1 Hz while `viewUt` advances at the
    * warp rate, so one tick moves the clock by ~W seconds. Above ~1000x neither
@@ -210,9 +248,18 @@ export class AlarmStateMachine {
       return "pending";
     }
     if (alarm.trigger.kind === "event") {
-      // Edge-triggered: no arming, no sustain. Fire the instant a matching
-      // occurrence latched `matchSinceUT`, hold `firing` for the standard 2s
-      // banner window, then settle to `fired`.
+      /*
+       * Edge-triggered: no arming, no sustain. Fire the instant a matching
+       * occurrence latched `matchSinceUT`, hold `firing` for the standard 2s
+       * banner window, then settle to `fired`.
+       *
+       * This containment test needs no crossing companion, and the reason is
+       * the latch UT rather than the window: `updateEventTracking` sets
+       * `matchSinceUT` to the REVEAL UT, which is the same tick that derives
+       * here, so the difference is zero however far a warp step moved the
+       * clock. It is the one arm a jump cannot step over. Move the latch to
+       * the occurrence's own `ut` and that stops being true.
+       */
       if (alarm.state === "fired") return "fired";
       if (alarm.matchSinceUT == null) return "pending";
       return now - alarm.matchSinceUT < 2 ? "firing" : "fired";
@@ -223,9 +270,20 @@ export class AlarmStateMachine {
     // state transition logic is identical.
     const t = alarm.trigger;
     if (alarm.matchSinceUT == null) return "pending";
-    const heldFor = now - alarm.matchSinceUT;
-    if (heldFor < t.sustainSeconds) return "pending";
-    if (heldFor < t.sustainSeconds + 2) return "firing";
+    /*
+     * The moment this alarm comes due, as an instant rather than a duration,
+     * so the same crossing test the time arm uses applies here too. Under warp
+     * one tick can move `heldFor` from 0 to thousands, clean over both the
+     * sustain window and the 2-second firing window that follows it, and the
+     * alarm reached `fired` without ever passing through `firing`: no banner,
+     * no tone, no peer broadcast, no `onFire` action group, no warp step-down.
+     */
+    const dueAt = alarm.matchSinceUT + t.sustainSeconds;
+    if (previously !== null && previously < dueAt && now >= dueAt) {
+      return "firing";
+    }
+    if (now < dueAt) return "pending";
+    if (now - dueAt < 2) return "firing";
     return "fired";
   }
 
@@ -294,9 +352,21 @@ export class AlarmStateMachine {
     });
   }
 
-  private evalThreshold(t: ThresholdTrigger): boolean {
+  /**
+   * Three answers, not two: the condition holds, the condition does not hold,
+   * or `null` for a read we could not make at all.
+   *
+   * `getValue` answers `undefined` for four different situations, and its own
+   * doc hands the surface that stored the key the job of telling them apart:
+   * nothing has arrived on the topic yet, the value is currently absent or
+   * non-finite, the link is down, or the saved `dataKey` names a subject that
+   * no longer resolves. Collapsing all four into `false` published a failed
+   * read as the confident fact "the condition is not met", which is what let a
+   * dropout clear a sustain latch.
+   */
+  private evalThreshold(t: ThresholdTrigger): boolean | null {
     const observed = this.readTelemetryNumber(t.dataKey);
-    if (observed === null) return false;
+    if (observed === null) return null;
     return compare(observed, t.op, t.value);
   }
 
@@ -332,23 +402,27 @@ export class AlarmStateMachine {
   }
 
   /**
-   * True iff a revealed occurrence on the trigger's topic happened strictly
-   * after the watch baseline and by the current observed UT, matching the
-   * optional `eventKind` filter. The reader returns already-revealed
-   * occurrences (delay + connectivity applied upstream); the `fromUt`/`nowUt`
-   * bounds gate the watch window.
+   * The earliest revealed occurrence on the trigger's topic that happened
+   * strictly after the watch baseline and by the current observed UT, matching
+   * the optional `eventKind` filter, or `null` for none. The reader returns
+   * already-revealed occurrences newest-last (delay + connectivity applied
+   * upstream); the `fromUt`/`nowUt` bounds gate the watch window.
+   *
+   * It returned a bare boolean, which threw away `o.ut`: the occurrence was in
+   * hand and the one fact an operator wants from an event alarm, when it
+   * happened, was dropped at the only point it was available.
    */
-  private hasEventMatch(
+  private findEventMatch(
     t: EventTrigger,
     fromUt: number,
     nowUt: number,
-  ): boolean {
+  ): EventOccurrence | null {
     for (const o of this.getRevealedEvents(t.topic)) {
       if (o.ut <= fromUt || o.ut > nowUt) continue;
       if (t.eventKind != null && o.kind !== t.eventKind) continue;
-      return true;
+      return o;
     }
-    return false;
+    return null;
   }
 
   private recordThresholdSample(alarm: Alarm, ut: number): void {

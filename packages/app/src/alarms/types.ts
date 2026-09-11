@@ -145,6 +145,15 @@ export interface Alarm {
    */
   matchSinceUT?: number | null;
   /**
+   * Event alarms only: the UT at which the occurrence that fired this alarm
+   * actually HAPPENED, as distinct from `matchSinceUT`, which is the UT it was
+   * revealed at. Under signal delay the two are far apart, and "when did it
+   * happen" is the number the operator wants; the reveal UT cannot stand in
+   * for it, and it has to keep being the reveal UT because that is what opens
+   * the firing window. Undefined until an occurrence latches.
+   */
+  eventUT?: number;
+  /**
    * Optional side effects fired in order when the alarm transitions to
    * `firing`. Errors are swallowed at the host boundary so one failed
    * action doesn't block the alarm itself or the rest of the list.
@@ -299,6 +308,7 @@ export function migrateAlarm(raw: unknown): Alarm | null {
         createdBy,
         createdAt,
         matchSinceUT,
+        eventUT: typeof r.eventUT === "number" ? r.eventUT : undefined,
         onFire,
       };
     }
