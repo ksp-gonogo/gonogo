@@ -52,9 +52,19 @@ export interface TimeTrigger {
 /**
  * Whether this trigger is armed on the craft's clock, and therefore owned by
  * the mod rather than by the client's own tick.
+ *
+ * Both arms that can carry a vantage answer here, and every caller that skips
+ * client-side evaluation asks this rather than the trigger's kind: what the
+ * client must not do is the same for a time arm and a threshold one, because
+ * the reason is the same. The mod compares against the craft's true state
+ * upstream of the reveal gate, and the client holds only readings a light-time
+ * old.
  */
 export function isScetTrigger(trigger: AlarmTrigger): boolean {
-  return trigger.kind === "time" && trigger.vantage === "scet";
+  return (
+    (trigger.kind === "time" || trigger.kind === "threshold") &&
+    trigger.vantage === "scet"
+  );
 }
 
 export interface ThresholdTrigger {
@@ -71,6 +81,45 @@ export interface ThresholdTrigger {
    * 0 fires immediately on first match.
    */
   sustainSeconds: number;
+  /**
+   * Which clock the comparison is made on. See {@link AlarmVantage}.
+   *
+   * This is the arm that genuinely cannot be done anywhere else. A time alarm
+   * only needs a clock and the client has one; "is the craft above 100 km NOW"
+   * needs the craft's state now, which reaches the ground a light-time late and
+   * by then is the answer to a different question.
+   */
+  vantage?: AlarmVantage;
+  /**
+   * SCET only: the Topic whose payload carries the value, as the wire spells a
+   * Topic (`"vessel.flight"`).
+   *
+   * The flat {@link dataKey} cannot stand in for it. It is `topic + "." +
+   * fieldPath` with nothing marking the join, and a Topic can have two segments
+   * or three (`vessel.orbit.truth`), so splitting one back apart is a guess.
+   * The simulation addresses a reading as a Topic and a path into its payload,
+   * and this is that address carried rather than reconstructed.
+   */
+  topic?: string;
+  /** SCET only: the dotted path into {@link topic}'s payload (`"altitudeAsl"`). */
+  fieldPath?: string;
+}
+
+/**
+ * The Topic-and-path address a SCET threshold is armed against, or null when
+ * the trigger is not one or carries no address.
+ *
+ * Null is a real answer rather than an impossible state: a key that came from a
+ * live `DataSource` rather than from the contract's own field catalogue has no
+ * Topic behind it, so there is nothing for the simulation to resolve.
+ */
+export function scetThresholdAddress(
+  trigger: AlarmTrigger,
+): { topic: string; fieldPath: string } | null {
+  if (trigger.kind !== "threshold" || trigger.vantage !== "scet") return null;
+  const { topic, fieldPath } = trigger;
+  if (!topic || !fieldPath) return null;
+  return { topic, fieldPath };
 }
 
 export type ContractParameterTargetState = "Complete" | "Failed";
@@ -253,6 +302,18 @@ export interface AlarmSnapshot {
    * reads as a broken control.
    */
   owltSeconds?: number;
+  /**
+   * Why the simulation would not arm a SCET alarm, keyed by alarm id, in the
+   * mod's own words. Absent when nothing has been refused.
+   *
+   * The refusal is the ONLY way a client learns a Topic cannot be read
+   * pre-reveal: what a SCET threshold may be armed against is a table inside
+   * the mod and nothing publishes it, so the picker can offer a Topic the
+   * simulation turns down. Carried on the snapshot so the row can say so,
+   * rather than sitting armed-looking and never firing, which an operator
+   * cannot tell apart from a condition that simply has not come due.
+   */
+  scetArmRefusals?: Record<string, string>;
 }
 
 export const DEFAULT_LEAD_SECONDS = 10;
@@ -307,6 +368,17 @@ export function migrateAlarm(raw: unknown): Alarm | null {
       typeof t.value === "number" &&
       typeof t.op === "string"
     ) {
+      /* A SCET threshold is only a SCET threshold if it carries the address the
+         simulation resolves. Without one there is nothing to arm, and an alarm
+         that can never be armed would sit pending forever with nothing on
+         screen saying why; demoted to the command vantage it is at least the
+         alarm the operator can watch working. Anything that is not the literal
+         "scet" is the command vantage for the same reason the time arm gives:
+         the absent field has to mean the behaviour every persisted alarm
+         already had. */
+      const topic = typeof t.topic === "string" ? t.topic : "";
+      const fieldPath = typeof t.fieldPath === "string" ? t.fieldPath : "";
+      const addressed = topic !== "" && fieldPath !== "";
       return {
         id: r.id,
         name: r.name,
@@ -320,6 +392,8 @@ export function migrateAlarm(raw: unknown): Alarm | null {
             typeof t.sustainSeconds === "number"
               ? t.sustainSeconds
               : DEFAULT_SUSTAIN_SECONDS,
+          vantage: t.vantage === "scet" && addressed ? "scet" : "command",
+          ...(addressed ? { topic, fieldPath } : {}),
         },
         state: state ?? "pending",
         createdBy,

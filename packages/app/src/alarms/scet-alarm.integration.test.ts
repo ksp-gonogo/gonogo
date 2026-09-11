@@ -45,10 +45,33 @@ const UT_START = 10_000;
 /** UT (and wall) seconds per simulated step, and the host's tick interval. */
 const DT = 20;
 
-interface ArmedCondition {
-  ut: number;
-  leadSeconds: number;
+type ArmedCondition =
+  | { kind: "time"; ut: number; leadSeconds: number }
+  | {
+      kind: "threshold";
+      topic: string;
+      fieldPath: string;
+      op: number;
+      threshold: number;
+      sustainSeconds: number;
+    };
+
+/** One arm as the stand-in received it: the condition and who it named. */
+interface ArmedAlarm {
+  condition: ArmedCondition;
+  subject: string;
 }
+
+/**
+ * The Topics this stand-in will accept a threshold against, standing in for
+ * `Sitrep.Host.Alarms.ScetThresholdSources`. Deliberately a SHORT list rather
+ * than a copy of the real one: what is being exercised is what the client does
+ * with a refusal, and a second full copy of the mod's table in a test fixture
+ * is the thing the client is not allowed to keep either.
+ */
+const ADDRESSABLE = new Set(["vessel.flight", "time.warp"]);
+/** The craft's guid, as `meta.source` stamps it and `vessel.identity` names it. */
+const VESSEL_ID = "6f0a-probe";
 
 interface ModStandIn {
   /** Advance the world to `trueUt`, publish what the mod would have published by then. */
@@ -61,6 +84,10 @@ interface ModStandIn {
   warpDispatchedAt: readonly number[];
   /** Ids the stand-in mod currently holds armed. */
   armed(): readonly string[];
+  /** One arm as the stand-in received it, for asserting on what crossed the wire. */
+  armOf(id: string): ArmedAlarm | undefined;
+  /** Drive the craft's TRUE altitude, which only the stand-in can see. */
+  setAltitude(metres: number): void;
   /** Point the app-wide active-client seam back at this session's client. */
   attach(): void;
   /** The true UT at which the stand-in mod fired each alarm. */
@@ -78,9 +105,11 @@ function startSession(owlt: number): ModStandIn {
   let trueUt = UT_START;
   let warpIndex = 0;
   const warpDispatchedAt: number[] = [];
-  const conditions = new Map<string, ArmedCondition>();
+  const conditions = new Map<string, ArmedAlarm>();
   const steppedDown = new Set<string>();
   const fired = new Set<string>();
+  const matchedSince = new Map<string, number>();
+  let altitude = 0;
   let lastRoster: unknown[] = [];
   let lastFired: { id: string; firedAtUt: number } | null = null;
   const firedAtTrueUt: { id: string; ut: number }[] = [];
@@ -101,12 +130,38 @@ function startSession(owlt: number): ModStandIn {
     if (command === "alarm.scet.arm") {
       const id = String(bag.id ?? "");
       const condition = (bag.condition ?? {}) as Record<string, unknown>;
+      const threshold = Number(condition.kind ?? 0) === 1;
+      if (threshold && !ADDRESSABLE.has(String(condition.topic ?? ""))) {
+        /* The real uplink's refusal, verbatim in shape: a Range failure whose
+           message names the Topic. It is the ONLY way a client finds out, and
+           what this fixture exists to let the client be tested against. */
+        throw Object.assign(
+          new Error(
+            `no SCET threshold can be read from '${String(condition.topic ?? "")}'`,
+          ),
+          { code: "E_RANGE" },
+        );
+      }
       conditions.set(id, {
-        ut: Number(condition.ut ?? 0),
-        leadSeconds: Number(condition.leadSeconds ?? 0),
+        subject: String(bag.subject ?? ""),
+        condition: threshold
+          ? {
+              kind: "threshold",
+              topic: String(condition.topic ?? ""),
+              fieldPath: String(condition.fieldPath ?? ""),
+              op: Number(condition.op ?? 0),
+              threshold: Number(condition.threshold ?? 0),
+              sustainSeconds: Number(condition.sustainSeconds ?? 0),
+            }
+          : {
+              kind: "time",
+              ut: Number(condition.ut ?? 0),
+              leadSeconds: Number(condition.leadSeconds ?? 0),
+            },
       });
       steppedDown.delete(id);
       fired.delete(id);
+      matchedSince.delete(id);
       return null;
     }
     if (command === "alarm.scet.disarm") {
@@ -137,16 +192,26 @@ function startSession(owlt: number): ModStandIn {
   }
 
   function publishRoster(): void {
-    lastRoster = [...conditions.entries()].map(([id, condition]) => ({
+    lastRoster = [...conditions.entries()].map(([id, arm]) => ({
       id,
       name: id,
       armedBy: "ksc",
-      subject: "game",
-      condition: {
-        kind: 0,
-        ut: condition.ut,
-        leadSeconds: condition.leadSeconds,
-      },
+      subject: arm.subject,
+      condition:
+        arm.condition.kind === "time"
+          ? {
+              kind: 0,
+              ut: arm.condition.ut,
+              leadSeconds: arm.condition.leadSeconds,
+            }
+          : {
+              kind: 1,
+              topic: arm.condition.topic,
+              fieldPath: arm.condition.fieldPath,
+              op: arm.condition.op,
+              threshold: arm.condition.threshold,
+              sustainSeconds: arm.condition.sustainSeconds,
+            },
       state: fired.has(id) ? 1 : 0,
       firedAtUt: null,
     }));
@@ -162,6 +227,10 @@ function startSession(owlt: number): ModStandIn {
     attach: () => setActiveTelemetryClientForTests(client),
     gameIndex: () => warpIndex,
     armed: () => [...conditions.keys()],
+    armOf: (id) => conditions.get(id),
+    setAltitude(metres) {
+      altitude = metres;
+    },
     reconnect() {
       /* What a client sees when it comes back: the reliable lane replays the
          last value on each topic through keyframe-on-subscribe, so the roster
@@ -191,22 +260,38 @@ function startSession(owlt: number): ModStandIn {
          anchors the view clock's UT/wall fit in a real session. */
       transport.emit(
         "vessel.identity",
-        { name: "Probe" },
+        { name: "Probe", vesselId: VESSEL_ID },
         { validAt: ut - owlt, deliveredAt: ut },
       );
 
       // The mod's pass, on the game's OWN clock: this is the whole point of the
       // arm, and it runs whatever the client can currently see.
-      for (const [id, condition] of conditions) {
+      for (const [id, arm] of conditions) {
         if (fired.has(id)) continue;
-        if (
-          !steppedDown.has(id) &&
-          ut >= condition.ut - condition.leadSeconds
-        ) {
-          steppedDown.add(id);
-          warpIndex = 0;
+        const c = arm.condition;
+        if (c.kind === "time") {
+          if (!steppedDown.has(id) && ut >= c.ut - c.leadSeconds) {
+            steppedDown.add(id);
+            warpIndex = 0;
+          }
+          if (ut < c.ut) continue;
+        } else {
+          /* The reading is the craft's TRUE altitude, which is the whole claim:
+             nothing the client can see is consulted. Warp stops at the first
+             match and the sustain window is measured in the ticks that follow,
+             the same order the roster uses, because a window measured across
+             warped ticks would be satisfied by two samples. */
+          if (!matches(c, altitude)) {
+            matchedSince.delete(id);
+            continue;
+          }
+          if (!matchedSince.has(id)) {
+            matchedSince.set(id, ut);
+            warpIndex = 0;
+          }
+          if (ut - (matchedSince.get(id) as number) < c.sustainSeconds)
+            continue;
         }
-        if (ut < condition.ut) continue;
         fired.add(id);
         warpIndex = 0;
         lastFired = { id, firedAtUt: ut };
@@ -238,6 +323,27 @@ function startSession(owlt: number): ModStandIn {
       store.beginFrame();
     },
   };
+}
+
+/** The five comparisons this fixture is asked for, by contract ordinal. */
+function matches(
+  c: Extract<ArmedCondition, { kind: "threshold" }>,
+  reading: number,
+): boolean {
+  switch (c.op) {
+    case 0:
+      return reading > c.threshold;
+    case 1:
+      return reading >= c.threshold;
+    case 2:
+      return reading < c.threshold;
+    case 3:
+      return reading <= c.threshold;
+    case 4:
+      return reading === c.threshold;
+    default:
+      return reading !== c.threshold;
+  }
 }
 
 describe("SCET alarms", () => {
@@ -467,6 +573,135 @@ describe("SCET alarms", () => {
     expect(row?.state).not.toBe("pending");
     expect(row?.eventUT).toBe(target);
     reconnected.dispose();
+  });
+
+  it("arms a threshold as a Topic, a path into it and the craft it is about", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.flight.altitudeAsl",
+        op: ">=",
+        value: 100_000,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "vessel.flight",
+        fieldPath: "altitudeAsl",
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    svc.dispose();
+
+    // The address the simulation resolves, not the flat key: a Topic and a path
+    // into its payload, because the flat key cannot be split back apart.
+    expect(session.armOf(alarm.id)?.condition).toEqual({
+      kind: "threshold",
+      topic: "vessel.flight",
+      fieldPath: "altitudeAsl",
+      op: 1,
+      threshold: 100_000,
+      sustainSeconds: 0,
+    });
+    /* And it names the CRAFT. Armed as "game" the payload's own `meta.source`
+       would never match and the alarm would sit armed forever, which is the
+       failure mode an operator cannot tell from a condition not yet met. */
+    expect(session.armOf(alarm.id)?.subject).toBe(`vessel:${VESSEL_ID}`);
+  });
+
+  it("fires a threshold off the craft's true state, not the reading on screen", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+
+    const alarm = svc.addAlarm({
+      name: "Above 100 km",
+      trigger: {
+        kind: "threshold",
+        dataKey: "vessel.flight.altitudeAsl",
+        op: ">=",
+        value: 100_000,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "vessel.flight",
+        fieldPath: "altitudeAsl",
+      },
+    });
+    /* Stepped by hand rather than through `run`, which always restarts at
+       `UT_START + DT`: this test needs the world to cross the threshold at one
+       stated instant, so the clock has to keep going forwards. */
+    const step = async (from: number, to: number) => {
+      for (let ut = from; ut <= to; ut += DT) {
+        session.emitAt(ut);
+        nowMs += DT * 1000;
+        await vi.advanceTimersByTimeAsync(DT * 1000);
+      }
+    };
+    await step(UT_START + DT, UT_START + 4 * DT);
+    expect(svc.snapshot().alarms[0]?.state).toBe("pending");
+
+    const crossesAt = UT_START + 5 * DT;
+    session.setAltitude(101_000);
+    await step(crossesAt, crossesAt + 2 * DT);
+    const row = svc.snapshot().alarms.find((a) => a.id === alarm.id);
+    svc.dispose();
+
+    /* The client holds nothing that says the craft is above 100 km: its own
+       `vessel.flight` would be a light-time old even if it were subscribed. The
+       alarm still fires on the tick the GAME crossed, which is the entire
+       argument for the arm existing. */
+    expect(row?.state).not.toBe("pending");
+    expect(row?.eventUT).toBe(crossesAt);
+    expect(session.gameIndex()).toBe(0);
+  });
+
+  it("says why an unreadable Topic was refused instead of sitting pending", async () => {
+    const session = startSession(OWLT);
+    session.emitAt(UT_START);
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: DT * 1000,
+      storage: memoryStorage(),
+      getOwltSeconds: () => OWLT,
+    });
+
+    /* A Topic the simulation cannot read pre-reveal. Nothing publishes the set
+       it CAN read, so the picker offers this and the refusal is the first
+       moment this side could have known. */
+    const alarm = svc.addAlarm({
+      name: "Funds",
+      trigger: {
+        kind: "threshold",
+        dataKey: "career.economy.funds",
+        op: "<",
+        value: 1000,
+        sustainSeconds: 0,
+        vantage: "scet",
+        topic: "career.economy",
+        fieldPath: "funds",
+      },
+    });
+    await run(session, UT_START + 4 * DT);
+    const snap = svc.snapshot();
+    svc.dispose();
+
+    expect(session.armed()).toEqual([]);
+    expect(snap.alarms.find((a) => a.id === alarm.id)?.state).toBe("pending");
+    // The mod's own words, carrying the Topic the operator chose.
+    expect(snap.scetArmRefusals?.[alarm.id]).toContain("career.economy");
   });
 
   it("fires both vantages on the same tick when there is no delay to tell them apart", async () => {

@@ -7,11 +7,20 @@ import {
   useTelemetry,
   useTimeContexts,
 } from "@ksp-gonogo/core";
-import { useManeuverNodes, useValueKeys } from "@ksp-gonogo/data";
-import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
+import {
+  isThresholdSubject,
+  useManeuverNodes,
+  useTopicFieldCatalog,
+} from "@ksp-gonogo/data";
+import {
+  useStream,
+  type VesselState,
+  wireAddressBehindRedirect,
+} from "@ksp-gonogo/sitrep-client";
 import {
   KSP_ACTION_GROUP_NAMES,
   KspActionGroup,
+  reckonableValuesOf,
   value,
 } from "@ksp-gonogo/sitrep-sdk";
 import {
@@ -43,7 +52,11 @@ import type {
   AlarmVantage,
   ThresholdOp,
 } from "./types";
-import { DEFAULT_LEAD_SECONDS, DEFAULT_SUSTAIN_SECONDS } from "./types";
+import {
+  DEFAULT_LEAD_SECONDS,
+  DEFAULT_SUSTAIN_SECONDS,
+  isScetTrigger,
+} from "./types";
 
 /**
  * Prefilled state for opening the modal in "create with hint" mode, the
@@ -126,12 +139,24 @@ export function AlarmsModal({
   // Which clock the instants in this modal are on. Undefined qualifiers on a
   // LAN session, where there is only one clock to be on.
   const timeContexts = useTimeContexts();
-  // Value-restricted keys: threshold alarms compare against a scalar Value
-  // (per the Uplink Domain/Topic/Value/Stream/Asset vocab), so this hides
-  // enums, booleans, opaque structs, untyped raws, AND any legacy key with
-  // no stream home (the alarm's `readTelemetryNumber` now reads off the
-  // stream: see `AlarmStateMachine`).
-  const numericKeys = useValueKeys("data");
+  /* Value-restricted keys: a threshold compares against a scalar Value (per the
+     Uplink Domain/Topic/Value/Stream/Asset vocab), so this hides enums,
+     booleans, opaque structs, untyped raws, AND any legacy key with no stream
+     home (the alarm's `readTelemetryNumber` reads off the stream: see
+     `AlarmStateMachine`).
+
+     The catalogue rather than `useValueKeys`, which is the same list with the
+     same filter and hands back the narrower `DataKeyMeta`. A SCET threshold is
+     armed on a Topic and a path into its payload, and these entries carry both;
+     `useValueKeys` would leave this side splitting a flat key back apart, which
+     is a guess (`vessel.orbit.truth` has three segments and `vessel.flight` has
+     two). No second table: the address comes from the same contract metadata
+     the key itself was enumerated from. */
+  const catalog = useTopicFieldCatalog();
+  const numericKeys = useMemo(
+    () => catalog.filter(isThresholdSubject),
+    [catalog],
+  );
   // Mirror snapshot in a ref so the add handler reads the freshest value
   // when the user clicks (rules of hooks forbid calling useSnapshot inside
   // a handler). Without this, two quick adds anchor to the same UT.
@@ -202,11 +227,69 @@ export function AlarmsModal({
   const valueN = Number.parseFloat(thresholdValue);
   const trimmedName = name.trim();
   const trimmedKey = dataKey.trim();
+  const selectedKey = useMemo(
+    () => numericKeys.find((k) => k.key === trimmedKey) ?? null,
+    [numericKeys, trimmedKey],
+  );
+  /**
+   * The address the simulation would be given for the chosen field: a Topic it
+   * publishes and a path into that payload. Null when there is none.
+   *
+   * Two resolutions, in this order.
+   *
+   * The picker shows a handful of kinematics under `vessel.state.*`, a channel
+   * this client COMPUTES, because binding widgets to two names for one altitude
+   * is the wart that redirect exists to kill. The simulation has never heard of
+   * that channel, so an arm naming it could not be read, and the case lost
+   * would be the altitude threshold the whole feature was asked for.
+   * `wireAddressBehindRedirect` hands back the wire name the redirect pointed
+   * away from, derived from the redirect table itself.
+   *
+   * Otherwise the catalogue entry's own Topic and path, which every entry
+   * enumerated from the contract carries. A key a live `DataSource` supplied
+   * from its own `schema()` has neither, and nothing can be resolved for it.
+   * Checked at PRESS rather than by hiding the row, so the operator still sees
+   * a key they can read on a graph and learns only that this ARM cannot use
+   * it.
+   */
+  const scetAddress = useMemo(() => {
+    if (selectedKey === null) return null;
+    const wire = wireAddressBehindRedirect(selectedKey.key);
+    if (wire !== null) return wire;
+    if (selectedKey.topic === "" || selectedKey.fieldPath === "") return null;
+    return { topic: selectedKey.topic, fieldPath: selectedKey.fieldPath };
+  }, [selectedKey]);
+  const scetAddressable = scetAddress !== null;
+  /**
+   * Whether the chosen field is one the client MODELS on screen while the mod
+   * compares the value it actually holds.
+   *
+   * Not a restriction, and not a correctness problem: reckoning runs here, over
+   * delayed readings, and the simulation never sees it. It is a UX one, and it
+   * is the operator's to know about. They set the number while LOOKING at a
+   * modelled readout, so the number they typed and the number the mod compares
+   * differ by the model's error.
+   *
+   * Read from the contract's declarations rather than a written-down list of
+   * three fields, so a path INTO a reckoned value (`relativePosition.x`) marks
+   * the same as the value itself, and a mark added or dropped by a future
+   * codegen lands here without anyone remembering to come back.
+   */
+  const selectedIsReckoned =
+    scetAddress !== null &&
+    reckonableValuesOf(scetAddress.topic).some(
+      (row) =>
+        scetAddress.fieldPath === row.field ||
+        scetAddress.fieldPath.startsWith(`${row.field}.`),
+    );
   const addDisabled =
     trimmedName === "" ||
     (kind === "time" &&
       (!Number.isFinite(offsetN) || offsetN <= 0 || snapshot.ut === null)) ||
-    (kind === "threshold" && (trimmedKey === "" || !Number.isFinite(valueN)));
+    (kind === "threshold" &&
+      (trimmedKey === "" ||
+        !Number.isFinite(valueN) ||
+        (effectiveVantage === "scet" && !scetAddressable)));
 
   const handleAdd = () => {
     if (addDisabled) return;
@@ -245,6 +328,13 @@ export function AlarmsModal({
           Number.isFinite(sustain) && sustain >= 0
             ? sustain
             : DEFAULT_SUSTAIN_SECONDS,
+        vantage: effectiveVantage,
+        /* The Topic and the path, carried only on the arm that needs them.
+           `addDisabled` has already refused a SCET threshold without an
+           address, so this is never the half-filled case. */
+        ...(effectiveVantage === "scet" && scetAddress !== null
+          ? scetAddress
+          : {}),
       };
     }
     onAdd({
@@ -331,7 +421,9 @@ export function AlarmsModal({
           />
         </Field>
 
-        {kind === "time" && vantageChoiceVisible && (
+        {/* Both arms, not just the time one: a threshold on the craft's clock
+            is the case that genuinely cannot be evaluated here at all. */}
+        {vantageChoiceVisible && (
           <Field>
             <FieldLabel as="span" id="alarm-vantage-label">
               Fires on
@@ -445,9 +537,26 @@ export function AlarmsModal({
               />
               <FieldHint>
                 Any telemetry key that returns a number, e.g.{" "}
-                <code>v.altitude</code>, <code>v.surfaceVelocity</code>,{" "}
-                <code>v.verticalSpeed</code>.
+                <code>vessel.flight.altitudeAsl</code>,{" "}
+                <code>vessel.flight.verticalSpeed</code>.
               </FieldHint>
+              {effectiveVantage === "scet" && selectedIsReckoned && (
+                <FieldHint>
+                  Modelled on screen, measured on the craft:{" "}
+                  <code>{trimmedKey}</code> is carried forward here by a model
+                  over readings a light-time old, and the simulation compares
+                  the value it holds itself. The two differ by the model's
+                  error.
+                </FieldHint>
+              )}
+              {effectiveVantage === "scet" &&
+                trimmedKey !== "" &&
+                !scetAddressable && (
+                  <FieldHint>
+                    <code>{trimmedKey}</code> has no Topic behind it, so there
+                    is no address the simulation could read it from.
+                  </FieldHint>
+                )}
             </Field>
             <SideBySide>
               <Field>
@@ -555,6 +664,17 @@ export function AlarmsModal({
                         <Badge size="md">
                           {a.trigger.kind === "time" ? "TIME" : "COND"}
                         </Badge>
+                        {/* Only the threshold arm. A SCET time row already
+                            states its clock, because `describeTrigger` renders
+                            its instant with the SCET qualifier; a threshold has
+                            no instant to qualify until it fires, so without
+                            this the row would not say which clock decides it. */}
+                        {a.trigger.kind === "threshold" &&
+                          isScetTrigger(a.trigger) && (
+                            <Badge severity="info" size="sm">
+                              SCET
+                            </Badge>
+                          )}
                         {a.name}
                         {a.onFire && a.onFire.length > 0 && (
                           <Badge severity="info" size="sm">
@@ -595,6 +715,18 @@ export function AlarmsModal({
                     <RowMeta>
                       <StateTag $state={a.state}>{a.state}</StateTag>
                     </RowMeta>
+                    {/* The simulation would not take this arm, in its own
+                        words. Without it the row reads `pending` forever and
+                        nothing tells the difference between an alarm waiting
+                        and an alarm that was never accepted. */}
+                    {snapshot.scetArmRefusals?.[a.id] !== undefined && (
+                      <RowMeta role="status">
+                        <Badge severity="warning" size="sm">
+                          NOT ARMED
+                        </Badge>{" "}
+                        {snapshot.scetArmRefusals[a.id]}
+                      </RowMeta>
+                    )}
                   </RowInfo>
                   <RowActions>
                     {pendingDelete ? (
@@ -926,17 +1058,33 @@ function describeTrigger(
   }
   // Threshold: narrow exhausted by the three `kind` checks above.
   const t = a.trigger;
+  const scet = t.vantage === "scet";
+  /* A SCET arm reports the window it is waiting for, never progress through it.
+     The mod measures the sustain against the craft's own ticks, and
+     `matchSinceUT` on this side is the REVEAL of the fire notice rather than
+     the moment the condition began holding: rendering it as "matched 3s" would
+     be inventing a progress bar for a window this client never watched. */
   const matchInfo =
-    a.matchSinceUT != null && utNow != null
+    !scet && a.matchSinceUT != null && utNow != null
       ? ` · matched ${writeQuantity(value("s", utNow - a.matchSinceUT))} (need ${writeQuantity(value("s", t.sustainSeconds))})`
       : t.sustainSeconds > 0
         ? ` · sustain ${writeQuantity(value("s", t.sustainSeconds))}`
         : "";
   return (
-    <code>
-      {t.dataKey} {t.op} {t.value}
-      {matchInfo}
-    </code>
+    <>
+      <code>
+        {t.dataKey} {t.op} {t.value}
+        {matchInfo}
+      </code>
+      {/* When the craft crossed it, on the craft's clock: the same instant an
+          event alarm reports, and the only number a fired SCET row can give. */}
+      {scet && a.eventUT != null && (
+        <>
+          {" · "}
+          <MissionDate value={a.eventUT} context={contexts.scet} />
+        </>
+      )}
+    </>
   );
 }
 

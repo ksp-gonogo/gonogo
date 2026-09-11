@@ -168,6 +168,15 @@ export class AlarmHostService {
   private warpObserver: WarpObserver;
   private peerBridge: AlarmPeerBridge;
   private scetBridge: ScetAlarmBridge;
+  /**
+   * Why the simulation would not arm an alarm, by alarm id.
+   *
+   * Not persisted: it is a fact about the mod this client is talking to right
+   * now, and the next one may address a different set of Topics. An entry is
+   * dropped the moment the same alarm arms successfully or its trigger is
+   * edited, so it can never outlive the condition it describes.
+   */
+  private scetArmRefusals = new Map<string, string>();
 
   constructor(host: PeerHostService | null, opts: AlarmHostOptions = {}) {
     this.opts = {
@@ -232,6 +241,14 @@ export class AlarmHostService {
     this.scetBridge = new ScetAlarmBridge({
       getAlarms: () => this.alarms,
       onFired: (id, firedAtUt) => this.onScetFired(id, firedAtUt),
+      onArmRefused: (id, reason) => {
+        if (this.scetArmRefusals.get(id) === reason) return;
+        this.scetArmRefusals.set(id, reason);
+        this.emit();
+      },
+      onArmAccepted: (id) => {
+        if (this.scetArmRefusals.delete(id)) this.emit();
+      },
     });
     this.start();
   }
@@ -247,6 +264,10 @@ export class AlarmHostService {
       warpTo: this.warp.snapshot(),
       warpSafetyMarginSeconds: this.warp.getMarginSeconds(),
       owltSeconds: this.warp.getOverridingOwltSeconds(),
+      scetArmRefusals:
+        this.scetArmRefusals.size > 0
+          ? Object.fromEntries(this.scetArmRefusals)
+          : undefined,
     };
   }
 
@@ -323,6 +344,17 @@ export class AlarmHostService {
     }
     if (patch.trigger) this.stateMachine.forget(id);
     this.alarms[idx] = next;
+    if (patch.trigger) {
+      // A refusal describes the condition that was replaced.
+      this.scetArmRefusals.delete(id);
+      /* Re-arm HERE rather than leaving it to the reconcile. The mod already
+         holds this id, so the diff against its roster sees the alarm as armed
+         and would arm nothing: the operator's edit would be kept on this side
+         and never reach the simulation, which would go on watching the
+         condition they replaced. Arming an id the mod holds REPLACES it, so
+         this is the whole of the edit path. */
+      if (next.state === "pending") this.scetBridge.arm(next);
+    }
     this.persist();
     this.emit();
   }
@@ -332,6 +364,7 @@ export class AlarmHostService {
     this.alarms = this.alarms.filter((a) => a.id !== id);
     if (this.alarms.length !== before) {
       this.stateMachine.forget(id);
+      this.scetArmRefusals.delete(id);
       this.persist();
       this.emit();
     }

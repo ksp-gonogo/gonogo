@@ -1003,10 +1003,47 @@ export function getActiveCarriedChannels(): ReadonlySet<string> | undefined {
   return activeCarriedChannels;
 }
 
+/**
+ * Why a command that DID route came back unsuccessful: the mod's own code and
+ * message, as it wrote them.
+ *
+ * Carried rather than swallowed because a refusal is frequently the only place
+ * a fact lives. The SCET alarm arm refuses a threshold naming a Topic the
+ * simulation cannot resolve, and the message names the Topic; a caller that
+ * cannot read it has an alarm sitting armed that will never fire and nothing to
+ * say about why.
+ */
+export interface DispatchCommandRefusal {
+  code: string;
+  message: string;
+}
+
 /** Outcome of {@link dispatchActiveCommandTopic}: see its doc comment. */
 export type DispatchActiveCommandResult =
-  | { routed: true; settled: Promise<void> }
+  | { routed: true; settled: Promise<DispatchCommandRefusal | undefined> }
   | { routed: false };
+
+/**
+ * A dispatch rejection as its two readable halves, whatever threw it.
+ *
+ * Read structurally rather than by `instanceof CommandError`: the rejection can
+ * cross a bundle boundary, and the class the value was minted from is not
+ * necessarily the class this copy holds. `code` and `message` are own
+ * properties on it for exactly this reason.
+ */
+function describeDispatchRejection(error: unknown): DispatchCommandRefusal {
+  if (typeof error === "object" && error !== null) {
+    const candidate = error as { code?: unknown; message?: unknown };
+    return {
+      code: typeof candidate.code === "string" ? candidate.code : "",
+      message:
+        typeof candidate.message === "string"
+          ? candidate.message
+          : String(error),
+    };
+  }
+  return { code: "", message: String(error) };
+}
 
 /**
  * Dispatch a command through the stream, for a plain-class caller with no render
@@ -1015,8 +1052,9 @@ export type DispatchActiveCommandResult =
  * **Deliberately SYNCHRONOUS in its routing decision.** A caller must be able to
  * check `routed` in the SAME tick as the call, so it can say at once that a
  * command did not go rather than a microtask later. Only the routed case is
- * genuinely asynchronous, and its `settled` promise never rejects: resolving it
- * is the caller's business.
+ * genuinely asynchronous, and its `settled` promise never rejects: it resolves
+ * with the refusal when there was one and with `undefined` when the command
+ * succeeded, so a caller that does not care can keep ignoring it.
  *
  * Takes the command and its arguments as they are. The version this replaces
  * took a widget-facing action STRING and resolved it through a table, which is
@@ -1036,7 +1074,7 @@ export function dispatchActiveCommandTopic(
     routed: true,
     settled: result.then(
       () => undefined,
-      () => undefined,
+      (error: unknown) => describeDispatchRejection(error),
     ),
   };
 }

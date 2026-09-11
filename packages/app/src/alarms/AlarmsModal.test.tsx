@@ -676,6 +676,85 @@ describe("AlarmsModal threshold trigger key picker", () => {
       dataKey: "vessel.state.altitudeAsl",
     });
   });
+
+  /**
+   * The operator's own worked example from the 2026-09-11 ruling: "an alarm for
+   * SCET 100km altitude". It is also the one the picker's vocabulary would have
+   * lost on its own, because altitude is shown under the derived `vessel.state`
+   * name and the simulation has never heard of that channel.
+   */
+  it("arms a SCET threshold at the Topic the simulation publishes, not the derived name", async () => {
+    const user = userEvent.setup();
+    const onAdd = vi.fn();
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={onAdd}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      240,
+    );
+
+    await user.type(screen.getByLabelText(/^name$/i), "Above 100 km");
+    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /^scet$/i }));
+    await user.click(getDataKeyCombobox());
+    const altitudeOption = (await screen.findAllByRole("option")).find((o) =>
+      o.textContent?.includes("Altitude ASL"),
+    );
+    expect(altitudeOption).toBeDefined();
+    if (altitudeOption) await user.click(altitudeOption);
+
+    /* Marked, not withheld. The operator is about to type a number while
+       looking at a readout this client MODELS forward over delayed readings,
+       and the simulation will compare the value it holds itself. */
+    expect(
+      screen.getByText(/modelled on screen, measured on the craft/i),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /^add alarm$/i }));
+    expect(onAdd.mock.calls[0][0].trigger).toMatchObject({
+      kind: "threshold",
+      vantage: "scet",
+      // The wire's name for it, recovered from the redirect that hid it.
+      topic: "vessel.flight",
+      fieldPath: "altitudeAsl",
+      // And the flat key is kept as it was, because it is what the row reads
+      // out and what a command-vantage copy of the same alarm would compare.
+      dataKey: "vessel.state.altitudeAsl",
+    });
+  });
+
+  it("says nothing about a model on a field nothing carries forward", async () => {
+    const user = userEvent.setup();
+    renderWithStream(
+      <AlarmsModal
+        useSnapshot={() => makeSnapshot()}
+        onAdd={() => {}}
+        onUpdate={() => {}}
+        onDelete={() => {}}
+      />,
+      ORBIT_EPOCH,
+      240,
+    );
+
+    await user.click(screen.getByRole("radio", { name: /when telemetry/i }));
+    await user.click(screen.getByRole("radio", { name: /^scet$/i }));
+    await user.click(getDataKeyCombobox());
+    // A measured field with no declared model: the mark must not follow the
+    // Topic, or it would be on every row of `vessel.flight` and mean nothing.
+    const machOption = (await screen.findAllByRole("option")).find((o) =>
+      o.textContent?.toLowerCase().includes("mach"),
+    );
+    expect(machOption).toBeDefined();
+    if (machOption) await user.click(machOption);
+
+    expect(
+      screen.queryByText(/modelled on screen, measured on the craft/i),
+    ).toBeNull();
+  });
 });
 
 /**

@@ -136,6 +136,15 @@ export class AlarmStateMachine {
     previously: number | null = null,
   ): boolean {
     if (alarm.trigger.kind !== "threshold") return false;
+    /*
+     * A SCET threshold is the mod's to evaluate, and this would do more than
+     * duplicate it: the latch it writes is the SAME field the fire notice
+     * writes, so a client comparing its own delayed reading would clear a latch
+     * the mod had already set, or set one the mod never will. The read here is
+     * a light-time old by construction, which is the whole reason the arm
+     * exists.
+     */
+    if (isScetTrigger(alarm.trigger)) return false;
     let changed = false;
     const matched = this.evalThreshold(alarm.trigger);
     if (matched === null) {
@@ -394,6 +403,11 @@ export class AlarmStateMachine {
       // there's no scalar to warp toward, so they're not warp-targetable.
       if (a.trigger.kind === "contract-parameter") continue;
       if (a.trigger.kind === "event") continue;
+      /* A SCET threshold is not warp-targetable either, for a different
+         reason: there IS a scalar, but the mod is watching it and will stop the
+         warp on its own. A ladder aimed at it would be planning against
+         readings a light-time behind the comparison that decides it. */
+      if (isScetTrigger(a.trigger)) continue;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") continue;
       if (a.matchSinceUT != null) continue;
@@ -412,6 +426,11 @@ export class AlarmStateMachine {
       if (a.id === target.id) return false;
       if (a.state !== "pending") return false;
       if (a.trigger.kind !== "threshold") return false;
+      /* Never a SCET threshold. This caps the warp so an unmodelable alarm has
+         ticks to register in, and a mod-owned one needs none: the stop happens
+         upstream of everything this side can see, at whatever rate the game is
+         running. */
+      if (isScetTrigger(a.trigger)) return false;
       if (a.matchSinceUT != null) return false;
       const t = a.trigger;
       if (t.op === "==" || t.op === "!=") return true;
@@ -504,6 +523,11 @@ export class AlarmStateMachine {
 
   private recordThresholdSample(alarm: Alarm, ut: number): void {
     if (alarm.trigger.kind !== "threshold") return;
+    /* Samples exist to fit an ETA for the warp-to ladder, and a SCET threshold
+       has no use for one: the mod stops the warp itself, in the frame it
+       decides to, so a ladder planned from delayed samples would only be a
+       second authority arriving late. */
+    if (isScetTrigger(alarm.trigger)) return;
     if (alarm.state !== "pending" || alarm.matchSinceUT != null) {
       this.thresholdSamples.delete(alarm.id);
       return;
@@ -523,6 +547,11 @@ export class AlarmStateMachine {
 
   private estimateThresholdEta(alarm: Alarm): number | null {
     if (alarm.trigger.kind !== "threshold") return null;
+    /* See `recordThresholdSample`: no samples are kept for a SCET threshold, so
+       this would answer null anyway. Said here as well, because a reader
+       deciding whether a warp-to can target one should not have to trace it
+       through an empty buffer. */
+    if (isScetTrigger(alarm.trigger)) return null;
     const t = alarm.trigger;
     if (t.op === "==" || t.op === "!=") return null;
     if (alarm.matchSinceUT != null) return null;
