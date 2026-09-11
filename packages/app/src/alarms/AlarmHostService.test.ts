@@ -209,6 +209,44 @@ describe("AlarmHostService", () => {
     expect(svc.snapshot().alarms[0].state).toBe("firing");
   });
 
+  it("fires an event alarm revealed inside a warp step that JUMPED CLEAN OVER it", async () => {
+    /*
+     * The same jump that used to silence a time alarm, aimed at the event arm.
+     * `deriveState` settles an event alarm on a 2-second CONTAINMENT test
+     * (`now - matchSinceUT < 2`), which looks exposed; it is not, because
+     * `updateEventTracking` latches `matchSinceUT` at the REVEAL UT, i.e. the
+     * very tick doing the deriving, so the difference is zero however far the
+     * clock jumped. This test pins that, because the latch UT is what makes
+     * the window unreachable and a future "use the occurrence's own ut" change
+     * would re-open it.
+     */
+    const telemetry = fakeTelemetry();
+    telemetry.set("t.universalTime", 1000);
+    telemetry.set("t.currentRateIndex", 7);
+    telemetry.set("t.currentRate", 10000);
+    const revealed: EventOccurrence[] = [];
+    const svc = new AlarmHostService(null, {
+      nowMs: () => nowMs,
+      tickIntervalMs: 1000,
+      storage: memoryStorage(),
+      getRevealedEvents: (topic) =>
+        topic === "kerbcast.events" ? revealed : [],
+    });
+    svc.addAlarm({
+      name: "Signal lost",
+      trigger: { kind: "event", topic: "kerbcast.events" },
+    });
+    telemetry.calls.length = 0;
+
+    // One tick at 10,000x, with the occurrence buried mid-jump.
+    revealed.push({ ut: 5000, kind: "signal-lost", payload: {}, epoch: 0 });
+    telemetry.set("t.universalTime", 11000);
+    await vi.advanceTimersByTimeAsync(1100);
+
+    expect(svc.snapshot().alarms[0].state).toBe("firing");
+    expect(telemetry.calls).toContain("time.setWarpIndex[0]");
+  });
+
   it("adds an alarm and surfaces it in the snapshot", async () => {
     const { svc } = makeService();
     svc.addAlarm({
@@ -484,6 +522,88 @@ describe("AlarmHostService", () => {
       telemetry.set("t.universalTime", 1003);
       await vi.advanceTimersByTimeAsync(1100);
       expect(svc.snapshot().alarms[0].state).toBe("firing");
+    });
+
+    it("does not treat an unreadable value as the condition ENDING", async () => {
+      /*
+       * `getValue` answers `undefined` for four different situations (nothing
+       * has arrived yet, the link dropped, the value is non-finite, the saved
+       * `dataKey` names a retired subject) and its own doc hands the surface
+       * that stored the key the job of telling them apart. This one collapsed
+       * all four into `matched = false`, i.e. it published a failed read as
+       * the confident fact "the condition just ended", and cleared the sustain
+       * latch. A link that flaps faster than `sustainSeconds` therefore never
+       * lets the alarm fire at all.
+       */
+      const { svc, telemetry } = makeService();
+      telemetry.set("vessel.state.surfaceSpeed", 200);
+      svc.addAlarm({
+        name: "Held over",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.state.surfaceSpeed",
+          op: ">",
+          value: 100,
+          sustainSeconds: 10,
+        },
+      });
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
+
+      // The read goes dark. Nothing says the condition ended, so the latch
+      // must survive, and the unobserved seconds must not count toward it.
+      telemetry.set("vessel.state.surfaceSpeed", null);
+      telemetry.set("t.universalTime", 1004);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1004);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+      // The read comes back, still matching: sustain resumes rather than
+      // restarting, and the four dark seconds bought nothing.
+      telemetry.set("vessel.state.surfaceSpeed", 200);
+      telemetry.set("t.universalTime", 1008);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1004);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+
+      telemetry.set("t.universalTime", 1014);
+      await vi.advanceTimersByTimeAsync(1100);
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+    });
+
+    it("fires a sustained threshold whose sustain window the warp step JUMPED CLEAN OVER", async () => {
+      /*
+       * Same defect as the time arm, in the sustain window instead of the
+       * firing window. `deriveState` settles a threshold on CONTAINMENT
+       * (`heldFor < sustainSeconds + 2`), and the host fires only on the
+       * transition into `firing`. One tick at 10,000x moves `heldFor` from 0
+       * to 10,000, clean over a 60-second sustain plus the 2-second window, so
+       * the alarm went straight to `fired`: no banner, no tone, no peer
+       * broadcast, no `onFire` action group and warp never stepped down.
+       */
+      const { svc, telemetry } = makeService();
+      telemetry.set("t.currentRateIndex", 7);
+      telemetry.set("t.currentRate", 10000);
+      telemetry.set("vessel.state.surfaceSpeed", 200);
+      svc.addAlarm({
+        name: "Held over",
+        trigger: {
+          kind: "threshold",
+          dataKey: "vessel.state.surfaceSpeed",
+          op: ">",
+          value: 100,
+          sustainSeconds: 60,
+        },
+      });
+      expect(svc.snapshot().alarms[0].matchSinceUT).toBe(1000);
+      expect(svc.snapshot().alarms[0].state).toBe("pending");
+      telemetry.calls.length = 0;
+
+      // One tick at 10,000x: the sustain deadline at UT 1060 is long behind.
+      telemetry.set("t.universalTime", 11000);
+      await vi.advanceTimersByTimeAsync(1100);
+
+      expect(svc.snapshot().alarms[0].state).toBe("firing");
+      expect(telemetry.calls).toContain("time.setWarpIndex[0]");
     });
 
     it("resets sustain when the condition stops matching", async () => {

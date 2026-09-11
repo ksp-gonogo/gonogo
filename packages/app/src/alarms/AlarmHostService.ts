@@ -268,6 +268,8 @@ export class AlarmHostService {
       next.matchSinceUT = requiresMatchTracking(patch.trigger)
         ? null
         : undefined;
+      // The latched occurrence belonged to the trigger being replaced.
+      next.eventUT = undefined;
       next.state = "pending";
     } else {
       next.state = this.stateMachine.deriveState(next);
@@ -368,7 +370,13 @@ export class AlarmHostService {
         // last-tick's `alarm.state` to decide whether to keep the rolling
         // sample buffer. Don't reorder.
         if (alarm.trigger.kind === "threshold") {
-          if (this.stateMachine.updateThresholdTracking(alarm, ut)) {
+          if (
+            this.stateMachine.updateThresholdTracking(
+              alarm,
+              ut,
+              this.lastTickUt,
+            )
+          ) {
             changed = true;
           }
         }
