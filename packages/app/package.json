@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "render-settings": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-settings.ts",
     "render-commcast": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-commcast.ts",
+    "render-alarms": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-alarms.ts",
     "render-flight-outcome": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/render-flight-outcome.ts",
     "minsize-gate": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/minsize-gate.ts",
     "bake-uplink-hash": "TSX_TSCONFIG_PATH=tsconfig.json tsx scripts/bake-uplink-hash.ts",
