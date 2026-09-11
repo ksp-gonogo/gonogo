@@ -106,6 +106,25 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // same ground-side class as launchSites/crewRoster. 7 explicit declarations.
   "mod/Gonogo.KSP/SpaceCenterUplink.cs": 7,
 
+  // time.warp: the game's own time acceleration. A meta-state of the
+  // simulation, effectively the scene changing, not an observation of a craft:
+  // BuildGameMeta stamps it Source = "game", it is read with or without an
+  // active vessel, and the channel has always been recordable: false on the
+  // grounds that it was never a reading taken aboard the craft. A fact the whole
+  // simulation shares is vantage-independent by construction, so there is no
+  // light-time for it to cross, and this is the read side agreeing with the
+  // write side: time.setWarpIndex has always been Delayed = false for exactly
+  // this reason.
+  //
+  // This entry is a LOOSENING, not a ratchet-down: VesselUplink had no entry
+  // before, and the channel was Delayed. Operator ruling, 2026-09-11: "warp has
+  // to be truenow. It's a meta state, effectively scene 'changing'."
+  //
+  // Declared through the file's own WarpChannel() helper rather than the shared
+  // Channel() one, so the count stays honest: a second delay-bypassing channel
+  // on that uplink has to declare itself. 1 explicit declaration.
+  "mod/Gonogo.KSP/VesselUplink.cs": 1,
+
   // commandCentre.roster: the LIST of command centres a dashboard can select as
   // its vantage. Correct as TrueNow for the KSC-only present: KSC + stock Extra
   // Ground Stations + Kerbal Konstructs sites are FIXED ground-registry facts
