@@ -40,6 +40,7 @@ import type {
   AlarmFireAction,
   AlarmSnapshot,
   AlarmTrigger,
+  AlarmVantage,
   ThresholdOp,
 } from "./types";
 import { DEFAULT_LEAD_SECONDS, DEFAULT_SUSTAIN_SECONDS } from "./types";
@@ -151,6 +152,12 @@ export function AlarmsModal({
   // Time-trigger fields
   const [offsetSeconds, setOffsetSeconds] = useState("60");
   const [leadSeconds, setLeadSeconds] = useState(String(DEFAULT_LEAD_SECONDS));
+  /**
+   * Which clock the new alarm's instant is on. Defaults to the command vantage,
+   * so nothing changes for an operator who never touches the control, and the
+   * control itself is hidden below the visible gap (see `vantageChoiceVisible`).
+   */
+  const [vantage, setVantage] = useState<AlarmVantage>("command");
   // Threshold-trigger fields
   const [dataKey, setDataKey] = useState("vessel.state.altitudeAsl");
   const [op, setOp] = useState<ThresholdOp>(">=");
@@ -176,6 +183,21 @@ export function AlarmsModal({
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
 
+  /**
+   * Whether to offer the choice at all.
+   *
+   * `useTimeContexts` drops both qualifiers when the two clocks are under a
+   * second apart, on the reasoning that a label nobody can check teaches
+   * nothing. That applies with more force to a control whose two options would
+   * then be the same alarm: a visible-but-inert radio teaches an operator that
+   * the distinction is decorative, which is exactly the wrong lesson about the
+   * one thing this whole feature is for.
+   */
+  const vantageChoiceVisible = timeContexts.scet !== undefined;
+  const effectiveVantage: AlarmVantage = vantageChoiceVisible
+    ? vantage
+    : "command";
+
   const offsetN = Number.parseFloat(offsetSeconds);
   const valueN = Number.parseFloat(thresholdValue);
   const trimmedName = name.trim();
@@ -195,13 +217,22 @@ export function AlarmsModal({
       // in quick succession (the modal re-renders on snapshot updates,
       // but a click handler closes over its render-time snapshot).
       const liveUt = snapshotRef.current.ut ?? 0;
-      const ut = liveUt + offsetN;
+      /* "In n seconds" is n seconds of the OPERATOR's waiting either way. For a
+         command-vantage alarm that is n seconds on the view clock they are
+         reading; for a SCET one the instant has to be stated on the craft's
+         clock, which is a light-time ahead of it, or "in 60 seconds" would mean
+         an alarm that already passed. */
+      const ut =
+        effectiveVantage === "scet"
+          ? liveUt + timeContexts.owltSeconds + offsetN
+          : liveUt + offsetN;
       const lead = Number.parseFloat(leadSeconds);
       trigger = {
         kind: "time",
         ut,
         leadSeconds:
           Number.isFinite(lead) && lead > 0 ? lead : DEFAULT_LEAD_SECONDS,
+        vantage: effectiveVantage,
       };
     } else {
       const sustain = Number.parseFloat(sustainSeconds);
@@ -300,6 +331,51 @@ export function AlarmsModal({
           />
         </Field>
 
+        {kind === "time" && vantageChoiceVisible && (
+          <Field>
+            <FieldLabel as="span" id="alarm-vantage-label">
+              Fires on
+            </FieldLabel>
+            <KindRow role="radiogroup" aria-labelledby="alarm-vantage-label">
+              {VANTAGE_OPTIONS.map((option) => (
+                <KindButton
+                  key={option.vantage}
+                  type="button"
+                  role="radio"
+                  aria-checked={vantage === option.vantage}
+                  tabIndex={vantage === option.vantage ? 0 : -1}
+                  $active={vantage === option.vantage}
+                  onClick={() => setVantage(option.vantage)}
+                  onKeyDown={(e) => {
+                    const step =
+                      e.key === "ArrowRight" || e.key === "ArrowDown"
+                        ? 1
+                        : e.key === "ArrowLeft" || e.key === "ArrowUp"
+                          ? -1
+                          : 0;
+                    if (step === 0) return;
+                    e.preventDefault();
+                    const index = VANTAGE_OPTIONS.findIndex(
+                      (o) => o.vantage === vantage,
+                    );
+                    const next =
+                      (index + step + VANTAGE_OPTIONS.length) %
+                      VANTAGE_OPTIONS.length;
+                    setVantage(VANTAGE_OPTIONS[next].vantage);
+                  }}
+                >
+                  {option.label}
+                </KindButton>
+              ))}
+            </KindRow>
+            <FieldHint>
+              {effectiveVantage === "scet"
+                ? "Armed on the craft's clock. The mod stops the warp for everybody when it comes due, and your readings stay a light-time behind."
+                : "Armed on the clock you are reading. The craft passed the moment one light-time earlier."}
+            </FieldHint>
+          </Field>
+        )}
+
         {kind === "time" ? (
           <SideBySide>
             <Field>
@@ -318,14 +394,24 @@ export function AlarmsModal({
                 <FieldHint>
                   UT at trigger:{" "}
                   {/* An offset from the view clock lands on the view clock, so
-                      this is an arrival time and says so. The operator asked
-                      for "n seconds from now", and their now is the delayed
-                      one they are reading. */}
+                      a command-vantage alarm is an arrival time and says so:
+                      the operator asked for "n seconds from now", and their now
+                      is the delayed one they are reading. A SCET alarm is the
+                      same interval stated on the craft's clock, which is where
+                      it will be evaluated. */}
                   <MissionDate
                     value={
-                      snapshot.ut + Number.parseFloat(offsetSeconds || "0")
+                      snapshot.ut +
+                      (effectiveVantage === "scet"
+                        ? timeContexts.owltSeconds
+                        : 0) +
+                      Number.parseFloat(offsetSeconds || "0")
                     }
-                    context={timeContexts.received}
+                    context={
+                      effectiveVantage === "scet"
+                        ? timeContexts.scet
+                        : timeContexts.received
+                    }
                   />
                 </FieldHint>
               )}
@@ -777,10 +863,21 @@ function describeTrigger(
   contexts: TimeContexts,
 ): React.ReactNode {
   if (a.trigger.kind === "time") {
-    const delta = utNow !== null ? a.trigger.ut - utNow : null;
+    const scet = a.trigger.vantage === "scet";
+    /* A SCET instant is on the craft's clock and `utNow` is on the view clock,
+       so the countdown has to cross the gap between them or it reads a whole
+       light-time long. The qualifier beside it says which clock the INSTANT is
+       on; this is the same fact applied to the interval. */
+    const triggerOnViewClock = scet
+      ? a.trigger.ut - contexts.owltSeconds
+      : a.trigger.ut;
+    const delta = utNow !== null ? triggerOnViewClock - utNow : null;
     return (
       <>
-        <MissionDate value={a.trigger.ut} context={contexts.received} />
+        <MissionDate
+          value={a.trigger.ut}
+          context={scet ? contexts.scet : contexts.received}
+        />
         {delta !== null && (
           <>
             {" · "}
@@ -1046,6 +1143,17 @@ const Wrap = styled.div`
 const KIND_OPTIONS: readonly { kind: DraftKind; label: string }[] = [
   { kind: "time", label: "At UT" },
   { kind: "threshold", label: "When telemetry..." },
+];
+
+/**
+ * The two clocks a time alarm can be set against, in the vocabulary the rest of
+ * the app already uses for them: `<MissionDate>` prints `SCET` for the craft's
+ * own clock and `AT <vantage>` for the arrival clock, so these labels are the
+ * badges the operator will see on the resulting row.
+ */
+const VANTAGE_OPTIONS: readonly { vantage: AlarmVantage; label: string }[] = [
+  { vantage: "command", label: "Received" },
+  { vantage: "scet", label: "SCET" },
 ];
 
 const KindRow = styled.div`

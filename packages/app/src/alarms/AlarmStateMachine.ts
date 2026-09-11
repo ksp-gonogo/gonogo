@@ -6,14 +6,24 @@ import {
 } from "@ksp-gonogo/sitrep-client";
 import type { CareerContract } from "@ksp-gonogo/sitrep-sdk";
 import { KspParameterState } from "@ksp-gonogo/sitrep-sdk";
-import type {
-  Alarm,
-  ContractParameterTargetState,
-  ContractParameterTrigger,
-  EventTrigger,
-  ThresholdOp,
-  ThresholdTrigger,
+import {
+  type Alarm,
+  type ContractParameterTargetState,
+  type ContractParameterTrigger,
+  type EventTrigger,
+  isScetTrigger,
+  type ThresholdOp,
+  type ThresholdTrigger,
 } from "./types";
+
+/**
+ * A one-way light time fit to be subtracted: a non-finite or negative reading
+ * is no light time rather than a negative one, which would push a SCET instant
+ * further away instead of closer.
+ */
+function safeOwltSeconds(seconds: number): number {
+  return Number.isFinite(seconds) && seconds > 0 ? seconds : 0;
+}
 
 /**
  * Reader for the revealed occurrences on an event topic, the seam the
@@ -94,6 +104,16 @@ export class AlarmStateMachine {
     private readonly getContracts: () =>
       | readonly CareerContract[]
       | undefined = getContractsActive,
+    /**
+     * One-way light time to the craft, seconds, or 0 where there is none.
+     *
+     * Only the SCET arm needs it, and it needs it for one thing: a SCET alarm's
+     * instant is on the craft's clock while every countdown drawn here is on the
+     * view clock, so the two are a light-time apart and a warp-to ladder that
+     * did not close the gap would plan against an instant that is not the one
+     * the mod will stop it at. Defaulted so no existing caller changes.
+     */
+    private readonly getOwltSeconds: () => number = () => 0,
   ) {}
 
   /**
@@ -236,6 +256,22 @@ export class AlarmStateMachine {
     previously: number | null = null,
   ): Alarm["state"] {
     if (now === null) return "pending";
+    if (isScetTrigger(alarm.trigger)) {
+      /*
+       * Not ours to decide. The instant is on the craft's clock and the mod is
+       * what compares against it, upstream of the reveal gate; comparing it to
+       * the view clock here would fire the alarm a light-time after the mod
+       * already stopped the warp, which is the drift the SCET arm exists to
+       * remove.
+       *
+       * So this arm is LATCHED from outside, the same shape the `event` arm
+       * uses: the fire notice off `alarm.scet.fired` sets `matchSinceUT`, and
+       * from there the ordinary two-second banner window runs.
+       */
+      if (alarm.state === "fired") return "fired";
+      if (alarm.matchSinceUT == null) return "pending";
+      return now - alarm.matchSinceUT < 2 ? "firing" : "fired";
+    }
     if (alarm.trigger.kind === "time") {
       const { ut, leadSeconds } = alarm.trigger;
       // Crossed the moment since the last evaluation, however far the clock
@@ -302,7 +338,14 @@ export class AlarmStateMachine {
       if (a.state !== "pending") continue;
       let remaining: number;
       if (a.trigger.kind === "time") {
-        remaining = a.trigger.ut - a.trigger.leadSeconds - ut;
+        /* A SCET instant is on the craft's clock and `ut` is on the view
+           clock, so the light-time comes off it: the mod will stop the warp
+           when the GAME reaches `ut - lead`, which the operator's screen
+           reaches one light-time earlier. */
+        const vantageOffset = isScetTrigger(a.trigger)
+          ? safeOwltSeconds(this.getOwltSeconds())
+          : 0;
+        remaining = a.trigger.ut - vantageOffset - a.trigger.leadSeconds - ut;
       } else {
         const eta = this.estimateThresholdEta(a);
         if (eta === null) continue;

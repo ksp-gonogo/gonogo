@@ -96,6 +96,25 @@ export class WarpControl {
     return true;
   }
 
+  /**
+   * End the session because the game's warp was stopped by something else, and
+   * issue NO warp command on the way out.
+   *
+   * The twin of the unrequested-stop branch in `reconcile`, for the case where
+   * the controller is TOLD rather than left to observe it. A SCET alarm firing
+   * on the mod is exactly that: the warp is already at zero, and the reading
+   * that proves it is one light-time away, so a session left running would keep
+   * claiming on screen to be warping towards something for the whole of it.
+   *
+   * Not `cancel`, deliberately. Cancelling commands warp to zero, and a second
+   * command for state that is already there is a second authority for it.
+   */
+  endOnExternalStop(): boolean {
+    if (!this.warpToActive) return false;
+    this.endSession();
+    return true;
+  }
+
   /** End the session and drop warp to 1×. */
   cancel(): boolean {
     if (!this.warpToActive) return false;
