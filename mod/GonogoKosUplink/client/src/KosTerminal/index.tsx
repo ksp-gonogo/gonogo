@@ -1536,7 +1536,11 @@ const TerminalShell = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 0;
-  gap: var(--space-6);
+  /* Draws nothing today: the console is the shell's only child, both overlays
+     being pinned inside it rather than stacked as flex siblings. It is here so
+     a second child would land on the house rhythm rather than on whatever the
+     author of that child picked. */
+  gap: var(--gap-related);
 `;
 
 // The xterm mount, and NOT a bordered box: `Console` draws the one border this
@@ -1632,7 +1636,7 @@ const CompositionBar__Cursor = styled.span`
 const CpuPicker = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   align-items: center;
   padding: var(--space-12);
 `;
@@ -1643,7 +1647,15 @@ const CpuPicker = styled.div`
 const CpuPicker__Button = styled(GhostButton)`
   display: inline-flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
+  /*
+   * Stays on the rungs. The --inset-control name is the PRESSABLE class AT the
+   * --control-height floor, which is the (6,12) this button already inherits
+   * from the kit and is deliberately above: the enlargement is the whole point
+   * of the override, and naming it would take the vertical back to 6 and undo
+   * it. There is no larger control name, and an oversized target is a shape the
+   * four inset names cannot say.
+   */
   padding: var(--space-8) var(--space-12);
   font-size: var(--font-size-lg);
 `;
@@ -1671,7 +1683,7 @@ const NoPathBadge = styled.div`
   /* Local ordering inside the frame only, over xterm's own layers. Not
      app-global chrome, so no named z rung. */
   z-index: 1;
-  padding: var(--space-2) var(--space-8);
+  padding: var(--inset-chip);
   font-family: monospace;
   font-size: var(--font-size-xs);
   font-weight: bold;
@@ -1700,6 +1712,6 @@ const ChangeCpuButton = styled(GhostButton)`
   z-index: 1;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-6);
+  gap: var(--gap-related);
   font-size: var(--font-size-xs);
 `;

@@ -496,7 +496,16 @@ const BASELINES: Record<Family, Record<string, number>> = {
    * outside its owning directory.
    */
   rawSpacingRung: {
-    "mod/": 21,
+    /*
+     * One survivor: a button deliberately enlarged ABOVE the --control-height
+     * floor, at (8,12). --inset-control is the pressable class AT that floor
+     * and is the (6,12) the button already inherits from the kit, so naming it
+     * would undo the enlargement, and there is no larger control name. It says
+     * so at its own declaration, which is the only place this bucket can name
+     * a site: uplink-boundary.test.ts fails the build on a mention of an
+     * Uplink outside its own directory, which is why these share one key.
+     */
+    "mod/": 1,
     // Both alarm banners hold their one remaining site on purpose: a floating
     // banner pill at (8,16), which is the same wide-chrome band the four
     // ex-panel sites below hold and which no name covers. Each says so at the

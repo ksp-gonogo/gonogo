@@ -402,7 +402,7 @@ const ResultRegion = styled.div`
 const Running = styled.div`
   display: flex;
   align-items: center;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
 `;
@@ -410,18 +410,18 @@ const Running = styled.div`
 const Result = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--gap-related);
 `;
 
 const Fields = styled.div`
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--gap-related);
 `;
 
 const FieldRowLine = styled.div`
   display: flex;
-  gap: var(--space-8);
+  gap: var(--gap-related);
   font-family: monospace;
   font-size: var(--font-size-sm);
 `;

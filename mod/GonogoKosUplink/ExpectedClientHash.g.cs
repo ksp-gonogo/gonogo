@@ -11,6 +11,6 @@ namespace Gonogo.KosUplink
 {
     internal static class ExpectedClientHash
     {
-        public const string Value = "sha256-88d1fb5748ee5a4255376b86b0c46ce11706fe5393b5ec26ddd89866b14cfa47";
+        public const string Value = "sha256-fee09e62939556bbf2e28c3969c4044b005a039d37a2c07a184d1a7ed91b3c2f";
     }
 }
