@@ -13,6 +13,7 @@ import {
   DEFAULT_SITREP_CARRIED_TOPICS,
   enumerateTopicFields,
   getRuntimeRegisteredTopicIds,
+  isCommandId,
   type TopicField,
   type TopicFieldKind,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -158,7 +159,18 @@ function buildTopicFieldCatalog(
       ...registered,
       ...PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
     ]),
-  ].sort();
+  ]
+    // A command is not a Topic. It shares the id namespace and it reaches the
+    // carried set for its own reason (`dispatchActiveCommandTopic` refuses to
+    // route an id that is not carried, and a command's id never arrives on a
+    // `stream-data` frame to be learned), so a carried id can be something
+    // nobody could ever read. It has no payload for a picker to offer and no
+    // declaration could give it one, so reporting it as UNDESCRIBED would be
+    // this walk mistaking a control for a reading. Asked of the generated
+    // command map rather than of the id's shape: `alarm.scet.arm` and
+    // `alarm.scet.fired` are the same shape and only one of them is a command.
+    .filter((topic) => !isCommandId(topic))
+    .sort();
 
   const keys: TopicFieldKey[] = [];
   const undescribed: string[] = [];
@@ -294,6 +306,9 @@ const NON_ORDERABLE_UNIT_HINTS: ReadonlySet<string> = new Set([
  * loaded), or it carries too many segments for a field path to resolve. Pinned
  * by a test, so a Topic that arrives unannotated is a failure rather than a
  * silent absence from every picker in the app.
+ *
+ * Never a COMMAND, even though a carried id can be one: see the filter in
+ * `buildTopicFieldCatalog`.
  */
 export function getUndescribedCarriedTopics(
   carried?: ReadonlySet<string>,
