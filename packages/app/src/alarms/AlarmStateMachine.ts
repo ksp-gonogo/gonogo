@@ -175,14 +175,35 @@ export class AlarmStateMachine {
     this.eventWatchFrom.delete(alarmId);
   }
 
-  /** Compute the next state for an alarm given the current observed UT. */
+  /**
+   * Compute the next state for an alarm given the current observed UT.
+   *
+   * `previously` is the UT this same alarm was last evaluated at, and it is
+   * what makes a time alarm survive warp. The firing test used to be pure
+   * CONTAINMENT (`now - ut < 2`), and the host fires only on the TRANSITION
+   * into `firing`; but the host ticks at 1 Hz while `viewUt` advances at the
+   * warp rate, so one tick moves the clock by ~W seconds. Above ~1000x neither
+   * that 2-second window nor the arming window is ever observed: the alarm went
+   * straight to `fired`, and nothing notified, nothing broadcast, no `onFire`
+   * action group ran and warp was never stepped down.
+   *
+   * A CROSSING test is the fix rather than a wider window, because any window
+   * is only a faster warp away from the same silence. Pass `null` (the default)
+   * where there is no previous evaluation to compare against, and the old
+   * containment behaviour is what remains.
+   */
   deriveState(
     alarm: Alarm,
     now: number | null = this.getObservedUT(),
+    previously: number | null = null,
   ): Alarm["state"] {
     if (now === null) return "pending";
     if (alarm.trigger.kind === "time") {
       const { ut, leadSeconds } = alarm.trigger;
+      // Crossed the moment since the last evaluation, however far the clock
+      // jumped: this tick is the one that owes the operator the banner.
+      const crossed = previously !== null && previously < ut && now >= ut;
+      if (crossed) return "firing";
       if (now >= ut && now - ut < 2) return "firing";
       if (now >= ut) return "fired";
       if (ut - now <= leadSeconds) return "arming";
