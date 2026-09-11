@@ -1,4 +1,9 @@
-import { CommsDelaySource, type Value, value } from "@ksp-gonogo/sitrep-sdk";
+import {
+  CommsDelaySource,
+  DEFAULT_SITREP_CARRIED_TOPICS,
+  type Value,
+  value,
+} from "@ksp-gonogo/sitrep-sdk";
 import { act, render } from "@ksp-gonogo/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { TelemetryClient } from "./client";
@@ -490,19 +495,47 @@ describe("dispatchActiveCommandTopic / getActiveTelemetryClient / getActiveCarri
     client.dispose();
   });
 
-  it("reports unrouted when the command's topic isn't carried", () => {
+  /**
+   * The commands a plain class actually sends, dispatched against the carried
+   * set a real screen mounts: `DEFAULT_SITREP_CARRIED_TOPICS`, which is what
+   * both `SitrepTelemetryProvider` and `StationScreen` pass.
+   *
+   * Every one of these used to be refused here while its own unit test passed,
+   * because each of those tests installs its command into the carried set by
+   * hand. The promotion list is a list of CHANNELS; a command id is not a
+   * channel and never arrives on a `stream-data` frame to be learned, so a
+   * promotion list is the wrong instrument to ask "may this command go".
+   */
+  it.each([
+    // GO/NO-GO's abort vote and its launch stage.
+    "vessel.control.setAbort",
+    "vessel.control.stage",
+    // An alarm's onFire action group, through `toggleCommandFor`.
+    "vessel.control.setSas",
+    // Both maneuver-trigger services' fire path.
+    "vessel.maneuver.add",
+  ])("routes %s against the carried set a real screen mounts", async (command) => {
     const transport = new StubTransport();
     const client = new TelemetryClient(transport);
+    let receivedCommand: string | undefined;
+    transport.setCommandHandler((received) => {
+      receivedCommand = received;
+      return null;
+    });
 
     const { unmount } = render(
-      <TelemetryProvider client={client}>
+      <TelemetryProvider
+        client={client}
+        carriedChannels={DEFAULT_SITREP_CARRIED_TOPICS}
+      >
         <div />
       </TelemetryProvider>,
     );
 
-    expect(dispatchActiveCommandTopic("vessel.control.stage", null)).toEqual({
-      routed: false,
-    });
+    const outcome = dispatchActiveCommandTopic(command, null);
+    expect(outcome.routed).toBe(true);
+    if (outcome.routed) await outcome.settled;
+    expect(receivedCommand).toBe(command);
 
     unmount();
     client.dispose();

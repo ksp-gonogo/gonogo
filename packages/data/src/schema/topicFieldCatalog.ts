@@ -160,15 +160,15 @@ function buildTopicFieldCatalog(
       ...PRODUCTION_DERIVED_CHANNELS.map((c) => c.topic),
     ]),
   ]
-    // A command is not a Topic. It shares the id namespace and it reaches the
-    // carried set for its own reason (`dispatchActiveCommandTopic` refuses to
-    // route an id that is not carried, and a command's id never arrives on a
-    // `stream-data` frame to be learned), so a carried id can be something
-    // nobody could ever read. It has no payload for a picker to offer and no
-    // declaration could give it one, so reporting it as UNDESCRIBED would be
-    // this walk mistaking a control for a reading. Asked of the generated
-    // command map rather than of the id's shape: `alarm.scet.arm` and
-    // `alarm.scet.fired` are the same shape and only one of them is a command.
+    // A command is not a Topic. It shares the id namespace, and while the
+    // first-party promotion list holds none, the carried set this walk is
+    // handed is whatever a caller passed plus whatever an Uplink registered, so
+    // an id nobody could ever read can still arrive here. A command has no
+    // payload for a picker to offer and no declaration could give it one, so
+    // reporting one as UNDESCRIBED would be this walk mistaking a control for a
+    // reading. Asked of the generated command map rather than of the id's
+    // shape: `alarm.scet.arm` and `alarm.scet.fired` are the same shape and
+    // only one of them is a command.
     .filter((topic) => !isCommandId(topic))
     .sort();
 
