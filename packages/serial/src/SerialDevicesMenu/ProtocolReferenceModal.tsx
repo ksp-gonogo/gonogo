@@ -288,10 +288,13 @@ const Body = styled.div`
   pre {
     background: var(--color-surface-sunken);
     color: var(--color-status-go-fg);
-    /* A code block is not a chip, a control or a surface, so no --inset-*
-       names it. Anything wider would set the sample in further than the prose
-       it illustrates, because this already sits inside the Body inset. */
-    padding: var(--space-8) var(--space-10);
+    /* A filled box holding content, which is what --inset-surface names: the
+       sunken fill and the sm radius below are Card's own recipe, and the inset
+       was the only term that differed. It tightens by 2px each way, which sets
+       the sample a little less far in than the prose it illustrates rather
+       than further, since this already sits inside the Body inset. The inline
+       code run above stays --inset-chip: that one is sized by its text. */
+    padding: var(--inset-surface);
     border-radius: var(--radius-sm);
     font-size: var(--font-size-xs);
     overflow-x: auto;

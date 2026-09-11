@@ -582,9 +582,13 @@ const BASELINES: Record<Family, Record<string, number>> = {
     // and the alternative was to take them to --inset-surface, which would have
     // tightened four visible chrome surfaces by (-4,-8) to make a ratchet
     // number smaller. Each site carries the reason at its own declaration, and
-    // the 16 is the cross-package gutter lock the ladder documents.
+    // the 16 is the cross-package gutter lock the ladder documents. The modal's
+    // entry is now exactly those two sites: its code block was the third and
+    // was reading as none of the inset classes on the strength of being code,
+    // when its fill and its radius are Card's recipe and only the inset
+    // differed. It is --inset-surface.
     "packages/serial/src/SerialDevicesMenu/index.tsx": 2,
-    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 3,
+    "packages/serial/src/SerialDevicesMenu/ProtocolReferenceModal.tsx": 2,
     "packages/ui/src/BannerPill.tsx": 4,
     "packages/ui/src/DataKeyMultiPicker.tsx": 1,
     "packages/ui/src/DimmedOverlay.tsx": 1,

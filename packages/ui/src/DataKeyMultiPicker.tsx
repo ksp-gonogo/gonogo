@@ -210,10 +210,10 @@ const ItemUnit = styled.span`
 `;
 
 const Empty = styled.div`
-  /* Vertical larger than horizontal, which no --inset-* names: chip, row and
-     panel all widen faster than they grow. The empty state wants the height to
-     read as deliberate space rather than a collapsed list, so it stays a pair
-     of rungs. */
+  /* Vertical larger than horizontal, which no --inset-* names: all four of
+     chip, control, control-compact and surface put horizontal at or above
+     vertical. The empty state wants the height to read as deliberate space
+     rather than a collapsed list, so it stays a pair of rungs. */
   padding: var(--space-12) var(--space-8);
   font-size: var(--font-size-sm);
   color: var(--color-text-faint);

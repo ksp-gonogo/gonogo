@@ -127,8 +127,12 @@ const InlinePill = styled.div<{
 }>`
   display: inline-flex;
   align-items: center;
-  /* Same two reasons as FixedPill above; this pill is a rung taller because it
-     is the interactive one and carries a 44px touch target. */
+  /* The gap holds for FixedPill's first reason above. The inset holds for the
+     opposite of its second: this pill IS pressable when a caller passes
+     onClick, which renders it as a button element, and it sits a rung ABOVE
+     --inset-control's (6,12) floor on purpose so a banner you can dismiss is a
+     bigger target than a button in a form. --inset-control would take the
+     vertical back to 6 and undo that; there is no larger control name. */
   gap: var(--space-10);
   padding: var(--space-8) var(--space-12);
   background: rgba(0, 0, 0, 0.88);
