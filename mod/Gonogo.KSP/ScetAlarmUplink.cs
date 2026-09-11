@@ -31,7 +31,11 @@ namespace Gonogo.KSP
     /// gated overload skips the capture entirely on a tick where nothing is
     /// subscribed, and this capture's whole effect is stopping the warp, not its
     /// return value. A SCET alarm that only worked while somebody was watching
-    /// its roster would be exactly the feature it is not.</para>
+    /// its roster would be exactly the feature it is not. The same argument is
+    /// why a THRESHOLD's reading is taken here, off the snapshot, rather than
+    /// tapped off the values the channel loop emits: that loop skips any Topic
+    /// nothing is subscribed to, so a threshold read through it would fire or
+    /// not depending on which widgets the operator happened to have open.</para>
     ///
     /// <para>The decision-making is in <see cref="ScetAlarmRoster"/>, which is
     /// KSP-free and clock-free and unit-tested headlessly. This class is the
@@ -180,6 +184,23 @@ namespace Gonogo.KSP
                 // cancel. Refused rather than assigned one here.
                 return CommandResult.Fail(CommandErrorCode.Range, "a SCET alarm needs the client's own id");
             }
+
+            // A threshold against a Topic the simulation cannot resolve is
+            // REFUSED rather than accepted, because the alternative is an alarm
+            // that sits armed and never fires, and an operator has no way to tell
+            // that apart from one whose condition simply has not come due. See
+            // ScetThresholdSources for what is addressable and why the set is a
+            // written-down table rather than everything on the wire.
+            var condition = args.Condition;
+            if (condition != null
+                && condition.Kind == ScetAlarmConditionKind.Threshold
+                && !ScetThresholdSources.Knows(condition.Topic))
+            {
+                return CommandResult.Fail(
+                    CommandErrorCode.Range,
+                    "no SCET threshold can be read from '" + (condition.Topic ?? "") + "'");
+            }
+
             lock (_gate)
             {
                 _roster.Arm(args, vantage ?? "");
@@ -205,13 +226,19 @@ namespace Gonogo.KSP
 
         /// <summary>
         /// MAIN-THREAD capture: advance the roster to the game's own universal
-        /// time, stop the warp if anything is due, and hand the publishes across
-        /// to the Courier as plain data.
+        /// time and readings, stop the warp if anything is due, and hand the
+        /// publishes across to the Courier as plain data.
         ///
-        /// <para>The UT read here is the game's, upstream of the reveal gate,
-        /// which is what makes a SCET alarm a SCET alarm. The actuator call is
-        /// here too and not on the Courier: the evaluation and the stop land in
-        /// the same frame rather than a thread hop apart.</para>
+        /// <para>The UT and the readings taken here are the game's, upstream of
+        /// the reveal gate, which is what makes a SCET alarm a SCET alarm. The
+        /// actuator call is here too and not on the Courier: the evaluation and
+        /// the stop land in the same frame rather than a thread hop apart.</para>
+        ///
+        /// <para>The reader is built per tick and discarded with it. It caches
+        /// only within the tick, so several alarms on one Topic cost one payload
+        /// build, and holding it across ticks would make a SCET threshold
+        /// compare against a stale reading, which is the whole failure this arm
+        /// exists to avoid.</para>
         /// </summary>
         private object? CaptureOnMain(KspSnapshot? snapshot)
         {
@@ -220,9 +247,10 @@ namespace Gonogo.KSP
             try
             {
                 var ut = snapshot?.Ut ?? Planetarium.GetUniversalTime();
+                var state = new SnapshotScetStateReader(snapshot);
                 lock (_gate)
                 {
-                    tick = _roster.Evaluate(ut);
+                    tick = _roster.Evaluate(ut, state);
                     if (tick.RosterChanged || !_rosterPublished)
                     {
                         roster = _roster.Snapshot();
