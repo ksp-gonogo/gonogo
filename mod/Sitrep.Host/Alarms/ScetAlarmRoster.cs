@@ -22,7 +22,12 @@ namespace Sitrep.Host.Alarms
         /// <summary>The notices to publish, in the order the alarms were armed.</summary>
         public List<ScetAlarmFired> Fired { get; } = new List<ScetAlarmFired>();
 
-        /// <summary>Whether <see cref="ScetAlarmRoster.Snapshot"/> would now differ from the last one published.</summary>
+        /// <summary>
+        /// Whether <see cref="ScetAlarmRoster.Snapshot"/> would now differ from
+        /// the last one published. Covers what this evaluation decided AND any
+        /// arm or disarm that landed off-tick since the last one, which is the
+        /// only way a tick can learn about a command handler's work.
+        /// </summary>
         public bool RosterChanged { get; set; }
     }
 
@@ -88,6 +93,21 @@ namespace Sitrep.Host.Alarms
 
         private double? _lastEvaluatedUt;
 
+        /// <summary>
+        /// Whether an <see cref="Arm"/> or a <see cref="Disarm"/> has moved the
+        /// roster since the last <see cref="Evaluate"/> reported on it.
+        ///
+        /// <para>Those two are the only mutations that arrive from OUTSIDE a
+        /// tick: they come off a command handler, and the tick that follows has
+        /// no other way to know anything happened. Everything else that changes
+        /// the roster (a fire, a rewind, an alarm going unreachable) is decided
+        /// inside <see cref="Evaluate"/> and says so on the tick it decides.
+        /// Without this an operator's arm reached the host and stayed invisible
+        /// until some LATER alarm fired and republished the roster on its
+        /// way.</para>
+        /// </summary>
+        private bool _pendingChange;
+
         /// <summary>How many alarms are held, armed or fired. For a health report and for tests.</summary>
         public int Count => _entries.Count;
 
@@ -130,10 +150,12 @@ namespace Sitrep.Host.Alarms
                     return false;
                 }
                 _entries[index] = new Entry { Alarm = alarm };
+                _pendingChange = true;
                 return true;
             }
 
             _entries.Add(new Entry { Alarm = alarm });
+            _pendingChange = true;
             return true;
         }
 
@@ -154,6 +176,7 @@ namespace Sitrep.Host.Alarms
                 return false;
             }
             _entries.RemoveAt(index);
+            _pendingChange = true;
             return true;
         }
 
@@ -190,7 +213,13 @@ namespace Sitrep.Host.Alarms
         /// </summary>
         public ScetAlarmTick Evaluate(double nowUt, IScetStateReader? state = null)
         {
-            var tick = new ScetAlarmTick();
+            // Reported once and cleared, on whichever tick comes first: an arm is
+            // a change exactly once, and a tick that cannot evaluate at all still
+            // has to carry it, or a clock that went briefly non-finite would eat
+            // the operator's arm.
+            var tick = new ScetAlarmTick { RosterChanged = _pendingChange };
+            _pendingChange = false;
+
             if (double.IsNaN(nowUt) || double.IsInfinity(nowUt))
             {
                 return tick;
@@ -198,7 +227,7 @@ namespace Sitrep.Host.Alarms
 
             if (_lastEvaluatedUt.HasValue && nowUt < _lastEvaluatedUt.Value - RewindToleranceSeconds)
             {
-                tick.RosterChanged = Clear();
+                tick.RosterChanged |= Clear();
                 _lastEvaluatedUt = nowUt;
                 return tick;
             }
