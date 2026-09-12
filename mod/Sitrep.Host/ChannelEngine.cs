@@ -3532,6 +3532,42 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// Answer a client whose envelope this build DID recognise and could
+        /// not read: the type was one of ours, and a required field inside it
+        /// was missing or the wrong JSON type.
+        ///
+        /// <para>The alternative, and what happened until this existed, is the
+        /// echo an unrecognised frame gets. That echo is right for a stray
+        /// message and wrong here, because the server is not out of ideas: it
+        /// knows the envelope and it knows the field. Worse, a command-request
+        /// echoed back is byte-for-byte something the author sent, so it reads
+        /// as a reply and the refusal disappears entirely.</para>
+        ///
+        /// <para>The <c>requestId</c> is salvaged off the raw frame where the
+        /// frame carried a readable one. Without it the refusal reaches the
+        /// wire and no further: the SDK's correlator drops an error with
+        /// neither a requestId nor a topic, so the author's dispatch would
+        /// still hang to its loss timer having been answered in full.</para>
+        /// </summary>
+        private void RefuseInvalidEnvelope(ClientSession session, InvalidEnvelopeException ex)
+        {
+            var error = new ErrorMsg
+            {
+                RequestId = ex.RequestId,
+                Code = "invalid-envelope",
+                Message = $"{ex.EnvelopeType} envelope could not be read: {ex.Detail}",
+            };
+            try
+            {
+                session.Outbox.PublishReliable(Encoding.UTF8.GetBytes(EnvelopeCodec.WriteErrorMsg(error)));
+            }
+            catch (Exception publishEx)
+            {
+                LogHost("could not deliver the invalid-envelope refusal: " + SafeExceptionMessage(publishEx));
+            }
+        }
+
         private void PublishPayloadSerializationError(ClientSession session, string topic, object? payload, Exception ex)
         {
             var clrType = payload == null ? "null" : payload.GetType().FullName;
@@ -6001,11 +6037,17 @@ namespace Sitrep.Host
                         break;
                 }
             }
-            catch (FormatException)
+            catch (UnknownEnvelopeTypeException)
             {
                 // Not a recognized envelope: echo back unchanged, matching
                 // GonogoBodiesServer's diagnostic behavior for a stray message.
+                // Nothing more useful can be said about a frame whose type this
+                // build has never heard of.
                 session.Connection.TrySend(payload, SendClass.Response);
+            }
+            catch (InvalidEnvelopeException ex)
+            {
+                RefuseInvalidEnvelope(session, ex);
             }
         }
 
