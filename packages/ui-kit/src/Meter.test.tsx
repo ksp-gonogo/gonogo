@@ -106,6 +106,60 @@ describe("Meter, given the quantity pair", () => {
     expect(spoken).toContain("of");
   });
 
+  it("settles ONE rung across the pair rather than laddering each half", () => {
+    // Two independent ladders write this tank as "999 m / 1.0 km": one tank,
+    // two units, and a fill the reader has to convert before they can see it.
+    const { container } = render(
+      <Meter
+        label="Range"
+        quantity={{ amount: value("m", 999), capacity: value("m", 1000) }}
+      />,
+    );
+    expect(container.textContent).toContain("999");
+    expect(container.textContent).toContain("1000");
+    expect(container.textContent).not.toContain("km");
+  });
+
+  it("names the same unit to the eye and to the ear", () => {
+    /*
+     * The whole reason the scope encloses the track rather than just the
+     * header. `aria-valuetext` is an attribute holding a string, so it can
+     * never report into the group the way a rendered `<Unit>` does; left to
+     * choose its own rung it would say "one kilowatt" beside a shown
+     * "1000 W", and neither reader could tell.
+     */
+    const { container } = render(
+      <Meter
+        label="Power"
+        quantity={{ amount: value("W", 500), capacity: value("kW", 1) }}
+      />,
+    );
+    const spoken = screen
+      .getByRole("meter", { name: "Power" })
+      .getAttribute("aria-valuetext");
+    expect(container.textContent).toContain("1000");
+    expect(container.textContent).not.toContain("kW");
+    expect(spoken).toContain("1000.0 watts");
+    expect(spoken).not.toContain("kilowatt");
+  });
+
+  it("still lets a caller pin the rung both halves are written at", () => {
+    const { container } = render(
+      <Meter
+        label="Power"
+        format="kW"
+        quantity={{ amount: value("W", 500), capacity: value("kW", 1) }}
+      />,
+    );
+    const spoken = screen
+      .getByRole("meter", { name: "Power" })
+      .getAttribute("aria-valuetext");
+    expect(container.textContent).toContain("kW");
+    expect(spoken).toContain("kilowatt");
+    // The space matters: "kilowatts" ends in the shorter word
+    expect(spoken).not.toContain(" watts");
+  });
+
   it("renders no tank at all as absence, not as an empty one", () => {
     // A zero capacity is not a full tank and not an empty one; it is no tank.
     render(<Meter label="LiquidFuel" quantity={tank(0, 0)} />);

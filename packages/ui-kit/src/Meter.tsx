@@ -3,6 +3,7 @@ import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
+import { UnitScale, useSharedRung } from "./UnitScale";
 import { type FormatsFor, speakQuantity } from "./units";
 
 export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
@@ -96,9 +97,11 @@ export interface MeterQuantityProps<U extends string = string>
    * Pin the rung both halves are shown at, for the cases where convention
    * beats magnitude.
    *
-   * Absent, both halves ladder independently, which is right when they are
-   * close together and misleading when they are not: a near-empty tank would
-   * read "500 g / 1000 kg". Pin it when a meter's two halves can span a rung.
+   * Rarely needed: absent, the two halves settle a rung between them and are
+   * drawn and spoken at it, so 500 kg of a 1000 t tank reads
+   * "500.00 kg / 1,000,000.00 kg" rather than putting its two halves in two
+   * different units. This is for where neither figure's own ladder is the
+   * convention, the same job `format` does on a lone `<Unit>`.
    */
   format?: FormatsFor<U>;
   value?: never;
@@ -154,12 +157,32 @@ export function Meter<U extends string = string>({
   const clamped = Number.isFinite(fraction)
     ? Math.min(1, Math.max(0, fraction))
     : 0;
-  const pct = Math.round(clamped * 100);
+  const bar = {
+    label,
+    pct: Math.round(clamped * 100),
+    tone,
+    fillColor,
+    size,
+    ...rest,
+  };
+  if (pair) {
+    // The scope has to enclose the whole bar, not just the header: the rung
+    // settled inside it is what `aria-valuetext` is written at, and that
+    // attribute sits on the track. See `MeterQuantityBar` on why it is a
+    // component of its own.
+    return (
+      <UnitScale>
+        <MeterQuantityBar
+          {...bar}
+          pair={pair}
+          format={format}
+          valueLabel={valueLabel}
+          valueLabelNode={valueLabelNode}
+        />
+      </UnitScale>
+    );
+  }
   /*
-   * What the header says, in the two forms it has to say it, and in priority
-   * order: a caller's own node or sentence first, then the quantity pair if
-   * one was given, then the bare percentage.
-   *
    * The percentage is not hand-written: `clamped` is a 0..1 ratio, which is a
    * unit the kit knows, so <Unit> does the *100 and writes the symbol.
    *
@@ -170,23 +193,47 @@ export function Meter<U extends string = string>({
    * the unit layer exists to stop: it would announce "72 percent-sign".
    */
   const reading = quantity("ratio", clamped);
-  const display =
-    valueLabelNode ??
-    valueLabel ??
-    (pair ? (
-      <>
-        <Unit value={pair.amount} format={format} />
-        {" / "}
-        <Unit value={pair.capacity} format={format} />
-      </>
-    ) : (
-      <Unit value={reading} />
-    ));
-  const spoken =
-    valueLabel ??
-    (pair
-      ? `${speakQuantity(pair.amount, { format })} of ${speakQuantity(pair.capacity, { format })}`
-      : speakQuantity(reading));
+  return (
+    <MeterBar
+      {...bar}
+      display={valueLabelNode ?? valueLabel ?? <Unit value={reading} />}
+      spoken={valueLabel ?? speakQuantity(reading)}
+    />
+  );
+}
+
+interface MeterBarProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
+  label: string;
+  /** The fill, as the whole percent `aria-valuenow` and the track both take. */
+  pct: number;
+  tone: MeterTone;
+  fillColor?: string;
+  size: MeterSize;
+  /** The value for the eye, as markup. */
+  display: ReactNode;
+  /** The same value for the ear, as the string an attribute can hold. */
+  spoken: string;
+}
+
+/**
+ * The meter as it is DRAWN, given a fill fraction and the two forms of the
+ * value that goes with it.
+ *
+ * Its own component because the quantity form cannot write either form until a
+ * rung has been settled, and settling one means being inside a scope that this
+ * file's `Meter` renders.
+ */
+function MeterBar({
+  label,
+  pct,
+  tone,
+  fillColor,
+  size,
+  display,
+  spoken,
+  ...rest
+}: MeterBarProps) {
   return (
     <Meter__Root $size={size} {...rest}>
       <Meter__Head>
@@ -210,6 +257,64 @@ export function Meter<U extends string = string>({
       </Meter__Track>
     </Meter__Root>
   );
+}
+
+/**
+ * The pair, written and SPOKEN at one rung.
+ *
+ * <p><b>Two halves laddering independently print `999 m / 1.0 km`</b>, which is
+ * one tank written in two units. So both report into the enclosing
+ * `<UnitScale>` and are drawn at the rung it settles, the way a `<Band>`'s two
+ * ends are.</p>
+ *
+ * <p><b>And the spoken half has to land on that same rung, which a scope around
+ * the two `<Unit>`s could not have done.</b> `aria-valuetext` is an attribute
+ * holding a string, so it can never report into a group the way a rendered
+ * child does, and a `speakQuantity` call left outside would keep choosing its
+ * own rung: a screen-reader user would hear "one kilowatt" against a displayed
+ * "1000 W" and neither reader could tell. The fix is that the settled rung is a
+ * value in scope HERE, above both the `<Unit>`s and the `speakQuantity` calls,
+ * so one decision writes both. `Tape` does the same thing with the rung
+ * `quantityScale` hands it.</p>
+ *
+ * <p>Separate from `Meter` because the group has to exist before anything can
+ * report into it, and a hook cannot see a provider its own component renders,
+ * the same reason `Band` has a `BandEnds`.</p>
+ */
+function MeterQuantityBar<U extends string = string>({
+  pair,
+  format,
+  valueLabel,
+  valueLabelNode,
+  ...bar
+}: Omit<MeterBarProps, "display" | "spoken"> &
+  Pick<MeterQuantityProps<U>, "format" | "valueLabel" | "valueLabelNode"> & {
+    pair: MeterQuantity<U>;
+  }) {
+  // A pair a caller has overridden in BOTH forms is neither drawn nor spoken,
+  // so it takes no part in the group: reporting it would move an enclosing
+  // scope's rung on behalf of a figure nobody can read. An undefined value is
+  // how this hook is told to sit out.
+  const grouped = valueLabel === undefined ? pair : undefined;
+  const fromAmount = useSharedRung(grouped?.amount, { format });
+  const fromCapacity = useSharedRung(grouped?.capacity, { format });
+  // One group, so both halves hear the same answer; either serves, and on the
+  // first pass neither has one yet. A rung is not always a unit the model
+  // declares, so the accepted-units type cannot express one; what the type
+  // would be checking is that the rung belongs to this value's own ladder,
+  // which is where it came from.
+  const rung = format ?? ((fromAmount ?? fromCapacity) as FormatsFor<U>);
+  const display = valueLabelNode ?? valueLabel ?? (
+    <>
+      <Unit value={pair.amount} format={rung} />
+      {" / "}
+      <Unit value={pair.capacity} format={rung} />
+    </>
+  );
+  const spoken =
+    valueLabel ??
+    `${speakQuantity(pair.amount, { format: rung })} of ${speakQuantity(pair.capacity, { format: rung })}`;
+  return <MeterBar {...bar} display={display} spoken={spoken} />;
 }
 
 /**
