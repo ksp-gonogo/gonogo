@@ -53,6 +53,7 @@
 import type {
   RealAntennasAntennaArgs,
   RealAntennasTargetArgs,
+  RealAntennasTargetChainArgs,
 } from "./contract.js";
 import type {
   CommandResult,
@@ -60,11 +61,13 @@ import type {
 
 export interface GeneratedCommandArgsMap {
   "realantennas.antenna.target": RealAntennasTargetArgs;
+  "realantennas.antenna.targetChain": RealAntennasTargetChainArgs;
   "realantennas.antenna.targetHome": RealAntennasAntennaArgs;
 }
 
 export interface GeneratedCommandReplyMap {
   "realantennas.antenna.target": CommandResult;
+  "realantennas.antenna.targetChain": CommandResult;
   "realantennas.antenna.targetHome": CommandResult;
 }
 
@@ -101,10 +104,12 @@ export interface GeneratedCommandRail {
  */
 export const GENERATED_COMMAND_RAIL = {
   "realantennas.antenna.target": { replies: true, delayed: true },
+  "realantennas.antenna.targetChain": { replies: true, delayed: true },
   "realantennas.antenna.targetHome": { replies: true, delayed: true },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [
   "realantennas.antenna.target",
+  "realantennas.antenna.targetChain",
   "realantennas.antenna.targetHome",
 ] as const;

@@ -71,6 +71,35 @@ namespace Gonogo.RealAntennasUplink
         /// </summary>
         public const string AntennasTopic = "realantennas.antennas";
 
+        /// <summary>
+        /// The per-antenna fallback-chain channel: a bare ARRAY of
+        /// <see cref="RealAntennasAntennaChain"/>, one entry per antenna of the
+        /// scoped craft that is holding a chain, carrying the list, which entry is
+        /// in place, and why.
+        ///
+        /// <para>DELAYED, like the antenna channel beside it and for the same
+        /// reason: this is state held on the craft, and the walk that changes it
+        /// happens there rather than here.</para>
+        ///
+        /// <para>Scoped to the reported craft even though the walk covers every
+        /// craft in the game, because a delayed channel is delayed by the reported
+        /// vessel's own light-time and cannot carry another craft's state at the
+        /// right age.</para>
+        ///
+        /// <para><b>Two segments, not three, and that is not a style choice.</b>
+        /// The SDK splits a dotted read at the longest topic id it knows
+        /// STATICALLY, and it deliberately does not consult the registry an
+        /// Uplink self-registers into, because a split that changed answer when a
+        /// bundle loaded would resolve one subscription differently from the
+        /// next. So a three-segment Uplink topic resolves to its first two
+        /// segments plus a field path: this channel was spelled with a third
+        /// segment first, and was read as a field of a two-segment channel
+        /// nothing publishes, so both the read and the subscription came back
+        /// empty forever. Every channel here is two segments for that reason;
+        /// the COMMANDS beside them are free to be three, and are.</para>
+        /// </summary>
+        public const string ChainsTopic = "realantennas.antennaChains";
+
         /// <summary>Point one antenna at one thing. Args: <see cref="RealAntennasTargetArgs"/>.</summary>
         public const string TargetCommand = "realantennas.antenna.target";
 
@@ -80,6 +109,19 @@ namespace Gonogo.RealAntennasUplink
         /// and does not mean. Args: <see cref="RealAntennasAntennaArgs"/>.
         /// </summary>
         public const string TargetHomeCommand = "realantennas.antenna.targetHome";
+
+        /// <summary>
+        /// Hand one antenna an ordered list of targets, tried in order whenever
+        /// the craft has no link. Args:
+        /// <see cref="RealAntennasTargetChainArgs"/>.
+        ///
+        /// <para>Delayed like the two single-target commands, and that is the
+        /// whole point of it: the chain rides light-time ONCE, and the craft then
+        /// walks it with no delay at all. A ground-side evaluator watching
+        /// connectivity and sending a fresh target could not act at the moment it
+        /// was needed, because its command would have nowhere to arrive.</para>
+        /// </summary>
+        public const string TargetChainCommand = "realantennas.antenna.targetChain";
 
         // Fallback link-budget inputs, used only when the live per-link read
         // returns null. RA exposes both per antenna: the receiver noise
@@ -105,9 +147,13 @@ namespace Gonogo.RealAntennasUplink
         private IChannelPublisher? _linkMargin;
         private IChannelPublisher? _hopRates;
         private IChannelPublisher? _antennas;
+        private IChannelPublisher? _chains;
 
         /// <summary>Targeting's reflection + KSP half, built at Register once RA is confirmed present.</summary>
         private RaTargeting? _targeting;
+
+        /// <summary>The fallback-chain walk and its read-back, built at Register beside targeting.</summary>
+        private RaChains? _chainWalk;
 
         private static ChannelDeclaration TrueNow(string topic) => new ChannelDeclaration
         {
@@ -142,6 +188,7 @@ namespace Gonogo.RealAntennasUplink
                 TrueNow(LinkMarginTopic),
                 TrueNow(HopRatesTopic),
                 Delayed(AntennasTopic),
+                Delayed(ChainsTopic),
             },
             Commands = new List<CommandDeclaration>
             {
@@ -152,6 +199,12 @@ namespace Gonogo.RealAntennasUplink
                 // in a list that can change while the command is in flight.
                 new CommandDeclaration { Command = TargetCommand },
                 new CommandDeclaration { Command = TargetHomeCommand },
+                // Delayed for the same reason, and it is the one command here
+                // whose whole value comes from arriving before it is needed: it
+                // leaves the craft able to re-aim itself with no delay at all,
+                // which is the only way a fallback can act while the link is
+                // down.
+                new CommandDeclaration { Command = TargetChainCommand },
             },
         };
 
@@ -212,6 +265,7 @@ namespace Gonogo.RealAntennasUplink
             _linkMargin = host.Publisher(LinkMarginTopic);
             _hopRates = host.Publisher(HopRatesTopic);
             _antennas = host.Publisher(AntennasTopic);
+            _chains = host.Publisher(ChainsTopic);
 
             host.AddSampledSource(CaptureOnMain, HandleOnCourier, LinkQualityTopic, DataRateTopic, LinkMarginTopic, HopRatesTopic);
 
@@ -222,10 +276,63 @@ namespace Gonogo.RealAntennasUplink
             _targeting = new RaTargeting(_ra);
             host.AddSampledSource(CaptureAntennasOnMain, HandleAntennasOnCourier, AntennasTopic);
 
+            // UNGATED, and it must be. This capture's effect is the retargeting,
+            // not its return value: the gated overload skips the capture entirely
+            // on a tick where nothing is subscribed, so a gated walk would be a
+            // fallback that only worked while a client happened to have the chain
+            // channel open. That is the failure the gated overload's own doc
+            // comment describes, and here it would be total: an operator would
+            // believe they had a fallback and the craft would sit dark.
+            _chainWalk = new RaChains(_ra, _targeting, RaChainScenario.Chains);
+            host.AddSampledSource(CaptureChainsOnMain, HandleChainsOnCourier);
+
             host.AddCommandHandler<RealAntennasTargetArgs, CommandResult>(
                 TargetCommand, args => _targeting.Target(ScopedVessel(), args));
             host.AddCommandHandler<RealAntennasAntennaArgs, CommandResult>(
                 TargetHomeCommand, args => _targeting.TargetHome(ScopedVessel(), args));
+            host.AddCommandHandler<RealAntennasTargetChainArgs, CommandResult>(
+                TargetChainCommand, args => _chainWalk.SetChain(ScopedVessel(), args));
+        }
+
+        /// <summary>
+        /// MAIN-THREAD capture for <c>realantennas.antennaChains</c>, and the
+        /// tick the fallback walk runs on.
+        ///
+        /// <para>The walk goes FIRST, so the value published beside it describes
+        /// the state the craft is now in rather than the one it was in before this
+        /// tick moved it. An operator watching a chain advance would otherwise see
+        /// every entry one tick late, which on a delayed channel is indistinguishable
+        /// from the chain being slow.</para>
+        /// </summary>
+        internal object? CaptureChainsOnMain(KspSnapshot? snapshot)
+        {
+            if (_chainWalk == null)
+            {
+                return null;
+            }
+
+            var ut = snapshot?.Ut ?? 0.0;
+            _chainWalk.Evaluate(ut);
+            return new RaChainCapture
+            {
+                Ut = ut,
+                Chains = _chainWalk.ReadChains(ScopedVessel(), ut),
+            };
+        }
+
+        /// <summary>
+        /// COURIER-THREAD handle for <c>realantennas.antennaChains</c>: the
+        /// flattened array. An empty array is PUBLISHED rather than withheld, for
+        /// the same reason the antenna list is: the channel is LossyLatest, so
+        /// withholding would leave the previous craft's chains on the wire.
+        /// </summary>
+        internal void HandleChainsOnCourier(object? captured)
+        {
+            if (captured is not RaChainCapture capture)
+            {
+                return;
+            }
+            _chains?.Publish(RaWire.Chains(capture.Chains), capture.Ut);
         }
 
         /// <summary>
@@ -525,6 +632,12 @@ namespace Gonogo.RealAntennasUplink
         {
             public double Ut;
             public List<RealAntennasAntennaState> Antennas = new List<RealAntennasAntennaState>();
+        }
+
+        private sealed class RaChainCapture
+        {
+            public double Ut;
+            public List<RealAntennasAntennaChain> Chains = new List<RealAntennasAntennaChain>();
         }
     }
 }

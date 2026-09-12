@@ -39,9 +39,12 @@ export type {
   CommsLinkMargin,
   CommsLinkQuality,
   RealAntennasAntennaArgs,
+  RealAntennasAntennaChain,
   RealAntennasAntennaState,
   RealAntennasHopExt,
   RealAntennasTargetArgs,
+  RealAntennasTargetChainArgs,
+  RealAntennasTargetStep,
 } from "./__generated__/contract";
 // The per-hop forward-rate contribution: fills CommSignal's `comm-signal.hop-rates`
 // slot off `realantennas.hopRates`, so the base route schedule can render each

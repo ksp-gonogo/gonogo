@@ -1,5 +1,5 @@
-// GonogoRealAntennasUplink client-owned Topic registration: the three Topics
-// only this Uplink can source, and both halves of their unit registry.
+// GonogoRealAntennasUplink client-owned Topic registration: every Topic only
+// this Uplink can source, and both halves of their unit registry.
 //
 // The payload types behind `comms.linkQuality` / `comms.dataRate` /
 // `comms.linkMargin` live in THIS Uplink's own contract slice
@@ -37,6 +37,7 @@ import type {
   CommsDataRate,
   CommsLinkMargin,
   CommsLinkQuality,
+  RealAntennasAntennaChain,
   RealAntennasAntennaState,
   RealAntennasHopRate,
 } from "./__generated__/contract";
@@ -92,6 +93,19 @@ export const REALANTENNAS_HOP_RATES_TOPIC = "realantennas.hopRates";
  */
 export const REALANTENNAS_ANTENNAS_TOPIC = "realantennas.antennas";
 
+/**
+ * Per-antenna FALLBACK CHAINS: a BARE ARRAY of
+ * {@link RealAntennasAntennaChain}, one entry per antenna of the scoped craft
+ * that is holding a chain, so an empty array means it holds none. Its value MUST
+ * match `RealAntennasUplink.ChainsTopic` in ../../RealAntennasUplink.cs.
+ *
+ * Delayed like `realantennas.antennas`, and for the same reason: it is state
+ * held on the craft. The walk that moves it happens there too, which is the
+ * whole point of the feature, a ground-side evaluator could not act at the
+ * moment a fallback is needed because its command would have nowhere to arrive.
+ */
+export const REALANTENNAS_CHAINS_TOPIC = "realantennas.antennaChains";
+
 declare module "@ksp-gonogo/sitrep-sdk" {
   interface TopicPayloadMap {
     "realantennas.available": boolean;
@@ -100,6 +114,7 @@ declare module "@ksp-gonogo/sitrep-sdk" {
     "comms.linkMargin": CommsLinkMargin;
     "realantennas.hopRates": RealAntennasHopRate[];
     "realantennas.antennas": RealAntennasAntennaState[];
+    "realantennas.antennaChains": RealAntennasAntennaChain[];
   }
 }
 
@@ -109,6 +124,7 @@ registerBarePrimitiveTopic(COMMS_DATA_RATE_TOPIC);
 registerBarePrimitiveTopic(COMMS_LINK_MARGIN_TOPIC);
 registerBarePrimitiveTopic(REALANTENNAS_HOP_RATES_TOPIC);
 registerBarePrimitiveTopic(REALANTENNAS_ANTENNAS_TOPIC);
+registerBarePrimitiveTopic(REALANTENNAS_CHAINS_TOPIC);
 
 // The runtime half of the relocation. Both registries are fed, by looping over
 // the generated maps rather than naming entries, so a Topic or type added to
@@ -122,11 +138,12 @@ registerBarePrimitiveTopic(REALANTENNAS_ANTENNAS_TOPIC);
 // a ratio that also renders as "0.9". `topics.test.ts` proves that by decoding a
 // real frame, which is the check the previous slice could not make.
 //
-// `registerTypeUnits` is the type-keyed half, wired for the same reason even
-// though nothing in this slice nests today (`GENERATED_*_SHAPES` are both empty:
-// the one nested shape in the comms family, CommsHop, hangs off CommsPath and
-// stayed core with it). It is what a future nested payload here would need, and
-// the loop form means it needs no edit when that happens.
+// `registerTypeUnits` is the type-keyed half, and it is now load-bearing rather
+// than provisional: the fallback chain nests `RealAntennasTargetStep[]` inside
+// both the chain channel and the chain command, so `GENERATED_*_SHAPES` carry a
+// real entry each. It was wired before anything in the slice nested, on the
+// grounds that the loop form would need no edit when something did, and that is
+// what happened.
 for (const [topic, units] of Object.entries(GENERATED_TOPIC_UNITS)) {
   registerTopicUnits(topic, units, GENERATED_TOPIC_SHAPES[topic] ?? {});
 }
@@ -168,4 +185,7 @@ export type _ResolvesHopRates = Expect<
 >;
 export type _ResolvesAntennas = Expect<
   Equal<TopicPayload<"realantennas.antennas">, RealAntennasAntennaState[]>
+>;
+export type _ResolvesChains = Expect<
+  Equal<TopicPayload<"realantennas.antennaChains">, RealAntennasAntennaChain[]>
 >;

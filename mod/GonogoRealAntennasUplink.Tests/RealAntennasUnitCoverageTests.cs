@@ -80,7 +80,18 @@ namespace GonogoRealAntennasUplink.Tests
                 // the whole of it: identifiers and free text arrived with them.
                 nameof(RealAntennasAntennaState),
                 nameof(RealAntennasTargetArgs),
-                nameof(RealAntennasAntennaArgs));
+                nameof(RealAntennasAntennaArgs),
+                // The fallback chain: the entry in both directions, the command
+                // that sets a list of them, and the per-antenna read-back
+                // channel. The two entry types are this slice's first NESTED
+                // types, reached only through the other two, so they are also the
+                // first here the sweep would miss entirely if they lost their
+                // tags. They are a pair because a write entry carries plain
+                // numbers and a read entry carries units.
+                nameof(RealAntennasTargetStepArgs),
+                nameof(RealAntennasTargetStep),
+                nameof(RealAntennasTargetChainArgs),
+                nameof(RealAntennasAntennaChain));
 
         /// <summary>
         /// The antenna id is what both commands address, and it must stay a
@@ -96,6 +107,8 @@ namespace GonogoRealAntennasUplink.Tests
                          typeof(RealAntennasAntennaState).GetProperty(nameof(RealAntennasAntennaState.AntennaId))!,
                          typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.AntennaId))!,
                          typeof(RealAntennasAntennaArgs).GetProperty(nameof(RealAntennasAntennaArgs.AntennaId))!,
+                         typeof(RealAntennasTargetChainArgs).GetProperty(nameof(RealAntennasTargetChainArgs.AntennaId))!,
+                         typeof(RealAntennasAntennaChain).GetProperty(nameof(RealAntennasAntennaChain.AntennaId))!,
                      })
             {
                 Assert.Equal(Units.Id, property.GetCustomAttribute<SitrepUnitAttribute>()!.Unit);
@@ -119,6 +132,12 @@ namespace GonogoRealAntennasUplink.Tests
                          typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.Azimuth))!,
                          typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.Elevation))!,
                          typeof(RealAntennasTargetArgs).GetProperty(nameof(RealAntennasTargetArgs.Forward))!,
+                         typeof(RealAntennasTargetStepArgs).GetProperty(nameof(RealAntennasTargetStepArgs.Azimuth))!,
+                         typeof(RealAntennasTargetStepArgs).GetProperty(nameof(RealAntennasTargetStepArgs.Elevation))!,
+                         typeof(RealAntennasTargetStepArgs).GetProperty(nameof(RealAntennasTargetStepArgs.Forward))!,
+                         typeof(RealAntennasTargetStep).GetProperty(nameof(RealAntennasTargetStep.Azimuth))!,
+                         typeof(RealAntennasTargetStep).GetProperty(nameof(RealAntennasTargetStep.Elevation))!,
+                         typeof(RealAntennasTargetStep).GetProperty(nameof(RealAntennasTargetStep.Forward))!,
                      })
             {
                 Assert.Equal(Units.Degrees, property.GetCustomAttribute<SitrepUnitAttribute>()!.Unit);

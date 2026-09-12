@@ -71,7 +71,8 @@ describe("generated contract.ts: Value usage resolves to core", () => {
       /import\s*\{\s*PayloadMeta\s*\}\s*from\s*['"]@ksp-gonogo\/sitrep-sdk['"]/,
     );
     expect(src).not.toMatch(/meta:\s*any;/);
-    // The three link channels plus the per-antenna targeting state.
-    expect(src.match(/meta:\s*PayloadMeta;/g)).toHaveLength(4);
+    // The three link channels, the per-antenna targeting state, and the
+    // per-antenna fallback chain.
+    expect(src.match(/meta:\s*PayloadMeta;/g)).toHaveLength(5);
   });
 });
