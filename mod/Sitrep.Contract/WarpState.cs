@@ -67,5 +67,27 @@ public class WarpState
     [SitrepUnit(Units.Flag)]
     public bool Paused { get; set; }
 
+    /// <summary>
+    /// What every HIGH-warp rung of THIS install actually runs at, indexed by
+    /// <see cref="WarpRateIndex"/>, so <c>warpRates[i]</c> is the multiplier
+    /// <c>time.setWarpIndex</c> with <c>index = i</c> produces. Null when the
+    /// game has no warp controller to read it off (no scene that can warp).
+    ///
+    /// <para>It ships because the table is CONFIG, not a constant: Kopernicus
+    /// and RealSolarSystem both republish it, and a client that assumed
+    /// stock's asked for the rung it believed to be 100x on an install that
+    /// runs it at 10000x. Without it a client can only learn a rung's rate by
+    /// warping at it, which is exactly the experiment that costs the game
+    /// clock the overshoot it was trying to avoid.</para>
+    /// <internal>
+    /// <c>TimeWarp.fetch.warpRates</c>, HIGH warp only (the same table
+    /// <c>Gonogo.KSP.KspVesselActuator</c> bounds a <c>time.setWarpIndex</c>
+    /// against), widened float -&gt; double on the way out. Physics warp has
+    /// its own table and no client asks for one by index.
+    /// </internal>
+    /// </summary>
+    [SitrepUnit(Units.Dimensionless)]
+    public double[]? WarpRates { get; set; }
+
     public PayloadMeta Meta { get; set; } = new();
 }

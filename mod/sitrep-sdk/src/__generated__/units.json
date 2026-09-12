@@ -1371,7 +1371,8 @@
       "paused": "flag",
       "warpMode": "enum",
       "warpRate": "1",
-      "warpRateIndex": "id"
+      "warpRateIndex": "id",
+      "warpRates": "1"
     }
   },
   "topics": {
@@ -1758,7 +1759,8 @@
       "paused": "flag",
       "warpMode": "enum",
       "warpRate": "1",
-      "warpRateIndex": "id"
+      "warpRateIndex": "id",
+      "warpRates": "1"
     },
     "vessel.attitude": {
       "heading": "°",

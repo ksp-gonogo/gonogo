@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.2.0
+  version: 16.3.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 76 telemetry
     channels a client subscribes to, and 53 commands it dispatches, with the payload
@@ -18827,5 +18827,24 @@ components:
         paused:
           type: boolean
           x-sitrep-unit: flag
+        warpRates:
+          type:
+            - array
+            - "null"
+          items:
+            type: number
+            x-sitrep-unit: "1"
+          description: |-
+            What every HIGH-warp rung of THIS install actually runs at, indexed by
+            `WarpState.warpRateIndex`, so `warpRates[i]` is the multiplier
+            `time.setWarpIndex` with `index = i` produces. Null when the game has no
+            warp controller to read it off (no scene that can warp).
+
+            It ships because the table is CONFIG, not a constant: Kopernicus and
+            RealSolarSystem both republish it, and a client that assumed stock's asked
+            for the rung it believed to be 100x on an install that runs it at 10000x.
+            Without it a client can only learn a rung's rate by warping at it, which is
+            exactly the experiment that costs the game clock the overshoot it was trying
+            to avoid.
         meta:
           $ref: "#/components/schemas/PayloadMeta"

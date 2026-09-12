@@ -213,6 +213,7 @@ export class AlarmHostService {
       this.stateMachine,
       {
         getObservedIndex: () => this.warpObserver.getWarp().index,
+        getRateTable: () => this.warpObserver.getRateTable(),
         registerOwnWarpIntent: () => this.warpObserver.registerIntent(),
         getOwltSeconds: () => this.opts.getOwltSeconds(),
       },

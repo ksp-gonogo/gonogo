@@ -2,16 +2,32 @@ import { logger } from "@ksp-gonogo/logger";
 import { dispatchActiveCommandTopic } from "@ksp-gonogo/sitrep-client";
 import type { AlarmStateMachine } from "./AlarmStateMachine";
 import type { Alarm, AlarmWarpState } from "./types";
+import type { WarpRateTable } from "./WarpRateTable";
 
-const HIGH_WARP_RATES: readonly number[] = [
-  1, 5, 10, 50, 100, 1000, 10000, 100000,
-];
-const THRESHOLD_PRESENT_MAX_INDEX = 4;
+/**
+ * The fastest rate to run at when there is no arrival time to plan against:
+ * an alarm that is eligible but not yet trackable, or a threshold the
+ * simulation cannot model.
+ *
+ * A RATE, where this used to be warp index 4. The index was only ever shorthand
+ * for "100x on stock's ladder", and an install that republishes the ladder
+ * makes the shorthand a different number: rung 4 is 10000x on the deck's RSS/RO
+ * table. Naming the rate says the same thing on every install, and picks rung 4
+ * on stock exactly as before.
+ */
+const UNPLANNABLE_MAX_RATE = 100;
 const WARP_COMMAND_COOLDOWN_MS = 1_500;
 
 export interface WarpControlContext {
   /** Current observed warp index, used to skip redundant commands. */
   getObservedIndex(): number;
+  /**
+   * What the install's warp rungs actually run at, so the ladder plans against
+   * this game rather than stock's table. Read through the context for the same
+   * reason the clock and the light-time are: the controller holds no telemetry
+   * reach of its own.
+   */
+  getRateTable(): WarpRateTable;
   /** Stamp called whenever WarpControl issues a warp command, lets the
    *  observer suppress the unscheduled-warp detector for this change. */
   registerOwnWarpIntent(): void;
@@ -27,6 +43,16 @@ export interface WarpControlContext {
 export interface WarpToTarget {
   alarmId: string;
   targetIndex: number;
+  /**
+   * What that rung runs at on this install, or null while nothing has said.
+   *
+   * Carried on the snapshot rather than left for a reader to look up, so no
+   * screen keeps a second copy of the ladder: the banner mirrored stock's table
+   * to render this number and told the operator 100x while the game ran at
+   * 10000x. Null is the honest answer for the rung the controller is probing,
+   * and the banner draws no target rate rather than a guessed one.
+   */
+  targetRate: number | null;
 }
 
 /**
@@ -63,6 +89,8 @@ export class WarpControl {
     return {
       alarmId: this.warpToAlarmId ?? "",
       targetIndex: this.warpToTargetIndex,
+      targetRate:
+        this.ctx.getRateTable().rateAt(this.warpToTargetIndex) ?? null,
     };
   }
 
@@ -131,7 +159,6 @@ export class WarpControl {
   reconcile(observedUT: number | null): void {
     if (!this.warpToActive) return;
     if (observedUT === null) return;
-
     const observedIndex = this.ctx.getObservedIndex();
     const stale = this.readingPredatesLastCommand(observedIndex);
 
@@ -169,7 +196,9 @@ export class WarpControl {
         return;
       }
       this.warpToAlarmId = eligible.id;
-      const targetIndex = THRESHOLD_PRESENT_MAX_INDEX;
+      const targetIndex = this.ctx
+        .getRateTable()
+        .chooseIndex(UNPLANNABLE_MAX_RATE);
       this.warpToTargetIndex = targetIndex;
       if (targetIndex !== currentIndex) {
         this.ctx.registerOwnWarpIntent();
@@ -242,23 +271,25 @@ export class WarpControl {
     return Math.max(this.warpSafetyMarginSeconds, safeOwlt);
   }
 
+  /**
+   * The rung to ask for, from the rate the margin allows and what the install
+   * says its rungs run at.
+   *
+   * The ceiling is expressed as a RATE the whole way down. Picking a rung by
+   * looking a rate up in a table this client wrote down itself is the defect
+   * being fixed: the table belongs to the install, and only the install (or the
+   * game's own behaviour, watched) can say what a rung means.
+   */
   private computeWarpToIndex(
     remainingGameSeconds: number,
     target: Alarm,
   ): number {
     if (remainingGameSeconds <= 0) return 0;
-    const maxRate = remainingGameSeconds / this.effectiveMarginSeconds();
-    const cap = this.stateMachine.hasUnmodelableThresholdOther(target)
-      ? THRESHOLD_PRESENT_MAX_INDEX
-      : HIGH_WARP_RATES.length - 1;
-    let chosen = 0;
-    for (let i = cap; i >= 0; i--) {
-      if (HIGH_WARP_RATES[i] <= maxRate) {
-        chosen = i;
-        break;
-      }
-    }
-    return chosen;
+    const marginRate = remainingGameSeconds / this.effectiveMarginSeconds();
+    const maxRate = this.stateMachine.hasUnmodelableThresholdOther(target)
+      ? Math.min(marginRate, UNPLANNABLE_MAX_RATE)
+      : marginRate;
+    return this.ctx.getRateTable().chooseIndex(maxRate);
   }
 
   /**

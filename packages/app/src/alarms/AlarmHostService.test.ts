@@ -114,9 +114,17 @@ function fakeTelemetry(): FakeTelemetry {
     actionGroups: [{ index: 1, name: "AG1", state: false }],
   });
 
+  /*
+   * A STOCK install, said out loud. The ladder these tests assert against is
+   * KSP's own, and the client no longer assumes it: `warpRates` is the table the
+   * mod reads off `TimeWarp.fetch.warpRates`, so a fixture that omits it is
+   * modelling an install whose rungs have no known meaning. Rung 4 is 100x here
+   * because this fixture says so, not because the client believes it.
+   */
   let warp = {
     warpRate: 1,
     warpRateIndex: 0,
+    warpRates: [1, 5, 10, 50, 100, 1000, 10000, 100000],
     warpMode: WarpMode.Unknown,
     paused: false,
   };
@@ -727,6 +735,7 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().warpTo).toEqual({
         alarmId: a.id,
         targetIndex: 4,
+        targetRate: 100,
       });
       expect(telemetry.calls).toContain("time.setWarpIndex[4]");
     });
@@ -769,6 +778,7 @@ describe("AlarmHostService", () => {
       expect(svc.snapshot().warpTo).toEqual({
         alarmId: a.id,
         targetIndex: 5,
+        targetRate: 1000,
       });
       expect(telemetry.calls).toContain("time.setWarpIndex[5]");
     });

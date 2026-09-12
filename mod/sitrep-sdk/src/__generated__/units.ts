@@ -1406,6 +1406,7 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     warpMode: "enum",
     warpRate: "1",
     warpRateIndex: "id",
+    warpRates: "1",
   },
 };
 
@@ -1798,6 +1799,7 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
     warpMode: "enum",
     warpRate: "1",
     warpRateIndex: "id",
+    warpRates: "1",
   },
   "vessel.attitude": {
     heading: "°",

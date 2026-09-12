@@ -307,6 +307,11 @@ function startSession(owlt: number): ModStandIn {
         {
           warpRate: warpIndex === 0 ? 1 : 1000,
           warpRateIndex: warpIndex,
+          /* A STOCK install, said out loud: the client no longer assumes a
+             ladder, so a fixture that omits the table is modelling a game whose
+             rungs have no known meaning. Rung 5 is the 1000x this fixture
+             already reported itself running at. */
+          warpRates: [1, 5, 10, 50, 100, 1000, 10000, 100000],
           warpMode: WarpMode.High,
           paused: false,
         },

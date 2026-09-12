@@ -8276,6 +8276,20 @@ export interface WarpState
 	warpRateIndex: number;
 	warpMode: WarpMode;
 	paused: boolean;
+	/**
+	* What every HIGH-warp rung of THIS install actually runs at, indexed by
+	* `WarpState.warpRateIndex`, so `warpRates[i]` is the multiplier
+	* `time.setWarpIndex` with `index = i` produces. Null when the game has no
+	* warp controller to read it off (no scene that can warp).
+	*
+	* It ships because the table is CONFIG, not a constant: Kopernicus and
+	* RealSolarSystem both republish it, and a client that assumed stock's asked
+	* for the rung it believed to be 100x on an install that runs it at 10000x.
+	* Without it a client can only learn a rung's rate by warping at it, which is
+	* exactly the experiment that costs the game clock the overshoot it was trying
+	* to avoid.
+	*/
+	warpRates?: Value<"1">[];
 	meta: PayloadMeta;
 }
 /**

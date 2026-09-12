@@ -201,6 +201,11 @@ function startSession(shape: WireShape): WarpSession {
         {
           warpRate: captured === 0 ? 1 : 1000,
           warpRateIndex: captured,
+          /* A STOCK install, said out loud: the client no longer assumes a
+             ladder, so a fixture that omits the table is modelling a game whose
+             rungs have no known meaning. Rung 5 is the 1000x this fixture
+             already reported itself running at. */
+          warpRates: [1, 5, 10, 50, 100, 1000, 10000, 100000],
           warpMode: WarpMode.High,
           paused: false,
         },
@@ -259,6 +264,13 @@ describe("warp at a light-minute", () => {
 
     it(`ends the warp-to session on a stop it did not ask for (${shape} wire shape)`, async () => {
       const session = startSession(shape);
+      /* Two frames, so both wire shapes have delivered one the view clock can
+         actually read by the time the session starts: under `truenow` a frame
+         stamped at the true UT is still a light-time in the view clock's
+         future, and the controller commands no warp at all until the game has
+         told it what its warp is doing. The subject here is the stop, not the
+         first light-time of silence. */
+      session.emitAt(UT_START - OWLT);
       session.emitAt(UT_START);
 
       const svc = new AlarmHostService(null, {

@@ -2380,6 +2380,40 @@ namespace Sitrep.Host.Tests
         }
 
         [Fact]
+        public void BuildWarpCarriesTheInstallsOwnRateTable()
+        {
+            // The deck's RSS/RO ladder, not stock's. A client that cannot read
+            // this has to predict what a rung means, and the only table it can
+            // predict is stock's, where rung 4 is 100x rather than 10000x.
+            var rates = new[] { 1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0, 6000000.0 };
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 10000.0, ["warpRateIndex"] = 4, ["warpRates"] = rates, ["warpMode"] = "HIGH", ["paused"] = false });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Equal(rates, warp!.WarpRates);
+            Assert.Equal(10000.0, warp.WarpRates![warp.WarpRateIndex]);
+        }
+
+        [Fact]
+        public void BuildWarpLeavesTheRateTableNullRatherThanGuessingAtStocks()
+        {
+            // A game with no warp controller to read the table off. Null is the
+            // whole answer: a stock table substituted here would be
+            // indistinguishable from knowledge at the point a client uses it.
+            var snapshot = SnapshotWith(
+                identity: new Dictionary<string, object?> { ["id"] = VesselGuid },
+                time: new Dictionary<string, object?> { ["warpRate"] = 1.0, ["warpRateIndex"] = 0, ["warpMode"] = "HIGH", ["paused"] = false });
+
+            var warp = VesselViewProvider.BuildWarp(snapshot);
+
+            Assert.NotNull(warp);
+            Assert.Null(warp!.WarpRates);
+        }
+
+        [Fact]
         public void BuildWarpMapsPausedOrthogonallyFromWarpMode()
         {
             var snapshot = SnapshotWith(

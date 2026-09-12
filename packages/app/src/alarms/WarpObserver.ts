@@ -1,6 +1,7 @@
 import { getWarpState } from "@ksp-gonogo/sitrep-client";
 import { WarpMode } from "@ksp-gonogo/sitrep-sdk";
 import type { Alarm, AlarmSnapshot, AlarmWarpState } from "./types";
+import { WarpRateTable } from "./WarpRateTable";
 
 /** Grace window around a station-initiated warp intent, any observed
  *  warp change within this window is attributed to the station. */
@@ -30,6 +31,7 @@ export class WarpObserver {
   };
   private unscheduledWarp: AlarmSnapshot["unscheduledWarp"] = null;
   private lastIntentAt: number | null = null;
+  private readonly rateTable = new WarpRateTable();
 
   constructor(
     private readonly ctx: WarpObserverContext,
@@ -38,6 +40,18 @@ export class WarpObserver {
 
   getWarp(): AlarmWarpState {
     return this.observedWarp;
+  }
+
+  /**
+   * What this install's warp rungs run at, as it has been learned so far.
+   *
+   * Kept here rather than in `WarpControl` because this is the class that reads
+   * `time.warp`, and the table is learned from every reading whether or not a
+   * warp-to session is running: knowledge a session would otherwise have to
+   * re-acquire, one rung per tick, every time one starts.
+   */
+  getRateTable(): WarpRateTable {
+    return this.rateTable;
   }
 
   getUnscheduled(): AlarmSnapshot["unscheduledWarp"] {
@@ -62,16 +76,30 @@ export class WarpObserver {
         : warp?.warpMode === WarpMode.Low
           ? "LOW"
           : "UNKNOWN";
+    // Unwrapped here rather than carried: `AlarmWarpState` is part of the
+    // snapshot the host broadcasts to stations over PeerJS, and a `Value`
+    // crossing that channel arrives as a bare object with no prototype and
+    // so no methods on it. The rate is a dimensionless multiplier read as
+    // "10x", which is a number the whole way down.
+    const reportedRate = warp?.warpRate?.magnitude;
+    const reportedIndex = warp?.warpRateIndex;
     this.observedWarp = {
-      index: warp?.warpRateIndex ?? this.observedWarp.index,
-      // Unwrapped here rather than carried: `AlarmWarpState` is part of the
-      // snapshot the host broadcasts to stations over PeerJS, and a `Value`
-      // crossing that channel arrives as a bare object with no prototype and
-      // so no methods on it. The rate is a dimensionless multiplier read as
-      // "10x", which is a number the whole way down.
-      rate: warp?.warpRate?.magnitude ?? this.observedWarp.rate,
+      index: reportedIndex ?? this.observedWarp.index,
+      rate: reportedRate ?? this.observedWarp.rate,
       mode,
     };
+
+    this.rateTable.setPublished(warp?.warpRates);
+
+    /*
+     * Only when the SAME reading carried both, never the merged state above:
+     * that falls each field back to its last value, so a reading missing the
+     * rate would pair a fresh rung with the rate of the one before it and write
+     * down a rung meaning it has never seen.
+     */
+    if (typeof reportedIndex === "number" && typeof reportedRate === "number") {
+      this.rateTable.observe(reportedIndex, reportedRate);
+    }
   }
 
   detectUnscheduled(): void {

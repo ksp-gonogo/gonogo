@@ -1371,6 +1371,7 @@ namespace Sitrep.Host
             {
                 WarpRate = warpRate.Value,
                 WarpRateIndex = warpRateIndex.Value,
+                WarpRates = GetDoubleArray(time, "warpRates"),
                 WarpMode = ParseWarpMode(GetString(time, "warpMode")),
                 Paused = paused.Value,
                 Meta = BuildGameMeta(),
@@ -1960,6 +1961,7 @@ namespace Sitrep.Host
         {
             ["warpRate"] = warp.WarpRate,
             ["warpRateIndex"] = warp.WarpRateIndex,
+            ["warpRates"] = warp.WarpRates,
             ["warpMode"] = (int)warp.WarpMode,
             ["paused"] = warp.Paused,
             ["meta"] = ToWire(warp.Meta),
@@ -2254,5 +2256,6 @@ namespace Sitrep.Host
         private static int? GetInt(IDictionary<string, object?> raw, string key) => SnapshotDict.GetInt(raw, key);
         private static double? GetDouble(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDouble(raw, key);
         private static Vec3? GetVec3(IDictionary<string, object?> raw, string key) => SnapshotDict.GetVec3(raw, key);
+        private static double[]? GetDoubleArray(IDictionary<string, object?> raw, string key) => SnapshotDict.GetDoubleArray(raw, key);
     }
 }
