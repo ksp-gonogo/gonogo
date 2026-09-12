@@ -51,6 +51,40 @@ namespace Sitrep.Host.Tests.CommandCentres
             Assert.Equal(5.0, net.DelayTo("some-other-vantage", FleetNode("G")));
         }
 
+        /// <summary>
+        /// The same guarantee read through the LEDGER rather than off the write
+        /// sink: a pinned pilot reads its own craft instantly, and the KSC row the
+        /// exclusion used to protect is byte-identical to what it was before.
+        /// </summary>
+        [Fact]
+        public void CrewedCentresOwnCraftIsInstantFromItsOwnVantageOnly()
+        {
+            var net = new StubNetwork();
+            net.SetNodeDelay(FleetNode("G"), 5.0); // Plan 2 node-default
+            net.SetNodeDelay(FleetNode("H"), 7.0);
+
+            new AuthorityMatrixPass().Populate(
+                new ICommandCentre[]
+                {
+                    new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
+                    new FakeCommandCentre("ksc"),
+                },
+                new[] { "G", "H" },
+                (centre, guid) => centre.Id == "ksc" ? 5.0 : 9.0,
+                (vantage, node, seconds) => net.SetDelay(vantage, node, seconds));
+
+            // The craft's own vantage on its own telemetry: instant.
+            Assert.Equal(0.0, net.DelayTo("vessel:G", FleetNode("G")));
+            // The same vantage on ANOTHER craft: the routed delay between them.
+            Assert.Equal(9.0, net.DelayTo("vessel:G", FleetNode("H")));
+            // KSC on the crewed craft: the full light-time it always had.
+            Assert.Equal(5.0, net.DelayTo("ksc", FleetNode("G")));
+            // Any vantage with no row of its own still falls through to Plan 2's
+            // node-default, so the zero is not reachable by anyone else.
+            Assert.Equal(5.0, net.DelayTo("some-other-vantage", FleetNode("G")));
+            Assert.Equal(7.0, net.DelayTo("some-other-vantage", FleetNode("H")));
+        }
+
         [Fact]
         public void CentrePairPass_AddsAnAddressableCentre_WithoutDisturbingAnyVesselRow()
         {

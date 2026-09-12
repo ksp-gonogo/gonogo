@@ -1023,7 +1023,8 @@ namespace Sitrep.Contract
         /// node) pair tier, which overrides the <see cref="SetVesselDelay"/>
         /// node-default for that observer; the node-default stays underneath for
         /// any unselected vantage. Populated per capture pass, one row per active
-        /// centre x subject (minus the crewed-centre self-exclusion).
+        /// centre x subject, INCLUDING a crewed centre's row against its own craft,
+        /// which is an explicit zero.
         /// </summary>
         void SetAuthorityDelay(string centreId, string vesselId, double oneWaySeconds);
 

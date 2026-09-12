@@ -10,8 +10,8 @@ namespace Gonogo.KSP.CommandCentres
     /// Probe Control Point mechanic (a crewed part making the vessel a local
     /// control source when qualifying crew reaches its minimum). Dynamic: a vessel
     /// becomes and stops being a centre at runtime, so it is re-enumerated each
-    /// pass. Keyed <c>vessel:&lt;guid&gt;</c> so the authority matrix can self-exclude
-    /// a crewed centre from its own subject row. The enumerator is injectable for
+    /// pass. Keyed <c>vessel:&lt;guid&gt;</c> so the authority matrix can recognise a
+    /// crewed centre's own subject row and price it at zero. The enumerator is injectable for
     /// testability (run at the full-sln fold; this worktree has no KSP refs).
     ///
     /// <para>A control source is not automatically a centre: it must also be

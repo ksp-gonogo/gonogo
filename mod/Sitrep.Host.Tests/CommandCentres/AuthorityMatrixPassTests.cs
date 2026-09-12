@@ -14,17 +14,48 @@ namespace Sitrep.Host.Tests.CommandCentres
             return (calls, (v, n, s) => calls.Add((v, n, s)));
         }
 
+        /// <summary>
+        /// The zero is for the craft's OWN row and nothing else, which is the only
+        /// reading under which it is honest. Every assertion here is paired: an
+        /// over-broad zero (dropping the kind/id test, or zeroing the routed value)
+        /// fails on the second half of each pair even though the first half passes.
+        /// </summary>
         [Fact]
-        public void Populate_ExcludesCrewedCentreFromItsOwnSubjectRow()
+        public void Populate_PricesACrewedCentresOwnCraftAtZero_AndEveryOtherPairAtFullRoute()
         {
             var (calls, sink) = Recorder();
-            var centres = new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel) };
+            var centres = new ICommandCentre[]
+            {
+                new FakeCommandCentre("vessel:G", CommandCentreKind.CrewedVessel),
+                new FakeCommandCentre("ksc"),
+            };
 
             new AuthorityMatrixPass().Populate(centres, new[] { "G", "H" }, (_, __) => 5.0, sink);
 
-            // Self-excluded from its own subject G; present for the other subject H.
-            Assert.DoesNotContain(calls, x => x.node == "fleet.G");
+            // The craft observing itself: no distance from itself.
+            Assert.Contains(calls, x => x.vantage == "vessel:G" && x.node == "fleet.G" && x.s == 0.0);
+            // The same craft observing a DIFFERENT subject: still the full routed delay.
             Assert.Contains(calls, x => x.vantage == "vessel:G" && x.node == "fleet.H" && x.s == 5.0);
+            // The ground observing that craft: still the full routed delay, the zero
+            // belongs to one row and does not leak along either axis.
+            Assert.Contains(calls, x => x.vantage == "ksc" && x.node == "fleet.G" && x.s == 5.0);
+            Assert.Contains(calls, x => x.vantage == "ksc" && x.node == "fleet.H" && x.s == 5.0);
+            Assert.Equal(4, calls.Count);
+        }
+
+        [Fact]
+        public void Populate_DoesNotPriceAGroundCentreAtZeroForALikeNamedSubject()
+        {
+            var (calls, sink) = Recorder();
+            // A GroundStation whose id happens to spell a vessel subject. The
+            // self-row is a statement about a craft being its own vantage, so the
+            // kind is half of the test and not decoration.
+            var centres = new ICommandCentre[] { new FakeCommandCentre("vessel:G", CommandCentreKind.GroundStation) };
+
+            new AuthorityMatrixPass().Populate(centres, new[] { "G" }, (_, __) => 5.0, sink);
+
+            var only = Assert.Single(calls);
+            Assert.Equal(("vessel:G", "fleet.G", 5.0), only);
         }
 
         [Fact]

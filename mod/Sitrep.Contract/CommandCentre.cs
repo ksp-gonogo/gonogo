@@ -4,10 +4,16 @@ namespace Sitrep.Contract
 {
     /// <summary>
     /// The kind of a command centre. <see cref="CrewedVessel"/> is load-bearing:
-    /// a crewed-vessel centre whose <see cref="ICommandCentre.Id"/> equals the
-    /// subject being routed must be excluded from that subject's authority set,
-    /// else route(self -&gt; self) = 0 reports 0 command delay for every crewed
-    /// craft to a KSC operator on full light-time (delay-spec red-team BLOCKER-2).
+    /// a crewed-vessel centre whose <see cref="ICommandCentre.Id"/> names the
+    /// subject being routed is at zero delay to that subject, because a vantage
+    /// observing itself is no distance from itself, and the routed graph cannot
+    /// supply that number for a node-to-node path whose two ends are one node.
+    /// <internal>
+    /// Sitrep.Host.CommandCentres.AuthorityMatrixPass.Populate writes the zero.
+    /// It USED to skip the row instead, citing delay-spec red-team BLOCKER-2,
+    /// which was really about a min-over-authorities collapse that this pass
+    /// does not perform; see that class for the full reasoning.
+    /// </internal>
     /// </summary>
     public enum CommandCentreKind
     {

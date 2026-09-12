@@ -25,12 +25,23 @@ namespace Sitrep.Host.CommandCentres
     /// as <c>routeDelay</c> by the KSP layer, which owns the KSP types. The two
     /// policy rules this class enforces are both KSP-free:</para>
     /// <list type="bullet">
-    /// <item>Self-exclusion (red-team BLOCKER-2): a <see cref="CommandCentreKind.CrewedVessel"/>
-    /// centre is excluded from ITS OWN subject row, else route(self-&gt;self)=0 reports
-    /// 0 command delay for that craft to a full-light-time operator.</item>
     /// <item>No min-over-authorities: each authority writes its OWN row; the
     /// dispatched delay is the selected vantage's row, never a min collapse.</item>
+    /// <item>Self-at-zero: a <see cref="CommandCentreKind.CrewedVessel"/> centre is
+    /// authoritative about its OWN subject row, written as an explicit zero exactly as
+    /// <see cref="PopulateCentrePairs"/> writes a centre's row against itself. A vantage
+    /// is where the operator is standing, and light-time is the distance to somewhere
+    /// else, so zero is the honest number for a craft observing itself. The row is
+    /// reachable only from that craft's own vantage, because the no-min rule above is
+    /// what keeps it there</item>
     /// </list>
+    ///
+    /// <para>The self row used to be EXCLUDED instead, citing delay-spec red-team
+    /// BLOCKER-2. That defect was the min-over-authorities collapse: with a min, the
+    /// subject's own onboard control contributed a 0 that every other operator's number
+    /// collapsed onto. The no-min rule is the guard against it, and the exclusion was a
+    /// second defence against a collapse this pass does not perform, paid for by a
+    /// pinned pilot reading their own craft at the ground's light-time.</para>
     /// </summary>
     public sealed class AuthorityMatrixPass
     {
@@ -62,7 +73,15 @@ namespace Sitrep.Host.CommandCentres
                 {
                     if (centre.Kind == CommandCentreKind.CrewedVessel && centre.Id == "vessel:" + guid)
                     {
-                        // Self-exclusion: no explicit row for a crewed centre's own subject.
+                        /*
+                         * A craft is no distance from itself, and this pass has to say
+                         * so itself: the routing callback reports null for a self-path
+                         * (a node-to-node solve where both ends are the same node is
+                         * not a route), so leaving it to routeDelay would write no row
+                         * and drop the pair through to the node-default, which is the
+                         * ground's light-time to that craft.
+                         */
+                        setDelay(centre.Id, FleetNode(guid), 0.0);
                         continue;
                     }
 
