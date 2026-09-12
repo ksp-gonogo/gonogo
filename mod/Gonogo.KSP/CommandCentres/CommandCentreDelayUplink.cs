@@ -256,7 +256,11 @@ namespace Gonogo.KSP.CommandCentres
 
         /// <summary>MAIN-THREAD capture: the active centres as roster entries.</summary>
         internal object? CaptureRosterOnMain(KspSnapshot? snapshot) =>
-            new RosterCapture { Roster = _registry.EnumerateActive().Select(ToRosterEntry).ToList() };
+            new RosterCapture
+            {
+                Roster = _registry.EnumerateActive().Select(ToRosterEntry).ToList(),
+                Ut = snapshot != null ? snapshot.Ut : 0.0,
+            };
 
         /// <summary>COURIER-THREAD handle: publish the roster.</summary>
         internal void PublishRosterOnCourier(object? captured)
@@ -266,7 +270,7 @@ namespace Gonogo.KSP.CommandCentres
                 return;
             }
 
-            _rosterPublisher?.Publish(cap.Roster, cap.Roster.Count);
+            _rosterPublisher?.Publish(cap.Roster, cap.Ut);
         }
 
         /// <summary>
@@ -385,6 +389,18 @@ namespace Gonogo.KSP.CommandCentres
         private sealed class RosterCapture
         {
             public List<CommandCentreEntry> Roster = new List<CommandCentreEntry>();
+
+            /// <summary>
+            /// The capture's own universe time, carried across to the courier
+            /// thread so the publish is stamped with when the roster was READ
+            /// rather than with whatever the courier thread can reach. This
+            /// used to be absent and the publish passed the roster's entry
+            /// COUNT: a number far below any real UT, which the engine's
+            /// forward-only clamp lets through untouched, so the sample landed
+            /// stamped in the deep past with <c>validAt</c> equal to a
+            /// command-centre count.
+            /// </summary>
+            public double Ut;
         }
     }
 }
