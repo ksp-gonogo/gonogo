@@ -7,7 +7,9 @@ import { NULL_DISPLAY } from "./NullValue";
 import {
   formatQuantity,
   kindOfUnit,
+  quantityScale,
   registerUnit,
+  separatingDecimals,
   setQuantityLocale,
   writeQuantity,
 } from "./units";
@@ -906,5 +908,84 @@ describe("a duration's rungs follow the calendar the game reported", () => {
     setKspCalendar({ day: 3600, hour: 600, minute: 10, year: 3600 * 100 });
     expect(formatQuantity(1, "irl:d").value).toBe("1d");
     expect(formatQuantity(24 * 3600, "irl:s").value).toBe("1d");
+  });
+});
+
+describe("quantityScale", () => {
+  it("settles one rung from the reference and holds it for every mark", () => {
+    // The rung comes from the top of the scale, so a mark far below it still
+    // reads in the scale's unit rather than laddering down to its own.
+    const scale = quantityScale(value("m", 5000));
+    expect(scale.symbol).toBe("km");
+    expect(scale.mark(5000)).toBe("5.0");
+    expect(scale.mark(200)).toBe("0.2");
+  });
+
+  it("hands the symbol back APART, so a scale shows it once", () => {
+    const scale = quantityScale(value("m", 5000));
+    // No mark carries the symbol: that is what makes it a scale rather than a
+    // column of formatted quantities.
+    expect(scale.mark(1200)).not.toContain("km");
+    expect(scale.symbol).toBe("km");
+  });
+
+  it("honours a pinned rung over the reference's own magnitude", () => {
+    const scale = quantityScale(value("m", 5000), { format: "m" });
+    expect(scale.symbol).toBe("m");
+    expect(scale.rung).toBe("m");
+  });
+
+  it("reports an empty symbol for a kind that displays none", () => {
+    // A dimensionless scale has no header to draw, and says so rather than
+    // printing a token.
+    expect(quantityScale(value("1", 3)).symbol).toBe("");
+  });
+
+  it("renders an absent mark as the null token rather than as a zero", () => {
+    const scale = quantityScale(value("m", 5000));
+    expect(scale.mark(null)).toBe(NULL_DISPLAY);
+    expect(scale.mark(Number.NaN)).toBe(NULL_DISPLAY);
+    expect(scale.mark(0)).toBe("0.0");
+  });
+
+  it("draws a bare scale when the reference never arrived, rather than throwing", () => {
+    /*
+     * An absent reference costs the SYMBOL, not the marks: an undeclared unit
+     * renders bare rather than guessed at, so a strip whose top has not
+     * reported still draws its numbers and simply shows no header.
+     */
+    const scale = quantityScale(undefined);
+    expect(scale.symbol).toBe("");
+    expect(scale.mark(5)).toBe("5");
+    expect(scale.mark(null)).toBe(NULL_DISPLAY);
+  });
+});
+
+describe("separatingDecimals", () => {
+  it("leaves the default alone when the two ends already read apart", () => {
+    expect(
+      separatingDecimals(value("m", 0), value("m", 0), 10, 90),
+    ).toBeUndefined();
+  });
+
+  it("widens until two ends the default collapses read differently", () => {
+    /*
+     * 6 700 km and 6 710 km both print as "6.7 Mm" at a length's default one
+     * decimal: an interval rendered as a scalar, exactly where its width was
+     * the point.
+     */
+    const decimals = separatingDecimals(
+      value("m", 0),
+      value("m", 0),
+      6_700_000,
+      6_710_000,
+    );
+    expect(decimals).toBeGreaterThan(1);
+  });
+
+  it("returns undefined for a zero-width band rather than six decimals of noise", () => {
+    expect(
+      separatingDecimals(value("m", 0), value("m", 0), 42, 42),
+    ).toBeUndefined();
   });
 });

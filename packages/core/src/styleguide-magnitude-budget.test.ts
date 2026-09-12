@@ -397,7 +397,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/magnitude.ts": 1,
   "packages/ui-kit/src/MissionDate.tsx": 1,
   "packages/ui-kit/src/Unit.tsx": 1,
-  "packages/ui-kit/src/units.ts": 2,
+  /*
+   * 3, up from 2 on 2026-09-12. Each is the SAME unwrap in the same place: the
+   * seam where a quantity object meets `formatQuantity`, which takes the
+   * magnitude and the unit as two arguments. `speakQuantity` and
+   * `writeQuantity` have each spent one there since they existed; `quantityScale`
+   * is the third and spends it identically. Nothing downstream of the seam sees
+   * a bare number, and no arithmetic happens on any of the three.
+   */
+  "packages/ui-kit/src/units.ts": 3,
 };
 
 /**

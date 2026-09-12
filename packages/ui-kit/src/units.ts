@@ -1268,3 +1268,145 @@ export function formatQuantity(
     rung: chosen.symbol,
   };
 }
+
+/**
+ * A scale: one rung, settled once, and every mark printed against it.
+ *
+ * A moving-scale instrument (an altimeter strip, a chart axis, a ruler down the
+ * edge of a widget) has a shape no single-value formatter fits. Its marks go in
+ * a narrow gutter, so they carry NO symbol; the symbol is shown once at the head
+ * of the scale; and every mark has to sit on the same rung, because a ruler
+ * whose marks change unit partway up is not a ruler. Ask each mark to format
+ * itself and the ladder answers per magnitude, which is how a strip ends up
+ * reading "500 m" three marks below "1.0 km".
+ *
+ * So the rung is settled ONCE here, from the value the caller says defines the
+ * scale (the top of the strip, the axis maximum), and {@link QuantityScale.mark}
+ * pins every mark to it. Holding that rule in one place is the whole reason this
+ * exists: a caller pinning each mark by hand has to remember to, on every call,
+ * and the failure is silent when they do not.
+ *
+ * It is deliberately NOT a way to get a formatted string in general. There is no
+ * joined form: a caller who wants "12.4 km" wants {@link writeQuantity}, and one
+ * who can render a node wants `<Unit>`. What this hands back is the two halves
+ * APART, which is the thing neither of those can do and the only reason to be
+ * here.
+ */
+export interface QuantityScale {
+  /** The unit every mark is printed in. */
+  readonly rung: string;
+  /**
+   * The symbol for that rung, to show ONCE beside the scale. Empty for a kind
+   * that displays none, in which case the scale shows no header at all.
+   */
+  readonly symbol: string;
+  /**
+   * One mark, as the bare number: no symbol, because {@link symbol} carries it
+   * for the whole scale.
+   */
+  mark(magnitude: number | null | undefined): string;
+}
+
+/**
+ * Build a {@link QuantityScale} whose rung is taken from `reference`.
+ *
+ * `reference` is the value that DEFINES the scale rather than a value on it:
+ * the top of an altimeter strip, an axis maximum. Its magnitude decides the
+ * rung, and every mark then follows, including marks far smaller than it.
+ *
+ * `opts.format` pins the rung outright, for the cases where convention beats
+ * magnitude, and is passed straight through.
+ */
+export function quantityScale(
+  reference: { magnitude: number; unit: string } | null | undefined,
+  opts: FormatQuantityOptions = {},
+): QuantityScale {
+  const head = formatQuantity(reference?.magnitude, reference?.unit, opts);
+  const unit = reference?.unit;
+  return {
+    rung: head.rung,
+    symbol: head.symbol,
+    mark: (magnitude) =>
+      formatQuantity(magnitude, unit, { ...opts, format: head.rung }).value,
+  };
+}
+
+/** How many digits it takes for two distinct ends to READ as distinct. */
+const MAX_SEPARATING_DECIMALS = 6;
+
+/**
+ * The digit count at which two ends of an interval stop printing the same
+ * thing, or undefined to leave the kind's own default alone.
+ *
+ * An interval rendered as two independent quantities can collapse into one
+ * figure, silently, exactly where its width was the point: a semi-major axis
+ * band of 6 700 km to 6 710 km lands on the megametre rung, where a length's
+ * default one decimal prints both ends as `6.7 Mm`. This is the rule that
+ * widens the digits until the two read differently, and it lives here rather
+ * than beside the renderer because answering it means knowing what the ladder
+ * and the kind's precision will actually do, which is this module's own
+ * knowledge.
+ *
+ * The magnitudes are passed alongside the values rather than read off them: a
+ * caller holding an interval has already had to reach them to decide whether it
+ * has two ends at all.
+ *
+ * <p><b>It only ever widens.</b> A COARSER digit count can separate two ends the
+ * default prints identically, by rounding them away from each other across a
+ * boundary the interval never reaches: a one-sigma band of 47.471 to 47.529
+ * reads as `47.5 – 47.5` at the default single decimal and as `47 – 48` at none,
+ * and the second is an interval seventeen times the width the producer offered.
+ * Both are wrong and the second is worse, because it looks like an answer. So
+ * the default is asked first and kept whenever it separates, and the search
+ * below starts at the default's own precision rather than at zero.</p>
+ */
+export function separatingDecimals(
+  min: { unit: string },
+  max: { unit: string },
+  low: number,
+  high: number,
+  opts: { format?: string; as?: string } = {},
+): number | undefined {
+  if (low === high) {
+    return undefined;
+  }
+  /** One end, under a given precision, or under the kind's own default. */
+  const show = (magnitude: number, unit: string, decimals?: number) =>
+    formatQuantity(
+      magnitude,
+      unit,
+      decimals === undefined ? opts : { ...opts, decimals },
+    );
+  const separatesAt = (decimals?: number): boolean => {
+    const a = show(low, min.unit, decimals);
+    const b = show(high, max.unit, decimals);
+    return a.value !== b.value || a.rung !== b.rung;
+  };
+  if (separatesAt()) {
+    return undefined;
+  }
+
+  /*
+   * How many decimals the default is already printing, found by asking which
+   * fixed count reproduces it. Reproducing the string is the only way to ask:
+   * `formatQuantity` chooses the count from the kind and the rung and does not
+   * report it back, and counting the digits after a separator in the output
+   * cannot tell a decimal point from a grouping mark under an arbitrary
+   * locale. Zero when nothing reproduces it (a laddered or notated rendering),
+   * which falls back to the whole range and is the behaviour this had before.
+   */
+  const printedByDefault = show(low, min.unit).value;
+  let from = 0;
+  for (let decimals = 0; decimals <= MAX_SEPARATING_DECIMALS; decimals++) {
+    if (show(low, min.unit, decimals).value === printedByDefault) {
+      from = decimals;
+      break;
+    }
+  }
+  for (let decimals = from; decimals <= MAX_SEPARATING_DECIMALS; decimals++) {
+    if (separatesAt(decimals)) {
+      return decimals;
+    }
+  }
+  return MAX_SEPARATING_DECIMALS;
+}
