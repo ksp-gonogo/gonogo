@@ -639,6 +639,15 @@ export {
   UnitInput,
   type UnitInputProps,
 } from "./UnitInput";
+// The group half of `<Unit>`: quantities inside one scope settle a single rung
+// per kind, so two ends of an interval and a column of one kind cannot print on
+// rungs of their own. The members report and the group decides, so a caller
+// wraps and names nothing. See its module header.
+export {
+  UnitScale,
+  type UnitScaleProps,
+  useSharedRung,
+} from "./UnitScale";
 // ── Units ───────────────────────────────────────────────────────────────────
 // The contract declares what a field IS; these decide how to SHOW it. The wire
 // is canonical SI and never pre-scaled, so every ladder lives here.

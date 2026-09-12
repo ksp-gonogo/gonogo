@@ -2,6 +2,7 @@ import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import type { ReactNode } from "react";
 import styled from "styled-components";
 import { MicroscopeIcon, StarIcon } from "./Icons";
+import { useSharedRung } from "./UnitScale";
 import {
   ATTACHED_SYMBOLS,
   displaySymbol,
@@ -293,6 +294,12 @@ export function Unit<U extends string = string>({
   className,
   ...opts
 }: UnitProps<U>) {
+  // Reports this quantity to an enclosing `<UnitScale>` and comes back with the
+  // rung the group settled on, so two Units drawing two ends of one interval
+  // cannot land on different rungs. Inert with no scope above it, which is
+  // every existing call site: the ladder answers per value exactly as before.
+  const shared = useSharedRung(value, opts);
+
   // An absent value renders through here too, and comes out as the null token.
   // A reading that has not arrived and one that is explicitly inapplicable owe
   // the reader the same statement, that there is no number here, and neither
@@ -305,7 +312,11 @@ export function Unit<U extends string = string>({
     // rung is still "s", so rendering the rung would print a stray "s" beside
     // a formatted duration. An absent value is the same shape, and renders no
     // unit rather than a unit beside the null token.
-    const formatted = formatQuantity(value?.magnitude, value?.unit, opts);
+    const formatted = formatQuantity(
+      value?.magnitude,
+      value?.unit,
+      shared === undefined ? opts : { ...opts, format: shared },
+    );
     return (
       <Unit__Quantity className={className}>
         {formatted.value}

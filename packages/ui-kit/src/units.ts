@@ -1233,14 +1233,7 @@ export function formatQuantity(
     };
   }
 
-  // The declared unit is not necessarily the ladder's base. The contract
-  // carries what KSP sends, and KSP sends tonnes and kN, so a field can arrive
-  // already partway up its own ladder. Normalise to base before choosing a
-  // rung, or the comparison comes out in the wrong dimension entirely: 5 t
-  // measured against KILOGRAM thresholds falls to the bottom rung and renders
-  // "5.00 kg", a 1000x error wearing a plausible label.
-  const declared = ladder.find((r) => r.symbol === unit);
-  const base = declared ? value * declared.per : value;
+  const base = toBase(value, ladder, unit);
 
   const magnitude = Math.abs(base);
   let chosen = ladder[0];
@@ -1291,6 +1284,13 @@ export function formatQuantity(
  * who can render a node wants `<Unit>`. What this hands back is the two halves
  * APART, which is the thing neither of those can do and the only reason to be
  * here.
+ *
+ * It is also not the way to align a GROUP of readouts, which is a different
+ * question with a different answer. A scale has a reference: the top of the
+ * strip is the axis and every mark on it is below that by construction. A band
+ * has two ends and a table column has N cells, so there is nothing to nominate,
+ * and `<UnitScale>` settles those from what its members report instead. Reach
+ * for this one only where the caller genuinely knows the bound.
  */
 export interface QuantityScale {
   /** The unit every mark is printed in. */
@@ -1329,6 +1329,87 @@ export function quantityScale(
     mark: (magnitude) =>
       formatQuantity(magnitude, unit, { ...opts, format: head.rung }).value,
   };
+}
+
+/**
+ * `value`, in the base unit of the ladder it climbs.
+ *
+ * The declared unit is not necessarily the ladder's base. The contract carries
+ * what KSP sends, and KSP sends tonnes and kN, so a field can arrive already
+ * partway up its own ladder. Normalising before anything compares magnitudes is
+ * what keeps the comparison in one dimension: 5 t measured against KILOGRAM
+ * thresholds falls to the bottom rung and renders "5.00 kg", a 1000x error
+ * wearing a plausible label.
+ */
+function toBase(
+  value: number,
+  ladder: readonly Rung[] | undefined,
+  unit: string | undefined,
+): number {
+  const declared = ladder?.find((r) => r.symbol === unit);
+  return declared ? value * declared.per : value;
+}
+
+/** Where one reading sits on the ladder it climbs. */
+export interface LadderPosition {
+  /**
+   * How big it is in the ladder's BASE unit, absolute.
+   *
+   * The comparable figure, and comparing anything else is the bug: two readings
+   * of one kind can arrive on different rungs (KSP sends tonnes and kN), so
+   * `5 t` taken as it came is the smaller of `5 t` and `900 kg`.
+   */
+  readonly base: number;
+  /** The rung this reading ALONE would climb to, which is what a group votes with. */
+  readonly rung: string;
+}
+
+/**
+ * Where a reading sits on its ladder, for a caller settling one rung across
+ * several readings.
+ *
+ * Both halves of what such a caller needs and neither of them a formatted
+ * string: how the readings compare, and what each of them would have chosen by
+ * itself. The choice between them is the caller's; running the ladder is this
+ * module's, and asking here is what keeps a second copy of it from growing
+ * beside a group renderer.
+ */
+export function ladderPosition(
+  magnitude: number,
+  unit: string | undefined,
+): LadderPosition {
+  const kind = kindOfUnit(unit);
+  const ladder = kind === undefined ? undefined : ladderForUnit(kind, unit);
+  return {
+    base: Math.abs(toBase(magnitude, ladder, unit)),
+    rung: formatQuantity(magnitude, unit).rung,
+  };
+}
+
+/**
+ * The set of rungs a unit may climb within, as a key: two readings can settle
+ * on one rung exactly when they share this.
+ *
+ * Undefined for a unit that never climbs, which is most of them, and that
+ * absence is the guard rather than an omission. A duration, a mission date and
+ * a gravitational parameter all report a `rung` that is not a unit anything may
+ * be pinned to (`"s"`, `"ut"`, the value's own symbol under scientific
+ * notation), so a group that tried to settle one for them would render a true
+ * statement about the wrong quantity. A currency, a ratio and a temperature
+ * have nothing to settle in the first place.
+ *
+ * FAMILY first and kind second, the same order {@link formatQuantity} resolves
+ * a ladder in. Bits and bytes are both `data` and must never share rungs, so
+ * keying on kind alone would put a bit reading on a byte rung the moment the
+ * two appeared in one group.
+ */
+export function unitScaleKey(unit: string | undefined): string | undefined {
+  if (unit === undefined) return undefined;
+  const kind = kindOfUnit(unit);
+  if (kind === undefined || SCIENTIFIC.has(kind)) return undefined;
+  if (ladderForUnit(kind, unit) === undefined) return undefined;
+  const family = FAMILY_BY_SYMBOL[unit];
+  return family === undefined ? `kind:${kind}` : `family:${family}`;
 }
 
 /** How many digits it takes for two distinct ends to READ as distinct. */
