@@ -96,6 +96,17 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
   "RealAntennasAntennaArgs": {
     antennaId: "id",
   },
+  "RealAntennasAntennaChain": {
+    activeStep: "count",
+    antennaId: "id",
+    carrying: "flag",
+    connected: "flag",
+    detail: "text",
+    laps: "count",
+    lastAppliedUt: "ut",
+    settleSeconds: "s",
+    state: "text",
+  },
   "RealAntennasAntennaState": {
     antennaId: "id",
     availableTargetModes: "text",
@@ -148,6 +159,32 @@ export const GENERATED_TYPE_UNITS: Readonly<Record<string, UnitsByField>> = {
     mode: "text",
     vesselId: "id",
   },
+  "RealAntennasTargetChainArgs": {
+    antennaId: "id",
+    settleSeconds: "s",
+  },
+  "RealAntennasTargetStep": {
+    altitude: "m",
+    azimuth: "°",
+    bodyName: "text",
+    elevation: "°",
+    forward: "°",
+    latitude: "°",
+    longitude: "°",
+    mode: "text",
+    vesselId: "id",
+  },
+  "RealAntennasTargetStepArgs": {
+    altitude: "m",
+    azimuth: "°",
+    bodyName: "text",
+    elevation: "°",
+    forward: "°",
+    latitude: "°",
+    longitude: "°",
+    mode: "text",
+    vesselId: "id",
+  },
 };
 
 /**
@@ -165,6 +202,17 @@ export const GENERATED_TOPIC_UNITS: Readonly<Record<string, UnitsByField>> = {
   },
   "comms.linkQuality": {
     value: "ratio",
+  },
+  "realantennas.antennaChains": {
+    activeStep: "count",
+    antennaId: "id",
+    carrying: "flag",
+    connected: "flag",
+    detail: "text",
+    laps: "count",
+    lastAppliedUt: "ut",
+    settleSeconds: "s",
+    state: "text",
   },
   "realantennas.antennas": {
     antennaId: "id",
@@ -222,8 +270,17 @@ export type ShapesByField = Readonly<Record<string, string>>;
  * sample reaches an `agent` under it.
  */
 export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "RealAntennasAntennaChain": {
+    steps: "RealAntennasTargetStep[]",
+  },
+  "RealAntennasTargetChainArgs": {
+    steps: "RealAntennasTargetStepArgs[]",
+  },
 };
 
 /** The same, keyed by Topic id. */
 export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
+  "realantennas.antennaChains": {
+    steps: "RealAntennasTargetStep[]",
+  },
 };

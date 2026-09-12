@@ -14,15 +14,16 @@ namespace Gonogo.RealAntennasUplink;
 /// file does not, since naming a sibling Uplink would trip ITS own frontend
 /// uplink-boundary token).
 ///
-/// <para><b>Three types, three Topic-tagged roots, which is the highest ratio
-/// of any relocated slice.</b> Every type here carries <c>[SitrepTopic]</c>
-/// (<c>comms.linkQuality</c>, <c>comms.dataRate</c>, <c>comms.linkMargin</c>),
-/// so <c>EmitTopicMap</c> names all three. There are no command args at all in
-/// this slice: these channels are read-only observations, and the only thing a
-/// client ever does with RealAntennas is look at it. Nothing nests either, so
-/// <c>EmitUnitMap</c>'s field -&gt; nested-type SHAPE half comes out empty; the
-/// one nested shape in the comms family, <c>CommsHop</c>, hangs off
-/// <c>CommsPath</c> and stays core with it.</para>
+/// <para><b>It began as three types, three Topic-tagged roots, and has grown
+/// past that in both directions.</b> The three link channels
+/// (<c>comms.linkQuality</c>, <c>comms.dataRate</c>, <c>comms.linkMargin</c>)
+/// were the whole of it, and the slice carried no command args at all, because
+/// the only thing a client could do with RealAntennas was look at it. Targeting
+/// added a channel and two commands, and the fallback chain added a channel, a
+/// command and the slice's first NESTED types, so <c>EmitUnitMap</c>'s field
+/// -&gt; nested-type SHAPE half is no longer empty. The one nested shape in the
+/// comms family proper, <c>CommsHop</c>, still hangs off <c>CommsPath</c> and
+/// stays core with it.</para>
 ///
 /// <para><b>Every declared quantity here is real, which is what makes this
 /// slice the mirror image of the one before it.</b> All four annotated
@@ -48,9 +49,9 @@ namespace Gonogo.RealAntennasUplink;
 /// types lived in <c>Sitrep.Contract</c>. It does not any more, so this Uplink's
 /// client package (<c>topics.ts</c>) calls the SDK's <c>registerTopicUnits</c>
 /// AND <c>registerTypeUnits</c> at module load, feeding them the maps this
-/// Configure emits below. Both halves are wired even though nothing in this
-/// slice nests today: the loop form means the next annotated field on this
-/// contract is covered without a new call site.</para>
+/// Configure emits below. Both halves were wired before anything in this slice
+/// nested, on the grounds that the loop form would need no new call site when
+/// something did, and the fallback chain's entries are what did.</para>
 /// </summary>
 public static class RealAntennasRtConfig
 {
@@ -102,6 +103,26 @@ public static class RealAntennasRtConfig
             // angles and distances rather than leaving them bare numbers.
             typeof(RealAntennasTargetArgs),
             typeof(RealAntennasAntennaArgs),
+            // The fallback chain. RealAntennasAntennaChain carries
+            // [SitrepTopic] (realantennas.antennaChains, a bare ARRAY again) and
+            // RealAntennasTargetChainArgs carries [SitrepCommand]; the two STEP
+            // types are neither, being nested elements of one each, and they are
+            // the first types in this slice to nest rather than be channel roots,
+            // so they are what finally gives EmitUnitMap's field -> nested-type
+            // SHAPE half something to emit.
+            //
+            // Two step types rather than one, and ApplyUnitValueTypes is exactly
+            // why: it skips a type whose name ends in "Args", because a Value
+            // serialises as { magnitude, unit } and the mod's command binder
+            // rejects that where it wants a number. So a chain entry the client
+            // SENDS has to stay bare and a chain entry the client READS has to
+            // carry its units, and no one type can be both. It is the same split
+            // RealAntennasTargetArgs already has against the antenna channel's
+            // target fields.
+            typeof(RealAntennasTargetStepArgs),
+            typeof(RealAntennasTargetStep),
+            typeof(RealAntennasTargetChainArgs),
+            typeof(RealAntennasAntennaChain),
         };
 
         builder.ExportAsInterfaces(wireTypes, c => c.AutoI(false).WithPublicProperties());

@@ -62,6 +62,17 @@
     "RealAntennasAntennaArgs": {
       "antennaId": "id"
     },
+    "RealAntennasAntennaChain": {
+      "activeStep": "count",
+      "antennaId": "id",
+      "carrying": "flag",
+      "connected": "flag",
+      "detail": "text",
+      "laps": "count",
+      "lastAppliedUt": "ut",
+      "settleSeconds": "s",
+      "state": "text"
+    },
     "RealAntennasAntennaState": {
       "antennaId": "id",
       "availableTargetModes": "text",
@@ -113,6 +124,32 @@
       "longitude": "°",
       "mode": "text",
       "vesselId": "id"
+    },
+    "RealAntennasTargetChainArgs": {
+      "antennaId": "id",
+      "settleSeconds": "s"
+    },
+    "RealAntennasTargetStep": {
+      "altitude": "m",
+      "azimuth": "°",
+      "bodyName": "text",
+      "elevation": "°",
+      "forward": "°",
+      "latitude": "°",
+      "longitude": "°",
+      "mode": "text",
+      "vesselId": "id"
+    },
+    "RealAntennasTargetStepArgs": {
+      "altitude": "m",
+      "azimuth": "°",
+      "bodyName": "text",
+      "elevation": "°",
+      "forward": "°",
+      "latitude": "°",
+      "longitude": "°",
+      "mode": "text",
+      "vesselId": "id"
     }
   },
   "topics": {
@@ -126,6 +163,17 @@
     },
     "comms.linkQuality": {
       "value": "ratio"
+    },
+    "realantennas.antennaChains": {
+      "activeStep": "count",
+      "antennaId": "id",
+      "carrying": "flag",
+      "connected": "flag",
+      "detail": "text",
+      "laps": "count",
+      "lastAppliedUt": "ut",
+      "settleSeconds": "s",
+      "state": "text"
     },
     "realantennas.antennas": {
       "antennaId": "id",
@@ -158,9 +206,16 @@
     }
   },
   "typeShapes": {
-
+    "RealAntennasAntennaChain": {
+      "steps": "RealAntennasTargetStep[]"
+    },
+    "RealAntennasTargetChainArgs": {
+      "steps": "RealAntennasTargetStepArgs[]"
+    }
   },
   "topicShapes": {
-
+    "realantennas.antennaChains": {
+      "steps": "RealAntennasTargetStep[]"
+    }
   }
 }

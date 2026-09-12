@@ -35,9 +35,14 @@ import {
   Unit,
   usePanelDelay,
 } from "@ksp-gonogo/ui-kit";
-import { useId, useState } from "react";
-import type { RealAntennasAntennaState } from "../__generated__/contract";
+import { useCallback, useId, useState } from "react";
+import type {
+  RealAntennasAntennaChain,
+  RealAntennasAntennaState,
+  RealAntennasTargetStepArgs,
+} from "../__generated__/contract";
 import { REALANTENNAS } from "../uplink";
+import { AntennaChain } from "./chain";
 // Side-effect imports: the Topic and command registrations this augment reads
 // and sends through.
 import "../commands";
@@ -74,11 +79,13 @@ function numberOf(text: string): number | undefined {
 
 interface AntennaCardProps {
   antenna: RealAntennasAntennaState;
+  /** What the craft reports this antenna holding as a fallback chain, if anything. */
+  chain: RealAntennasAntennaChain | undefined;
   bodies: readonly string[];
   vessels: readonly { id: string; name: string }[];
 }
 
-function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
+function AntennaCard({ antenna, chain, bodies, vessels }: AntennaCardProps) {
   const fieldId = useId();
   const [mode, setMode] = useState<ModeId>("BodyCenter");
   const [bodyName, setBodyName] = useState("");
@@ -94,6 +101,28 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
   const targetHome = useCommand("realantennas.antenna.targetHome");
   usePanelDelay(target);
   usePanelDelay(targetHome);
+
+  /**
+   * The chain the operator is composing, held here rather than in the chain
+   * block because it is built out of the aim controls above: staging an entry is
+   * "the target I have just described, as a fallback" rather than a second set
+   * of fields saying the same thing twice.
+   */
+  const [draft, setDraft] = useState<RealAntennasTargetStepArgs[]>([]);
+  const composed = (): RealAntennasTargetStepArgs => ({
+    mode,
+    vesselId: vesselId || undefined,
+    bodyName: bodyName || undefined,
+    latitude: numberOf(latitude),
+    longitude: numberOf(longitude),
+    altitude: numberOf(altitude),
+    azimuth: numberOf(azimuth),
+    elevation: numberOf(elevation),
+    forward: numberOf(forward),
+  });
+  const stage = () => setDraft((entries) => [...entries, composed()]);
+  const unstage = () => setDraft((entries) => entries.slice(0, -1));
+  const clearDraft = useCallback(() => setDraft([]), []);
 
   const unlocked = antenna.availableTargetModes ?? [];
   const modeIsUnlocked = (id: ModeId): boolean => unlocked.includes(id);
@@ -374,6 +403,16 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
                 pendingLabel="Aiming..."
               />
             </Cluster>
+
+            <AntennaChain
+              antennaId={antenna.antennaId}
+              antennaName={antennaName}
+              chain={chain}
+              draft={draft}
+              onStage={stage}
+              onUnstage={unstage}
+              onSent={clearDraft}
+            />
           </Stack>
         ) : null}
       </Stack>
@@ -387,12 +426,24 @@ function AntennaCard({ antenna, bodies, vessels }: AntennaCardProps) {
  */
 function CommSignalAntennaTargets() {
   const antennasReading = useTelemetry("realantennas.antennas");
+  const chainsReading = useTelemetry("realantennas.antennaChains");
   const bodiesReading = useTelemetry("system.bodies");
   const vesselsReading = useTelemetry("system.vessels");
 
   const antennas =
     antennasReading.state === "observed" ? antennasReading.value : undefined;
   if (!antennas || antennas.length === 0) return null;
+
+  /*
+    Joined by antenna address rather than by position. The chain channel carries
+    only the antennas that HAVE a chain, which is usually none of them, so the
+    two arrays do not correspond index for index and never did.
+  */
+  const chains = new Map(
+    (chainsReading.state === "observed" ? chainsReading.value : []).map(
+      (chain) => [chain.antennaId, chain],
+    ),
+  );
 
   const bodies =
     bodiesReading.state === "observed"
@@ -415,6 +466,7 @@ function CommSignalAntennaTargets() {
         <AntennaCard
           key={antenna.antennaId}
           antenna={antenna}
+          chain={chains.get(antenna.antennaId)}
           bodies={bodies}
           vessels={vessels}
         />
@@ -427,7 +479,12 @@ registerAugment({
   id: "realantennas-comm-signal-antenna-targets",
   augments: "comm-signal.sections",
   requires: "realantennas",
-  channels: ["realantennas.antennas", "system.bodies", "system.vessels"],
+  channels: [
+    "realantennas.antennas",
+    "realantennas.antennaChains",
+    "system.bodies",
+    "system.vessels",
+  ],
   component: CommSignalAntennaTargets,
   owner: REALANTENNAS,
 });

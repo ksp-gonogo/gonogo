@@ -1539,7 +1539,30 @@ namespace Sitrep.Contract
         /// inside. The mod has read the same table all along, in
         /// <c>Gonogo.KSP.KspVesselActuator.SetWarp</c>, to bound the very command
         /// the client was aiming blind.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 3 -&gt; 4: an antenna can be given a
+        /// fallback chain rather than one target.</b> Three new types, all in the
+        /// RealAntennas Uplink's own contract slice:
+        /// <c>RealAntennasTargetStep</c> (one entry of a chain),
+        /// <c>RealAntennasTargetChainArgs</c> (the
+        /// <c>realantennas.antenna.targetChain</c> command) and
+        /// <c>RealAntennasAntennaChain</c> (the new
+        /// <c>realantennas.antenna.chains</c> channel). Additive, nothing removed
+        /// or retyped, so an Uplink built against 16.3 is unaffected and the
+        /// frozen Major-16 floor is NOT re-frozen. The bump is here because the
+        /// version is one number for the whole wire, the same reason the RP-1
+        /// slice's own additions bumped it.</para>
+        ///
+        /// <para>They exist because a single target cannot express what an
+        /// operator actually wants from a steerable dish: aim at home, and if
+        /// there is no link from there try the Mun, and so on down a list. The two
+        /// commands that existed each set ONE target, so the fallback had to be
+        /// flown by hand from the ground, and the ground is exactly where it
+        /// cannot be flown: the moment a fallback is needed is the moment no
+        /// command can arrive. The chain therefore rides light-time once and is
+        /// walked by the craft, and the wire needed a way to say what the list is,
+        /// which entry is in place, and why.</para>
         /// </remarks>
-        public const int Minor = 3;
+        public const int Minor = 4;
     }
 }

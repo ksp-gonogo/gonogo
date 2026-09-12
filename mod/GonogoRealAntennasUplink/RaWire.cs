@@ -128,6 +128,72 @@ namespace Gonogo.RealAntennasUplink
         }
 
         /// <summary>
+        /// The <c>realantennas.antennaChains</c> channel value: a bare ARRAY,
+        /// one flattened entry per chained antenna on the reported craft. An
+        /// empty list is a legitimate value (the craft holds no chain), not typed
+        /// absence.
+        ///
+        /// <para>Each entry nests its own <c>steps</c> array, which is the first
+        /// nesting on this Uplink's wire. The three flags that carry three
+        /// answers each (<c>activeStep</c>, <c>connected</c>, <c>carrying</c>)
+        /// stay null rather than collapsing: a walk that has never started and a
+        /// walk on its first entry are different states, and an unread link is
+        /// not a lost one.</para>
+        /// </summary>
+        public static List<Dictionary<string, object?>> Chains(IReadOnlyList<RealAntennasAntennaChain> chains)
+        {
+            var list = new List<Dictionary<string, object?>>(chains.Count);
+            foreach (var chain in chains)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["antennaId"] = chain.AntennaId,
+                    ["steps"] = Steps(chain.Steps),
+                    ["activeStep"] = chain.ActiveStep,
+                    ["state"] = chain.State,
+                    ["detail"] = chain.Detail,
+                    ["settleSeconds"] = chain.SettleSeconds,
+                    ["lastAppliedUt"] = chain.LastAppliedUt,
+                    ["laps"] = chain.Laps,
+                    ["connected"] = chain.Connected,
+                    ["carrying"] = chain.Carrying,
+                    ["meta"] = Meta(chain.Meta),
+                });
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// One chain's entries. Every optional field is emitted whether or not the
+        /// entry's mode reads it, so a client can render the entry it sent back
+        /// without inferring which keys a mode implies.
+        /// </summary>
+        private static List<Dictionary<string, object?>> Steps(IReadOnlyList<RealAntennasTargetStep>? steps)
+        {
+            var list = new List<Dictionary<string, object?>>(steps?.Count ?? 0);
+            if (steps == null)
+            {
+                return list;
+            }
+            foreach (var step in steps)
+            {
+                list.Add(new Dictionary<string, object?>
+                {
+                    ["mode"] = step.Mode,
+                    ["vesselId"] = step.VesselId,
+                    ["bodyName"] = step.BodyName,
+                    ["latitude"] = step.Latitude,
+                    ["longitude"] = step.Longitude,
+                    ["altitude"] = step.Altitude,
+                    ["azimuth"] = step.Azimuth,
+                    ["elevation"] = step.Elevation,
+                    ["forward"] = step.Forward,
+                });
+            }
+            return list;
+        }
+
+        /// <summary>
         /// <c>{ source, quality }</c>, quality as its integer ordinal. A null
         /// meta collapses to the same defaults core's own writer used (empty
         /// source, <c>Quality.OnRails</c>), so a payload built without one keeps

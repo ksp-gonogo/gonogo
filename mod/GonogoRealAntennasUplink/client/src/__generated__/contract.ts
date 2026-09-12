@@ -6,6 +6,217 @@ import { Value, Vec3Of } from '@ksp-gonogo/sitrep-sdk';
 import { PayloadMeta } from '@ksp-gonogo/sitrep-sdk';
 
 /**
+* One entry of a chain as the OPERATOR SENDS it: a target, and nothing about
+* when to use it. Position in the chain is what says when.
+*
+* This is the mode-and-parameters half of `RealAntennasTargetArgs` with the
+* antenna taken off, because an entry names a place to aim and the chain names
+* the antenna that aims there. Which of the optional fields are read depends
+* on `RealAntennasTargetStepArgs.mode`, and a field the mode does not read is
+* ignored rather than refused, exactly as for the single-target command.
+*
+* **There is no "home" entry, and none is needed.** `BodyCenter` with no
+* `RealAntennasTargetStepArgs.bodyName` is the home body's centre, the same
+* aim point `realantennas.antenna.targetHome` produces.
+*
+* **It has a read-side twin, `RealAntennasTargetStep`, and the split is the
+* same one the single-target command already makes.** A write shape carries
+* plain numbers, because a client builds it and it goes straight onto the
+* wire; a read shape carries each number with its unit, because a client
+* renders it. Which is why this pair reads exactly like
+* `RealAntennasTargetArgs` beside `RealAntennasAntennaState`'s target fields.
+*/
+export interface RealAntennasTargetStepArgs
+{
+	/**
+	* One of `Vessel`, `BodyCenter`, `BodyLatLonAlt`, `AzEl`, `OrbitRelative`.
+	* Anything else is refused, and it is refused for the WHOLE chain rather than
+	* for the entry: a chain accepted with one unusable entry in it would silently
+	* skip a fallback the operator is relying on.
+	*/
+	mode: string;
+	/** The vessel to point at, for `Vessel`. Ignored by every other mode. */
+	vesselId?: string;
+	/** The body, for `BodyCenter` and `BodyLatLonAlt`. Empty means the home body. */
+	bodyName?: string;
+	/** Latitude (degrees, -90..90), for `BodyLatLonAlt`. */
+	latitude?: number;
+	/** Longitude (degrees, -180..360), for `BodyLatLonAlt`. */
+	longitude?: number;
+	/**
+	* Altitude above the surface (metres), for `BodyLatLonAlt`. Omitted means the
+	* surface.
+	*/
+	altitude?: number;
+	/** Azimuth (degrees, 0..360), for `AzEl`. */
+	azimuth?: number;
+	/** Elevation (degrees, -90..90), for `AzEl` and `OrbitRelative`. */
+	elevation?: number;
+	/** Deflection from prograde (degrees, -180..180), for `OrbitRelative`. */
+	forward?: number;
+}
+/**
+* One entry of a chain as the CRAFT REPORTS it, on
+* `realantennas.antennaChains`. Field for field the same target as
+* `RealAntennasTargetStepArgs`, which is what the operator sent.
+*
+* Every number here arrives with its unit, because this side is read and
+* rendered. That is the only difference between the two, and it is why there
+* are two: see the write twin for the rule.
+*/
+export interface RealAntennasTargetStep
+{
+	/**
+	* The target's mode: `Vessel`, `BodyCenter`, `BodyLatLonAlt`, `AzEl` or
+	* `OrbitRelative`.
+	*
+	* It comes back as the operator sent it, including `BodyCenter`, which is NOT
+	* how RealAntennas stores the target it lowers to. This is the chain the craft
+	* is holding rather than a reading of the antenna, and a chain is what was
+	* asked for.
+	*/
+	mode: string;
+	/** The vessel to point at, for `Vessel`. Null for every other mode. */
+	vesselId?: string;
+	/** The body, for `BodyCenter` and `BodyLatLonAlt`. Null means the home body. */
+	bodyName?: string;
+	/** Latitude (degrees), for `BodyLatLonAlt`. */
+	latitude?: Value<"°">;
+	/** Longitude (degrees), for `BodyLatLonAlt`. */
+	longitude?: Value<"°">;
+	/** Altitude above the surface (metres), for `BodyLatLonAlt`. */
+	altitude?: Value<"m">;
+	/** Azimuth (degrees), for `AzEl`. */
+	azimuth?: Value<"°">;
+	/** Elevation (degrees), for `AzEl` and `OrbitRelative`. */
+	elevation?: Value<"°">;
+	/** Deflection from prograde (degrees), for `OrbitRelative`. */
+	forward?: Value<"°">;
+}
+/**
+* Args for `realantennas.antenna.targetChain`: hand one antenna an ordered
+* list of targets, to be tried in order whenever the craft has no link.
+*
+* Sending an EMPTY list clears the chain, which is the only way to stop a
+* walk. There is no second command for it: a clear is the same operator
+* decision as a change, and a chain of no entries is not a chain.
+*
+* Replaces whatever chain the antenna already held rather than appending to
+* it, so a client always sends the whole list it means.
+*
+* **The chain does not aim the antenna when it arrives.** It is stored, and
+* the first entry is applied on the first evaluation that finds the craft
+* without a link. An antenna already carrying traffic keeps carrying it: a
+* chain is a fallback, and arming one must not cost the operator the link they
+* still have.
+*/
+export interface RealAntennasTargetChainArgs
+{
+	/** Which antenna, as `RealAntennasAntennaState.antennaId` gives it. */
+	antennaId: string;
+	/**
+	* The targets, in the order they are to be tried. Empty clears the chain.
+	*
+	* Every entry is validated against the antenna's tech level before any of them
+	* is stored, on the same gate the single-target command applies, so a chain
+	* cannot hold an entry the antenna has not earned.
+	*/
+	steps: RealAntennasTargetStepArgs[];
+	/**
+	* How long to leave an entry in place before judging it, in seconds of game
+	* time. Omitted takes the default the craft applies.
+	*
+	* It exists because a link is not lost and regained instantly: an aim point
+	* takes a moment to be solved, and a craft crossing a terminator flickers. Too
+	* short and the chain walks past a target that was about to work; too long and
+	* a real outage lasts longer than it had to.
+	*/
+	settleSeconds?: number;
+}
+/**
+* One antenna's fallback chain as the craft currently holds it, on the
+* `realantennas.antennaChains` channel: the list, which entry is in place, and
+* why. The channel value is a bare ARRAY of these, one entry per antenna of
+* the reported craft that has a chain, so an empty array means the craft has
+* none.
+*
+* DELAYED, for the same reason `realantennas.antennas` is: this is state held
+* on the craft, and the walk that changes it happens there.
+*
+* Scoped to the REPORTED craft, though the craft walks every chain it holds. A
+* chain set on another vessel keeps being evaluated and is simply not
+* described here, because a delayed channel is delayed by the reported
+* vessel's own light-time and cannot carry another craft's state at the right
+* age.
+*/
+export interface RealAntennasAntennaChain
+{
+	/** Which antenna, as `RealAntennasAntennaState.antennaId` gives it. */
+	antennaId: string;
+	/** The chain, in the order the craft tries it. */
+	steps: RealAntennasTargetStep[];
+	/**
+	* Which entry the antenna is currently aimed at, as an index into
+	* `RealAntennasAntennaChain.steps`.
+	*
+	* `null` means the walk has not started: the craft has had a link for as long
+	* as it has held this chain, so no entry has ever been applied and the antenna
+	* is still aimed wherever it was. That is the normal resting state of a
+	* fallback, not a fault.
+	*/
+	activeStep?: Value<"count">;
+	/**
+	* What the walk is doing: `holding` (the craft has a link, nothing to do),
+	* `settling` (an entry was just applied and is being given its time),
+	* `walking` (no link, and entries are being tried), or `blocked` (there is no
+	* link and the chain cannot act, with `RealAntennasAntennaChain.detail` saying
+	* why).
+	*/
+	state: string;
+	/**
+	* Why the walk is in the state it is, in one sentence for an operator. Always
+	* present for `blocked`, because a chain that cannot act is the one case where
+	* the state alone is not enough to act on.
+	*/
+	detail?: string;
+	/** The settle time in force for this chain (seconds of game time). */
+	settleSeconds: Value<"s">;
+	/**
+	* When the craft last aimed this antenna from the chain. `null` while
+	* `RealAntennasAntennaChain.activeStep` is null, there being no such moment.
+	*/
+	lastAppliedUt?: Value<"ut">;
+	/**
+	* How many times the walk has been all the way through the chain without the
+	* craft regaining a link. Zero on a chain that is holding.
+	*
+	* It is the number that says a chain has stopped being a fallback and become a
+	* search: every entry has been tried and none of them worked, and the cause is
+	* not in the list.
+	*/
+	laps: Value<"count">;
+	/**
+	* Whether the craft holding this antenna has a comms link, which is the signal
+	* the whole walk turns on.
+	*
+	* `null` means nobody could read it, and the walk treats that as a reason NOT
+	* to act: advancing on an unreadable signal would slew a dish that may be
+	* carrying the link.
+	*/
+	connected?: boolean;
+	/**
+	* Whether THIS antenna is an endpoint of one of the craft's live links, rather
+	* than a dish aimed somewhere that nothing is using.
+	*
+	* It is not what the walk decides on, and it is what tells an operator whether
+	* the entry in place is the one doing the work: a craft can be connected
+	* through an omni while the chain's dish points at nothing. `null` when it
+	* could not be read.
+	*/
+	carrying?: boolean;
+	meta: PayloadMeta;
+}
+/**
 * The `comms.linkQuality` payload: RealAntennas-ONLY (absent without RA). Link
 * margin normalised to 0..1 (comms-uplink-design.md §2.2/§4.3).
 */

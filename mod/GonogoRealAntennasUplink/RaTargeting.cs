@@ -123,28 +123,67 @@ namespace Gonogo.RealAntennasUplink
         /// </summary>
         public CommandResult Target(Vessel? vessel, RealAntennasTargetArgs? args)
         {
-            if (args == null)
-            {
-                return CommandResult.Fail(CommandErrorCode.Range, "No arguments supplied.");
-            }
-            if (!TryResolveSteerable(vessel, args.AntennaId, out var antenna, out var refusal))
+            if (!TryPlan(vessel, args, out var antenna, out var values, out var refusal))
             {
                 return refusal!;
+            }
+            return Apply(antenna!, values!);
+        }
+
+        /// <summary>
+        /// MAIN THREAD: everything <see cref="Target"/> does EXCEPT aiming the
+        /// antenna. <c>Ok</c> means this request would be accepted as it stands.
+        ///
+        /// <para>It is what lets a fallback chain be checked entry by entry at the
+        /// moment the operator sends it, rather than each entry failing silently
+        /// hours later when the walk reaches it. A chain holding a mode the
+        /// antenna has not earned is a fallback that is not there.</para>
+        /// </summary>
+        public CommandResult Plan(Vessel? vessel, RealAntennasTargetArgs? args) =>
+            TryPlan(vessel, args, out _, out _, out var refusal) ? CommandResult.Ok() : refusal!;
+
+        /// <summary>
+        /// The whole decision: resolve the antenna, judge the request, and lower
+        /// it to the name/value pairs the <c>TARGET</c> node wants. Every refusal
+        /// either command can make is made here.
+        /// </summary>
+        private bool TryPlan(
+            Vessel? vessel,
+            RealAntennasTargetArgs? args,
+            out object? antenna,
+            out Dictionary<string, string>? values,
+            out CommandResult? refusal)
+        {
+            antenna = null;
+            values = null;
+            refusal = null;
+            if (args == null)
+            {
+                refusal = CommandResult.Fail(CommandErrorCode.Range, "No arguments supplied.");
+                return false;
+            }
+            if (!TryResolveSteerable(vessel, args.AntennaId, out antenna, out refusal))
+            {
+                return false;
             }
 
             var mode = args.Mode ?? "";
             if (!RaTargetPlan.IsKnownMode(mode))
             {
-                return CommandResult.Fail(
+                refusal = CommandResult.Fail(
                     CommandErrorCode.Range,
                     "Unknown target mode '" + mode + "'. Expected one of: "
                         + string.Join(", ", RaTargetPlan.AllModes) + ".");
+                antenna = null;
+                return false;
             }
 
             var techLevel = _ra.TechLevel(antenna!);
             if (!RaTargetPlan.ModeIsUnlocked(mode, techLevel, _ra.TargetModeTechLevels(), out var required))
             {
-                return TechLevelRefusal(mode, techLevel, required);
+                refusal = TechLevelRefusal(mode, techLevel, required);
+                antenna = null;
+                return false;
             }
 
             // The body is resolved here rather than in the plan because
@@ -161,14 +200,17 @@ namespace Gonogo.RealAntennasUplink
                     OwnVesselId(antenna!, vessel),
                     body?.name,
                     body?.Radius ?? 0.0,
-                    out var values,
+                    out values,
                     out var error,
                     out var detail))
             {
-                return CommandResult.Fail(error, detail);
+                refusal = CommandResult.Fail(error, detail);
+                antenna = null;
+                values = null;
+                return false;
             }
 
-            return Apply(antenna!, values);
+            return true;
         }
 
         /// <summary>
@@ -338,7 +380,7 @@ namespace Gonogo.RealAntennasUplink
                     + (techLevel?.ToString(CultureInfo.InvariantCulture) ?? "an unreadable level") + ".");
 
         /// <summary>The RealAntennas antennas of a craft, empty when there are none to read.</summary>
-        private IReadOnlyList<object> Antennas(Vessel? vessel) =>
+        internal IReadOnlyList<object> Antennas(Vessel? vessel) =>
             _ra.NodeAntennas(vessel?.connection?.Comm);
 
         /// <summary>
@@ -355,7 +397,7 @@ namespace Gonogo.RealAntennasUplink
         /// than none, and the command that could destroy an aim point refuses
         /// that craft anyway.</para>
         /// </summary>
-        private string[] AntennaIds(IReadOnlyList<object> antennas)
+        internal string[] AntennaIds(IReadOnlyList<object> antennas)
         {
             var ids = new string[antennas.Count];
             var seen = new Dictionary<string, int>();

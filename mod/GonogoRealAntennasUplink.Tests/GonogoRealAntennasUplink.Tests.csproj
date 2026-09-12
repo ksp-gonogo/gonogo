@@ -50,6 +50,15 @@
          (the KSP half is RaTargeting, which is not compiled here), so every
          branch of it is reachable headlessly. -->
     <Compile Include="..\GonogoRealAntennasUplink\RaTargetPlan.cs" />
+    <!-- The fallback chain's decision and its store. RaChainPolicy is when the
+         walk moves and where to, and RaChainRegister is what the craft is
+         holding; neither touches KSP or RealAntennas (the game-facing half is
+         RaChains, which is not compiled here), so every branch of both is
+         reachable headlessly. That matters more here than for the single-target
+         plan: the walk acts on its own, so nothing else is going to notice it
+         getting a decision wrong. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaChainPolicy.cs" />
+    <Compile Include="..\GonogoRealAntennasUplink\RaChainRegister.cs" />
   </ItemGroup>
 
   <!-- RaRouting.cs is the RA route between two nodes, carved out of
@@ -72,6 +81,9 @@
          referenced a type that is gated, and broke the build on any machine
          without the KSP assemblies while passing on every machine with them. -->
     <Compile Remove="RaCommsBackendSharedShapeTests.cs" />
+    <!-- The chain's save round-trip: a ConfigNode is KSP's, so both the code
+         under test and the test naming it belong under the gate below. -->
+    <Compile Remove="RaChainPersistenceTests.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(KspManagedAvailable)' == 'true'">
@@ -92,6 +104,13 @@
     <Compile Include="..\GonogoRealAntennasUplink\RaOcclusion.cs" />
     <Compile Include="Routing\**\*.cs" />
     <Compile Include="RaCommsBackendSharedShapeTests.cs" />
+    <!-- Fallback-chain persistence. It is the half of the feature that makes a
+         chain intent rather than a session setting, so it is worth pinning even
+         though it only compiles where the KSP assemblies are: a chain that did
+         not survive a reload would leave an antenna on whatever entry the walk
+         last reached with nothing left to move it. -->
+    <Compile Include="..\GonogoRealAntennasUplink\RaChainPersistence.cs" />
+    <Compile Include="RaChainPersistenceTests.cs" />
   </ItemGroup>
 
   <Target Name="WarnIfKspManagedMissing" BeforeTargets="Build" Condition="'$(KspManagedAvailable)' != 'true'">
