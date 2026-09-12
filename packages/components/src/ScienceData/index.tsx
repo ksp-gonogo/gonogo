@@ -48,11 +48,6 @@ const topics = defineTopicManifest({
 
 type ScienceDataConfig = Record<string, never>;
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -97,7 +92,7 @@ function ScienceDataComponent({
   const surfaceReading = useTelemetry("vessel.surface");
   const surface =
     surfaceReading.state === "observed" ? surfaceReading.value : undefined;
-  const surfaceNotCurrent = notCurrent(surfaceReading);
+  const surfaceNotCurrent = surfaceReading.state === "stale";
   const landedAt = surface?.landedAt;
   // Live biome from `ScienceUtil.GetExperimentBiome`, works in flight +
   // space scenes (e.g. "FlyingHigh", "Splashed - OceanWater"), unlike

@@ -242,11 +242,6 @@ interface Applicant {
  *  books, so they take their safe zero and those badges never render. Rank
  *  is retained on the model (astronauts keep experience when dismissed and
  *  rehired) but withheld from display via `showRank={false}`. */
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -335,7 +330,7 @@ function AstronautComplexComponent(
    * whenever a figure is on screen. A held reading is exactly the case where
    * the figure above was withheld, so the two can never disagree.
    */
-  const fundsNotCurrent = notCurrent(fundsReading);
+  const fundsNotCurrent = fundsReading.state === "stale";
   /**
    * Crew are a standing cost, not a one-off: a hire this balance covers today
    * adds to a payroll the same balance keeps paying. The rate comes from

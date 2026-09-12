@@ -1,8 +1,6 @@
 import type { ComponentProps } from "@ksp-gonogo/core";
 import { registerComponent, useTelemetry } from "@ksp-gonogo/core";
 import {
-  bandFor,
-  bandIn,
   DELTA_V_BUDGET,
   type Reading,
   type ReadingState,
@@ -657,36 +655,30 @@ function LandingStatusComponent({
     landing?.sampleSource != null &&
     (!atmospheric || atmosphericPlotsShown);
   /*
-   * The band-aware arm of the hazard grading, and NOTHING FEEDS IT. This is
-   * `undefined` on every frame, and the paragraph that used to sit here said
-   * the opposite: that "the model banded `vessel.flight.verticalSpeed`".
+   * EVERY AXIS HERE GRADES ON ITS POINT ESTIMATE, and no band is passed,
+   * because none exists to pass. `deriveHazardVerdict` can take an interval per
+   * axis and withhold a verdict where one straddles a threshold; the arm this
+   * widget used to wire into it asked `Reckoning.bands` for a band at
+   * `"verticalSpeed"` and got `undefined` on every frame it ever ran.
    *
-   * No model in this tree implements `TopicModel.bandAt` for `vessel.flight`,
-   * which is the only source `Reckoning.bands` has. The core reckoner moves
-   * `altitudeAsl` alone below the air and `altitudeAsl` + `orbitalSpeed` above
-   * it, and offers no interval for either. `verticalSpeed` is not among the
-   * topic's declared reckonable fields at all: the atmospheric branch copies it
-   * verbatim off the observation, and a measured rate the wire carries once has
-   * neither residuals to take a sigma from nor a bound to claim, so it is not a
-   * field a band is coming for. The lateral rate is composed from two of them by
-   * `solveSuicideBurn` and the slope comes off `vessel.landing`, so every axis
-   * here grades on its point estimate.
+   * Two reasons, and either alone is enough. `verticalSpeed` is not among
+   * `vessel.flight`'s declared reckonable fields (`altitudeAsl` and
+   * `orbitalSpeed` are), so no path on a reckoning is ever keyed by it: the
+   * atmospheric branch copies the rate verbatim off the observation. And no
+   * model in this tree implements `TopicModel.bandAt` for `vessel.flight` at
+   * all, which is the only source `bands` has. A measured rate the wire carries
+   * once has neither residuals to take a sigma from nor a bound to claim, so it
+   * is not a field a band is coming for either.
    *
-   * Kept wired rather than deleted because the arm is correct and costs a
-   * lookup: the day something bands the descent rate the grading widens on its
-   * own. What it is not is evidence that a reckoned band reaches this widget.
+   * The lateral rate is composed from two rates by `solveSuicideBurn` and the
+   * slope comes off `vessel.landing`, so the same holds for both of those.
    */
-  const verticalSpeedBand =
-    flightReading.reckoning === "available"
-      ? bandIn(bandFor(flightReading.reckoned, "verticalSpeed"), "m/s")
-      : undefined;
   const hazardVerdict = deriveHazardVerdict({
     slopeDeg: landing?.predictedSlopeAngle?.magnitude,
     roughnessSigma: landing?.predictedRoughness?.magnitude,
     verticalSpeed: solution.verticalSpeed,
     lateralSpeed: solution.horizontalSpeed,
     biome: landing?.predictedBiome,
-    verticalSpeedBand,
   });
   // The velocity vector + TWR only carry a meaningful vacuum picture for a
   // solved descent at a wide size; elsewhere fall back to the plain, always-

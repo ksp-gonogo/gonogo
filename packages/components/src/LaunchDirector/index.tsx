@@ -290,11 +290,6 @@ const VESSEL_TYPE_LABELS: readonly string[] = [
   "Unknown",
 ];
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -508,7 +503,7 @@ function LaunchDirectorComponent({
    * the same priced craft, so the caption has to separate them: otherwise the
    * widget accuses the link of dropping on every cold start.
    */
-  const fundsNotCurrent = notCurrent(careerReading);
+  const fundsNotCurrent = careerReading.state === "stale";
   /**
    * The standing cost the balance is also paying for. A craft this widget calls
    * launchable is one the balance covers today, which is not the same claim as

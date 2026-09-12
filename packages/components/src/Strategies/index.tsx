@@ -89,11 +89,6 @@ export interface Strategy {
   effect: string;
 }
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -333,7 +328,7 @@ function StrategiesComponent({
    * Both blank the figures and both refuse Activate, but only one of them is a
    * statement about the link, and the operator acts differently on each.
    */
-  const balancesNotCurrent = notCurrent(careerReading);
+  const balancesNotCurrent = careerReading.state === "stale";
   /**
    * A strategy commits funds against a programme that may already be running a
    * standing cost, so the balance beside the Activate control is only half of

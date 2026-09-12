@@ -25,6 +25,11 @@
  * the 6 m/s DIVERT line the craft is on, and that is a different instruction
  * to an operator than either answer.
  *
+ * NOTHING PASSES A BAND TODAY, and the widget says why at its call: none of the
+ * three axes that can take one reads a value any model in the tree bands. So
+ * `UNRESOLVED` is reachable from these tests and not from the board, and the
+ * three band inputs are a shape waiting on a producer rather than a live arm.
+ *
  * ## Uncertainty only raises UNRESOLVED where it could change the verdict
  *
  * An unresolved axis does NOT automatically make the verdict unresolved. The

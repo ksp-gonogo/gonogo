@@ -92,11 +92,6 @@ declare module "@ksp-gonogo/core" {
   }
 }
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -170,7 +165,7 @@ function SpaceCenterStatusComponent({
   // Magnitude: compared against an upgrade cost and rendered through this
   // widget's own compact funds formatting, both of which want a number.
   const careerFunds = magnitudeOf(careerEconomy?.funds);
-  const fundsNotCurrent = notCurrent(careerReading);
+  const fundsNotCurrent = careerReading.state === "stale";
   /**
    * A balance is only half of what "can I afford this" asks. Under a career
    * overhaul the programme runs a standing per-day cost against a subsidy, so a
@@ -260,7 +255,7 @@ function SpaceCenterStatusComponent({
   const tiersObservedUt = observedAt(facilitiesReading);
   const tiersHeldFor =
     stockHoldsTheGrid &&
-    notCurrent(facilitiesReading) &&
+    facilitiesReading.state === "stale" &&
     viewUt &&
     tiersObservedUt
       ? viewUt.minus(tiersObservedUt)
@@ -291,7 +286,8 @@ function SpaceCenterStatusComponent({
    * affordance. A held "Flight" disables nothing that was ever enabled, so
    * captioning it would name a reason for buttons that were never live.
    */
-  const heldScene = notCurrent(sceneReading) && lastScene === "SpaceCenter";
+  const heldScene =
+    sceneReading.state === "stale" && lastScene === "SpaceCenter";
   const heldUpgradeInputs = [
     heldScene ? "scene" : undefined,
     heldFunds ? "funds balance" : undefined,

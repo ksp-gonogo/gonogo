@@ -157,28 +157,6 @@ const APPROACH_EXIT_M = 5_500;
 type ViewMode = "tracking" | "approach" | "docking-hud";
 
 /**
- * The last REAL observation behind a reading, whatever its currency, or nothing
- * where there has not been one.
- *
- * Used only to derive the scalars the widget already computed client-side
- * (distance, closing rate, dock angles) so that arithmetic stays in one place
- * rather than being duplicated per arm. It deliberately does NOT decide how the
- * result is presented: every caller branches on `targetReading.state` for that,
- * and the non-observed branches are the ones that render the age. Passing this
- * result straight to a readout without checking the state would reintroduce
- * exactly the bug the union prevents, which is why it is a local helper and not
- * exported.
- *
- * It never returns a MODELLED value: a reckoning is pulled explicitly through
- * `reckon()` in the branch that renders it, so a propagated number can never
- * arrive at a readout by accident.
- */
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
-/**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
  * what an `absent` tombstone means here, which is a different answer from `pending`
@@ -192,16 +170,6 @@ function stillTrue<T, A>(
   if (reading.state === "stale") return reading.value;
   if (reading.state === "absent") return whenConfirmedNothing;
   return undefined;
-}
-
-function observedPayload<T>(reading: Reading<T>): T | undefined {
-  switch (reading.state) {
-    case "observed":
-    case "stale":
-      return reading.value;
-    default:
-      return undefined;
-  }
 }
 
 function TargetingComponent({
@@ -256,11 +224,17 @@ function TargetingComponent({
         : undefined;
   /*
    * Both of these ask about the OBSERVATION and never look at a model, so the
-   * model is dropped on the way in rather than each helper learning a second
+   * model is dropped on the way in rather than the helper learning a second
    * reading shape.
+   *
+   * Neither decides how what comes back is PRESENTED. They feed the scalars the
+   * widget computes client-side (distance, closing rate, dock angles) so that
+   * arithmetic stays in one place, and every readout branches on the reading's
+   * own state for the caption and the age. A value from here reaching a readout
+   * unchecked would reintroduce exactly the bug the union prevents.
    */
   const dockPairing = stillTrue(withoutReckoning(dockReading), undefined);
-  const target = observedPayload(withoutReckoning(targetReading));
+  const target = stillTrue(withoutReckoning(targetReading), undefined);
 
   const tarName = target?.name;
   const tarKind = target?.kind;
@@ -360,7 +334,7 @@ function TargetingComponent({
    * same reading in the same place.
    */
   const alignmentWithheld =
-    notCurrent(withoutReckoning(dockReading)) &&
+    dockReading.state === "stale" &&
     dockReading.reckoning === "none" &&
     dockPairing?.relativePosition !== undefined;
   /*
@@ -371,8 +345,7 @@ function TargetingComponent({
    * could only ever describe a gap.
    */
   const modelledAlignment =
-    dockReading.reckoning === "available" &&
-    notCurrent(withoutReckoning(dockReading))
+    dockReading.reckoning === "available" && dockReading.state === "stale"
       ? dockReading.reckoned.basis
       : undefined;
   /*

@@ -107,11 +107,6 @@ const AVATAR_CELL_WIDTH_FRACTION = 0.2;
  *  rather than pinned to the floor). */
 const AVATAR_MEASURE_SEED = { w: 232, h: 0 };
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -461,7 +456,7 @@ function CrewStatusComponent({
    * reckonable value, so the observation is the only thing that ever fills the
    * meters and a held reading is exactly the case where nothing was drawn.
    */
-  const suitReadingsNotCurrent = notCurrent(resourcesReading);
+  const suitReadingsNotCurrent = resourcesReading.state === "stale";
   const suitOxygen = isEVA
     ? toSuitResourceReadout(resources?.resources?.Oxygen)
     : undefined;

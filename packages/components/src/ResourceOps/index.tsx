@@ -134,11 +134,6 @@ const RESOURCE_NAME_STYLE = {
   color: "var(--color-text-primary)",
 } as const;
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -542,8 +537,8 @@ function ResourceOpsComponent(
    */
   const drillsReading = topics.useTelemetry("isru.drills");
   const convertersReading = topics.useTelemetry("isru.converters");
-  const drillsNotCurrent = notCurrent(drillsReading);
-  const convertersNotCurrent = notCurrent(convertersReading);
+  const drillsNotCurrent = drillsReading.state === "stale";
+  const convertersNotCurrent = convertersReading.state === "stale";
 
   const allDrills = useMemo(
     // A confirmed no-drills IS an empty list, not a wait, so it is named here

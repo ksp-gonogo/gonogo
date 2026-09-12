@@ -1,8 +1,4 @@
-import type {
-  ComponentProps,
-  Reading,
-  VesselState,
-} from "@ksp-gonogo/sitrep-sdk";
+import type { ComponentProps, VesselState } from "@ksp-gonogo/sitrep-sdk";
 import {
   registerComponent,
   useStream,
@@ -122,11 +118,6 @@ type SpaceWeatherRead =
   | { readable: true; data: SpaceWeatherData }
   | { readable: false; absence: WeatherAbsence };
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * Every field on this record is a judgement, so the record is judged as one.
  *
@@ -173,11 +164,12 @@ function useSpaceWeather(): SpaceWeatherRead {
   if (t === undefined) {
     return {
       readable: false,
-      absence: notCurrent(weatherReading)
-        ? "not-current"
-        : weatherReading.state === "absent"
-          ? "confirmed-none"
-          : "awaiting",
+      absence:
+        weatherReading.state === "stale"
+          ? "not-current"
+          : weatherReading.state === "absent"
+            ? "confirmed-none"
+            : "awaiting",
     };
   }
 

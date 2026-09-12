@@ -1,4 +1,4 @@
-import type { Reading, SlotProps } from "@ksp-gonogo/sitrep-sdk";
+import type { SlotProps } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -19,6 +19,7 @@ import type {
   Rp1PadEntry,
   Rp1WarehouseItemEntry,
 } from "../__generated__/contract";
+import { current } from "../shared/current";
 import { RP1 } from "../uplink";
 // Side-effect import: hydrates these Topics' units at decode time and augments
 // the payload map for their types. Here rather than left to the entry point's
@@ -281,17 +282,6 @@ const OPERATION_VERB: Readonly<Record<string, string>> = {
   AirlaunchMount: "Mounting",
   AirlaunchUnmount: "Unmounting",
 };
-
-/**
- * The value where one is current. A ground fact read while the link is down is
- * still the last thing the space centre said, and these channels are TrueNow,
- * so a reading carrying a model is as good as an observed one here.
- */
-function current<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 registerAugment({
   id: "rp1-launch-complex-status",

@@ -5,11 +5,7 @@ import {
   pressureFromProfile,
   registerComponent,
 } from "@ksp-gonogo/core";
-import {
-  type ReadingState,
-  useStream,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { Fill, speakQuantity, Unit, writeQuantity } from "@ksp-gonogo/ui-kit";
 import { useMemo } from "react";
@@ -34,15 +30,6 @@ const topics = defineTopicManifest({
 });
 
 const REFERENCE_SAMPLES = 80;
-
-/**
- * Whether a reading went stale, as opposed to never having arrived. Takes the
- * state alone, so a declared-reckonable topic's reading answers it too: how
- * current an observation is has nothing to do with what a model moves.
- */
-function notCurrent(reading: { state: ReadingState }): boolean {
-  return reading.state === "stale";
-}
 
 /** The pressure at an altitude, the stream's answer preferred over the model. */
 function pressureFor(body: StreamBody, altitude: number): number | undefined {
@@ -147,7 +134,7 @@ function AtmosphereProfileComponent({
       : flightReading.state === "observed"
         ? flightReading.value
         : undefined;
-  const flightNotCurrent = notCurrent(flightReading);
+  const flightNotCurrent = flightReading.state === "stale";
   const bodyName = vesselState?.parentBodyName ?? undefined;
   /* Resolved against the same `system.bodies` roster the name came from, not
      against the bundled table of STOCK bodies: a planet pack renames both

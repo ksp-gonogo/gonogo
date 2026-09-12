@@ -61,11 +61,6 @@ export interface TechNode {
   parts: TechPart[];
 }
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -362,7 +357,7 @@ function TechTreeComponent({ w, h }: Readonly<ComponentProps<TechTreeConfig>>) {
   const nodesRaw = stillTrue(career, undefined)?.tech?.nodes;
   const careerScience =
     career.state === "observed" ? career.value.economy?.science : undefined;
-  const careerNotCurrent = notCurrent(career);
+  const careerNotCurrent = career.state === "stale";
   // The game scene is a fact as well: it changes when the player walks through
   // a door, which is an event and not a drift.
   const scene = stillTrue(

@@ -1,4 +1,3 @@
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -15,6 +14,7 @@ import {
   Unit,
 } from "@ksp-gonogo/ui-kit";
 import type { Rp1ResearchEntry } from "../__generated__/contract";
+import { current } from "../shared/current";
 import { RP1 } from "../uplink";
 import "../topics";
 
@@ -146,13 +146,6 @@ function ResearchRow({ node }: Readonly<{ node: Rp1ResearchEntry }>) {
  * LaunchComplexStatus for the same reset and why it is inline.
  */
 const LIST_STYLE = { listStyle: "none", margin: 0, padding: 0 } as const;
-
-/** The value where one is current; see LaunchComplexStatus for why a model counts. */
-function current<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
-}
 
 registerAugment({
   id: "rp1-research-queue",
