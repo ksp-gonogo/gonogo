@@ -7,10 +7,12 @@ import { NULL_DISPLAY } from "./NullValue";
 import {
   formatQuantity,
   kindOfUnit,
+  ladderPosition,
   quantityScale,
   registerUnit,
   separatingDecimals,
   setQuantityLocale,
+  unitScaleKey,
   writeQuantity,
 } from "./units";
 
@@ -958,6 +960,83 @@ describe("quantityScale", () => {
     expect(scale.symbol).toBe("");
     expect(scale.mark(5)).toBe("5");
     expect(scale.mark(null)).toBe(NULL_DISPLAY);
+  });
+});
+
+describe("unitScaleKey", () => {
+  it("groups two units that climb one ladder", () => {
+    expect(unitScaleKey("m")).toBe(unitScaleKey("km"));
+    expect(unitScaleKey("kg")).toBe(unitScaleKey("t"));
+  });
+
+  it("separates two kinds of the same dimension", () => {
+    // Metres and metres per second are not interchangeable and must not settle
+    // one rung between them.
+    expect(unitScaleKey("m")).not.toBe(unitScaleKey("m/s"));
+  });
+
+  /**
+   * Bits and bytes share the data dimension so their values stay convertible,
+   * and must never share RUNGS. Keyed on kind alone a byte reading would settle
+   * a bit reading onto a byte rung, which is the defect the family mechanism
+   * exists for one layer down.
+   */
+  it("separates two families that share a kind", () => {
+    registerUnit({
+      symbol: "zorp",
+      kind: "dataRate",
+      family: "zorps",
+      ladder: [
+        { from: 1, symbol: "zorp", per: 1 },
+        { from: 1e3, symbol: "kzorp", per: 1e3 },
+      ],
+    });
+    expect(unitScaleKey("zorp")).not.toBe(unitScaleKey("bit/s"));
+  });
+
+  /**
+   * The guard that keeps a group off every presentation a rung cannot express.
+   * A duration reports the rung `s` and renders "2h 14m", a mission date reports
+   * `ut`, and a gravitational parameter reports its own symbol under scientific
+   * notation: pinning any of those would render a true statement about the wrong
+   * quantity. A currency and a ratio simply have nothing to settle.
+   */
+  it("has no key for a unit that never climbs", () => {
+    expect(unitScaleKey("s")).toBeUndefined();
+    expect(unitScaleKey("ut")).toBeUndefined();
+    expect(unitScaleKey("m³/s²")).toBeUndefined();
+    expect(unitScaleKey("funds")).toBeUndefined();
+    expect(unitScaleKey("%")).toBeUndefined();
+    expect(unitScaleKey(undefined)).toBeUndefined();
+    expect(unitScaleKey("not a unit")).toBeUndefined();
+  });
+});
+
+describe("ladderPosition", () => {
+  it("normalises a reading that arrived partway up its own ladder", () => {
+    // 5 t is 5000 kg, and comparing it with a kilogram reading as it came would
+    // make it the smaller of the two.
+    expect(ladderPosition(5, "t").base).toBe(5000);
+    expect(ladderPosition(12, "km").base).toBe(12_000);
+    expect(ladderPosition(340, "m").base).toBe(340);
+  });
+
+  it("reports a magnitude by size, so a negative reading compares by size", () => {
+    expect(ladderPosition(-12, "km").base).toBe(12_000);
+  });
+
+  it("reports the rung the reading alone would climb to", () => {
+    expect(ladderPosition(999, "m").rung).toBe("m");
+    expect(ladderPosition(1000, "m").rung).toBe("km");
+    expect(ladderPosition(5, "t").rung).toBe("t");
+  });
+
+  it("leaves a unit with no ladder alone", () => {
+    expect(ladderPosition(47, "units")).toMatchObject({
+      base: 47,
+      rung: "units",
+    });
+    expect(ladderPosition(47, undefined).base).toBe(47);
   });
 });
 

@@ -39,6 +39,20 @@ describe("Band", () => {
     expect(container.textContent).not.toContain("48 units");
   });
 
+  /**
+   * The bug that motivated the unit scale: two ends either side of a rung
+   * boundary ladder independently, and one interval comes out written in two
+   * units, with a width the reader has to convert before they can see it.
+   */
+  it("writes both ends in one unit when they straddle a rung boundary", () => {
+    const { container } = render(
+      <Band min={value("m", 999)} max={value("m", 1000)} />,
+    );
+    expect(container.textContent).toContain("999.0");
+    expect(container.textContent).toContain("1000.0");
+    expect(container.textContent).not.toContain("km");
+  });
+
   it("leaves the kind's own precision alone when the ends already differ", () => {
     const { container } = render(
       <Band min={value("m", 1200)} max={value("m", 8400)} />,
