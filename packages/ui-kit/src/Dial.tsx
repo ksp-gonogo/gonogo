@@ -13,31 +13,39 @@
  *
  * Semantics: `role="meter"` on a styled wrapper (aria-valuenow / valuetext); the
  * SVG face is `aria-hidden`.
+ *
+ * The whole axis is ONE kind: `value`, `min`, `max`, every zone bound and every
+ * tick are `Value<U>` of the same unit, so a tick that belongs to another scale
+ * is a compile error rather than a mark in the wrong place. The centre readout
+ * writes that unit itself; there is no unit string to pass, because a symbol
+ * passed beside a bare number is a symbol nothing checks.
  */
 
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import styled from "styled-components";
+import { type FormatsFor, speakQuantity, writeQuantity } from "./units";
 
-export interface DialZone {
-  /** Lower bound of the coloured arc segment, in value units. */
-  from: number;
-  /** Upper bound of the coloured arc segment, in value units. */
-  to: number;
+export interface DialZone<U extends string = string> {
+  /** Lower bound of the coloured arc segment. */
+  from: Value<U>;
+  /** Upper bound of the coloured arc segment. */
+  to: Value<U>;
   /** Arc colour. */
   color: string;
 }
 
-export interface DialTick {
+export interface DialTick<U extends string = string> {
   /** Value at which to draw the tick. */
-  value: number;
+  value: Value<U>;
   /** Optional short label (e.g. "N", "E"). */
   label?: string;
 }
 
-export interface DialProps {
+export interface DialProps<U extends string = string> {
   /** Current value: the needle position. */
-  value: number;
-  min: number;
-  max: number;
+  value: Value<U>;
+  min: Value<U>;
+  max: Value<U>;
   width?: number;
   height?: number;
   /** Degrees clockwise from up where `min` sits. Default 0 (top). */
@@ -46,14 +54,15 @@ export interface DialProps {
   sweep?: number;
   /** Treat the value as wrapping (compass): value is taken modulo the range. */
   wrap?: boolean;
-  zones?: ReadonlyArray<DialZone>;
-  ticks?: ReadonlyArray<DialTick>;
-  /** Unit suffix for the centre readout (e.g. "°"). */
-  unit?: string;
-  /** Centre label override. Defaults to the formatted value + unit. */
+  zones?: ReadonlyArray<DialZone<U>>;
+  ticks?: ReadonlyArray<DialTick<U>>;
+  /**
+   * Pin the rung the centre readout is written at, for the cases where
+   * convention beats magnitude. Absent, the value's own kind decides.
+   */
+  format?: FormatsFor<U>;
+  /** Centre label override. Defaults to the value, written with its unit. */
   valueLabel?: string;
-  /** Label formatter. Defaults to a rounded number plus the unit. */
-  format?: (v: number) => string;
   needleColor?: string;
   trackColor?: string;
   ariaLabel?: string;
@@ -61,11 +70,6 @@ export interface DialProps {
 
 const TRACK_THICKNESS = 6;
 const HUB_RADIUS = 3;
-
-function defaultFormat(v: number, unit?: string): string {
-  const n = Number.isInteger(v) ? v : Number(v.toFixed(1));
-  return unit ? `${n}${unit}` : `${n}`;
-}
 
 /** Point on a circle of radius `r`, `angleDeg` clockwise from up (12 o'clock). */
 function pointAt(
@@ -93,7 +97,7 @@ function arcPath(
   return `M ${p0.x.toFixed(2)} ${p0.y.toFixed(2)} A ${r} ${r} 0 ${largeArc} ${sweepFlag} ${p1.x.toFixed(2)} ${p1.y.toFixed(2)}`;
 }
 
-export function Dial({
+export function Dial<U extends string = string>({
   value,
   min,
   max,
@@ -104,29 +108,48 @@ export function Dial({
   wrap = false,
   zones,
   ticks,
-  unit,
   valueLabel,
   format,
   needleColor = "var(--color-text-primary)",
   trackColor = "var(--color-border-subtle)",
   ariaLabel,
-}: Readonly<DialProps>) {
-  const span = max - min;
-  const safe = Number.isFinite(value) ? value : min;
+}: Readonly<DialProps<U>>) {
+  /*
+   * The axis, unwrapped ONCE into the face's own angular geometry. Everything
+   * below is trigonometry on bare numbers, which is what an arc command is
+   * made of; one `U` across value, min, max, zones and ticks is what makes
+   * these magnitudes comparable in the first place. Every figure a READER sees
+   * goes back out through the unit layer, in the centre readout and in
+   * `aria-valuetext`.
+   */
+  const current = value.magnitude;
+  const axisMin = min.magnitude;
+  const axisMax = max.magnitude;
+  const span = axisMax - axisMin;
+  const safe = Number.isFinite(current) ? current : axisMin;
   const display =
     span > 0
       ? wrap
-        ? min + ((((safe - min) % span) + span) % span)
-        : Math.max(min, Math.min(max, safe))
-      : min;
-  const fmt = (v: number) => (format ? format(v) : defaultFormat(v, unit));
+        ? axisMin + ((((safe - axisMin) % span) + span) % span)
+        : Math.max(axisMin, Math.min(axisMax, safe))
+      : axisMin;
+  /*
+   * An SVG `<text>` cannot contain a `<span>`, so `<Unit>` will not go in one
+   * and `writeQuantity` is the sanctioned way out: same formatter, same attach
+   * rule (a dial's degree sign is written hard against its number), rendered
+   * to a string. `speakQuantity` is its spoken twin, for `aria-valuetext`,
+   * which is an attribute and can only hold text.
+   */
+  const shown = { magnitude: display, unit: value.unit };
+  const centreLabel = valueLabel ?? writeQuantity(shown, { format });
+  const spoken = speakQuantity(shown, { format });
 
   const cx = width / 2;
   const cy = height / 2;
   const r = Math.min(width, height) / 2 - TRACK_THICKNESS - 2;
 
   const angleOf = (v: number): number => {
-    const t = span > 0 ? (v - min) / span : 0;
+    const t = span > 0 ? (v - axisMin) / span : 0;
     return startAngle + t * sweep;
   };
 
@@ -138,9 +161,9 @@ export function Dial({
       role="meter"
       aria-label={ariaLabel ?? "Dial"}
       aria-valuenow={display}
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuetext={fmt(display)}
+      aria-valuemin={axisMin}
+      aria-valuemax={axisMax}
+      aria-valuetext={spoken}
     >
       <svg
         width={width}
@@ -178,8 +201,10 @@ export function Dial({
         {/* Zones */}
         {r > 0 &&
           zones?.map((z) => {
-            const lo = Math.max(min, Math.min(z.from, z.to));
-            const hi = Math.min(max, Math.max(z.from, z.to));
+            const from = z.from.magnitude;
+            const to = z.to.magnitude;
+            const lo = Math.max(axisMin, Math.min(from, to));
+            const hi = Math.min(axisMax, Math.max(from, to));
             if (!(hi > lo)) return null;
             return (
               <path
@@ -196,12 +221,13 @@ export function Dial({
         {/* Ticks */}
         {r > 0 &&
           ticks?.map((tk) => {
-            const a = angleOf(tk.value);
+            const at = tk.value.magnitude;
+            const a = angleOf(at);
             const outer = pointAt(cx, cy, r, a);
             const inner = pointAt(cx, cy, r - TRACK_THICKNESS, a);
             const labelPt = pointAt(cx, cy, r - TRACK_THICKNESS - 8, a);
             return (
-              <g key={`tick-${tk.value}-${tk.label ?? ""}`}>
+              <g key={`tick-${at}-${tk.label ?? ""}`}>
                 <line
                   x1={inner.x}
                   y1={inner.y}
@@ -251,7 +277,7 @@ export function Dial({
           fontWeight="bold"
           fill="var(--color-text-primary)"
         >
-          {valueLabel ?? fmt(display)}
+          {centreLabel}
         </text>
       </svg>
     </Dial__Meter>

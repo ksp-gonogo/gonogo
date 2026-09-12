@@ -202,7 +202,15 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "packages/components/src/CommSignal/index.tsx": 1,
   "packages/components/src/ContractManager/index.tsx": 2,
   "packages/components/src/CrewStatus/badge.ts": 2,
-  "packages/components/src/CrewStatus/index.tsx": 1,
+  /*
+   * 2, up from 1 on 2026-09-12. The second is `suitResourceTone`, which bands a
+   * suit tank's remaining fraction against two thresholds. The division is
+   * `amount.dividedBy(capacity)` and therefore dimension-checked; its quotient
+   * is dimensionless by construction, so the unwrap is on a number that has
+   * already stopped being a quantity, and it is never shown. The figures a
+   * READER sees are the two halves of the pair, written by `<Meter>`.
+   */
+  "packages/components/src/CrewStatus/index.tsx": 2,
   "packages/components/src/CurrentOrbit/index.tsx": 3,
   "packages/components/src/FleetRoster/index.tsx": 3,
   "packages/components/src/FuelStatus/index.tsx": 1,
@@ -362,6 +370,27 @@ const MAGNITUDE_BUDGET: Record<string, number> = {
   "mod/sitrep-sdk/src/spine/use-command.ts": 1,
   "packages/sitrep-client/src/use-control-stream.tsx": 2,
   "packages/ui-kit/src/Countdown.tsx": 1,
+  /*
+   * The four instrument primitives, seeded 2026-09-12 when their axes stopped
+   * being bare numbers. Each one unwraps its axis ONCE per quantity into the
+   * drawing's own coordinate space: an SVG path command, a `y` pixel, a CSS
+   * width. That is the permanent kind of unwrap this budget's own header names
+   * ("a d3 scale wants a number"), and it is what makes the change a net gain
+   * rather than a wash: one `U` across value, min, max, zones, ticks and
+   * markers is what makes these magnitudes belong on one scale at all, where
+   * before nothing checked it. Every figure a READER sees goes back out
+   * through `writeQuantity` or `speakQuantity`.
+   *
+   * Tape spends the most because it has the most axis props (value, min, max,
+   * tickStep, groundLine, plus a zone pair and a marker each). Meter and
+   * DivergingBar spend ONE apiece, on a quotient that `dividedBy` has already
+   * made dimensionless.
+   */
+  "packages/ui-kit/src/Dial.tsx": 6,
+  "packages/ui-kit/src/DivergingBar.tsx": 1,
+  "packages/ui-kit/src/Gauge.tsx": 5,
+  "packages/ui-kit/src/Meter.tsx": 1,
+  "packages/ui-kit/src/Tape.tsx": 8,
   // 1, and it is the implementation: this is the ONE unwrap in the repo, moved
   // down from ui-kit on 2026-08-25 so `sitrep-sdk`'s own files could reach it
   // without a cycle. ui-kit re-exports it and now spends none.

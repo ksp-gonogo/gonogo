@@ -11,7 +11,9 @@ import {
   useStream,
   type VesselState,
 } from "@ksp-gonogo/sitrep-client";
+import type { ResourceAmount } from "@ksp-gonogo/sitrep-sdk";
 import { Meter, type MeterTone } from "@ksp-gonogo/ui";
+import type { MeterQuantity } from "@ksp-gonogo/ui-kit";
 import {
   BigReadout,
   Card,
@@ -31,7 +33,6 @@ import {
   WidgetMeters,
 } from "@ksp-gonogo/ui-kit";
 import { type ReactNode, useMemo } from "react";
-import { magnitudeOf, type Quantityish } from "../shared/magnitude";
 // Side-effect import: the widget's own `crew-status.badges` panel-badge
 // self-contribution (the info-tone "N/M aboard" header chip) registers on
 // module load, see that file's own doc comment for why it lives apart from
@@ -154,26 +155,29 @@ type CrewStatusConfig = Record<string, never>;
 // lookups, no mod-specific shape, and an install whose profile puts neither
 // on the suit simply renders nothing.
 
-interface SuitResourceReadout {
-  current: number;
-  max: number;
-}
-
 /** Extracts a `{current, max}` pair off a `vessel.resources` entry, or
- *  `undefined` when the resource is absent or has no usable capacity. */
+ *  `undefined` when the resource is absent or has no usable capacity.
+ *
+ *  The pair stays as the contract declared it, `Value<"units">` on both
+ *  halves: it goes straight into a `Meter`, which does the division and writes
+ *  both figures itself, so there is nothing here for a bare number to be. */
 function toSuitResourceReadout(
-  entry: { current?: Quantityish; max?: Quantityish } | undefined,
-): SuitResourceReadout | undefined {
-  if (!entry) return undefined;
-  const current = magnitudeOf(entry.current);
-  const max = magnitudeOf(entry.max);
-  if (current === null || max === null || max <= 0) return undefined;
-  return { current, max };
+  entry: ResourceAmount | undefined,
+): MeterQuantity<"units"> | undefined {
+  if (!entry?.current || !entry.max) return undefined;
+  if (!entry.max.isPositive()) return undefined;
+  return { amount: entry.current, capacity: entry.max };
 }
 
-/** Tone for a resource fraction remaining: full tank is calm, empty is
- *  alarming - the inverse of a "toward fatal" accumulator reading. */
-function suitResourceTone(fraction: number): MeterTone {
+/** Tone for what is left in a suit tank: a full tank is calm, an empty one is
+ *  alarming, the inverse of a "toward fatal" accumulator reading.
+ *
+ *  `dividedBy` is what checks the two halves are the same kind, and its
+ *  quotient is dimensionless by construction, so the `.magnitude` is on a
+ *  number that has already stopped being a quantity. It is compared against
+ *  two thresholds and never shown. */
+function suitResourceTone(pair: MeterQuantity<"units">): MeterTone {
+  const fraction = pair.amount.dividedBy(pair.capacity).magnitude;
   if (fraction <= 0.15) return "nogo";
   if (fraction <= 0.4) return "warn";
   return "go";
@@ -191,8 +195,8 @@ function EvaSuitReadout({
   electricCharge,
   notCurrent: readingsNotCurrent,
 }: Readonly<{
-  oxygen: SuitResourceReadout | undefined;
-  electricCharge: SuitResourceReadout | undefined;
+  oxygen: MeterQuantity<"units"> | undefined;
+  electricCharge: MeterQuantity<"units"> | undefined;
   /** The suit figures went stale rather than never arriving. */
   notCurrent: boolean;
 }>) {
@@ -215,18 +219,16 @@ function EvaSuitReadout({
         <Meter
           size="sm"
           label="O2"
-          value={oxygen.current / oxygen.max}
-          tone={suitResourceTone(oxygen.current / oxygen.max)}
-          valueLabel={`${oxygen.current.toFixed(1)} / ${oxygen.max.toFixed(1)}`}
+          quantity={oxygen}
+          tone={suitResourceTone(oxygen)}
         />
       )}
       {electricCharge && (
         <Meter
           size="sm"
           label="EC"
-          value={electricCharge.current / electricCharge.max}
-          tone={suitResourceTone(electricCharge.current / electricCharge.max)}
-          valueLabel={`${electricCharge.current.toFixed(0)} / ${electricCharge.max.toFixed(0)}`}
+          quantity={electricCharge}
+          tone={suitResourceTone(electricCharge)}
         />
       )}
     </Cluster>

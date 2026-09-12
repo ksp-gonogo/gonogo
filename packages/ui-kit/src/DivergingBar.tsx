@@ -1,20 +1,25 @@
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import styled, { css } from "styled-components";
 
-export interface DivergingBarProps {
+export interface DivergingBarProps<U extends string = string> {
   /**
-   * Signed magnitude. The sign picks the direction: `>= 0` grows the fill
+   * The signed quantity. Its sign picks the direction: `>= 0` grows the fill
    * rightward from the centre zero line in the "go" green, `< 0` grows it
    * leftward in the "nogo" red.
    */
-  value: number;
+  value: Value<U>;
   /**
    * The largest `|value|` among the set this bar is being compared against
-   * (e.g. every term in a rate ledger). This bar's fill reaches exactly the
-   * track's own half-width when `|value| === maxAbs`, and scales down from
-   * there. `<= 0` (no scale to measure against) renders an empty track
-   * rather than dividing by zero.
+   * (e.g. every term in a rate ledger), in the SAME unit, which is what makes
+   * the comparison mean anything: a bar drawn against a scale of another kind
+   * is a picture of nothing, and is now a compile error rather than a shape.
+   *
+   * This bar's fill reaches exactly the track's own half-width when
+   * `|value| === maxAbs`, and scales down from there. A non-positive scale
+   * (nothing to measure against) renders an empty track rather than dividing
+   * by zero.
    */
-  maxAbs: number;
+  maxAbs: Value<U>;
   className?: string;
 }
 
@@ -39,8 +44,21 @@ export interface DivergingBarProps {
  * that truly needs the bar at every width should not be reaching for this
  * component's own responsive judgement call.
  */
-export function DivergingBar({ value, maxAbs, className }: DivergingBarProps) {
-  const pct = maxAbs > 0 ? (Math.abs(value) / maxAbs) * 50 : 0;
+export function DivergingBar<U extends string = string>({
+  value,
+  maxAbs,
+  className,
+}: DivergingBarProps<U>) {
+  /*
+   * The bar's own share of the track, and the one place a quantity leaves the
+   * algebra here. `dividedBy` is what checks the two are the same kind, and
+   * its quotient is dimensionless by construction, so the `.magnitude` below
+   * is on a number that has already stopped being a quantity. It goes into a
+   * CSS width, which cannot hold a unit.
+   */
+  const pct = maxAbs.isPositive()
+    ? value.abs().dividedBy(maxAbs).magnitude * 50
+    : 0;
   return (
     <DivergingBar__Track
       aria-hidden="true"
@@ -48,7 +66,10 @@ export function DivergingBar({ value, maxAbs, className }: DivergingBarProps) {
       className={className}
     >
       <DivergingBar__Zero />
-      <DivergingBar__Fill $positive={value >= 0} style={{ width: `${pct}%` }} />
+      <DivergingBar__Fill
+        $positive={!value.isNegative()}
+        style={{ width: `${pct}%` }}
+      />
     </DivergingBar__Track>
   );
 }

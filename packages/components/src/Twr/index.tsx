@@ -23,13 +23,24 @@ const SPARK_WINDOW_SEC = 60;
 // Dial range in TWR units. Most rockets sit between 1.5 and 2.5 at lift-off;
 // 3 is a comfortable upper bound. Anything beyond reads as pinned-max, fine
 // because the qualitative information ("very high TWR") is preserved.
-const GAUGE_MIN = 0;
-const GAUGE_MAX = 3;
+// `"1"` is the dimensionless token the contract already declares for a
+// thrust-to-weight ratio (`vessel.propulsion.twrVac` and its two siblings), so
+// the gauge's axis is the same kind as the reading that drives it.
+const GAUGE_MIN = value("1", 0);
+const GAUGE_MAX = value("1", 3);
 
-const ZONES: GaugeZone[] = [
-  { from: 0, to: 1, color: "var(--color-status-nogo-bg)" },
-  { from: 1, to: 1.5, color: "var(--color-status-warning-bg)" },
-  { from: 1.5, to: 3, color: "var(--color-accent-fg)" },
+const ZONES: GaugeZone<"1">[] = [
+  {
+    from: value("1", 0),
+    to: value("1", 1),
+    color: "var(--color-status-nogo-bg)",
+  },
+  {
+    from: value("1", 1),
+    to: value("1", 1.5),
+    color: "var(--color-status-warning-bg)",
+  },
+  { from: value("1", 1.5), to: value("1", 3), color: "var(--color-accent-fg)" },
 ];
 
 type Tone = "ok" | "warn" | "lost";
@@ -171,14 +182,13 @@ function TwrComponent({ w, h }: Readonly<ComponentProps<TwrConfig>>) {
         <Section key="gauge" full>
           <GaugeSlot ref={gaugeRef}>
             <Gauge
-              value={twr}
+              value={value("1", twr)}
               min={GAUGE_MIN}
               max={GAUGE_MAX}
               zones={ZONES}
               width={gaugeW}
               height={gaugeH}
-              valueLabel={twr.toFixed(2)}
-              ariaLabel={`TWR ${twr.toFixed(2)}`}
+              ariaLabel={`TWR ${writeQuantity(value("1", twr))}`}
             />
           </GaugeSlot>
         </Section>,

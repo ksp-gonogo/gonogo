@@ -1,28 +1,34 @@
-import { value as quantity } from "@ksp-gonogo/sitrep-sdk";
+import { value as quantity, type Value } from "@ksp-gonogo/sitrep-sdk";
 import type { HTMLAttributes, ReactNode } from "react";
 import styled, { css } from "styled-components";
 import { NullValue } from "./NullValue";
 import { Unit } from "./Unit";
-import { speakQuantity } from "./units";
+import { type FormatsFor, speakQuantity } from "./units";
 
 export type MeterTone = "neutral" | "go" | "warn" | "nogo" | "info";
 export type MeterSize = "sm" | "md";
 
-export interface MeterProps
+/**
+ * How much there is, and what that is a fraction OF.
+ *
+ * Both halves are `Value<U>` of the same unit, which is the whole reason this
+ * shape exists rather than a pre-divided number: a fill fraction is the one
+ * place two quantities have to be the same kind, and a bare
+ * `amount / capacity` at a call site is where nothing checks that they were.
+ * The meter divides them itself, so the division happens once, under a type
+ * that refuses to cross dimensions.
+ */
+export interface MeterQuantity<U extends string = string> {
+  /** How much there is now. */
+  amount: Value<U>;
+  /** The full tank: what `amount` is read as a fraction of. */
+  capacity: Value<U>;
+}
+
+interface MeterCommonProps
   extends Omit<HTMLAttributes<HTMLDivElement>, "children"> {
   /** Short label shown above the bar and used as the meter's accessible name. */
   label: string;
-  /**
-   * Fill fraction, 0..1. Clamped; non-finite renders empty.
-   *
-   * `null` is a reading that never arrived, and it renders as ABSENCE: the
-   * header shows `NULL_DISPLAY`, the track is empty, and the row drops
-   * `role="meter"` entirely. That last part is the point. A meter asserts a
-   * fill fraction and an `aria-valuenow` to go with it, and there is no
-   * fraction to assert; drawing an unreported reading as a 0% bar tells the
-   * operator the tank is empty rather than that nobody said.
-   */
-  value: number | null;
   /** Semantic colour of the fill. Ignored when `fillColor` is set. */
   tone?: MeterTone;
   /**
@@ -52,6 +58,61 @@ export interface MeterProps
   size?: MeterSize;
 }
 
+/** The meter driven by a pre-divided fraction. See {@link MeterProps}. */
+export interface MeterFractionProps extends MeterCommonProps {
+  /**
+   * Fill fraction, 0..1. Clamped; non-finite renders empty.
+   *
+   * For a reading that is genuinely unitless where it is read: a count over a
+   * count (three of five vessels linked), a fraction the source already
+   * derived and whose two halves never reach this call site. Where both halves
+   * ARE in hand as quantities, pass `quantity` instead and let the meter
+   * divide them, so nothing has to take on faith that they were the same kind.
+   *
+   * `null` is a reading that never arrived, and it renders as ABSENCE: the
+   * header shows `NULL_DISPLAY`, the track is empty, and the row drops
+   * `role="meter"` entirely. That last part is the point. A meter asserts a
+   * fill fraction and an `aria-valuenow` to go with it, and there is no
+   * fraction to assert; drawing an unreported reading as a 0% bar tells the
+   * operator the tank is empty rather than that nobody said.
+   */
+  value: number | null;
+  quantity?: never;
+  format?: never;
+}
+
+/** The meter driven by an amount and a capacity. See {@link MeterProps}. */
+export interface MeterQuantityProps<U extends string = string>
+  extends MeterCommonProps {
+  /**
+   * The amount and the capacity it fills. The meter derives the fill fraction
+   * AND the header's value text from them, so neither the division nor the
+   * "3.0 / 4.0" string is written at the call site.
+   *
+   * `null` renders the absent form, exactly as a `null` `value` does.
+   */
+  quantity: MeterQuantity<U> | null;
+  /**
+   * Pin the rung both halves are shown at, for the cases where convention
+   * beats magnitude.
+   *
+   * Absent, both halves ladder independently, which is right when they are
+   * close together and misleading when they are not: a near-empty tank would
+   * read "500 g / 1000 kg". Pin it when a meter's two halves can span a rung.
+   */
+  format?: FormatsFor<U>;
+  value?: never;
+}
+
+/**
+ * Everything a meter needs, in one of two mutually exclusive spellings: a
+ * `quantity` pair the meter divides itself, or a `value` fraction already
+ * divided. Passing both is a type error, which is the point of the split.
+ */
+export type MeterProps<U extends string = string> =
+  | MeterFractionProps
+  | MeterQuantityProps<U>;
+
 /**
  * A labelled horizontal fill bar: the shared visual language for any 0..1
  * quantity (dose, shielding, hunger, resource level, reliability). Pool several
@@ -59,20 +120,23 @@ export interface MeterProps
  *
  * Semantics: the track is `role="meter"` with `aria-valuenow/min/max` and
  * `aria-valuetext` (the human `valueLabel`), named by `label`. Colour never
- * carries meaning alone: the header always shows the value in text. A `null`
- * value renders the absent form instead, see that prop's own doc.
+ * carries meaning alone: the header always shows the value in text. An absent
+ * reading renders the absent form instead, see `value`'s own doc.
  */
-export function Meter({
+export function Meter<U extends string = string>({
   label,
   value,
+  quantity: pair,
+  format,
   tone = "neutral",
   fillColor,
   valueLabel,
   valueLabelNode,
   size = "md",
   ...rest
-}: MeterProps) {
-  if (value === null) {
+}: MeterProps<U>) {
+  const fraction = (pair === undefined ? value : fractionOf(pair)) ?? null;
+  if (fraction === null) {
     return (
       <Meter__Root $size={size} {...rest}>
         <Meter__Head>
@@ -87,21 +151,42 @@ export function Meter({
       </Meter__Root>
     );
   }
-  const clamped = Number.isFinite(value) ? Math.min(1, Math.max(0, value)) : 0;
+  const clamped = Number.isFinite(fraction)
+    ? Math.min(1, Math.max(0, fraction))
+    : 0;
   const pct = Math.round(clamped * 100);
-  // `value` is a 0..1 ratio, which is a unit the kit knows, so <Unit> does the
-  // *100 and writes the symbol. `valueLabel` still wins when a caller has a
-  // better sentence than a bare percentage; `valueLabelNode` wins over both
-  // when that sentence itself needs live markup (see the prop doc).
-  //
-  // Two forms, because they go to two places. The visible one is a NODE, so
-  // the symbol keeps its own styling; `aria-valuetext` is an attribute and can
-  // only hold a string, which is what `speakQuantity` (or a caller-supplied
-  // `valueLabel`) is for. Writing one string for both is what the unit layer
-  // exists to stop: it would announce "72 percent-sign".
+  /*
+   * What the header says, in the two forms it has to say it, and in priority
+   * order: a caller's own node or sentence first, then the quantity pair if
+   * one was given, then the bare percentage.
+   *
+   * The percentage is not hand-written: `clamped` is a 0..1 ratio, which is a
+   * unit the kit knows, so <Unit> does the *100 and writes the symbol.
+   *
+   * Two forms, because they go to two places. The visible one is a NODE, so
+   * each symbol keeps its own styling; `aria-valuetext` is an attribute and
+   * can only hold a string, which is what `speakQuantity` (or a
+   * caller-supplied `valueLabel`) is for. Writing one string for both is what
+   * the unit layer exists to stop: it would announce "72 percent-sign".
+   */
   const reading = quantity("ratio", clamped);
-  const display = valueLabelNode ?? valueLabel ?? <Unit value={reading} />;
-  const spoken = valueLabel ?? speakQuantity(reading);
+  const display =
+    valueLabelNode ??
+    valueLabel ??
+    (pair ? (
+      <>
+        <Unit value={pair.amount} format={format} />
+        {" / "}
+        <Unit value={pair.capacity} format={format} />
+      </>
+    ) : (
+      <Unit value={reading} />
+    ));
+  const spoken =
+    valueLabel ??
+    (pair
+      ? `${speakQuantity(pair.amount, { format })} of ${speakQuantity(pair.capacity, { format })}`
+      : speakQuantity(reading));
   return (
     <Meter__Root $size={size} {...rest}>
       <Meter__Head>
@@ -125,6 +210,27 @@ export function Meter({
       </Meter__Track>
     </Meter__Root>
   );
+}
+
+/**
+ * The pair, as the 0..1 the track is drawn from.
+ *
+ * `dividedBy` is what makes the two halves have to be the same kind: an amount
+ * in kg over a capacity in litres does not typecheck, and the quotient of two
+ * same-kind values is dimensionless by construction. The single `.magnitude`
+ * is therefore on a number that has already stopped being a quantity, and it
+ * is where a fraction leaves the algebra for the two numeric slots that cannot
+ * hold a unit: a CSS width and an `aria-valuenow`.
+ *
+ * A capacity of zero is not a full tank and not an empty one, it is no tank:
+ * the absent form is the honest answer, the same one a `null` gets.
+ */
+function fractionOf<U extends string>(
+  pair: MeterQuantity<U> | null,
+): number | null {
+  if (pair === null) return null;
+  if (!pair.capacity.isPositive()) return null;
+  return pair.amount.dividedBy(pair.capacity).magnitude;
 }
 
 /** Uniform vertical stack of meters with consistent spacing. */

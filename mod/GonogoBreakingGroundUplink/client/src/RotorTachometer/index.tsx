@@ -306,22 +306,24 @@ function RotorTachometerComponent({
           <Section key="gauge">
             <Cluster justify="center" ref={gaugeRef}>
               <Gauge
-                value={clamp(selected.rpm, 0, ROTOR_MAX_RPM)}
-                min={0}
-                max={ROTOR_MAX_RPM}
+                value={quantity("rpm", clamp(selected.rpm, 0, ROTOR_MAX_RPM))}
+                min={quantity("rpm", 0)}
+                max={quantity("rpm", ROTOR_MAX_RPM)}
                 width={gaugeW}
                 height={gaugeH}
-                valueLabel={`${Math.round(selected.rpm)}`}
-                unitLabel="RPM"
                 zones={[
-                  { from: 0, to: cap, color: "var(--color-status-go-bg)" },
                   {
-                    from: cap,
-                    to: ROTOR_MAX_RPM,
+                    from: quantity("rpm", 0),
+                    to: quantity("rpm", cap),
+                    color: "var(--color-status-go-bg)",
+                  },
+                  {
+                    from: quantity("rpm", cap),
+                    to: quantity("rpm", ROTOR_MAX_RPM),
                     color: "var(--color-surface-raised)",
                   },
                 ]}
-                ariaLabel={`${selected.name}: ${Math.round(selected.rpm)} RPM, cap ${Math.round(selected.rpmLimit)}`}
+                ariaLabel={`${selected.name}: ${writeQuantity(quantity("rpm", selected.rpm))}, cap ${writeQuantity(quantity("rpm", selected.rpmLimit))}`}
               />
             </Cluster>
           </Section>
