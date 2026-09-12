@@ -54,6 +54,26 @@ public class CareerStatus
     public CareerStrategies? Strategies { get; set; }
 
     public CareerTech? Tech { get; set; }
+
+    /// <summary>
+    /// Provenance, and always <c>"game"</c>: a career belongs to the save, not
+    /// to anything flying, so switching vessels cannot change which one is being
+    /// read.
+    ///
+    /// <para>It is here because a SCET alarm compares this stamp against the
+    /// subject the alarm was armed for, and refuses a reading that does not
+    /// match. Without it a threshold on a career figure could be armed and would
+    /// then never come due, which an operator cannot tell apart from a condition
+    /// that has not been met. <c>"game"</c> is the same token
+    /// <see cref="ScetAlarm.Subject"/> already carried for anything the whole
+    /// simulation shares.</para>
+    /// <internal>
+    /// Stamped by <c>Sitrep.Host.CareerViewProvider.BuildCareer</c>. The last
+    /// payload in the tree to gain one; every other channel with a threshold
+    /// source behind it has carried a meta since M1.
+    /// </internal>
+    /// </summary>
+    public PayloadMeta Meta { get; set; } = new();
 }
 
 /// <summary>

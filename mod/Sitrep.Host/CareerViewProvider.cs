@@ -112,6 +112,19 @@ namespace Sitrep.Host
                 ["contracts"] = BuildContracts(career),
                 ["strategies"] = BuildStrategies(career),
                 ["tech"] = BuildTech(career),
+                // "game", because a career belongs to the save and not to
+                // anything flying: there is one of it, and switching vessels
+                // cannot change which one is being read. The stamp is what lets a
+                // SCET threshold be armed against this channel at all, since the
+                // alarm accepts a reading only from a payload whose provenance
+                // matches the subject it was armed for. Loaded rather than
+                // OnRails: a balance is the game's own bookkeeping, exact
+                // whenever it is readable, never a conic prediction.
+                ["meta"] = new Dictionary<string, object?>
+                {
+                    ["source"] = "game",
+                    ["quality"] = Quality.Loaded,
+                },
             };
         }
 

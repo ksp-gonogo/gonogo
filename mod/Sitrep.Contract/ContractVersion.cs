@@ -1562,7 +1562,24 @@ namespace Sitrep.Contract
         /// command can arrive. The chain therefore rides light-time once and is
         /// walked by the craft, and the wire needed a way to say what the list is,
         /// which entry is in place, and why.</para>
+        ///
+        /// <para><b>Major-16 line, Bumped 4 -&gt; 5: a career figure can stop a
+        /// warp.</b> One new member, <see cref="CareerStatus.Meta"/>, on the one
+        /// payload in the tree that had no provenance stamp. Additive, nothing
+        /// removed or retyped, so an Uplink built against 16.4 is unaffected and
+        /// the frozen Major-16 floor is NOT re-frozen.</para>
+        ///
+        /// <para>It exists because a SCET threshold accepts a reading only from a
+        /// payload whose <c>meta.source</c> equals the subject the alarm names,
+        /// and <c>career.status</c> said nothing about itself at all. So the
+        /// stamp was not a question of which token was right for a career, it was
+        /// that the channel could not be armed against under any token: the arm
+        /// would be accepted and the alarm would then never come due, which an
+        /// operator cannot tell apart from a condition that has not been met. The
+        /// token is <c>"game"</c>, which the vocabulary already had for anything
+        /// the whole simulation shares, and a career is exactly that: one per
+        /// save, and switching vessels cannot change which one is read.</para>
         /// </remarks>
-        public const int Minor = 4;
+        public const int Minor = 5;
     }
 }

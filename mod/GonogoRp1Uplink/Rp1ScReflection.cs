@@ -855,7 +855,7 @@ namespace GonogoRp1Uplink
         /// button on a Program the career can afford. A client already draws the
         /// null token and declines to call anything short.</para>
         /// </summary>
-        private Rp1ConfidenceRaw? ReadConfidence()
+        public Rp1ConfidenceRaw? ReadConfidence()
         {
             if (_confidence == null)
             {

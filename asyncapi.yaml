@@ -1,7 +1,7 @@
 asyncapi: 3.0.0
 info:
   title: Gonogo Sitrep contract
-  version: 16.4.0
+  version: 16.5.0
   description: |-
     The wire contract of the Gonogo mod's telemetry socket: 76 telemetry
     channels a client subscribes to, and 53 commands it dispatches, with the payload
@@ -8711,6 +8711,8 @@ components:
         (`CareerStrategies.activeCount`, `CareerTech.unlockedCount`) are the only
         non-nullable numbers, because an empty list counts as zero rather than as
         unknown.
+      required:
+        - meta
       properties:
         economy:
           anyOf:
@@ -8728,6 +8730,19 @@ components:
           anyOf:
             - $ref: "#/components/schemas/CareerTech"
             - type: "null"
+        meta:
+          description: |-
+            Provenance, and always `"game"`: a career belongs to the save, not to
+            anything flying, so switching vessels cannot change which one is being read.
+
+            It is here because a SCET alarm compares this stamp against the subject the
+            alarm was armed for, and refuses a reading that does not match. Without it a
+            threshold on a career figure could be armed and would then never come due,
+            which an operator cannot tell apart from a condition that has not been met.
+            `"game"` is the same token `ScetAlarm.subject` already carried for anything
+            the whole simulation shares.
+          allOf:
+            - $ref: "#/components/schemas/PayloadMeta"
     CareerStrategies:
       type: object
       description: |-
@@ -14809,6 +14824,12 @@ components:
             simulation compares this against the `meta.source` stamped on the payload it
             read, and a reading about somebody else's craft is not an answer to this
             alarm's question.
+
+            A threshold on something the save owns rather than a craft is `"game"` too,
+            and `career.status` is the one core publishes: there is one career, and no
+            vessel switch can change which one is being read, so there is nothing for a
+            third token to tell apart. That is the rule for a contributed Topic as well,
+            not a special case for this one.
         condition:
           $ref: "#/components/schemas/ScetAlarmCondition"
         state:

@@ -43,7 +43,7 @@ namespace Gonogo.KSP
     /// class is the live read, the actuator call and the publishes.</para>
     /// </summary>
     [SitrepUplink("alarm")]
-    public sealed class ScetAlarmUplink : ISitrepUplink
+    public sealed class ScetAlarmUplink : ISitrepUplink, IUplinkCapabilityDeclarer
     {
         /// <summary>The roster of armed SCET alarms.</summary>
         public const string RosterTopic = "alarm.scet";
@@ -79,6 +79,18 @@ namespace Gonogo.KSP
         private readonly IVesselActuator _actuator;
 
         private IUplinkHost? _host;
+
+        /// <summary>
+        /// What a threshold may be armed against: core's table plus whatever the
+        /// Kernel's <c>scetThresholdSources</c> providers contribute.
+        ///
+        /// <para>Bound at Register, which is before capability resolution, and
+        /// that is fine: it holds the Kernel rather than a merged copy of the
+        /// answer, and asks it at each use. Core-only until then, which is what
+        /// it should be, since nothing can have armed anything yet.</para>
+        /// </summary>
+        private ScetThresholdSources _thresholds = ScetThresholdSources.CoreOnly;
+
         private IChannelPublisher? _rosterPublisher;
         private IChannelPublisher? _firedPublisher;
 
@@ -162,9 +174,38 @@ namespace Gonogo.KSP
         /// <summary>Mandatory health self-report: a plain channel-and-command uplink is healthy once it has registered without error.</summary>
         public UplinkHealth Health() => UplinkHealth.Healthy;
 
+        /// <summary>
+        /// Declares <c>scetThresholdSources</c>, the seam an installed mod adds
+        /// its own threshold Topics through.
+        ///
+        /// <para>Owned by THIS uplink because it owns the arm that refuses a
+        /// Topic and the capture that reads one. Declared rather than left to
+        /// whoever registers first: a provider's <c>RegisterProvider</c> throws
+        /// against a capability that does not exist yet, and assembly-scan
+        /// discovery fixes no order between uplinks, so the declaration has to
+        /// happen in the pre-Register pass that runs for every uplink before any
+        /// of them registers anything.</para>
+        ///
+        /// <para>Shared, so every installed mod with a quantity worth stopping a
+        /// warp for is asked. No vanilla: a stock install contributes nothing and
+        /// core's own Topics are the table in <see cref="ScetThresholdSources"/>
+        /// rather than a provider.</para>
+        /// </summary>
+        public void DeclareCapabilities(Kernel kernel)
+        {
+            if (kernel == null) throw new ArgumentNullException(nameof(kernel));
+            kernel.RegisterCapability(new CapabilityDescriptor
+            {
+                Id = ScetThresholdCapability.Id,
+                Exclusive = false,
+                SpineCritical = false,
+            });
+        }
+
         public void Register(IUplinkHost host)
         {
             _host = host;
+            _thresholds = new ScetThresholdSources(host.Kernel);
             _rosterPublisher = host.Publisher(RosterTopic);
             _firedPublisher = host.Publisher(FiredTopic);
 
@@ -202,7 +243,7 @@ namespace Gonogo.KSP
             var condition = args.Condition;
             if (condition != null
                 && condition.Kind == ScetAlarmConditionKind.Threshold
-                && !ScetThresholdSources.Knows(condition.Topic))
+                && !_thresholds.Knows(condition.Topic))
             {
                 return CommandResult.Fail(
                     CommandErrorCode.Range,
@@ -255,7 +296,7 @@ namespace Gonogo.KSP
             try
             {
                 var ut = snapshot?.Ut ?? Planetarium.GetUniversalTime();
-                var state = new SnapshotScetStateReader(snapshot);
+                var state = new SnapshotScetStateReader(snapshot, _thresholds);
                 // Asked on the capture, not in the handle, so the snapshot goes
                 // across with the tick that decided it. The read is a walk of a
                 // thread-safe mirror and is callable from here; see

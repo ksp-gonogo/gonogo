@@ -186,6 +186,18 @@ export interface CareerStatus
 	contracts?: CareerContracts;
 	strategies?: CareerStrategies;
 	tech?: CareerTech;
+	/**
+	* Provenance, and always `"game"`: a career belongs to the save, not to
+	* anything flying, so switching vessels cannot change which one is being read.
+	*
+	* It is here because a SCET alarm compares this stamp against the subject the
+	* alarm was armed for, and refuses a reading that does not match. Without it a
+	* threshold on a career figure could be armed and would then never come due,
+	* which an operator cannot tell apart from a condition that has not been met.
+	* `"game"` is the same token `ScetAlarm.subject` already carried for anything
+	* the whole simulation shares.
+	*/
+	meta: PayloadMeta;
 }
 /**
 * The `career.facilities` channel payload: the space centre's buildings, each
@@ -4022,6 +4034,12 @@ export interface ScetAlarm
 	* simulation compares this against the `meta.source` stamped on the payload it
 	* read, and a reading about somebody else's craft is not an answer to this
 	* alarm's question.
+	*
+	* A threshold on something the save owns rather than a craft is `"game"` too,
+	* and `career.status` is the one core publishes: there is one career, and no
+	* vessel switch can change which one is being read, so there is nothing for a
+	* third token to tell apart. That is the rule for a contributed Topic as well,
+	* not a special case for this one.
 	*/
 	subject: string;
 	condition: ScetAlarmCondition;

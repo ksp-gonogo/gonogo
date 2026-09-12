@@ -356,6 +356,9 @@ namespace GonogoRp1Uplink
         /// </summary>
         private readonly Rp1DerivedCurrencyWithholder _confidenceWithhold = new Rp1DerivedCurrencyWithholder();
 
+        /// <summary>Why the SCET threshold source could not be registered, or null. Surfaced on this Uplink's health the same way the derived-currency arm's failure is.</summary>
+        private string? _scetThresholdRegistrationError;
+
         private string? _derivedCurrencyRegistrationError;
 
         private IChannelPublisher? _centres;
@@ -1177,6 +1180,27 @@ namespace GonogoRp1Uplink
                 _derivedCurrencyRegistrationError = ex.Message;
             }
 
+            // Confidence as something a SCET alarm can be armed against, so an
+            // operator warping toward the next Program is stopped on the tick they
+            // can commit to it rather than a poll interval and a light-time later.
+            // Fail-softed on its own, same discipline as the arms above: a
+            // threshold Topic this Uplink could not offer must not cost it the rest
+            // of its surface, and core simply refuses an arm against a Topic
+            // nothing contributed.
+            try
+            {
+                host.Kernel.RegisterProvider(new ProviderRegistration
+                {
+                    Capability = ScetThresholdCapability.Id,
+                    Id = "rp1",
+                    Factory = _ => new Rp1ConfidenceThresholdSource(_rp1.ReadConfidence),
+                });
+            }
+            catch (Exception ex)
+            {
+                _scetThresholdRegistrationError = ex.Message;
+            }
+
             _centres = host.Publisher(CentresTopic);
             _complexes = host.Publisher(ComplexesTopic);
             _buildQueue = host.Publisher(BuildQueueTopic);
@@ -1592,6 +1616,11 @@ namespace GonogoRp1Uplink
                                 : _confidenceWithhold.WithholdFailures
                                   + " delayed credit(s) left their derived confidence credited: "
                                   + _confidenceWithhold.LastWithholdFailure),
+                new UplinkHealthFact(
+                    "confidence threshold",
+                    _scetThresholdRegistrationError != null
+                        ? "not contributed: " + _scetThresholdRegistrationError
+                        : "rp1.confidence armable"),
                 new UplinkHealthFact(
                     "launch rules",
                     _launchGateRegistrationError != null
