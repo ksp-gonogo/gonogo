@@ -2016,6 +2016,7 @@ export const GENERATED_TYPE_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "CareerStatus": {
     contracts: "CareerContracts",
     economy: "CareerEconomy",
+    meta: "PayloadMeta",
     strategies: "CareerStrategies",
     tech: "CareerTech",
   },
@@ -2339,6 +2340,7 @@ export const GENERATED_TOPIC_SHAPES: Readonly<Record<string, ShapesByField>> = {
   "career.status": {
     contracts: "CareerContracts",
     economy: "CareerEconomy",
+    meta: "PayloadMeta",
     strategies: "CareerStrategies",
     tech: "CareerTech",
   },

@@ -29,8 +29,19 @@ namespace Sitrep.Host.Alarms
     /// <para>List-shaped Topics are absent for a different reason from anything
     /// excluded on purpose: a dotted path cannot index a list, so a threshold on
     /// one could not address a value even if the Topic were here.</para>
+    ///
+    /// <para><b>An installed mod adds its own, through the Kernel.</b> The table
+    /// below is core's and stays closed to everything outside this assembly; a
+    /// mod contributes by registering an
+    /// <see cref="IScetThresholdSources"/> provider against the
+    /// <c>scetThresholdSources</c> capability, which is declared in
+    /// <c>Sitrep.Contract</c> because that is the only assembly an Uplink may
+    /// reference. Contributed entries are asked AFTER this table, so core's own
+    /// reading of a core Topic cannot be displaced. They are builders handed over
+    /// at registration and called on demand, never values scraped off the channel
+    /// loop, so they keep the property the paragraph above is about.</para>
     /// </summary>
-    public static class ScetThresholdSources
+    public sealed class ScetThresholdSources
     {
         private static readonly Dictionary<string, Func<KspSnapshot?, object?>> Builders =
             new Dictionary<string, Func<KspSnapshot?, object?>>(StringComparer.Ordinal)
@@ -55,17 +66,142 @@ namespace Sitrep.Host.Alarms
                 [VesselViewProvider.LandingTopic] = VesselViewProvider.BuildLandingWire,
                 [VesselViewProvider.WarpTopic] = VesselViewProvider.BuildWarpWire,
                 [VesselViewProvider.CalendarTopic] = VesselViewProvider.BuildCalendarWire,
+                // The one entry that is not a VesselViewProvider adapter, and the
+                // one whose subject is never a craft. Career bookkeeping belongs
+                // to the save rather than to anything flying, so it is stamped
+                // "game" and armed against that subject, the same way a clock is.
+                // It is here because "funds reach X" is worth stopping a warp for:
+                // an operator skipping months of build time wants the clock halted
+                // when they can afford the next thing, and a client watching the
+                // same number can only poll it a light-time late.
+                [CareerViewProvider.Topic] = CareerViewProvider.BuildCareer,
             };
 
+        /// <summary>
+        /// The Kernel whose <c>scetThresholdSources</c> providers are asked
+        /// after the table above, or null for core's own entries alone.
+        /// </summary>
+        private readonly Kernel? _kernel;
+
+        /// <summary>
+        /// Core's twenty-one entries and nothing else. What a caller with no
+        /// Kernel in hand gets, and the right answer for a test that is about
+        /// the built-in table rather than about the seam.
+        /// </summary>
+        public static ScetThresholdSources CoreOnly { get; } = new ScetThresholdSources(null);
+
+        public ScetThresholdSources(Kernel? kernel) => _kernel = kernel;
+
         /// <summary>Every Topic a SCET threshold may address, in no particular order.</summary>
-        public static IEnumerable<string> Topics => Builders.Keys;
+        public IEnumerable<string> Topics
+        {
+            get
+            {
+                foreach (var topic in Builders.Keys)
+                {
+                    yield return topic;
+                }
+                foreach (var source in Contributed())
+                {
+                    if (source.Build != null && !Builders.ContainsKey(source.Topic ?? ""))
+                    {
+                        yield return source.Topic!;
+                    }
+                }
+            }
+        }
 
         /// <summary>Whether a threshold armed against <paramref name="topic"/> could ever be read.</summary>
-        public static bool Knows(string? topic) =>
-            !string.IsNullOrEmpty(topic) && Builders.ContainsKey(topic!);
+        public bool Knows(string? topic) =>
+            !string.IsNullOrEmpty(topic) && TryGetBuilder(topic!, out _);
 
-        internal static bool TryGetBuilder(string topic, out Func<KspSnapshot?, object?> builder) =>
-            Builders.TryGetValue(topic, out builder!);
+        /// <summary>
+        /// The builder for <paramref name="topic"/>, core's own first.
+        ///
+        /// <para>The order is the precedence rule, not an optimisation: a
+        /// contributed entry naming a Topic core already publishes is ignored, so
+        /// an installed mod cannot change what a core reading means underneath an
+        /// operator who armed against the number on their screen. It also keeps
+        /// the common case free, because a threshold on a core Topic never asks
+        /// the Kernel anything.</para>
+        /// </summary>
+        internal bool TryGetBuilder(string topic, out Func<KspSnapshot?, object?> builder)
+        {
+            if (Builders.TryGetValue(topic, out builder!))
+            {
+                return true;
+            }
+            foreach (var source in Contributed())
+            {
+                if (source.Build != null && string.Equals(source.Topic, topic, StringComparison.Ordinal))
+                {
+                    builder = source.Build;
+                    return true;
+                }
+            }
+            builder = null!;
+            return false;
+        }
+
+        /// <summary>
+        /// What the installed mods have contributed, or nothing at all.
+        ///
+        /// <para>Asked on demand rather than merged once, so there is no cached
+        /// copy to go stale against a Kernel that resolves after this instance
+        /// was built. A capability the Kernel does not know throws out of
+        /// <c>Active</c>, and an install without the declaration is not one where
+        /// SCET alarms should stop working, so that is swallowed; so is a
+        /// provider that throws out of its own <c>Sources</c>, which costs that
+        /// mod its Topics and nobody else theirs.</para>
+        /// </summary>
+        private IEnumerable<ScetThresholdSource> Contributed()
+        {
+            var kernel = _kernel;
+            if (kernel == null)
+            {
+                yield break;
+            }
+
+            IReadOnlyList<object?> instances;
+            try
+            {
+                instances = kernel.Active(ScetThresholdCapability.Id);
+            }
+            catch (Exception)
+            {
+                yield break;
+            }
+
+            foreach (var instance in instances)
+            {
+                if (instance is not IScetThresholdSources provider)
+                {
+                    continue;
+                }
+
+                IReadOnlyList<ScetThresholdSource>? sources;
+                try
+                {
+                    sources = provider.Sources();
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+
+                if (sources == null)
+                {
+                    continue;
+                }
+                foreach (var source in sources)
+                {
+                    if (source != null && !string.IsNullOrEmpty(source.Topic))
+                    {
+                        yield return source;
+                    }
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -86,17 +222,30 @@ namespace Sitrep.Host.Alarms
         private const string VesselSubjectPrefix = "vessel:";
 
         private readonly KspSnapshot? _snapshot;
+        private readonly ScetThresholdSources _sources;
         private readonly Dictionary<string, object?> _payloads =
             new Dictionary<string, object?>(StringComparer.Ordinal);
 
-        public SnapshotScetStateReader(KspSnapshot? snapshot) => _snapshot = snapshot;
+        /// <summary>
+        /// <paramref name="sources"/> is required rather than defaulted to
+        /// <see cref="ScetThresholdSources.CoreOnly"/> on purpose. A default
+        /// there reads as harmless and silently drops every Topic an installed
+        /// mod contributed, which does not fail anything: it produces alarms that
+        /// sit armed and never come due, and that is indistinguishable from a
+        /// condition that has not been met.
+        /// </summary>
+        public SnapshotScetStateReader(KspSnapshot? snapshot, ScetThresholdSources sources)
+        {
+            _snapshot = snapshot;
+            _sources = sources ?? ScetThresholdSources.CoreOnly;
+        }
 
         public ScetReading Read(string subject, string topic, string fieldPath)
         {
             if (_snapshot == null
                 || string.IsNullOrEmpty(topic)
                 || string.IsNullOrEmpty(fieldPath)
-                || !ScetThresholdSources.TryGetBuilder(topic, out var builder))
+                || !_sources.TryGetBuilder(topic, out var builder))
             {
                 return ScetReading.NotObservable;
             }

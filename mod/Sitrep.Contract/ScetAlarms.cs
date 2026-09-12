@@ -271,6 +271,13 @@ public class ScetAlarm
     /// switches vessels: the simulation compares this against the
     /// <c>meta.source</c> stamped on the payload it read, and a reading about
     /// somebody else's craft is not an answer to this alarm's question.</para>
+    ///
+    /// <para>A threshold on something the save owns rather than a craft is
+    /// <c>"game"</c> too, and <c>career.status</c> is the one core publishes:
+    /// there is one career, and no vessel switch can change which one is being
+    /// read, so there is nothing for a third token to tell apart. That is the
+    /// rule for a contributed Topic as well, not a special case for this
+    /// one.</para>
     /// </summary>
     [SitrepUnit(Units.Id)]
     public string Subject { get; set; } = "game";

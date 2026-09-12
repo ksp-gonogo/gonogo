@@ -1952,6 +1952,7 @@
     "CareerStatus": {
       "contracts": "CareerContracts",
       "economy": "CareerEconomy",
+      "meta": "PayloadMeta",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
     },
@@ -2273,6 +2274,7 @@
     "career.status": {
       "contracts": "CareerContracts",
       "economy": "CareerEconomy",
+      "meta": "PayloadMeta",
       "strategies": "CareerStrategies",
       "tech": "CareerTech"
     },
