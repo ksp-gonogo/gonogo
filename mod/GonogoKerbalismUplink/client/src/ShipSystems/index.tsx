@@ -789,9 +789,9 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
   // `DivergingBar` ports the design from: the biggest term reaches the
   // half-bar mark, everything else is relative to it. 0 when there are no
   // terms (the "No modelled sources" branch never reaches `DivergingBar`).
-  const maxAbsRate = Math.max(
-    0,
-    ...ledger.terms.map((t) => Math.abs(t.ratePerSecond)),
+  const maxAbsRate = value(
+    "units/s",
+    Math.max(0, ...ledger.terms.map((t) => Math.abs(t.ratePerSecond))),
   );
   return (
     // No `minWidth`: a fixed floor forces this panel wider than the row that
@@ -828,7 +828,10 @@ function LedgerBody({ ledger }: { ledger: Ledger }) {
                 content-sized) width `DivergingBar`'s own `flex: 0 0 auto`
                 gives this inner row. */}
             <Cluster gap="xs" justify="start">
-              <DivergingBar value={term.ratePerSecond} maxAbs={maxAbsRate} />
+              <DivergingBar
+                value={value("units/s", term.ratePerSecond)}
+                maxAbs={maxAbsRate}
+              />
               {/* The DivergingBar already paints the sign; a red/green
                   NUMBER beside a red/green bar doubled the same reading and
                   fed the widget's colour pile-up. The signed prefix keeps

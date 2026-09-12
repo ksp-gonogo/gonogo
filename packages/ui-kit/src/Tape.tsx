@@ -17,30 +17,32 @@
  * of any zones/markers that a non-sighted operator needs.
  */
 
+import type { Value } from "@ksp-gonogo/sitrep-sdk";
 import { useEffect, useRef, useState } from "react";
 import styled from "styled-components";
+import { type FormatsFor, formatQuantity, speakQuantity } from "./units";
 
-export interface TapeZone {
-  /** Lower bound of the band, in value units. */
-  from: number;
-  /** Upper bound of the band, in value units. */
-  to: number;
+export interface TapeZone<U extends string = string> {
+  /** Lower bound of the band. */
+  from: Value<U>;
+  /** Upper bound of the band. */
+  to: Value<U>;
   /** Fill colour. Defaults to a faint warning tint. */
   color?: string;
   /** Short label drawn beside the band (also the text equivalent). */
   label?: string;
 }
 
-export interface TapeMarker {
+export interface TapeMarker<U extends string = string> {
   /** Value at which to draw the marker. */
-  value: number;
+  value: Value<U>;
   /** Marker colour. Defaults to the accent foreground. */
   color?: string;
   /** Short label drawn beside the marker (also the text equivalent). */
   label?: string;
 }
 
-export interface TapeProps {
+export interface TapeProps<U extends string = string> {
   /**
    * Which side of the track the scale labels sit on. Default "left", the track
    * hard against the right edge with its numbers outboard.
@@ -51,11 +53,11 @@ export interface TapeProps {
    */
   labelSide?: "left" | "right";
   /** Current value: the pointer position. */
-  value: number;
+  value: Value<U>;
   /** Bottom of the scale. */
-  min: number;
+  min: Value<U>;
   /** Top of the scale. */
-  max: number;
+  max: Value<U>;
   width?: number;
   height?: number;
   /**
@@ -67,16 +69,22 @@ export interface TapeProps {
    * fallback.
    */
   fillHeight?: boolean;
-  /** Interior tick spacing in value units. Omit for no interior ticks. */
-  tickStep?: number;
-  zones?: ReadonlyArray<TapeZone>;
-  markers?: ReadonlyArray<TapeMarker>;
+  /** Interior tick spacing. Omit for no interior ticks. */
+  tickStep?: Value<U>;
+  zones?: ReadonlyArray<TapeZone<U>>;
+  markers?: ReadonlyArray<TapeMarker<U>>;
   /** Draw a distinct ground line at this value (e.g. 0). */
-  groundLine?: number;
-  /** Unit suffix for the value + tick labels (e.g. "m"). */
-  unit?: string;
-  /** Label formatter. Defaults to a rounded number plus the unit. */
-  format?: (v: number) => string;
+  groundLine?: Value<U>;
+  /**
+   * Pin the rung the whole scale is written at, for the cases where convention
+   * beats magnitude.
+   *
+   * Absent, the rung is taken from `max` and held for every tick, the pointer
+   * flag and the unit header alike, so the scale reads as one ruler. Letting
+   * each label ladder on its own magnitude is what would put "500 m" and
+   * "1.0 km" on the same strip.
+   */
+  format?: FormatsFor<U>;
   /** Accessible label (e.g. "Altitude above terrain"). Required for a11y. */
   ariaLabel?: string;
 }
@@ -87,19 +95,7 @@ const PAD_BOTTOM = 12;
 const TRACK_X = 52;
 const TRACK_W = 10;
 
-function defaultFormat(v: number, unit?: string): string {
-  const n = defaultNumber(v);
-  return unit ? `${n} ${unit}` : `${n}`;
-}
-
-/** Compact number-only label for the on-scale ticks + pointer flag (the unit is
- * shown once as a header, so multi-digit values don't clip the narrow scale). */
-function defaultNumber(v: number): string {
-  const a = Math.abs(v);
-  return a >= 100 || Number.isInteger(v) ? String(Math.round(v)) : v.toFixed(1);
-}
-
-export function Tape({
+export function Tape<U extends string = string>({
   labelSide = "left",
   value,
   min,
@@ -111,10 +107,9 @@ export function Tape({
   zones,
   markers,
   groundLine,
-  unit,
   format,
   ariaLabel,
-}: Readonly<TapeProps>) {
+}: Readonly<TapeProps<U>>) {
   // Full-height rail: measure the (stretched) wrapper and draw the scale at
   // that pixel height. The wrapper is `height:100%`, so its measured height is
   // parent-driven, not content-driven: no feedback loop with the SVG we size
@@ -136,13 +131,45 @@ export function Tape({
   }, [fillHeight]);
   const h = fillHeight ? measured : height;
 
-  const span = max - min;
-  const safe = Number.isFinite(value) ? value : min;
-  const clamped = span > 0 ? Math.max(min, Math.min(max, safe)) : min;
-  // `fmt` (with unit) is the accessible value text; `label` is the compact,
-  // unit-less form drawn on the narrow scale so multi-digit values don't clip.
-  const fmt = (v: number) => (format ? format(v) : defaultFormat(v, unit));
-  const label = (v: number) => (format ? format(v) : defaultNumber(v));
+  /*
+   * The scale, unwrapped ONCE into the strip's own pixel geometry. Everything
+   * below is arithmetic on bare numbers, which is what a `y` coordinate is
+   * made of; one `U` across value, min, max, tickStep, zones and markers is
+   * what makes these magnitudes belong on one ruler at all. Every figure a
+   * READER sees goes back out through the unit layer, at the tick labels, the
+   * pointer flag, the unit header and `aria-valuetext`.
+   */
+  const current = value.magnitude;
+  const axisMin = min.magnitude;
+  const axisMax = max.magnitude;
+  const span = axisMax - axisMin;
+  const safe = Number.isFinite(current) ? current : axisMin;
+  const clamped =
+    span > 0 ? Math.max(axisMin, Math.min(axisMax, safe)) : axisMin;
+
+  /*
+   * The scale's own rung and symbol, settled ONCE from the top of the strip
+   * (or from the caller's pin) and then held, because a ruler whose marks
+   * change unit partway up is not a ruler.
+   *
+   * `formatQuantity` rather than `writeQuantity`, and this is the one place
+   * the strip needs the structured result rather than finished text: a moving
+   * scale puts the NUMBERS on a 52px gutter and the SYMBOL once at its head,
+   * so the two have to arrive apart. Joined text would put "km" on every tick
+   * and clip the numbers it exists to annotate. See `FORMATTER_REACH_DEBT` in
+   * `styleguide-unit-exclusive.test.ts` for the gap that would close it.
+   */
+  const scale = formatQuantity(axisMax, max.unit, { format });
+  const rung = scale.rung;
+  const scaleSymbol = scale.symbol;
+  /* The compact, symbol-less form drawn on the narrow scale, every mark of it
+     pinned to the rung settled above. */
+  const label = (v: number) =>
+    formatQuantity(v, value.unit, { format: rung }).value;
+  const spoken = speakQuantity(
+    { magnitude: safe, unit: value.unit },
+    { format: rung },
+  );
 
   // Floored: a `fillHeight` rail measures whatever the surrounding layout
   // leaves it (e.g. LandingStatus's AltitudeRail squeezed by sibling
@@ -154,7 +181,7 @@ export function Tape({
   // value -> y: max at the top (y = PAD_TOP), min at the bottom.
   const yOf = (v: number): number => {
     if (!(span > 0)) return PAD_TOP + usable;
-    const t = Math.max(0, Math.min(1, (v - min) / span));
+    const t = Math.max(0, Math.min(1, (v - axisMin) / span));
     return PAD_TOP + (1 - t) * usable;
   };
 
@@ -170,10 +197,12 @@ export function Tape({
   const rightX = mirrored ? trackX - 6 : trackX + TRACK_W + 6;
   const calloutAnchor = mirrored ? "end" : "start";
 
+  const ground = groundLine?.magnitude;
   const ticks: number[] = [];
-  if (tickStep && tickStep > 0 && span > 0) {
-    const first = Math.ceil(min / tickStep) * tickStep;
-    for (let t = first; t <= max + 1e-9; t += tickStep) ticks.push(t);
+  const step = tickStep?.magnitude ?? 0;
+  if (step > 0 && span > 0) {
+    const first = Math.ceil(axisMin / step) * step;
+    for (let t = first; t <= axisMax + 1e-9; t += step) ticks.push(t);
   }
 
   const pointerY = yOf(clamped);
@@ -184,9 +213,9 @@ export function Tape({
       role="meter"
       aria-label={ariaLabel ?? "Tape"}
       aria-valuenow={clamped}
-      aria-valuemin={min}
-      aria-valuemax={max}
-      aria-valuetext={fmt(safe)}
+      aria-valuemin={axisMin}
+      aria-valuemax={axisMax}
+      aria-valuetext={spoken}
       style={fillHeight ? { height: "100%" } : undefined}
     >
       {/* The scale is decorative for a screen reader, the meter value above
@@ -219,8 +248,10 @@ export function Tape({
 
         {/* Zones */}
         {zones?.map((z) => {
-          const lo = Math.min(z.from, z.to);
-          const hi = Math.max(z.from, z.to);
+          const from = z.from.magnitude;
+          const to = z.to.magnitude;
+          const lo = Math.min(from, to);
+          const hi = Math.max(from, to);
           const yHi = yOf(hi);
           const yLo = yOf(lo);
           const h = Math.max(0, yLo - yHi);
@@ -251,12 +282,12 @@ export function Tape({
         })}
 
         {/* Ground line */}
-        {groundLine !== undefined && span > 0 && (
+        {ground !== undefined && span > 0 && (
           <line
             x1={trackX - 4}
-            y1={yOf(groundLine)}
+            y1={yOf(ground)}
             x2={trackX + TRACK_W + 4}
-            y2={yOf(groundLine)}
+            y2={yOf(ground)}
             stroke="var(--color-text-primary)"
             strokeWidth={2}
           />
@@ -291,10 +322,11 @@ export function Tape({
 
         {/* Markers (to the right of the track) */}
         {markers?.map((m) => {
-          const y = yOf(m.value);
+          const at = m.value.magnitude;
+          const y = yOf(at);
           const color = m.color ?? "var(--color-accent-fg)";
           return (
-            <g key={`marker-${m.value}-${m.label ?? ""}`}>
+            <g key={`marker-${at}-${m.label ?? ""}`}>
               <polygon
                 points={
                   mirrored
@@ -343,8 +375,10 @@ export function Tape({
           {label(safe)}
         </text>
 
-        {/* Unit shown once (the ticks + flag are unit-less to fit the scale). */}
-        {unit && (
+        {/* The scale's own symbol, shown once, taken from the same rung every
+            tick and the pointer flag are written at (those stay symbol-less to
+            fit the narrow strip). Empty for a kind that displays none. */}
+        {scaleSymbol !== "" && (
           <text
             x={trackX + TRACK_W / 2}
             y={trackTop - 3}
@@ -352,7 +386,7 @@ export function Tape({
             fontSize={8}
             fill="var(--color-text-faint)"
           >
-            {unit}
+            {scaleSymbol}
           </text>
         )}
       </svg>

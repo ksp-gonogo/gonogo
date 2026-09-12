@@ -469,7 +469,10 @@ export {
 } from "./MarkerIcons";
 export {
   Meter,
+  type MeterFractionProps,
   type MeterProps,
+  type MeterQuantity,
+  type MeterQuantityProps,
   type MeterSize,
   MeterStack,
   type MeterTone,

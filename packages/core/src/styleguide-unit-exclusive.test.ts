@@ -99,6 +99,24 @@ const FORMATTER_REACH_DEBT: Record<string, { count: number; why: string }> = {
     count: 2,
     why: "the unitless branch: a bare number has no Value for <Unit> to take",
   },
+
+  // A moving scale needs the number and the symbol APART, which is what
+  // `formatQuantity` returns and why it returns parts. The strip draws its
+  // marks in a 52px gutter and its symbol once at the head: joined text would
+  // put "km" on every tick and clip the numbers the symbol exists to annotate.
+  // Three: the import, plus two calls. The first call settles the rung and the
+  // symbol together; the second is the per-mark label, pinned to that rung,
+  // which is what keeps one ruler from changing unit partway up.
+  //
+  // Closing it needs the same thing `Band.tsx` above needs: `formatQuantity`'s
+  // structured half under a name that is about a SCALE rather than about
+  // formatting one value. Seeded 2026-09-12, when the strip's axis became
+  // `Value<U>` and the caller-supplied `unit` string it used to print went
+  // away.
+  "packages/ui-kit/src/Tape.tsx": {
+    count: 3,
+    why: "a scale needs number and symbol apart: marks on the gutter, symbol at the head",
+  },
 };
 
 /**

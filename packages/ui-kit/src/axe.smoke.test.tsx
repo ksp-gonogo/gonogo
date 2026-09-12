@@ -1,3 +1,4 @@
+import { value } from "@ksp-gonogo/sitrep-sdk";
 import { render } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
 import { describe, it } from "vitest";
@@ -168,14 +169,15 @@ describe("a11y smoke (jest-axe)", () => {
   it("Tape has no axe violations (with zones, markers, ground line)", async () => {
     const { container } = render(
       <Tape
-        value={1200}
-        min={0}
-        max={5000}
-        unit="m"
-        tickStep={1000}
-        groundLine={0}
-        zones={[{ from: 400, to: 900, label: "ignition" }]}
-        markers={[{ value: 150, label: "gear" }]}
+        value={value("m", 1200)}
+        min={value("m", 0)}
+        max={value("m", 5000)}
+        tickStep={value("m", 1000)}
+        groundLine={value("m", 0)}
+        zones={[
+          { from: value("m", 400), to: value("m", 900), label: "ignition" },
+        ]}
+        markers={[{ value: value("m", 150), label: "gear" }]}
         ariaLabel="Altitude above terrain"
       />,
     );
@@ -185,18 +187,23 @@ describe("a11y smoke (jest-axe)", () => {
   it("Dial has no axe violations (compass with zones + ticks)", async () => {
     const { container } = render(
       <Dial
-        value={135}
-        min={0}
-        max={360}
+        value={value("°", 135)}
+        min={value("°", 0)}
+        max={value("°", 360)}
         wrap
-        unit="°"
         ticks={[
-          { value: 0, label: "N" },
-          { value: 90, label: "E" },
-          { value: 180, label: "S" },
-          { value: 270, label: "W" },
+          { value: value("°", 0), label: "N" },
+          { value: value("°", 90), label: "E" },
+          { value: value("°", 180), label: "S" },
+          { value: value("°", 270), label: "W" },
         ]}
-        zones={[{ from: 60, to: 120, color: "var(--color-status-warning-fg)" }]}
+        zones={[
+          {
+            from: value("°", 60),
+            to: value("°", 120),
+            color: "var(--color-status-warning-fg)",
+          },
+        ]}
         ariaLabel="Slope fall direction"
       />,
     );

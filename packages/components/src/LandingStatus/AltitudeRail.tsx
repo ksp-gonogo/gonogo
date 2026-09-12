@@ -47,8 +47,8 @@ export function AltitudeRail({
     ignition != null
       ? [
           {
-            from: 0,
-            to: ignition,
+            from: value("m", 0),
+            to: value("m", ignition),
             color: "var(--color-status-nogo-fg)",
             label: "burn",
           },
@@ -76,12 +76,11 @@ export function AltitudeRail({
           fillHeight
           labelSide="right"
           width={64}
-          value={agl}
-          min={0}
-          max={maxScale}
-          unit="m"
-          tickStep={maxScale / 4}
-          groundLine={0}
+          value={value("m", agl)}
+          min={value("m", 0)}
+          max={value("m", maxScale)}
+          tickStep={value("m", maxScale / 4)}
+          groundLine={value("m", 0)}
           zones={zones}
           ariaLabel="Altitude above terrain"
         />
