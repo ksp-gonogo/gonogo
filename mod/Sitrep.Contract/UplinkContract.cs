@@ -210,26 +210,42 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// One command an uplink declares. <see cref="Delayed"/> defaults to
-    /// <c>true</c> (a normal vessel command rides the Courier's light-time
-    /// delay); ground-infrastructure commands (negotiation, archive file
-    /// ops) set it <c>false</c> so <see cref="Sitrep.Host.ChannelEngine.DispatchCommand"/>
-    /// bypasses the Courier entirely: see the design doc §4.3's kerbcast
-    /// negotiate discussion for why this flag exists.
+    /// One command an uplink declares: which id it serves, and what the engine
+    /// must satisfy before the handler runs.
+    ///
+    /// <para>Whether the command rides the Courier's light-time delay is NOT
+    /// declared here. It is declared once, on
+    /// <see cref="SitrepCommandAttribute.Delayed"/>, because the SDK codegen
+    /// turns that same attribute into the table a client's delay UX reads. A
+    /// manifest that also stated it could disagree with the client, and did: the
+    /// mod ran 52 commands the instant they arrived while every console drew
+    /// them a countdown and an in-flight queue row.</para>
     /// </summary>
     public sealed class CommandDeclaration
     {
         public string Command { get; set; } = "";
+
+        /// <summary>
+        /// The fallback answer for a command id no <c>[SitrepCommand]</c> tags,
+        /// which in a shipped build is no command at all: the attribute decides
+        /// for every declared one, whatever this says. In practice only a test
+        /// double declaring an ad-hoc id has any reason to set it.
+        ///
+        /// <para>A manifest that restates a tagged command's disposition is
+        /// inert rather than dangerous, and it is also banned:
+        /// <c>packages/core/src/styleguide-command-delay-single-source.test.ts</c>
+        /// fails on one, because a value that looks authoritative and is not is
+        /// worse to read than no value.</para>
+        /// </summary>
         public bool Delayed { get; set; } = true;
 
         /// <summary>
         /// Preconditions the ENGINE evaluates, before the handler runs, from
         /// this declaration alone.
         ///
-        /// <para>Same shape of promise as <see cref="Delayed"/>: no handler
-        /// implements it, no widget checks it, the command says what it needs
-        /// once and the engine does the rest. Empty (the default) means
-        /// ungated, which is every command that exists today.</para>
+        /// <para>No handler implements it and no widget checks it: the command
+        /// says what it needs once and the engine does the rest. Empty (the
+        /// default) means ungated, which is every command that exists today.</para>
         /// </summary>
         public CommandRequirement[] Requires { get; set; } = new CommandRequirement[0];
     }

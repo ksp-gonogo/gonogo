@@ -12,8 +12,8 @@ namespace Gonogo.KSP
     /// These are player/scene/game-level operations, NOT actuation uplinked to
     /// a craft, so they live on their own uplink rather than on
     /// <see cref="VesselUplink"/> (whose commands are all craft actuation) and
-    /// are declared <c>delayed: false</c>, a scene load or a revert is a local
-    /// game action, never a signal that rides light-time (see
+    /// are declared instant on their args types, a scene load or a revert is a
+    /// local game action, never a signal that rides light-time (see
     /// <c>local_docs/telemetry-mod/delay-architecture-resolution.md</c> §3 and
     /// <see cref="VesselUplink"/>'s command-classification table).
     ///
@@ -50,21 +50,21 @@ namespace Gonogo.KSP
             Id = "ksp",
             Version = "1.0.0",
             // No channels: this uplink is command-only (see the class doc
-            // comment). Every command is delayed:false: a game-level/player/
-            // scene action is not a signal to the craft, so it executes
-            // immediately rather than riding the Courier's light-time delay.
+            // comment). Every one of these is instant, and each says so on its
+            // own args type in the contract, which is where the client reads it
+            // from too (SitrepCommandAttribute.Delayed).
             Commands = new List<CommandDeclaration>
             {
-                Command(FlightOpsCommandProvider.RevertToLaunchCommand, delayed: false),
-                Command(FlightOpsCommandProvider.RevertToEditorCommand, delayed: false),
-                Command(FlightOpsCommandProvider.ToTrackingStationCommand, delayed: false),
-                Command(FlightOpsCommandProvider.SwitchVesselCommand, delayed: false),
+                Command(FlightOpsCommandProvider.RevertToLaunchCommand),
+                Command(FlightOpsCommandProvider.RevertToEditorCommand),
+                Command(FlightOpsCommandProvider.ToTrackingStationCommand),
+                Command(FlightOpsCommandProvider.SwitchVesselCommand),
                 // recover and launch carry declared gates (see GateDeclarations):
                 // ClearToSaveStatus for the first, the scene rule and the two
                 // ship-free PreFlightTests for the second. Both are answerable
                 // with no arguments, so the control can be dark with a reason.
-                Command(FlightOpsCommandProvider.RecoverCommand, delayed: false),
-                Command(FlightOpsCommandProvider.LaunchCommand, delayed: false),
+                Command(FlightOpsCommandProvider.RecoverCommand),
+                Command(FlightOpsCommandProvider.LaunchCommand),
             },
         };
 
@@ -82,11 +82,10 @@ namespace Gonogo.KSP
             host.AddCommandHandler<LaunchArgs, CommandResult>(FlightOpsCommandProvider.LaunchCommand, args => FlightOpsCommandProvider.HandleLaunch(_actuator, args));
         }
 
-        private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
+        private static CommandDeclaration Command(string command) => new CommandDeclaration
         {
             Requires = GateDeclarations.For(command),
             Command = command,
-            Delayed = delayed,
         };
     }
 }

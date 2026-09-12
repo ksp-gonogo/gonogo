@@ -10,12 +10,12 @@
 // several commands, which is why the reflection is over ATTRIBUTES rather
 // than over types.
 //
-// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the one
-// question the delay rail still asks of a command: whether anything answers
-// it. It is DATA a client reads, so no consumer holds its own list of which
-// commands are which. What a command IS on the rail's other two axes is
-// derived: a dispatch is a point, and the direction is which map it came out
-// of.
+// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the two
+// questions the delay rail asks of a command: whether anything answers it, and
+// whether it rides signal delay. Both are DATA a client reads, so no consumer
+// holds its own list of which commands are which. What a command IS on the
+// rail's other two axes is derived: a dispatch is a point, and the direction
+// is which map it came out of.
 //
 // WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per
 // [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries
@@ -212,6 +212,11 @@ export interface GeneratedCommandReplyMap {
 export interface GeneratedCommandRail {
   /** Whether the dispatch resolves with anything, i.e. whether an ack comes back. */
   readonly replies: boolean;
+  /**
+   * Whether the host holds this command for the signal delay before running it,
+   * off the same `[SitrepCommand(Delayed = ...)]` the host itself dispatches by.
+   */
+  readonly delayed: boolean;
 }
 
 /**
@@ -226,61 +231,65 @@ export interface GeneratedCommandRail {
  * be unacked. The column exists because a client must READ that rather than
  * assume it; the day the contract declares a command that answers nothing,
  * this is where it says so.
+ *
+ * `delayed` is the mod's own dispatch decision, not a client-side opinion of
+ * it. A `false` row runs the instant it arrives, so drawing it a countdown or
+ * an in-flight queue entry would be a fiction about the operator's own order.
  */
 export const GENERATED_COMMAND_RAIL = {
-  "alarm.scet.arm": { replies: true },
-  "alarm.scet.disarm": { replies: true },
-  "career.contract.accept": { replies: true },
-  "career.contract.cancel": { replies: true },
-  "career.contract.decline": { replies: true },
-  "career.crew.fire": { replies: true },
-  "career.crew.hire": { replies: true },
-  "career.facility.upgrade": { replies: true },
-  "career.strategy.activate": { replies: true },
-  "career.strategy.deactivate": { replies: true },
-  "career.tech.unlock": { replies: true },
-  "comms.setSimulationDelayPolicy": { replies: true },
-  "ksp.launch": { replies: true },
-  "ksp.recover": { replies: true },
-  "ksp.revertToEditor": { replies: true },
-  "ksp.revertToLaunch": { replies: true },
-  "ksp.switchVessel": { replies: true },
-  "ksp.toTrackingStation": { replies: true },
-  "robotics.rotor.reverse": { replies: true },
-  "robotics.rotor.setBrake": { replies: true },
-  "robotics.rotor.setLock": { replies: true },
-  "robotics.rotor.setMotor": { replies: true },
-  "robotics.rotor.setRpmLimit": { replies: true },
-  "robotics.rotor.setTorqueLimit": { replies: true },
-  "robotics.servo.setLock": { replies: true },
-  "robotics.servo.setMotor": { replies: true },
-  "robotics.servo.setTarget": { replies: true },
-  "science.experiment.deploy": { replies: true },
-  "science.experiment.transmit": { replies: true },
-  "system.frame.set": { replies: true },
-  "time.setPaused": { replies: true },
-  "time.setWarpIndex": { replies: true },
-  "vessel.control.setAbort": { replies: true },
-  "vessel.control.setActionGroup": { replies: true },
-  "vessel.control.setAxes": { replies: true },
-  "vessel.control.setBrakes": { replies: true },
-  "vessel.control.setFlyByWire": { replies: true },
-  "vessel.control.setGear": { replies: true },
-  "vessel.control.setLights": { replies: true },
-  "vessel.control.setRcs": { replies: true },
-  "vessel.control.setSas": { replies: true },
-  "vessel.control.setSasMode": { replies: true },
-  "vessel.control.setThrottle": { replies: true },
-  "vessel.control.stage": { replies: true },
-  "vessel.invokePartAction": { replies: true },
-  "vessel.maneuver.add": { replies: true },
-  "vessel.maneuver.plan.send": { replies: true },
-  "vessel.maneuver.remove": { replies: true },
-  "vessel.maneuver.update": { replies: true },
-  "vessel.repair": { replies: true },
-  "vessel.target.clear": { replies: true },
-  "vessel.target.set": { replies: true },
-  "vessel.trajectory.forVantage": { replies: true },
+  "alarm.scet.arm": { replies: true, delayed: false },
+  "alarm.scet.disarm": { replies: true, delayed: false },
+  "career.contract.accept": { replies: true, delayed: true },
+  "career.contract.cancel": { replies: true, delayed: true },
+  "career.contract.decline": { replies: true, delayed: true },
+  "career.crew.fire": { replies: true, delayed: true },
+  "career.crew.hire": { replies: true, delayed: true },
+  "career.facility.upgrade": { replies: true, delayed: true },
+  "career.strategy.activate": { replies: true, delayed: true },
+  "career.strategy.deactivate": { replies: true, delayed: true },
+  "career.tech.unlock": { replies: true, delayed: true },
+  "comms.setSimulationDelayPolicy": { replies: true, delayed: false },
+  "ksp.launch": { replies: true, delayed: false },
+  "ksp.recover": { replies: true, delayed: false },
+  "ksp.revertToEditor": { replies: true, delayed: false },
+  "ksp.revertToLaunch": { replies: true, delayed: false },
+  "ksp.switchVessel": { replies: true, delayed: false },
+  "ksp.toTrackingStation": { replies: true, delayed: false },
+  "robotics.rotor.reverse": { replies: true, delayed: true },
+  "robotics.rotor.setBrake": { replies: true, delayed: true },
+  "robotics.rotor.setLock": { replies: true, delayed: true },
+  "robotics.rotor.setMotor": { replies: true, delayed: true },
+  "robotics.rotor.setRpmLimit": { replies: true, delayed: true },
+  "robotics.rotor.setTorqueLimit": { replies: true, delayed: true },
+  "robotics.servo.setLock": { replies: true, delayed: true },
+  "robotics.servo.setMotor": { replies: true, delayed: true },
+  "robotics.servo.setTarget": { replies: true, delayed: true },
+  "science.experiment.deploy": { replies: true, delayed: true },
+  "science.experiment.transmit": { replies: true, delayed: true },
+  "system.frame.set": { replies: true, delayed: false },
+  "time.setPaused": { replies: true, delayed: false },
+  "time.setWarpIndex": { replies: true, delayed: false },
+  "vessel.control.setAbort": { replies: true, delayed: true },
+  "vessel.control.setActionGroup": { replies: true, delayed: true },
+  "vessel.control.setAxes": { replies: true, delayed: true },
+  "vessel.control.setBrakes": { replies: true, delayed: true },
+  "vessel.control.setFlyByWire": { replies: true, delayed: true },
+  "vessel.control.setGear": { replies: true, delayed: true },
+  "vessel.control.setLights": { replies: true, delayed: true },
+  "vessel.control.setRcs": { replies: true, delayed: true },
+  "vessel.control.setSas": { replies: true, delayed: true },
+  "vessel.control.setSasMode": { replies: true, delayed: true },
+  "vessel.control.setThrottle": { replies: true, delayed: true },
+  "vessel.control.stage": { replies: true, delayed: true },
+  "vessel.invokePartAction": { replies: true, delayed: true },
+  "vessel.maneuver.add": { replies: true, delayed: true },
+  "vessel.maneuver.plan.send": { replies: true, delayed: true },
+  "vessel.maneuver.remove": { replies: true, delayed: true },
+  "vessel.maneuver.update": { replies: true, delayed: true },
+  "vessel.repair": { replies: true, delayed: true },
+  "vessel.target.clear": { replies: true, delayed: true },
+  "vessel.target.set": { replies: true, delayed: true },
+  "vessel.trajectory.forVantage": { replies: true, delayed: false },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [

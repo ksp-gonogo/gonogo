@@ -1143,7 +1143,6 @@ namespace Sitrep.Host
             _commandDeclarations[PlanForVantageCommand] = new CommandDeclaration
             {
                 Command = PlanForVantageCommand,
-                Delayed = false,
             };
             _vantageCommandHandlers[PlanForVantageCommand] =
                 (args, vantage) => PlanForVantage(args, vantage);
@@ -4011,13 +4010,14 @@ namespace Sitrep.Host
         }
 
         /// <summary>
-        /// Dispatch a command by name. If its declaration's
-        /// <see cref="CommandDeclaration.Delayed"/> is <c>false</c> (ground
-        /// infrastructure), the handler runs and <paramref name="onResult"/>
-        /// fires on the SAME job-processing step: no Courier delay at all.
-        /// Otherwise it rides <see cref="Courier.DispatchCommand"/>'s normal
-        /// uplink/downlink delay, resolving only once <see cref="Tick"/>
-        /// advances the clock far enough.
+        /// Dispatch a command by name. If the contract declares it instant
+        /// (<see cref="SitrepCommandAttribute.Delayed"/> <c>false</c>: a scene
+        /// change, a meta-game control, a presentation choice), the handler runs
+        /// and <paramref name="onResult"/> fires on the SAME job-processing
+        /// step, with no Courier delay at all. Otherwise it rides
+        /// <see cref="Courier.DispatchCommand"/>'s normal uplink/downlink delay,
+        /// resolving only once <see cref="Tick"/> advances the clock far enough.
+        /// See <see cref="ResolveCommandDelay"/> for where the answer comes from.
         /// </summary>
         public void DispatchCommand(string command, object? args, string vantage, Action<object?> onResult, string label = "", string topic = "", Action<string>? onRefused = null) =>
             EnqueueJob(new DispatchCommandJob(command, args, vantage, onResult, null, label, topic, onRefused));
@@ -5382,6 +5382,34 @@ namespace Sitrep.Host
             }
         }
 
+        /// <summary>
+        /// Whether a command is held for the signal delay before it runs.
+        ///
+        /// <para>The contract's own <c>[SitrepCommand(Delayed = ...)]</c> is the
+        /// answer, because the SDK codegen turns that same attribute into the
+        /// table a client's delay UX reads: the mod and the console cannot
+        /// disagree about a command when neither of them holds an opinion of its
+        /// own. <see cref="CommandDeclaration.Delayed"/> is consulted only for an
+        /// id nothing tags, which in a shipped build is nothing at all.</para>
+        ///
+        /// <para>An id neither tags nor declares rides the delay, which is the
+        /// same answer this made before the catalog existed and the safe
+        /// direction to be wrong in: a delayed command that should have been
+        /// instant arrives late, an instant one that should have been delayed
+        /// has already skipped the gap.</para>
+        /// </summary>
+        private bool ResolveCommandDelay(string command)
+        {
+            bool declared;
+            if (CommandDelayCatalog.TryGetDelayed(command, out declared))
+            {
+                return declared;
+            }
+
+            return !_commandDeclarations.TryGetValue(command, out var declaration)
+                || declaration.Delayed;
+        }
+
         private void ProcessDispatchCommand(DispatchCommandJob job)
         {
             // IMPORTANT-A: an unknown command AND a command whose owning
@@ -5458,7 +5486,7 @@ namespace Sitrep.Host
                 return;
             }
 
-            var delayed = !_commandDeclarations.TryGetValue(job.Command, out var declaration) || declaration.Delayed;
+            var delayed = ResolveCommandDelay(job.Command);
 
             if (!delayed)
             {

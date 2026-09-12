@@ -345,7 +345,7 @@ public class ScetAlarmFired
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("alarm.scet.arm")]
+[SitrepCommand("alarm.scet.arm", Delayed = false)]
 public class ScetAlarmArmArgs
 {
     [SitrepUnit(Units.Id)]
@@ -373,7 +373,7 @@ public class ScetAlarmArmArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("alarm.scet.disarm")]
+[SitrepCommand("alarm.scet.disarm", Delayed = false)]
 public class ScetAlarmDisarmArgs
 {
     [SitrepUnit(Units.Id)]

@@ -67,6 +67,33 @@ namespace Sitrep.Contract
         /// </summary>
         public Type Result { get; set; }
 
+        /// <summary>
+        /// Whether this command rides the Courier's light-time delay. Default
+        /// <c>true</c>: an order to a craft crosses the gap like any other
+        /// signal, and only a fact with no analogue in flight is instant.
+        ///
+        /// <para>THIS IS THE ONLY PLACE THE ANSWER IS WRITTEN DOWN. The host
+        /// reads it here when it dispatches
+        /// (<c>Sitrep.Host.CommandDelayCatalog</c>), and the SDK codegen writes
+        /// the same value into <c>GENERATED_COMMAND_RAIL</c>, which is what a
+        /// client's delay UX reads. Before this property the mod stated it on
+        /// <see cref="CommandDeclaration"/> and the client kept a hand-written
+        /// set of ids, and the two disagreed about 52 commands: the mod ran them
+        /// instantly while every console drew a countdown and an in-flight queue
+        /// row for them.</para>
+        ///
+        /// <para>Three things earn <c>false</c>, and the rule is the SIMULATION's
+        /// point of view rather than one console's. A command that changes the
+        /// SCENE (launch, recover, revert, switch vessel, the tracking station)
+        /// changes it for every vantage at once, so there is no light-time for it
+        /// to ride. A meta-game control (warp, pause) is not a signal to a craft.
+        /// A PRESENTATION choice (which frame a readout is in, which vantage a
+        /// trajectory is drawn for) sends nothing anywhere at all. Everything
+        /// else delays, career and construction orders included: those are orders,
+        /// not ground-side facts, and a second command centre can issue them.</para>
+        /// </summary>
+        public bool Delayed { get; set; } = true;
+
         public SitrepCommandAttribute(string commandId)
         {
             CommandId = commandId;

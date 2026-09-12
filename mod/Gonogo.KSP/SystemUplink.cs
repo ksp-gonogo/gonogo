@@ -178,15 +178,15 @@ namespace Gonogo.KSP
             },
             Commands = new List<CommandDeclaration>
             {
-                // Not delayed, on the same reasoning as vessel.target.set: this
-                // designates what the operator is looking at rather than actuating
-                // anything on a craft, so there is no light-time for it to ride.
-                // A frame change that took minutes to apply would be a fiction
-                // about the operator's own screen.
+                // Presentation, not action: this designates how a readout is
+                // drawn rather than actuating anything, and sends nothing
+                // anywhere, so there is no light-time for it to ride. A frame
+                // change that took minutes to apply would be a fiction about the
+                // operator's own screen. Declared instant on the args type, not
+                // here, so the client reads the same answer.
                 new CommandDeclaration
                 {
                     Command = SetControlFrameCommand,
-                    Delayed = false,
                 },
             },
         };

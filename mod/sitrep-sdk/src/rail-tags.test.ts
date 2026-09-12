@@ -138,7 +138,7 @@ describe("railTagsForCommand", () => {
    * rather than assumed.
    */
   it("derives fire-and-forget from a row that answers nothing", () => {
-    expect(railTagsFromCommandRail({ replies: false })).toEqual({
+    expect(railTagsFromCommandRail({ replies: false, delayed: true })).toEqual({
       direction: "command",
       continuity: "discrete",
       delivery: "fire-and-forget",
@@ -159,9 +159,9 @@ describe("an Uplink registering its own command", () => {
     // rather than guessing.
     expect(commandRail(id)).toBeNull();
 
-    registerUplinkCommand(id, { replies: true });
+    registerUplinkCommand(id, { replies: true, delayed: true });
 
-    expect(commandRail(id)).toEqual({ replies: true });
+    expect(commandRail(id)).toEqual({ replies: true, delayed: true });
     expect(railTagsForCommand(id)).toEqual({
       direction: "command",
       continuity: "discrete",

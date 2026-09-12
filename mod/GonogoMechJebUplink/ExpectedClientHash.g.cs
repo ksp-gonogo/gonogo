@@ -11,6 +11,6 @@ namespace Gonogo.MechJebUplink
 {
     internal static class ExpectedClientHash
     {
-        public const string Value = "sha256-1a854691c205d2dceb0067c9442c37baed054a098594b3306391d02babe17931";
+        public const string Value = "sha256-424558c9aae8a1354cb13fb41ff69468b359361aa159cf10d02b7e375d8f282e";
     }
 }

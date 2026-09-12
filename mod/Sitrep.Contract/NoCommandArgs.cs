@@ -34,9 +34,9 @@ namespace Sitrep.Contract;
 #endif
 [SitrepCommand("vessel.control.stage", Payload = typeof(int))]
 [SitrepCommand("vessel.target.clear")]
-[SitrepCommand("ksp.recover")]
-[SitrepCommand("ksp.revertToLaunch")]
-[SitrepCommand("ksp.toTrackingStation")]
+[SitrepCommand("ksp.recover", Delayed = false)]
+[SitrepCommand("ksp.revertToLaunch", Delayed = false)]
+[SitrepCommand("ksp.toTrackingStation", Delayed = false)]
 public class NoCommandArgs
 {
 }

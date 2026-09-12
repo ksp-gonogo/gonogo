@@ -150,8 +150,8 @@ namespace Gonogo.RealAntennasUplink
                 // That is also why the channel beside them is delayed, and why an
                 // antenna is addressed by a stable id rather than by its position
                 // in a list that can change while the command is in flight.
-                new CommandDeclaration { Command = TargetCommand, Delayed = true },
-                new CommandDeclaration { Command = TargetHomeCommand, Delayed = true },
+                new CommandDeclaration { Command = TargetCommand },
+                new CommandDeclaration { Command = TargetHomeCommand },
             },
         };
 

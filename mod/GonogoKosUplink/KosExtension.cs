@@ -211,28 +211,29 @@ namespace Gonogo.KosUplink
             },
             Commands = new List<CommandDeclaration>
             {
-                // Interactive terminal uplink: keystrokes/open/close ride
-                // gonogo's SignalDelay to the craft (genuine remote input; the
-                // lease-token + idle guards are re-checked at delivery on the
-                // main thread).
-                new CommandDeclaration { Command = KosChannels.TerminalOpenCommand, Delayed = true },
-                new CommandDeclaration { Command = KosChannels.KeystrokeCommand, Delayed = true },
-                // Resize is NOT delayed: the render width must match between the
-                // mod's cursor-addressed screen diff and xterm on the client. A
-                // delayed resize leaves the mod diffing at a stale width for a
-                // full light-time round-trip, so the client renders those diffs
-                // at the wrong column and the terminal reads as garbled until it
-                // converges. Viewport size is a local display concern, distinct
-                // from a keystroke: apply it immediately so the two sides agree.
-                new CommandDeclaration { Command = KosChannels.TerminalResizeCommand, Delayed = false },
-                new CommandDeclaration { Command = KosChannels.TerminalCloseCommand, Delayed = true },
-                // kos.run, general-purpose ad-hoc RPC (replaces telnet
-                // executeScript). DELAYED, single-in-flight-per-CPU: a second
-                // kos.run for a CPU that already has one in flight is
+                // All five ride gonogo's SignalDelay to the craft, declared on
+                // their args types in this Uplink's contract slice rather than
+                // here, so the client reads the same answer
+                // (SitrepCommandAttribute.Delayed). Keystrokes, open and close
+                // are genuine remote input, with the lease-token and idle guards
+                // re-checked at delivery on the main thread.
+                new CommandDeclaration { Command = KosChannels.TerminalOpenCommand },
+                new CommandDeclaration { Command = KosChannels.KeystrokeCommand },
+                // Resize delays with the rest, which costs a converging
+                // terminal: the mod keeps diffing its cursor-addressed screen at
+                // the old width for a light-time round trip, so xterm draws
+                // those diffs at the wrong column until the new width lands. The
+                // alternative, applying it instantly, would let one console
+                // reflow a terminal another console is reading in real time, and
+                // a resize is an order like any other.
+                new CommandDeclaration { Command = KosChannels.TerminalResizeCommand },
+                new CommandDeclaration { Command = KosChannels.TerminalCloseCommand },
+                // kos.run, general-purpose ad-hoc RPC. Single-in-flight-per-CPU:
+                // a second kos.run for a CPU that already has one in flight is
                 // rejected (KosRunManager.TryArm), mirroring the idle-prompt
-                // guard every other CPU-targeted command re-checks at
-                // delivery on the main thread.
-                new CommandDeclaration { Command = KosChannels.RunCommand, Delayed = true },
+                // guard every other CPU-targeted command re-checks at delivery
+                // on the main thread.
+                new CommandDeclaration { Command = KosChannels.RunCommand },
             },
         };
 

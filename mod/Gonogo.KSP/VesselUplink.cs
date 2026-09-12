@@ -208,72 +208,47 @@ namespace Gonogo.KSP
                 Channel(StageDeltaVViewProvider.StagesTopic, absenceIsData: true),
                 Channel(StageDeltaVViewProvider.SummaryTopic, absenceIsData: true),
             },
-            // ==== F2 COMMAND DELAY CLASSIFICATION (the single source of
-            // truth: the ONE table to edit) ====================================
-            // Rule (F2 Part 2 / delay-architecture-resolution.md §3): a command
-            // that is a genuine UPLINK TO THE CRAFT rides the same light-time
-            // delay the telemetry model applies (delayed: true), it takes
-            // effect at t0 + uplink light-time when signal delay is enabled,
-            // and instantly when it is disabled (delay == 0). A LOCAL/PLAYER or
-            // GAME-LEVEL/META action is not a signal to the vessel and executes
-            // immediately (delayed: false).
+            // The command delay classification is NOT here any more.
             //
-            //   DELAYED  (uplink to the craft):
-            //     - vessel.control.*   (actuation: stage/sas/rcs/gear/brakes/
-            //                            lights/abort/throttle/actionGroup)
-            //     - vessel.maneuver.*  (add/update/remove: the node lives on
-            //                            the craft's flight computer, so placing/
-            //                            editing/clearing it is an uplink)
-            //   INSTANT  (local/player or game-level/meta: NOT an uplink):
-            //     - vessel.target.*    (nav aid on the ground station)
-            //     - time.*             (warp/pause: sim-meta, never a light-time
-            //                            fiction)
-            //     - any future game-level command (launch/revert/recover/scene/
-            //                            facility/contracts/tech/strategies):
-            //                            declare it delayed: false here.
+            // This list used to carry a delayed: flag per command and call
+            // itself the one table to edit. It was one of two: the client kept
+            // its own set of instant ids, the two disagreed about 52 commands,
+            // and neither could see the other. The flag now lives on each
+            // command's args type in the contract
+            // (SitrepCommandAttribute.Delayed), which is the SAME declaration
+            // the SDK codegen turns into GENERATED_COMMAND_RAIL, so the mod's
+            // dispatch and the console's countdown read one answer.
             //
-            // Additive by construction: a NEW/unknown command that never reaches
-            // this table falls back to CommandDeclaration.Delayed's own default
-            // (true) at dispatch time (see ChannelEngine.ProcessDispatchCommand),
-            // the safe "treat an unclassified command as an uplink" bucket.
-            // Terminal/kOS uplink delay is a SEPARATE stream, not this table.
+            // The rule the values follow, from the simulation's point of view
+            // rather than one console's: a command that changes the SCENE, a
+            // meta-game control, or a pure PRESENTATION choice is instant, and
+            // everything else rides light-time. An id nothing tags falls back to
+            // delayed (see ChannelEngine.ResolveCommandDelay), the safe "treat
+            // an unclassified command as an uplink" bucket.
+            // Terminal/kOS uplink delay is a SEPARATE stream, not this rule.
             Commands = new List<CommandDeclaration>
             {
-                Command(VesselCommandProvider.SetSasCommand, delayed: true),
-                Command(VesselCommandProvider.SetSasModeCommand, delayed: true),
-                Command(VesselCommandProvider.SetRcsCommand, delayed: true),
-                Command(VesselCommandProvider.SetGearCommand, delayed: true),
-                Command(VesselCommandProvider.SetBrakesCommand, delayed: true),
-                Command(VesselCommandProvider.SetLightsCommand, delayed: true),
-                Command(VesselCommandProvider.SetAbortCommand, delayed: true),
-                Command(VesselCommandProvider.SetThrottleCommand, delayed: true),
-                Command(VesselCommandProvider.StageCommand, delayed: true),
-                Command(VesselCommandProvider.SetActionGroupCommand, delayed: true),
-                // fly-by-wire: a craft uplink like every other vessel.control.*,
-                // so it rides light-time (delayed:true). Each axis update takes
-                // effect at t0 + one-way delay and the operator sees it at
-                // +2×one-way; continuous FBW under multi-second delay is barely
-                // flyable by construction, which the client warning badge exists
-                // to flag (correct per the delay model, not a bug).
-                Command(VesselCommandProvider.SetFlyByWireCommand, delayed: true),
-                Command(VesselCommandProvider.SetControlAxesCommand, delayed: true),
-                // vessel.maneuver.*: F2 reclassified to delayed:true because a
-                // maneuver node is craft-side state, so placing/editing/removing
-                // it is an uplink that rides light-time like every other
-                // actuation (was delayed:false pre-F2).
-                Command(VesselCommandProvider.ManeuverAddCommand, delayed: true),
-                Command(VesselCommandProvider.ManeuverUpdateCommand, delayed: true),
-                Command(VesselCommandProvider.ManeuverRemoveCommand, delayed: true),
-                Command(VesselCommandProvider.ManeuverPlanSendCommand, delayed: true),
-                Command(VesselCommandProvider.TargetSetCommand, delayed: false),
-                Command(VesselCommandProvider.TargetClearCommand, delayed: false),
-                Command(VesselCommandProvider.SetWarpIndexCommand, delayed: false),
-                Command(VesselCommandProvider.SetPausedCommand, delayed: false),
-                // vessel.invokePartAction: firing a button in a part's right-click
-                // PAW actuates a part ON the craft, so it belongs in the DELAYED
-                // bucket above alongside vessel.control.* rather than with the
-                // ground-station nav aids below it.
-                Command(PartActionCommandProvider.InvokePartActionCommand, delayed: true),
+                Command(VesselCommandProvider.SetSasCommand),
+                Command(VesselCommandProvider.SetSasModeCommand),
+                Command(VesselCommandProvider.SetRcsCommand),
+                Command(VesselCommandProvider.SetGearCommand),
+                Command(VesselCommandProvider.SetBrakesCommand),
+                Command(VesselCommandProvider.SetLightsCommand),
+                Command(VesselCommandProvider.SetAbortCommand),
+                Command(VesselCommandProvider.SetThrottleCommand),
+                Command(VesselCommandProvider.StageCommand),
+                Command(VesselCommandProvider.SetActionGroupCommand),
+                Command(VesselCommandProvider.SetFlyByWireCommand),
+                Command(VesselCommandProvider.SetControlAxesCommand),
+                Command(VesselCommandProvider.ManeuverAddCommand),
+                Command(VesselCommandProvider.ManeuverUpdateCommand),
+                Command(VesselCommandProvider.ManeuverRemoveCommand),
+                Command(VesselCommandProvider.ManeuverPlanSendCommand),
+                Command(VesselCommandProvider.TargetSetCommand),
+                Command(VesselCommandProvider.TargetClearCommand),
+                Command(VesselCommandProvider.SetWarpIndexCommand),
+                Command(VesselCommandProvider.SetPausedCommand),
+                Command(PartActionCommandProvider.InvokePartActionCommand),
             },
         };
 
@@ -589,8 +564,8 @@ namespace Gonogo.KSP
         /// the whole simulation shares is vantage-independent by construction,
         /// so there is no light-time for it to cross, and this is the READ side
         /// finally agreeing with the write side: <c>time.setWarpIndex</c> is
-        /// already <c>Delayed = false</c> on exactly that reasoning
-        /// (<see cref="VesselCommandProvider.SetWarpIndexCommand"/>).</para>
+        /// already declared instant on exactly that reasoning (see its
+        /// <c>[SitrepCommand]</c> in <c>Sitrep.Contract/VesselCommands.cs</c>).</para>
         ///
         /// <para>It used to be <see cref="DelayRole.Delayed"/> because it
         /// arrives on the vessel snapshot. That is a routing fact, not a
@@ -609,10 +584,9 @@ namespace Gonogo.KSP
             return declaration;
         }
 
-        private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
+        private static CommandDeclaration Command(string command) => new CommandDeclaration
         {
             Command = command,
-            Delayed = delayed,
         };
     }
 }

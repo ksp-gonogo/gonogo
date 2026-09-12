@@ -624,7 +624,6 @@ namespace GonogoRp1Uplink
                 commands.Add(new CommandDeclaration
                 {
                     Command = Rp1BuildStartCommands.StartCommand,
-                    Delayed = false,
                     Requires = new[]
                     {
                         Rp1BuildCommands.Requirements()[0],
@@ -661,7 +660,6 @@ namespace GonogoRp1Uplink
                 commands.Add(new CommandDeclaration
                 {
                     Command = Rp1FacilityUpgradeCommands.UpgradeCommand,
-                    Delayed = false,
                     Requires = new[]
                     {
                         Rp1BuildCommands.Requirements()[0],
@@ -729,6 +727,11 @@ namespace GonogoRp1Uplink
             // flight, at the space centre and at the tracking station, and a warp
             // started anywhere else would set a rate and never step it down, which
             // overshoots the thing it was aimed at.
+            //
+            // These two are also the only INSTANT commands this Uplink serves, and
+            // that is not an oversight: warp is a change to the operator's own
+            // clock rather than an order to anything, so light-time does not apply
+            // to it. Declared on Rp1WarpArgs, which carries the full reasoning.
             if (warpModelResolved)
             {
                 foreach (var command in new[] { Rp1WarpCommands.ToCompleteCommand, Rp1WarpCommands.ToFundTargetCommand })
@@ -736,7 +739,6 @@ namespace GonogoRp1Uplink
                     commands.Add(new CommandDeclaration
                     {
                         Command = command,
-                        Delayed = false,
                         Requires = new[]
                         {
                             Rp1BuildCommands.Requirements()[0],
@@ -763,10 +765,26 @@ namespace GonogoRp1Uplink
             return commands;
         }
 
+        /// <summary>
+        /// One RP-1 command with this Uplink's standard requirement set.
+        ///
+        /// <para>It no longer states a delay disposition, and that is the fix for
+        /// a defect this factory created: it baked <c>Delayed = false</c> into
+        /// every RP-1 command at once, on the reading that construction and
+        /// research are ground-side facts. They are ORDERS. None of them changes
+        /// the scene, and a second command centre can issue any of them, so they
+        /// cross the gap like any other order. The value is declared on each
+        /// command's args type in this Uplink's contract slice now, which is the
+        /// same declaration the SDK codegen hands the client.</para>
+        ///
+        /// <para>Every command this factory mints delays. The two that do not are
+        /// <c>rp1.warp.toComplete</c> and <c>rp1.warp.toFundTarget</c>, which are
+        /// declared separately above for their scene requirement and are clock
+        /// changes rather than orders: see <c>Rp1WarpArgs</c>.</para>
+        /// </summary>
         private static CommandDeclaration Declare(string command) => new CommandDeclaration
         {
             Command = command,
-            Delayed = false,
             Requires = Rp1BuildCommands.Requirements(),
         };
 

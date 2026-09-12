@@ -171,19 +171,19 @@ namespace GonogoPrincipiaUplink
                 // than console preferences. The arm is Delayed too, and that is not
                 // an oversight: arming RUNS the round-trip probe, which is a real
                 // write of Principia's own burn back into the plan.
-                new CommandDeclaration { Command = PlanCommands.ArmCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.ReplaceBurnCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.InsertBurnCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.RemoveBurnCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.HorizonCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.IntegratorCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.CreateCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.DeleteCommand, Delayed = true },
-                new CommandDeclaration { Command = PlanCommands.DuplicateCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.ArmCommand },
+                new CommandDeclaration { Command = PlanCommands.ReplaceBurnCommand },
+                new CommandDeclaration { Command = PlanCommands.InsertBurnCommand },
+                new CommandDeclaration { Command = PlanCommands.RemoveBurnCommand },
+                new CommandDeclaration { Command = PlanCommands.HorizonCommand },
+                new CommandDeclaration { Command = PlanCommands.IntegratorCommand },
+                new CommandDeclaration { Command = PlanCommands.CreateCommand },
+                new CommandDeclaration { Command = PlanCommands.DeleteCommand },
+                new CommandDeclaration { Command = PlanCommands.DuplicateCommand },
                 // The composed send is Delayed like the rest, and more obviously so:
                 // it is a command centre telling a craft what to fly, which is the
                 // case the whole delay model exists for.
-                new CommandDeclaration { Command = PlanCommands.SendCommand, Delayed = true },
+                new CommandDeclaration { Command = PlanCommands.SendCommand },
             },
         };
 

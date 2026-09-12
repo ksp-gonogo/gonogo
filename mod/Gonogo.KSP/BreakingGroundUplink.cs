@@ -114,8 +114,8 @@ namespace Gonogo.KSP
                 },
             },
             // Robotics actuation is an uplink to the craft, so every command
-            // rides light-time (delayed: true), like the vessel.control.*
-            // commands.
+            // rides light-time like the vessel.control.* ones. Declared on the
+            // args types, see SitrepCommandAttribute.Delayed.
             Commands = new List<CommandDeclaration>
             {
                 Command(RoboticsCommandProvider.ServoSetTargetCommand),
@@ -170,7 +170,6 @@ namespace Gonogo.KSP
         private static CommandDeclaration Command(string command) => new CommandDeclaration
         {
             Command = command,
-            Delayed = true,
         };
     }
 }

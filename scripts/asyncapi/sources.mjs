@@ -6,8 +6,10 @@
 // whether its value rides light-time, and how often it is emitted are properties
 // of the `ChannelDeclaration` at the declaration site inside the PLUGIN
 // assembly, and the codegen reflects over the CONTRACT assembly, which holds the
-// payload types and not the channel list. Whether a COMMAND is delayed is the
-// same shape of fact on `CommandDeclaration`.
+// payload types and not the channel list. Whether a COMMAND is delayed WAS the
+// same shape of fact and is not any more: it moved onto the command's own
+// `[SitrepCommand]`, so the generated map carries it and `readCommandDispositions`
+// reads that rather than scanning.
 //
 // A scan is a fragile instrument. This one is built so its fragility is loud:
 // the generated maps already name every static topic and command, so the caller
@@ -79,9 +81,6 @@ const TYPE_DECL = /\b(?:class|struct)\s+(\w+)/g;
 const CHANNEL_INITIALISER = /new\s+ChannelDeclaration\s*\{/g;
 const CHANNEL_FACTORY =
   /\bChannelDeclaration\s+(\w+)\s*\([^)]*\)\s*=>\s*new\s+ChannelDeclaration\s*\{/g;
-const COMMAND_INITIALISER = /new\s+CommandDeclaration\s*\{/g;
-const COMMAND_FACTORY =
-  /\bCommandDeclaration\s+(\w+)\s*\([^)]*\)\s*=>\s*\r?\n?\s*new\s+CommandDeclaration\s*\{/g;
 
 /**
  * Every `const string` in the scanned assemblies, resolvable by qualified name
@@ -281,22 +280,38 @@ export function readChannelDispositions(root) {
 }
 
 /**
- * Whether each core command rides light-time, per its `CommandDeclaration`.
+ * Whether each core command rides light-time, off the GENERATED command map.
  *
- * The single most consequential fact about a write on this wire and it reaches
- * no client today: `Delayed = true` means the command takes effect at UT plus
- * uplink light-time rather than now, so an operator pressing it is committing to
- * something minutes away.
+ * The single most consequential fact about a write on this wire: `delayed: true`
+ * means the command takes effect at UT plus uplink light-time rather than now,
+ * so an operator pressing it is committing to something minutes away.
+ *
+ * NOT a source scan, unlike its channel twin, and it used to be. The fact now
+ * lives on the command's own `[SitrepCommand(Delayed = ...)]` in the contract
+ * assembly, which the codegen reflects over, so the generated map already
+ * carries it and the host reads the same attribute to dispatch by. Scanning the
+ * manifests would be reading a restatement, which is what this document's
+ * subject matter just stopped having.
  */
 export function readCommandDispositions(root) {
-  return scanDeclarations(root, SOURCES.declarations, {
-    initialiser: COMMAND_INITIALISER,
-    factory: COMMAND_FACTORY,
-    subjectProperty: "Command",
-    read: (body, substitute) => ({
-      delayed: boolProperty(body, "Delayed", substitute),
-    }),
-  });
+  const source = readFileSync(join(root, SOURCES.commandMap), "utf8");
+  const rail =
+    /export const GENERATED_COMMAND_RAIL = \{([\s\S]*?)\n\} as const/.exec(
+      source,
+    );
+  if (!rail) {
+    throw new Error(
+      `asyncapi: ${SOURCES.commandMap} carries no GENERATED_COMMAND_RAIL. ` +
+        "Re-run mod/codegen.sh; a missing table reads as every command undeclared.",
+    );
+  }
+  const found = new Map();
+  for (const row of rail[1].matchAll(
+    /"([^"]+)":\s*\{[^}]*\bdelayed:\s*(true|false)\b[^}]*\}/g,
+  )) {
+    found.set(row[1], { delayed: row[2] === "true" });
+  }
+  return found;
 }
 
 /**

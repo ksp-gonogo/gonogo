@@ -114,6 +114,14 @@ namespace Gonogo.KSP
                 // visible at [WRN] level.
                 _engine.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
 
+                // The same sink for the command-delay catalog's assembly scan,
+                // for the same reason. Its failure is the quietest one in this
+                // class: an assembly it could not read yields no tag, an
+                // untagged command falls back to delayed, and a delayed command
+                // is indistinguishable from one that was meant to be. Without
+                // this the only symptom is a countdown nobody ordered.
+                CommandDelayCatalog.SetDiagnosticLog(msg => Debug.LogWarning("[Gonogo] " + msg));
+
                 // [SitrepUplink] assembly-scan discovery REPLACES the
                 // previous hardcoded RegisterUplink(new XyzUplink()) list:
                 // see Sitrep.Host.UplinkDiscovery's doc comment. The bundled

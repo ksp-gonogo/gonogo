@@ -301,7 +301,7 @@ channels:
     description: |-
       Takes `ContractActionArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
       stable `ContractID` (stringified; the same id the READ side emits for each
@@ -311,7 +311,7 @@ channels:
       `CommandErrorCode.ModeUnavailable`.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.contract.accept"
@@ -322,7 +322,7 @@ channels:
     description: |-
       Takes `ContractActionArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
       stable `ContractID` (stringified; the same id the READ side emits for each
@@ -332,7 +332,7 @@ channels:
       `CommandErrorCode.ModeUnavailable`.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.contract.cancel"
@@ -343,7 +343,7 @@ channels:
     description: |-
       Takes `ContractActionArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       Args shared by `career.contract.accept`/`decline`/`cancel`: the contract's
       stable `ContractID` (stringified; the same id the READ side emits for each
@@ -353,7 +353,7 @@ channels:
       `CommandErrorCode.ModeUnavailable`.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.contract.decline"
@@ -364,7 +364,7 @@ channels:
     description: |-
       Takes `FireCrewArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       `career.crew.fire`'s args: a hired kerbal's `ProtoCrewMember.name`, the same
       id the READ side emits for each roster row (`spaceCenter.crewRoster`'s
@@ -377,7 +377,7 @@ channels:
       `CommandErrorCode.ModeUnavailable`.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.crew.fire"
@@ -388,7 +388,7 @@ channels:
     description: |-
       Takes `HireApplicantArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       `career.crew.hire`'s args: the applicant's `ProtoCrewMember.name`, the same
       id the READ side emits for each applicant (`spaceCenter.astronautComplex`'s
@@ -400,7 +400,7 @@ channels:
       cap) or a non-career save `CommandErrorCode.ModeUnavailable`.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.crew.hire"
@@ -442,7 +442,7 @@ channels:
     description: |-
       Takes `UpgradeFacilityArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       `career.facility.upgrade`'s args: the facility's id as the READ side keys
       it: the `SpaceCenterFacility` enum name (e.g. `"VehicleAssemblyBuilding"`,
@@ -451,7 +451,7 @@ channels:
       funds.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.facility.upgrade"
@@ -521,7 +521,7 @@ channels:
     description: |-
       Takes `ActivateStrategyArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       `career.strategy.activate`'s args: the strategy's stable id plus the slider
       fraction to activate it at. `ActivateStrategyArgs.strategyId` is
@@ -534,7 +534,7 @@ channels:
       its fixed factor.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.strategy.activate"
@@ -545,13 +545,13 @@ channels:
     description: |-
       Takes `DeactivateStrategyArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       `career.strategy.deactivate`'s args: the strategy's stable
       `StrategyConfig.Name` id (see `ActivateStrategyArgs.strategyId`).
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.strategy.deactivate"
@@ -562,14 +562,14 @@ channels:
     description: |-
       Takes `UnlockTechArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       `career.tech.unlock`'s args: the tech node's `techID` (the same id the READ
       side emits for each tech node, `career.status`'s `tech.nodes[].id`).
       Unlocking deducts the node's science cost.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.career.tech.unlock"
@@ -3489,7 +3489,7 @@ channels:
     description: |-
       Takes `NoCommandArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       The empty args shape, for the core commands that operate on the current
       flight or the active vessel and so take nothing: `vessel.control.stage`,
@@ -3501,7 +3501,7 @@ channels:
       is read and discarded. Every other command requires its args.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.vessel.target.clear"
@@ -3512,7 +3512,7 @@ channels:
     description: |-
       Takes `SetTargetArgs`.
 
-      **Not delayed.** This command takes effect immediately, because it is ground-side bookkeeping rather than a signal to a craft.
+      **Delayed.** This command rides the uplink: it takes effect at UT plus light-time to the craft, not when it is sent.
 
       `vessel.target.set`'s args: a discriminated union expressed as
       `SetTargetArgs.kind` + the one field that kind actually uses (C# has no
@@ -3525,7 +3525,7 @@ channels:
       one another.
     servers:
       - $ref: "#/servers/mod"
-    x-sitrep-delayed: false
+    x-sitrep-delayed: true
     messages:
       commandRequest:
         $ref: "#/components/messages/commandRequest.vessel.target.set"

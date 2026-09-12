@@ -26,9 +26,10 @@ namespace Gonogo.KSP
     /// <see cref="CareerCommandProvider"/>'s KSP-free <c>Handle*</c> glue
     /// against the <see cref="ICareerActuator"/> this uplink is constructed
     /// with (<see cref="KspCareerActuator"/> in production,
-    /// <c>Sitrep.Host.Tests.FakeCareerActuator</c> in tests). All nine are
-    /// ground-side KSC bookkeeping, not an uplink to a craft, so each is
-    /// declared <c>delayed: false</c> (see the command list below).</para>
+    /// <c>Sitrep.Host.Tests.FakeCareerActuator</c> in tests). All nine ride the
+    /// signal delay: none of them changes the scene, and a career write is an
+    /// order a second command centre can issue rather than a ground-side fact
+    /// (see the command list below).</para>
     /// </summary>
     [SitrepUplink("career")]
     public sealed class CareerUplink : ISitrepUplink, IUplinkCapabilityDeclarer
@@ -110,12 +111,16 @@ namespace Gonogo.KSP
                     NullIsUnreadable = true,
                 },
             },
-            // Every career-write command is ground-side KSC bookkeeping, not a
-            // signal to a craft, so all nine are delayed: false, they take
-            // effect immediately rather than at UT + uplink light-time. Only
-            // commands sent to a vessel ride light-time.
+            // All nine DELAY, and none of them says so here: whether a command
+            // rides light-time is declared once, on its args type in the
+            // contract, which is also what the client reads
+            // (SitrepCommandAttribute.Delayed). They used to be instant on the
+            // reasoning that career writes are ground-side bookkeeping; that
+            // was wrong twice over. None of them changes the scene, and a career
+            // write is an ORDER rather than a fact, one a second command centre
+            // can issue, so it crosses the gap like any other order.
             //
-            // Each also carries its declared gates, from GateDeclarations: at
+            // Each carries its declared gates, from GateDeclarations: at
             // minimum "this is a career save", which is a permanent property of
             // the game rather than a state that changes. Undeclared it would
             // arrive as the same ModeUnavailable as "the crew cap is full",
@@ -125,15 +130,15 @@ namespace Gonogo.KSP
             // be dark with a reason instead of live and doomed.
             Commands = new List<CommandDeclaration>
             {
-                Command(CareerCommandProvider.ActivateStrategyCommand, delayed: false),
-                Command(CareerCommandProvider.DeactivateStrategyCommand, delayed: false),
-                Command(CareerCommandProvider.UnlockTechCommand, delayed: false),
-                Command(CareerCommandProvider.AcceptContractCommand, delayed: false),
-                Command(CareerCommandProvider.DeclineContractCommand, delayed: false),
-                Command(CareerCommandProvider.CancelContractCommand, delayed: false),
-                Command(CareerCommandProvider.UpgradeFacilityCommand, delayed: false),
-                Command(CareerCommandProvider.HireApplicantCommand, delayed: false),
-                Command(CareerCommandProvider.FireCrewCommand, delayed: false),
+                Command(CareerCommandProvider.ActivateStrategyCommand),
+                Command(CareerCommandProvider.DeactivateStrategyCommand),
+                Command(CareerCommandProvider.UnlockTechCommand),
+                Command(CareerCommandProvider.AcceptContractCommand),
+                Command(CareerCommandProvider.DeclineContractCommand),
+                Command(CareerCommandProvider.CancelContractCommand),
+                Command(CareerCommandProvider.UpgradeFacilityCommand),
+                Command(CareerCommandProvider.HireApplicantCommand),
+                Command(CareerCommandProvider.FireCrewCommand),
             },
         };
 
@@ -176,11 +181,10 @@ namespace Gonogo.KSP
             host.AddCommandHandler<FireCrewArgs, CommandResult>(CareerCommandProvider.FireCrewCommand, args => CareerCommandProvider.HandleFireCrew(_actuator, args));
         }
 
-        private static CommandDeclaration Command(string command, bool delayed) =>
+        private static CommandDeclaration Command(string command) =>
             new CommandDeclaration
             {
                 Command = command,
-                Delayed = delayed,
                 Requires = GateDeclarations.For(command),
             };
     }
