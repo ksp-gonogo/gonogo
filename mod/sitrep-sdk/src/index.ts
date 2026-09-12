@@ -254,6 +254,14 @@ export {
   railTagsFromCommandRail,
   UNDECLARED_COMMAND_RAIL_TAGS,
 } from "./rail-tags";
+// How a dotted key becomes (wire topic, field path). Published because the
+// catalogue every picker offers from has to decide whether a key it is about to
+// offer would resolve back to the Topic it came from, and deciding that from the
+// key's SHAPE is what put an unfillable key in the picker before.
+export {
+  type RawFieldSubtopic,
+  splitRawFieldSubtopic,
+} from "./raw-field-split";
 // The read contract: `useTelemetry` answers with a `Reading`, so the union and
 // its accessors ship on the author surface rather than app-side.
 export * from "./reading";
