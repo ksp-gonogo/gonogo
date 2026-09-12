@@ -465,6 +465,12 @@ export class AlarmStateMachine {
    * says nobody could ask. Both used to come back `false`, which published a
    * failed read as the confident fact "the condition just ended" and cleared
    * the sustain latch.
+   *
+   * The same distinction applies one level down, to a contract record that
+   * arrives carrying no `parameters` array: the record is half-formed, so
+   * nothing in it can be compared and `null` is the only honest answer. EMPTY
+   * stays a real answer at both levels, an empty active list and an empty
+   * objective list each mean the condition does not hold.
    */
   private evalContractParameter(t: ContractParameterTrigger): boolean | null {
     const active = this.getContracts();
@@ -476,7 +482,16 @@ export class AlarmStateMachine {
       // `number` (see `types.ts`): compare as strings rather than widen
       // the trigger's own persisted shape here.
       if (c.id !== String(t.contractId)) continue;
-      if (!Array.isArray(c.parameters)) return false;
+      /*
+       * The contract is here and its objectives are not, which is the same
+       * failed read the non-array list above answers `null` for, one level
+       * down: a record that arrived truncated or malformed. Answering `false`
+       * published "the objective is no longer complete" about a record nobody
+       * could read, and cleared the sustain latch on it. An EMPTY `parameters`
+       * array is a different claim and still falls through to the `false`
+       * below, exactly as an empty active list does.
+       */
+      if (!Array.isArray(c.parameters)) return null;
       for (const p of c.parameters) {
         if (!p || typeof p !== "object") continue;
         if (p.title !== t.parameterTitle) continue;
