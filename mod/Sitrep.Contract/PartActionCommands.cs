@@ -10,7 +10,7 @@ namespace Sitrep.Contract;
 /// clicking it in-game.
 ///
 /// <para>This is an actuation of a part ON the craft, so the command rides
-/// light-time (<c>Delayed = true</c>) exactly like <c>vessel.control.*</c> and
+/// light-time (<see cref="DelayRole.Delayed"/>) exactly like <c>vessel.control.*</c> and
 /// the robotics commands it is modelled on.</para>
 ///
 /// <para><b>No state field, unlike every other actuation command.</b> The

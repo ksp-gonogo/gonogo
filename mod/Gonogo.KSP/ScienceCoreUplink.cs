@@ -151,7 +151,7 @@ namespace Gonogo.KSP
             // an experiment ON the vessel; transmit drives its onboard
             // transmitter), so both ride the same light-time delay every other
             // vessel actuation does. Declared on their args types rather than
-            // here, see SitrepCommandAttribute.Delayed.
+            // here, see SitrepCommandAttribute.Delay.
             Commands = new List<CommandDeclaration>
             {
                 Command(ScienceCommandProvider.DeployCommand),

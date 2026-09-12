@@ -988,8 +988,8 @@ public class Rp1PadDismantleArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("rp1.warp.toComplete", Delayed = false)]
-[SitrepCommand("rp1.warp.toFundTarget", Delayed = false)]
+[SitrepCommand("rp1.warp.toComplete", Delay = DelayRole.TrueNow)]
+[SitrepCommand("rp1.warp.toFundTarget", Delay = DelayRole.TrueNow)]
 public class Rp1WarpArgs
 {
 }

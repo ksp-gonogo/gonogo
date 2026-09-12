@@ -1613,10 +1613,10 @@ public static class RtConfig
                 // branch anywhere downstream.
                 //
                 // `delayed` is copied straight off the declaration the HOST
-                // dispatches by (see SitrepCommandAttribute.Delayed), which is
+                // dispatches by (see SitrepCommandAttribute.Delay), which is
                 // what makes the client's delay UX a reading of the mod's answer
                 // rather than a second opinion about it.
-                rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delayed));
+                rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delay == DelayRole.Delayed));
                 argsNames.Add(type.Name);
             }
         }

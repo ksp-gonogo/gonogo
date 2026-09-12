@@ -423,6 +423,22 @@ namespace Sitrep.Contract
         /// mod is still pre-release with NO external Uplinks, and the app and mod
         /// ship together, so no artifact exists that was built against the old
         /// shape.</para>
+        ///
+        /// <para><b>NOT bumped for the delay-disposition consolidation
+        /// (2026-09-12), and the reason is worth writing down.</b>
+        /// <see cref="SitrepCommandAttribute"/><c>.Delayed</c> and
+        /// <see cref="CommandDeclaration"/><c>.Delayed</c>, both <c>bool</c>, were
+        /// removed in favour of <see cref="DelayRole"/><c> Delay</c>, the enum a
+        /// channel has always declared on <see cref="ChannelDeclaration.Delay"/>.
+        /// That is a BINARY break of the Uplink REGISTRATION surface: an
+        /// already-compiled Uplink setting either calls a <c>set_Delayed</c> that
+        /// no longer exists. It is not a WIRE break, and this number counts wire
+        /// breaks: neither type is <c>[SitrepContract]</c>-marked, so neither is
+        /// in the shape ledger, and <c>ContractShapeGateTests</c> REFUSES a Major
+        /// whose computed removals are empty. Nothing on the wire moved, the
+        /// generated command rail is byte-identical, and every Uplink in the tree
+        /// is rebuilt from source alongside the contract, so no artifact exists
+        /// that could meet the gap.</para>
         /// </remarks>
         public const int Major = 16;
 

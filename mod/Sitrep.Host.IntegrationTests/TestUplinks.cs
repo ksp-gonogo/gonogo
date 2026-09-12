@@ -140,25 +140,25 @@ namespace Sitrep.Host.IntegrationTests
             },
             Commands = new List<CommandDeclaration>
             {
-                Command(VesselCommandProvider.SetSasCommand, delayed: true),
-                Command(VesselCommandProvider.SetSasModeCommand, delayed: true),
-                Command(VesselCommandProvider.SetRcsCommand, delayed: true),
-                Command(VesselCommandProvider.SetGearCommand, delayed: true),
-                Command(VesselCommandProvider.SetBrakesCommand, delayed: true),
-                Command(VesselCommandProvider.SetLightsCommand, delayed: true),
-                Command(VesselCommandProvider.SetAbortCommand, delayed: true),
-                Command(VesselCommandProvider.SetThrottleCommand, delayed: true),
-                Command(VesselCommandProvider.StageCommand, delayed: true),
-                Command(VesselCommandProvider.SetActionGroupCommand, delayed: true),
+                Command(VesselCommandProvider.SetSasCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetSasModeCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetRcsCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetGearCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetBrakesCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetLightsCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetAbortCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetThrottleCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.StageCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.SetActionGroupCommand, delay: DelayRole.Delayed),
                 // F2: vessel.maneuver.* reclassified delayed:true (mirrors
                 // Gonogo.KSP.VesselUplink's command-classification table).
-                Command(VesselCommandProvider.ManeuverAddCommand, delayed: true),
-                Command(VesselCommandProvider.ManeuverUpdateCommand, delayed: true),
-                Command(VesselCommandProvider.ManeuverRemoveCommand, delayed: true),
-                Command(VesselCommandProvider.TargetSetCommand, delayed: false),
-                Command(VesselCommandProvider.TargetClearCommand, delayed: false),
-                Command(VesselCommandProvider.SetWarpIndexCommand, delayed: false),
-                Command(VesselCommandProvider.SetPausedCommand, delayed: false),
+                Command(VesselCommandProvider.ManeuverAddCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.ManeuverUpdateCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.ManeuverRemoveCommand, delay: DelayRole.Delayed),
+                Command(VesselCommandProvider.TargetSetCommand, delay: DelayRole.TrueNow),
+                Command(VesselCommandProvider.TargetClearCommand, delay: DelayRole.TrueNow),
+                Command(VesselCommandProvider.SetWarpIndexCommand, delay: DelayRole.TrueNow),
+                Command(VesselCommandProvider.SetPausedCommand, delay: DelayRole.TrueNow),
             },
         };
 
@@ -210,10 +210,10 @@ namespace Sitrep.Host.IntegrationTests
             Emission = new EmissionPolicy(keyframeIntervalUt: 30, quantum: EmissionQuantum.Absolute(0)),
         };
 
-        private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
+        private static CommandDeclaration Command(string command, DelayRole delay) => new CommandDeclaration
         {
             Command = command,
-            Delayed = delayed,
+            Delay = delay,
         };
     }
 

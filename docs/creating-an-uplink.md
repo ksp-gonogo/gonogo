@@ -231,12 +231,13 @@ public sealed class ExampleUplink : ISitrepUplink
             },
         },
 
-        // Commands this Uplink accepts. Delayed:false runs immediately (a game
-        // or player action); Delayed:true rides the signal delay (a command to
-        // the craft).
+        // Commands this Uplink accepts. Whether one rides the signal delay is
+        // declared on its args type's [SitrepCommand(Delay = ...)], in the same
+        // DelayRole vocabulary a channel uses above, so the mod and a console
+        // read one answer.
         Commands = new List<CommandDeclaration>
         {
-            new CommandDeclaration { Command = SetOutputCommand, Delayed = true },
+            new CommandDeclaration { Command = SetOutputCommand },
         },
     };
 

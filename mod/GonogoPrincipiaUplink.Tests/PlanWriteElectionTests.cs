@@ -120,7 +120,7 @@ namespace GonogoPrincipiaUplink.Tests
         {
             var uplink = Available();
 
-            Assert.All(uplink.Manifest.Commands, c => Assert.True(c.Delayed, c.Command));
+            Assert.All(uplink.Manifest.Commands, c => Assert.Equal(DelayRole.Delayed, c.Delay));
         }
 
         /// <summary>

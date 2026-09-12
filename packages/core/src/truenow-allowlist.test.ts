@@ -44,6 +44,25 @@ import { describe, expect, it } from "vitest";
 // comparison `decl.Delay == DelayRole.TrueNow` in ChannelEngine.cs.
 const EXPLICIT_TRUENOW = /Delay\s*=\s*DelayRole\.TrueNow/g;
 
+/**
+ * A COMMAND's delay disposition, which is the same property name and the same
+ * enum since the two spellings were consolidated, and is not what this file
+ * counts.
+ *
+ * This gate is about CHANNELS: its name, its prose and every justification
+ * below are about what a console may READ before the light carrying it could
+ * have arrived. A command's own disposition is about what it may WRITE, it is
+ * declared on an attribute rather than in a manifest, and it is gated
+ * separately in `styleguide-command-delay-single-source.test.ts`. Counting both
+ * here would fold fifteen instant commands into a channel allowlist and change
+ * every arithmetic note in it.
+ */
+const COMMAND_ATTRIBUTE = /\[\s*SitrepCommand\s*\([^\]]*\)\s*\]/g;
+
+/** What the channel scan is entitled to read: C# with the command tags taken out. */
+const channelsOnly = (source: string): string =>
+  source.replace(COMMAND_ATTRIBUTE, " ");
+
 // Matches the helper-factory form used by CommsCoreUplink.cs and
 // RealAntennasUplink.cs: both the `private static ChannelDeclaration
 // TrueNow(string topic) => ...` declaration line itself and every
@@ -113,7 +132,7 @@ const ALLOWED_TRUENOW: Record<string, number> = {
   // grounds that it was never a reading taken aboard the craft. A fact the whole
   // simulation shares is vantage-independent by construction, so there is no
   // light-time for it to cross, and this is the read side agreeing with the
-  // write side: time.setWarpIndex has always been Delayed = false for exactly
+  // write side: time.setWarpIndex has always been TrueNow for exactly
   // this reason.
   //
   // This entry is a LOOSENING, not a ratchet-down: VesselUplink had no entry
@@ -347,7 +366,7 @@ function scanTrueNowCounts(root: string): Record<string, number> {
   const modDir = join(root, "mod");
   if (!existsSync(modDir)) return counts;
   for (const file of walk(modDir)) {
-    const content = readFileSync(file, "utf8");
+    const content = channelsOnly(readFileSync(file, "utf8"));
     const explicitCount = [...content.matchAll(EXPLICIT_TRUENOW)].length;
     const helperCount = [...content.matchAll(HELPER_TRUENOW)].length;
     const total = explicitCount + helperCount;
@@ -359,6 +378,32 @@ function scanTrueNowCounts(root: string): Record<string, number> {
 }
 
 describe("TrueNow allowlist: delay-bypassing channels are a reviewed, ratcheted set", () => {
+  /*
+   * The scan can see a channel and cannot see a command, asserted against
+   * planted strings rather than inferred from a clean run: both halves fail
+   * silently as a PASS. A regex that stopped matching the declaration form
+   * would report every file at 0 and read as a tree with no bypasses in it, and
+   * one that started matching command tags would fold fifteen instant commands
+   * into a channel allowlist.
+   */
+  it("counts a channel declaration and not a command tag", () => {
+    const channel = "Delay = DelayRole.TrueNow,";
+    const command = '[SitrepCommand("ksp.launch", Delay = DelayRole.TrueNow)]';
+
+    expect([...channelsOnly(channel).matchAll(EXPLICIT_TRUENOW)]).toHaveLength(
+      1,
+    );
+    expect([...channelsOnly(command).matchAll(EXPLICIT_TRUENOW)]).toHaveLength(
+      0,
+    );
+    // The runtime comparison in ChannelEngine is not a declaration either.
+    expect([
+      ...channelsOnly("decl.Delay == DelayRole.TrueNow").matchAll(
+        EXPLICIT_TRUENOW,
+      ),
+    ]).toHaveLength(0);
+  });
+
   it("matches the seeded allowlist exactly", () => {
     const root = findRepoRoot(dirname(fileURLToPath(import.meta.url)));
     const found = scanTrueNowCounts(root);

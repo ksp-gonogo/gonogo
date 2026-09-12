@@ -21,7 +21,7 @@ namespace Sitrep.Contract;
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("ksp.revertToEditor", Delayed = false)]
+[SitrepCommand("ksp.revertToEditor", Delay = DelayRole.TrueNow)]
 public class RevertToEditorArgs
 {
     /// <summary><c>"vab"</c> or <c>"sph"</c> (case-insensitive). Any other value yields <see cref="CommandResult.ErrorCode"/> <see cref="CommandErrorCode.Range"/>.</summary>
@@ -42,7 +42,7 @@ public class RevertToEditorArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("ksp.switchVessel", Delayed = false)]
+[SitrepCommand("ksp.switchVessel", Delay = DelayRole.TrueNow)]
 public class SwitchVesselArgs
 {
     [SitrepUnit(Units.Id)]
@@ -69,7 +69,7 @@ public class SwitchVesselArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("ksp.launch", Delayed = false)]
+[SitrepCommand("ksp.launch", Delay = DelayRole.TrueNow)]
 public class LaunchArgs
 {
     [SitrepUnit(Units.Text)]

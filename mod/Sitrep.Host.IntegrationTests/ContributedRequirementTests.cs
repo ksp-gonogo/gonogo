@@ -88,12 +88,12 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration
                     {
                         Command = OwnedCommand,
-                        Delayed = false,
+                        Delay = DelayRole.TrueNow,
                         Requires = _declareRequirement
                             ? new[] { new CommandRequirement { Kind = OwnerKind } }
                             : new CommandRequirement[0],
                     },
-                    new CommandDeclaration { Command = UngatedCommand, Delayed = false },
+                    new CommandDeclaration { Command = UngatedCommand, Delay = DelayRole.TrueNow },
                 },
             };
 

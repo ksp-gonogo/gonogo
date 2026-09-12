@@ -9,7 +9,7 @@ namespace Sitrep.Host
     /// <summary>
     /// Every command id the loaded contract assemblies tag, with the one fact
     /// the dispatcher needs from them: whether the command rides the signal
-    /// delay (<see cref="SitrepCommandAttribute.Delayed"/>).
+    /// delay (<see cref="SitrepCommandAttribute.Delay"/>).
     ///
     /// <para><b>Why the host reads an attribute instead of a manifest.</b> The
     /// SDK codegen turns the very same attribute into
@@ -18,7 +18,7 @@ namespace Sitrep.Host
     /// The manifest used to state it too, and the two drifted: the mod ran 52
     /// commands the instant they arrived while every console drew them a
     /// countdown and an in-flight queue row.
-    /// <see cref="CommandDeclaration.Delayed"/> survives only as the fallback for
+    /// <see cref="CommandDeclaration.Delay"/> survives only as the fallback for
     /// a command no contract slice tags, which in practice means a test double.</para>
     ///
     /// <para>Scanned the same way <see cref="UplinkDiscovery"/> scans, for the
@@ -37,7 +37,7 @@ namespace Sitrep.Host
     public static class CommandDelayCatalog
     {
         private static readonly object Gate = new object();
-        private static Dictionary<string, bool> _delayed;
+        private static Dictionary<string, DelayRole> _delayed;
         private static HashSet<string> _knownMisses = new HashSet<string>(StringComparer.Ordinal);
         private static Action<string> _diagnosticLog;
 
@@ -69,9 +69,9 @@ namespace Sitrep.Host
         /// all, which is a real answer and not a failure: the caller decides what
         /// an untagged command reads as.
         /// </summary>
-        public static bool TryGetDelayed(string command, out bool delayed)
+        public static bool TryGetDelay(string command, out DelayRole delay)
         {
-            delayed = true;
+            delay = DelayRole.Delayed;
             if (string.IsNullOrEmpty(command))
             {
                 return false;
@@ -84,7 +84,7 @@ namespace Sitrep.Host
                     _delayed = Scan();
                 }
 
-                if (_delayed.TryGetValue(command, out delayed))
+                if (_delayed.TryGetValue(command, out delay))
                 {
                     return true;
                 }
@@ -95,20 +95,20 @@ namespace Sitrep.Host
                 }
 
                 _delayed = Scan();
-                if (_delayed.TryGetValue(command, out delayed))
+                if (_delayed.TryGetValue(command, out delay))
                 {
                     return true;
                 }
 
                 _knownMisses.Add(command);
-                delayed = true;
+                delay = DelayRole.Delayed;
                 return false;
             }
         }
 
-        private static Dictionary<string, bool> Scan()
+        private static Dictionary<string, DelayRole> Scan()
         {
-            var found = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var found = new Dictionary<string, DelayRole>(StringComparer.Ordinal);
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 Type[] types;
@@ -142,7 +142,7 @@ namespace Sitrep.Host
                             // this path runs inside a running game where the
                             // useful behaviour is to dispatch rather than to
                             // stop.
-                            found[attr.CommandId] = attr.Delayed;
+                            found[attr.CommandId] = attr.Delay;
                         }
                     }
                     catch (Exception ex)
