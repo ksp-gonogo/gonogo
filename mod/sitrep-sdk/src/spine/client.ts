@@ -10,6 +10,7 @@ import {
 } from "../api/command-rejection";
 import type { Transport } from "../api/transport";
 import type { ServerMessage } from "../envelope";
+import { PerfBudget } from "../perf/PerfBudget";
 import { warnChannelError } from "./channel-error-warning";
 import { type Clock, RealTimeClock } from "./clock";
 import { CommandError, type CommandStatus } from "./lifecycle";
@@ -46,6 +47,47 @@ type StoreListener = () => void;
  * business subscribing to.
  */
 export const LOSS_MARGIN = 3;
+
+/**
+ * Dispatch-rate budget for EVERY command this client sends.
+ *
+ * Recorded in `dispatch()` because that is the one funnel. `useCommand`'s
+ * `send`, `useControlStream`'s coalesced write and `dispatchActiveCommandTopic`
+ * all arrive here, and nothing else in the tree mints a `command-request`
+ * envelope, so a budget here covers the command path a widget has not been
+ * written yet as well as the ones that exist.
+ *
+ * It counts at the DISPATCH, never at the effect. A command asking the game for
+ * the state it is already in is absorbed silently and changes nothing anyone
+ * can observe, so a fixture that watches outcomes counts one where the client
+ * sent a hundred. That asymmetry is precisely what let a per-tick warp loop run
+ * unseen.
+ *
+ * The threshold is 3x the realistic steady-state ceiling. Discrete commands are
+ * operator-paced (a press, a host-service tick at 1 Hz), so the ceiling is set
+ * by the only continuous producer: `useControlStream` coalesces at 10 Hz per
+ * channel past its deadband and the Navball mounts two of them, so an operator
+ * flying hands-on is about 20/sec. 60 is also exactly the Navball's own
+ * control-stream threshold, so the funnel and the widget agree on what "too
+ * fast" means instead of the funnel firing first on traffic the widget already
+ * prices as normal.
+ *
+ * What it catches: a dispatch per animation frame, a duplicated subscription
+ * fanning one control out twice, a widget dispatching from a render body.
+ *
+ * What a global RATE cannot catch, worth knowing before trusting it: a slow
+ * loop. The warp storm this was written for was about 120 dispatches at the
+ * alarm host's 1 Hz tick across one light-time, so 1/sec, and a threshold that
+ * has to let a 20/sec control stream through can never flag that. Catching a
+ * slow loop needs a per-command-id rate, which is a different instrument and
+ * not this one.
+ */
+const COMMAND_DISPATCH_BUDGET = new PerfBudget({
+  name: "TelemetryClient command dispatch/sec",
+  threshold: 60,
+  windowMs: 1000,
+  unit: "dispatches",
+});
 
 /**
  * One record per `subscribe()` call, not per callback identity, the same
@@ -626,6 +668,10 @@ export class TelemetryClient {
     topic?: string,
     vantage?: string,
   ): { requestId: string; result: Promise<unknown> } {
+    /* Before anything can fail or be deduplicated downstream: the budget's
+       subject is how often this client was ASKED to send, not how many sends
+       survived. */
+    COMMAND_DISPATCH_BUDGET.record();
     const requestId = `c${this.nextRequestId++}`;
     // Where the round trip comes from, and why in THIS order.
     //
