@@ -12,7 +12,19 @@
         background: var(--color-surface-app);
         color: var(--color-text-primary);
         font-family: var(--font-family-mono);
-        overflow: hidden;
+        /*
+         * Hide the scrollbar; do not disable scrolling. The driver screenshots
+         * the viewport at the render size, so a scrollbar would both show up in
+         * the shot and narrow the box the content is centred in. Suppressing it
+         * with overflow:hidden did that but took the wheel and the End key with
+         * it, and this page is left on disk for a human to open in whatever
+         * window they have, which is routinely shorter than the render.
+         */
+        scrollbar-width: none;
+      }
+      html::-webkit-scrollbar,
+      body::-webkit-scrollbar {
+        display: none;
       }
       body {
         display: flex;
