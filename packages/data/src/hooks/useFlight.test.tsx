@@ -136,6 +136,58 @@ describe("useFlight(): default, stream-native path", () => {
     });
     expect(latest && latest !== "unset" ? latest.id : null).toBe(preRevertId);
   });
+
+  it("holds the record it already has when the mod re-announces the same flight", () => {
+    // The host republishes flight.started for the open flight whenever
+    // someone subscribes who has not been told, so the same flight arrives
+    // more than once. It carries the ORIGINAL launch UT, which is what
+    // separates it from a revert's restart for the same vessel id.
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    emitStarted(rig, 0, {
+      flightId: "vA",
+      vesselId: "vA",
+      vesselName: "Alpha",
+    });
+    const first = latest;
+
+    emitStarted(rig, 0, {
+      flightId: "vA",
+      vesselId: "vA",
+      vesselName: "Alpha",
+    });
+
+    expect(latest).toBe(first);
+  });
+
+  it("mints a fresh record for a revert, which republishes the same id at a NEW ut", () => {
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client}>
+        <Probe />
+      </TelemetryProvider>,
+    );
+
+    emitStarted(rig, 0, {
+      flightId: "vA",
+      vesselId: "vA",
+      vesselName: "Alpha",
+    });
+    const first = latest;
+
+    emitStarted(rig, 2, {
+      flightId: "vA",
+      vesselId: "vA",
+      vesselName: "Alpha",
+    });
+
+    expect(latest).not.toBe(first);
+  });
 });
 
 describe("useFlight(sourceId): explicit DataSource-based lookup, unchanged", () => {

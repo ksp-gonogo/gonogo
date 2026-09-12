@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Sitrep.Contract;
@@ -58,6 +59,21 @@ namespace Sitrep.Host.Flight
     /// is simply <c>Vessel.id</c> (as a string), the exact currency
     /// <c>VesselIdentity.VesselId</c>/<c>CrashReport.VesselId</c> already use.
     /// No separate id space; <c>FlightId == VesselId</c> always.</para>
+    ///
+    /// <para><b>An open flight is announced to whoever has not heard it, not
+    /// once per flight.</b> KSP is normally already running when the browser
+    /// connects, so the publish a launch makes is dropped by
+    /// <c>ChannelEngine.ProcessPublish</c> (which returns early for a topic
+    /// nobody is subscribed to) and nothing archives it for a later subscriber
+    /// to catch up on. A producer cannot see delivery, so counting our own
+    /// publishes answers the wrong question: what matters is whether anyone is
+    /// listening who has not been told. <see cref="AnnounceStartedIfUnheard"/>
+    /// therefore asks the subscription (the same shape as
+    /// <c>Sitrep.Host.Alarms.ScetRosterAudience</c>) and re-announces the OPEN
+    /// flight, carrying its ORIGINAL start instant: a flight did not start
+    /// when an operator opened the dashboard, and that instant is also what
+    /// lets a client tell a re-announce from a revert's genuinely new start
+    /// for the same vessel id.</para>
     /// </summary>
     public sealed class FlightLifecycleSampler : ISnapshotSampler
     {
@@ -65,6 +81,12 @@ namespace Sitrep.Host.Flight
         private readonly IChannelPublisher _started;
         private readonly IChannelPublisher _ended;
         private readonly IChannelPublisher _vesselChanged;
+
+        // Is anything subscribed to flight.started right now? Read on the
+        // Courier thread, from the same thread-safe mirror ProcessSubscribe
+        // maintains, so it answers exactly what the publish this tick enqueues
+        // will meet.
+        private readonly Func<bool> _startedHasAudience;
 
         // Main-thread GameEvent -> Courier-thread handoff. ConcurrentQueue is
         // safe for a single-producer(main)/single-consumer(Courier) pair with
@@ -96,24 +118,35 @@ namespace Sitrep.Host.Flight
         private string _lastEndedVesselName = "";
         private double _lastEndedUt;
 
-        // Monotonically-growing for the session -- deliberately never
+        // Every vessel id this session has announced as started, against the UT
+        // it started at. Monotonically-growing -- deliberately never
         // .Remove()'d on end (see the class doc comment's started-vs-
         // vesselChanged note): a destroyed/recovered Vessel.id can never
         // become the reported active vessel again in stock KSP, so treating
         // "ever started" as permanent-for-session is strictly safer than
-        // trying to track open/closed and risking a spurious double-start.
-        private readonly HashSet<string> _startedVesselIds = new HashSet<string>();
+        // trying to track open/closed and risking a spurious double-start. The
+        // UT is what a re-announce carries, so switching focus back onto a
+        // vessel that launched an hour ago still reports the hour-old launch.
+        private readonly Dictionary<string, double> _startedUtByVesselId = new Dictionary<string, double>();
+
+        // The flight id the CURRENT audience has been sent a flight.started
+        // for. Cleared the moment nothing is subscribed, because who is in the
+        // audience is not observable from here: the only safe reading of
+        // "nobody is listening" is that whoever listens next has heard nothing.
+        private string? _announcedStartedFlightId;
 
         public FlightLifecycleSampler(
             IChannelPublisher current,
             IChannelPublisher started,
             IChannelPublisher ended,
-            IChannelPublisher vesselChanged)
+            IChannelPublisher vesselChanged,
+            Func<bool> startedHasAudience)
         {
             _current = current;
             _started = started;
             _ended = ended;
             _vesselChanged = vesselChanged;
+            _startedHasAudience = startedHasAudience;
         }
 
         /// <summary>
@@ -188,16 +221,25 @@ namespace Sitrep.Host.Flight
                     StartNewFlight(currentId, snapshot);
                 }
 
+                AnnounceStartedIfUnheard();
                 PublishCurrent(snapshot, currentId);
                 return;
             }
 
             if (currentId != null && _lastVesselId != null && currentId != _lastVesselId)
             {
-                if (_startedVesselIds.Contains(currentId))
+                if (_startedUtByVesselId.ContainsKey(currentId))
                 {
                     _activeVesselId = currentId;
                     _activeVesselName = ReadVesselName(snapshot) ?? _activeVesselName;
+
+                    // Switching back onto a known vessel is not a new flight,
+                    // and the vesselChanged below is what tells the current
+                    // audience the focus moved: so they count as told, and
+                    // AnnounceStartedIfUnheard stays quiet for them. It still
+                    // fires for whoever subscribes after this, because an
+                    // empty audience clears this the same as any other.
+                    _announcedStartedFlightId = currentId;
                     PublishVesselChanged(currentId, snapshot, _lastVesselId);
                 }
                 else
@@ -209,7 +251,7 @@ namespace Sitrep.Host.Flight
             else if (currentId != null && _lastVesselId == null)
             {
                 // Cold start (first-ever observation this session).
-                if (_startedVesselIds.Contains(currentId))
+                if (_startedUtByVesselId.ContainsKey(currentId))
                 {
                     _activeVesselId = currentId;
                     _activeVesselName = ReadVesselName(snapshot) ?? _activeVesselName;
@@ -225,12 +267,13 @@ namespace Sitrep.Host.Flight
                 _lastVesselId = currentId;
             }
 
+            AnnounceStartedIfUnheard();
             PublishCurrent(snapshot, currentId);
         }
 
         private void ApplyEnd(string vesselId, string vesselName, FlightEndReason reason, double ut)
         {
-            if (!_startedVesselIds.Contains(vesselId))
+            if (!_startedUtByVesselId.ContainsKey(vesselId))
             {
                 // Never observed as started this session (e.g. a filtered
                 // debris/flag death that never reached SignalEnd, or a
@@ -252,17 +295,53 @@ namespace Sitrep.Host.Flight
 
         private void StartNewFlight(string vesselId, KspSnapshot snapshot)
         {
-            var name = ReadVesselName(snapshot) ?? "";
             _activeVesselId = vesselId;
-            _activeVesselName = name;
-            _startedVesselIds.Add(vesselId);
+            _activeVesselName = ReadVesselName(snapshot) ?? "";
+            _startedUtByVesselId[vesselId] = snapshot.Ut;
+
+            // This is news to everyone, including an audience that was already
+            // told about the flight this one replaces (a revert's restart).
+            _announcedStartedFlightId = null;
+            AnnounceStartedIfUnheard();
+        }
+
+        /// <summary>
+        /// Put the open flight's <c>flight.started</c> on the wire for an
+        /// audience that has not been told about it, and do nothing at all for
+        /// one that has. The sole <c>flight.started</c> publish site, so a
+        /// launch nobody was subscribed for cannot be banked as announced: see
+        /// the class doc comment for why a producer counting its own publishes
+        /// answers the wrong question.
+        ///
+        /// <para>The payload and the wire stamp both carry the flight's
+        /// ORIGINAL start UT rather than now. That keeps the event honest (a
+        /// flight begun an hour ago did not begin when someone opened a
+        /// dashboard), puts the frame on the timeline where it belongs, and
+        /// reveals it immediately, since its light-time elapsed long ago.</para>
+        /// </summary>
+        private void AnnounceStartedIfUnheard()
+        {
+            if (!_startedHasAudience())
+            {
+                _announcedStartedFlightId = null;
+                return;
+            }
+
+            if (_activeVesselId == null
+                || _announcedStartedFlightId == _activeVesselId
+                || !_startedUtByVesselId.TryGetValue(_activeVesselId, out var startedUt))
+            {
+                return;
+            }
+
+            _announcedStartedFlightId = _activeVesselId;
             _started.Publish(new FlightStarted
             {
-                FlightId = vesselId,
-                VesselId = vesselId,
-                VesselName = name,
-                Ut = snapshot.Ut,
-            }, snapshot.Ut);
+                FlightId = _activeVesselId,
+                VesselId = _activeVesselId,
+                VesselName = _activeVesselName,
+                Ut = startedUt,
+            }, startedUt);
         }
 
         private void PublishVesselChanged(string vesselId, KspSnapshot snapshot, string? previousVesselId)

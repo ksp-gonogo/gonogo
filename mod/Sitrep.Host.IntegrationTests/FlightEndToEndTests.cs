@@ -127,6 +127,49 @@ namespace Sitrep.Host.IntegrationTests
         }
 
         /// <summary>
+        /// The ordinary case, over the real engine: KSP boots before the
+        /// browser, so the flight is already in the air by the time anything
+        /// subscribes. <c>ChannelEngine.ProcessPublish</c> drops a publish for
+        /// a topic nobody holds and nothing archives it, so before the
+        /// re-announce this subscriber received no <c>flight.started</c> for
+        /// the rest of that flight, and <c>useFlight()</c> and mission
+        /// auto-record (both driven solely off it) never armed.
+        /// </summary>
+        [Fact]
+        public async Task AFlightAlreadyUnderwayReachesAClientThatSubscribesAfterItStarted()
+        {
+            using var engine = new ChannelEngine("ws://127.0.0.1:0", networkDelaySeconds: 0);
+            engine.RegisterUplink(new TestFlightUplink());
+            engine.Start();
+            try
+            {
+                // Launch and fly for a while with NOTHING subscribed.
+                foreach (var ut in new[] { 0.0, 1.0, 2.0, 3.0 })
+                {
+                    engine.TickAndWait(ut, SnapshotFor(ut, VesselA, "Alpha"), Timeout);
+                }
+
+                await using var client = await TestClient.ConnectAsync(engine.BoundPort, Timeout);
+                await SubscribeAsync(client, FlightTopics.StartedTopic, Timeout);
+
+                engine.TickAndWait(4.0, SnapshotFor(4.0, VesselA, "Alpha"), Timeout);
+                engine.TickAndWait(5.0, SnapshotFor(5.0, VesselA, "Alpha"), Timeout);
+
+                var frames = await DrainAllStreamDataAsync(client, Quiet);
+                var started = frames.Single(f => f.Topic == FlightTopics.StartedTopic);
+                var payload = Assert.IsType<Dictionary<string, object?>>(started.Payload);
+                Assert.Equal(VesselA, payload["vesselId"]);
+                // The launch instant, not the moment the dashboard opened: a
+                // client tells this apart from a revert's own restart by it.
+                Assert.Equal(0.0, Convert.ToDouble(payload["ut"]));
+            }
+            finally
+            {
+                engine.Stop();
+            }
+        }
+
+        /// <summary>
         /// HEADLINE INVARIANT proof for the flight-lifecycle domain,
         /// end-to-end, through the REAL <see cref="FlightLifecycleSampler"/>:
         /// a crash signalled but NOT YET REVEALED (still short of the reveal
@@ -298,7 +341,8 @@ namespace Sitrep.Host.IntegrationTests
                     host.Publisher(FlightTopics.CurrentTopic),
                     host.Publisher(FlightTopics.StartedTopic),
                     host.Publisher(FlightTopics.EndedTopic),
-                    host.Publisher(FlightTopics.VesselChangedTopic));
+                    host.Publisher(FlightTopics.VesselChangedTopic),
+                    () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic));
                 host.AddSampler(Sampler);
 
                 host.AddChannelSource(ChannelEngine.CommsDelayTopic, snapshot =>

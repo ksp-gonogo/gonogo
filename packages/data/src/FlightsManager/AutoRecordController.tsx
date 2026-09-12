@@ -3,10 +3,11 @@ import {
   type StreamRecorder,
   useStreamRecorder,
 } from "@ksp-gonogo/sitrep-client";
-import type {
-  FlightCurrent,
-  FlightEnded,
-  FlightStarted,
+import {
+  type FlightCurrent,
+  type FlightEnded,
+  type FlightStarted,
+  magnitudeOf,
 } from "@ksp-gonogo/sitrep-sdk";
 import { useCallback, useEffect, useRef } from "react";
 import { useOptionalStreamEvent } from "../hooks/useOptionalStreamEvent";
@@ -79,14 +80,20 @@ export interface AutoRecordControllerProps {
  *   exactly when the operator's own view of the flight ends, not when it
  *   happened in real time.
  *
- * One caveat inherent to `StreamRecorder`'s start/stop-a-whole-fixture shape,
- * which has no way to append into a flight id it has already closed: if the
- * mod ever republishes `flight.started` for a flight
- * id that already has a saved mission, a brand-new `StreamRecorder` session
- * starts: a second mission row for what the mod still considers logically
- * one flight. There is no incremental-append path into `MissionStore`
- * today; this is the accepted, documented consequence of the
- * mission-per-recording-session model, not a bug.
+ * **The mod DOES republish `flight.started`, so a re-announce is ignored
+ * here.** KSP is normally already running when the browser connects, and a
+ * publish for a topic nobody holds is dropped, so the host re-announces the
+ * open flight to whoever subscribes later (`FlightLifecycleSampler`). On a
+ * fresh page-load that is the whole reason auto-record arms mid-flight at all.
+ * On a reconnect it would otherwise open a second `StreamRecorder` session for
+ * a flight already being recorded, and `StreamRecorder`'s start/stop-a-whole-
+ * fixture shape has no way to append into a flight it has already closed: a
+ * second mission row for what the mod considers logically one flight.
+ *
+ * A re-announce is told from a genuinely new flight by `(flightId, ut)`, not
+ * by id alone: a revert republishes `flight.started` for the SAME vessel id
+ * and that one IS a new flight, distinguished only by carrying the
+ * revert-target UT where a re-announce carries the original launch instant.
  */
 export function AutoRecordController({
   missionHistoryEnabled = true,
@@ -97,6 +104,8 @@ export function AutoRecordController({
   const recorder = useStreamRecorder({ recordAllTopics });
 
   const activeFlightIdRef = useRef<string | null>(null);
+  /** The start UT of the flight `activeFlightIdRef` holds: the other half of the re-announce key. */
+  const activeFlightStartedUtRef = useRef<number | null>(null);
   const activeVesselNameRef = useRef<string>("");
   const activeLaunchedAtRef = useRef<number>(0);
   const prevSceneRef = useRef<GameScene>(scene);
@@ -169,8 +178,19 @@ export function AutoRecordController({
     useCallback(
       (payload) => {
         if (!recorder) return;
+        const startedUt = magnitudeOf(payload.ut);
+        if (
+          payload.flightId === activeFlightIdRef.current &&
+          startedUt === activeFlightStartedUtRef.current
+        ) {
+          // The host re-announcing the flight we are already recording (see
+          // this component's doc comment). Closing and reopening the session
+          // here is what splits one flight across two mission rows.
+          return;
+        }
         finishAndSave(recorder);
         activeFlightIdRef.current = payload.flightId;
+        activeFlightStartedUtRef.current = startedUt;
         activeVesselNameRef.current = payload.vesselName;
         activeLaunchedAtRef.current = Date.now();
         if (!missionHistoryEnabledRef.current) return;

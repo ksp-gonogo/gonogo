@@ -32,9 +32,16 @@ namespace Sitrep.Host.Tests
             public readonly FakePublisher VesselChanged = new();
             public readonly FlightLifecycleSampler Sampler;
 
+            /// <summary>
+            /// Stands in for <c>host.IsAnyTopicSubscribed("flight.started")</c>.
+            /// Defaults to a subscribed client, which is what every test
+            /// written before the re-announce assumed.
+            /// </summary>
+            public bool StartedHasAudience = true;
+
             public Rig()
             {
-                Sampler = new FlightLifecycleSampler(Current, Started, Ended, VesselChanged);
+                Sampler = new FlightLifecycleSampler(Current, Started, Ended, VesselChanged, () => StartedHasAudience);
             }
         }
 
@@ -294,6 +301,135 @@ namespace Sitrep.Host.Tests
             Assert.Equal(FlightEndReason.Crashed, Assert.IsType<FlightEnded>(rig.Ended.Calls[0].Payload).Reason);
             Assert.Equal(FlightEndReason.Reverted, Assert.IsType<FlightEnded>(rig.Ended.Calls[1].Payload).Reason);
             Assert.Equal(VesselB, Assert.IsType<FlightEnded>(rig.Ended.Calls[1].Payload).VesselId);
+        }
+
+        [Fact]
+        public void AFlightStartedWithNobodyListeningIsAnnouncedWhenSomeoneSubscribes()
+        {
+            // The ordinary case, not an edge one: KSP is already running when
+            // the browser connects, so the launch publish is dropped by an
+            // engine that has no subscriber to hand it to.
+            var rig = new Rig { StartedHasAudience = false };
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.0, name: "Alpha"));
+
+            Assert.Empty(rig.Started.Calls);
+
+            rig.StartedHasAudience = true;
+            rig.Sampler.Sample(SnapshotFor(VesselA, 2.0, name: "Alpha"));
+
+            var started = Assert.Single(rig.Started.Calls);
+            var payload = Assert.IsType<FlightStarted>(started.Payload);
+            Assert.Equal(VesselA, payload.FlightId);
+            Assert.Equal("Alpha", payload.VesselName);
+        }
+
+        [Fact]
+        public void TheAnnouncementCarriesTheOriginalStartInstantNotTheMomentItWasMade()
+        {
+            // A flight did not start when an operator opened the dashboard,
+            // and this is also what lets a client tell this apart from a
+            // revert's genuinely new start for the same vessel id.
+            var rig = new Rig { StartedHasAudience = false };
+            rig.Sampler.Sample(SnapshotFor(VesselA, 7.0, name: "Alpha"));
+
+            rig.StartedHasAudience = true;
+            rig.Sampler.Sample(SnapshotFor(VesselA, 900.0, name: "Alpha"));
+
+            var started = Assert.Single(rig.Started.Calls);
+            Assert.Equal(7.0, Assert.IsType<FlightStarted>(started.Payload).Ut);
+            Assert.Equal(7.0, started.Ut);
+        }
+
+        [Fact]
+        public void AnAudienceAlreadyToldIsNotToldAgainEveryTick()
+        {
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 2.0, name: "Alpha"));
+
+            Assert.Single(rig.Started.Calls);
+        }
+
+        [Fact]
+        public void AnAudienceThatLeavesAndComesBackIsToldAgain()
+        {
+            // Whoever subscribes next is a client that has heard nothing, and
+            // from here the two are indistinguishable.
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            Assert.Single(rig.Started.Calls);
+
+            rig.StartedHasAudience = false;
+            rig.Sampler.Sample(SnapshotFor(VesselA, 1.0, name: "Alpha"));
+            Assert.Single(rig.Started.Calls);
+
+            rig.StartedHasAudience = true;
+            rig.Sampler.Sample(SnapshotFor(VesselA, 2.0, name: "Alpha"));
+
+            Assert.Equal(2, rig.Started.Calls.Count);
+            Assert.Equal(0.0, Assert.IsType<FlightStarted>(rig.Started.Calls[1].Payload).Ut);
+        }
+
+        [Fact]
+        public void AFlightThatHasEndedIsNeverAnnouncedToALaterAudience()
+        {
+            var rig = new Rig { StartedHasAudience = false };
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.SignalEnd(VesselA, "Alpha", FlightEndReason.Recovered, 5.0);
+            rig.Sampler.Sample(NoVesselSnapshot(6.0));
+
+            rig.StartedHasAudience = true;
+            rig.Sampler.Sample(NoVesselSnapshot(7.0));
+
+            Assert.Empty(rig.Started.Calls);
+        }
+
+        [Fact]
+        public void SwitchingBackToAKnownVesselTellsAWatchingClientNothingNew()
+        {
+            // vesselChanged is what carries that transition; a started here
+            // would claim Alpha launched twice.
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 1.0, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 2.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 3.0, name: "Alpha"));
+
+            Assert.Equal(2, rig.Started.Calls.Count); // Alpha's launch and Bravo's, nothing more
+        }
+
+        [Fact]
+        public void ALateSubscriberIsToldAboutTheVesselInFocusNowNotTheOneThatLaunchedFirst()
+        {
+            var rig = new Rig { StartedHasAudience = false };
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselB, 10.0, name: "Bravo"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 20.0, name: "Alpha")); // focus back onto Alpha
+
+            rig.StartedHasAudience = true;
+            rig.Sampler.Sample(SnapshotFor(VesselA, 21.0, name: "Alpha"));
+
+            var started = Assert.Single(rig.Started.Calls);
+            var payload = Assert.IsType<FlightStarted>(started.Payload);
+            Assert.Equal(VesselA, payload.VesselId);
+            Assert.Equal(0.0, payload.Ut); // Alpha's own launch, not the moment focus came back
+        }
+
+        [Fact]
+        public void ARevertIsAnnouncedEvenToAClientThatAlreadyHeldThatFlightId()
+        {
+            // The revert's start carries the revert-target UT, which is how a
+            // client tells it from a re-announce of the flight it holds.
+            var rig = new Rig();
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 10.0, name: "Alpha"));
+            rig.Sampler.Sample(SnapshotFor(VesselA, 0.5, name: "Alpha")); // rewind, same id
+
+            Assert.Equal(2, rig.Started.Calls.Count);
+            Assert.Equal(0.0, Assert.IsType<FlightStarted>(rig.Started.Calls[0].Payload).Ut);
+            Assert.Equal(0.5, Assert.IsType<FlightStarted>(rig.Started.Calls[1].Payload).Ut);
         }
 
         [Fact]
