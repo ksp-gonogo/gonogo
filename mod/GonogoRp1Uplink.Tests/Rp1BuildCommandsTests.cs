@@ -357,7 +357,7 @@ namespace GonogoRp1Uplink.Tests
         // ── The manifest ──────────────────────────────────────────────────────
 
         [Fact]
-        public void Declares_every_write_command_undelayed_and_gated()
+        public void Declares_every_write_command_gated_and_states_no_delay_of_its_own()
         {
             var declarations = new Rp1ScUplink().Manifest.Commands;
 
@@ -397,10 +397,17 @@ namespace GonogoRp1Uplink.Tests
                 declarations.Select(d => d.Command).ToArray());
             Assert.All(declarations, declaration =>
             {
-                // Ground-side KSC bookkeeping, like core's own nine career writes:
-                // light-time separates a command centre from a CRAFT, and there is
-                // no craft in any of these.
-                Assert.False(declaration.Delayed);
+                // Not an assertion about delay: it is the assertion that this
+                // manifest states NOTHING about delay, which is what the default
+                // reads as. A private factory here used to bake Delayed = false
+                // into all twenty-nine, on the reading that construction and
+                // research are ground-side facts; they are orders, and a second
+                // command centre can issue any of them. The value moved onto each
+                // command's [SitrepCommand], which is the same declaration the SDK
+                // codegen hands the client, so the two can no longer disagree.
+                // What each command actually answers is asserted below, off those
+                // attributes rather than here off a restatement.
+                Assert.True(declaration.Delayed);
                 // Every one of them declares that RP-1 is managing the save, and
                 // that is the only condition evaluable before the press for six
                 // of the eight. Starting a build from a craft file declares a
@@ -424,6 +431,48 @@ namespace GonogoRp1Uplink.Tests
             Assert.Equal(
                 new[] { Rp1BuildCommands.GateKind, Rp1FacilityUpgradeCommands.GateKind },
                 upgrade.Requires.Select(r => r.Kind).ToArray());
+        }
+
+        /// <summary>
+        /// Every RP-1 command is tagged, and every one of them rides the signal
+        /// delay except the two warp controls, read off the tag the SDK codegen
+        /// and the host both read.
+        ///
+        /// <para>This is the assertion the manifest one above cannot make. The
+        /// manifest says nothing about delay now, so asserting on it would only
+        /// be asserting the default; the value is on the <c>[SitrepCommand]</c>
+        /// in this Uplink's contract slice, and that is what a console's
+        /// countdown is drawn from.</para>
+        ///
+        /// <para>The exception is named here rather than left to a
+        /// <c>!= delayed</c> count, because the whole risk is a command drifting
+        /// into it unnoticed. A warp command changes the operator's own clock and
+        /// is not an order to anything, so light-time does not apply; everything
+        /// else this Uplink serves is an order a second command centre can issue.
+        /// A new instant command needs a reason of that kind and a line here.</para>
+        /// </summary>
+        [Fact]
+        public void Every_declared_command_is_tagged_and_only_warp_is_instant()
+        {
+            var tagged = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (var type in typeof(Rp1BuildRepeatArgs).Assembly.GetTypes())
+            {
+                foreach (SitrepCommandAttribute attr in
+                         type.GetCustomAttributes(typeof(SitrepCommandAttribute), false))
+                {
+                    tagged[attr.CommandId] = attr.Delayed;
+                }
+            }
+
+            var declared = new Rp1ScUplink().Manifest.Commands
+                .Select(c => c.Command)
+                .ToArray();
+            Assert.NotEmpty(declared);
+            Assert.Empty(declared.Where(id => !tagged.ContainsKey(id)));
+
+            Assert.Equal(
+                new[] { Rp1WarpCommands.ToCompleteCommand, Rp1WarpCommands.ToFundTargetCommand },
+                declared.Where(id => !tagged[id]).OrderBy(id => id, StringComparer.Ordinal).ToArray());
         }
 
         [Fact]

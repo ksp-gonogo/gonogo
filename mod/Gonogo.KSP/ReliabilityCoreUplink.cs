@@ -74,12 +74,12 @@ namespace Gonogo.KSP
             },
             Commands = new List<CommandDeclaration>
             {
-                Command(RepairCommand, delayed: true),
+                Command(RepairCommand),
             },
         };
 
-        private static CommandDeclaration Command(string command, bool delayed) =>
-            new CommandDeclaration { Command = command, Delayed = delayed };
+        private static CommandDeclaration Command(string command) =>
+            new CommandDeclaration { Command = command };
 
         private static ChannelDeclaration Delayed(string topic) => new ChannelDeclaration
         {

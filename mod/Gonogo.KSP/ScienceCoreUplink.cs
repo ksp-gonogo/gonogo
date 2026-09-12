@@ -150,12 +150,12 @@ namespace Gonogo.KSP
             // Experiment actuation is a genuine uplink to the craft (deploy runs
             // an experiment ON the vessel; transmit drives its onboard
             // transmitter), so both ride the same light-time delay every other
-            // vessel actuation does, delayed: true. See VesselUplink's command
-            // table for the full delay-classification rule.
+            // vessel actuation does. Declared on their args types rather than
+            // here, see SitrepCommandAttribute.Delayed.
             Commands = new List<CommandDeclaration>
             {
-                Command(ScienceCommandProvider.DeployCommand, delayed: true),
-                Command(ScienceCommandProvider.TransmitCommand, delayed: true),
+                Command(ScienceCommandProvider.DeployCommand),
+                Command(ScienceCommandProvider.TransmitCommand),
             },
         };
 
@@ -206,10 +206,9 @@ namespace Gonogo.KSP
         private IScienceBackend Backend() =>
             (_kernel != null ? ScienceElection.Elected(_kernel) : null) ?? _vanilla;
 
-        private static CommandDeclaration Command(string command, bool delayed) => new CommandDeclaration
+        private static CommandDeclaration Command(string command) => new CommandDeclaration
         {
             Command = command,
-            Delayed = delayed,
         };
     }
 }

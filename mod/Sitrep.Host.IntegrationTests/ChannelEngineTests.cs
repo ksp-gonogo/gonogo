@@ -586,12 +586,21 @@ namespace Sitrep.Host.IntegrationTests
 
         /// <summary>
         /// M1 Task 3: proves the REAL <see cref="VesselCommandProvider"/>
-        /// handlers + the REAL per-command <see cref="CommandDeclaration.Delayed"/>
-        /// flags (not a synthetic stand-in) actually dispatch through
-        /// <see cref="ChannelEngine"/> with the taxonomy's ruling: actuation
-        /// (<c>vessel.control.setSas</c>) rides the Courier's light-time
-        /// delay; planning/designation (<c>vessel.target.clear</c>) resolves
-        /// immediately. Same shape as
+        /// handlers + the REAL per-command delay dispositions (not a synthetic
+        /// stand-in) actually dispatch through <see cref="ChannelEngine"/> with
+        /// the taxonomy's ruling: actuation (<c>vessel.control.setSas</c>) rides
+        /// the Courier's light-time delay; a meta-game control
+        /// (<c>time.setPaused</c>) resolves immediately.
+        ///
+        /// <para>The test uplink declares neither, deliberately. The
+        /// disposition lives on each command's <c>[SitrepCommand]</c> now, so a
+        /// double that restated it would be asserting its own copy: the whole
+        /// defect this arrangement replaced. <c>vessel.target.clear</c> used to
+        /// be the instant half here and is not any more, on the ruling that
+        /// designating a target is an order a second command centre can
+        /// issue.</para>
+        ///
+        /// Same shape as
         /// <see cref="DelayedFalseCommandBypassesTheCourierDelayWhileDelayedTrueWaitsForIt"/>
         /// above (the M0.5 command-delay test), now exercised against the
         /// actual vessel command manifest via <see cref="VesselCommandTestUplink"/>
@@ -608,7 +617,7 @@ namespace Sitrep.Host.IntegrationTests
             engine.Start();
             try
             {
-                // ---- delayed:true actuation: vessel.control.setSas ----
+                // ---- delayed actuation: vessel.control.setSas ----
                 var sasResolved = false;
                 CommandResult? sasResult = null;
                 engine.DispatchCommandAndWait(
@@ -616,7 +625,7 @@ namespace Sitrep.Host.IntegrationTests
                     result => { sasResolved = true; sasResult = (CommandResult)result!; },
                     TimeSpan.FromMilliseconds(300));
 
-                Assert.False(sasResolved, "delayed:true vessel.control.setSas must not resolve before the Courier's scheduled UT");
+                Assert.False(sasResolved, "delayed vessel.control.setSas must not resolve before the Courier's scheduled UT");
                 Assert.Null(actuator.LastSetSasEnabled);
 
                 // Advance past the full round trip (5s uplink + 5s downlink = 10 UT-s).
@@ -626,17 +635,28 @@ namespace Sitrep.Host.IntegrationTests
                 Assert.True(sasResult!.Success);
                 Assert.True(actuator.LastSetSasEnabled, "the REAL VesselCommandProvider.HandleSetSas handler should have called the actuator once the delay elapsed");
 
-                // ---- delayed:false planning/designation: vessel.target.clear ----
+                // vessel.target.clear is an order, not a ground-side fact, so it
+                // rides the delay with the rest of them.
                 var clearResolved = false;
-                CommandResult? clearResult = null;
                 engine.DispatchCommandAndWait(
                     VesselCommandProvider.TargetClearCommand, null, "vantage-1",
-                    result => { clearResolved = true; clearResult = (CommandResult)result!; },
+                    _ => { clearResolved = true; },
                     TimeSpan.FromMilliseconds(300));
 
-                Assert.True(clearResolved, "delayed:false vessel.target.clear should resolve without any further clock advance");
-                Assert.True(clearResult!.Success);
-                Assert.Equal(1, actuator.ClearTargetCallCount);
+                Assert.False(clearResolved, "vessel.target.clear rides the delay: nothing about it changes the scene");
+                Assert.Equal(0, actuator.ClearTargetCallCount);
+
+                // ---- instant meta-game control: time.setPaused ----
+                var pauseResolved = false;
+                CommandResult? pauseResult = null;
+                engine.DispatchCommandAndWait(
+                    VesselCommandProvider.SetPausedCommand, new SetPausedArgs { Paused = true }, "vantage-1",
+                    result => { pauseResolved = true; pauseResult = (CommandResult)result!; },
+                    TimeSpan.FromMilliseconds(300));
+
+                Assert.True(pauseResolved, "time.setPaused should resolve without any further clock advance");
+                Assert.True(pauseResult!.Success);
+                Assert.Equal(1, actuator.SetPauseCallCount);
             }
             finally
             {
@@ -3005,23 +3025,23 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = VesselCommandProvider.SetSasCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetSasModeCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetRcsCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetGearCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetBrakesCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetLightsCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetAbortCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetThrottleCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.StageCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetActionGroupCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverAddCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverUpdateCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverRemoveCommand, Delayed = true },
-                    new CommandDeclaration { Command = VesselCommandProvider.TargetSetCommand, Delayed = false },
-                    new CommandDeclaration { Command = VesselCommandProvider.TargetClearCommand, Delayed = false },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetWarpIndexCommand, Delayed = false },
-                    new CommandDeclaration { Command = VesselCommandProvider.SetPausedCommand, Delayed = false },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetSasCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetSasModeCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetRcsCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetGearCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetBrakesCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetLightsCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetAbortCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetThrottleCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.StageCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetActionGroupCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverAddCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverUpdateCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.ManeuverRemoveCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.TargetSetCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.TargetClearCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetWarpIndexCommand },
+                    new CommandDeclaration { Command = VesselCommandProvider.SetPausedCommand },
                 },
             };
 

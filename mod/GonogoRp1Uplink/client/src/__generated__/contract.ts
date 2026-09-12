@@ -719,6 +719,21 @@ export interface Rp1PadDismantleArgs
 * One type for both commands, as `Rp1TargetCancelArgs` is for its two: they
 * take the same nothing, and a second empty class would only invite the two to
 * drift.
+*
+* **INSTANT, and the only two `rp1.*` commands that are.** Every other command
+* in this Uplink is an order a second command centre can issue, so it crosses
+* the gap like any other order. These two are not orders, they are CLOCK
+* CHANGES: warp is sim-meta, and light-time fiction does not apply to a
+* ground-side simulation control, which is the same principle core states on
+* `time.setWarpIndex`. Delayed, an operator selecting a warp with a craft
+* thirty light-minutes out would wait thirty minutes for their own clock to
+* move.
+*
+* The paragraph above settles it independently: core's `time.setWarpIndex`
+* already ends an RP-1 warp, and the WarpControl widget's "1x" button already
+* sends it. Two commands that one instant control already terminates cannot be
+* in different delay classes, so this is the class that is consistent rather
+* than an exemption carved for convenience.
 */
 export interface Rp1WarpArgs
 {

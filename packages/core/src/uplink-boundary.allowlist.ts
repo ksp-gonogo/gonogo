@@ -250,7 +250,12 @@ export const ALLOWLIST: Record<ModToken, ModAllowlist> = {
        */
 
       // -- sitrep-client / contract layer, comment or string-literal only --
-      "mod/Sitrep.Contract/UplinkContract.cs",
+      /*
+       * UplinkContract.cs was here: `CommandDeclaration`'s doc comment pointed
+       * at the design doc's kerbcast negotiate discussion for why the Delayed
+       * flag existed. The flag moved onto `[SitrepCommand]`, so the paragraph
+       * naming kerbcast went with it, stale, ratcheted off.
+       */
       "mod/Sitrep.Host/ChannelEngine.cs",
       "mod/sitrep-sdk/src/spine/context.tsx",
       "mod/sitrep-sdk/src/spine/delay-authority.ts",

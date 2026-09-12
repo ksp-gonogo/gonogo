@@ -1566,7 +1566,7 @@ public static class RtConfig
         var localNames = new HashSet<string>(
             target.GetTypes().Select(t => t.Name), StringComparer.Ordinal);
 
-        var rows = new List<(string Id, string Args, string Reply, bool Replies)>();
+        var rows = new List<(string Id, string Args, string Reply, bool Replies, bool Delayed)>();
         var argsNames = new SortedSet<string>(StringComparer.Ordinal);
         var replyNames = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var type in target.GetTypes())
@@ -1605,13 +1605,18 @@ public static class RtConfig
                     reply = "CommandResult";
                 }
 
-                // The rail column. `replies` is derived from what the command
+                // The rail columns. `replies` is derived from what the command
                 // answers, and is true for every command the contract has ever
                 // declared because `CommandResult` rules that results are always
                 // delivered. It is read rather than assumed so that a command
                 // answering nothing would land as fire-and-forget without a new
                 // branch anywhere downstream.
-                rows.Add((attr.CommandId, type.Name, reply, reply != null));
+                //
+                // `delayed` is copied straight off the declaration the HOST
+                // dispatches by (see SitrepCommandAttribute.Delayed), which is
+                // what makes the client's delay UX a reading of the mod's answer
+                // rather than a second opinion about it.
+                rows.Add((attr.CommandId, type.Name, reply, reply != null, attr.Delayed));
                 argsNames.Add(type.Name);
             }
         }
@@ -1641,12 +1646,12 @@ public static class RtConfig
         sb.Append("// several commands, which is why the reflection is over ATTRIBUTES rather\n");
         sb.Append("// than over types.\n");
         sb.Append("//\n");
-        sb.Append("// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the one\n");
-        sb.Append("// question the delay rail still asks of a command: whether anything answers\n");
-        sb.Append("// it. It is DATA a client reads, so no consumer holds its own list of which\n");
-        sb.Append("// commands are which. What a command IS on the rail's other two axes is\n");
-        sb.Append("// derived: a dispatch is a point, and the direction is which map it came out\n");
-        sb.Append("// of.\n");
+        sb.Append("// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the two\n");
+        sb.Append("// questions the delay rail asks of a command: whether anything answers it, and\n");
+        sb.Append("// whether it rides signal delay. Both are DATA a client reads, so no consumer\n");
+        sb.Append("// holds its own list of which commands are which. What a command IS on the\n");
+        sb.Append("// rail's other two axes is derived: a dispatch is a point, and the direction\n");
+        sb.Append("// is which map it came out of.\n");
         sb.Append("//\n");
         sb.Append("// WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per\n");
         sb.Append("// [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries\n");
@@ -1744,6 +1749,11 @@ public static class RtConfig
         sb.Append("export interface GeneratedCommandRail {\n");
         sb.Append("  /** Whether the dispatch resolves with anything, i.e. whether an ack comes back. */\n");
         sb.Append("  readonly replies: boolean;\n");
+        sb.Append("  /**\n");
+        sb.Append("   * Whether the host holds this command for the signal delay before running it,\n");
+        sb.Append("   * off the same `[SitrepCommand(Delayed = ...)]` the host itself dispatches by.\n");
+        sb.Append("   */\n");
+        sb.Append("  readonly delayed: boolean;\n");
         sb.Append("}\n\n");
 
         sb.Append("/**\n");
@@ -1758,12 +1768,18 @@ public static class RtConfig
         sb.Append(" * be unacked. The column exists because a client must READ that rather than\n");
         sb.Append(" * assume it; the day the contract declares a command that answers nothing,\n");
         sb.Append(" * this is where it says so.\n");
+        sb.Append(" *\n");
+        sb.Append(" * `delayed` is the mod's own dispatch decision, not a client-side opinion of\n");
+        sb.Append(" * it. A `false` row runs the instant it arrives, so drawing it a countdown or\n");
+        sb.Append(" * an in-flight queue entry would be a fiction about the operator's own order.\n");
         sb.Append(" */\n");
         sb.Append("export const GENERATED_COMMAND_RAIL = {\n");
         foreach (var row in rows)
         {
             sb.Append("  \"").Append(row.Id).Append("\": { replies: ")
-              .Append(row.Replies ? "true" : "false").Append(" },\n");
+              .Append(row.Replies ? "true" : "false")
+              .Append(", delayed: ")
+              .Append(row.Delayed ? "true" : "false").Append(" },\n");
         }
         sb.Append("} as const satisfies Record<string, GeneratedCommandRail>;\n\n");
 

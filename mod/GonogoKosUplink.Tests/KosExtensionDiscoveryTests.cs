@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Gonogo.KosUplink;
@@ -72,25 +74,49 @@ namespace GonogoKosUplink.Tests
             Assert.Equal(expected, manifest.ExpectedClientHash);
         }
 
+        /// <summary>
+        /// Every kOS command rides the signal delay, resize included, and the
+        /// manifest is not where that is said.
+        ///
+        /// <para>Resize was the one exception until the command classification
+        /// was settled: a terminal is a cursor-addressed screen diff computed at
+        /// the mod's width, so a delayed resize leaves the mod diffing at the old
+        /// width for a light-time round trip and the client draws those diffs at
+        /// the wrong column until the new width lands. That is a real cost and it
+        /// is the lesser one. Instant, a resize let one console reflow a terminal
+        /// another console was reading in real time, and a resize is an order like
+        /// any other: it changes no scene and it is not a presentation choice,
+        /// which is the whole of the rule for an instant command.</para>
+        ///
+        /// <para>Read off the <c>[SitrepCommand]</c> rather than the manifest
+        /// because that is the declaration the SDK codegen hands the client, so
+        /// this is the same fact a console's countdown is drawn from.</para>
+        /// </summary>
         [Fact]
-        public void TerminalResizeCommand_IsNotDelayed_SoRenderWidthConvergesImmediately()
+        public void EveryCommandIsTaggedDelayedInTheContract()
         {
-            // The terminal downlink is a cursor-addressed screen diff computed at
-            // the mod's screen width; a delayed resize leaves the mod diffing at a
-            // stale width for a full light-time round-trip, so the client renders
-            // those diffs at the wrong column and the terminal reads as garbled.
-            // Resize is a local viewport concern, so it must reach the mod
-            // immediately: unlike a keystroke, which is genuine remote input.
+            var tagged = new Dictionary<string, bool>(StringComparer.Ordinal);
+            foreach (var type in typeof(KosTerminalResizeArgs).Assembly.GetTypes())
+            {
+                foreach (SitrepCommandAttribute attr in
+                         type.GetCustomAttributes(typeof(SitrepCommandAttribute), false))
+                {
+                    tagged[attr.CommandId] = attr.Delayed;
+                }
+            }
+
             var manifest = UplinkDiscovery
                 .Discover(new[] { typeof(KosExtension).Assembly })
                 .Single(d => d.Uplink.Manifest.Id == "kos")
                 .Uplink.Manifest;
 
-            var resize = manifest.Commands.Single(c => c.Command == KosChannels.TerminalResizeCommand);
-            Assert.False(resize.Delayed);
+            var declared = manifest.Commands.Select(c => c.Command).ToArray();
+            Assert.NotEmpty(declared);
+            Assert.Empty(declared.Where(id => !tagged.ContainsKey(id)));
+            Assert.Empty(declared.Where(id => !tagged[id]));
 
-            var keystroke = manifest.Commands.Single(c => c.Command == KosChannels.KeystrokeCommand);
-            Assert.True(keystroke.Delayed);
+            Assert.True(tagged[KosChannels.TerminalResizeCommand]);
+            Assert.True(tagged[KosChannels.KeystrokeCommand]);
         }
     }
 }

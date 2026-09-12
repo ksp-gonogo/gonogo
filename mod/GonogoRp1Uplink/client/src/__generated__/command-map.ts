@@ -10,12 +10,12 @@
 // several commands, which is why the reflection is over ATTRIBUTES rather
 // than over types.
 //
-// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the one
-// question the delay rail still asks of a command: whether anything answers
-// it. It is DATA a client reads, so no consumer holds its own list of which
-// commands are which. What a command IS on the rail's other two axes is
-// derived: a dispatch is a point, and the direction is which map it came out
-// of.
+// GENERATED_COMMAND_RAIL below carries the same reflection's answer to the two
+// questions the delay rail asks of a command: whether anything answers it, and
+// whether it rides signal delay. Both are DATA a client reads, so no consumer
+// holds its own list of which commands are which. What a command IS on the
+// rail's other two axes is derived: a dispatch is a point, and the direction
+// is which map it came out of.
 //
 // WHAT THE COUNT COUNTS, because a grep gets it wrong. It is one entry per
 // [SitrepCommand] ATTRIBUTE, not per tagged type: SetEnabledArgs alone carries
@@ -153,6 +153,11 @@ export interface GeneratedCommandReplyMap {
 export interface GeneratedCommandRail {
   /** Whether the dispatch resolves with anything, i.e. whether an ack comes back. */
   readonly replies: boolean;
+  /**
+   * Whether the host holds this command for the signal delay before running it,
+   * off the same `[SitrepCommand(Delayed = ...)]` the host itself dispatches by.
+   */
+  readonly delayed: boolean;
 }
 
 /**
@@ -167,37 +172,41 @@ export interface GeneratedCommandRail {
  * be unacked. The column exists because a client must READ that rather than
  * assume it; the day the contract declares a command that answers nothing,
  * this is where it says so.
+ *
+ * `delayed` is the mod's own dispatch decision, not a client-side opinion of
+ * it. A `false` row runs the instant it arrives, so drawing it a countdown or
+ * an in-flight queue entry would be a fiction about the operator's own order.
  */
 export const GENERATED_COMMAND_RAIL = {
-  "rp1.build.repeat": { replies: true },
-  "rp1.build.start": { replies: true },
-  "rp1.complex.dismantle": { replies: true },
-  "rp1.complex.modify": { replies: true },
-  "rp1.complex.new": { replies: true },
-  "rp1.complex.rename": { replies: true },
-  "rp1.complex.rush": { replies: true },
-  "rp1.contracts.setPayload": { replies: true },
-  "rp1.facility.upgrade": { replies: true },
-  "rp1.fundTarget.cancel": { replies: true },
-  "rp1.fundTarget.set": { replies: true },
-  "rp1.hireTarget.cancel": { replies: true },
-  "rp1.hireTarget.set": { replies: true },
-  "rp1.pad.dismantle": { replies: true },
-  "rp1.pad.new": { replies: true },
-  "rp1.pad.rename": { replies: true },
-  "rp1.personnel.assign": { replies: true },
-  "rp1.strategy.activate": { replies: true },
-  "rp1.tech.research": { replies: true },
-  "rp1.tooling.refit": { replies: true },
-  "rp1.tooling.toolAll": { replies: true },
-  "rp1.training.cancel": { replies: true },
-  "rp1.training.enrol": { replies: true },
-  "rp1.training.remove": { replies: true },
-  "rp1.vehicle.rollback": { replies: true },
-  "rp1.vehicle.rollout": { replies: true },
-  "rp1.vehicle.scrap": { replies: true },
-  "rp1.warp.toComplete": { replies: true },
-  "rp1.warp.toFundTarget": { replies: true },
+  "rp1.build.repeat": { replies: true, delayed: true },
+  "rp1.build.start": { replies: true, delayed: true },
+  "rp1.complex.dismantle": { replies: true, delayed: true },
+  "rp1.complex.modify": { replies: true, delayed: true },
+  "rp1.complex.new": { replies: true, delayed: true },
+  "rp1.complex.rename": { replies: true, delayed: true },
+  "rp1.complex.rush": { replies: true, delayed: true },
+  "rp1.contracts.setPayload": { replies: true, delayed: true },
+  "rp1.facility.upgrade": { replies: true, delayed: true },
+  "rp1.fundTarget.cancel": { replies: true, delayed: true },
+  "rp1.fundTarget.set": { replies: true, delayed: true },
+  "rp1.hireTarget.cancel": { replies: true, delayed: true },
+  "rp1.hireTarget.set": { replies: true, delayed: true },
+  "rp1.pad.dismantle": { replies: true, delayed: true },
+  "rp1.pad.new": { replies: true, delayed: true },
+  "rp1.pad.rename": { replies: true, delayed: true },
+  "rp1.personnel.assign": { replies: true, delayed: true },
+  "rp1.strategy.activate": { replies: true, delayed: true },
+  "rp1.tech.research": { replies: true, delayed: true },
+  "rp1.tooling.refit": { replies: true, delayed: true },
+  "rp1.tooling.toolAll": { replies: true, delayed: true },
+  "rp1.training.cancel": { replies: true, delayed: true },
+  "rp1.training.enrol": { replies: true, delayed: true },
+  "rp1.training.remove": { replies: true, delayed: true },
+  "rp1.vehicle.rollback": { replies: true, delayed: true },
+  "rp1.vehicle.rollout": { replies: true, delayed: true },
+  "rp1.vehicle.scrap": { replies: true, delayed: true },
+  "rp1.warp.toComplete": { replies: true, delayed: false },
+  "rp1.warp.toFundTarget": { replies: true, delayed: false },
 } as const satisfies Record<string, GeneratedCommandRail>;
 
 export const GENERATED_COMMAND_IDS = [

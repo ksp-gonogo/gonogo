@@ -145,15 +145,17 @@ namespace Gonogo.KSP
             },
             Commands = new List<CommandDeclaration>
             {
-                // Both INSTANT. Arming registers an intention with the simulation
-                // host and changes nothing aboard the craft, so there is no
-                // light-time fiction to honour: the same bucket time.setWarpIndex
-                // has always been in. Delayed, an alarm for an event less than one
-                // light-time away could never be armed in time, and the command
-                // would be dropped outright during a blackout, which is when a SCET
-                // alarm is worth the most.
-                new CommandDeclaration { Command = ArmCommand, Delayed = false },
-                new CommandDeclaration { Command = DisarmCommand, Delayed = false },
+                // Both INSTANT, declared on their args types in the contract
+                // (see SitrepCommandAttribute.Delayed) because that is what the
+                // client reads too. Arming registers an intention with the
+                // simulation host and changes nothing aboard the craft, so there
+                // is no light-time fiction to honour: the same bucket
+                // time.setWarpIndex has always been in. Delayed, an alarm for an
+                // event less than one light-time away could never be armed in
+                // time, and the command would be dropped outright during a
+                // blackout, which is when a SCET alarm is worth the most.
+                new CommandDeclaration { Command = ArmCommand },
+                new CommandDeclaration { Command = DisarmCommand },
             },
         };
 

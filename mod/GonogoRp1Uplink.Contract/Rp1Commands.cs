@@ -968,13 +968,28 @@ public class Rp1PadDismantleArgs
 /// <para>One type for both commands, as <see cref="Rp1TargetCancelArgs"/> is for
 /// its two: they take the same nothing, and a second empty class would only
 /// invite the two to drift.</para>
+///
+/// <para><b>INSTANT, and the only two <c>rp1.*</c> commands that are.</b> Every
+/// other command in this Uplink is an order a second command centre can issue,
+/// so it crosses the gap like any other order. These two are not orders, they
+/// are CLOCK CHANGES: warp is sim-meta, and light-time fiction does not apply to
+/// a ground-side simulation control, which is the same principle core states on
+/// <c>time.setWarpIndex</c>. Delayed, an operator selecting a warp with a craft
+/// thirty light-minutes out would wait thirty minutes for their own clock to
+/// move.</para>
+///
+/// <para>The paragraph above settles it independently: core's
+/// <c>time.setWarpIndex</c> already ends an RP-1 warp, and the WarpControl
+/// widget's "1x" button already sends it. Two commands that one instant control
+/// already terminates cannot be in different delay classes, so this is the class
+/// that is consistent rather than an exemption carved for convenience.</para>
 /// </summary>
 [SitrepContract]
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("rp1.warp.toComplete")]
-[SitrepCommand("rp1.warp.toFundTarget")]
+[SitrepCommand("rp1.warp.toComplete", Delayed = false)]
+[SitrepCommand("rp1.warp.toFundTarget", Delayed = false)]
 public class Rp1WarpArgs
 {
 }

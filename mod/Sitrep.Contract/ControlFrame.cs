@@ -149,7 +149,7 @@ namespace Sitrep.Contract
 #if SITREP_CODEGEN
     [TsInterface]
 #endif
-    [SitrepCommand("system.frame.set")]
+    [SitrepCommand("system.frame.set", Delayed = false)]
     public class SetControlFrameArgs
     {
         [SitrepUnit(Units.Enumeration)]

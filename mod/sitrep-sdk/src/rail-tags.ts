@@ -77,6 +77,16 @@ export interface RailTags {
  */
 export interface CommandRail {
   readonly replies: boolean;
+
+  /**
+   * Whether the host holds this command for the signal delay before running it.
+   *
+   * The mod's own answer, not a client-side reading of it: codegen copies it
+   * from the `[SitrepCommand]` the host dispatches by. `commandDelayed` is the
+   * one caller, and it is what keeps a countdown off a command that runs the
+   * instant it arrives.
+   */
+  readonly delayed: boolean;
 }
 
 /**

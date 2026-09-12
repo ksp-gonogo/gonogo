@@ -355,13 +355,14 @@ namespace Gonogo.KSP
             },
             Commands = new List<CommandDeclaration>
             {
-                // Ground infrastructure, not a signal to a craft: a preference
-                // about delay that itself rode the delay would be unusable at
-                // exactly the moment an operator wanted to change it.
+                // A gonogo SETTING rather than an order, and instant for that
+                // reason: a preference about delay that itself rode the delay
+                // would be unusable at exactly the moment an operator wanted to
+                // change it. Declared on the args type, not here, so the client
+                // reads the same answer (SitrepCommandAttribute.Delayed).
                 new CommandDeclaration
                 {
                     Command = SetSimulationDelayPolicyCommand,
-                    Delayed = false,
                 },
             },
         };
