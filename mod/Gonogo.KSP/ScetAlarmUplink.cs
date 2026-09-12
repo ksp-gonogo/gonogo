@@ -37,9 +37,10 @@ namespace Gonogo.KSP
     /// nothing is subscribed to, so a threshold read through it would fire or
     /// not depending on which widgets the operator happened to have open.</para>
     ///
-    /// <para>The decision-making is in <see cref="ScetAlarmRoster"/>, which is
-    /// KSP-free and clock-free and unit-tested headlessly. This class is the
-    /// live read, the actuator call and the publishes.</para>
+    /// <para>The decision-making is in <see cref="ScetAlarmRoster"/> (what is
+    /// due) and <see cref="ScetRosterAudience"/> (when the roster goes on the
+    /// wire), both KSP-free and clock-free and unit-tested headlessly. This
+    /// class is the live read, the actuator call and the publishes.</para>
     /// </summary>
     [SitrepUplink("alarm")]
     public sealed class ScetAlarmUplink : ISitrepUplink
@@ -77,16 +78,17 @@ namespace Gonogo.KSP
         private readonly ScetAlarmRoster _roster = new ScetAlarmRoster();
         private readonly IVesselActuator _actuator;
 
+        private IUplinkHost? _host;
         private IChannelPublisher? _rosterPublisher;
         private IChannelPublisher? _firedPublisher;
 
         /// <summary>
-        /// Whether the roster has ever been published. The FIRST evaluation
-        /// publishes regardless of change, so a client that subscribes to an
-        /// empty roster is told it is empty rather than left on "subscribed"
-        /// forever with nothing to reconcile against.
+        /// When the roster goes on the wire. Its whole job is that a client
+        /// subscribing to an EMPTY roster is told it is empty, rather than left
+        /// on "subscribed" with nothing to reconcile against, which is what
+        /// stopped a cold client arming anything at all.
         /// </summary>
-        private bool _rosterPublished;
+        private readonly ScetRosterAudience _audience = new ScetRosterAudience();
 
         /// <summary>
         /// The discovery-required parameterless constructor: a discoverable
@@ -110,10 +112,13 @@ namespace Gonogo.KSP
                 new ChannelDeclaration
                 {
                     Topic = RosterTopic,
-                    // ReliableOrdered, not LossyLatest: a client that reconnects
-                    // needs the roster replayed by keyframe-on-subscribe, because
-                    // reconciling its own list against it is the only thing that
-                    // clears an arm nobody remembers making.
+                    // ReliableOrdered, not LossyLatest: reconciling a client's own
+                    // list against the roster is the only thing that clears an arm
+                    // nobody remembers making, so no roster frame may be coalesced
+                    // away. What gets a RECONNECTING client its first frame is the
+                    // audience check on the publish (see ScetRosterAudience), not
+                    // this: keyframe-on-subscribe can only replay a value that has
+                    // already been emitted at least once.
                     Delivery = Delivery.ReliableOrdered,
                     // Ground-side bookkeeping: a list of things the operator asked
                     // for, not a reading of any craft. The same class
@@ -157,6 +162,7 @@ namespace Gonogo.KSP
 
         public void Register(IUplinkHost host)
         {
+            _host = host;
             _rosterPublisher = host.Publisher(RosterTopic);
             _firedPublisher = host.Publisher(FiredTopic);
 
@@ -248,13 +254,17 @@ namespace Gonogo.KSP
             {
                 var ut = snapshot?.Ut ?? Planetarium.GetUniversalTime();
                 var state = new SnapshotScetStateReader(snapshot);
+                // Asked on the capture, not in the handle, so the snapshot goes
+                // across with the tick that decided it. The read is a walk of a
+                // thread-safe mirror and is callable from here; see
+                // IUplinkHost.IsAnyTopicSubscribed.
+                var hasAudience = _host?.IsAnyTopicSubscribed(RosterTopic) ?? false;
                 lock (_gate)
                 {
                     tick = _roster.Evaluate(ut, state);
-                    if (tick.RosterChanged || !_rosterPublished)
+                    if (_audience.ShouldPublish(hasAudience, tick.RosterChanged))
                     {
                         roster = _roster.Snapshot();
-                        _rosterPublished = true;
                     }
                 }
 

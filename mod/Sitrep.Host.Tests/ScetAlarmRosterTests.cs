@@ -513,5 +513,100 @@ namespace Sitrep.Host.Tests
             Assert.True(tick.StopWarp);
             Assert.Equal(new[] { "a", "b" }, tick.Fired.Select(f => f.Id).ToArray());
         }
+
+        /// <summary>
+        /// An arm arrives between ticks, off a command handler, and the tick that
+        /// follows is the only chance anything has to notice. Reported as a
+        /// change, or the operator's own alarm never reaches the roster they are
+        /// watching: measured on the deck, an arm that returned success produced
+        /// no roster frame at all until some later alarm fired.
+        /// </summary>
+        [Fact]
+        public void AnArmIsReportedAsAChangeOnTheNextTick()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Evaluate(1000);
+
+            roster.Arm(TimeAlarm("a", 2000), "ksc");
+
+            Assert.True(roster.Evaluate(1001).RosterChanged);
+        }
+
+        [Fact]
+        public void ADisarmIsReportedAsAChangeOnTheNextTick()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 2000), "ksc");
+            roster.Evaluate(1000);
+
+            roster.Disarm("a");
+
+            Assert.True(roster.Evaluate(1001).RosterChanged);
+        }
+
+        /// <summary>
+        /// Reported ONCE. A pending change that kept being reported would
+        /// republish the roster on every tick for the rest of the session.
+        /// </summary>
+        [Fact]
+        public void AnArmIsReportedOnceAndThenTheRosterGoesQuiet()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 5000), "ksc");
+
+            Assert.True(roster.Evaluate(1000).RosterChanged);
+            Assert.False(roster.Evaluate(1001).RosterChanged);
+            Assert.False(roster.Evaluate(1002).RosterChanged);
+        }
+
+        /// <summary>
+        /// A re-arm that changes nothing an operator could see is not a change
+        /// here either, so a client re-arming its whole list on every reconnect
+        /// does not churn the channel.
+        /// </summary>
+        [Fact]
+        public void AnIdenticalReArmIsNotReportedAsAChange()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Arm(TimeAlarm("a", 5000), "ksc");
+            roster.Evaluate(1000);
+
+            roster.Arm(TimeAlarm("a", 5000), "ksc");
+
+            Assert.False(roster.Evaluate(1001).RosterChanged);
+        }
+
+        /// <summary>
+        /// A disarm for an id the roster does not hold succeeds without changing
+        /// anything, and must not be reported as a change: the client reconciling
+        /// its list disarms what it does not recognise, and every one of those
+        /// would otherwise republish the roster.
+        /// </summary>
+        [Fact]
+        public void ADisarmForAnIdThatIsNotHeldIsNotReportedAsAChange()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Evaluate(1000);
+
+            roster.Disarm("never-armed");
+
+            Assert.False(roster.Evaluate(1001).RosterChanged);
+        }
+
+        /// <summary>
+        /// A rewind clears the roster, and an arm that landed just before it
+        /// still has to be accounted for: the clear returns false for an empty
+        /// roster, and the pending arm must not be lost with it.
+        /// </summary>
+        [Fact]
+        public void AnArmIsNotLostToARewindThatClearedNothing()
+        {
+            var roster = new ScetAlarmRoster();
+            roster.Evaluate(1000);
+            roster.Arm(TimeAlarm("a", 5000), "ksc");
+            roster.Disarm("a");
+
+            Assert.True(roster.Evaluate(500).RosterChanged);
+        }
     }
 }
