@@ -27,15 +27,15 @@ import { ViewClock } from "./view-clock";
  * stream" routing would silently be a dead end for every raw-record mapping
  * in the whole migration table, not just `time.warp`.
  *
- * The fix: `TimelineStore` ALSO resolves a "<domain>.<channel>.<field...>"
- * topic (3+ dot-segments, no derived-channel match) against the raw
- * `"<domain>.<channel>"` timeline (first two segments: the actual wire
- * topic, per every key that vocabulary carried), walking the remaining
- * segments as a nested field path into that record's payload. Exercised here
- * with `time.warp` (WarpControl's own channel) and a synthetic nested example
- * mirroring `vessel.thermal.hottestPart.skinTemp` (that vocabulary's
- * one already-mapped 4-segment/2-level-nested entry) to prove the mechanism
- * isn't accidentally 1-level-only.
+ * The fix: `TimelineStore` ALSO resolves a dotted topic (3+ dot-segments, no
+ * derived-channel match) against the timeline of the LONGEST KNOWN Topic id
+ * the key starts with, walking the remaining segments as a nested field path
+ * into that record's payload. Exercised here with `time.warp` (WarpControl's
+ * own channel) and a synthetic nested example mirroring
+ * `vessel.thermal.hottestPart.skinTemp` (that vocabulary's one already-mapped
+ * 4-segment/2-level-nested entry) to prove the mechanism isn't accidentally
+ * 1-level-only, and with `alarm.scet.fired`, a Topic that is itself three
+ * segments long, to prove the split is not simply "after the second".
  */
 
 interface WarpPayload {
@@ -197,5 +197,46 @@ describe("TimelineStore: raw record field-subtopic resolution", () => {
     expect(
       store.sample<{ sma: number }>("vessel.orbit", token)?.payload,
     ).toEqual({ sma: 700_000 });
+  });
+
+  it("a genuinely 3-segment TOPIC is its own wire topic, and carries a field path of its own", () => {
+    // `alarm.scet.fired` is a Topic, not a `.fired` field of the `alarm.scet`
+    // ARRAY. The split lands at the longest known Topic id, so the topic reads
+    // and subscribes as itself and `alarm.scet.fired.firedAtUt` reads the field
+    // off it, where splitting after the second segment gave both of them
+    // `alarm.scet` and a path nothing could fill.
+    const store = newStore();
+    expect(store.resolveSubscriptionTopics("alarm.scet.fired")).toEqual([
+      "alarm.scet.fired",
+    ]);
+    expect(
+      store.resolveSubscriptionTopics("alarm.scet.fired.firedAtUt"),
+    ).toEqual(["alarm.scet.fired"]);
+
+    store.ingest("alarm.scet.fired", {
+      validAt: 0,
+      payload: { id: "burn-1", firedAtUt: 1234.5 },
+      meta: makeMeta({ validAt: 0, deliveredAt: 0 }),
+      epoch: 0,
+    });
+    const token = store.beginFrame();
+    expect(
+      store.sample<number>("alarm.scet.fired.firedAtUt", token)?.payload,
+    ).toBe(1234.5);
+  });
+
+  it("keeps the engine-declared 3-segment topics whole, which a hand-kept exemption set used to do", () => {
+    // `system.uplink.pending` was exempted by name because there is no
+    // `system.uplink` record for `.pending` to be a field of. It is a known
+    // Topic id, so the longest-match split now answers for it, and for
+    // `system.uplink.gates`, which the exemption set never named and which
+    // therefore used to resolve to that non-existent parent.
+    const store = newStore();
+    expect(store.resolveSubscriptionTopics("system.uplink.pending")).toEqual([
+      "system.uplink.pending",
+    ]);
+    expect(store.resolveSubscriptionTopics("system.uplink.gates")).toEqual([
+      "system.uplink.gates",
+    ]);
   });
 });

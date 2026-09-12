@@ -14,6 +14,7 @@ import {
   enumerateTopicFields,
   getRuntimeRegisteredTopicIds,
   isCommandId,
+  splitRawFieldSubtopic,
   type TopicField,
   type TopicFieldKind,
 } from "@ksp-gonogo/sitrep-sdk";
@@ -75,23 +76,27 @@ export function humaniseFieldPath(path: string): string {
 }
 
 /**
- * A Topic whose payload a dotted field path can actually be sampled from.
+ * Whether a read of `<topic>.<fieldPath>` lands back on `topic`.
  *
- * A raw field subtopic is split after the SECOND segment, so a field path hung
- * off a Topic that already has three would resolve against a two-segment parent
- * no channel publishes, and the subscription would resolve to that parent too.
+ * Asked of the store's own split rather than of the key's shape: a raw field
+ * subtopic resolves at the longest KNOWN Topic id the key starts with, so
+ * `alarm.scet.fired.firedAtUt` reads off `alarm.scet.fired` while
+ * `vessel.orbit.truth.position.x` reads off `vessel.orbit.truth` and not off
+ * `vessel.orbit`, whose entry would be the one offering it. Offering a key
+ * whose read lands somewhere else is silent: the picker shows it and nothing
+ * ever fills it.
+ *
  * A derived channel is exempt: its own field subtopics resolve through the
  * channel rather than through that split.
- *
- * No carried Topic with three segments declares a field today, so this guards a
- * gap rather than closing one. It is here because the failure it prevents is
- * silent: the picker would offer the key, and the read would return nothing.
  */
-function canCarryFieldPaths(
+function readLandsOnTopic(
   topic: string,
+  fieldPath: string,
   derivedTopics: ReadonlySet<string>,
 ): boolean {
-  return derivedTopics.has(topic) || topic.split(".").length === 2;
+  if (derivedTopics.has(topic)) return true;
+  const split = splitRawFieldSubtopic(`${topic}.${fieldPath}`);
+  return split?.rawTopic === topic;
 }
 
 function entryFor(topic: string, field: TopicField): TopicFieldKey {
@@ -175,12 +180,10 @@ function buildTopicFieldCatalog(
   const keys: TopicFieldKey[] = [];
   const undescribed: string[] = [];
   for (const topic of topics) {
-    const fields = enumerateTopicFields(topic);
+    const fields = enumerateTopicFields(topic).filter((field) =>
+      readLandsOnTopic(topic, field.path, derivedTopics),
+    );
     if (fields.length === 0) {
-      undescribed.push(topic);
-      continue;
-    }
-    if (!canCarryFieldPaths(topic, derivedTopics)) {
       undescribed.push(topic);
       continue;
     }
@@ -303,7 +306,8 @@ const NON_ORDERABLE_UNIT_HINTS: ReadonlySet<string> = new Set([
  *
  * A Topic lands here for one of two reasons: nothing has annotated its fields
  * (a bare primitive channel, or an Uplink Topic whose client package has not
- * loaded), or it carries too many segments for a field path to resolve. Pinned
+ * loaded), or every field it declares would be read off some OTHER Topic
+ * (`readLandsOnTopic`). Pinned
  * by a test, so a Topic that arrives unannotated is a failure rather than a
  * silent absence from every picker in the app.
  *

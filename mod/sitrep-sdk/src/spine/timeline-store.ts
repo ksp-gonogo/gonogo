@@ -1,6 +1,7 @@
 import { type Meta, Quality, Staleness } from "../__generated__/contract";
 import type { Transport } from "../api/transport";
 import { PerfBudget } from "../perf/PerfBudget";
+import { splitRawFieldSubtopic } from "../raw-field-split";
 import type {
   BandKind,
   DepWindow,
@@ -78,8 +79,11 @@ export interface TimelineStoreOptions {
   heartbeatOptions?: HeartbeatTrackerOptions;
   /**
    * Dynamic-namespace prefixes (each ending in `.`) whose topics are WHOLE raw
-   * wire topics despite having 3+ dot-segments: the prefix counterpart to the
-   * static `WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS` exemption. A topic that
+   * wire topics despite having 3+ dot-segments. A generated topic list cannot
+   * stand in for this: these ids are computed at runtime (per body, per part,
+   * per CPU) and so have no member in any list to match against, which is why
+   * the prefix mechanism survives `splitRawFieldSubtopic`'s longest-known-topic
+   * lookup rather than being folded into it. A topic that
    * `startsWith` any of these resolves to its own identity in
    * `resolveRawFieldSubtopic` (and thus `resolveSubscriptionTopics`), instead of
    * being mis-split into a `<domain.channel>.<fieldPath>` parent that no channel
@@ -374,19 +378,6 @@ const ANGULAR_DEGREE_FIELD_NAMES: ReadonlySet<string> = new Set([
  */
 const DISCRETE_NUMERIC_FIELD_NAMES: ReadonlySet<string> = new Set([
   "referenceBodyIndex",
-]);
-
-/**
- * Genuinely-whole raw wire topics that happen to have 3+ dot-segments,
- * the escape hatch for `resolveRawFieldSubtopic`'s "every raw channel is
- * `domain.channel`" assumption, which `system.uplink.pending`
- * (`ChannelEngine.UplinkPendingTopic`) breaks: it's a first-class topic in
- * its own right, not a `.pending` field of some `system.uplink` record (no
- * such record exists). Extend this set deliberately, same reasoning as
- * `ANGULAR_DEGREE_FIELD_NAMES` above: never infer from a topic's shape.
- */
-const WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS: ReadonlySet<string> = new Set([
-  "system.uplink.pending",
 ]);
 
 /** Normalize a degree value into `(-180, 180]`. */
@@ -1470,7 +1461,7 @@ export class TimelineStore {
     // wire message is EVER published to that literal string; the real wire
     // topic is `"time.warp"`, a whole record `{ warpRate, warpRateIndex,
     // warpMode, paused }`. See `resolveRawFieldSubtopic`'s own doc for the
-    // "first two segments are the real topic" rule this relies on.
+    // longest-known-topic rule that decides where the split falls.
     //
     // Deliberately tried SECOND, only once the literal read above came back
     // `undefined`: never first. A topic string that genuinely IS a raw
@@ -2292,33 +2283,28 @@ export class TimelineStore {
   }
 
   /**
-   * Splits a `"<domain>.<channel>.<field...>"` topic (3+ dot-segments) into
-   * the REAL raw wire topic (always the first two segments, every raw
-   * channel in this contract is `domain.channel`, e.g. `"time.warp"`,
-   * `"vessel.flight"`, `"vessel.thermal"`) and the remaining segments as a
-   * nested field path into that record's payload (see this file's
-   * own doc comment on the `sample()` branch that calls this, and
-   * `timeline-store-raw-fields.test.ts`). The shapes were cross-checked
-   * against every dotted key the retired flat vocabulary carried: a
-   * 3-segment key (`"vessel.orbit.sma"`) yields a 1-element field path; the
-   * one 4-segment key (`"vessel.thermal.hottestPart.skinTemp"`) yields a
-   * 2-element path, walked in one nested lookup rather than a second round
-   * of topic resolution.
+   * Splits a dotted topic into the REAL raw wire topic and the remaining
+   * segments as a nested field path into that record's payload (see this
+   * file's own doc comment on the `sample()` branch that calls this, and
+   * `timeline-store-raw-fields.test.ts`). A 3-segment key
+   * (`"vessel.orbit.sma"`) yields a 1-element field path;
+   * `"vessel.thermal.hottestPart.skinTemp"` yields a 2-element path, walked in
+   * one nested lookup rather than a second round of topic resolution.
    *
-   * `undefined` for a topic with fewer than 3 segments, a 2-segment topic
-   * (`"vessel.orbit"` itself) IS the real raw topic, not a field subtopic of
-   * one; that case is left to the ordinary raw-literal path in `sample()`.
-   * Also `undefined` for `WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS`: the "every raw
-   * channel is domain.channel" assumption above isn't universal: ChannelEngine
-   * declares a handful of genuinely-3-segment TOPICS (not field-subtopics of
-   * a 2-segment parent), e.g. `system.uplink.pending`
-   * (`ChannelEngine.UplinkPendingTopic`): there is no `system.uplink`
-   * record for `.pending` to be a field of. Without this exemption,
-   * `collectSubscriptionTopics` would resolve a `useStream` subscription for
-   * `"system.uplink.pending"` down to the non-existent `"system.uplink"`,
-   * silently starving the subscription on both the stub and a real
-   * transport (matches `stub-transport.ts`'s "only delivers once
-   * subscribed" gating: the exact symptom that surfaced this).
+   * The split lands at the LONGEST KNOWN topic id the key starts with
+   * (`splitRawFieldSubtopic`), so a genuinely-3-segment topic is its own wire
+   * topic and can carry a field path of its own:
+   * `"alarm.scet.fired.firedAtUt"` is `alarm.scet.fired` plus `firedAtUt`,
+   * where splitting after the second segment made it a `fired.firedAtUt` path
+   * into `alarm.scet`, which is an ARRAY and has no such field. `undefined`
+   * when the key IS a whole topic: fewer than 3 segments (`"vessel.orbit"`
+   * itself is the raw topic), or a known topic id at full length; both are
+   * left to the ordinary raw-literal path in `sample()`.
+   *
+   * The dynamic-namespace prefixes are checked FIRST and are not subsumed by
+   * that lookup: a per-(body,type) or per-CPU topic is computed at runtime and
+   * so has no member in any generated list to match against.
+   *
    * Never consulted for a topic `resolveDerivedTopic` already matched
    * (checked first at every call site): a registered derived channel's own
    * `fields: true` subtopics keep using that mechanism unchanged.
@@ -2326,23 +2312,15 @@ export class TimelineStore {
   private resolveRawFieldSubtopic(
     topic: string,
   ): { rawTopic: string; fieldPath: string[] } | undefined {
-    if (WHOLE_RAW_TOPICS_WITH_EXTRA_DOTS.has(topic)) return undefined;
-    // Dynamic-namespace whole topics (e.g. a per-(body,type) `<ns>.<sub>.<body>.<bit>`):
-    // the prefix counterpart to the exact exemption above. A topic under an
-    // injected `dynamicWholeTopicPrefixes` entry IS its own raw wire topic, not a
-    // `<domain.channel>.<fieldPath>` split: resolving it as a field-subtopic
-    // would subscribe/sample a 2-segment parent no channel publishes.
+    /* A topic under an injected `dynamicWholeTopicPrefixes` entry IS its own
+       raw wire topic, not a `<topic>.<fieldPath>` split: resolving it as a
+       field subtopic would subscribe/sample a parent no channel publishes. */
     if (
       this.options.dynamicWholeTopicPrefixes?.some((p) => topic.startsWith(p))
     ) {
       return undefined;
     }
-    const segments = topic.split(".");
-    if (segments.length < 3) return undefined;
-    return {
-      rawTopic: `${segments[0]}.${segments[1]}`,
-      fieldPath: segments.slice(2),
-    };
+    return splitRawFieldSubtopic(topic);
   }
 
   /**

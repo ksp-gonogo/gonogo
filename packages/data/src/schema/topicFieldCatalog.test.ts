@@ -2,6 +2,7 @@ import {
   COMMAND_IDS,
   DEFAULT_SITREP_CARRIED_TOPICS,
   isCommandId,
+  splitRawFieldSubtopic,
 } from "@ksp-gonogo/sitrep-sdk";
 import { describe, expect, it } from "vitest";
 import {
@@ -61,14 +62,36 @@ describe("getTopicFieldCatalog()", () => {
     expect(contracts?.unit).toBeUndefined();
   });
 
-  it("hangs no field path off a Topic with more than two segments", () => {
-    // A raw field subtopic splits after the second segment, so a deeper Topic
-    // would resolve, and subscribe, against a parent no channel publishes.
+  it("offers no key whose read would land on a different Topic", () => {
+    // A raw field subtopic splits at the longest KNOWN Topic id the key starts
+    // with, so depth alone says nothing: what matters is that the split gives
+    // back the Topic the entry was built from. An entry that failed this would
+    // subscribe and sample somewhere else, and show the operator nothing.
     const derived = new Set(["vessel.state", "spaceCenter.state"]);
     const offenders = getTopicFieldCatalog().filter(
-      (k) => !derived.has(k.topic) && k.topic.split(".").length !== 2,
+      (k) =>
+        !derived.has(k.topic) &&
+        splitRawFieldSubtopic(k.key)?.rawTopic !== k.topic,
     );
     expect(offenders.map((k) => k.key)).toEqual([]);
+  });
+
+  it("offers the fields of a three-segment Topic, which is a Topic like any other", () => {
+    // `alarm.scet.fired` is the case that paid for the longest-match split: the
+    // contract annotates both its fields, and while the split landed after the
+    // second segment every key under it resolved to a `fired.*` path into
+    // `alarm.scet`, which is an ARRAY and has no such field. So the picker
+    // could not offer an annotated instant that the wire genuinely carries.
+    const fired = getTopicFieldCatalog().filter(
+      (k) => k.topic === "alarm.scet.fired",
+    );
+    expect(fired.map((k) => k.key).sort()).toEqual([
+      "alarm.scet.fired.firedAtUt",
+      "alarm.scet.fired.id",
+    ]);
+    expect(
+      fired.find((k) => k.key === "alarm.scet.fired.firedAtUt"),
+    ).toMatchObject({ fieldPath: "firedAtUt", unit: "ut" });
   });
 
   it("carries a unit on every quantity, so a reading can be rendered", () => {
@@ -115,19 +138,10 @@ describe("getUndescribedCarriedTopics()", () => {
         "kerbcast.cameras",
         "scansat.available",
         "scansat.scanningVessels",
-        // Three segments already, so a field path under one would be split
-        // against a two-segment parent no channel publishes.
+        // Nothing annotates this one's fields. Its three segments are no
+        // longer the reason: the split resolves a Topic of any depth now, and
+        // its sibling `system.uplink.pending` is described.
         "system.uplink.gates",
-        "system.uplink.pending",
-        // Three segments too, and here for that reason ALONE: the contract
-        // annotates both its fields (`firedAtUt` as a `ut`, `id` as an id), so
-        // unlike every entry above this one is not waiting on a declaration.
-        // `alarm.scet.fired.firedAtUt` would split into `alarm.scet` plus a
-        // `fired.firedAtUt` path the roster has no such field for, so offering
-        // the key would put an instant in front of the operator that no read
-        // could ever fill. The topic ITSELF is read on arrival by
-        // `ScetAlarmBridge`, which never goes through this split.
-        "alarm.scet.fired",
         // A row per declared channel, keyed by TOPIC NAME, so there is no fixed
         // field set for a declaration to enumerate. Same shape as the `dv.*`
         // entries above rather than the awaiting-a-declaration ones below: this
