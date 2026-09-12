@@ -240,6 +240,62 @@ describe("AutoRecordController", () => {
     expect(getAutoRecordStatus().vesselName).toBe("Bravo");
   });
 
+  it("arms mid-flight on the host's re-announce, the dashboard opened after the launch", async () => {
+    // The ordinary case: KSP is already flying when the browser connects, so
+    // the launch publish was dropped and the host re-announces the open
+    // flight to this subscriber (FlightLifecycleSampler). Without it,
+    // auto-record never arms for the rest of that flight.
+    const rig = buildRig();
+    render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    // ut 0 is the launch instant; the dashboard is only here now.
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+
+    expect(getAutoRecordStatus().recording).toBe(true);
+    expect(getAutoRecordStatus().vesselName).toBe("Alpha");
+    expect(await rig.source.listFlights()).toEqual([]);
+  });
+
+  it("a re-announce of the flight already being recorded does not split it into two missions", async () => {
+    // A reconnect mid-flight: the host has no way to tell a returning
+    // subscriber from a new one, so it re-announces. Same flight id AND same
+    // start UT, so this controller holds its open session.
+    const rig = buildRig();
+    const { rerender } = render(
+      <TelemetryProvider client={rig.client} store={rig.store}>
+        <AutoRecordController missionHistoryEnabled />
+      </TelemetryProvider>,
+    );
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+    tickFrame(rig, 10, "vA", "Alpha");
+    tickFrame(rig, 20, "vA", "Alpha");
+    const frameCount = getAutoRecordStatus().frameCount;
+
+    start(rig, 0, { flightId: "vA", vesselId: "vA", vesselName: "Alpha" });
+
+    // Nothing saved and nothing restarted: one continuous recording.
+    expect(await rig.source.listFlights()).toEqual([]);
+    expect(getAutoRecordStatus().recording).toBe(true);
+    expect(getAutoRecordStatus().frameCount).toBeGreaterThanOrEqual(frameCount);
+
+    tickFrame(rig, 30, "vA", "Alpha");
+    act(() => {
+      rerender(
+        <TelemetryProvider client={rig.client} store={rig.store}>
+          <AutoRecordController missionHistoryEnabled={false} />
+        </TelemetryProvider>,
+      );
+    });
+
+    const flights = await rig.source.listFlights();
+    expect(flights).toHaveLength(1);
+  });
+
   it("records nothing while the master switch is off", async () => {
     const rig = buildRig();
     render(

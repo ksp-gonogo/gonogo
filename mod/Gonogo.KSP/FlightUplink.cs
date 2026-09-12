@@ -110,7 +110,11 @@ namespace Gonogo.KSP
                 host.Publisher(FlightTopics.CurrentTopic),
                 host.Publisher(FlightTopics.StartedTopic),
                 host.Publisher(FlightTopics.EndedTopic),
-                host.Publisher(FlightTopics.VesselChangedTopic));
+                host.Publisher(FlightTopics.VesselChangedTopic),
+                // KSP boots long before a browser does, so the flight that is
+                // already in the air when someone opens the dashboard has to be
+                // announced to them. See FlightLifecycleSampler's doc comment.
+                () => host.IsAnyTopicSubscribed(FlightTopics.StartedTopic));
             host.AddSampler(_sampler);
 
             // Subscription-gated, and safe to gate: the whole effect of this

@@ -1,6 +1,6 @@
 import { getDataSource } from "@ksp-gonogo/core";
-import type { FlightStarted } from "@ksp-gonogo/sitrep-sdk";
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { type FlightStarted, magnitudeOf } from "@ksp-gonogo/sitrep-sdk";
+import { useCallback, useRef, useState, useSyncExternalStore } from "react";
 import type { FlightRecord } from "../types";
 import { useOptionalStreamEvent } from "./useOptionalStreamEvent";
 
@@ -56,7 +56,16 @@ function useSourceFlight(sourceId: string): FlightRecord | null {
  * already uses) and does the revert/switch detection server-side; see
  * `Sitrep.Host.Flight.FlightLifecycleSampler`: so this hook is a thin,
  * event-driven mirror: every `flight.started` becomes the new current
- * flight, full stop.
+ * flight.
+ *
+ * The one exception is a RE-ANNOUNCE. The mod republishes `flight.started`
+ * for the open flight whenever someone subscribes who has not been told (KSP
+ * is normally already flying by the time a browser connects), so the same
+ * flight can arrive more than once and the repeats must not mint a fresh
+ * record with a fresh `launchedAt`. `(flightId, ut)` is what tells the two
+ * apart: a revert republishes for the SAME vessel id and IS a new flight,
+ * carrying the revert-target UT where a re-announce carries the original
+ * launch instant.
  *
  * Degrades to `null`, never throws, whenever no `TelemetryProvider` is
  * mounted (every station screen today; see `useOptionalStreamEvent`) or
@@ -64,10 +73,17 @@ function useSourceFlight(sourceId: string): FlightRecord | null {
  */
 function useStreamFlight(): FlightRecord | null {
   const [flight, setFlight] = useState<FlightRecord | null>(null);
+  /** The `(flightId, ut)` of the flight currently held, the key a re-announce repeats. */
+  const heldRef = useRef<{ id: string; ut: number | null } | null>(null);
 
   useOptionalStreamEvent<FlightStarted>(
     "flight.started",
     useCallback((payload) => {
+      const startedUt = magnitudeOf(payload.ut);
+      const held = heldRef.current;
+      if (held && held.id === payload.flightId && held.ut === startedUt) return;
+
+      heldRef.current = { id: payload.flightId, ut: startedUt };
       const now = Date.now();
       setFlight({
         id: payload.flightId,
