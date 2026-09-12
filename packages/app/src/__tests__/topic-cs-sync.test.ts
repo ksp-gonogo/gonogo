@@ -42,6 +42,12 @@ function collectContractSources(dir: string, out: string[] = []): string[] {
         entry === "node_modules" ||
         entry === "dist" ||
         entry.includes("Tests") || // *.Tests / *.IntegrationTests
+        // Test scaffolding, `IsPackable=false`, never shipped and never
+        // registered at runtime. Its probe declares a Topic constant so a seam
+        // can be driven from an Uplink's exact compile surface, and holding a
+        // test double to the shipped-registry rule would force it to either
+        // name a real Topic or stop looking like one.
+        entry === "Sitrep.Contract.TestSupport" ||
         entry === "Sitrep.Skeleton" // example server, not a shipped Uplink
       ) {
         continue;
