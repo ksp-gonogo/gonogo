@@ -442,9 +442,9 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = true },
-                    new CommandDeclaration { Command = ThrottleCommand, Delayed = true },
-                    new CommandDeclaration { Command = GearCommand, Delayed = true },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed },
+                    new CommandDeclaration { Command = ThrottleCommand, Delay = DelayRole.Delayed },
+                    new CommandDeclaration { Command = GearCommand, Delay = DelayRole.Delayed },
                 },
             };
 

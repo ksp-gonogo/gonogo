@@ -52,7 +52,7 @@ namespace Gonogo.KSP
             // No channels: this uplink is command-only (see the class doc
             // comment). Every one of these is instant, and each says so on its
             // own args type in the contract, which is where the client reads it
-            // from too (SitrepCommandAttribute.Delayed).
+            // from too (SitrepCommandAttribute.Delay).
             Commands = new List<CommandDeclaration>
             {
                 Command(FlightOpsCommandProvider.RevertToLaunchCommand),

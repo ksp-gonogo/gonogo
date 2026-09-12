@@ -4011,7 +4011,8 @@ namespace Sitrep.Host
 
         /// <summary>
         /// Dispatch a command by name. If the contract declares it instant
-        /// (<see cref="SitrepCommandAttribute.Delayed"/> <c>false</c>: a scene
+        /// (<see cref="SitrepCommandAttribute.Delay"/> is
+        /// <see cref="DelayRole.TrueNow"/>: a scene
         /// change, a meta-game control, a presentation choice), the handler runs
         /// and <paramref name="onResult"/> fires on the SAME job-processing
         /// step, with no Courier delay at all. Otherwise it rides
@@ -5389,7 +5390,7 @@ namespace Sitrep.Host
         /// answer, because the SDK codegen turns that same attribute into the
         /// table a client's delay UX reads: the mod and the console cannot
         /// disagree about a command when neither of them holds an opinion of its
-        /// own. <see cref="CommandDeclaration.Delayed"/> is consulted only for an
+        /// own. <see cref="CommandDeclaration.Delay"/> is consulted only for an
         /// id nothing tags, which in a shipped build is nothing at all.</para>
         ///
         /// <para>An id neither tags nor declares rides the delay, which is the
@@ -5400,14 +5401,14 @@ namespace Sitrep.Host
         /// </summary>
         private bool ResolveCommandDelay(string command)
         {
-            bool declared;
-            if (CommandDelayCatalog.TryGetDelayed(command, out declared))
+            DelayRole declared;
+            if (CommandDelayCatalog.TryGetDelay(command, out declared))
             {
-                return declared;
+                return declared == DelayRole.Delayed;
             }
 
             return !_commandDeclarations.TryGetValue(command, out var declaration)
-                || declaration.Delayed;
+                || declaration.Delay == DelayRole.Delayed;
         }
 
         private void ProcessDispatchCommand(DispatchCommandJob job)

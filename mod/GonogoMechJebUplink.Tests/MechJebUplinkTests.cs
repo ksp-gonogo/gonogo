@@ -29,7 +29,7 @@ namespace GonogoMechJebUplink.Tests
 
             var commands = uplink.Manifest.Commands;
             Assert.Equal(3, commands.Count);
-            Assert.All(commands, c => Assert.True(c.Delayed, $"{c.Command} should be Delayed (a genuine signal to the craft)"));
+            Assert.All(commands, c => Assert.Equal(DelayRole.Delayed, c.Delay));
 
             var names = commands.Select(c => c.Command).ToList();
             Assert.Contains(MechJebChannels.EngageAscentAutopilotCommand, names);

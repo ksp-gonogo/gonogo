@@ -214,7 +214,7 @@ namespace Gonogo.KosUplink
                 // All five ride gonogo's SignalDelay to the craft, declared on
                 // their args types in this Uplink's contract slice rather than
                 // here, so the client reads the same answer
-                // (SitrepCommandAttribute.Delayed). Keystrokes, open and close
+                // (SitrepCommandAttribute.Delay). Keystrokes, open and close
                 // are genuine remote input, with the lease-token and idle guards
                 // re-checked at delivery on the main thread.
                 new CommandDeclaration { Command = KosChannels.TerminalOpenCommand },

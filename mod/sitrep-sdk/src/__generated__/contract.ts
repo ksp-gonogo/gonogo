@@ -3032,8 +3032,8 @@ export interface OrbitPatch
 * clicking it in-game.
 *
 * This is an actuation of a part ON the craft, so the command rides light-time
-* (`Delayed = true`) exactly like `vessel.control.*` and the robotics commands
-* it is modelled on.
+* (DelayRole.Delayed) exactly like `vessel.control.*` and the robotics
+* commands it is modelled on.
 *
 * **No state field, unlike every other actuation command.** The contract's
 * usual discipline is "absolute set, never toggle" (see

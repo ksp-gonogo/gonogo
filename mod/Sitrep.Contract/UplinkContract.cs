@@ -25,7 +25,7 @@ namespace Sitrep.Contract
     }
 
     /// <summary>
-    /// A channel's delay disposition, declared PER CHANNEL here rather than
+    /// A delay disposition, declared PER CHANNEL and PER COMMAND rather than
     /// inferred client-side from topic names. The rule this enum encodes
     /// instead of leaving to convention: everything is
     /// <see cref="Delayed"/> (rides the Courier's
@@ -33,6 +33,17 @@ namespace Sitrep.Contract
     /// analogue in flight (e.g. <c>scansat.available</c>: is the SCANsat
     /// assembly even present, which is <see cref="TrueNow"/>, delivered
     /// immediately, bypassing the delay clock entirely).
+    ///
+    /// <para>ONE enum for both directions, because it is one question: is this
+    /// datum's subject aboard a craft across the gap, or here on the ground. A
+    /// reading answers it on <see cref="ChannelDeclaration.Delay"/> and a write
+    /// answers it on <see cref="SitrepCommandAttribute.Delay"/>, and the same
+    /// subject gets the same answer both ways round: <c>time.warp</c> is a
+    /// <see cref="TrueNow"/> channel and <c>time.setWarpIndex</c> a
+    /// <see cref="TrueNow"/> command, the <c>alarm.scet.*</c> channels and the
+    /// commands that arm them likewise. A command used to say it as
+    /// <c>Delayed = false</c>, which was the same answer in a second spelling
+    /// and read as a different axis to anyone who met both.</para>
     /// </summary>
     public enum DelayRole
     {
@@ -56,9 +67,9 @@ namespace Sitrep.Contract
         public EmissionPolicy Emission { get; set; } = null!;
 
         /// <summary>
-        /// Defaults to <see cref="DelayRole.Delayed"/>: mirrors
-        /// <see cref="CommandDeclaration.Delayed"/>'s own default-true
-        /// precedent, and is the contract-conservative choice: nothing in
+        /// Defaults to <see cref="DelayRole.Delayed"/>: the same default a
+        /// command takes on <see cref="SitrepCommandAttribute.Delay"/>, and the
+        /// contract-conservative choice: nothing in
         /// <see cref="Sitrep.Host.ChannelEngine"/> branches on this value
         /// today (it is purely declarative, feeding the SDK/client's future
         /// delay routing), so EVERY existing bundled channel's host-observable
@@ -215,7 +226,7 @@ namespace Sitrep.Contract
     ///
     /// <para>Whether the command rides the Courier's light-time delay is NOT
     /// declared here. It is declared once, on
-    /// <see cref="SitrepCommandAttribute.Delayed"/>, because the SDK codegen
+    /// <see cref="SitrepCommandAttribute.Delay"/>, because the SDK codegen
     /// turns that same attribute into the table a client's delay UX reads. A
     /// manifest that also stated it could disagree with the client, and did: the
     /// mod ran 52 commands the instant they arrived while every console drew
@@ -231,13 +242,17 @@ namespace Sitrep.Contract
         /// for every declared one, whatever this says. In practice only a test
         /// double declaring an ad-hoc id has any reason to set it.
         ///
+        /// <para>Same <see cref="DelayRole"/> a channel declares, for the same
+        /// reason it is the same enum on the attribute: one question, one
+        /// vocabulary, whichever direction the datum travels.</para>
+        ///
         /// <para>A manifest that restates a tagged command's disposition is
         /// inert rather than dangerous, and it is also banned:
         /// <c>packages/core/src/styleguide-command-delay-single-source.test.ts</c>
         /// fails on one, because a value that looks authoritative and is not is
         /// worse to read than no value.</para>
         /// </summary>
-        public bool Delayed { get; set; } = true;
+        public DelayRole Delay { get; set; } = DelayRole.Delayed;
 
         /// <summary>
         /// Preconditions the ENGINE evaluates, before the handler runs, from
@@ -875,8 +890,9 @@ namespace Sitrep.Contract
         /// <summary>
         /// Registers the handler for a command the calling uplink already
         /// declared in its <see cref="UplinkManifest.Commands"/>. Whether
-        /// this rides the Courier's delay is decided by that declaration's
-        /// <see cref="CommandDeclaration.Delayed"/> flag, not by this call.
+        /// this rides the Courier's delay is decided by the command's own
+        /// <see cref="SitrepCommandAttribute.Delay"/>, not by this call and not
+        /// by the declaration, which only answers for an id nothing tags.
         /// </summary>
         void AddCommandHandler<TArgs, TResult>(string command, Func<TArgs, TResult> handler);
 

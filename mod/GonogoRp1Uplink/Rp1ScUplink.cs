@@ -552,16 +552,14 @@ namespace GonogoRp1Uplink
                     AbsenceIsData = true,
                 },
             },
-            // Delayed: false, the same disposition every ground-side career write
-            // takes and for the same reason core's own nine give: light-time is
-            // what separates a command centre from a CRAFT, and there is no craft
-            // in this one. Telling a launch complex to integrate another vehicle
-            // is KSC bookkeeping that happens where the KSC is, so a delayed
-            // dispatch would invent a lag the model does not claim exists. The
-            // client still routes it through the delay-aware command hooks, which
-            // is what makes that answer visible rather than assumed: an operator
-            // sees a command that confirms at once, not a control that quietly
-            // has no delay UX.
+            // No disposition is stated here. Every command's own
+            // [SitrepCommand(Delay = ...)] in this Uplink's contract slice
+            // carries it, which is the same declaration the SDK codegen hands
+            // the client, and all of these take the DelayRole.Delayed default:
+            // construction and research are ORDERS rather than ground-side
+            // facts, and a second command centre can issue any of them. The two
+            // that do not are the warp commands, declared above for their scene
+            // requirement, which change a clock rather than order anything.
             Commands = DeclareCommands(
                 buildModelResolved, queueModelResolved, moveModelResolved,
                 staffingModelResolved, startModelResolved, facilityModelResolved,

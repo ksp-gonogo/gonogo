@@ -156,7 +156,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = true },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.Delayed },
                 },
             };
 

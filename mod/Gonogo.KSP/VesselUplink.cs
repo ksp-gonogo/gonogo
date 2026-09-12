@@ -215,7 +215,7 @@ namespace Gonogo.KSP
             // its own set of instant ids, the two disagreed about 52 commands,
             // and neither could see the other. The flag now lives on each
             // command's args type in the contract
-            // (SitrepCommandAttribute.Delayed), which is the SAME declaration
+            // (SitrepCommandAttribute.Delay), which is the SAME declaration
             // the SDK codegen turns into GENERATED_COMMAND_RAIL, so the mod's
             // dispatch and the console's countdown read one answer.
             //

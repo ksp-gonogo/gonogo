@@ -208,7 +208,7 @@ public class SetTargetArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("time.setWarpIndex", Delayed = false)]
+[SitrepCommand("time.setWarpIndex", Delay = DelayRole.TrueNow)]
 public class SetWarpIndexArgs
 {
     [SitrepUnit(Units.Id)]
@@ -219,7 +219,7 @@ public class SetWarpIndexArgs
 #if SITREP_CODEGEN
 [TsInterface]
 #endif
-[SitrepCommand("time.setPaused", Delayed = false)]
+[SitrepCommand("time.setPaused", Delay = DelayRole.TrueNow)]
 public class SetPausedArgs
 {
     [SitrepUnit(Units.Flag)]

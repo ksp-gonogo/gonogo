@@ -386,7 +386,7 @@ export function wireSection(surface: WireSurface): string[] {
  * handler returns: a refusal rejects, carrying its `CommandErrorCode`, so
  * `CommandResult` in that column means "ran, or threw", never "said no quietly".
  *
- * There is deliberately no Delayed column, though `CommandDeclaration.Delayed`
+ * There is deliberately no Delay column, though `CommandDeclaration.Delay`
  * is a real fact an author wants. It is set in the PLUGIN assembly, which no
  * generated artifact reaches, and one Uplink builds its whole list through a
  * private `DeclareCommands(...)` helper: a source scan would have found nothing

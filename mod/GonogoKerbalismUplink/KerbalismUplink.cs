@@ -108,7 +108,7 @@ namespace Gonogo.KerbalismUplink
         /// ON the vessel (flag a file, delete it, flag/dump a sample, move a
         /// sample to another drive), so all ride the same light-time delay
         /// every other vessel actuation does. Declared on their args types in
-        /// this Uplink's contract slice, see SitrepCommandAttribute.Delayed.
+        /// this Uplink's contract slice, see SitrepCommandAttribute.Delay.
         /// </summary>
         private static List<CommandDeclaration> FileManagerCommands() => new()
         {

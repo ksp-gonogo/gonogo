@@ -287,7 +287,7 @@ export function readChannelDispositions(root) {
  * so an operator pressing it is committing to something minutes away.
  *
  * NOT a source scan, unlike its channel twin, and it used to be. The fact now
- * lives on the command's own `[SitrepCommand(Delayed = ...)]` in the contract
+ * lives on the command's own `[SitrepCommand(Delay = ...)]` in the contract
  * assembly, which the codegen reflects over, so the generated map already
  * carries it and the host reads the same attribute to dispatch by. Scanning the
  * manifests would be reading a restatement, which is what this document's

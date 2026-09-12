@@ -21,8 +21,10 @@ namespace Sitrep.Host
     /// </summary>
     public static class CareerCommandProvider
     {
-        // ---- career.* -- all delayed:false (ground-side KSC bookkeeping, not
-        // an uplink to a craft; see CareerUplink's command-classification note) ----
+        // ---- career.* -- all DelayRole.Delayed: these are ORDERS, and a second
+        // command centre can issue any of them, so they cross the gap like any
+        // other. They read as ground-side KSC bookkeeping and were instant for
+        // that reason until 2026-09-12; see CareerUplink's classification note ----
         public const string ActivateStrategyCommand = "career.strategy.activate";
         public const string DeactivateStrategyCommand = "career.strategy.deactivate";
         public const string UnlockTechCommand = "career.tech.unlock";

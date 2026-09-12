@@ -146,7 +146,7 @@ namespace Gonogo.KSP
             Commands = new List<CommandDeclaration>
             {
                 // Both INSTANT, declared on their args types in the contract
-                // (see SitrepCommandAttribute.Delayed) because that is what the
+                // (see SitrepCommandAttribute.Delay) because that is what the
                 // client reads too. Arming registers an intention with the
                 // simulation host and changes nothing aboard the craft, so there
                 // is no light-time fiction to honour: the same bucket

@@ -359,7 +359,7 @@ namespace Gonogo.KSP
                 // reason: a preference about delay that itself rode the delay
                 // would be unusable at exactly the moment an operator wanted to
                 // change it. Declared on the args type, not here, so the client
-                // reads the same answer (SitrepCommandAttribute.Delayed).
+                // reads the same answer (SitrepCommandAttribute.Delay).
                 new CommandDeclaration
                 {
                     Command = SetSimulationDelayPolicyCommand,
@@ -391,7 +391,7 @@ namespace Gonogo.KSP
 
             // The simulation delay policy, written by the console and read by
             // every delay reader through SignalDelayConfig above. Ground
-            // infrastructure, so delayed:false: a preference about delay that
+            // infrastructure, so DelayRole.TrueNow: a preference about delay that
             // itself arrived four minutes late would be unusable exactly when
             // an operator wanted to change it.
             host.AddCommandHandler<SetSimulationDelayPolicyArgs, CommandResult>(

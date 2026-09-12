@@ -71,11 +71,12 @@ namespace Sitrep.Host
         /// </summary>
         public const string ManeuverPlanSendCommand = "vessel.maneuver.plan.send";
 
-        // ---- vessel.target.* -- delayed:false (designation, not actuation) ----
+        // ---- vessel.target.* -- DelayRole.Delayed: a designation rather than an
+        // actuation, but it is still the craft's own target being set ----
         public const string TargetSetCommand = "vessel.target.set";
         public const string TargetClearCommand = "vessel.target.clear";
 
-        // ---- time.* -- delayed:false (sim-meta, never a light-time fiction) ----
+        // ---- time.* -- DelayRole.TrueNow (sim-meta, never a light-time fiction) ----
         public const string SetWarpIndexCommand = "time.setWarpIndex";
         public const string SetPausedCommand = "time.setPaused";
 

@@ -17,7 +17,7 @@ namespace Sitrep.Host
     /// <see cref="CommandResult.ErrorCode"/>.
     ///
     /// <para>These commands are game-level/player/scene actions, not uplinks to
-    /// a craft, so they are declared <c>delayed: false</c>; see
+    /// a craft, so they are declared <see cref="DelayRole.TrueNow"/>; see
     /// <c>FlightOpsUplink</c>'s command table.</para>
     /// </summary>
     public static class FlightOpsCommandProvider

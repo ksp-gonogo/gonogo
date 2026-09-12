@@ -95,13 +95,13 @@ namespace GonogoKosUplink.Tests
         [Fact]
         public void EveryCommandIsTaggedDelayedInTheContract()
         {
-            var tagged = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var tagged = new Dictionary<string, DelayRole>(StringComparer.Ordinal);
             foreach (var type in typeof(KosTerminalResizeArgs).Assembly.GetTypes())
             {
                 foreach (SitrepCommandAttribute attr in
                          type.GetCustomAttributes(typeof(SitrepCommandAttribute), false))
                 {
-                    tagged[attr.CommandId] = attr.Delayed;
+                    tagged[attr.CommandId] = attr.Delay;
                 }
             }
 
@@ -113,10 +113,10 @@ namespace GonogoKosUplink.Tests
             var declared = manifest.Commands.Select(c => c.Command).ToArray();
             Assert.NotEmpty(declared);
             Assert.Empty(declared.Where(id => !tagged.ContainsKey(id)));
-            Assert.Empty(declared.Where(id => !tagged[id]));
+            Assert.Empty(declared.Where(id => tagged[id] != DelayRole.Delayed));
 
-            Assert.True(tagged[KosChannels.TerminalResizeCommand]);
-            Assert.True(tagged[KosChannels.KeystrokeCommand]);
+            Assert.Equal(DelayRole.Delayed, tagged[KosChannels.TerminalResizeCommand]);
+            Assert.Equal(DelayRole.Delayed, tagged[KosChannels.KeystrokeCommand]);
         }
     }
 }

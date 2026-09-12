@@ -1293,7 +1293,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = false },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -1338,7 +1338,7 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration
                     {
                         Command = Command,
-                        Delayed = false,
+                        Delay = DelayRole.TrueNow,
                         Requires = new[] { new CommandRequirement { Kind = GateKind } },
                     },
                 },
@@ -1437,10 +1437,10 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration
                     {
                         Command = GatedCommand,
-                        Delayed = false,
+                        Delay = DelayRole.TrueNow,
                         Requires = new[] { new CommandRequirement { Kind = GateKind } },
                     },
-                    new CommandDeclaration { Command = UngatedCommand, Delayed = false },
+                    new CommandDeclaration { Command = UngatedCommand, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -1511,7 +1511,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = false },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -2324,7 +2324,7 @@ namespace Sitrep.Host.IntegrationTests
                 },
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = ForceCommand, Delayed = false },
+                    new CommandDeclaration { Command = ForceCommand, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -2391,7 +2391,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = false },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -2460,7 +2460,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = false },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -2484,7 +2484,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = false },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -2640,13 +2640,13 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = BoolCommand, Delayed = false },
-                    new CommandDeclaration { Command = DoubleCommand, Delayed = false },
-                    new CommandDeclaration { Command = EnumCommand, Delayed = false },
-                    new CommandDeclaration { Command = ActionGroupCommand, Delayed = false },
-                    new CommandDeclaration { Command = ManeuverCommand, Delayed = false },
-                    new CommandDeclaration { Command = TargetCommand, Delayed = false },
-                    new CommandDeclaration { Command = NullArgCommand, Delayed = false },
+                    new CommandDeclaration { Command = BoolCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = DoubleCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = EnumCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = ActionGroupCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = ManeuverCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = TargetCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = NullArgCommand, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -2854,7 +2854,7 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = Command, Delayed = false },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                 },
             };
 
@@ -2922,8 +2922,8 @@ namespace Sitrep.Host.IntegrationTests
                 Version = "1.0.0",
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = InfraCommand, Delayed = false },
-                    new CommandDeclaration { Command = VesselCommand, Delayed = true },
+                    new CommandDeclaration { Command = InfraCommand, Delay = DelayRole.TrueNow },
+                    new CommandDeclaration { Command = VesselCommand, Delay = DelayRole.Delayed },
                 },
             };
 
@@ -4081,8 +4081,8 @@ namespace Sitrep.Host.IntegrationTests
                 },
                 Commands = new List<CommandDeclaration>
                 {
-                    new CommandDeclaration { Command = EchoCommand, Delayed = true },
-                    new CommandDeclaration { Command = SyncCommand, Delayed = false },
+                    new CommandDeclaration { Command = EchoCommand, Delay = DelayRole.Delayed },
+                    new CommandDeclaration { Command = SyncCommand, Delay = DelayRole.TrueNow },
                 },
             };
 

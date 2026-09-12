@@ -32,7 +32,7 @@ namespace GonogoPrincipiaUplink.Tests
 
             var send = manifest.Commands.First(c => c.Command == PlanCommands.SendCommand);
 
-            Assert.True(send.Delayed);
+            Assert.Equal(DelayRole.Delayed, send.Delay);
         }
 
         [Fact]

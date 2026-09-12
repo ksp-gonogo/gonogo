@@ -38,8 +38,8 @@ namespace Sitrep.Host.Tests
             var unresolved = new List<string>();
             foreach (var pair in tagged)
             {
-                bool delayed;
-                if (!CommandDelayCatalog.TryGetDelayed(pair.Key, out delayed))
+                DelayRole delay;
+                if (!CommandDelayCatalog.TryGetDelay(pair.Key, out delay))
                 {
                     unresolved.Add(pair.Key);
                 }
@@ -60,9 +60,9 @@ namespace Sitrep.Host.Tests
             var disagreed = new List<string>();
             foreach (var pair in TaggedCommands())
             {
-                bool delayed;
-                CommandDelayCatalog.TryGetDelayed(pair.Key, out delayed);
-                if (delayed != pair.Value) disagreed.Add(pair.Key);
+                DelayRole delay;
+                CommandDelayCatalog.TryGetDelay(pair.Key, out delay);
+                if (delay != pair.Value) disagreed.Add(pair.Key);
             }
 
             Assert.Empty(disagreed);
@@ -77,8 +77,8 @@ namespace Sitrep.Host.Tests
         public void BothAnswersAreDeclaredSomewhere()
         {
             var tagged = TaggedCommands();
-            Assert.Contains(tagged, pair => pair.Value);
-            Assert.Contains(tagged, pair => !pair.Value);
+            Assert.Contains(tagged, pair => pair.Value == DelayRole.Delayed);
+            Assert.Contains(tagged, pair => pair.Value == DelayRole.TrueNow);
         }
 
         /// <summary>
@@ -90,19 +90,19 @@ namespace Sitrep.Host.Tests
         [Fact]
         public void AnUntaggedIdIsAMissRatherThanADefault()
         {
-            bool delayed;
-            Assert.False(CommandDelayCatalog.TryGetDelayed("nobody.declared.this", out delayed));
-            Assert.True(delayed);
+            DelayRole delay;
+            Assert.False(CommandDelayCatalog.TryGetDelay("nobody.declared.this", out delay));
+            Assert.Equal(DelayRole.Delayed, delay);
         }
 
-        private static Dictionary<string, bool> TaggedCommands()
+        private static Dictionary<string, DelayRole> TaggedCommands()
         {
-            var found = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var found = new Dictionary<string, DelayRole>(StringComparer.Ordinal);
             foreach (var type in typeof(CommandDeclaration).Assembly.GetTypes())
             {
                 foreach (var attr in type.GetCustomAttributes<SitrepCommandAttribute>())
                 {
-                    found[attr.CommandId] = attr.Delayed;
+                    found[attr.CommandId] = attr.Delay;
                 }
             }
             return found;

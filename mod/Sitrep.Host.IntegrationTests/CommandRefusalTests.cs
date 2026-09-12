@@ -292,7 +292,7 @@ namespace Sitrep.Host.IntegrationTests
                     new CommandDeclaration
                     {
                         Command = Command,
-                        Delayed = false,
+                        Delay = DelayRole.TrueNow,
                         Requires = new[]
                         {
                             new CommandRequirement { Kind = GateKind, Facility = "LaunchPad", Quantity = "mass" },
@@ -355,7 +355,7 @@ namespace Sitrep.Host.IntegrationTests
                     // delayed:false so an AVAILABLE dispatch resolves on the same
                     // job step: this suite is about the availability exit, not
                     // about the courier's clock.
-                    new CommandDeclaration { Command = Command, Delayed = false },
+                    new CommandDeclaration { Command = Command, Delay = DelayRole.TrueNow },
                 },
             };
 

@@ -407,7 +407,7 @@ namespace GonogoRp1Uplink.Tests
                 // codegen hands the client, so the two can no longer disagree.
                 // What each command actually answers is asserted below, off those
                 // attributes rather than here off a restatement.
-                Assert.True(declaration.Delayed);
+                Assert.Equal(DelayRole.Delayed, declaration.Delay);
                 // Every one of them declares that RP-1 is managing the save, and
                 // that is the only condition evaluable before the press for six
                 // of the eight. Starting a build from a craft file declares a
@@ -454,13 +454,13 @@ namespace GonogoRp1Uplink.Tests
         [Fact]
         public void Every_declared_command_is_tagged_and_only_warp_is_instant()
         {
-            var tagged = new Dictionary<string, bool>(StringComparer.Ordinal);
+            var tagged = new Dictionary<string, DelayRole>(StringComparer.Ordinal);
             foreach (var type in typeof(Rp1BuildRepeatArgs).Assembly.GetTypes())
             {
                 foreach (SitrepCommandAttribute attr in
                          type.GetCustomAttributes(typeof(SitrepCommandAttribute), false))
                 {
-                    tagged[attr.CommandId] = attr.Delayed;
+                    tagged[attr.CommandId] = attr.Delay;
                 }
             }
 
@@ -472,7 +472,7 @@ namespace GonogoRp1Uplink.Tests
 
             Assert.Equal(
                 new[] { Rp1WarpCommands.ToCompleteCommand, Rp1WarpCommands.ToFundTargetCommand },
-                declared.Where(id => !tagged[id]).OrderBy(id => id, StringComparer.Ordinal).ToArray());
+                declared.Where(id => tagged[id] == DelayRole.TrueNow).OrderBy(id => id, StringComparer.Ordinal).ToArray());
         }
 
         [Fact]
