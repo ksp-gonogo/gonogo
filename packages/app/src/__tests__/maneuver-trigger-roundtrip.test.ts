@@ -16,7 +16,6 @@ import type {
 } from "@ksp-gonogo/components";
 import {
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -68,8 +67,8 @@ function memoryStorage(): Storage {
  * `StubTransport.emit`, no React/`TelemetryProvider` needed). Also the
  * trigger `dataKey` read (`getValue`) and maneuver-node fire's
  * command-dispatch (`dispatchActiveCommand`) leg:
- * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`
- * register the client/carried-channels a mounted `TelemetryProvider` would;
+ * `setActiveTelemetryClientForTests` registers the client a mounted
+ * `TelemetryProvider` would;
  * `calls` records every dispatched `{command, args}` pair via
  * `transport.setCommandHandler`.
  */
@@ -95,7 +94,6 @@ function buildOrbitStoreFixture(pinnedUt: number) {
   });
 
   setActiveTelemetryClientForTests(client);
-  setActiveCarriedChannelsForTests(new Set(["vessel.maneuver.add"]));
 
   return {
     store,
@@ -208,7 +206,6 @@ describe("Maneuver trigger peer roundtrip", () => {
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
   });
 
   it("station arms → host fires → client snapshot reflects removal", async () => {

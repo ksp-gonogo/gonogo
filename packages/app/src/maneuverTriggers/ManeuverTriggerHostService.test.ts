@@ -1,7 +1,6 @@
 import type { FrozenPlanInputs } from "@ksp-gonogo/components";
 import {
   StubTransport,
-  setActiveCarriedChannelsForTests,
   setActiveTelemetryClientForTests,
   setActiveTimelineStoreForTests,
   setActiveViewClockForTests,
@@ -39,9 +38,9 @@ function memoryStorage(): Storage {
  *
  * ALSO the trigger `dataKey` read's stream leg now (`getValue`) and the
  * maneuver-node fire's command-dispatch leg (`dispatchActiveCommand`):
- * `setActiveTelemetryClientForTests`/`setActiveCarriedChannelsForTests`
- * register the same client/carried-channels a mounted `TelemetryProvider`
- * would, so `dispatchActiveCommand("data", "o.addManeuverNode[...]")` routes
+ * `setActiveTelemetryClientForTests` registers the same client a mounted
+ * `TelemetryProvider` would, so
+ * `dispatchActiveCommand("data", "o.addManeuverNode[...]")` routes
  * through `client.dispatch` instead of falling back unrouted. `calls`
  * records every dispatched `{command, args}` pair via
  * `transport.setCommandHandler`, replacing the old `execute()`-call log.
@@ -76,7 +75,6 @@ function buildOrbitStoreFixture(pinnedUt: number) {
 
   setActiveTimelineStoreForTests(store);
   setActiveTelemetryClientForTests(client);
-  setActiveCarriedChannelsForTests(new Set(["vessel.maneuver.add"]));
 
   return {
     store,
@@ -194,7 +192,6 @@ describe("ManeuverTriggerHostService", () => {
     setActiveViewClockForTests(undefined);
     setActiveTimelineStoreForTests(undefined);
     setActiveTelemetryClientForTests(undefined);
-    setActiveCarriedChannelsForTests(undefined);
   });
 
   function makeService() {

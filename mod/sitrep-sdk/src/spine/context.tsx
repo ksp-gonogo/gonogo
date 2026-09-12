@@ -1117,9 +1117,8 @@ export function setActiveTimelineStoreForTests(
  * host-service unit test that needs to exercise the ROUTED (stream) branch
  * of a command dispatch (`WarpControl`, `AlarmHostService`'s onFire
  * action-group dispatch, the maneuver-trigger fire path) without a React
- * tree to render. Mirrors `setActiveTimelineStoreForTests`; pair with
- * `setActiveCarriedChannelsForTests` (a command only routes when its mapped
- * topic is carried). Pass `undefined` to clear.
+ * tree to render. Mirrors `setActiveTimelineStoreForTests`. Pass `undefined`
+ * to clear.
  */
 export function setActiveTelemetryClientForTests(
   client: TelemetryClient | undefined,
@@ -1129,10 +1128,17 @@ export function setActiveTelemetryClientForTests(
 }
 
 /**
- * Test-only escape hatch: registers `channels` as `dispatchActiveCommand`'s
- * carried-channels allowlist directly. See
- * `setActiveTelemetryClientForTests`'s doc comment. Pass `undefined` to
- * clear.
+ * Test-only escape hatch: registers `channels` as the carried-channels
+ * allowlist a mounted `TelemetryProvider` would, for a test exercising the
+ * one thing that still reads it through `getActiveCarriedChannels`: the
+ * topic-field CATALOGUE, which decides the vocabulary of fields a picker
+ * offers. Pass `undefined` to clear.
+ *
+ * It is NOT a dispatch precondition and never usefully was. Command dispatch
+ * consulted this set until `7e186ab3c`, and because nothing in production
+ * ever put a command id in it, four command paths were dead while their own
+ * tests passed, each installing its own command here by hand. Do not reach
+ * for this to make a command route.
  */
 export function setActiveCarriedChannelsForTests(
   channels: ReadonlySet<string> | undefined,
