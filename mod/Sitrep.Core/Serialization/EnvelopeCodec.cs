@@ -491,34 +491,92 @@ namespace Sitrep.Core.Serialization
         public static object ParseServerMessage(string json)
         {
             var type = PeekType(json);
-            return type switch
+            try
             {
-                "stream-data" => ParseStreamData(json),
-                "event" => ParseEventMsg(json),
-                "command-response" => ParseCommandResponse(json),
-                "error" => ParseErrorMsg(json),
-                _ => throw new FormatException($"unknown server envelope type: {type}"),
-            };
+                return type switch
+                {
+                    "stream-data" => ParseStreamData(json),
+                    "event" => ParseEventMsg(json),
+                    "command-response" => ParseCommandResponse(json),
+                    "error" => ParseErrorMsg(json),
+                    _ => throw new UnknownEnvelopeTypeException($"unknown server envelope type: {type}"),
+                };
+            }
+            catch (FormatException ex) when (!(ex is UnknownEnvelopeTypeException))
+            {
+                throw new InvalidEnvelopeException(type, PeekRequestId(json), ex);
+            }
         }
 
-        /// <summary>Parses a client-to-server envelope (<see cref="Subscribe"/> / <see cref="Unsubscribe"/> / <c>CommandRequest&lt;object?&gt;</c>), mirroring <c>ClientMessage</c> in <c>envelope.ts</c>.</summary>
+        /// <summary>
+        /// Parses a client-to-server envelope (<see cref="Subscribe"/> /
+        /// <see cref="Unsubscribe"/> / <see cref="SetVantage"/> /
+        /// <c>CommandRequest&lt;object?&gt;</c>), mirroring <c>ClientMessage</c>
+        /// in <c>envelope.ts</c>.
+        ///
+        /// <para>Failure comes back as one of two <see cref="FormatException"/>
+        /// subclasses, and the difference is the whole point of them: an
+        /// <see cref="UnknownEnvelopeTypeException"/> means the frame named no
+        /// envelope this build has, and a caller has nothing to report beyond
+        /// that; an <see cref="InvalidEnvelopeException"/> means it named one
+        /// and got a field wrong, and carries the type and the field so a
+        /// caller can say which.</para>
+        /// </summary>
         public static object ParseClientMessage(string json)
         {
             var type = PeekType(json);
-            return type switch
+            try
             {
-                "subscribe" => ParseSubscribe(json),
-                "unsubscribe" => ParseUnsubscribe(json),
-                "set-vantage" => ParseSetVantage(json),
-                "command-request" => ParseCommandRequest(json),
-                _ => throw new FormatException($"unknown client envelope type: {type}"),
-            };
+                return type switch
+                {
+                    "subscribe" => ParseSubscribe(json),
+                    "unsubscribe" => ParseUnsubscribe(json),
+                    "set-vantage" => ParseSetVantage(json),
+                    "command-request" => ParseCommandRequest(json),
+                    _ => throw new UnknownEnvelopeTypeException($"unknown client envelope type: {type}"),
+                };
+            }
+            catch (FormatException ex) when (!(ex is UnknownEnvelopeTypeException))
+            {
+                throw new InvalidEnvelopeException(type, PeekRequestId(json), ex);
+            }
         }
 
+        /// <summary>
+        /// Reads the discriminant, and treats every way of failing to as
+        /// "this is not an envelope" rather than as a bad field: unparseable
+        /// JSON, a non-object, and a missing or non-string <c>type</c> all
+        /// leave the reader with no idea what it is holding, which is exactly
+        /// what <see cref="UnknownEnvelopeTypeException"/> says.
+        /// </summary>
         private static string PeekType(string json)
         {
-            var raw = ExpectObject(JsonReader.Parse(json));
-            return RequireString(raw, "type");
+            try
+            {
+                return RequireString(ExpectObject(JsonReader.Parse(json)), "type");
+            }
+            catch (FormatException ex)
+            {
+                throw new UnknownEnvelopeTypeException("envelope carries no readable \"type\": " + ex.Message, ex);
+            }
+        }
+
+        /// <summary>
+        /// Best-effort <c>requestId</c> for a refusal that wants correlating.
+        /// It only ever runs on a frame already known to be broken, so every
+        /// failure mode reads as "no id" instead of throwing a second time on
+        /// top of the first.
+        /// </summary>
+        private static string? PeekRequestId(string json)
+        {
+            try
+            {
+                return TryGetString(ExpectObject(JsonReader.Parse(json)), "requestId");
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
         }
 
         // ----- shared helpers -----

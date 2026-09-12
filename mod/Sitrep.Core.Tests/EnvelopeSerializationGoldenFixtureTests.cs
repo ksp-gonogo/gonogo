@@ -143,6 +143,54 @@ namespace Sitrep.Core.Tests
             Assert.IsType<CommandRequest<object?>>(EnvelopeCodec.ParseClientMessage(requestJson));
         }
 
+        /// <summary>
+        /// A frame whose discriminant cannot be read, by any of the four ways
+        /// it can fail to be, is unidentifiable rather than invalid: the
+        /// distinction decides whether a server can name a fault or only echo,
+        /// so it is pinned at the codec rather than left to a catch site to
+        /// infer.
+        /// </summary>
+        [Theory]
+        [InlineData("not json at all")]
+        [InlineData("[1,2,3]")]
+        [InlineData("{\"topic\":\"a\"}")]
+        [InlineData("{\"type\":\"teleport\"}")]
+        public void AnUnreadableDiscriminantParsesAsUnknownRatherThanInvalid(string json)
+        {
+            Assert.Throws<UnknownEnvelopeTypeException>(() => EnvelopeCodec.ParseClientMessage(json));
+        }
+
+        /// <summary>
+        /// A recognised type with a broken field is the other half, and it
+        /// carries what a refusal needs to say: which envelope, which field,
+        /// and the requestId to correlate on where the frame still had one.
+        /// </summary>
+        [Fact]
+        public void ARecognisedTypeWithABrokenFieldNamesTheEnvelopeAndTheField()
+        {
+            var ex = Assert.Throws<InvalidEnvelopeException>(() => EnvelopeCodec.ParseClientMessage(
+                "{\"type\":\"command-request\",\"requestId\":\"r-1\",\"command\":\"noop\"}"));
+
+            Assert.Equal("command-request", ex.EnvelopeType);
+            Assert.Equal("r-1", ex.RequestId);
+            Assert.Contains("sentAt", ex.Detail);
+        }
+
+        /// <summary>
+        /// Both subclass <see cref="FormatException"/> deliberately: every
+        /// pre-existing catch site (the Skeleton's echo among them) keeps
+        /// working unchanged, and only a site that wants to tell the two apart
+        /// has to know they exist.
+        /// </summary>
+        [Fact]
+        public void BothParseFailuresAreStillFormatExceptions()
+        {
+            Assert.IsAssignableFrom<FormatException>(
+                Assert.ThrowsAny<Exception>(() => EnvelopeCodec.ParseClientMessage("{\"type\":\"teleport\"}")));
+            Assert.IsAssignableFrom<FormatException>(
+                Assert.ThrowsAny<Exception>(() => EnvelopeCodec.ParseClientMessage("{\"type\":\"subscribe\"}")));
+        }
+
         private static JsonElement FindVector(string name)
         {
             var json = File.ReadAllText(FixturePath);

@@ -64,6 +64,15 @@ namespace Sitrep.Skeleton
     /// deliberately left unhandled: command dispatch is out of this
     /// skeleton's scope (echo / delayed counter-stream / back-pressure /
     /// disconnect only).
+    ///
+    /// <para>This is where the skeleton and <c>ChannelEngine</c> deliberately
+    /// part company. The engine splits that one catch in two and answers a
+    /// recognised-but-invalid envelope with an <see cref="ErrorMsg"/> naming
+    /// the field, because it serves third-party clients that need diagnosing.
+    /// The skeleton serves only its own wiring proof and has no diagnostic
+    /// surface to route such an answer through, so it keeps catching the base
+    /// <see cref="FormatException"/> and echoing everything: the echo IS the
+    /// thing under test here.</para>
     /// </summary>
     public sealed class SkeletonServer : IDisposable
     {
