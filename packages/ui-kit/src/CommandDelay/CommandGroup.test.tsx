@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from "@ksp-gonogo/sitrep-sdk/testing";
 import { expectNoA11yViolations } from "@ksp-gonogo/ui-kit/testing";
-import { useState } from "react";
-import { describe, expect, it, vi } from "vitest";
+import { type ReactNode, useState } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { SendIcon } from "../Icons";
 import { CommandGroup } from "./CommandGroup";
 
 interface PanTiltValue {
@@ -154,5 +155,92 @@ describe("CommandGroup arrangement", () => {
       <PanTiltHarness onCommit={vi.fn()} orientation="row" wrap={false} />,
     );
     await expectNoA11yViolations(container);
+  });
+});
+
+/**
+ * A commit with no room for the word. The type-level half of this (a glyph
+ * cannot be passed without a name) is pinned in `CommandGroup.test-d.tsx`;
+ * these are the halves a typecheck cannot see.
+ */
+describe("CommandGroup icon-only commit", () => {
+  /*
+   * `commitAriaLabel` is passed through a non-null assertion so a test can omit
+   * it: that stands in for the caller the types cannot see, which is the whole
+   * reason the component warns as well as refusing at compile time.
+   */
+  const IconCommit = ({
+    onCommit = vi.fn(),
+    commitLabel = <SendIcon size={16} />,
+    commitAriaLabel,
+  }: {
+    onCommit?: (v: { pan: number }) => void;
+    commitLabel?: ReactNode;
+    commitAriaLabel?: string;
+  }) => (
+    <CommandGroup
+      value={{ pan: 0 }}
+      onChange={vi.fn()}
+      onCommit={onCommit}
+      commitLabel={commitLabel}
+      // biome-ignore lint/style/noNonNullAssertion: stands in for a caller the types cannot see
+      commitAriaLabel={commitAriaLabel!}
+    >
+      <label>
+        Pan
+        <input type="number" readOnly value={0} />
+      </label>
+    </CommandGroup>
+  );
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("names the button by the action, and commits on press", () => {
+    const onCommit = vi.fn();
+    render(<IconCommit onCommit={onCommit} commitAriaLabel="Commit framing" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Commit framing" }));
+    expect(onCommit).toHaveBeenCalledTimes(1);
+    expect(onCommit).toHaveBeenCalledWith({ pan: 0 });
+  });
+
+  it("squares the inset so the glyph is not sitting in a word-shaped gap", () => {
+    render(<IconCommit commitAriaLabel="Commit framing" />);
+    expect(getComputedStyle(screen.getByRole("button")).display).toBe(
+      "inline-flex",
+    );
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <IconCommit commitAriaLabel="Commit framing" />,
+    );
+    await expectNoA11yViolations(container);
+  });
+
+  /*
+   * What is left when the name goes missing is a button whose only content is
+   * an `aria-hidden` glyph, i.e. no accessible name at all. It renders fine and
+   * it commits fine, which is exactly why it has to say something.
+   */
+  it("warns in dev when a glyph commit arrives with no name to go with it", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+    render(<IconCommit commitAriaLabel={undefined} />);
+
+    expect(screen.getByRole("button")).not.toHaveAccessibleName();
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining("no accessible name"),
+    );
+  });
+
+  it("says nothing when the label is a word, which names itself", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    render(<IconCommit commitLabel="Commit" commitAriaLabel={undefined} />);
+
+    expect(screen.getByRole("button", { name: "Commit" })).toBeInTheDocument();
+    expect(warn).not.toHaveBeenCalled();
   });
 });

@@ -120,7 +120,20 @@ export const FullHeightIcon = makeIcon(RectangleVertical);
  * It also says the true thing about the control. The button is an addition to
  * Enter and never a replacement for it (see `ComposerBar.onSend`), so a glyph
  * that IS the Enter key names the key an operator should be using, where a send
- * arrow named a second way to do it. `ComposerBar` is the only thing that draws
- * it, so the glyph means one thing wherever an operator meets it.
+ * arrow named a second way to do it.
+ *
+ * `ComposerBar` is the only thing in the kit that draws it, but no longer the
+ * only place it can appear: `CommandGroup.commitLabel` takes a node, so a
+ * caller with no room for the word "Commit" puts this glyph on the commit
+ * button itself. That is still ONE meaning wherever an operator meets it,
+ * because the composer in the first line is the ACT and not the widget: both
+ * are a surface where the operator builds something locally, nothing leaves
+ * until they say so, and this glyph is how they say so. Anything that fires on
+ * its own, or that sends what it did not compose, takes a different icon.
+ *
+ * It is `aria-hidden` like every icon here, so drawing it alone means naming
+ * the ACTION from outside: `ComposerBar` passes `sendLabel` to `aria-label`,
+ * `CommandGroup` takes `commitAriaLabel`. Without one the button has no
+ * accessible name at all, which is worse than a glyph for a name.
  */
 export const SendIcon = makeIcon(CornerDownLeft);
