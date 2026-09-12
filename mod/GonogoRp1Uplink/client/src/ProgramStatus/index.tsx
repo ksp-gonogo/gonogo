@@ -1,4 +1,3 @@
-import type { Reading } from "@ksp-gonogo/sitrep-sdk";
 import { registerAugment, useTelemetry } from "@ksp-gonogo/sitrep-sdk";
 import {
   Badge,
@@ -18,6 +17,7 @@ import type {
   Rp1ProgramEntry,
   Rp1ProgramSlots,
 } from "../__generated__/contract";
+import { current } from "../shared/current";
 import { RP1 } from "../uplink";
 import "../topics";
 
@@ -223,13 +223,6 @@ function outOfReach(
   const price = magnitudeOf(cost);
   const held = magnitudeOf(balance);
   return price !== null && held !== null && held < price;
-}
-
-/** The value where one is current; see LaunchComplexStatus for why a model counts. */
-function current<T>(reading: Reading<T>): T | undefined {
-  if (reading.reckoning === "available") return reading.reckoned.value;
-  if (reading.state === "observed") return reading.value;
-  return undefined;
 }
 
 registerAugment({

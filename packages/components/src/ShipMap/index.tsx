@@ -10,7 +10,7 @@ import {
   useContributions,
 } from "@ksp-gonogo/core";
 import { usePartsLive, useTopology } from "@ksp-gonogo/data";
-import { type Reading, useCommand } from "@ksp-gonogo/sitrep-client";
+import { useCommand } from "@ksp-gonogo/sitrep-client";
 import { Box, usePanelDelay } from "@ksp-gonogo/ui-kit";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -123,11 +123,6 @@ interface ShipMapConfig {
   _reserved?: never;
 }
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
   // Reads the `vessel.parts` stream Topic directly and reshapes it into the
   // legacy `VesselTopology` shape (`vesselPartsAdapter.ts`): the mod's
@@ -153,7 +148,7 @@ function ShipMapComponent(_props: Readonly<ComponentProps<ShipMapConfig>>) {
    * is the only thing that ever puts a ring on the diagram and a held reading is
    * exactly the case where none was drawn.
    */
-  const hottestNotCurrent = notCurrent(thermalReading);
+  const hottestNotCurrent = thermalReading.state === "stale";
   // Ambient skin temperature: drives a background tint on the diagram so
   // the operator can see reentry heating at a glance. Per-part heat tints
   // still show on top. Read straight off `vessel.flight` (the same channel

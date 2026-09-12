@@ -115,11 +115,6 @@ declare module "@ksp-gonogo/core" {
 // Value resolution
 // ---------------------------------------------------------------------------
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -204,7 +199,7 @@ function ActionGroupComponent(
    * declares no reckonable value, so the observation is the only thing that
    * ever fills the pill and a held reading is exactly the empty case.
    */
-  const valueNotCurrent = notCurrent(controlReading);
+  const valueNotCurrent = controlReading.state === "stale";
   const observed =
     controlReading.state === "observed" ? controlReading.value : undefined;
   const value = resolveGroupValue(group, observed);

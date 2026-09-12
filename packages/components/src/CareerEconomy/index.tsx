@@ -5,7 +5,6 @@ import {
   registerComponent,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import { NULL_DISPLAY, Panel, Section, Unit } from "@ksp-gonogo/ui-kit";
 import styled from "styled-components";
@@ -29,11 +28,6 @@ const topics = defineTopicManifest({
 });
 
 type CareerEconomyConfig = Record<string, never>;
-
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
 
 /**
  * Every upkeep source the wire can carry, in the order they are read out.
@@ -76,7 +70,7 @@ function CareerEconomyComponent({ w, h }: ComponentProps<CareerEconomyConfig>) {
     careerReading.state === "observed"
       ? careerReading.value.economy
       : undefined;
-  const stale = notCurrent(careerReading);
+  const stale = careerReading.state === "stale";
 
   const funds = magnitudeOf(economy?.funds);
   const reputation = magnitudeOf(economy?.reputation);

@@ -4,7 +4,6 @@ import {
   defineTopicManifest,
   registerComponent,
 } from "@ksp-gonogo/core";
-import type { Reading } from "@ksp-gonogo/sitrep-client";
 import { value } from "@ksp-gonogo/sitrep-sdk";
 import {
   EmptyState,
@@ -64,11 +63,6 @@ const isSentinelK = (k: number | undefined): boolean =>
  * - critical  ≥ 97% (overheat imminent)
  */
 type Band = "unknown" | "nominal" | "warm" | "hot" | "critical";
-
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
 
 /**
  * `unknown` exists so an unarrived ratio never answers "nominal". A green
@@ -185,7 +179,7 @@ function ThermalStatusComponent({
    * reckonable value, so the observation is the only record the bands are ever
    * worked out from and a held reading leaves nothing to hide behind a notice.
    */
-  const thermalNotCurrent = notCurrent(thermalReading);
+  const thermalNotCurrent = thermalReading.state === "stale";
   const rawHottestName = thermal?.hottestPart?.name;
   const rawHottestTempK = thermal?.hottestPart?.skinTemp;
   const rawHottestMaxK = thermal?.hottestPart?.skinMaxTemp;

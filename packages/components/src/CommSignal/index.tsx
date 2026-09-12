@@ -6,11 +6,7 @@ import {
   useContributions,
   useTelemetry,
 } from "@ksp-gonogo/core";
-import {
-  type Reading,
-  useStream,
-  type VesselState,
-} from "@ksp-gonogo/sitrep-client";
+import { useStream, type VesselState } from "@ksp-gonogo/sitrep-client";
 import { type CommsHop, type Value, value } from "@ksp-gonogo/sitrep-sdk";
 import {
   Cluster,
@@ -66,11 +62,6 @@ declare module "@ksp-gonogo/core" {
   interface SlotRegistry {
     "comm-signal.sections": Record<string, never>;
   }
-}
-
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
 }
 
 /**
@@ -162,7 +153,8 @@ function CommSignalComponent({
     commsReading.state === "observed"
       ? commsReading.value.signalStrength
       : undefined;
-  const linkNotCurrent = notCurrent(linkReading) || notCurrent(commsReading);
+  const linkNotCurrent =
+    linkReading.state === "stale" || commsReading.state === "stale";
   const vesselState = useStream<VesselState>("vessel.state");
   // Collapse the derived channel's `null` (comms unknown this tick) to
   // `undefined` so the empty-state + `describeControl` semantics match the

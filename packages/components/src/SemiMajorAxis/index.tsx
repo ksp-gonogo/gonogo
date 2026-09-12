@@ -30,11 +30,6 @@ type SemiMajorAxisConfig = Record<string, never>;
 
 const SPARK_WINDOW_SEC = 300;
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -82,7 +77,7 @@ function SemiMajorAxisComponent({
   const sma = stillTrue(orbitReading, undefined)?.sma;
   // Held rather than never-seen: only `stale` reads as "the link went quiet",
   // and a cold start must not accuse it.
-  const smaHeld = notCurrent(orbitReading);
+  const smaHeld = orbitReading.state === "stale";
   const controlFrame = useStream<ControlFrame>("system.frame");
   const lengthsPulsate = lengthsAreLengths(controlFrame) === "invalid";
   // Age of the observation against the FRAME's view time, never a wall clock:

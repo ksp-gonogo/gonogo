@@ -858,12 +858,17 @@ export function observedValue<T>(
  * The band a reckoning offers for one path, or `undefined` where it offers
  * none. `""` is the payload root, which is what a scalar topic's band is under.
  *
- * A one-line lookup, exported because the alternative is thirty-nine widgets
- * writing `reading.reckoned.bands?.[""]` and each deciding for itself what an
- * absent map means. It is also the only place the default path is written
- * down: a caller that forgets `""` and passes the field name of a scalar topic
- * gets `undefined` and draws no band, which is a silent downgrade rather than
- * an error.
+ * A one-line lookup, and exported for the one case a typed accessor cannot
+ * serve: a path COMPOSED AT RUNTIME, as a model keyed by collection index does
+ * (`` `${kerbal}.rules.${index}.value` ``). Reach a band on a known field
+ * through the primitive that draws it instead; a widget hand-writing
+ * `reading.reckoned.bands?.["field"]` is deciding for itself both what an
+ * absent map means and what unit the band came in, and the second of those is
+ * `bandIn`'s job.
+ *
+ * It is also the only place the default path is written down: a caller that
+ * forgets `""` and passes the field name of a scalar topic gets `undefined` and
+ * draws no band, which is a silent downgrade rather than an error.
  */
 export function bandFor(
   reckoning: { readonly bands?: ReckonedBands },

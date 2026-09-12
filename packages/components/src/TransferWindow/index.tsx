@@ -154,11 +154,6 @@ const fmtCountdown = (sec: number): string => {
   return `in ${(d / kspYearDays()).toFixed(1)} y`;
 };
 
-/** Whether a reading went stale, as opposed to never having arrived. */
-function notCurrent<T>(reading: Reading<T>): boolean {
-  return reading.state === "stale";
-}
-
 /**
  * The value of a FACT: something that stays true until an event changes it, and no
  * event can reach us down a link that is not delivering. `whenConfirmedNothing` is
@@ -203,7 +198,7 @@ function TransferWindowComponent({
    */
   const orbitReading = topics.useTelemetry("vessel.orbit");
   const orbit = stillTrue(orbitReading, undefined);
-  const orbitNotCurrent = notCurrent(orbitReading);
+  const orbitNotCurrent = orbitReading.state === "stale";
   /**
    * "This vessel is not in an orbit" and "no orbit has reached us yet" are
    * different sentences. The pre-migration gate was `!orbit` and said "waiting" to
